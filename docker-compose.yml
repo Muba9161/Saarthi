@@ -1,0 +1,45 @@
+# Saarthi local infrastructure.
+# Optional: if you already run PostgreSQL/Redis natively, skip this file and
+# point DATABASE_URL / REDIS_URL at your local services instead.
+#
+#   docker compose up -d
+#
+name: saarthi
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: saarthi-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: saarthi
+    ports:
+      - '5432:5432'
+    volumes:
+      - saarthi-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d saarthi']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    container_name: saarthi-redis
+    restart: unless-stopped
+    command: ['redis-server', '--appendonly', 'yes']
+    ports:
+      - '6379:6379'
+    volumes:
+      - saarthi-redis-data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  saarthi-postgres-data:
+  saarthi-redis-data:

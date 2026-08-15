@@ -1,0 +1,1692 @@
+// Saarthi database schema.
+//
+// Conventions:
+//  * UUID primary keys (non-sequential, safe to expose in URLs).
+//  * Every table carries createdAt/updatedAt.
+//  * Tenant-owned tables carry organizationId and index it.
+//  * Deletion is soft (archivedAt/deletedAt) wherever the record must remain
+//    auditable; hard deletes are reserved for genuinely disposable rows.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ===========================================================================
+// Enums — identity & access
+// ===========================================================================
+
+enum RoleName {
+  PLATFORM_ADMIN
+  FLEET_OWNER
+  FLEET_MANAGER
+  DISPATCHER
+  DRIVER
+  SUPPLIER
+  CUSTOMER
+  SUPPORT_AGENT
+}
+
+enum UserStatus {
+  ACTIVE
+  PENDING
+  SUSPENDED
+  DISABLED
+}
+
+enum OrganizationType {
+  PLATFORM
+  FLEET_OWNER
+  SUPPLIER
+  CUSTOMER
+  ENTERPRISE
+}
+
+enum MembershipStatus {
+  ACTIVE
+  INVITED
+  SUSPENDED
+  REMOVED
+}
+
+enum VerificationStatus {
+  PENDING
+  SUBMITTED
+  UNDER_REVIEW
+  VERIFIED
+  REJECTED
+  EXPIRED
+  SUSPENDED
+}
+
+// ===========================================================================
+// Identity & access
+// ===========================================================================
+
+model User {
+  id           String     @id @default(uuid()) @db.Uuid
+  email        String     @unique
+  phone        String?    @unique
+  passwordHash String
+  firstName    String
+  lastName     String
+  avatarUrl    String?
+  status       UserStatus @default(ACTIVE)
+  lastLoginAt  DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  roles          UserRole[]
+  memberships    Membership[]
+  sessions       Session[]
+  passwordResets PasswordResetToken[]
+  auditLogs      AuditLog[]           @relation("AuditActor")
+  driverProfile  Driver?              @relation("DriverUser")
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("users")
+}
+
+model Role {
+  id          String     @id @default(uuid()) @db.Uuid
+  name        RoleName   @unique
+  description String
+  createdAt   DateTime   @default(now())
+
+  users UserRole[]
+
+  @@map("roles")
+}
+
+model UserRole {
+  userId    String   @db.Uuid
+  roleId    String   @db.Uuid
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@index([roleId])
+  @@map("user_roles")
+}
+
+model Organization {
+  id                 String             @id @default(uuid()) @db.Uuid
+  name               String
+  type               OrganizationType
+  registrationNumber String?
+  taxNumber          String?
+  email              String?
+  phone              String?
+  addressLine        String?
+  city               String?
+  state              String?
+  postalCode         String?
+  latitude           Float?
+  longitude          Float?
+  /// Short human-friendly code drivers use to join this fleet.
+  inviteCode         String             @unique
+  verificationStatus VerificationStatus @default(PENDING)
+  logoUrl            String?
+  description        String?
+  archivedAt         DateTime?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  memberships Membership[]
+  auditLogs   AuditLog[]
+
+  @@index([type])
+  @@index([verificationStatus])
+  @@index([createdAt])
+  @@map("organizations")
+}
+
+model Membership {
+  id             String           @id @default(uuid()) @db.Uuid
+  userId         String           @db.Uuid
+  organizationId String           @db.Uuid
+  role           RoleName
+  status         MembershipStatus @default(ACTIVE)
+  /// The member's default organization when they belong to several.
+  isPrimary      Boolean          @default(false)
+  invitedById    String?          @db.Uuid
+  joinedAt       DateTime         @default(now())
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+  @@index([organizationId, status])
+  @@index([userId, status])
+  @@map("memberships")
+}
+
+/// A refresh-token bearing session. Revoking a row invalidates the device.
+model Session {
+  id             String    @id @default(uuid()) @db.Uuid
+  userId         String    @db.Uuid
+  /// SHA-256 of the refresh token — the raw token is never stored.
+  refreshTokenHash String  @unique
+  organizationId String?   @db.Uuid
+  userAgent      String?
+  ipAddress      String?
+  expiresAt      DateTime
+  revokedAt      DateTime?
+  lastUsedAt     DateTime  @default(now())
+  createdAt      DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("password_reset_tokens")
+}
+
+// ===========================================================================
+// Audit
+// ===========================================================================
+
+model AuditLog {
+  id             String   @id @default(uuid()) @db.Uuid
+  actorUserId    String?  @db.Uuid
+  organizationId String?  @db.Uuid
+  action         String
+  entityType     String
+  entityId       String?
+  beforeData     Json?
+  afterData      Json?
+  ipAddress      String?
+  userAgent      String?
+  requestId      String?
+  createdAt      DateTime @default(now())
+
+  actor        User?         @relation("AuditActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, createdAt])
+  @@index([entityType, entityId])
+  @@index([actorUserId, createdAt])
+  @@index([action])
+  @@map("audit_logs")
+}
+
+// ===========================================================================
+// Enums — subscriptions & notifications
+// ===========================================================================
+
+enum PlanTier {
+  BASIC
+  PRO
+  INTELLIGENCE
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  EXPIRED
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  SMS
+  PUSH
+}
+
+enum NotificationPriority {
+  LOW
+  NORMAL
+  HIGH
+  CRITICAL
+}
+
+enum NotificationType {
+  DOCUMENT_EXPIRING
+  DOCUMENT_EXPIRED
+  DOCUMENT_VERIFIED
+  DOCUMENT_REJECTED
+  VERIFICATION_RESULT
+  ORDER_CREATED
+  ORDER_QUOTED
+  ORDER_UPDATED
+  ORDER_DELIVERED
+  TRIP_ASSIGNED
+  TRIP_STARTED
+  TRIP_DELAYED
+  TRIP_COMPLETED
+  ROUTE_DEVIATION
+  SOS_TRIGGERED
+  SOS_RESPONDER_REQUEST
+  SOS_UPDATE
+  SOS_RESOLVED
+  MAINTENANCE_DUE
+  MAINTENANCE_OVERDUE
+  DRIVER_SCORE_CHANGED
+  ACHIEVEMENT_UNLOCKED
+  SUBSCRIPTION_UPDATED
+  SECURITY_ALERT
+  SYSTEM
+}
+
+// ===========================================================================
+// Subscriptions & entitlements
+// ===========================================================================
+
+model SubscriptionPlan {
+  id           String   @id @default(uuid()) @db.Uuid
+  tier         PlanTier @unique
+  name         String
+  description  String
+  /// Monthly price in INR. Null means custom/negotiated pricing.
+  priceMonthly Decimal? @db.Decimal(12, 2)
+  priceYearly  Decimal? @db.Decimal(12, 2)
+  active       Boolean  @default(true)
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  planFeatures  PlanFeature[]
+  subscriptions Subscription[]
+
+  @@map("subscription_plans")
+}
+
+model FeatureDefinition {
+  id          String   @id @default(uuid()) @db.Uuid
+  key         String   @unique
+  name        String
+  description String
+  createdAt   DateTime @default(now())
+
+  planFeatures PlanFeature[]
+
+  @@map("features")
+}
+
+model PlanFeature {
+  planId    String   @db.Uuid
+  featureId String   @db.Uuid
+  /// Optional numeric/structural limits for this feature on this plan.
+  limits    Json?
+  createdAt DateTime @default(now())
+
+  plan    SubscriptionPlan  @relation(fields: [planId], references: [id], onDelete: Cascade)
+  feature FeatureDefinition @relation(fields: [featureId], references: [id], onDelete: Cascade)
+
+  @@id([planId, featureId])
+  @@index([featureId])
+  @@map("plan_features")
+}
+
+model Subscription {
+  id             String             @id @default(uuid()) @db.Uuid
+  organizationId String             @db.Uuid
+  planId         String             @db.Uuid
+  status         SubscriptionStatus @default(TRIALING)
+  startsAt       DateTime           @default(now())
+  endsAt         DateTime?
+  cancelledAt    DateTime?
+  /// Populated by the payment provider abstraction (mock locally).
+  externalRef    String?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  plan SubscriptionPlan @relation(fields: [planId], references: [id])
+
+  @@unique([organizationId])
+  @@index([status])
+  @@index([planId])
+  @@map("subscriptions")
+}
+
+// ===========================================================================
+// Notifications
+// ===========================================================================
+
+model Notification {
+  id             String               @id @default(uuid()) @db.Uuid
+  userId         String               @db.Uuid
+  organizationId String?              @db.Uuid
+  type           NotificationType
+  title          String
+  body           String
+  priority       NotificationPriority @default(NORMAL)
+  data           Json?
+  /// Deep link the client opens when the notification is clicked.
+  actionUrl      String?
+  readAt         DateTime?
+  createdAt      DateTime             @default(now())
+
+  @@index([userId, readAt, createdAt])
+  @@index([organizationId, createdAt])
+  @@index([type])
+  @@map("notifications")
+}
+
+model NotificationPreference {
+  id        String              @id @default(uuid()) @db.Uuid
+  userId    String              @db.Uuid
+  channel   NotificationChannel
+  eventType NotificationType
+  enabled   Boolean             @default(true)
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+
+  @@unique([userId, channel, eventType])
+  @@index([userId])
+  @@map("notification_preferences")
+}
+
+/// Outbound delivery attempts made by the notification provider abstraction.
+/// Locally this is the "inbox" that proves email/SMS would have been sent.
+model NotificationDelivery {
+  id             String              @id @default(uuid()) @db.Uuid
+  notificationId String?             @db.Uuid
+  userId         String              @db.Uuid
+  channel        NotificationChannel
+  destination    String
+  subject        String?
+  body           String
+  provider       String
+  success        Boolean             @default(true)
+  error          String?
+  createdAt      DateTime            @default(now())
+
+  @@index([userId, createdAt])
+  @@index([channel, createdAt])
+  @@map("notification_deliveries")
+}
+
+// ===========================================================================
+// Enums — verification, documents & fleet
+// ===========================================================================
+
+enum VerificationSubjectType {
+  USER
+  DRIVER
+  TRUCK
+  ORGANIZATION
+}
+
+enum DocumentOwnerType {
+  USER
+  DRIVER
+  TRUCK
+  ORGANIZATION
+  ORDER
+  TRIP
+}
+
+enum DocumentVerificationStatus {
+  PENDING_VERIFICATION
+  UNDER_REVIEW
+  VERIFIED
+  REJECTED
+}
+
+enum TruckStatus {
+  AVAILABLE
+  ASSIGNED
+  ON_TRIP
+  LOADING
+  UNLOADING
+  IDLE
+  MAINTENANCE
+  OFFLINE
+  EMERGENCY
+  SUSPENDED
+}
+
+enum TruckType {
+  OPEN_BODY
+  CLOSED_CONTAINER
+  TIPPER
+  TRAILER
+  TANKER
+  FLATBED
+  REFRIGERATED
+  MINI_TRUCK
+  MULTI_AXLE
+  OTHER
+}
+
+enum FuelType {
+  DIESEL
+  PETROL
+  CNG
+  LNG
+  ELECTRIC
+  HYBRID
+}
+
+enum AssignmentStatus {
+  ACTIVE
+  ENDED
+}
+
+enum DriverAvailability {
+  AVAILABLE
+  ON_TRIP
+  OFF_DUTY
+  ON_LEAVE
+  SUSPENDED
+}
+
+enum TrackingSource {
+  MOCK
+  DEVICE
+  PROVIDER
+  MANUAL
+}
+
+enum ScoreCategory {
+  SAFETY
+  RELIABILITY
+  TIMELINESS
+  COMPLIANCE
+  VEHICLE_CARE
+}
+
+enum ScoreEventType {
+  TRIP_COMPLETED_ON_TIME
+  TRIP_COMPLETED_LATE
+  TRIP_CANCELLED_BY_DRIVER
+  SPEED_VIOLATION
+  HARSH_BRAKING
+  HARSH_ACCELERATION
+  ROUTE_DEVIATION
+  DOCUMENT_EXPIRED
+  DOCUMENT_RENEWED
+  CUSTOMER_POSITIVE_RATING
+  CUSTOMER_NEGATIVE_RATING
+  INCIDENT
+  MAINTENANCE_REPORTED
+  MAINTENANCE_NEGLECTED
+  SOS_ASSISTANCE_PROVIDED
+  MANUAL_ADJUSTMENT
+}
+
+enum AchievementCode {
+  SAFE_DRIVER
+  ON_TIME_CHAMPION
+  CENTURY_TRIPS
+  ZERO_INCIDENT_STREAK
+  DOCUMENT_PERFECT
+  FUEL_EFFICIENT
+  CUSTOMER_FAVOURITE
+  EMERGENCY_HELPER
+  FIRST_TRIP
+  LONG_HAULER
+}
+
+enum MaintenanceType {
+  PREVENTIVE
+  REPAIR
+  INSPECTION
+  TYRE
+  OIL_CHANGE
+  BRAKE
+  ENGINE
+  ELECTRICAL
+  BODYWORK
+  OTHER
+}
+
+enum MaintenanceStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+// ===========================================================================
+// Verification workflow
+// ===========================================================================
+
+model VerificationCase {
+  id              String                  @id @default(uuid()) @db.Uuid
+  subjectType     VerificationSubjectType
+  subjectId       String                  @db.Uuid
+  organizationId  String?                 @db.Uuid
+  status          VerificationStatus      @default(PENDING)
+  submittedById   String?                 @db.Uuid
+  submittedAt     DateTime?
+  reviewedById    String?                 @db.Uuid
+  reviewedAt      DateTime?
+  rejectionReason String?
+  reviewerNotes   String?
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+
+  documents VerificationDocument[]
+  events    VerificationEvent[]
+
+  @@unique([subjectType, subjectId])
+  @@index([status, createdAt])
+  @@index([organizationId, status])
+  @@map("verification_cases")
+}
+
+model VerificationDocument {
+  id                 String   @id @default(uuid()) @db.Uuid
+  verificationCaseId String   @db.Uuid
+  documentId         String   @db.Uuid
+  createdAt          DateTime @default(now())
+
+  verificationCase VerificationCase @relation(fields: [verificationCaseId], references: [id], onDelete: Cascade)
+  document         Document         @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([verificationCaseId, documentId])
+  @@index([documentId])
+  @@map("verification_documents")
+}
+
+model VerificationEvent {
+  id                 String             @id @default(uuid()) @db.Uuid
+  verificationCaseId String             @db.Uuid
+  status             VerificationStatus
+  actorUserId        String?            @db.Uuid
+  note               String?
+  createdAt          DateTime           @default(now())
+
+  verificationCase VerificationCase @relation(fields: [verificationCaseId], references: [id], onDelete: Cascade)
+
+  @@index([verificationCaseId, createdAt])
+  @@map("verification_events")
+}
+
+// ===========================================================================
+// Documents
+// ===========================================================================
+
+model Document {
+  id                 String                     @id @default(uuid()) @db.Uuid
+  ownerType          DocumentOwnerType
+  ownerId            String                     @db.Uuid
+  /// Tenant that owns the record — every read is scoped by this.
+  organizationId     String?                    @db.Uuid
+  documentType       String
+  documentNumber     String?
+  title              String?
+  issueDate          DateTime?
+  expiryDate         DateTime?
+  storageKey         String
+  fileName           String
+  mimeType           String
+  fileSize           Int
+  checksum           String?
+  verificationStatus DocumentVerificationStatus @default(PENDING_VERIFICATION)
+  rejectionReason    String?
+  verifiedById       String?                    @db.Uuid
+  verifiedAt         DateTime?
+  uploadedById       String                     @db.Uuid
+  currentVersion     Int                        @default(1)
+  deletedAt          DateTime?
+  createdAt          DateTime                   @default(now())
+  updatedAt          DateTime                   @updatedAt
+
+  versions              DocumentVersion[]
+  verificationDocuments VerificationDocument[]
+
+  @@index([ownerType, ownerId, deletedAt])
+  @@index([organizationId, verificationStatus])
+  @@index([expiryDate])
+  @@index([documentType])
+  @@map("documents")
+}
+
+model DocumentVersion {
+  id            String   @id @default(uuid()) @db.Uuid
+  documentId    String   @db.Uuid
+  versionNumber Int
+  storageKey    String
+  fileName      String
+  mimeType      String
+  fileSize      Int
+  checksum      String?
+  uploadedById  String   @db.Uuid
+  note          String?
+  createdAt     DateTime @default(now())
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, versionNumber])
+  @@index([documentId, createdAt])
+  @@map("document_versions")
+}
+
+// ===========================================================================
+// Drivers
+// ===========================================================================
+
+model Driver {
+  id                    String             @id @default(uuid()) @db.Uuid
+  userId                String             @unique @db.Uuid
+  organizationId        String             @db.Uuid
+  licenseNumber         String
+  licenseExpiryDate     DateTime?
+  licenseClass          String?
+  experienceYears       Int                @default(0)
+  dateOfBirth           DateTime?
+  bloodGroup            String?
+  emergencyContactName  String?
+  emergencyContactPhone String?
+  addressLine           String?
+  city                  String?
+  state                 String?
+  postalCode            String?
+  verificationStatus    VerificationStatus @default(PENDING)
+  availability          DriverAvailability @default(AVAILABLE)
+  currentTruckId        String?            @db.Uuid
+  /// Denormalised for fast fleet listings; recomputed by the scoring service.
+  overallScore          Int?
+  totalTrips            Int                @default(0)
+  totalDistanceKm       Float              @default(0)
+  archivedAt            DateTime?
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  user         User                @relation("DriverUser", fields: [userId], references: [id], onDelete: Cascade)
+  assignments  TruckAssignment[]
+  scores       DriverScore[]
+  scoreEvents  DriverScoreEvent[]
+  achievements DriverAchievement[]
+
+  @@unique([organizationId, licenseNumber])
+  @@index([organizationId, availability])
+  @@index([organizationId, verificationStatus])
+  @@index([currentTruckId])
+  @@map("drivers")
+}
+
+model DriverScore {
+  id               String   @id @default(uuid()) @db.Uuid
+  driverId         String   @db.Uuid
+  overallScore     Int
+  safetyScore      Int
+  reliabilityScore Int
+  timelinessScore  Int
+  complianceScore  Int
+  vehicleCareScore Int
+  calculatedAt     DateTime @default(now())
+
+  driver Driver @relation(fields: [driverId], references: [id], onDelete: Cascade)
+
+  @@index([driverId, calculatedAt])
+  @@map("driver_scores")
+}
+
+model DriverScoreEvent {
+  id          String         @id @default(uuid()) @db.Uuid
+  driverId    String         @db.Uuid
+  eventType   ScoreEventType
+  category    ScoreCategory
+  points      Int
+  reason      String
+  sourceType  String?
+  sourceId    String?        @db.Uuid
+  actorUserId String?        @db.Uuid
+  createdAt   DateTime       @default(now())
+
+  driver Driver @relation(fields: [driverId], references: [id], onDelete: Cascade)
+
+  @@index([driverId, createdAt])
+  @@index([eventType])
+  @@map("driver_score_events")
+}
+
+model DriverAchievement {
+  id       String          @id @default(uuid()) @db.Uuid
+  driverId String          @db.Uuid
+  code     AchievementCode
+  earnedAt DateTime        @default(now())
+  /// Progress in the 0-1 range captured at evaluation time.
+  progress Float           @default(1)
+  metadata Json?
+
+  driver Driver @relation(fields: [driverId], references: [id], onDelete: Cascade)
+
+  @@unique([driverId, code])
+  @@index([driverId])
+  @@map("driver_achievements")
+}
+
+// ===========================================================================
+// Trucks & tracking
+// ===========================================================================
+
+model Truck {
+  id                 String             @id @default(uuid()) @db.Uuid
+  organizationId     String             @db.Uuid
+  registrationNumber String             @unique
+  truckType          TruckType
+  manufacturer       String?
+  model              String?
+  year               Int?
+  /// Payload capacity in tonnes.
+  capacityTons       Float
+  fuelType           FuelType           @default(DIESEL)
+  /// Average consumption in litres per 100 km, used for cost estimates.
+  fuelEfficiency     Float?
+  odometerKm         Float              @default(0)
+  status             TruckStatus        @default(AVAILABLE)
+  verificationStatus VerificationStatus @default(PENDING)
+  currentDriverId    String?            @db.Uuid
+  currentTripId      String?            @db.Uuid
+  /// Last known position, denormalised for fast fleet map loads.
+  lastLatitude       Float?
+  lastLongitude      Float?
+  lastSpeedKph       Float?
+  lastHeading        Float?
+  lastLocationAt     DateTime?
+  /// Owner-controlled: may this truck appear in nearby and SOS discovery?
+  shareLocation      Boolean            @default(true)
+  notes              String?
+  archivedAt         DateTime?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  assignments TruckAssignment[]
+  locations   TruckLocation[]
+  events      TruckEvent[]
+  maintenance MaintenanceRecord[]
+  fuelRecords FuelRecord[]
+
+  @@index([organizationId, status])
+  @@index([organizationId, archivedAt])
+  @@index([currentDriverId])
+  @@index([lastLocationAt])
+  @@index([lastLatitude, lastLongitude])
+  @@map("trucks")
+}
+
+model TruckAssignment {
+  id             String           @id @default(uuid()) @db.Uuid
+  truckId        String           @db.Uuid
+  driverId       String           @db.Uuid
+  organizationId String           @db.Uuid
+  status         AssignmentStatus @default(ACTIVE)
+  assignedById   String?          @db.Uuid
+  assignedAt     DateTime         @default(now())
+  unassignedAt   DateTime?
+  note           String?
+
+  truck  Truck  @relation(fields: [truckId], references: [id], onDelete: Cascade)
+  driver Driver @relation(fields: [driverId], references: [id], onDelete: Cascade)
+
+  @@index([truckId, status])
+  @@index([driverId, status])
+  @@index([organizationId, assignedAt])
+  @@map("truck_assignments")
+}
+
+/// High-volume append-only tracking table. Indexed for latest-position and
+/// time-range replay queries.
+model TruckLocation {
+  id             String         @id @default(uuid()) @db.Uuid
+  truckId        String         @db.Uuid
+  organizationId String         @db.Uuid
+  tripId         String?        @db.Uuid
+  driverId       String?        @db.Uuid
+  latitude       Float
+  longitude      Float
+  speedKph       Float          @default(0)
+  heading        Float          @default(0)
+  accuracy       Float?
+  altitude       Float?
+  source         TrackingSource @default(MOCK)
+  /// True when produced by the local simulator — never conflated with real GPS.
+  simulated      Boolean        @default(false)
+  recordedAt     DateTime
+  createdAt      DateTime       @default(now())
+
+  truck Truck @relation(fields: [truckId], references: [id], onDelete: Cascade)
+
+  @@index([truckId, recordedAt])
+  @@index([tripId, recordedAt])
+  @@index([organizationId, recordedAt])
+  @@map("truck_locations")
+}
+
+model TruckEvent {
+  id             String   @id @default(uuid()) @db.Uuid
+  truckId        String   @db.Uuid
+  organizationId String   @db.Uuid
+  type           String
+  description    String?
+  metadata       Json?
+  actorUserId    String?  @db.Uuid
+  createdAt      DateTime @default(now())
+
+  truck Truck @relation(fields: [truckId], references: [id], onDelete: Cascade)
+
+  @@index([truckId, createdAt])
+  @@index([organizationId, createdAt])
+  @@map("truck_events")
+}
+
+// ===========================================================================
+// Maintenance & fuel
+// ===========================================================================
+
+model MaintenanceRecord {
+  id                String            @id @default(uuid()) @db.Uuid
+  truckId           String            @db.Uuid
+  organizationId    String            @db.Uuid
+  type              MaintenanceType
+  title             String
+  description       String?
+  odometerKm        Float?
+  cost              Decimal?          @db.Decimal(12, 2)
+  status            MaintenanceStatus @default(SCHEDULED)
+  scheduledAt       DateTime?
+  startedAt         DateTime?
+  completedAt       DateTime?
+  serviceProvider   String?
+  /// Odometer reading at which the next service of this type falls due.
+  nextDueOdometerKm Float?
+  nextDueAt         DateTime?
+  createdById       String?           @db.Uuid
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  truck Truck @relation(fields: [truckId], references: [id], onDelete: Cascade)
+
+  @@index([truckId, status])
+  @@index([organizationId, status, scheduledAt])
+  @@index([nextDueAt])
+  @@map("maintenance_records")
+}
+
+model FuelRecord {
+  id             String   @id @default(uuid()) @db.Uuid
+  truckId        String   @db.Uuid
+  organizationId String   @db.Uuid
+  tripId         String?  @db.Uuid
+  driverId       String?  @db.Uuid
+  quantityLitres Float
+  pricePerUnit   Decimal  @db.Decimal(10, 2)
+  totalCost      Decimal  @db.Decimal(12, 2)
+  odometerKm     Float?
+  stationName    String?
+  latitude       Float?
+  longitude      Float?
+  recordedAt     DateTime @default(now())
+  createdById    String?  @db.Uuid
+  createdAt      DateTime @default(now())
+
+  truck Truck @relation(fields: [truckId], references: [id], onDelete: Cascade)
+
+  @@index([truckId, recordedAt])
+  @@index([organizationId, recordedAt])
+  @@index([tripId])
+  @@map("fuel_records")
+}
+
+// ===========================================================================
+// Enums — marketplace & operations
+// ===========================================================================
+
+enum MaterialUnit {
+  TON
+  KG
+  CUBIC_METER
+  LITRE
+  PIECE
+  BAG
+  TRIP
+}
+
+enum MaterialStatus {
+  ACTIVE
+  INACTIVE
+  OUT_OF_STOCK
+}
+
+enum OrderStatus {
+  DRAFT
+  REQUESTED
+  QUOTED
+  CONFIRMED
+  ASSIGNED
+  PICKUP
+  IN_TRANSIT
+  DELIVERED
+  COMPLETED
+  CANCELLED
+  FAILED
+}
+
+enum OrderEventType {
+  CREATED
+  QUOTE_ADDED
+  QUOTE_WITHDRAWN
+  QUOTE_ACCEPTED
+  CONFIRMED
+  ASSIGNED
+  STATUS_CHANGED
+  TRIP_CREATED
+  PICKED_UP
+  IN_TRANSIT
+  DELIVERED
+  COMPLETED
+  CANCELLED
+  FAILED
+  RATED
+  NOTE
+}
+
+enum QuoteStatus {
+  OFFERED
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+  EXPIRED
+}
+
+enum TripStatus {
+  DRAFT
+  ASSIGNED
+  LOADING
+  STARTED
+  IN_TRANSIT
+  DELAYED
+  ARRIVED
+  UNLOADING
+  COMPLETED
+  CANCELLED
+  EMERGENCY
+  SUSPENDED
+}
+
+enum TripEventType {
+  CREATED
+  ASSIGNED
+  STATUS_CHANGED
+  LOADING_STARTED
+  DEPARTED
+  LOCATION_UPDATE
+  STOP_STARTED
+  STOP_ENDED
+  ROUTE_DEVIATION
+  SPEED_VIOLATION
+  HARSH_BRAKING
+  HARSH_ACCELERATION
+  DELAY_DETECTED
+  ARRIVED
+  UNLOADING_STARTED
+  COMPLETED
+  CANCELLED
+  EMERGENCY
+  NOTE
+}
+
+enum TripStopType {
+  ORIGIN
+  DESTINATION
+  WAYPOINT
+  REST
+  FUEL
+  CHECKPOINT
+}
+
+enum TripStopStatus {
+  PENDING
+  ARRIVED
+  DEPARTED
+  SKIPPED
+}
+
+// ===========================================================================
+// Suppliers, materials & customers
+// ===========================================================================
+
+model Supplier {
+  id                  String             @id @default(uuid()) @db.Uuid
+  organizationId      String             @unique @db.Uuid
+  businessDescription String?
+  /// Primary yard/depot the materials are dispatched from.
+  addressLine         String?
+  city                String?
+  state               String?
+  postalCode          String?
+  latitude            Float?
+  longitude           Float?
+  contactName         String?
+  contactPhone        String?
+  verificationStatus  VerificationStatus @default(PENDING)
+  rating              Float?
+  ratingCount         Int                @default(0)
+  archivedAt          DateTime?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+
+  materials Material[]
+
+  @@index([verificationStatus])
+  @@map("suppliers")
+}
+
+model Material {
+  id                String         @id @default(uuid()) @db.Uuid
+  supplierId        String         @db.Uuid
+  organizationId    String         @db.Uuid
+  name              String
+  category          String?
+  description       String?
+  unit              MaterialUnit   @default(TON)
+  pricePerUnit      Decimal        @db.Decimal(12, 2)
+  availableQuantity Float          @default(0)
+  minimumOrderQty   Float          @default(1)
+  status            MaterialStatus @default(ACTIVE)
+  imageUrl          String?
+  /// Pickup point for this material, defaults to the supplier yard.
+  pickupAddress     String?
+  pickupLatitude    Float?
+  pickupLongitude   Float?
+  archivedAt        DateTime?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  supplier Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  orders   Order[]
+
+  @@index([supplierId, status])
+  @@index([organizationId, status])
+  @@index([category])
+  @@index([name])
+  @@map("materials")
+}
+
+model Customer {
+  id                 String             @id @default(uuid()) @db.Uuid
+  organizationId     String             @unique @db.Uuid
+  primaryUserId      String?            @db.Uuid
+  businessType       String?
+  addressLine        String?
+  city               String?
+  state              String?
+  postalCode         String?
+  latitude           Float?
+  longitude          Float?
+  verificationStatus VerificationStatus @default(PENDING)
+  totalOrders        Int                @default(0)
+  archivedAt         DateTime?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  orders Order[]
+
+  @@index([verificationStatus])
+  @@map("customers")
+}
+
+// ===========================================================================
+// Orders
+// ===========================================================================
+
+model Order {
+  id             String @id @default(uuid()) @db.Uuid
+  /// Human-friendly reference shown in the UI, e.g. SO-2026-000123.
+  reference      String @unique
+  customerId     String @db.Uuid
+  /// Tenant of the customer who raised the requirement.
+  customerOrganizationId String @db.Uuid
+
+  /// Material sourcing is optional: a customer may already own the goods and
+  /// need transport only.
+  materialId             String?  @db.Uuid
+  supplierOrganizationId String?  @db.Uuid
+
+  /// Fleet that won the order. Null until a quote is accepted.
+  fleetOrganizationId String? @db.Uuid
+
+  materialName String
+  quantity     Float
+  unit         MaterialUnit @default(TON)
+
+  materialPrice  Decimal? @db.Decimal(12, 2)
+  transportPrice Decimal? @db.Decimal(12, 2)
+  totalPrice     Decimal? @db.Decimal(12, 2)
+  /// Optional customer budget used for matching and quote ranking.
+  budget         Decimal? @db.Decimal(12, 2)
+
+  originAddress        String
+  originLatitude       Float
+  originLongitude      Float
+  destinationAddress   String
+  destinationLatitude  Float
+  destinationLongitude Float
+  distanceKm           Float?
+
+  requiredCapacityTons Float
+  requiredTruckType    TruckType?
+  pickupAt             DateTime?
+  deliverBy            DateTime?
+
+  status           OrderStatus @default(REQUESTED)
+  assignedTruckId  String?     @db.Uuid
+  assignedDriverId String?     @db.Uuid
+  tripId           String?     @unique @db.Uuid
+
+  notes           String?
+  cancellationReason String?
+  createdById     String   @db.Uuid
+  confirmedAt     DateTime?
+  deliveredAt     DateTime?
+  completedAt     DateTime?
+  cancelledAt     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  customer Customer  @relation(fields: [customerId], references: [id])
+  material Material? @relation(fields: [materialId], references: [id])
+  trip     Trip?     @relation("OrderTrip", fields: [tripId], references: [id])
+  quotes   OrderQuote[]
+  events   OrderEvent[]
+  rating   OrderRating?
+
+  @@index([customerOrganizationId, status, createdAt])
+  @@index([supplierOrganizationId, status])
+  @@index([fleetOrganizationId, status])
+  @@index([status, createdAt])
+  @@index([assignedTruckId])
+  @@map("orders")
+}
+
+model OrderQuote {
+  id                  String      @id @default(uuid()) @db.Uuid
+  orderId             String      @db.Uuid
+  /// Fleet organization offering transport for this requirement.
+  fleetOrganizationId String      @db.Uuid
+  truckId             String?     @db.Uuid
+  driverId            String?     @db.Uuid
+  price               Decimal     @db.Decimal(12, 2)
+  estimatedPickupAt   DateTime?
+  estimatedArrivalAt  DateTime?
+  /// Distance from the truck's current position to the pickup point.
+  distanceToPickupKm  Float?
+  message             String?
+  status              QuoteStatus @default(OFFERED)
+  expiresAt           DateTime?
+  createdById         String      @db.Uuid
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@unique([orderId, fleetOrganizationId, truckId])
+  @@index([orderId, status])
+  @@index([fleetOrganizationId, status])
+  @@map("order_quotes")
+}
+
+model OrderEvent {
+  id          String         @id @default(uuid()) @db.Uuid
+  orderId     String         @db.Uuid
+  type        OrderEventType
+  description String
+  metadata    Json?
+  actorUserId String?        @db.Uuid
+  createdAt   DateTime       @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId, createdAt])
+  @@map("order_events")
+}
+
+model OrderRating {
+  id            String   @id @default(uuid()) @db.Uuid
+  orderId       String   @unique @db.Uuid
+  driverId      String?  @db.Uuid
+  fleetOrganizationId String? @db.Uuid
+  supplierOrganizationId String? @db.Uuid
+  /// 1-5 stars.
+  rating        Int
+  punctuality   Int?
+  communication Int?
+  cargoCondition Int?
+  comment       String?
+  ratedByUserId String   @db.Uuid
+  createdAt     DateTime @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([driverId])
+  @@index([fleetOrganizationId])
+  @@map("order_ratings")
+}
+
+// ===========================================================================
+// Trips
+// ===========================================================================
+
+model Trip {
+  id             String @id @default(uuid()) @db.Uuid
+  reference      String @unique
+  /// Fleet tenant that operates this trip.
+  organizationId String @db.Uuid
+  truckId        String @db.Uuid
+  driverId       String? @db.Uuid
+
+  originAddress        String
+  originLatitude       Float
+  originLongitude      Float
+  destinationAddress   String
+  destinationLatitude  Float
+  destinationLongitude Float
+
+  /// Planned route polyline as [{ latitude, longitude }, ...].
+  plannedRoute      Json?
+  plannedDistanceKm Float?
+  actualDistanceKm  Float   @default(0)
+  plannedDurationMin Int?
+  actualDurationMin  Int?
+
+  plannedStartAt   DateTime?
+  actualStartAt    DateTime?
+  plannedArrivalAt DateTime?
+  actualArrivalAt  DateTime?
+  /// Continuously updated by the tracking pipeline while the trip is moving.
+  etaAt            DateTime?
+  delayMinutes     Int        @default(0)
+
+  status TripStatus @default(DRAFT)
+  price  Decimal?   @db.Decimal(12, 2)
+  expenses Decimal? @db.Decimal(12, 2)
+  notes  String?
+
+  cancellationReason String?
+  createdById        String   @db.Uuid
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  order  Order?      @relation("OrderTrip")
+  events TripEvent[]
+  stops  TripStop[]
+
+  @@index([organizationId, status, createdAt])
+  @@index([truckId, status])
+  @@index([driverId, status])
+  @@index([status])
+  @@map("trips")
+}
+
+model TripEvent {
+  id          String        @id @default(uuid()) @db.Uuid
+  tripId      String        @db.Uuid
+  type        TripEventType
+  description String?
+  latitude    Float?
+  longitude   Float?
+  metadata    Json?
+  actorUserId String?       @db.Uuid
+  createdAt   DateTime      @default(now())
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@index([tripId, createdAt])
+  @@index([type])
+  @@map("trip_events")
+}
+
+model TripStop {
+  id              String         @id @default(uuid()) @db.Uuid
+  tripId          String         @db.Uuid
+  type            TripStopType
+  name            String
+  address         String?
+  latitude        Float
+  longitude       Float
+  sequence        Int
+  plannedArrival  DateTime?
+  actualArrival   DateTime?
+  actualDeparture DateTime?
+  status          TripStopStatus @default(PENDING)
+  note            String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@unique([tripId, sequence])
+  @@index([tripId, status])
+  @@map("trip_stops")
+}
+
+// ===========================================================================
+// Enums — safety, nearby, AI & simulation
+// ===========================================================================
+
+enum SosType {
+  MEDICAL
+  ACCIDENT
+  BREAKDOWN
+  TYRE
+  FUEL
+  SECURITY
+  OTHER
+}
+
+enum SosStatus {
+  TRIGGERED
+  BROADCASTING
+  ACKNOWLEDGED
+  HELP_ASSIGNED
+  ASSISTANCE_ARRIVED
+  RESOLVED
+  CANCELLED
+}
+
+enum SosResponderStatus {
+  NOTIFIED
+  ACKNOWLEDGED
+  ASSIGNED
+  DECLINED
+  ARRIVED
+  COMPLETED
+}
+
+enum SosEventType {
+  TRIGGERED
+  BROADCAST_STARTED
+  RESPONDER_NOTIFIED
+  RESPONDER_ACKNOWLEDGED
+  RESPONDER_DECLINED
+  HELP_ASSIGNED
+  ASSISTANCE_ARRIVED
+  RADIUS_EXPANDED
+  RESOLVED
+  CANCELLED
+  NOTE
+}
+
+enum NearbyCategory {
+  FUEL
+  FOOD
+  PARKING
+  WORKSHOP
+  TYRE_SHOP
+  HOSPITAL
+  PHARMACY
+  POLICE
+  REST_AREA
+  CHARGING
+  WEIGHBRIDGE
+  OTHER
+}
+
+enum AiInsightType {
+  SUMMARY
+  RECOMMENDATION
+  WARNING
+  FORECAST
+  EXPLANATION
+  ACTION_SUGGESTION
+}
+
+enum AiMessageRole {
+  USER
+  ASSISTANT
+  SYSTEM
+}
+
+enum SimulationStatus {
+  IDLE
+  RUNNING
+  PAUSED
+  STOPPED
+  COMPLETED
+}
+
+// ===========================================================================
+// SOS / emergency network
+// ===========================================================================
+
+model SosIncident {
+  id             String    @id @default(uuid()) @db.Uuid
+  reference      String    @unique
+  organizationId String    @db.Uuid
+  driverId       String?   @db.Uuid
+  truckId        String?   @db.Uuid
+  tripId         String?   @db.Uuid
+  triggeredByUserId String @db.Uuid
+
+  type        SosType
+  status      SosStatus @default(TRIGGERED)
+  latitude    Float
+  longitude   Float
+  address     String?
+  description String?
+  /// Current broadcast radius in metres; expands when nobody responds.
+  searchRadiusMeters Int @default(5000)
+  contactPhone String?
+
+  acknowledgedAt DateTime?
+  assignedAt     DateTime?
+  arrivedAt      DateTime?
+  resolvedAt     DateTime?
+  resolvedByUserId String? @db.Uuid
+  resolutionNote String?
+
+  triggeredAt DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  responders SosResponder[]
+  events     SosEvent[]
+
+  @@index([organizationId, status, triggeredAt])
+  @@index([status, triggeredAt])
+  @@index([driverId])
+  @@index([tripId])
+  @@map("sos_incidents")
+}
+
+model SosResponder {
+  id             String             @id @default(uuid()) @db.Uuid
+  incidentId     String             @db.Uuid
+  truckId        String             @db.Uuid
+  driverId       String             @db.Uuid
+  organizationId String             @db.Uuid
+  distanceKm     Float
+  status         SosResponderStatus @default(NOTIFIED)
+  notifiedAt     DateTime           @default(now())
+  acknowledgedAt DateTime?
+  declinedAt     DateTime?
+  arrivedAt      DateTime?
+  completedAt    DateTime?
+  note           String?
+
+  incident SosIncident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  @@unique([incidentId, truckId])
+  @@index([incidentId, status])
+  @@index([driverId, status])
+  @@map("sos_responders")
+}
+
+model SosEvent {
+  id          String       @id @default(uuid()) @db.Uuid
+  incidentId  String       @db.Uuid
+  eventType   SosEventType
+  description String?
+  actorUserId String?      @db.Uuid
+  metadata    Json?
+  createdAt   DateTime     @default(now())
+
+  incident SosIncident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  @@index([incidentId, createdAt])
+  @@map("sos_events")
+}
+
+// ===========================================================================
+// Nearby services (local POI dataset; replaced by a map provider in production)
+// ===========================================================================
+
+model NearbyPlace {
+  id          String         @id @default(uuid()) @db.Uuid
+  /// Stable id from the source provider, used for idempotent imports.
+  externalId  String?
+  category    NearbyCategory
+  name        String
+  address     String?
+  city        String?
+  state       String?
+  latitude    Float
+  longitude   Float
+  phone       String?
+  /// Free-form provider attributes: opening hours, amenities, fuel brands.
+  attributes  Json?
+  rating      Float?
+  open24Hours Boolean        @default(false)
+  source      String         @default("local")
+  active      Boolean        @default(true)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@unique([source, externalId])
+  @@index([category, active])
+  @@index([latitude, longitude])
+  @@map("nearby_places")
+}
+
+// ===========================================================================
+// AI
+// ===========================================================================
+
+model AiConversation {
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @db.Uuid
+  organizationId String?  @db.Uuid
+  title          String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  messages AiMessage[]
+
+  @@index([userId, updatedAt])
+  @@index([organizationId, updatedAt])
+  @@map("ai_conversations")
+}
+
+model AiMessage {
+  id             String        @id @default(uuid()) @db.Uuid
+  conversationId String        @db.Uuid
+  role           AiMessageRole
+  content        String
+  /// Records which datasets the answer was grounded in, for transparency.
+  contextSummary Json?
+  provider       String?
+  model          String?
+  tokensUsed     Int?
+  latencyMs      Int?
+  createdAt      DateTime      @default(now())
+
+  conversation AiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@map("ai_messages")
+}
+
+model AiInsight {
+  id             String        @id @default(uuid()) @db.Uuid
+  organizationId String        @db.Uuid
+  type           AiInsightType
+  category       String
+  title          String
+  body           String
+  /// Records referenced by this insight, so the UI can deep-link to them.
+  references     Json?
+  severity       String        @default("info")
+  /// Distinguishes a recorded fact from a calculation, prediction or advice.
+  basis          String        @default("calculated")
+  validUntil     DateTime?
+  dismissedAt    DateTime?
+  createdAt      DateTime      @default(now())
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, type, dismissedAt])
+  @@map("ai_insights")
+}
+
+model AiUsage {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String?  @db.Uuid
+  userId         String   @db.Uuid
+  provider       String
+  model          String
+  operation      String
+  tokensIn       Int      @default(0)
+  tokensOut      Int      @default(0)
+  latencyMs      Int      @default(0)
+  success        Boolean  @default(true)
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId, createdAt])
+  @@index([userId, createdAt])
+  @@map("ai_usage")
+}
+
+// ===========================================================================
+// GPS simulation (demo mode only — never enabled in production)
+// ===========================================================================
+
+model Simulation {
+  id             String           @id @default(uuid()) @db.Uuid
+  organizationId String           @db.Uuid
+  truckId        String           @db.Uuid
+  tripId         String?          @db.Uuid
+  status         SimulationStatus @default(IDLE)
+  /// Route being driven as [{ latitude, longitude }, ...].
+  route          Json
+  routeDistanceKm Float           @default(0)
+  /// Metres already covered along the route.
+  progressMeters Float            @default(0)
+  baseSpeedKph   Float            @default(45)
+  speedMultiplier Float           @default(1)
+  /// Injected behaviours: random stops, delays, deviation, connectivity loss.
+  behaviours     Json?
+  deviationActive Boolean         @default(false)
+  startedAt      DateTime?
+  pausedAt       DateTime?
+  stoppedAt      DateTime?
+  completedAt    DateTime?
+  lastTickAt     DateTime?
+  createdById    String           @db.Uuid
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@index([organizationId, status])
+  @@index([truckId, status])
+  @@index([status])
+  @@map("simulations")
+}

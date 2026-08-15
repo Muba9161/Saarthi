@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cat)",
+      "Bash(bash /tmp/go_test.sh)",
+      "Bash(bash /tmp/rust_analysis.sh)",
+      "Skill(artifact-design)",
+      "Skill(artifact-design:*)",
+      "Bash(npm -v)",
+      "Bash(npx tsc *)",
+      "Bash(echo \"TYPECHECK_EXIT=$?\")",
+      "Bash(npm run *)",
+      "Bash(curl -sS --max-time 25 https://raw.githubusercontent.com/Unitech/pm2/master/lib/API/schema.json -o pm2schema.json)",
+      "Bash(node -e \"const s=require\\('/tmp/pm2schema.json'\\); for \\(const k of Object.keys\\(s\\)\\) { if \\(/out_file|error_file|log_file/.test\\(k\\)\\) console.log\\(k, JSON.stringify\\(s[k]\\)\\); } console.log\\('--- keys literally named output/error ---'\\); console.log\\('output' in s, 'error' in s\\);\")",
+      "Bash(node \"d:/tmp/prisma-env-test.cjs\")",
+      "Bash(curl -sS --max-time 30 https://raw.githubusercontent.com/Unitech/pm2/master/lib/API/schema.json -o \"d:/tmp/pm2schema.json\")",
+      "Bash(node -e ' *)",
+      "Bash(node \"d:/tmp/env-blank-test.cjs\")"
+    ]
+  }
+}

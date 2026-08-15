@@ -1,0 +1,124 @@
+import { z } from 'zod';
+import { OrganizationType, RoleName } from '../domain/enums';
+import {
+  emailSchema,
+  optionalTrimmedString,
+  passwordSchema,
+  phoneSchema,
+  trimmedString,
+} from './common';
+
+/**
+ * Registration is role-driven: the account type decides which organization is
+ * created alongside the user. Drivers join an existing fleet by invite code
+ * rather than creating an organization of their own.
+ */
+export const registrableRoleSchema = z.enum([
+  RoleName.FLEET_OWNER,
+  RoleName.SUPPLIER,
+  RoleName.CUSTOMER,
+  RoleName.DRIVER,
+]);
+export type RegistrableRole = z.infer<typeof registrableRoleSchema>;
+
+export const ROLE_TO_ORGANIZATION_TYPE: Record<RegistrableRole, OrganizationType | null> = {
+  [RoleName.FLEET_OWNER]: OrganizationType.FLEET_OWNER,
+  [RoleName.SUPPLIER]: OrganizationType.SUPPLIER,
+  [RoleName.CUSTOMER]: OrganizationType.CUSTOMER,
+  [RoleName.DRIVER]: null,
+};
+
+export const registerSchema = z
+  .object({
+    firstName: trimmedString(2, 60),
+    lastName: trimmedString(1, 60),
+    email: emailSchema,
+    phone: phoneSchema,
+    password: passwordSchema,
+    role: registrableRoleSchema,
+    /** Required for FLEET_OWNER / SUPPLIER / CUSTOMER. */
+    organizationName: optionalTrimmedString(160),
+    /** Optional business registration number for the new organization. */
+    registrationNumber: optionalTrimmedString(60),
+    /** Drivers join an existing fleet using the owner's invite code. */
+    fleetInviteCode: optionalTrimmedString(32),
+    /** Required for DRIVER — the commercial driving licence number. */
+    licenseNumber: optionalTrimmedString(40),
+    licenseExpiryDate: z.coerce.date().optional(),
+    acceptedTerms: z.literal(true, {
+      errorMap: () => ({ message: 'You must accept the terms to create an account.' }),
+    }),
+  })
+  .superRefine((value, ctx) => {
+    if (value.role !== RoleName.DRIVER && !value.organizationName) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['organizationName'],
+        message: 'A business or organization name is required for this account type.',
+      });
+    }
+    if (value.role === RoleName.DRIVER) {
+      if (!value.fleetInviteCode) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['fleetInviteCode'],
+          message: 'Enter the fleet invite code provided by your truck owner.',
+        });
+      }
+      if (!value.licenseNumber) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['licenseNumber'],
+          message: 'Your driving licence number is required.',
+        });
+      }
+    }
+  });
+export type RegisterInput = z.infer<typeof registerSchema>;
+
+export const loginSchema = z.object({
+  email: emailSchema,
+  password: z.string().min(1, 'Enter your password.').max(128),
+  rememberMe: z.boolean().optional().default(true),
+});
+export type LoginInput = z.infer<typeof loginSchema>;
+
+export const refreshSchema = z.object({
+  refreshToken: z.string().min(10).optional(),
+});
+export type RefreshInput = z.infer<typeof refreshSchema>;
+
+export const forgotPasswordSchema = z.object({
+  email: emailSchema,
+});
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+
+export const resetPasswordSchema = z.object({
+  token: z.string().min(20, 'This password reset link is not valid.'),
+  password: passwordSchema,
+});
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
+
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, 'Enter your current password.').max(128),
+    newPassword: passwordSchema,
+  })
+  .refine((value) => value.currentPassword !== value.newPassword, {
+    message: 'The new password must be different from the current password.',
+    path: ['newPassword'],
+  });
+export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
+
+export const updateProfileSchema = z.object({
+  firstName: trimmedString(2, 60).optional(),
+  lastName: trimmedString(1, 60).optional(),
+  phone: phoneSchema.optional(),
+  avatarUrl: z.string().url().max(500).optional().nullable(),
+});
+export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
+
+export const switchOrganizationSchema = z.object({
+  organizationId: z.string().uuid(),
+});
+export type SwitchOrganizationInput = z.infer<typeof switchOrganizationSchema>;

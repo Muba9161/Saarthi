@@ -1,0 +1,44 @@
+# dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# build output
+dist/
+build/
+*.tsbuildinfo
+
+# environment / secrets
+.env
+.env.local
+.env.*.local
+.env.production
+!.env.example
+
+# local runtime data
+storage/
+uploads/
+tmp/
+logs/
+*.log
+npm-debug.log*
+
+# test artefacts
+coverage/
+test-results/
+playwright-report/
+blob-report/
+.playwright/
+
+# editors / os
+.DS_Store
+Thumbs.db
+.idea/
+*.swp
+
+# prisma local
+apps/api/prisma/*.db
+apps/api/prisma/*.db-journal
+
+# vite
+.vite/

@@ -1,0 +1,393 @@
+import * as React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Plus, Search, Users } from 'lucide-react';
+import { toast } from 'sonner';
+import { Permission, createDriverSchema, formatDistanceKm, type CreateDriverInput } from '@saarthi/shared';
+import { api, errorMessage } from '@/lib/api-client';
+import type { DriverSummary, Paginated } from '@/lib/api-types';
+import { useAuth } from '@/features/auth/auth-context';
+import { PageHeader } from '@/components/common/page-header';
+import { DataTable, type Column } from '@/components/common/data-table';
+import { ScoreBadge, StatusBadge } from '@/components/common/status-badge';
+import { UnauthorizedState } from '@/components/common/states';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+
+function AddDriverDialog({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const queryClient = useQueryClient();
+  const [setupUrl, setSetupUrl] = React.useState<string | null>(null);
+
+  const form = useForm<CreateDriverInput>({
+    resolver: zodResolver(createDriverSchema),
+    defaultValues: {
+      firstName: '',
+      lastName: '',
+      email: '',
+      phone: '',
+      licenseNumber: '',
+      experienceYears: 0,
+    },
+  });
+
+  const mutation = useMutation({
+    mutationFn: (input: CreateDriverInput) =>
+      api.post<{ driver: DriverSummary; setupUrl: string }>('/drivers', input),
+    onSuccess: (result) => {
+      toast.success('Driver account created');
+      // There is no email provider locally, so the one-time link is surfaced here.
+      setSetupUrl(result.setupUrl);
+      void queryClient.invalidateQueries({ queryKey: ['drivers'] });
+      form.reset();
+    },
+    onError: (error) => toast.error('Could not add driver', { description: errorMessage(error) }),
+  });
+
+  const close = (next: boolean): void => {
+    onOpenChange(next);
+    if (!next) setSetupUrl(null);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={close}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Add a driver</DialogTitle>
+          <DialogDescription>
+            Saarthi creates the account and issues a one-time link so the driver chooses their own
+            password.
+          </DialogDescription>
+        </DialogHeader>
+
+        {setupUrl ? (
+          <div className="space-y-4">
+            <Alert variant="success">
+              <AlertTitle>Driver added</AlertTitle>
+              <AlertDescription className="space-y-2">
+                <p>Share this one-time link so they can set a password:</p>
+                <code className="block break-all rounded bg-muted p-2 text-xs">{setupUrl}</code>
+              </AlertDescription>
+            </Alert>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setSetupUrl(null)}>
+                Add another
+              </Button>
+              <Button onClick={() => close(false)}>Done</Button>
+            </DialogFooter>
+          </div>
+        ) : (
+          <Form {...form}>
+            <form
+              onSubmit={form.handleSubmit((values) => mutation.mutate(values))}
+              className="space-y-4"
+              noValidate
+            >
+              <div className="grid gap-4 sm:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="firstName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel required>First name</FormLabel>
+                      <FormControl>
+                        <Input {...field} autoFocus />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="lastName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel required>Last name</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel required>Email</FormLabel>
+                    <FormControl>
+                      <Input {...field} type="email" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel required>Mobile number</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="9876543210" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="licenseNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel required>Licence number</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="licenseExpiryDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Licence expiry</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="date"
+                          value={field.value ? String(field.value).slice(0, 10) : ''}
+                          onChange={(event) => field.onChange(event.target.value || undefined)}
+                        />
+                      </FormControl>
+                      <FormDescription>Feeds the compliance score.</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                control={form.control}
+                name="experienceYears"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Experience (years)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min={0}
+                        max={60}
+                        value={field.value}
+                        onChange={(event) => field.onChange(Number(event.target.value))}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => close(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" loading={mutation.isPending}>
+                  Add driver
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function DriversPage() {
+  const { can } = useAuth();
+  const navigate = useNavigate();
+  const [page, setPage] = React.useState(1);
+  const [search, setSearch] = React.useState('');
+  const [debounced, setDebounced] = React.useState('');
+  const [addOpen, setAddOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebounced(search);
+      setPage(1);
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [search]);
+
+  const query = useQuery({
+    queryKey: ['drivers', { page, search: debounced }],
+    queryFn: () =>
+      api.get<Paginated<DriverSummary>>('/drivers', {
+        page,
+        pageSize: 20,
+        ...(debounced ? { search: debounced } : {}),
+      }),
+    enabled: can(Permission.DRIVERS_READ),
+    placeholderData: keepPreviousData,
+  });
+
+  if (!can(Permission.DRIVERS_READ)) return <UnauthorizedState />;
+
+  const columns: Column<DriverSummary>[] = [
+    {
+      key: 'name',
+      header: 'Driver',
+      cell: (driver) => (
+        <div className="min-w-0">
+          <p className="font-medium">{driver.fullName}</p>
+          <p className="truncate text-xs text-muted-foreground">{driver.email}</p>
+        </div>
+      ),
+    },
+    {
+      key: 'licence',
+      header: 'Licence',
+      hideOnMobile: true,
+      cell: (driver) => (
+        <div>
+          <p className="text-sm">{driver.licenseNumber}</p>
+          <p className="text-xs text-muted-foreground">
+            {driver.licenseExpiryDate
+              ? `Expires ${new Date(driver.licenseExpiryDate).toLocaleDateString('en-IN')}`
+              : 'No expiry recorded'}
+          </p>
+        </div>
+      ),
+    },
+    {
+      key: 'availability',
+      header: 'Availability',
+      cell: (driver) => <StatusBadge status={driver.availability} />,
+    },
+    {
+      key: 'verification',
+      header: 'Verification',
+      hideOnMobile: true,
+      cell: (driver) => <StatusBadge status={driver.verificationStatus} size="sm" />,
+    },
+    {
+      key: 'truck',
+      header: 'Truck',
+      hideOnMobile: true,
+      cell: (driver) =>
+        driver.currentTruck ? (
+          <span className="text-sm">{driver.currentTruck.registrationNumber}</span>
+        ) : (
+          <span className="text-sm text-muted-foreground">Unassigned</span>
+        ),
+    },
+    {
+      key: 'score',
+      header: 'Score',
+      numeric: true,
+      cell: (driver) => <ScoreBadge score={driver.overallScore} />,
+    },
+    {
+      key: 'trips',
+      header: 'Trips',
+      numeric: true,
+      hideOnMobile: true,
+      cell: (driver) => (
+        <div className="text-sm">
+          <p>{driver.totalTrips}</p>
+          <p className="text-xs text-muted-foreground">{formatDistanceKm(driver.totalDistanceKm)}</p>
+        </div>
+      ),
+    },
+  ];
+
+  return (
+    <div className="space-y-5">
+      <PageHeader
+        title="Drivers"
+        description="Profiles, verification, assignments and performance."
+        actions={
+          can(Permission.DRIVERS_MANAGE) ? (
+            <Button onClick={() => setAddOpen(true)}>
+              <Plus className="size-4" />
+              Add driver
+            </Button>
+          ) : null
+        }
+      />
+
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="Search by name, email, phone or licence…"
+          className="pl-9"
+          aria-label="Search drivers"
+        />
+      </div>
+
+      <DataTable
+        columns={columns}
+        rows={query.data?.items}
+        rowKey={(driver) => driver.id}
+        isLoading={query.isLoading || query.isFetching}
+        error={query.error}
+        onRetry={() => void query.refetch()}
+        onRowClick={(driver) => navigate(`/fleet/drivers/${driver.id}`)}
+        {...(query.data?.pagination ? { pagination: query.data.pagination } : {})}
+        onPageChange={setPage}
+        emptyTitle={debounced ? 'No matching drivers' : 'No drivers yet'}
+        emptyDescription={
+          debounced
+            ? 'Try a different search.'
+            : 'Add a driver here, or share your fleet invite code so they can register themselves.'
+        }
+        emptyAction={
+          can(Permission.DRIVERS_MANAGE) && !debounced ? (
+            <Button onClick={() => setAddOpen(true)}>
+              <Users className="size-4" />
+              Add your first driver
+            </Button>
+          ) : undefined
+        }
+      />
+
+      <AddDriverDialog open={addOpen} onOpenChange={setAddOpen} />
+    </div>
+  );
+}
+
+export default DriversPage;

@@ -1,0 +1,9 @@
+node_modules
+dist
+build
+coverage
+storage
+playwright-report
+test-results
+apps/api/prisma/migrations
+*.md
