@@ -16,10 +16,12 @@ build/
 !.env.example
 
 # local runtime data
-storage/
-uploads/
-tmp/
-logs/
+# Anchored to the repo root: an unanchored `storage/` also matches source
+# directories such as apps/api/src/providers/storage/.
+/storage/
+/uploads/
+/tmp/
+/logs/
 *.log
 npm-debug.log*
 

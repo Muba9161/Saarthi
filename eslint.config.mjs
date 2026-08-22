@@ -10,7 +10,9 @@ export default tseslint.config(
       '**/dist/**',
       '**/build/**',
       '**/coverage/**',
-      '**/storage/**',
+      // Root-anchored: `**/storage/**` would also skip source directories
+      // such as apps/api/src/providers/storage/.
+      'storage/**',
       '**/playwright-report/**',
       '**/test-results/**',
       'apps/api/src/generated/**',
