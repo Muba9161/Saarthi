@@ -26,7 +26,7 @@ export function SubscriptionPage() {
       <PageHeader title="Subscription" description="What your plan includes, and what the next tier unlocks." />
 
       {subscription.isLoading ? <LoadingState /> : (
-        <div className="grid gap-4 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {PLAN_CATALOGUE.map((plan) => {
             const isCurrent = plan.tier === currentTier;
             return (

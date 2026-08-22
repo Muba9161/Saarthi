@@ -184,6 +184,11 @@ export function DriverHomePage() {
                     className="rounded-none border-0"
                     // Keeps the camera on the driver's own truck as it moves.
                     selectedTruckId={current.id}
+                    allow3D
+                    /* A driver wants the road ahead, not a plan view. */
+                    defaultCameraMode="chase"
+                    /* The tile is too small for the floating control cluster. */
+                    showControls={false}
                   />
                   <div className="glass absolute left-3 top-3 rounded-xl px-3 py-2">
                     <p className="section-label">Speed</p>

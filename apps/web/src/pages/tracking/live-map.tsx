@@ -139,7 +139,7 @@ export function LiveMapPage() {
       ) : positions.error ? (
         <ErrorState error={positions.error} onRetry={() => void positions.refetch()} />
       ) : (
-        <div className="grid gap-4 lg:grid-cols-[360px_1fr]">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[360px_minmax(0,1fr)]">
           <div className="order-2 space-y-3 lg:order-1">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -228,6 +228,7 @@ export function LiveMapPage() {
               onSelectTruck={setSelected}
               allow3D={hasFeature(Feature.MAPS_3D)}
               height="clamp(380px, 68vh, 720px)"
+              showSearch
             />
           </div>
         </div>

@@ -92,6 +92,52 @@ const envSchema = z.object({
   STORAGE_LOCAL_PATH: z.string().default('./storage/documents'),
   STORAGE_MAX_FILE_SIZE: z.coerce.number().int().min(1024).default(10 * 1024 * 1024),
 
+  // --- Media library --------------------------------------------------------
+  //
+  // Smaller than the document cap on purpose: renditions are produced in the
+  // browser before upload, so anything larger than this is a client that did
+  // not resize rather than a legitimately large photograph.
+  MEDIA_MAX_FILE_SIZE: z.coerce.number().int().min(1024).default(5 * 1024 * 1024),
+  MEDIA_THUMBNAIL_MAX_SIZE: z.coerce.number().int().min(1024).default(512 * 1024),
+  MEDIA_MAX_PER_OWNER: z.coerce.number().int().min(1).max(200).default(24),
+  /// How long a soft-deleted asset is kept before its bytes are purged.
+  MEDIA_RETENTION_DAYS: z.coerce.number().int().min(1).max(365).default(30),
+
+  // --- Supplier inventory ---------------------------------------------------
+  STOCK_RESERVATION_TTL_HOURS: z.coerce.number().int().min(1).max(720).default(72),
+  STOCK_LOW_DIGEST_HOUR: z.coerce.number().int().min(0).max(23).default(8),
+
+  // --- Vehicle resale -------------------------------------------------------
+  /// A resale listing is a financial representation about an asset, so review
+  /// is on by default.
+  RESALE_REVIEW_REQUIRED: booleanish(true),
+  RESALE_LISTING_TTL_DAYS: z.coerce.number().int().min(1).max(365).default(60),
+  RESALE_OFFER_TTL_DAYS: z.coerce.number().int().min(1).max(90).default(7),
+
+  // --- QR identity ----------------------------------------------------------
+  QR_RESOLVE_RATE_LIMIT_MAX: z.coerce.number().int().min(1).default(20),
+  QR_RESOLVE_RATE_LIMIT_WINDOW: z.string().default('1 minute'),
+  /// 0 = codes do not expire.
+  QR_DEFAULT_TTL_DAYS: z.coerce.number().int().min(0).max(3650).default(0),
+  QR_IMAGE_MAX_SIZE: z.coerce.number().int().min(128).max(4096).default(1024),
+
+  // --- Return loads ---------------------------------------------------------
+  RETURN_LOAD_MAX_PICKUP_KM: z.coerce.number().min(1).max(1000).default(150),
+  RETURN_LOAD_MIN_SCORE: z.coerce.number().min(0).max(100).default(45),
+  RETURN_LOAD_DEFAULT_WINDOW_HOURS: z.coerce.number().int().min(1).max(336).default(48),
+
+  // --- Last-mile relay ------------------------------------------------------
+  RELAY_OFFER_TTL_MINUTES: z.coerce.number().int().min(5).max(1440).default(45),
+  RELAY_BROADCAST_RADIUS_KM: z.coerce.number().min(1).max(300).default(60),
+
+  // --- Route intelligence ---------------------------------------------------
+  HAZARD_LOOKAHEAD_METERS: z.coerce.number().int().min(100).max(5000).default(800),
+  HAZARD_CORRIDOR_METERS: z.coerce.number().int().min(50).max(2000).default(300),
+  HAZARD_CONFIDENCE_HALF_LIFE_MINUTES: z.coerce.number().int().min(5).max(1440).default(45),
+  HAZARD_MIN_CONFIDENCE: z.coerce.number().min(0).max(1).default(0.25),
+  HAZARD_REPORTS_PER_HOUR: z.coerce.number().int().min(1).max(200).default(10),
+  HAZARD_VIEWPORT_MAX_FEATURES: z.coerce.number().int().min(50).max(5000).default(500),
+
   GPS_PROVIDER: z.enum(['mock', 'production']).default('mock'),
   PAYMENT_PROVIDER: z.enum(['mock', 'production']).default('mock'),
   NOTIFICATION_PROVIDER: z.enum(['local', 'production']).default('local'),
@@ -107,8 +153,36 @@ const envSchema = z.object({
   PUBSUB_DRIVER: z.enum(['memory', 'redis']).default('memory'),
   REDIS_URL: z.string().optional(),
 
-  MAP_PROVIDER: z.enum(['maplibre', 'mapbox']).default('maplibre'),
+  // --- Vehicle RC lookup (Way2API) ------------------------------------------
+  WAY2API_BASE_URL: z.string().url().default('https://app.way2api.com'),
+  WAY2API_API_KEY: z.string().optional(),
+  WAY2API_TIMEOUT_MS: z.coerce.number().int().min(1000).max(120_000).default(20_000),
+  /** Cap on the RC PDF Saarthi will pull down and store. */
+  VEHICLE_RC_PDF_MAX_BYTES: z.coerce.number().int().min(1024).default(8 * 1024 * 1024),
+  /** Seconds a stored RC record may be reused before a fresh lookup is billed. */
+  VEHICLE_CACHE_TTL: z.coerce.number().int().min(0).max(30 * 86_400).default(86_400),
+  /** RC lookups per user per minute — the provider bills each one. */
+  /**
+   * Hard ceiling on billable provider calls for this environment (0 = none).
+   * A development guard against burning a trial allowance by accident.
+   */
+  VEHICLE_LOOKUP_BUDGET: z.coerce.number().int().min(0).default(0),
+  VEHICLE_LOOKUP_RATE_LIMIT_MAX: z.coerce.number().int().min(1).default(10),
+  VEHICLE_LOOKUP_RATE_LIMIT_WINDOW: z.string().default('1 minute'),
+
+  // --- Petrol stations (SSR Innovation Lab) ---------------------------------
+  SSR_PETROL_API_BASE_URL: z.string().url().default('https://api.ssrinnovationlab.com'),
+  /** Optional: the directory serves unauthenticated reads today. */
+  SSR_PETROL_API_KEY: z.string().optional(),
+  SSR_PETROL_TIMEOUT_MS: z.coerce.number().int().min(1000).max(60_000).default(12_000),
+  PETROL_STATION_CACHE_TTL: z.coerce.number().int().min(0).max(30 * 86_400).default(21_600),
+
+  // `openfreemap` needs no credentials at all. The older values stay accepted
+  // so an existing deployment does not fail to boot on an outdated .env.
+  MAP_PROVIDER: z.enum(['openfreemap', 'maplibre', 'mapbox']).default('openfreemap'),
   MAP_API_KEY: z.string().optional(),
+  /** OpenRouteService key — routing and geocoding only, never the basemap. */
+  ORS_API_KEY: z.string().optional(),
   MAP_STYLE_URL: z.string().optional(),
 
   DEMO_MODE: booleanish(true),
@@ -202,6 +276,51 @@ export const config = {
     maxFileSize: raw.STORAGE_MAX_FILE_SIZE,
   },
 
+  media: {
+    maxFileSize: raw.MEDIA_MAX_FILE_SIZE,
+    maxThumbnailSize: raw.MEDIA_THUMBNAIL_MAX_SIZE,
+    maxPerOwner: raw.MEDIA_MAX_PER_OWNER,
+    retentionDays: raw.MEDIA_RETENTION_DAYS,
+  },
+
+  inventory: {
+    reservationTtlHours: raw.STOCK_RESERVATION_TTL_HOURS,
+    lowStockDigestHour: raw.STOCK_LOW_DIGEST_HOUR,
+  },
+
+  resale: {
+    reviewRequired: raw.RESALE_REVIEW_REQUIRED,
+    listingTtlDays: raw.RESALE_LISTING_TTL_DAYS,
+    offerTtlDays: raw.RESALE_OFFER_TTL_DAYS,
+  },
+
+  qr: {
+    resolveRateLimitMax: raw.QR_RESOLVE_RATE_LIMIT_MAX,
+    resolveRateLimitWindow: raw.QR_RESOLVE_RATE_LIMIT_WINDOW,
+    defaultTtlDays: raw.QR_DEFAULT_TTL_DAYS,
+    maxImageSize: raw.QR_IMAGE_MAX_SIZE,
+  },
+
+  returnLoads: {
+    maxPickupKm: raw.RETURN_LOAD_MAX_PICKUP_KM,
+    minScore: raw.RETURN_LOAD_MIN_SCORE,
+    defaultWindowHours: raw.RETURN_LOAD_DEFAULT_WINDOW_HOURS,
+  },
+
+  relay: {
+    offerTtlMinutes: raw.RELAY_OFFER_TTL_MINUTES,
+    broadcastRadiusKm: raw.RELAY_BROADCAST_RADIUS_KM,
+  },
+
+  routeIntelligence: {
+    lookaheadMeters: raw.HAZARD_LOOKAHEAD_METERS,
+    corridorMeters: raw.HAZARD_CORRIDOR_METERS,
+    confidenceHalfLifeMinutes: raw.HAZARD_CONFIDENCE_HALF_LIFE_MINUTES,
+    minConfidence: raw.HAZARD_MIN_CONFIDENCE,
+    reportsPerHour: raw.HAZARD_REPORTS_PER_HOUR,
+    viewportMaxFeatures: raw.HAZARD_VIEWPORT_MAX_FEATURES,
+  },
+
   providers: {
     gps: raw.GPS_PROVIDER,
     payment: raw.PAYMENT_PROVIDER,
@@ -223,9 +342,29 @@ export const config = {
     redisUrl: raw.REDIS_URL || undefined,
   },
 
+  vehicleRc: {
+    baseUrl: raw.WAY2API_BASE_URL.replace(/\/$/, ''),
+    apiKey: raw.WAY2API_API_KEY || undefined,
+    timeoutMs: raw.WAY2API_TIMEOUT_MS,
+    pdfMaxBytes: raw.VEHICLE_RC_PDF_MAX_BYTES,
+    cacheTtlSeconds: raw.VEHICLE_CACHE_TTL,
+    callBudget: raw.VEHICLE_LOOKUP_BUDGET,
+    rateLimitMax: raw.VEHICLE_LOOKUP_RATE_LIMIT_MAX,
+    rateLimitWindow: raw.VEHICLE_LOOKUP_RATE_LIMIT_WINDOW,
+  },
+
+  petrolStations: {
+    baseUrl: raw.SSR_PETROL_API_BASE_URL.replace(/\/$/, ''),
+    apiKey: raw.SSR_PETROL_API_KEY || undefined,
+    timeoutMs: raw.SSR_PETROL_TIMEOUT_MS,
+    cacheTtlSeconds: raw.PETROL_STATION_CACHE_TTL,
+  },
+
   maps: {
     provider: raw.MAP_PROVIDER,
+    /** Basemap credential. The open stack needs none; kept for other providers. */
     apiKey: raw.MAP_API_KEY || undefined,
+    routingApiKey: raw.ORS_API_KEY || undefined,
     styleUrl: raw.MAP_STYLE_URL || undefined,
   },
 

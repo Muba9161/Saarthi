@@ -48,6 +48,9 @@ function limitsFromJson(raw: unknown, tier: PlanTier): PlanLimits {
     maxMembers: num('maxMembers'),
     trackingHistoryDays: (num('trackingHistoryDays') ?? fallback.trackingHistoryDays) as number,
     aiRequestsPerDay: (num('aiRequestsPerDay') ?? fallback.aiRequestsPerDay) as number,
+    maxDevices: num('maxDevices'),
+    telemetryRetentionDays: (num('telemetryRetentionDays') ??
+      fallback.telemetryRetentionDays) as number,
   };
 }
 

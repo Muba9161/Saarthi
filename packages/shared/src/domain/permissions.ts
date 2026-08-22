@@ -96,6 +96,96 @@ export const Permission = {
   // Nearby
   NEARBY_READ: 'nearby.read',
 
+  // Vehicle registration (RC) lookup
+  VEHICLE_LOOKUP: 'vehicles.lookup',
+  /** Owner identity, address, engine and chassis numbers on an RC record. */
+  VEHICLE_LOOKUP_SENSITIVE: 'vehicles.lookup.sensitive',
+
+  // Vehicles.
+  //
+  // Deliberately reuses the `fleet.trucks.*` strings. The generalized vehicle
+  // surface reads and writes the same rows as the truck surface, so granting a
+  // separate permission would let an operator hold one and not the other while
+  // both reach the same record. Every existing role grant therefore carries
+  // over to vehicles unchanged.
+  VEHICLES_READ: 'fleet.trucks.read',
+  VEHICLES_CREATE: 'fleet.trucks.create',
+  VEHICLES_UPDATE: 'fleet.trucks.update',
+
+  // Truck associations
+  ASSOCIATION_READ: 'association.read',
+  ASSOCIATION_MANAGE: 'association.manage',
+  ASSOCIATION_ALERTS_READ: 'association.alerts.read',
+  ASSOCIATION_ALERTS_RESPOND: 'association.alerts.respond',
+
+  // Travel & mobility provider
+  PROVIDER_READ: 'provider.read',
+  PROVIDER_MANAGE: 'provider.manage',
+  TRAVEL_PACKAGES_READ: 'travel.packages.read',
+  TRAVEL_PACKAGES_MANAGE: 'travel.packages.manage',
+  TRAVEL_BROWSE: 'travel.browse',
+  BOOKINGS_READ: 'bookings.read',
+  BOOKINGS_CREATE: 'bookings.create',
+  BOOKINGS_MANAGE: 'bookings.manage',
+  BOOKINGS_RATE: 'bookings.rate',
+
+  // Payments
+  PAYMENTS_READ: 'payments.read',
+
+  // Hardware devices
+  DEVICES_READ: 'devices.read',
+  DEVICES_MANAGE: 'devices.manage',
+  DEVICES_ASSIGN: 'devices.assign',
+
+  // Telemetry
+  TELEMETRY_READ: 'telemetry.read',
+  TELEMETRY_ALERTS_READ: 'telemetry.alerts.read',
+  TELEMETRY_ALERTS_MANAGE: 'telemetry.alerts.manage',
+
+  // Media library
+  MEDIA_READ: 'media.read',
+  MEDIA_UPLOAD: 'media.upload',
+  MEDIA_DELETE: 'media.delete',
+  MEDIA_MODERATE: 'media.moderate',
+
+  // Supplier inventory
+  INVENTORY_READ: 'inventory.read',
+  INVENTORY_MANAGE: 'inventory.manage',
+
+  // Vehicle resale marketplace
+  RESALE_BROWSE: 'resale.browse',
+  RESALE_MANAGE: 'resale.manage',
+  RESALE_OFFER: 'resale.offer',
+  RESALE_TRANSFER: 'resale.transfer',
+  RESALE_REVIEW: 'resale.review',
+
+  // Internal people / organization directory
+  PROFILE_DIRECTORY: 'profile.directory',
+
+  // QR identity
+  QR_READ: 'qr.read',
+  QR_MANAGE: 'qr.manage',
+  QR_AUDIT: 'qr.audit',
+
+  // Return loads / backhaul
+  RETURN_LOADS_READ: 'returnloads.read',
+  RETURN_LOADS_MANAGE: 'returnloads.manage',
+
+  // City access restrictions
+  CITY_ACCESS_READ: 'cityaccess.read',
+  CITY_ACCESS_MANAGE: 'cityaccess.manage',
+
+  // Last-mile relay
+  RELAY_READ: 'relay.read',
+  RELAY_MANAGE: 'relay.manage',
+  RELAY_OFFER: 'relay.offer',
+
+  // Route intelligence
+  ROUTE_INTEL_READ: 'routeintel.read',
+  ROUTE_INTEL_REPORT: 'routeintel.report',
+  ROUTE_INTEL_MANAGE: 'routeintel.manage',
+  ROUTE_INTEL_VERIFY: 'routeintel.verify',
+
   // Platform administration
   ADMIN_USERS: 'admin.users',
   ADMIN_ORGANIZATIONS: 'admin.organizations',
@@ -105,7 +195,8 @@ export const Permission = {
 } as const;
 
 export type Permission = (typeof Permission)[keyof typeof Permission];
-export const ALL_PERMISSIONS = Object.values(Permission) as Permission[];
+/** Unique permission strings. Deduplicated because vehicles alias trucks. */
+export const ALL_PERMISSIONS = [...new Set(Object.values(Permission))] as Permission[];
 
 const FLEET_MANAGER_PERMISSIONS: Permission[] = [
   Permission.ORG_READ,
@@ -139,9 +230,35 @@ const FLEET_MANAGER_PERMISSIONS: Permission[] = [
   Permission.SUBSCRIPTION_READ,
   Permission.NOTIFICATIONS_READ,
   Permission.NEARBY_READ,
+  Permission.VEHICLE_LOOKUP,
   Permission.AI_USE,
   Permission.MATERIALS_READ,
   Permission.SUPPLIERS_READ,
+  Permission.DEVICES_READ,
+  Permission.TELEMETRY_READ,
+  Permission.TELEMETRY_ALERTS_READ,
+  Permission.PROVIDER_READ,
+  Permission.TRAVEL_PACKAGES_READ,
+  Permission.BOOKINGS_READ,
+  Permission.MEDIA_READ,
+  Permission.MEDIA_UPLOAD,
+  Permission.MEDIA_DELETE,
+  Permission.INVENTORY_READ,
+  Permission.RESALE_BROWSE,
+  Permission.RESALE_MANAGE,
+  Permission.PROFILE_DIRECTORY,
+  Permission.QR_READ,
+  Permission.QR_MANAGE,
+  Permission.RETURN_LOADS_READ,
+  Permission.RETURN_LOADS_MANAGE,
+  Permission.CITY_ACCESS_READ,
+  Permission.RELAY_READ,
+  Permission.RELAY_MANAGE,
+  // A small-pickup operator is a fleet with mini trucks, so the supply side of
+  // the relay market is the same grant as the demand side.
+  Permission.RELAY_OFFER,
+  Permission.ROUTE_INTEL_READ,
+  Permission.ROUTE_INTEL_REPORT,
 ];
 
 const ROLE_PERMISSIONS: Record<RoleName, Permission[]> = {
@@ -155,9 +272,101 @@ const ROLE_PERMISSIONS: Record<RoleName, Permission[]> = {
     Permission.DRIVERS_SCORE_ADJUST,
     Permission.ANALYTICS_FINANCIAL,
     Permission.SUBSCRIPTION_MANAGE,
+    Permission.VEHICLE_LOOKUP_SENSITIVE,
+    // Buying, selling and transferring an asset commits money — the owner only.
+    Permission.RESALE_OFFER,
+    Permission.RESALE_TRANSFER,
+    // A fleet may record its own private access rules and hazards.
+    Permission.CITY_ACCESS_MANAGE,
+    Permission.ROUTE_INTEL_MANAGE,
+    // The scan log for the fleet's own codes: who scanned their vehicle, where
+    // and when. It carries scanner identity and location, so it sits at owner
+    // level rather than with every manager — but withholding a fleet's own
+    // operational record from its owner while granting it to Saarthi support
+    // would have been backwards.
+    Permission.QR_AUDIT,
+    Permission.TELEMETRY_ALERTS_MANAGE,
+    // Telematics hardware is provisioned and fitted by Saarthi, so a fleet
+    // reads its devices and works their alerts but cannot register a unit or
+    // move one between vehicles — see DEVICES_MANAGE / DEVICES_ASSIGN.
+    //
+    // Selling passenger travel is likewise not a freight fleet's surface: it
+    // belongs to a MOBILITY_PROVIDER organization, which is a distinct account
+    // type chosen at registration.
+    Permission.PAYMENTS_READ,
+    // A MOBILITY_PROVIDER organization is administered by its owner. The
+    // organization-type guard decides *which* orgs may sell travel; this
+    // decides which role inside them may act.
+    Permission.PROVIDER_MANAGE,
+    Permission.TRAVEL_PACKAGES_MANAGE,
+    Permission.BOOKINGS_MANAGE,
   ],
 
   [RoleName.FLEET_MANAGER]: [...FLEET_MANAGER_PERMISSIONS],
+
+  /**
+   * Taxi / travel / tour operator.
+   *
+   * Runs vehicles and drivers like a fleet, but its commercial surface is
+   * passenger journeys rather than freight: provider profile, packages and
+   * bookings. Held only by a MOBILITY_PROVIDER organization, so a freight
+   * fleet cannot list tour packages.
+   */
+  [RoleName.MOBILITY_PROVIDER]: [
+    Permission.ORG_READ,
+    Permission.ORG_UPDATE,
+    Permission.ORG_MEMBERS_READ,
+    Permission.ORG_MEMBERS_MANAGE,
+    Permission.VEHICLES_READ,
+    Permission.VEHICLES_CREATE,
+    Permission.VEHICLES_UPDATE,
+    Permission.TRUCKS_READ,
+    Permission.TRUCKS_CREATE,
+    Permission.TRUCKS_UPDATE,
+    Permission.TRUCKS_ASSIGN,
+    Permission.DRIVERS_READ,
+    Permission.DRIVERS_MANAGE,
+    Permission.DRIVERS_SCORE_READ,
+    Permission.DOCUMENTS_READ,
+    Permission.DOCUMENTS_UPLOAD,
+    Permission.DOCUMENTS_DELETE,
+    Permission.VERIFICATION_READ,
+    Permission.VERIFICATION_SUBMIT,
+    Permission.TRIPS_READ,
+    Permission.TRIPS_MANAGE,
+    Permission.TRACKING_READ,
+    Permission.TRACKING_HISTORY,
+    Permission.SOS_READ,
+    Permission.MAINTENANCE_READ,
+    Permission.MAINTENANCE_MANAGE,
+    Permission.FUEL_READ,
+    Permission.FUEL_MANAGE,
+    Permission.NEARBY_READ,
+    Permission.NOTIFICATIONS_READ,
+    Permission.ANALYTICS_READ,
+    Permission.ANALYTICS_FINANCIAL,
+    Permission.SUBSCRIPTION_READ,
+    Permission.SUBSCRIPTION_MANAGE,
+    // Its own vehicles only, same as any other operator.
+    Permission.VEHICLE_LOOKUP,
+    Permission.VEHICLE_LOOKUP_SENSITIVE,
+    Permission.DEVICES_READ,
+    Permission.TELEMETRY_READ,
+    Permission.TELEMETRY_ALERTS_READ,
+    // The passenger-transport surface — this role's reason to exist.
+    Permission.PROVIDER_READ,
+    Permission.PROVIDER_MANAGE,
+    Permission.TRAVEL_PACKAGES_READ,
+    Permission.TRAVEL_PACKAGES_MANAGE,
+    Permission.BOOKINGS_READ,
+    Permission.BOOKINGS_MANAGE,
+    Permission.PAYMENTS_READ,
+    Permission.MEDIA_READ,
+    Permission.MEDIA_UPLOAD,
+    Permission.MEDIA_DELETE,
+    Permission.PROFILE_DIRECTORY,
+    Permission.AI_USE,
+  ],
 
   [RoleName.DISPATCHER]: [
     Permission.ORG_READ,
@@ -175,7 +384,27 @@ const ROLE_PERMISSIONS: Record<RoleName, Permission[]> = {
     Permission.SOS_READ,
     Permission.NOTIFICATIONS_READ,
     Permission.NEARBY_READ,
+    Permission.VEHICLE_LOOKUP,
     Permission.ANALYTICS_READ,
+    Permission.MEDIA_READ,
+    Permission.MEDIA_UPLOAD,
+    Permission.INVENTORY_READ,
+    Permission.RESALE_BROWSE,
+    Permission.PROFILE_DIRECTORY,
+    Permission.QR_READ,
+    Permission.QR_MANAGE,
+    Permission.RETURN_LOADS_READ,
+    Permission.RETURN_LOADS_MANAGE,
+    Permission.CITY_ACCESS_READ,
+    Permission.RELAY_READ,
+    Permission.RELAY_MANAGE,
+    Permission.ROUTE_INTEL_READ,
+    Permission.ROUTE_INTEL_REPORT,
+    Permission.DEVICES_READ,
+    Permission.TELEMETRY_READ,
+    Permission.TELEMETRY_ALERTS_READ,
+    Permission.BOOKINGS_READ,
+    Permission.BOOKINGS_MANAGE,
   ],
 
   [RoleName.DRIVER]: [
@@ -199,6 +428,22 @@ const ROLE_PERMISSIONS: Record<RoleName, Permission[]> = {
     Permission.NOTIFICATIONS_READ,
     Permission.NEARBY_READ,
     Permission.ORDERS_READ,
+    Permission.DEVICES_READ,
+    Permission.TELEMETRY_READ,
+    Permission.BOOKINGS_READ,
+    // A driver photographs damage, odometer readings, handovers and deliveries;
+    // withholding upload would make the evidence trail depend on the office.
+    Permission.MEDIA_READ,
+    Permission.MEDIA_UPLOAD,
+    // Read-only: the service scopes a driver to their own subjects.
+    Permission.QR_READ,
+    Permission.RESALE_BROWSE,
+    Permission.RETURN_LOADS_READ,
+    Permission.CITY_ACCESS_READ,
+    Permission.RELAY_READ,
+    Permission.ROUTE_INTEL_READ,
+    // Crowd reporting is what makes police checking genuinely live.
+    Permission.ROUTE_INTEL_REPORT,
   ],
 
   [RoleName.SUPPLIER]: [
@@ -220,6 +465,18 @@ const ROLE_PERMISSIONS: Record<RoleName, Permission[]> = {
     Permission.NOTIFICATIONS_READ,
     Permission.ANALYTICS_READ,
     Permission.SUBSCRIPTION_READ,
+    Permission.MEDIA_READ,
+    Permission.MEDIA_UPLOAD,
+    Permission.MEDIA_DELETE,
+    Permission.INVENTORY_READ,
+    Permission.INVENTORY_MANAGE,
+    Permission.RESALE_BROWSE,
+    Permission.RESALE_OFFER,
+    Permission.PROFILE_DIRECTORY,
+    Permission.QR_READ,
+    Permission.QR_MANAGE,
+    Permission.CITY_ACCESS_READ,
+    Permission.ROUTE_INTEL_READ,
   ],
 
   [RoleName.CUSTOMER]: [
@@ -238,6 +495,23 @@ const ROLE_PERMISSIONS: Record<RoleName, Permission[]> = {
     Permission.TRACKING_READ,
     Permission.NOTIFICATIONS_READ,
     Permission.SUBSCRIPTION_READ,
+    Permission.TRAVEL_BROWSE,
+    Permission.TRAVEL_PACKAGES_READ,
+    Permission.BOOKINGS_READ,
+    Permission.BOOKINGS_CREATE,
+    Permission.BOOKINGS_RATE,
+    Permission.PAYMENTS_READ,
+    Permission.MEDIA_READ,
+    Permission.MEDIA_UPLOAD,
+    Permission.INVENTORY_READ,
+    Permission.RESALE_BROWSE,
+    Permission.RESALE_OFFER,
+    Permission.PROFILE_DIRECTORY,
+    Permission.QR_READ,
+    // Scoped by the service to the customer's own order legs.
+    Permission.RELAY_READ,
+    Permission.CITY_ACCESS_READ,
+    Permission.ROUTE_INTEL_READ,
   ],
 
   [RoleName.SUPPORT_AGENT]: [
@@ -254,6 +528,71 @@ const ROLE_PERMISSIONS: Record<RoleName, Permission[]> = {
     Permission.SOS_MANAGE,
     Permission.NOTIFICATIONS_READ,
     Permission.ADMIN_AUDIT,
+    Permission.ASSOCIATION_READ,
+    Permission.ASSOCIATION_ALERTS_READ,
+    Permission.DEVICES_READ,
+    Permission.TELEMETRY_READ,
+    Permission.TELEMETRY_ALERTS_READ,
+    Permission.BOOKINGS_READ,
+    Permission.MEDIA_READ,
+    Permission.INVENTORY_READ,
+    Permission.RESALE_BROWSE,
+    Permission.PROFILE_DIRECTORY,
+    Permission.QR_READ,
+    // Support investigates disputed scans, so it reads the scan log.
+    Permission.QR_AUDIT,
+    Permission.RETURN_LOADS_READ,
+    Permission.CITY_ACCESS_READ,
+    Permission.RELAY_READ,
+    Permission.ROUTE_INTEL_READ,
+    Permission.ROUTE_INTEL_VERIFY,
+  ],
+
+  // ---------------------------------------------------------------------
+  // Truck association roles
+  //
+  // Note what is absent: no order, customer, financial, document or telemetry
+  // permission. An association coordinates roadside assistance, so its grant is
+  // limited to the alert queue and its own organization profile. Spec section 9
+  // requires data minimisation; this is where it is enforced.
+  // ---------------------------------------------------------------------
+  [RoleName.ASSOCIATION_ADMIN]: [
+    Permission.ORG_READ,
+    Permission.ORG_UPDATE,
+    Permission.ORG_MEMBERS_READ,
+    Permission.ORG_MEMBERS_MANAGE,
+    Permission.ASSOCIATION_READ,
+    Permission.ASSOCIATION_MANAGE,
+    Permission.ASSOCIATION_ALERTS_READ,
+    Permission.ASSOCIATION_ALERTS_RESPOND,
+    Permission.DOCUMENTS_READ,
+    Permission.DOCUMENTS_UPLOAD,
+    Permission.VERIFICATION_READ,
+    Permission.VERIFICATION_SUBMIT,
+    Permission.NOTIFICATIONS_READ,
+    Permission.NEARBY_READ,
+    Permission.ANALYTICS_READ,
+    Permission.MEDIA_READ,
+    Permission.MEDIA_UPLOAD,
+    Permission.RESALE_BROWSE,
+    Permission.PROFILE_DIRECTORY,
+    Permission.CITY_ACCESS_READ,
+    Permission.ROUTE_INTEL_READ,
+    Permission.ROUTE_INTEL_REPORT,
+  ],
+
+  [RoleName.ASSOCIATION_RESPONDER]: [
+    Permission.ORG_READ,
+    Permission.ASSOCIATION_READ,
+    Permission.ASSOCIATION_ALERTS_READ,
+    Permission.ASSOCIATION_ALERTS_RESPOND,
+    Permission.NOTIFICATIONS_READ,
+    Permission.NEARBY_READ,
+    Permission.MEDIA_READ,
+    // A responder scans the stricken vehicle to identify it at the roadside.
+    Permission.QR_READ,
+    Permission.ROUTE_INTEL_READ,
+    Permission.ROUTE_INTEL_REPORT,
   ],
 };
 

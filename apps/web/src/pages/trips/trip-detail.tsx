@@ -161,7 +161,7 @@ export function TripDetailPage() {
         }
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           label="Progress"
           value={`${progress}%`}
@@ -224,9 +224,13 @@ export function TripDetailPage() {
         markers={markers}
         allow3D={hasFeature(Feature.MAPS_3D)}
         height="440px"
+        /* Road routing with turn-by-turn guidance, driven by the origin and
+           destination markers below the map. */
+        navigation
+        showSearch
       />
 
-      <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
         <Card>
           <CardHeader className="pb-3">
             <SectionHeader title="Timeline" description="Every recorded event on this trip." />

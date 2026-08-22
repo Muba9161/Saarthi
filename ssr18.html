@@ -1,0 +1,852 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Google tag (gtag.js) -->
+   <!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=AW-16654039119"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'AW-16654039119');
+</script>
+
+<!-- ✅ Microsoft Clarity Tracking Code -->
+<script type="text/javascript">
+    (function(c,l,a,r,i,t,y){
+        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+    })(window, document, "clarity", "script", "tx42fzvdwt");
+</script>
+    
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SSR API Platform</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/images/alphalogo.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/static/images/alphalogo.png">
+    <link rel="shortcut icon" href="/static/images/alphalogo.png">
+    <link rel="apple-touch-icon" href="/static/images/alphalogo.png">
+    
+    
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/profile_card.css">
+     <link rel="stylesheet" href="/static/css/navbar.css">
+     
+    <!-- Cache busting enabled - URLs will have hashes for automatic cache invalidation -->
+    
+    
+    <link rel="stylesheet" href="/static/css/components/footer.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/home_style.css">
+    <link rel="stylesheet" href="/static/css/test_api.css">
+    <link rel="stylesheet" href="/static/css/overview.css">
+    <link rel="stylesheet" href="/static/css/api_header.css">
+
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+    
+    
+        
+<nav class="navbar navbar-expand-lg navbar-light main-navbar">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="/api/home/">
+            <img src="/static/images/alphalogo.png" alt="SSR API Platform Logo" style="height: 40px; width: auto;">
+        </a>
+
+        <!-- Mobile toggler -->
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-controls="mainNavbar" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="mainNavbar">
+            <ul class="navbar-nav mx-auto mb-2 mb-lg-0">
+                <li class="nav-item"><a class="nav-link" href="/api/home/">Home</a></li>
+                <li class="nav-item"><a class="nav-link" href="/api/browse/">Browse APIs</a></li>
+                <li class="nav-item"><a class="nav-link" href="/blog/">Blog</a></li>
+                <li class="nav-item"><a class="nav-link" href="/support/">Support</a></li>
+            </ul>
+
+            <div class="d-flex align-items-center gap-3" style="position: relative;">
+                
+                    <a href="/accounts/" class="btn btn-dashboard">Login / Sign Up</a>
+                
+            </div>
+        </div>
+    </div>
+</nav>
+    
+
+    <main class="main-content">
+        
+<main>
+    <div class="api-test-container">
+        <div class="api-header">
+            <div class="api-test-header">
+    <div class="api-infomation">
+        <div class="api-icon" id="apiIconContainer">
+            <i class="fas fa-cog"></i> 
+        </div>
+        <div class="api-details">
+            <h1 id="apiName">Loading...</h1>
+            <p class="api-author">by Saint Sita Ram Innovation Lab Pvt Ltd</p>
+            <span class="version-badge" id="versionBadge"></span>
+            <span class="status-badge" id="statusBadge"></span>
+        </div>
+    </div>
+    
+    <!-- Navigation Tabs Section -->
+    <div class="api-navigation-tabs">
+        <button class="nav-tab-btn active" data-tab="overview" onclick="switchTab(event, 'overview')">Overview</button>
+        <button class="nav-tab-btn" data-tab="test" onclick="switchTab(event, 'test')">Test API</button>
+    </div>
+</div>
+
+<div class="api-metrics">
+    <div class="metric">
+        <span class="metric-label">Latency</span>
+        <span class="metric-value" id="latency">--</span>
+    </div>
+    <div class="metric">
+        <span class="metric-label">Success Rate</span>
+        <span class="metric-value" id="successRate">--</span>
+    </div>
+    <div class="metric">
+        <span class="metric-label">Last Updated</span>
+        <span class="metric-value" id="lastUpdated">--</span>
+    </div>
+
+    
+    <a href="/subscription/pricing/18/" class="subscribe-btn">Subscribe Now</a>
+
+</div>
+        </div>
+
+        <div id="overviewContent" class="api-content-panel">
+            <!-- Mobile Navigation Toggle Button -->
+            <button class="mobile-nav-toggle" id="mobileNavToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            
+            <!-- Mobile Navigation Overlay -->
+            <div class="mobile-nav-overlay" id="mobileNavOverlay"></div>
+            
+            <div class="overview-container">
+                <aside class="overview-nav" id="overviewNav">
+                    <nav>
+                        <ul>
+                            <li><a href="#introduction" class="active">Introduction</a></li>
+                            <li><a href="#versioning">Versioning</a></li>
+                            
+                                <li><a href="#endpoint-24">/api/petrol-pumps/pumps/</a></li>
+                            
+                                <li><a href="#endpoint-25">/api/petrol-pumps/pumps/nearby/</a></li>
+                            
+                                <li><a href="#endpoint-26">/api/petrol-pumps/pumps/by-city/</a></li>
+                            
+                                <li><a href="#endpoint-27">/api/petrol-pumps/pumps/by-company/</a></li>
+                            
+                            <li><a href="#support">Support</a></li>
+                        </ul>
+                    </nav>
+                </aside>        
+
+                <section class="overview-main-content">
+                <article class="content-card" id="introduction">
+                    <h3>Description</h3>
+                    <p><p>The Petrol Pumps API helps users discover and explore petrol pump stations across India with location-based search and live fuel pricing data.<br>It covers all major fuel companies — IOCL, HPCL, BPCL, Shell, Jio-BP, Nayara, and more — and combines GPS-based proximity search with real-time petrol, diesel, and CNG prices for each station.<br>📍 Finds nearby pumps by GPS coordinates within a defined radius<br>⛽ Filters stations by fuel type — petrol, diesel, or CNG-only<br>🏢 Supports company-based filtering with brand aliases (e.g. HP/HPCL, JIO/Jio-bp)<br>🕐 Identifies 24-hour open stations for highway or late-night travel<br>💰 Returns live fuel prices in INR/litre for petrol, diesel, and CNG<br>🗺️ Delivers map-ready coordinates with direction links for each pump<br>👉 This allows users to not just locate the nearest pump, but make smarter choices — comparing fuel prices across companies, finding open stations at any hour, or specifically hunting for CNG pumps in their area.</p></p>
+                </article>
+
+                <article class="content-card" id="versioning">
+                    <h3>API Details</h3>
+                    <div class="additional-info">
+                        <h4>API Version</h4>
+                        <span class="version-badge">1.0.0</span>
+                        <p>This is the current version of the API available for use.</p>
+                    </div>
+                </article>
+
+                
+                    <article class="content-card" id="endpoint-24">
+                        <div class="endpoint-header-card">
+                            <h3>/api/petrol-pumps/pumps/</h3>
+                            <div class="endpoint-path-wrapper">
+                                <span class="method-badge get">GET</span>
+                                <code>/api/petrol-pumps/pumps/</code>
+                            </div>
+                        </div>
+                        <p>| Retrieve all petrol pumps with advanced filtering, sorting, and pagination options |</p>
+
+                        
+                            <h4>Parameters</h4>
+                            <div class="table-responsive">
+                                <table class="parameters-table-stylish">
+                                    <thead>
+                                        <tr>
+                                            <th>Parameter</th><th>Type</th><th>Description</th><th>Example</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                    
+                                        <tr>
+                                            <td><code>page</code></td>
+                                            <td>Number (Integer)</td>
+                                            <td></td>
+                                            <td><code>1</code></td>
+                                        </tr>
+                                    
+                                        <tr>
+                                            <td><code>limit</code></td>
+                                            <td>Number (Integer)</td>
+                                            <td></td>
+                                            <td><code>20</code></td>
+                                        </tr>
+                                    
+                                        <tr>
+                                            <td><code>search</code></td>
+                                            <td>Text (String)</td>
+                                            <td></td>
+                                            <td><code>Delhi</code></td>
+                                        </tr>
+                                    
+                                        <tr>
+                                            <td><code>company</code></td>
+                                            <td>Text (String)</td>
+                                            <td></td>
+                                            <td><code>HP</code></td>
+                                        </tr>
+                                    
+                                        <tr>
+                                            <td><code>city</code></td>
+                                            <td>Text (String)</td>
+                                            <td></td>
+                                            <td><code>New Delhi</code></td>
+                                        </tr>
+                                    
+                                        <tr>
+                                            <td><code>fuel_type</code></td>
+                                            <td>Text (String)</td>
+                                            <td></td>
+                                            <td><code>petrol | diesel | cng</code></td>
+                                        </tr>
+                                    
+                                    </tbody>
+                                </table>
+                            </div>
+                        
+
+                        <h4>Example Request</h4>
+                        <div class="code-block-wrapper">
+                            <button class="copy-btn" title="Copy Request"><i class="far fa-copy"></i></button>
+                            <pre><code class="language-bash">GET https://api.ssrinnovationlab.com/api/petrol-pumps/pumps/?page=1&amp;limit=20&amp;search=Bathinda&amp;company=HP&amp;city=Bathinda&amp;fuel_type=petrol</code></pre>
+                        </div>
+                        
+                        <h4>Example Response</h4>
+                        <div class="code-block-wrapper">
+                            <button class="copy-btn" title="Copy Response"><i class="far fa-copy"></i></button>
+                            <pre><code class="language-json">{
+  &quot;count&quot;: 107380,
+  &quot;next&quot;: &quot;https://api.ssrinnovationlab.com/api/petrol-pumps/pumps/?page=2&quot;,
+  &quot;previous&quot;: null,
+  &quot;results&quot;: [
+    {
+      &quot;id&quot;: 81265,
+      &quot;pump_name&quot;: &quot;SHRI RAM SWAROOP FILLING STATI BHARAT PETROLEUM DEALERS&quot;,
+      &quot;name&quot;: &quot;SHRI RAM SWAROOP FILLING STATI BHARAT PETROLEUM DEALERS&quot;,
+      &quot;company&quot;: &quot;BPCL&quot;,
+      &quot;latitude&quot;: &quot;26.86645500&quot;,
+      &quot;longitude&quot;: &quot;80.86254100&quot;,
+      &quot;address&quot;: &quot;600/319 PLOT NO-3A, 3B, KANAHIYA MADHOPUR, FAREEDIPUR&quot;,
+      &quot;city&quot;: &quot;226001&quot;,
+      &quot;district&quot;: &quot;Lucknow&quot;,
+      &quot;state&quot;: &quot;Uttar Pradesh&quot;,
+      &quot;petrol_price&quot;: &quot;94.69&quot;,
+      &quot;diesel_price&quot;: &quot;87.81&quot;,
+      &quot;has_petrol&quot;: true,
+      &quot;has_diesel&quot;: true,
+      &quot;has_cng&quot;: false,
+      &quot;station_timing&quot;: &quot;24 Hours&quot;,
+      &quot;direction_link&quot;: &quot;https://maps.google.com/maps?q=26.866455,80.862541&quot;
+    },
+    ...
+  ]
+}</code></pre>
+                        </div>
+                    </article>
+                
+                    <article class="content-card" id="endpoint-25">
+                        <div class="endpoint-header-card">
+                            <h3>/api/petrol-pumps/pumps/nearby/</h3>
+                            <div class="endpoint-path-wrapper">
+                                <span class="method-badge get">GET</span>
+                                <code>/api/petrol-pumps/pumps/nearby/</code>
+                            </div>
+                        </div>
+                        <p>Find petrol pumps closest to user&#x27;s location by latitude and longitude |</p>
+
+                        
+                            <h4>Parameters</h4>
+                            <div class="table-responsive">
+                                <table class="parameters-table-stylish">
+                                    <thead>
+                                        <tr>
+                                            <th>Parameter</th><th>Type</th><th>Description</th><th>Example</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                    
+                                        <tr>
+                                            <td><code>latitude</code><span class="required">*</span></td>
+                                            <td>Number (Decimal)</td>
+                                            <td></td>
+                                            <td><code>28.6139</code></td>
+                                        </tr>
+                                    
+                                        <tr>
+                                            <td><code>longitude</code><span class="required">*</span></td>
+                                            <td>Number (Decimal)</td>
+                                            <td></td>
+                                            <td><code>77.2090</code></td>
+                                        </tr>
+                                    
+                                        <tr>
+                                            <td><code>radius</code></td>
+                                            <td>Number (Integer)</td>
+                                            <td></td>
+                                            <td><code>5</code></td>
+                                        </tr>
+                                    
+                                        <tr>
+                                            <td><code>company</code></td>
+                                            <td>Text (String)</td>
+                                            <td></td>
+                                            <td><code>HP</code></td>
+                                        </tr>
+                                    
+                                        <tr>
+                                            <td><code>limit</code></td>
+                                            <td>Number (Integer)</td>
+                                            <td></td>
+                                            <td><code>20</code></td>
+                                        </tr>
+                                    
+                                        <tr>
+                                            <td><code>format</code></td>
+                                            <td>Text (String)</td>
+                                            <td></td>
+                                            <td><code>full | minimal</code></td>
+                                        </tr>
+                                    
+                                        <tr>
+                                            <td><code>fuel_type</code></td>
+                                            <td>Text (String)</td>
+                                            <td></td>
+                                            <td><code>petrol | diesel | cng</code></td>
+                                        </tr>
+                                    
+                                    </tbody>
+                                </table>
+                            </div>
+                        
+
+                        <h4>Example Request</h4>
+                        <div class="code-block-wrapper">
+                            <button class="copy-btn" title="Copy Request"><i class="far fa-copy"></i></button>
+                            <pre><code class="language-bash">GET /api/petrol-pumps/pumps/nearby/?latitude=30.210995&amp;longitude=74.945473&amp;radius=5&amp;limit=20&amp;format=full&amp;fuel_type=petrol</code></pre>
+                        </div>
+                        
+                        <h4>Example Response</h4>
+                        <div class="code-block-wrapper">
+                            <button class="copy-btn" title="Copy Response"><i class="far fa-copy"></i></button>
+                            <pre><code class="language-json">{
+  &quot;count&quot;: 20,
+  &quot;total_within_radius&quot;: 29,
+  &quot;limit_applied&quot;: 20,
+  &quot;search_radius_km&quot;: 5,
+  &quot;user_location&quot;: {
+    &quot;latitude&quot;: 30.210995,
+    &quot;longitude&quot;: 74.945473
+  },
+  &quot;results&quot;: [
+    {
+      &quot;id&quot;: 84803,
+      &quot;pump_name&quot;: &quot;BP BATHINDA BHARAT PETROLEUM DEALERS&quot;,
+      &quot;name&quot;: &quot;BP BATHINDA BHARAT PETROLEUM DEALERS&quot;,
+      &quot;company&quot;: &quot;BPCL&quot;,
+      &quot;latitude&quot;: &quot;30.21262700&quot;,
+      &quot;longitude&quot;: &quot;74.94469200&quot;,
+      &quot;address&quot;: &quot;Address not available&quot;,
+      &quot;city&quot;: &quot;BATHINDA&quot;,
+      &quot;district&quot;: &quot;Bathinda&quot;,
+      &quot;state&quot;: &quot;Punjab&quot;,
+      &quot;petrol_price&quot;: &quot;97.48&quot;,
+      &quot;diesel_price&quot;: &quot;87.30&quot;,
+      &quot;has_petrol&quot;: true,
+      &quot;has_diesel&quot;: true,
+      &quot;has_cng&quot;: false,
+      &quot;station_timing&quot;: &quot;24 Hours&quot;,
+      &quot;direction_link&quot;: &quot;https://maps.google.com/maps?q=30.212627,74.944692&quot;
+    },
+    ...
+  ]
+}</code></pre>
+                        </div>
+                    </article>
+                
+                    <article class="content-card" id="endpoint-26">
+                        <div class="endpoint-header-card">
+                            <h3>/api/petrol-pumps/pumps/by-city/</h3>
+                            <div class="endpoint-path-wrapper">
+                                <span class="method-badge get">GET</span>
+                                <code>/api/petrol-pumps/pumps/by-city/</code>
+                            </div>
+                        </div>
+                        <p>Get all petrol pumps in a specific city |</p>
+
+                        
+                            <h4>Parameters</h4>
+                            <div class="table-responsive">
+                                <table class="parameters-table-stylish">
+                                    <thead>
+                                        <tr>
+                                            <th>Parameter</th><th>Type</th><th>Description</th><th>Example</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                    
+                                        <tr>
+                                            <td><code>city</code><span class="required">*</span></td>
+                                            <td>Text (String)</td>
+                                            <td></td>
+                                            <td><code>New Delhi</code></td>
+                                        </tr>
+                                    
+                                        <tr>
+                                            <td><code>company</code></td>
+                                            <td>Text (String)</td>
+                                            <td></td>
+                                            <td><code>HP</code></td>
+                                        </tr>
+                                    
+                                        <tr>
+                                            <td><code>page</code></td>
+                                            <td>Text (String)</td>
+                                            <td></td>
+                                            <td><code>1</code></td>
+                                        </tr>
+                                    
+                                        <tr>
+                                            <td><code>limit</code></td>
+                                            <td>Text (String)</td>
+                                            <td></td>
+                                            <td><code>20</code></td>
+                                        </tr>
+                                    
+                                        <tr>
+                                            <td><code>fuel_type</code></td>
+                                            <td>Text (String)</td>
+                                            <td></td>
+                                            <td><code>petrol | diesel | cng</code></td>
+                                        </tr>
+                                    
+                                    </tbody>
+                                </table>
+                            </div>
+                        
+
+                        <h4>Example Request</h4>
+                        <div class="code-block-wrapper">
+                            <button class="copy-btn" title="Copy Request"><i class="far fa-copy"></i></button>
+                            <pre><code class="language-bash">GET /api/petrol-pumps/pumps/by-city/?city=Bathinda&amp;page=1&amp;limit=20</code></pre>
+                        </div>
+                        
+                        <h4>Example Response</h4>
+                        <div class="code-block-wrapper">
+                            <button class="copy-btn" title="Copy Response"><i class="far fa-copy"></i></button>
+                            <pre><code class="language-json">{
+  &quot;count&quot;: 198,
+  &quot;next&quot;: &quot;https://api.ssrinnovationlab.com/api/petrol-pumps/pumps/by-city/?city=Bathinda&amp;page=2&quot;,
+  &quot;previous&quot;: null,
+  &quot;results&quot;: [
+    {
+      &quot;id&quot;: 84811,
+      &quot;pump_name&quot;: &quot;BHAI KULDEEP SINGH FILLING STA BHARAT PETROLEUM DEALERS&quot;,
+      &quot;name&quot;: &quot;BHAI KULDEEP SINGH FILLING STA BHARAT PETROLEUM DEALERS&quot;,
+      &quot;company&quot;: &quot;BPCL&quot;,
+      &quot;latitude&quot;: &quot;30.22217600&quot;,
+      &quot;longitude&quot;: &quot;75.03814500&quot;,
+      &quot;address&quot;: &quot;BHUCHO CANNTT, NH-64&quot;,
+      &quot;city&quot;: &quot;BATHINDA&quot;,
+      &quot;district&quot;: &quot;Bathinda&quot;,
+      &quot;state&quot;: &quot;Punjab&quot;,
+      &quot;petrol_price&quot;: &quot;97.48&quot;,
+      &quot;diesel_price&quot;: &quot;87.30&quot;,
+      &quot;cng_price&quot;: &quot;87.58&quot;,
+      &quot;has_petrol&quot;: true,
+      &quot;has_diesel&quot;: true,
+      &quot;has_cng&quot;: true,
+      &quot;station_timing&quot;: &quot;24 Hours&quot;,
+      &quot;direction_link&quot;: &quot;https://maps.google.com/maps?q=30.222176,75.038145&quot;
+    },
+    ...
+  ]
+}</code></pre>
+                        </div>
+                    </article>
+                
+                    <article class="content-card" id="endpoint-27">
+                        <div class="endpoint-header-card">
+                            <h3>/api/petrol-pumps/pumps/by-company/</h3>
+                            <div class="endpoint-path-wrapper">
+                                <span class="method-badge get">GET</span>
+                                <code>/api/petrol-pumps/pumps/by-company/</code>
+                            </div>
+                        </div>
+                        <p>Get all petrol pumps operated by a specific company</p>
+
+                        
+                            <h4>Parameters</h4>
+                            <div class="table-responsive">
+                                <table class="parameters-table-stylish">
+                                    <thead>
+                                        <tr>
+                                            <th>Parameter</th><th>Type</th><th>Description</th><th>Example</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                    
+                                        <tr>
+                                            <td><code>company</code><span class="required">*</span></td>
+                                            <td>Text (String)</td>
+                                            <td></td>
+                                            <td><code>HP</code></td>
+                                        </tr>
+                                    
+                                        <tr>
+                                            <td><code>city</code></td>
+                                            <td>Text (String)</td>
+                                            <td></td>
+                                            <td><code>New Delhi</code></td>
+                                        </tr>
+                                    
+                                        <tr>
+                                            <td><code>page</code></td>
+                                            <td>Number (Integer)</td>
+                                            <td></td>
+                                            <td><code>1</code></td>
+                                        </tr>
+                                    
+                                        <tr>
+                                            <td><code>limit</code></td>
+                                            <td>Number (Integer)</td>
+                                            <td></td>
+                                            <td><code>20</code></td>
+                                        </tr>
+                                    
+                                        <tr>
+                                            <td><code>fuel_type</code></td>
+                                            <td>Text (String)</td>
+                                            <td></td>
+                                            <td><code>petrol | diesel | cng</code></td>
+                                        </tr>
+                                    
+                                    </tbody>
+                                </table>
+                            </div>
+                        
+
+                        <h4>Example Request</h4>
+                        <div class="code-block-wrapper">
+                            <button class="copy-btn" title="Copy Request"><i class="far fa-copy"></i></button>
+                            <pre><code class="language-bash">GET /api/petrol-pumps/pumps/by-company/?company=HP&amp;city=Bathinda&amp;page=1&amp;limit=20&amp;fuel_type=petrol</code></pre>
+                        </div>
+                        
+                        <h4>Example Response</h4>
+                        <div class="code-block-wrapper">
+                            <button class="copy-btn" title="Copy Response"><i class="far fa-copy"></i></button>
+                            <pre><code class="language-json">{
+  &quot;count&quot;: 23981,
+  &quot;next&quot;: &quot;https://api.ssrinnovationlab.com/api/petrol-pumps/pumps/by-company/?company=HP&amp;page=2&quot;,
+  &quot;previous&quot;: null,
+  &quot;results&quot;: [
+    {
+      &quot;id&quot;: 10822,
+      &quot;pump_name&quot;: &quot;Dashmesh Filling Station&quot;,
+      &quot;name&quot;: &quot;Dashmesh Filling Station&quot;,
+      &quot;company&quot;: &quot;HPCL&quot;,
+      &quot;latitude&quot;: &quot;29.95649010&quot;,
+      &quot;longitude&quot;: &quot;74.38545010&quot;,
+      &quot;address&quot;: &quot;Ground Floor, Abohar Ferozepur Road, Bazidpur Bhoma, Abohar-152116&quot;,
+      &quot;city&quot;: &quot;Abohar&quot;,
+      &quot;district&quot;: &quot;Fazilka&quot;,
+      &quot;state&quot;: &quot;Punjab&quot;,
+      &quot;petrol_price&quot;: &quot;98.32&quot;,
+      &quot;diesel_price&quot;: &quot;88.12&quot;,
+      &quot;has_petrol&quot;: true,
+      &quot;has_diesel&quot;: true,
+      &quot;has_cng&quot;: false,
+      &quot;station_timing&quot;: &quot;Open until 10:00 PM&quot;,
+      &quot;direction_link&quot;: &quot;https://maps.google.com/maps?cid=2353181650244827854&quot;
+    },
+    ...
+  ]
+}</code></pre>
+                        </div>
+                    </article>
+                
+
+                <article class="content-card" id="support">
+                    <h3>Support</h3>
+                    <p>For any questions or issues, please contact our support team at <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="d8b1b6beb798ababaab1b6b6b7aeb9acb1b7b6b4b9baf6bbb7b5">[email&#160;protected]</a></p>
+                </article>
+            </section>
+            </div>
+        </div>
+
+        <div id="testApiContent" class="api-content-panel" style="display: none;">
+            <div class="api-content">
+                <div class="request-section">
+                    <h3>Request Builder</h3>
+                    <div class="current-url-section">
+                        <label>Current Endpoint URL</label>
+                        <div class="url-display-container">
+                            <span class="method-badge" id="currentMethodBadge">GET</span>
+                            <code id="currentEndpointUrl">Select an endpoint to see URL</code>
+                        </div>
+                    </div>
+                    <div class="endpoint-section">
+                        <label>API Endpoints</label>
+                        <div class="endpoint-controls">
+                            <select id="endpointSelect" class="endpoint-select"></select>
+                        </div>
+                    </div>
+                    <div class="parameters-section">
+                        <h4>Parameters</h4>
+                        <div id="parametersContainer">
+                            <div class="loading">Loading parameters...</div>
+                        </div>
+                    </div>
+                    <div class="api-key-section">
+                        <label for="apiKey">X-api-key</label>
+                        <div class="api-key-wrapper">
+                            <input type="password" id="apiKey" class="api-key-input" readonly>
+                            <i id="toggleApiKeyVisibility" class="fas fa-eye"></i>
+                        </div>
+                    </div>
+                    <div class="action-buttons">
+                        <button class="run-btn" id="runRequestBtn">▶ Run Request</button>
+                        <button class="reset-btn" id="resetBtn">⟲ Reset Fields</button>
+                    </div>
+                </div>
+
+                <div class="response-section">
+                    <div class="response-header">
+                        <h3>Response</h3>
+                        <div class="response-tabs">
+                            <button class="response-tab active" data-view="json" id="jsonTab">JSON</button>
+                            <button class="response-tab" data-view="headers" id="headersTab">Headers</button>
+                        </div>
+                    </div>
+
+                    <div class="response-content">
+                        <div class="status-indicator" id="statusIndicator">
+                            <span class="status-code" id="statusCode"></span>
+                            <span id="requestStatsDisplay"></span>
+                        </div>
+                        <div class="progress-indicator" id="progressIndicator">
+                            <div class="progress-text" id="progressText">Processing request...</div>
+                            <div class="progress-bar">
+                                <div class="progress-bar-fill" id="progressBarFill"></div>
+                            </div>
+                        </div>
+                        <div class="request-url-display" id="requestUrlDisplay" style="display: none;">
+                            <div class="request-url-header">
+                                <span class="request-method-badge" id="requestMethodBadge">GET</span>
+                                <span class="request-url-label">Request URL:</span>
+                                <button class="copy-url-btn" id="copyRequestUrlBtn" title="Copy Request URL">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </div>
+                            <code class="request-url-code" id="actualRequestUrl">No request made yet</code>
+                        </div>
+                    </div>
+                    <div class="response-body">
+                        <div class="response-toolbar">
+                            <div class="toolbar-actions">
+                                <button id="copyResponseBtn" class="toolbar-btn" title="Copy Response"><i class="fas fa-copy"></i></button>
+                                <button id="saveResponseBtn" class="toolbar-btn" title="Save Response"><i class="fas fa-save"></i></button>
+                                <button id="toggleSearchBtn" class="toolbar-btn" title="Search Response"><i class="fas fa-search"></i></button>
+                            </div>
+                            <div class="toolbar-search">
+                                <input type="search" id="searchResponseInput" class="response-search" placeholder="Search..." style="display: none;">
+                            </div>
+                        </div>
+
+                        <div class="response-view" id="headersView" style="display: none;">
+                            <textarea id="headersEditor"></textarea>
+                        </div>
+                        <div class="response-view active" id="jsonView">
+                            <textarea id="jsonEditor"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="documentationContent" class="api-content-panel" style="display: none;">
+            <div class="overview-header">
+                <h2>Documentation & SDKs</h2>
+            </div>
+            <div class="overview-body">
+                <p>Detailed documentation and software development kits are coming soon.</p>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/search/searchcursor.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/search/search.min.js"></script>
+
+<script src="/static/js/api_page_controller.js"></script>
+<script type="module" src="/static/js/test_api.js?v=20260212"></script>
+<script>
+// Mobile Navigation Functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const mobileNavToggle = document.getElementById('mobileNavToggle');
+    const mobileNavOverlay = document.getElementById('mobileNavOverlay');
+    const overviewNav = document.getElementById('overviewNav');
+    
+    if (mobileNavToggle && mobileNavOverlay && overviewNav) {
+        // Toggle mobile navigation
+        function toggleMobileNav() {
+            const isOpen = overviewNav.classList.contains('mobile-open');
+            
+            if (isOpen) {
+                closeMobileNav();
+            } else {
+                openMobileNav();
+            }
+        }
+        
+        function openMobileNav() {
+            overviewNav.classList.add('mobile-open');
+            mobileNavOverlay.classList.add('active');
+            mobileNavToggle.classList.add('active');
+            mobileNavToggle.innerHTML = '<i class="fas fa-times"></i>';
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function closeMobileNav() {
+            overviewNav.classList.remove('mobile-open');
+            mobileNavOverlay.classList.remove('active');
+            mobileNavToggle.classList.remove('active');
+            mobileNavToggle.innerHTML = '<i class="fas fa-bars"></i>';
+            document.body.style.overflow = '';
+        }
+        
+        // Event listeners
+        mobileNavToggle.addEventListener('click', toggleMobileNav);
+        mobileNavOverlay.addEventListener('click', closeMobileNav);
+        
+        // Close mobile nav when clicking on navigation links
+        const navLinks = overviewNav.querySelectorAll('nav ul li a');
+        navLinks.forEach(link => {
+            link.addEventListener('click', closeMobileNav);
+        });
+        
+        // Close mobile nav on window resize if screen becomes larger
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 768) {
+                closeMobileNav();
+            }
+        });
+    }
+});
+</script>
+
+    </main>
+
+    
+        
+ <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>
+                        <span class="s1">S</span><span class="s2">S</span><span class="r">R</span>
+                        <span class="innovations"> Innovations</span>
+                    </h3>
+                    <p>The leading platform for automotive API integration, providing developers with reliable vehicle data solutions.</p>
+                    <div class="social-links">
+                        <a href="https://www.facebook.com/profile.php?id=61552026134360" class="social-link" target="_blank" rel="noopener">
+                            <img src="/static/images/facebook.svg" alt="Facebook">
+                        </a>
+                        <a href="https://x.com/ssr_official1" class="social-link" target="_blank" rel="noopener">
+                            <img src="/static/images/twitter-x.svg" alt="Twitter">
+                        </a>
+                        <a href="https://www.linkedin.com/company/ssr-innovation-lab/" class="social-link" target="_blank" rel="noopener">
+                            <img src="/static/images/linkedin.svg" alt="LinkedIn">
+                        </a>
+                    </div>
+                </div>
+                <div class="footer-section">
+                    <h4>Quick Links</h4>
+                    <ul>
+                          <li class="nav-item"><a class="nav-link" href="/api/home/">Home</a></li>
+                <li class="nav-item"><a class="nav-link" href="/api/browse/">Browse APIs</a></li>
+                <li class="nav-item"><a class="nav-link" href="/blog/">Blog</a></li>
+                <li class="nav-item"><a class="nav-link" href="/support/">Support</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/privacy-policy/">Privacy Policy</a></li>
+                <li class="nav-item"><a class="nav-link" href="/terms-conditions/">Terms & Conditions</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Contact</h4>
+                     <p><a id="footer-email" href="/cdn-cgi/l/email-protection#5a33343c351a292928333434352c3b2e333534363b3874393537"><span class="__cf_email__" data-cfemail="6b02050d042b181819020505041d0a1f020405070a0945080406">[email&#160;protected]</span></a></p>
+                    <p>Phone: +91 95309-66789</p>
+                    <p>Address: Z2 – 10097, Sita Ram house, St no. 3, Bibiwala Road, Bathinda 151001, Punjab, India</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; Copyright Saint Sita Ram Innovation Lab Pvt. Ltd. All Rights Reserved</p>
+            </div>
+        </div>
+    </footer>
+    
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script type="module" src="/static/js/utils.js"></script>
+<script type="module" src="/static/js/apiClient.js"></script>
+
+<!-- Only load auth.js on authentication pages -->
+
+<script type="module" src="/static/js/auth.js"></script>
+
+
+<script type="module" src="/static/js/navbar.js"></script>
+
+<!-- Only load profile.js on profile pages that are not profile_completion -->
+
+<script type="module" src="/static/js/profile.js"></script>
+
+
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a2f382a9f933836b',t:'MTc4NzQxODgzMA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496" integrity="sha512-ZE9pZaUXND66v380QUtch/5sE9tPFh2zg45pR2PB0CVkCtOREv2AJKkSidISWkysEuQ0EH8faUU5du78bx87UQ==" data-cf-beacon='{"version":"2024.11.0","token":"109ccd6266524fa8898d564e42ce0d92","r":1}' crossorigin="anonymous"></script>
+</body>
+</html>

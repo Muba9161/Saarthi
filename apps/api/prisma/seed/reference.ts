@@ -24,6 +24,12 @@ const ROLE_DESCRIPTIONS: Record<RoleName, string> = {
   [RoleName.SUPPLIER]: 'Sells materials and coordinates dispatch from a yard or depot.',
   [RoleName.CUSTOMER]: 'Raises transport requirements and tracks deliveries.',
   [RoleName.SUPPORT_AGENT]: 'Saarthi support: verification review and incident assistance.',
+  [RoleName.ASSOCIATION_ADMIN]:
+    'Runs a district truck association: members, coverage areas and the emergency queue.',
+  [RoleName.ASSOCIATION_RESPONDER]:
+    'Works an association emergency queue and coordinates roadside assistance.',
+  [RoleName.MOBILITY_PROVIDER]:
+    'Taxi, travel and tour operator selling passenger journeys and packages.',
 };
 
 export async function seedRoles(prisma: PrismaClient): Promise<void> {

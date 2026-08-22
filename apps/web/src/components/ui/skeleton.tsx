@@ -27,7 +27,7 @@ export function TableSkeleton({ rows = 6, columns = 5 }: { rows?: number; column
 /** Standard loading placeholder for a metric card row. */
 export function StatCardsSkeleton({ count = 4 }: { count?: number }) {
   return (
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" role="status" aria-label="Loading">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4" role="status" aria-label="Loading">
       {Array.from({ length: count }).map((_, index) => (
         <div key={index} className="rounded-lg border border-border bg-card p-5">
           <Skeleton className="h-3 w-24" />

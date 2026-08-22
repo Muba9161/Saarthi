@@ -39,7 +39,7 @@ export function AuthLayout() {
   }
 
   return (
-    <div className="grid min-h-full lg:grid-cols-[1fr_minmax(0,520px)]">
+    <div className="grid grid-cols-1 min-h-full lg:grid-cols-[minmax(0,1fr)_minmax(0,520px)]">
       {/* Brand panel — hidden on small screens so the form gets the space. */}
       <aside className="relative hidden overflow-hidden bg-sidebar p-10 lg:flex lg:flex-col lg:justify-between">
         <div

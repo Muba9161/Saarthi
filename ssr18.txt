@@ -1,0 +1,312 @@
+SSR API Platform
+Home
+Browse APIs
+Blog
+Support
+Login / Sign Up
+Loading...
+by Saint Sita Ram Innovation Lab Pvt Ltd
+Overview
+Test API
+Latency
+--
+Success Rate
+--
+Last Updated
+--
+Subscribe Now
+Introduction
+Versioning
+/api/petrol-pumps/pumps/
+/api/petrol-pumps/pumps/nearby/
+/api/petrol-pumps/pumps/by-city/
+/api/petrol-pumps/pumps/by-company/
+Support
+Description
+The Petrol Pumps API helps users discover and explore petrol pump stations across India with location-based search and live fuel pricing data.
+It covers all major fuel companies — IOCL, HPCL, BPCL, Shell, Jio-BP, Nayara, and more — and combines GPS-based proximity search with real-time petrol, diesel, and CNG prices for each station.
+📍 Finds nearby pumps by GPS coordinates within a defined radius
+⛽ Filters stations by fuel type — petrol, diesel, or CNG-only
+🏢 Supports company-based filtering with brand aliases (e.g. HP/HPCL, JIO/Jio-bp)
+🕐 Identifies 24-hour open stations for highway or late-night travel
+💰 Returns live fuel prices in INR/litre for petrol, diesel, and CNG
+🗺️ Delivers map-ready coordinates with direction links for each pump
+👉 This allows users to not just locate the nearest pump, but make smarter choices — comparing fuel prices across companies, finding open stations at any hour, or specifically hunting for CNG pumps in their area.
+API Details
+API Version
+1.0.0
+This is the current version of the API available for use.
+/api/petrol-pumps/pumps/
+GET
+/api/petrol-pumps/pumps/
+| Retrieve all petrol pumps with advanced filtering, sorting, and pagination options |
+Parameters
+Parameter
+Type
+Description
+Example
+page
+Number (Integer)
+1
+limit
+Number (Integer)
+20
+search
+Text (String)
+Delhi
+company
+Text (String)
+HP
+city
+Text (String)
+New Delhi
+fuel_type
+Text (String)
+petrol | diesel | cng
+Example Request
+GET https://api.ssrinnovationlab.com/api/petrol-pumps/pumps/?page=1&limit=20&search=Bathinda&company=HP&city=Bathinda&fuel_type=petrol
+Example Response
+{
+"count": 107380,
+"next": "https://api.ssrinnovationlab.com/api/petrol-pumps/pumps/?page=2",
+"previous": null,
+"results": [
+{
+"id": 81265,
+"pump_name": "SHRI RAM SWAROOP FILLING STATI BHARAT PETROLEUM DEALERS",
+"name": "SHRI RAM SWAROOP FILLING STATI BHARAT PETROLEUM DEALERS",
+"company": "BPCL",
+"latitude": "26.86645500",
+"longitude": "80.86254100",
+"address": "600/319 PLOT NO-3A, 3B, KANAHIYA MADHOPUR, FAREEDIPUR",
+"city": "226001",
+"district": "Lucknow",
+"state": "Uttar Pradesh",
+"petrol_price": "94.69",
+"diesel_price": "87.81",
+"has_petrol": true,
+"has_diesel": true,
+"has_cng": false,
+"station_timing": "24 Hours",
+"direction_link": "https://maps.google.com/maps?q=26.866455,80.862541"
+},
+...
+]
+}
+/api/petrol-pumps/pumps/nearby/
+GET
+/api/petrol-pumps/pumps/nearby/
+Find petrol pumps closest to user&#x27;s location by latitude and longitude |
+Parameters
+Parameter
+Type
+Description
+Example
+latitude
+*
+Number (Decimal)
+28.6139
+longitude
+*
+Number (Decimal)
+77.2090
+radius
+Number (Integer)
+5
+company
+Text (String)
+HP
+limit
+Number (Integer)
+20
+format
+Text (String)
+full | minimal
+fuel_type
+Text (String)
+petrol | diesel | cng
+Example Request
+GET /api/petrol-pumps/pumps/nearby/?latitude=30.210995&longitude=74.945473&radius=5&limit=20&format=full&fuel_type=petrol
+Example Response
+{
+"count": 20,
+"total_within_radius": 29,
+"limit_applied": 20,
+"search_radius_km": 5,
+"user_location": {
+"latitude": 30.210995,
+"longitude": 74.945473
+},
+"results": [
+{
+"id": 84803,
+"pump_name": "BP BATHINDA BHARAT PETROLEUM DEALERS",
+"name": "BP BATHINDA BHARAT PETROLEUM DEALERS",
+"company": "BPCL",
+"latitude": "30.21262700",
+"longitude": "74.94469200",
+"address": "Address not available",
+"city": "BATHINDA",
+"district": "Bathinda",
+"state": "Punjab",
+"petrol_price": "97.48",
+"diesel_price": "87.30",
+"has_petrol": true,
+"has_diesel": true,
+"has_cng": false,
+"station_timing": "24 Hours",
+"direction_link": "https://maps.google.com/maps?q=30.212627,74.944692"
+},
+...
+]
+}
+/api/petrol-pumps/pumps/by-city/
+GET
+/api/petrol-pumps/pumps/by-city/
+Get all petrol pumps in a specific city |
+Parameters
+Parameter
+Type
+Description
+Example
+city
+*
+Text (String)
+New Delhi
+company
+Text (String)
+HP
+page
+Text (String)
+1
+limit
+Text (String)
+20
+fuel_type
+Text (String)
+petrol | diesel | cng
+Example Request
+GET /api/petrol-pumps/pumps/by-city/?city=Bathinda&page=1&limit=20
+Example Response
+{
+"count": 198,
+"next": "https://api.ssrinnovationlab.com/api/petrol-pumps/pumps/by-city/?city=Bathinda&page=2",
+"previous": null,
+"results": [
+{
+"id": 84811,
+"pump_name": "BHAI KULDEEP SINGH FILLING STA BHARAT PETROLEUM DEALERS",
+"name": "BHAI KULDEEP SINGH FILLING STA BHARAT PETROLEUM DEALERS",
+"company": "BPCL",
+"latitude": "30.22217600",
+"longitude": "75.03814500",
+"address": "BHUCHO CANNTT, NH-64",
+"city": "BATHINDA",
+"district": "Bathinda",
+"state": "Punjab",
+"petrol_price": "97.48",
+"diesel_price": "87.30",
+"cng_price": "87.58",
+"has_petrol": true,
+"has_diesel": true,
+"has_cng": true,
+"station_timing": "24 Hours",
+"direction_link": "https://maps.google.com/maps?q=30.222176,75.038145"
+},
+...
+]
+}
+/api/petrol-pumps/pumps/by-company/
+GET
+/api/petrol-pumps/pumps/by-company/
+Get all petrol pumps operated by a specific company
+Parameters
+Parameter
+Type
+Description
+Example
+company
+*
+Text (String)
+HP
+city
+Text (String)
+New Delhi
+page
+Number (Integer)
+1
+limit
+Number (Integer)
+20
+fuel_type
+Text (String)
+petrol | diesel | cng
+Example Request
+GET /api/petrol-pumps/pumps/by-company/?company=HP&city=Bathinda&page=1&limit=20&fuel_type=petrol
+Example Response
+{
+"count": 23981,
+"next": "https://api.ssrinnovationlab.com/api/petrol-pumps/pumps/by-company/?company=HP&page=2",
+"previous": null,
+"results": [
+{
+"id": 10822,
+"pump_name": "Dashmesh Filling Station",
+"name": "Dashmesh Filling Station",
+"company": "HPCL",
+"latitude": "29.95649010",
+"longitude": "74.38545010",
+"address": "Ground Floor, Abohar Ferozepur Road, Bazidpur Bhoma, Abohar-152116",
+"city": "Abohar",
+"district": "Fazilka",
+"state": "Punjab",
+"petrol_price": "98.32",
+"diesel_price": "88.12",
+"has_petrol": true,
+"has_diesel": true,
+"has_cng": false,
+"station_timing": "Open until 10:00 PM",
+"direction_link": "https://maps.google.com/maps?cid=2353181650244827854"
+},
+...
+]
+}
+Support
+For any questions or issues, please contact our support team at
+[email&#160;protected]
+Request Builder
+Current Endpoint URL
+GET
+Select an endpoint to see URL
+API Endpoints
+Parameters
+Loading parameters...
+X-api-key
+▶ Run Request
+⟲ Reset Fields
+Response
+JSON
+Headers
+Processing request...
+GET
+Request URL:
+No request made yet
+Documentation & SDKs
+Detailed documentation and software development kits are coming soon.
+S
+S
+R
+Innovations
+The leading platform for automotive API integration, providing developers with reliable vehicle data solutions.
+Quick Links
+Home
+Browse APIs
+Blog
+Support
+Privacy Policy
+Terms & Conditions
+Contact
+[email&#160;protected]
+Phone: +91 95309-66789
+Address: Z2 – 10097, Sita Ram house, St no. 3, Bibiwala Road, Bathinda 151001, Punjab, India
+&copy; Copyright Saint Sita Ram Innovation Lab Pvt. Ltd. All Rights Reserved

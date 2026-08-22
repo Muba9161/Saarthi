@@ -22,6 +22,32 @@ process.env.QUEUE_DRIVER = 'memory';
 process.env.PUBSUB_DRIVER = 'memory';
 process.env.STORAGE_PROVIDER = 'local';
 process.env.STORAGE_LOCAL_PATH = './storage/test-documents';
+// External integrations: a dummy key so the provider constructs, with every
+// outbound call stubbed in the tests themselves. No paid API is ever called.
+process.env.WAY2API_BASE_URL = 'https://way2api.test';
+process.env.WAY2API_API_KEY = 'test-way2api-key';
+process.env.WAY2API_TIMEOUT_MS = '2000';
+process.env.VEHICLE_CACHE_TTL = '3600';
+// No call ceiling in tests — every provider call is stubbed, so none are billable.
+process.env.VEHICLE_LOOKUP_BUDGET = '0';
+process.env.SSR_PETROL_API_BASE_URL = 'https://petrol.test';
+process.env.SSR_PETROL_API_KEY = '';
+process.env.SSR_PETROL_TIMEOUT_MS = '2000';
+process.env.PETROL_STATION_CACHE_TTL = '600';
+
+// Rate limits are raised, not disabled.
+//
+// Every fixture user signs in to get a token, so a test file that builds four
+// users per case issues hundreds of logins a minute — far past the production
+// AUTH_RATE_LIMIT_MAX of 10, which exists to stop credential stuffing rather
+// than to throttle a test harness. No test asserts these two limiters, so
+// raising them removes a source of flakiness without weakening any assertion.
+// The provider-side limiters (vehicle lookup, petrol stations) are deliberately
+// left alone, because tests *do* assert those.
+process.env.AUTH_RATE_LIMIT_MAX = '10000';
+process.env.RATE_LIMIT_MAX = '100000';
+process.env.QR_RESOLVE_RATE_LIMIT_MAX = '10000';
+
 process.env.JWT_ACCESS_SECRET ||= 'test-access-secret-value-that-is-long-enough-123456';
 process.env.JWT_REFRESH_SECRET ||= 'test-refresh-secret-value-that-is-long-enough-123456';
 process.env.COOKIE_SECRET ||= 'test-cookie-secret-value-that-is-long-enough-123456';

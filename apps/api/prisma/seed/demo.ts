@@ -21,6 +21,7 @@ import {
 } from '@saarthi/shared';
 import { DEMO_ROUTES, routeByKey, type DemoRoute } from './routes';
 import { seedNearbyPlaces } from './places';
+import { seedMobilityDemo } from './mobility';
 import { buildDemoPdf, checksumOf } from './files';
 
 /**
@@ -68,6 +69,34 @@ const between = (min: number, max: number): number => min + random() * (max - mi
  */
 async function clearDemoData(prisma: PrismaClient): Promise<void> {
   // Ordered so foreign keys never block a delete.
+
+  // Mobility expansion: telemetry and bookings reference vehicles and SOS
+  // incidents, so they are cleared before the rows they point at.
+  await prisma.telemetryDiagnosticCode.deleteMany();
+  await prisma.telemetryAlert.deleteMany();
+  await prisma.telemetryReading.deleteMany();
+  await prisma.telemetryAlertRule.deleteMany();
+  await prisma.geofence.deleteMany();
+  await prisma.mockDeviceRun.deleteMany();
+  await prisma.deviceEvent.deleteMany();
+  await prisma.deviceAssignment.deleteMany();
+  await prisma.hardwareDevice.deleteMany();
+
+  await prisma.travelReview.deleteMany();
+  await prisma.payment.deleteMany();
+  await prisma.travelBookingEvent.deleteMany();
+  await prisma.travelBooking.deleteMany();
+  await prisma.travelItineraryDay.deleteMany();
+  await prisma.travelPackage.deleteMany();
+  await prisma.providerServiceArea.deleteMany();
+  await prisma.serviceProviderProfile.deleteMany();
+
+  await prisma.associationResponder.deleteMany();
+  await prisma.associationAlertEvent.deleteMany();
+  await prisma.associationAlert.deleteMany();
+  await prisma.associationCoverageArea.deleteMany();
+  await prisma.associationProfile.deleteMany();
+
   await prisma.sosEvent.deleteMany();
   await prisma.sosResponder.deleteMany();
   await prisma.sosIncident.deleteMany();
@@ -1757,6 +1786,10 @@ export async function seedDemoData(prisma: PrismaClient): Promise<void> {
   // --- Nearby POI dataset --------------------------------------------------
   const placeCount = await seedNearbyPlaces(prisma);
 
+  // --- Mobility expansion: associations, travel, hardware ------------------
+  // Runs last because it attaches to the fleet, customer and SOS records above.
+  const mobility = await seedMobilityDemo(prisma);
+
   // --- Summary -------------------------------------------------------------
   const counts = {
     organizations: await prisma.organization.count(),
@@ -1770,6 +1803,11 @@ export async function seedDemoData(prisma: PrismaClient): Promise<void> {
     locations: await prisma.truckLocation.count(),
     nearbyPlaces: placeCount,
     sosIncidents: await prisma.sosIncident.count(),
+    associations: mobility.associations,
+    travelPackages: mobility.packages,
+    travelBookings: mobility.bookings,
+    devices: mobility.devices,
+    telemetryReadings: mobility.telemetryReadings,
   };
 
   console.log('  ✓ demo dataset created');
@@ -1782,6 +1820,17 @@ export async function seedDemoData(prisma: PrismaClient): Promise<void> {
     Fleet owner      owner@saarthi.local      fleet, trips, live map, simulator, AI
     Driver           driver@saarthi.local     driver app, SOS, safety score
     Customer         customer@saarthi.local   marketplace, orders, live tracking
+
+  Mobility expansion accounts — same password:
+
+    Association      association@saarthi.local  district emergency queue, responders
+    Assoc. responder responder@saarthi.local    alert queue, read + respond only
+    Travel provider  travel@saarthi.local       packages, bookings, provider profile
+    Taxi driver      taxidriver@saarthi.local   passenger trips, telemetry on own vehicle
+
+  The customer account also sees Travel: search packages, book, pay with the mock
+  gateway, track and rate. The fleet owner sees Devices and Telemetry, including a
+  mock Freematics unit that can be driven from Devices → Simulate.
 
   Registration is open at /register — a new organization gets a 14-day Pro trial
   and starts empty, so the app is fully usable without this demo data.

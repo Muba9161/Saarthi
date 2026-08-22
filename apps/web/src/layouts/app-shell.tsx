@@ -3,6 +3,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Bell,
+  Store,
   Building2,
   ChevronsUpDown,
   LifeBuoy,
@@ -17,7 +18,13 @@ import {
   Wifi,
   WifiOff,
 } from 'lucide-react';
-import { OrganizationType, RealtimeEvent, initialsOf, type RoleName } from '@saarthi/shared';
+import {
+  OrganizationType,
+  Permission,
+  RealtimeEvent,
+  initialsOf,
+  type RoleName,
+} from '@saarthi/shared';
 import { toast } from 'sonner';
 import { api } from '@/lib/api-client';
 import { cn } from '@/lib/utils';
@@ -27,9 +34,11 @@ import { useRealtime, useRealtimeEvent } from '@/hooks/use-realtime';
 import {
   ACCOUNT_NAVIGATION,
   ADMIN_NAVIGATION,
+  ASSOCIATION_NAVIGATION,
   CUSTOMER_NAVIGATION,
   DRIVER_NAVIGATION,
   FLEET_NAVIGATION,
+  MOBILITY_NAVIGATION,
   SUPPLIER_NAVIGATION,
   type NavItem,
   type NavSection,
@@ -84,6 +93,10 @@ function navigationFor(
         return SUPPLIER_NAVIGATION;
       case OrganizationType.CUSTOMER:
         return CUSTOMER_NAVIGATION;
+      case OrganizationType.TRUCK_ASSOCIATION:
+        return ASSOCIATION_NAVIGATION;
+      case OrganizationType.MOBILITY_PROVIDER:
+        return MOBILITY_NAVIGATION;
       case OrganizationType.PLATFORM:
         return [];
       default:
@@ -422,7 +435,12 @@ function OrganizationSwitcher() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="max-w-56 gap-2" disabled={switching}>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="min-w-0 max-w-40 gap-2 sm:max-w-56"
+          disabled={switching}
+        >
           <Building2 className="size-4 shrink-0" />
           <span className="truncate">{session.organization.name}</span>
           <ChevronsUpDown className="size-3.5 shrink-0 opacity-60" />
@@ -480,7 +498,7 @@ function ConnectionIndicator() {
 }
 
 function TopBar({ onOpenNav }: { onOpenNav: () => void }) {
-  const { session, logout, isDriver } = useAuth();
+  const { session, logout, isDriver, can } = useAuth();
   const { resolvedTheme, setTheme } = useTheme();
   const navigate = useNavigate();
   const badges = useNavBadges();
@@ -500,8 +518,26 @@ function TopBar({ onOpenNav }: { onOpenNav: () => void }) {
 
       <OrganizationSwitcher />
 
-      <div className="ml-auto flex items-center gap-1.5">
+      <div className="ml-auto flex shrink-0 items-center gap-1.5">
         <ConnectionIndicator />
+
+        {/*
+          The resale marketplace is a destination rather than a section of any
+          one account's workspace — a fleet browses it to buy and to sell — so
+          it sits in the top bar next to the live indicator instead of inside a
+          navigation group.
+        */}
+        {can(Permission.RESALE_BROWSE) ? (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate('/marketplace/vehicles')}
+            aria-label="Vehicle marketplace"
+            title="Vehicles for sale"
+          >
+            <Store className="size-5" />
+          </Button>
+        ) : null}
 
         {isDriver ? (
           <Button

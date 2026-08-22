@@ -18,6 +18,8 @@ export const registrableRoleSchema = z.enum([
   RoleName.SUPPLIER,
   RoleName.CUSTOMER,
   RoleName.DRIVER,
+  RoleName.MOBILITY_PROVIDER,
+  RoleName.ASSOCIATION_ADMIN,
 ]);
 export type RegistrableRole = z.infer<typeof registrableRoleSchema>;
 
@@ -26,6 +28,8 @@ export const ROLE_TO_ORGANIZATION_TYPE: Record<RegistrableRole, OrganizationType
   [RoleName.SUPPLIER]: OrganizationType.SUPPLIER,
   [RoleName.CUSTOMER]: OrganizationType.CUSTOMER,
   [RoleName.DRIVER]: null,
+  [RoleName.MOBILITY_PROVIDER]: OrganizationType.MOBILITY_PROVIDER,
+  [RoleName.ASSOCIATION_ADMIN]: OrganizationType.TRUCK_ASSOCIATION,
 };
 
 export const registerSchema = z

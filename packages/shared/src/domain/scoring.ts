@@ -122,6 +122,19 @@ export const DEFAULT_SCORING_CONFIG: ScoringConfig = {
       points: 6,
       reason: 'Driver responded to another Saarthi driver in an emergency.',
     },
+    // Raised from connected-hardware telemetry rather than phone GPS. The
+    // penalty is deliberately smaller than a speed violation: idling wastes
+    // fuel and is worth flagging, but it endangers nobody.
+    [ScoreEventType.EXCESSIVE_IDLING]: {
+      category: ScoreCategory.VEHICLE_CARE,
+      points: -2,
+      reason: 'Left the engine idling for longer than the fleet allows.',
+    },
+    [ScoreEventType.TELEMETRY_SAFE_DRIVING]: {
+      category: ScoreCategory.SAFETY,
+      points: 2,
+      reason: 'Completed a monitored trip with no harsh braking, acceleration or overspeed.',
+    },
     [ScoreEventType.MANUAL_ADJUSTMENT]: {
       category: ScoreCategory.RELIABILITY,
       points: 0,

@@ -37,7 +37,7 @@ export function SettingsPage() {
       <Card>
         <CardHeader className="pb-3"><SectionHeader title="Profile" /></CardHeader>
         <CardContent className="space-y-4 pt-0">
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-1.5"><Label>First name</Label><Input value={firstName} onChange={(event) => setFirstName(event.target.value)} /></div>
             <div className="space-y-1.5"><Label>Last name</Label><Input value={lastName} onChange={(event) => setLastName(event.target.value)} /></div>
           </div>
@@ -59,10 +59,10 @@ export function SettingsPage() {
         <Card>
           <CardHeader className="pb-3"><SectionHeader title="Organization" /></CardHeader>
           <CardContent className="space-y-2 pt-0 text-sm">
-            <div className="flex justify-between"><span className="text-muted-foreground">Name</span><span className="font-medium">{session.organization.name}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Type</span><span>{humanizeEnum(session.organization.type)}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Your role</span><span>{humanizeEnum(session.organization.membershipRole)}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Verification</span><Badge variant={session.organization.verificationStatus === 'VERIFIED' ? 'success' : 'warning'} size="sm">{humanizeEnum(session.organization.verificationStatus)}</Badge></div>
+            <div className="flex justify-between gap-4"><span className="shrink-0 text-muted-foreground">Name</span><span className="min-w-0 truncate text-right font-medium">{session.organization.name}</span></div>
+            <div className="flex justify-between gap-4"><span className="shrink-0 text-muted-foreground">Type</span><span className="min-w-0 truncate text-right">{humanizeEnum(session.organization.type)}</span></div>
+            <div className="flex justify-between gap-4"><span className="shrink-0 text-muted-foreground">Your role</span><span className="min-w-0 truncate text-right">{humanizeEnum(session.organization.membershipRole)}</span></div>
+            <div className="flex justify-between gap-4"><span className="shrink-0 text-muted-foreground">Verification</span><Badge variant={session.organization.verificationStatus === 'VERIFIED' ? 'success' : 'warning'} size="sm">{humanizeEnum(session.organization.verificationStatus)}</Badge></div>
           </CardContent>
         </Card>
       ) : null}

@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#6366f1">
+    <title>Vehicle RC Text and PDF API Documentation | Way2API®</title>
+    <meta name="description" content="Vehicle RC Text and PDF API — POST /api/v1/rc/text-pdf. The Registration Certificate (RC) for a vehicle returned both ways in a single call: the full RC…">
+    <meta name="keywords" content="Vehicle RC Text and PDF API, Vehicle RC Text and PDF API documentation, Vehicle RC Text and PDF Overview, Verification API, Way2API, REST API, API integration, India Vehicle RC Text and PDF API">
+    <meta name="author" content="Way2API®">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://app.way2api.com/documentation/vehicle-rc-text-pdf">
+
+    <!-- Favicons -->
+    <link rel="apple-touch-icon" sizes="180x180" href="https://app.way2api.com/assets/media/app/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="https://app.way2api.com/assets/media/app/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="https://app.way2api.com/assets/media/app/favicon-16x16.png">
+    <link rel="shortcut icon" href="https://app.way2api.com/assets/media/app/favicon.ico">
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="Vehicle RC Text and PDF API Documentation | Way2API®">
+    <meta property="og:description" content="Vehicle RC Text and PDF API — POST /api/v1/rc/text-pdf. The Registration Certificate (RC) for a vehicle returned both ways in a single call: the full RC…">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://app.way2api.com/documentation/vehicle-rc-text-pdf">
+    <meta property="og:site_name" content="Way2API®">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:locale:alternate" content="en_GB">
+    <meta property="og:locale:alternate" content="en_IN">
+    <meta property="og:image" content="https://app.way2api.com/assets/media/app/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+            <meta property="og:updated_time" content="2026-08-11 10:49:01">
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Vehicle RC Text and PDF API Documentation | Way2API®">
+    <meta name="twitter:description" content="Vehicle RC Text and PDF API — POST /api/v1/rc/text-pdf. The Registration Certificate (RC) for a vehicle returned both ways in a single call: the full RC…">
+    <meta name="twitter:image" content="https://app.way2api.com/assets/media/app/og-image.png">
+
+            <script type="application/ld+json">
+            {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "@id": "https://app.way2api.com/#organization",
+    "name": "Way2API\u00ae",
+    "url": "https://app.way2api.com",
+    "email": "support@way2api.com",
+    "logo": {
+        "@type": "ImageObject",
+        "url": "https://app.way2api.com/assets/media/app/light_logo.png"
+    }
+}        </script>
+            <script type="application/ld+json">
+            {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "@id": "https://app.way2api.com/#website",
+    "name": "Way2API\u00ae",
+    "url": "https://app.way2api.com",
+    "inLanguage": "en",
+    "publisher": {
+        "@id": "https://app.way2api.com/#organization"
+    }
+}        </script>
+            <script type="application/ld+json">
+            {
+    "@context": "https://schema.org",
+    "@type": "TechArticle",
+    "headline": "Vehicle RC Text and PDF API",
+    "description": "Vehicle RC Text and PDF API \u2014 POST /api/v1/rc/text-pdf. The Registration Certificate (RC) for a vehicle returned both ways in a single call: the full RC\u2026",
+    "url": "https://app.way2api.com/documentation/vehicle-rc-text-pdf",
+    "inLanguage": "en",
+    "image": "https://app.way2api.com/assets/media/app/og-image.png",
+    "articleSection": "Verification",
+    "proficiencyLevel": "Beginner",
+    "dateModified": "2026-08-11T10:49:01+00:00",
+    "author": {
+        "@id": "https://app.way2api.com/#organization"
+    },
+    "publisher": {
+        "@id": "https://app.way2api.com/#organization"
+    },
+    "isPartOf": {
+        "@id": "https://app.way2api.com/#website"
+    },
+    "mainEntityOfPage": {
+        "@type": "WebPage",
+        "@id": "https://app.way2api.com/documentation/vehicle-rc-text-pdf"
+    },
+    "datePublished": "2026-08-11T10:07:01+00:00"
+}        </script>
+            <script type="application/ld+json">
+            {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+        {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Documentation",
+            "item": "https://app.way2api.com/documentation"
+        },
+        {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Vehicle RC Text and PDF",
+            "item": "https://app.way2api.com/documentation/vehicle-rc-text-pdf"
+        }
+    ]
+}        </script>
+    
+        <link rel="stylesheet" href="https://app.way2api.com/assets/css/docs.css?v=1787389453">
+    <script>
+        window.W2A_DOCS = {"appName":"Way2API\u00ae","canonical":"https://app.way2api.com/documentation/vehicle-rc-text-pdf"};
+    </script>
+    <!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-531EY9TP7F"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){ dataLayer.push(arguments); }
+  gtag('js', new Date());
+  gtag('config', 'G-531EY9TP7F');
+</script>
+</head>
+
+<body>
+
+        <div class="sidebar-backdrop" aria-hidden="true"></div>
+    <button type="button" class="mobile-toggle" aria-label="Open navigation"
+            aria-expanded="false" aria-controls="docsSidebar">
+        <svg class="mt-bars" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+        <svg class="mt-x" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6 6l12 12M18 6L6 18" />
+        </svg>
+    </button>
+<aside class="sidebar" id="docsSidebar">
+    <div class="brand">
+        <a href="/documentation"><img src="https://app.way2api.com/assets/media/app/light_logo.png" alt="Way2API®"></a>
+    </div>
+
+    <div class="nav-group">
+        <div class="nav-label">Getting Started</div>
+        <a href="/documentation" class="nav-link">All APIs</a>
+        <a href="/documentation#authentication" class="nav-link">Authentication</a>
+        <a href="/documentation#status-codes" class="nav-link">Status Codes</a>
+        <a href="/documentation#response-format" class="nav-link">Response Format</a>
+        <a href="/documentation#billing" class="nav-link">When You Are Charged</a>
+    </div>
+
+                    <div class="nav-group">
+            <div class="nav-label">Financial APIs</div>
+                            <a href="/documentation/currency-rates" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> Currency Exchange Rates                </a>
+                    </div>
+                    <div class="nav-group">
+            <div class="nav-label">IP and Network Intelligence APIs</div>
+                            <a href="/documentation/ip-threat-bulk" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> Bulk IP Threat Intelligence                </a>
+                            <a href="/documentation/ip-check-v1" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> IP Check                </a>
+                            <a href="/documentation/ip-check-advance" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> IP Check Advance                </a>
+                            <a href="/documentation/ip-geolocation-full" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> IP Geolocation Enrichment                </a>
+                            <a href="/documentation/ip-geolocation" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> IP Geolocation Lookup                </a>
+                            <a href="/documentation/ip-threat" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> IP Threat Intelligence                </a>
+                            <a href="/documentation/ip-whois" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> IP WHOIS Lookup                </a>
+                    </div>
+                    <div class="nav-group">
+            <div class="nav-label">Identity and Security APIs</div>
+                            <a href="/documentation/bank-account-validation" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> Bank Account Validation                </a>
+                            <a href="/documentation/driving-license" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> Driving License Verify                </a>
+                            <a href="/documentation/mobile-prefill" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> Mobile Prefill                </a>
+                            <a href="/documentation/pan" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> PAN Verification                </a>
+                            <a href="/documentation/voter-id" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> Voter ID Verification                </a>
+                            <a href="/documentation/vpa-validation" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> VPA Validation                </a>
+                    </div>
+                    <div class="nav-group">
+            <div class="nav-label">Business APIs</div>
+                            <a href="/documentation/credit-report-equifax" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> Credit Report Equifax                </a>
+                            <a href="/documentation/credit-report-equifax-pdf" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> Credit Report Equifax PDF                </a>
+                            <a href="/documentation/credit-report-experian" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> Credit Report Experian                </a>
+                            <a href="/documentation/credit-report-experian-pdf" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> Credit Report Experian PDF                </a>
+                            <a href="/documentation/gst-filing-details" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> GST Filing Details                </a>
+                            <a href="/documentation/gst-filing-frequency" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> GST Filing Frequency                </a>
+                            <a href="/documentation/gst" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> GST Verification                </a>
+                            <a href="/documentation/hsn-code-lookup" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> HSN Code Lookup                </a>
+                            <a href="/documentation/tan-advanced" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> TAN Adv                </a>
+                    </div>
+                    <div class="nav-group">
+            <div class="nav-label">Telecom APIs</div>
+                            <a href="/documentation/dth-info" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> DTH Advance Information                </a>
+                            <a href="/documentation/dth-operator-check" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> DTH Operator Check                </a>
+                            <a href="/documentation/mobile-last-recharge" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> Last Mobile Recharge Status                </a>
+                            <a href="/documentation/mobile-r-offer" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> Mobile R-Offer Fetch                </a>
+                            <a href="/documentation/operator-circle" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> Operator and Circle Check                </a>
+                            <a href="/documentation/send-otp-pin-sms" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> Send OTP/PIN by SMS                </a>
+                    </div>
+                    <div class="nav-group">
+            <div class="nav-label">Domain Intelligence and Analysis APIs</div>
+                            <a href="/documentation/dns-lookup" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> DNS Lookup                </a>
+                            <a href="/documentation/domain-availability-check-v2" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> Domain Availability                </a>
+                            <a href="/documentation/domain-availability-check-v1" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> Domain Availability Check                </a>
+                            <a href="/documentation/domain-whois-lookup-v1" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> Domain Whois                </a>
+                            <a href="/documentation/domain-whois-lookup-v2" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> Domain WHOIS Lookup                </a>
+                            <a href="/documentation/ssl-lookup" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> SSL Certificate Lookup                </a>
+                            <a href="/documentation/subdomain-lookup" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> Subdomains Lookup                </a>
+                    </div>
+                    <div class="nav-group">
+            <div class="nav-label">Verification APIs</div>
+                            <a href="/documentation/aadhaar-pan-link-check" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> Aadhaar PAN Link Check                </a>
+                            <a href="/documentation/vehicle-rc-pdf" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> Vehicle RC PDF                </a>
+                            <a href="/documentation/vehicle-rc-text-pdf" class="nav-link active">
+                    <span class="method-badge badge-post">POST</span> Vehicle RC Text and PDF                </a>
+                            <a href="/documentation/vehicle-rc" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> Vehicle RC Verification                </a>
+                    </div>
+                    <div class="nav-group">
+            <div class="nav-label">Utilities APIs</div>
+                            <a href="/documentation/email-validation-bulk" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> Bulk Email Validation                </a>
+                            <a href="/documentation/email-validation" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> Email Validation                </a>
+                    </div>
+    
+    <div class="nav-group">
+        <div class="nav-label">Reference</div>
+        <a href="/documentation#errors" class="nav-link">Error Handling</a>
+        <a href="/documentation#notes" class="nav-link">Notes &amp; Info</a>
+    </div>
+</aside>
+
+<div class="main">
+    <div class="docs-topbar">
+            <span class="du-note">Sign in to grab your API key &mdash; or create a free account.</span>
+        <a class="du-btn du-btn-ghost" href="/login">Sign In</a>
+        <a class="du-btn du-btn-primary" href="/register">Get Started</a>
+    </div>
+
+    <div class="content content-api">
+
+        <nav class="crumbs" aria-label="Breadcrumb">
+            <a href="/documentation">Documentation</a>
+            <span class="crumb-sep">/</span>
+                            <span aria-current="page">Vehicle RC Text and PDF</span>
+                    </nav>
+
+        <div class="endpoint"
+             data-slug="vehicle-rc-text-pdf"
+             data-name="Vehicle RC Text and PDF"
+             data-category="Verification"
+             data-method="POST"
+             data-path="/api/v1/rc/text-pdf"
+             data-availability="Available in India"
+             data-deprecated="0"
+             data-desc="Vehicle RC Text and PDF API — The Registration Certificate (RC) for a vehicle returned both ways in a single call: the full RC record as JSON, and a pdf_url pointing at a ready-to-print smart-card / A4 PDF of the same certificate. Send a vehicle registration number and receive the owner and address, chassis and engine numbers, make, model, body type, colour, fuel and emission norms, seating and weight specifications, cubic capacity, registering RTO, fitness and road-tax validity, hypothecation and financer, insurance and PUCC validity, permit details, and blacklist / NOC status — plus the document link. Dates come back as ISO YYYY-MM-DD and rc_status is published from a stable value set, so both the shape and the values of this response are guaranteed not to move. pdf_url is an empty string in the rare case where a document could not be produced; the record itself is unaffected, so check it before following the link. Generated documents stay downloadable for a limited time — fetch and store the file promptly rather than holding the link. Use this endpoint when you need to both read the RC data and hand someone a printable certificate; the Vehicle RC Verification and Vehicle RC PDF endpoints sell those halves separately. Built for vehicle onboarding, fleet and dealership records, insurance and loan files, and RTO-facing paperwork.">
+
+                        <script type="text/plain" class="llm-spec"># Vehicle RC Text and PDF API — Way2API®
+
+- **Endpoint:** `POST https://app.way2api.com/api/v1/rc/text-pdf`
+- **Auth:** `Authorization: Bearer YOUR_API_KEY` (or `X-API-Key: YOUR_API_KEY`)
+- **Content-Type:** `application/json`
+- **Category:** Verification
+- **Availability:** Available in India
+- **Docs:** https://app.way2api.com/documentation/vehicle-rc-text-pdf
+
+## What it does
+
+Vehicle RC Text and PDF API — The Registration Certificate (RC) for a vehicle returned both ways in a single call: the full RC record as JSON, and a pdf_url pointing at a ready-to-print smart-card / A4 PDF of the same certificate. Send a vehicle registration number and receive the owner and address, chassis and engine numbers, make, model, body type, colour, fuel and emission norms, seating and weight specifications, cubic capacity, registering RTO, fitness and road-tax validity, hypothecation and financer, insurance and PUCC validity, permit details, and blacklist / NOC status — plus the document link. Dates come back as ISO YYYY-MM-DD and rc_status is published from a stable value set, so both the shape and the values of this response are guaranteed not to move. pdf_url is an empty string in the rare case where a document could not be produced; the record itself is unaffected, so check it before following the link. Generated documents stay downloadable for a limited time — fetch and store the file promptly rather than holding the link. Use this endpoint when you need to both read the RC data and hand someone a printable certificate; the Vehicle RC Verification and Vehicle RC PDF endpoints sell those halves separately. Built for vehicle onboarding, fleet and dealership records, insurance and loan files, and RTO-facing paperwork.
+
+## Request body (application/json)
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `rc_number` | string | yes | Vehicle registration number, e.g. DL3CAB1234 or MH12AB1234. Case-insensitive, no spaces or hyphens. |
+| `chassis_number` | string | no | Optional chassis number for additional verification. 5 to 25 characters. |
+| `engine_number` | string | no | Optional engine number for additional verification. 3 to 25 characters. |
+
+## Example request
+
+```bash
+curl -X POST https://app.way2api.com/api/v1/rc/text-pdf \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"rc_number":"DL3CAB1234"}'
+```
+
+## Success response — 200
+
+```json
+{
+    "status": "SUCCESS",
+    "status_code": 200,
+    "charged": true,
+    "success": true,
+    "message": "",
+    "message_code": "OK",
+    "order_id": "W2A1739512345abcdef01",
+    "data": {
+        "order_id": "W2A1739512345abcdef01",
+        "result": {
+            "rc_number": "OD05AB1234",
+            "registration_date": "2024-03-20",
+            "rc_status": "ACTIVE",
+            "less_info": false,
+            "latest_by": "2026-08-11",
+            "owner_name": "SNEHA MOHANTY",
+            "father_name": "",
+            "owner_number": "1",
+            "masked_name": false,
+            "mobile_number": "",
+            "present_address": "Jagatsinghapur, 754119",
+            "permanent_address": "Jagatsinghapur, 754119",
+            "vehicle_category": "2WN",
+            "vehicle_category_description": "M-Cycle/Scooter(2WN)",
+            "vehicle_chasi_number": "ME1AB1234C5678901",
+            "vehicle_engine_number": "G3AB1C234567",
+            "maker_description": "INDIA YAMAHA MOTOR PVT LTD",
+            "maker_model": "YAMAHA FZS VERSION 4.0",
+            "variant": null,
+            "body_type": "SOLO WITH PILLION",
+            "fuel_type": "PETROL(E20)",
+            "color": "DEEP PURPLISH BLUE",
+            "norms_type": "BHARAT STAGE VI",
+            "manufacturing_date": "1/2024",
+            "manufacturing_date_formatted": "2024-01",
+            "cubic_capacity": "149.00",
+            "no_cylinders": "1",
+            "seat_capacity": "2",
+            "sleeper_capacity": "0",
+            "standing_capacity": "0",
+            "wheelbase": "1330",
+            "unladen_weight": "135",
+            "vehicle_gross_weight": "285",
+            "registered_at": "CUTTACK RTO, Odisha",
+            "rto_code": "",
+            "fit_up_to": "2039-03-19",
+            "tax_upto": "2039-03-19",
+            "tax_paid_upto": "2039-03-19",
+            "financed": true,
+            "financer": "EXAMPLE CAPITAL LTD",
+            "insurance_company": "Example General Insurance Co. Ltd.",
+            "insurance_policy_number": "3410/12345678/000/00",
+            "insurance_upto": "2029-03-18",
+            "pucc_number": "OR12345678901234",
+            "pucc_upto": "2026-11-02",
+            "permit_number": "",
+            "permit_type": "",
+            "permit_issue_date": null,
+            "permit_valid_from": null,
+            "permit_valid_upto": null,
+            "national_permit_number": "",
+            "national_permit_upto": null,
+            "national_permit_issued_by": null,
+            "non_use_status": null,
+            "non_use_from": null,
+            "non_use_to": null,
+            "blacklist_status": "",
+            "noc_details": "",
+            "challan_details": null,
+            "response_metadata": {
+                "masked_chassis": false,
+                "masked_engine": false,
+                "masked_owner_name": false
+            },
+            "pdf_url": "https://docs.example-renderer.com/upload/rc2_1786426531_70e7ff519ee00a12.pdf"
+        }
+    }
+}
+```
+
+## Error response — 422
+
+```json
+{
+    "status": "SUCCESS",
+    "status_code": 422,
+    "charged": true,
+    "success": false,
+    "message": "No vehicle record was found for the registration number provided.",
+    "message_code": "VERIFICATION_FAILED",
+    "order_id": "W2A1739512345abcdef01",
+    "data": {
+        "order_id": "W2A1739512345abcdef01",
+        "error_code": "no_record"
+    }
+}
+```
+
+## Integration rules
+
+- Every response is JSON carrying `status`, `status_code`, `charged`, `success`, `message`, `message_code` and (once a call reaches the provider) `order_id`. The verification payload is under `data.result`.
+- `charged` (boolean) is the authority on billing. Do NOT infer it from the HTTP status: `422` is returned both for input we rejected (not charged) and for a lookup the provider ran and billed us for that returned a negative result (charged).
+- `message_code` is a fixed vocabulary — branch on it instead of parsing `message`. Values: `OK`, `ACCEPTED`, `PROVIDER_NO_RESPONSE`, `VERIFICATION_FAILED`, `NO_RECORD_FOUND`, `INVALID_INPUT`, `REQUEST_FAILED`, `MISSING_API_KEY`, `INVALID_API_KEY`, `INSUFFICIENT_BALANCE`, `NO_API_ACCESS`, `NOT_FOUND`, `RATE_LIMITED`, `INTERNAL_ERROR`, `PROVIDER_UNAVAILABLE`.
+- `success` reports the verification outcome; `status` reports the ORDER lifecycle (`SUCCESS`/`PENDING`/`FAILED`). They differ on a charged negative result: the order completed and was billed while the verification did not pass.
+- A failed verification is still a successful HTTP call — the outcome lives in the response body, so do not treat `200` as "verified".
+- Status codes: `200` result returned, `202` pending or provider did not respond (both charged — quote the `order_id`), `401` missing/invalid key, `402` insufficient balance, `403` no access to this service, `422` see `charged`, `429` rate limited (honour the `Retry-After` header), `503` temporarily unavailable.
+- Rate limits are per API key, per service, on a 1-minute sliding window.
+- Load the API key from an environment variable or secret store. Never hard-code it, never commit it, and never ship it in client-side code — calls must be made from your backend.
+</script>
+
+            <div class="endpoint-header">
+                <div class="ep-title-row">
+                    <h1 class="ep-name">Vehicle RC Text and PDF</h1>
+                    <span class="ep-cat">Verification</span>
+                    <button type="button" class="ep-share" onclick="openShare()" aria-label="Share the Vehicle RC Text and PDF API"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg>Share</button>
+                </div>
+                <div class="ep-meta-row">
+                    <span class="method method-post">POST</span>
+                    <span class="path">/api/v1/rc/text-pdf</span>
+                                            <span class="auth-tag tag-bearer">Bearer</span>
+                                    </div>
+            </div>
+
+            <nav class="doc-tabs" aria-label="Documentation sections">
+                    <a href="/documentation/vehicle-rc-text-pdf"
+           class="doc-tab active"
+           aria-current="page">Overview</a>
+                    <a href="/documentation/vehicle-rc-text-pdf/request"
+           class="doc-tab"
+           >Request</a>
+                    <a href="/documentation/vehicle-rc-text-pdf/response"
+           class="doc-tab"
+           >Response</a>
+                    <a href="/documentation/vehicle-rc-text-pdf/errors"
+           class="doc-tab"
+           >Error Codes</a>
+                    <a href="/documentation/vehicle-rc-text-pdf/examples"
+           class="doc-tab"
+           >Code Examples</a>
+                    <a href="/documentation/vehicle-rc-text-pdf/rate-limits"
+           class="doc-tab"
+           >Rate Limits</a>
+                    <a href="/documentation/vehicle-rc-text-pdf/ai-agent"
+           class="doc-tab"
+           >AI Agent / LLM</a>
+                    <a href="/documentation/vehicle-rc-text-pdf/github"
+           class="doc-tab has-ico"
+           ><svg class="doc-tab-ico" viewBox="0 0 16 16" width="15" height="15" aria-hidden="true" focusable="false"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>GitHub</a>
+    </nav>
+
+            <div class="endpoint-body">
+                
+                
+<p class="ep-desc"><strong>Vehicle RC Text and PDF API</strong> — The <strong>Registration Certificate (RC)</strong> for a vehicle returned <strong>both ways in a single call</strong>: the full RC record as JSON, and a <strong>pdf_url</strong> pointing at a ready-to-print <strong>smart-card / A4 PDF</strong> of the same certificate. Send a vehicle <strong>registration number</strong> and receive the owner and address, chassis and engine numbers, make, model, body type, colour, fuel and emission norms, seating and weight specifications, cubic capacity, registering RTO, fitness and road-tax validity, hypothecation and financer, insurance and PUCC validity, permit details, and blacklist / NOC status — plus the document link. Dates come back as <strong>ISO YYYY-MM-DD</strong> and <strong>rc_status</strong> is published from a stable value set, so both the shape and the values of this response are guaranteed not to move. <strong>pdf_url</strong> is an empty string in the rare case where a document could not be produced; the record itself is unaffected, so check it before following the link. Generated documents stay downloadable for a limited time — fetch and store the file promptly rather than holding the link. Use this endpoint when you need to both read the RC data and hand someone a printable certificate; the <strong>Vehicle RC Verification</strong> and <strong>Vehicle RC PDF</strong> endpoints sell those halves separately. Built for vehicle onboarding, fleet and dealership records, insurance and loan files, and RTO-facing paperwork.</p>
+
+<div class="auth-card" style="margin-bottom:16px;padding:10px 14px;">
+    <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:4px;">Availability</div>
+            <p style="margin:0 0 5px;font-size:13px;">&#128506; <strong>Country-specific</strong></p>
+        <p style="margin:0;font-size:12px;color:var(--muted);line-height:1.7;">
+                            India                    </p>
+    </div>
+
+
+<div class="auth-card">
+    <h2>Quick Start</h2>
+    <p>1. Copy your <strong>API key</strong> from Dashboard &rarr; API Keys<br>
+        2. Send a <code style="color:var(--blue)">POST</code> request to <code style="color:var(--blue)">/api/v1/rc/text-pdf</code><br>
+        3. Pass the key as <code style="color:var(--blue)">Authorization: Bearer &lt;key&gt;</code><br>
+        4. Read the result from the <code style="color:var(--blue)">data</code> object in the JSON response</p>
+</div>
+
+<h2 class="params-title">cURL</h2>
+<div class="code-block"><button class="copy-code" onclick="copyCode(this)">Copy</button>
+    <pre>curl -X POST https://app.way2api.com/api/v1/rc/text-pdf \
+  -H &quot;Authorization: Bearer YOUR_API_KEY&quot; \
+  -H &quot;Content-Type: application/json&quot; \
+  -d &#039;{&quot;rc_number&quot;:&quot;DL3CAB1234&quot;}&#039;</pre>
+</div>
+
+<button class="btn-toggle-try" onclick="toggleTry(this,'try-vehicle-rc-text-pdf')">&#9654; Try It</button>
+<div class="try-panel" id="try-vehicle-rc-text-pdf">
+    <div class="try-title">&#128640; Send Request</div>
+
+    <div class="try-row">
+        <label>API Key</label>
+        <input type="text" id="try-vehicle-rc-text-pdf-key" placeholder="Bearer token or API key">
+    </div>
+
+            <div class="try-row">
+            <label>rc_number</label>
+            <input type="text" id="try-vehicle-rc-text-pdf-rc_number" placeholder="DL3CAB1234">
+        </div>
+            <div class="try-row">
+            <label>chassis_number</label>
+            <input type="text" id="try-vehicle-rc-text-pdf-chassis_number" placeholder="">
+        </div>
+            <div class="try-row">
+            <label>engine_number</label>
+            <input type="text" id="try-vehicle-rc-text-pdf-engine_number" placeholder="">
+        </div>
+    
+    <div class="try-actions">
+        <button class="btn-try btn-send" onclick="tryEndpoint('POST','/api/v1/rc/text-pdf',{'rc_number':gv('try-vehicle-rc-text-pdf-rc_number'),'chassis_number':gv('try-vehicle-rc-text-pdf-chassis_number'),'engine_number':gv('try-vehicle-rc-text-pdf-engine_number')},'try-vehicle-rc-text-pdf',gv('try-vehicle-rc-text-pdf-key'))">Send Request</button>
+
+                <div class="remember-bar">
+            <label class="remember-label">
+                <input type="checkbox" id="rememberKeyChk" checked>
+                <span>Remember API Key</span>
+            </label>
+            <button class="remember-help-btn" type="button" onclick="document.getElementById('rkModal').classList.add('open')" title="How does this work?">?</button>
+            <span class="remember-status" id="rememberStatus">&#10003; Key saved</span>
+        </div>
+    </div>
+    <div class="try-response" id="try-vehicle-rc-text-pdf-res"></div>
+</div>
+
+<!-- Remember Key help modal -->
+<div class="rk-modal-overlay" id="rkModal" onclick="if(event.target===this)this.classList.remove('open')">
+    <div class="rk-modal">
+        <button class="rk-modal-close" onclick="document.getElementById('rkModal').classList.remove('open')">&times;</button>
+        <h3><span class="rk-icon">&#128273;</span> Remember API Key</h3>
+        <p class="rk-sub">One-click convenience for testing &amp; troubleshooting &mdash; no account needed.</p>
+        <div class="rk-row">
+            <div class="rk-dot">1</div>
+            <p><strong>What it does</strong>Saves your API key in <em>this browser only</em> using <code style="color:var(--blue);font-size:11px">localStorage</code>. Next time you open a docs page, the Try&nbsp;It panel is pre-filled automatically.</p>
+        </div>
+        <div class="rk-row">
+            <div class="rk-dot">2</div>
+            <p><strong>Auto-updates</strong>If you type a different key into any Try&nbsp;It field, the saved key is replaced instantly &mdash; only the most recent key is ever stored.</p>
+        </div>
+        <div class="rk-row">
+            <div class="rk-dot">3</div>
+            <p><strong>Uncheck to forget</strong>Unchecking &ldquo;Remember API Key&rdquo; immediately deletes the stored key and clears the field. While unchecked, nothing is saved even if you type a new key.</p>
+        </div>
+        <div class="rk-row">
+            <div class="rk-dot">4</div>
+            <p><strong>Re-check to save again</strong>Checking the box again saves whatever key is currently in the Try&nbsp;It field.</p>
+        </div>
+        <div class="rk-note"><strong>&#9888; Security note:</strong> Your key is stored only in <em>your browser</em> and is never sent to any server except as part of the actual API call you send. Do not use this feature on shared or public computers.</div>
+    </div>
+</div>
+
+<div class="next-tabs">
+    <h2 class="params-title">More on this API</h2>
+    <div class="next-grid">
+                                            <a class="next-card" href="/documentation/vehicle-rc-text-pdf/request">
+                <strong>Request</strong>
+                <span>Endpoint, authentication headers, every request parameter with its type, and a sample request body.</span>            </a>
+                                <a class="next-card" href="/documentation/vehicle-rc-text-pdf/response">
+                <strong>Response</strong>
+                <span>The full success response payload, field by field.</span>            </a>
+                                <a class="next-card" href="/documentation/vehicle-rc-text-pdf/errors">
+                <strong>Error Codes</strong>
+                <span>HTTP status codes, error payload shape, and how to handle failures.</span>            </a>
+                                <a class="next-card" href="/documentation/vehicle-rc-text-pdf/examples">
+                <strong>Code Examples</strong>
+                <span>Ready-to-run examples in cURL, PHP, JavaScript and Python.</span>            </a>
+                                <a class="next-card" href="/documentation/vehicle-rc-text-pdf/rate-limits">
+                <strong>Rate Limits</strong>
+                <span>Per-minute and per-day request limits, and what happens on breach.</span>            </a>
+                                <a class="next-card" href="/documentation/vehicle-rc-text-pdf/ai-agent">
+                <strong>AI Agent / LLM</strong>
+                <span>The whole endpoint as one Markdown brief — paste into Claude, Cursor, Copilot or ChatGPT.</span>            </a>
+                                <a class="next-card" href="/documentation/vehicle-rc-text-pdf/github">
+                <strong>GitHub</strong>
+                <span>Ready-to-run integration code, open source and MIT licensed.</span>            </a>
+            </div>
+</div>
+            </div>
+        </div>
+
+    </div><!-- .content -->
+
+<div class="footer" id="notes">
+    <div class="footer-grid">
+        <div class="footer-col">
+            <h2>Important Notes</h2>
+            <ul>
+                <li>All requests must include <code style="color:var(--blue);font-size:11px">Content-Type: application/json</code></li>
+                <li>API keys are 64-character hex strings &mdash; keep them secret</li>
+                <li>Successful verifications are debited from your wallet balance</li>
+                <li>Failed verifications are not charged</li>
+                <li>Each request generates a unique <code style="color:var(--blue);font-size:11px">order_id</code> for tracking</li>
+            </ul>
+        </div>
+        <div class="footer-col">
+            <h2>Security</h2>
+            <ul>
+                <li>All endpoints are served over HTTPS only</li>
+                <li>API keys can be regenerated from the dashboard</li>
+                <li>IP-based rate limiting prevents abuse</li>
+                <li>All API calls are logged for audit</li>
+            </ul>
+        </div>
+        <div class="footer-col">
+            <h2>Support &amp; Links</h2>
+            <p>
+                Dashboard: <a href="/dashboard" target="_blank">/dashboard</a><br>
+                API Keys: <a href="/dashboard/api-keys" target="_blank">/dashboard/api-keys</a><br>
+                Billing: <a href="/dashboard/billing" target="_blank">/dashboard/billing</a><br>
+                Status: <a href="/api/v1/health" target="_blank">/api/v1/health</a>
+            </p>
+        </div>
+    </div>
+        <div class="footer-bottom">Way2API® &bull; API Documentation &bull; Updated on <span id="genDate"></span> &bull; All rights reserved.</div>
+</div>
+
+</div><!-- .main -->
+
+    <!-- Share modal — populated from this page's .endpoint dataset -->
+    <div class="rk-modal-overlay" id="shareModal" onclick="if(event.target===this)closeShare()">
+        <div class="rk-modal share-modal" role="dialog" aria-modal="true" aria-labelledby="shareTitle">
+            <button class="rk-modal-close" onclick="closeShare()" aria-label="Close">&times;</button>
+            <h3 id="shareTitle"><span class="rk-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg></span> <span id="shareName">API</span></h3>
+            <div class="sm-badges" id="shareBadges"></div>
+            <p class="sm-desc" id="shareDesc"></p>
+
+            <div class="sm-label">Direct link</div>
+            <div class="sm-linkbox">
+                <input type="text" id="shareUrl" readonly onclick="this.select()" aria-label="Direct link to this API">
+                <button type="button" onclick="copyShareUrl()">Copy</button>
+            </div>
+
+            <div class="sm-label" id="shareDevLabel">For developers</div>
+            <button type="button" class="sm-ai" id="shareAiBtn" onclick="copyAiSpec(this)">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M12 2l1.9 5.6L19.5 9.5l-5.6 1.9L12 17l-1.9-5.6L4.5 9.5l5.6-1.9L12 2zm7 11l.9 2.6 2.6.9-2.6.9-.9 2.6-.9-2.6-2.6-.9 2.6-.9L19 13zM5 14l.7 2 2 .7-2 .7L5 19.4l-.7-2-2-.7 2-.7L5 14z" />
+                </svg>
+                <span class="sm-ai-text">
+                    <strong>Copy for AI agent</strong>
+                    <em>Full spec as Markdown &mdash; paste into Claude Code, Cursor, Copilot or ChatGPT</em>
+                </span>
+            </button>
+
+            <div class="sm-label">Share via</div>
+            <div class="sm-grid">
+                <a class="sm-opt" id="shWhatsapp" target="_blank" rel="noopener">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.91-4.45 9.91-9.91S17.5 2 12.04 2zm5.8 14.16c-.24.68-1.42 1.31-1.95 1.36-.5.05-.98.23-3.3-.69-2.78-1.1-4.55-3.94-4.69-4.12-.14-.18-1.13-1.5-1.13-2.86s.71-2.03.97-2.31c.25-.28.55-.35.73-.35.18 0 .37 0 .53.01.17.01.4-.06.62.48.24.57.8 1.97.87 2.11.07.14.12.31.02.49-.09.18-.14.29-.28.45-.14.16-.29.36-.42.48-.14.14-.28.29-.12.57.16.28.72 1.19 1.55 1.93 1.07.95 1.97 1.25 2.25 1.39.28.14.44.12.6-.07.17-.19.7-.81.88-1.09.18-.28.37-.23.62-.14.25.09 1.6.76 1.87.9.28.14.46.21.53.32.07.12.07.66-.17 1.34z" />
+                    </svg>
+                    WhatsApp
+                </a>
+                <a class="sm-opt" id="shEmail">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 4.24-8 4.5-8-4.5V6l8 4.5L20 6v2.24z" />
+                    </svg>
+                    Email
+                </a>
+                <a class="sm-opt" id="shLinkedin" target="_blank" rel="noopener">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M20.45 20.45h-3.56v-5.57c0-1.33-.03-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.35V9h3.41v1.56h.05c.48-.9 1.63-1.85 3.36-1.85 3.6 0 4.27 2.37 4.27 5.45v6.29zM5.34 7.43a2.06 2.06 0 1 1 0-4.13 2.06 2.06 0 0 1 0 4.13zm1.78 13.02H3.55V9h3.57v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.72v20.56C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.72V1.72C24 .77 23.2 0 22.22 0z" />
+                    </svg>
+                    LinkedIn
+                </a>
+                <a class="sm-opt" id="shTwitter" target="_blank" rel="noopener">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M18.24 2.25h3.31l-7.23 8.26 8.5 11.24h-6.65l-5.22-6.82-5.96 6.82H1.68l7.73-8.84L1.25 2.25h6.82l4.71 6.23 5.46-6.23zm-1.16 17.52h1.83L7.08 4.13H5.11l11.97 15.64z" />
+                    </svg>
+                    X
+                </a>
+                <a class="sm-opt" id="shTelegram" target="_blank" rel="noopener">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M11.94 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm4.64 6.86-1.55 7.33c-.12.52-.42.65-.86.4l-2.38-1.75-1.15 1.1c-.13.13-.24.24-.48.24l.17-2.43 4.43-4c.19-.17-.04-.27-.3-.1l-5.47 3.44-2.36-.73c-.51-.16-.52-.51.11-.76l9.22-3.55c.43-.16.8.1.66.76z" />
+                    </svg>
+                    Telegram
+                </a>
+                <button type="button" class="sm-opt" onclick="copyShareUrl()">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 16H8V7h11v14z" />
+                    </svg>
+                    Copy link
+                </button>
+            </div>
+            <button type="button" class="sm-native" id="shareNative" onclick="nativeShare()">More sharing options&hellip;</button>
+        </div>
+    </div>
+
+<script src="https://app.way2api.com/assets/js/docs.js?v=1787389453" defer></script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496" integrity="sha512-ZE9pZaUXND66v380QUtch/5sE9tPFh2zg45pR2PB0CVkCtOREv2AJKkSidISWkysEuQ0EH8faUU5du78bx87UQ==" data-cf-beacon='{"version":"2024.11.0","token":"d6583c7073d347a2b68bd11c654ef53e","r":1}' crossorigin="anonymous"></script>
+</body>
+
+</html>

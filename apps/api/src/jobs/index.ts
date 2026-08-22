@@ -12,6 +12,12 @@ import { logger } from '../lib/logger';
 import { notifyOrganization } from '../modules/notifications/notification.service';
 import { runMaintenanceReminderSweep } from '../modules/maintenance/maintenance.service';
 import { recalculateDriverScore } from '../modules/drivers/driver.service';
+import { runVehicleLookupRetentionSweep } from '../modules/vehicle-lookup/vehicle-lookup.service';
+import { runAssociationEscalationSweep } from '../modules/associations/association-alert.service';
+import { runDeviceOfflineSweep } from '../modules/devices/device.service';
+import { runTelemetryRetentionSweep } from '../modules/telemetry/telemetry.service';
+import { runReturnLoadMatchSweep } from '../modules/return-loads/return-load.service';
+import { runMediaOrphanSweep } from '../modules/media/media.service';
 
 /**
  * Scheduled background work.
@@ -178,12 +184,77 @@ export function registerBackgroundJobs(): void {
     },
   });
 
+  // RC records hold personal data — purge them as soon as their TTL lapses.
+  queue.registerRepeating({
+    name: 'vehicles:lookup-retention',
+    everyMs: 6 * HOUR,
+    initialDelayMs: 150_000,
+    handler: async () => {
+      await runVehicleLookupRetentionSweep();
+    },
+  });
+
   queue.registerRepeating({
     name: 'tracking:retention',
     everyMs: 24 * HOUR,
     initialDelayMs: 180_000,
     handler: async () => {
       await runTrackingRetentionSweep();
+    },
+  });
+
+  // An emergency alert that arrives at an unstaffed office would otherwise sit
+  // there while the driver waits for a response that was never coming. Runs
+  // often, because the critical threshold is ten minutes.
+  queue.registerRepeating({
+    name: 'associations:escalation',
+    everyMs: 5 * 60_000,
+    initialDelayMs: 90_000,
+    handler: async () => {
+      await runAssociationEscalationSweep();
+    },
+  });
+
+  // "Offline" is Saarthi's own verdict, formed from silence — so something has
+  // to notice the silence. Without this a dead SIM looks like a parked truck.
+  queue.registerRepeating({
+    name: 'devices:offline-sweep',
+    everyMs: 2 * 60_000,
+    initialDelayMs: 60_000,
+    handler: async () => {
+      await runDeviceOfflineSweep();
+    },
+  });
+
+  // Telemetry is the highest-volume table in the system; retention is per plan.
+  queue.registerRepeating({
+    name: 'telemetry:retention',
+    everyMs: 24 * HOUR,
+    initialDelayMs: 240_000,
+    handler: async () => {
+      await runTelemetryRetentionSweep();
+    },
+  });
+
+  // A return load is only useful while the truck is still free, so matches are
+  // recomputed often enough to catch an order posted after the truck was.
+  queue.registerRepeating({
+    name: 'return-loads:match-sweep',
+    everyMs: 10 * 60_000,
+    initialDelayMs: 100_000,
+    handler: async () => {
+      await runReturnLoadMatchSweep();
+    },
+  });
+
+  // Soft-deleted images keep their bytes for a recovery window; after that the
+  // objects have to go, or storage grows without bound.
+  queue.registerRepeating({
+    name: 'media:orphan-sweep',
+    everyMs: 24 * HOUR,
+    initialDelayMs: 300_000,
+    handler: async () => {
+      await runMediaOrphanSweep();
     },
   });
 

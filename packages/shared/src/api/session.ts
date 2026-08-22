@@ -4,7 +4,7 @@
  * entitlements and tenant context never have to be re-derived on the client.
  */
 
-import type { Feature } from '../domain/entitlements';
+import type { Feature, PlanLimits } from '../domain/entitlements';
 import type {
   MembershipStatus,
   OrganizationType,
@@ -32,13 +32,7 @@ export interface SessionSubscription {
   startsAt: string;
   endsAt: string | null;
   features: Feature[];
-  limits: {
-    maxTrucks: number | null;
-    maxDrivers: number | null;
-    maxMembers: number | null;
-    trackingHistoryDays: number;
-    aiRequestsPerDay: number;
-  };
+  limits: PlanLimits;
 }
 
 export interface SessionDriverProfile {

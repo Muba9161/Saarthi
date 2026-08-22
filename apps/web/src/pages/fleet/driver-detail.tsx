@@ -80,7 +80,7 @@ export function DriverDetailPage() {
         }
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           label="Driver score"
           value={person.overallScore ?? '—'}
@@ -138,7 +138,7 @@ export function DriverDetailPage() {
                   description="Earned from recorded operational facts, never awarded manually."
                 />
               </CardHeader>
-              <CardContent className="grid gap-3 pt-0 sm:grid-cols-2">
+              <CardContent className="grid grid-cols-1 gap-3 pt-0 sm:grid-cols-2">
                 {(achievements.data ?? []).map((achievement) => (
                   <div
                     key={achievement.code}

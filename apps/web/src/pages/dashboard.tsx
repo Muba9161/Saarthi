@@ -256,7 +256,7 @@ export function DashboardPage() {
         <ErrorState error={metrics.error} onRetry={() => void metrics.refetch()} />
       ) : data ? (
         <>
-          <Stagger className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <Stagger className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <StaggerItem>
               <StatCard
                 label="Fleet"
@@ -308,7 +308,7 @@ export function DashboardPage() {
             </StaggerItem>
           </Stagger>
 
-          <Stagger className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" delay={0.08}>
+          <Stagger className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4" delay={0.08}>
             <StaggerItem>
               <StatCard
                 label="Drivers"
@@ -392,7 +392,7 @@ export function DashboardPage() {
         </Card>
       ) : null}
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card variant="glass">
           <CardHeader className="pb-3">
             <SectionHeader

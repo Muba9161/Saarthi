@@ -359,7 +359,7 @@ export function SimulatorPage() {
           />
         </CardHeader>
         <CardContent className="flex flex-wrap items-end gap-3 pt-0">
-          <div className="min-w-64 flex-1 space-y-1.5">
+          <div className="w-full min-w-0 flex-1 space-y-1.5 sm:w-auto sm:min-w-64">
             <Label required>Trip</Label>
             <Select value={tripId} onValueChange={setTripId}>
               <SelectTrigger>
@@ -384,7 +384,7 @@ export function SimulatorPage() {
 
           <div className="space-y-1.5">
             <Label>Speed</Label>
-            <div className="flex gap-1">
+            <div className="flex flex-wrap gap-1">
               {SPEED_PRESETS.map((preset) => (
                 <Button
                   key={preset}
@@ -422,7 +422,7 @@ export function SimulatorPage() {
           description="Pick an active trip above and press Start. The truck will begin moving on the map immediately."
         />
       ) : (
-        <Stagger className="grid gap-3 lg:grid-cols-2">
+        <Stagger className="grid grid-cols-1 gap-3 lg:grid-cols-2">
           {active.map((simulation) => {
             const isSelected = selected?.id === simulation.id;
             const live = telemetry[simulation.truckId];
@@ -543,7 +543,7 @@ export function SimulatorPage() {
 
                     {/* Speed adjustment while running — the most-used demo control. */}
                     <div
-                      className="flex items-center gap-1.5"
+                      className="flex flex-wrap items-center gap-1.5"
                       onClick={(event) => event.stopPropagation()}
                     >
                       <Zap className="size-3.5 shrink-0 text-muted-foreground" />

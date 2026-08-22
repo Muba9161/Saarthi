@@ -62,7 +62,7 @@ export function ScoreBreakdown({ score, driverId }: { score: DriverScoreDetail; 
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader className="pb-2">
             <SectionHeader

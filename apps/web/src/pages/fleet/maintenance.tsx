@@ -68,7 +68,7 @@ export function MaintenancePage() {
           <CardHeader className="pb-3">
             <SectionHeader title="Vehicles needing attention" description="Risk is calculated from mileage, service intervals and recent repairs — not predicted." />
           </CardHeader>
-          <CardContent className="grid gap-3 pt-0 sm:grid-cols-2">
+          <CardContent className="grid grid-cols-1 gap-3 pt-0 sm:grid-cols-2">
             {atRisk.slice(0, 6).map((entry) => (
               <div key={entry.truckId} className="rounded-lg border border-border p-3">
                 <div className="flex items-center justify-between gap-2">

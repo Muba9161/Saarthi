@@ -77,7 +77,7 @@ export function SosIncidentDetailPage() {
         </Alert>
       ) : null}
 
-      <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div className="space-y-4">
           <FleetMap
             markers={[{ id: 'incident', latitude: data.latitude, longitude: data.longitude, label: data.address ?? data.reference, kind: 'incident' }]}
@@ -86,6 +86,7 @@ export function SosIncidentDetailPage() {
               latitude: data.latitude, longitude: data.longitude, status: 'AVAILABLE', speedKph: 0, heading: 0,
             }))}
             height="340px"
+            allow3D
           />
 
           <Card>

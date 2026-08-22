@@ -67,7 +67,7 @@ export function OrderDetailPage() {
         title={<span className="flex flex-wrap items-center gap-2.5">{data.reference}<StatusBadge status={data.status} /></span>}
         description={`${formatNumber(data.quantity)} ${humanizeEnum(data.unit).toLowerCase()} of ${data.materialName}`}
         actions={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {canQuote ? <Button onClick={() => setQuoteOpen(true)}><Truck className="size-4" />Quote for this</Button> : null}
             {isCustomer && data.status === OrderStatus.DELIVERED && !data.rating ? (
               <Button onClick={() => setRateOpen(true)}><Star className="size-4" />Rate delivery</Button>
@@ -77,7 +77,7 @@ export function OrderDetailPage() {
         }
       />
 
-      <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div className="space-y-4">
           <Card>
             <CardHeader className="pb-3"><SectionHeader title="Requirement" /></CardHeader>

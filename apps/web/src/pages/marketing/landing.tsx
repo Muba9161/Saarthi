@@ -308,7 +308,7 @@ function Hero() {
             </span>
           </div>
 
-          <div className="grid gap-3 p-4 sm:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-4">
             {[
               { label: 'Fleet', value: '8 trucks', tone: 'text-foreground' },
               { label: 'On trip', value: '3 moving', tone: 'text-primary' },
@@ -407,7 +407,7 @@ function Capabilities() {
           </p>
         </RevealOnScroll>
 
-        <Stagger className="mt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <Stagger className="mt-12 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {CAPABILITIES.map((capability) => (
             <StaggerItem key={capability.title}>
               <Card variant="glass" className="group h-full p-6 surface-interactive">
@@ -434,8 +434,8 @@ function Capabilities() {
 
 function HowItWorks() {
   return (
-    <section id="how" className="relative px-5 py-20">
-      <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden>
+    <section id="how" className="relative overflow-hidden px-5 py-20">
+      <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden" aria-hidden>
         <div className="absolute left-1/2 top-1/4 size-[36rem] -translate-x-1/2 rounded-full bg-primary/10 blur-[130px]" />
       </div>
 
@@ -447,7 +447,7 @@ function HowItWorks() {
           </h2>
         </RevealOnScroll>
 
-        <div className="mt-12 grid gap-4 sm:grid-cols-2">
+        <div className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-2">
           {STEPS.map((step, index) => (
             <RevealOnScroll key={step.step}>
               <Card variant="glass" className="h-full p-6">
@@ -487,7 +487,7 @@ function ForEveryone() {
           </h2>
         </RevealOnScroll>
 
-        <Stagger className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Stagger className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {ROLES.map((role) => (
             <StaggerItem key={role.role}>
               <Card variant="glass" className="h-full p-6">
@@ -528,7 +528,7 @@ function Pricing() {
           </p>
         </RevealOnScroll>
 
-        <Stagger className="mt-12 grid gap-4 lg:grid-cols-4">
+        <Stagger className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {PLAN_CATALOGUE.map((plan) => {
             const featured = plan.tier === 'PRO';
             return (

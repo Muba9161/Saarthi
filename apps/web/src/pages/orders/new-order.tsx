@@ -93,7 +93,7 @@ export function NewOrderPage() {
 
       <PageHeader title="Post a transport requirement" description="Tell Saarthi what needs moving; verified fleets will quote for it." />
 
-      <div className="grid gap-4 lg:grid-cols-[1fr_400px]">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_400px]">
         <Card>
           <CardHeader className="pb-3"><SectionHeader title="Requirement" /></CardHeader>
           <CardContent className="space-y-4 pt-0">
@@ -116,7 +116,7 @@ export function NewOrderPage() {
               ) : null}
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label required>Quantity</Label>
                 <Input type="number" min={1} value={quantity} onChange={(event) => setQuantity(Number(event.target.value))} />

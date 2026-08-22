@@ -70,13 +70,13 @@ export function StatCard({
     <HoverLift disabled={!onClick} className={cn('h-full', className)}>
       <Card
         variant="glass"
-        className={cn('h-full p-5', onClick && 'cursor-pointer')}
+        className={cn('h-full p-4 sm:p-5', onClick && 'cursor-pointer')}
       >
         <Wrapper
           {...(onClick ? { type: 'button' as const, onClick } : {})}
-          className="flex h-full w-full items-start justify-between gap-4 text-left"
+          className="flex h-full w-full items-start justify-between gap-3 text-left sm:gap-4"
         >
-          <div className="min-w-0 space-y-1.5">
+          <div className="min-w-0 flex-1 space-y-1.5">
             <p className="section-label flex items-center gap-1.5">
               {label}
               {live ? <span className="live-dot" aria-label="Updating live" /> : null}
@@ -84,7 +84,8 @@ export function StatCard({
 
             <p
               className={cn(
-                'tabular text-[1.75rem] font-semibold leading-none tracking-[-0.02em]',
+                'tabular text-2xl font-semibold leading-none tracking-[-0.02em] sm:text-[1.75rem]',
+                'break-words',
                 valueTones[tone],
               )}
             >
@@ -149,7 +150,7 @@ export function MiniStat({
   } as const;
 
   return (
-    <div className={cn('space-y-0.5', className)}>
+    <div className={cn('min-w-0 space-y-0.5', className)}>
       <p className="section-label flex items-center gap-1">
         {Icon ? <Icon className="size-3" /> : null}
         {label}

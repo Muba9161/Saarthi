@@ -25,6 +25,7 @@ import { errors } from '../../lib/errors';
 import { logger } from '../../lib/logger';
 import { skipTake } from '../../lib/http';
 import { notify, notifyOrganization } from '../notifications/notification.service';
+import { routeIncidentToAssociations } from '../associations/association-alert.service';
 import { broadcastSos, broadcastSosResponderRequest } from '../../realtime/realtime.service';
 import type { AuthContext } from '../../auth/context';
 
@@ -523,6 +524,17 @@ export async function triggerSos(
   const notified = await broadcastToResponders(incident.id);
   // Nobody in the first ring — widen immediately rather than waiting.
   if (notified === 0) await expandSearchRadius(incident.id);
+
+  // Third leg of the emergency network: the district truck associations that
+  // cover this location. Fire-and-forget with its own error handling, because
+  // nothing in the association path is allowed to make a driver's SOS slower
+  // or less likely to succeed.
+  void routeIncidentToAssociations(incident.id).catch((error) => {
+    sosLogger.error(
+      { err: error, incidentId: incident.id },
+      'Association routing failed for this incident',
+    );
+  });
 
   const final = await prisma.sosIncident.findUniqueOrThrow({
     where: { id: incident.id },

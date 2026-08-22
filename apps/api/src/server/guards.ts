@@ -1,5 +1,6 @@
 import type { FastifyReply, FastifyRequest, preHandlerHookHandler } from 'fastify';
 import {
+  type OrganizationType,
   type RoleName,
   hasAnyPermission,
   hasPermission,
@@ -67,6 +68,35 @@ export function requireRole(...roles: RoleName[]): preHandlerHookHandler {
     ]);
     if (!roles.some((role) => held.has(role))) {
       throw errors.forbidden('This area is restricted to a different account type.');
+    }
+  };
+}
+
+/**
+ * Restrict a route to particular kinds of business.
+ *
+ * Some surfaces belong to one account type and no other: only a travel
+ * operator sells tour packages, only an association runs an emergency queue.
+ * A permission answers "may this person do it"; this answers "is this the
+ * kind of organization that does it at all", and both must hold.
+ *
+ * Platform admins are exempt so support can always act on a tenant's behalf.
+ */
+export function requireOrganizationType(
+  ...types: OrganizationType[]
+): preHandlerHookHandler {
+  return async function organizationTypeGuard(request: FastifyRequest, _reply: FastifyReply) {
+    const auth = requireAuth(request);
+    if (auth.isPlatformAdmin) return;
+
+    const organization = auth.organization;
+    if (!organization) throw errors.organizationRequired();
+
+    if (!types.includes(organization.type)) {
+      throw errors.forbidden(
+        'This area is only available to a different type of Saarthi account. ' +
+          'Register the appropriate account type to use it.',
+      );
     }
   };
 }

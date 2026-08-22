@@ -223,7 +223,7 @@ export function AnalyticsPage() {
         description="Calculated from your operational records — never estimated for display."
       />
 
-      <Stagger className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <Stagger className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StaggerItem>
           <StatCard
             label="Trips completed"

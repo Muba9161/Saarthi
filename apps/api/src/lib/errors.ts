@@ -97,6 +97,35 @@ export const errors = {
   provider: (provider: string, message: string, cause?: unknown) =>
     new AppError(502, ErrorCode.PROVIDER_ERROR, message, { details: { provider }, cause }),
 
+  /** An upstream integration is not configured on this environment. */
+  providerNotConfigured: (provider: string, message: string) =>
+    new AppError(503, ErrorCode.PROVIDER_NOT_CONFIGURED, message, { details: { provider } }),
+
+  providerTimeout: (provider: string, message = 'The service took too long to respond. Please try again.') =>
+    new AppError(504, ErrorCode.PROVIDER_TIMEOUT, message, { details: { provider } }),
+
+  providerUnavailable: (
+    provider: string,
+    message = 'Data is temporarily unavailable. Please try again.',
+  ) => new AppError(503, ErrorCode.PROVIDER_UNAVAILABLE, message, { details: { provider } }),
+
+  providerRateLimited: (
+    provider: string,
+    message = 'Too many lookups right now. Please wait a moment and try again.',
+  ) => new AppError(429, ErrorCode.PROVIDER_RATE_LIMITED, message, { details: { provider } }),
+
+  /** This environment's billable-call ceiling has been reached. */
+  providerBudgetExhausted: (
+    provider: string,
+    message = 'The vehicle lookup allowance for this environment has been used up.',
+  ) => new AppError(429, ErrorCode.PROVIDER_BUDGET_EXHAUSTED, message, { details: { provider } }),
+
+  vehicleNotFound: (message = 'No vehicle was found for this registration number.') =>
+    new AppError(404, ErrorCode.VEHICLE_NOT_FOUND, message),
+
+  pdfUnavailable: (message = 'The RC document is not available for this lookup.') =>
+    new AppError(404, ErrorCode.PDF_UNAVAILABLE, message),
+
   internal: (message = 'Something went wrong while processing your request.', cause?: unknown) =>
     new AppError(500, ErrorCode.INTERNAL_ERROR, message, { cause, expected: false }),
 };

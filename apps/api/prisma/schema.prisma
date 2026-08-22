@@ -29,6 +29,9 @@ enum RoleName {
   SUPPLIER
   CUSTOMER
   SUPPORT_AGENT
+  ASSOCIATION_ADMIN
+  ASSOCIATION_RESPONDER
+  MOBILITY_PROVIDER
 }
 
 enum UserStatus {
@@ -44,6 +47,11 @@ enum OrganizationType {
   SUPPLIER
   CUSTOMER
   ENTERPRISE
+  TRUCK_ASSOCIATION
+  /// Taxi / travel / tour business. A FLEET_OWNER can also sell mobility by
+  /// adding service types to its provider profile; this type is for operators
+  /// whose only business is passenger transport.
+  MOBILITY_PROVIDER
 }
 
 enum MembershipStatus {
@@ -86,6 +94,7 @@ model User {
   passwordResets PasswordResetToken[]
   auditLogs      AuditLog[]           @relation("AuditActor")
   driverProfile  Driver?              @relation("DriverUser")
+  profile        UserProfile?
 
   @@index([status])
   @@index([createdAt])
@@ -93,10 +102,10 @@ model User {
 }
 
 model Role {
-  id          String     @id @default(uuid()) @db.Uuid
-  name        RoleName   @unique
+  id          String   @id @default(uuid()) @db.Uuid
+  name        RoleName @unique
   description String
-  createdAt   DateTime   @default(now())
+  createdAt   DateTime @default(now())
 
   users UserRole[]
 
@@ -139,8 +148,11 @@ model Organization {
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
 
-  memberships Membership[]
-  auditLogs   AuditLog[]
+  memberships        Membership[]
+  auditLogs          AuditLog[]
+  associationProfile AssociationProfile?
+  providerProfile    ServiceProviderProfile?
+  profile            OrganizationProfile?
 
   @@index([type])
   @@index([verificationStatus])
@@ -172,17 +184,17 @@ model Membership {
 
 /// A refresh-token bearing session. Revoking a row invalidates the device.
 model Session {
-  id             String    @id @default(uuid()) @db.Uuid
-  userId         String    @db.Uuid
+  id               String    @id @default(uuid()) @db.Uuid
+  userId           String    @db.Uuid
   /// SHA-256 of the refresh token — the raw token is never stored.
-  refreshTokenHash String  @unique
-  organizationId String?   @db.Uuid
-  userAgent      String?
-  ipAddress      String?
-  expiresAt      DateTime
-  revokedAt      DateTime?
-  lastUsedAt     DateTime  @default(now())
-  createdAt      DateTime  @default(now())
+  refreshTokenHash String    @unique
+  organizationId   String?   @db.Uuid
+  userAgent        String?
+  ipAddress        String?
+  expiresAt        DateTime
+  revokedAt        DateTime?
+  lastUsedAt       DateTime  @default(now())
+  createdAt        DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -293,6 +305,54 @@ enum NotificationType {
   SUBSCRIPTION_UPDATED
   SECURITY_ALERT
   SYSTEM
+  ASSOCIATION_ALERT
+  ASSOCIATION_ALERT_ESCALATED
+  ASSOCIATION_ALERT_RESOLVED
+  BOOKING_CREATED
+  BOOKING_CONFIRMED
+  BOOKING_CANCELLED
+  BOOKING_REMINDER
+  BOOKING_COMPLETED
+  PAYMENT_SUCCEEDED
+  PAYMENT_FAILED
+  PAYMENT_REFUNDED
+  DEVICE_ASSIGNED
+  DEVICE_OFFLINE
+  DEVICE_ONLINE
+  TELEMETRY_ALERT
+  DIAGNOSTIC_FAULT
+
+  // Added to match the shared catalogue, which is the source of truth
+  // for enum values across the schema, the API and the client.
+  STOCK_LOW
+  STOCK_OUT
+  STOCK_RESTOCKED
+  STOCK_RESERVATION_EXPIRING
+  LISTING_PUBLISHED
+  LISTING_REJECTED
+  LISTING_OFFER_RECEIVED
+  LISTING_OFFER_COUNTERED
+  LISTING_OFFER_ACCEPTED
+  LISTING_OFFER_REJECTED
+  LISTING_SOLD
+  LISTING_INSPECTION_REQUESTED
+  LISTING_EXPIRING
+  VEHICLE_TRANSFER_UPDATED
+  RETURN_LOAD_MATCH_FOUND
+  RETURN_LOAD_BOOKED
+  RETURN_LOAD_EXPIRING
+  EMPTY_RETURN_RISK
+  CITY_ACCESS_BLOCKED
+  RELAY_REQUESTED
+  RELAY_OFFER_RECEIVED
+  RELAY_ASSIGNED
+  RELAY_HANDOVER_READY
+  RELAY_DELIVERED
+  ROUTE_HAZARD_AHEAD
+  ROUTE_HAZARD_VERIFIED
+  PROFILE_INCOMPLETE
+  QR_CODE_ROTATED
+  MEDIA_MODERATION_REQUIRED
 }
 
 // ===========================================================================
@@ -531,6 +591,8 @@ enum ScoreEventType {
   MAINTENANCE_NEGLECTED
   SOS_ASSISTANCE_PROVIDED
   MANUAL_ADJUSTMENT
+  EXCESSIVE_IDLING
+  TELEMETRY_SAFE_DRIVING
 }
 
 enum AchievementCode {
@@ -786,12 +848,25 @@ model Truck {
   id                 String             @id @default(uuid()) @db.Uuid
   organizationId     String             @db.Uuid
   registrationNumber String             @unique
-  truckType          TruckType
+  /// What kind of vehicle this row describes.
+  ///
+  /// The table is named `trucks` for history: Saarthi was truck-only, and
+  /// renaming it would have been a destructive migration across ~120
+  /// endpoints. Every pre-existing row is a TRUCK, and the generalized vehicle
+  /// API reads and writes these same rows.
+  vehicleType        VehicleType        @default(TRUCK)
+  /// Goods-vehicle body type. Defaulted so passenger vehicles, which have no
+  /// meaningful body type, can be created without inventing one.
+  truckType          TruckType          @default(OTHER)
   manufacturer       String?
   model              String?
   year               Int?
-  /// Payload capacity in tonnes.
-  capacityTons       Float
+  colour             String?
+  /// Payload capacity in tonnes. Zero for vehicles that carry no freight.
+  capacityTons       Float              @default(0)
+  /// Seats, for vehicles that carry people. Null for goods vehicles.
+  passengerCapacity  Int?
+  airConditioned     Boolean?
   fuelType           FuelType           @default(DIESEL)
   /// Average consumption in litres per 100 km, used for cost estimates.
   fuelEfficiency     Float?
@@ -809,18 +884,47 @@ model Truck {
   /// Owner-controlled: may this truck appear in nearby and SOS discovery?
   shareLocation      Boolean            @default(true)
   notes              String?
-  archivedAt         DateTime?
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
 
-  assignments TruckAssignment[]
-  locations   TruckLocation[]
-  events      TruckEvent[]
-  maintenance MaintenanceRecord[]
-  fuelRecords FuelRecord[]
+  // --- Physical dimensions, for city access rules -------------------------
+  //
+  // Nullable on purpose. A height rule against an unrecorded height cannot be
+  // evaluated, and the access check says so rather than assuming a figure that
+  // would either block a legal trip or wave through an illegal one.
+  heightMetres Float?
+  axleCount    Int?
+
+  // --- Return loads -------------------------------------------------------
+  /// Owner opt-out from backhaul matching.
+  acceptsReturnLoads Boolean @default(true)
+  /// Where this truck should end up when it is free.
+  homeBaseAddress    String?
+  homeBaseLatitude   Float?
+  homeBaseLongitude  Float?
+
+  // --- Last-mile relay ----------------------------------------------------
+  /// This vehicle can take city relay legs from other fleets.
+  lastMileCapable Boolean @default(false)
+
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  assignments        TruckAssignment[]
+  locations          TruckLocation[]
+  events             TruckEvent[]
+  maintenance        MaintenanceRecord[]
+  fuelRecords        FuelRecord[]
+  deviceAssignments  DeviceAssignment[]  @relation("VehicleDeviceAssignments")
+  telemetryReadings  TelemetryReading[]  @relation("VehicleTelemetry")
+  telemetryAlerts    TelemetryAlert[]    @relation("VehicleTelemetryAlerts")
+  travelPackages     TravelPackage[]     @relation("PackageVehicle")
+  travelBookings     TravelBooking[]     @relation("BookingVehicle")
+  resaleListings     VehicleListing[]
+  returnLoadRequests ReturnLoadRequest[]
 
   @@index([organizationId, status])
   @@index([organizationId, archivedAt])
+  @@index([organizationId, vehicleType])
   @@index([currentDriverId])
   @@index([lastLocationAt])
   @@index([lastLatitude, lastLongitude])
@@ -1088,7 +1192,8 @@ model Supplier {
   createdAt           DateTime           @default(now())
   updatedAt           DateTime           @updatedAt
 
-  materials Material[]
+  materials          Material[]
+  inventoryLocations InventoryLocation[]
 
   @@index([verificationStatus])
   @@map("suppliers")
@@ -1111,17 +1216,44 @@ model Material {
   pickupAddress     String?
   pickupLatitude    Float?
   pickupLongitude   Float?
-  archivedAt        DateTime?
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
 
-  supplier Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
-  orders   Order[]
+  // --- Inventory ----------------------------------------------------------
+  //
+  // `stockTracked` defaults to false, which reproduces the pre-inventory
+  // behaviour exactly: `availableQuantity` is hand-edited and no ledger is
+  // written. Turning it on opens a stock record from the current figure.
+  sku                String?
+  hsnCode            String?
+  brand              String?
+  stockTracked       Boolean                  @default(false)
+  availabilityMode   MaterialAvailabilityMode @default(IN_STOCK)
+  /// Denormalised for list filters; recomputed on every movement.
+  availabilityStatus StockAvailabilityStatus  @default(IN_STOCK)
+  lowStockThreshold  Float                    @default(0)
+  leadTimeDays       Int?
+  maximumOrderQty    Float?
+  allowBackorder     Boolean                  @default(false)
+  nextRestockAt      DateTime?
+  /// Aggregates across every location, kept in step inside the same
+  /// transaction as the ledger write so they can never drift.
+  onHandQuantity     Float                    @default(0)
+  reservedQuantity   Float                    @default(0)
+
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  supplier   Supplier            @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  orders     Order[]
+  stockItems StockItem[]
+  priceTiers MaterialPriceTier[]
 
   @@index([supplierId, status])
   @@index([organizationId, status])
   @@index([category])
   @@index([name])
+  @@index([availabilityStatus])
+  @@index([sku])
   @@map("materials")
 }
 
@@ -1153,17 +1285,17 @@ model Customer {
 // ===========================================================================
 
 model Order {
-  id             String @id @default(uuid()) @db.Uuid
+  id                     String @id @default(uuid()) @db.Uuid
   /// Human-friendly reference shown in the UI, e.g. SO-2026-000123.
-  reference      String @unique
-  customerId     String @db.Uuid
+  reference              String @unique
+  customerId             String @db.Uuid
   /// Tenant of the customer who raised the requirement.
   customerOrganizationId String @db.Uuid
 
   /// Material sourcing is optional: a customer may already own the goods and
   /// need transport only.
-  materialId             String?  @db.Uuid
-  supplierOrganizationId String?  @db.Uuid
+  materialId             String? @db.Uuid
+  supplierOrganizationId String? @db.Uuid
 
   /// Fleet that won the order. Null until a quote is accepted.
   fleetOrganizationId String? @db.Uuid
@@ -1196,28 +1328,47 @@ model Order {
   assignedDriverId String?     @db.Uuid
   tripId           String?     @unique @db.Uuid
 
-  notes           String?
-  cancellationReason String?
-  createdById     String   @db.Uuid
-  confirmedAt     DateTime?
-  deliveredAt     DateTime?
-  completedAt     DateTime?
-  cancelledAt     DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  // --- Return loads -------------------------------------------------------
+  /// This order was filled as a backhaul rather than a fresh outbound run.
+  isReturnLoad        Boolean @default(false)
+  returnLoadRequestId String? @db.Uuid
+  /// Round-trip pairing, when the customer booked both directions.
+  parentOrderId       String? @db.Uuid
 
-  customer Customer  @relation(fields: [customerId], references: [id])
-  material Material? @relation(fields: [materialId], references: [id])
-  trip     Trip?     @relation("OrderTrip", fields: [tripId], references: [id])
-  quotes   OrderQuote[]
-  events   OrderEvent[]
-  rating   OrderRating?
+  // --- City access & last-mile relay --------------------------------------
+  /// Set by the access check when the drop sits inside a restricted zone.
+  requiresLastMile Boolean      @default(false)
+  /// Denormalised leg status so order lists do not need a join.
+  lastMileStatus   RelayStatus?
+
+  notes              String?
+  cancellationReason String?
+  createdById        String    @db.Uuid
+  confirmedAt        DateTime?
+  deliveredAt        DateTime?
+  completedAt        DateTime?
+  cancelledAt        DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  customer          Customer           @relation(fields: [customerId], references: [id])
+  material          Material?          @relation(fields: [materialId], references: [id])
+  trip              Trip?              @relation("OrderTrip", fields: [tripId], references: [id])
+  returnLoadRequest ReturnLoadRequest? @relation("OrderReturnLoad", fields: [returnLoadRequestId], references: [id], onDelete: SetNull)
+  quotes            OrderQuote[]
+  events            OrderEvent[]
+  rating            OrderRating?
+  stockReservations StockReservation[]
+  returnLoadMatches ReturnLoadMatch[]
+  relayDeliveries   RelayDelivery[]
 
   @@index([customerOrganizationId, status, createdAt])
   @@index([supplierOrganizationId, status])
   @@index([fleetOrganizationId, status])
   @@index([status, createdAt])
   @@index([assignedTruckId])
+  @@index([isReturnLoad, status])
+  @@index([requiresLastMile, status])
   @@map("orders")
 }
 
@@ -1264,19 +1415,19 @@ model OrderEvent {
 }
 
 model OrderRating {
-  id            String   @id @default(uuid()) @db.Uuid
-  orderId       String   @unique @db.Uuid
-  driverId      String?  @db.Uuid
-  fleetOrganizationId String? @db.Uuid
-  supplierOrganizationId String? @db.Uuid
+  id                     String   @id @default(uuid()) @db.Uuid
+  orderId                String   @unique @db.Uuid
+  driverId               String?  @db.Uuid
+  fleetOrganizationId    String?  @db.Uuid
+  supplierOrganizationId String?  @db.Uuid
   /// 1-5 stars.
-  rating        Int
-  punctuality   Int?
-  communication Int?
-  cargoCondition Int?
-  comment       String?
-  ratedByUserId String   @db.Uuid
-  createdAt     DateTime @default(now())
+  rating                 Int
+  punctuality            Int?
+  communication          Int?
+  cargoCondition         Int?
+  comment                String?
+  ratedByUserId          String   @db.Uuid
+  createdAt              DateTime @default(now())
 
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
@@ -1290,11 +1441,11 @@ model OrderRating {
 // ===========================================================================
 
 model Trip {
-  id             String @id @default(uuid()) @db.Uuid
-  reference      String @unique
+  id             String  @id @default(uuid()) @db.Uuid
+  reference      String  @unique
   /// Fleet tenant that operates this trip.
-  organizationId String @db.Uuid
-  truckId        String @db.Uuid
+  organizationId String  @db.Uuid
+  truckId        String  @db.Uuid
   driverId       String? @db.Uuid
 
   originAddress        String
@@ -1305,9 +1456,9 @@ model Trip {
   destinationLongitude Float
 
   /// Planned route polyline as [{ latitude, longitude }, ...].
-  plannedRoute      Json?
-  plannedDistanceKm Float?
-  actualDistanceKm  Float   @default(0)
+  plannedRoute       Json?
+  plannedDistanceKm  Float?
+  actualDistanceKm   Float  @default(0)
   plannedDurationMin Int?
   actualDurationMin  Int?
 
@@ -1317,26 +1468,39 @@ model Trip {
   actualArrivalAt  DateTime?
   /// Continuously updated by the tracking pipeline while the trip is moving.
   etaAt            DateTime?
-  delayMinutes     Int        @default(0)
+  delayMinutes     Int       @default(0)
 
-  status TripStatus @default(DRAFT)
-  price  Decimal?   @db.Decimal(12, 2)
-  expenses Decimal? @db.Decimal(12, 2)
-  notes  String?
+  status   TripStatus @default(DRAFT)
+  price    Decimal?   @db.Decimal(12, 2)
+  expenses Decimal?   @db.Decimal(12, 2)
+  notes    String?
+
+  // --- Leg type -----------------------------------------------------------
+  //
+  // A movement can now be several trips: the outbound run, the backhaul that
+  // stops it coming home empty, and the city relay leg a pickup completes.
+  legType             TripLegType @default(PRIMARY)
+  parentTripId        String?     @db.Uuid
+  returnLoadRequestId String?     @db.Uuid
 
   cancellationReason String?
   createdById        String   @db.Uuid
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
-  order  Order?      @relation("OrderTrip")
-  events TripEvent[]
-  stops  TripStop[]
+  order             Order?             @relation("OrderTrip")
+  travelBooking     TravelBooking?     @relation("BookingTrip")
+  returnLoadRequest ReturnLoadRequest? @relation("TripReturnLoad", fields: [returnLoadRequestId], references: [id], onDelete: SetNull)
+  events            TripEvent[]
+  stops             TripStop[]
+  hazardAlerts      TripHazardAlert[]
 
   @@index([organizationId, status, createdAt])
   @@index([truckId, status])
   @@index([driverId, status])
   @@index([status])
+  @@index([legType, status])
+  @@index([parentTripId])
   @@map("trips")
 }
 
@@ -1472,36 +1636,37 @@ enum SimulationStatus {
 // ===========================================================================
 
 model SosIncident {
-  id             String    @id @default(uuid()) @db.Uuid
-  reference      String    @unique
-  organizationId String    @db.Uuid
-  driverId       String?   @db.Uuid
-  truckId        String?   @db.Uuid
-  tripId         String?   @db.Uuid
-  triggeredByUserId String @db.Uuid
+  id                String  @id @default(uuid()) @db.Uuid
+  reference         String  @unique
+  organizationId    String  @db.Uuid
+  driverId          String? @db.Uuid
+  truckId           String? @db.Uuid
+  tripId            String? @db.Uuid
+  triggeredByUserId String  @db.Uuid
 
-  type        SosType
-  status      SosStatus @default(TRIGGERED)
-  latitude    Float
-  longitude   Float
-  address     String?
-  description String?
+  type               SosType
+  status             SosStatus @default(TRIGGERED)
+  latitude           Float
+  longitude          Float
+  address            String?
+  description        String?
   /// Current broadcast radius in metres; expands when nobody responds.
-  searchRadiusMeters Int @default(5000)
-  contactPhone String?
+  searchRadiusMeters Int       @default(5000)
+  contactPhone       String?
 
-  acknowledgedAt DateTime?
-  assignedAt     DateTime?
-  arrivedAt      DateTime?
-  resolvedAt     DateTime?
-  resolvedByUserId String? @db.Uuid
-  resolutionNote String?
+  acknowledgedAt   DateTime?
+  assignedAt       DateTime?
+  arrivedAt        DateTime?
+  resolvedAt       DateTime?
+  resolvedByUserId String?   @db.Uuid
+  resolutionNote   String?
 
   triggeredAt DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  responders SosResponder[]
-  events     SosEvent[]
+  responders        SosResponder[]
+  events            SosEvent[]
+  associationAlerts AssociationAlert[]
 
   @@index([organizationId, status, triggeredAt])
   @@index([status, triggeredAt])
@@ -1577,6 +1742,85 @@ model NearbyPlace {
   @@index([category, active])
   @@index([latitude, longitude])
   @@map("nearby_places")
+}
+
+/// Petrol / CNG station directory mirrored from the external provider.
+///
+/// The provider remains the source of truth. This table is a cache that keeps
+/// the map responsive, survives a provider outage, and lets a mapping fix be
+/// replayed from `rawData` without re-billing the directory.
+model PetrolStation {
+  id            String   @id @default(uuid()) @db.Uuid
+  /// Directory the record came from, e.g. `ssr`.
+  source        String   @default("ssr")
+  /// The provider's own station id — with `source` it makes imports idempotent.
+  externalId    String
+  name          String?
+  company       String?
+  latitude      Float
+  longitude     Float
+  address       String?
+  city          String?
+  district      String?
+  state         String?
+  /// The directory lists this fuel as sold here — NOT live availability.
+  hasPetrol     Boolean?
+  hasDiesel     Boolean?
+  hasCng        Boolean?
+  /// Published rate, INR per litre (CNG: per kg). Null when not listed.
+  petrolPrice   Float?
+  dieselPrice   Float?
+  cngPrice      Float?
+  timings       String?
+  directionsUrl String?
+  /// Untouched provider payload, kept for replay and debugging.
+  rawData       Json?
+  refreshedAt   DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([source, externalId])
+  @@index([latitude, longitude])
+  @@index([city])
+  @@index([company])
+  @@map("petrol_stations")
+}
+
+// ===========================================================================
+// Vehicle registration (RC) lookups
+// ===========================================================================
+
+/// Cached vehicle RC lookups.
+///
+/// Rows hold personal data from the RTO record, so every one carries an
+/// explicit `expiresAt` and is deleted by the retention sweep. Nothing here is
+/// kept indefinitely and nothing here is the only copy of a fact.
+model VehicleLookup {
+  id                 String   @id @default(uuid()) @db.Uuid
+  /// Normalised plate, e.g. UP32AB1234 — the cache key.
+  registrationNumber String
+  /// Tenant the lookup was performed for; scopes every subsequent read.
+  organizationId     String?  @db.Uuid
+  requestedById      String?  @db.Uuid
+  provider           String   @default("way2api")
+  /// The provider's order id, for support tickets and billing queries.
+  providerReference  String?
+  /// Saarthi's normalised RC record, before per-caller redaction.
+  responseData       Json
+  /// Storage key of the RC PDF Saarthi downloaded and stored itself.
+  pdfStorageKey      String?
+  pdfFileName        String?
+  pdfMimeType        String?
+  pdfSize            Int?
+  fetchedAt          DateTime @default(now())
+  expiresAt          DateTime
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([registrationNumber, expiresAt])
+  @@index([organizationId, createdAt])
+  @@index([expiresAt])
+  @@map("vehicle_lookups")
 }
 
 // ===========================================================================
@@ -1661,32 +1905,2601 @@ model AiUsage {
 // ===========================================================================
 
 model Simulation {
-  id             String           @id @default(uuid()) @db.Uuid
-  organizationId String           @db.Uuid
-  truckId        String           @db.Uuid
-  tripId         String?          @db.Uuid
-  status         SimulationStatus @default(IDLE)
+  id              String           @id @default(uuid()) @db.Uuid
+  organizationId  String           @db.Uuid
+  truckId         String           @db.Uuid
+  tripId          String?          @db.Uuid
+  status          SimulationStatus @default(IDLE)
   /// Route being driven as [{ latitude, longitude }, ...].
-  route          Json
-  routeDistanceKm Float           @default(0)
+  route           Json
+  routeDistanceKm Float            @default(0)
   /// Metres already covered along the route.
-  progressMeters Float            @default(0)
-  baseSpeedKph   Float            @default(45)
-  speedMultiplier Float           @default(1)
+  progressMeters  Float            @default(0)
+  baseSpeedKph    Float            @default(45)
+  speedMultiplier Float            @default(1)
   /// Injected behaviours: random stops, delays, deviation, connectivity loss.
-  behaviours     Json?
-  deviationActive Boolean         @default(false)
-  startedAt      DateTime?
-  pausedAt       DateTime?
-  stoppedAt      DateTime?
-  completedAt    DateTime?
-  lastTickAt     DateTime?
-  createdById    String           @db.Uuid
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
+  behaviours      Json?
+  deviationActive Boolean          @default(false)
+  startedAt       DateTime?
+  pausedAt        DateTime?
+  stoppedAt       DateTime?
+  completedAt     DateTime?
+  lastTickAt      DateTime?
+  createdById     String           @db.Uuid
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 
   @@index([organizationId, status])
   @@index([truckId, status])
   @@index([status])
   @@map("simulations")
+}
+
+// ===========================================================================
+// Enums — generalized vehicles
+// ===========================================================================
+
+/// Discriminator on the `trucks` table. TRUCK preserves every existing row.
+enum VehicleType {
+  TRUCK
+  TAXI
+  CAR
+  BUS
+  VAN
+  SUV
+  TEMPO
+  AUTO_RICKSHAW
+  /// Small goods carrier for city delivery and last-mile relay.
+  PICKUP
+  OTHER
+}
+
+// ===========================================================================
+// Enums — service providers, associations, travel
+// ===========================================================================
+
+enum ServiceType {
+  FREIGHT
+  TAXI
+  TRAVEL
+  TOUR
+}
+
+enum ProviderStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  SUSPENDED
+}
+
+enum AlertSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+enum AssociationAlertStatus {
+  NOTIFIED
+  ACKNOWLEDGED
+  RESPONDING
+  ESCALATED
+  RESOLVED
+  CLOSED
+}
+
+enum AssociationAlertEventType {
+  CREATED
+  ACKNOWLEDGED
+  RESPONDER_ASSIGNED
+  RESPONDER_UPDATED
+  NOTE_ADDED
+  ESCALATED
+  RESOLVED
+  CLOSED
+}
+
+enum AssociationResponderStatus {
+  ASSIGNED
+  EN_ROUTE
+  ON_SCENE
+  COMPLETED
+  CANCELLED
+}
+
+enum AssociationResponderKind {
+  MEMBER
+  EXTERNAL
+}
+
+enum TravelServiceKind {
+  LOCAL_SIGHTSEEING
+  INTERCITY
+  MULTI_DAY_TOUR
+  AIRPORT_TRANSFER
+  CUSTOM_TRIP
+  PILGRIMAGE
+}
+
+enum PricingModel {
+  FIXED_PACKAGE
+  PER_PERSON
+  PER_DAY
+  PER_KM
+}
+
+enum TravelPackageStatus {
+  DRAFT
+  PUBLISHED
+  PAUSED
+  ARCHIVED
+}
+
+enum BookingStatus {
+  DRAFT
+  PENDING_PAYMENT
+  AWAITING_CONFIRMATION
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  DECLINED
+  REFUNDED
+}
+
+enum BookingEventType {
+  CREATED
+  PAYMENT_INITIATED
+  PAYMENT_SUCCEEDED
+  PAYMENT_FAILED
+  CONFIRMED
+  DECLINED
+  VEHICLE_ASSIGNED
+  DRIVER_ASSIGNED
+  TRIP_CREATED
+  STARTED
+  COMPLETED
+  CANCELLED
+  REFUNDED
+  RATED
+  NOTE
+}
+
+enum CancelledBy {
+  CUSTOMER
+  PROVIDER
+  PLATFORM
+}
+
+// ===========================================================================
+// Enums — payments
+// ===========================================================================
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+enum PaymentPurpose {
+  TRAVEL_BOOKING
+  ORDER
+  SUBSCRIPTION
+  /// Buying a used vehicle through the resale marketplace.
+  VEHICLE_PURCHASE
+  /// Paying a last-mile partner for a city relay leg.
+  RELAY_DELIVERY
+}
+
+enum PaymentMethod {
+  MOCK
+  UPI
+  CARD
+  NETBANKING
+  WALLET
+  CASH
+}
+
+// ===========================================================================
+// Enums — hardware & telemetry
+// ===========================================================================
+
+enum DeviceProvider {
+  FREEMATICS
+  MOCK
+  GENERIC_GPS
+  GENERIC_OBD
+  GENERIC_CAN
+}
+
+enum DeviceType {
+  OBD_TELEMATICS
+  GPS_TRACKER
+  CAN_LOGGER
+  J1939_LOGGER
+  DASHCAM
+  OTHER
+}
+
+enum DeviceStatus {
+  REGISTERED
+  ACTIVE
+  OFFLINE
+  INACTIVE
+  MAINTENANCE
+  RETIRED
+  SUSPENDED
+}
+
+enum DeviceAssignmentStatus {
+  ACTIVE
+  ENDED
+}
+
+enum DeviceEventType {
+  REGISTERED
+  UPDATED
+  ASSIGNED
+  UNASSIGNED
+  ONLINE
+  OFFLINE
+  SECRET_ROTATED
+  FIRMWARE_REPORTED
+  SUSPENDED
+  REACTIVATED
+  RETIRED
+  REJECTED_PAYLOAD
+  DIAGNOSTIC
+}
+
+enum TelemetryAlertType {
+  OVERSPEED
+  HARSH_BRAKING
+  HARSH_ACCELERATION
+  EXCESSIVE_IDLING
+  ENGINE_TEMPERATURE
+  LOW_VOLTAGE
+  DEVICE_OFFLINE
+  ROUTE_DEVIATION
+  GEOFENCE_BREACH
+  DIAGNOSTIC_FAULT
+  FUEL_DROP
+  UNUSUAL_BEHAVIOUR
+}
+
+enum TelemetryAlertStatus {
+  OPEN
+  ACKNOWLEDGED
+  RESOLVED
+  DISMISSED
+}
+
+enum GeofenceKind {
+  INCLUSION
+  EXCLUSION
+}
+
+enum MockDeviceScenario {
+  NORMAL
+  OVERSPEED
+  HARSH_DRIVING
+  OVERHEATING
+  LOW_VOLTAGE
+  FAULT_CODE
+}
+
+// ===========================================================================
+// Truck associations
+// ===========================================================================
+
+/// District/area truck association. One per organization of type
+/// TRUCK_ASSOCIATION; the organization holds the account and members, this
+/// holds the association-specific detail and its verification state.
+model AssociationProfile {
+  id             String @id @default(uuid()) @db.Uuid
+  organizationId String @unique @db.Uuid
+
+  district String
+  state    String
+
+  officialEmail  String
+  officialPhone  String
+  /// Manned out-of-hours line. Separate from the office number on purpose.
+  emergencyPhone String
+
+  representativeName        String
+  representativeDesignation String?
+  representativePhone       String
+  representativeEmail       String?
+
+  memberTruckCount Int?
+  about            String?
+
+  /// Lets an association stop receiving alerts without being suspended.
+  acceptingAlerts Boolean @default(true)
+
+  /// Aggregates maintained on acknowledge/resolve so the dashboard and the
+  /// platform's association league table do not scan the alert table.
+  alertsReceived     Int    @default(0)
+  alertsAcknowledged Int    @default(0)
+  alertsResolved     Int    @default(0)
+  /// Mean minutes from alert creation to acknowledgement.
+  avgResponseMinutes Float?
+
+  verifiedAt   DateTime?
+  verifiedById String?   @db.Uuid
+  archivedAt   DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  organization  Organization              @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  coverageAreas AssociationCoverageArea[]
+  alerts        AssociationAlert[]
+
+  @@index([state, district])
+  @@index([acceptingAlerts])
+  @@map("association_profiles")
+}
+
+/// One area an association covers. Matching is geographic (distance from the
+/// centre) rather than by district name, because an incident on a highway has
+/// coordinates but no reliable district label without a geocoder.
+model AssociationCoverageArea {
+  id            String @id @default(uuid()) @db.Uuid
+  associationId String @db.Uuid
+
+  district  String
+  state     String
+  label     String?
+  latitude  Float
+  longitude Float
+  radiusKm  Float   @default(60)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  association AssociationProfile @relation(fields: [associationId], references: [id], onDelete: Cascade)
+
+  @@index([associationId])
+  @@index([state, district])
+  @@index([latitude, longitude])
+  @@map("association_coverage_areas")
+}
+
+/// An SOS incident as projected to one association.
+///
+/// This is the privacy boundary: the association reads the incident *through*
+/// this row, never from `sos_incidents` directly, so a field added to the
+/// incident cannot become visible to associations by accident. Only what an
+/// association needs to send help is copied here.
+model AssociationAlert {
+  id            String @id @default(uuid()) @db.Uuid
+  associationId String @db.Uuid
+  incidentId    String @db.Uuid
+  /// Association-facing reference, distinct from the SOS reference.
+  reference     String @unique
+
+  severity AlertSeverity
+  status   AssociationAlertStatus @default(NOTIFIED)
+
+  /// Snapshot of the incident at routing time — deliberately denormalised so
+  /// the association view never has to join into fleet-owned tables.
+  incidentType        SosType
+  vehicleRegistration String?
+  vehicleType         VehicleType?
+  fleetName           String?
+  latitude            Float
+  longitude           Float
+  address             String?
+  district            String?
+  state               String?
+  description         String?
+  driverName          String?
+  driverPhone         String?
+  contactPhone        String?
+  /// Distance from the nearest covered area centre, in km.
+  distanceKm          Float?
+
+  acknowledgedAt     DateTime?
+  acknowledgedById   String?   @db.Uuid
+  respondingAt       DateTime?
+  escalatedAt        DateTime?
+  escalationReason   String?
+  resolvedAt         DateTime?
+  resolvedById       String?   @db.Uuid
+  outcome            String?
+  assistanceProvided Boolean?
+  closedAt           DateTime?
+
+  notifiedAt DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  association AssociationProfile      @relation(fields: [associationId], references: [id], onDelete: Cascade)
+  incident    SosIncident             @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  events      AssociationAlertEvent[]
+  responders  AssociationResponder[]
+
+  /// One projection per association per incident.
+  @@unique([associationId, incidentId])
+  @@index([associationId, status, notifiedAt])
+  @@index([incidentId])
+  @@index([status, severity, notifiedAt])
+  @@map("association_alerts")
+}
+
+/// Append-only audit trail of everything the association did about an alert.
+model AssociationAlertEvent {
+  id          String                    @id @default(uuid()) @db.Uuid
+  alertId     String                    @db.Uuid
+  eventType   AssociationAlertEventType
+  description String?
+  actorUserId String?                   @db.Uuid
+  metadata    Json?
+  createdAt   DateTime                  @default(now())
+
+  alert AssociationAlert @relation(fields: [alertId], references: [id], onDelete: Cascade)
+
+  @@index([alertId, createdAt])
+  @@map("association_alert_events")
+}
+
+/// Whoever the association sent to the scene — a member, or an outside service
+/// such as a crane operator or workshop.
+model AssociationResponder {
+  id      String                     @id @default(uuid()) @db.Uuid
+  alertId String                     @db.Uuid
+  kind    AssociationResponderKind
+  status  AssociationResponderStatus @default(ASSIGNED)
+
+  /// Set when the responder is an association member.
+  userId       String? @db.Uuid
+  /// Set when the responder is external.
+  name         String?
+  phone        String?
+  organisation String?
+
+  etaMinutes   Int?
+  note         String?
+  assignedById String?   @db.Uuid
+  assignedAt   DateTime  @default(now())
+  enRouteAt    DateTime?
+  onSceneAt    DateTime?
+  completedAt  DateTime?
+  cancelledAt  DateTime?
+  updatedAt    DateTime  @updatedAt
+
+  alert AssociationAlert @relation(fields: [alertId], references: [id], onDelete: Cascade)
+
+  @@index([alertId, status])
+  @@index([userId])
+  @@map("association_responders")
+}
+
+// ===========================================================================
+// Service provider profiles (taxi / travel / tour capability)
+// ===========================================================================
+
+/// The mobility capability of an organization.
+///
+/// Deliberately a profile rather than an organization type: a fleet owner who
+/// starts running tours adds TRAVEL to `serviceTypes` and keeps one account,
+/// one vehicle list and one login. Section 2 of the expansion spec — one
+/// platform, one identity — is what makes this the right shape.
+model ServiceProviderProfile {
+  id             String @id @default(uuid()) @db.Uuid
+  organizationId String @unique @db.Uuid
+
+  displayName  String
+  serviceTypes ServiceType[]
+  about        String?
+
+  contactPhone  String
+  contactEmail  String?
+  whatsappPhone String?
+  logoUrl       String?
+  bannerUrl     String?
+
+  businessRegistrationNumber String?
+  yearsInBusiness            Int?
+  languages                  String[]
+
+  status ProviderStatus @default(ACTIVE)
+
+  /// Rolling aggregates from completed bookings.
+  ratingAverage     Float @default(0)
+  ratingCount       Int   @default(0)
+  bookingsTotal     Int   @default(0)
+  bookingsCompleted Int   @default(0)
+
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  organization Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  serviceAreas ProviderServiceArea[]
+  packages     TravelPackage[]
+
+  @@index([status])
+  @@index([ratingAverage])
+  @@map("service_provider_profiles")
+}
+
+model ProviderServiceArea {
+  id         String @id @default(uuid()) @db.Uuid
+  providerId String @db.Uuid
+
+  city      String
+  state     String
+  latitude  Float
+  longitude Float
+  radiusKm  Float  @default(150)
+
+  createdAt DateTime @default(now())
+
+  provider ServiceProviderProfile @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@index([providerId])
+  @@index([city, state])
+  @@index([latitude, longitude])
+  @@map("provider_service_areas")
+}
+
+// ===========================================================================
+// Travel & tour packages
+// ===========================================================================
+
+model TravelPackage {
+  id             String @id @default(uuid()) @db.Uuid
+  providerId     String @db.Uuid
+  /// Provider's tenant, duplicated so tenant scoping needs no join.
+  organizationId String @db.Uuid
+
+  title       String
+  summary     String
+  description String?
+  serviceKind TravelServiceKind
+  imageUrls   String[]
+
+  destinations   String[]
+  startLocation  String
+  startLatitude  Float
+  startLongitude Float
+  endLocation    String
+
+  durationDays     Int
+  durationNights   Int?
+  approxDistanceKm Float?
+
+  vehicleType   VehicleType
+  /// A specific vehicle, when the provider sells one particular car.
+  vehicleId     String?     @db.Uuid
+  minPassengers Int         @default(1)
+  maxPassengers Int
+
+  pricingModel PricingModel
+  basePrice    Decimal      @db.Decimal(12, 2)
+
+  inclusions         String[]
+  exclusions         String[]
+  /// [{ hoursBefore, refundPercent }] — empty means the platform default.
+  cancellationPolicy Json?
+
+  advanceBookingDays Int       @default(1)
+  availableFrom      DateTime?
+  availableTo        DateTime?
+  /// 0 = Sunday. Empty means the package runs any day.
+  availableWeekdays  Int[]
+
+  driverIncluded Boolean @default(true)
+  fuelIncluded   Boolean @default(true)
+
+  status TravelPackageStatus @default(DRAFT)
+
+  ratingAverage Float @default(0)
+  ratingCount   Int   @default(0)
+  bookingCount  Int   @default(0)
+  viewCount     Int   @default(0)
+
+  publishedAt DateTime?
+  archivedAt  DateTime?
+  createdById String    @db.Uuid
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  provider  ServiceProviderProfile @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  vehicle   Truck?                 @relation("PackageVehicle", fields: [vehicleId], references: [id], onDelete: SetNull)
+  itinerary TravelItineraryDay[]
+  bookings  TravelBooking[]
+
+  @@index([status, serviceKind])
+  @@index([organizationId, status])
+  @@index([providerId, status])
+  @@index([vehicleType, maxPassengers])
+  @@index([basePrice])
+  @@index([ratingAverage])
+  @@map("travel_packages")
+}
+
+model TravelItineraryDay {
+  id        String @id @default(uuid()) @db.Uuid
+  packageId String @db.Uuid
+
+  dayNumber        Int
+  title            String
+  description      String?
+  highlights       String[]
+  overnightAt      String?
+  approxDistanceKm Float?
+
+  createdAt DateTime @default(now())
+
+  package TravelPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+
+  @@unique([packageId, dayNumber])
+  @@index([packageId])
+  @@map("travel_itinerary_days")
+}
+
+// ===========================================================================
+// Travel bookings
+// ===========================================================================
+
+model TravelBooking {
+  id        String @id @default(uuid()) @db.Uuid
+  reference String @unique
+
+  packageId              String  @db.Uuid
+  /// Provider's tenant.
+  providerOrganizationId String  @db.Uuid
+  /// Customer's tenant — the same customer account used for freight orders.
+  customerOrganizationId String  @db.Uuid
+  customerId             String? @db.Uuid
+  bookedByUserId         String  @db.Uuid
+
+  status BookingStatus @default(DRAFT)
+
+  startDate  DateTime
+  endDate    DateTime
+  passengers Int
+
+  pickupAddress   String?
+  pickupLatitude  Float?
+  pickupLongitude Float?
+
+  contactName     String
+  contactPhone    String
+  contactEmail    String?
+  specialRequests String?
+
+  /// Snapshot of the price at booking time. A later package price change must
+  /// not silently alter what the customer agreed to pay.
+  pricingModel   PricingModel
+  subtotal       Decimal      @db.Decimal(12, 2)
+  platformFee    Decimal      @db.Decimal(12, 2)
+  totalAmount    Decimal      @db.Decimal(12, 2)
+  currency       String       @default("INR")
+  priceBreakdown String?
+
+  /// Assigned by the provider on confirmation.
+  vehicleId String? @db.Uuid
+  driverId  String? @db.Uuid
+  /// The trip that carries this booking, so travel reuses live tracking.
+  tripId    String? @unique @db.Uuid
+
+  confirmedAt   DateTime?
+  confirmedById String?   @db.Uuid
+  declinedAt    DateTime?
+  declineReason String?
+  startedAt     DateTime?
+  completedAt   DateTime?
+
+  cancelledAt        DateTime?
+  cancelledBy        CancelledBy?
+  cancellationReason String?
+  refundAmount       Decimal?     @db.Decimal(12, 2)
+  refundedAt         DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  package  TravelPackage        @relation(fields: [packageId], references: [id])
+  vehicle  Truck?               @relation("BookingVehicle", fields: [vehicleId], references: [id], onDelete: SetNull)
+  trip     Trip?                @relation("BookingTrip", fields: [tripId], references: [id])
+  events   TravelBookingEvent[]
+  payments Payment[]
+  review   TravelReview?
+
+  @@index([customerOrganizationId, status, startDate])
+  @@index([providerOrganizationId, status, startDate])
+  @@index([packageId, startDate])
+  @@index([status, startDate])
+  @@index([driverId])
+  @@map("travel_bookings")
+}
+
+model TravelBookingEvent {
+  id          String           @id @default(uuid()) @db.Uuid
+  bookingId   String           @db.Uuid
+  eventType   BookingEventType
+  description String?
+  actorUserId String?          @db.Uuid
+  metadata    Json?
+  createdAt   DateTime         @default(now())
+
+  booking TravelBooking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId, createdAt])
+  @@map("travel_booking_events")
+}
+
+model TravelReview {
+  id        String @id @default(uuid()) @db.Uuid
+  bookingId String @unique @db.Uuid
+
+  providerOrganizationId String @db.Uuid
+  packageId              String @db.Uuid
+
+  rating        Int
+  vehicleRating Int?
+  driverRating  Int?
+  comment       String?
+
+  ratedByUserId String   @db.Uuid
+  createdAt     DateTime @default(now())
+
+  booking TravelBooking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([providerOrganizationId, createdAt])
+  @@index([packageId])
+  @@map("travel_reviews")
+}
+
+// ===========================================================================
+// Payments
+// ===========================================================================
+
+/// A payment attempt against a Saarthi entity.
+///
+/// The gateway is abstracted behind `PaymentProvider`; locally the mock
+/// provider settles instantly. No card or UPI credential is ever stored — only
+/// the provider's own reference — so swapping in a real gateway does not turn
+/// this table into cardholder data.
+model Payment {
+  id        String @id @default(uuid()) @db.Uuid
+  reference String @unique
+
+  purpose PaymentPurpose
+  status  PaymentStatus  @default(PENDING)
+  method  PaymentMethod  @default(MOCK)
+
+  /// Payer's tenant.
+  organizationId    String @db.Uuid
+  initiatedByUserId String @db.Uuid
+
+  bookingId String? @db.Uuid
+  orderId   String? @db.Uuid
+
+  amount         Decimal @db.Decimal(12, 2)
+  currency       String  @default("INR")
+  /// Amount returned so far; may be partial.
+  refundedAmount Decimal @default(0) @db.Decimal(12, 2)
+
+  /// Which implementation handled this, e.g. `mock`.
+  provider          String
+  providerReference String?
+  /// Provider-supplied failure code and message, kept verbatim for support.
+  failureCode       String?
+  failureMessage    String?
+
+  processedAt DateTime?
+  refundedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  booking TravelBooking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, createdAt])
+  @@index([bookingId])
+  @@index([status, createdAt])
+  @@map("payments")
+}
+
+// ===========================================================================
+// Hardware devices
+// ===========================================================================
+
+/// A physical telematics unit.
+///
+/// The device is not the vehicle. It is owned by an organization, may move
+/// between vehicles over its life, and authenticates as itself — see
+/// `device_assignments` for the vehicle relationship and its history.
+model HardwareDevice {
+  id             String @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+
+  /// Identifier printed on the unit; what the device sends to the gateway.
+  deviceIdentifier String         @unique
+  provider         DeviceProvider
+  deviceType       DeviceType     @default(OBD_TELEMATICS)
+
+  serialNumber    String
+  /// Sensitive. Never returned in a list response.
+  imei            String? @unique
+  manufacturer    String?
+  model           String?
+  firmwareVersion String?
+
+  /// SIM identifiers are sensitive: an ICCID is enough to social-engineer a
+  /// SIM swap. Stored for support, returned masked, and only to callers with
+  /// the device-management permission.
+  simIccid    String?
+  simMsisdn   String?
+  simOperator String?
+
+  /// bcrypt hash of the device secret. The plaintext is shown exactly once, at
+  /// registration and rotation, and is not recoverable afterwards.
+  secretHash      String
+  secretRotatedAt DateTime?
+  /// Highest sequence number accepted, for replay rejection.
+  lastSequence    Int?
+
+  status DeviceStatus @default(REGISTERED)
+
+  /// Metrics this unit is expected to report. The union actually observed is
+  /// tracked separately, because what a device *can* do and what a given
+  /// vehicle exposes are different questions.
+  supportedMetrics String[]
+  observedMetrics  String[]
+
+  lastSeenAt      DateTime?
+  lastTelemetryAt DateTime?
+  readingCount    Int       @default(0)
+  rejectedCount   Int       @default(0)
+
+  notes         String?
+  installedAt   DateTime?
+  activatedAt   DateTime?
+  deactivatedAt DateTime?
+  archivedAt    DateTime?
+  createdById   String?   @db.Uuid
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  assignments DeviceAssignment[]
+  events      DeviceEvent[]
+  readings    TelemetryReading[]
+  alerts      TelemetryAlert[]
+  mockRuns    MockDeviceRun[]
+
+  @@index([organizationId, status])
+  @@index([provider, status])
+  @@index([lastSeenAt])
+  @@index([organizationId, archivedAt])
+  @@map("hardware_devices")
+}
+
+/// Device-to-vehicle assignment history.
+///
+/// A device is never hard-wired into a vehicle row. Swapping a failed unit
+/// closes one assignment and opens another, and the vehicle keeps both — so
+/// telemetry recorded last January still resolves to the device that produced
+/// it, not to whatever is fitted today.
+model DeviceAssignment {
+  id             String @id @default(uuid()) @db.Uuid
+  deviceId       String @db.Uuid
+  vehicleId      String @db.Uuid
+  organizationId String @db.Uuid
+
+  status DeviceAssignmentStatus @default(ACTIVE)
+
+  assignedById   String?   @db.Uuid
+  assignedAt     DateTime  @default(now())
+  installedAt    DateTime?
+  unassignedAt   DateTime?
+  unassignedById String?   @db.Uuid
+  note           String?
+  removalReason  String?
+
+  device  HardwareDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  vehicle Truck          @relation("VehicleDeviceAssignments", fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([deviceId, status])
+  @@index([vehicleId, status])
+  @@index([organizationId, assignedAt])
+  @@map("device_assignments")
+}
+
+model DeviceEvent {
+  id             String          @id @default(uuid()) @db.Uuid
+  deviceId       String          @db.Uuid
+  organizationId String          @db.Uuid
+  eventType      DeviceEventType
+  description    String?
+  metadata       Json?
+  actorUserId    String?         @db.Uuid
+  createdAt      DateTime        @default(now())
+
+  device HardwareDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@index([deviceId, createdAt])
+  @@index([organizationId, createdAt])
+  @@map("device_events")
+}
+
+// ===========================================================================
+// Telemetry
+// ===========================================================================
+
+/// A normalised telemetry reading. High-volume, append-only.
+///
+/// `metrics` lists which columns this reading genuinely carries. A consumer
+/// must check it before rendering a value: "0 rpm" and "this vehicle does not
+/// report rpm" mean different things, and only this column can tell them apart.
+model TelemetryReading {
+  id             String  @id @default(uuid()) @db.Uuid
+  deviceId       String  @db.Uuid
+  vehicleId      String  @db.Uuid
+  organizationId String  @db.Uuid
+  /// Denormalised from the vehicle at ingest, so driver-behaviour queries and
+  /// score attribution do not need a point-in-time assignment lookup.
+  driverId       String? @db.Uuid
+  tripId         String? @db.Uuid
+
+  /// Which of the columns below are present. Values from `TelemetryMetric`.
+  metrics String[]
+
+  /// Location
+  latitude   Float?
+  longitude  Float?
+  speedKph   Float?
+  heading    Float?
+  altitude   Float?
+  accuracy   Float?
+  satellites Int?
+
+  /// Vehicle
+  rpm                Float?
+  engineLoad         Float?
+  coolantTemperature Float?
+  intakeTemperature  Float?
+  fuelLevel          Float?
+  fuelRate           Float?
+  throttlePosition   Float?
+  batteryVoltage     Float?
+  odometerKm         Float?
+  vin                String?
+
+  /// Motion
+  accelerationX     Float?
+  accelerationY     Float?
+  accelerationZ     Float?
+  harshBraking      Boolean @default(false)
+  harshAcceleration Boolean @default(false)
+  suddenMovement    Boolean @default(false)
+
+  /// Device health
+  deviceTemperature Float?
+  signalStrength    Float?
+
+  /// True when produced by the simulator. Never conflated with real hardware.
+  simulated  Boolean @default(false)
+  sequence   Int?
+  /// Untouched vendor payload, retained for adapter debugging.
+  rawPayload Json?
+
+  /// When the device observed it.
+  recordedAt DateTime
+  /// When Saarthi accepted it. The gap is the ingestion delay.
+  receivedAt DateTime @default(now())
+
+  device      HardwareDevice            @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  vehicle     Truck                     @relation("VehicleTelemetry", fields: [vehicleId], references: [id], onDelete: Cascade)
+  diagnostics TelemetryDiagnosticCode[]
+
+  @@index([vehicleId, recordedAt])
+  @@index([deviceId, recordedAt])
+  @@index([organizationId, recordedAt])
+  @@index([tripId, recordedAt])
+  @@index([driverId, recordedAt])
+  @@map("telemetry_readings")
+}
+
+/// A diagnostic trouble code reported with a reading.
+model TelemetryDiagnosticCode {
+  id             String @id @default(uuid()) @db.Uuid
+  readingId      String @db.Uuid
+  vehicleId      String @db.Uuid
+  organizationId String @db.Uuid
+
+  code        String
+  description String?
+  confirmed   Boolean   @default(false)
+  /// Set when an operator marks the fault dealt with.
+  clearedAt   DateTime?
+  createdAt   DateTime  @default(now())
+
+  reading TelemetryReading @relation(fields: [readingId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId, createdAt])
+  @@index([organizationId, code])
+  @@map("telemetry_diagnostic_codes")
+}
+
+/// A fired telemetry rule.
+model TelemetryAlert {
+  id             String  @id @default(uuid()) @db.Uuid
+  organizationId String  @db.Uuid
+  vehicleId      String  @db.Uuid
+  deviceId       String? @db.Uuid
+  driverId       String? @db.Uuid
+  tripId         String? @db.Uuid
+  readingId      String? @db.Uuid
+
+  type     TelemetryAlertType
+  severity AlertSeverity
+  status   TelemetryAlertStatus @default(OPEN)
+
+  /// Human-readable, and phrased so a driver can see why it fired.
+  message       String
+  observedValue Float?
+  threshold     Float?
+  unit          String?
+  latitude      Float?
+  longitude     Float?
+
+  acknowledgedAt   DateTime?
+  acknowledgedById String?   @db.Uuid
+  resolvedAt       DateTime?
+  resolvedById     String?   @db.Uuid
+  note             String?
+
+  /// Set when this alert produced a driver-score event, so the score screen can
+  /// link the deduction back to the evidence.
+  scoreEventId String? @db.Uuid
+
+  occurredAt DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  device  HardwareDevice? @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+  vehicle Truck           @relation("VehicleTelemetryAlerts", fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, status, occurredAt])
+  @@index([vehicleId, occurredAt])
+  @@index([driverId, type, occurredAt])
+  @@index([type, severity, occurredAt])
+  @@map("telemetry_alerts")
+}
+
+/// Per-organization (optionally per-vehicle) tuning of an alert rule. A missing
+/// row means the shared default from `domain/telemetry.ts` applies.
+model TelemetryAlertRule {
+  id             String  @id @default(uuid()) @db.Uuid
+  organizationId String  @db.Uuid
+  /// Null = applies to every vehicle in the organization.
+  vehicleId      String? @db.Uuid
+
+  type            TelemetryAlertType
+  enabled         Boolean            @default(true)
+  threshold       Float?
+  severity        AlertSeverity?
+  cooldownSeconds Int?
+
+  updatedById String?  @db.Uuid
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([organizationId, vehicleId, type])
+  @@index([organizationId, enabled])
+  @@map("telemetry_alert_rules")
+}
+
+/// A monitored area. Breaching one raises a GEOFENCE_BREACH alert.
+model Geofence {
+  id             String  @id @default(uuid()) @db.Uuid
+  organizationId String  @db.Uuid
+  vehicleId      String? @db.Uuid
+
+  name         String
+  kind         GeofenceKind @default(INCLUSION)
+  latitude     Float
+  longitude    Float
+  radiusMeters Int
+  enabled      Boolean      @default(true)
+  notes        String?
+
+  createdById String?  @db.Uuid
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([organizationId, enabled])
+  @@index([vehicleId])
+  @@map("geofences")
+}
+
+/// State of a mock-device run.
+///
+/// Persisted rather than held in memory so a restart cannot leave a simulator
+/// apparently running with nothing behind it, which is exactly the kind of
+/// phantom state that makes a demo unexplainable.
+model MockDeviceRun {
+  id             String @id @default(uuid()) @db.Uuid
+  deviceId       String @db.Uuid
+  organizationId String @db.Uuid
+
+  status          SimulationStatus   @default(IDLE)
+  scenario        MockDeviceScenario @default(NORMAL)
+  intervalSeconds Int                @default(5)
+  maxReadings     Int?
+  readingsSent    Int                @default(0)
+
+  /// Simulated vehicle state, carried between ticks.
+  lastLatitude   Float?
+  lastLongitude  Float?
+  lastHeading    Float?
+  lastSpeedKph   Float?
+  lastFuelLevel  Float?
+  lastOdometerKm Float?
+
+  startedById String?   @db.Uuid
+  startedAt   DateTime?
+  stoppedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  device HardwareDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@index([deviceId, status])
+  @@index([status])
+  @@map("mock_device_runs")
+}
+
+// ===========================================================================
+// Enums — media library
+// ===========================================================================
+
+enum MediaOwnerType {
+  USER
+  ORGANIZATION
+  DRIVER
+  VEHICLE
+  MATERIAL
+  INVENTORY_LOCATION
+  ORDER
+  TRIP
+  SOS_INCIDENT
+  MAINTENANCE_RECORD
+  FUEL_RECORD
+  VEHICLE_LISTING
+  TRAVEL_PACKAGE
+  ROUTE_HAZARD
+  RELAY_DELIVERY
+  TRANSFER_HUB
+  NEARBY_PLACE
+  PETROL_STATION
+  ASSOCIATION
+  DEVICE
+}
+
+enum MediaPurpose {
+  AVATAR
+  LOGO
+  COVER
+  GALLERY
+  PRODUCT
+  VEHICLE_EXTERIOR
+  VEHICLE_INTERIOR
+  VEHICLE_DAMAGE
+  ODOMETER
+  PROOF_OF_PICKUP
+  PROOF_OF_DELIVERY
+  HANDOVER
+  INCIDENT
+  HAZARD_EVIDENCE
+  INSPECTION
+  SIGNATURE
+  ATTACHMENT
+}
+
+enum MediaVisibility {
+  PRIVATE
+  ORGANIZATION
+  PLATFORM
+  PUBLIC
+}
+
+enum MediaModerationStatus {
+  APPROVED
+  PENDING_REVIEW
+  REJECTED
+}
+
+// ===========================================================================
+// Media library
+// ===========================================================================
+
+/// An image (or supporting file) attached to any Saarthi record.
+///
+/// Deliberately separate from `documents`: a document is a compliance artefact
+/// that is versioned, verified and expires, while this is a photograph. Owners
+/// are polymorphic and carry no foreign key, the same choice `documents` makes,
+/// because the alternative is twenty nullable columns.
+///
+/// There is no variants table. Renditions are produced in the browser before
+/// upload, so a row holds the full-size object and its thumbnail.
+model MediaAsset {
+  id             String          @id @default(uuid()) @db.Uuid
+  organizationId String?         @db.Uuid
+  ownerType      MediaOwnerType
+  ownerId        String          @db.Uuid
+  purpose        MediaPurpose    @default(GALLERY)
+  visibility     MediaVisibility @default(ORGANIZATION)
+
+  storageKey String
+  fileName   String
+  mimeType   String
+  fileSize   Int
+  width      Int?
+  height     Int?
+  checksum   String?
+
+  thumbnailStorageKey String?
+  thumbnailWidth      Int?
+  thumbnailHeight     Int?
+  thumbnailFileSize   Int?
+
+  altText   String?
+  caption   String?
+  sortOrder Int     @default(0)
+  /// Enforced by the service inside a transaction rather than a partial unique
+  /// index, so a soft-deleted row can never block a re-upload.
+  isPrimary Boolean @default(false)
+
+  /// Where the photo was taken, when the device offered it.
+  latitude   Float?
+  longitude  Float?
+  capturedAt DateTime?
+
+  moderationStatus MediaModerationStatus @default(APPROVED)
+  moderationNote   String?
+  uploadedById     String                @db.Uuid
+  deletedAt        DateTime?
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+
+  @@index([ownerType, ownerId, deletedAt, sortOrder])
+  @@index([organizationId, purpose])
+  @@index([uploadedById])
+  @@index([moderationStatus])
+  @@map("media_assets")
+}
+
+// ===========================================================================
+// Enums — supplier inventory
+// ===========================================================================
+
+enum InventoryLocationKind {
+  YARD
+  WAREHOUSE
+  DEPOT
+  QUARRY
+  PLANT
+  RETAIL_COUNTER
+  TRANSIT
+}
+
+/// Ledger entry kinds.
+///
+/// RESERVE and RELEASE move the reserved column and leave on-hand alone;
+/// CONSUME is what finally removes goods from the yard. Keeping the three apart
+/// is what stops two customers being sold the same thirty tonnes.
+enum StockMovementType {
+  OPENING_BALANCE
+  RECEIPT
+  ISSUE
+  RESERVE
+  RELEASE
+  CONSUME
+  ADJUSTMENT
+  TRANSFER_IN
+  TRANSFER_OUT
+  RETURN_IN
+  DAMAGE
+  COUNT_CORRECTION
+}
+
+enum StockReservationStatus {
+  HELD
+  CONFIRMED
+  CONSUMED
+  RELEASED
+  EXPIRED
+}
+
+enum MaterialAvailabilityMode {
+  IN_STOCK
+  MADE_TO_ORDER
+  ON_REQUEST
+}
+
+enum StockAvailabilityStatus {
+  IN_STOCK
+  LOW_STOCK
+  OUT_OF_STOCK
+  MADE_TO_ORDER
+  ON_REQUEST
+  DISCONTINUED
+}
+
+// ===========================================================================
+// Supplier inventory
+// ===========================================================================
+
+/// A physical place a supplier holds stock: yard, warehouse, quarry, depot.
+model InventoryLocation {
+  id              String                @id @default(uuid()) @db.Uuid
+  organizationId  String                @db.Uuid
+  supplierId      String                @db.Uuid
+  name            String
+  code            String
+  kind            InventoryLocationKind @default(YARD)
+  addressLine     String?
+  city            String?
+  state           String?
+  postalCode      String?
+  latitude        Float?
+  longitude       Float?
+  contactName     String?
+  contactPhone    String?
+  /// Loading window, minutes from local midnight. Null = round the clock.
+  openFromMinutes Int?
+  openToMinutes   Int?
+  isDefault       Boolean               @default(false)
+  active          Boolean               @default(true)
+  archivedAt      DateTime?
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  supplier   Supplier        @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  stockItems StockItem[]
+  movements  StockMovement[]
+  relays     RelayDelivery[] @relation("RelayOriginLocation")
+
+  @@unique([organizationId, code])
+  @@index([supplierId, active])
+  @@index([latitude, longitude])
+  @@map("inventory_locations")
+}
+
+/// One material at one location. The unique pair is what makes the position of
+/// a material knowable per yard rather than as a single national number.
+model StockItem {
+  id             String @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  materialId     String @db.Uuid
+  locationId     String @db.Uuid
+
+  onHandQuantity    Float  @default(0)
+  reservedQuantity  Float  @default(0)
+  incomingQuantity  Float  @default(0)
+  damagedQuantity   Float  @default(0)
+  lowStockThreshold Float  @default(0)
+  reorderLevel      Float?
+  reorderQuantity   Float?
+
+  binReference   String?
+  lastCountedAt  DateTime?
+  lastMovementAt DateTime?
+  nextRestockAt  DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  material     Material           @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  location     InventoryLocation  @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  movements    StockMovement[]
+  reservations StockReservation[]
+
+  @@unique([materialId, locationId])
+  @@index([organizationId, materialId])
+  @@index([locationId])
+  @@map("stock_items")
+}
+
+/// Append-only stock ledger.
+///
+/// Each row stores the balances *after* it was applied, so a later reader can
+/// verify the arithmetic without replaying the whole history.
+model StockMovement {
+  id             String            @id @default(uuid()) @db.Uuid
+  organizationId String            @db.Uuid
+  stockItemId    String            @db.Uuid
+  materialId     String            @db.Uuid
+  locationId     String            @db.Uuid
+  type           StockMovementType
+  /// Signed against on-hand: RECEIPT positive, ISSUE negative, RESERVE zero.
+  quantity       Float
+  unit           MaterialUnit
+  onHandAfter    Float
+  reservedAfter  Float
+  referenceType  String?
+  referenceId    String?           @db.Uuid
+  unitCost       Decimal?          @db.Decimal(12, 2)
+  reason         String?
+  note           String?
+  actorUserId    String?           @db.Uuid
+  occurredAt     DateTime          @default(now())
+  createdAt      DateTime          @default(now())
+
+  stockItem StockItem         @relation(fields: [stockItemId], references: [id], onDelete: Cascade)
+  location  InventoryLocation @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@index([stockItemId, occurredAt])
+  @@index([organizationId, occurredAt])
+  @@index([materialId, occurredAt])
+  @@index([referenceType, referenceId])
+  @@map("stock_movements")
+}
+
+/// Quantity promised to an order but still physically present.
+model StockReservation {
+  id             String                 @id @default(uuid()) @db.Uuid
+  organizationId String                 @db.Uuid
+  stockItemId    String                 @db.Uuid
+  materialId     String                 @db.Uuid
+  orderId        String?                @db.Uuid
+  quantity       Float
+  unit           MaterialUnit
+  status         StockReservationStatus @default(HELD)
+  /// A hold that is never converted must not lock stock forever.
+  expiresAt      DateTime?
+  releasedAt     DateTime?
+  consumedAt     DateTime?
+  note           String?
+  createdById    String?                @db.Uuid
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+
+  stockItem StockItem @relation(fields: [stockItemId], references: [id], onDelete: Cascade)
+  order     Order?    @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+  @@index([stockItemId, status])
+  @@index([organizationId, status, expiresAt])
+  @@map("stock_reservations")
+}
+
+/// Volume pricing: "at or above this quantity, this unit price".
+model MaterialPriceTier {
+  id           String   @id @default(uuid()) @db.Uuid
+  materialId   String   @db.Uuid
+  minQuantity  Float
+  pricePerUnit Decimal  @db.Decimal(12, 2)
+  createdAt    DateTime @default(now())
+
+  material Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+
+  @@unique([materialId, minQuantity])
+  @@map("material_price_tiers")
+}
+
+// ===========================================================================
+// Enums — vehicle resale marketplace
+// ===========================================================================
+
+enum VehicleListingStatus {
+  DRAFT
+  PENDING_REVIEW
+  PUBLISHED
+  RESERVED
+  SOLD
+  WITHDRAWN
+  REJECTED
+  EXPIRED
+}
+
+/// Listing reach.
+///
+/// Note the absence of a PUBLIC value: resale has no external user, so the
+/// widest reach is every *signed-in* Saarthi organization.
+enum VehicleListingVisibility {
+  ORGANIZATION
+  ASSOCIATION
+  PLATFORM
+}
+
+enum VehicleCondition {
+  EXCELLENT
+  GOOD
+  FAIR
+  NEEDS_REPAIR
+  NON_RUNNING
+}
+
+enum VehicleOfferStatus {
+  OFFERED
+  COUNTERED
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+  EXPIRED
+}
+
+enum VehicleInspectionStatus {
+  REQUESTED
+  SCHEDULED
+  COMPLETED
+  DECLINED
+  CANCELLED
+}
+
+enum VehicleTransferStatus {
+  PENDING
+  DOCUMENTS_PENDING
+  PAYMENT_PENDING
+  COMPLETED
+  CANCELLED
+}
+
+enum VehicleListingEventType {
+  CREATED
+  UPDATED
+  SUBMITTED
+  PUBLISHED
+  REJECTED
+  PRICE_CHANGED
+  OFFER_RECEIVED
+  OFFER_COUNTERED
+  OFFER_ACCEPTED
+  OFFER_REJECTED
+  OFFER_WITHDRAWN
+  INSPECTION_REQUESTED
+  INSPECTION_COMPLETED
+  RESERVED
+  SOLD
+  WITHDRAWN
+  EXPIRED
+  TRANSFER_STARTED
+  TRANSFER_COMPLETED
+  NOTE
+}
+
+// ===========================================================================
+// Enums — profile builder
+// ===========================================================================
+
+enum ProfileVisibility {
+  PRIVATE
+  PLATFORM
+  PARTNERS
+}
+
+// ===========================================================================
+// Enums — QR identity
+// ===========================================================================
+
+enum QrSubjectType {
+  DRIVER
+  VEHICLE
+  USER
+  TRIP
+  ORDER
+  VEHICLE_LISTING
+  INVENTORY_LOCATION
+  TRANSFER_HUB
+  RELAY_DELIVERY
+}
+
+enum QrCodeStatus {
+  ACTIVE
+  REVOKED
+  EXPIRED
+}
+
+/// What a scan is allowed to disclose.
+///
+/// Scopes are stored on the code and then intersected with what the scanner is
+/// entitled to see, so printing a sticker can never widen disclosure.
+enum QrScope {
+  IDENTITY
+  CONTACT
+  VEHICLE_SUMMARY
+  DRIVER_SUMMARY
+  COMPLIANCE
+  ASSIGNMENT
+  TRIP_STATUS
+  ORDER_STATUS
+  EMERGENCY
+  HANDOVER
+}
+
+enum QrScanResult {
+  ALLOWED
+  DENIED
+  NOT_FOUND
+  REVOKED
+  EXPIRED
+  RATE_LIMITED
+}
+
+enum QrScanPurpose {
+  IDENTITY_CHECK
+  ASSIGNMENT
+  CHECKPOINT
+  PICKUP
+  DELIVERY_HANDOVER
+  INSPECTION
+  EMERGENCY
+  PUBLIC_VIEW
+}
+
+// ===========================================================================
+// Enums — return loads
+// ===========================================================================
+
+enum ReturnLoadStatus {
+  OPEN
+  MATCHED
+  BOOKED
+  EXPIRED
+  CANCELLED
+  COMPLETED
+}
+
+enum ReturnLoadMatchStatus {
+  SUGGESTED
+  OFFERED
+  ACCEPTED
+  REJECTED
+  EXPIRED
+}
+
+/// Which leg of a movement a trip represents.
+enum TripLegType {
+  PRIMARY
+  RETURN
+  RELAY_LAST_MILE
+}
+
+// ===========================================================================
+// Enums — city access & last-mile relay
+// ===========================================================================
+
+enum CityRestrictionKind {
+  NO_ENTRY
+  TIME_WINDOW
+  PERMIT_REQUIRED
+  WEIGHT_LIMIT
+  HEIGHT_LIMIT
+  AXLE_LIMIT
+  ODD_EVEN
+  ZONE_BAN
+  CONGESTION_CHARGE
+}
+
+enum RelayStatus {
+  DRAFT
+  REQUESTED
+  OFFERED
+  ASSIGNED
+  EN_ROUTE_TO_HUB
+  AT_HUB
+  LOADED
+  IN_TRANSIT
+  DELIVERED
+  FAILED
+  CANCELLED
+}
+
+enum RelayReason {
+  CITY_NO_ENTRY
+  TIME_WINDOW
+  WEIGHT_LIMIT
+  HEIGHT_LIMIT
+  PERMIT_MISSING
+  NARROW_ACCESS
+  CUSTOMER_REQUEST
+  MULTI_DROP_SPLIT
+}
+
+enum RelayOfferStatus {
+  OFFERED
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+  EXPIRED
+}
+
+enum RelayEventType {
+  CREATED
+  REQUESTED
+  OFFER_RECEIVED
+  OFFER_ACCEPTED
+  OFFER_REJECTED
+  ASSIGNED
+  ARRIVED_AT_HUB
+  HANDOVER_STARTED
+  HANDOVER_VERIFIED
+  DISCREPANCY_RAISED
+  LOADED
+  DEPARTED
+  DELIVERED
+  FAILED
+  CANCELLED
+  NOTE
+}
+
+// ===========================================================================
+// Enums — route intelligence
+// ===========================================================================
+
+enum RouteHazardKind {
+  TRAFFIC_SIGNAL
+  SPEED_CAMERA
+  RED_LIGHT_CAMERA
+  AVERAGE_SPEED_ZONE
+  POLICE_CHECKPOINT
+  RTO_CHECKPOST
+  TOLL_PLAZA
+  WEIGHBRIDGE
+  BORDER_CHECKPOST
+  SPEED_BREAKER
+  SHARP_CURVE
+  STEEP_GRADIENT
+  ACCIDENT_PRONE_ZONE
+  SCHOOL_ZONE
+  RAILWAY_CROSSING
+  NARROW_BRIDGE
+  ROAD_WORK
+  DIVERSION
+  ACCIDENT
+  TRAFFIC_JAM
+  WATERLOGGING
+  LANDSLIDE
+  FOG_ZONE
+  PROTEST_BLOCKADE
+  ANIMAL_CROSSING
+  UNLIT_STRETCH
+}
+
+/// How much a hazard value can be trusted.
+///
+/// There is no national live traffic-signal feed in India, so a signal phase is
+/// PREDICTED from its cycle and labelled as such wherever it is shown.
+enum RouteHazardTier {
+  STATIC
+  PREDICTED
+  LIVE
+}
+
+enum RouteHazardSource {
+  PLATFORM
+  AUTHORITY
+  PARTNER_FEED
+  DRIVER_REPORT
+  ASSOCIATION
+  TELEMETRY_DERIVED
+}
+
+enum RouteHazardStatus {
+  UNVERIFIED
+  ACTIVE
+  EXPIRED
+  REMOVED
+  REJECTED
+}
+
+enum HazardVote {
+  CONFIRM
+  REJECT
+  CLEARED
+}
+
+// ===========================================================================
+// Vehicle resale marketplace
+// ===========================================================================
+
+/// A used vehicle offered for sale to other Saarthi organizations.
+///
+/// The vehicle is an existing `trucks` row, which is the point: the odometer,
+/// service history, fuel economy and compliance state are records Saarthi
+/// already holds rather than claims the seller types.
+model VehicleListing {
+  id             String                   @id @default(uuid()) @db.Uuid
+  reference      String                   @unique
+  organizationId String                   @db.Uuid
+  vehicleId      String                   @db.Uuid
+  status         VehicleListingStatus     @default(DRAFT)
+  visibility     VehicleListingVisibility @default(PLATFORM)
+
+  title        String
+  description  String?
+  askingPrice  Decimal  @db.Decimal(12, 2)
+  negotiable   Boolean  @default(true)
+  /// The seller's walk-away figure. Never serialised to a buyer.
+  minimumPrice Decimal? @db.Decimal(12, 2)
+
+  condition            VehicleCondition @default(GOOD)
+  odometerKm           Float
+  ownershipCount       Int              @default(1)
+  accidentHistory      Boolean          @default(false)
+  accidentNote         String?
+  majorRepairsNote     String?
+  tyreConditionPercent Int?
+  engineConditionNote  String?
+  insuranceValidTill   DateTime?
+  fitnessValidTill     DateTime?
+  permitType           String?
+  permitValidTill      DateTime?
+  loanOutstanding      Boolean          @default(false)
+  hypothecationNote    String?
+
+  city      String?
+  state     String?
+  latitude  Float?
+  longitude Float?
+
+  /// Evidence blocks the seller has chosen to share, as EvidenceBlock values.
+  sharedEvidence String[]
+
+  availableFrom DateTime?
+  expiresAt     DateTime?
+  viewCount     Int       @default(0)
+  offerCount    Int       @default(0)
+
+  submittedAt     DateTime?
+  publishedAt     DateTime?
+  reviewedById    String?   @db.Uuid
+  reviewedAt      DateTime?
+  rejectionReason String?
+
+  reservedForOrganizationId String?   @db.Uuid
+  soldToOrganizationId      String?   @db.Uuid
+  soldPrice                 Decimal?  @db.Decimal(12, 2)
+  soldAt                    DateTime?
+  withdrawnAt               DateTime?
+  withdrawalReason          String?
+
+  createdById String    @db.Uuid
+  archivedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  vehicle     Truck                      @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  offers      VehicleListingOffer[]
+  inspections VehicleInspectionRequest[]
+  events      VehicleListingEvent[]
+  watches     VehicleListingWatch[]
+  transfer    VehicleTransfer?
+
+  @@index([status, visibility, publishedAt])
+  @@index([organizationId, status])
+  @@index([vehicleId])
+  @@index([city, state])
+  @@map("vehicle_listings")
+}
+
+model VehicleListingOffer {
+  id                  String             @id @default(uuid()) @db.Uuid
+  listingId           String             @db.Uuid
+  buyerOrganizationId String             @db.Uuid
+  buyerUserId         String             @db.Uuid
+  amount              Decimal            @db.Decimal(12, 2)
+  message             String?
+  status              VehicleOfferStatus @default(OFFERED)
+  counterAmount       Decimal?           @db.Decimal(12, 2)
+  counterMessage      String?
+  counteredAt         DateTime?
+  wantsInspection     Boolean            @default(false)
+  expiresAt           DateTime?
+  respondedAt         DateTime?
+  rejectionReason     String?
+  withdrawnAt         DateTime?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+
+  listing VehicleListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@index([listingId, status])
+  @@index([buyerOrganizationId, status])
+  @@map("vehicle_listing_offers")
+}
+
+model VehicleInspectionRequest {
+  id                      String                  @id @default(uuid()) @db.Uuid
+  listingId               String                  @db.Uuid
+  requesterOrganizationId String                  @db.Uuid
+  requesterUserId         String                  @db.Uuid
+  status                  VehicleInspectionStatus @default(REQUESTED)
+  preferredAt             DateTime
+  alternateAt             DateTime?
+  scheduledAt             DateTime?
+  location                String?
+  contactPhone            String?
+  note                    String?
+  reportSummary           String?
+  inspectorUserId         String?                 @db.Uuid
+  completedAt             DateTime?
+  createdAt               DateTime                @default(now())
+  updatedAt               DateTime                @updatedAt
+
+  listing VehicleListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@index([listingId, status])
+  @@index([requesterOrganizationId, status])
+  @@map("vehicle_inspection_requests")
+}
+
+model VehicleListingEvent {
+  id          String                  @id @default(uuid()) @db.Uuid
+  listingId   String                  @db.Uuid
+  type        VehicleListingEventType
+  description String
+  metadata    Json?
+  actorUserId String?                 @db.Uuid
+  createdAt   DateTime                @default(now())
+
+  listing VehicleListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@index([listingId, createdAt])
+  @@map("vehicle_listing_events")
+}
+
+/// A listing saved by a buyer organization.
+model VehicleListingWatch {
+  id             String   @id @default(uuid()) @db.Uuid
+  listingId      String   @db.Uuid
+  organizationId String   @db.Uuid
+  userId         String   @db.Uuid
+  createdAt      DateTime @default(now())
+
+  listing VehicleListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@unique([listingId, userId])
+  @@index([organizationId])
+  @@map("vehicle_listing_watches")
+}
+
+/// Ownership handover of a sold vehicle.
+///
+/// Completing this is the only path by which a `trucks` row changes tenant, and
+/// it happens in one transaction alongside ending assignments, unassigning
+/// devices and re-pointing vehicle-owned documents.
+model VehicleTransfer {
+  id                  String                @id @default(uuid()) @db.Uuid
+  listingId           String                @unique @db.Uuid
+  vehicleId           String                @db.Uuid
+  fromOrganizationId  String                @db.Uuid
+  toOrganizationId    String                @db.Uuid
+  status              VehicleTransferStatus @default(PENDING)
+  salePrice           Decimal               @db.Decimal(12, 2)
+  rcTransferReference String?
+  paymentId           String?               @db.Uuid
+  paymentReference    String?
+  documentsCompleteAt DateTime?
+  paymentCompleteAt   DateTime?
+  transferredAt       DateTime?
+  cancelledAt         DateTime?
+  cancellationReason  String?
+  notes               String?
+  createdById         String                @db.Uuid
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+
+  listing VehicleListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@index([fromOrganizationId, status])
+  @@index([toOrganizationId, status])
+  @@index([vehicleId])
+  @@map("vehicle_transfers")
+}
+
+// ===========================================================================
+// Profile builder
+// ===========================================================================
+
+/// The parts of a person's profile that had no home in `users` or `drivers`.
+///
+/// Created lazily on first read, so no backfill migration is needed.
+model UserProfile {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @unique @db.Uuid
+  headline    String?
+  bio         String?
+  /// Spoken languages, used when matching drivers to passengers.
+  languages   String[]
+  skills      String[]
+  dateOfBirth DateTime?
+  gender      String?
+  socialLinks Json?
+
+  addressLine String?
+  city        String?
+  state       String?
+  postalCode  String?
+  latitude    Float?
+  longitude   Float?
+
+  emergencyContactName  String?
+  emergencyContactPhone String?
+
+  /// locale, timezone, theme, distanceUnit, mapStyle, voiceAlerts.
+  preferences Json?
+
+  visibility      ProfileVisibility @default(PLATFORM)
+  fieldVisibility Json?
+  publicSlug      String?           @unique
+
+  completionPercent Int       @default(0)
+  completedSections String[]
+  lastBuiltAt       DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([city, state])
+  @@index([completionPercent])
+  @@map("user_profiles")
+}
+
+model OrganizationProfile {
+  id             String  @id @default(uuid()) @db.Uuid
+  organizationId String  @unique @db.Uuid
+  tagline        String?
+  about          String?
+  foundedYear    Int?
+  employeeCount  Int?
+  website        String?
+  socialLinks    Json?
+
+  /// Cities and districts served. Read by discovery and last-mile matching.
+  serviceAreas   String[]
+  specialities   String[]
+  certifications String[]
+  operatingHours Json?
+
+  supportEmail        String?
+  supportPhone        String?
+  billingContactName  String?
+  billingContactPhone String?
+  billingEmail        String?
+
+  visibility      ProfileVisibility @default(PLATFORM)
+  fieldVisibility Json?
+  publicSlug      String?           @unique
+
+  completionPercent Int       @default(0)
+  completedSections String[]
+  lastBuiltAt       DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([completionPercent])
+  @@map("organization_profiles")
+}
+
+// ===========================================================================
+// QR identity
+// ===========================================================================
+
+/// A printable capability token for a driver, vehicle or other subject.
+///
+/// The token is 32 random bytes, deliberately not derived from the subject id,
+/// so holding one code tells a scanner nothing about any other.
+model QrCode {
+  id                 String        @id @default(uuid()) @db.Uuid
+  organizationId     String?       @db.Uuid
+  subjectType        QrSubjectType
+  subjectId          String        @db.Uuid
+  token              String        @unique
+  version            Int           @default(1)
+  status             QrCodeStatus  @default(ACTIVE)
+  scopes             QrScope[]
+  label              String?
+  /// Off by default: a code that answers to anyone is a different product
+  /// decision from a code that answers to a signed-in account.
+  allowPublicResolve Boolean       @default(false)
+  expiresAt          DateTime?
+  revokedAt          DateTime?
+  revokedById        String?       @db.Uuid
+  revokeReason       String?
+  lastScannedAt      DateTime?
+  scanCount          Int           @default(0)
+  createdById        String        @db.Uuid
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  scans QrScan[]
+
+  @@index([subjectType, subjectId, status])
+  @@index([organizationId, status])
+  @@map("qr_codes")
+}
+
+/// Every resolution attempt, including the failures.
+///
+/// NOT_FOUND rows are the point: an unguessable token still deserves a record
+/// of anyone trying to guess it.
+model QrScan {
+  id                      String        @id @default(uuid()) @db.Uuid
+  qrCodeId                String        @db.Uuid
+  scannedByUserId         String?       @db.Uuid
+  scannedByOrganizationId String?       @db.Uuid
+  purpose                 QrScanPurpose @default(IDENTITY_CHECK)
+  result                  QrScanResult
+  scopesGranted           QrScope[]
+  latitude                Float?
+  longitude               Float?
+  ipAddress               String?
+  userAgent               String?
+  note                    String?
+  createdAt               DateTime      @default(now())
+
+  qrCode QrCode @relation(fields: [qrCodeId], references: [id], onDelete: Cascade)
+
+  @@index([qrCodeId, createdAt])
+  @@index([scannedByUserId, createdAt])
+  @@map("qr_scans")
+}
+
+// ===========================================================================
+// Return loads (backhaul)
+// ===========================================================================
+
+/// A truck declaring where it will be free and where it wants to end up.
+model ReturnLoadRequest {
+  id             String           @id @default(uuid()) @db.Uuid
+  reference      String           @unique
+  organizationId String           @db.Uuid
+  truckId        String           @db.Uuid
+  driverId       String?          @db.Uuid
+  outboundTripId String?          @db.Uuid
+  status         ReturnLoadStatus @default(OPEN)
+
+  /// Where the truck becomes free — usually the outbound destination.
+  originAddress   String
+  originLatitude  Float
+  originLongitude Float
+
+  /// Where it wants to end up — usually the fleet base.
+  destinationAddress   String
+  destinationLatitude  Float
+  destinationLongitude Float
+
+  availableFrom  DateTime
+  availableUntil DateTime
+
+  capacityTons       Float
+  truckType          TruckType?
+  /// How far off the straight line home the driver will divert, in km.
+  detourToleranceKm  Float      @default(50)
+  acceptsPartialLoad Boolean    @default(true)
+  minimumPrice       Decimal?   @db.Decimal(12, 2)
+  autoMatch          Boolean    @default(true)
+  notes              String?
+
+  matchedOrderId     String?   @db.Uuid
+  createdById        String    @db.Uuid
+  cancelledAt        DateTime?
+  cancellationReason String?
+  completedAt        DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  truck   Truck             @relation(fields: [truckId], references: [id], onDelete: Cascade)
+  matches ReturnLoadMatch[]
+  orders  Order[]           @relation("OrderReturnLoad")
+  trips   Trip[]            @relation("TripReturnLoad")
+
+  @@index([status, availableFrom])
+  @@index([organizationId, status])
+  @@index([truckId, status])
+  @@index([originLatitude, originLongitude])
+  @@map("return_load_requests")
+}
+
+/// One scored pairing of a return-load request with an open order.
+///
+/// The component values are stored, not just the total, so the UI can explain
+/// the ranking. A dispatcher who cannot see why a match scored 78 will not
+/// trust it, and an untrusted match is never used.
+model ReturnLoadMatch {
+  id                  String                @id @default(uuid()) @db.Uuid
+  returnLoadRequestId String                @db.Uuid
+  orderId             String                @db.Uuid
+  status              ReturnLoadMatchStatus @default(SUGGESTED)
+  score               Float
+  distanceToPickupKm  Float
+  detourKm            Float
+  /// Cosine of the bearing agreement with the way home, -1..1.
+  directionAlignment  Float
+  capacityFitPercent  Float
+  timingFitHours      Float
+  estimatedRevenue    Decimal?              @db.Decimal(12, 2)
+  /// Human-readable reasons, rendered verbatim by the UI.
+  reasons             String[]
+  quoteId             String?               @db.Uuid
+  notifiedAt          DateTime?
+  respondedAt         DateTime?
+  rejectionReason     String?
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+
+  request ReturnLoadRequest @relation(fields: [returnLoadRequestId], references: [id], onDelete: Cascade)
+  order   Order             @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@unique([returnLoadRequestId, orderId])
+  @@index([orderId, status])
+  @@index([status, score])
+  @@map("return_load_matches")
+}
+
+// ===========================================================================
+// City access restrictions
+// ===========================================================================
+
+/// A rule that stops some vehicles reaching some places at some times.
+///
+/// A null organizationId is a platform-maintained national rule; a set one is a
+/// fleet's own private rule.
+model CityAccessRestriction {
+  id             String              @id @default(uuid()) @db.Uuid
+  organizationId String?             @db.Uuid
+  name           String
+  description    String?
+  kind           CityRestrictionKind
+  city           String
+  district       String?
+  state          String
+
+  /// Zone as a centre plus radius, or an explicit ring when one is known.
+  centerLatitude  Float
+  centerLongitude Float
+  radiusKm        Float?
+  polygon         Json?
+
+  /// Which vehicles the rule bites. Empty = every goods vehicle.
+  vehicleTypes    VehicleType[]
+  truckTypes      TruckType[]
+  minCapacityTons Float?
+  maxHeightMetres Float?
+  maxAxles        Int?
+
+  /// 0 = Sunday .. 6 = Saturday. Empty = every day.
+  daysOfWeek       Int[]
+  /// Minutes from local midnight. A window may cross midnight (start > end).
+  startTimeMinutes Int?
+  endTimeMinutes   Int?
+
+  permitAuthority String?
+  permitUrl       String?
+  penaltyNote     String?
+  source          String?
+  sourceUrl       String?
+  effectiveFrom   DateTime?
+  effectiveTo     DateTime?
+  active          Boolean   @default(true)
+  createdById     String?   @db.Uuid
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  relays RelayDelivery[]
+
+  @@index([city, state, active])
+  @@index([centerLatitude, centerLongitude])
+  @@index([organizationId, active])
+  @@map("city_access_restrictions")
+}
+
+// ===========================================================================
+// Last-mile relay
+// ===========================================================================
+
+/// A yard outside a restricted zone where a big truck hands over to a pickup.
+model TransferHub {
+  id             String  @id @default(uuid()) @db.Uuid
+  /// Null = platform-operated hub, available to every fleet.
+  organizationId String? @db.Uuid
+  name           String
+  code           String  @unique
+  addressLine    String
+  city           String
+  state          String
+  postalCode     String?
+  latitude       Float
+  longitude      Float
+
+  /// forklift, crane, covered, weighbridge, security, overnightParking.
+  facilities             Json?
+  maxVehicleLengthMetres Float?
+  parkingSlots           Int?
+  openFromMinutes        Int?
+  openToMinutes          Int?
+  contactName            String?
+  contactPhone           String?
+  handlingChargePerTon   Decimal? @db.Decimal(10, 2)
+  verified               Boolean  @default(false)
+  active                 Boolean  @default(true)
+  notes                  String?
+  createdById            String?  @db.Uuid
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  relays RelayDelivery[]
+
+  @@index([city, state, active])
+  @@index([latitude, longitude])
+  @@map("transfer_hubs")
+}
+
+/// An operator that delivers inside a city with small vehicles.
+model LastMilePartner {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @unique @db.Uuid
+  serviceCities  String[]
+  maxWeightTons  Float    @default(1.5)
+  vehicleCount   Int      @default(0)
+  minimumCharge  Decimal  @db.Decimal(10, 2)
+  perKmRate      Decimal  @db.Decimal(10, 2)
+  perTonRate     Decimal? @db.Decimal(10, 2)
+
+  handlesFragile      Boolean @default(false)
+  handlesRefrigerated Boolean @default(false)
+  openFromMinutes     Int?
+  openToMinutes       Int?
+
+  averageResponseMinutes Int?
+  completedRelays        Int                @default(0)
+  rating                 Float?
+  ratingCount            Int                @default(0)
+  active                 Boolean            @default(true)
+  verificationStatus     VerificationStatus @default(PENDING)
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+
+  @@index([active, verificationStatus])
+  @@map("last_mile_partners")
+}
+
+/// The city leg of a delivery a heavy vehicle cannot complete itself.
+model RelayDelivery {
+  id               String      @id @default(uuid()) @db.Uuid
+  reference        String      @unique
+  orderId          String      @db.Uuid
+  /// Fleet tenant that owns the parent movement.
+  organizationId   String      @db.Uuid
+  parentTripId     String?     @db.Uuid
+  transferHubId    String?     @db.Uuid
+  /// Set when the handover happens at a supplier yard rather than a hub.
+  originLocationId String?     @db.Uuid
+  status           RelayStatus @default(DRAFT)
+  reason           RelayReason
+  restrictionId    String?     @db.Uuid
+
+  partnerOrganizationId String? @db.Uuid
+  pickupVehicleId       String? @db.Uuid
+  pickupDriverId        String? @db.Uuid
+  relayTripId           String? @db.Uuid
+
+  quantity     Float
+  unit         MaterialUnit
+  weightTons   Float?
+  packageCount Int?
+  fragile      Boolean      @default(false)
+
+  dropAddress    String
+  dropLatitude   Float
+  dropLongitude  Float
+  distanceKm     Float?
+  price          Decimal? @db.Decimal(12, 2)
+  handlingCharge Decimal? @db.Decimal(10, 2)
+
+  requestedAt          DateTime?
+  scheduledAt          DateTime?
+  hubArrivalAt         DateTime?
+  handoverAt           DateTime?
+  /// The scan that proved custody actually changed hands.
+  handoverQrScanId     String?   @db.Uuid
+  handoverPackageCount Int?
+  handoverWeightTons   Float?
+  discrepancyNote      String?
+  departedAt           DateTime?
+  deliveredAt          DateTime?
+  failureReason        String?
+  cancelledAt          DateTime?
+  notes                String?
+  createdById          String    @db.Uuid
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  order          Order                  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  hub            TransferHub?           @relation(fields: [transferHubId], references: [id], onDelete: SetNull)
+  originLocation InventoryLocation?     @relation("RelayOriginLocation", fields: [originLocationId], references: [id], onDelete: SetNull)
+  restriction    CityAccessRestriction? @relation(fields: [restrictionId], references: [id], onDelete: SetNull)
+  offers         RelayOffer[]
+  events         RelayEvent[]
+
+  @@index([orderId])
+  @@index([organizationId, status])
+  @@index([partnerOrganizationId, status])
+  @@index([status, scheduledAt])
+  @@map("relay_deliveries")
+}
+
+model RelayOffer {
+  id             String           @id @default(uuid()) @db.Uuid
+  relayId        String           @db.Uuid
+  organizationId String           @db.Uuid
+  vehicleId      String?          @db.Uuid
+  createdById    String           @db.Uuid
+  price          Decimal          @db.Decimal(12, 2)
+  etaMinutes     Int
+  message        String?
+  status         RelayOfferStatus @default(OFFERED)
+  expiresAt      DateTime?
+  respondedAt    DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  relay RelayDelivery @relation(fields: [relayId], references: [id], onDelete: Cascade)
+
+  @@unique([relayId, organizationId])
+  @@index([relayId, status])
+  @@index([organizationId, status])
+  @@map("relay_offers")
+}
+
+model RelayEvent {
+  id          String         @id @default(uuid()) @db.Uuid
+  relayId     String         @db.Uuid
+  type        RelayEventType
+  description String
+  latitude    Float?
+  longitude   Float?
+  metadata    Json?
+  actorUserId String?        @db.Uuid
+  createdAt   DateTime       @default(now())
+
+  relay RelayDelivery @relation(fields: [relayId], references: [id], onDelete: Cascade)
+
+  @@index([relayId, createdAt])
+  @@map("relay_events")
+}
+
+// ===========================================================================
+// Route intelligence
+// ===========================================================================
+
+/// A signal, camera, checkpoint or road condition on the network.
+model RouteHazard {
+  id             String            @id @default(uuid()) @db.Uuid
+  /// Null = platform-wide. Set = private to one tenant.
+  organizationId String?           @db.Uuid
+  kind           RouteHazardKind
+  tier           RouteHazardTier   @default(STATIC)
+  source         RouteHazardSource @default(PLATFORM)
+  status         RouteHazardStatus @default(ACTIVE)
+  severity       AlertSeverity     @default(INFO)
+
+  name                    String
+  description             String?
+  latitude                Float
+  longitude               Float
+  /// Alert radius, and the dedupe radius for incoming reports.
+  radiusMeters            Int     @default(150)
+  /// Direction of travel the hazard applies to; null = both ways.
+  headingDegrees          Int?
+  headingToleranceDegrees Int     @default(60)
+
+  speedLimitKph Int?
+  city          String?
+  district      String?
+  state         String?
+  highway       String?
+  landmark      String?
+
+  /// Signal cycle, for a predicted phase. All null = phase not modelled, and
+  /// the API returns UNKNOWN rather than a guessed colour.
+  signalCycleSeconds  Int?
+  signalGreenSeconds  Int?
+  signalOffsetSeconds Int?
+  signalReferenceAt   DateTime?
+
+  /// Recurring pattern, e.g. a checkpoint manned on weekday mornings.
+  daysOfWeek       Int[]
+  startTimeMinutes Int?
+  endTimeMinutes   Int?
+
+  validFrom  DateTime?
+  validUntil DateTime?
+
+  confirmCount    Int       @default(0)
+  rejectCount     Int       @default(0)
+  /// 0-1, decays with age for LIVE hazards.
+  confidence      Float     @default(1)
+  lastConfirmedAt DateTime?
+  lastReportedAt  DateTime?
+  reportCount     Int       @default(0)
+
+  reportedByUserId String?   @db.Uuid
+  verifiedById     String?   @db.Uuid
+  verifiedAt       DateTime?
+  reviewNote       String?
+  sourceUrl        String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  reports RouteHazardReport[]
+  alerts  TripHazardAlert[]
+
+  @@index([latitude, longitude, status])
+  @@index([kind, status])
+  @@index([status, tier, validUntil])
+  @@index([city, state])
+  @@index([organizationId, status])
+  @@map("route_hazards")
+}
+
+/// A driver report or a vote on an existing hazard.
+///
+/// Reports keep their own row even after being folded into a hazard, because
+/// confidence counts distinct *organizations* and that needs the raw history.
+model RouteHazardReport {
+  id                      String          @id @default(uuid()) @db.Uuid
+  hazardId                String?         @db.Uuid
+  organizationId          String?         @db.Uuid
+  kind                    RouteHazardKind
+  vote                    HazardVote      @default(CONFIRM)
+  latitude                Float
+  longitude               Float
+  headingDegrees          Int?
+  note                    String?
+  mediaId                 String?         @db.Uuid
+  tripId                  String?         @db.Uuid
+  vehicleId               String?         @db.Uuid
+  driverId                String?         @db.Uuid
+  expectedDurationMinutes Int?
+  reportedByUserId        String          @db.Uuid
+  createdAt               DateTime        @default(now())
+
+  hazard RouteHazard? @relation(fields: [hazardId], references: [id], onDelete: SetNull)
+
+  @@index([hazardId, createdAt])
+  @@index([reportedByUserId, createdAt])
+  @@index([latitude, longitude])
+  @@index([organizationId, createdAt])
+  @@map("route_hazard_reports")
+}
+
+/// A hazard actually surfaced to a driver on a trip.
+///
+/// The unique pair is the dedupe: a truck stuck in traffic beside a camera must
+/// not be told about it forty times.
+model TripHazardAlert {
+  id              String        @id @default(uuid()) @db.Uuid
+  tripId          String        @db.Uuid
+  hazardId        String        @db.Uuid
+  organizationId  String        @db.Uuid
+  vehicleId       String        @db.Uuid
+  driverId        String?       @db.Uuid
+  distanceMeters  Int
+  speedAtAlertKph Float?
+  severity        AlertSeverity
+  /// True when the vehicle passed a speed-limited hazard above its limit.
+  violated        Boolean       @default(false)
+  acknowledgedAt  DateTime?
+  createdAt       DateTime      @default(now())
+
+  hazard RouteHazard @relation(fields: [hazardId], references: [id], onDelete: Cascade)
+  trip   Trip        @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@unique([tripId, hazardId])
+  @@index([tripId, createdAt])
+  @@index([organizationId, createdAt])
+  @@index([driverId, violated])
+  @@map("trip_hazard_alerts")
 }

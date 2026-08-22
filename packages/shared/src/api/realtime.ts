@@ -8,14 +8,21 @@
 
 import type { LatLng } from '../domain/geo';
 import type {
+  AlertSeverity,
+  AssociationAlertStatus,
+  BookingStatus,
+  DeviceStatus,
   NotificationPriority,
   NotificationType,
   OrderStatus,
   SosStatus,
   SosType,
+  TelemetryAlertType,
+  TelemetryMetric,
   TrackingSource,
   TripStatus,
   TruckStatus,
+  VehicleType,
 } from '../domain/enums';
 
 export const RealtimeChannel = {
@@ -26,10 +33,34 @@ export const RealtimeChannel = {
   sos: (incidentId: string) => `sos:${incidentId}`,
   user: (userId: string) => `user:${userId}`,
   driver: (driverId: string) => `driver:${driverId}`,
+  /** A truck association's own alert feed, scoped to its organization. */
+  association: (organizationId: string) => `association:${organizationId}`,
+  /** A single telematics device — used by the device and telemetry screens. */
+  device: (deviceId: string) => `device:${deviceId}`,
+  /** One travel booking, shared by the customer and the provider. */
+  booking: (bookingId: string) => `booking:${bookingId}`,
   admin: () => 'admin:platform',
 } as const;
 
-export type ChannelKind = 'fleet' | 'truck' | 'trip' | 'order' | 'sos' | 'user' | 'driver' | 'admin';
+/**
+ * The generalized vehicle surface addresses the same rows as the truck surface,
+ * so it publishes on the same channel. Broadcasting one entity under two
+ * channel names would mean a subscriber to either could miss half its updates.
+ */
+export const vehicleChannel = (vehicleId: string): string => `truck:${vehicleId}`;
+
+export type ChannelKind =
+  | 'fleet'
+  | 'truck'
+  | 'trip'
+  | 'order'
+  | 'sos'
+  | 'user'
+  | 'driver'
+  | 'association'
+  | 'device'
+  | 'booking'
+  | 'admin';
 
 export interface ParsedChannel {
   kind: ChannelKind;
@@ -49,6 +80,9 @@ export function parseChannel(channel: string): ParsedChannel | null {
     'sos',
     'user',
     'driver',
+    'association',
+    'device',
+    'booking',
     'admin',
   ];
   if (!known.includes(kind)) return null;
@@ -91,6 +125,20 @@ export const RealtimeEvent = {
   NOTIFICATION: 'notification',
 
   SIMULATION_UPDATED: 'simulation.updated',
+
+  // Hardware & telemetry
+  TELEMETRY_UPDATED: 'vehicle.telemetry.updated',
+  DEVICE_ONLINE: 'vehicle.device.online',
+  DEVICE_OFFLINE: 'vehicle.device.offline',
+  TELEMETRY_ALERT_CREATED: 'telemetry.alert.created',
+
+  // Association emergency network
+  ASSOCIATION_ALERT_CREATED: 'association.alert.created',
+  ASSOCIATION_ALERT_UPDATED: 'association.alert.updated',
+
+  // Travel bookings
+  BOOKING_CREATED: 'booking.created',
+  BOOKING_UPDATED: 'booking.updated',
 } as const;
 
 export type RealtimeEvent = (typeof RealtimeEvent)[keyof typeof RealtimeEvent];
@@ -206,6 +254,125 @@ export interface SimulationUpdatePayload {
   updatedAt: string;
 }
 
+// ---------------------------------------------------------------------------
+// Hardware & telemetry payloads
+// ---------------------------------------------------------------------------
+
+/**
+ * Live telemetry pushed to a dashboard.
+ *
+ * The `metrics` list is what stops the UI inventing data: a field is meaningful
+ * only when its metric appears there. A vehicle whose device cannot read
+ * coolant temperature sends `coolantTemperature: null` and omits
+ * COOLANT_TEMPERATURE, and the gauge shows "not reported" rather than 0 °C.
+ *
+ * This is a *summary*, not the stored reading. Raw high-frequency telemetry is
+ * never broadcast to every client — the gateway throttles per vehicle first.
+ */
+export interface TelemetryUpdatePayload {
+  deviceId: string;
+  vehicleId: string;
+  organizationId: string;
+  recordedAt: string;
+  metrics: TelemetryMetric[];
+  latitude: number | null;
+  longitude: number | null;
+  speedKph: number | null;
+  heading: number | null;
+  rpm: number | null;
+  coolantTemperature: number | null;
+  fuelLevel: number | null;
+  batteryVoltage: number | null;
+  engineLoad: number | null;
+  harshBraking: boolean;
+  harshAcceleration: boolean;
+  /** True when produced by the simulator rather than physical hardware. */
+  simulated: boolean;
+}
+
+export interface DeviceStatusPayload {
+  deviceId: string;
+  serialNumber: string;
+  organizationId: string;
+  vehicleId: string | null;
+  status: DeviceStatus;
+  lastSeenAt: string | null;
+  /** Seconds of silence that produced an offline verdict. */
+  silentForSeconds: number | null;
+  updatedAt: string;
+}
+
+export interface TelemetryAlertPayload {
+  alertId: string;
+  organizationId: string;
+  vehicleId: string;
+  vehicleRegistration: string;
+  deviceId: string | null;
+  driverId: string | null;
+  type: TelemetryAlertType;
+  severity: AlertSeverity;
+  message: string;
+  /** The observed value that tripped the rule, and the rule threshold. */
+  observedValue: number | null;
+  threshold: number | null;
+  unit: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  occurredAt: string;
+}
+
+// ---------------------------------------------------------------------------
+// Association payloads
+// ---------------------------------------------------------------------------
+
+/**
+ * The association-facing view of an emergency.
+ *
+ * This payload is the privacy boundary expressed in realtime form: location,
+ * vehicle registration and severity, and nothing about the customer, the cargo,
+ * the finances or the vehicle's telemetry. Driver contact details are withheld
+ * until a named association user acknowledges the alert.
+ */
+export interface AssociationAlertPayload {
+  alertId: string;
+  associationOrganizationId: string;
+  reference: string;
+  incidentType: SosType;
+  severity: AlertSeverity;
+  status: AssociationAlertStatus;
+  vehicleRegistration: string | null;
+  fleetName: string | null;
+  latitude: number;
+  longitude: number;
+  district: string | null;
+  state: string | null;
+  distanceKm: number | null;
+  description: string | null;
+  triggeredAt: string;
+  updatedAt: string;
+}
+
+// ---------------------------------------------------------------------------
+// Travel booking payloads
+// ---------------------------------------------------------------------------
+
+export interface BookingUpdatePayload {
+  bookingId: string;
+  reference: string;
+  status: BookingStatus;
+  packageId: string | null;
+  packageTitle: string | null;
+  customerOrganizationId: string;
+  providerOrganizationId: string;
+  vehicleId: string | null;
+  vehicleType: VehicleType | null;
+  driverId: string | null;
+  tripId: string | null;
+  startDate: string;
+  totalAmount: number;
+  updatedAt: string;
+}
+
 /** Connection-level messages that are not addressed to a channel. */
 export type ControlMessage =
   | { type: typeof RealtimeEvent.CONNECTED; userId: string; channels: string[] }
@@ -234,6 +401,34 @@ export type ChannelMessage =
       type: typeof RealtimeEvent.SIMULATION_UPDATED;
       channel: string;
       payload: SimulationUpdatePayload;
+    }
+  | {
+      type: typeof RealtimeEvent.TELEMETRY_UPDATED;
+      channel: string;
+      payload: TelemetryUpdatePayload;
+    }
+  | { type: typeof RealtimeEvent.DEVICE_ONLINE; channel: string; payload: DeviceStatusPayload }
+  | { type: typeof RealtimeEvent.DEVICE_OFFLINE; channel: string; payload: DeviceStatusPayload }
+  | {
+      type: typeof RealtimeEvent.TELEMETRY_ALERT_CREATED;
+      channel: string;
+      payload: TelemetryAlertPayload;
+    }
+  | {
+      type: typeof RealtimeEvent.ASSOCIATION_ALERT_CREATED;
+      channel: string;
+      payload: AssociationAlertPayload;
+    }
+  | {
+      type: typeof RealtimeEvent.ASSOCIATION_ALERT_UPDATED;
+      channel: string;
+      payload: AssociationAlertPayload;
+    }
+  | { type: typeof RealtimeEvent.BOOKING_CREATED; channel: string; payload: BookingUpdatePayload }
+  | {
+      type: typeof RealtimeEvent.BOOKING_UPDATED;
+      channel: string;
+      payload: BookingUpdatePayload;
     };
 
 export type ServerMessage = ControlMessage | ChannelMessage;

@@ -65,7 +65,7 @@ export function DocumentsPage() {
       <PageHeader title="Documents" description="Compliance across every truck, driver and business record." />
 
       {summary ? (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <StatCard label="Valid" value={summary.valid} icon={ShieldCheck} tone="success" />
           <StatCard label="Expiring soon" value={summary.expiringSoon} icon={FileWarning} tone={summary.expiringSoon > 0 ? 'warning' : 'default'} onClick={() => setSearchParams({ filter: 'expiring' })} />
           <StatCard label="Expired" value={summary.expired} icon={FileWarning} tone={summary.expired > 0 ? 'destructive' : 'default'} onClick={() => setSearchParams({ filter: 'expired' })} />

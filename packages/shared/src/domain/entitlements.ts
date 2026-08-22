@@ -46,6 +46,52 @@ export const Feature = {
   AI_RECOMMENDATIONS: 'ai.recommendations',
   AI_BUSINESS_INTELLIGENCE: 'ai.business_intelligence',
 
+  // Hardware / IoT
+  HARDWARE_CONNECTIVITY: 'hardware.connectivity',
+  TELEMETRY_LIVE: 'telemetry.live',
+  TELEMETRY_HISTORY: 'telemetry.history',
+  TELEMETRY_INTELLIGENCE: 'telemetry.intelligence',
+
+  // Mobility & travel.
+  //
+  // These sit in the BASIC tier on purpose. Spec section 38 is explicit that
+  // travel must not be forced into the fleet subscription model — a two-car
+  // taxi operator monetises through the booking fee, not a fleet plan, so
+  // gating package publishing behind Pro would price out the whole segment.
+  TRAVEL_SERVICES: 'travel.services',
+  TRAVEL_BOOKINGS: 'travel.bookings',
+
+  // Association network — an enterprise-grade integration between the platform
+  // and a district body, not a per-fleet feature.
+  ASSOCIATION_NETWORK: 'association.network',
+
+  // Images. Basic on purpose: a product where a supplier cannot photograph
+  // their material, or a driver their damage, is not a product.
+  MEDIA_LIBRARY: 'media.library',
+
+  // Supplier stock. A supplier's core job, so it is not an upsell.
+  INVENTORY_MANAGEMENT: 'inventory.management',
+
+  // Used-vehicle marketplace. Browsing and buying grow the network and are
+  // therefore Basic; publishing a listing is the monetisable side.
+  RESALE_MARKETPLACE: 'resale.marketplace',
+  RESALE_PUBLISH: 'resale.publish',
+
+  QR_IDENTITY: 'qr.identity',
+
+  // Backhaul matching — a margin feature, so it earns its Pro placement.
+  RETURN_LOADS: 'returnloads.matching',
+
+  // Knowing a heavy vehicle cannot enter a city is a compliance safety net.
+  // Gating it would let a paying customer drive into a fine.
+  CITY_ACCESS_INTELLIGENCE: 'cityaccess.intelligence',
+  LAST_MILE_RELAY: 'relay.lastmile',
+
+  // Hazard map and route-corridor analysis. Driver-facing safety alerts are
+  // NOT gated by this — see ROUTE_INTELLIGENCE_ALERTS.
+  ROUTE_INTELLIGENCE: 'routeintel.map',
+  ROUTE_INTELLIGENCE_ALERTS: 'routeintel.alerts',
+
   API_ACCESS: 'api.access',
   SSO: 'auth.sso',
 } as const;
@@ -153,6 +199,91 @@ export const FEATURE_CATALOGUE: FeatureDefinition[] = [
     name: 'AI business intelligence',
     description: 'Executive analysis and forecasting.',
   },
+  {
+    key: Feature.HARDWARE_CONNECTIVITY,
+    name: 'Hardware connectivity',
+    description: 'Register telematics devices and assign them to vehicles.',
+  },
+  {
+    key: Feature.TELEMETRY_LIVE,
+    name: 'Live telemetry',
+    description: 'Realtime engine, fuel and motion data from connected hardware.',
+  },
+  {
+    key: Feature.TELEMETRY_HISTORY,
+    name: 'Telemetry history',
+    description: 'Historical telemetry timeline and device history.',
+  },
+  {
+    key: Feature.TELEMETRY_INTELLIGENCE,
+    name: 'Telemetry intelligence',
+    description: 'Anomaly detection and telemetry-driven maintenance rules.',
+  },
+  {
+    key: Feature.TRAVEL_SERVICES,
+    name: 'Travel & tours',
+    description: 'Publish travel packages and manage passenger bookings.',
+  },
+  {
+    key: Feature.TRAVEL_BOOKINGS,
+    name: 'Travel booking',
+    description: 'Search, compare and book travel across Saarthi providers.',
+  },
+  {
+    key: Feature.ASSOCIATION_NETWORK,
+    name: 'Association network',
+    description: 'District truck-association emergency coordination.',
+  },
+  {
+    key: Feature.MEDIA_LIBRARY,
+    name: 'Image library',
+    description: 'Photos on every record — profiles, vehicles, materials, deliveries and incidents.',
+  },
+  {
+    key: Feature.INVENTORY_MANAGEMENT,
+    name: 'Stock & availability',
+    description: 'Yard-level stock, reservations against orders and a full movement ledger.',
+  },
+  {
+    key: Feature.RESALE_MARKETPLACE,
+    name: 'Used-vehicle marketplace',
+    description: 'Browse and buy used vehicles from other verified Saarthi operators.',
+  },
+  {
+    key: Feature.RESALE_PUBLISH,
+    name: 'Sell vehicles',
+    description: 'Publish your own vehicles for sale with a verified evidence pack.',
+  },
+  {
+    key: Feature.QR_IDENTITY,
+    name: 'QR identity',
+    description: 'Printable QR codes for drivers and vehicles, with scoped scan resolution.',
+  },
+  {
+    key: Feature.RETURN_LOADS,
+    name: 'Return loads',
+    description: 'Backhaul matching so trucks are not driven home empty.',
+  },
+  {
+    key: Feature.CITY_ACCESS_INTELLIGENCE,
+    name: 'City access rules',
+    description: 'No-entry zones, time windows and permit requirements checked before dispatch.',
+  },
+  {
+    key: Feature.LAST_MILE_RELAY,
+    name: 'Last-mile relay',
+    description: 'Hand a load to a small pickup at a transfer hub for delivery inside the city.',
+  },
+  {
+    key: Feature.ROUTE_INTELLIGENCE,
+    name: 'Road intelligence map',
+    description: 'Signals, speed cameras, checkpoints and live road conditions on the map.',
+  },
+  {
+    key: Feature.ROUTE_INTELLIGENCE_ALERTS,
+    name: 'Driver hazard alerts',
+    description: 'On-route warnings for cameras, checkpoints and hazards ahead.',
+  },
   { key: Feature.API_ACCESS, name: 'API access', description: 'Programmatic API access.' },
   { key: Feature.SSO, name: 'SSO', description: 'Single sign-on integration.' },
 ];
@@ -166,6 +297,16 @@ const BASIC_FEATURES: Feature[] = [
   Feature.TRIPS_BASIC,
   Feature.REPORTS_BASIC,
   Feature.ALERTS_BASIC,
+  // Mobility is available on every tier — see the note on Feature.TRAVEL_SERVICES.
+  Feature.TRAVEL_SERVICES,
+  Feature.TRAVEL_BOOKINGS,
+  // Images, stock, identity and safety are table stakes, not upsells.
+  Feature.MEDIA_LIBRARY,
+  Feature.INVENTORY_MANAGEMENT,
+  Feature.RESALE_MARKETPLACE,
+  Feature.QR_IDENTITY,
+  Feature.CITY_ACCESS_INTELLIGENCE,
+  Feature.ROUTE_INTELLIGENCE_ALERTS,
 ];
 
 const PRO_FEATURES: Feature[] = [
@@ -183,6 +324,13 @@ const PRO_FEATURES: Feature[] = [
   Feature.NEARBY_TRUCKS,
   Feature.SOS_NETWORK,
   Feature.REPORTS_ADVANCED,
+  Feature.HARDWARE_CONNECTIVITY,
+  Feature.TELEMETRY_LIVE,
+  Feature.TELEMETRY_HISTORY,
+  Feature.RESALE_PUBLISH,
+  Feature.RETURN_LOADS,
+  Feature.LAST_MILE_RELAY,
+  Feature.ROUTE_INTELLIGENCE,
 ];
 
 const INTELLIGENCE_FEATURES: Feature[] = [
@@ -191,12 +339,14 @@ const INTELLIGENCE_FEATURES: Feature[] = [
   Feature.AI_RECOMMENDATIONS,
   Feature.AI_BUSINESS_INTELLIGENCE,
   Feature.MAINTENANCE_PREDICTIVE,
+  Feature.TELEMETRY_INTELLIGENCE,
 ];
 
 const ENTERPRISE_FEATURES: Feature[] = [
   ...INTELLIGENCE_FEATURES,
   Feature.API_ACCESS,
   Feature.SSO,
+  Feature.ASSOCIATION_NETWORK,
 ];
 
 export const PLAN_FEATURES: Record<PlanTier, Feature[]> = {
@@ -213,6 +363,10 @@ export interface PlanLimits {
   maxMembers: number | null;
   trackingHistoryDays: number;
   aiRequestsPerDay: number;
+  /** Connected telematics devices. `0` = hardware not included in the plan. */
+  maxDevices: number | null;
+  /** How long normalised telemetry readings are retained. */
+  telemetryRetentionDays: number;
 }
 
 export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
@@ -222,6 +376,8 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
     maxMembers: 3,
     trackingHistoryDays: 7,
     aiRequestsPerDay: 0,
+    maxDevices: 0,
+    telemetryRetentionDays: 0,
   },
   [PlanTier.PRO]: {
     maxTrucks: 50,
@@ -229,6 +385,8 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
     maxMembers: 15,
     trackingHistoryDays: 90,
     aiRequestsPerDay: 0,
+    maxDevices: 50,
+    telemetryRetentionDays: 90,
   },
   [PlanTier.INTELLIGENCE]: {
     maxTrucks: 250,
@@ -236,6 +394,8 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
     maxMembers: 50,
     trackingHistoryDays: 365,
     aiRequestsPerDay: 200,
+    maxDevices: 250,
+    telemetryRetentionDays: 365,
   },
   [PlanTier.ENTERPRISE]: {
     maxTrucks: null,
@@ -243,6 +403,8 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
     maxMembers: null,
     trackingHistoryDays: 1095,
     aiRequestsPerDay: 2000,
+    maxDevices: null,
+    telemetryRetentionDays: 1095,
   },
 };
 
@@ -270,7 +432,8 @@ export const PLAN_CATALOGUE: PlanDefinition[] = [
   {
     tier: PlanTier.PRO,
     name: 'Saarthi Pro',
-    description: '3D tracking, driver scoring, maintenance, safety network and analytics.',
+    description:
+      '3D tracking, driver scoring, maintenance, safety network, hardware telemetry and analytics.',
     priceMonthly: 2999,
     priceYearly: 29990,
     features: PRO_FEATURES,
@@ -288,7 +451,8 @@ export const PLAN_CATALOGUE: PlanDefinition[] = [
   {
     tier: PlanTier.ENTERPRISE,
     name: 'Saarthi Enterprise',
-    description: 'Unlimited fleet scale, API access, SSO and dedicated integrations.',
+    description:
+      'Unlimited fleet scale, association network, API access, SSO and dedicated integrations.',
     priceMonthly: null,
     priceYearly: null,
     features: ENTERPRISE_FEATURES,

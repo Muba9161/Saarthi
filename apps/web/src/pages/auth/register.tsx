@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Building2, Package, ShoppingCart, Truck } from 'lucide-react';
+import { Building2, HandshakeIcon, Package, Plane, ShoppingCart, Truck } from 'lucide-react';
 import { RoleName, registerSchema, type RegisterInput } from '@saarthi/shared';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,9 +22,17 @@ import { ApiError } from '@/lib/api-client';
 import { cn } from '@/lib/utils';
 
 /**
- * Registration. The account type chosen here decides what Saarthi creates
- * alongside the user — a fleet, a supplier yard, a customer account, or a
- * driver profile inside an existing fleet.
+ * Registration.
+ *
+ * The account type chosen here decides what Saarthi creates alongside the user
+ * — a fleet, a supplier yard, a customer account, a travel operator, a truck
+ * association, or a driver profile inside an existing fleet.
+ *
+ * This choice is not cosmetic. Several surfaces belong to exactly one kind of
+ * business: only a travel operator can publish tour packages, only an
+ * association can run an emergency queue. The API enforces that by
+ * organization type, so picking the wrong one here cannot be worked around
+ * later from the UI — it has to be the right account from the start.
  */
 const ACCOUNT_TYPES = [
   {
@@ -44,6 +52,18 @@ const ACCOUNT_TYPES = [
     icon: Package,
     title: 'Supplier',
     description: 'I sell materials and arrange dispatch from my yard.',
+  },
+  {
+    role: RoleName.MOBILITY_PROVIDER,
+    icon: Plane,
+    title: 'Travel & tour operator',
+    description: 'I run taxis, buses or tour packages and sell passenger journeys.',
+  },
+  {
+    role: RoleName.ASSOCIATION_ADMIN,
+    icon: HandshakeIcon,
+    title: 'Truck association',
+    description: 'I represent a district association coordinating roadside help.',
   },
   {
     role: RoleName.DRIVER,
@@ -121,7 +141,7 @@ export function RegisterPage() {
             render={({ field }) => (
               <FormItem>
                 <FormLabel required>I am a…</FormLabel>
-                <div className="grid gap-2 sm:grid-cols-2">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   {ACCOUNT_TYPES.map((type) => {
                     const selected = field.value === type.role;
                     return (
@@ -158,7 +178,7 @@ export function RegisterPage() {
             )}
           />
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <FormField
               control={form.control}
               name="firstName"
@@ -258,7 +278,13 @@ export function RegisterPage() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel required>
-                    {role === RoleName.SUPPLIER ? 'Business name' : 'Company name'}
+                    {role === RoleName.SUPPLIER
+                      ? 'Business name'
+                      : role === RoleName.ASSOCIATION_ADMIN
+                        ? 'Association name'
+                        : role === RoleName.MOBILITY_PROVIDER
+                          ? 'Travel business name'
+                          : 'Company name'}
                   </FormLabel>
                   <FormControl>
                     <Input

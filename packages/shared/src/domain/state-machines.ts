@@ -6,7 +6,19 @@
  * same tables to decide which action buttons to render.
  */
 
-import { OrderStatus, SosStatus, TripStatus, TruckStatus } from './enums';
+import {
+  AssociationAlertStatus,
+  BookingStatus,
+  DeviceStatus,
+  OrderStatus,
+  RelayStatus,
+  ReturnLoadStatus,
+  SosStatus,
+  TripStatus,
+  TruckStatus,
+  VehicleListingStatus,
+  VehicleTransferStatus,
+} from './enums';
 
 export interface TransitionResult {
   allowed: boolean;
@@ -225,4 +237,289 @@ export const SOS_ELIGIBLE_TRUCK_STATUSES: TruckStatus[] = [
   TruckStatus.ASSIGNED,
   TruckStatus.LOADING,
   TruckStatus.UNLOADING,
+];
+
+// ---------------------------------------------------------------------------
+// Travel bookings
+//
+// Passenger travel is paid before it is confirmed, which is the opposite of a
+// freight order (quoted, then confirmed, then invoiced). The two therefore keep
+// separate state machines rather than being forced into one shared lifecycle.
+// ---------------------------------------------------------------------------
+
+const BOOKING_TRANSITIONS: Record<BookingStatus, readonly BookingStatus[]> = {
+  [BookingStatus.DRAFT]: [BookingStatus.PENDING_PAYMENT, BookingStatus.CANCELLED],
+  [BookingStatus.PENDING_PAYMENT]: [
+    BookingStatus.AWAITING_CONFIRMATION,
+    BookingStatus.CANCELLED,
+  ],
+  // The provider still has to accept: a paid booking is a request, not a
+  // guarantee that a vehicle and driver are free on the day.
+  [BookingStatus.AWAITING_CONFIRMATION]: [
+    BookingStatus.CONFIRMED,
+    BookingStatus.DECLINED,
+    BookingStatus.CANCELLED,
+  ],
+  [BookingStatus.CONFIRMED]: [
+    BookingStatus.IN_PROGRESS,
+    BookingStatus.CANCELLED,
+    BookingStatus.COMPLETED,
+  ],
+  [BookingStatus.IN_PROGRESS]: [BookingStatus.COMPLETED, BookingStatus.CANCELLED],
+  [BookingStatus.COMPLETED]: [],
+  // A cancellation may still owe money back, so REFUNDED follows it.
+  [BookingStatus.CANCELLED]: [BookingStatus.REFUNDED],
+  [BookingStatus.DECLINED]: [BookingStatus.REFUNDED],
+  [BookingStatus.REFUNDED]: [],
+};
+
+export const bookingStateMachine = buildValidator('Booking', BOOKING_TRANSITIONS);
+
+export const ACTIVE_BOOKING_STATUSES: BookingStatus[] = [
+  BookingStatus.PENDING_PAYMENT,
+  BookingStatus.AWAITING_CONFIRMATION,
+  BookingStatus.CONFIRMED,
+  BookingStatus.IN_PROGRESS,
+];
+
+/** Statuses in which a customer may still cancel and expect the refund ladder. */
+export const CANCELLABLE_BOOKING_STATUSES: BookingStatus[] = [
+  BookingStatus.PENDING_PAYMENT,
+  BookingStatus.AWAITING_CONFIRMATION,
+  BookingStatus.CONFIRMED,
+];
+
+// ---------------------------------------------------------------------------
+// Association alerts
+// ---------------------------------------------------------------------------
+
+const ASSOCIATION_ALERT_TRANSITIONS: Record<
+  AssociationAlertStatus,
+  readonly AssociationAlertStatus[]
+> = {
+  [AssociationAlertStatus.NOTIFIED]: [
+    AssociationAlertStatus.ACKNOWLEDGED,
+    // An alert nobody picks up escalates on a timer rather than going quiet.
+    AssociationAlertStatus.ESCALATED,
+    AssociationAlertStatus.CLOSED,
+  ],
+  [AssociationAlertStatus.ACKNOWLEDGED]: [
+    AssociationAlertStatus.RESPONDING,
+    AssociationAlertStatus.ESCALATED,
+    AssociationAlertStatus.RESOLVED,
+    AssociationAlertStatus.CLOSED,
+  ],
+  [AssociationAlertStatus.RESPONDING]: [
+    AssociationAlertStatus.ESCALATED,
+    AssociationAlertStatus.RESOLVED,
+    AssociationAlertStatus.CLOSED,
+  ],
+  [AssociationAlertStatus.ESCALATED]: [
+    AssociationAlertStatus.RESPONDING,
+    AssociationAlertStatus.RESOLVED,
+    AssociationAlertStatus.CLOSED,
+  ],
+  [AssociationAlertStatus.RESOLVED]: [AssociationAlertStatus.CLOSED],
+  [AssociationAlertStatus.CLOSED]: [],
+};
+
+export const associationAlertStateMachine = buildValidator(
+  'Association alert',
+  ASSOCIATION_ALERT_TRANSITIONS,
+);
+
+export const OPEN_ASSOCIATION_ALERT_STATUSES: AssociationAlertStatus[] = [
+  AssociationAlertStatus.NOTIFIED,
+  AssociationAlertStatus.ACKNOWLEDGED,
+  AssociationAlertStatus.RESPONDING,
+  AssociationAlertStatus.ESCALATED,
+];
+
+// ---------------------------------------------------------------------------
+// Devices
+// ---------------------------------------------------------------------------
+
+/**
+ * Device statuses that may submit telemetry.
+ *
+ * OFFLINE is included on purpose: "offline" is Saarthi's opinion, formed from
+ * silence, and a device coming back after a tunnel or a dead SIM must be able
+ * to report again without an operator clicking anything. SUSPENDED and RETIRED
+ * are not included — those are decisions, and telemetry from them is rejected.
+ */
+export const TELEMETRY_ELIGIBLE_DEVICE_STATUSES: DeviceStatus[] = [
+  DeviceStatus.REGISTERED,
+  DeviceStatus.ACTIVE,
+  DeviceStatus.OFFLINE,
+];
+
+/** Device statuses that may be assigned to a vehicle. */
+export const ASSIGNABLE_DEVICE_STATUSES: DeviceStatus[] = [
+  DeviceStatus.REGISTERED,
+  DeviceStatus.ACTIVE,
+  DeviceStatus.OFFLINE,
+  DeviceStatus.INACTIVE,
+];
+
+// ---------------------------------------------------------------------------
+// Vehicle resale listings
+// ---------------------------------------------------------------------------
+
+/**
+ * A listing can come back from RESERVED to PUBLISHED because buyers walk away,
+ * and re-listing must not require recreating the record — the price history,
+ * the offers and the evidence pack all belong to the same listing.
+ */
+const VEHICLE_LISTING_TRANSITIONS: Record<
+  VehicleListingStatus,
+  readonly VehicleListingStatus[]
+> = {
+  [VehicleListingStatus.DRAFT]: [
+    VehicleListingStatus.PENDING_REVIEW,
+    VehicleListingStatus.PUBLISHED,
+    VehicleListingStatus.WITHDRAWN,
+  ],
+  [VehicleListingStatus.PENDING_REVIEW]: [
+    VehicleListingStatus.PUBLISHED,
+    VehicleListingStatus.REJECTED,
+    VehicleListingStatus.WITHDRAWN,
+  ],
+  [VehicleListingStatus.PUBLISHED]: [
+    VehicleListingStatus.RESERVED,
+    VehicleListingStatus.SOLD,
+    VehicleListingStatus.WITHDRAWN,
+    VehicleListingStatus.EXPIRED,
+  ],
+  [VehicleListingStatus.RESERVED]: [
+    VehicleListingStatus.SOLD,
+    VehicleListingStatus.PUBLISHED,
+    VehicleListingStatus.WITHDRAWN,
+  ],
+  [VehicleListingStatus.REJECTED]: [VehicleListingStatus.DRAFT, VehicleListingStatus.WITHDRAWN],
+  [VehicleListingStatus.EXPIRED]: [VehicleListingStatus.DRAFT, VehicleListingStatus.PUBLISHED],
+  [VehicleListingStatus.WITHDRAWN]: [VehicleListingStatus.DRAFT],
+  [VehicleListingStatus.SOLD]: [],
+};
+
+export const vehicleListingStateMachine = buildValidator(
+  'Listing',
+  VEHICLE_LISTING_TRANSITIONS,
+);
+
+/** Statuses that occupy a vehicle, so it cannot be listed twice. */
+export const OCCUPYING_LISTING_STATUSES: VehicleListingStatus[] = [
+  VehicleListingStatus.DRAFT,
+  VehicleListingStatus.PENDING_REVIEW,
+  VehicleListingStatus.PUBLISHED,
+  VehicleListingStatus.RESERVED,
+];
+
+/** Statuses a buyer may see when browsing. */
+export const BROWSABLE_LISTING_STATUSES: VehicleListingStatus[] = [
+  VehicleListingStatus.PUBLISHED,
+  VehicleListingStatus.RESERVED,
+];
+
+const VEHICLE_TRANSFER_TRANSITIONS: Record<
+  VehicleTransferStatus,
+  readonly VehicleTransferStatus[]
+> = {
+  [VehicleTransferStatus.PENDING]: [
+    VehicleTransferStatus.DOCUMENTS_PENDING,
+    VehicleTransferStatus.CANCELLED,
+  ],
+  [VehicleTransferStatus.DOCUMENTS_PENDING]: [
+    VehicleTransferStatus.PAYMENT_PENDING,
+    VehicleTransferStatus.CANCELLED,
+  ],
+  [VehicleTransferStatus.PAYMENT_PENDING]: [
+    VehicleTransferStatus.COMPLETED,
+    VehicleTransferStatus.CANCELLED,
+  ],
+  [VehicleTransferStatus.COMPLETED]: [],
+  [VehicleTransferStatus.CANCELLED]: [],
+};
+
+export const vehicleTransferStateMachine = buildValidator(
+  'Transfer',
+  VEHICLE_TRANSFER_TRANSITIONS,
+);
+
+// ---------------------------------------------------------------------------
+// Last-mile relay
+// ---------------------------------------------------------------------------
+
+/**
+ * A relay leg can be cancelled at any point before the goods are on the pickup,
+ * and fails rather than cancels once they are — the difference matters because a
+ * failure leaves cargo somewhere that has to be resolved.
+ */
+const RELAY_TRANSITIONS: Record<RelayStatus, readonly RelayStatus[]> = {
+  [RelayStatus.DRAFT]: [RelayStatus.REQUESTED, RelayStatus.CANCELLED],
+  [RelayStatus.REQUESTED]: [
+    RelayStatus.OFFERED,
+    RelayStatus.ASSIGNED,
+    RelayStatus.CANCELLED,
+  ],
+  [RelayStatus.OFFERED]: [RelayStatus.ASSIGNED, RelayStatus.REQUESTED, RelayStatus.CANCELLED],
+  [RelayStatus.ASSIGNED]: [RelayStatus.EN_ROUTE_TO_HUB, RelayStatus.CANCELLED],
+  [RelayStatus.EN_ROUTE_TO_HUB]: [RelayStatus.AT_HUB, RelayStatus.CANCELLED],
+  [RelayStatus.AT_HUB]: [RelayStatus.LOADED, RelayStatus.FAILED, RelayStatus.CANCELLED],
+  [RelayStatus.LOADED]: [RelayStatus.IN_TRANSIT, RelayStatus.FAILED],
+  [RelayStatus.IN_TRANSIT]: [RelayStatus.DELIVERED, RelayStatus.FAILED],
+  [RelayStatus.DELIVERED]: [],
+  [RelayStatus.FAILED]: [],
+  [RelayStatus.CANCELLED]: [],
+};
+
+export const relayStateMachine = buildValidator('Relay leg', RELAY_TRANSITIONS);
+
+export const ACTIVE_RELAY_STATUSES: RelayStatus[] = [
+  RelayStatus.REQUESTED,
+  RelayStatus.OFFERED,
+  RelayStatus.ASSIGNED,
+  RelayStatus.EN_ROUTE_TO_HUB,
+  RelayStatus.AT_HUB,
+  RelayStatus.LOADED,
+  RelayStatus.IN_TRANSIT,
+];
+
+/** Statuses where the goods are in the pickup partner's custody. */
+export const RELAY_CUSTODY_STATUSES: RelayStatus[] = [
+  RelayStatus.LOADED,
+  RelayStatus.IN_TRANSIT,
+];
+
+// ---------------------------------------------------------------------------
+// Return loads
+// ---------------------------------------------------------------------------
+
+const RETURN_LOAD_TRANSITIONS: Record<ReturnLoadStatus, readonly ReturnLoadStatus[]> = {
+  [ReturnLoadStatus.OPEN]: [
+    ReturnLoadStatus.MATCHED,
+    ReturnLoadStatus.BOOKED,
+    ReturnLoadStatus.EXPIRED,
+    ReturnLoadStatus.CANCELLED,
+  ],
+  // Matches are suggestions, so a matched request can go quiet again.
+  [ReturnLoadStatus.MATCHED]: [
+    ReturnLoadStatus.BOOKED,
+    ReturnLoadStatus.OPEN,
+    ReturnLoadStatus.EXPIRED,
+    ReturnLoadStatus.CANCELLED,
+  ],
+  [ReturnLoadStatus.BOOKED]: [ReturnLoadStatus.COMPLETED, ReturnLoadStatus.CANCELLED],
+  [ReturnLoadStatus.EXPIRED]: [ReturnLoadStatus.OPEN],
+  [ReturnLoadStatus.COMPLETED]: [],
+  [ReturnLoadStatus.CANCELLED]: [],
+};
+
+export const returnLoadStateMachine = buildValidator(
+  'Return load request',
+  RETURN_LOAD_TRANSITIONS,
+);
+
+export const OPEN_RETURN_LOAD_STATUSES: ReturnLoadStatus[] = [
+  ReturnLoadStatus.OPEN,
+  ReturnLoadStatus.MATCHED,
 ];

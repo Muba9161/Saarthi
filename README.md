@@ -24,7 +24,11 @@ infrastructure change rather than a rewrite.
 | Tracking pipeline (ingest → persist → derive → broadcast) | Working |
 | Mock GPS simulator (start/pause/resume/stop/reset/speed/deviation/delay) | Working |
 | Realtime over WebSockets, per-channel authorisation | Working |
+| 3D maps (terrain, extruded buildings, time-of-day lighting) | Working, no API key needed |
+| Turn-by-turn navigation (truck routing, ETA, auto-reroute) | Working, needs a free OpenRouteService key |
 | Nearby services + nearby Saarthi trucks (privacy-aware) | Working |
+| Vehicle RC lookup + certificate PDF (Way2API) | Working, needs a Way2API key |
+| Petrol / CNG station layer with published fuel prices (SSR) | Working, no key required |
 | SOS network with expanding-radius responder matching | Working |
 | Driver scoring (explainable) + achievements | Working |
 | Maintenance, fuel, rule-based maintenance risk | Working |
@@ -52,7 +56,7 @@ createdb saarthi            # or: psql -U postgres -c "CREATE DATABASE saarthi"
 npm run db:migrate
 npm run db:seed
 
-# 4. Run
+# 4. Run — the map works immediately, no key required
 npm run dev                 # API on :4000, web on :5173
 ```
 
@@ -106,6 +110,76 @@ Verify**) and mark a driver or truck verified directly from its detail page. Bot
 
 ---
 
+## Maps
+
+Saarthi renders through **MapLibre GL JS** on entirely open data. The basemap
+needs no API key, no account and no payment method:
+
+| Layer | Source | Cost |
+|---|---|---|
+| Vector tiles + styles | [OpenFreeMap](https://openfreemap.org) | Free, no key, no request limit, commercial use allowed |
+| 3D building footprints | OpenStreetMap via the OpenMapTiles schema | Included in the tiles above |
+| Elevation / 3D terrain | AWS Open Data terrain tiles (Tilezen) | Free, no key |
+| Routing + place search | [OpenRouteService](https://openrouteservice.org) | Free key, email signup, **no card** |
+
+Clone, `npm run dev`, and the 3D map renders. Only turn-by-turn navigation and
+place search need a key.
+
+### Enabling navigation
+
+1. Sign up at <https://account.heigit.org/signup> — email only, no payment method.
+2. Copy your API key from the dashboard.
+3. Put it in the repo-root `.env`:
+
+   ```dotenv
+   VITE_ORS_API_KEY=your_key_here
+   ORS_API_KEY=your_key_here
+   ```
+
+4. Restart `npm run dev` — Vite only reads `.env` at startup.
+
+The free plan allows roughly 2,000 routing requests per day. Saarthi caches and
+de-duplicates every routing and geocoding call, and derives navigation progress
+from the local GPS stream rather than re-routing on each fix, so one trip costs
+one routing request rather than one per tick.
+
+### What the map does
+
+| Feature | Notes |
+|---|---|
+| 3D buildings | Extruded from OSM footprints, shaded by the current sun position |
+| 3D terrain | Real elevation, mild exaggeration so ghat sections read correctly |
+| Time-of-day lighting | `dawn` / `day` / `dusk` / `night`, or `auto` from the clock |
+| 5 basemaps | Liberty, Bright, Positron, Dark, Fiord |
+| Turn-by-turn navigation | Manoeuvre list, ETA, distance remaining, arrival time |
+| Truck routing | `driving-hgv` profile — respects HGV weight, height and access limits |
+| Route alternatives | Compare options by time and distance, then switch |
+| GPS road snapping | ORS Snap pulls each recorded fix onto the nearest road |
+| Automatic re-routing | Fires after three consecutive off-route fixes, rate-limited |
+| Driven/remaining split | The covered part of the route dims as the truck moves |
+| Chase camera | Driver's-eye view that follows heading along the route |
+| Place search | Geocoding, debounced and biased to the current view |
+| Geolocation, fullscreen, scale, pitch controls | Standard MapLibre controls |
+
+**Not available on this stack, and not faked anywhere in the UI:** live traffic.
+OpenRouteService has no traffic model, so ETAs are free-flow estimates and no
+congestion colouring or delay badge is shown.
+
+Road snapping uses ORS Snap, which pulls each fix onto the nearest road but does
+not reconstruct the path driven between two fixes — point `matchToRoads` at an
+OSRM `/match` service for full path reconstruction.
+
+The free plan quotas, per key per day: **Directions 2,000** (40/min),
+**Snap 2,000** (100/min), Matrix 500, Isochrones 500, Export 100. HeiGIT is
+migrating from `api.openrouteservice.org` to `api.heigit.org`; the new host is
+the default and `VITE_ORS_BASE_URL` overrides it.
+
+Configuration lives in [`apps/web/src/features/maps/map-config.ts`](apps/web/src/features/maps/map-config.ts)
+— no component hard-codes a style URL or a camera angle. Set `VITE_MAP_STYLE_URL`
+to serve a self-hosted OpenFreeMap instance or your own style JSON.
+
+---
+
 ## Repository layout
 
 ```
@@ -155,6 +229,7 @@ saarthi/
 - [`docs/LOCAL_SETUP.md`](docs/LOCAL_SETUP.md) — detailed setup and troubleshooting
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — how the pieces fit together
 - [`docs/API.md`](docs/API.md) — endpoint reference
+- [`docs/VEHICLE_AND_PETROL_INTEGRATIONS.md`](docs/VEHICLE_AND_PETROL_INTEGRATIONS.md) — vehicle RC lookup and the petrol station directory
 - [`docs/DEVELOPMENT_PROGRESS.md`](docs/DEVELOPMENT_PROGRESS.md) — what is done, what is next
 - [`docs/PRODUCTION.md`](docs/PRODUCTION.md) — the production migration path
 

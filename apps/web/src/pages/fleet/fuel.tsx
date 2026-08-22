@@ -54,7 +54,7 @@ export function FuelPage() {
     <div className="space-y-5">
       <PageHeader title="Fuel" description="Every fill-up, with cost and consumption." />
       {totals ? (
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <StatCard label="Total litres" value={formatNumber(totals.litres, 0)} icon={Fuel} />
           <StatCard label="Total spend" value={formatCurrency(totals.cost)} icon={Fuel} />
           <StatCard label="Average rate" value={formatCurrency(totals.averagePricePerLitre)} icon={Fuel} hint="per litre" />

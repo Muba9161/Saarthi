@@ -145,10 +145,16 @@
 
   html {
     scroll-behavior: smooth;
+    /* Backstop against sideways scroll. `clip` rather than `hidden` so it never
+       turns the root into a scroll container, which would break `sticky`. */
+    overflow-x: clip;
   }
 
   body {
     @apply bg-background text-foreground;
+    /* Nothing should be able to push the page wider than the viewport. */
+    max-width: 100%;
+    overflow-x: clip;
     font-feature-settings:
       'rlig' 1,
       'calt' 1,
@@ -356,7 +362,7 @@
   }
 }
 
-/* --- MapLibre ------------------------------------------------------------
+/* --- MapLibre GL ------------------------------------------------------------
    Overrides so the map inherits Saarthi surfaces instead of default chrome. */
 .maplibregl-map {
   font-family: inherit;
@@ -393,4 +399,14 @@
 }
 .maplibregl-ctrl-scale {
   @apply rounded border-border bg-card/85 text-2xs text-muted-foreground backdrop-blur;
+}
+/* OpenFreeMap and OpenStreetMap attribution is required by their terms —
+   style it for contrast, never hide it. */
+/* Keep the geolocate pulse in the Saarthi accent rather than the default blue. */
+.maplibregl-user-location-dot,
+.maplibregl-user-location-dot::before {
+  background-color: hsl(var(--primary));
+}
+.maplibregl-user-location-accuracy-circle {
+  background-color: hsl(var(--primary) / 0.16);
 }

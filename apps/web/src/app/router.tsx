@@ -53,6 +53,10 @@ function HomeRedirect() {
 
   if (isDriver) return <Navigate to="/driver" replace />;
   if (isPlatformAdmin && !session?.organization) return <Navigate to="/admin" replace />;
+  // An association has no fleet dashboard to land on — its home is the queue.
+  if (session?.organization?.type === 'TRUCK_ASSOCIATION') {
+    return <Navigate to="/association" replace />;
+  }
   return <Navigate to="/dashboard" replace />;
 }
 
@@ -88,6 +92,10 @@ export const router = createBrowserRouter([
           { path: '/fleet/drivers', element: lazyPage(() => import('@/pages/fleet/drivers')) },
           { path: '/fleet/drivers/:id', element: lazyPage(() => import('@/pages/fleet/driver-detail')) },
           { path: '/fleet/documents', element: lazyPage(() => import('@/pages/fleet/documents')) },
+          {
+            path: '/fleet/rc-lookup',
+            element: lazyPage(() => import('@/pages/fleet/rc-lookup')),
+          },
           { path: '/fleet/maintenance', element: lazyPage(() => import('@/pages/fleet/maintenance')) },
           { path: '/fleet/fuel', element: lazyPage(() => import('@/pages/fleet/fuel')) },
 
@@ -100,7 +108,64 @@ export const router = createBrowserRouter([
           { path: '/orders/:id', element: lazyPage(() => import('@/pages/orders/order-detail')) },
           { path: '/marketplace', element: lazyPage(() => import('@/pages/marketplace/requirements')) },
           { path: '/browse', element: lazyPage(() => import('@/pages/marketplace/browse')) },
+          {
+            path: '/marketplace/vehicles',
+            element: lazyPage(() => import('@/pages/resale/marketplace')),
+          },
           { path: '/supplier/materials', element: lazyPage(() => import('@/pages/supplier/materials')) },
+
+          // Generalized vehicles
+          { path: '/fleet/vehicles', element: lazyPage(() => import('@/pages/fleet/vehicles')) },
+          {
+            path: '/fleet/vehicles/:id/telemetry',
+            element: lazyPage(() => import('@/pages/telemetry/vehicle-telemetry')),
+          },
+
+          // Hardware & telemetry
+          { path: '/devices', element: lazyPage(() => import('@/pages/devices/devices')) },
+          {
+            path: '/devices/:id',
+            element: lazyPage(() => import('@/pages/devices/device-detail')),
+          },
+          {
+            path: '/telemetry/alerts',
+            element: lazyPage(() => import('@/pages/telemetry/alerts')),
+          },
+
+          // Travel — customer
+          { path: '/travel', element: lazyPage(() => import('@/pages/travel/search')) },
+          {
+            path: '/travel/packages/:id',
+            element: lazyPage(() => import('@/pages/travel/package-detail')),
+          },
+          {
+            path: '/travel/bookings',
+            element: lazyPage(() => import('@/pages/travel/bookings')),
+          },
+          {
+            path: '/travel/bookings/:id',
+            element: lazyPage(() => import('@/pages/travel/booking-detail')),
+          },
+
+          // Travel — provider
+          {
+            path: '/travel/provider/packages',
+            element: lazyPage(() => import('@/pages/travel/provider-packages')),
+          },
+          {
+            path: '/travel/provider/bookings',
+            element: lazyPage(() => import('@/pages/travel/provider-bookings')),
+          },
+
+          // Truck association
+          {
+            path: '/association',
+            element: lazyPage(() => import('@/pages/association/dashboard')),
+          },
+          {
+            path: '/association/alerts/:id',
+            element: lazyPage(() => import('@/pages/association/alert-detail')),
+          },
 
           // Safety
           { path: '/sos', element: lazyPage(() => import('@/pages/sos/incidents')) },
@@ -126,6 +191,11 @@ export const router = createBrowserRouter([
 
           // Account
           { path: '/notifications', element: lazyPage(() => import('@/pages/notifications')) },
+          {
+            path: '/settings/profile',
+            element: lazyPage(() => import('@/pages/settings/profile-builder')),
+          },
+          { path: '/qr', element: lazyPage(() => import('@/pages/qr/qr-codes')) },
           { path: '/verification', element: lazyPage(() => import('@/pages/verification')) },
           { path: '/settings', element: lazyPage(() => import('@/pages/settings/settings')) },
           {

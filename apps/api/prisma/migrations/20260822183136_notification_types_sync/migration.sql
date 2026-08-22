@@ -1,0 +1,37 @@
+-- AlterEnum
+-- This migration adds more than one value to an enum.
+-- With PostgreSQL versions 11 and earlier, this is not possible
+-- in a single migration. This can be worked around by creating
+-- multiple migrations, each migration adding only one value to
+-- the enum.
+
+
+ALTER TYPE "NotificationType" ADD VALUE 'STOCK_LOW';
+ALTER TYPE "NotificationType" ADD VALUE 'STOCK_OUT';
+ALTER TYPE "NotificationType" ADD VALUE 'STOCK_RESTOCKED';
+ALTER TYPE "NotificationType" ADD VALUE 'STOCK_RESERVATION_EXPIRING';
+ALTER TYPE "NotificationType" ADD VALUE 'LISTING_PUBLISHED';
+ALTER TYPE "NotificationType" ADD VALUE 'LISTING_REJECTED';
+ALTER TYPE "NotificationType" ADD VALUE 'LISTING_OFFER_RECEIVED';
+ALTER TYPE "NotificationType" ADD VALUE 'LISTING_OFFER_COUNTERED';
+ALTER TYPE "NotificationType" ADD VALUE 'LISTING_OFFER_ACCEPTED';
+ALTER TYPE "NotificationType" ADD VALUE 'LISTING_OFFER_REJECTED';
+ALTER TYPE "NotificationType" ADD VALUE 'LISTING_SOLD';
+ALTER TYPE "NotificationType" ADD VALUE 'LISTING_INSPECTION_REQUESTED';
+ALTER TYPE "NotificationType" ADD VALUE 'LISTING_EXPIRING';
+ALTER TYPE "NotificationType" ADD VALUE 'VEHICLE_TRANSFER_UPDATED';
+ALTER TYPE "NotificationType" ADD VALUE 'RETURN_LOAD_MATCH_FOUND';
+ALTER TYPE "NotificationType" ADD VALUE 'RETURN_LOAD_BOOKED';
+ALTER TYPE "NotificationType" ADD VALUE 'RETURN_LOAD_EXPIRING';
+ALTER TYPE "NotificationType" ADD VALUE 'EMPTY_RETURN_RISK';
+ALTER TYPE "NotificationType" ADD VALUE 'CITY_ACCESS_BLOCKED';
+ALTER TYPE "NotificationType" ADD VALUE 'RELAY_REQUESTED';
+ALTER TYPE "NotificationType" ADD VALUE 'RELAY_OFFER_RECEIVED';
+ALTER TYPE "NotificationType" ADD VALUE 'RELAY_ASSIGNED';
+ALTER TYPE "NotificationType" ADD VALUE 'RELAY_HANDOVER_READY';
+ALTER TYPE "NotificationType" ADD VALUE 'RELAY_DELIVERED';
+ALTER TYPE "NotificationType" ADD VALUE 'ROUTE_HAZARD_AHEAD';
+ALTER TYPE "NotificationType" ADD VALUE 'ROUTE_HAZARD_VERIFIED';
+ALTER TYPE "NotificationType" ADD VALUE 'PROFILE_INCOMPLETE';
+ALTER TYPE "NotificationType" ADD VALUE 'QR_CODE_ROTATED';
+ALTER TYPE "NotificationType" ADD VALUE 'MEDIA_MODERATION_REQUIRED';

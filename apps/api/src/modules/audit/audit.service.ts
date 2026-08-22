@@ -123,6 +123,9 @@ export const AuditAction = {
   TRUCK_DRIVER_ASSIGNED: 'truck.driver_assigned',
   TRUCK_DRIVER_UNASSIGNED: 'truck.driver_unassigned',
 
+  VEHICLE_RC_LOOKUP: 'vehicle.rc_lookup',
+  VEHICLE_RC_PDF_DOWNLOADED: 'vehicle.rc_pdf_downloaded',
+
   DRIVER_CREATED: 'driver.created',
   DRIVER_UPDATED: 'driver.updated',
   DRIVER_SCORE_ADJUSTED: 'driver.score_adjusted',
@@ -167,6 +170,123 @@ export const AuditAction = {
 
   SIMULATION_STARTED: 'simulation.started',
   SIMULATION_CONTROLLED: 'simulation.controlled',
+
+  VEHICLE_CREATED: 'vehicle.created',
+  VEHICLE_UPDATED: 'vehicle.updated',
+  VEHICLE_ARCHIVED: 'vehicle.archived',
+
+  ASSOCIATION_REGISTERED: 'association.registered',
+  ASSOCIATION_UPDATED: 'association.updated',
+  ASSOCIATION_VERIFIED: 'association.verified',
+  ASSOCIATION_COVERAGE_UPDATED: 'association.coverage_updated',
+  ASSOCIATION_ALERT_CREATED: 'association.alert_created',
+  ASSOCIATION_ALERT_ACKNOWLEDGED: 'association.alert_acknowledged',
+  ASSOCIATION_ALERT_RESPONDER_ASSIGNED: 'association.alert_responder_assigned',
+  ASSOCIATION_ALERT_ESCALATED: 'association.alert_escalated',
+  ASSOCIATION_ALERT_RESOLVED: 'association.alert_resolved',
+  /// A named user viewed personal contact details on an alert.
+  ASSOCIATION_SENSITIVE_ACCESS: 'association.sensitive_access',
+
+  PROVIDER_PROFILE_UPDATED: 'provider.profile_updated',
+  TRAVEL_PACKAGE_CREATED: 'travel.package_created',
+  TRAVEL_PACKAGE_UPDATED: 'travel.package_updated',
+  TRAVEL_PACKAGE_PUBLISHED: 'travel.package_published',
+  TRAVEL_PACKAGE_ARCHIVED: 'travel.package_archived',
+  BOOKING_CREATED: 'booking.created',
+  BOOKING_CONFIRMED: 'booking.confirmed',
+  BOOKING_DECLINED: 'booking.declined',
+  BOOKING_CANCELLED: 'booking.cancelled',
+  BOOKING_COMPLETED: 'booking.completed',
+  BOOKING_RATED: 'booking.rated',
+
+  PAYMENT_INITIATED: 'payment.initiated',
+  PAYMENT_SUCCEEDED: 'payment.succeeded',
+  PAYMENT_FAILED: 'payment.failed',
+  PAYMENT_REFUNDED: 'payment.refunded',
+
+  DEVICE_REGISTERED: 'device.registered',
+  DEVICE_UPDATED: 'device.updated',
+  DEVICE_ASSIGNED: 'device.assigned',
+  DEVICE_UNASSIGNED: 'device.unassigned',
+  DEVICE_SECRET_ROTATED: 'device.secret_rotated',
+  DEVICE_SUSPENDED: 'device.suspended',
+  DEVICE_RETIRED: 'device.retired',
+  DEVICE_TELEMETRY_REJECTED: 'device.telemetry_rejected',
+  MOCK_DEVICE_STARTED: 'device.mock_started',
+  MOCK_DEVICE_STOPPED: 'device.mock_stopped',
+
+  TELEMETRY_ALERT_UPDATED: 'telemetry.alert_updated',
+  TELEMETRY_RULE_UPDATED: 'telemetry.rule_updated',
+  GEOFENCE_UPDATED: 'telemetry.geofence_updated',
+
+  MEDIA_UPLOADED: 'media.uploaded',
+  MEDIA_UPDATED: 'media.updated',
+  MEDIA_DELETED: 'media.deleted',
+  MEDIA_MODERATED: 'media.moderated',
+
+  STOCK_OPENED: 'stock.opened',
+  STOCK_RECEIVED: 'stock.received',
+  STOCK_ADJUSTED: 'stock.adjusted',
+  STOCK_COUNTED: 'stock.counted',
+  STOCK_DAMAGED: 'stock.damaged',
+  STOCK_TRANSFERRED: 'stock.transferred',
+  STOCK_RESERVED: 'stock.reserved',
+  STOCK_RELEASED: 'stock.released',
+  STOCK_CONSUMED: 'stock.consumed',
+  INVENTORY_LOCATION_CREATED: 'inventory.location_created',
+  INVENTORY_LOCATION_UPDATED: 'inventory.location_updated',
+
+  LISTING_CREATED: 'resale.listing_created',
+  LISTING_UPDATED: 'resale.listing_updated',
+  LISTING_SUBMITTED: 'resale.listing_submitted',
+  LISTING_PUBLISHED: 'resale.listing_published',
+  LISTING_REVIEWED: 'resale.listing_reviewed',
+  LISTING_WITHDRAWN: 'resale.listing_withdrawn',
+  LISTING_OFFER_CREATED: 'resale.offer_created',
+  LISTING_OFFER_ACCEPTED: 'resale.offer_accepted',
+  LISTING_OFFER_REJECTED: 'resale.offer_rejected',
+  LISTING_SOLD: 'resale.listing_sold',
+  /// Moves an asset between tenants — one of the two most consequential
+  /// actions on the platform, alongside a deliberate city-access override.
+  VEHICLE_OWNERSHIP_TRANSFERRED: 'resale.ownership_transferred',
+  VEHICLE_TRANSFER_ADVANCED: 'resale.transfer_advanced',
+
+  PROFILE_SECTION_UPDATED: 'profile.section_updated',
+  PROFILE_SLUG_SET: 'profile.slug_set',
+
+  QR_CREATED: 'qr.created',
+  QR_ROTATED: 'qr.rotated',
+  QR_REVOKED: 'qr.revoked',
+  QR_SCANNED: 'qr.scanned',
+  QR_ACTION_PERFORMED: 'qr.action_performed',
+
+  RETURN_LOAD_CREATED: 'returnload.created',
+  RETURN_LOAD_UPDATED: 'returnload.updated',
+  RETURN_LOAD_CANCELLED: 'returnload.cancelled',
+  RETURN_LOAD_MATCHED: 'returnload.matched',
+  RETURN_LOAD_QUOTED: 'returnload.quoted',
+
+  CITY_RESTRICTION_CREATED: 'cityaccess.restriction_created',
+  CITY_RESTRICTION_UPDATED: 'cityaccess.restriction_updated',
+  /// A dispatcher knowingly sent a vehicle into a restricted zone.
+  CITY_ACCESS_OVERRIDDEN: 'cityaccess.overridden',
+
+  TRANSFER_HUB_CREATED: 'relay.hub_created',
+  TRANSFER_HUB_UPDATED: 'relay.hub_updated',
+  RELAY_CREATED: 'relay.created',
+  RELAY_BROADCAST: 'relay.broadcast',
+  RELAY_OFFER_CREATED: 'relay.offer_created',
+  RELAY_OFFER_ACCEPTED: 'relay.offer_accepted',
+  RELAY_TRANSITIONED: 'relay.transitioned',
+  RELAY_HANDOVER_VERIFIED: 'relay.handover_verified',
+  LAST_MILE_PARTNER_UPDATED: 'relay.partner_updated',
+
+  HAZARD_CREATED: 'routeintel.hazard_created',
+  HAZARD_UPDATED: 'routeintel.hazard_updated',
+  HAZARD_REPORTED: 'routeintel.hazard_reported',
+  HAZARD_VOTED: 'routeintel.hazard_voted',
+  HAZARD_VERIFIED: 'routeintel.hazard_verified',
+  HAZARD_REMOVED: 'routeintel.hazard_removed',
 
   AI_QUERY: 'ai.query',
 } as const;

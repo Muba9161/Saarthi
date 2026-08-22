@@ -30,14 +30,14 @@ export function AdminOverviewPage() {
 
       {overview.isLoading ? <StatCardsSkeleton /> : overview.error ? <ErrorState error={overview.error} onRetry={() => void overview.refetch()} /> : data ? (
         <>
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <StatCard label="Users" value={formatNumber(data.users)} icon={Users} />
             <StatCard label="Trucks" value={formatNumber(data.trucks)} icon={Truck} />
             <StatCard label="Active trips" value={formatNumber(data.activeTrips)} icon={Truck} />
             <StatCard label="Active SOS" value={formatNumber(data.activeSos)} icon={LifeBuoy} tone={data.activeSos > 0 ? 'destructive' : 'default'} />
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             <Card>
               <CardHeader className="pb-3"><SectionHeader title="Organizations" /></CardHeader>
               <CardContent className="space-y-2 pt-0 text-sm">

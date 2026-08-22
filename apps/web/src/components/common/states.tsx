@@ -128,7 +128,8 @@ export function ErrorState({
       <AlertTriangle className="size-4" />
       <AlertTitle>Something went wrong</AlertTitle>
       <AlertDescription className="space-y-3">
-        <p>{errorMessage(error)}</p>
+        {/* Server messages can carry an unbreakable identifier or URL. */}
+        <p className="break-words">{errorMessage(error)}</p>
         {onRetry ? (
           <Button variant="outline" size="sm" onClick={onRetry}>
             Try again

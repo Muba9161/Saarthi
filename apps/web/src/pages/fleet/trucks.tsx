@@ -129,7 +129,7 @@ function AddTruckDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (
               )}
             />
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FormField
                 control={form.control}
                 name="truckType"
@@ -176,7 +176,7 @@ function AddTruckDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (
               />
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FormField
                 control={form.control}
                 name="manufacturer"
@@ -205,7 +205,7 @@ function AddTruckDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (
               />
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FormField
                 control={form.control}
                 name="fuelType"

@@ -240,7 +240,7 @@ function ReviewPanel({
 
               <div className="space-y-3">
                 <SectionHeader title="Decision" />
-                <div className="grid gap-2 sm:grid-cols-3">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                   {(
                     [
                       { value: 'VERIFIED', label: 'Approve', icon: Check, variant: 'success' },

@@ -2,6 +2,7 @@ import type {
   Feature,
   OrganizationType,
   Permission,
+  PlanLimits,
   PlanTier,
   RoleName,
   UserStatus,
@@ -34,13 +35,8 @@ export interface AuthSubscription {
   planTier: PlanTier;
   planName: string;
   features: Feature[];
-  limits: {
-    maxTrucks: number | null;
-    maxDrivers: number | null;
-    maxMembers: number | null;
-    trackingHistoryDays: number;
-    aiRequestsPerDay: number;
-  };
+  /** The shared catalogue shape, so a new limit cannot be forgotten here. */
+  limits: PlanLimits;
   active: boolean;
 }
 

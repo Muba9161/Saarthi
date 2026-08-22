@@ -125,6 +125,63 @@ export async function canSubscribe(auth: AuthContext, channel: string): Promise<
       );
     }
 
+    case 'association': {
+      if (auth.isPlatformAdmin) return true;
+      // An association may watch only its own queue. Membership of the
+      // association organization is the whole test — there is no cross-
+      // association visibility, by design.
+      return auth.organizationId === id;
+    }
+
+    case 'device': {
+      if (auth.isPlatformAdmin) return true;
+      const device = await prisma.hardwareDevice.findUnique({
+        where: { id },
+        select: {
+          organizationId: true,
+          assignments: {
+            where: { status: 'ACTIVE' },
+            select: { vehicleId: true },
+            take: 1,
+          },
+        },
+      });
+      if (!device) return false;
+      if (auth.organizationId && device.organizationId === auth.organizationId) return true;
+
+      // The driver of the vehicle the device is fitted to may watch it, so the
+      // driver app can show its own connection state.
+      const vehicleId = device.assignments[0]?.vehicleId;
+      if (auth.driverId && vehicleId) {
+        const vehicle = await prisma.truck.findUnique({
+          where: { id: vehicleId },
+          select: { currentDriverId: true },
+        });
+        if (vehicle?.currentDriverId === auth.driverId) return true;
+      }
+      return false;
+    }
+
+    case 'booking': {
+      if (auth.isPlatformAdmin) return true;
+      const booking = await prisma.travelBooking.findUnique({
+        where: { id },
+        select: {
+          customerOrganizationId: true,
+          providerOrganizationId: true,
+          driverId: true,
+        },
+      });
+      if (!booking) return false;
+      if (auth.organizationId) {
+        if (booking.customerOrganizationId === auth.organizationId) return true;
+        if (booking.providerOrganizationId === auth.organizationId) return true;
+      }
+      // The assigned driver needs the booking stream to run the job.
+      if (auth.driverId && booking.driverId === auth.driverId) return true;
+      return false;
+    }
+
     default:
       return false;
   }
@@ -135,6 +192,11 @@ export function defaultChannels(auth: AuthContext): string[] {
   const channels = [`user:${auth.user.id}`];
   if (auth.organizationId) channels.push(`fleet:${auth.organizationId}`);
   if (auth.driverId) channels.push(`driver:${auth.driverId}`);
+  // An association user is joined to its own alert queue on connect: an
+  // emergency feed nobody had to subscribe to is the point of the feature.
+  if (auth.organizationId && auth.organization?.type === 'TRUCK_ASSOCIATION') {
+    channels.push(`association:${auth.organizationId}`);
+  }
   if (auth.isPlatformAdmin) channels.push('admin:platform');
   return channels;
 }

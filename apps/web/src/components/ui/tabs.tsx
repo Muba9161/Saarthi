@@ -11,7 +11,10 @@ const TabsList = React.forwardRef<
   <TabsPrimitive.List
     ref={ref}
     className={cn(
-      'inline-flex h-9 items-center justify-start gap-1 rounded-lg bg-muted p-1 text-muted-foreground',
+      'inline-flex h-9 max-w-full items-center justify-start gap-1 rounded-lg bg-muted p-1 text-muted-foreground',
+      // A five-tab strip does not fit a phone; scroll it rather than
+      // pushing the page sideways.
+      'overflow-x-auto scrollbar-none',
       className,
     )}
     {...props}
@@ -26,7 +29,7 @@ const TabsTrigger = React.forwardRef<
   <TabsPrimitive.Trigger
     ref={ref}
     className={cn(
-      'inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium transition-all',
+      'inline-flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium transition-all',
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50',
       'data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm',
       '[&_svg]:size-4',

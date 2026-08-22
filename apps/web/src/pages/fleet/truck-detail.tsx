@@ -33,6 +33,8 @@ import { StatCard } from '@/components/common/stat-card';
 import { StatusBadge } from '@/components/common/status-badge';
 import { EmptyState, ErrorState, LoadingState } from '@/components/common/states';
 import { DocumentPanel } from '@/features/documents/document-panel';
+import { RcLookupPanel } from '@/features/vehicles/rc-lookup-panel';
+import { SellVehiclePanel } from '@/features/resale/sell-vehicle-panel';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -98,6 +100,10 @@ export function TruckDetailPage() {
 
   const vehicle = truck.data;
   const lifetime = passport.data?.lifetime;
+  // The RC tab is hidden rather than shown-and-refused; the API enforces both
+  // the permission and that the vehicle belongs to this fleet regardless.
+  const canLookupRegistration = can(Permission.VEHICLE_LOOKUP);
+  const canSell = can(Permission.RESALE_MANAGE);
 
   return (
     <div className="space-y-5">
@@ -154,7 +160,7 @@ export function TruckDetailPage() {
         }
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           label="Capacity"
           value={`${vehicle.capacityTons}T`}
@@ -212,19 +218,23 @@ export function TruckDetailPage() {
       ) : null}
 
       <Tabs defaultValue="overview">
-        <TabsList className="w-full justify-start overflow-x-auto sm:w-auto">
+        <TabsList className="w-full sm:w-auto">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
+          {canLookupRegistration ? (
+            <TabsTrigger value="registration">Registration</TabsTrigger>
+          ) : null}
           <TabsTrigger value="trips">Trips</TabsTrigger>
           <TabsTrigger value="maintenance">Maintenance</TabsTrigger>
           <TabsTrigger value="drivers">Driver history</TabsTrigger>
+          {canSell ? <TabsTrigger value="sell">Sell</TabsTrigger> : null}
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
           {passport.isLoading ? (
             <LoadingState />
           ) : passport.data ? (
-            <div className="grid gap-4 lg:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <Card>
                 <CardHeader className="pb-3">
                   <SectionHeader title="Lifetime record" description="Every figure from stored data." />
@@ -279,6 +289,21 @@ export function TruckDetailPage() {
         <TabsContent value="documents">
           <DocumentPanel ownerType="TRUCK" ownerId={id} ownerLabel={vehicle.registrationNumber} />
         </TabsContent>
+
+        {/*
+          The plate is already known here, so the panel opens ready to go —
+          the operator presses one button instead of retyping a number that is
+          on the screen above them.
+        */}
+        {canLookupRegistration ? (
+          <TabsContent value="registration" className="space-y-4">
+            <SectionHeader
+              title="Registration certificate"
+              description="The RTO record for this vehicle, with the downloadable RC certificate."
+            />
+            <RcLookupPanel registrationNumber={vehicle.registrationNumber} />
+          </TabsContent>
+        ) : null}
 
         <TabsContent value="trips">
           {(passport.data?.recentTrips ?? []).length === 0 ? (
@@ -421,6 +446,28 @@ export function TruckDetailPage() {
             </Card>
           )}
         </TabsContent>
+
+        {/*
+          Selling starts from the vehicle rather than from a blank marketplace
+          form, so the odometer, make, model and year are the ones Saarthi has
+          been recording — not numbers the seller retypes from memory.
+        */}
+        {canSell ? (
+          <TabsContent value="sell" className="space-y-4">
+            <SectionHeader
+              title="Sell this vehicle"
+              description="List it on the Saarthi resale marketplace. Photos and a price are all that stand between a draft and a live advert."
+            />
+            <SellVehiclePanel
+              vehicleId={vehicle.id}
+              registrationNumber={vehicle.registrationNumber}
+              manufacturer={vehicle.manufacturer}
+              model={vehicle.model}
+              year={vehicle.year}
+              odometerKm={vehicle.odometerKm}
+            />
+          </TabsContent>
+        ) : null}
       </Tabs>
 
       <AssignDriverDialog truckId={id} open={assignOpen} onOpenChange={setAssignOpen} />

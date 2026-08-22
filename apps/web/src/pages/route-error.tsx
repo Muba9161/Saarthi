@@ -16,8 +16,12 @@ export function RouteErrorPage({ error }: { error: unknown }) {
           <AlertTriangle className="size-4" />
           <AlertTitle>This screen could not be displayed</AlertTitle>
           <AlertDescription className="space-y-3">
-            <p>{errorMessage(error, 'An unexpected error occurred while rendering the page.')}</p>
-            <div className="flex gap-2">
+            {/* A raw error can be one long unbreakable token (a module path, a
+                URL). Break it rather than let it widen the page. */}
+            <p className="break-words">
+              {errorMessage(error, 'An unexpected error occurred while rendering the page.')}
+            </p>
+            <div className="flex flex-wrap gap-2">
               <Button size="sm" variant="outline" onClick={() => window.location.reload()}>
                 Reload
               </Button>

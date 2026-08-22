@@ -160,7 +160,7 @@ export function LoginPage() {
             Four demo accounts, password{' '}
             <span className="rounded bg-muted px-1 py-0.5 font-mono text-2xs">Saarthi@2026</span>
           </p>
-          <div className="mt-3 grid gap-1.5 sm:grid-cols-2">
+          <div className="mt-3 grid grid-cols-1 gap-1.5 sm:grid-cols-2">
             {DEMO_ACCOUNTS.map((account) => (
               <button
                 key={account.email}
