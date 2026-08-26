@@ -22,6 +22,7 @@ import { tripRoutes } from '../modules/trips/trip.routes';
 import { trackingRoutes } from '../modules/tracking/tracking.routes';
 import { nearbyRoutes } from '../modules/nearby/nearby.routes';
 import { petrolStationRoutes } from '../modules/petrol-stations/petrol-station.routes';
+import { licenceLookupRoutes } from '../modules/licence-lookup/licence-lookup.routes';
 import { vehicleLookupRoutes } from '../modules/vehicle-lookup/vehicle-lookup.routes';
 import { sosRoutes } from '../modules/sos/sos.routes';
 import { simulationRoutes } from '../modules/simulation/simulation.routes';
@@ -38,6 +39,23 @@ import { deviceRoutes } from '../modules/devices/device.routes';
 import { telemetryRoutes } from '../modules/telemetry/telemetry.routes';
 import { deviceGatewayRoutes } from '../modules/telemetry/gateway.routes';
 import { aiRoutes } from '../modules/ai/ai.routes';
+import { loanRoutes, vehicleLoanRoutes } from '../modules/loans/loan.routes';
+import { subscriptionRoutes } from '../modules/subscriptions/subscription.routes';
+import { viewPreferenceRoutes } from '../modules/preferences/view-preference.routes';
+import {
+  cameraRoutes,
+  cameraStreamRoutes,
+  vehicleCameraRoutes,
+} from '../modules/devices/camera.routes';
+import {
+  tollRoutes,
+  tripTollRoutes,
+  vehicleTollRoutes,
+} from '../modules/toll/toll.routes';
+import {
+  serviceHistoryRoutes,
+  vehicleServiceRoutes,
+} from '../modules/maintenance/service-history.routes';
 
 /**
  * Versioned API surface. Every feature module registers its own route file
@@ -81,21 +99,45 @@ export async function registerApiRoutes(app: FastifyInstance): Promise<void> {
   await app.register(nearbyRoutes, { prefix: '/nearby' });
   await app.register(petrolStationRoutes, { prefix: '/petrol-stations' });
   await app.register(vehicleLookupRoutes, { prefix: '/vehicles' });
+  await app.register(licenceLookupRoutes, { prefix: '/drivers' });
   await app.register(sosRoutes, { prefix: '/sos' });
   await app.register(maintenanceRoutes, { prefix: '/maintenance' });
+  // What a vehicle has already had done to it, as distinct from what is
+  // scheduled — different lifecycle, different provenance rules.
+  await app.register(serviceHistoryRoutes, { prefix: '/service-history' });
   await app.register(fuelRoutes, { prefix: '/fuel' });
+  // FASTag and toll. Mounted under /fleet alongside fuel: both are running
+  // costs a dispatcher works with, not owner-only financial data.
+  await app.register(tollRoutes, { prefix: '/fleet/toll' });
   await app.register(analyticsRoutes, { prefix: '/analytics' });
   await app.register(notificationRoutes, { prefix: '/notifications' });
+  await app.register(subscriptionRoutes, { prefix: '/subscriptions' });
+  // A person's own settings about their own screens — authentication is the
+  // only guard, because the queries are scoped to their user id.
+  await app.register(viewPreferenceRoutes, { prefix: '/me/view-preferences' });
   await app.register(simulationRoutes, { prefix: '/simulation' });
   await app.register(aiRoutes, { prefix: '/ai' });
   // The generalized vehicle surface sits under /fleet/vehicles because
   // /vehicles is the RC-lookup surface for arbitrary registration numbers.
   // Different resource, different trust level, so different path.
   await app.register(vehicleRoutes, { prefix: '/fleet/vehicles' });
+  // Vehicle finance. Mounted under /fleet because it is fleet-owner data, and
+  // the per-vehicle panel sits alongside the vehicle it belongs to.
+  await app.register(loanRoutes, { prefix: '/fleet/loans' });
+  await app.register(vehicleLoanRoutes, { prefix: '/fleet/vehicles' });
+  await app.register(vehicleServiceRoutes, { prefix: '/fleet/vehicles' });
+  await app.register(vehicleCameraRoutes, { prefix: '/fleet/vehicles' });
+  await app.register(vehicleTollRoutes, { prefix: '/fleet/vehicles' });
+  // Trip cost and toll variance, mounted where the question is asked.
+  await app.register(tripTollRoutes, { prefix: '/trips' });
   await app.register(associationRoutes, { prefix: '/associations' });
   await app.register(travelRoutes, { prefix: '/travel' });
   await app.register(deviceRoutes, { prefix: '/devices' });
   await app.register(telemetryRoutes, { prefix: '/telemetry' });
+  // Multi-camera devices (YC06). Registration hangs off the device; watching a
+  // camera is its own surface, because that is how a person thinks about it.
+  await app.register(cameraRoutes, { prefix: '/devices' });
+  await app.register(cameraStreamRoutes, { prefix: '/cameras' });
   // Device-authenticated ingestion. Mounted apart from the user-facing API
   // because it does not use the session guard at all.
   await app.register(deviceGatewayRoutes, { prefix: '/device-gateway' });

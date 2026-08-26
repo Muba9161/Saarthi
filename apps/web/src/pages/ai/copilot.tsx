@@ -1,9 +1,10 @@
 import * as React from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Bot, Send, Sparkles } from 'lucide-react';
+import { Bot, Info, Send, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { Feature, Permission } from '@saarthi/shared';
 import { api, errorMessage } from '@/lib/api-client';
+import type { CopilotAnswer, RecordedToolCall } from '@/lib/api-types';
 import { useAuth } from '@/features/auth/auth-context';
 import { PageHeader } from '@/components/common/page-header';
 import { FeatureLockedState, UnauthorizedState } from '@/components/common/states';
@@ -12,22 +13,30 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 
-interface ChatResult {
-  conversationId: string;
-  answer: string;
-  references: { type: string; id: string; label: string }[];
-  provider: string;
-  model: string;
-  contextSummary: { factCount: number; focus: string };
+/**
+ * A thread entry.
+ *
+ * `provenance` and `toolCalls` ride along with the answer because the copilot's
+ * credibility rests on them: an operator deciding whether to act on "three
+ * vehicles need service" should be able to see that it came from a named tool
+ * over a known number of records, not from a model's impression of the fleet.
+ */
+interface ThreadEntry {
+  role: 'user' | 'assistant';
+  content: string;
+  references?: { type: string; id: string; label: string }[];
+  provenance?: string;
+  toolCalls?: RecordedToolCall[];
+  caveats?: string[];
 }
 
 const SUGGESTIONS = [
   'What needs my attention today?',
-  'Which trucks are idle right now?',
+  'Which vehicles need service?',
+  'Which EMIs are due this week?',
   'Which documents expire soon?',
-  'Which trips are running late?',
-  'Which driver performed best this month?',
-  'Why did fuel cost change?',
+  'How much did we spend on fuel this month?',
+  'Can I add another vehicle to my plan?',
 ];
 
 /** Fleet Copilot. Answers are grounded in records the caller may already see. */
@@ -35,8 +44,7 @@ export function CopilotPage() {
   const { can, hasFeature } = useAuth();
   const queryClient = useQueryClient();
   const [message, setMessage] = React.useState('');
-  const [conversationId, setConversationId] = React.useState<string | null>(null);
-  const [thread, setThread] = React.useState<{ role: 'user' | 'assistant'; content: string; references?: ChatResult['references'] }[]>([]);
+  const [thread, setThread] = React.useState<ThreadEntry[]>([]);
   const endRef = React.useRef<HTMLDivElement | null>(null);
 
   const usage = useQuery({
@@ -46,11 +54,21 @@ export function CopilotPage() {
   });
 
   const ask = useMutation({
-    mutationFn: (question: string) =>
-      api.post<ChatResult>('/ai/chat', { message: question, ...(conversationId ? { conversationId } : {}) }),
+    // The tool-calling endpoint: the model asks Saarthi for what it needs, one
+    // authorised call at a time, and the answer arrives with the record of it.
+    mutationFn: (question: string) => api.post<CopilotAnswer>('/ai/ask', { message: question }),
     onSuccess: (result) => {
-      setConversationId(result.conversationId);
-      setThread((previous) => [...previous, { role: 'assistant', content: result.answer, references: result.references }]);
+      setThread((previous) => [
+        ...previous,
+        {
+          role: 'assistant',
+          content: result.answer,
+          references: result.references,
+          provenance: result.provenance,
+          toolCalls: result.toolCalls,
+          caveats: result.caveats,
+        },
+      ]);
       void queryClient.invalidateQueries({ queryKey: ['ai', 'usage'] });
     },
     onError: (error) => toast.error('The copilot could not answer', { description: errorMessage(error) }),
@@ -109,6 +127,42 @@ export function CopilotPage() {
                           <Badge key={`${reference.type}-${reference.id}`} variant="outline" size="sm">{reference.label}</Badge>
                         ))}
                       </div>
+                    ) : null}
+
+                    {/*
+                      Caveats are shown, never folded into the prose. "Excludes
+                      three unconfirmed installments" is the difference between
+                      a figure someone can plan against and one they cannot.
+                    */}
+                    {entry.caveats && entry.caveats.length > 0 ? (
+                      <ul className="mt-2.5 space-y-1 border-t border-border/60 pt-2">
+                        {entry.caveats.map((caveat) => (
+                          <li key={caveat} className="flex items-start gap-1.5 text-2xs text-muted-foreground">
+                            <Info className="mt-0.5 size-3 shrink-0" />
+                            {caveat}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+
+                    {entry.provenance ? (
+                      <details className="mt-2.5 border-t border-border/60 pt-2">
+                        <summary className="cursor-pointer text-2xs text-muted-foreground">
+                          {entry.provenance}
+                        </summary>
+                        <ul className="mt-1.5 space-y-1">
+                          {(entry.toolCalls ?? []).map((call, callIndex) => (
+                            <li key={`${call.tool}-${callIndex}`} className="text-2xs text-muted-foreground">
+                              <span className="font-mono">{call.tool}</span>
+                              {call.error
+                                ? ` — ${call.error}`
+                                : ` — ${call.recordCount} record${call.recordCount === 1 ? '' : 's'}` +
+                                  (call.basis ? `, ${call.basis.toLowerCase().replace('_', ' ')}` : '') +
+                                  (call.cached ? ', cached' : '')}
+                            </li>
+                          ))}
+                        </ul>
+                      </details>
                     ) : null}
                   </div>
                 </div>

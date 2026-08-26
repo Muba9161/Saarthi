@@ -1,5 +1,12 @@
 import * as React from 'react';
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import {
+  NavLink,
+  Outlet,
+  useLocation,
+  useMatch,
+  useNavigate,
+  useResolvedPath,
+} from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Bell,
@@ -19,6 +26,7 @@ import {
   WifiOff,
 } from 'lucide-react';
 import {
+  Feature,
   OrganizationType,
   Permission,
   RealtimeEvent,
@@ -202,55 +210,67 @@ function NavLinkItem({
   const count = item.badgeKey ? badges[item.badgeKey] : 0;
   const Icon = item.icon;
 
+  /*
+   * Resolve the active state here rather than through NavLink's render-prop
+   * form, which would be the natural way to write this.
+   *
+   * The collapsed rail wraps each link in a Radix tooltip trigger, and `asChild`
+   * merges className by string-joining the two values. Handed a function it
+   * stringifies the source instead of calling it, so the link's entire class
+   * list — layout, spacing and colour — was replaced by a fragment of
+   * JavaScript. The icons then inherited the body's dark foreground and became
+   * invisible against the dark rail; only the active icon and the badge dot
+   * survived, because their classes sit on inner elements. Keeping className a
+   * plain string merges correctly under `asChild`.
+   */
+  const resolved = useResolvedPath(item.to);
+  const isActive = useMatch({ path: resolved.pathname, end: item.end ?? false }) !== null;
+
   const link = (
     <NavLink
       to={item.to}
       end={item.end ?? false}
       onClick={onNavigate}
-      className={({ isActive }) =>
-        cn(
-          'group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all duration-200',
-          'text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-foreground',
-          collapsed && 'justify-center px-0',
-          isActive && 'bg-sidebar-accent font-medium text-sidebar-foreground',
-        )
-      }
-    >
-      {({ isActive }) => (
-        <>
-          {/* Active marker rides between items rather than popping in. */}
-          {isActive ? (
-            <motion.span
-              layoutId="nav-active-rail"
-              className="absolute inset-y-1 left-0 w-[3px] rounded-r-full bg-sidebar-highlight"
-              transition={{ type: 'spring', stiffness: 400, damping: 32 }}
-            />
-          ) : null}
-
-          <Icon
-            className={cn(
-              'size-4 shrink-0 transition-transform duration-200 group-hover:scale-110',
-              isActive && 'text-sidebar-highlight',
-            )}
-          />
-
-          {!collapsed ? <span className="truncate">{item.label}</span> : null}
-
-          {count > 0 ? (
-            collapsed ? (
-              <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-destructive" />
-            ) : (
-              <Badge
-                variant={item.badgeKey === 'sos' ? 'destructive' : 'default'}
-                size="sm"
-                className="ml-auto tabular"
-              >
-                {count > 99 ? '99+' : count}
-              </Badge>
-            )
-          ) : null}
-        </>
+      // Collapsing drops the visible label, so the icon needs its own name.
+      {...(collapsed ? { 'aria-label': item.label } : {})}
+      className={cn(
+        'group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all duration-200',
+        'text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-foreground',
+        collapsed && 'justify-center px-0',
+        isActive && 'bg-sidebar-accent font-medium text-sidebar-foreground',
       )}
+    >
+      {/* Active marker rides between items rather than popping in. */}
+      {isActive ? (
+        <motion.span
+          layoutId="nav-active-rail"
+          className="absolute inset-y-1 left-0 w-[3px] rounded-r-full bg-sidebar-highlight"
+          transition={{ type: 'spring', stiffness: 400, damping: 32 }}
+        />
+      ) : null}
+
+      <Icon
+        className={cn(
+          'size-4 shrink-0 transition-transform duration-200 group-hover:scale-110',
+          isActive && 'text-sidebar-highlight',
+        )}
+      />
+
+      {!collapsed ? <span className="truncate">{item.label}</span> : null}
+
+      {count > 0 ? (
+        collapsed ? (
+          <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-destructive" />
+        ) : (
+          <Badge
+            variant={item.badgeKey === 'sos' ? 'destructive' : 'default'}
+            size="sm"
+            className="ml-auto tabular"
+          >
+            {count > 99 ? '99+' : count}
+          </Badge>
+        )
+      ) : null}
     </NavLink>
   );
 
@@ -267,7 +287,7 @@ function NavLinkItem({
   );
 }
 
-function SidebarContent({
+export function SidebarContent({
   collapsed,
   onToggleCollapse,
   onNavigate,
@@ -294,11 +314,11 @@ function SidebarContent({
           collapsed && 'justify-center px-0',
         )}
       >
-        <SaarthiLogo className="size-7 shrink-0" />
+        <SaarthiLogo className="h-7" onDark />
         {!collapsed ? (
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold tracking-tight text-sidebar-foreground">
-              Saarthi
+              VorldX Saarthi
             </p>
             {/* The active organization, so a multi-org account always knows
                 which tenant it is looking at. */}
@@ -498,7 +518,7 @@ function ConnectionIndicator() {
 }
 
 function TopBar({ onOpenNav }: { onOpenNav: () => void }) {
-  const { session, logout, isDriver, can } = useAuth();
+  const { session, logout, isDriver, can, hasFeature } = useAuth();
   const { resolvedTheme, setTheme } = useTheme();
   const navigate = useNavigate();
   const badges = useNavBadges();
@@ -527,7 +547,7 @@ function TopBar({ onOpenNav }: { onOpenNav: () => void }) {
           it sits in the top bar next to the live indicator instead of inside a
           navigation group.
         */}
-        {can(Permission.RESALE_BROWSE) ? (
+        {can(Permission.RESALE_BROWSE) && hasFeature(Feature.RESALE_MARKETPLACE) ? (
           <Button
             variant="ghost"
             size="icon"
@@ -736,10 +756,7 @@ export function AppShell() {
         animate={{ width: collapsed ? 72 : 256 }}
         transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
       >
-        <SidebarContent
-          {...(collapsed ? { collapsed } : {})}
-          onToggleCollapse={toggleCollapse}
-        />
+        <SidebarContent {...(collapsed ? { collapsed } : {})} onToggleCollapse={toggleCollapse} />
       </motion.aside>
 
       <Sheet open={navOpen} onOpenChange={setNavOpen}>

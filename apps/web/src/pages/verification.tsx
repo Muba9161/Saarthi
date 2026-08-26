@@ -44,6 +44,8 @@ export function VerificationPage() {
       void queryClient.invalidateQueries({ queryKey: ['verification'] });
       void queryClient.invalidateQueries({ queryKey: ['drivers'] });
       void queryClient.invalidateQueries({ queryKey: ['trucks'] });
+      void queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+      void queryClient.invalidateQueries({ queryKey: ['vehicle'] });
     },
     onError: (error) => toast.error('Could not verify', { description: errorMessage(error) }),
   });

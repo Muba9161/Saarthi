@@ -401,7 +401,7 @@ export interface DeviceSummary {
   simOperator: string | null;
   status: DeviceStatus;
   supportedMetrics: TelemetryMetric[];
-  /** What Saarthi has actually seen — the honest capability list. */
+  /** What VorldX Saarthi has actually seen — the honest capability list. */
   observedMetrics: TelemetryMetric[];
   assignedVehicle: {
     id: string;

@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import {
   OrganizationType,
+  PLAN_LIMITS,
   PlanTier,
   RoleName,
   TruckStatus,
@@ -275,14 +276,18 @@ describe('Fleet management', () => {
   });
 
   describe('subscription limits', () => {
-    it('stops a Basic plan fleet at its truck limit', async () => {
+    it('stops a Basic plan fleet at its vehicle capacity', async () => {
       const smallFleet = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.BASIC);
       const smallOwner = await createUser({
         role: RoleName.FLEET_OWNER,
         organizationId: smallFleet.id,
       });
 
-      for (let index = 0; index < 5; index += 1) {
+      // Derived from the catalogue rather than hard-coded: the plan lineup is
+      // sold by fleet size and those numbers move, but the rule does not.
+      const capacity = PLAN_LIMITS[PlanTier.BASIC].maxTrucks ?? 0;
+
+      for (let index = 0; index < capacity; index += 1) {
         const response = await request({
           method: 'POST',
           url: '/api/v1/trucks',
@@ -292,15 +297,15 @@ describe('Fleet management', () => {
         expect(response.status).toBe(201);
       }
 
-      const sixth = await request({
+      const overCapacity = await request({
         method: 'POST',
         url: '/api/v1/trucks',
         user: smallOwner,
         payload: truckPayload({ registrationNumber: 'MH12AA9999' }),
       });
 
-      expect(sixth.status).toBe(403);
-      expect(sixth.body.error?.code).toBe('PLAN_LIMIT_REACHED');
+      expect(overCapacity.status).toBe(403);
+      expect(overCapacity.body.error?.code).toBe('PLAN_LIMIT_REACHED');
     });
 
     it('gates driver scoring behind the subscription plan', async () => {

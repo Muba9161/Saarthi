@@ -35,8 +35,19 @@ export interface AuthSubscription {
   planTier: PlanTier;
   planName: string;
   features: Feature[];
-  /** The shared catalogue shape, so a new limit cannot be forgotten here. */
+  /**
+   * The shared catalogue shape, so a new limit cannot be forgotten here.
+   *
+   * `limits.maxTrucks` is the *effective* vehicle capacity — the plan's own
+   * allowance plus any active `+1` top-ups — because that is the number every
+   * capacity check needs. The two parts are kept alongside it for the billing
+   * screens, which have to explain the figure rather than just enforce it.
+   */
   limits: PlanLimits;
+  /** Vehicles the plan covers before top-ups. `null` = unlimited. */
+  baseVehicleLimit: number | null;
+  /** Active `+1 vehicle` top-ups folded into `limits.maxTrucks`. */
+  vehicleTopUps: number;
   active: boolean;
 }
 

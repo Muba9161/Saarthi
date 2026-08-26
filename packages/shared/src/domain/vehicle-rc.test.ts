@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
   fuelOfferingLabel,
+  hasTransportEntitlement,
   isAlwaysOpen,
+  isPlausibleIndianLicence,
   isPlausibleIndianRegistration,
+  normalizeLicenceNumber,
   normalizeRegistrationNumber,
   rcValidity,
+  type DrivingLicenceRecord,
 } from '../index';
 
 /**
@@ -109,5 +113,69 @@ describe('fuel offering labels', () => {
     expect(isAlwaysOpen('24 hrs')).toBe(true);
     expect(isAlwaysOpen('Open until 10:00 PM')).toBe(false);
     expect(isAlwaysOpen(null)).toBe(false);
+  });
+});
+
+describe('driving licence numbers', () => {
+  it('collapses the ways a licence number is typed into one form', () => {
+    for (const input of ['MH0320140001234', 'mh03 2014 0001234', 'MH-03-2014-0001234']) {
+      expect(normalizeLicenceNumber(input)).toBe('MH0320140001234');
+    }
+  });
+
+  it('accepts the licence formats issued in India', () => {
+    for (const licence of [
+      'MH0320140001234',
+      'DL0420110149646',
+      'HR0619850034761',
+      'UP1420110003456',
+    ]) {
+      expect(isPlausibleIndianLicence(licence), licence).toBe(true);
+    }
+  });
+
+  it('rejects input that cannot be a licence', () => {
+    for (const licence of ['', 'ABC', '123456789012', 'ABCDEFGHIJ', 'MH03']) {
+      expect(isPlausibleIndianLicence(licence), licence).toBe(false);
+    }
+  });
+
+  it('validates the normalised form, not the raw input', () => {
+    expect(isPlausibleIndianLicence('mh03 2014 0001234')).toBe(false);
+    expect(isPlausibleIndianLicence(normalizeLicenceNumber('mh03 2014 0001234'))).toBe(true);
+  });
+});
+
+describe('commercial entitlement', () => {
+  const licence = (classes: string[]): DrivingLicenceRecord => ({
+    licenceNumber: 'MH0320140001234',
+    state: null,
+    holder: null,
+    issuingAuthority: null,
+    issuingAuthorityCode: null,
+    issuedOn: null,
+    validUntil: null,
+    transportIssuedOn: null,
+    transportValidUntil: null,
+    vehicleClasses: classes,
+    hasPhotograph: null,
+    partialRecord: null,
+    redacted: false,
+  });
+
+  it('recognises goods-vehicle classes', () => {
+    expect(hasTransportEntitlement(licence(['HGMV']))).toBe(true);
+    expect(hasTransportEntitlement(licence(['LMV-NT', 'HTV']))).toBe(true);
+    expect(hasTransportEntitlement(licence(['TRANS']))).toBe(true);
+  });
+
+  it('reports a private-only licence as not entitled', () => {
+    expect(hasTransportEntitlement(licence(['MCWG', 'LMV-NT']))).toBe(false);
+  });
+
+  it('answers "unknown" when the RTO published no classes at all', () => {
+    // A manager must not be told a driver is unqualified because the record
+    // happens to be silent.
+    expect(hasTransportEntitlement(licence([]))).toBeNull();
   });
 });

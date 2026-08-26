@@ -5,12 +5,17 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Plus, Search, Users } from 'lucide-react';
 import { toast } from 'sonner';
-import { Permission, createDriverSchema, formatDistanceKm, type CreateDriverInput } from '@saarthi/shared';
+import {
+  Permission,
+  createDriverSchema,
+  formatDistanceKm,
+  type CreateDriverInput,
+} from '@saarthi/shared';
 import { api, errorMessage } from '@/lib/api-client';
 import type { DriverSummary, Paginated } from '@/lib/api-types';
 import { useAuth } from '@/features/auth/auth-context';
 import { PageHeader } from '@/components/common/page-header';
-import { DataTable, type Column } from '@/components/common/data-table';
+import { DataView, type Column } from '@/components/common/data-view';
 import { ScoreBadge, StatusBadge } from '@/components/common/status-badge';
 import { UnauthorizedState } from '@/components/common/states';
 import { Button } from '@/components/ui/button';
@@ -327,7 +332,9 @@ export function DriversPage() {
       cell: (driver) => (
         <div className="text-sm">
           <p>{driver.totalTrips}</p>
-          <p className="text-xs text-muted-foreground">{formatDistanceKm(driver.totalDistanceKm)}</p>
+          <p className="text-xs text-muted-foreground">
+            {formatDistanceKm(driver.totalDistanceKm)}
+          </p>
         </div>
       ),
     },
@@ -359,7 +366,8 @@ export function DriversPage() {
         />
       </div>
 
-      <DataTable
+      <DataView
+        surface="fleet.drivers"
         columns={columns}
         rows={query.data?.items}
         rowKey={(driver) => driver.id}

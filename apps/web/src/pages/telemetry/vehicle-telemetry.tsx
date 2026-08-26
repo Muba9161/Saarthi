@@ -219,7 +219,7 @@ export function VehicleTelemetryPage() {
             {!hasFeature(Feature.TELEMETRY_LIVE) ? (
               <Card>
                 <CardContent className="py-4 text-sm text-muted-foreground">
-                  Live telemetry is available on the Saarthi Pro plan and above.
+                  Live telemetry is available on the VorldX Saarthi Pro plan and above.
                 </CardContent>
               </Card>
             ) : reading === null ? (
@@ -489,7 +489,7 @@ export function VehicleTelemetryPage() {
             {!hasFeature(Feature.TELEMETRY_HISTORY) ? (
               <Card>
                 <CardContent className="py-4 text-sm text-muted-foreground">
-                  Telemetry history is available on the Saarthi Pro plan and above.
+                  Telemetry history is available on the VorldX Saarthi Pro plan and above.
                 </CardContent>
               </Card>
             ) : (history.data?.items.length ?? 0) === 0 ? (

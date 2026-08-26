@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Activity, Car, Cpu, Truck } from 'lucide-react';
 import { OrganizationType, Permission, VehicleType, humanizeEnum } from '@saarthi/shared';
 import { api } from '@/lib/api-client';
@@ -8,7 +8,7 @@ import type { VehicleSummary, VehicleTypeOption } from '@/lib/mobility-types';
 import type { Paginated } from '@/lib/api-types';
 import { useAuth } from '@/features/auth/auth-context';
 import { PageHeader, FilterBar } from '@/components/common/page-header';
-import { DataTable, type Column } from '@/components/common/data-table';
+import { DataView, type Column } from '@/components/common/data-view';
 import { EmptyState, UnauthorizedState } from '@/components/common/states';
 import { StatusBadge } from '@/components/common/status-badge';
 import { AddVehicleDialog } from '@/features/vehicles/add-vehicle-dialog';
@@ -46,6 +46,7 @@ const PASSENGER_VEHICLE_TYPES = [
 ];
 
 export function VehiclesPage() {
+  const navigate = useNavigate();
   const { can, session } = useAuth();
   const [page, setPage] = React.useState(1);
   const [search, setSearch] = React.useState('');
@@ -148,7 +149,14 @@ export function VehiclesPage() {
       key: 'action',
       header: '',
       cell: (row) => (
-        <div className="flex items-center gap-1">
+        // The whole row opens the vehicle, so these links stop the click here —
+        // otherwise Telemetry would be overridden by the row's own navigation.
+        <div
+          className="flex items-center gap-1"
+          onClick={(event) => event.stopPropagation()}
+          onKeyDown={(event) => event.stopPropagation()}
+          role="presentation"
+        >
           {row.device ? (
             <Button asChild variant="ghost" size="sm" className="gap-1">
               <Link to={`/fleet/vehicles/${row.id}/telemetry`}>
@@ -157,8 +165,12 @@ export function VehiclesPage() {
               </Link>
             </Button>
           ) : null}
+          {/*
+            The generalized detail route, not the truck one: a taxi opened from
+            here must be presented as a taxi, not as a truck with no payload.
+          */}
           <Button asChild variant="ghost" size="sm">
-            <Link to={`/fleet/trucks/${row.id}`}>Open</Link>
+            <Link to={`/fleet/vehicles/${row.id}`}>Open</Link>
           </Button>
         </div>
       ),
@@ -285,12 +297,14 @@ export function VehiclesPage() {
           }
         />
       ) : (
-        <DataTable
+        <DataView
+          surface="fleet.vehicles"
           columns={columns}
           rows={vehicles.data?.items}
           rowKey={(row) => row.id}
           isLoading={vehicles.isLoading}
           error={vehicles.error}
+          onRowClick={(row) => navigate(`/fleet/vehicles/${row.id}`)}
           pagination={vehicles.data?.pagination}
           onPageChange={setPage}
           emptyTitle="No vehicles"

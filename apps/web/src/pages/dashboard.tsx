@@ -46,6 +46,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { FleetMap, type MapTruck } from '@/features/maps/fleet-map';
 import { Stagger, StaggerItem } from '@/components/motion';
+import { DailyBriefCard } from '@/features/ai/daily-brief-card';
 
 /**
  * Fleet command centre.
@@ -249,6 +250,12 @@ export function DashboardPage() {
           ))}
         </Stagger>
       ) : null}
+
+      {/*
+        The morning brief sits above the metrics: an operator opening this page
+        wants to know what is wrong before they see how the month is going.
+      */}
+      <DailyBriefCard />
 
       {metrics.isLoading ? (
         <StatCardsSkeleton />

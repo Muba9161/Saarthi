@@ -79,6 +79,20 @@ export const Feature = {
 
   QR_IDENTITY: 'qr.identity',
 
+  // Vehicle finance. Basic on purpose: in this market the single-truck owner
+  // with an EMI is the archetypal customer, not an enterprise upsell. Missing
+  // an installment costs them the truck, so the reminder cannot sit behind a
+  // paywall. Provider-backed sync is the part that costs money to run.
+  // FASTag and toll. Basic, for the same reason as finance: toll is the second
+  // largest running cost after diesel, and a fleet that cannot see it is losing
+  // money it never sees leave.
+  TOLL_FASTAG: 'toll.fastag',
+  /** Live NETC lookup. The part that costs money per call. */
+  TOLL_FASTAG_SYNC: 'toll.fastag.sync',
+
+  FINANCE_LOANS: 'finance.loans',
+  FINANCE_LOAN_SYNC: 'finance.loans.sync',
+
   // Backhaul matching — a margin feature, so it earns its Pro placement.
   RETURN_LOADS: 'returnloads.matching',
 
@@ -255,6 +269,26 @@ export const FEATURE_CATALOGUE: FeatureDefinition[] = [
     description: 'Publish your own vehicles for sale with a verified evidence pack.',
   },
   {
+    key: Feature.TOLL_FASTAG,
+    name: 'FASTag & toll',
+    description: 'Tag status, balances, toll crossings and what each route actually costs.',
+  },
+  {
+    key: Feature.TOLL_FASTAG_SYNC,
+    name: 'NETC lookup',
+    description: 'Pull live tag status and recent crossings from the NETC network.',
+  },
+  {
+    key: Feature.FINANCE_LOANS,
+    name: 'Loan & EMI',
+    description: 'Vehicle loans, amortisation schedules, EMI reminders and repayment history.',
+  },
+  {
+    key: Feature.FINANCE_LOAN_SYNC,
+    name: 'Lender sync',
+    description: 'Pull statements and balances from a supported finance provider.',
+  },
+  {
     key: Feature.QR_IDENTITY,
     name: 'QR identity',
     description: 'Printable QR codes for drivers and vehicles, with scoped scan resolution.',
@@ -305,6 +339,8 @@ const BASIC_FEATURES: Feature[] = [
   Feature.INVENTORY_MANAGEMENT,
   Feature.RESALE_MARKETPLACE,
   Feature.QR_IDENTITY,
+  Feature.FINANCE_LOANS,
+  Feature.TOLL_FASTAG,
   Feature.CITY_ACCESS_INTELLIGENCE,
   Feature.ROUTE_INTELLIGENCE_ALERTS,
 ];
@@ -331,6 +367,8 @@ const PRO_FEATURES: Feature[] = [
   Feature.RETURN_LOADS,
   Feature.LAST_MILE_RELAY,
   Feature.ROUTE_INTELLIGENCE,
+  Feature.FINANCE_LOAN_SYNC,
+  Feature.TOLL_FASTAG_SYNC,
 ];
 
 const INTELLIGENCE_FEATURES: Feature[] = [
@@ -357,8 +395,21 @@ export const PLAN_FEATURES: Record<PlanTier, Feature[]> = {
 };
 
 export interface PlanLimits {
-  /** `null` means unlimited. */
+  /**
+   * Vehicles the plan itself covers. `null` means unlimited.
+   *
+   * This is the *base* figure. What a tenant may actually run is this plus
+   * their active `+1` top-ups — see `effectiveVehicleLimit`, which is what the
+   * entitlement service resolves and what every capacity check reads.
+   */
   maxTrucks: number | null;
+  /**
+   * How many `+1 vehicle` top-ups may be held on top of the base plan.
+   *
+   * A ceiling exists so top-ups stay a stopgap between plans rather than a way
+   * to run fifty vehicles on a one-vehicle plan and never upgrade.
+   */
+  maxVehicleTopUps: number;
   maxDrivers: number | null;
   maxMembers: number | null;
   trackingHistoryDays: number;
@@ -369,9 +420,23 @@ export interface PlanLimits {
   telemetryRetentionDays: number;
 }
 
+/**
+ * Vehicle capacity per plan.
+ *
+ * Saarthi is sold by fleet size — 1, 5, 20 and 50 vehicles — because that is
+ * the number an operator already knows about themselves. Feature depth rises
+ * with capacity rather than being sold separately: a fifty-truck fleet needs
+ * telemetry and analytics, a single owner-driver needs their documents, their
+ * EMI and a working map.
+ *
+ * A tenant already running more vehicles than their plan covers is never cut
+ * off. Capacity is checked when *adding* a vehicle, so downgrading, or a change
+ * to these figures, can never strand an operator's existing fleet.
+ */
 export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
   [PlanTier.BASIC]: {
-    maxTrucks: 5,
+    maxTrucks: 1,
+    maxVehicleTopUps: 4,
     maxDrivers: 10,
     maxMembers: 3,
     trackingHistoryDays: 7,
@@ -380,7 +445,8 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
     telemetryRetentionDays: 0,
   },
   [PlanTier.PRO]: {
-    maxTrucks: 50,
+    maxTrucks: 5,
+    maxVehicleTopUps: 15,
     maxDrivers: 100,
     maxMembers: 15,
     trackingHistoryDays: 90,
@@ -389,7 +455,8 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
     telemetryRetentionDays: 90,
   },
   [PlanTier.INTELLIGENCE]: {
-    maxTrucks: 250,
+    maxTrucks: 20,
+    maxVehicleTopUps: 30,
     maxDrivers: 500,
     maxMembers: 50,
     trackingHistoryDays: 365,
@@ -398,7 +465,10 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
     telemetryRetentionDays: 365,
   },
   [PlanTier.ENTERPRISE]: {
-    maxTrucks: null,
+    maxTrucks: 50,
+    // Enterprise capacity is negotiated, so the top-up ceiling is generous
+    // rather than a real constraint.
+    maxVehicleTopUps: 450,
     maxDrivers: null,
     maxMembers: null,
     trackingHistoryDays: 1095,
@@ -477,4 +547,85 @@ export function minimumTierFor(feature: Feature): PlanTier | null {
     PlanTier.ENTERPRISE,
   ];
   return order.find((tier) => tierHasFeature(tier, feature)) ?? null;
+}
+
+// ---------------------------------------------------------------------------
+// Vehicle capacity and top-ups
+// ---------------------------------------------------------------------------
+
+/**
+ * A `+1 vehicle` top-up.
+ *
+ * The reason this exists rather than "just upgrade": an operator who buys their
+ * sixth truck on a five-vehicle plan should not have to jump to the twenty-
+ * vehicle price to put it on the road. One extra vehicle costs one extra
+ * vehicle's worth.
+ */
+export const VEHICLE_TOPUP = {
+  key: 'vehicle_topup',
+  name: '+1 Vehicle',
+  description: 'Adds one vehicle to your plan. Stack as many as you need.',
+  /** Monthly price in INR, per vehicle. */
+  priceMonthly: 399,
+  priceYearly: 3990,
+} as const;
+
+/**
+ * What a tenant may actually run: the plan's capacity plus its active top-ups.
+ *
+ * An unlimited base stays unlimited — adding top-ups to `null` would be a
+ * category error, and charging for them would be worse.
+ */
+export function effectiveVehicleLimit(
+  baseLimit: number | null,
+  activeTopUps: number,
+): number | null {
+  if (baseLimit === null) return null;
+  return baseLimit + Math.max(0, activeTopUps);
+}
+
+/** Whether another top-up may be bought on this plan. */
+export function canAddVehicleTopUp(tier: PlanTier, activeTopUps: number): boolean {
+  const ceiling = PLAN_LIMITS[tier]?.maxVehicleTopUps ?? 0;
+  return activeTopUps < ceiling;
+}
+
+export interface VehicleCapacity {
+  /** Vehicles the plan covers before top-ups. `null` = unlimited. */
+  baseLimit: number | null;
+  activeTopUps: number;
+  /** `baseLimit + activeTopUps`, or `null` when unlimited. */
+  effectiveLimit: number | null;
+  used: number;
+  /** `null` when unlimited. Never negative — see the note on over-capacity. */
+  remaining: number | null;
+  /**
+   * True when the tenant is already at or above what they may run.
+   *
+   * Reachable without anyone doing anything wrong: a lapsed top-up or a plan
+   * downgrade leaves an operator over capacity with vehicles that keep working.
+   * They simply cannot add another until they upgrade or top up.
+   */
+  atCapacity: boolean;
+  canPurchaseTopUp: boolean;
+  topUpCeiling: number;
+}
+
+export function describeVehicleCapacity(input: {
+  tier: PlanTier;
+  baseLimit: number | null;
+  activeTopUps: number;
+  used: number;
+}): VehicleCapacity {
+  const effectiveLimit = effectiveVehicleLimit(input.baseLimit, input.activeTopUps);
+  return {
+    baseLimit: input.baseLimit,
+    activeTopUps: input.activeTopUps,
+    effectiveLimit,
+    used: input.used,
+    remaining: effectiveLimit === null ? null : Math.max(0, effectiveLimit - input.used),
+    atCapacity: effectiveLimit !== null && input.used >= effectiveLimit,
+    canPurchaseTopUp: canAddVehicleTopUp(input.tier, input.activeTopUps),
+    topUpCeiling: PLAN_LIMITS[input.tier]?.maxVehicleTopUps ?? 0,
+  };
 }

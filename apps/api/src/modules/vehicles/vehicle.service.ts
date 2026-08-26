@@ -364,7 +364,8 @@ async function assertVehicleLimit(auth: AuthContext, organizationId: string): Pr
   if (existing >= max) {
     throw errors.planLimitReached(
       'maxTrucks',
-      `Your ${auth.subscription?.planName ?? 'current'} plan allows ${max} vehicles. Upgrade your plan to add more.`,
+      `Your ${auth.subscription?.planName ?? 'current'} plan covers ${max} vehicle${max === 1 ? '' : 's'}. ` +
+        'Add a +1 vehicle top-up for this one vehicle, or upgrade the plan if the fleet is growing.',
     );
   }
 }

@@ -217,6 +217,41 @@ async function storeRcDocument(
   }
 }
 
+/**
+ * The record Saarthi already holds for a vehicle, if any.
+ *
+ * Never contacts the provider and never spends budget: this is what the
+ * vehicle's Registration tab shows the moment it opens, so a fetched record
+ * survives a refresh instead of the operator paying to see it again.
+ *
+ * A record past its cache window is still returned — stale RC data with a
+ * visible "last checked" date is far more useful than a blank panel — and the
+ * caller decides whether to refresh it.
+ */
+export async function getStoredLookup(
+  auth: AuthContext,
+  registrationNumber: string,
+): Promise<VehicleLookupResult | null> {
+  await assertVehicleBelongsToCaller(auth, registrationNumber);
+
+  const stored = await prisma.vehicleLookup.findFirst({
+    where: { registrationNumber, organizationId: auth.organizationId ?? null },
+    orderBy: { fetchedAt: 'desc' },
+  });
+  if (!stored) return null;
+
+  return {
+    lookupId: stored.id,
+    registrationNumber,
+    vehicle: recordForCaller(auth, stored.responseData as unknown as VehicleRcRecord),
+    cached: true,
+    retrievedAt: stored.fetchedAt.toISOString(),
+    expiresAt: stored.expiresAt.toISOString(),
+    pdfAvailable: Boolean(stored.pdfStorageKey),
+    providerReference: stored.providerReference,
+  };
+}
+
 export interface VehicleLookupOutcome {
   result: VehicleLookupResult;
   /** Billable calls left in this environment's allowance; `null` if uncapped. */
@@ -379,13 +414,15 @@ export async function downloadRcDocument(
 /**
  * Retention sweep.
  *
- * Expired RC records are deleted outright, together with the PDF bytes they
- * point at — a row's `expiresAt` is both the cache boundary and the retention
- * boundary, so personal data is never held longer than the configured TTL.
+ * Records past VEHICLE_LOOKUP_RETENTION_DAYS are deleted outright, together
+ * with the PDF bytes they point at. This is deliberately a longer window than
+ * `expiresAt`: that one decides when a *fresh provider call* is worthwhile,
+ * while this one is how long Saarthi may hold the personal data at all.
  */
 export async function runVehicleLookupRetentionSweep(): Promise<number> {
+  const cutoff = new Date(Date.now() - config.vehicleRc.retentionDays * 86_400_000);
   const expired = await prisma.vehicleLookup.findMany({
-    where: { expiresAt: { lt: new Date() } },
+    where: { fetchedAt: { lt: cutoff } },
     select: { id: true, pdfStorageKey: true },
     take: 1000,
   });

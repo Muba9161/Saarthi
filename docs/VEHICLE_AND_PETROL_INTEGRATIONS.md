@@ -1,16 +1,18 @@
-# Vehicle RC lookup & petrol station directory
+# RTO lookups & petrol station directory
 
-Two external directories are integrated behind Saarthi's own models:
+Three external integrations sit behind Saarthi's own models:
 
 | Capability | Provider | Where the vendor is known |
 | --- | --- | --- |
 | Vehicle registration (RC) record + certificate PDF | [Way2API](https://app.way2api.com/documentation/vehicle-rc-text-pdf) | `apps/api/src/providers/vehicle-rc/` |
+| Driving licence (DL) record | [Way2API](https://app.way2api.com/documentation/driving-license) | `apps/api/src/providers/driving-licence/` |
 | Petrol / CNG station directory + published fuel prices | [SSR Innovation Lab](https://api.ssrinnovationlab.com/api/test/18/) | `apps/api/src/providers/petrol-stations/` |
 
 Nothing outside those two folders knows a provider's field names, URL shape or
 status vocabulary. The rest of the platform — routes, services, client, tests —
-uses `VehicleRcRecord` and `PetrolStation` from `@saarthi/shared`, so either
-vendor can be replaced by adding one file and changing one line in a factory.
+uses `VehicleRcRecord`, `DrivingLicenceRecord` and `PetrolStation` from
+`@saarthi/shared`, so a vendor can be replaced by adding one file and changing
+one line in a factory.
 
 Neither provider is ever called from the browser. Both keys are server-side.
 
@@ -121,6 +123,17 @@ per user per window, on top of the global limit.
 it is never guessed, defaulted, or inferred from a neighbouring field. Blank
 provider strings (`""`, `"NA"`) are normalised to `null`.
 
+### `GET /api/v1/vehicles/lookups/latest?registrationNumber=...`
+
+The record Saarthi **already holds**, or `null`. Free and idempotent: no
+provider call, no charge, no budget consumed.
+
+This is what the vehicle's Registration tab calls when it opens, which is what
+makes a fetched record survive a page refresh instead of having to be bought
+again. A record past its cache window is still returned - stale RC data with a
+visible "retrieved on" date beats a blank panel - and the caller decides whether
+to spend a lookup refreshing it.
+
 ### `GET /api/v1/vehicles/lookups/:lookupId/document`
 
 Streams Saarthi's **own stored copy** of the RC certificate.
@@ -168,7 +181,104 @@ and outcome only — never the RC payload. Logs carry a masked plate
 
 ---
 
-## 2. Petrol stations
+## 2. Driving licence lookup
+
+### `POST /api/v1/drivers/licence/lookup`
+
+**Auth:** bearer access token - **Permission:** `drivers.licence.lookup` -
+**Plan feature:** `fleet.basic` - **Rate limit:**
+`LICENCE_LOOKUP_RATE_LIMIT_MAX` per user per window.
+
+```json
+{
+  "licenceNumber": "MH0320140001234",
+  "dateOfBirth": "1992-06-15",
+  "refresh": false
+}
+```
+
+**Both fields are required.** The RTO verifies a licence number *against* a date
+of birth - that is a second factor, not a formality, and it is what stops the
+endpoint turning a photocopied licence into a stranger's home address.
+
+> **Scope: your own drivers only.** The licence must belong to a non-archived
+> driver in the caller's organization, or the request is refused with
+> `FORBIDDEN` and **no provider call is made**. A driver may always look up
+> their own licence - and only their own: the number must match the one on their
+> profile. Platform admins are exempt, audited like any other lookup.
+
+**Response** - `{ success: true, data: LicenceLookupResult }` whose `licence` is
+a `DrivingLicenceRecord`:
+
+```json
+{
+  "licenceNumber": "MH0320140001234",
+  "state": "Maharashtra",
+  "holder": {
+    "name": "...", "fatherOrHusbandName": "...", "gender": "F",
+    "dateOfBirth": "1992-06-15", "bloodGroup": "B+", "citizenship": null,
+    "permanentAddress": "...", "permanentZip": "411001",
+    "temporaryAddress": "...", "temporaryZip": "411001"
+  },
+  "issuingAuthority": "RTO PUNE",
+  "issuingAuthorityCode": "MH032",
+  "issuedOn": "2014-08-11",
+  "validUntil": "2034-08-10",
+  "transportIssuedOn": null,
+  "transportValidUntil": null,
+  "vehicleClasses": ["MCWG", "LMV-NT"],
+  "hasPhotograph": true,
+  "partialRecord": false,
+  "redacted": false
+}
+```
+
+The photograph itself is never retrieved - `hasPhotograph` only reports that the
+RTO holds one.
+
+### `GET /api/v1/drivers/licence/latest?licenceNumber=...`
+
+The stored record, or `null`. Free, no provider call - this is what the driver's
+Licence tab shows on open.
+
+### Two provider quirks handled in the adapter
+
+* `transport_doi` / `transport_doe` come back as **`1800-01-01`** when the
+  licence carries no commercial entitlement. That sentinel is mapped to `null`;
+  passing it through would tell a fleet manager their driver's transport licence
+  expired two centuries ago.
+* A **failed** verification still returns a `result` object full of nulls. The
+  outcome flags decide, not the presence of a payload - otherwise every
+  not-found would render as a licence with no name.
+
+### Commercial entitlement
+
+`hasTransportEntitlement()` reports whether the listed classes permit driving a
+goods vehicle. It returns `null` - not `false` - when the RTO published no
+classes at all, so a manager is never told a driver is unqualified because the
+record happened to be silent.
+
+### Privacy
+
+The `holder` block (name, parentage, both addresses, blood group, gender) is
+stripped for any caller without `drivers.licence.lookup.sensitive`, and
+`redacted: true` is set so the UI can say so.
+
+| Role | `drivers.licence.lookup` | `...sensitive` |
+| --- | --- | --- |
+| Platform admin | yes | yes |
+| Fleet owner / mobility provider | yes | yes |
+| Fleet manager, dispatcher | yes | - |
+| Driver | yes (own only) | yes (own only) |
+| Supplier, customer | - | - |
+
+The audit entry (`driver.licence_lookup`) records the licence number and
+outcome. Neither the holder's details **nor the date of birth used to verify**
+ever reach the log; logs carry a masked number (`MH****34`).
+
+---
+
+## 3. Petrol stations
 
 ### `GET /api/v1/petrol-stations`
 
@@ -281,7 +391,7 @@ once under its own id and again as a dealer-level record.
 
 ---
 
-## 3. Environment variables
+## 4. Environment variables
 
 All server-side. Copy from `.env.example`; never commit real keys.
 
@@ -295,6 +405,11 @@ All server-side. Copy from `.env.example`; never commit real keys.
 | `VEHICLE_LOOKUP_BUDGET` | `0` | Hard ceiling on **billable** provider calls for this environment. `0` = uncapped. Cache hits do not count. |
 | `VEHICLE_LOOKUP_RATE_LIMIT_MAX` | `10` | Lookups per user per window |
 | `VEHICLE_LOOKUP_RATE_LIMIT_WINDOW` | `1 minute` | Window for the above |
+| `VEHICLE_LOOKUP_RETENTION_DAYS` | `365` | How long an RC record may be held |
+| `LICENCE_CACHE_TTL` | `86400` | Seconds a stored licence record is reused |
+| `LICENCE_LOOKUP_RETENTION_DAYS` | `365` | How long a licence record may be held |
+| `LICENCE_LOOKUP_BUDGET` | `0` | Ceiling on billable licence calls. `0` = uncapped |
+| `LICENCE_LOOKUP_RATE_LIMIT_MAX` | `10` | Licence lookups per user per window |
 | `SSR_PETROL_API_BASE_URL` | `https://api.ssrinnovationlab.com` | Station directory base URL |
 | `SSR_PETROL_API_KEY` | *(empty)* | Optional. The directory serves unauthenticated reads today; sent as `X-api-key` only when set. |
 | `SSR_PETROL_TIMEOUT_MS` | `12000` | Per-request timeout |
@@ -302,11 +417,23 @@ All server-side. Copy from `.env.example`; never commit real keys.
 
 ---
 
-## 4. Caching & retention
+## 5. Caching & retention
 
-| Data | Where | TTL | On expiry |
+Two different windows, deliberately:
+
+* **`*_CACHE_TTL`** decides when a *fresh provider call* becomes worthwhile.
+  Past it, the stored record is still shown - it is simply marked with when it
+  was retrieved.
+* **`*_RETENTION_DAYS`** decides how long Saarthi may hold the personal data at
+  all. Past it the row is deleted outright.
+
+Collapsing the two would mean either paying for a lookup every day or keeping
+somebody's address for ever. They are separate settings for that reason.
+
+| Data | Where | Reuse window | Retention |
 | --- | --- | --- | --- |
-| RC record + PDF | `vehicle_lookups` (PostgreSQL) + object storage | `VEHICLE_CACHE_TTL` | **Deleted** by the `vehicles:lookup-retention` job, PDF bytes included |
+| RC record + PDF | `vehicle_lookups` + object storage | `VEHICLE_CACHE_TTL` | `VEHICLE_LOOKUP_RETENTION_DAYS`, PDF bytes included |
+| Licence record | `licence_lookups` | `LICENCE_CACHE_TTL` | `LICENCE_LOOKUP_RETENTION_DAYS` |
 | Station search | in-process cache | `PETROL_STATION_CACHE_TTL` | Recomputed |
 | Station records | `petrol_stations` (PostgreSQL) | — | Upserted on each refresh; kept as the outage fallback |
 
@@ -343,7 +470,7 @@ was charged.
 
 ---
 
-## 5. Error codes
+## 6. Error codes
 
 Returned in the standard failure envelope:
 
@@ -358,6 +485,7 @@ Returned in the standard failure envelope:
 | `FORBIDDEN` | 403 | Missing `vehicles.lookup` / `nearby.read`, **or the plate is not a vehicle in the caller's fleet** |
 | `FEATURE_NOT_AVAILABLE` | 403 | Plan does not include the feature |
 | `VEHICLE_NOT_FOUND` | 404 | Provider ran the lookup and found no record |
+| `LICENCE_NOT_FOUND` | 404 | No licence matched that number and date of birth |
 | `PDF_UNAVAILABLE` | 404 | No RC document was produced or stored for that lookup |
 | `NOT_FOUND` | 404 | Unknown lookup id, or one belonging to another tenant |
 | `PROVIDER_BUDGET_EXHAUSTED` | 429 | `VEHICLE_LOOKUP_BUDGET` reached — refused locally, no provider call made |
@@ -374,7 +502,7 @@ keys, stack traces and provider internals never reach a client.
 
 ---
 
-## 6. Database
+## 7. Database
 
 Added by migration `20260822172159_petrol_stations_and_vehicle_lookups`.
 
@@ -397,7 +525,7 @@ updated_at
 
 ---
 
-## 7. Running and testing locally
+## 8. Running and testing locally
 
 ```bash
 # 1. Configure — the petrol directory needs no key; RC lookup needs one.

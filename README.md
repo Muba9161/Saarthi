@@ -32,12 +32,22 @@ infrastructure change rather than a rewrite.
 | SOS network with expanding-radius responder matching | Working |
 | Driver scoring (explainable) + achievements | Working |
 | Maintenance, fuel, rule-based maintenance risk | Working |
+| Service history: invoices, parts, warranty, repeat-component detection | Working |
+| Vehicle loans & EMI: schedules, reminders, repayment ledger | Working |
+| FASTag: tag status, balance tracking, low-balance and blacklist warnings | Working, live NETC lookup needs a key |
+| Toll: crossings, spend by plaza, statement import, trip toll variance | Working |
+| QR identity with per-field privacy policy and masking | Working, enforced server-side |
+| Vehicle capacity by plan + `+1 vehicle` top-ups | Working, enforced server-side |
+| Table / card view toggle, remembered per person per screen | Working |
+| Multi-camera devices (YC06): four channels, live-view access log | Working, needs a video gateway |
 | Fleet analytics + digital truck passport | Working, computed from records |
-| AI Copilot, recommendations, insights | Working (local analyst provider) |
+| AI Copilot with an authorised tool registry and provenance | Working (local analyst provider) |
+| Daily fleet brief | Working, rule-based — not generated |
+| Redis cache, pub/sub, locks and rate limiting | Working, off by default (memory drivers) |
 | Audit logging | Working |
 
-**110 automated tests pass** (67 API integration, 43 domain unit). Type checking and the production
-build both pass.
+**556 automated tests pass** (352 API integration, 204 domain unit). Type checking and the
+production build both pass.
 
 ---
 
@@ -232,6 +242,7 @@ saarthi/
 - [`docs/VEHICLE_AND_PETROL_INTEGRATIONS.md`](docs/VEHICLE_AND_PETROL_INTEGRATIONS.md) — vehicle RC lookup and the petrol station directory
 - [`docs/DEVELOPMENT_PROGRESS.md`](docs/DEVELOPMENT_PROGRESS.md) — what is done, what is next
 - [`docs/PRODUCTION.md`](docs/PRODUCTION.md) — the production migration path
+- [`docs/SPEC_V3_IMPLEMENTATION_REPORT.md`](docs/SPEC_V3_IMPLEMENTATION_REPORT.md) — what spec v3.0 changed, and what it deliberately did not
 
 ---
 

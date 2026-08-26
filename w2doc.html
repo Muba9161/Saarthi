@@ -1,0 +1,1565 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#6366f1">
+    <title>Way2API® API Documentation — 42 Verification APIs</title>
+    <meta name="description" content="Way2API® — REST API reference for 42 identity, business, document, domain, network &amp; email verification APIs. Live Try It console, cURL/PHP/JS examples.">
+    <meta name="keywords" content="Way2API, API documentation, REST API, verification API, identity verification API, KYC API, data validation API, fintech API, Currency Exchange Rates API, Bulk IP Threat Intelligence API, IP Check API, IP Check Advance API, IP Geolocation Enrichment API, IP Geolocation Lookup API, IP Threat Intelligence API, IP WHOIS Lookup API, Bank Account Validation API, Driving License Verify API, Mobile Prefill API, PAN Verification API, Voter ID Verification API, VPA Validation API, Credit Report Equifax API, Credit Report Equifax PDF API, Credit Report Experian API, Credit Report Experian PDF API, GST Filing Details API, GST Filing Frequency API, GST Verification API, HSN Code Lookup API, TAN Adv API, DTH Advance Information API, DTH Operator Check API, Last Mobile Recharge Status API, Mobile R-Offer Fetch API, Operator and Circle Check API, Send OTP/PIN by SMS API, DNS Lookup API, Domain Availability API, Domain Availability Check API, Domain Whois API, Domain WHOIS Lookup API, SSL Certificate Lookup API, Subdomains Lookup API, Aadhaar PAN Link Check API, Vehicle RC PDF API, Vehicle RC Text and PDF API, Vehicle RC Verification API, Bulk Email Validation API, Email Validation API, India">
+    <meta name="author" content="Way2API®">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://app.way2api.com/documentation">
+
+    <!-- Favicons -->
+    <link rel="apple-touch-icon" sizes="180x180" href="https://app.way2api.com/assets/media/app/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="https://app.way2api.com/assets/media/app/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="https://app.way2api.com/assets/media/app/favicon-16x16.png">
+    <link rel="shortcut icon" href="https://app.way2api.com/assets/media/app/favicon.ico">
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="Way2API® API Documentation — 42 Verification APIs">
+    <meta property="og:description" content="Way2API® — REST API reference for 42 identity, business, document, domain, network &amp; email verification APIs. Live Try It console, cURL/PHP/JS examples.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://app.way2api.com/documentation">
+    <meta property="og:site_name" content="Way2API®">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:locale:alternate" content="en_GB">
+    <meta property="og:locale:alternate" content="en_IN">
+    <meta property="og:image" content="https://app.way2api.com/assets/media/app/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+            <meta property="og:updated_time" content="2026-08-17 20:36:56">
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Way2API® API Documentation — 42 Verification APIs">
+    <meta name="twitter:description" content="Way2API® — REST API reference for 42 identity, business, document, domain, network &amp; email verification APIs. Live Try It console, cURL/PHP/JS examples.">
+    <meta name="twitter:image" content="https://app.way2api.com/assets/media/app/og-image.png">
+
+            <script type="application/ld+json">
+            {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "@id": "https://app.way2api.com/#organization",
+    "name": "Way2API\u00ae",
+    "url": "https://app.way2api.com",
+    "email": "support@way2api.com",
+    "logo": {
+        "@type": "ImageObject",
+        "url": "https://app.way2api.com/assets/media/app/light_logo.png"
+    }
+}        </script>
+            <script type="application/ld+json">
+            {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "@id": "https://app.way2api.com/#website",
+    "name": "Way2API\u00ae",
+    "url": "https://app.way2api.com",
+    "inLanguage": "en",
+    "publisher": {
+        "@id": "https://app.way2api.com/#organization"
+    }
+}        </script>
+            <script type="application/ld+json">
+            {
+    "@context": "https://schema.org",
+    "@type": "WebAPI",
+    "name": "Way2API\u00ae Verification & Validation APIs",
+    "description": "Way2API\u00ae \u2014 REST API reference for real-time identity, business, document, domain, network & email verification. 42 APIs: Currency Exchange Rates, Bulk IP Threat Intelligence, IP Check, IP Check Advance, IP Geolocation Enrichment, IP Geolocation Lookup, IP Threat Intelligence, IP WHOIS Lookup, Bank Account Validation, Driving License Verify and 32 more. Interactive Try It console. Code examples in cURL, PHP & JavaScript.",
+    "url": "https://app.way2api.com/documentation",
+    "provider": {
+        "@id": "https://app.way2api.com/#organization"
+    },
+    "documentation": "https://app.way2api.com/documentation",
+    "applicationCategory": "DeveloperApplication",
+    "numberOfItems": 42,
+    "areaServed": "Worldwide"
+}        </script>
+            <script type="application/ld+json">
+            {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "name": "Way2API\u00ae API Catalogue",
+    "description": "Complete list of available verification and utility API endpoints.",
+    "numberOfItems": 42,
+    "itemListElement": [
+        {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Currency Exchange Rates",
+            "url": "https://app.way2api.com/documentation/currency-rates",
+            "description": "Currency Exchange Rates API \u2014 latest exchange rates for a base currency, refreshed continuously. Defaults to a USD base against every quoted currency; pass base to change it and symbols to narrow the ",
+            "areaServed": "Worldwide"
+        },
+        {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Bulk IP Threat Intelligence",
+            "url": "https://app.way2api.com/documentation/ip-threat-bulk",
+            "description": "Bulk IP Threat Intelligence API \u2014 the same risk signals as IP Threat Intelligence, for up to 100 addresses in a single billable call. Each entry carries its own status (ok or error) and message, so on",
+            "areaServed": "Worldwide"
+        },
+        {
+            "@type": "ListItem",
+            "position": 3,
+            "name": "IP Check",
+            "url": "https://app.way2api.com/documentation/ip-check-v1",
+            "description": "Look up geolocation, ISP, and network information for any public IPv4 or IPv6 address.",
+            "areaServed": "Worldwide"
+        },
+        {
+            "@type": "ListItem",
+            "position": 4,
+            "name": "IP Check Advance",
+            "url": "https://app.way2api.com/documentation/ip-check-advance",
+            "description": "IP Check Advance API \u2014 Deep IP intelligence for any IPv4 or IPv6 address. Beyond basic geolocation (city, country, coordinates, time zone), it returns rich network and risk signals: ISP, organization,",
+            "areaServed": "Worldwide"
+        },
+        {
+            "@type": "ListItem",
+            "position": 5,
+            "name": "IP Geolocation Enrichment",
+            "url": "https://app.way2api.com/documentation/ip-geolocation-full",
+            "description": "IP Geolocation Enrichment API \u2014 everything IP Geolocation returns, plus the full threat-intelligence block (threat score, Tor / proxy / VPN / relay / bot / spam / known-attacker flags), the reverse ho",
+            "areaServed": "Worldwide"
+        },
+        {
+            "@type": "ListItem",
+            "position": 6,
+            "name": "IP Geolocation Lookup",
+            "url": "https://app.way2api.com/documentation/ip-geolocation",
+            "description": "IP Geolocation API \u2014 locate an IPv4 or IPv6 address and describe the network behind it. Returns continent, country, state, district, city, postal code and coordinates, plus country metadata (calling c",
+            "areaServed": "Worldwide"
+        },
+        {
+            "@type": "ListItem",
+            "position": 7,
+            "name": "IP Threat Intelligence",
+            "url": "https://app.way2api.com/documentation/ip-threat",
+            "description": "IP Threat Intelligence API \u2014 real-time risk signals for an IPv4 or IPv6 address. Returns a threat_score from 0 to 100 (higher is riskier) alongside the individual flags behind it: is_tor, is_proxy, is",
+            "areaServed": "Worldwide"
+        },
+        {
+            "@type": "ListItem",
+            "position": 8,
+            "name": "IP WHOIS Lookup",
+            "url": "https://app.way2api.com/documentation/ip-whois",
+            "description": "IP WHOIS Lookup API \u2014 live registration data for an IPv4 or IPv6 address, straight from the Regional Internet Registry that allocated it. Returns the allocated network (range, CIDR, name, handle, allo",
+            "areaServed": "Worldwide"
+        },
+        {
+            "@type": "ListItem",
+            "position": 9,
+            "name": "Bank Account Validation",
+            "url": "https://app.way2api.com/documentation/bank-account-validation",
+            "description": "Bank Account Verification API \u2014 Instantly verify Indian bank account details. Returns the account holder name and account status for payout processing, KYC, and compliance workflows.",
+            "areaServed": [
+                {
+                    "@type": "Country",
+                    "name": "India"
+                }
+            ]
+        },
+        {
+            "@type": "ListItem",
+            "position": 10,
+            "name": "Driving License Verify",
+            "url": "https://app.way2api.com/documentation/driving-license",
+            "description": "Driving License Verification API \u2014 Verify any Indian driving license number with date of birth against government RTO records in real time. Returns the license holder's name, address, gender, father/h",
+            "areaServed": [
+                {
+                    "@type": "Country",
+                    "name": "India"
+                }
+            ]
+        },
+        {
+            "@type": "ListItem",
+            "position": 11,
+            "name": "Mobile Prefill",
+            "url": "https://app.way2api.com/documentation/mobile-prefill",
+            "description": "Mobile Prefill API \u2014 Fetch PAN and identity details linked to a mobile number using the subscriber's name. Useful for pre-filling KYC forms, onboarding flows, and identity resolution in lending, insur",
+            "areaServed": [
+                {
+                    "@type": "Country",
+                    "name": "India"
+                }
+            ]
+        },
+        {
+            "@type": "ListItem",
+            "position": 12,
+            "name": "PAN Verification",
+            "url": "https://app.way2api.com/documentation/pan",
+            "description": "PAN Verification API \u2014 Verify a 10-character Permanent Account Number (PAN) issued by the Indian Income Tax Department. Essential for financial KYC, income tax compliance, and onboarding workflows in ",
+            "areaServed": [
+                {
+                    "@type": "Country",
+                    "name": "India"
+                }
+            ]
+        },
+        {
+            "@type": "ListItem",
+            "position": 13,
+            "name": "Voter ID Verification",
+            "url": "https://app.way2api.com/documentation/voter-id",
+            "description": "Voter ID Verification API \u2014 Verify any Indian Voter ID (EPIC) number against Election Commission records in real time. Returns the voter's name, relation name, relation type, gender, age, date of birt",
+            "areaServed": [
+                {
+                    "@type": "Country",
+                    "name": "India"
+                }
+            ]
+        },
+        {
+            "@type": "ListItem",
+            "position": 14,
+            "name": "VPA Validation",
+            "url": "https://app.way2api.com/documentation/vpa-validation",
+            "description": "VPA / UPI Validation API \u2014 Verify any UPI Virtual Payment Address (VPA) in real time and return the registered account holder name. Use this for payout pre-validation, KYC, and fraud-prevention workfl",
+            "areaServed": [
+                {
+                    "@type": "Country",
+                    "name": "India"
+                }
+            ]
+        },
+        {
+            "@type": "ListItem",
+            "position": 15,
+            "name": "Credit Report Equifax",
+            "url": "https://app.way2api.com/documentation/credit-report-equifax",
+            "description": "Credit Report API \u2014 Fetch a detailed credit report (JSON) for an individual using their Aadhaar or PAN number. Returns the credit score and the full credit report data including inquiry details, accou",
+            "areaServed": [
+                {
+                    "@type": "Country",
+                    "name": "India"
+                }
+            ]
+        },
+        {
+            "@type": "ListItem",
+            "position": 16,
+            "name": "Credit Report Equifax PDF",
+            "url": "https://app.way2api.com/documentation/credit-report-equifax-pdf",
+            "description": "Credit Report PDF API \u2014 Fetch the credit report as a downloadable PDF for an individual using their Aadhaar or PAN number. Returns the credit score and a PDF download link for the full credit report. ",
+            "areaServed": [
+                {
+                    "@type": "Country",
+                    "name": "India"
+                }
+            ]
+        },
+        {
+            "@type": "ListItem",
+            "position": 17,
+            "name": "Credit Report Experian",
+            "url": "https://app.way2api.com/documentation/credit-report-experian",
+            "description": "Credit Report Experian API \u2014 pull a full Experian consumer credit report for an individual from their PAN and mobile number, with the individual explicit consent. Returns the bureau score, the applica",
+            "areaServed": [
+                {
+                    "@type": "Country",
+                    "name": "India"
+                }
+            ]
+        },
+        {
+            "@type": "ListItem",
+            "position": 18,
+            "name": "Credit Report Experian PDF",
+            "url": "https://app.way2api.com/documentation/credit-report-experian-pdf",
+            "description": "Credit Report Experian PDF API \u2014 the same Experian bureau enquiry as the JSON endpoint, returning the bureau score and a download URL for the report as a PDF. The URL is served by Way2API, is tied to ",
+            "areaServed": [
+                {
+                    "@type": "Country",
+                    "name": "India"
+                }
+            ]
+        },
+        {
+            "@type": "ListItem",
+            "position": 19,
+            "name": "GST Filing Details",
+            "url": "https://app.way2api.com/documentation/gst-filing-details",
+            "description": "GST Filing Details API \u2014 Every GST return a GSTIN filed in one financial year, read from the government record. Send a GSTIN and a year such as 2023-24 and receive one entry per return: the form (GSTR",
+            "areaServed": [
+                {
+                    "@type": "Country",
+                    "name": "India"
+                }
+            ]
+        },
+        {
+            "@type": "ListItem",
+            "position": 20,
+            "name": "GST Filing Frequency",
+            "url": "https://app.way2api.com/documentation/gst-filing-frequency",
+            "description": "GST Filing Frequency API \u2014 Whether a GSTIN files its returns monthly or quarterly, quarter by quarter, for one financial year. Under the QRMP scheme a small taxpayer may switch preference between quar",
+            "areaServed": [
+                {
+                    "@type": "Country",
+                    "name": "India"
+                }
+            ]
+        },
+        {
+            "@type": "ListItem",
+            "position": 21,
+            "name": "GST Verification",
+            "url": "https://app.way2api.com/documentation/gst",
+            "description": "GST Verification API \u2014 Verify a 15-character GSTIN (Goods &amp; Services Tax Identification Number) registered under India's GST system. Critical for B2B vendor verification, invoice validation, and s",
+            "areaServed": [
+                {
+                    "@type": "Country",
+                    "name": "India"
+                }
+            ]
+        },
+        {
+            "@type": "ListItem",
+            "position": 22,
+            "name": "HSN Code Lookup",
+            "url": "https://app.way2api.com/documentation/hsn-code-lookup",
+            "description": "HSN Code Lookup API \u2014 Validate an HSN code (goods) or SAC code (services) and get what the code actually covers: its official tariff description, the chapter it sits under, the applicable GST rate, th",
+            "areaServed": [
+                {
+                    "@type": "Country",
+                    "name": "India"
+                }
+            ]
+        },
+        {
+            "@type": "ListItem",
+            "position": 23,
+            "name": "TAN Adv",
+            "url": "https://app.way2api.com/documentation/tan-advanced",
+            "description": "TAN Advanced Verification API \u2014 Verify any 10-character TAN (Tax Deduction Account Number) issued by the Income Tax Department. Returns the deductor's full name, allotment date, registered address, em",
+            "areaServed": [
+                {
+                    "@type": "Country",
+                    "name": "India"
+                }
+            ]
+        },
+        {
+            "@type": "ListItem",
+            "position": 24,
+            "name": "DTH Advance Information",
+            "url": "https://app.way2api.com/documentation/dth-info",
+            "description": "DTH Advance Information API \u2014 Pull the full subscriber profile behind a DTH customer ID / VC number. Returns the account name, registered_mobile, current balance, monthly_amount, account status, plan,",
+            "areaServed": [
+                {
+                    "@type": "Country",
+                    "name": "India"
+                }
+            ]
+        },
+        {
+            "@type": "ListItem",
+            "position": 25,
+            "name": "DTH Operator Check",
+            "url": "https://app.way2api.com/documentation/dth-operator-check",
+            "description": "DTH Operator Check API \u2014 Identify which DTH operator a subscriber / customer ID belongs to, without asking the customer. Returns the machine-readable operator slug (e.g. sun_direct) plus the display o",
+            "areaServed": [
+                {
+                    "@type": "Country",
+                    "name": "India"
+                }
+            ]
+        },
+        {
+            "@type": "ListItem",
+            "position": 26,
+            "name": "Last Mobile Recharge Status",
+            "url": "https://app.way2api.com/documentation/mobile-last-recharge",
+            "description": "Last Mobile Recharge Status API \u2014 Check when a prepaid mobile number was last recharged and for how much. Returns the last recharge amount and recharge_date. Useful for recharge reminders, churn and d",
+            "areaServed": [
+                {
+                    "@type": "Country",
+                    "name": "India"
+                }
+            ]
+        },
+        {
+            "@type": "ListItem",
+            "position": 27,
+            "name": "Mobile R-Offer Fetch",
+            "url": "https://app.way2api.com/documentation/mobile-r-offer",
+            "description": "Mobile R-Offer Fetch API \u2014 Retrieve the R-Offers (special, number-specific recharge offers) that a telecom operator has loaded against one prepaid mobile number. Unlike a generic plan list, R-Offers a",
+            "areaServed": [
+                {
+                    "@type": "Country",
+                    "name": "India"
+                }
+            ]
+        },
+        {
+            "@type": "ListItem",
+            "position": 28,
+            "name": "Operator and Circle Check",
+            "url": "https://app.way2api.com/documentation/operator-circle",
+            "description": "Operator Circle Lookup API \u2014 Instantly identify the telecom operator (Jio, Airtel, Vi, BSNL, etc.) and service circle/zone for any 10-digit Indian mobile number. Essential for mobile recharge platform",
+            "areaServed": [
+                {
+                    "@type": "Country",
+                    "name": "India"
+                }
+            ]
+        },
+        {
+            "@type": "ListItem",
+            "position": 29,
+            "name": "Send OTP/PIN by SMS",
+            "url": "https://app.way2api.com/documentation/send-otp-pin-sms",
+            "description": "Send a transactional OTP or PIN SMS to a mobile number worldwide via Text SMS. Supports strict purpose and share_with validation.",
+            "areaServed": "Worldwide"
+        },
+        {
+            "@type": "ListItem",
+            "position": 30,
+            "name": "DNS Lookup",
+            "url": "https://app.way2api.com/documentation/dns-lookup",
+            "description": "DNS Lookup API \u2014 live DNS records for a hostname, resolved at request time rather than served from a cache. Supports A, AAAA, MX, NS, SOA, TXT, SPF and CNAME; omit record_type to fetch every type in o",
+            "areaServed": "Worldwide"
+        },
+        {
+            "@type": "ListItem",
+            "position": 31,
+            "name": "Domain Availability",
+            "url": "https://app.way2api.com/documentation/domain-availability-check-v2",
+            "description": "Domain Availability API \u2014 check whether a domain name is free to register. Answered from DNS by default, which is fast and accurate for the vast majority of names; pass source = whois for a registry-a",
+            "areaServed": "Worldwide"
+        },
+        {
+            "@type": "ListItem",
+            "position": 32,
+            "name": "Domain Availability Check",
+            "url": "https://app.way2api.com/documentation/domain-availability-check-v1",
+            "description": "Domain Check API \u2014 Look up the registration status and availability of any domain name. Returns domain registration details including registrar, creation date, and expiration date. Useful for domain r",
+            "areaServed": "Worldwide"
+        },
+        {
+            "@type": "ListItem",
+            "position": 33,
+            "name": "Domain Whois",
+            "url": "https://app.way2api.com/documentation/domain-whois-lookup-v1",
+            "description": "Domain WHOIS Lookup API \u2014 Retrieve comprehensive WHOIS registration information for any domain name. Returns registrar details, registration/expiry dates, registrant contact, administrative and techni",
+            "areaServed": "Worldwide"
+        },
+        {
+            "@type": "ListItem",
+            "position": 34,
+            "name": "Domain WHOIS Lookup",
+            "url": "https://app.way2api.com/documentation/domain-whois-lookup-v2",
+            "description": "Domain WHOIS Lookup API \u2014 live registry WHOIS for any domain. Returns registration dates (created, updated, expires), the registrar with its IANA ID and abuse contact, the full registrant contact \u2014 or",
+            "areaServed": "Worldwide"
+        },
+        {
+            "@type": "ListItem",
+            "position": 35,
+            "name": "SSL Certificate Lookup",
+            "url": "https://app.way2api.com/documentation/ssl-lookup",
+            "description": "SSL Certificate Lookup API \u2014 fetches the live TLS certificate chain presented by a domain. Each certificate reports its validity window, serial number, signature algorithm, subject and issuer, public-",
+            "areaServed": "Worldwide"
+        },
+        {
+            "@type": "ListItem",
+            "position": 36,
+            "name": "Subdomains Lookup",
+            "url": "https://app.way2api.com/documentation/subdomain-lookup",
+            "description": "Subdomains Lookup API \u2014 discovers subdomains observed for a domain, each with first_seen and last_seen dates so you can tell live infrastructure from historical records. Results are paginated: read to",
+            "areaServed": "Worldwide"
+        },
+        {
+            "@type": "ListItem",
+            "position": 37,
+            "name": "Aadhaar PAN Link Check",
+            "url": "https://app.way2api.com/documentation/aadhaar-pan-link-check",
+            "description": "Aadhaar\u2013PAN Link Check API \u2014 Check whether a given Aadhaar number is linked to a PAN card as mandated by the Income Tax Department. Returns the masked PAN, linking status, and reason. Essential for ta",
+            "areaServed": [
+                {
+                    "@type": "Country",
+                    "name": "India"
+                }
+            ]
+        },
+        {
+            "@type": "ListItem",
+            "position": 38,
+            "name": "Vehicle RC PDF",
+            "url": "https://app.way2api.com/documentation/vehicle-rc-pdf",
+            "description": "Vehicle RC PDF API \u2014 Turn a vehicle registration number into a printable Registration Certificate (RC) document. Send the registration number and receive a pdf_url pointing at a ready-to-print smart-c",
+            "areaServed": [
+                {
+                    "@type": "Country",
+                    "name": "India"
+                }
+            ]
+        },
+        {
+            "@type": "ListItem",
+            "position": 39,
+            "name": "Vehicle RC Text and PDF",
+            "url": "https://app.way2api.com/documentation/vehicle-rc-text-pdf",
+            "description": "Vehicle RC Text and PDF API \u2014 The Registration Certificate (RC) for a vehicle returned both ways in a single call: the full RC record as JSON, and a pdf_url pointing at a ready-to-print smart-card / A",
+            "areaServed": [
+                {
+                    "@type": "Country",
+                    "name": "India"
+                }
+            ]
+        },
+        {
+            "@type": "ListItem",
+            "position": 40,
+            "name": "Vehicle RC Verification",
+            "url": "https://app.way2api.com/documentation/vehicle-rc",
+            "description": "Vehicle RC Verification API \u2014 Fetch full Registration Certificate (RC) details for any Indian vehicle using its registration number. Returns comprehensive vehicle information including owner name, veh",
+            "areaServed": [
+                {
+                    "@type": "Country",
+                    "name": "India"
+                }
+            ]
+        },
+        {
+            "@type": "ListItem",
+            "position": 41,
+            "name": "Bulk Email Validation",
+            "url": "https://app.way2api.com/documentation/email-validation-bulk",
+            "description": "Bulk Email Validation API \u2014 the same deliverability check as Email Validation, for up to 100 addresses in a single billable call. Every entry in results has exactly the shape a single-address lookup r",
+            "areaServed": "Worldwide"
+        },
+        {
+            "@type": "ListItem",
+            "position": 42,
+            "name": "Email Validation",
+            "url": "https://app.way2api.com/documentation/email-validation",
+            "description": "Email Validation API \u2014 checks whether an address can actually receive mail, without sending one. result is a single verdict you can switch on: valid, invalid, invalid_syntax, risky or unknown, with is",
+            "areaServed": "Worldwide"
+        }
+    ]
+}        </script>
+    
+        <link rel="stylesheet" href="https://app.way2api.com/assets/css/docs.css?v=1787762718">
+    <script>
+        window.W2A_DOCS = {"appName":"Way2API\u00ae","canonical":"https://app.way2api.com/documentation","slugs":["currency-rates","ip-threat-bulk","ip-check-v1","ip-check-advance","ip-geolocation-full","ip-geolocation","ip-threat","ip-whois","bank-account-validation","driving-license","mobile-prefill","pan","voter-id","vpa-validation","credit-report-equifax","credit-report-equifax-pdf","credit-report-experian","credit-report-experian-pdf","gst-filing-details","gst-filing-frequency","gst","hsn-code-lookup","tan-advanced","dth-info","dth-operator-check","mobile-last-recharge","mobile-r-offer","operator-circle","send-otp-pin-sms","dns-lookup","domain-availability-check-v2","domain-availability-check-v1","domain-whois-lookup-v1","domain-whois-lookup-v2","ssl-lookup","subdomain-lookup","aadhaar-pan-link-check","vehicle-rc-pdf","vehicle-rc-text-pdf","vehicle-rc","email-validation-bulk","email-validation"]};
+    </script>
+    <!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-531EY9TP7F"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){ dataLayer.push(arguments); }
+  gtag('js', new Date());
+  gtag('config', 'G-531EY9TP7F');
+</script>
+</head>
+
+<body>
+
+        <div class="sidebar-backdrop" aria-hidden="true"></div>
+    <button type="button" class="mobile-toggle" aria-label="Open navigation"
+            aria-expanded="false" aria-controls="docsSidebar">
+        <svg class="mt-bars" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+        <svg class="mt-x" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6 6l12 12M18 6L6 18" />
+        </svg>
+    </button>
+<aside class="sidebar" id="docsSidebar">
+    <div class="brand">
+        <a href="/documentation"><img src="https://app.way2api.com/assets/media/app/light_logo.png" alt="Way2API®"></a>
+    </div>
+
+    <div class="nav-group">
+        <div class="nav-label">Getting Started</div>
+        <a href="/documentation" class="nav-link active">All APIs</a>
+        <a href="/documentation#authentication" class="nav-link">Authentication</a>
+        <a href="/documentation#status-codes" class="nav-link">Status Codes</a>
+        <a href="/documentation#response-format" class="nav-link">Response Format</a>
+        <a href="/documentation#billing" class="nav-link">When You Are Charged</a>
+    </div>
+
+                    <div class="nav-group">
+            <div class="nav-label">Financial APIs</div>
+                            <a href="/documentation/currency-rates" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> Currency Exchange Rates                </a>
+                    </div>
+                    <div class="nav-group">
+            <div class="nav-label">IP and Network Intelligence APIs</div>
+                            <a href="/documentation/ip-threat-bulk" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> Bulk IP Threat Intelligence                </a>
+                            <a href="/documentation/ip-check-v1" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> IP Check                </a>
+                            <a href="/documentation/ip-check-advance" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> IP Check Advance                </a>
+                            <a href="/documentation/ip-geolocation-full" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> IP Geolocation Enrichment                </a>
+                            <a href="/documentation/ip-geolocation" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> IP Geolocation Lookup                </a>
+                            <a href="/documentation/ip-threat" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> IP Threat Intelligence                </a>
+                            <a href="/documentation/ip-whois" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> IP WHOIS Lookup                </a>
+                    </div>
+                    <div class="nav-group">
+            <div class="nav-label">Identity and Security APIs</div>
+                            <a href="/documentation/bank-account-validation" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> Bank Account Validation                </a>
+                            <a href="/documentation/driving-license" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> Driving License Verify                </a>
+                            <a href="/documentation/mobile-prefill" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> Mobile Prefill                </a>
+                            <a href="/documentation/pan" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> PAN Verification                </a>
+                            <a href="/documentation/voter-id" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> Voter ID Verification                </a>
+                            <a href="/documentation/vpa-validation" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> VPA Validation                </a>
+                    </div>
+                    <div class="nav-group">
+            <div class="nav-label">Business APIs</div>
+                            <a href="/documentation/credit-report-equifax" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> Credit Report Equifax                </a>
+                            <a href="/documentation/credit-report-equifax-pdf" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> Credit Report Equifax PDF                </a>
+                            <a href="/documentation/credit-report-experian" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> Credit Report Experian                </a>
+                            <a href="/documentation/credit-report-experian-pdf" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> Credit Report Experian PDF                </a>
+                            <a href="/documentation/gst-filing-details" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> GST Filing Details                </a>
+                            <a href="/documentation/gst-filing-frequency" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> GST Filing Frequency                </a>
+                            <a href="/documentation/gst" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> GST Verification                </a>
+                            <a href="/documentation/hsn-code-lookup" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> HSN Code Lookup                </a>
+                            <a href="/documentation/tan-advanced" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> TAN Adv                </a>
+                    </div>
+                    <div class="nav-group">
+            <div class="nav-label">Telecom APIs</div>
+                            <a href="/documentation/dth-info" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> DTH Advance Information                </a>
+                            <a href="/documentation/dth-operator-check" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> DTH Operator Check                </a>
+                            <a href="/documentation/mobile-last-recharge" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> Last Mobile Recharge Status                </a>
+                            <a href="/documentation/mobile-r-offer" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> Mobile R-Offer Fetch                </a>
+                            <a href="/documentation/operator-circle" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> Operator and Circle Check                </a>
+                            <a href="/documentation/send-otp-pin-sms" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> Send OTP/PIN by SMS                </a>
+                    </div>
+                    <div class="nav-group">
+            <div class="nav-label">Domain Intelligence and Analysis APIs</div>
+                            <a href="/documentation/dns-lookup" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> DNS Lookup                </a>
+                            <a href="/documentation/domain-availability-check-v2" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> Domain Availability                </a>
+                            <a href="/documentation/domain-availability-check-v1" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> Domain Availability Check                </a>
+                            <a href="/documentation/domain-whois-lookup-v1" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> Domain Whois                </a>
+                            <a href="/documentation/domain-whois-lookup-v2" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> Domain WHOIS Lookup                </a>
+                            <a href="/documentation/ssl-lookup" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> SSL Certificate Lookup                </a>
+                            <a href="/documentation/subdomain-lookup" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> Subdomains Lookup                </a>
+                    </div>
+                    <div class="nav-group">
+            <div class="nav-label">Verification APIs</div>
+                            <a href="/documentation/aadhaar-pan-link-check" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> Aadhaar PAN Link Check                </a>
+                            <a href="/documentation/vehicle-rc-pdf" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> Vehicle RC PDF                </a>
+                            <a href="/documentation/vehicle-rc-text-pdf" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> Vehicle RC Text and PDF                </a>
+                            <a href="/documentation/vehicle-rc" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> Vehicle RC Verification                </a>
+                    </div>
+                    <div class="nav-group">
+            <div class="nav-label">Utilities APIs</div>
+                            <a href="/documentation/email-validation-bulk" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> Bulk Email Validation                </a>
+                            <a href="/documentation/email-validation" class="nav-link">
+                    <span class="method-badge badge-post">POST</span> Email Validation                </a>
+                    </div>
+    
+    <div class="nav-group">
+        <div class="nav-label">Reference</div>
+        <a href="/documentation#errors" class="nav-link">Error Handling</a>
+        <a href="/documentation#notes" class="nav-link">Notes &amp; Info</a>
+    </div>
+</aside>
+
+<div class="main">
+
+    <div class="docs-topbar">
+            <span class="du-note">Sign in to grab your API key &mdash; or create a free account.</span>
+        <a class="du-btn du-btn-ghost" href="/login">Sign In</a>
+        <a class="du-btn du-btn-primary" href="/register">Get Started</a>
+    </div>
+
+    <div class="hero">
+        <h1><span>Way2API®</span> &mdash; API Reference <span style="font-size:13px;font-weight:400;color:var(--muted);vertical-align:middle;margin-left:6px;">v2.32.0</span></h1>
+        <p>Complete API reference for 42 verification &amp; utility services &mdash; all from a single integration point. Pick an API below for its parameters, responses, error codes and runnable examples.</p>
+        <div class="base-url">
+            <span style="color:var(--muted)">Base URL:</span>
+            <code id="baseUrl">https://app.way2api.com/api/v1</code>
+            <button class="copy-btn" onclick="copyText(document.getElementById('baseUrl').textContent)">Copy</button>
+        </div>
+    </div>
+
+    <div class="content">
+
+        <!-- ── Catalogue ── -->
+        <div class="section" id="catalogue">
+            <h2>
+                <div class="dot" style="background:var(--accent)"></div> All APIs <span class="cat-count">42</span>
+            </h2>
+            <p class="desc">Every endpoint accepts JSON request bodies, returns structured JSON, and authenticates with a single Bearer key.</p>
+
+            <input type="search" id="docSearch" class="doc-search" placeholder="Search APIs — name, category or path…" aria-label="Search APIs" autocomplete="off">
+            <p class="doc-search-empty" id="docSearchEmpty" style="display:none">No API matches that search.</p>
+
+                                            <div class="cat-group">
+                    <div class="cat-group-title">Financial <span class="cat-count">1</span></div>
+                    <div class="cat-grid">
+                                                    <a class="cat-card" href="/documentation/currency-rates" data-search="currency exchange rates financial /api/v1/currency/rates currency_rates currency exchange rates api — latest exchange rates for a base currency, refreshed continuously. defaults to a usd base against ev…">
+                                <div class="cat-card-head">
+                                    <span class="method-badge badge-post">POST</span>
+                                    <span class="cat-card-name">Currency Exchange Rates</span>
+                                                                    </div>
+                                <code class="cat-card-path">/api/v1/currency/rates</code>
+                                                                    <p class="cat-card-desc">Currency Exchange Rates API — latest exchange rates for a base currency, refreshed continuously. Defaults to a USD base against ev…</p>
+                                                            </a>
+                                            </div>
+                </div>
+                                            <div class="cat-group">
+                    <div class="cat-group-title">IP and Network Intelligence <span class="cat-count">7</span></div>
+                    <div class="cat-grid">
+                                                    <a class="cat-card" href="/documentation/ip-threat-bulk" data-search="bulk ip threat intelligence ip and network intelligence /api/v1/ip/threat/bulk ip_threat_bulk bulk ip threat intelligence api — the same risk signals as ip threat intelligence, for up to 100 addresses in a single billable ca…">
+                                <div class="cat-card-head">
+                                    <span class="method-badge badge-post">POST</span>
+                                    <span class="cat-card-name">Bulk IP Threat Intelligence</span>
+                                                                    </div>
+                                <code class="cat-card-path">/api/v1/ip/threat/bulk</code>
+                                                                    <p class="cat-card-desc">Bulk IP Threat Intelligence API — the same risk signals as IP Threat Intelligence, for up to 100 addresses in a single billable ca…</p>
+                                                            </a>
+                                                    <a class="cat-card" href="/documentation/ip-check-v1" data-search="ip check ip and network intelligence /api/v1/ip/check ip_check look up geolocation, isp, and network information for any public ipv4 or ipv6 address.">
+                                <div class="cat-card-head">
+                                    <span class="method-badge badge-post">POST</span>
+                                    <span class="cat-card-name">IP Check</span>
+                                                                    </div>
+                                <code class="cat-card-path">/api/v1/ip/check</code>
+                                                                    <p class="cat-card-desc">Look up geolocation, ISP, and network information for any public IPv4 or IPv6 address.</p>
+                                                            </a>
+                                                    <a class="cat-card" href="/documentation/ip-check-advance" data-search="ip check advance ip and network intelligence /api/v1/ip/check_advance ip_check_advance ip check advance api — deep ip intelligence for any ipv4 or ipv6 address. beyond basic geolocation (city, country, coordinates, ti…">
+                                <div class="cat-card-head">
+                                    <span class="method-badge badge-post">POST</span>
+                                    <span class="cat-card-name">IP Check Advance</span>
+                                                                    </div>
+                                <code class="cat-card-path">/api/v1/ip/check_advance</code>
+                                                                    <p class="cat-card-desc">IP Check Advance API — Deep IP intelligence for any IPv4 or IPv6 address. Beyond basic geolocation (city, country, coordinates, ti…</p>
+                                                            </a>
+                                                    <a class="cat-card" href="/documentation/ip-geolocation-full" data-search="ip geolocation enrichment ip and network intelligence /api/v1/ip/geolocation/full ip_geolocation_full ip geolocation enrichment api — everything ip geolocation returns, plus the full threat-intelligence block (threat score, tor / pr…">
+                                <div class="cat-card-head">
+                                    <span class="method-badge badge-post">POST</span>
+                                    <span class="cat-card-name">IP Geolocation Enrichment</span>
+                                                                    </div>
+                                <code class="cat-card-path">/api/v1/ip/geolocation/full</code>
+                                                                    <p class="cat-card-desc">IP Geolocation Enrichment API — everything IP Geolocation returns, plus the full threat-intelligence block (threat score, Tor / pr…</p>
+                                                            </a>
+                                                    <a class="cat-card" href="/documentation/ip-geolocation" data-search="ip geolocation lookup ip and network intelligence /api/v1/ip/geolocation ip_geolocation ip geolocation api — locate an ipv4 or ipv6 address and describe the network behind it. returns continent, country, state, distric…">
+                                <div class="cat-card-head">
+                                    <span class="method-badge badge-post">POST</span>
+                                    <span class="cat-card-name">IP Geolocation Lookup</span>
+                                                                    </div>
+                                <code class="cat-card-path">/api/v1/ip/geolocation</code>
+                                                                    <p class="cat-card-desc">IP Geolocation API — locate an IPv4 or IPv6 address and describe the network behind it. Returns continent, country, state, distric…</p>
+                                                            </a>
+                                                    <a class="cat-card" href="/documentation/ip-threat" data-search="ip threat intelligence ip and network intelligence /api/v1/ip/threat ip_threat ip threat intelligence api — real-time risk signals for an ipv4 or ipv6 address. returns a threat_score from 0 to 100 (higher is r…">
+                                <div class="cat-card-head">
+                                    <span class="method-badge badge-post">POST</span>
+                                    <span class="cat-card-name">IP Threat Intelligence</span>
+                                                                    </div>
+                                <code class="cat-card-path">/api/v1/ip/threat</code>
+                                                                    <p class="cat-card-desc">IP Threat Intelligence API — real-time risk signals for an IPv4 or IPv6 address. Returns a threat_score from 0 to 100 (higher is r…</p>
+                                                            </a>
+                                                    <a class="cat-card" href="/documentation/ip-whois" data-search="ip whois lookup ip and network intelligence /api/v1/ip/whois ip_whois ip whois lookup api — live registration data for an ipv4 or ipv6 address, straight from the regional internet registry that alloca…">
+                                <div class="cat-card-head">
+                                    <span class="method-badge badge-post">POST</span>
+                                    <span class="cat-card-name">IP WHOIS Lookup</span>
+                                                                    </div>
+                                <code class="cat-card-path">/api/v1/ip/whois</code>
+                                                                    <p class="cat-card-desc">IP WHOIS Lookup API — live registration data for an IPv4 or IPv6 address, straight from the Regional Internet Registry that alloca…</p>
+                                                            </a>
+                                            </div>
+                </div>
+                                            <div class="cat-group">
+                    <div class="cat-group-title">Identity and Security <span class="cat-count">6</span></div>
+                    <div class="cat-grid">
+                                                    <a class="cat-card" href="/documentation/bank-account-validation" data-search="bank account validation identity and security /api/v1/bank/account_validation bank_account_validation bank account verification api — instantly verify indian bank account details. returns the account holder name and account status f…">
+                                <div class="cat-card-head">
+                                    <span class="method-badge badge-post">POST</span>
+                                    <span class="cat-card-name">Bank Account Validation</span>
+                                                                    </div>
+                                <code class="cat-card-path">/api/v1/bank/account_validation</code>
+                                                                    <p class="cat-card-desc">Bank Account Verification API — Instantly verify Indian bank account details. Returns the account holder name and account status f…</p>
+                                                            </a>
+                                                    <a class="cat-card" href="/documentation/driving-license" data-search="driving license verify identity and security /api/v1/driving-license/verify dl_verify driving license verification api — verify any indian driving license number with date of birth against government rto records in r…">
+                                <div class="cat-card-head">
+                                    <span class="method-badge badge-post">POST</span>
+                                    <span class="cat-card-name">Driving License Verify</span>
+                                                                    </div>
+                                <code class="cat-card-path">/api/v1/driving-license/verify</code>
+                                                                    <p class="cat-card-desc">Driving License Verification API — Verify any Indian driving license number with date of birth against government RTO records in r…</p>
+                                                            </a>
+                                                    <a class="cat-card" href="/documentation/mobile-prefill" data-search="mobile prefill identity and security /api/v1/mobile/prefill mobile_prefill mobile prefill api — fetch pan and identity details linked to a mobile number using the subscriber&#039;s name. useful for pre-filling …">
+                                <div class="cat-card-head">
+                                    <span class="method-badge badge-post">POST</span>
+                                    <span class="cat-card-name">Mobile Prefill</span>
+                                                                    </div>
+                                <code class="cat-card-path">/api/v1/mobile/prefill</code>
+                                                                    <p class="cat-card-desc">Mobile Prefill API — Fetch PAN and identity details linked to a mobile number using the subscriber&#039;s name. Useful for pre-filling …</p>
+                                                            </a>
+                                                    <a class="cat-card" href="/documentation/pan" data-search="pan verification identity and security /api/v1/pan/verify pan_verify pan verification api — verify a 10-character permanent account number (pan) issued by the indian income tax department. essential …">
+                                <div class="cat-card-head">
+                                    <span class="method-badge badge-post">POST</span>
+                                    <span class="cat-card-name">PAN Verification</span>
+                                                                    </div>
+                                <code class="cat-card-path">/api/v1/pan/verify</code>
+                                                                    <p class="cat-card-desc">PAN Verification API — Verify a 10-character Permanent Account Number (PAN) issued by the Indian Income Tax Department. Essential …</p>
+                                                            </a>
+                                                    <a class="cat-card" href="/documentation/voter-id" data-search="voter id verification identity and security /api/v1/voter-id/verify voterid_verify voter id verification api — verify any indian voter id (epic) number against election commission records in real time. returns the…">
+                                <div class="cat-card-head">
+                                    <span class="method-badge badge-post">POST</span>
+                                    <span class="cat-card-name">Voter ID Verification</span>
+                                                                    </div>
+                                <code class="cat-card-path">/api/v1/voter-id/verify</code>
+                                                                    <p class="cat-card-desc">Voter ID Verification API — Verify any Indian Voter ID (EPIC) number against Election Commission records in real time. Returns the…</p>
+                                                            </a>
+                                                    <a class="cat-card" href="/documentation/vpa-validation" data-search="vpa validation identity and security /api/v1/upi/vpa_validation vpa_upi_validate vpa / upi validation api — verify any upi virtual payment address (vpa) in real time and return the registered account holder name…">
+                                <div class="cat-card-head">
+                                    <span class="method-badge badge-post">POST</span>
+                                    <span class="cat-card-name">VPA Validation</span>
+                                                                    </div>
+                                <code class="cat-card-path">/api/v1/upi/vpa_validation</code>
+                                                                    <p class="cat-card-desc">VPA / UPI Validation API — Verify any UPI Virtual Payment Address (VPA) in real time and return the registered account holder name…</p>
+                                                            </a>
+                                            </div>
+                </div>
+                                            <div class="cat-group">
+                    <div class="cat-group-title">Business <span class="cat-count">9</span></div>
+                    <div class="cat-grid">
+                                                    <a class="cat-card" href="/documentation/credit-report-equifax" data-search="credit report equifax business /api/v1/credit-report/fetch credit_report credit report api — fetch a detailed credit report (json) for an individual using their aadhaar or pan number. returns the credit …">
+                                <div class="cat-card-head">
+                                    <span class="method-badge badge-post">POST</span>
+                                    <span class="cat-card-name">Credit Report Equifax</span>
+                                                                    </div>
+                                <code class="cat-card-path">/api/v1/credit-report/fetch</code>
+                                                                    <p class="cat-card-desc">Credit Report API — Fetch a detailed credit report (JSON) for an individual using their Aadhaar or PAN number. Returns the credit …</p>
+                                                            </a>
+                                                    <a class="cat-card" href="/documentation/credit-report-equifax-pdf" data-search="credit report equifax pdf business /api/v1/credit-report/pdf credit_report_pdf credit report pdf api — fetch the credit report as a downloadable pdf for an individual using their aadhaar or pan number. returns…">
+                                <div class="cat-card-head">
+                                    <span class="method-badge badge-post">POST</span>
+                                    <span class="cat-card-name">Credit Report Equifax PDF</span>
+                                                                    </div>
+                                <code class="cat-card-path">/api/v1/credit-report/pdf</code>
+                                                                    <p class="cat-card-desc">Credit Report PDF API — Fetch the credit report as a downloadable PDF for an individual using their Aadhaar or PAN number. Returns…</p>
+                                                            </a>
+                                                    <a class="cat-card" href="/documentation/credit-report-experian" data-search="credit report experian business /api/v1/credit-report-experian/fetch-report credit_report_experian credit report experian api — pull a full experian consumer credit report for an individual from their pan and mobile number, with …">
+                                <div class="cat-card-head">
+                                    <span class="method-badge badge-post">POST</span>
+                                    <span class="cat-card-name">Credit Report Experian</span>
+                                                                    </div>
+                                <code class="cat-card-path">/api/v1/credit-report-experian/fetch-report</code>
+                                                                    <p class="cat-card-desc">Credit Report Experian API — pull a full Experian consumer credit report for an individual from their PAN and mobile number, with …</p>
+                                                            </a>
+                                                    <a class="cat-card" href="/documentation/credit-report-experian-pdf" data-search="credit report experian pdf business /api/v1/credit-report-experian/fetch-report-pdf credit_report_experian_pdf credit report experian pdf api — the same experian bureau enquiry as the json endpoint, returning the bureau score and a download …">
+                                <div class="cat-card-head">
+                                    <span class="method-badge badge-post">POST</span>
+                                    <span class="cat-card-name">Credit Report Experian PDF</span>
+                                                                    </div>
+                                <code class="cat-card-path">/api/v1/credit-report-experian/fetch-report-pdf</code>
+                                                                    <p class="cat-card-desc">Credit Report Experian PDF API — the same Experian bureau enquiry as the JSON endpoint, returning the bureau score and a download …</p>
+                                                            </a>
+                                                    <a class="cat-card" href="/documentation/gst-filing-details" data-search="gst filing details business /api/v1/gst/filing-details gst_filing_details gst filing details api — every gst return a gstin filed in one financial year, read from the government record. send a gstin and a…">
+                                <div class="cat-card-head">
+                                    <span class="method-badge badge-post">POST</span>
+                                    <span class="cat-card-name">GST Filing Details</span>
+                                                                    </div>
+                                <code class="cat-card-path">/api/v1/gst/filing-details</code>
+                                                                    <p class="cat-card-desc">GST Filing Details API — Every GST return a GSTIN filed in one financial year, read from the government record. Send a GSTIN and a…</p>
+                                                            </a>
+                                                    <a class="cat-card" href="/documentation/gst-filing-frequency" data-search="gst filing frequency business /api/v1/gst/filing-frequency gst_filing_frequency gst filing frequency api — whether a gstin files its returns monthly or quarterly, quarter by quarter, for one financial year. und…">
+                                <div class="cat-card-head">
+                                    <span class="method-badge badge-post">POST</span>
+                                    <span class="cat-card-name">GST Filing Frequency</span>
+                                                                    </div>
+                                <code class="cat-card-path">/api/v1/gst/filing-frequency</code>
+                                                                    <p class="cat-card-desc">GST Filing Frequency API — Whether a GSTIN files its returns monthly or quarterly, quarter by quarter, for one financial year. Und…</p>
+                                                            </a>
+                                                    <a class="cat-card" href="/documentation/gst" data-search="gst verification business /api/v1/gst/verify gst_verify gst verification api — verify a 15-character gstin (goods &amp; services tax identification number) registered under india&#039;s gst syste…">
+                                <div class="cat-card-head">
+                                    <span class="method-badge badge-post">POST</span>
+                                    <span class="cat-card-name">GST Verification</span>
+                                                                    </div>
+                                <code class="cat-card-path">/api/v1/gst/verify</code>
+                                                                    <p class="cat-card-desc">GST Verification API — Verify a 15-character GSTIN (Goods &amp; Services Tax Identification Number) registered under India&#039;s GST syste…</p>
+                                                            </a>
+                                                    <a class="cat-card" href="/documentation/hsn-code-lookup" data-search="hsn code lookup business /api/v1/gst/hsn-code hsn_code_details hsn code lookup api — validate an hsn code (goods) or sac code (services) and get what the code actually covers: its official tari…">
+                                <div class="cat-card-head">
+                                    <span class="method-badge badge-post">POST</span>
+                                    <span class="cat-card-name">HSN Code Lookup</span>
+                                                                    </div>
+                                <code class="cat-card-path">/api/v1/gst/hsn-code</code>
+                                                                    <p class="cat-card-desc">HSN Code Lookup API — Validate an HSN code (goods) or SAC code (services) and get what the code actually covers: its official tari…</p>
+                                                            </a>
+                                                    <a class="cat-card" href="/documentation/tan-advanced" data-search="tan adv business /api/v1/tan/fetch_adv tan_adv tan advanced verification api — verify any 10-character tan (tax deduction account number) issued by the income tax department. re…">
+                                <div class="cat-card-head">
+                                    <span class="method-badge badge-post">POST</span>
+                                    <span class="cat-card-name">TAN Adv</span>
+                                                                    </div>
+                                <code class="cat-card-path">/api/v1/tan/fetch_adv</code>
+                                                                    <p class="cat-card-desc">TAN Advanced Verification API — Verify any 10-character TAN (Tax Deduction Account Number) issued by the Income Tax Department. Re…</p>
+                                                            </a>
+                                            </div>
+                </div>
+                                            <div class="cat-group">
+                    <div class="cat-group-title">Telecom <span class="cat-count">6</span></div>
+                    <div class="cat-grid">
+                                                    <a class="cat-card" href="/documentation/dth-info" data-search="dth advance information telecom /api/v1/dth/info dth_info_advance dth advance information api — pull the full subscriber profile behind a dth customer id / vc number. returns the account name, reg…">
+                                <div class="cat-card-head">
+                                    <span class="method-badge badge-post">POST</span>
+                                    <span class="cat-card-name">DTH Advance Information</span>
+                                                                    </div>
+                                <code class="cat-card-path">/api/v1/dth/info</code>
+                                                                    <p class="cat-card-desc">DTH Advance Information API — Pull the full subscriber profile behind a DTH customer ID / VC number. Returns the account name, reg…</p>
+                                                            </a>
+                                                    <a class="cat-card" href="/documentation/dth-operator-check" data-search="dth operator check telecom /api/v1/dth/operator-check dth_operator_check dth operator check api — identify which dth operator a subscriber / customer id belongs to, without asking the customer. returns t…">
+                                <div class="cat-card-head">
+                                    <span class="method-badge badge-post">POST</span>
+                                    <span class="cat-card-name">DTH Operator Check</span>
+                                                                    </div>
+                                <code class="cat-card-path">/api/v1/dth/operator-check</code>
+                                                                    <p class="cat-card-desc">DTH Operator Check API — Identify which DTH operator a subscriber / customer ID belongs to, without asking the customer. Returns t…</p>
+                                                            </a>
+                                                    <a class="cat-card" href="/documentation/mobile-last-recharge" data-search="last mobile recharge status telecom /api/v1/mobile/last-recharge mobile_last_recharge last mobile recharge status api — check when a prepaid mobile number was last recharged and for how much. returns the last recharg…">
+                                <div class="cat-card-head">
+                                    <span class="method-badge badge-post">POST</span>
+                                    <span class="cat-card-name">Last Mobile Recharge Status</span>
+                                                                    </div>
+                                <code class="cat-card-path">/api/v1/mobile/last-recharge</code>
+                                                                    <p class="cat-card-desc">Last Mobile Recharge Status API — Check when a prepaid mobile number was last recharged and for how much. Returns the last recharg…</p>
+                                                            </a>
+                                                    <a class="cat-card" href="/documentation/mobile-r-offer" data-search="mobile r-offer fetch telecom /api/v1/mobile/r-offer mobile_roffer_fetch mobile r-offer fetch api — retrieve the r-offers (special, number-specific recharge offers) that a telecom operator has loaded aga…">
+                                <div class="cat-card-head">
+                                    <span class="method-badge badge-post">POST</span>
+                                    <span class="cat-card-name">Mobile R-Offer Fetch</span>
+                                                                    </div>
+                                <code class="cat-card-path">/api/v1/mobile/r-offer</code>
+                                                                    <p class="cat-card-desc">Mobile R-Offer Fetch API — Retrieve the R-Offers (special, number-specific recharge offers) that a telecom operator has loaded aga…</p>
+                                                            </a>
+                                                    <a class="cat-card" href="/documentation/operator-circle" data-search="operator and circle check telecom /api/v1/operator-circle/check operator_circle_check operator circle lookup api — instantly identify the telecom operator (jio, airtel, vi, bsnl, etc.) and service circle/zone for any…">
+                                <div class="cat-card-head">
+                                    <span class="method-badge badge-post">POST</span>
+                                    <span class="cat-card-name">Operator and Circle Check</span>
+                                                                    </div>
+                                <code class="cat-card-path">/api/v1/operator-circle/check</code>
+                                                                    <p class="cat-card-desc">Operator Circle Lookup API — Instantly identify the telecom operator (Jio, Airtel, Vi, BSNL, etc.) and service circle/zone for any…</p>
+                                                            </a>
+                                                    <a class="cat-card" href="/documentation/send-otp-pin-sms" data-search="send otp/pin by sms telecom /api/v1/aws/send_otp-pin send_otppin_sms send a transactional otp or pin sms to a mobile number worldwide via text sms. supports strict purpose and share_with validation.">
+                                <div class="cat-card-head">
+                                    <span class="method-badge badge-post">POST</span>
+                                    <span class="cat-card-name">Send OTP/PIN by SMS</span>
+                                                                    </div>
+                                <code class="cat-card-path">/api/v1/aws/send_otp-pin</code>
+                                                                    <p class="cat-card-desc">Send a transactional OTP or PIN SMS to a mobile number worldwide via Text SMS. Supports strict purpose and share_with validation.</p>
+                                                            </a>
+                                            </div>
+                </div>
+                                            <div class="cat-group">
+                    <div class="cat-group-title">Domain Intelligence and Analysis <span class="cat-count">7</span></div>
+                    <div class="cat-grid">
+                                                    <a class="cat-card" href="/documentation/dns-lookup" data-search="dns lookup domain intelligence and analysis /api/v1/domain/dns dns_lookup dns lookup api — live dns records for a hostname, resolved at request time rather than served from a cache. supports a, aaaa, mx, …">
+                                <div class="cat-card-head">
+                                    <span class="method-badge badge-post">POST</span>
+                                    <span class="cat-card-name">DNS Lookup</span>
+                                                                    </div>
+                                <code class="cat-card-path">/api/v1/domain/dns</code>
+                                                                    <p class="cat-card-desc">DNS Lookup API — live DNS records for a hostname, resolved at request time rather than served from a cache. Supports A, AAAA, MX, …</p>
+                                                            </a>
+                                                    <a class="cat-card" href="/documentation/domain-availability-check-v2" data-search="domain availability domain intelligence and analysis /api/v1/domain/availability domain_availability domain availability api — check whether a domain name is free to register. answered from dns by default, which is fast and accurat…">
+                                <div class="cat-card-head">
+                                    <span class="method-badge badge-post">POST</span>
+                                    <span class="cat-card-name">Domain Availability</span>
+                                                                    </div>
+                                <code class="cat-card-path">/api/v1/domain/availability</code>
+                                                                    <p class="cat-card-desc">Domain Availability API — check whether a domain name is free to register. Answered from DNS by default, which is fast and accurat…</p>
+                                                            </a>
+                                                    <a class="cat-card" href="/documentation/domain-availability-check-v1" data-search="domain availability check domain intelligence and analysis /api/v1/domain/check domain_check domain check api — look up the registration status and availability of any domain name. returns domain registration details includ…">
+                                <div class="cat-card-head">
+                                    <span class="method-badge badge-post">POST</span>
+                                    <span class="cat-card-name">Domain Availability Check</span>
+                                                                    </div>
+                                <code class="cat-card-path">/api/v1/domain/check</code>
+                                                                    <p class="cat-card-desc">Domain Check API — Look up the registration status and availability of any domain name. Returns domain registration details includ…</p>
+                                                            </a>
+                                                    <a class="cat-card" href="/documentation/domain-whois-lookup-v1" data-search="domain whois domain intelligence and analysis /api/v1/domain/whois_live domain_whois domain whois lookup api — retrieve comprehensive whois registration information for any domain name. returns registrar details, re…">
+                                <div class="cat-card-head">
+                                    <span class="method-badge badge-post">POST</span>
+                                    <span class="cat-card-name">Domain Whois</span>
+                                                                    </div>
+                                <code class="cat-card-path">/api/v1/domain/whois_live</code>
+                                                                    <p class="cat-card-desc">Domain WHOIS Lookup API — Retrieve comprehensive WHOIS registration information for any domain name. Returns registrar details, re…</p>
+                                                            </a>
+                                                    <a class="cat-card" href="/documentation/domain-whois-lookup-v2" data-search="domain whois lookup domain intelligence and analysis /api/v1/domain/whois domain_whois_lookup domain whois lookup api — live registry whois for any domain. returns registration dates (created, updated, expires), the registra…">
+                                <div class="cat-card-head">
+                                    <span class="method-badge badge-post">POST</span>
+                                    <span class="cat-card-name">Domain WHOIS Lookup</span>
+                                                                    </div>
+                                <code class="cat-card-path">/api/v1/domain/whois</code>
+                                                                    <p class="cat-card-desc">Domain WHOIS Lookup API — live registry WHOIS for any domain. Returns registration dates (created, updated, expires), the registra…</p>
+                                                            </a>
+                                                    <a class="cat-card" href="/documentation/ssl-lookup" data-search="ssl certificate lookup domain intelligence and analysis /api/v1/domain/ssl ssl_lookup ssl certificate lookup api — fetches the live tls certificate chain presented by a domain. each certificate reports its validity w…">
+                                <div class="cat-card-head">
+                                    <span class="method-badge badge-post">POST</span>
+                                    <span class="cat-card-name">SSL Certificate Lookup</span>
+                                                                    </div>
+                                <code class="cat-card-path">/api/v1/domain/ssl</code>
+                                                                    <p class="cat-card-desc">SSL Certificate Lookup API — fetches the live TLS certificate chain presented by a domain. Each certificate reports its validity w…</p>
+                                                            </a>
+                                                    <a class="cat-card" href="/documentation/subdomain-lookup" data-search="subdomains lookup domain intelligence and analysis /api/v1/domain/subdomains subdomain_lookup subdomains lookup api — discovers subdomains observed for a domain, each with first_seen and last_seen dates so you can tell live …">
+                                <div class="cat-card-head">
+                                    <span class="method-badge badge-post">POST</span>
+                                    <span class="cat-card-name">Subdomains Lookup</span>
+                                                                    </div>
+                                <code class="cat-card-path">/api/v1/domain/subdomains</code>
+                                                                    <p class="cat-card-desc">Subdomains Lookup API — discovers subdomains observed for a domain, each with first_seen and last_seen dates so you can tell live …</p>
+                                                            </a>
+                                            </div>
+                </div>
+                                            <div class="cat-group">
+                    <div class="cat-group-title">Verification <span class="cat-count">4</span></div>
+                    <div class="cat-grid">
+                                                    <a class="cat-card" href="/documentation/aadhaar-pan-link-check" data-search="aadhaar pan link check verification /api/v1/aadhaar/aadhaar_pan_link_check aadhaar_pan_link_check aadhaar–pan link check api — check whether a given aadhaar number is linked to a pan card as mandated by the income tax department…">
+                                <div class="cat-card-head">
+                                    <span class="method-badge badge-post">POST</span>
+                                    <span class="cat-card-name">Aadhaar PAN Link Check</span>
+                                                                    </div>
+                                <code class="cat-card-path">/api/v1/aadhaar/aadhaar_pan_link_check</code>
+                                                                    <p class="cat-card-desc">Aadhaar–PAN Link Check API — Check whether a given Aadhaar number is linked to a PAN card as mandated by the Income Tax Department…</p>
+                                                            </a>
+                                                    <a class="cat-card" href="/documentation/vehicle-rc-pdf" data-search="vehicle rc pdf verification /api/v1/rc/pdf rc_pdf vehicle rc pdf api — turn a vehicle registration number into a printable registration certificate (rc) document. send the registra…">
+                                <div class="cat-card-head">
+                                    <span class="method-badge badge-post">POST</span>
+                                    <span class="cat-card-name">Vehicle RC PDF</span>
+                                                                    </div>
+                                <code class="cat-card-path">/api/v1/rc/pdf</code>
+                                                                    <p class="cat-card-desc">Vehicle RC PDF API — Turn a vehicle registration number into a printable Registration Certificate (RC) document. Send the registra…</p>
+                                                            </a>
+                                                    <a class="cat-card" href="/documentation/vehicle-rc-text-pdf" data-search="vehicle rc text and pdf verification /api/v1/rc/text-pdf rc_text_pdf vehicle rc text and pdf api — the registration certificate (rc) for a vehicle returned both ways in a single call: the full rc rec…">
+                                <div class="cat-card-head">
+                                    <span class="method-badge badge-post">POST</span>
+                                    <span class="cat-card-name">Vehicle RC Text and PDF</span>
+                                                                    </div>
+                                <code class="cat-card-path">/api/v1/rc/text-pdf</code>
+                                                                    <p class="cat-card-desc">Vehicle RC Text and PDF API — The Registration Certificate (RC) for a vehicle returned both ways in a single call: the full RC rec…</p>
+                                                            </a>
+                                                    <a class="cat-card" href="/documentation/vehicle-rc" data-search="vehicle rc verification verification /api/v1/rc/verify rc vehicle rc verification api — fetch full registration certificate (rc) details for any indian vehicle using its registration numbe…">
+                                <div class="cat-card-head">
+                                    <span class="method-badge badge-post">POST</span>
+                                    <span class="cat-card-name">Vehicle RC Verification</span>
+                                                                    </div>
+                                <code class="cat-card-path">/api/v1/rc/verify</code>
+                                                                    <p class="cat-card-desc">Vehicle RC Verification API — Fetch full Registration Certificate (RC) details for any Indian vehicle using its registration numbe…</p>
+                                                            </a>
+                                            </div>
+                </div>
+                                            <div class="cat-group">
+                    <div class="cat-group-title">Utilities <span class="cat-count">2</span></div>
+                    <div class="cat-grid">
+                                                    <a class="cat-card" href="/documentation/email-validation-bulk" data-search="bulk email validation utilities /api/v1/email/validate/bulk email_validation_bulk bulk email validation api — the same deliverability check as email validation, for up to 100 addresses in a single billable call. …">
+                                <div class="cat-card-head">
+                                    <span class="method-badge badge-post">POST</span>
+                                    <span class="cat-card-name">Bulk Email Validation</span>
+                                                                    </div>
+                                <code class="cat-card-path">/api/v1/email/validate/bulk</code>
+                                                                    <p class="cat-card-desc">Bulk Email Validation API — the same deliverability check as Email Validation, for up to 100 addresses in a single billable call. …</p>
+                                                            </a>
+                                                    <a class="cat-card" href="/documentation/email-validation" data-search="email validation utilities /api/v1/email/validate email_validation email validation api — checks whether an address can actually receive mail, without sending one. result is a single verdict you ca…">
+                                <div class="cat-card-head">
+                                    <span class="method-badge badge-post">POST</span>
+                                    <span class="cat-card-name">Email Validation</span>
+                                                                    </div>
+                                <code class="cat-card-path">/api/v1/email/validate</code>
+                                                                    <p class="cat-card-desc">Email Validation API — checks whether an address can actually receive mail, without sending one. result is a single verdict you ca…</p>
+                                                            </a>
+                                            </div>
+                </div>
+                    </div>
+
+        <!-- ── Authentication ── -->
+        <div class="section" id="authentication">
+            <h2>
+                <div class="dot" style="background:var(--amber)"></div> Authentication
+            </h2>
+            <p class="desc">All verification endpoints require a valid <strong>API key</strong>. Pass it as <code style="color:var(--blue)">Authorization: Bearer &lt;key&gt;</code> (recommended) or via the <code style="color:var(--blue)">X-API-Key</code> header. Keys are generated from your Dashboard &rarr; API Keys page.</p>
+            <div class="auth-card">
+                <h3>Option 1 &mdash; Bearer Token (Recommended)</h3>
+                <div class="header-box"><span class="key">Authorization:</span> <span class="val">Bearer your_api_key_here</span></div>
+            </div>
+            <div class="auth-card">
+                <h3>Option 2 &mdash; X-API-Key Header</h3>
+                <div class="header-box"><span class="key">X-API-Key:</span> <span class="val">your_api_key_here</span></div>
+            </div>
+            <div class="warn-box">
+                <div class="info-title">&#9888; Important</div>
+                <p>Keep your API keys secure. Do not expose them in client-side code or public repositories. If compromised, regenerate your keys immediately from the dashboard.</p>
+            </div>
+        </div>
+
+        <!-- ── Status Codes ── -->
+        <div class="section" id="status-codes">
+            <h2>
+                <div class="dot" style="background:var(--green)"></div> HTTP Status Codes
+            </h2>
+            <p class="desc">Standard HTTP status codes indicate the outcome of every request. The status alone does not tell you whether a call was billed &mdash; read <code style="color:var(--blue)">charged</code> in the body.</p>
+            <table class="status-table">
+    <thead>
+        <tr>
+            <th>Code</th>
+            <th>Status</th>
+            <th>Charged</th>
+            <th>Description</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><span class="status-code sc-2xx">200</span></td>
+            <td>OK</td>
+            <td><strong>Yes</strong></td>
+            <td>Verification result returned</td>
+        </tr>
+        <tr>
+            <td><span class="status-code sc-2xx">202</span></td>
+            <td>Accepted</td>
+            <td><strong>Yes</strong></td>
+            <td>Accepted and being processed, or the provider did not respond in time &mdash; check <code>message_code</code> to tell the two apart, and quote the <code>order_id</code></td>
+        </tr>
+        <tr>
+            <td><span class="status-code sc-4xx">400</span></td>
+            <td>Bad Request</td>
+            <td>No</td>
+            <td>Verification failed or invalid vendor response</td>
+        </tr>
+        <tr>
+            <td><span class="status-code sc-4xx">401</span></td>
+            <td>Unauthorized</td>
+            <td>No</td>
+            <td>Missing or invalid API key</td>
+        </tr>
+        <tr>
+            <td><span class="status-code sc-4xx">402</span></td>
+            <td>Payment Required</td>
+            <td>No</td>
+            <td>Insufficient balance &mdash; recharge required</td>
+        </tr>
+        <tr>
+            <td><span class="status-code sc-4xx">403</span></td>
+            <td>Forbidden</td>
+            <td>No</td>
+            <td>No access to this API service</td>
+        </tr>
+        <tr>
+            <td><span class="status-code sc-4xx">422</span></td>
+            <td>Unprocessable Entity</td>
+            <td><strong>Depends &mdash; read <code>charged</code></strong></td>
+            <td>Either input validation failed (not charged), or the provider ran the lookup and returned a negative result (charged). <code>message_code</code> distinguishes them: <code>INVALID_INPUT</code> vs <code>VERIFICATION_FAILED</code> / <code>NO_RECORD_FOUND</code></td>
+        </tr>
+        <tr>
+            <td><span class="status-code sc-4xx">429</span></td>
+            <td>Too Many Requests</td>
+            <td>No</td>
+            <td>Rate limit exceeded</td>
+        </tr>
+        <tr>
+            <td><span class="status-code sc-4xx">404</span></td>
+            <td>Not Found</td>
+            <td>No</td>
+            <td>Unknown endpoint</td>
+        </tr>
+        <tr>
+            <td><span class="status-code sc-5xx">500</span></td>
+            <td>Internal Server Error</td>
+            <td>No</td>
+            <td>Unexpected error on our side</td>
+        </tr>
+        <tr>
+            <td><span class="status-code sc-5xx">503</span></td>
+            <td>Service Unavailable</td>
+            <td>No</td>
+            <td>Vendor temporarily unavailable</td>
+        </tr>
+    </tbody>
+</table>
+        </div>
+
+        <!-- ── Response Format ── -->
+        <div class="section" id="response-format">
+            <h2>
+                <div class="dot" style="background:var(--accent)"></div> Response Format
+            </h2>
+            <p class="desc">Every response &mdash; success, failure, or rejection &mdash; carries the same control keys. The verification payload sits under <code style="color:var(--blue)">data.result</code>.</p>
+
+            <h3 class="params-title">Success Response</h3>
+            <div class="code-block"><button class="copy-code" onclick="copyCode(this)">Copy</button>
+                <pre>{
+    <span class="json-key">"status"</span>: <span class="json-str">"SUCCESS"</span>,
+    <span class="json-key">"status_code"</span>: <span class="json-num">200</span>,
+    <span class="json-key">"charged"</span>: <span class="json-bool">true</span>,
+    <span class="json-key">"success"</span>: <span class="json-bool">true</span>,
+    <span class="json-key">"message"</span>: <span class="json-str">""</span>,
+    <span class="json-key">"message_code"</span>: <span class="json-str">"OK"</span>,
+    <span class="json-key">"order_id"</span>: <span class="json-str">"W2A1739512345abcdef01"</span>,
+    <span class="json-key">"data"</span>: {
+        <span class="json-key">"order_id"</span>: <span class="json-str">"W2A1739512345abcdef01"</span>,
+        <span class="json-key">"result"</span>: {
+            <span class="json-key">"field"</span>: <span class="json-str">"value"</span>,
+            <span class="json-key">"another_field"</span>: <span class="json-num">123</span>
+        }
+    }
+}</pre>
+            </div>
+
+            <h3 class="params-title">Error Response</h3>
+            <div class="code-block"><button class="copy-code" onclick="copyCode(this)">Copy</button>
+                <pre>{
+    <span class="json-key">"status"</span>: <span class="json-str">"SUCCESS"</span>,
+    <span class="json-key">"status_code"</span>: <span class="json-num">422</span>,
+    <span class="json-key">"charged"</span>: <span class="json-bool">true</span>,
+    <span class="json-key">"success"</span>: <span class="json-bool">false</span>,
+    <span class="json-key">"message"</span>: <span class="json-str">"The request was processed but the details could not be verified."</span>,
+    <span class="json-key">"message_code"</span>: <span class="json-str">"VERIFICATION_FAILED"</span>,
+    <span class="json-key">"order_id"</span>: <span class="json-str">"W2A1739512345abcdef01"</span>,
+    <span class="json-key">"data"</span>: {
+        <span class="json-key">"order_id"</span>: <span class="json-str">"W2A1739512345abcdef01"</span>,
+        <span class="json-key">"error_code"</span>: <span class="json-str">"verification_failed"</span>
+    }
+}</pre>
+            </div>
+        </div>
+
+        <!-- ── Billing ── -->
+        <div class="section" id="billing">
+            <h2>
+                <div class="dot" style="background:var(--amber)"></div> When You Are Charged
+            </h2>
+            <p class="desc"><code style="color:var(--blue)">charged</code> is the authority &mdash; never infer billing from the HTTP status. A call is billed when the provider did the work, even if the answer was negative. Prices are per-account; see <strong>Pricing</strong> in your dashboard.</p>
+            <table class="status-table billing-table">
+    <thead>
+        <tr>
+            <th>message_code</th>
+            <th>Charged</th>
+            <th>HTTP</th>
+            <th>status</th>
+            <th>What it means</th>
+        </tr>
+    </thead>
+    <tbody>
+                                <tr>
+                <td><code class="mc">OK</code></td>
+                <td>
+                                            <span class="chg chg-yes">Yes</span>
+                                    </td>
+                <td><span class="status-code sc-2xx">200</span></td>
+                <td>SUCCESS</td>
+                <td>Verified. The provider ran the lookup and returned a result.</td>
+            </tr>
+                                <tr>
+                <td><code class="mc">ACCEPTED</code></td>
+                <td>
+                                            <span class="chg chg-yes">Yes</span>
+                                    </td>
+                <td><span class="status-code sc-2xx">202</span></td>
+                <td>PENDING</td>
+                <td>Queued at the provider. Quote the <code>order_id</code> to collect the result.</td>
+            </tr>
+                                <tr>
+                <td><code class="mc">PROVIDER_NO_RESPONSE</code></td>
+                <td>
+                                            <span class="chg chg-yes">Yes</span>
+                                    </td>
+                <td><span class="status-code sc-2xx">202</span></td>
+                <td>PENDING</td>
+                <td>The provider did not respond in time. Held for manual review &mdash; <strong>not</strong> auto-refunded.</td>
+            </tr>
+                                <tr>
+                <td><code class="mc">VERIFICATION_FAILED</code></td>
+                <td>
+                                            <span class="chg chg-yes">Yes</span>
+                                    </td>
+                <td><span class="status-code sc-4xx">422</span></td>
+                <td>SUCCESS</td>
+                <td>The provider ran the lookup and the details did not verify. The work was done, so the call is billed.</td>
+            </tr>
+                                <tr>
+                <td><code class="mc">NO_RECORD_FOUND</code></td>
+                <td>
+                                            <span class="chg chg-yes">Yes</span>
+                                    </td>
+                <td><span class="status-code sc-4xx">422</span></td>
+                <td>SUCCESS</td>
+                <td>The provider ran the lookup and found no matching record. Billed for the same reason.</td>
+            </tr>
+                                <tr>
+                <td><code class="mc">SOURCE_UNAVAILABLE</code></td>
+                <td>
+                                            <span class="chg chg-yes">Yes</span>
+                                    </td>
+                <td><span class="status-code sc-4xx">422</span></td>
+                <td>SUCCESS</td>
+                <td>The provider accepted and ran the lookup, but the underlying record source was down and could not answer. The provider bills us for the attempt, so the call is billed. Retry shortly.</td>
+            </tr>
+                                <tr>
+                <td><code class="mc">INVALID_INPUT</code></td>
+                <td>
+                                            <span class="chg chg-no">No</span>
+                                    </td>
+                <td><span class="status-code sc-4xx">422</span></td>
+                <td>FAILED</td>
+                <td>Your parameters were rejected before any call was placed.</td>
+            </tr>
+                                <tr>
+                <td><code class="mc">REQUEST_FAILED</code></td>
+                <td>
+                                            <span class="chg chg-no">No</span>
+                                    </td>
+                <td><span class="status-code sc-4xx">400</span></td>
+                <td>FAILED</td>
+                <td>The call was placed and failed definitively. Refunded to your wallet automatically.</td>
+            </tr>
+                                <tr>
+                <td><code class="mc">MISSING_API_KEY</code></td>
+                <td>
+                                            <span class="chg chg-no">No</span>
+                                    </td>
+                <td><span class="status-code sc-4xx">401</span></td>
+                <td>FAILED</td>
+                <td>No API key on the request.</td>
+            </tr>
+                                <tr>
+                <td><code class="mc">INVALID_API_KEY</code></td>
+                <td>
+                                            <span class="chg chg-no">No</span>
+                                    </td>
+                <td><span class="status-code sc-4xx">401</span></td>
+                <td>FAILED</td>
+                <td>Key invalid or expired, or the calling IP is not allowed.</td>
+            </tr>
+                                <tr>
+                <td><code class="mc">INSUFFICIENT_BALANCE</code></td>
+                <td>
+                                            <span class="chg chg-no">No</span>
+                                    </td>
+                <td><span class="status-code sc-4xx">402</span></td>
+                <td>FAILED</td>
+                <td>Your wallet balance is below the price of this call.</td>
+            </tr>
+                                <tr>
+                <td><code class="mc">NO_API_ACCESS</code></td>
+                <td>
+                                            <span class="chg chg-no">No</span>
+                                    </td>
+                <td><span class="status-code sc-4xx">403</span></td>
+                <td>FAILED</td>
+                <td>Your account is not subscribed to this API.</td>
+            </tr>
+                                <tr>
+                <td><code class="mc">NOT_FOUND</code></td>
+                <td>
+                                            <span class="chg chg-no">No</span>
+                                    </td>
+                <td><span class="status-code sc-4xx">404</span></td>
+                <td>FAILED</td>
+                <td>No such endpoint.</td>
+            </tr>
+                                <tr>
+                <td><code class="mc">RATE_LIMITED</code></td>
+                <td>
+                                            <span class="chg chg-no">No</span>
+                                    </td>
+                <td><span class="status-code sc-4xx">429</span></td>
+                <td>FAILED</td>
+                <td>Per-key, per-service one-minute limit exceeded.</td>
+            </tr>
+                                <tr>
+                <td><code class="mc">INTERNAL_ERROR</code></td>
+                <td>
+                                            <span class="chg chg-no">No</span>
+                                    </td>
+                <td><span class="status-code sc-5xx">500</span></td>
+                <td>FAILED</td>
+                <td>Unexpected error on our side.</td>
+            </tr>
+                                <tr>
+                <td><code class="mc">PROVIDER_UNAVAILABLE</code></td>
+                <td>
+                                            <span class="chg chg-no">No</span>
+                                    </td>
+                <td><span class="status-code sc-5xx">503</span></td>
+                <td>FAILED</td>
+                <td>The service could not be reached.</td>
+            </tr>
+            </tbody>
+</table>
+        </div>
+
+        <!-- ── Error Handling ── -->
+        <div class="section" id="errors">
+            <h2>
+                <div class="dot" style="background:var(--red)"></div> Error Handling
+            </h2>
+            <p class="desc">Errors use the same envelope, with <code style="color:var(--blue)">message_code</code> naming the reason. Use it for branching and <code style="color:var(--blue)">message</code> for logging. Per-API error payloads are on each API's <strong>Error Codes</strong> tab.</p>
+            <h3 class="params-title">Common Error Responses</h3>
+
+<p class="ep-desc">
+    Every response carries <code style="color:var(--blue)">charged</code>. On all of the errors
+    below it is <code style="color:var(--blue)">false</code> &mdash; the call never reached the
+    provider, so nothing was billed. The absence of an
+    <code style="color:var(--blue)">order_id</code> means the same thing.
+</p>
+
+    <div class="code-block" style="margin-bottom:12px">
+        <pre><span style="color:var(--muted)">// 401 &mdash; MISSING_API_KEY</span>
+{
+    <span class="json-key">"status"</span>: <span class="json-str">"FAILED"</span>,
+    <span class="json-key">"status_code"</span>: <span class="json-num">401</span>,
+    <span class="json-key">"charged"</span>: <span class="json-bool">false</span>,
+    <span class="json-key">"success"</span>: <span class="json-bool">false</span>,
+    <span class="json-key">"message"</span>: <span class="json-str">"API key is required."</span>,
+    <span class="json-key">"message_code"</span>: <span class="json-str">"MISSING_API_KEY"</span>
+}</pre>
+    </div>
+    <div class="code-block" style="margin-bottom:12px">
+        <pre><span style="color:var(--muted)">// 401 &mdash; INVALID_API_KEY</span>
+{
+    <span class="json-key">"status"</span>: <span class="json-str">"FAILED"</span>,
+    <span class="json-key">"status_code"</span>: <span class="json-num">401</span>,
+    <span class="json-key">"charged"</span>: <span class="json-bool">false</span>,
+    <span class="json-key">"success"</span>: <span class="json-bool">false</span>,
+    <span class="json-key">"message"</span>: <span class="json-str">"Invalid, expired, or IP-restricted API key."</span>,
+    <span class="json-key">"message_code"</span>: <span class="json-str">"INVALID_API_KEY"</span>
+}</pre>
+    </div>
+    <div class="code-block" style="margin-bottom:12px">
+        <pre><span style="color:var(--muted)">// 402 &mdash; INSUFFICIENT_BALANCE</span>
+{
+    <span class="json-key">"status"</span>: <span class="json-str">"FAILED"</span>,
+    <span class="json-key">"status_code"</span>: <span class="json-num">402</span>,
+    <span class="json-key">"charged"</span>: <span class="json-bool">false</span>,
+    <span class="json-key">"success"</span>: <span class="json-bool">false</span>,
+    <span class="json-key">"message"</span>: <span class="json-str">"Insufficient balance. Please recharge your account."</span>,
+    <span class="json-key">"message_code"</span>: <span class="json-str">"INSUFFICIENT_BALANCE"</span>
+}</pre>
+    </div>
+    <div class="code-block" style="margin-bottom:12px">
+        <pre><span style="color:var(--muted)">// 403 &mdash; NO_API_ACCESS</span>
+{
+    <span class="json-key">"status"</span>: <span class="json-str">"FAILED"</span>,
+    <span class="json-key">"status_code"</span>: <span class="json-num">403</span>,
+    <span class="json-key">"charged"</span>: <span class="json-bool">false</span>,
+    <span class="json-key">"success"</span>: <span class="json-bool">false</span>,
+    <span class="json-key">"message"</span>: <span class="json-str">"You do not have access to this API service."</span>,
+    <span class="json-key">"message_code"</span>: <span class="json-str">"NO_API_ACCESS"</span>
+}</pre>
+    </div>
+    <div class="code-block" style="margin-bottom:12px">
+        <pre><span style="color:var(--muted)">// 422 &mdash; INVALID_INPUT</span>
+{
+    <span class="json-key">"status"</span>: <span class="json-str">"FAILED"</span>,
+    <span class="json-key">"status_code"</span>: <span class="json-num">422</span>,
+    <span class="json-key">"charged"</span>: <span class="json-bool">false</span>,
+    <span class="json-key">"success"</span>: <span class="json-bool">false</span>,
+    <span class="json-key">"message"</span>: <span class="json-str">"The request could not be accepted. Check the parameters and try again."</span>,
+    <span class="json-key">"message_code"</span>: <span class="json-str">"INVALID_INPUT"</span>
+}</pre>
+    </div>
+    <div class="code-block" style="margin-bottom:12px">
+        <pre><span style="color:var(--muted)">// 429 &mdash; RATE_LIMITED</span>
+{
+    <span class="json-key">"status"</span>: <span class="json-str">"FAILED"</span>,
+    <span class="json-key">"status_code"</span>: <span class="json-num">429</span>,
+    <span class="json-key">"charged"</span>: <span class="json-bool">false</span>,
+    <span class="json-key">"success"</span>: <span class="json-bool">false</span>,
+    <span class="json-key">"message"</span>: <span class="json-str">"Rate limit exceeded. Please try again later."</span>,
+    <span class="json-key">"message_code"</span>: <span class="json-str">"RATE_LIMITED"</span>
+}</pre>
+    </div>
+    <div class="code-block" style="margin-bottom:12px">
+        <pre><span style="color:var(--muted)">// 503 &mdash; PROVIDER_UNAVAILABLE</span>
+{
+    <span class="json-key">"status"</span>: <span class="json-str">"FAILED"</span>,
+    <span class="json-key">"status_code"</span>: <span class="json-num">503</span>,
+    <span class="json-key">"charged"</span>: <span class="json-bool">false</span>,
+    <span class="json-key">"success"</span>: <span class="json-bool">false</span>,
+    <span class="json-key">"message"</span>: <span class="json-str">"Service temporarily unavailable."</span>,
+    <span class="json-key">"message_code"</span>: <span class="json-str">"PROVIDER_UNAVAILABLE"</span>
+}</pre>
+    </div>
+        </div>
+
+    </div><!-- .content -->
+
+<div class="footer" id="notes">
+    <div class="footer-grid">
+        <div class="footer-col">
+            <h2>Important Notes</h2>
+            <ul>
+                <li>All requests must include <code style="color:var(--blue);font-size:11px">Content-Type: application/json</code></li>
+                <li>API keys are 64-character hex strings &mdash; keep them secret</li>
+                <li>Successful verifications are debited from your wallet balance</li>
+                <li>Failed verifications are not charged</li>
+                <li>Each request generates a unique <code style="color:var(--blue);font-size:11px">order_id</code> for tracking</li>
+            </ul>
+        </div>
+        <div class="footer-col">
+            <h2>Security</h2>
+            <ul>
+                <li>All endpoints are served over HTTPS only</li>
+                <li>API keys can be regenerated from the dashboard</li>
+                <li>IP-based rate limiting prevents abuse</li>
+                <li>All API calls are logged for audit</li>
+            </ul>
+        </div>
+        <div class="footer-col">
+            <h2>Support &amp; Links</h2>
+            <p>
+                Dashboard: <a href="/dashboard" target="_blank">/dashboard</a><br>
+                API Keys: <a href="/dashboard/api-keys" target="_blank">/dashboard/api-keys</a><br>
+                Billing: <a href="/dashboard/billing" target="_blank">/dashboard/billing</a><br>
+                Status: <a href="/api/v1/health" target="_blank">/api/v1/health</a>
+            </p>
+        </div>
+    </div>
+        <div class="footer-bottom">Way2API® &bull; API Documentation &bull; Updated on <span id="genDate"></span> &bull; All rights reserved.</div>
+</div>
+
+</div><!-- .main -->
+
+
+<script src="https://app.way2api.com/assets/js/docs.js?v=1787762718" defer></script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496" integrity="sha512-ZE9pZaUXND66v380QUtch/5sE9tPFh2zg45pR2PB0CVkCtOREv2AJKkSidISWkysEuQ0EH8faUU5du78bx87UQ==" data-cf-beacon='{"version":"2024.11.0","token":"d6583c7073d347a2b68bd11c654ef53e","r":1}' crossorigin="anonymous"></script>
+</body>
+
+</html>

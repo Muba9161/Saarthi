@@ -17,6 +17,7 @@ import {
   qrTargetUrl,
   resolveDocumentValidity,
   resolveGrantedScopes,
+  scopeFieldFlags,
   shortTokenLabel,
   type CreateQrCodeInput,
   type Paginated,
@@ -31,6 +32,7 @@ import { errors } from '../../lib/errors';
 import { logger } from '../../lib/logger';
 import type { AuthContext } from '../../auth/context';
 import { primaryUrlsFor } from '../media/media.service';
+import { applyPrivacyPolicy, getPrivacyPolicy, type ScanPrivacyReport } from './qr-privacy.service';
 
 /**
  * QR identity.
@@ -74,7 +76,12 @@ export interface QrCodeView {
 
 type QrRecord = Prisma.QrCodeGetPayload<Record<string, never>>;
 
-function toView(code: QrRecord): QrCodeView {
+/**
+ * `frontendUrl` defaults to the configured value so existing callers are
+ * unaffected; routes pass the request's own origin so the link the UI shows
+ * matches the URL the printed code actually encodes.
+ */
+function toView(code: QrRecord, frontendUrl: string = config.server.frontendUrl): QrCodeView {
   return {
     id: code.id,
     subjectType: code.subjectType as QrSubjectType,
@@ -85,7 +92,7 @@ function toView(code: QrRecord): QrCodeView {
     version: code.version,
     allowPublicResolve: code.allowPublicResolve,
     shortLabel: shortTokenLabel(code.token),
-    targetUrl: qrTargetUrl(config.server.frontendUrl, code.token),
+    targetUrl: qrTargetUrl(frontendUrl, code.token),
     imageUrl: `/api/v1/qr/${code.id}/image.svg`,
     badgeUrl: `/api/v1/qr/${code.id}/badge.svg`,
     expiresAt: code.expiresAt?.toISOString() ?? null,
@@ -107,10 +114,7 @@ interface SubjectInfo {
   secondaryLabel: string | null;
 }
 
-async function resolveSubject(
-  subjectType: QrSubjectType,
-  subjectId: string,
-): Promise<SubjectInfo> {
+async function resolveSubject(subjectType: QrSubjectType, subjectId: string): Promise<SubjectInfo> {
   switch (subjectType) {
     case QrSubjectType.DRIVER: {
       const driver = await prisma.driver.findUnique({
@@ -229,8 +233,7 @@ async function assertSubjectManageable(
   }
 
   const isDriverOnly =
-    auth.user.roles.includes('DRIVER' as never) &&
-    !auth.permissions.includes('qr.manage' as never);
+    auth.user.roles.includes('DRIVER' as never) && !auth.permissions.includes('qr.manage' as never);
 
   if (!isDriverOnly) return;
 
@@ -252,6 +255,7 @@ async function assertSubjectManageable(
 export async function createQrCode(
   auth: AuthContext,
   input: CreateQrCodeInput,
+  frontendUrl?: string,
 ): Promise<QrCodeView> {
   const subject = await resolveSubject(input.subjectType, input.subjectId);
   await assertSubjectManageable(auth, input.subjectType, input.subjectId, subject);
@@ -276,7 +280,7 @@ export async function createQrCode(
     },
   });
 
-  return toView(code);
+  return toView(code, frontendUrl);
 }
 
 /**
@@ -289,6 +293,7 @@ export async function ensureForSubject(
   auth: AuthContext,
   subjectType: QrSubjectType,
   subjectId: string,
+  frontendUrl?: string,
 ): Promise<QrCodeView> {
   const subject = await resolveSubject(subjectType, subjectId);
   await assertSubjectManageable(auth, subjectType, subjectId, subject);
@@ -307,7 +312,7 @@ export async function ensureForSubject(
       });
       void expired;
     } else {
-      return toView(existing);
+      return toView(existing, frontendUrl);
     }
   }
 
@@ -321,10 +326,10 @@ export async function ensureForSubject(
 export async function listQrCodes(
   auth: AuthContext,
   query: QrListQuery,
+  frontendUrl?: string,
 ): Promise<Paginated<QrCodeView>> {
   const isDriverOnly =
-    auth.user.roles.includes('DRIVER' as never) &&
-    !auth.permissions.includes('qr.manage' as never);
+    auth.user.roles.includes('DRIVER' as never) && !auth.permissions.includes('qr.manage' as never);
 
   const where: Prisma.QrCodeWhereInput = {
     ...(auth.isPlatformAdmin && !auth.organizationId
@@ -356,14 +361,18 @@ export async function listQrCodes(
   ]);
 
   return {
-    items: codes.map(toView),
+    items: codes.map((code) => toView(code, frontendUrl)),
     pagination: buildPaginationMeta(query.page, query.pageSize, total),
   };
 }
 
-export async function getQrCode(auth: AuthContext, id: string): Promise<QrCodeView> {
+export async function getQrCode(
+  auth: AuthContext,
+  id: string,
+  frontendUrl?: string,
+): Promise<QrCodeView> {
   const code = await loadOwnedCode(auth, id);
-  return toView(code);
+  return toView(code, frontendUrl);
 }
 
 async function loadOwnedCode(auth: AuthContext, id: string): Promise<QrRecord> {
@@ -394,6 +403,7 @@ export async function revokeQrCode(
   auth: AuthContext,
   id: string,
   reason: string,
+  frontendUrl?: string,
 ): Promise<QrCodeView> {
   const code = await loadOwnedCode(auth, id);
   if (code.status === QrCodeStatus.REVOKED) {
@@ -410,7 +420,7 @@ export async function revokeQrCode(
     },
   });
 
-  return toView(updated);
+  return toView(updated, frontendUrl);
 }
 
 /**
@@ -424,6 +434,7 @@ export async function rotateQrCode(
   auth: AuthContext,
   id: string,
   input: RotateQrCodeInput,
+  frontendUrl?: string,
 ): Promise<QrCodeView> {
   const code = await loadOwnedCode(auth, id);
 
@@ -456,7 +467,7 @@ export async function rotateQrCode(
     });
   });
 
-  return toView(created);
+  return toView(created, frontendUrl);
 }
 
 // ---------------------------------------------------------------------------
@@ -506,6 +517,19 @@ export interface ResolvedScan {
     emergencyContactName: string | null;
     emergencyContactPhone: string | null;
   };
+  /**
+   * Rule-based service verdict. A gate operator asking "is this truck fit to
+   * load?" gets an answer, never a maintenance ledger.
+   */
+  service?: { health: string; lastServiceDate: string | null };
+  /** Whether the vehicle is under finance. Never the amounts — see QrField. */
+  finance?: { financed: boolean };
+  /**
+   * What this scanner was shown, and what was withheld from them. Sent so the
+   * scan screen can say "masked at your access level" rather than rendering a
+   * blank that reads as missing data.
+   */
+  privacy?: ScanPrivacyReport;
   scannedAt: string;
 }
 
@@ -534,8 +558,7 @@ async function classifyScanner(
   // `qr.audit`: that permission lets a fleet owner read the scan log of their
   // own codes, and treating it as staff would have let any fleet owner scan any
   // other tenant's code and receive the full disclosure set.
-  const isPlatformStaff =
-    auth.isPlatformAdmin || auth.permissions.includes(Permission.ADMIN_AUDIT);
+  const isPlatformStaff = auth.isPlatformAdmin || auth.permissions.includes(Permission.ADMIN_AUDIT);
 
   if (isPlatformStaff) {
     return {
@@ -711,6 +734,18 @@ export async function resolveToken(
   const subjectType = code.subjectType as QrSubjectType;
   const subject = await resolveSubject(subjectType, code.subjectId);
 
+  // The fleet's own policy. Loaded from the *subject's* organization, not the
+  // scanner's — the tenant that owns the data decides what it discloses.
+  const policy = await getPrivacyPolicy(subject.organizationId);
+
+  // A tenant-level switch outranks an individual code opting into public
+  // resolution, so a fleet can close anonymous scanning across every sticker
+  // they have already printed without reissuing any of them.
+  if (!auth && !policy.allowPublicScans) {
+    await recordScan(QrScanResult.DENIED, []);
+    throw errors.notFound('QR code');
+  }
+
   const { relationship, emergencyContextActive, handoverContextActive } = await classifyScanner(
     auth,
     subjectType,
@@ -727,13 +762,24 @@ export async function resolveToken(
     handoverContextActive,
   });
 
-  const result = await buildScanPayload(
+  const built = await buildScanPayload(
     subjectType,
     code.subjectId,
     subject,
     codeScopes,
     scopesGranted,
   );
+
+  // Field-level privacy runs last, over the assembled payload. It can only
+  // narrow what the scope intersection already allowed — `scopeFieldFlags`
+  // carries that decision in, and a field whose scope was denied stays denied
+  // however the owner has configured it.
+  const result = applyPrivacyPolicy(built, {
+    subjectType,
+    relationship,
+    policy,
+    scopeFlags: scopeFieldFlags(scopesGranted),
+  });
 
   await prisma.$transaction([
     prisma.qrCode.update({
@@ -883,6 +929,16 @@ async function buildScanPayload(
           vehicleRegistration: vehicle.registrationNumber,
         };
       }
+      if (granted.includes(QrScope.VEHICLE_SUMMARY)) {
+        payload.service = await serviceHealthFor(subjectId);
+        // The *fact* of finance, never the numbers. Defaults to fleet-only and
+        // is stripped by the privacy pass for anyone below that.
+        const financed = await prisma.vehicleLoan.count({
+          where: { vehicleId: subjectId, status: { in: ['ACTIVE', 'DEFAULTED', 'ON_HOLD'] } },
+        });
+        payload.finance = { financed: financed > 0 };
+      }
+
       if (granted.includes(QrScope.TRIP_STATUS) && vehicle.currentTripId) {
         const trip = await prisma.trip.findUnique({
           where: { id: vehicle.currentTripId },
@@ -914,6 +970,52 @@ async function buildScanPayload(
   }
 
   return payload;
+}
+
+/**
+ * Rule-based service verdict for a scanned vehicle.
+ *
+ * Deliberately a verdict and a date, not a maintenance history: the person
+ * scanning a door sticker is deciding whether to load this truck today. The
+ * thresholds match the maintenance module's own rules, so the QR answer and the
+ * dashboard answer cannot disagree.
+ */
+async function serviceHealthFor(
+  vehicleId: string,
+): Promise<{ health: string; lastServiceDate: string | null }> {
+  const [vehicle, lastService, overdueCount] = await Promise.all([
+    prisma.truck.findUnique({ where: { id: vehicleId }, select: { odometerKm: true } }),
+    prisma.maintenanceRecord.findFirst({
+      where: { truckId: vehicleId, status: 'COMPLETED' },
+      orderBy: { completedAt: 'desc' },
+      select: { completedAt: true, odometerKm: true },
+    }),
+    prisma.maintenanceRecord.count({
+      where: { truckId: vehicleId, status: 'SCHEDULED', scheduledAt: { lt: new Date() } },
+    }),
+  ]);
+
+  const lastServiceDate = lastService?.completedAt?.toISOString().slice(0, 10) ?? null;
+
+  if (overdueCount > 0) {
+    return { health: 'Service overdue', lastServiceDate };
+  }
+  if (!lastService?.completedAt) {
+    // No completed service on record is not the same as a healthy vehicle, and
+    // saying "Healthy" here would be an assertion nothing supports.
+    return { health: 'No service recorded', lastServiceDate: null };
+  }
+
+  const daysSince = Math.round((Date.now() - lastService.completedAt.getTime()) / 86_400_000);
+  const kmSince =
+    vehicle && lastService.odometerKm !== null
+      ? Math.max(0, vehicle.odometerKm - lastService.odometerKm)
+      : null;
+
+  if (daysSince > 120 || (kmSince !== null && kmSince > 15_000)) {
+    return { health: 'Service due', lastServiceDate };
+  }
+  return { health: 'Healthy', lastServiceDate };
 }
 
 /**
@@ -952,8 +1054,7 @@ async function complianceFor(
 
   return {
     documents: rows,
-    allValid:
-      rows.length > 0 && rows.every((row) => row.validity === DocumentValidity.VALID),
+    allValid: rows.length > 0 && rows.every((row) => row.validity === DocumentValidity.VALID),
   };
 }
 

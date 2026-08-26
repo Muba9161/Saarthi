@@ -2,8 +2,11 @@ import type { FastifyInstance } from 'fastify';
 import {
   Feature,
   Permission,
-  type QrSubjectType,
+  QR_BADGE_PRESETS,
+  QrSubjectType,
   createQrCodeSchema,
+  defaultBadgePresetFor,
+  qrTargetUrl,
   idParamSchema,
   qrBadgeQuerySchema,
   qrImageQuerySchema,
@@ -14,13 +17,23 @@ import {
   resolveQrQuerySchema,
   revokeQrCodeSchema,
   rotateQrCodeSchema,
+  updateQrPrivacyPolicySchema,
 } from '@saarthi/shared';
 import { config } from '../../config/env';
+import { publicAppUrl } from '../../lib/public-url';
 import { ok, paginated, parseBody, parseParams, parseQuery } from '../../lib/http';
-import { requireAuth, requireFeature, requirePermission } from '../../server/guards';
+import {
+  requireAllPermissions,
+  requireAuth,
+  requireFeature,
+  requireOrganizationId,
+  requirePermission,
+} from '../../server/guards';
 import { AuditAction, auditFromRequest } from '../audit/audit.service';
 import * as qrService from './qr.service';
-import * as renderService from './qr-render.service';
+import * as privacyService from './qr-privacy.service';
+import * as renderService from './sticker.renderer';
+import * as qrImage from './qr-render.service';
 
 /**
  * QR routes.
@@ -87,15 +100,12 @@ export async function qrRoutes(app: FastifyInstance): Promise<void> {
     scoped.post(
       '/',
       {
-        preHandler: [
-          requirePermission(Permission.QR_MANAGE),
-          requireFeature(Feature.QR_IDENTITY),
-        ],
+        preHandler: [requirePermission(Permission.QR_MANAGE), requireFeature(Feature.QR_IDENTITY)],
       },
       async (request, reply) => {
         const auth = requireAuth(request);
         const input = parseBody(createQrCodeSchema, request.body);
-        const code = await qrService.createQrCode(auth, input);
+        const code = await qrService.createQrCode(auth, input, publicAppUrl(request));
 
         await auditFromRequest(request, {
           action: AuditAction.QR_CREATED,
@@ -114,7 +124,7 @@ export async function qrRoutes(app: FastifyInstance): Promise<void> {
       async (request, reply) => {
         const auth = requireAuth(request);
         const query = parseQuery(qrListQuerySchema, request.query);
-        const result = await qrService.listQrCodes(auth, query);
+        const result = await qrService.listQrCodes(auth, query, publicAppUrl(request));
         return paginated(reply, result.items, result.pagination);
       },
     );
@@ -140,6 +150,7 @@ export async function qrRoutes(app: FastifyInstance): Promise<void> {
             auth,
             params.subjectType as QrSubjectType,
             params.subjectId,
+            publicAppUrl(request),
           ),
         );
       },
@@ -151,7 +162,7 @@ export async function qrRoutes(app: FastifyInstance): Promise<void> {
       async (request, reply) => {
         const auth = requireAuth(request);
         const { id } = parseParams(idParamSchema, request.params);
-        return ok(reply, await qrService.getQrCode(auth, id));
+        return ok(reply, await qrService.getQrCode(auth, id, publicAppUrl(request)));
       },
     );
 
@@ -164,17 +175,20 @@ export async function qrRoutes(app: FastifyInstance): Promise<void> {
         const query = parseQuery(qrImageQuerySchema, request.query);
         const { code } = await qrService.loadTokenForRendering(auth, id);
 
-        const svg = await renderService.renderSvg(code.token, {
+        const svg = await qrImage.renderSvg(code.token, {
           size: query.size,
           errorCorrection: query.errorCorrection,
           margin: query.margin,
+          baseUrl: publicAppUrl(request),
         });
 
-        return reply
-          .header('content-type', 'image/svg+xml; charset=utf-8')
-          // The image embeds a live credential, so it is never shared-cached.
-          .header('cache-control', 'private, max-age=300')
-          .send(svg);
+        return (
+          reply
+            .header('content-type', 'image/svg+xml; charset=utf-8')
+            // The image embeds a live credential, so it is never shared-cached.
+            .header('cache-control', 'private, max-age=300')
+            .send(svg)
+        );
       },
     );
 
@@ -187,10 +201,11 @@ export async function qrRoutes(app: FastifyInstance): Promise<void> {
         const query = parseQuery(qrImageQuerySchema, request.query);
         const { code } = await qrService.loadTokenForRendering(auth, id);
 
-        const png = await renderService.renderPng(code.token, {
+        const png = await qrImage.renderPng(code.token, {
           size: query.size,
           errorCorrection: query.errorCorrection,
           margin: query.margin,
+          baseUrl: publicAppUrl(request),
         });
 
         return reply
@@ -200,32 +215,76 @@ export async function qrRoutes(app: FastifyInstance): Promise<void> {
       },
     );
 
+    /** The printable presets, so the UI can offer them without hardcoding. */
+    scoped.get('/badge-presets', async (_request, reply) =>
+      ok(reply, Object.values(QR_BADGE_PRESETS)),
+    );
+
+    /**
+     * The printable sticker.
+     *
+     * SVG on purpose: it is vector, so it prints at the printer's own DPI
+     * rather than one we guessed, and it needs no native rasteriser on the
+     * server. A client that wants a PNG can draw it to a canvas at whatever
+     * size it likes.
+     */
     scoped.get(
       '/:id/badge.svg',
       { preHandler: requirePermission(Permission.QR_READ) },
       async (request, reply) => {
         const auth = requireAuth(request);
         const { id } = parseParams(idParamSchema, request.params);
-        const { preset } = parseQuery(qrBadgeQuerySchema, request.query);
+        const query = parseQuery(qrBadgeQuerySchema, request.query);
         const { code, subject } = await qrService.loadTokenForRendering(auth, id);
 
         const organization = subject.organizationId
           ? await organizationName(subject.organizationId)
           : null;
 
-        const svg = await renderService.renderBadgeSvg({
+        const subjectType = code.subjectType as QrSubjectType;
+        const presetKey = query.preset ?? defaultBadgePresetFor(subjectType);
+
+        const stickerInput = {
           token: code.token,
-          presetKey: preset,
+          presetKey,
           title: subject.displayName,
           subtitle: subject.secondaryLabel,
           organizationName: organization?.name ?? null,
           verified: organization?.verified ?? false,
-        });
+          subjectKind:
+            subjectType === QrSubjectType.DRIVER || subjectType === QrSubjectType.USER
+              ? ('DRIVER' as const)
+              : subjectType === QrSubjectType.VEHICLE
+                ? ('VEHICLE' as const)
+                : ('OTHER' as const),
+          printMarks: query.printMarks,
+          mirror: query.mirror,
+        };
 
-        return reply
-          .header('content-type', 'image/svg+xml; charset=utf-8')
-          .header('cache-control', 'private, max-age=300')
-          .send(svg);
+        const targetUrl = qrTargetUrl(publicAppUrl(request), code.token);
+
+        const svg = query.sheet
+          ? await renderService.renderStickerSheetSvg(stickerInput, targetUrl, {
+              ...(query.columns !== undefined ? { columns: query.columns } : {}),
+              ...(query.rows !== undefined ? { rows: query.rows } : {}),
+            })
+          : await renderService.renderStickerSvg(stickerInput, targetUrl);
+
+        const fileName = `saarthi-${presetKey}-${subject.displayName
+          .replace(/[^a-zA-Z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '')
+          .toLowerCase()}${query.sheet ? '-sheet' : ''}.svg`;
+
+        return (
+          reply
+            .header('content-type', 'image/svg+xml; charset=utf-8')
+            // Named so a download lands as a recognisable file rather than
+            // "badge.svg" forty times over.
+            .header('content-disposition', `inline; filename="${fileName}"`)
+            // The artefact embeds a live credential, so never shared-cached.
+            .header('cache-control', 'private, max-age=300')
+            .send(svg)
+        );
       },
     );
 
@@ -236,7 +295,7 @@ export async function qrRoutes(app: FastifyInstance): Promise<void> {
         const auth = requireAuth(request);
         const { id } = parseParams(idParamSchema, request.params);
         const input = parseBody(rotateQrCodeSchema, request.body);
-        const code = await qrService.rotateQrCode(auth, id, input);
+        const code = await qrService.rotateQrCode(auth, id, input, publicAppUrl(request));
 
         await auditFromRequest(request, {
           action: AuditAction.QR_ROTATED,
@@ -256,7 +315,7 @@ export async function qrRoutes(app: FastifyInstance): Promise<void> {
         const auth = requireAuth(request);
         const { id } = parseParams(idParamSchema, request.params);
         const { reason } = parseBody(revokeQrCodeSchema, request.body);
-        const code = await qrService.revokeQrCode(auth, id, reason);
+        const code = await qrService.revokeQrCode(auth, id, reason, publicAppUrl(request));
 
         await auditFromRequest(request, {
           action: AuditAction.QR_REVOKED,
@@ -266,6 +325,51 @@ export async function qrRoutes(app: FastifyInstance): Promise<void> {
         });
 
         return ok(reply, code);
+      },
+    );
+
+    /**
+     * Field disclosure policy.
+     *
+     * Read is open to anyone who can read QR codes: somebody printing a sticker
+     * should be able to check what it will reveal before it goes on a door.
+     */
+    scoped.get(
+      '/privacy-policy',
+      { preHandler: requirePermission(Permission.QR_READ) },
+      async (request, reply) => {
+        const organizationId = requireOrganizationId(request);
+        const policy = await privacyService.getPrivacyPolicy(organizationId);
+        return ok(reply, privacyService.describePolicy(policy));
+      },
+    );
+
+    /*
+     * Writing needs QR_MANAGE *and* ORG_UPDATE. A dispatcher legitimately holds
+     * QR_MANAGE — issuing and revoking codes is their job — but rewriting what
+     * every code in the fleet discloses about drivers is an organization-level
+     * decision, and it belongs with the account that answers for it.
+     */
+    scoped.put(
+      '/privacy-policy',
+      { preHandler: requireAllPermissions(Permission.QR_MANAGE, Permission.ORG_UPDATE) },
+      async (request, reply) => {
+        const auth = requireAuth(request);
+        const organizationId = requireOrganizationId(request);
+        const input = parseBody(updateQrPrivacyPolicySchema, request.body ?? {});
+        const policy = await privacyService.updatePrivacyPolicy(auth, organizationId, input);
+
+        await auditFromRequest(request, {
+          action: AuditAction.QR_PRIVACY_POLICY_UPDATED,
+          entityType: 'QrPrivacyPolicy',
+          entityId: organizationId,
+          after: {
+            fields: Object.keys(policy.overrides).length,
+            allowPublicScans: policy.allowPublicScans,
+          },
+        });
+
+        return ok(reply, privacyService.describePolicy(policy));
       },
     );
 

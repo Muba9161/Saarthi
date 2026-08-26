@@ -24,6 +24,9 @@ import {
   broadcastTruckLocation,
 } from '../../realtime/realtime.service';
 import { notifyOrganization } from '../notifications/notification.service';
+import { cache } from '../../infra/cache';
+import { cacheKeys, cacheTtl } from '../../infra/cache-keys';
+import { readLiveStates, writeLiveState } from './live-state.service';
 import type { AuthContext } from '../../auth/context';
 
 /**
@@ -439,6 +442,27 @@ export async function ingestLocation(
     }
   }
 
+  /*
+   * Cache the position after the durable write, never instead of it.
+   *
+   * The dashboard reads this instead of joining three tables for every poll,
+   * and the key's TTL is what "online" means: nothing heard recently, nothing
+   * in the cache. Failures here are swallowed inside `writeLiveState` because
+   * PostgreSQL already has the reading.
+   */
+  await writeLiveState({
+    vehicleId: truck.id,
+    lat: input.latitude,
+    lng: input.longitude,
+    speed: input.speedKph,
+    heading: input.heading,
+    accuracy: input.accuracy ?? null,
+    timestamp: recordedAt.toISOString(),
+    deviceStatus: 'ONLINE',
+    source: input.source,
+    simulated,
+  });
+
   return {
     accepted: true,
     truckId: truck.id,
@@ -472,8 +496,58 @@ export interface LiveTruckPosition {
 
 const STALE_AFTER_MS = 5 * 60_000;
 
-/** Every truck in the fleet that has a known position — powers the live map. */
+/**
+ * Every truck in the fleet that has a known position — powers the live map.
+ *
+ * The relational half of this (driver names, trip references) changes rarely
+ * and is cached for a few seconds; the positions themselves are then overlaid
+ * from live state, so a map poll is fresh without paying for the joins every
+ * time. Continuous movement reaches the browser over the WebSocket rather than
+ * through this endpoint, which serves the first paint and the reconnect.
+ */
 export async function fleetPositions(organizationId: string): Promise<LiveTruckPosition[]> {
+  const cacheKey = cacheKeys.fleetPositions(organizationId);
+  const cached = await cache.get<LiveTruckPosition[]>(cacheKey);
+  if (cached) return overlayLiveState(cached);
+
+  const positions = await loadFleetPositions(organizationId);
+  await cache.set(cacheKey, positions, cacheTtl.fleetAggregate);
+  return overlayLiveState(positions);
+}
+
+/**
+ * Replace cached coordinates with anything more recent from live state.
+ *
+ * Guards on the timestamp rather than assuming the cache is older: a vehicle
+ * that has not reported since the snapshot was taken must keep the position the
+ * snapshot holds, not lose it.
+ */
+async function overlayLiveState(positions: LiveTruckPosition[]): Promise<LiveTruckPosition[]> {
+  if (positions.length === 0) return positions;
+
+  const live = await readLiveStates(positions.map((position) => position.truckId));
+  if (live.size === 0) return positions;
+
+  return positions.map((position) => {
+    const state = live.get(position.truckId);
+    if (!state) return position;
+    if (new Date(state.timestamp).getTime() <= new Date(position.recordedAt).getTime()) {
+      return position;
+    }
+
+    return {
+      ...position,
+      latitude: state.lat,
+      longitude: state.lng,
+      speedKph: state.speed ?? position.speedKph,
+      heading: state.heading ?? position.heading,
+      recordedAt: state.timestamp,
+      stale: false,
+    };
+  });
+}
+
+async function loadFleetPositions(organizationId: string): Promise<LiveTruckPosition[]> {
   const trucks = await prisma.truck.findMany({
     where: {
       organizationId,

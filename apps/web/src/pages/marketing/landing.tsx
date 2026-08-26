@@ -16,7 +16,7 @@ import {
   Users,
   Zap,
 } from 'lucide-react';
-import { PLAN_CATALOGUE, formatCurrency } from '@saarthi/shared';
+import { PLAN_CATALOGUE, VEHICLE_TOPUP, formatCurrency } from '@saarthi/shared';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
@@ -151,8 +151,8 @@ function MarketingNav() {
     <header className="glass sticky top-0 z-50 rounded-none border-x-0 border-t-0">
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-6 px-5">
         <Link to="/" className="flex shrink-0 items-center gap-2.5">
-          <SaarthiLogo className="size-8" />
-          <span className="text-lg font-semibold tracking-tight">Saarthi</span>
+          <SaarthiLogo className="h-8" />
+          <span className="text-lg font-semibold tracking-tight">VorldX Saarthi</span>
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex">
@@ -520,11 +520,12 @@ function Pricing() {
         <RevealOnScroll className="mx-auto max-w-2xl text-center">
           <p className="section-label">Pricing</p>
           <h2 className="mt-2 text-3xl font-semibold tracking-[-0.02em] sm:text-4xl">
-            Pay for the intelligence, not the seat
+            Priced by fleet size, not by seat
           </h2>
           <p className="mt-4 text-muted-foreground">
-            Every plan starts with a 30-day trial. Safety features are never gated — SOS works on
-            every plan, including the free trial.
+            One vehicle or fifty — you pay for the vehicles you run, and everyone in your team uses
+            Saarthi. Every plan starts with a 30-day trial, and safety is never gated: SOS works on
+            all of them, trial included.
           </p>
         </RevealOnScroll>
 
@@ -546,7 +547,11 @@ function Pricing() {
                     </Badge>
                   ) : null}
 
-                  <h3 className="font-semibold">{plan.name}</h3>
+                  <h3 className="font-semibold">
+                    {plan.limits.maxTrucks === null
+                      ? 'Unlimited vehicles'
+                      : `${plan.limits.maxTrucks} vehicle${plan.limits.maxTrucks === 1 ? '' : 's'}`}
+                  </h3>
                   <p className="mt-3 text-3xl font-semibold tracking-tight">
                     {plan.priceMonthly === null ? (
                       'Custom'
@@ -577,12 +582,13 @@ function Pricing() {
                     ) : null}
                   </ul>
 
-                  <div className="mt-5 border-t border-border/60 pt-4 text-2xs text-muted-foreground">
-                    {plan.limits.maxTrucks === null
-                      ? 'Unlimited trucks'
-                      : `Up to ${plan.limits.maxTrucks} trucks`}
-                    {' · '}
-                    {plan.limits.trackingHistoryDays} days history
+                  <div className="mt-5 space-y-0.5 border-t border-border/60 pt-4 text-2xs text-muted-foreground">
+                    <p>{plan.name}</p>
+                    <p>
+                      {formatCurrency(VEHICLE_TOPUP.priceMonthly)}/mo per extra vehicle
+                      {' · '}
+                      {plan.limits.trackingHistoryDays} days history
+                    </p>
                   </div>
 
                   <Button
@@ -599,6 +605,27 @@ function Pricing() {
             );
           })}
         </Stagger>
+
+        {/*
+          The top-up sits below the grid rather than as a fifth column: it is
+          not a plan anyone starts on, it is the answer to "I just bought one
+          more truck" — which should not cost a jump to the next plan.
+        */}
+        <RevealOnScroll className="mx-auto mt-6 max-w-3xl">
+          <Card variant="glass" className="flex flex-col items-center gap-3 p-6 text-center sm:flex-row sm:text-left">
+            <div className="flex-1">
+              <h3 className="font-semibold">{VEHICLE_TOPUP.name} top-up</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Outgrown your plan by one vehicle? Add exactly one, for{' '}
+                {formatCurrency(VEHICLE_TOPUP.priceMonthly)} a month. Stack as many as you need,
+                cancel any of them individually.
+              </p>
+            </div>
+            <Button variant="outline" asChild>
+              <Link to="/register">Start free trial</Link>
+            </Button>
+          </Card>
+        </RevealOnScroll>
       </div>
     </section>
   );
@@ -648,9 +675,9 @@ function Footer() {
     <footer className="border-t border-border/60 px-5 py-10">
       <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-5 sm:flex-row">
         <div className="flex items-center gap-2.5">
-          <SaarthiLogo className="size-7" />
+          <SaarthiLogo className="h-7" />
           <div>
-            <p className="text-sm font-semibold">Saarthi</p>
+            <p className="text-sm font-semibold">VorldX Saarthi</p>
             <p className="text-2xs text-muted-foreground">
               The operating system for your trucking business
             </p>

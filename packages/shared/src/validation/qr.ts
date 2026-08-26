@@ -76,7 +76,21 @@ export const qrImageQuerySchema = z.object({
 export type QrImageQuery = z.infer<typeof qrImageQuerySchema>;
 
 export const qrBadgeQuerySchema = z.object({
-  preset: z.enum(['driver-card', 'vehicle-sticker']).default('vehicle-sticker'),
+  /** Omit to take the preset that suits the subject — card for a person. */
+  preset: z
+    .enum(['vehicle-sticker', 'vehicle-windscreen', 'vehicle-strip', 'driver-card'])
+    .optional(),
+  /** Add bleed and crop marks for a commercial print run. */
+  printMarks: z.coerce.boolean().default(false),
+  /**
+   * Reverse the artwork, for a windscreen sticker fitted to the inside of the
+   * glass with its printed face against it.
+   */
+  mirror: z.coerce.boolean().default(false),
+  /** Render an A4 sheet of identical stickers instead of a single one. */
+  sheet: z.coerce.boolean().default(false),
+  columns: z.coerce.number().int().min(1).max(10).optional(),
+  rows: z.coerce.number().int().min(1).max(14).optional(),
 });
 export type QrBadgeQuery = z.infer<typeof qrBadgeQuerySchema>;
 

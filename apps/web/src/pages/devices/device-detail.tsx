@@ -263,7 +263,7 @@ export function DeviceDetailPage() {
             <CardHeader className="pb-3">
               <SectionHeader
                 title="What it reports"
-                description="Observed is what Saarthi has actually received from this unit on this vehicle — which is not always everything the datasheet claims."
+                description="Observed is what VorldX Saarthi has actually received from this unit on this vehicle — which is not always everything the datasheet claims."
               />
             </CardHeader>
             <CardContent className="space-y-3 pt-0">
@@ -523,7 +523,7 @@ export function DeviceDetailPage() {
               </CardHeader>
               <CardContent className="space-y-2 pt-0">
                 <p className="text-sm text-muted-foreground">
-                  The device authenticates with its identifier and a secret. Saarthi keeps only a
+                  The device authenticates with its identifier and a secret. VorldX Saarthi keeps only a
                   hash, so a lost secret is replaced rather than recovered.
                 </p>
                 <Button

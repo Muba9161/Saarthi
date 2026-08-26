@@ -108,6 +108,14 @@ const envSchema = z.object({
   STOCK_LOW_DIGEST_HOUR: z.coerce.number().int().min(0).max(23).default(8),
 
   // --- Vehicle resale -------------------------------------------------------
+  //
+  // DEFERRED. The resale marketplace is built and its data is intact, but it is
+  // not part of the current product, so it ships switched off. Disabling is
+  // done by withholding the entitlement rather than by deleting anything: a
+  // vehicle's service history, documents and photographs are the same records
+  // the rest of Saarthi uses, and a future release turns the surface back on
+  // with `RESALE_ENABLED=true` and no migration.
+  RESALE_ENABLED: booleanish(false),
   /// A resale listing is a financial representation about an asset, so review
   /// is on by default.
   RESALE_REVIEW_REQUIRED: booleanish(true),
@@ -120,6 +128,61 @@ const envSchema = z.object({
   /// 0 = codes do not expire.
   QR_DEFAULT_TTL_DAYS: z.coerce.number().int().min(0).max(3650).default(0),
   QR_IMAGE_MAX_SIZE: z.coerce.number().int().min(128).max(4096).default(1024),
+
+  // --- Vehicle finance (loans & EMI) ----------------------------------------
+  //
+  // `internal` means Saarthi keeps only what the operator recorded, which is
+  // the honest default: a loan account number is not a lookup key, and no
+  // financier discloses a schedule without an integration and consent.
+  LOAN_PROVIDER: z.enum(['internal', 'mock']).default('internal'),
+  /// Days before a due date at which an installment is flagged DUE_SOON.
+  LOAN_DUE_SOON_DAYS: z.coerce.number().int().min(1).max(30).default(4),
+  /// Default reminder offsets in days relative to the due date (T-4, T-1, T+1).
+  LOAN_REMINDER_OFFSETS: csv(['-4', '-1', '1']),
+  /// How many installments a single reminder sweep will process.
+  LOAN_REMINDER_BATCH: z.coerce.number().int().min(10).max(5000).default(500),
+
+  // --- Video (multi-camera devices such as the YC06) ------------------------
+  //
+  // Live video never passes through the API. The provider issues a short-lived,
+  // camera-scoped ticket and the browser negotiates with a video gateway
+  // directly. 'none' is the honest default for a deployment with no cameras.
+  VIDEO_PROVIDER: z.enum(['none', 'mock']).default('none'),
+  /// Seconds a live-view ticket stays valid. Short: it is re-issued on demand,
+  /// and a long-lived ticket is a camera credential someone can pass around.
+  VIDEO_TICKET_TTL: z.coerce.number().int().min(15).max(600).default(120),
+  /// Cameras a single multi-camera device may have. The YC06 has four.
+  VIDEO_MAX_CAMERAS_PER_DEVICE: z.coerce.number().int().min(1).max(16).default(4),
+
+  // --- FASTag & toll (NETC) --------------------------------------------------
+  //
+  // What a NETC lookup provider actually serves is tag *status* — active,
+  // blacklisted, its class and issuing bank. The rupee balance sits with the
+  // issuing bank and is not theirs to give, so Saarthi shows what the operator
+  // recorded and never invents a figure. Recharging goes through the issuer or
+  // a BBPS agent, which a verification API is not.
+  //
+  // 'mastersindia' is the documented NETC adapter; it needs FASTAG_API_KEY and
+  // FASTAG_SUB_ID and falls back to recorded-only if either is missing.
+  FASTAG_PROVIDER: z.enum(['internal', 'mastersindia', 'mock']).default('internal'),
+  FASTAG_API_BASE_URL: z.string().url().default('https://api-platform.mastersindia.co'),
+  FASTAG_API_KEY: z.string().optional(),
+  /// Subscriber id, issued by the provider alongside the key.
+  FASTAG_SUB_ID: z.string().optional(),
+  FASTAG_PRODUCT_ID: z.string().default('arap'),
+  FASTAG_MODE: z.string().default('Buyer'),
+  /// Balance below which a fleet is warned. One more national plaza, roughly.
+  FASTAG_LOW_BALANCE_THRESHOLD: z.coerce.number().min(0).max(100_000).default(500),
+  /// Seconds a tag lookup is reused before the provider is billed again.
+  FASTAG_CACHE_TTL: z.coerce.number().int().min(0).max(86_400).default(900),
+
+  // --- Service history ------------------------------------------------------
+  //
+  // 'internal' means Saarthi shows what its users recorded. External service
+  // history in India is fragmented across OEM networks, insurers and
+  // independent workshops, so no provider returns a complete picture and the
+  // UI is built to say so.
+  SERVICE_HISTORY_PROVIDER: z.enum(['internal', 'mock']).default('internal'),
 
   // --- Return loads ---------------------------------------------------------
   RETURN_LOAD_MAX_PICKUP_KM: z.coerce.number().min(1).max(1000).default(150),
@@ -143,7 +206,7 @@ const envSchema = z.object({
   NOTIFICATION_PROVIDER: z.enum(['local', 'production']).default('local'),
   VERIFICATION_PROVIDER: z.enum(['manual', 'external']).default('manual'),
 
-  AI_PROVIDER: z.enum(['development', 'anthropic']).default('development'),
+  AI_PROVIDER: z.enum(['development', 'anthropic', 'gemini']).default('development'),
   AI_API_KEY: z.string().optional(),
   AI_MODEL: z.string().default('claude-sonnet-5'),
   AI_BASE_URL: z.string().optional(),
@@ -151,6 +214,7 @@ const envSchema = z.object({
   CACHE_DRIVER: z.enum(['memory', 'redis']).default('memory'),
   QUEUE_DRIVER: z.enum(['memory', 'redis']).default('memory'),
   PUBSUB_DRIVER: z.enum(['memory', 'redis']).default('memory'),
+  LOCK_DRIVER: z.enum(['memory', 'redis']).default('memory'),
   REDIS_URL: z.string().optional(),
 
   // --- Vehicle RC lookup (Way2API) ------------------------------------------
@@ -167,8 +231,23 @@ const envSchema = z.object({
    * A development guard against burning a trial allowance by accident.
    */
   VEHICLE_LOOKUP_BUDGET: z.coerce.number().int().min(0).default(0),
+  /**
+   * How long a fetched record is kept so the operator does not have to look it
+   * up again. Distinct from VEHICLE_CACHE_TTL, which only decides when a
+   * *fresh provider call* becomes worthwhile.
+   */
+  VEHICLE_LOOKUP_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).default(365),
   VEHICLE_LOOKUP_RATE_LIMIT_MAX: z.coerce.number().int().min(1).default(10),
   VEHICLE_LOOKUP_RATE_LIMIT_WINDOW: z.string().default('1 minute'),
+
+  // --- Driving licence lookup (Way2API) -------------------------------------
+  // Shares the Way2API credentials above; trial credits and billing are
+  // per-service, so the cache window and ceiling are its own.
+  LICENCE_CACHE_TTL: z.coerce.number().int().min(0).max(30 * 86_400).default(86_400),
+  LICENCE_LOOKUP_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).default(365),
+  LICENCE_LOOKUP_BUDGET: z.coerce.number().int().min(0).default(0),
+  LICENCE_LOOKUP_RATE_LIMIT_MAX: z.coerce.number().int().min(1).default(10),
+  LICENCE_LOOKUP_RATE_LIMIT_WINDOW: z.string().default('1 minute'),
 
   // --- Petrol stations (SSR Innovation Lab) ---------------------------------
   SSR_PETROL_API_BASE_URL: z.string().url().default('https://api.ssrinnovationlab.com'),
@@ -289,6 +368,8 @@ export const config = {
   },
 
   resale: {
+    /** Deferred feature switch — see the note in the env schema. */
+    enabled: raw.RESALE_ENABLED,
     reviewRequired: raw.RESALE_REVIEW_REQUIRED,
     listingTtlDays: raw.RESALE_LISTING_TTL_DAYS,
     offerTtlDays: raw.RESALE_OFFER_TTL_DAYS,
@@ -299,6 +380,37 @@ export const config = {
     resolveRateLimitWindow: raw.QR_RESOLVE_RATE_LIMIT_WINDOW,
     defaultTtlDays: raw.QR_DEFAULT_TTL_DAYS,
     maxImageSize: raw.QR_IMAGE_MAX_SIZE,
+  },
+
+  serviceHistory: {
+    provider: raw.SERVICE_HISTORY_PROVIDER,
+  },
+
+  fastag: {
+    provider: raw.FASTAG_PROVIDER,
+    baseUrl: raw.FASTAG_API_BASE_URL.replace(/\/$/, ''),
+    apiKey: raw.FASTAG_API_KEY || undefined,
+    subId: raw.FASTAG_SUB_ID || undefined,
+    productId: raw.FASTAG_PRODUCT_ID,
+    mode: raw.FASTAG_MODE,
+    lowBalanceThreshold: raw.FASTAG_LOW_BALANCE_THRESHOLD,
+    cacheTtlSeconds: raw.FASTAG_CACHE_TTL,
+  },
+
+  video: {
+    provider: raw.VIDEO_PROVIDER,
+    ticketTtlSeconds: raw.VIDEO_TICKET_TTL,
+    maxCamerasPerDevice: raw.VIDEO_MAX_CAMERAS_PER_DEVICE,
+  },
+
+  finance: {
+    provider: raw.LOAN_PROVIDER,
+    dueSoonDays: raw.LOAN_DUE_SOON_DAYS,
+    // Parsed here rather than in the sweep so a malformed value fails at boot.
+    reminderOffsets: raw.LOAN_REMINDER_OFFSETS.map((value) => Number.parseInt(value, 10)).filter(
+      (value) => Number.isInteger(value) && value >= -60 && value <= 30,
+    ),
+    reminderBatchSize: raw.LOAN_REMINDER_BATCH,
   },
 
   returnLoads: {
@@ -339,6 +451,7 @@ export const config = {
     cacheDriver: raw.CACHE_DRIVER,
     queueDriver: raw.QUEUE_DRIVER,
     pubsubDriver: raw.PUBSUB_DRIVER,
+    lockDriver: raw.LOCK_DRIVER,
     redisUrl: raw.REDIS_URL || undefined,
   },
 
@@ -349,8 +462,20 @@ export const config = {
     pdfMaxBytes: raw.VEHICLE_RC_PDF_MAX_BYTES,
     cacheTtlSeconds: raw.VEHICLE_CACHE_TTL,
     callBudget: raw.VEHICLE_LOOKUP_BUDGET,
+    retentionDays: raw.VEHICLE_LOOKUP_RETENTION_DAYS,
     rateLimitMax: raw.VEHICLE_LOOKUP_RATE_LIMIT_MAX,
     rateLimitWindow: raw.VEHICLE_LOOKUP_RATE_LIMIT_WINDOW,
+  },
+
+  drivingLicence: {
+    baseUrl: raw.WAY2API_BASE_URL.replace(/\/$/, ''),
+    apiKey: raw.WAY2API_API_KEY || undefined,
+    timeoutMs: raw.WAY2API_TIMEOUT_MS,
+    cacheTtlSeconds: raw.LICENCE_CACHE_TTL,
+    retentionDays: raw.LICENCE_LOOKUP_RETENTION_DAYS,
+    callBudget: raw.LICENCE_LOOKUP_BUDGET,
+    rateLimitMax: raw.LICENCE_LOOKUP_RATE_LIMIT_MAX,
+    rateLimitWindow: raw.LICENCE_LOOKUP_RATE_LIMIT_WINDOW,
   },
 
   petrolStations: {

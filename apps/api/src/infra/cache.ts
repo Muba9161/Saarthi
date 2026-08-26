@@ -1,4 +1,5 @@
 import { config } from '../config/env';
+import { RedisCache } from './redis-cache';
 
 /**
  * Small key/value cache used for dashboard aggregates, nearby searches and
@@ -68,10 +69,9 @@ class MemoryCache implements CacheDriver {
 
 function createCache(): CacheDriver {
   if (config.infra.cacheDriver === 'redis') {
-    throw new Error(
-      'CACHE_DRIVER=redis requires the Redis cache adapter to be configured. ' +
-        'Set CACHE_DRIVER=memory for local development.',
-    );
+    // Constructed at boot, not lazily: a misconfigured Redis should fail while
+    // the process is starting, not on the first cache read under load.
+    return new RedisCache();
   }
   return new MemoryCache();
 }

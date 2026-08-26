@@ -38,3 +38,18 @@ export function StatCardsSkeleton({ count = 4 }: { count?: number }) {
     </div>
   );
 }
+
+/** Placeholder for one card in a card-view grid. */
+export function CardSkeleton() {
+  return (
+    <div className="rounded-lg border border-border bg-card p-4" role="status" aria-label="Loading">
+      <Skeleton className="h-4 w-32" />
+      <Skeleton className="mt-2 h-3 w-24" />
+      <div className="mt-4 space-y-2 border-t border-border pt-3">
+        <Skeleton className="h-3 w-full" />
+        <Skeleton className="h-3 w-4/5" />
+        <Skeleton className="h-3 w-3/5" />
+      </div>
+    </div>
+  );
+}

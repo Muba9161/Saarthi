@@ -73,6 +73,27 @@ export const Permission = {
   SOS_RESPOND: 'sos.respond',
   SOS_MANAGE: 'sos.manage',
 
+  // Vehicle finance — loans and EMI.
+  //
+  // Private financial data, so it sits alongside ANALYTICS_FINANCIAL rather
+  // than with the operational fleet grants: a manager who can dispatch a truck
+  // has no automatic business seeing what is still owed on it.
+  LOANS_READ: 'loans.read',
+  LOANS_MANAGE: 'loans.manage',
+  /** Unmasked loan and mandate references. Owner-level by default. */
+  LOANS_SENSITIVE: 'loans.sensitive',
+
+  // FASTag & toll.
+  //
+  // Unlike loans, toll is an operational cost a dispatcher legitimately works
+  // with, so read and manage sit in the general fleet grant. Only the tag
+  // identifier itself is owner-level: it is a payment instrument, and enough to
+  // query or dispute somebody's account.
+  TOLL_READ: 'toll.read',
+  TOLL_MANAGE: 'toll.manage',
+  /** Unmasked FASTag id and the linked account reference. */
+  FASTAG_SENSITIVE: 'toll.fastag.sensitive',
+
   // Maintenance & fuel
   MAINTENANCE_READ: 'maintenance.read',
   MAINTENANCE_MANAGE: 'maintenance.manage',
@@ -100,6 +121,11 @@ export const Permission = {
   VEHICLE_LOOKUP: 'vehicles.lookup',
   /** Owner identity, address, engine and chassis numbers on an RC record. */
   VEHICLE_LOOKUP_SENSITIVE: 'vehicles.lookup.sensitive',
+
+  // Driving licence (RTO) lookup
+  DRIVER_LICENCE_LOOKUP: 'drivers.licence.lookup',
+  /** Holder name, parentage, addresses and blood group on a licence record. */
+  DRIVER_LICENCE_LOOKUP_SENSITIVE: 'drivers.licence.lookup.sensitive',
 
   // Vehicles.
   //
@@ -226,11 +252,14 @@ const FLEET_MANAGER_PERMISSIONS: Permission[] = [
   Permission.MAINTENANCE_MANAGE,
   Permission.FUEL_READ,
   Permission.FUEL_MANAGE,
+  Permission.TOLL_READ,
+  Permission.TOLL_MANAGE,
   Permission.ANALYTICS_READ,
   Permission.SUBSCRIPTION_READ,
   Permission.NOTIFICATIONS_READ,
   Permission.NEARBY_READ,
   Permission.VEHICLE_LOOKUP,
+  Permission.DRIVER_LICENCE_LOOKUP,
   Permission.AI_USE,
   Permission.MATERIALS_READ,
   Permission.SUPPLIERS_READ,
@@ -271,8 +300,17 @@ const ROLE_PERMISSIONS: Record<RoleName, Permission[]> = {
     Permission.TRUCKS_DELETE,
     Permission.DRIVERS_SCORE_ADJUST,
     Permission.ANALYTICS_FINANCIAL,
+    // Vehicle finance follows the same rule as financial analytics: the person
+    // who signed for the loan is the person who sees it.
+    Permission.LOANS_READ,
+    Permission.LOANS_MANAGE,
+    Permission.LOANS_SENSITIVE,
+    // The tag id is a payment instrument identifier — owner level, like the
+    // loan and mandate references above it.
+    Permission.FASTAG_SENSITIVE,
     Permission.SUBSCRIPTION_MANAGE,
     Permission.VEHICLE_LOOKUP_SENSITIVE,
+    Permission.DRIVER_LICENCE_LOOKUP_SENSITIVE,
     // Buying, selling and transferring an asset commits money — the owner only.
     Permission.RESALE_OFFER,
     Permission.RESALE_TRANSFER,
@@ -350,6 +388,8 @@ const ROLE_PERMISSIONS: Record<RoleName, Permission[]> = {
     // Its own vehicles only, same as any other operator.
     Permission.VEHICLE_LOOKUP,
     Permission.VEHICLE_LOOKUP_SENSITIVE,
+    Permission.DRIVER_LICENCE_LOOKUP,
+    Permission.DRIVER_LICENCE_LOOKUP_SENSITIVE,
     Permission.DEVICES_READ,
     Permission.TELEMETRY_READ,
     Permission.TELEMETRY_ALERTS_READ,
@@ -408,6 +448,9 @@ const ROLE_PERMISSIONS: Record<RoleName, Permission[]> = {
   ],
 
   [RoleName.DRIVER]: [
+    // Their own licence, and therefore their own personal details.
+    Permission.DRIVER_LICENCE_LOOKUP,
+    Permission.DRIVER_LICENCE_LOOKUP_SENSITIVE,
     Permission.TRUCKS_READ,
     Permission.DRIVERS_READ,
     Permission.DRIVERS_SCORE_READ,
@@ -541,6 +584,11 @@ const ROLE_PERMISSIONS: Record<RoleName, Permission[]> = {
     Permission.QR_READ,
     // Support investigates disputed scans, so it reads the scan log.
     Permission.QR_AUDIT,
+    // "My EMI reminder never arrived" is a support ticket, so support can see
+    // the schedule — but LOANS_SENSITIVE is deliberately withheld, so the loan
+    // account number and the NACH mandate reference stay masked. Reading a
+    // schedule to explain a reminder needs neither.
+    Permission.LOANS_READ,
     Permission.RETURN_LOADS_READ,
     Permission.CITY_ACCESS_READ,
     Permission.RELAY_READ,

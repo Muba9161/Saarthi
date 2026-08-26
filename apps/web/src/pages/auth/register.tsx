@@ -335,7 +335,7 @@ export function RegisterPage() {
                     />
                   </FormControl>
                   <FormLabel className="text-sm font-normal leading-snug text-muted-foreground">
-                    I agree to the Saarthi terms of service and privacy policy.
+                    I agree to the VorldX Saarthi terms of service and privacy policy.
                   </FormLabel>
                 </div>
                 <FormMessage />

@@ -1,7 +1,7 @@
 import { ErrorCode, type ApiResponse } from '@saarthi/shared';
 
 /**
- * Single HTTP client for the Saarthi API.
+ * Single HTTP client for the VorldX Saarthi API.
  *
  * Security posture: the access token is kept in memory only (never in
  * localStorage, so an XSS payload cannot read it), while the long-lived refresh
@@ -171,7 +171,7 @@ async function performRequest<T>(path: string, options: RequestOptions, retry: b
     throw new ApiError(
       0,
       'NETWORK_ERROR',
-      'Unable to reach the Saarthi server. Check that the API is running and try again.',
+      'Unable to reach the VorldX Saarthi server. Check that the API is running and try again.',
     );
   }
 

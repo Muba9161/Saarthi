@@ -1,7 +1,13 @@
 import type { FastifyInstance } from 'fastify';
-import { Feature, Permission, lookupIdParamSchema, vehicleLookupSchema } from '@saarthi/shared';
+import {
+  Feature,
+  Permission,
+  lookupIdParamSchema,
+  storedLookupQuerySchema,
+  vehicleLookupSchema,
+} from '@saarthi/shared';
 import { config } from '../../config/env';
-import { ok, parseBody, parseParams } from '../../lib/http';
+import { ok, parseBody, parseParams, parseQuery } from '../../lib/http';
 import { requireAuth, requireFeature, requirePermission } from '../../server/guards';
 import { AuditAction, auditFromRequest } from '../audit/audit.service';
 import * as vehicleLookupService from './vehicle-lookup.service';
@@ -20,6 +26,28 @@ import * as vehicleLookupService from './vehicle-lookup.service';
  */
 export async function vehicleLookupRoutes(app: FastifyInstance): Promise<void> {
   app.addHook('preHandler', app.authenticate);
+
+  /**
+   * The record Saarthi already holds, if any.
+   *
+   * Free and idempotent: no provider call, no charge, no budget consumed. The
+   * vehicle's Registration tab calls this on open so a record fetched last week
+   * is simply there, rather than vanishing on every refresh.
+   */
+  app.get(
+    '/lookups/latest',
+    {
+      preHandler: [
+        requirePermission(Permission.VEHICLE_LOOKUP),
+        requireFeature(Feature.FLEET_BASIC),
+      ],
+    },
+    async (request, reply) => {
+      const auth = requireAuth(request);
+      const { registrationNumber } = parseQuery(storedLookupQuerySchema, request.query);
+      return ok(reply, await vehicleLookupService.getStoredLookup(auth, registrationNumber));
+    },
+  );
 
   app.post(
     '/lookup',

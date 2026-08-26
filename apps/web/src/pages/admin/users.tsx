@@ -33,7 +33,7 @@ export function AdminUsersPage() {
 
   return (
     <div className="space-y-5">
-      <PageHeader title="Users" description="Every Saarthi account and the organizations it belongs to." />
+      <PageHeader title="Users" description="Every VorldX Saarthi account and the organizations it belongs to." />
       <DataTable
         columns={columns}
         rows={query.data?.items ?? (Array.isArray(query.data) ? query.data : undefined)}

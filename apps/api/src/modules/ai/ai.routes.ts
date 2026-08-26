@@ -15,6 +15,9 @@ import {
 } from '../../server/guards';
 import { AuditAction, auditFromRequest } from '../audit/audit.service';
 import * as aiService from './ai.service';
+import * as copilot from './copilot.service';
+import * as brief from './daily-brief.service';
+import { authorizedTools } from './tools/registry';
 
 /**
  * AI Fleet Copilot.
@@ -24,6 +27,85 @@ import * as aiService from './ai.service';
  */
 export async function aiRoutes(app: FastifyInstance): Promise<void> {
   app.addHook('preHandler', app.authenticate);
+
+  /**
+   * Tool-calling copilot.
+   *
+   * Distinct from `/chat`, which grounds the model in a context assembled in
+   * advance. Here the model asks for what it needs and Saarthi decides, per
+   * call, whether this caller may have it — so the answer comes back with the
+   * full record of which tools ran and over how many records.
+   */
+  app.post(
+    '/ask',
+    {
+      preHandler: [requirePermission(Permission.AI_USE), requireFeature(Feature.AI_COPILOT)],
+      config: { rateLimit: { max: 20, timeWindow: '1 minute' } },
+    },
+    async (request, reply) => {
+      const auth = requireAuth(request);
+      const organizationId = requireOrganizationId(request);
+      const input = parseBody(aiChatSchema, request.body);
+
+      const result = await copilot.askWithTools(auth, organizationId, input.message);
+
+      await auditFromRequest(request, {
+        action: AuditAction.AI_QUERY,
+        entityType: 'AiCopilot',
+        after: {
+          tools: result.toolCalls.map((call) => call.tool),
+          iterations: result.iterations,
+          truncated: result.truncated,
+        },
+      });
+
+      return ok(reply, {
+        ...result,
+        // Spec-shaped: "Based on 42 trips, 18 fuel transactions..." — built from
+        // the tool record, not from the model's account of what it looked at.
+        provenance: copilot.provenanceSummary(result),
+      });
+    },
+  );
+
+  /**
+   * What the assistant can look up for *this* caller.
+   *
+   * Filtered by their permissions and plan, so the list never advertises a
+   * capability the person does not have.
+   */
+  app.get(
+    '/tools',
+    { preHandler: requirePermission(Permission.AI_USE) },
+    async (request, reply) => {
+      const auth = requireAuth(request);
+      return ok(
+        reply,
+        authorizedTools(auth).map((tool) => ({
+          name: tool.name,
+          description: tool.description,
+          category: tool.category,
+        })),
+      );
+    },
+  );
+
+  /**
+   * The morning brief.
+   *
+   * Not behind the AI entitlement: it is produced by deterministic rules, not
+   * by a model, and a fleet without an AI plan still needs to know what is
+   * overdue. Only `analytics.read` is required.
+   */
+  app.get(
+    '/daily-brief',
+    { preHandler: requirePermission(Permission.ANALYTICS_READ) },
+    async (request, reply) => {
+      const auth = requireAuth(request);
+      const organizationId = requireOrganizationId(request);
+      return ok(reply, await brief.dailyBriefFor(auth, organizationId));
+    },
+  );
 
   app.post(
     '/chat',

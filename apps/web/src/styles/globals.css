@@ -410,3 +410,39 @@
 .maplibregl-user-location-accuracy-circle {
   background-color: hsl(var(--primary) / 0.16);
 }
+
+/* ---------------------------------------------------------------------------
+ * Splash screen
+ *
+ * Shared with the boot splash inlined in `index.html`, which cannot reach this
+ * stylesheet — it runs before the bundle. The keyframes are duplicated there on
+ * purpose; if you retune one, retune both.
+ * ------------------------------------------------------------------------- */
+@keyframes splash-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes splash-travel {
+  0% {
+    transform: translateX(-105%);
+  }
+  100% {
+    transform: translateX(258%);
+  }
+}
+
+@keyframes splash-drift {
+  from {
+    transform: translate3d(-3%, -2%, 0) scale(1);
+  }
+  to {
+    transform: translate3d(3%, 2%, 0) scale(1.08);
+  }
+}

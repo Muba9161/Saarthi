@@ -13,11 +13,20 @@ import { notifyOrganization } from '../modules/notifications/notification.servic
 import { runMaintenanceReminderSweep } from '../modules/maintenance/maintenance.service';
 import { recalculateDriverScore } from '../modules/drivers/driver.service';
 import { runVehicleLookupRetentionSweep } from '../modules/vehicle-lookup/vehicle-lookup.service';
+import { runLicenceLookupRetentionSweep } from '../modules/licence-lookup/licence-lookup.service';
 import { runAssociationEscalationSweep } from '../modules/associations/association-alert.service';
 import { runDeviceOfflineSweep } from '../modules/devices/device.service';
+import { runStreamSessionSweep } from '../modules/devices/camera.service';
 import { runTelemetryRetentionSweep } from '../modules/telemetry/telemetry.service';
 import { runReturnLoadMatchSweep } from '../modules/return-loads/return-load.service';
 import { runMediaOrphanSweep } from '../modules/media/media.service';
+import {
+  runEmiReminderSweep,
+  runOverdueSweep,
+} from '../modules/loans/loan-reminder.service';
+import { runTopUpExpirySweep } from '../modules/subscriptions/topup.service';
+import { runDailyBriefSweep } from '../modules/ai/daily-brief.service';
+import { runFastagBalanceSweep } from '../modules/toll/fastag.service';
 
 /**
  * Scheduled background work.
@@ -191,6 +200,7 @@ export function registerBackgroundJobs(): void {
     initialDelayMs: 150_000,
     handler: async () => {
       await runVehicleLookupRetentionSweep();
+      await runLicenceLookupRetentionSweep();
     },
   });
 
@@ -223,6 +233,10 @@ export function registerBackgroundJobs(): void {
     initialDelayMs: 60_000,
     handler: async () => {
       await runDeviceOfflineSweep();
+      // A browser that closes without telling us would otherwise leave a
+      // camera session showing as ACTIVE for ever, and the access log would
+      // misreport how long somebody watched.
+      await runStreamSessionSweep();
     },
   });
 
@@ -255,6 +269,64 @@ export function registerBackgroundJobs(): void {
     initialDelayMs: 300_000,
     handler: async () => {
       await runMediaOrphanSweep();
+    },
+  });
+
+  // A missed EMI can cost an owner-operator the vehicle their livelihood runs
+  // on, so this is the one reminder sweep that runs several times a day rather
+  // than once. Duplicate delivery is prevented by a unique key per installment
+  // and reminder kind, not by the schedule.
+  queue.registerRepeating({
+    name: 'loan:emi-reminder',
+    everyMs: 6 * HOUR,
+    initialDelayMs: 45_000,
+    handler: async () => {
+      await runEmiReminderSweep();
+    },
+  });
+
+  // Runs shortly after midnight-ish intervals so an installment that lapsed
+  // overnight is reflected in the stored status the reminder sweep reads.
+  queue.registerRepeating({
+    name: 'loan:overdue-check',
+    everyMs: 12 * HOUR,
+    initialDelayMs: 200_000,
+    handler: async () => {
+      await runOverdueSweep();
+    },
+  });
+
+  // A lapsed top-up must stop granting capacity, but the vehicles it covered
+  // keep working — capacity is checked when adding, never retroactively.
+  queue.registerRepeating({
+    name: 'subscription:topup-expiry',
+    everyMs: 6 * HOUR,
+    initialDelayMs: 220_000,
+    handler: async () => {
+      await runTopUpExpirySweep();
+    },
+  });
+
+  // The morning brief. Produced by rules rather than by a model, and sent only
+  // to fleets that actually have something outstanding — a daily "all clear"
+  // is how people learn to swipe the brief away without reading it.
+  queue.registerRepeating({
+    name: 'ai:daily-fleet-brief',
+    everyMs: 24 * HOUR,
+    initialDelayMs: 260_000,
+    handler: async () => {
+      await runDailyBriefSweep();
+    },
+  });
+
+  // A tag that cannot pay stops a truck at a barrier, and the driver finds out
+  // at the worst possible moment. Runs often enough to warn before that.
+  queue.registerRepeating({
+    name: 'fastag:balance-check',
+    everyMs: 6 * HOUR,
+    initialDelayMs: 140_000,
+    handler: async () => {
+      await runFastagBalanceSweep();
     },
   });
 

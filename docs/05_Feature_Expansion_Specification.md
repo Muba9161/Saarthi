@@ -1290,7 +1290,9 @@ Server-side with `qrcode` (pure JS, added to `apps/api`):
 - `GET /qr/:id/badge.svg` — a print-ready badge: QR + subject name + registration or
   licence + "Verified on Saarthi" mark + the short token for manual entry.
   Two presets: `driver-card` (85×54 mm ID card) and `vehicle-sticker` (100×100 mm).
-- Error correction level **Q** (25%) — a windscreen sticker gets dirty.
+- Error correction level **Q** — restores up to ~25% of *codewords*, which measures
+  out as a contiguous blot of roughly 14% of the symbol area. A windscreen sticker
+  gets dirty, and that is the figure to design against.
 - Quiet zone 4 modules, minimum module size 4 px at 512 px.
 
 ## 6.3 Resolution & scoping

@@ -4,6 +4,7 @@ import { AppShell } from '@/layouts/app-shell';
 import { AuthLayout } from '@/layouts/auth-layout';
 import { useAuth } from '@/features/auth/auth-context';
 import { LoadingState } from '@/components/common/states';
+import { SplashScreen } from '@/components/common/splash';
 import { NotFoundPage } from '@/pages/not-found';
 import { RouteErrorPage } from '@/pages/route-error';
 
@@ -30,7 +31,9 @@ const lazyPage = (loader: () => Promise<{ default: React.ComponentType }>) => {
 function RootRoute() {
   const { status } = useAuth();
 
-  if (status === 'loading') return <LoadingState label="Loading Saarthi…" className="min-h-screen" />;
+  // The boot splash has just handed over, so this continues it rather than
+  // cutting to a spinner.
+  if (status === 'loading') return <SplashScreen />;
   if (status === 'authenticated') return <HomeRedirect />;
   return React.createElement(
     React.Suspense,
@@ -42,7 +45,7 @@ function RootRoute() {
 function RequireAuth() {
   const { status } = useAuth();
 
-  if (status === 'loading') return <LoadingState label="Checking your session…" className="min-h-screen" />;
+  if (status === 'loading') return <SplashScreen label="Checking your session" />;
   if (status === 'unauthenticated') return <Navigate to="/login" replace />;
   return <Outlet />;
 }
@@ -97,6 +100,9 @@ export const router = createBrowserRouter([
             element: lazyPage(() => import('@/pages/fleet/rc-lookup')),
           },
           { path: '/fleet/maintenance', element: lazyPage(() => import('@/pages/fleet/maintenance')) },
+          { path: '/fleet/loans', element: lazyPage(() => import('@/pages/fleet/loans')) },
+          { path: '/fleet/toll', element: lazyPage(() => import('@/pages/fleet/toll')) },
+          { path: '/fleet/loans/:id', element: lazyPage(() => import('@/pages/fleet/loan-detail')) },
           { path: '/fleet/fuel', element: lazyPage(() => import('@/pages/fleet/fuel')) },
 
           // Operations
@@ -116,6 +122,12 @@ export const router = createBrowserRouter([
 
           // Generalized vehicles
           { path: '/fleet/vehicles', element: lazyPage(() => import('@/pages/fleet/vehicles')) },
+          // The type-aware detail screen. `/fleet/trucks/:id` renders the same
+          // page, so a car opened from either list is presented as a car.
+          {
+            path: '/fleet/vehicles/:id',
+            element: lazyPage(() => import('@/pages/fleet/vehicle-detail')),
+          },
           {
             path: '/fleet/vehicles/:id/telemetry',
             element: lazyPage(() => import('@/pages/telemetry/vehicle-telemetry')),
@@ -198,6 +210,10 @@ export const router = createBrowserRouter([
           { path: '/qr', element: lazyPage(() => import('@/pages/qr/qr-codes')) },
           { path: '/verification', element: lazyPage(() => import('@/pages/verification')) },
           { path: '/settings', element: lazyPage(() => import('@/pages/settings/settings')) },
+          {
+            path: '/settings/qr-privacy',
+            element: lazyPage(() => import('@/pages/settings/qr-privacy')),
+          },
           {
             path: '/settings/subscription',
             element: lazyPage(() => import('@/pages/settings/subscription')),

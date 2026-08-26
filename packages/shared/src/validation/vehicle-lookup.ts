@@ -51,6 +51,12 @@ export const vehicleLookupSchema = z.object({
 });
 export type VehicleLookupInput = z.infer<typeof vehicleLookupSchema>;
 
+/** Reading back an already-fetched record costs nothing and needs only the plate. */
+export const storedLookupQuerySchema = z.object({
+  registrationNumber: lookupRegistrationNumberSchema,
+});
+export type StoredLookupQuery = z.infer<typeof storedLookupQuerySchema>;
+
 /** Path parameter for the stored RC PDF download. */
 export const lookupIdParamSchema = z.object({
   lookupId: z.string().uuid('A valid lookup identifier is required.'),

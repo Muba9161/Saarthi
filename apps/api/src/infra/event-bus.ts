@@ -1,6 +1,7 @@
 import { EventEmitter } from 'node:events';
 import { config } from '../config/env';
 import { logger } from '../lib/logger';
+import { RedisPubSub } from './redis-pubsub';
 
 /**
  * Channel-oriented publish/subscribe.
@@ -65,13 +66,10 @@ class MemoryPubSub implements PubSubDriver {
 
 function createPubSub(): PubSubDriver {
   if (config.infra.pubsubDriver === 'redis') {
-    // Deliberately explicit: silently degrading to in-process delivery would
-    // break cross-instance realtime in a way that is very hard to diagnose.
-    throw new Error(
-      'PUBSUB_DRIVER=redis requires the Redis pub/sub adapter to be configured. ' +
-        'Set PUBSUB_DRIVER=memory for single-instance local development.',
-    );
+    return new RedisPubSub();
   }
+  // In-process delivery. Correct for one instance, and silently wrong for two —
+  // which is why the Redis driver exists and why production selects it.
   return new MemoryPubSub();
 }
 

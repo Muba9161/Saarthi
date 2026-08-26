@@ -17,7 +17,7 @@ import type { Paginated, TripSummary } from '@/lib/api-types';
 import { useAuth } from '@/features/auth/auth-context';
 import { useChannels, useRealtimeEvent } from '@/hooks/use-realtime';
 import { PageHeader } from '@/components/common/page-header';
-import { DataTable, type Column } from '@/components/common/data-table';
+import { DataView, type Column } from '@/components/common/data-view';
 import { StatusBadge } from '@/components/common/status-badge';
 import { UnauthorizedState } from '@/components/common/states';
 import { Input } from '@/components/ui/input';
@@ -181,7 +181,8 @@ export function TripsPage() {
         </Select>
       </div>
 
-      <DataTable
+      <DataView
+        surface="operations.trips"
         columns={columns}
         rows={query.data?.items}
         rowKey={(trip) => trip.id}

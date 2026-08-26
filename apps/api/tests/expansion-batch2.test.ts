@@ -451,6 +451,76 @@ describe('QR identity', () => {
     expect(badge.body).toContain(truck.registrationNumber);
   });
 
+  /*
+   * A QR code encodes an absolute URL, and `FRONTEND_URL` is pinned to
+   * localhost in every checkout — so a code generated while working through a
+   * dev tunnel or from a phone on the LAN used to be unscannable anywhere but
+   * the machine that produced it. Outside production the request's own origin
+   * decides.
+   */
+  it('points the code at the host the request came from, not at localhost', async () => {
+    const truck = await createTruck(fleet.id);
+    const tunnel = 'https://q7x2ab-5173.inc1.devtunnels.ms';
+
+    const viaTunnel = await request<{ targetUrl: string }>({
+      method: 'GET',
+      url: `/api/v1/qr/subject/vehicle/${truck.id}`,
+      user: owner,
+      headers: { origin: tunnel },
+    });
+    expect(viaTunnel.body.data.targetUrl.startsWith(`${tunnel}/q/`)).toBe(true);
+
+    // A same-origin GET carries no Origin at all, only a Referer.
+    const viaReferer = await request<{ targetUrl: string }>({
+      method: 'GET',
+      url: `/api/v1/qr/subject/vehicle/${truck.id}`,
+      user: owner,
+      headers: { referer: `${tunnel}/fleet/trucks/${truck.id}` },
+    });
+    expect(viaReferer.body.data.targetUrl.startsWith(`${tunnel}/q/`)).toBe(true);
+
+    // Nothing to go on falls back to the configured URL.
+    const plain = await request<{ targetUrl: string }>({
+      method: 'GET',
+      url: `/api/v1/qr/subject/vehicle/${truck.id}`,
+      user: owner,
+    });
+    expect(plain.body.data.targetUrl.startsWith('http://localhost:5173/q/')).toBe(true);
+  });
+
+  it('encodes that same host into the rendered image and the sticker', async () => {
+    const truck = await createTruck(fleet.id);
+    const { body } = await request<{ id: string }>({
+      method: 'GET',
+      url: `/api/v1/qr/subject/vehicle/${truck.id}`,
+      user: owner,
+    });
+
+    const app = await getApp();
+    const render = (path: string, origin?: string) =>
+      app.inject({
+        method: 'GET',
+        url: `/api/v1/qr/${body.data.id}/${path}`,
+        headers: {
+          authorization: `Bearer ${owner.accessToken}`,
+          ...(origin ? { origin } : {}),
+        },
+      });
+
+    for (const path of ['image.svg', 'badge.svg?preset=vehicle-sticker']) {
+      const [local, tunnel, other] = await Promise.all([
+        render(path),
+        render(path, 'https://q7x2ab-5173.inc1.devtunnels.ms'),
+        render(path, 'https://zz9plz-5173.inc1.devtunnels.ms'),
+      ]);
+
+      // The URL lives in the modules, not in any text node, so the proof that
+      // it followed the request is that the artwork itself changes with it.
+      expect(tunnel.body, path).not.toBe(local.body);
+      expect(other.body, path).not.toBe(tunnel.body);
+    }
+  });
+
   it('gives the owning fleet the full scope set on a scan', async () => {
     const truck = await createTruck(fleet.id);
     await request({

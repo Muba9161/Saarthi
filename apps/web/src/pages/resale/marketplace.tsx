@@ -39,7 +39,7 @@ import { ListingPhoto } from '@/features/resale/listing-photo';
 /**
  * The used-vehicle marketplace.
  *
- * Every listing here is backed by a vehicle Saarthi has been recording, so the
+ * Every listing here is backed by a vehicle VorldX Saarthi has been recording, so the
  * odometer and condition are not seller claims typed into a classified advert.
  * That is the whole reason this exists inside the platform rather than beside
  * it, and the cards say so.

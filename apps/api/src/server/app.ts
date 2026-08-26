@@ -7,6 +7,8 @@ import multipart from '@fastify/multipart';
 import websocket from '@fastify/websocket';
 import { ErrorCode } from '@saarthi/shared';
 import { config } from '../config/env';
+import { DEV_TUNNEL_ORIGIN } from '../lib/public-url';
+import { redisClient } from '../infra/redis';
 import { logger } from '../lib/logger';
 import { errorHandlerPlugin } from './plugins/error-handler';
 import { requestContextPlugin } from './plugins/request-context';
@@ -46,6 +48,15 @@ export async function buildApp(): Promise<FastifyInstance> {
       if (!config.isProduction && /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin)) {
         return callback(null, true);
       }
+      // Outside production, allow the dev-tunnel providers. Reaching the app
+      // from a phone or a colleague's browser goes through one of these, and
+      // the Vite proxy forwards the browser's Origin unchanged — so without
+      // this the tunnel fails here rather than in the browser, which reads as
+      // a server fault and is a miserable thing to debug. Production is
+      // untouched: there, CORS_ORIGINS is the only list that counts.
+      if (!config.isProduction && DEV_TUNNEL_ORIGIN.test(origin)) {
+        return callback(null, true);
+      }
       return callback(new Error('Origin not allowed by CORS policy'), false);
     },
     credentials: true,
@@ -64,10 +75,25 @@ export async function buildApp(): Promise<FastifyInstance> {
     },
   });
 
+  /*
+   * Rate limiting.
+   *
+   * Backed by Redis when one is configured, and that is not a performance
+   * choice: an in-memory limiter counts per instance, so a limit of 10 becomes
+   * 30 across three instances and the protection it was supposed to provide
+   * quietly disappears. The counters are namespaced per environment for the
+   * same reason every other key is.
+   */
   await app.register(rateLimit, {
     global: true,
     max: config.rateLimit.max,
     timeWindow: config.rateLimit.window,
+    ...(config.infra.cacheDriver === 'redis'
+      ? {
+          redis: redisClient('rate-limit'),
+          nameSpace: `saarthi:${config.env}:ratelimit:`,
+        }
+      : {}),
     // Rate limit per authenticated user when possible, else per IP.
     keyGenerator: (request) => request.auth?.user.id ?? request.clientIp ?? request.ip,
     allowList: () => config.isTest,

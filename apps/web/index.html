@@ -3,16 +3,153 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#0b1220" />
+    <meta name="theme-color" content="#011c45" />
     <meta
       name="description"
-      content="Saarthi — the operating system for your trucking business. Fleet management, live tracking, logistics marketplace, driver safety and AI intelligence."
+      content="VorldX Saarthi — the operating system for your trucking business. Fleet management, live tracking, logistics marketplace, driver safety and AI intelligence."
     />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <title>Saarthi — Fleet Operations Platform</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <!-- The splash shows the lockup, so fetch it alongside the bundle. -->
+    <link rel="preload" as="image" href="/vorldx-saarthi.png" />
+    <title>VorldX Saarthi — Fleet Operations Platform</title>
+
+    <!--
+      Boot splash.
+
+      Inlined rather than rendered by React, because the gap this covers is the
+      one *before* React exists: the browser has parsed the document but is
+      still fetching and evaluating the bundle, and without this the user waits
+      on a blank page. That means no stylesheet and no script it has to wait
+      for — everything below is self-contained.
+
+      It is removed by `main.tsx` once the app has painted.
+    -->
+    <style>
+      #boot-splash {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 28px;
+        background: radial-gradient(120% 90% at 50% 18%, #ffffff 0%, #eef2f8 58%, #dfe7f2 100%);
+        font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+        opacity: 1;
+        transition: opacity 420ms ease, visibility 420ms ease;
+      }
+      #boot-splash[data-leaving="true"] {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+      }
+
+      /* A slow drift behind the mark, so the screen is not dead while waiting. */
+      #boot-splash::before {
+        content: "";
+        position: absolute;
+        inset: -30%;
+        background:
+          radial-gradient(38% 30% at 22% 30%, rgba(254, 93, 9, 0.16), transparent 70%),
+          radial-gradient(40% 32% at 78% 68%, rgba(2, 120, 63, 0.16), transparent 70%);
+        animation: splash-drift 14s ease-in-out infinite alternate;
+      }
+
+      #boot-splash__logo {
+        position: relative;
+        width: min(268px, 58vw);
+        height: auto;
+        animation: splash-rise 900ms cubic-bezier(0.16, 1, 0.3, 1) both;
+      }
+
+      /*
+        The road: the logo has one running through it, so the loading indicator
+        is a lane rather than a generic bar, with a dash travelling its length.
+      */
+      #boot-splash__road {
+        position: relative;
+        width: min(268px, 58vw);
+        height: 4px;
+        border-radius: 999px;
+        overflow: hidden;
+        background: rgba(1, 28, 69, 0.1);
+        animation: splash-fade 700ms 260ms ease both;
+      }
+      #boot-splash__road::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 42%;
+        border-radius: 999px;
+        /* Saffron into navy into green — the tricolour from the logo's X. */
+        background: linear-gradient(90deg, #fe5d09, #011c45 52%, #02783f);
+        animation: splash-travel 1500ms cubic-bezier(0.65, 0, 0.35, 1) infinite;
+      }
+
+      #boot-splash__word {
+        position: relative;
+        margin: 0;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.34em;
+        text-transform: uppercase;
+        color: #5a6b85;
+        animation: splash-fade 700ms 420ms ease both;
+      }
+
+      @keyframes splash-rise {
+        from { opacity: 0; transform: translateY(14px) scale(0.97); }
+        to { opacity: 1; transform: none; }
+      }
+      @keyframes splash-fade {
+        from { opacity: 0; transform: translateY(6px); }
+        to { opacity: 1; transform: none; }
+      }
+      @keyframes splash-travel {
+        0% { transform: translateX(-105%); }
+        100% { transform: translateX(258%); }
+      }
+      @keyframes splash-drift {
+        from { transform: translate3d(-3%, -2%, 0) scale(1); }
+        to { transform: translate3d(3%, 2%, 0) scale(1.08); }
+      }
+
+      @media (prefers-color-scheme: dark) {
+        #boot-splash {
+          background: radial-gradient(120% 90% at 50% 18%, #0d1526 0%, #080c17 62%, #05080f 100%);
+        }
+        #boot-splash__road { background: rgba(255, 255, 255, 0.12); }
+        #boot-splash__word { color: #8b9cb8; }
+      }
+
+      /*
+        Motion is decoration here, so it goes entirely when asked. The splash
+        still appears and still leaves — it just does so without movement.
+      */
+      @media (prefers-reduced-motion: reduce) {
+        #boot-splash *,
+        #boot-splash::before,
+        #boot-splash__road::after {
+          animation: none !important;
+        }
+        #boot-splash__road::after { width: 100%; transform: none; }
+      }
+    </style>
   </head>
   <body class="h-full bg-background font-sans text-foreground antialiased">
     <div id="root" class="h-full"></div>
+
+    <div id="boot-splash" role="status" aria-live="polite" aria-label="Loading VorldX Saarthi">
+      <img id="boot-splash__logo" src="/vorldx-saarthi.png" alt="VorldX Saarthi" />
+      <div id="boot-splash__road"></div>
+      <p id="boot-splash__word">Manage &middot; Track &middot; Move &middot; Together</p>
+    </div>
+
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

@@ -14,7 +14,7 @@ import { api } from '@/lib/api-client';
 import type { OrderSummary, Paginated } from '@/lib/api-types';
 import { useAuth } from '@/features/auth/auth-context';
 import { PageHeader } from '@/components/common/page-header';
-import { DataTable, type Column } from '@/components/common/data-table';
+import { DataView, type Column } from '@/components/common/data-view';
 import { StatusBadge } from '@/components/common/status-badge';
 import { UnauthorizedState } from '@/components/common/states';
 import { Button } from '@/components/ui/button';
@@ -176,7 +176,8 @@ export function OrdersPage() {
         </Select>
       </div>
 
-      <DataTable
+      <DataView
+        surface="operations.orders"
         columns={columns}
         rows={query.data?.items}
         rowKey={(order) => order.id}

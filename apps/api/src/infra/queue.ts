@@ -1,5 +1,6 @@
 import { config } from '../config/env';
 import { logger } from '../lib/logger';
+import { withLock } from './lock';
 
 /**
  * Background job abstraction.
@@ -34,7 +35,7 @@ export interface QueueDriver {
 }
 
 class MemoryQueue implements QueueDriver {
-  readonly name = 'memory';
+  readonly name: string = 'memory';
   private readonly repeating: RepeatingJob[] = [];
   private readonly timers: NodeJS.Timeout[] = [];
   private started = false;
@@ -50,7 +51,8 @@ class MemoryQueue implements QueueDriver {
     if (this.started) this.schedule(job);
   }
 
-  private async run(jobName: string, handler: JobHandler): Promise<void> {
+  /** Hook for drivers that coordinate across instances. */
+  protected async run(jobName: string, handler: JobHandler): Promise<void> {
     const startedAt = Date.now();
     try {
       await handler({ jobName, scheduledAt: new Date() });
@@ -87,12 +89,41 @@ class MemoryQueue implements QueueDriver {
   }
 }
 
+/**
+ * The same scheduler, coordinated across instances by a distributed lock.
+ *
+ * Every instance keeps its own timers — which is what makes this survive one of
+ * them dying — but only the instance that takes the lock for a given tick
+ * actually runs the job. That is the guarantee that matters here: three API
+ * instances must not each send the same EMI reminder.
+ *
+ * What this deliberately is *not* is a durable job queue. There is no retry,
+ * no backoff and no dead-letter handling, because every job registered today is
+ * an idempotent sweep that will simply run again on the next tick. When work
+ * arrives that genuinely needs delivery guarantees — a payment capture, an
+ * outbound webhook — that is the point to bring in BullMQ, and the JobHandler
+ * signature is already the shape BullMQ processors take.
+ */
+class DistributedQueue extends MemoryQueue {
+  override readonly name = 'redis-coordinated';
+
+  protected override async run(jobName: string, handler: JobHandler): Promise<void> {
+    // The lease is generous: it only has to outlive the job, and an over-short
+    // lease would let a second instance start while the first is still working.
+    const result = await withLock(`job:${jobName}`, 10 * 60_000, async () => {
+      await super.run(jobName, handler);
+      return true;
+    });
+
+    if (result === null) {
+      logger.debug({ job: jobName }, 'Job claimed by another instance');
+    }
+  }
+}
+
 function createQueue(): QueueDriver {
   if (config.infra.queueDriver === 'redis') {
-    throw new Error(
-      'QUEUE_DRIVER=redis requires the BullMQ adapter to be configured. ' +
-        'Set QUEUE_DRIVER=memory for local development.',
-    );
+    return new DistributedQueue();
   }
   return new MemoryQueue();
 }

@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { normalizeWay2ApiRecord } from '../src/providers/vehicle-rc/way2api-rc.provider';
 import { normalizeSsrStation } from '../src/providers/petrol-stations/ssr-petrol-station.provider';
+import {
+  normalizeWay2ApiLicence,
+  toProviderDate,
+} from '../src/providers/driving-licence/way2api-licence.provider';
 
 /**
  * Provider → Saarthi field mapping.
@@ -235,5 +239,86 @@ describe('SSR petrol station mapping', () => {
     expect(normalizeSsrStation({ ...station, latitude: null })).toBeNull();
     expect(normalizeSsrStation({ ...station, latitude: '999' })).toBeNull();
     expect(normalizeSsrStation({ ...station, longitude: 'not a number' })).toBeNull();
+  });
+});
+
+describe('Way2API driving licence mapping', () => {
+  const payload = {
+    license_number: 'MH0320140001234',
+    state: 'Maharashtra',
+    name: 'PRIYA PATEL',
+    permanent_address: '42 MG ROAD, PUNE, MAHARASHTRA',
+    permanent_zip: '411001',
+    temporary_address: '42 MG ROAD, PUNE, MAHARASHTRA',
+    temporary_zip: '411001',
+    citizenship: '',
+    ola_name: 'RTO PUNE',
+    ola_code: 'MH032',
+    gender: 'F',
+    father_or_husband_name: 'MAHESH PATEL',
+    dob: '1992-06-15',
+    doe: '2034-08-10',
+    transport_doe: '1800-01-01',
+    doi: '2014-08-11',
+    transport_doi: '1800-01-01',
+    has_image: true,
+    blood_group: 'B+',
+    vehicle_classes: ['MCWG', 'LMV-NT'],
+    less_info: false,
+  };
+
+  it('maps the provider payload onto the normalised record', () => {
+    const record = normalizeWay2ApiLicence(payload);
+
+    expect(record.licenceNumber).toBe('MH0320140001234');
+    expect(record.state).toBe('Maharashtra');
+    expect(record.issuingAuthority).toBe('RTO PUNE');
+    expect(record.issuingAuthorityCode).toBe('MH032');
+    expect(record.issuedOn).toBe('2014-08-11');
+    expect(record.validUntil).toBe('2034-08-10');
+    expect(record.vehicleClasses).toEqual(['MCWG', 'LMV-NT']);
+    expect(record.hasPhotograph).toBe(true);
+    expect(record.holder?.name).toBe('PRIYA PATEL');
+    expect(record.holder?.bloodGroup).toBe('B+');
+  });
+
+  it('treats the provider 1800 sentinel as "no commercial entitlement"', () => {
+    const record = normalizeWay2ApiLicence(payload);
+
+    // Rendering 1800-01-01 would tell a fleet manager the transport licence
+    // expired two centuries ago.
+    expect(record.transportValidUntil).toBeNull();
+    expect(record.transportIssuedOn).toBeNull();
+  });
+
+  it('keeps a real transport validity date', () => {
+    const record = normalizeWay2ApiLicence({
+      ...payload,
+      transport_doi: '2016-02-01',
+      transport_doe: '2029-01-31',
+    });
+
+    expect(record.transportIssuedOn).toBe('2016-02-01');
+    expect(record.transportValidUntil).toBe('2029-01-31');
+  });
+
+  it('turns blanks into null rather than empty strings', () => {
+    const record = normalizeWay2ApiLicence(payload);
+    expect(record.holder?.citizenship).toBeNull();
+  });
+
+  it('yields an all-null record for an empty payload without throwing', () => {
+    const record = normalizeWay2ApiLicence({});
+
+    expect(record.licenceNumber).toBeNull();
+    expect(record.validUntil).toBeNull();
+    expect(record.vehicleClasses).toEqual([]);
+    expect(record.holder?.name).toBeNull();
+  });
+
+  it('formats the date of birth the way the provider expects', () => {
+    // dd/mm/yyyy, zero padded — not ISO, and not the locale's order.
+    expect(toProviderDate(new Date('1992-06-15T00:00:00Z'))).toBe('15/06/1992');
+    expect(toProviderDate(new Date('2001-01-05T00:00:00Z'))).toBe('05/01/2001');
   });
 });

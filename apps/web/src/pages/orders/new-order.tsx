@@ -17,7 +17,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-/** Post a transport requirement, then compare the transport Saarthi can find. */
+/** Post a transport requirement, then compare the transport VorldX Saarthi can find. */
 export function NewOrderPage() {
   const { can } = useAuth();
   const navigate = useNavigate();
@@ -171,7 +171,7 @@ export function NewOrderPage() {
 
         <Card>
           <CardHeader className="pb-3">
-            <SectionHeader title="Transport Saarthi can find" description="Ranked by distance, capacity fit, driver score and availability." />
+            <SectionHeader title="Transport VorldX Saarthi can find" description="Ranked by distance, capacity fit, driver score and availability." />
           </CardHeader>
           <CardContent className="space-y-3 pt-0">
             {matches.isLoading ? (

@@ -1,6 +1,18 @@
 import * as React from 'react';
+import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Copy, Download, QrCode, RefreshCw, ScanLine, ShieldOff } from 'lucide-react';
+import {
+  ChevronDown,
+  Copy,
+  Download,
+  Layers,
+  QrCode,
+  RefreshCw,
+  ScanLine,
+  Scissors,
+  ShieldCheck,
+  ShieldOff,
+} from 'lucide-react';
 import {
   Feature,
   Permission,
@@ -43,6 +55,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 /**
  * QR identity codes.
@@ -156,6 +176,68 @@ function CodeImage({ code }: { code: QrCodeView }) {
       className="h-40 w-40 rounded-lg bg-white p-2"
     />
   );
+}
+
+interface StickerOption {
+  key: string;
+  label: string;
+  size: string;
+  hint: string;
+  mirror?: boolean;
+}
+
+/**
+ * The printable options, worded by *where the sticker goes*.
+ *
+ * A fleet clerk fitting forty trucks knows the answer to "which part of the
+ * vehicle", not to "100 mm or 90 mm" — so the place leads and the measurement
+ * sits alongside as confirmation. The list is filtered by subject, because a
+ * driver has no windscreen and a truck wears no lanyard.
+ */
+function stickerOptionsFor(subjectType: string): StickerOption[] {
+  if (subjectType === 'DRIVER' || subjectType === 'USER') {
+    return [
+      {
+        key: 'driver-card',
+        label: 'Driver ID card',
+        size: '85.6 x 54 mm',
+        hint: 'Bank-card size, fits a lanyard holder they already own.',
+      },
+    ];
+  }
+
+  return [
+    {
+      key: 'vehicle-sticker',
+      label: 'Cab door',
+      size: '100 x 100 mm',
+      hint: 'Largest code. Reads from about three metres across a yard.',
+    },
+    {
+      key: 'vehicle-windscreen',
+      label: 'Windscreen, outside',
+      size: '90 x 55 mm',
+      hint: 'Sits in a corner without obstructing the view. Normal print.',
+    },
+    {
+      key: 'vehicle-windscreen',
+      label: 'Windscreen, inside the glass',
+      size: '90 x 55 mm',
+      hint: 'Reverse-printed, so it reads correctly from outside.',
+      mirror: true,
+    },
+    {
+      key: 'vehicle-strip',
+      label: 'Tailgate strip',
+      size: '150 x 60 mm',
+      hint: 'Landscape, sits above the number plate.',
+    },
+  ];
+}
+
+/** The preset used for the batch and print-shop variants. */
+function defaultStickerFor(subjectType: string): string {
+  return subjectType === 'DRIVER' || subjectType === 'USER' ? 'driver-card' : 'vehicle-sticker';
 }
 
 /** Download an authenticated asset without exposing the token in a URL. */
@@ -338,22 +420,68 @@ function CodeCard({ code, onChanged }: { code: QrCodeView; onChanged: () => void
                   <Download className="h-3.5 w-3.5" />
                   Code
                 </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="gap-1.5"
-                  onClick={() =>
-                    void downloadAsset(
-                      `${code.badgeUrl}?preset=${
-                        code.subjectType === 'DRIVER' ? 'driver-card' : 'vehicle-sticker'
-                      }`,
-                      `saarthi-badge-${code.shortLabel}.svg`,
-                    )
-                  }
-                >
-                  <Download className="h-3.5 w-3.5" />
-                  Printable badge
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="secondary" size="sm" className="gap-1.5">
+                      <Download className="h-3.5 w-3.5" />
+                      Printable sticker
+                      <ChevronDown className="h-3.5 w-3.5 opacity-60" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-72">
+                    <DropdownMenuLabel className="text-2xs font-semibold uppercase tracking-widest text-muted-foreground">
+                      Choose where it will be fitted
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {stickerOptionsFor(code.subjectType).map((option) => (
+                      <DropdownMenuItem
+                        key={option.key + String(option.mirror ?? false)}
+                        className="flex-col items-start gap-0.5 py-2"
+                        onSelect={() =>
+                          void downloadAsset(
+                            `${code.badgeUrl}?preset=${option.key}${option.mirror ? '&mirror=true' : ''}`,
+                            `saarthi-${option.key}${option.mirror ? '-reversed' : ''}-${code.shortLabel}.svg`,
+                          )
+                        }
+                      >
+                        <span className="flex w-full items-baseline justify-between gap-3">
+                          <span className="font-medium">{option.label}</span>
+                          <span className="shrink-0 font-mono text-2xs text-muted-foreground">
+                            {option.size}
+                          </span>
+                        </span>
+                        <span className="text-xs leading-snug text-muted-foreground">
+                          {option.hint}
+                        </span>
+                      </DropdownMenuItem>
+                    ))}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      className="gap-2 text-xs"
+                      onSelect={() =>
+                        void downloadAsset(
+                          `${code.badgeUrl}?preset=${defaultStickerFor(code.subjectType)}&sheet=true`,
+                          `saarthi-sheet-${code.shortLabel}.svg`,
+                        )
+                      }
+                    >
+                      <Layers className="h-3.5 w-3.5" />
+                      A4 sheet, several to a page
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="gap-2 text-xs"
+                      onSelect={() =>
+                        void downloadAsset(
+                          `${code.badgeUrl}?preset=${defaultStickerFor(code.subjectType)}&printMarks=true`,
+                          `saarthi-print-${code.shortLabel}.svg`,
+                        )
+                      }
+                    >
+                      <Scissors className="h-3.5 w-3.5" />
+                      With bleed and crop marks
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </>
             ) : null}
 
@@ -571,7 +699,19 @@ export function QrCodesPage() {
         title="QR codes"
         description="Scannable identity for vehicles and drivers — a roadside check, a gate entry or a handover, without a phone call."
         actions={
-          canManage ? (
+          <div className="flex flex-wrap items-center gap-2">
+            {/*
+              Privacy sits next to code generation on purpose: the moment
+              someone prints a sticker is the moment they should be able to
+              check what it will actually reveal.
+            */}
+            <Button asChild variant="outline" className="gap-1.5">
+              <Link to="/settings/qr-privacy">
+                <ShieldCheck className="h-4 w-4" />
+                Privacy
+              </Link>
+            </Button>
+            {canManage ? (
             <Dialog>
               <DialogTrigger asChild>
                 <Button className="gap-1.5">
@@ -643,7 +783,7 @@ export function QrCodesPage() {
                       <Label htmlFor="qr-public">Answer anonymous scans</Label>
                       <p className="text-2xs text-muted-foreground">
                         Off by default. Leave it off unless the code needs to work for someone with
-                        no Saarthi account — an anonymous scan sees far less, and a code that
+                        no VorldX Saarthi account — an anonymous scan sees far less, and a code that
                         answers to anyone is a different decision from one that answers to a
                         signed-in account.
                       </p>
@@ -671,7 +811,8 @@ export function QrCodesPage() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
-          ) : null
+            ) : null}
+          </div>
         }
       />
 

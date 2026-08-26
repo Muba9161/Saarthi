@@ -88,13 +88,14 @@ model User {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
-  roles          UserRole[]
-  memberships    Membership[]
-  sessions       Session[]
-  passwordResets PasswordResetToken[]
-  auditLogs      AuditLog[]           @relation("AuditActor")
-  driverProfile  Driver?              @relation("DriverUser")
-  profile        UserProfile?
+  roles           UserRole[]
+  memberships     Membership[]
+  sessions        Session[]
+  passwordResets  PasswordResetToken[]
+  auditLogs       AuditLog[]           @relation("AuditActor")
+  driverProfile   Driver?              @relation("DriverUser")
+  profile         UserProfile?
+  viewPreferences UserViewPreference[]
 
   @@index([status])
   @@index([createdAt])
@@ -353,6 +354,19 @@ enum NotificationType {
   PROFILE_INCOMPLETE
   QR_CODE_ROTATED
   MEDIA_MODERATION_REQUIRED
+
+  // FASTag & toll
+  FASTAG_LOW_BALANCE
+  FASTAG_BLACKLISTED
+  TOLL_SYNC_CONFLICT
+
+  // Vehicle finance
+  LOAN_EMI_DUE_SOON
+  LOAN_EMI_DUE_TODAY
+  LOAN_EMI_OVERDUE
+  LOAN_PAYMENT_RECORDED
+  LOAN_CLOSED
+  LOAN_SYNC_CONFLICT
 }
 
 // ===========================================================================
@@ -606,6 +620,55 @@ enum AchievementCode {
   EMERGENCY_HELPER
   FIRST_TRIP
   LONG_HAULER
+}
+
+enum ServiceCategory {
+  ROUTINE
+  ENGINE
+  TRANSMISSION
+  BRAKES
+  SUSPENSION
+  STEERING
+  TYRES
+  ELECTRICAL
+  BODY
+  HVAC
+  FUEL_SYSTEM
+  COOLING
+  EXHAUST
+  CHASSIS
+  ACCIDENT_REPAIR
+  OTHER
+}
+
+/// Where a service record came from.
+enum ServiceDataSource {
+  /// Entered by the fleet.
+  MANUAL
+  /// Bulk-loaded from a spreadsheet or a workshop export.
+  IMPORT
+  /// Pulled from a connected workshop or OEM service network.
+  PROVIDER_SYNC
+  /// Extracted from an invoice by AI. A draft until a human confirms it.
+  DOCUMENT_EXTRACTION
+  /// Derived from telemetry, e.g. a fault code cleared after a workshop visit.
+  TELEMETRY_DERIVED
+  SIMULATED
+}
+
+/// How far a service record has been checked.
+///
+/// Kept separate from FinanceVerificationStatus even though the members line
+/// up: a service record and a loan statement are verified by different people
+/// against different evidence, and merging them would couple two lifecycles
+/// that have no reason to change together.
+enum ServiceVerificationStatus {
+  UNVERIFIED
+  PROVIDER_REPORTED
+  PENDING_REVIEW
+  VERIFIED
+  CONFLICT
+  REJECTED
 }
 
 enum MaintenanceType {
@@ -921,6 +984,9 @@ model Truck {
   travelBookings     TravelBooking[]     @relation("BookingVehicle")
   resaleListings     VehicleListing[]
   returnLoadRequests ReturnLoadRequest[]
+  loans              VehicleLoan[]
+  fastagAccounts     FastagAccount[]
+  tollTransactions   TollTransaction[]
 
   @@index([organizationId, status])
   @@index([organizationId, archivedAt])
@@ -1021,11 +1087,55 @@ model MaintenanceRecord {
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
 
+  // --- Service history ----------------------------------------------------
+  //
+  // A completed job is a permanent part of the vehicle's history: it is what a
+  // buyer, an insurer or a workshop asks for two years later. These columns are
+  // all nullable because a record entered in ten seconds at the roadside is
+  // still worth keeping — the alternative is an operator who records nothing.
+
+  /// Engine hours at the time of service. The meaningful wear measure for a
+  /// vehicle that idles more than it drives.
+  engineHours     Float?
+  category        ServiceCategory?
+  /// Where the work was done, when it is not the named provider above.
+  workshopName    String?
+  workshopAddress String?
+  workshopPhone   String?
+  mechanicName    String?
+
+  /// Cost split. `cost` above remains the total, so nothing that reads it today
+  /// changes behaviour; these break it down when the invoice does.
+  labourCost Decimal? @db.Decimal(12, 2)
+  partsCost  Decimal? @db.Decimal(12, 2)
+  taxAmount  Decimal? @db.Decimal(12, 2)
+
+  invoiceNumber      String?
+  /// Line items: name, part number, quantity, unit cost, warranty.
+  parts              Json?
+  /// Normalised component keys, for spotting a component replaced repeatedly.
+  replacedComponents String[]
+  /// Diagnostic trouble codes read or cleared during the visit.
+  diagnosticCodes    String[]
+  warrantyUntil      DateTime?
+
+  source             ServiceDataSource         @default(MANUAL)
+  verificationStatus ServiceVerificationStatus @default(UNVERIFIED)
+  /// Which external network supplied the record, when it was not entered here.
+  providerName       String?
+  providerReference  String?
+  retrievedAt        DateTime?
+  /// Set when an external record disagrees with what the fleet recorded.
+  conflictNote       String?
+
   truck Truck @relation(fields: [truckId], references: [id], onDelete: Cascade)
 
   @@index([truckId, status])
   @@index([organizationId, status, scheduledAt])
   @@index([nextDueAt])
+  /// The service-history timeline reads by vehicle, newest completed first.
+  @@index([truckId, completedAt])
+  @@index([organizationId, verificationStatus])
   @@map("maintenance_records")
 }
 
@@ -1823,6 +1933,35 @@ model VehicleLookup {
   @@map("vehicle_lookups")
 }
 
+/// Cached driving licence lookups.
+///
+/// Holds the licence holder's name, parentage and addresses, so like
+/// `vehicle_lookups` every row carries an explicit retention boundary and is
+/// deleted by the sweep rather than kept indefinitely.
+model LicenceLookup {
+  id                String   @id @default(uuid()) @db.Uuid
+  /// Normalised licence number, e.g. MH0320140001234 — the cache key.
+  licenceNumber     String
+  /// The driver this licence belongs to, when it matches one on the platform.
+  driverId          String?  @db.Uuid
+  organizationId    String?  @db.Uuid
+  requestedById     String?  @db.Uuid
+  provider          String   @default("way2api")
+  providerReference String?
+  /// Saarthi's normalised licence record, before per-caller redaction.
+  responseData      Json
+  fetchedAt         DateTime @default(now())
+  expiresAt         DateTime
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([licenceNumber, expiresAt])
+  @@index([organizationId, createdAt])
+  @@index([driverId])
+  @@index([fetchedAt])
+  @@map("licence_lookups")
+}
+
 // ===========================================================================
 // AI
 // ===========================================================================
@@ -2109,6 +2248,9 @@ enum PaymentMethod {
 
 enum DeviceProvider {
   FREEMATICS
+  /// YC06 four-channel mobile recorder. Video only — see the note on
+  /// DeviceType.MULTI_CAMERA about why it is not treated as a GPS source.
+  YC06
   MOCK
   GENERIC_GPS
   GENERIC_OBD
@@ -2121,6 +2263,13 @@ enum DeviceType {
   CAN_LOGGER
   J1939_LOGGER
   DASHCAM
+  /// A recorder with several camera channels, such as the YC06.
+  ///
+  /// Saarthi does not take position from one of these even when the unit has a
+  /// GPS receiver. A vehicle with both a Freematics and a YC06 fitted has one
+  /// designated telemetry source, and two devices reporting slightly different
+  /// positions for the same truck is a support call nobody can resolve.
+  MULTI_CAMERA
   OTHER
 }
 
@@ -2773,6 +2922,7 @@ model HardwareDevice {
   readings    TelemetryReading[]
   alerts      TelemetryAlert[]
   mockRuns    MockDeviceRun[]
+  cameras     DeviceCamera[]
 
   @@index([organizationId, status])
   @@index([provider, status])
@@ -4502,4 +4652,699 @@ model TripHazardAlert {
   @@index([organizationId, createdAt])
   @@index([driverId, violated])
   @@map("trip_hazard_alerts")
+}
+
+// ===========================================================================
+// Enums — vehicle finance
+// ===========================================================================
+
+enum LoanType {
+  TERM_LOAN
+  HYPOTHECATION
+  LEASE
+  HIRE_PURCHASE
+  REFINANCE
+  TOP_UP
+  WORKING_CAPITAL
+  OTHER
+}
+
+enum InterestType {
+  FLAT
+  REDUCING_BALANCE
+  FLOATING
+}
+
+enum EmiFrequency {
+  MONTHLY
+  QUARTERLY
+  HALF_YEARLY
+  ANNUAL
+}
+
+enum LoanStatus {
+  DRAFT
+  ACTIVE
+  ON_HOLD
+  CLOSED
+  FORECLOSED
+  DEFAULTED
+  CANCELLED
+}
+
+enum InstallmentStatus {
+  UPCOMING
+  DUE_SOON
+  DUE_TODAY
+  PAID
+  OVERDUE
+  PARTIALLY_PAID
+  WAIVED
+  UNKNOWN
+}
+
+enum FinanceDataSource {
+  MANUAL
+  IMPORT
+  PROVIDER_SYNC
+  DOCUMENT_EXTRACTION
+  CALCULATED
+  SIMULATED
+}
+
+enum FinanceVerificationStatus {
+  UNVERIFIED
+  PROVIDER_REPORTED
+  PENDING_REVIEW
+  VERIFIED
+  CONFLICT
+  REJECTED
+}
+
+enum LoanPaymentMethod {
+  AUTO_DEBIT
+  NACH
+  UPI
+  BANK_TRANSFER
+  CHEQUE
+  CASH
+  CARD
+  OTHER
+}
+
+enum LoanPaymentKind {
+  INSTALLMENT
+  PART_PREPAYMENT
+  FORECLOSURE
+  PENALTY
+  CHARGES
+}
+
+enum LoanEventType {
+  CREATED
+  UPDATED
+  SCHEDULE_GENERATED
+  SCHEDULE_REGENERATED
+  PAYMENT_RECORDED
+  PAYMENT_REVERSED
+  INSTALLMENT_WAIVED
+  REMINDER_SENT
+  MARKED_OVERDUE
+  PROVIDER_SYNCED
+  PROVIDER_SYNC_FAILED
+  CONFLICT_RAISED
+  CONFLICT_RESOLVED
+  STATUS_CHANGED
+  CLOSED
+}
+
+enum LoanReminderKind {
+  ADVANCE
+  IMMINENT
+  OVERDUE
+}
+
+// ===========================================================================
+// Vehicle finance — loans, EMI schedules and repayments
+// ===========================================================================
+
+/// A finance facility secured against one vehicle.
+///
+/// Saarthi is a record-keeper here, not a lender: nothing in this table moves
+/// money. `loanNumber` is the lender's own reference and is unique per tenant,
+/// not globally — two fleets can hold the same reference from different
+/// financiers, and a global unique constraint would leak that between them.
+model VehicleLoan {
+  id             String @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  vehicleId      String @db.Uuid
+
+  loanNumber   String
+  lenderName   String
+  lenderBranch String?
+  borrowerName String?
+  loanType     LoanType   @default(TERM_LOAN)
+  status       LoanStatus @default(ACTIVE)
+
+  /// Sanctioned amount the schedule is computed from.
+  principal         Decimal      @db.Decimal(14, 2)
+  /// What actually reached the borrower, when it differed.
+  disbursedAmount   Decimal?     @db.Decimal(14, 2)
+  /// Nominal annual rate, e.g. 10.500 for 10.5% p.a.
+  annualRatePercent Decimal      @db.Decimal(6, 3)
+  interestType      InterestType @default(REDUCING_BALANCE)
+
+  tenureMonths Int
+  frequency    EmiFrequency @default(MONTHLY)
+  startDate    DateTime     @db.Date
+  /// Derived from the tenure unless the lender specified otherwise.
+  endDate      DateTime?    @db.Date
+  firstDueDate DateTime     @db.Date
+
+  /// The installment amount actually billed. Saarthi computes one from the
+  /// terms, but the lender's figure wins when supplied — their rounding is what
+  /// the bank account will show.
+  emiAmount     Decimal @db.Decimal(14, 2)
+  /// True when emiAmount came from the lender rather than our amortisation.
+  emiFromLender Boolean @default(false)
+
+  autoDebitDay     Int?
+  /// Sensitive: enough to trace or dispute a debit. Returned masked.
+  mandateReference String?
+  /// Sensitive. Stored for reconciliation, never returned below owner level.
+  accountNumber    String?
+
+  /// Days relative to a due date at which reminders fire. Empty = defaults.
+  reminderOffsets  Int[]
+  remindersEnabled Boolean @default(true)
+
+  source             FinanceDataSource         @default(MANUAL)
+  verificationStatus FinanceVerificationStatus @default(UNVERIFIED)
+  /// Which external provider supplied or last confirmed this record.
+  providerName       String?
+  providerReference  String?
+  lastSyncedAt       DateTime?
+  lastSyncError      String?
+
+  notes       String?
+  closedAt    DateTime?
+  closeReason String?
+
+  createdById String?  @db.Uuid
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  vehicle      Truck             @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  installments LoanInstallment[]
+  payments     LoanPayment[]
+  events       LoanEvent[]
+  reminders    LoanReminder[]
+
+  @@unique([organizationId, loanNumber])
+  @@index([organizationId, status])
+  @@index([vehicleId, status])
+  @@index([organizationId, lenderName])
+  @@map("vehicle_loans")
+}
+
+/// One row of the repayment schedule.
+///
+/// `status` is stored rather than derived on read because reminders, overdue
+/// escalation and provider reconciliation all need a stable value to compare
+/// against. A sweep keeps it aligned with the due date, and the API recomputes
+/// the transient part (UPCOMING to DUE_SOON to DUE_TODAY) on the way out.
+model LoanInstallment {
+  id             String @id @default(uuid()) @db.Uuid
+  loanId         String @db.Uuid
+  organizationId String @db.Uuid
+
+  number  Int
+  dueDate DateTime @db.Date
+
+  principal      Decimal  @db.Decimal(14, 2)
+  interest       Decimal  @db.Decimal(14, 2)
+  totalDue       Decimal  @db.Decimal(14, 2)
+  /// Balance outstanding before this installment is applied.
+  openingBalance Decimal? @db.Decimal(14, 2)
+  closingBalance Decimal? @db.Decimal(14, 2)
+
+  status           InstallmentStatus @default(UPCOMING)
+  amountPaid       Decimal           @default(0) @db.Decimal(14, 2)
+  penaltyPaid      Decimal           @default(0) @db.Decimal(14, 2)
+  paidAt           DateTime?
+  paymentReference String?
+
+  waivedAt    DateTime?
+  waivedById  String?   @db.Uuid
+  waiveReason String?
+
+  source             FinanceDataSource         @default(CALCULATED)
+  verificationStatus FinanceVerificationStatus @default(UNVERIFIED)
+  /// Set when a provider reported a figure that disagrees with ours.
+  conflictNote       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  loan     VehicleLoan   @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  payments LoanPayment[]
+
+  @@unique([loanId, number])
+  @@index([organizationId, status, dueDate])
+  @@index([loanId, dueDate])
+  @@index([dueDate, status])
+  @@map("loan_installments")
+}
+
+/// A repayment recorded against a loan, and usually against one installment.
+///
+/// Append-only in practice: a mistake is corrected with a reversing entry
+/// (`reversedAt`) rather than an edit, so the ledger still explains itself.
+model LoanPayment {
+  id             String  @id @default(uuid()) @db.Uuid
+  loanId         String  @db.Uuid
+  installmentId  String? @db.Uuid
+  organizationId String  @db.Uuid
+
+  amount  Decimal           @db.Decimal(14, 2)
+  penalty Decimal           @default(0) @db.Decimal(14, 2)
+  kind    LoanPaymentKind   @default(INSTALLMENT)
+  method  LoanPaymentMethod @default(BANK_TRANSFER)
+  paidAt  DateTime
+
+  reference String?
+  notes     String?
+
+  source             FinanceDataSource         @default(MANUAL)
+  verificationStatus FinanceVerificationStatus @default(UNVERIFIED)
+
+  reversedAt    DateTime?
+  reversedById  String?   @db.Uuid
+  reverseReason String?
+
+  recordedById String?  @db.Uuid
+  createdAt    DateTime @default(now())
+
+  loan        VehicleLoan      @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  installment LoanInstallment? @relation(fields: [installmentId], references: [id], onDelete: SetNull)
+
+  @@index([loanId, paidAt])
+  @@index([organizationId, paidAt])
+  @@index([installmentId])
+  @@map("loan_payments")
+}
+
+/// Audit trail for a loan. A money record has to explain its own history.
+model LoanEvent {
+  id             String        @id @default(uuid()) @db.Uuid
+  loanId         String        @db.Uuid
+  organizationId String        @db.Uuid
+  eventType      LoanEventType
+  description    String?
+  metadata       Json?
+  actorUserId    String?       @db.Uuid
+  createdAt      DateTime      @default(now())
+
+  loan VehicleLoan @relation(fields: [loanId], references: [id], onDelete: Cascade)
+
+  @@index([loanId, createdAt])
+  @@index([organizationId, createdAt])
+  @@map("loan_events")
+}
+
+/// One reminder actually sent for one installment.
+///
+/// The unique key is the whole point: a sweep that runs every few hours must
+/// not send the T-4 notice four times, and a restarted worker must not resend
+/// what the previous run already delivered.
+model LoanReminder {
+  id             String           @id @default(uuid()) @db.Uuid
+  loanId         String           @db.Uuid
+  installmentId  String           @db.Uuid
+  organizationId String           @db.Uuid
+  kind           LoanReminderKind
+  dueDate        DateTime         @db.Date
+  sentAt         DateTime         @default(now())
+
+  loan VehicleLoan @relation(fields: [loanId], references: [id], onDelete: Cascade)
+
+  @@unique([installmentId, kind])
+  @@index([organizationId, sentAt])
+  @@map("loan_reminders")
+}
+
+/// Per-tenant QR field disclosure policy.
+///
+/// One row per organization. `overrides` holds only the fields whose rule the
+/// owner changed from the shared default catalogue, so a later release that
+/// adds a field gets that field's safe default everywhere rather than an
+/// implicit "allow" inherited from an old saved policy.
+///
+/// A policy can only narrow: the scan pipeline intersects it with the code's
+/// scopes and the scanner's relationship ceiling, and the narrowest wins.
+model QrPrivacyPolicy {
+  id             String @id @default(uuid()) @db.Uuid
+  organizationId String @unique @db.Uuid
+
+  /// Field overrides, validated against the shared catalogue before storage.
+  /// Non-configurable fields (home address, chassis number, loan amounts) are
+  /// stripped on write and can never appear here.
+  overrides Json @default("{}")
+
+  /// Tenant-level kill switch for anonymous resolution. A code may opt into
+  /// public resolve, but if the fleet has turned this off, no code of theirs
+  /// answers to a scanner without a session.
+  allowPublicScans Boolean @default(true)
+
+  updatedById String?  @db.Uuid
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("qr_privacy_policies")
+}
+
+enum TopUpStatus {
+  ACTIVE
+  CANCELLED
+  EXPIRED
+  PAYMENT_FAILED
+}
+
+/// A `+1 vehicle` top-up on an organization's subscription.
+///
+/// One row per extra vehicle, rather than a quantity column. That is
+/// deliberate: each top-up has its own billing period, its own payment
+/// reference and its own cancellation, so a fleet that bought three at
+/// different times can drop exactly one without disturbing the others.
+model VehicleSubscriptionTopUp {
+  id             String      @id @default(uuid()) @db.Uuid
+  organizationId String      @db.Uuid
+  status         TopUpStatus @default(ACTIVE)
+
+  /// Billing window. `expiresAt` null means it renews until cancelled.
+  startsAt    DateTime  @default(now())
+  expiresAt   DateTime?
+  cancelledAt DateTime?
+
+  /// Price paid, kept per row so a historical price change does not rewrite
+  /// what an existing customer was actually charged.
+  priceMonthly Decimal @db.Decimal(10, 2)
+
+  /// Reference from the payment provider (mock locally).
+  paymentReference String?
+  purchasedById    String?  @db.Uuid
+  note             String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([organizationId, status])
+  @@index([status, expiresAt])
+  @@map("vehicle_subscription_topups")
+}
+
+enum ViewMode {
+  TABLE
+  CARDS
+}
+
+/// How one person likes one list presented.
+///
+/// Stored per user rather than per organization: a dispatcher working a
+/// three-monitor desk and an owner checking the fleet from a phone want
+/// opposite things from the same screen, and neither should be overriding the
+/// other. The row is created lazily on first change, so a user who never
+/// touches the toggle costs nothing.
+model UserViewPreference {
+  id     String @id @default(uuid()) @db.Uuid
+  userId String @db.Uuid
+
+  /// Stable key for the list, e.g. "fleet.vehicles". Owned by the client,
+  /// because the server has no opinion about which screens exist.
+  surface String
+
+  viewMode      ViewMode @default(TABLE)
+  /// Columns this user has hidden. Column keys, not indexes: a reordered table
+  /// must not silently hide a different column.
+  hiddenColumns String[]
+  pageSize      Int?
+  /// Sort column and direction, when the list supports it.
+  sortKey       String?
+  sortDirection String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, surface])
+  @@index([userId])
+  @@map("user_view_preferences")
+}
+
+enum CameraPosition {
+  FRONT
+  CABIN
+  LEFT
+  RIGHT
+  REAR
+  CARGO
+  OTHER
+}
+
+enum CameraStatus {
+  UNKNOWN
+  ONLINE
+  OFFLINE
+  DISABLED
+  FAULT
+}
+
+enum StreamSessionStatus {
+  REQUESTED
+  ACTIVE
+  ENDED
+  DENIED
+  FAILED
+}
+
+/// One camera channel wired into a multi-camera device such as the YC06.
+///
+/// A camera belongs to the *device*, not to the vehicle. That is the whole
+/// point of the split: a YC06 moved from one truck to another takes its four
+/// channels with it, and last month's footage still resolves to the vehicle the
+/// device was fitted to at the time rather than to wherever it is now.
+model DeviceCamera {
+  id             String @id @default(uuid()) @db.Uuid
+  deviceId       String @db.Uuid
+  organizationId String @db.Uuid
+
+  /// Physical input on the recorder: 1-4 on a YC06.
+  channel  Int
+  position CameraPosition @default(OTHER)
+  label    String?
+
+  status  CameraStatus @default(UNKNOWN)
+  enabled Boolean      @default(true)
+
+  /// Whether this channel records continuously or only on an event.
+  continuousRecording Boolean @default(true)
+  resolution          String?
+  frameRate           Int?
+
+  lastFrameAt      DateTime?
+  lastThumbnailUrl String?
+
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  device   HardwareDevice       @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  sessions VideoStreamSession[]
+
+  @@unique([deviceId, channel])
+  @@index([organizationId, status])
+  @@map("device_cameras")
+}
+
+/// A request to watch a camera live.
+///
+/// The video itself never touches this database — frames go device → video
+/// gateway → browser. What is recorded here is who asked to watch, which
+/// camera, when, and for how long. A dashcam pointed at a driver's face is a
+/// surveillance capability, and the only thing that keeps it accountable is a
+/// record of every time somebody used it.
+model VideoStreamSession {
+  id             String  @id @default(uuid()) @db.Uuid
+  cameraId       String  @db.Uuid
+  organizationId String  @db.Uuid
+  vehicleId      String? @db.Uuid
+
+  requestedById String              @db.Uuid
+  status        StreamSessionStatus @default(REQUESTED)
+
+  /// Short-lived credential the gateway validates. Hashed, never stored raw.
+  tokenHash String
+  expiresAt DateTime
+
+  startedAt DateTime?
+  endedAt   DateTime?
+  /// Why a session was refused or cut short.
+  reason    String?
+
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  camera DeviceCamera @relation(fields: [cameraId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, createdAt])
+  @@index([cameraId, createdAt])
+  @@index([requestedById, createdAt])
+  @@map("video_stream_sessions")
+}
+
+// ===========================================================================
+// Enums — FASTag & toll
+// ===========================================================================
+
+/// State of a FASTag as the issuer reports it.
+///
+/// `LOW_BALANCE` and `BLACKLISTED` are the two that stop a truck at a plaza,
+/// and they are different problems: one is topped up in a minute, the other
+/// needs a call to the issuing bank.
+enum FastagStatus {
+  ACTIVE
+  LOW_BALANCE
+  BLACKLISTED
+  EXCEPTION
+  HOTLISTED
+  CLOSED
+  UNKNOWN
+}
+
+enum TollDirection {
+  INBOUND
+  OUTBOUND
+  UNKNOWN
+}
+
+/// How a toll crossing came to be recorded.
+enum TollDataSource {
+  /// Typed in by the fleet, usually from a paper receipt.
+  MANUAL
+  /// Bulk-loaded from a bank or NETC statement.
+  IMPORT
+  /// Pulled from an integrated tag issuer.
+  PROVIDER_SYNC
+  /// Read off a receipt image by AI. A draft until a person confirms it.
+  DOCUMENT_EXTRACTION
+  SIMULATED
+}
+
+enum TollPaymentMode {
+  FASTAG
+  CASH
+  UPI
+  CARD
+  EXEMPT
+  UNKNOWN
+}
+
+// ===========================================================================
+// FASTag & toll
+// ===========================================================================
+
+/// A FASTag issued against one vehicle.
+///
+/// The tag id is a payment instrument identifier: enough to query a balance,
+/// dispute a deduction, or impersonate the vehicle at a plaza. It is stored for
+/// reconciliation, returned masked, and never disclosed by a QR scan at any
+/// privacy profile.
+///
+/// `balance` is deliberately nullable. Saarthi knows a balance only when
+/// somebody told it one; a tag with no reading is "unknown", which is a
+/// different thing from a tag with zero rupees on it.
+model FastagAccount {
+  id             String @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  vehicleId      String @db.Uuid
+
+  /// Sensitive. Returned masked below owner level.
+  tagId        String
+  /// NETC bank identifier, e.g. the issuing bank's short code.
+  issuerBank   String
+  issuerCode   String?
+  /// Vehicle class the tag was issued against (NETC VC04, VC12 and so on).
+  vehicleClass String?
+
+  status FastagStatus @default(UNKNOWN)
+
+  /// Last known balance. Null means nobody has reported one yet.
+  balance             Decimal?  @db.Decimal(12, 2)
+  balanceUpdatedAt    DateTime?
+  /// Balance below which the fleet is warned. Null uses the platform default.
+  lowBalanceThreshold Decimal?  @db.Decimal(12, 2)
+
+  /// Sensitive: the bank account the tag draws from, when recorded.
+  linkedAccountRef String?
+
+  issuedAt    DateTime?
+  expiresAt   DateTime?
+  closedAt    DateTime?
+  closeReason String?
+
+  source        TollDataSource @default(MANUAL)
+  providerName  String?
+  lastSyncedAt  DateTime?
+  lastSyncError String?
+
+  notes       String?
+  createdById String?  @db.Uuid
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  vehicle      Truck             @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  transactions TollTransaction[]
+
+  /// One active tag per vehicle is the NETC rule; history is kept by closing
+  /// the old row rather than deleting it, so a disputed crossing from last year
+  /// still resolves to the tag that paid it.
+  @@unique([organizationId, tagId])
+  @@index([organizationId, status])
+  @@index([vehicleId, closedAt])
+  @@map("fastag_accounts")
+}
+
+/// One toll crossing.
+///
+/// Denormalised plaza name and code rather than a foreign key: a bank statement
+/// gives a plaza name and nothing else, and refusing to record a crossing
+/// because the plaza is not in a reference table would lose the only record of
+/// money actually spent.
+model TollTransaction {
+  id             String  @id @default(uuid()) @db.Uuid
+  organizationId String  @db.Uuid
+  vehicleId      String  @db.Uuid
+  fastagId       String? @db.Uuid
+  tripId         String? @db.Uuid
+  driverId       String? @db.Uuid
+
+  plazaName String
+  plazaCode String?
+  laneId    String?
+  highway   String?
+  latitude  Float?
+  longitude Float?
+
+  direction    TollDirection   @default(UNKNOWN)
+  paymentMode  TollPaymentMode @default(FASTAG)
+  amount       Decimal         @db.Decimal(10, 2)
+  /// Balance the issuer reported immediately after the deduction, when given.
+  balanceAfter Decimal?        @db.Decimal(12, 2)
+
+  crossedAt         DateTime
+  /// The issuer's own reference, used to de-duplicate across imports.
+  externalReference String?
+
+  source             TollDataSource            @default(MANUAL)
+  verificationStatus FinanceVerificationStatus @default(UNVERIFIED)
+  /// Set when an imported crossing disagrees with one already recorded.
+  conflictNote       String?
+
+  notes        String?
+  recordedById String?  @db.Uuid
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  vehicle Truck          @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  fastag  FastagAccount? @relation(fields: [fastagId], references: [id], onDelete: SetNull)
+
+  /// The issuer reference is unique per tenant, which is what makes a repeated
+  /// statement import idempotent rather than doubling a month of spend.
+  @@unique([organizationId, externalReference])
+  @@index([organizationId, crossedAt])
+  @@index([vehicleId, crossedAt])
+  @@index([tripId])
+  @@index([fastagId, crossedAt])
+  @@map("toll_transactions")
 }

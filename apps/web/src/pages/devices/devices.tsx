@@ -15,7 +15,7 @@ import { useAuth } from '@/features/auth/auth-context';
 import { useRealtimeEvent } from '@/hooks/use-realtime';
 import { PageHeader, SectionHeader } from '@/components/common/page-header';
 import { StatCard } from '@/components/common/stat-card';
-import { DataTable, type Column } from '@/components/common/data-table';
+import { DataView, type Column } from '@/components/common/data-view';
 import { EmptyState, FeatureLockedState, UnauthorizedState } from '@/components/common/states';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -171,7 +171,9 @@ export function DevicesPage() {
   }
 
   const runningByDevice = new Map(
-    (mockRuns.data ?? []).filter((run) => run.status === 'RUNNING').map((run) => [run.deviceId, run]),
+    (mockRuns.data ?? [])
+      .filter((run) => run.status === 'RUNNING')
+      .map((run) => [run.deviceId, run]),
   );
 
   const columns: Column<DeviceSummary>[] = [
@@ -313,7 +315,7 @@ export function DevicesPage() {
                 <DialogHeader>
                   <DialogTitle>Register a device</DialogTitle>
                   <DialogDescription>
-                    Saarthi issues a secret the unit uses to authenticate. It is shown once and
+                    VorldX Saarthi issues a secret the unit uses to authenticate. It is shown once and
                     stored only as a hash.
                   </DialogDescription>
                 </DialogHeader>
@@ -402,10 +404,9 @@ export function DevicesPage() {
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
-              Device <strong>{secret.device.deviceIdentifier}</strong> registered. Configure the unit
-              to POST telemetry with the headers{' '}
-              <code className="font-mono">x-device-id</code> and{' '}
-              <code className="font-mono">x-device-secret</code>.
+              Device <strong>{secret.device.deviceIdentifier}</strong> registered. Configure the
+              unit to POST telemetry with the headers <code className="font-mono">x-device-id</code>{' '}
+              and <code className="font-mono">x-device-secret</code>.
             </p>
             <Button variant="ghost" size="sm" onClick={() => setSecret(null)}>
               Done
@@ -465,7 +466,8 @@ export function DevicesPage() {
           description="Register a telematics unit to start receiving live engine, fuel and motion data. A mock device can be registered first to try the whole pipeline without hardware."
         />
       ) : (
-        <DataTable
+        <DataView
+          surface="hardware.devices"
           columns={columns}
           rows={devices.data?.items}
           rowKey={(row) => row.id}

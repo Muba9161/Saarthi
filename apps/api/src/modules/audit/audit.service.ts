@@ -124,6 +124,7 @@ export const AuditAction = {
   TRUCK_DRIVER_UNASSIGNED: 'truck.driver_unassigned',
 
   VEHICLE_RC_LOOKUP: 'vehicle.rc_lookup',
+  DRIVER_LICENCE_LOOKUP: 'driver.licence_lookup',
   VEHICLE_RC_PDF_DOWNLOADED: 'vehicle.rc_pdf_downloaded',
 
   DRIVER_CREATED: 'driver.created',
@@ -259,6 +260,7 @@ export const AuditAction = {
   QR_REVOKED: 'qr.revoked',
   QR_SCANNED: 'qr.scanned',
   QR_ACTION_PERFORMED: 'qr.action_performed',
+  QR_PRIVACY_POLICY_UPDATED: 'qr.privacy_policy_updated',
 
   RETURN_LOAD_CREATED: 'returnload.created',
   RETURN_LOAD_UPDATED: 'returnload.updated',
@@ -287,6 +289,31 @@ export const AuditAction = {
   HAZARD_VOTED: 'routeintel.hazard_voted',
   HAZARD_VERIFIED: 'routeintel.hazard_verified',
   HAZARD_REMOVED: 'routeintel.hazard_removed',
+
+  CAMERA_REGISTERED: 'camera.registered',
+  /// Every live camera view. A lens pointed at a driver needs an access log.
+  CAMERA_VIEWED: 'camera.viewed',
+
+  FASTAG_REGISTERED: 'fastag.registered',
+  FASTAG_SYNCED: 'fastag.synced',
+  FASTAG_RECHARGE_RECORDED: 'fastag.recharge_recorded',
+  TOLL_RECORDED: 'toll.recorded',
+  TOLL_IMPORTED: 'toll.imported',
+
+  SERVICE_RECORDED: 'service.recorded',
+  SERVICE_VERIFIED: 'service.verified',
+  SERVICE_SYNCED: 'service.synced',
+
+  SUBSCRIPTION_TOPUP_PURCHASED: 'subscription.topup_purchased',
+  SUBSCRIPTION_TOPUP_CANCELLED: 'subscription.topup_cancelled',
+
+  LOAN_CREATED: 'loan.created',
+  LOAN_UPDATED: 'loan.updated',
+  LOAN_CLOSED: 'loan.closed',
+  LOAN_PAYMENT_RECORDED: 'loan.payment_recorded',
+  LOAN_INSTALLMENT_WAIVED: 'loan.installment_waived',
+  LOAN_PROVIDER_SYNCED: 'loan.provider_synced',
+  LOAN_SCHEDULE_IMPORTED: 'loan.schedule_imported',
 
   AI_QUERY: 'ai.query',
 } as const;

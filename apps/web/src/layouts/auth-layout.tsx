@@ -32,7 +32,7 @@ export function AuthLayout() {
   const { status } = useAuth();
 
   if (status === 'loading') {
-    return <LoadingState label="Loading Saarthi…" className="min-h-screen" />;
+    return <LoadingState label="Loading VorldX Saarthi…" className="min-h-screen" />;
   }
   if (status === 'authenticated') {
     return <Navigate to="/" replace />;
@@ -64,7 +64,10 @@ export function AuthLayout() {
 
         <div className="relative">
           <Link to="/" className="inline-block">
-            <SaarthiWordmark className="[&_p:first-child]:text-sidebar-foreground [&_p:last-child]:text-sidebar-muted" />
+            <SaarthiWordmark
+              onDark
+              className="[&_p:first-child]:text-sidebar-foreground [&_p:last-child]:text-sidebar-muted"
+            />
           </Link>
         </div>
 

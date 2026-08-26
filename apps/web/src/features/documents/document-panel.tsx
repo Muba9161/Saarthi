@@ -95,6 +95,9 @@ export function DocumentPanel({
       });
       void queryClient.invalidateQueries({ queryKey: ['verification'] });
       void queryClient.invalidateQueries({ queryKey: ['truck'] });
+      // The vehicle detail screen keys off 'vehicle' — a goods vehicle and a
+      // taxi are the same row, so both caches are refreshed.
+      void queryClient.invalidateQueries({ queryKey: ['vehicle'] });
       void queryClient.invalidateQueries({ queryKey: ['driver'] });
     },
     onError: (error) =>

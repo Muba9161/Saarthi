@@ -193,24 +193,70 @@ export function scopeDeniedReason(scope: QrScope): string {
   }
 }
 
-/** Printable badge presets. Sizes are millimetres. */
+/**
+ * Printable sticker presets. Sizes are millimetres, at trim.
+ *
+ * Not arbitrary numbers. The ID card is CR80 — the same as a bank or access
+ * card — so it fits a lanyard holder someone already owns. The door sticker is
+ * 100 mm because that is about the smallest square whose code still scans from
+ * three metres on a phone. The bumper strip is proportioned to sit above a
+ * tailgate plate without covering it.
+ */
 export const QR_BADGE_PRESETS = {
-  driverCard: { key: 'driver-card', label: 'Driver ID card', widthMm: 85, heightMm: 54 },
   vehicleSticker: {
     key: 'vehicle-sticker',
-    label: 'Windscreen sticker',
+    label: 'Vehicle door sticker',
     widthMm: 100,
     heightMm: 100,
+    description: 'Square sticker for the cab door or body panel. Reads from about three metres.',
+  },
+  vehicleWindscreen: {
+    key: 'vehicle-windscreen',
+    label: 'Windscreen sticker',
+    widthMm: 90,
+    heightMm: 55,
+    description:
+      'Compact sticker for a corner of the windscreen, where it cannot obstruct the view. Can be reverse-printed for fitting inside the glass.',
+  },
+  vehicleStrip: {
+    key: 'vehicle-strip',
+    label: 'Vehicle bumper strip',
+    widthMm: 150,
+    heightMm: 60,
+    description: 'Landscape strip for the tailgate, above the number plate.',
+  },
+  driverCard: {
+    key: 'driver-card',
+    label: 'Driver ID card',
+    widthMm: 85.6,
+    heightMm: 54,
+    description: 'CR80 card that fits a standard lanyard holder.',
   },
 } as const;
 
 export type QrBadgePreset = (typeof QR_BADGE_PRESETS)[keyof typeof QR_BADGE_PRESETS];
+
+export const QR_BADGE_PRESET_KEYS = [
+  'vehicle-sticker',
+  'vehicle-windscreen',
+  'vehicle-strip',
+  'driver-card',
+] as const;
+export type QrBadgePresetKey = (typeof QR_BADGE_PRESET_KEYS)[number];
 
 export function badgePreset(key: string): QrBadgePreset {
   return (
     Object.values(QR_BADGE_PRESETS).find((preset) => preset.key === key) ??
     QR_BADGE_PRESETS.vehicleSticker
   );
+}
+
+/** The preset that suits a subject, when the caller does not name one. */
+export function defaultBadgePresetFor(subjectType: QrSubjectType): QrBadgePresetKey {
+  if (subjectType === QrSubjectType.DRIVER || subjectType === QrSubjectType.USER) {
+    return 'driver-card';
+  }
+  return 'vehicle-sticker';
 }
 
 /**

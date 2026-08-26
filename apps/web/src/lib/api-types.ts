@@ -1,5 +1,18 @@
 import type {
   DocumentOwnerType,
+  EmiFrequency,
+  FinanceDataSource,
+  FinanceVerificationStatus,
+  InstallmentStatus,
+  InterestType,
+  LoanStatus,
+  FastagStatus,
+  ServiceCategory,
+  ServiceDataSource,
+  ServiceVerificationStatus,
+  TollDataSource,
+  TollDirection,
+  TollPaymentMode,
   DocumentValidity,
   DocumentVerificationStatus,
   OrderStatus,
@@ -11,7 +24,7 @@ import type {
 } from '@saarthi/shared';
 
 /**
- * Response shapes returned by the Saarthi API.
+ * Response shapes returned by the VorldX Saarthi API.
  *
  * These mirror the service-layer return types on the server. Keeping them in
  * one file means a backend change surfaces as a compile error in every screen
@@ -670,4 +683,550 @@ export interface RoutePerformance {
   averageDurationMin: number | null;
   averageRevenue: number;
   onTimePercent: number | null;
+}
+
+// ---------------------------------------------------------------------------
+// Vehicle finance — loans and EMI
+// ---------------------------------------------------------------------------
+
+export interface LoanInstallmentView {
+  id: string;
+  number: number;
+  dueDate: string;
+  principal: number;
+  interest: number;
+  totalDue: number;
+  openingBalance: number | null;
+  closingBalance: number | null;
+  status: InstallmentStatus;
+  amountPaid: number;
+  penaltyPaid: number;
+  outstanding: number;
+  paidAt: string | null;
+  paymentReference: string | null;
+  waivedAt: string | null;
+  waiveReason: string | null;
+  source: FinanceDataSource;
+  verificationStatus: FinanceVerificationStatus;
+  conflictNote: string | null;
+}
+
+export interface LoanPaymentView {
+  id: string;
+  installmentId: string | null;
+  installmentNumber: number | null;
+  amount: number;
+  penalty: number;
+  kind: string;
+  method: string;
+  paidAt: string;
+  reference: string | null;
+  notes: string | null;
+  source: FinanceDataSource;
+  verificationStatus: FinanceVerificationStatus;
+  reversedAt: string | null;
+  reverseReason: string | null;
+}
+
+export interface LoanSummary {
+  id: string;
+  vehicleId: string;
+  registrationNumber: string;
+  /**
+   * Masked unless the caller holds `LOANS_SENSITIVE`. `loanNumberMasked` says
+   * which of the two you are looking at, so the UI can label a partial value
+   * honestly instead of presenting it as the real reference.
+   */
+  loanNumber: string | null;
+  loanNumberMasked: boolean;
+  lenderName: string;
+  lenderBranch: string | null;
+  borrowerName: string | null;
+  loanType: string;
+  status: LoanStatus;
+
+  principal: number;
+  disbursedAmount: number | null;
+  annualRatePercent: number;
+  interestType: InterestType;
+  tenureMonths: number;
+  frequency: EmiFrequency;
+  startDate: string;
+  endDate: string | null;
+  firstDueDate: string;
+  emiAmount: number;
+  emiFromLender: boolean;
+
+  autoDebitDay: number | null;
+  mandateReference: string | null;
+  mandateReferenceMasked: boolean;
+
+  outstandingPrincipal: number;
+  outstandingInterest: number;
+  totalOutstanding: number;
+  paidInstallments: number;
+  remainingInstallments: number;
+  overdueInstallments: number;
+  overdueAmount: number;
+  unknownInstallments: number;
+  nextDueDate: string | null;
+  nextDueAmount: number | null;
+  completionPercent: number;
+  hasUnknownState: boolean;
+
+  source: FinanceDataSource;
+  verificationStatus: FinanceVerificationStatus;
+  providerName: string | null;
+  lastSyncedAt: string | null;
+  remindersEnabled: boolean;
+  reminderOffsets: number[];
+  notes: string | null;
+  closedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LoanDetail extends LoanSummary {
+  installments: LoanInstallmentView[];
+  payments: LoanPaymentView[];
+  scheduleTotals: { installments: number; principal: number; interest: number; total: number };
+}
+
+export interface LoanListTotals {
+  loans: number;
+  activeLoans: number;
+  totalOutstanding: number;
+  monthlyObligation: number;
+  overdueAmount: number;
+  overdueLoans: number;
+}
+
+export interface FleetLoanSummary {
+  activeLoans: number;
+  financedVehicles: number;
+  totalOutstanding: number;
+  monthlyObligation: number;
+  dueThisMonth: number;
+  overdueInstallments: number;
+  overdueAmount: number;
+  unknownInstallments: number;
+  nextDueDate: string | null;
+  attention: {
+    loanId: string;
+    vehicleId: string;
+    registrationNumber: string;
+    lenderName: string;
+    dueDate: string;
+    amount: number;
+    status: InstallmentStatus;
+  }[];
+  basis: 'calculated';
+}
+
+export interface UpcomingEmi {
+  installmentId: string;
+  loanId: string;
+  vehicleId: string;
+  registrationNumber: string;
+  lenderName: string;
+  number: number;
+  dueDate: string;
+  totalDue: number;
+  amountPaid: number;
+  outstanding: number;
+  status: InstallmentStatus;
+  daysUntilDue: number;
+}
+
+export interface UpcomingEmiResult {
+  items: UpcomingEmi[];
+  totalDue: number;
+  overdueAmount: number;
+}
+
+export interface SchedulePreview {
+  emiAmount: number;
+  installments: {
+    number: number;
+    dueDate: string;
+    principal: number;
+    interest: number;
+    totalDue: number;
+    closingBalance: number;
+  }[];
+  totals: { installments: number; principal: number; interest: number; total: number };
+  basis: 'calculated';
+}
+
+export interface LoanSyncResult {
+  provider: string;
+  retrievedAt: string;
+  simulated: boolean;
+  applied: boolean;
+  differences: { field: string; saarthi: string | number | null; provider: string | number | null }[];
+  installmentsReported: number;
+  undisclosedInstallments: number;
+}
+
+export interface LoanEventView {
+  id: string;
+  eventType: string;
+  description: string | null;
+  metadata: unknown;
+  createdAt: string;
+}
+
+// ---------------------------------------------------------------------------
+// Service history
+// ---------------------------------------------------------------------------
+
+export interface ServicePartView {
+  name: string;
+  partNumber: string | null;
+  component: string | null;
+  quantity: number;
+  unitCost: number | null;
+  warrantyMonths: number | null;
+}
+
+export interface ServiceRecordView {
+  id: string;
+  vehicleId: string;
+  registrationNumber: string;
+  type: string;
+  category: ServiceCategory | null;
+  title: string;
+  description: string | null;
+  status: string;
+
+  serviceDate: string | null;
+  scheduledAt: string | null;
+  completedAt: string | null;
+  odometerKm: number | null;
+  engineHours: number | null;
+
+  workshopName: string | null;
+  workshopAddress: string | null;
+  workshopPhone: string | null;
+  mechanicName: string | null;
+
+  labourCost: number | null;
+  partsCost: number | null;
+  taxAmount: number | null;
+  totalCost: number | null;
+
+  invoiceNumber: string | null;
+  parts: ServicePartView[];
+  replacedComponents: string[];
+  diagnosticCodes: string[];
+  warrantyUntil: string | null;
+  warrantyActive: boolean;
+
+  nextServiceDate: string | null;
+  nextServiceOdometerKm: number | null;
+
+  source: ServiceDataSource;
+  verificationStatus: ServiceVerificationStatus;
+  providerName: string | null;
+  retrievedAt: string | null;
+  conflictNote: string | null;
+  /** True while the record still needs a person to confirm it. */
+  needsReview: boolean;
+
+  mediaUrl: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ServiceTimeline {
+  vehicleId: string;
+  registrationNumber: string;
+  records: ServiceRecordView[];
+  health: { health: string; reasons: string[]; basis: 'calculated' };
+  spend: {
+    total: number;
+    labour: number;
+    parts: number;
+    recordCount: number;
+    costPerKm: number | null;
+    unverifiedRecords: number;
+  };
+  costTrend: {
+    recentCost: number;
+    previousCost: number;
+    changePercent: number | null;
+    direction: 'UP' | 'DOWN' | 'FLAT' | 'UNKNOWN';
+    windowDays: number;
+  };
+  repeated: {
+    component: string;
+    label: string;
+    occurrences: number;
+    firstAt: string;
+    lastAt: string;
+    kmBetween: number | null;
+    daysBetween: number;
+    totalCost: number;
+  }[];
+  lastServiceAt: string | null;
+  nextDueAt: string | null;
+  nextDueOdometerKm: number | null;
+  /** What this history does not cover, stated rather than implied. */
+  coverageNote: string;
+  basis: 'calculated';
+}
+
+export interface ServiceSyncResult {
+  provider: string;
+  retrievedAt: string;
+  simulated: boolean;
+  coverageNote: string;
+  applied: boolean;
+  imported: number;
+  duplicates: number;
+  conflicts: { recordId: string; externalId: string; fields: string[] }[];
+}
+
+// ---------------------------------------------------------------------------
+// AI — daily brief, tools and provenance
+// ---------------------------------------------------------------------------
+
+export interface BriefItem {
+  kind:
+    | 'SERVICE_OVERDUE'
+    | 'SERVICE_DUE'
+    | 'EMI_OVERDUE'
+    | 'EMI_DUE'
+    | 'DOCUMENT_EXPIRED'
+    | 'DOCUMENT_EXPIRING'
+    | 'DEVICE_OFFLINE'
+    | 'INCIDENT_OPEN'
+    | 'TELEMETRY_ALERT'
+    | 'CAPACITY';
+  severity: 'CRITICAL' | 'HIGH' | 'NORMAL';
+  count: number;
+  headline: string;
+  detail: string;
+  actionUrl: string;
+}
+
+export interface DailyBrief {
+  organizationId: string;
+  generatedAt: string;
+  activeVehicles: number;
+  activeTrips: number;
+  items: BriefItem[];
+  priorities: { label: string; reason: string; actionUrl: string }[];
+  allClear: boolean;
+  basis: 'calculated';
+}
+
+/** One tool invocation, as recorded for provenance. */
+export interface RecordedToolCall {
+  tool: string;
+  arguments: Record<string, unknown>;
+  basis: 'SOURCE_DATA' | 'RULE_RESULT' | 'PROVIDER_REPORTED' | null;
+  recordCount: number;
+  references: { type: string; id: string; label: string }[];
+  caveats: string[];
+  durationMs: number;
+  cached: boolean;
+  error: string | null;
+}
+
+export interface CopilotAnswer {
+  answer: string;
+  toolCalls: RecordedToolCall[];
+  references: { type: string; id: string; label: string }[];
+  caveats: string[];
+  provider: string;
+  model: string;
+  tokensIn: number;
+  tokensOut: number;
+  latencyMs: number;
+  iterations: number;
+  truncated: boolean;
+  generatedAt: string;
+  /** "Based on 42 trips, 18 fuel transactions…" */
+  provenance: string;
+}
+
+export interface AiToolListing {
+  name: string;
+  description: string;
+  category: string;
+}
+
+// ---------------------------------------------------------------------------
+// Cameras and live video
+// ---------------------------------------------------------------------------
+
+export interface CameraView {
+  id: string;
+  deviceId: string;
+  deviceIdentifier: string;
+  channel: number;
+  position: string;
+  label: string | null;
+  status: string;
+  enabled: boolean;
+  continuousRecording: boolean;
+  resolution: string | null;
+  frameRate: number | null;
+  lastFrameAt: string | null;
+  thumbnailUrl: string | null;
+  /** The vehicle this camera's recorder is fitted to right now, if any. */
+  vehicleId: string | null;
+  registrationNumber: string | null;
+}
+
+export interface LiveViewResult {
+  sessionId: string;
+  gatewayUrl: string;
+  /** Returned once and never again — the server keeps only a hash. */
+  token: string;
+  protocol: string;
+  expiresAt: string;
+  iceServers: { urls: string; username?: string; credential?: string }[];
+  posterUrl: string | null;
+  simulated: boolean;
+  camera: CameraView;
+}
+
+export interface CameraAccessLogEntry {
+  sessionId: string;
+  watchedBy: string;
+  status: string;
+  requestedAt: string;
+  startedAt: string | null;
+  endedAt: string | null;
+  durationSeconds: number | null;
+  reason: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// FASTag & toll
+// ---------------------------------------------------------------------------
+
+export interface FastagHealthResult {
+  health: 'OK' | 'LOW_BALANCE' | 'BLOCKED' | 'EXPIRING' | 'UNKNOWN';
+  reasons: string[];
+  /** Days since the balance was reported. `null` when never reported. */
+  balanceAgeDays: number | null;
+  basis: 'calculated';
+}
+
+export interface FastagView {
+  id: string;
+  vehicleId: string;
+  registrationNumber: string;
+  /** Masked unless the caller holds `FASTAG_SENSITIVE`. */
+  tagId: string | null;
+  tagIdMasked: boolean;
+  issuerBank: string;
+  issuerCode: string | null;
+  vehicleClass: string | null;
+  status: FastagStatus;
+
+  /** `null` means nobody has reported one. Never render as zero. */
+  balance: number | null;
+  balanceUpdatedAt: string | null;
+  lowBalanceThreshold: number;
+  health: FastagHealthResult;
+
+  linkedAccountRef: string | null;
+  issuedAt: string | null;
+  expiresAt: string | null;
+  closedAt: string | null;
+
+  source: TollDataSource;
+  providerName: string | null;
+  lastSyncedAt: string | null;
+  lastSyncError: string | null;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** What the configured provider can do — the UI hides what it cannot. */
+export interface FastagCapabilities {
+  provider: string;
+  supportsLookup: boolean;
+  supportsBalance: boolean;
+  supportsRecharge: boolean;
+  supportsTransactions: boolean;
+  unavailableReason: string;
+  defaultLowBalanceThreshold: number;
+}
+
+export interface FastagListTotals {
+  tags: number;
+  needsAttention: number;
+  blocked: number;
+  lowBalance: number;
+  unknownBalance: number;
+  knownBalanceTotal: number;
+}
+
+export interface TollTransactionView {
+  id: string;
+  vehicleId: string;
+  registrationNumber: string;
+  tripId: string | null;
+  plazaName: string;
+  plazaCode: string | null;
+  highway: string | null;
+  laneId: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  direction: TollDirection;
+  paymentMode: TollPaymentMode;
+  amount: number;
+  balanceAfter: number | null;
+  crossedAt: string;
+  source: TollDataSource;
+  verificationStatus: FinanceVerificationStatus;
+  conflictNote: string | null;
+  notes: string | null;
+  createdAt: string;
+}
+
+export interface TollSummaryResult {
+  total: number;
+  crossings: number;
+  averagePerCrossing: number | null;
+  byMode: Partial<Record<TollPaymentMode, number>>;
+  topPlazas: { plazaName: string; crossings: number; total: number }[];
+  windowDays: number;
+  /** Crossings a network feed reported without a fare. */
+  unpricedCrossings: number;
+  vehiclesWithTolls: number;
+  basis: 'calculated';
+}
+
+export interface TripCostSummary {
+  tripReference: string;
+  revenue: number | null;
+  fuelCost: number;
+  tollCost: number;
+  otherExpenses: number;
+  totalCost: number;
+  margin: number | null;
+  marginPercent: number | null;
+  costPerKm: number | null;
+  tollSharePercent: number | null;
+  tollCrossings: number;
+  basis: 'calculated';
+}
+
+export interface TollVarianceResult {
+  tripReference: string;
+  corridor: string;
+  actual: number;
+  expected: number | null;
+  variance: number | null;
+  variancePercent: number | null;
+  sampleSize: number;
+  verdict: 'NORMAL' | 'HIGH' | 'LOW' | 'INSUFFICIENT_DATA';
+  basis: 'calculated';
 }

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Car, Download, EyeOff, RefreshCw, Search, ShieldCheck } from 'lucide-react';
 import {
@@ -217,6 +217,7 @@ export interface RcLookupPanelProps {
 }
 
 export function RcLookupPanel({ registrationNumber: fixedPlate }: RcLookupPanelProps = {}) {
+  const queryClient = useQueryClient();
   const locked = Boolean(fixedPlate);
   const [input, setInput] = React.useState(fixedPlate ?? '');
   const [result, setResult] = React.useState<VehicleLookupResult | null>(null);
@@ -229,10 +230,36 @@ export function RcLookupPanel({ registrationNumber: fixedPlate }: RcLookupPanelP
     setResult(null);
   }, [fixedPlate]);
 
+  /**
+   * Whatever Saarthi already holds for this vehicle.
+   *
+   * Costs nothing and never touches the provider, so the record a colleague
+   * pulled last week is simply on screen — the operator only presses a button
+   * when they want a *fresh* one.
+   */
+  const stored = useQuery({
+    queryKey: ['vehicle-lookup', 'stored', fixedPlate],
+    queryFn: () =>
+      api.get<VehicleLookupResult | null>('/vehicles/lookups/latest', {
+        registrationNumber: fixedPlate!,
+      }),
+    enabled: Boolean(fixedPlate),
+    staleTime: 60_000,
+  });
+
+  React.useEffect(() => {
+    // A freshly fetched result always wins over the stored one.
+    if (stored.data && !result) setResult(stored.data);
+  }, [stored.data, result]);
+
   const lookup = useMutation({
     mutationFn: (variables: { registrationNumber: string; refresh: boolean }) =>
       api.post<VehicleLookupResult>('/vehicles/lookup', variables),
-    onSuccess: (data) => setResult(data),
+    onSuccess: (data) => {
+      setResult(data);
+      // Keep the stored copy in step, so leaving and returning shows this one.
+      queryClient.setQueryData(['vehicle-lookup', 'stored', fixedPlate], data);
+    },
     onError: (error) => {
       setResult(null);
       // 404 is a legitimate answer, not a failure worth a toast.

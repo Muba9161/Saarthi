@@ -58,7 +58,12 @@ export async function resaleRoutes(app: FastifyInstance): Promise<void> {
    */
   app.get(
     '/listings/vehicle/:id',
-    { preHandler: requirePermission(Permission.RESALE_MANAGE) },
+    {
+      preHandler: [
+        requirePermission(Permission.RESALE_MANAGE),
+        requireFeature(Feature.RESALE_MARKETPLACE),
+      ],
+    },
     async (request, reply) => {
       const auth = requireAuth(request);
       const { id } = parseParams(idParamSchema, request.params);
@@ -68,7 +73,12 @@ export async function resaleRoutes(app: FastifyInstance): Promise<void> {
 
   app.get(
     '/listings/:id',
-    { preHandler: requirePermission(Permission.RESALE_MANAGE) },
+    {
+      preHandler: [
+        requirePermission(Permission.RESALE_MANAGE),
+        requireFeature(Feature.RESALE_MARKETPLACE),
+      ],
+    },
     async (request, reply) => {
       const auth = requireAuth(request);
       const { id } = parseParams(idParamSchema, request.params);

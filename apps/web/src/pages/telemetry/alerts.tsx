@@ -192,7 +192,7 @@ export function TelemetryAlertsPage() {
           <CardHeader className="pb-3">
             <SectionHeader
               title="Maintenance recommendations"
-              description="Threshold rules over recent alerts — not predictions. Saarthi will not claim to predict a failure until it has the fleet history to do so honestly."
+              description="Threshold rules over recent alerts — not predictions. VorldX Saarthi will not claim to predict a failure until it has the fleet history to do so honestly."
             />
           </CardHeader>
           <CardContent className="grid grid-cols-1 gap-3 pt-0 sm:grid-cols-2">

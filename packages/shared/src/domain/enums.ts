@@ -573,6 +573,19 @@ export const NotificationType = asEnum({
   PROFILE_INCOMPLETE: 'PROFILE_INCOMPLETE',
   QR_CODE_ROTATED: 'QR_CODE_ROTATED',
   MEDIA_MODERATION_REQUIRED: 'MEDIA_MODERATION_REQUIRED',
+
+  // FASTag & toll
+  FASTAG_LOW_BALANCE: 'FASTAG_LOW_BALANCE',
+  FASTAG_BLACKLISTED: 'FASTAG_BLACKLISTED',
+  TOLL_SYNC_CONFLICT: 'TOLL_SYNC_CONFLICT',
+
+  // Vehicle finance — loans and EMI
+  LOAN_EMI_DUE_SOON: 'LOAN_EMI_DUE_SOON',
+  LOAN_EMI_DUE_TODAY: 'LOAN_EMI_DUE_TODAY',
+  LOAN_EMI_OVERDUE: 'LOAN_EMI_OVERDUE',
+  LOAN_PAYMENT_RECORDED: 'LOAN_PAYMENT_RECORDED',
+  LOAN_CLOSED: 'LOAN_CLOSED',
+  LOAN_SYNC_CONFLICT: 'LOAN_SYNC_CONFLICT',
 });
 export type NotificationType = EnumValue<typeof NotificationType>;
 
@@ -1512,3 +1525,250 @@ export const SignalPhase = asEnum({
   UNKNOWN: 'UNKNOWN',
 });
 export type SignalPhase = EnumValue<typeof SignalPhase>;
+
+// ---------------------------------------------------------------------------
+// Vehicle finance — loans, EMI schedules and repayments
+// ---------------------------------------------------------------------------
+
+export const LoanType = asEnum({
+  /** Standard vehicle term loan, repaid on a fixed EMI schedule. */
+  TERM_LOAN: 'TERM_LOAN',
+  /** Financier holds hypothecation on the RC until the loan closes. */
+  HYPOTHECATION: 'HYPOTHECATION',
+  LEASE: 'LEASE',
+  HIRE_PURCHASE: 'HIRE_PURCHASE',
+  REFINANCE: 'REFINANCE',
+  /** Additional borrowing on an existing vehicle loan. */
+  TOP_UP: 'TOP_UP',
+  WORKING_CAPITAL: 'WORKING_CAPITAL',
+  OTHER: 'OTHER',
+});
+export type LoanType = EnumValue<typeof LoanType>;
+
+export const InterestType = asEnum({
+  /** Interest computed on the original principal for the whole tenure. */
+  FLAT: 'FLAT',
+  /** Interest computed on the outstanding balance — the usual EMI formula. */
+  REDUCING_BALANCE: 'REDUCING_BALANCE',
+  /** Reducing balance whose rate may be revised by the lender. */
+  FLOATING: 'FLOATING',
+});
+export type InterestType = EnumValue<typeof InterestType>;
+
+export const EmiFrequency = asEnum({
+  MONTHLY: 'MONTHLY',
+  QUARTERLY: 'QUARTERLY',
+  HALF_YEARLY: 'HALF_YEARLY',
+  ANNUAL: 'ANNUAL',
+});
+export type EmiFrequency = EnumValue<typeof EmiFrequency>;
+
+export const LoanStatus = asEnum({
+  /** Recorded but not yet disbursed — no schedule is generated. */
+  DRAFT: 'DRAFT',
+  ACTIVE: 'ACTIVE',
+  /** Repayment paused by agreement with the lender. */
+  ON_HOLD: 'ON_HOLD',
+  CLOSED: 'CLOSED',
+  /** Settled ahead of tenure. */
+  FORECLOSED: 'FORECLOSED',
+  DEFAULTED: 'DEFAULTED',
+  CANCELLED: 'CANCELLED',
+});
+export type LoanStatus = EnumValue<typeof LoanStatus>;
+
+/**
+ * Installment lifecycle.
+ *
+ * `UNKNOWN` is deliberate and not a placeholder: an installment imported from a
+ * lender statement whose payment state was not disclosed must not be shown as
+ * PAID or as OVERDUE, because both would be an assertion Saarthi cannot make.
+ */
+export const InstallmentStatus = asEnum({
+  UPCOMING: 'UPCOMING',
+  DUE_SOON: 'DUE_SOON',
+  DUE_TODAY: 'DUE_TODAY',
+  PAID: 'PAID',
+  OVERDUE: 'OVERDUE',
+  PARTIALLY_PAID: 'PARTIALLY_PAID',
+  WAIVED: 'WAIVED',
+  UNKNOWN: 'UNKNOWN',
+});
+export type InstallmentStatus = EnumValue<typeof InstallmentStatus>;
+
+/** Where a finance record — or a single installment — came from. */
+export const FinanceDataSource = asEnum({
+  MANUAL: 'MANUAL',
+  IMPORT: 'IMPORT',
+  PROVIDER_SYNC: 'PROVIDER_SYNC',
+  /** Extracted from a statement by AI. Never trusted without verification. */
+  DOCUMENT_EXTRACTION: 'DOCUMENT_EXTRACTION',
+  /** Produced by Saarthi's own amortisation from the loan terms. */
+  CALCULATED: 'CALCULATED',
+  SIMULATED: 'SIMULATED',
+});
+export type FinanceDataSource = EnumValue<typeof FinanceDataSource>;
+
+/**
+ * How far a record has been checked.
+ *
+ * A provider response is not a verified fact: `PROVIDER_REPORTED` says an
+ * external system asserted it, `VERIFIED` says a human confirmed it against a
+ * document, and `CONFLICT` says two sources disagree and neither wins silently.
+ */
+export const FinanceVerificationStatus = asEnum({
+  UNVERIFIED: 'UNVERIFIED',
+  PROVIDER_REPORTED: 'PROVIDER_REPORTED',
+  PENDING_REVIEW: 'PENDING_REVIEW',
+  VERIFIED: 'VERIFIED',
+  CONFLICT: 'CONFLICT',
+  REJECTED: 'REJECTED',
+});
+export type FinanceVerificationStatus = EnumValue<typeof FinanceVerificationStatus>;
+
+export const LoanPaymentMethod = asEnum({
+  AUTO_DEBIT: 'AUTO_DEBIT',
+  NACH: 'NACH',
+  UPI: 'UPI',
+  BANK_TRANSFER: 'BANK_TRANSFER',
+  CHEQUE: 'CHEQUE',
+  CASH: 'CASH',
+  CARD: 'CARD',
+  OTHER: 'OTHER',
+});
+export type LoanPaymentMethod = EnumValue<typeof LoanPaymentMethod>;
+
+/** What a recorded payment was applied to. */
+export const LoanPaymentKind = asEnum({
+  INSTALLMENT: 'INSTALLMENT',
+  PART_PREPAYMENT: 'PART_PREPAYMENT',
+  FORECLOSURE: 'FORECLOSURE',
+  PENALTY: 'PENALTY',
+  CHARGES: 'CHARGES',
+});
+export type LoanPaymentKind = EnumValue<typeof LoanPaymentKind>;
+
+export const LoanEventType = asEnum({
+  CREATED: 'CREATED',
+  UPDATED: 'UPDATED',
+  SCHEDULE_GENERATED: 'SCHEDULE_GENERATED',
+  SCHEDULE_REGENERATED: 'SCHEDULE_REGENERATED',
+  PAYMENT_RECORDED: 'PAYMENT_RECORDED',
+  PAYMENT_REVERSED: 'PAYMENT_REVERSED',
+  INSTALLMENT_WAIVED: 'INSTALLMENT_WAIVED',
+  REMINDER_SENT: 'REMINDER_SENT',
+  MARKED_OVERDUE: 'MARKED_OVERDUE',
+  PROVIDER_SYNCED: 'PROVIDER_SYNCED',
+  PROVIDER_SYNC_FAILED: 'PROVIDER_SYNC_FAILED',
+  CONFLICT_RAISED: 'CONFLICT_RAISED',
+  CONFLICT_RESOLVED: 'CONFLICT_RESOLVED',
+  STATUS_CHANGED: 'STATUS_CHANGED',
+  CLOSED: 'CLOSED',
+});
+export type LoanEventType = EnumValue<typeof LoanEventType>;
+
+/** Reminder offsets relative to an installment due date. */
+export const LoanReminderKind = asEnum({
+  /** Default T-4 days. */
+  ADVANCE: 'ADVANCE',
+  /** Default T-1 day. */
+  IMMINENT: 'IMMINENT',
+  /** Default T+1 day — the overdue check. */
+  OVERDUE: 'OVERDUE',
+});
+export type LoanReminderKind = EnumValue<typeof LoanReminderKind>;
+
+// ---------------------------------------------------------------------------
+// Service history
+// ---------------------------------------------------------------------------
+
+export const ServiceCategory = asEnum({
+  ROUTINE: 'ROUTINE',
+  ENGINE: 'ENGINE',
+  TRANSMISSION: 'TRANSMISSION',
+  BRAKES: 'BRAKES',
+  SUSPENSION: 'SUSPENSION',
+  STEERING: 'STEERING',
+  TYRES: 'TYRES',
+  ELECTRICAL: 'ELECTRICAL',
+  BODY: 'BODY',
+  HVAC: 'HVAC',
+  FUEL_SYSTEM: 'FUEL_SYSTEM',
+  COOLING: 'COOLING',
+  EXHAUST: 'EXHAUST',
+  CHASSIS: 'CHASSIS',
+  ACCIDENT_REPAIR: 'ACCIDENT_REPAIR',
+  OTHER: 'OTHER',
+});
+export type ServiceCategory = EnumValue<typeof ServiceCategory>;
+
+export const ServiceDataSource = asEnum({
+  MANUAL: 'MANUAL',
+  IMPORT: 'IMPORT',
+  PROVIDER_SYNC: 'PROVIDER_SYNC',
+  /** Extracted from an invoice by AI. A draft until a human confirms it. */
+  DOCUMENT_EXTRACTION: 'DOCUMENT_EXTRACTION',
+  TELEMETRY_DERIVED: 'TELEMETRY_DERIVED',
+  SIMULATED: 'SIMULATED',
+});
+export type ServiceDataSource = EnumValue<typeof ServiceDataSource>;
+
+export const ServiceVerificationStatus = asEnum({
+  UNVERIFIED: 'UNVERIFIED',
+  PROVIDER_REPORTED: 'PROVIDER_REPORTED',
+  PENDING_REVIEW: 'PENDING_REVIEW',
+  VERIFIED: 'VERIFIED',
+  CONFLICT: 'CONFLICT',
+  REJECTED: 'REJECTED',
+});
+export type ServiceVerificationStatus = EnumValue<typeof ServiceVerificationStatus>;
+
+// ---------------------------------------------------------------------------
+// FASTag & toll
+// ---------------------------------------------------------------------------
+
+/**
+ * FASTag state, as NETC defines it.
+ *
+ * `LOW_BALANCE` and `BLACKLISTED` both stop a truck at a plaza, but they are
+ * different problems: one is fixed by a recharge in under a minute, the other
+ * needs a call to the issuing bank. Collapsing them into "inactive" would lose
+ * the only part a driver at a barrier can act on.
+ */
+export const FastagStatus = asEnum({
+  ACTIVE: 'ACTIVE',
+  LOW_BALANCE: 'LOW_BALANCE',
+  BLACKLISTED: 'BLACKLISTED',
+  EXCEPTION: 'EXCEPTION',
+  HOTLISTED: 'HOTLISTED',
+  CLOSED: 'CLOSED',
+  /** Nothing has reported a state yet. Not the same as inactive. */
+  UNKNOWN: 'UNKNOWN',
+});
+export type FastagStatus = EnumValue<typeof FastagStatus>;
+
+export const TollDirection = asEnum({
+  INBOUND: 'INBOUND',
+  OUTBOUND: 'OUTBOUND',
+  UNKNOWN: 'UNKNOWN',
+});
+export type TollDirection = EnumValue<typeof TollDirection>;
+
+export const TollDataSource = asEnum({
+  MANUAL: 'MANUAL',
+  IMPORT: 'IMPORT',
+  PROVIDER_SYNC: 'PROVIDER_SYNC',
+  DOCUMENT_EXTRACTION: 'DOCUMENT_EXTRACTION',
+  SIMULATED: 'SIMULATED',
+});
+export type TollDataSource = EnumValue<typeof TollDataSource>;
+
+export const TollPaymentMode = asEnum({
+  FASTAG: 'FASTAG',
+  CASH: 'CASH',
+  UPI: 'UPI',
+  CARD: 'CARD',
+  EXEMPT: 'EXEMPT',
+  UNKNOWN: 'UNKNOWN',
+});
+export type TollPaymentMode = EnumValue<typeof TollPaymentMode>;

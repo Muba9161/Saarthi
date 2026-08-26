@@ -30,6 +30,8 @@ process.env.WAY2API_TIMEOUT_MS = '2000';
 process.env.VEHICLE_CACHE_TTL = '3600';
 // No call ceiling in tests — every provider call is stubbed, so none are billable.
 process.env.VEHICLE_LOOKUP_BUDGET = '0';
+process.env.LICENCE_CACHE_TTL = '3600';
+process.env.LICENCE_LOOKUP_BUDGET = '0';
 process.env.SSR_PETROL_API_BASE_URL = 'https://petrol.test';
 process.env.SSR_PETROL_API_KEY = '';
 process.env.SSR_PETROL_TIMEOUT_MS = '2000';

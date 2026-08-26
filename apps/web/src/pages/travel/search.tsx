@@ -103,7 +103,7 @@ function PackageCard({ pkg }: { pkg: PackageSummary }) {
                 {pkg.pricingModel === 'PER_PERSON' ? 'From, per person' : 'From'}
               </p>
               <p className="text-lg font-semibold">{formatCurrency(pkg.fromPrice)}</p>
-              <p className="text-2xs text-muted-foreground">Includes the Saarthi booking fee</p>
+              <p className="text-2xs text-muted-foreground">Includes the VorldX Saarthi booking fee</p>
             </div>
             <div className="text-right text-xs text-muted-foreground">
               <p className="truncate font-medium text-foreground">

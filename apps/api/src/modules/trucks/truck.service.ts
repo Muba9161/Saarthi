@@ -202,7 +202,13 @@ export async function getTruck(auth: AuthContext, truckId: string): Promise<Truc
   return toSummary(truck, health.get(truck.id));
 }
 
-/** Enforces the subscription's fleet-size limit before creating a truck. */
+/**
+ * Enforces the subscription's fleet-size limit before creating a truck.
+ *
+ * `limits.maxTrucks` is the *effective* capacity — the plan's allowance plus
+ * any active `+1` top-ups — so a fleet that has paid for one extra vehicle can
+ * add it here without this check knowing anything about top-ups.
+ */
 async function assertTruckLimit(auth: AuthContext, organizationId: string): Promise<void> {
   const max = auth.subscription?.limits.maxTrucks;
   if (max === null || max === undefined) return;
@@ -211,7 +217,8 @@ async function assertTruckLimit(auth: AuthContext, organizationId: string): Prom
   if (existing >= max) {
     throw errors.planLimitReached(
       'maxTrucks',
-      `Your ${auth.subscription?.planName ?? 'current'} plan allows ${max} trucks. Upgrade your plan to add more.`,
+      `Your ${auth.subscription?.planName ?? 'current'} plan covers ${max} vehicle${max === 1 ? '' : 's'}. ` +
+        'Add a +1 vehicle top-up for this one truck, or upgrade the plan if the fleet is growing.',
     );
   }
 }

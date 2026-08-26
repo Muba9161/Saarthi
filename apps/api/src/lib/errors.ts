@@ -120,6 +120,10 @@ export const errors = {
     message = 'The vehicle lookup allowance for this environment has been used up.',
   ) => new AppError(429, ErrorCode.PROVIDER_BUDGET_EXHAUSTED, message, { details: { provider } }),
 
+  licenceNotFound: (
+    message = 'No driving licence was found for that number and date of birth.',
+  ) => new AppError(404, ErrorCode.LICENCE_NOT_FOUND, message),
+
   vehicleNotFound: (message = 'No vehicle was found for this registration number.') =>
     new AppError(404, ErrorCode.VEHICLE_NOT_FOUND, message),
 

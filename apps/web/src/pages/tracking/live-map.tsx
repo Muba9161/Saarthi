@@ -129,7 +129,7 @@ export function LiveMapPage() {
 
       {session?.demoMode ? (
         <p className="glass rounded-lg px-3 py-2 text-xs text-muted-foreground">
-          Demo mode: positions on this map are produced by the Saarthi GPS simulator, not by
+          Demo mode: positions on this map are produced by the VorldX Saarthi GPS simulator, not by
           hardware trackers.
         </p>
       ) : null}

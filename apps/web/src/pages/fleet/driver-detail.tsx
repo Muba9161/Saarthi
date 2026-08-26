@@ -17,6 +17,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { LicenceLookupPanel } from '@/features/drivers/licence-lookup-panel';
 
 interface AchievementRow {
   code: string;
@@ -53,6 +54,9 @@ export function DriverDetailPage() {
   if (!driver.data) return <EmptyState title="Driver not found" />;
 
   const person = driver.data;
+  // Hidden rather than shown-and-refused; the API enforces both the permission
+  // and that the licence belongs to a driver on this roster regardless.
+  const canLookupLicence = can(Permission.DRIVER_LICENCE_LOOKUP);
 
   return (
     <div className="space-y-5">
@@ -115,6 +119,7 @@ export function DriverDetailPage() {
           <TabsTrigger value="performance">Performance</TabsTrigger>
           <TabsTrigger value="achievements">Achievements</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
+          {canLookupLicence ? <TabsTrigger value="licence">Licence</TabsTrigger> : null}
         </TabsList>
 
         <TabsContent value="performance">
@@ -175,6 +180,21 @@ export function DriverDetailPage() {
         <TabsContent value="documents">
           <DocumentPanel ownerType="DRIVER" ownerId={id} ownerLabel={person.fullName} />
         </TabsContent>
+
+        {/*
+          The licence number is already on the profile, so this opens ready to
+          verify. Whatever was fetched before is shown immediately — the button
+          is for getting a fresher record, not for seeing the one you have.
+        */}
+        {canLookupLicence ? (
+          <TabsContent value="licence" className="space-y-4">
+            <SectionHeader
+              title="Driving licence"
+              description="The RTO record for this driver: entitlement classes, validity and issuing authority."
+            />
+            <LicenceLookupPanel licenceNumber={person.licenseNumber} />
+          </TabsContent>
+        ) : null}
       </Tabs>
 
       {person.currentTruck ? (

@@ -67,3 +67,78 @@ export interface AiProvider {
   /** Ranked, reasoned suggestions for a decision. */
   recommend(context: AiContext, kind: string): Promise<AiRecommendationItem[]>;
 }
+
+// ---------------------------------------------------------------------------
+// Tool calling
+// ---------------------------------------------------------------------------
+
+/**
+ * The tool-calling half of the contract.
+ *
+ * The older `chat`/`summarize`/`recommend` methods hand the model a context
+ * object assembled in advance. That works, but it forces the permission layer
+ * to guess what the question will need, and it sends far more than any one
+ * answer uses.
+ *
+ * Tool calling inverts it: the model asks for what it needs, one authorised
+ * call at a time. The important property is unchanged — the model still never
+ * reaches storage, because every tool call is executed by Saarthi against the
+ * caller's own permissions, and the model only ever sees the result.
+ */
+
+export interface AiToolSpec {
+  name: string;
+  description: string;
+  /** JSON Schema for the arguments. */
+  parameters: Record<string, unknown>;
+}
+
+export interface AiToolInvocation {
+  /** Provider-assigned id, echoed back with the result. */
+  id: string;
+  name: string;
+  arguments: Record<string, unknown>;
+}
+
+export interface AiTurn {
+  role: 'user' | 'assistant' | 'tool';
+  content?: string;
+  /** Present on an assistant turn that asked for data. */
+  toolCalls?: AiToolInvocation[];
+  /** Present on a tool turn: which invocation this answers. */
+  toolCallId?: string;
+  toolName?: string;
+  toolResult?: unknown;
+}
+
+export interface AiGeneration {
+  /** Final prose, or `null` when the model only asked for tools this round. */
+  content: string | null;
+  toolCalls: AiToolInvocation[];
+  provider: string;
+  model: string;
+  tokensIn: number;
+  tokensOut: number;
+  latencyMs: number;
+  /** Why the model stopped: useful for spotting truncation. */
+  finishReason: 'stop' | 'tool_calls' | 'length' | 'other';
+}
+
+export interface AiGenerateInput {
+  system: string;
+  turns: AiTurn[];
+  tools: AiToolSpec[];
+}
+
+/** Implemented by providers that support tool calling. */
+export interface ToolCapableAiProvider extends AiProvider {
+  readonly supportsTools: true;
+  generate(input: AiGenerateInput): Promise<AiGeneration>;
+}
+
+export function supportsTools(provider: AiProvider): provider is ToolCapableAiProvider {
+  return (
+    (provider as ToolCapableAiProvider).supportsTools === true &&
+    typeof (provider as ToolCapableAiProvider).generate === 'function'
+  );
+}

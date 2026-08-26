@@ -493,7 +493,7 @@ export function ProfileBuilderPage() {
 
       <Card>
         <CardContent className="py-3 text-xs text-muted-foreground">
-          Saarthi has no public profile pages. What you enter here is visible to signed-in Saarthi
+          VorldX Saarthi has no public profile pages. What you enter here is visible to signed-in Saarthi
           businesses you deal with, and to platform staff reviewing your verification — never to the
           open internet.
         </CardContent>

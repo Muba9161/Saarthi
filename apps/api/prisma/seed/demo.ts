@@ -4,6 +4,8 @@ import bcrypt from 'bcryptjs';
 import type { PrismaClient } from '@prisma/client';
 import {
   DEFAULT_SCORING_CONFIG,
+  EmiFrequency,
+  InterestType,
   MaterialUnit,
   MembershipStatus,
   OrganizationType,
@@ -11,13 +13,19 @@ import {
   RoleName,
   SubscriptionStatus,
   VerificationStatus,
+  ServiceComponent,
+  addMonthsClamped,
   bearing,
+  calculateEmi,
+  categoryForType,
   computeCategoryScores,
   computeOverallScore,
   cumulativeDistances,
   pathLength,
+  generateSchedule,
   pointAtDistance,
   type AppliedScoreEvent,
+  type MaintenanceType,
 } from '@saarthi/shared';
 import { DEMO_ROUTES, routeByKey, type DemoRoute } from './routes';
 import { seedNearbyPlaces } from './places';
@@ -119,6 +127,16 @@ async function clearDemoData(prisma: PrismaClient): Promise<void> {
 
   await prisma.truckLocation.deleteMany();
   await prisma.truckEvent.deleteMany();
+  await prisma.tollTransaction.deleteMany();
+  await prisma.fastagAccount.deleteMany();
+  await prisma.videoStreamSession.deleteMany();
+  await prisma.deviceCamera.deleteMany();
+  await prisma.loanReminder.deleteMany();
+  await prisma.loanEvent.deleteMany();
+  await prisma.loanPayment.deleteMany();
+  await prisma.loanInstallment.deleteMany();
+  await prisma.vehicleLoan.deleteMany();
+  await prisma.vehicleSubscriptionTopUp.deleteMany();
   await prisma.fuelRecord.deleteMany();
   await prisma.maintenanceRecord.deleteMany();
   await prisma.truckAssignment.deleteMany();
@@ -357,6 +375,441 @@ const LAST_NAMES = [
 // ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Vehicle finance, service history and cameras
+// ---------------------------------------------------------------------------
+
+/**
+ * Loans on part of the fleet, in the states an operator actually encounters.
+ *
+ * Deliberately not four healthy loans: one is overdue, one has an installment
+ * the lender never disclosed a payment state for, and one is nearly repaid. The
+ * uncomfortable states are the ones the UI has to handle well, and a demo where
+ * everything is current never exercises them.
+ */
+async function seedVehicleFinance(
+  prisma: PrismaClient,
+  organizationId: string,
+  vehicles: { id: string; registrationNumber: string }[],
+  ownerId: string,
+): Promise<{ loans: number; installments: number }> {
+  const lenders = [
+    'Shriram Finance',
+    'Cholamandalam Investment',
+    'Mahindra Finance',
+    'HDFC Bank — Commercial Vehicles',
+  ];
+
+  const financed = vehicles.slice(0, Math.min(4, vehicles.length));
+  let installmentCount = 0;
+
+  for (const [index, vehicle] of financed.entries()) {
+    const principal = Math.round(between(900_000, 2_400_000) / 1000) * 1000;
+    const annualRatePercent = Number(between(9.5, 14.5).toFixed(2));
+    const tenureMonths = pick([36, 48, 60]);
+
+    // Stagger the start dates so the fleet shows loans at different stages.
+    const monthsElapsed = [14, 3, 30, 46][index] ?? 12;
+    const startDate = daysAgo(monthsElapsed * 30);
+    const firstDueDate = addMonthsClamped(startDate, 1);
+
+    const schedule = generateSchedule({
+      principal,
+      annualRatePercent,
+      interestType: InterestType.REDUCING_BALANCE,
+      tenureMonths,
+      frequency: EmiFrequency.MONTHLY,
+      firstDueDate,
+    });
+
+    const emiAmount = calculateEmi({
+      principal,
+      annualRatePercent,
+      interestType: InterestType.REDUCING_BALANCE,
+      tenureMonths,
+      frequency: EmiFrequency.MONTHLY,
+      firstDueDate,
+    });
+
+    const loan = await prisma.vehicleLoan.create({
+      data: {
+        organizationId,
+        vehicleId: vehicle.id,
+        loanNumber: `${['SHRI', 'CHOL', 'MAHF', 'HDFC'][index] ?? 'LOAN'}-${
+          200_000_000 + Math.round(between(1, 899_999_99))
+        }`,
+        lenderName: lenders[index] ?? 'Shriram Finance',
+        lenderBranch: pick(['Kanpur', 'Lucknow', 'Agra', 'Delhi — Azadpur']),
+        borrowerName: 'Sharma Logistics Pvt Ltd',
+        loanType: 'HYPOTHECATION',
+        status: 'ACTIVE',
+        principal,
+        disbursedAmount: principal,
+        annualRatePercent,
+        interestType: 'REDUCING_BALANCE',
+        tenureMonths,
+        frequency: 'MONTHLY',
+        startDate,
+        firstDueDate,
+        endDate: schedule[schedule.length - 1]?.dueDate ?? null,
+        // Lenders round to the rupee; Saarthi computes to the paisa.
+        emiAmount: Math.ceil(emiAmount),
+        emiFromLender: true,
+        autoDebitDay: firstDueDate.getUTCDate(),
+        mandateReference: `NACH${400_000_000 + Math.round(between(1, 99_999_999))}`,
+        reminderOffsets: [],
+        source: 'MANUAL',
+        verificationStatus: 'UNVERIFIED',
+        createdById: ownerId,
+        createdAt: startDate,
+      },
+    });
+
+    const now = Date.now();
+
+    for (const row of schedule) {
+      const elapsed = row.dueDate.getTime() < now;
+
+      // The second loan carries an overdue installment; the third has one the
+      // lender reported without a payment state.
+      const isOverdue =
+        index === 1 && elapsed && row.dueDate.getTime() > now - 40 * day;
+      const isUndisclosed =
+        index === 2 &&
+        elapsed &&
+        row.dueDate.getTime() > now - 40 * day;
+
+      const status = isUndisclosed
+        ? 'UNKNOWN'
+        : isOverdue
+          ? 'OVERDUE'
+          : elapsed
+            ? 'PAID'
+            : 'UPCOMING';
+
+      const settled = status === 'PAID';
+
+      await prisma.loanInstallment.create({
+        data: {
+          loanId: loan.id,
+          organizationId,
+          number: row.number,
+          dueDate: row.dueDate,
+          principal: row.principal,
+          interest: row.interest,
+          totalDue: row.totalDue,
+          openingBalance: row.openingBalance,
+          closingBalance: row.closingBalance,
+          status,
+          amountPaid: settled ? row.totalDue : 0,
+          paidAt: settled ? row.dueDate : null,
+          paymentReference: settled ? `UTR${700_000_000 + row.number}` : null,
+          source: index === 2 && isUndisclosed ? 'PROVIDER_SYNC' : 'CALCULATED',
+          verificationStatus: isUndisclosed ? 'PROVIDER_REPORTED' : 'UNVERIFIED',
+          conflictNote: isUndisclosed
+            ? 'The lender statement did not disclose a payment state.'
+            : null,
+        },
+      });
+      installmentCount += 1;
+
+      if (settled) {
+        await prisma.loanPayment.create({
+          data: {
+            loanId: loan.id,
+            organizationId,
+            amount: row.totalDue,
+            kind: 'INSTALLMENT',
+            method: 'AUTO_DEBIT',
+            paidAt: row.dueDate,
+            reference: `UTR${700_000_000 + row.number}`,
+            source: 'MANUAL',
+            recordedById: ownerId,
+          },
+        });
+      }
+    }
+
+    await prisma.loanEvent.create({
+      data: {
+        loanId: loan.id,
+        organizationId,
+        eventType: 'CREATED',
+        description: `Loan recorded against ${vehicle.registrationNumber}.`,
+        actorUserId: ownerId,
+        createdAt: startDate,
+      },
+    });
+  }
+
+  return { loans: financed.length, installments: installmentCount };
+}
+
+/**
+ * Enrich existing service records with the detail a real invoice carries.
+ *
+ * Rather than creating a second history, this fills in the columns the service
+ * module added — workshop, cost split, parts, components — on records the demo
+ * already has, so the timeline, the spend figures and the repeat-component
+ * detection all have something true to work from.
+ */
+async function enrichServiceHistory(
+  prisma: PrismaClient,
+  organizationId: string,
+): Promise<number> {
+  const records = await prisma.maintenanceRecord.findMany({
+    where: { organizationId, status: 'COMPLETED' },
+    orderBy: { completedAt: 'desc' },
+    take: 200,
+  });
+
+  const componentsFor = (type: string): { component: string; name: string }[] => {
+    switch (type) {
+      case 'OIL_CHANGE':
+        return [
+          { component: ServiceComponent.ENGINE_OIL, name: 'Engine oil 15W-40 (20L)' },
+          { component: ServiceComponent.OIL_FILTER, name: 'Oil filter' },
+        ];
+      case 'BRAKE':
+        return [{ component: ServiceComponent.BRAKE_LINER, name: 'Brake liner set — rear axle' }];
+      case 'TYRE':
+        return [{ component: ServiceComponent.TYRE, name: 'Tyre 295/90 R20' }];
+      case 'ENGINE':
+        return [{ component: ServiceComponent.DIESEL_INJECTOR, name: 'Injector nozzle' }];
+      default:
+        return [
+          { component: ServiceComponent.AIR_FILTER, name: 'Air filter element' },
+          { component: ServiceComponent.ENGINE_OIL, name: 'Engine oil 15W-40 (20L)' },
+        ];
+    }
+  };
+
+  let enriched = 0;
+
+  for (const record of records) {
+    const total = Number(record.cost ?? 0);
+    if (total <= 0) continue;
+
+    const parts = componentsFor(record.type);
+    const partsCost = Math.round(total * 0.62);
+    const labourCost = total - partsCost;
+
+    await prisma.maintenanceRecord.update({
+      where: { id: record.id },
+      data: {
+        category: categoryForType(record.type as MaintenanceType),
+        engineHours: Math.round(between(2_000, 14_000)),
+        workshopName: record.serviceProvider,
+        workshopAddress: pick([
+          'NH-19, Kanpur',
+          'Transport Nagar, Lucknow',
+          'GT Road, Agra',
+          'Azadpur, Delhi',
+        ]),
+        mechanicName: pick(['Suresh Yadav', 'Imran Khan', 'Balwinder Singh', 'Ravi Kumar']),
+        labourCost,
+        partsCost,
+        invoiceNumber: `INV-${record.completedAt?.getFullYear() ?? 2026}-${
+          1000 + Math.round(between(1, 8999))
+        }`,
+        parts: parts.map((part) => ({
+          name: part.name,
+          component: part.component,
+          quantity: 1,
+          unitCost: Math.round(partsCost / parts.length),
+          warrantyMonths: 6,
+        })),
+        replacedComponents: parts.map((part) => part.component),
+        source: 'MANUAL',
+        verificationStatus: 'UNVERIFIED',
+      },
+    });
+    enriched += 1;
+  }
+
+  return enriched;
+}
+
+/**
+ * A YC06 recorder with four cameras on one vehicle.
+ *
+ * One channel is deliberately offline. A demo where every camera works teaches
+ * nobody what a dead channel looks like, and a dead channel is the state that
+ * actually matters — a silent camera and a covered lens look identical.
+ */
+async function seedCameras(
+  prisma: PrismaClient,
+  organizationId: string,
+  vehicle: { id: string; registrationNumber: string },
+): Promise<number> {
+  const recorder = await prisma.hardwareDevice.create({
+    data: {
+      organizationId,
+      deviceIdentifier: `YC06-${800_000 + Math.round(between(1, 99_999))}`,
+      provider: 'YC06',
+      deviceType: 'MULTI_CAMERA',
+      serialNumber: `YC06SN${100_000 + Math.round(between(1, 899_999))}`,
+      manufacturer: 'Yuwei',
+      model: 'YC06-4CH',
+      firmwareVersion: '2.4.1',
+      // Never a real secret in seed data, and never reused between installs.
+      secretHash: await demoPasswordHash(),
+      status: 'ACTIVE',
+      // Video only: position comes from the Freematics unit on this vehicle.
+      supportedMetrics: [],
+      observedMetrics: [],
+      installedAt: daysAgo(120),
+      activatedAt: daysAgo(120),
+      lastSeenAt: daysAgo(0.02),
+      notes: 'Four-channel recorder. Telemetry is taken from the Freematics unit.',
+    },
+  });
+
+  await prisma.deviceAssignment.create({
+    data: {
+      deviceId: recorder.id,
+      vehicleId: vehicle.id,
+      organizationId,
+      status: 'ACTIVE',
+      assignedAt: daysAgo(120),
+      installedAt: daysAgo(120),
+      note: 'Fitted alongside the existing telematics unit.',
+    },
+  });
+
+  const channels = [
+    { channel: 1, position: 'FRONT', label: 'Road ahead', status: 'ONLINE' },
+    { channel: 2, position: 'CABIN', label: 'Cabin', status: 'ONLINE' },
+    { channel: 3, position: 'LEFT', label: 'Left blind spot', status: 'ONLINE' },
+    { channel: 4, position: 'REAR', label: 'Rear / cargo', status: 'OFFLINE' },
+  ] as const;
+
+  for (const channel of channels) {
+    await prisma.deviceCamera.create({
+      data: {
+        deviceId: recorder.id,
+        organizationId,
+        channel: channel.channel,
+        position: channel.position,
+        label: channel.label,
+        status: channel.status,
+        enabled: true,
+        continuousRecording: true,
+        resolution: '1920x1080',
+        frameRate: 25,
+        lastFrameAt: channel.status === 'ONLINE' ? daysAgo(0.01) : daysAgo(6),
+      },
+    });
+  }
+
+  return channels.length;
+}
+
+/**
+ * FASTags and toll crossings.
+ *
+ * Deliberately not a healthy set. One tag is blacklisted, one is low, and one
+ * has no balance on record at all — because those three states are what the
+ * screens have to handle well, and a demo where every tag is fine never shows
+ * whether they do.
+ *
+ * Crossings are spread across real plaza names on the corridors the demo trips
+ * run, so the "where the money goes" view has something true-shaped in it.
+ */
+async function seedTollAndFastag(
+  prisma: PrismaClient,
+  organizationId: string,
+  vehicles: { id: string; registrationNumber: string }[],
+  ownerId: string,
+): Promise<{ tags: number; crossings: number }> {
+  const issuers = ['ICICI Bank', 'HDFC Bank', 'Paytm Payments Bank', 'IDFC FIRST Bank'];
+
+  const plazas = [
+    { name: 'Barabanki Toll Plaza', code: 'BRB02', lat: 26.9124, lng: 81.1861, fare: 430 },
+    { name: 'Kannauj Toll Plaza', code: 'KNJ03', lat: 27.0545, lng: 79.9187, fare: 375 },
+    { name: 'Sikandra Toll Plaza', code: 'SKD04', lat: 27.2205, lng: 78.0064, fare: 510 },
+    { name: 'Mathura Toll Plaza', code: 'MTR05', lat: 27.4924, lng: 77.6737, fare: 295 },
+    { name: 'Chittorgarh Toll Plaza', code: 'CTG06', lat: 24.8887, lng: 74.6269, fare: 340 },
+  ];
+
+  let crossingCount = 0;
+  const tagged = vehicles.slice(0, Math.min(6, vehicles.length));
+
+  for (const [index, vehicle] of tagged.entries()) {
+    // One blacklisted, one low, one unknown, the rest healthy.
+    const blacklisted = index === 2;
+    const low = index === 4;
+    const unknownBalance = index === 5;
+
+    const balance = blacklisted ? 0 : low ? 180 : unknownBalance ? null : 1_800 + index * 640;
+
+    const tag = await prisma.fastagAccount.create({
+      data: {
+        organizationId,
+        vehicleId: vehicle.id,
+        tagId: `34161FA820${(700_000_000 + index * 137).toString(16).toUpperCase().padStart(14, '0')}`.slice(
+          0,
+          24,
+        ),
+        issuerBank: issuers[index % issuers.length]!,
+        issuerCode: String(607_400 + index),
+        vehicleClass: 'VC11',
+        status: blacklisted ? 'BLACKLISTED' : low ? 'LOW_BALANCE' : 'ACTIVE',
+        balance,
+        // A balance only means something alongside when it was true. The
+        // unknown tag has neither, which is the point.
+        balanceUpdatedAt: balance === null ? null : daysAgo(index === 3 ? 9 : 0.2),
+        issuedAt: daysAgo(300 + index * 20),
+        expiresAt: daysFromNow(400 - index * 10),
+        linkedAccountRef: `XXXXXX${4000 + index}`,
+        source: 'MANUAL',
+        createdById: ownerId,
+        notes: blacklisted
+          ? 'Flagged by the issuer. Toll is being charged at double the cash rate until cleared.'
+          : null,
+      },
+    });
+
+    // Three days of crossings per tagged vehicle, which is roughly what a real
+    // NETC feed holds.
+    for (let index2 = 0; index2 < 4; index2 += 1) {
+      const plaza = plazas[(index + index2) % plazas.length]!;
+      const crossedAt = daysAgo(index2 * 0.8 + 0.3);
+      // One crossing arrives without a fare, exactly as a NETC passage feed
+      // reports it, so the "floor, not a total" wording has something to
+      // describe.
+      const unpriced = index === 0 && index2 === 3;
+
+      await prisma.tollTransaction.create({
+        data: {
+          organizationId,
+          vehicleId: vehicle.id,
+          fastagId: tag.id,
+          plazaName: plaza.name,
+          plazaCode: plaza.code,
+          latitude: plaza.lat,
+          longitude: plaza.lng,
+          direction: index2 % 2 === 0 ? 'INBOUND' : 'OUTBOUND',
+          // One vehicle paid cash at a booth — a leak worth surfacing.
+          paymentMode: index === 1 && index2 === 2 ? 'CASH' : 'FASTAG',
+          amount: unpriced ? 0 : plaza.fare,
+          crossedAt,
+          externalReference: `NETC-${vehicle.registrationNumber}-${index2}`,
+          source: 'IMPORT',
+          verificationStatus: unpriced ? 'PENDING_REVIEW' : 'PROVIDER_REPORTED',
+          conflictNote: unpriced
+            ? 'The NETC feed reported this passage without a fare. Add the amount from your statement.'
+            : null,
+          recordedById: ownerId,
+        },
+      });
+      crossingCount += 1;
+    }
+  }
+
+  return { tags: tagged.length, crossings: crossingCount };
+}
 
 export async function seedDemoData(prisma: PrismaClient): Promise<void> {
   await clearDemoData(prisma);
@@ -1783,6 +2236,18 @@ export async function seedDemoData(prisma: PrismaClient): Promise<void> {
     ],
   });
 
+  // --- Vehicle finance, service detail and cameras -------------------------
+  //
+  // Deliberately not all-healthy: one loan is overdue, one carries an
+  // installment the lender never disclosed a payment state for, and one camera
+  // channel is dead. Those are the states the screens have to handle well.
+  const finance = await seedVehicleFinance(prisma, fleetA.id, trucksA, owner.id);
+  const enrichedServices = await enrichServiceHistory(prisma, fleetA.id);
+  const cameraCount = trucksA[0]
+    ? await seedCameras(prisma, fleetA.id, trucksA[0])
+    : 0;
+  const toll = await seedTollAndFastag(prisma, fleetA.id, trucksA, owner.id);
+
   // --- Nearby POI dataset --------------------------------------------------
   const placeCount = await seedNearbyPlaces(prisma);
 
@@ -1808,6 +2273,12 @@ export async function seedDemoData(prisma: PrismaClient): Promise<void> {
     travelBookings: mobility.bookings,
     devices: mobility.devices,
     telemetryReadings: mobility.telemetryReadings,
+    vehicleLoans: finance.loans,
+    loanInstallments: finance.installments,
+    servicesEnriched: enrichedServices,
+    cameras: cameraCount,
+    fastags: toll.tags,
+    tollCrossings: toll.crossings,
   };
 
   console.log('  ✓ demo dataset created');
@@ -1831,6 +2302,16 @@ export async function seedDemoData(prisma: PrismaClient): Promise<void> {
   The customer account also sees Travel: search packages, book, pay with the mock
   gateway, track and rate. The fleet owner sees Devices and Telemetry, including a
   mock Freematics unit that can be driven from Devices → Simulate.
+
+  The fleet owner also has vehicle finance on four trucks (one with an overdue
+  EMI, one with an installment the lender never disclosed a payment state for),
+  a detailed service history with invoices and parts, and a four-channel YC06
+  recorder on the first truck — with one channel deliberately offline.
+
+  Toll & FASTag covers six trucks: one tag blacklisted, one low on balance, one
+  with no balance on record at all, one balance nine days stale, plus a crossing
+  the network reported without a fare and one paid in cash at the booth. Those
+  are the states the screens have to handle well.
 
   Registration is open at /register — a new organization gets a 14-day Pro trial
   and starts empty, so the app is fully usable without this demo data.
