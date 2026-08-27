@@ -4150,8 +4150,16 @@ model QrCode {
   status             QrCodeStatus  @default(ACTIVE)
   scopes             QrScope[]
   label              String?
-  /// Off by default: a code that answers to anyone is a different product
-  /// decision from a code that answers to a signed-in account.
+  /// Whether the code resolves without a session.
+  ///
+  /// The column default stays false because the right answer depends on the
+  /// subject and only the service knows it: DRIVER and VEHICLE codes get
+  /// printed and fixed to something out in the world, so they are issued
+  /// public; a TRIP, ORDER or INVENTORY code is an internal handle and stays
+  /// private. See publicResolveDefaultFor() in packages/shared/domain/qr.ts.
+  ///
+  /// A fleet can close anonymous scanning across every code it has issued,
+  /// printed ones included, with allowPublicScans on its QrPrivacyPolicy.
   allowPublicResolve Boolean       @default(false)
   expiresAt          DateTime?
   revokedAt          DateTime?

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { RealtimeEvent, type ChannelMessage, type ServerMessage } from '@saarthi/shared';
-import { getAccessToken } from '@/lib/api-client';
+import { getAccessToken, unreachableFromThisPage } from '@/lib/api-client';
 import { useAuth } from '@/features/auth/auth-context';
 
 /**
@@ -23,9 +23,24 @@ interface RealtimeContextValue {
 
 const RealtimeContext = React.createContext<RealtimeContextValue | null>(null);
 
-const WS_URL =
-  (import.meta.env.VITE_WS_URL as string | undefined) ??
+/**
+ * The socket origin.
+ *
+ * Same rule as the REST base: a configured value is used only if this page
+ * could reach it. A `ws://localhost:4000` left in the `.env` is unreachable
+ * from a phone and blocked outright from an https tunnel, so it falls back to
+ * this page's own origin, where Vite proxies `/ws` to the API.
+ */
+const sameOriginWs = (): string =>
   `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}`;
+
+const WS_URL = (() => {
+  const configured = import.meta.env.VITE_WS_URL as string | undefined;
+  if (!configured) return sameOriginWs();
+  // ws:// and wss:// normalise to http/https for the reachability check.
+  const asHttp = configured.replace(/^ws/, 'http');
+  return unreachableFromThisPage(asHttp) ? sameOriginWs() : configured;
+})();
 
 const MAX_BACKOFF_MS = 20_000;
 const HEARTBEAT_MS = 25_000;

@@ -393,6 +393,18 @@ const ROLE_PERMISSIONS: Record<RoleName, Permission[]> = {
     Permission.DEVICES_READ,
     Permission.TELEMETRY_READ,
     Permission.TELEMETRY_ALERTS_READ,
+    /*
+     * QR identity, on the same terms as a freight fleet.
+     *
+     * A taxi or tour operator runs the same two subjects a QR code is issued
+     * for — vehicles and drivers — and has, if anything, a stronger case for
+     * the printed code: a passenger getting into a cab at night is exactly the
+     * person who needs to confirm the car and the driver are the ones that were
+     * sent. The omission here was an oversight, not a decision.
+     */
+    Permission.QR_READ,
+    Permission.QR_MANAGE,
+    Permission.QR_AUDIT,
     // The passenger-transport surface — this role's reason to exist.
     Permission.PROVIDER_READ,
     Permission.PROVIDER_MANAGE,

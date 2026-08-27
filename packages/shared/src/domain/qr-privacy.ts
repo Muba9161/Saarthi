@@ -55,10 +55,7 @@ const PROFILE_RANK: Record<QrPrivacyProfile, number> = {
 
 export const QR_PRIVACY_PROFILES = Object.values(QrPrivacyProfile) as QrPrivacyProfile[];
 
-export function profileAtLeast(
-  profile: QrPrivacyProfile,
-  minimum: QrPrivacyProfile,
-): boolean {
+export function profileAtLeast(profile: QrPrivacyProfile, minimum: QrPrivacyProfile): boolean {
   return PROFILE_RANK[profile] >= PROFILE_RANK[minimum];
 }
 
@@ -113,6 +110,21 @@ export const QrField = {
   DOCUMENT_ENGINE_NUMBER: 'documents.engineNumber',
   DOCUMENT_INSURANCE_NUMBER: 'documents.insuranceNumber',
   DOCUMENT_VALIDITY: 'documents.validity',
+
+  /*
+   * The RTO records themselves, as three separately switchable blocks: the
+   * technical certificate, who it is registered to, and how to reach them.
+   * Split because they carry very different risk — a fleet may want the vehicle
+   * legal-status page readable at a checkpoint while keeping the registered
+   * owner's phone number off a public sticker.
+   */
+  DOCUMENT_RC_RECORD: 'documents.rcRecord',
+  DOCUMENT_RC_OWNER: 'documents.rcOwner',
+  DOCUMENT_RC_OWNER_CONTACT: 'documents.rcOwnerContact',
+
+  DRIVER_LICENCE_RECORD: 'driver.licenceRecord',
+  DRIVER_LICENCE_HOLDER: 'driver.licenceHolder',
+  DRIVER_LICENCE_HOLDER_CONTACT: 'driver.licenceHolderContact',
 
   FINANCE_LOAN_NUMBER: 'finance.loanNumber',
   FINANCE_EMI: 'finance.emi',
@@ -192,7 +204,7 @@ export const QR_FIELD_RULES: Record<QrField, QrFieldRule> = {
     description: 'Body type and capacity.',
   },
   [QrField.VEHICLE_STATUS]: {
-    minProfile: QrPrivacyProfile.OPERATIONAL,
+    minProfile: QrPrivacyProfile.PUBLIC,
     maskBelow: QrPrivacyProfile.PUBLIC,
     mask: MaskStrategy.NONE,
     configurable: true,
@@ -212,17 +224,19 @@ export const QR_FIELD_RULES: Record<QrField, QrFieldRule> = {
 
   [QrField.DRIVER_NAME]: {
     minProfile: QrPrivacyProfile.PUBLIC,
-    // A stranger sees "Ramesh K." — enough to confirm the person in front of
-    // them, not enough to look them up.
-    maskBelow: QrPrivacyProfile.OPERATIONAL,
+    // Shown in full: the name is printed on the licence the same scan already
+    // discloses, so masking it here would protect nothing while making the two
+    // halves of the screen contradict each other. Set `maskBelow` back to
+    // OPERATIONAL in the policy to restore "Ramesh K." for public scans.
+    maskBelow: QrPrivacyProfile.PUBLIC,
     mask: MaskStrategy.NAME,
     configurable: true,
     label: 'Driver name',
     group: 'Driver',
-    description: 'Masked to a first name and last initial below operational access.',
+    description: 'Shown in full. Configure to mask it to a first name and last initial.',
   },
   [QrField.DRIVER_PHOTO]: {
-    minProfile: QrPrivacyProfile.OPERATIONAL,
+    minProfile: QrPrivacyProfile.PUBLIC,
     maskBelow: QrPrivacyProfile.PUBLIC,
     mask: MaskStrategy.NONE,
     configurable: true,
@@ -251,13 +265,13 @@ export const QR_FIELD_RULES: Record<QrField, QrFieldRule> = {
     description: 'Never shared through a QR scan, regardless of policy.',
   },
   [QrField.DRIVER_LICENCE_NUMBER]: {
-    minProfile: QrPrivacyProfile.OPERATIONAL,
-    maskBelow: QrPrivacyProfile.OWNER,
+    minProfile: QrPrivacyProfile.PUBLIC,
+    maskBelow: QrPrivacyProfile.PUBLIC,
     mask: MaskStrategy.LICENCE,
     configurable: true,
     label: 'Licence number',
     group: 'Driver',
-    description: 'Masked outside the fleet; a checkpoint sees the verification flag instead.',
+    description: 'Shown in full to a roadside check. Configure to mask it outside the fleet.',
   },
   [QrField.DRIVER_VERIFICATION]: {
     minProfile: QrPrivacyProfile.PUBLIC,
@@ -270,7 +284,7 @@ export const QR_FIELD_RULES: Record<QrField, QrFieldRule> = {
       'The whole point of the code: confirming the licence was checked, without disclosing it.',
   },
   [QrField.DRIVER_EXPERIENCE]: {
-    minProfile: QrPrivacyProfile.OPERATIONAL,
+    minProfile: QrPrivacyProfile.PUBLIC,
     maskBelow: QrPrivacyProfile.PUBLIC,
     mask: MaskStrategy.NONE,
     configurable: true,
@@ -279,7 +293,7 @@ export const QR_FIELD_RULES: Record<QrField, QrFieldRule> = {
     description: 'Useful to a customer deciding who is carrying their load.',
   },
   [QrField.DRIVER_SCORE_BAND]: {
-    minProfile: QrPrivacyProfile.OPERATIONAL,
+    minProfile: QrPrivacyProfile.PUBLIC,
     maskBelow: QrPrivacyProfile.PUBLIC,
     mask: MaskStrategy.NONE,
     configurable: true,
@@ -289,51 +303,116 @@ export const QR_FIELD_RULES: Record<QrField, QrFieldRule> = {
   },
 
   [QrField.DOCUMENT_RC_NUMBER]: {
-    minProfile: QrPrivacyProfile.OPERATIONAL,
-    maskBelow: QrPrivacyProfile.OWNER,
+    minProfile: QrPrivacyProfile.PUBLIC,
+    maskBelow: QrPrivacyProfile.PUBLIC,
     mask: MaskStrategy.LAST_FOUR,
     configurable: true,
     label: 'RC number',
     group: 'Documents',
-    description: 'Masked outside the fleet.',
+    description: 'Shown in full to a roadside check. Configure to mask it outside the fleet.',
   },
+  /*
+   * Chassis and engine numbers are printed on the RC itself, so a scan that
+   * reproduces the RC shows them. They remain the two identifiers someone needs
+   * to raise paperwork against a vehicle, which is why they are broken out as
+   * their own switches: a fleet that wants the rest of the certificate public
+   * can close these two without touching anything else.
+   */
   [QrField.DOCUMENT_CHASSIS_NUMBER]: {
-    // A chassis number is what someone needs to raise paperwork against the
-    // vehicle. It stays inside the fleet.
-    minProfile: QrPrivacyProfile.OWNER,
-    maskBelow: QrPrivacyProfile.OWNER,
+    minProfile: QrPrivacyProfile.PUBLIC,
+    maskBelow: QrPrivacyProfile.PUBLIC,
     mask: MaskStrategy.LAST_FOUR,
-    configurable: false,
+    configurable: true,
     label: 'Chassis number',
     group: 'Documents',
-    description: 'Never disclosed outside the owning fleet.',
+    description: 'Printed on the RC. Configure to mask or withhold it on public scans.',
   },
   [QrField.DOCUMENT_ENGINE_NUMBER]: {
-    minProfile: QrPrivacyProfile.OWNER,
-    maskBelow: QrPrivacyProfile.OWNER,
+    minProfile: QrPrivacyProfile.PUBLIC,
+    maskBelow: QrPrivacyProfile.PUBLIC,
     mask: MaskStrategy.LAST_FOUR,
-    configurable: false,
+    configurable: true,
     label: 'Engine number',
     group: 'Documents',
-    description: 'Never disclosed outside the owning fleet.',
+    description: 'Printed on the RC. Configure to mask or withhold it on public scans.',
   },
   [QrField.DOCUMENT_INSURANCE_NUMBER]: {
-    minProfile: QrPrivacyProfile.OPERATIONAL,
-    maskBelow: QrPrivacyProfile.OWNER,
+    minProfile: QrPrivacyProfile.PUBLIC,
+    maskBelow: QrPrivacyProfile.PUBLIC,
     mask: MaskStrategy.LAST_FOUR,
     configurable: true,
     label: 'Insurance policy number',
     group: 'Documents',
-    description: 'Masked outside the fleet — enough to quote at a claim, not to impersonate.',
+    description: 'Shown so a third party at the scene of a collision can quote it.',
   },
   [QrField.DOCUMENT_VALIDITY]: {
-    minProfile: QrPrivacyProfile.OPERATIONAL,
+    minProfile: QrPrivacyProfile.PUBLIC,
     maskBelow: QrPrivacyProfile.PUBLIC,
     mask: MaskStrategy.NONE,
     configurable: true,
     label: 'Document validity',
     group: 'Documents',
     description: 'Whether insurance, fitness, permit and PUCC are current. Never the files.',
+  },
+
+  [QrField.DOCUMENT_RC_RECORD]: {
+    minProfile: QrPrivacyProfile.PUBLIC,
+    maskBelow: QrPrivacyProfile.PUBLIC,
+    mask: MaskStrategy.NONE,
+    configurable: true,
+    label: 'RC certificate details',
+    group: 'Documents',
+    description:
+      'The registration record as the RTO holds it — class, fuel, seating, insurance, fitness, permit, tax and finance status.',
+  },
+  [QrField.DOCUMENT_RC_OWNER]: {
+    minProfile: QrPrivacyProfile.PUBLIC,
+    maskBelow: QrPrivacyProfile.PUBLIC,
+    mask: MaskStrategy.NAME,
+    configurable: true,
+    label: 'Registered owner',
+    group: 'Documents',
+    description: 'The name the vehicle is registered to, and parentage as the RC records it.',
+  },
+  [QrField.DOCUMENT_RC_OWNER_CONTACT]: {
+    minProfile: QrPrivacyProfile.PUBLIC,
+    maskBelow: QrPrivacyProfile.PUBLIC,
+    mask: MaskStrategy.HIDDEN,
+    configurable: true,
+    label: "Registered owner's contact and address",
+    group: 'Documents',
+    description:
+      "The owner's mobile number and registered addresses. The highest-risk block on a public sticker — switch it off here to keep the rest of the RC readable.",
+  },
+
+  [QrField.DRIVER_LICENCE_RECORD]: {
+    minProfile: QrPrivacyProfile.PUBLIC,
+    maskBelow: QrPrivacyProfile.PUBLIC,
+    mask: MaskStrategy.NONE,
+    configurable: true,
+    label: 'Licence certificate details',
+    group: 'Driver',
+    description:
+      'The licence as the RTO holds it — issuing authority, validity, transport entitlement and vehicle classes.',
+  },
+  [QrField.DRIVER_LICENCE_HOLDER]: {
+    minProfile: QrPrivacyProfile.PUBLIC,
+    maskBelow: QrPrivacyProfile.PUBLIC,
+    mask: MaskStrategy.NAME,
+    configurable: true,
+    label: 'Licence holder',
+    group: 'Driver',
+    description: 'The name and parentage printed on the licence.',
+  },
+  [QrField.DRIVER_LICENCE_HOLDER_CONTACT]: {
+    minProfile: QrPrivacyProfile.PUBLIC,
+    maskBelow: QrPrivacyProfile.PUBLIC,
+    mask: MaskStrategy.HIDDEN,
+    configurable: true,
+    label: "Licence holder's date of birth and address",
+    group: 'Driver',
+    description:
+      'Date of birth and the addresses printed on the licence. The highest-risk block for a person — switch it off here to keep the rest of the licence readable.',
   },
 
   [QrField.FINANCE_LOAN_NUMBER]: {
@@ -365,8 +444,8 @@ export const QR_FIELD_RULES: Record<QrField, QrFieldRule> = {
   },
   [QrField.FINANCE_STATUS]: {
     // "Financed" as a fact — with no numbers — is legitimately useful to a
-    // buyer or an inspector, so unlike the amounts this one is offerable.
-    minProfile: QrPrivacyProfile.OWNER,
+    // buyer or an inspector, and the RC carries the financer's name anyway.
+    minProfile: QrPrivacyProfile.PUBLIC,
     maskBelow: QrPrivacyProfile.PUBLIC,
     mask: MaskStrategy.NONE,
     configurable: true,
@@ -395,7 +474,7 @@ export const QR_FIELD_RULES: Record<QrField, QrFieldRule> = {
   },
 
   [QrField.SERVICE_HEALTH]: {
-    minProfile: QrPrivacyProfile.OPERATIONAL,
+    minProfile: QrPrivacyProfile.PUBLIC,
     maskBelow: QrPrivacyProfile.PUBLIC,
     mask: MaskStrategy.NONE,
     configurable: true,
@@ -404,7 +483,7 @@ export const QR_FIELD_RULES: Record<QrField, QrFieldRule> = {
     description: 'A rule-based verdict such as "Healthy" or "Service due".',
   },
   [QrField.SERVICE_LAST_DATE]: {
-    minProfile: QrPrivacyProfile.OPERATIONAL,
+    minProfile: QrPrivacyProfile.PUBLIC,
     maskBelow: QrPrivacyProfile.PUBLIC,
     mask: MaskStrategy.NONE,
     configurable: true,
@@ -553,9 +632,16 @@ export function profileLabel(profile: QrPrivacyProfile): string {
  * This is the join between the two halves of QR disclosure: `qr.ts` decides
  * which scopes survive, and this table turns that into per-field permission.
  * A field reachable from no scope is unreachable, full stop — which is why
- * `DRIVER_ADDRESS`, `FINANCE_LOAN_NUMBER`, the chassis and engine numbers and
- * the FASTag fields appear nowhere below. They are in the catalogue so the
- * settings screen can show an owner that Saarthi never discloses them.
+ * `DRIVER_ADDRESS`, the loan fields and the FASTag fields appear nowhere below.
+ * They are in the catalogue so the settings screen can show an owner that
+ * Saarthi never discloses them, whatever policy they write.
+ *
+ * `DRIVER_ADDRESS` stays unreachable even though the licence record now carries
+ * an address: the two are different facts. The licence address is what the RTO
+ * printed on a document the driver already hands over at a checkpoint, and it
+ * travels under `DRIVER_LICENCE_HOLDER_CONTACT` where a fleet can switch it off.
+ * `DRIVER_ADDRESS` is where Saarthi believes the person currently lives, which
+ * is ours to hold and never ours to publish.
  */
 const SCOPE_FIELDS: Partial<Record<QrScope, QrField[]>> = {
   [QrScope.IDENTITY]: [
@@ -578,20 +664,26 @@ const SCOPE_FIELDS: Partial<Record<QrScope, QrField[]>> = {
     QrField.DRIVER_EXPERIENCE,
     QrField.DRIVER_SCORE_BAND,
     QrField.DRIVER_LICENCE_NUMBER,
+    QrField.DRIVER_LICENCE_RECORD,
+    QrField.DRIVER_LICENCE_HOLDER,
+    QrField.DRIVER_LICENCE_HOLDER_CONTACT,
   ],
   [QrScope.COMPLIANCE]: [
     QrField.DOCUMENT_VALIDITY,
     QrField.DOCUMENT_RC_NUMBER,
     QrField.DOCUMENT_INSURANCE_NUMBER,
+    QrField.DOCUMENT_RC_RECORD,
+    QrField.DOCUMENT_RC_OWNER,
+    QrField.DOCUMENT_RC_OWNER_CONTACT,
+    QrField.DOCUMENT_CHASSIS_NUMBER,
+    QrField.DOCUMENT_ENGINE_NUMBER,
   ],
   [QrScope.ASSIGNMENT]: [QrField.DRIVER_NAME, QrField.VEHICLE_REGISTRATION],
   [QrScope.EMERGENCY]: [QrField.EMERGENCY_BLOOD_GROUP, QrField.EMERGENCY_CONTACT],
 };
 
 /** Turn granted scopes into per-field flags for `resolveFieldDisclosure`. */
-export function scopeFieldFlags(
-  granted: readonly QrScope[],
-): Partial<Record<QrField, boolean>> {
+export function scopeFieldFlags(granted: readonly QrScope[]): Partial<Record<QrField, boolean>> {
   const flags: Partial<Record<QrField, boolean>> = {};
   for (const scope of granted) {
     for (const field of SCOPE_FIELDS[scope] ?? []) flags[field] = true;

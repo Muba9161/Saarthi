@@ -103,7 +103,12 @@ export const FLEET_NAVIGATION: NavSection[] = [
       // makes the operator wonder which one is authoritative. The passenger
       // view lives in MOBILITY_NAVIGATION, where it is the only view.
       { label: 'Trucks', to: '/fleet/trucks', icon: Truck, permissions: [Permission.TRUCKS_READ] },
-      { label: 'Drivers', to: '/fleet/drivers', icon: Users, permissions: [Permission.DRIVERS_READ] },
+      {
+        label: 'Drivers',
+        to: '/fleet/drivers',
+        icon: Users,
+        permissions: [Permission.DRIVERS_READ],
+      },
       {
         label: 'Documents',
         to: '/fleet/documents',
@@ -394,6 +399,16 @@ export const MOBILITY_NAVIGATION: NavSection[] = [
         icon: FileText,
         permissions: [Permission.DOCUMENTS_READ],
         badgeKey: 'expiringDocuments',
+      },
+      {
+        // A passenger getting into a cab at night asks what a loading
+        // supervisor asks at a gate: is this the vehicle and the driver that
+        // were sent? Same question, same codes, same screen as a freight fleet.
+        label: 'QR codes',
+        to: '/qr',
+        icon: QrCode,
+        permissions: [Permission.QR_READ],
+        feature: Feature.QR_IDENTITY,
       },
       {
         label: 'Vehicle registration',

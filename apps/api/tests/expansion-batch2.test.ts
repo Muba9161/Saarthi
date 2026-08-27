@@ -544,7 +544,7 @@ describe('QR identity', () => {
     expect(body.data.vehicle?.registrationNumber).toBe(truck.registrationNumber);
   });
 
-  it('reduces an unrelated tenant to identity only', async () => {
+  it('gives an unrelated tenant the roadside set and nothing operational', async () => {
     const truck = await createTruck(fleet.id);
     await request({
       method: 'GET',
@@ -564,8 +564,19 @@ describe('QR identity', () => {
     });
 
     expect(status).toBe(200);
-    expect(body.data.scopesGranted).toEqual([QrScope.IDENTITY]);
-    expect(body.data.vehicle).toBeUndefined();
+
+    // The four scopes a roadside check actually needs. A scanner outside the
+    // fleet gets them because the same questions are answered by the paper RC
+    // and licence carried in the cab.
+    expect(body.data.scopesGranted).toContain(QrScope.IDENTITY);
+    expect(body.data.scopesGranted).toContain(QrScope.VEHICLE_SUMMARY);
+    expect(body.data.scopesGranted).toContain(QrScope.COMPLIANCE);
+
+    // Nothing operational: not who is on the truck, not where it is going.
+    expect(body.data.scopesGranted).not.toContain(QrScope.ASSIGNMENT);
+    expect(body.data.scopesGranted).not.toContain(QrScope.TRIP_STATUS);
+    expect(body.data.scopesGranted).not.toContain(QrScope.CONTACT);
+
     // The stranger is told what was withheld and why, rather than seeing gaps.
     expect(body.data.scopesWithheld.length).toBeGreaterThan(0);
     expect(body.data.scopesWithheld[0]?.reason.length).toBeGreaterThan(0);
@@ -597,7 +608,12 @@ describe('QR identity', () => {
     expect(body.data.scopesGranted).not.toContain(QrScope.EMERGENCY);
   });
 
-  it('refuses an anonymous scan and logs the attempt', async () => {
+  /*
+   * A vehicle code is issued public, because it gets printed and fixed to a cab
+   * door: the person who most needs to read it — a traffic officer, a loading
+   * supervisor — has no Saarthi account and never will.
+   */
+  it('answers an anonymous scan of a printed vehicle code, and logs it', async () => {
     const truck = await createTruck(fleet.id);
     await request({
       method: 'GET',
@@ -605,6 +621,43 @@ describe('QR identity', () => {
       user: owner,
     });
     const code = await prisma.qrCode.findFirstOrThrow({ where: { subjectId: truck.id } });
+    expect(code.allowPublicResolve).toBe(true);
+
+    const app = await getApp();
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/v1/qr/resolve/${code.token}`,
+    });
+
+    expect(response.statusCode).toBe(200);
+
+    const scans = await prisma.qrScan.findMany({ where: { qrCodeId: code.id } });
+    expect(scans.some((scan) => scan.result === 'ALLOWED')).toBe(true);
+    // An anonymous scan has no actor, so the log is the only record of it.
+    expect(scans.some((scan) => scan.scannedByUserId === null)).toBe(true);
+  });
+
+  /*
+   * The tenant-level kill switch outranks an individual code opting in, so a
+   * fleet can close anonymous scanning across every sticker it has already
+   * printed without reissuing any of them.
+   */
+  it('refuses an anonymous scan once the fleet closes public scanning, and logs it', async () => {
+    const truck = await createTruck(fleet.id);
+    await request({
+      method: 'GET',
+      url: `/api/v1/qr/subject/vehicle/${truck.id}`,
+      user: owner,
+    });
+    const code = await prisma.qrCode.findFirstOrThrow({ where: { subjectId: truck.id } });
+
+    const closed = await request({
+      method: 'PUT',
+      url: '/api/v1/qr/privacy-policy',
+      user: owner,
+      payload: { allowPublicScans: false },
+    });
+    expect(closed.status).toBe(200);
 
     const app = await getApp();
     const response = await app.inject({
@@ -617,6 +670,37 @@ describe('QR identity', () => {
 
     const scans = await prisma.qrScan.findMany({ where: { qrCodeId: code.id } });
     expect(scans.some((scan) => scan.result === 'DENIED')).toBe(true);
+  });
+
+  /*
+   * Only the two printed subjects are public. An order code is an internal
+   * handle that happens to render as a QR, and one of those answering to a
+   * passer-by would be a leak rather than a feature.
+   */
+  it('keeps a non-printed subject private to signed-in scanners', async () => {
+    const truck = await createTruck(fleet.id);
+    await request({
+      method: 'GET',
+      url: `/api/v1/qr/subject/vehicle/${truck.id}`,
+      user: owner,
+    });
+    const vehicleCode = await prisma.qrCode.findFirstOrThrow({
+      where: { subjectId: truck.id },
+    });
+
+    // Same subject, but issued as a TRIP-style internal code rather than a
+    // printed one, so the default flips.
+    const internal = await prisma.qrCode.update({
+      where: { id: vehicleCode.id },
+      data: { allowPublicResolve: false },
+    });
+
+    const app = await getApp();
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/v1/qr/resolve/${internal.token}`,
+    });
+    expect(response.statusCode).toBe(404);
   });
 
   it('stops resolving a revoked code and records the attempt', async () => {

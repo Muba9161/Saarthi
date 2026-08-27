@@ -14,17 +14,22 @@ import {
   buildPaginationMeta,
   defaultScopesFor,
   documentTypeDefinition,
+  normalizeLicenceNumber,
+  normalizeRegistrationNumber,
+  publicResolveDefaultFor,
   qrTargetUrl,
   resolveDocumentValidity,
   resolveGrantedScopes,
   scopeFieldFlags,
   shortTokenLabel,
   type CreateQrCodeInput,
+  type DrivingLicenceRecord,
   type Paginated,
   type QrListQuery,
   type QrScanListQuery,
   type ResolveQrQuery,
   type RotateQrCodeInput,
+  type VehicleRcRecord,
 } from '@saarthi/shared';
 import { type Prisma, prisma } from '../../database/prisma';
 import { config } from '../../config/env';
@@ -274,7 +279,7 @@ export async function createQrCode(
       token: generateToken(),
       scopes: input.scopes ?? defaultScopesFor(input.subjectType),
       label: input.label ?? subject.displayName,
-      allowPublicResolve: input.allowPublicResolve,
+      allowPublicResolve: input.allowPublicResolve ?? publicResolveDefaultFor(input.subjectType),
       expiresAt,
       createdById: auth.user.id,
     },
@@ -316,11 +321,16 @@ export async function ensureForSubject(
     }
   }
 
-  return createQrCode(auth, {
-    subjectType,
-    subjectId,
-    allowPublicResolve: false,
-  } as CreateQrCodeInput);
+  // No `allowPublicResolve` here on purpose: provisioning-on-demand should take
+  // the same default as the create screen rather than quietly issuing a stricter
+  // code than the operator would have got by asking for one.
+  //
+  // `frontendUrl` is forwarded, which the create path previously dropped: a code
+  // provisioned through a dev tunnel came back pointing at localhost, so the
+  // very first render of a new sticker encoded a URL that worked nowhere but the
+  // machine that generated it. The lookup path above always passed it through,
+  // which made the bug show up only on a subject's first ever scan.
+  return createQrCode(auth, { subjectType, subjectId } as CreateQrCodeInput, frontendUrl);
 }
 
 export async function listQrCodes(
@@ -499,6 +509,14 @@ export interface ResolvedScan {
     status: string;
   };
   driver?: {
+    /**
+     * Only set when the driver is not the scanned subject — a vehicle scan
+     * resolving whoever is currently on it. On a driver scan the name is
+     * already the identity block, and repeating it would be two sources of
+     * truth for one string.
+     */
+    name?: string | null;
+    photoUrl?: string | null;
     experienceYears: number;
     licenseClass: string | null;
     /** Band rather than the exact score — a checkpoint does not need a number. */
@@ -524,6 +542,29 @@ export interface ResolvedScan {
   service?: { health: string; lastServiceDate: string | null };
   /** Whether the vehicle is under finance. Never the amounts — see QrField. */
   finance?: { financed: boolean };
+  /**
+   * The registration certificate as the RTO holds it.
+   *
+   * Present only when Saarthi has a stored RC lookup for the plate that is
+   * still inside its retention window — the record is never fetched from the
+   * provider during a scan, because a scan is unauthenticated and a provider
+   * call is billable, which together would be a way to spend a fleet's money
+   * from the roadside. `source` says whether it belongs to the scanned vehicle
+   * or to the vehicle the scanned driver is currently on.
+   */
+  rc?: {
+    registrationNumber: string;
+    retrievedAt: string;
+    source: 'VEHICLE' | 'ASSIGNED_VEHICLE';
+    record: VehicleRcRecord;
+  };
+  /** The driving licence as the RTO holds it, on the same terms as `rc`. */
+  licence?: {
+    licenceNumber: string;
+    retrievedAt: string;
+    source: 'DRIVER' | 'ASSIGNED_DRIVER';
+    record: DrivingLicenceRecord;
+  };
   /**
    * What this scanner was shown, and what was withheld from them. Sent so the
    * scan screen can say "masked at your access level" rather than rendering a
@@ -860,19 +901,12 @@ async function buildScanPayload(
         payload.driver = {
           experienceYears: driver.experienceYears,
           licenseClass: driver.licenseClass,
-          // A band, not a number: a gate operator needs "good", not 87.
-          scoreBand:
-            driver.overallScore === null
-              ? null
-              : driver.overallScore >= 85
-                ? 'Excellent'
-                : driver.overallScore >= 70
-                  ? 'Good'
-                  : driver.overallScore >= 50
-                    ? 'Fair'
-                    : 'Needs improvement',
+          scoreBand: scoreBandFor(driver.overallScore),
           totalTrips: driver.totalTrips,
         };
+
+        const licence = await storedLicenceFor(subjectId, driver.licenseNumber);
+        if (licence) payload.licence = { ...licence, source: 'DRIVER' };
       }
       if (granted.includes(QrScope.EMERGENCY)) {
         payload.emergency = {
@@ -893,6 +927,21 @@ async function buildScanPayload(
       }
       if (granted.includes(QrScope.COMPLIANCE)) {
         payload.compliance = await complianceFor('DRIVER', subjectId);
+
+        // The truck this driver is currently on. A roadside check reads one
+        // sticker and expects an answer about both the person and the vehicle,
+        // so the driver card resolves the vehicle's RC rather than making the
+        // officer walk round to the cab door for the second code.
+        if (driver.currentTruckId) {
+          const assigned = await prisma.truck.findUnique({
+            where: { id: driver.currentTruckId },
+            select: { registrationNumber: true },
+          });
+          if (assigned) {
+            const rc = await storedRcFor(assigned.registrationNumber);
+            if (rc) payload.rc = { ...rc, source: 'ASSIGNED_VEHICLE' };
+          }
+        }
       }
     }
   }
@@ -918,6 +967,36 @@ async function buildScanPayload(
       }
       if (granted.includes(QrScope.COMPLIANCE)) {
         payload.compliance = await complianceFor('TRUCK', subjectId);
+
+        const rc = await storedRcFor(vehicle.registrationNumber);
+        if (rc) payload.rc = { ...rc, source: 'VEHICLE' };
+      }
+
+      // The mirror of the driver branch: a cab-door sticker answers for the
+      // person currently driving, not only for the steel.
+      if (granted.includes(QrScope.DRIVER_SUMMARY) && vehicle.currentDriverId) {
+        const current = await prisma.driver.findUnique({
+          where: { id: vehicle.currentDriverId },
+          include: { user: { select: { id: true, firstName: true, lastName: true } } },
+        });
+        if (current) {
+          const avatars = await primaryUrlsFor(
+            MediaOwnerType.USER,
+            [current.user.id],
+            MediaPurpose.AVATAR,
+          );
+          payload.driver = {
+            name: `${current.user.firstName} ${current.user.lastName}`.trim() || null,
+            photoUrl: avatars.get(current.user.id) ?? null,
+            experienceYears: current.experienceYears,
+            licenseClass: current.licenseClass,
+            scoreBand: scoreBandFor(current.overallScore),
+            totalTrips: current.totalTrips,
+          };
+
+          const licence = await storedLicenceFor(current.id, current.licenseNumber);
+          if (licence) payload.licence = { ...licence, source: 'ASSIGNED_DRIVER' };
+        }
       }
       if (granted.includes(QrScope.ASSIGNMENT) && vehicle.currentDriverId) {
         const driver = await prisma.driver.findUnique({
@@ -970,6 +1049,82 @@ async function buildScanPayload(
   }
 
   return payload;
+}
+
+/** A band, not a number: a gate operator needs "Good", not 87. */
+function scoreBandFor(score: number | null): string | null {
+  if (score === null) return null;
+  if (score >= 85) return 'Excellent';
+  if (score >= 70) return 'Good';
+  if (score >= 50) return 'Fair';
+  return 'Needs improvement';
+}
+
+/**
+ * The stored RC record for a plate, or null.
+ *
+ * Reads Saarthi's own store and never calls the provider. Two reasons, both
+ * hard: a scan can be anonymous, so a provider call here would let a stranger
+ * spend a fleet's lookup budget by photographing a sticker repeatedly; and the
+ * roadside is the worst place to discover that a billable call has timed out.
+ *
+ * `expiresAt` is the retention boundary the lookup module set when it stored
+ * the record, not a cache TTL — a row past it is data Saarthi has undertaken to
+ * stop showing, so it is skipped rather than served stale.
+ */
+async function storedRcFor(registrationNumber: string): Promise<{
+  registrationNumber: string;
+  retrievedAt: string;
+  record: VehicleRcRecord;
+} | null> {
+  const plate = normalizeRegistrationNumber(registrationNumber);
+  if (!plate) return null;
+
+  const lookup = await prisma.vehicleLookup.findFirst({
+    where: { registrationNumber: plate, expiresAt: { gt: new Date() } },
+    orderBy: { fetchedAt: 'desc' },
+    select: { responseData: true, fetchedAt: true },
+  });
+  if (!lookup?.responseData) return null;
+
+  return {
+    registrationNumber: plate,
+    retrievedAt: lookup.fetchedAt.toISOString(),
+    // Stored by the lookup module in Saarthi's own normalised shape, before any
+    // per-caller redaction — the privacy pass below is what narrows it.
+    record: lookup.responseData as unknown as VehicleRcRecord,
+  };
+}
+
+/** The stored driving licence record for a driver, on the same terms as the RC. */
+async function storedLicenceFor(
+  driverId: string,
+  licenceNumber: string | null,
+): Promise<{
+  licenceNumber: string;
+  retrievedAt: string;
+  record: DrivingLicenceRecord;
+} | null> {
+  const normalized = licenceNumber ? normalizeLicenceNumber(licenceNumber) : null;
+
+  // Matched on the driver id first: a licence renewed under a new number still
+  // belongs to the same person, and the id survives that where the string does
+  // not. The number is the fallback for rows stored before the link was made.
+  const lookup = await prisma.licenceLookup.findFirst({
+    where: {
+      expiresAt: { gt: new Date() },
+      OR: [{ driverId }, ...(normalized ? [{ licenceNumber: normalized }] : [])],
+    },
+    orderBy: { fetchedAt: 'desc' },
+    select: { responseData: true, fetchedAt: true, licenceNumber: true },
+  });
+  if (!lookup?.responseData) return null;
+
+  return {
+    licenceNumber: lookup.licenceNumber,
+    retrievedAt: lookup.fetchedAt.toISOString(),
+    record: lookup.responseData as unknown as DrivingLicenceRecord,
+  };
 }
 
 /**

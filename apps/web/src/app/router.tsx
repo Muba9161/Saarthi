@@ -70,6 +70,27 @@ function RouteError() {
 
 export const router = createBrowserRouter([
   { path: '/', element: <RootRoute />, errorElement: <RouteError /> },
+
+  /*
+   * The QR scan target.
+   *
+   * Registered here, outside `RequireAuth`, on purpose. A printed sticker is
+   * scanned by a traffic officer, a loading supervisor or a customer at a gate —
+   * people with no Saarthi account and no reason to make one. Before this route
+   * existed the path fell through to the catch-all inside the authenticated
+   * shell, so every scan redirected to /login and the printed code was useless
+   * to exactly the people it was printed for.
+   *
+   * Nothing is trusted to the client here: the API decides what an anonymous
+   * scan may see, and answers 404 for a code that has not opted into public
+   * resolution. Signing in widens the result rather than being a precondition
+   * for it, so one route serves both cases.
+   */
+  {
+    path: '/q/:token',
+    element: lazyPage(() => import('@/pages/qr/public-scan')),
+    errorElement: <RouteError />,
+  },
   {
     element: <AuthLayout />,
     errorElement: <RouteError />,
@@ -91,18 +112,30 @@ export const router = createBrowserRouter([
 
           // Fleet
           { path: '/fleet/trucks', element: lazyPage(() => import('@/pages/fleet/trucks')) },
-          { path: '/fleet/trucks/:id', element: lazyPage(() => import('@/pages/fleet/truck-detail')) },
+          {
+            path: '/fleet/trucks/:id',
+            element: lazyPage(() => import('@/pages/fleet/truck-detail')),
+          },
           { path: '/fleet/drivers', element: lazyPage(() => import('@/pages/fleet/drivers')) },
-          { path: '/fleet/drivers/:id', element: lazyPage(() => import('@/pages/fleet/driver-detail')) },
+          {
+            path: '/fleet/drivers/:id',
+            element: lazyPage(() => import('@/pages/fleet/driver-detail')),
+          },
           { path: '/fleet/documents', element: lazyPage(() => import('@/pages/fleet/documents')) },
           {
             path: '/fleet/rc-lookup',
             element: lazyPage(() => import('@/pages/fleet/rc-lookup')),
           },
-          { path: '/fleet/maintenance', element: lazyPage(() => import('@/pages/fleet/maintenance')) },
+          {
+            path: '/fleet/maintenance',
+            element: lazyPage(() => import('@/pages/fleet/maintenance')),
+          },
           { path: '/fleet/loans', element: lazyPage(() => import('@/pages/fleet/loans')) },
           { path: '/fleet/toll', element: lazyPage(() => import('@/pages/fleet/toll')) },
-          { path: '/fleet/loans/:id', element: lazyPage(() => import('@/pages/fleet/loan-detail')) },
+          {
+            path: '/fleet/loans/:id',
+            element: lazyPage(() => import('@/pages/fleet/loan-detail')),
+          },
           { path: '/fleet/fuel', element: lazyPage(() => import('@/pages/fleet/fuel')) },
 
           // Operations
@@ -112,13 +145,19 @@ export const router = createBrowserRouter([
           { path: '/orders', element: lazyPage(() => import('@/pages/orders/orders')) },
           { path: '/orders/new', element: lazyPage(() => import('@/pages/orders/new-order')) },
           { path: '/orders/:id', element: lazyPage(() => import('@/pages/orders/order-detail')) },
-          { path: '/marketplace', element: lazyPage(() => import('@/pages/marketplace/requirements')) },
+          {
+            path: '/marketplace',
+            element: lazyPage(() => import('@/pages/marketplace/requirements')),
+          },
           { path: '/browse', element: lazyPage(() => import('@/pages/marketplace/browse')) },
           {
             path: '/marketplace/vehicles',
             element: lazyPage(() => import('@/pages/resale/marketplace')),
           },
-          { path: '/supplier/materials', element: lazyPage(() => import('@/pages/supplier/materials')) },
+          {
+            path: '/supplier/materials',
+            element: lazyPage(() => import('@/pages/supplier/materials')),
+          },
 
           // Generalized vehicles
           { path: '/fleet/vehicles', element: lazyPage(() => import('@/pages/fleet/vehicles')) },
@@ -195,11 +234,20 @@ export const router = createBrowserRouter([
           { path: '/driver', element: lazyPage(() => import('@/pages/driver/home')) },
           { path: '/driver/nearby', element: lazyPage(() => import('@/pages/driver/nearby')) },
           { path: '/driver/score', element: lazyPage(() => import('@/pages/driver/score')) },
-          { path: '/driver/documents', element: lazyPage(() => import('@/pages/driver/documents')) },
+          {
+            path: '/driver/documents',
+            element: lazyPage(() => import('@/pages/driver/documents')),
+          },
           { path: '/driver/trips', element: lazyPage(() => import('@/pages/driver/trips')) },
-          { path: '/driver/trips/:id', element: lazyPage(() => import('@/pages/trips/trip-detail')) },
+          {
+            path: '/driver/trips/:id',
+            element: lazyPage(() => import('@/pages/trips/trip-detail')),
+          },
           { path: '/driver/sos', element: lazyPage(() => import('@/pages/driver/sos')) },
-          { path: '/driver/sos/:id', element: lazyPage(() => import('@/pages/sos/incident-detail')) },
+          {
+            path: '/driver/sos/:id',
+            element: lazyPage(() => import('@/pages/sos/incident-detail')),
+          },
 
           // Account
           { path: '/notifications', element: lazyPage(() => import('@/pages/notifications')) },
@@ -221,9 +269,15 @@ export const router = createBrowserRouter([
 
           // Platform administration
           { path: '/admin', element: lazyPage(() => import('@/pages/admin/overview')) },
-          { path: '/admin/verification', element: lazyPage(() => import('@/pages/admin/verification-queue')) },
+          {
+            path: '/admin/verification',
+            element: lazyPage(() => import('@/pages/admin/verification-queue')),
+          },
           { path: '/admin/users', element: lazyPage(() => import('@/pages/admin/users')) },
-          { path: '/admin/organizations', element: lazyPage(() => import('@/pages/admin/organizations')) },
+          {
+            path: '/admin/organizations',
+            element: lazyPage(() => import('@/pages/admin/organizations')),
+          },
           { path: '/admin/audit', element: lazyPage(() => import('@/pages/admin/audit')) },
 
           { path: '*', element: <NotFoundPage /> },

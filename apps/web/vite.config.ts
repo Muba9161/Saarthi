@@ -33,7 +33,17 @@ export default defineConfig(({ mode }) => {
       .map((host) => host.trim())
       .filter(Boolean),
   ];
-  const devHost = env.DEV_HOST === 'true' ? true : (env.DEV_HOST ?? false);
+  // loadEnv hands back raw strings, so DEV_HOST=false arrives as the string
+  // 'false' — truthy, which made Vite treat it as a hostname and fail the
+  // dev server with `getaddrinfo ENOTFOUND false`. Normalise the boolean
+  // spellings first; anything else is a real host/IP and passes through.
+  const rawDevHost = (env.DEV_HOST ?? '').trim().toLowerCase();
+  const devHost =
+    rawDevHost === '' || rawDevHost === 'false'
+      ? false
+      : rawDevHost === 'true'
+        ? true
+        : (env.DEV_HOST ?? '').trim();
 
   return {
     envDir: repoRoot,

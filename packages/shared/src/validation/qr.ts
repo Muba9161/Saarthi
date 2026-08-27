@@ -37,11 +37,16 @@ export const createQrCodeSchema = z.object({
   scopes: z.array(qrScopeSchema).min(1).max(10).optional(),
   label: optionalTrimmedString(120),
   /**
-   * Opt in to unauthenticated resolution. Off by default: Saarthi has no
-   * external users, and a code that answers to anyone is a different product
-   * decision from a code that answers to a signed-in account.
+   * Whether the code resolves without a session.
+   *
+   * Deliberately optional rather than defaulted: the sensible answer depends on
+   * the subject, and only the server knows it. Omit the field and
+   * `publicResolveDefaultFor` decides — public for a driver or vehicle, whose
+   * codes get printed and fixed to something out in the world; private for a
+   * trip, order or inventory code, which is an internal handle. Send it
+   * explicitly to override either way.
    */
-  allowPublicResolve: z.boolean().default(false),
+  allowPublicResolve: z.boolean().optional(),
   expiresAt: z.coerce.date().optional(),
 });
 export type CreateQrCodeInput = z.infer<typeof createQrCodeSchema>;

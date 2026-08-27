@@ -55,9 +55,7 @@ const DEFAULT_POLICY: ResolvedQrPolicy = { overrides: {}, allowPublicScans: true
  * minutes is short enough that tightening a policy takes effect while the owner
  * is still looking at the screen.
  */
-export async function getPrivacyPolicy(
-  organizationId: string | null,
-): Promise<ResolvedQrPolicy> {
+export async function getPrivacyPolicy(organizationId: string | null): Promise<ResolvedQrPolicy> {
   if (!organizationId) return DEFAULT_POLICY;
 
   const key = policyCacheKey(organizationId);
@@ -146,8 +144,7 @@ export function describePolicy(policy: ResolvedQrPolicy) {
       defaultMaskBelow: rule.maskBelow,
       maskStrategy: rule.mask,
       override: policy.overrides[field as QrField] ?? null,
-      effectiveMinProfile:
-        policy.overrides[field as QrField]?.minProfile ?? rule.minProfile,
+      effectiveMinProfile: policy.overrides[field as QrField]?.minProfile ?? rule.minProfile,
       effectiveMaskBelow: policy.overrides[field as QrField]?.maskBelow ?? rule.maskBelow,
       disabled: policy.overrides[field as QrField]?.disabled ?? false,
     })),
@@ -200,10 +197,55 @@ interface MutableScanPayload {
     status: string;
   };
   driver?: {
+    name?: string | null;
+    photoUrl?: string | null;
     experienceYears: number;
     licenseClass: string | null;
     scoreBand: string | null;
     totalTrips: number;
+  };
+  /*
+   * The RTO records are typed structurally rather than imported: this module
+   * walks the handful of paths the field catalogue names and must not acquire a
+   * dependency on the full RC / licence contracts, which change for reasons
+   * that have nothing to do with disclosure.
+   */
+  rc?: {
+    registrationNumber: string;
+    record: {
+      registrationNumber?: string | null;
+      chassisNumber?: string | null;
+      engineNumber?: string | null;
+      insurancePolicyNumber?: string | null;
+      owner?: {
+        name?: string | null;
+        fatherName?: string | null;
+        serialNumber?: string | null;
+        mobileNumber?: string | null;
+        presentAddress?: string | null;
+        permanentAddress?: string | null;
+      } | null;
+      redacted?: boolean;
+    };
+  };
+  licence?: {
+    licenceNumber: string;
+    record: {
+      licenceNumber?: string | null;
+      holder?: {
+        name?: string | null;
+        fatherOrHusbandName?: string | null;
+        gender?: string | null;
+        dateOfBirth?: string | null;
+        bloodGroup?: string | null;
+        citizenship?: string | null;
+        permanentAddress?: string | null;
+        permanentZip?: string | null;
+        temporaryAddress?: string | null;
+        temporaryZip?: string | null;
+      } | null;
+      redacted?: boolean;
+    };
   };
   compliance?: unknown;
   assignment?: { driverName: string | null; vehicleRegistration: string | null };
@@ -317,7 +359,10 @@ export function applyPrivacyPolicy<T extends MutableScanPayload>(
 
   // --- Vehicle block -------------------------------------------------------
   if (payload.vehicle) {
-    const registration = stringField(QrField.VEHICLE_REGISTRATION, payload.vehicle.registrationNumber);
+    const registration = stringField(
+      QrField.VEHICLE_REGISTRATION,
+      payload.vehicle.registrationNumber,
+    );
     if (registration.keep && registration.value) {
       payload.vehicle.registrationNumber = registration.value;
     }
@@ -342,6 +387,129 @@ export function applyPrivacyPolicy<T extends MutableScanPayload>(
 
     const licence = stringField(QrField.DRIVER_LICENCE_NUMBER, payload.driver.licenseClass);
     payload.driver.licenseClass = licence.keep ? licence.value : null;
+
+    // Only set when the driver is not the subject — a vehicle scan naming
+    // whoever is on it. Same two fields as the identity block, same two rules.
+    if (payload.driver.name !== undefined) {
+      const name = stringField(QrField.DRIVER_NAME, payload.driver.name);
+      payload.driver.name = name.keep ? name.value : null;
+    }
+    if (payload.driver.photoUrl !== undefined) {
+      const photo = stringField(QrField.DRIVER_PHOTO, payload.driver.photoUrl);
+      payload.driver.photoUrl = photo.keep ? photo.value : null;
+    }
+  }
+
+  // --- RTO records ---------------------------------------------------------
+  /*
+   * Both records are reproduced whole from Saarthi's own store, so they are
+   * narrowed here rather than where they were loaded. Each keeps its own
+   * `redacted` flag current, because a client rendering a certificate must be
+   * able to say "this is partial" without diffing it against anything.
+   */
+  if (payload.rc) {
+    if (!blockVisible(QrField.DOCUMENT_RC_RECORD)) {
+      delete payload.rc;
+    } else {
+      const record = payload.rc.record;
+      let redacted = false;
+
+      /** Narrow one string in place, remembering whether anything was lost. */
+      const narrow = (field: QrField, value: string | null | undefined): string | null => {
+        const result = stringField(field, value);
+        const next = result.keep ? result.value : null;
+        if (next !== (value ?? null)) redacted = true;
+        return next;
+      };
+
+      record.registrationNumber = narrow(QrField.VEHICLE_REGISTRATION, record.registrationNumber);
+      record.chassisNumber = narrow(QrField.DOCUMENT_CHASSIS_NUMBER, record.chassisNumber);
+      record.engineNumber = narrow(QrField.DOCUMENT_ENGINE_NUMBER, record.engineNumber);
+      record.insurancePolicyNumber = narrow(
+        QrField.DOCUMENT_INSURANCE_NUMBER,
+        record.insurancePolicyNumber,
+      );
+
+      if (record.owner) {
+        const owner = record.owner;
+        if (blockVisible(QrField.DOCUMENT_RC_OWNER)) {
+          owner.name = narrow(QrField.DOCUMENT_RC_OWNER, owner.name);
+          owner.fatherName = narrow(QrField.DOCUMENT_RC_OWNER, owner.fatherName);
+        } else {
+          owner.name = null;
+          owner.fatherName = null;
+          redacted = true;
+        }
+
+        if (!blockVisible(QrField.DOCUMENT_RC_OWNER_CONTACT)) {
+          owner.mobileNumber = null;
+          owner.presentAddress = null;
+          owner.permanentAddress = null;
+          owner.serialNumber = null;
+          redacted = true;
+        }
+      }
+
+      record.redacted = record.redacted === true || redacted;
+    }
+  }
+
+  if (payload.licence) {
+    if (!blockVisible(QrField.DRIVER_LICENCE_RECORD)) {
+      delete payload.licence;
+    } else {
+      const record = payload.licence.record;
+      let redacted = false;
+
+      const narrow = (field: QrField, value: string | null | undefined): string | null => {
+        const result = stringField(field, value);
+        const next = result.keep ? result.value : null;
+        if (next !== (value ?? null)) redacted = true;
+        return next;
+      };
+
+      record.licenceNumber = narrow(QrField.DRIVER_LICENCE_NUMBER, record.licenceNumber);
+      // The envelope carries the number too; masking one and not the other
+      // would hand the client the full value it was never meant to have.
+      payload.licence.licenceNumber =
+        narrow(QrField.DRIVER_LICENCE_NUMBER, payload.licence.licenceNumber) ?? '';
+
+      if (record.holder) {
+        const holder = record.holder;
+        if (blockVisible(QrField.DRIVER_LICENCE_HOLDER)) {
+          holder.name = narrow(QrField.DRIVER_LICENCE_HOLDER, holder.name);
+          holder.fatherOrHusbandName = narrow(
+            QrField.DRIVER_LICENCE_HOLDER,
+            holder.fatherOrHusbandName,
+          );
+        } else {
+          holder.name = null;
+          holder.fatherOrHusbandName = null;
+          holder.gender = null;
+          redacted = true;
+        }
+
+        if (!blockVisible(QrField.DRIVER_LICENCE_HOLDER_CONTACT)) {
+          holder.dateOfBirth = null;
+          holder.citizenship = null;
+          holder.permanentAddress = null;
+          holder.permanentZip = null;
+          holder.temporaryAddress = null;
+          holder.temporaryZip = null;
+          redacted = true;
+        }
+
+        // The licence carries a blood group, which is medical data and belongs
+        // to the EMERGENCY scope wherever it appears — including here, where it
+        // arrived as a field of somebody else's document.
+        if (!blockVisible(QrField.EMERGENCY_BLOOD_GROUP)) {
+          if (holder.bloodGroup) redacted = true;
+          holder.bloodGroup = null;
+        }
+      }
+
+      record.redacted = record.redacted === true || redacted;
+    }
   }
 
   // --- Assignment ----------------------------------------------------------

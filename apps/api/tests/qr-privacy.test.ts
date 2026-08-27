@@ -95,6 +95,39 @@ describe('QR field privacy', () => {
     service?: { health: string; lastServiceDate: string | null };
     finance?: { financed: boolean };
     contact?: { phone: string | null };
+    rc?: {
+      registrationNumber: string;
+      source: string;
+      record: {
+        registrationNumber: string | null;
+        chassisNumber: string | null;
+        engineNumber: string | null;
+        maker: string | null;
+        insuranceValidUntil: string | null;
+        redacted: boolean;
+        owner: {
+          name: string | null;
+          fatherName: string | null;
+          mobileNumber: string | null;
+          presentAddress: string | null;
+          permanentAddress: string | null;
+        } | null;
+      };
+    };
+    licence?: {
+      licenceNumber: string;
+      source: string;
+      record: {
+        licenceNumber: string | null;
+        redacted: boolean;
+        holder: {
+          name: string | null;
+          dateOfBirth: string | null;
+          bloodGroup: string | null;
+          permanentAddress: string | null;
+        } | null;
+      };
+    };
     privacy?: {
       profile: string;
       profileLabel: string;
@@ -158,12 +191,25 @@ describe('QR field privacy', () => {
       expect(body.data.identity.displayName).toBe(truck.registrationNumber);
     });
 
-    it('withholds the operational status from a public scan', async () => {
+    it('answers a public scan with the vehicle block a roadside check needs', async () => {
       const token = await issueVehicleCode(true);
       const { body } = await scan(token);
-      // VEHICLE_SUMMARY is not granted to an anonymous scanner at all, so the
-      // whole block is absent rather than partially filled.
-      expect(body.data.vehicle).toBeUndefined();
+
+      // VEHICLE_SUMMARY is part of the public verification set. The plate, the
+      // maker and the model are visible to anyone standing in front of the
+      // truck, so withholding them would protect nothing while making the
+      // sticker useless.
+      expect(body.data.vehicle?.registrationNumber).toBe(truck.registrationNumber);
+      expect(body.data.vehicle?.manufacturer).toBe('Tata Motors');
+    });
+
+    it('still withholds the driver phone from a public scan', async () => {
+      const token = await issueVehicleCode(true);
+      const { body } = await scan(token);
+
+      // CONTACT is outside the anonymous ceiling entirely, so no field policy
+      // can put a phone number on a public sticker.
+      expect(body.data.contact).toBeUndefined();
     });
 
     it('gives the fleet a rule-based service verdict, not a maintenance ledger', async () => {
@@ -217,7 +263,7 @@ describe('QR field privacy', () => {
       expect(JSON.stringify(body.data)).not.toContain('88849');
     });
 
-    it('withholds the finance flag from an unrelated scanner', async () => {
+    it('shows an unrelated scanner the finance flag, and never the amounts', async () => {
       await prisma.vehicleLoan.create({
         data: {
           organizationId: fleet.id,
@@ -235,7 +281,220 @@ describe('QR field privacy', () => {
 
       const token = await issueVehicleCode();
       const { body } = await scan(token, stranger);
-      expect(body.data.finance).toBeUndefined();
+
+      // "Financed" as a bare fact is on the RC anyway, and is what a buyer or
+      // an inspector legitimately needs.
+      expect(body.data.finance).toEqual({ financed: true });
+      // The amounts map to no scope at all, so they are absent at every level.
+      expect(JSON.stringify(body.data)).not.toContain('88849');
+    });
+  });
+
+  // -------------------------------------------------------------------------
+
+  /*
+   * The two RTO records the sticker reproduces.
+   *
+   * A Saarthi code is meant to answer, at the roadside, the questions the paper
+   * RC and licence in the cab already answer — so the stored certificate is
+   * disclosed rather than a summary of it. These cover that it arrives whole,
+   * that the two highest-risk blocks are switchable, and that the one field
+   * which is medical data rather than vehicle data stays behind the emergency
+   * scope wherever it happens to be stored.
+   */
+  describe('RTO records', () => {
+    /** Seed a stored RC lookup, in the shape the lookup module writes. */
+    async function storeRcLookup(): Promise<void> {
+      await prisma.vehicleLookup.create({
+        data: {
+          registrationNumber: truck.registrationNumber,
+          organizationId: fleet.id,
+          responseData: {
+            registrationNumber: truck.registrationNumber,
+            registrationDate: '2022-04-11',
+            registrationStatus: 'ACTIVE',
+            owner: {
+              name: 'Ramesh Kumar',
+              fatherName: 'Suresh Kumar',
+              serialNumber: '1',
+              mobileNumber: '9876543210',
+              presentAddress: '12 Station Road, Kanpur',
+              permanentAddress: '12 Station Road, Kanpur',
+            },
+            maker: 'Tata Motors',
+            model: 'Prima',
+            vehicleClass: 'HGV',
+            fuelType: 'DIESEL',
+            chassisNumber: 'MAT456789012345678',
+            engineNumber: 'ENG9876543210',
+            insurer: 'ICICI Lombard',
+            insurancePolicyNumber: 'POL123456789',
+            insuranceValidUntil: '2027-04-10',
+            fitnessValidUntil: '2027-04-10',
+            puccValidUntil: '2026-10-10',
+            tax: { validUntil: '2027-03-31', paidUntil: '2026-03-31' },
+            permit: {
+              number: 'PMT-1',
+              type: 'NATIONAL',
+              issuedOn: null,
+              validFrom: null,
+              validUntil: '2027-01-01',
+              national: { number: 'NP-1', validUntil: '2027-01-01', issuedBy: 'UP' },
+            },
+            financed: true,
+            financer: 'Shriram Finance',
+            nonUse: { status: null, from: null, to: null },
+            maskedByProvider: { ownerName: false, chassisNumber: false, engineNumber: false },
+            redacted: false,
+          },
+          // Well inside the retention window: an expired row is data Saarthi
+          // has undertaken to stop showing, and the scan must skip it.
+          expiresAt: new Date(Date.now() + 30 * 86_400_000),
+        },
+      });
+    }
+
+    it('reproduces the registration certificate on a public scan', async () => {
+      await storeRcLookup();
+      const token = await issueVehicleCode(true);
+      const { body } = await scan(token);
+
+      expect(body.data.rc?.source).toBe('VEHICLE');
+      expect(body.data.rc?.record.maker).toBe('Tata Motors');
+      expect(body.data.rc?.record.insuranceValidUntil).toBe('2027-04-10');
+      // The identifiers printed on the certificate itself.
+      expect(body.data.rc?.record.chassisNumber).toBe('MAT456789012345678');
+      expect(body.data.rc?.record.engineNumber).toBe('ENG9876543210');
+      expect(body.data.rc?.record.owner?.name).toBe('Ramesh Kumar');
+      expect(body.data.rc?.record.redacted).toBe(false);
+    });
+
+    it('skips a stored record that is past its retention boundary', async () => {
+      await prisma.vehicleLookup.create({
+        data: {
+          registrationNumber: truck.registrationNumber,
+          organizationId: fleet.id,
+          responseData: { registrationNumber: truck.registrationNumber, maker: 'Stale' },
+          expiresAt: new Date(Date.now() - 86_400_000),
+        },
+      });
+
+      const token = await issueVehicleCode(true);
+      const { body } = await scan(token);
+      expect(body.data.rc).toBeUndefined();
+    });
+
+    it("lets a fleet close the owner's contact block without losing the rest", async () => {
+      await storeRcLookup();
+
+      const saved = await request({
+        method: 'PUT',
+        url: '/api/v1/qr/privacy-policy',
+        user: owner,
+        payload: {
+          overrides: {
+            [QrField.DOCUMENT_RC_OWNER_CONTACT]: { disabled: true },
+          },
+        },
+      });
+      expect(saved.status).toBe(200);
+
+      const token = await issueVehicleCode(true);
+      const { body } = await scan(token);
+
+      // The address and phone are gone…
+      expect(body.data.rc?.record.owner?.mobileNumber).toBeNull();
+      expect(body.data.rc?.record.owner?.presentAddress).toBeNull();
+      expect(body.data.rc?.record.owner?.permanentAddress).toBeNull();
+      // …the certificate still answers the question it is there to answer…
+      expect(body.data.rc?.record.maker).toBe('Tata Motors');
+      expect(body.data.rc?.record.owner?.name).toBe('Ramesh Kumar');
+      // …and the record says plainly that it is partial.
+      expect(body.data.rc?.record.redacted).toBe(true);
+    });
+
+    it('masks the chassis number when the fleet raises the bar on it', async () => {
+      await storeRcLookup();
+
+      await request({
+        method: 'PUT',
+        url: '/api/v1/qr/privacy-policy',
+        user: owner,
+        payload: {
+          overrides: {
+            [QrField.DOCUMENT_CHASSIS_NUMBER]: { maskBelow: QrPrivacyProfile.OWNER },
+          },
+        },
+      });
+
+      const token = await issueVehicleCode(true);
+      const { body } = await scan(token);
+
+      expect(body.data.rc?.record.chassisNumber).not.toBe('MAT456789012345678');
+      expect(body.data.rc?.record.chassisNumber).toContain('5678');
+      expect(body.data.rc?.record.redacted).toBe(true);
+    });
+
+    it("releases a licence but never the holder's blood group to a public scan", async () => {
+      const driverUser = await createUser({
+        role: RoleName.DRIVER,
+        organizationId: fleet.id,
+        driver: true,
+      });
+      const driverRecord = await prisma.driver.findUniqueOrThrow({
+        where: { id: driverUser.driverId! },
+      });
+
+      await prisma.licenceLookup.create({
+        data: {
+          licenceNumber: driverRecord.licenseNumber.toUpperCase().replace(/[\s-]/g, ''),
+          driverId: driverRecord.id,
+          organizationId: fleet.id,
+          responseData: {
+            licenceNumber: driverRecord.licenseNumber,
+            state: 'UP',
+            holder: {
+              name: 'Ramesh Kumar',
+              fatherOrHusbandName: 'Suresh Kumar',
+              gender: 'M',
+              dateOfBirth: '1988-02-14',
+              bloodGroup: 'B+',
+              citizenship: 'IND',
+              permanentAddress: '12 Station Road, Kanpur',
+              permanentZip: '208001',
+              temporaryAddress: null,
+              temporaryZip: null,
+            },
+            issuingAuthority: 'RTO Kanpur',
+            issuedOn: '2012-06-01',
+            validUntil: '2032-06-01',
+            transportValidUntil: '2027-06-01',
+            vehicleClasses: ['LMV-NT', 'HTV'],
+            redacted: false,
+          },
+          expiresAt: new Date(Date.now() + 30 * 86_400_000),
+        },
+      });
+
+      await request({
+        method: 'GET',
+        url: `/api/v1/qr/subject/driver/${driverRecord.id}`,
+        user: owner,
+      });
+      const code = await prisma.qrCode.findFirstOrThrow({
+        where: { subjectId: driverRecord.id },
+      });
+
+      const { body } = await scan(code.token);
+
+      expect(body.data.licence?.source).toBe('DRIVER');
+      expect(body.data.licence?.record.holder?.name).toBe('Ramesh Kumar');
+      expect(body.data.licence?.record.holder?.dateOfBirth).toBe('1988-02-14');
+
+      // A blood group is medical data wherever it is stored. It belongs to the
+      // EMERGENCY scope, which no anonymous scan ever reaches.
+      expect(body.data.licence?.record.holder?.bloodGroup).toBeNull();
+      expect(body.data.licence?.record.redacted).toBe(true);
     });
   });
 

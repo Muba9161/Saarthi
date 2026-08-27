@@ -25,7 +25,9 @@ export class ApiError extends Error {
   /** Field-level messages produced by backend validation. */
   get fieldErrors(): Record<string, string[]> {
     const fields = this.details?.fields;
-    return typeof fields === 'object' && fields !== null ? (fields as Record<string, string[]>) : {};
+    return typeof fields === 'object' && fields !== null
+      ? (fields as Record<string, string[]>)
+      : {};
   }
 
   get isAuthError(): boolean {
@@ -46,7 +48,61 @@ export class ApiError extends Error {
   }
 }
 
-const API_BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '');
+/**
+ * Is this URL one the current page could never reach?
+ *
+ * Two combinations are unreachable no matter what the server is doing, and both
+ * arise from the same mistake — a base URL pinned to the machine that wrote the
+ * `.env`:
+ *
+ *   * A loopback host from a page that is not itself on loopback. `localhost`
+ *     on a phone is the phone; the API is on somebody's desktop.
+ *   * A plain-http target from an https page. The browser blocks it as mixed
+ *     content before the request is ever sent, so it fails with no status and
+ *     no CORS error to read.
+ *
+ * Both surface as an unexplained network failure, which is a miserable thing to
+ * debug from a phone at the roadside. Detecting them here lets the client fall
+ * back to a same-origin relative path, which the dev proxy forwards — so a
+ * stale `.env` degrades to working rather than to broken.
+ */
+export function unreachableFromThisPage(url: string): boolean {
+  if (typeof window === 'undefined' || !url) return false;
+
+  const loopback = /^(localhost|127\.0\.0\.1|\[::1\]|::1)$/i;
+  const pageIsLoopback = loopback.test(window.location.hostname);
+
+  try {
+    const target = new URL(url, window.location.href);
+    if (loopback.test(target.hostname) && !pageIsLoopback) return true;
+    if (window.location.protocol === 'https:' && target.protocol === 'http:') return true;
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Where the API lives, as seen from the browser.
+ *
+ * Empty means same-origin and relative, which is the configuration that works
+ * everywhere: Vite's dev proxy forwards `/api` and `/ws` to the API, and in
+ * production the two are served from one origin. It is also what makes the app
+ * reachable through a dev tunnel or from a phone on the LAN, and it sidesteps
+ * CORS and cookie-partitioning entirely because nothing is cross-origin.
+ *
+ * A configured `VITE_API_URL` is honoured, unless the page could not reach it.
+ */
+const API_BASE = (() => {
+  const configured = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '');
+  return configured && !unreachableFromThisPage(configured) ? configured : '';
+})();
+
+/** The resolved origin, for callers that build their own request URLs. */
+export function apiBase(): string {
+  return API_BASE;
+}
+
 export const API_PREFIX = '/api/v1';
 
 let accessToken: string | null = null;
@@ -105,7 +161,10 @@ async function readEnvelope<T>(response: Response): Promise<ApiResponse<T>> {
       ? ({ success: true, data: null as T } satisfies ApiResponse<T>)
       : {
           success: false,
-          error: { code: ErrorCode.INTERNAL_ERROR, message: 'The server returned an empty response.' },
+          error: {
+            code: ErrorCode.INTERNAL_ERROR,
+            message: 'The server returned an empty response.',
+          },
         };
   }
   try {
@@ -147,7 +206,11 @@ async function refreshAccessToken(): Promise<string | null> {
   return refreshInFlight;
 }
 
-async function performRequest<T>(path: string, options: RequestOptions, retry: boolean): Promise<T> {
+async function performRequest<T>(
+  path: string,
+  options: RequestOptions,
+  retry: boolean,
+): Promise<T> {
   const { method = 'GET', body, query, signal, headers = {} } = options;
 
   const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
@@ -200,7 +263,11 @@ export function apiRequest<T>(path: string, options: RequestOptions = {}): Promi
 
 export const api = {
   get: <T>(path: string, query?: QueryParams, signal?: AbortSignal) =>
-    apiRequest<T>(path, { method: 'GET', ...(query ? { query } : {}), ...(signal ? { signal } : {}) }),
+    apiRequest<T>(path, {
+      method: 'GET',
+      ...(query ? { query } : {}),
+      ...(signal ? { signal } : {}),
+    }),
   post: <T>(path: string, body?: unknown, options?: Omit<RequestOptions, 'method' | 'body'>) =>
     apiRequest<T>(path, { ...options, method: 'POST', body }),
   patch: <T>(path: string, body?: unknown, options?: Omit<RequestOptions, 'method' | 'body'>) =>

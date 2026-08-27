@@ -31,8 +31,7 @@ export const ScannerRelationship = {
   /** No session at all. */
   ANONYMOUS: 'ANONYMOUS',
 } as const;
-export type ScannerRelationship =
-  (typeof ScannerRelationship)[keyof typeof ScannerRelationship];
+export type ScannerRelationship = (typeof ScannerRelationship)[keyof typeof ScannerRelationship];
 
 /**
  * Scopes a relationship may ever see, before intersecting with the code.
@@ -41,6 +40,30 @@ export type ScannerRelationship =
  * gets: identity only — enough to confirm the person or vehicle in front of them
  * is a real, verified Saarthi subject, and nothing more.
  */
+/**
+ * What a scan answers with no session at all.
+ *
+ * A Saarthi sticker is meant to answer, for anyone standing in front of the
+ * vehicle, the questions the paper RC and licence in the cab already answer: is
+ * this vehicle registered, is it legal on the road today, and is the person
+ * driving it licensed to. Requiring an account to read a sticker on a public
+ * road defeats the artefact, so these four scopes resolve anonymously.
+ *
+ * What is deliberately *not* here, and still needs a relationship:
+ *   CONTACT       the driver's phone number
+ *   EMERGENCY     blood group and next of kin — responders on a live incident
+ *   ASSIGNMENT    who is driving what, and where
+ *   TRIP_STATUS   live trip state
+ *   ORDER_STATUS  live consignment state
+ *   HANDOVER      a write action, never granted to a stranger
+ */
+const PUBLIC_VERIFICATION_SCOPES: QrScope[] = [
+  QrScope.IDENTITY,
+  QrScope.VEHICLE_SUMMARY,
+  QrScope.DRIVER_SUMMARY,
+  QrScope.COMPLIANCE,
+];
+
 const RELATIONSHIP_CEILING: Record<ScannerRelationship, QrScope[]> = {
   [ScannerRelationship.SAME_ORGANIZATION]: [
     QrScope.IDENTITY,
@@ -95,17 +118,25 @@ const RELATIONSHIP_CEILING: Record<ScannerRelationship, QrScope[]> = {
     QrScope.HANDOVER,
   ],
 
-  [ScannerRelationship.SIGNED_IN_STRANGER]: [QrScope.IDENTITY],
+  // A signed-in account with no relationship must never see *less* than an
+  // anonymous scanner, or signing in would narrow what a checkpoint officer can
+  // read. It therefore inherits the public set rather than restating it.
+  [ScannerRelationship.SIGNED_IN_STRANGER]: [...PUBLIC_VERIFICATION_SCOPES],
 
-  // Only reachable when the code explicitly opts into public resolution.
-  [ScannerRelationship.ANONYMOUS]: [QrScope.IDENTITY],
+  // Only reachable when the code opts into public resolution and the owning
+  // fleet has not switched anonymous scanning off.
+  [ScannerRelationship.ANONYMOUS]: [...PUBLIC_VERIFICATION_SCOPES],
 };
 
 /** Scopes a fresh code gets by default, per subject type. */
 const DEFAULT_SCOPES: Record<QrSubjectType, QrScope[]> = {
+  // Both subject types carry *both* summary scopes. One scan of a truck should
+  // answer for the truck and for the person driving it, which is what a roadside
+  // check actually asks; the relationship ceiling still decides who sees what.
   [QrSubjectType.DRIVER]: [
     QrScope.IDENTITY,
     QrScope.DRIVER_SUMMARY,
+    QrScope.VEHICLE_SUMMARY,
     QrScope.COMPLIANCE,
     QrScope.ASSIGNMENT,
     QrScope.EMERGENCY,
@@ -113,6 +144,7 @@ const DEFAULT_SCOPES: Record<QrSubjectType, QrScope[]> = {
   [QrSubjectType.VEHICLE]: [
     QrScope.IDENTITY,
     QrScope.VEHICLE_SUMMARY,
+    QrScope.DRIVER_SUMMARY,
     QrScope.COMPLIANCE,
     QrScope.ASSIGNMENT,
     QrScope.TRIP_STATUS,
@@ -129,6 +161,21 @@ const DEFAULT_SCOPES: Record<QrSubjectType, QrScope[]> = {
 
 export function defaultScopesFor(subjectType: QrSubjectType): QrScope[] {
   return [...(DEFAULT_SCOPES[subjectType] ?? [QrScope.IDENTITY])];
+}
+
+/**
+ * Whether a fresh code for this subject resolves without a session.
+ *
+ * True only for the two subjects whose codes get printed and fixed to something
+ * out in the world — a cab door, a lanyard. A trip, order or inventory code is
+ * an internal handle that happens to be renderable as a QR, and one of those
+ * answering to any passer-by would be a leak rather than a feature.
+ *
+ * The owning fleet can still close anonymous scanning across every code it has
+ * issued with the `allowPublicScans` switch on its privacy policy.
+ */
+export function publicResolveDefaultFor(subjectType: QrSubjectType): boolean {
+  return subjectType === QrSubjectType.DRIVER || subjectType === QrSubjectType.VEHICLE;
 }
 
 /**

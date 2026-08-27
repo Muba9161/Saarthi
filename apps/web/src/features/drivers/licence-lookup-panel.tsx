@@ -6,13 +6,11 @@ import {
   hasTransportEntitlement,
   isPlausibleIndianLicence,
   normalizeLicenceNumber,
-  rcValidity,
-  type DrivingLicenceRecord,
   type LicenceLookupResult,
-  type RcValidity,
 } from '@saarthi/shared';
 import { ApiError, api, errorMessage } from '@/lib/api-client';
 import { EmptyState, ErrorState, LoadingState } from '@/components/common/states';
+import { LicenceRecordDetails, RtoValidityRow } from '@/features/documents/rto-record-details';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -54,89 +52,6 @@ function useLookupStage(active: boolean): string {
   }, [active]);
 
   return LOOKUP_STAGES[index] ?? LOOKUP_STAGES[0]!;
-}
-
-const VALIDITY_TONE: Record<
-  RcValidity,
-  { label: string; variant: 'success' | 'warning' | 'destructive' | 'muted' }
-> = {
-  VALID: { label: 'Valid', variant: 'success' },
-  EXPIRING_SOON: { label: 'Expiring soon', variant: 'warning' },
-  EXPIRED: { label: 'Expired', variant: 'destructive' },
-  UNKNOWN: { label: 'Not published', variant: 'muted' },
-};
-
-function ValidityRow({ label, validUntil }: { label: string; validUntil: string | null }) {
-  const { validity, daysRemaining } = rcValidity(validUntil);
-  const tone = VALIDITY_TONE[validity];
-
-  return (
-    <div className="flex items-center justify-between gap-3 py-1.5">
-      <span className="text-sm">{label}</span>
-      <div className="flex items-center gap-2">
-        {validUntil ? (
-          <span className="tabular text-xs text-muted-foreground">
-            {validUntil}
-            {daysRemaining !== null && validity !== 'EXPIRED' ? ` · ${daysRemaining} days` : ''}
-          </span>
-        ) : null}
-        <Badge variant={tone.variant} size="sm">
-          {tone.label}
-        </Badge>
-      </div>
-    </div>
-  );
-}
-
-function Detail({ label, value }: { label: string; value: string | number | null | undefined }) {
-  const display = value === null || value === undefined || value === '' ? '—' : String(value);
-  return (
-    <div className="min-w-0 space-y-0.5">
-      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className="truncate text-sm" title={display}>
-        {display}
-      </p>
-    </div>
-  );
-}
-
-function LicenceDetails({ licence }: { licence: DrivingLicenceRecord }) {
-  return (
-    <div className="space-y-5">
-      <section className="space-y-2">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Licence
-        </h3>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          <Detail label="Number" value={licence.licenceNumber} />
-          <Detail label="State" value={licence.state} />
-          <Detail label="Issuing RTO" value={licence.issuingAuthority} />
-          <Detail label="RTO code" value={licence.issuingAuthorityCode} />
-          <Detail label="Issued on" value={licence.issuedOn} />
-          <Detail label="Transport issued on" value={licence.transportIssuedOn} />
-        </div>
-      </section>
-
-      {licence.holder ? (
-        <section className="space-y-2">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Holder
-          </h3>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            <Detail label="Name" value={licence.holder.name} />
-            <Detail label="Father / husband" value={licence.holder.fatherOrHusbandName} />
-            <Detail label="Date of birth" value={licence.holder.dateOfBirth} />
-            <Detail label="Gender" value={licence.holder.gender} />
-            <Detail label="Blood group" value={licence.holder.bloodGroup} />
-            <Detail label="Citizenship" value={licence.holder.citizenship} />
-            <Detail label="Permanent address" value={licence.holder.permanentAddress} />
-            <Detail label="Permanent PIN" value={licence.holder.permanentZip} />
-            <Detail label="Present address" value={licence.holder.temporaryAddress} />
-          </div>
-        </section>
-      ) : null}
-    </div>
-  );
 }
 
 export interface LicenceLookupPanelProps {
@@ -260,10 +175,7 @@ export function LicenceLookupPanel({
               />
             </div>
 
-            <Button
-              type="submit"
-              disabled={lookup.isPending || input.trim().length === 0 || !dob}
-            >
+            <Button type="submit" disabled={lookup.isPending || input.trim().length === 0 || !dob}>
               <Search className="size-4" />
               {locked ? 'Get details' : 'Verify licence'}
             </Button>
@@ -344,8 +256,8 @@ export function LicenceLookupPanel({
                 Validity
               </h3>
               <div className="divide-y divide-border">
-                <ValidityRow label="Licence" validUntil={result.licence.validUntil} />
-                <ValidityRow
+                <RtoValidityRow label="Licence" validUntil={result.licence.validUntil} />
+                <RtoValidityRow
                   label="Transport (commercial)"
                   validUntil={result.licence.transportValidUntil}
                 />
@@ -369,7 +281,7 @@ export function LicenceLookupPanel({
 
             <Separator />
 
-            <LicenceDetails licence={result.licence} />
+            <LicenceRecordDetails record={result.licence} />
 
             {result.licence.redacted ? (
               <p className="flex items-start gap-2 rounded-lg bg-muted/60 px-3 py-2 text-xs text-muted-foreground">

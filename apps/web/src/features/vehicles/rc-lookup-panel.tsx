@@ -6,13 +6,11 @@ import {
   formatRegistrationNumber,
   isPlausibleIndianRegistration,
   normalizeRegistrationNumber,
-  rcValidity,
-  type RcValidity,
   type VehicleLookupResult,
-  type VehicleRcRecord,
 } from '@saarthi/shared';
 import { ApiError, absoluteApiUrl, api, errorMessage, getAccessToken } from '@/lib/api-client';
 import { EmptyState, ErrorState, LoadingState } from '@/components/common/states';
+import { RcComplianceRows, RcRecordDetails } from '@/features/documents/rto-record-details';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -53,156 +51,6 @@ function useLookupStage(active: boolean): string {
   }, [active]);
 
   return LOOKUP_STAGES[index] ?? LOOKUP_STAGES[0]!;
-}
-
-const VALIDITY_TONE: Record<RcValidity, { label: string; variant: 'success' | 'warning' | 'destructive' | 'muted' }> =
-  {
-    VALID: { label: 'Valid', variant: 'success' },
-    EXPIRING_SOON: { label: 'Expiring soon', variant: 'warning' },
-    EXPIRED: { label: 'Expired', variant: 'destructive' },
-    UNKNOWN: { label: 'Not published', variant: 'muted' },
-  };
-
-function ComplianceRow({ label, validUntil }: { label: string; validUntil: string | null }) {
-  const { validity, daysRemaining } = rcValidity(validUntil);
-  const tone = VALIDITY_TONE[validity];
-
-  return (
-    <div className="flex items-center justify-between gap-3 py-1.5">
-      <span className="text-sm">{label}</span>
-      <div className="flex items-center gap-2">
-        {validUntil ? (
-          <span className="tabular text-xs text-muted-foreground">
-            {validUntil}
-            {daysRemaining !== null && validity !== 'EXPIRED'
-              ? ` · ${daysRemaining} days`
-              : ''}
-          </span>
-        ) : null}
-        <Badge variant={tone.variant} size="sm">
-          {tone.label}
-        </Badge>
-      </div>
-    </div>
-  );
-}
-
-/** One label/value pair. Renders an em dash when the RTO published nothing. */
-function Detail({ label, value }: { label: string; value: string | number | null | undefined }) {
-  const display =
-    value === null || value === undefined || value === '' ? '—' : String(value);
-  return (
-    <div className="min-w-0 space-y-0.5">
-      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className="truncate text-sm" title={display}>
-        {display}
-      </p>
-    </div>
-  );
-}
-
-function VehicleDetails({ vehicle }: { vehicle: VehicleRcRecord }) {
-  return (
-    <div className="space-y-5">
-      <section className="space-y-2">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Vehicle
-        </h3>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          <Detail label="Maker" value={vehicle.maker} />
-          <Detail label="Model" value={vehicle.model} />
-          <Detail label="Variant" value={vehicle.variant} />
-          <Detail label="Class" value={vehicle.vehicleClass} />
-          <Detail label="Category" value={vehicle.vehicleCategory} />
-          <Detail label="Body type" value={vehicle.bodyType} />
-          <Detail label="Fuel" value={vehicle.fuelType} />
-          <Detail label="Colour" value={vehicle.color} />
-          <Detail label="Emission norms" value={vehicle.emissionNorms} />
-          <Detail label="Manufactured" value={vehicle.manufacturedOn} />
-          <Detail
-            label="Cubic capacity"
-            value={vehicle.cubicCapacity === null ? null : `${vehicle.cubicCapacity} cc`}
-          />
-          <Detail label="Cylinders" value={vehicle.cylinders} />
-        </div>
-      </section>
-
-      <section className="space-y-2">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Capacity &amp; weight
-        </h3>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          <Detail label="Seating" value={vehicle.seatingCapacity} />
-          <Detail label="Sleeper" value={vehicle.sleeperCapacity} />
-          <Detail label="Standing" value={vehicle.standingCapacity} />
-          <Detail
-            label="Gross weight"
-            value={vehicle.grossVehicleWeight === null ? null : `${vehicle.grossVehicleWeight} kg`}
-          />
-          <Detail
-            label="Unladen weight"
-            value={vehicle.unladenWeight === null ? null : `${vehicle.unladenWeight} kg`}
-          />
-          <Detail
-            label="Wheelbase"
-            value={vehicle.wheelbaseMm === null ? null : `${vehicle.wheelbaseMm} mm`}
-          />
-        </div>
-      </section>
-
-      <section className="space-y-2">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Registration &amp; RTO
-        </h3>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          <Detail label="Registered on" value={vehicle.registrationDate} />
-          <Detail label="RTO" value={vehicle.rto} />
-          <Detail label="RTO code" value={vehicle.rtoCode} />
-          <Detail label="Insurer" value={vehicle.insurer} />
-          <Detail label="Policy number" value={vehicle.insurancePolicyNumber} />
-          <Detail label="PUCC number" value={vehicle.puccNumber} />
-          <Detail label="Tax paid until" value={vehicle.tax.paidUntil} />
-          <Detail label="Permit type" value={vehicle.permit.type} />
-          <Detail label="Permit valid until" value={vehicle.permit.validUntil} />
-          <Detail label="National permit" value={vehicle.permit.national.number} />
-          <Detail
-            label="Financed"
-            value={vehicle.financed === null ? null : vehicle.financed ? 'Yes' : 'No'}
-          />
-          <Detail label="Financer" value={vehicle.financer} />
-        </div>
-      </section>
-
-      {vehicle.owner || vehicle.engineNumber || vehicle.chassisNumber ? (
-        <section className="space-y-2">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Owner &amp; identifiers
-          </h3>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            <Detail label="Owner" value={vehicle.owner?.name} />
-            <Detail label="Owner serial" value={vehicle.owner?.serialNumber} />
-            <Detail label="Engine number" value={vehicle.engineNumber} />
-            <Detail label="Chassis number" value={vehicle.chassisNumber} />
-            <Detail label="Present address" value={vehicle.owner?.presentAddress} />
-            <Detail label="Permanent address" value={vehicle.owner?.permanentAddress} />
-          </div>
-        </section>
-      ) : null}
-
-      {vehicle.blacklistStatus || vehicle.nocDetails || vehicle.nonUse.status ? (
-        <section className="space-y-2">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Flags
-          </h3>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            <Detail label="Blacklist" value={vehicle.blacklistStatus} />
-            <Detail label="NOC" value={vehicle.nocDetails} />
-            <Detail label="Non-use status" value={vehicle.nonUse.status} />
-          </div>
-        </section>
-      ) : null}
-    </div>
-  );
 }
 
 export interface RcLookupPanelProps {
@@ -289,13 +137,10 @@ export function RcLookupPanel({ registrationNumber: fixedPlate }: RcLookupPanelP
     void (async () => {
       setDownloading(true);
       try {
-        const response = await fetch(
-          absoluteApiUrl(`/vehicles/lookups/${lookupId}/document`),
-          {
-            credentials: 'include',
-            headers: { authorization: `Bearer ${getAccessToken() ?? ''}` },
-          },
-        );
+        const response = await fetch(absoluteApiUrl(`/vehicles/lookups/${lookupId}/document`), {
+          credentials: 'include',
+          headers: { authorization: `Bearer ${getAccessToken() ?? ''}` },
+        });
         if (!response.ok) throw new Error('Download failed');
 
         const blob = await response.blob();
@@ -371,8 +216,8 @@ export function RcLookupPanel({ registrationNumber: fixedPlate }: RcLookupPanelP
               </>
             ) : (
               <>
-                Lookups are limited to vehicles in your own fleet — add the vehicle first, then
-                pull its RC record. Spaces and hyphens are fine:{' '}
+                Lookups are limited to vehicles in your own fleet — add the vehicle first, then pull
+                its RC record. Spaces and hyphens are fine:{' '}
                 <span className="font-mono">up32 ab 1234</span> and{' '}
                 <span className="font-mono">UP-32-AB-1234</span> both resolve to the same vehicle.
               </>
@@ -454,16 +299,13 @@ export function RcLookupPanel({ registrationNumber: fixedPlate }: RcLookupPanelP
                 Compliance
               </h3>
               <div className="divide-y divide-border">
-                <ComplianceRow label="Insurance" validUntil={result.vehicle.insuranceValidUntil} />
-                <ComplianceRow label="PUC" validUntil={result.vehicle.puccValidUntil} />
-                <ComplianceRow label="Fitness" validUntil={result.vehicle.fitnessValidUntil} />
-                <ComplianceRow label="Road tax" validUntil={result.vehicle.tax.validUntil} />
+                <RcComplianceRows record={result.vehicle} />
               </div>
             </section>
 
             <Separator />
 
-            <VehicleDetails vehicle={result.vehicle} />
+            <RcRecordDetails record={result.vehicle} />
 
             {result.vehicle.redacted ? (
               <p className="flex items-start gap-2 rounded-lg bg-muted/60 px-3 py-2 text-xs text-muted-foreground">

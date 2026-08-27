@@ -24,6 +24,7 @@ import {
 import {
   ScannerRelationship,
   defaultScopesFor,
+  publicResolveDefaultFor,
   resolveGrantedScopes,
   shortTokenLabel,
 } from './qr';
@@ -313,12 +314,59 @@ describe('QR scope resolution', () => {
     expect(granted).toContain(QrScope.EMERGENCY);
   });
 
-  it('reduces a stranger to identity alone', () => {
+  it('gives a stranger the roadside verification set and nothing operational', () => {
     const granted = resolveGrantedScopes({
       codeScopes,
       relationship: ScannerRelationship.SIGNED_IN_STRANGER,
     });
-    expect(granted).toEqual([QrScope.IDENTITY]);
+
+    // What a checkpoint needs: who this is, the vehicle, the person, and
+    // whether the paperwork is current.
+    expect(granted).toContain(QrScope.IDENTITY);
+    expect(granted).toContain(QrScope.VEHICLE_SUMMARY);
+    expect(granted).toContain(QrScope.DRIVER_SUMMARY);
+    expect(granted).toContain(QrScope.COMPLIANCE);
+
+    // What it does not: how to reach the driver, their medical data, or who is
+    // assigned to what.
+    expect(granted).not.toContain(QrScope.CONTACT);
+    expect(granted).not.toContain(QrScope.EMERGENCY);
+    expect(granted).not.toContain(QrScope.ASSIGNMENT);
+  });
+
+  it('gives an anonymous scanner no more than a signed-in stranger', () => {
+    const anonymous = resolveGrantedScopes({
+      codeScopes,
+      relationship: ScannerRelationship.ANONYMOUS,
+    });
+    const stranger = resolveGrantedScopes({
+      codeScopes,
+      relationship: ScannerRelationship.SIGNED_IN_STRANGER,
+    });
+
+    // Signing in must never *narrow* a result. The two ceilings share one list
+    // precisely so this cannot drift; the assertion is here to catch a future
+    // edit that splits them again.
+    expect(anonymous).toEqual(stranger);
+  });
+
+  it('keeps a printed subject able to answer for both halves of a check', () => {
+    // A driver card resolves the vehicle too, and a cab-door sticker resolves
+    // the driver — one scan, one answer, whichever code the officer finds
+    // first.
+    expect(defaultScopesFor(QrSubjectType.DRIVER)).toContain(QrScope.VEHICLE_SUMMARY);
+    expect(defaultScopesFor(QrSubjectType.VEHICLE)).toContain(QrScope.DRIVER_SUMMARY);
+  });
+
+  it('opts printed subjects into public resolution, and nothing else', () => {
+    expect(publicResolveDefaultFor(QrSubjectType.DRIVER)).toBe(true);
+    expect(publicResolveDefaultFor(QrSubjectType.VEHICLE)).toBe(true);
+
+    // An order or trip code is an internal handle that happens to render as a
+    // QR. One of those answering to a passer-by would be a leak.
+    expect(publicResolveDefaultFor(QrSubjectType.ORDER)).toBe(false);
+    expect(publicResolveDefaultFor(QrSubjectType.TRIP)).toBe(false);
+    expect(publicResolveDefaultFor(QrSubjectType.INVENTORY_LOCATION)).toBe(false);
   });
 
   it('withholds emergency data from a responder with no active incident', () => {
@@ -531,9 +579,9 @@ describe('return-load matching', () => {
   });
 
   it('rejects a price below the stated minimum', () => {
-    expect(
-      findHardBlockers({ ...supply, minimumPrice: 100_000 }, homewardLoad),
-    ).toContain('minimum');
+    expect(findHardBlockers({ ...supply, minimumPrice: 100_000 }, homewardLoad)).toContain(
+      'minimum',
+    );
   });
 
   it('ranks a homeward load above a sideways one', () => {
@@ -1042,9 +1090,9 @@ describe('corridor matching', () => {
 
   it('drops hazards below the confidence floor', () => {
     const faint = { ...hazard('faint', 13.0, 77.596), confidence: 0.1 };
-    expect(hazardsOnRoute(route, [faint], { corridorMeters: 2000, minConfidence: 0.25 })).toHaveLength(
-      0,
-    );
+    expect(
+      hazardsOnRoute(route, [faint], { corridorMeters: 2000, minConfidence: 0.25 }),
+    ).toHaveLength(0);
   });
 });
 

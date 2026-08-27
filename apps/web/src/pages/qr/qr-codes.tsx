@@ -18,8 +18,9 @@ import {
   Permission,
   QrSubjectType,
   humanizeEnum,
+  publicResolveDefaultFor,
 } from '@saarthi/shared';
-import { ApiError, api, getAccessToken } from '@/lib/api-client';
+import { ApiError, api, apiBase, getAccessToken } from '@/lib/api-client';
 import type { Paginated } from '@/lib/api-types';
 import type { VehicleSummary } from '@/lib/mobility-types';
 import { useAuth } from '@/features/auth/auth-context';
@@ -128,7 +129,7 @@ function useAuthedImage(path: string | null): { src: string | null; loading: boo
     let cancelled = false;
     setLoading(true);
 
-    const base = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '');
+    const base = apiBase();
     fetch(`${base}${path}`, {
       headers: { authorization: `Bearer ${getAccessToken() ?? ''}` },
       credentials: 'include',
@@ -242,7 +243,7 @@ function defaultStickerFor(subjectType: string): string {
 
 /** Download an authenticated asset without exposing the token in a URL. */
 async function downloadAsset(path: string, filename: string): Promise<void> {
-  const base = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '');
+  const base = apiBase();
   const response = await fetch(`${base}${path}`, {
     headers: { authorization: `Bearer ${getAccessToken() ?? ''}` },
     credentials: 'include',
@@ -374,9 +375,7 @@ function CodeCard({ code, onChanged }: { code: QrCodeView; onChanged: () => void
           </div>
 
           <div>
-            <p className="mb-1 text-xs uppercase tracking-wide text-muted-foreground">
-              Discloses
-            </p>
+            <p className="mb-1 text-xs uppercase tracking-wide text-muted-foreground">Discloses</p>
             <div className="flex flex-wrap gap-1">
               {code.scopes.map((scope) => (
                 <Badge key={scope} variant="outline" size="sm">
@@ -618,8 +617,21 @@ export function QrCodesPage() {
   const [subjectType, setSubjectType] = React.useState<string>(QrSubjectType.VEHICLE);
   const [subjectId, setSubjectId] = React.useState('');
   const [label, setLabel] = React.useState('');
-  const [allowPublic, setAllowPublic] = React.useState(false);
+  // Seeded from the same rule the server applies when the field is omitted, so
+  // the switch shows what will actually happen rather than a fixed "off" the
+  // API would then override.
+  const [allowPublic, setAllowPublic] = React.useState(() =>
+    publicResolveDefaultFor(QrSubjectType.VEHICLE),
+  );
   const [createError, setCreateError] = React.useState<string | null>(null);
+
+  /** Changing the subject re-seeds the switch, unless it has been touched. */
+  const [publicTouched, setPublicTouched] = React.useState(false);
+  const changeSubjectType = (next: string) => {
+    setSubjectType(next);
+    setSubjectId('');
+    if (!publicTouched) setAllowPublic(publicResolveDefaultFor(next as QrSubjectType));
+  };
 
   const canRead = can(Permission.QR_READ);
   const canManage = can(Permission.QR_MANAGE);
@@ -658,14 +670,13 @@ export function QrCodesPage() {
     onSuccess: () => {
       setSubjectId('');
       setLabel('');
-      setAllowPublic(false);
+      setPublicTouched(false);
+      setAllowPublic(publicResolveDefaultFor(subjectType as QrSubjectType));
       setCreateError(null);
       void queryClient.invalidateQueries({ queryKey: ['qr'] });
     },
     onError: (error) => {
-      setCreateError(
-        error instanceof ApiError ? error.message : 'That code could not be created.',
-      );
+      setCreateError(error instanceof ApiError ? error.message : 'That code could not be created.');
     },
   });
 
@@ -712,105 +723,104 @@ export function QrCodesPage() {
               </Link>
             </Button>
             {canManage ? (
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button className="gap-1.5">
-                  <QrCode className="h-4 w-4" />
-                  Generate code
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Generate a QR code</DialogTitle>
-                  <DialogDescription>
-                    The code discloses a fixed set of fields chosen for the subject type. Who is
-                    scanning decides how much of that set they actually see.
-                  </DialogDescription>
-                </DialogHeader>
-
-                <div className="space-y-3">
-                  <div className="space-y-1.5">
-                    <Label>Subject</Label>
-                    <Select
-                      value={subjectType}
-                      onValueChange={(value) => {
-                        setSubjectType(value);
-                        setSubjectId('');
-                      }}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value={QrSubjectType.VEHICLE}>Vehicle</SelectItem>
-                        <SelectItem value={QrSubjectType.DRIVER}>Driver</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label>
-                      {subjectType === QrSubjectType.VEHICLE ? 'Which vehicle' : 'Which driver'}
-                    </Label>
-                    <Select value={subjectId} onValueChange={setSubjectId}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Choose one" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {subjectOptions.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label htmlFor="qr-label">Label (optional)</Label>
-                    <Input
-                      id="qr-label"
-                      value={label}
-                      onChange={(event) => setLabel(event.target.value)}
-                      placeholder="Windscreen sticker"
-                    />
-                  </div>
-
-                  <Separator />
-
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 space-y-0.5">
-                      <Label htmlFor="qr-public">Answer anonymous scans</Label>
-                      <p className="text-2xs text-muted-foreground">
-                        Off by default. Leave it off unless the code needs to work for someone with
-                        no VorldX Saarthi account — an anonymous scan sees far less, and a code that
-                        answers to anyone is a different decision from one that answers to a
-                        signed-in account.
-                      </p>
-                    </div>
-                    <Switch
-                      id="qr-public"
-                      checked={allowPublic}
-                      onCheckedChange={setAllowPublic}
-                    />
-                  </div>
-
-                  {createError ? (
-                    <p className="text-sm text-destructive">{createError}</p>
-                  ) : null}
-                </div>
-
-                <DialogFooter>
-                  <Button
-                    disabled={!subjectId}
-                    loading={create.isPending}
-                    onClick={() => create.mutate()}
-                  >
-                    Generate
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button className="gap-1.5">
+                    <QrCode className="h-4 w-4" />
+                    Generate code
                   </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Generate a QR code</DialogTitle>
+                    <DialogDescription>
+                      The code discloses a fixed set of fields chosen for the subject type. Who is
+                      scanning decides how much of that set they actually see.
+                    </DialogDescription>
+                  </DialogHeader>
+
+                  <div className="space-y-3">
+                    <div className="space-y-1.5">
+                      <Label>Subject</Label>
+                      <Select value={subjectType} onValueChange={changeSubjectType}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value={QrSubjectType.VEHICLE}>Vehicle</SelectItem>
+                          <SelectItem value={QrSubjectType.DRIVER}>Driver</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label>
+                        {subjectType === QrSubjectType.VEHICLE ? 'Which vehicle' : 'Which driver'}
+                      </Label>
+                      <Select value={subjectId} onValueChange={setSubjectId}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Choose one" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {subjectOptions.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="qr-label">Label (optional)</Label>
+                      <Input
+                        id="qr-label"
+                        value={label}
+                        onChange={(event) => setLabel(event.target.value)}
+                        placeholder="Windscreen sticker"
+                      />
+                    </div>
+
+                    <Separator />
+
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 space-y-0.5">
+                        <Label htmlFor="qr-public">Answer anonymous scans</Label>
+                        <p className="text-2xs text-muted-foreground">
+                          On for vehicle and driver codes, which get printed and fixed to something
+                          out in the world — a traffic officer or a customer at a gate has no VorldX
+                          Saarthi account. An anonymous scan sees the registration and licence
+                          records and nothing operational; you decide field by field in{' '}
+                          <Link to="/settings/qr-privacy" className="underline underline-offset-2">
+                            QR privacy
+                          </Link>
+                          .
+                        </p>
+                      </div>
+                      <Switch
+                        id="qr-public"
+                        checked={allowPublic}
+                        onCheckedChange={(next) => {
+                          setPublicTouched(true);
+                          setAllowPublic(next);
+                        }}
+                      />
+                    </div>
+
+                    {createError ? <p className="text-sm text-destructive">{createError}</p> : null}
+                  </div>
+
+                  <DialogFooter>
+                    <Button
+                      disabled={!subjectId}
+                      loading={create.isPending}
+                      onClick={() => create.mutate()}
+                    >
+                      Generate
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             ) : null}
           </div>
         }
