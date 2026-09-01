@@ -221,6 +221,15 @@ export async function register(input: RegisterInput, meta: RequestMeta) {
       },
     });
 
+    // The language chosen on the first step of registration. Written here
+    // rather than left for the profile screen, so the very first authenticated
+    // render is already in it — the account is created and read back in one
+    // round trip, and a locale applied a screen later would mean the dashboard
+    // arrives in English for somebody who just said they do not read it.
+    await tx.userProfile.create({
+      data: { userId: user.id, preferences: { locale: input.preferredLanguage } },
+    });
+
     return { user, organizationId, createdOrganization };
   });
 

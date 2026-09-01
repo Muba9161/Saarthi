@@ -11,14 +11,35 @@ interface ThemeContextValue {
 const ThemeContext = React.createContext<ThemeContextValue | null>(null);
 const STORAGE_KEY = 'saarthi.theme';
 
+/**
+ * Light, on every device, until somebody says otherwise.
+ *
+ * Not `system`. A fleet office is usually a bright room and the operational
+ * screens — dense tables, map overlays, document scans — were designed light
+ * first. Following the OS meant a phone on its night schedule opened Saarthi
+ * in a theme nobody had chosen for it. "Match my device" is still there for
+ * anyone who wants it; it is just no longer assumed.
+ *
+ * The pre-paint script in `index.html` resolves the same key by the same rule,
+ * so the boot splash and the app never disagree.
+ */
+const DEFAULT_THEME: Theme = 'light';
+
 function systemPrefersDark(): boolean {
   return window.matchMedia('(prefers-color-scheme: dark)').matches;
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = React.useState<Theme>(() => {
-    const stored = window.localStorage.getItem(STORAGE_KEY);
-    return stored === 'light' || stored === 'dark' || stored === 'system' ? stored : 'system';
+    try {
+      const stored = window.localStorage.getItem(STORAGE_KEY);
+      return stored === 'light' || stored === 'dark' || stored === 'system'
+        ? stored
+        : DEFAULT_THEME;
+    } catch {
+      // Blocked storage is survivable; the default stands.
+      return DEFAULT_THEME;
+    }
   });
 
   const [resolvedTheme, setResolvedTheme] = React.useState<'light' | 'dark'>(() =>
@@ -46,7 +67,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, [theme]);
 
   const setTheme = React.useCallback((next: Theme) => {
-    window.localStorage.setItem(STORAGE_KEY, next);
+    try {
+      window.localStorage.setItem(STORAGE_KEY, next);
+    } catch {
+      // As above — the choice still applies for this session.
+    }
     setThemeState(next);
   }, []);
 

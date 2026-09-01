@@ -1,12 +1,5 @@
 import * as React from 'react';
-import {
-  NavLink,
-  Outlet,
-  useLocation,
-  useMatch,
-  useNavigate,
-  useResolvedPath,
-} from 'react-router-dom';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Bell,
@@ -38,6 +31,7 @@ import { api } from '@/lib/api-client';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/features/auth/auth-context';
 import { useTheme } from '@/features/theme/theme-context';
+import { LanguageMenu, useT } from '@/features/i18n';
 import { useRealtime, useRealtimeEvent } from '@/hooks/use-realtime';
 import {
   ACCOUNT_NAVIGATION,
@@ -196,43 +190,75 @@ function useVisibleNavigation(): NavSection[] {
   }, [session, can, hasFeature, isDriver, isPlatformAdmin]);
 }
 
+/**
+ * Which single destination the current URL belongs to.
+ *
+ * Router-side matching marks a link active for its whole subtree, so every
+ * ancestor lights up at once — `/settings` was highlighted alongside
+ * `/settings/profile`, and `/travel` alongside `/travel/bookings`. Individual
+ * links cannot see each other, so no per-link flag fixes this in general.
+ *
+ * Resolving it once against the whole menu and keeping only the longest match
+ * means the most specific destination wins and exactly one entry is ever
+ * highlighted — including for routes that appear in no menu at all, which
+ * correctly keep their parent lit.
+ */
+function useActiveNavPath(): string | null {
+  const { pathname } = useLocation();
+  const sections = useVisibleNavigation();
+
+  return React.useMemo(() => {
+    const candidates = [...sections.flatMap((section) => section.items), ...ACCOUNT_NAVIGATION];
+
+    let best: string | null = null;
+    for (const { to, end } of candidates) {
+      const matches = pathname === to || (!end && pathname.startsWith(`${to.replace(/\/$/, '')}/`));
+      if (matches && (best === null || to.length > best.length)) best = to;
+    }
+    return best;
+  }, [pathname, sections]);
+}
+
 function NavLinkItem({
   item,
   badges,
+  isActive,
   collapsed,
   onNavigate,
 }: {
   item: NavItem;
   badges: NavBadges;
+  /** Decided by `useActiveNavPath` above, not by the link itself. */
+  isActive: boolean;
   collapsed?: boolean;
   onNavigate?: () => void;
 }) {
   const count = item.badgeKey ? badges[item.badgeKey] : 0;
   const Icon = item.icon;
+  const t = useT();
 
   /*
-   * Resolve the active state here rather than through NavLink's render-prop
-   * form, which would be the natural way to write this.
+   * A plain `Link` with the active state applied by hand, rather than
+   * `NavLink`'s render-prop form, which would be the natural way to write this.
    *
-   * The collapsed rail wraps each link in a Radix tooltip trigger, and `asChild`
-   * merges className by string-joining the two values. Handed a function it
-   * stringifies the source instead of calling it, so the link's entire class
-   * list — layout, spacing and colour — was replaced by a fragment of
-   * JavaScript. The icons then inherited the body's dark foreground and became
-   * invisible against the dark rail; only the active icon and the badge dot
-   * survived, because their classes sit on inner elements. Keeping className a
-   * plain string merges correctly under `asChild`.
+   * Two reasons. `NavLink` decides active on its own and would disagree with
+   * `useActiveNavPath` — putting `aria-current` on two links while only one is
+   * styled. And the collapsed rail wraps each link in a Radix tooltip trigger,
+   * whose `asChild` merges className by string-joining the two values: handed a
+   * function it stringifies the source instead of calling it, so the link's
+   * entire class list — layout, spacing and colour — was replaced by a fragment
+   * of JavaScript. The icons then inherited the body's dark foreground and
+   * became invisible against the dark rail; only the active icon and the badge
+   * dot survived, because their classes sit on inner elements. Keeping
+   * className a plain string merges correctly under `asChild`.
    */
-  const resolved = useResolvedPath(item.to);
-  const isActive = useMatch({ path: resolved.pathname, end: item.end ?? false }) !== null;
-
   const link = (
-    <NavLink
+    <Link
       to={item.to}
-      end={item.end ?? false}
+      aria-current={isActive ? 'page' : undefined}
       onClick={onNavigate}
       // Collapsing drops the visible label, so the icon needs its own name.
-      {...(collapsed ? { 'aria-label': item.label } : {})}
+      {...(collapsed ? { 'aria-label': t(item.label) } : {})}
       className={cn(
         'group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all duration-200',
         'text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-foreground',
@@ -256,7 +282,7 @@ function NavLinkItem({
         )}
       />
 
-      {!collapsed ? <span className="truncate">{item.label}</span> : null}
+      {!collapsed ? <span className="truncate">{t(item.label)}</span> : null}
 
       {count > 0 ? (
         collapsed ? (
@@ -271,7 +297,7 @@ function NavLinkItem({
           </Badge>
         )
       ) : null}
-    </NavLink>
+    </Link>
   );
 
   if (!collapsed) return link;
@@ -280,7 +306,7 @@ function NavLinkItem({
     <Tooltip>
       <TooltipTrigger asChild>{link}</TooltipTrigger>
       <TooltipContent side="right" className="font-medium">
-        {item.label}
+        {t(item.label)}
         {count > 0 ? ` (${count})` : ''}
       </TooltipContent>
     </Tooltip>
@@ -299,6 +325,8 @@ export function SidebarContent({
   const { session } = useAuth();
   const badges = useNavBadges();
   const sections = useVisibleNavigation();
+  const activePath = useActiveNavPath();
+  const t = useT();
 
   return (
     <div className="relative flex h-full flex-col overflow-hidden bg-sidebar">
@@ -333,7 +361,7 @@ export function SidebarContent({
             size="icon-sm"
             onClick={onToggleCollapse}
             className="text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-foreground"
-            aria-label="Collapse navigation"
+            aria-label={t('Collapse navigation')}
           >
             <PanelLeftClose className="size-4" />
           </Button>
@@ -345,7 +373,7 @@ export function SidebarContent({
           <div key={section.title} className="space-y-1">
             {!collapsed ? (
               <p className="px-3 pb-1 text-2xs font-semibold uppercase tracking-[0.08em] text-sidebar-muted">
-                {section.title}
+                {t(section.title)}
               </p>
             ) : (
               <Separator className="my-2 bg-sidebar-border" />
@@ -355,6 +383,7 @@ export function SidebarContent({
                 key={item.to}
                 item={item}
                 badges={badges}
+                isActive={activePath === item.to}
                 {...(collapsed ? { collapsed } : {})}
                 {...(onNavigate ? { onNavigate } : {})}
               />
@@ -370,6 +399,7 @@ export function SidebarContent({
               key={item.to}
               item={item}
               badges={badges}
+              isActive={activePath === item.to}
               {...(collapsed ? { collapsed } : {})}
               {...(onNavigate ? { onNavigate } : {})}
             />
@@ -384,7 +414,7 @@ export function SidebarContent({
             size="icon"
             onClick={onToggleCollapse}
             className="w-full text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-foreground"
-            aria-label="Expand navigation"
+            aria-label={t('Expand navigation')}
           >
             <PanelLeftOpen className="size-4" />
           </Button>
@@ -522,6 +552,7 @@ function TopBar({ onOpenNav }: { onOpenNav: () => void }) {
   const { resolvedTheme, setTheme } = useTheme();
   const navigate = useNavigate();
   const badges = useNavBadges();
+  const t = useT();
   const user = session?.user;
 
   return (
@@ -587,11 +618,13 @@ function TopBar({ onOpenNav }: { onOpenNav: () => void }) {
           ) : null}
         </Button>
 
+        <LanguageMenu />
+
         <Button
           variant="ghost"
           size="icon"
           onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
-          aria-label="Toggle theme"
+          aria-label={t('Switch theme')}
         >
           <AnimatePresence mode="wait" initial={false}>
             <motion.span
@@ -609,7 +642,7 @@ function TopBar({ onOpenNav }: { onOpenNav: () => void }) {
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="rounded-full" aria-label="Account menu">
+            <Button variant="ghost" size="icon" className="rounded-full" aria-label={t('Account menu')}>
               <Avatar className="size-8 ring-1 ring-border">
                 <AvatarFallback>{initialsOf(user?.firstName, user?.lastName)}</AvatarFallback>
               </Avatar>
@@ -621,14 +654,14 @@ function TopBar({ onOpenNav }: { onOpenNav: () => void }) {
               <p className="truncate text-xs text-muted-foreground">{user?.email}</p>
             </div>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={() => navigate('/settings')}>
+            <DropdownMenuItem onSelect={() => navigate('/settings/profile')}>
               <UserIcon className="size-4" />
-              Profile &amp; settings
+              {t('Profile & settings')}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem destructive onSelect={() => void logout()}>
               <LogOut className="size-4" />
-              Sign out
+              {t('Sign out')}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -641,7 +674,9 @@ function TopBar({ onOpenNav }: { onOpenNav: () => void }) {
 function MobileTabBar() {
   const sections = useVisibleNavigation();
   const badges = useNavBadges();
+  const activePath = useActiveNavPath();
   const { isDriver } = useAuth();
+  const t = useT();
 
   const items = React.useMemo(
     () => sections.flatMap((section) => section.items).slice(0, isDriver ? 4 : 5),
@@ -655,37 +690,33 @@ function MobileTabBar() {
       {items.map((item) => {
         const count = item.badgeKey ? badges[item.badgeKey] : 0;
         const Icon = item.icon;
+        // Same single-winner rule as the sidebar, so the two never disagree.
+        const isActive = activePath === item.to;
         return (
-          <NavLink
+          <Link
             key={item.to}
             to={item.to}
-            end={item.end ?? false}
-            className={({ isActive }) =>
-              cn(
-                'relative flex flex-1 flex-col items-center gap-1 py-2.5 text-2xs transition-colors',
-                isActive ? 'text-primary' : 'text-muted-foreground',
-              )
-            }
-          >
-            {({ isActive }) => (
-              <>
-                {isActive ? (
-                  <motion.span
-                    layoutId="mobile-tab-active"
-                    className="absolute inset-x-4 top-0 h-0.5 rounded-b-full bg-primary"
-                    transition={{ type: 'spring', stiffness: 400, damping: 32 }}
-                  />
-                ) : null}
-                <span className="relative">
-                  <Icon className="size-5" />
-                  {count > 0 ? (
-                    <span className="absolute -right-1.5 -top-1 size-2 rounded-full bg-destructive" />
-                  ) : null}
-                </span>
-                <span className="max-w-full truncate px-1">{item.label}</span>
-              </>
+            aria-current={isActive ? 'page' : undefined}
+            className={cn(
+              'relative flex flex-1 flex-col items-center gap-1 py-2.5 text-2xs transition-colors',
+              isActive ? 'text-primary' : 'text-muted-foreground',
             )}
-          </NavLink>
+          >
+            {isActive ? (
+              <motion.span
+                layoutId="mobile-tab-active"
+                className="absolute inset-x-4 top-0 h-0.5 rounded-b-full bg-primary"
+                transition={{ type: 'spring', stiffness: 400, damping: 32 }}
+              />
+            ) : null}
+            <span className="relative">
+              <Icon className="size-5" />
+              {count > 0 ? (
+                <span className="absolute -right-1.5 -top-1 size-2 rounded-full bg-destructive" />
+              ) : null}
+            </span>
+            <span className="max-w-full truncate px-1">{t(item.label)}</span>
+          </Link>
         );
       })}
     </nav>

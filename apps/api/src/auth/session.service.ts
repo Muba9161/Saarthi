@@ -6,6 +6,7 @@ import {
   SubscriptionStatus,
   featuresForTier,
   permissionsForRoles,
+  resolveLocale,
   type OrganizationType,
   type Permission,
   type SessionOrganization,
@@ -37,6 +38,7 @@ const userInclude = {
     orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
   },
   driverProfile: true,
+  profile: { select: { preferences: true } },
 } as const;
 
 type LoadedUser = NonNullable<Awaited<ReturnType<typeof loadUser>>>;
@@ -69,9 +71,27 @@ export async function loadUser(userId: string) {
           currentTruckId: string | null;
           overallScore: number | null;
         } | null;
+        profile: { preferences: unknown } | null;
       })
     | null
   >;
+}
+
+/**
+ * The language this account reads Saarthi in.
+ *
+ * Stored inside the profile preferences blob, so it is read defensively: an
+ * unrecognised or hand-edited value resolves to English rather than reaching
+ * the client and being applied to every screen.
+ */
+function localeOf(user: LoadedUser): string {
+  const preferences = user.profile?.preferences;
+  const stored =
+    preferences && typeof preferences === 'object' && !Array.isArray(preferences)
+      ? (preferences as Record<string, unknown>).locale
+      : null;
+
+  return resolveLocale(typeof stored === 'string' ? stored : null);
 }
 
 function globalRoles(user: LoadedUser): RoleName[] {
@@ -234,5 +254,6 @@ export async function buildSessionPayload(
         }
       : null,
     demoMode: config.demo.enabled,
+    locale: localeOf(user),
   };
 }

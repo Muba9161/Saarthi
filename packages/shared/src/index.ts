@@ -1,5 +1,6 @@
 // Domain
 export * from './domain/enums';
+export * from './domain/languages';
 export * from './domain/permissions';
 export * from './domain/entitlements';
 export * from './domain/geo';

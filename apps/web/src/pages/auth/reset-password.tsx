@@ -4,20 +4,24 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
+import { KeyRound } from 'lucide-react';
 import { passwordSchema } from '@saarthi/shared';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AuthCard, AuthHeading, FieldIcon } from '@/features/auth/auth-card';
+import { PasswordStrength } from '@/components/common/password-strength';
 import { api, errorMessage } from '@/lib/api-client';
+import { AnimatePresence, motion } from '@/components/motion';
+import { useT } from '@/features/i18n';
 
 const schema = z
   .object({
@@ -30,6 +34,7 @@ const schema = z
   });
 
 export function ResetPasswordPage() {
+  const t = useT();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const token = searchParams.get('token');
@@ -42,17 +47,19 @@ export function ResetPasswordPage() {
 
   if (!token) {
     return (
-      <div className="space-y-6">
-        <Alert variant="destructive">
-          <AlertTitle>This link is not valid</AlertTitle>
-          <AlertDescription>
-            The reset link is missing its token. Request a new one and try again.
-          </AlertDescription>
-        </Alert>
-        <Button variant="outline" className="w-full" asChild>
-          <Link to="/forgot-password">Request a new link</Link>
-        </Button>
-      </div>
+      <AuthCard>
+        <div className="space-y-5">
+          <Alert variant="destructive">
+            <AlertTitle>{t('This link is not valid')}</AlertTitle>
+            <AlertDescription>
+              {t('The reset link is missing its token. Request a new one and try again.')}
+            </AlertDescription>
+          </Alert>
+          <Button variant="outline" size="lg" className="w-full" asChild>
+            <Link to="/forgot-password">{t('Request a new link')}</Link>
+          </Button>
+        </div>
+      </AuthCard>
     );
   }
 
@@ -60,7 +67,7 @@ export function ResetPasswordPage() {
     setError(null);
     try {
       await api.post('/auth/reset-password', { token, password: values.password });
-      toast.success('Password updated', { description: 'Sign in with your new password.' });
+      toast.success(t('Password updated'), { description: t('Sign in with your new password.') });
       navigate('/login', { replace: true });
     } catch (caught) {
       setError(errorMessage(caught));
@@ -68,34 +75,49 @@ export function ResetPasswordPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-1.5">
-        <h1 className="text-2xl font-semibold tracking-tight">Choose a new password</h1>
-        <p className="text-sm text-muted-foreground">
-          Setting a new password signs you out of every other device.
-        </p>
-      </div>
+    <AuthCard>
+      <AuthHeading
+        eyebrow={t('Security')}
+        title={t('Choose a new password')}
+        description={t('Setting a new password signs you out of every other device.')}
+      />
 
-      {error ? (
-        <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      ) : null}
+      <AnimatePresence initial={false}>
+        {error ? (
+          <motion.div
+            key="form-error"
+            initial={{ opacity: 0, height: 0, marginTop: 0 }}
+            animate={{ opacity: 1, height: 'auto', marginTop: 20 }}
+            exit={{ opacity: 0, height: 0, marginTop: 0 }}
+            transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
+            className="overflow-hidden"
+          >
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" noValidate>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="mt-6 space-y-4" noValidate>
           <FormField
             control={form.control}
             name="password"
             render={({ field }) => (
               <FormItem>
-                <FormLabel required>New password</FormLabel>
-                <FormControl>
-                  <Input {...field} type="password" autoComplete="new-password" autoFocus />
-                </FormControl>
-                <FormDescription>
-                  At least 10 characters, with upper case, lower case and a number.
-                </FormDescription>
+                <FormLabel required>{t('New password')}</FormLabel>
+                <FieldIcon icon={KeyRound}>
+                  <FormControl>
+                    <PasswordInput
+                      {...field}
+                      autoComplete="new-password"
+                      autoFocus
+                      className="h-11 pl-10"
+                    />
+                  </FormControl>
+                </FieldIcon>
+                <PasswordStrength value={field.value ?? ''} className="pt-1" />
                 <FormMessage />
               </FormItem>
             )}
@@ -105,20 +127,28 @@ export function ResetPasswordPage() {
             name="confirmPassword"
             render={({ field }) => (
               <FormItem>
-                <FormLabel required>Confirm new password</FormLabel>
-                <FormControl>
-                  <Input {...field} type="password" autoComplete="new-password" />
-                </FormControl>
+                <FormLabel required>{t('Confirm new password')}</FormLabel>
+                <FieldIcon icon={KeyRound}>
+                  <FormControl>
+                    <PasswordInput {...field} autoComplete="new-password" className="h-11 pl-10" />
+                  </FormControl>
+                </FieldIcon>
                 <FormMessage />
               </FormItem>
             )}
           />
-          <Button type="submit" className="w-full" loading={form.formState.isSubmitting}>
-            Update password
+          <Button
+            type="submit"
+            variant="gradient"
+            size="lg"
+            className="w-full"
+            loading={form.formState.isSubmitting}
+          >
+            {t('Update password')}
           </Button>
         </form>
       </Form>
-    </div>
+    </AuthCard>
   );
 }
 

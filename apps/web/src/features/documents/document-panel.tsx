@@ -14,6 +14,7 @@ import { useAuth } from '@/features/auth/auth-context';
 import { StatusBadge } from '@/components/common/status-badge';
 import { EmptyState, ErrorState, LoadingState } from '@/components/common/states';
 import { SectionHeader } from '@/components/common/page-header';
+import { FileDropzone, FilePreviewCard } from '@/components/common/file-dropzone';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -374,16 +375,23 @@ function UploadDialog({
 
           <div className="space-y-1.5">
             <Label required>File</Label>
-            <Input
-              type="file"
-              accept=".pdf,.jpg,.jpeg,.png,.webp,.heic"
-              onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-            />
             {file ? (
-              <p className="text-xs text-muted-foreground">
-                {file.name} · {(file.size / 1024).toFixed(0)} KB
-              </p>
-            ) : null}
+              <FilePreviewCard
+                file={file}
+                onRemove={() => setFile(null)}
+                disabled={upload.isPending}
+              />
+            ) : (
+              <FileDropzone
+                accept=".pdf,.jpg,.jpeg,.png,.webp,.heic"
+                maxSizeMb={10}
+                disabled={upload.isPending}
+                onFiles={(files) => setFile(files[0] ?? null)}
+                onReject={(reason) => toast.error(reason)}
+                title="Drag the document here, or click to browse"
+                hint="PDF, JPEG, PNG, WebP or HEIC · up to 10 MB"
+              />
+            )}
           </div>
         </div>
 

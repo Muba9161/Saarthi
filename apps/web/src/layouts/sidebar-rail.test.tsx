@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { OrganizationType } from '@saarthi/shared';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { LocaleProvider } from '@/features/i18n/locale-context';
 
 /**
  * The collapsed navigation rail.
@@ -32,7 +33,13 @@ const session = {
     email: 'ravi@sharmatransport.in',
     roles: ['FLEET_OWNER'],
   },
-  organization: { id: 'org-1', name: 'Sharma Transport Company', type: OrganizationType.FLEET_OWNER },
+  organization: {
+    id: 'org-1',
+    name: 'Sharma Transport Company',
+    // Widened, not narrowed to the literal: one test swaps the account type to
+    // reach a menu where a parent and its child are both destinations.
+    type: OrganizationType.FLEET_OWNER as OrganizationType,
+  },
   subscription: { planName: 'Growth' },
   demoMode: true,
 };
@@ -54,21 +61,23 @@ vi.mock('@/features/auth/auth-context', () => ({
 // Imported after the mocks so the module graph picks them up.
 const { SidebarContent } = await import('./app-shell');
 
-function renderSidebar(collapsed: boolean) {
+function renderSidebar(collapsed: boolean, at = '/fleet/trucks') {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 } },
   });
 
   return render(
     <QueryClientProvider client={client}>
-      <MemoryRouter initialEntries={['/fleet/trucks']}>
-        <TooltipProvider>
-          {collapsed ? (
-            <SidebarContent collapsed onToggleCollapse={() => undefined} />
-          ) : (
-            <SidebarContent onToggleCollapse={() => undefined} />
-          )}
-        </TooltipProvider>
+      <MemoryRouter initialEntries={[at]}>
+        <LocaleProvider>
+          <TooltipProvider>
+            {collapsed ? (
+              <SidebarContent collapsed onToggleCollapse={() => undefined} />
+            ) : (
+              <SidebarContent onToggleCollapse={() => undefined} />
+            )}
+          </TooltipProvider>
+        </LocaleProvider>
       </MemoryRouter>
     </QueryClientProvider>,
   );
@@ -168,5 +177,61 @@ describe('collapsed navigation rail', () => {
 
     expect(trucks?.getAttribute('class')).toContain('bg-sidebar-accent');
     expect(trucks?.querySelector('svg')?.getAttribute('class')).toContain('text-sidebar-highlight');
+  });
+
+  /*
+   * Router-side matching marks a link active for its whole subtree, so a parent
+   * destination lit up at the same time as its child — "/settings" alongside
+   * "/settings/profile". Two highlighted entries tell the user they are in two
+   * places at once, so the rule is that the most specific destination wins and
+   * exactly one entry is ever active.
+   */
+  it('highlights exactly one destination, however deep the route', () => {
+    // Walk the real menu rather than a hand-picked list, so this keeps holding
+    // as destinations are added — including any new parent/child pair.
+    const probe = renderSidebar(false);
+    const targets = destinations(probe.container);
+    probe.unmount();
+
+    expect(targets.length).toBeGreaterThan(5);
+
+    for (const at of targets) {
+      const { container, unmount } = renderSidebar(false, at);
+      const active = [...container.querySelectorAll('nav a[aria-current="page"]')];
+
+      expect(active.map((link) => link.getAttribute('href')), `at ${at}`).toEqual([at]);
+      unmount();
+    }
+  });
+
+  it('keeps the parent destination active on a route that is not in the menu', () => {
+    const { container } = renderSidebar(false, '/fleet/trucks/truck-1');
+    const active = [...container.querySelectorAll('nav a[aria-current="page"]')];
+
+    expect(active.map((link) => link.getAttribute('href'))).toEqual(['/fleet/trucks']);
+  });
+
+  /*
+   * The customer menu is where a parent and its child are both destinations —
+   * "Find travel" at /travel and "My bookings" at /travel/bookings. It is the
+   * one menu that reproduces the original fault, so the rule is pinned here
+   * against a pair that actually exists rather than a hypothetical one.
+   */
+  it('leaves the parent destination unlit when its child is the current route', () => {
+    const previous = session.organization.type;
+    session.organization.type = OrganizationType.CUSTOMER;
+
+    try {
+      const { container } = renderSidebar(false, '/travel/bookings');
+
+      // Both are in this menu — otherwise the assertion below proves nothing.
+      expect(container.querySelector('nav a[href="/travel"]')).not.toBeNull();
+      expect(container.querySelector('nav a[href="/travel/bookings"]')).not.toBeNull();
+
+      const active = [...container.querySelectorAll('nav a[aria-current="page"]')];
+      expect(active.map((link) => link.getAttribute('href'))).toEqual(['/travel/bookings']);
+    } finally {
+      session.organization.type = previous;
+    }
   });
 });

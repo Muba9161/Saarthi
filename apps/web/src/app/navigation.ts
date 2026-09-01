@@ -27,7 +27,6 @@ import {
   PlayCircle,
   Route,
   ScrollText,
-  Settings,
   ShieldCheck,
   ShoppingCart,
   Truck,
@@ -545,7 +544,10 @@ export const ACCOUNT_NAVIGATION: NavItem[] = [
   { label: 'Notifications', to: '/notifications', icon: Bell, badgeKey: 'notifications' },
   // Every account type on every plan can complete its own profile, so this
   // carries no permission or feature requirement.
+  //
+  // This is also where account settings live. There is no separate Settings
+  // destination: everything it held is either a profile section already, or
+  // was moved onto this screen as a step of its own.
   { label: 'My profile', to: '/settings/profile', icon: UserRoundCog },
   { label: 'Verification', to: '/verification', icon: ShieldCheck },
-  { label: 'Settings', to: '/settings', icon: Settings },
 ];

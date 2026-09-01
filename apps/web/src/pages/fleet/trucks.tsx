@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { AlertTriangle, Plus, Search, Truck } from 'lucide-react';
+import { AlertTriangle, Gauge, IdCard, Plus, Search, Truck } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   FuelType,
@@ -29,7 +29,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -42,6 +41,14 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import {
+  FormWizard,
+  WIZARD_DIALOG_CONTENT,
+  WIZARD_DIALOG_HEADER,
+  WIZARD_DIALOG_PANEL,
+  WIZARD_IN_DIALOG,
+  type WizardStep,
+} from '@/components/common/form-wizard';
 import {
   Select,
   SelectContent,
@@ -56,7 +63,21 @@ const STATUS_FILTERS = [
   ...Object.values(TruckStatus).map((status) => ({ value: status, label: humanizeEnum(status) })),
 ];
 
-function AddTruckDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+/**
+ * Add a truck.
+ *
+ * Three steps rather than seven stacked fields: the registration number is the
+ * one thing that must be right and unique, so it is asked alone; the body type
+ * and capacity decide what loads the vehicle can be matched to; the rest is
+ * detail the fleet fills in when it has it.
+ */
+function AddTruckDialog({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
   const queryClient = useQueryClient();
 
   const form = useForm<CreateTruckInput>({
@@ -85,9 +106,10 @@ function AddTruckDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (
       onOpenChange(false);
     },
     onError: (error) => {
-      const fields = error instanceof Error && 'fieldErrors' in error
-        ? (error as { fieldErrors: Record<string, string[]> }).fieldErrors
-        : {};
+      const fields =
+        error instanceof Error && 'fieldErrors' in error
+          ? (error as { fieldErrors: Record<string, string[]> }).fieldErrors
+          : {};
       const registration = fields.registrationNumber?.[0];
       if (registration) {
         form.setError('registrationNumber', { message: registration });
@@ -97,10 +119,180 @@ function AddTruckDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (
     },
   });
 
+  const steps: WizardStep[] = [
+    {
+      id: 'registration',
+      title: 'Registration',
+      description: 'The plate on the vehicle.',
+      icon: IdCard,
+      fields: ['registrationNumber'],
+      content: (
+        <FormField
+          control={form.control}
+          name="registrationNumber"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel required>Registration number</FormLabel>
+              <FormControl>
+                <Input {...field} placeholder="UP 16 AB 1234" className="uppercase" autoFocus />
+              </FormControl>
+              <FormDescription>Spaces and dashes are ignored.</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      ),
+    },
+    {
+      id: 'body',
+      title: 'Body & capacity',
+      description: 'What loads it can take.',
+      icon: Truck,
+      fields: ['truckType', 'capacityTons'],
+      content: (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <FormField
+            control={form.control}
+            name="truckType"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel required>Body type</FormLabel>
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {Object.values(TruckType).map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {humanizeEnum(type)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="capacityTons"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel required>Capacity (tonnes)</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    min={0.5}
+                    step={0.5}
+                    value={field.value}
+                    onChange={(event) => field.onChange(Number(event.target.value))}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+      ),
+    },
+    {
+      id: 'details',
+      title: 'Make & usage',
+      description: 'Everything else we know.',
+      icon: Gauge,
+      optional: true,
+      fields: ['manufacturer', 'model', 'fuelType', 'odometerKm'],
+      content: (
+        <>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <FormField
+              control={form.control}
+              name="manufacturer"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Manufacturer</FormLabel>
+                  <FormControl>
+                    <Input {...field} value={field.value ?? ''} placeholder="Tata Motors" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="model"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Model</FormLabel>
+                  <FormControl>
+                    <Input {...field} value={field.value ?? ''} placeholder="Signa 4825.TK" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <FormField
+              control={form.control}
+              name="fuelType"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Fuel</FormLabel>
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {Object.values(FuelType).map((fuel) => (
+                        <SelectItem key={fuel} value={fuel}>
+                          {humanizeEnum(fuel)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="odometerKm"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Odometer (km)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={field.value}
+                      onChange={(event) => field.onChange(Number(event.target.value))}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </>
+      ),
+    },
+  ];
+
+  const erroredStepIds = steps
+    .filter((step) => step.fields?.some((name) => name in form.formState.errors))
+    .map((step) => step.id);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
+      <DialogContent className={`${WIZARD_DIALOG_CONTENT} sm:max-w-3xl`}>
+        <DialogHeader className={WIZARD_DIALOG_HEADER}>
           <DialogTitle>Add a truck</DialogTitle>
           <DialogDescription>
             The vehicle starts unverified. Upload its RC, insurance, fitness, permit and PUC to
@@ -109,156 +301,26 @@ function AddTruckDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (
         </DialogHeader>
 
         <Form {...form}>
-          <form
+          <FormWizard
+            steps={steps}
+            className={WIZARD_IN_DIALOG}
+            panelClassName={WIZARD_DIALOG_PANEL}
+            resetKey={open}
+            onValidateStep={(step) =>
+              step.fields?.length
+                ? form.trigger(step.fields as (keyof CreateTruckInput)[], { shouldFocus: true })
+                : true
+            }
             onSubmit={form.handleSubmit((values) => mutation.mutate(values))}
-            className="space-y-4"
-            noValidate
-          >
-            <FormField
-              control={form.control}
-              name="registrationNumber"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel required>Registration number</FormLabel>
-                  <FormControl>
-                    <Input {...field} placeholder="UP 16 AB 1234" className="uppercase" autoFocus />
-                  </FormControl>
-                  <FormDescription>Spaces and dashes are ignored.</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="truckType"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel required>Body type</FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {Object.values(TruckType).map((type) => (
-                          <SelectItem key={type} value={type}>
-                            {humanizeEnum(type)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="capacityTons"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel required>Capacity (tonnes)</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        min={0.5}
-                        step={0.5}
-                        value={field.value}
-                        onChange={(event) => field.onChange(Number(event.target.value))}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="manufacturer"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Manufacturer</FormLabel>
-                    <FormControl>
-                      <Input {...field} value={field.value ?? ''} placeholder="Tata Motors" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="model"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Model</FormLabel>
-                    <FormControl>
-                      <Input {...field} value={field.value ?? ''} placeholder="Signa 4825.TK" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="fuelType"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Fuel</FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {Object.values(FuelType).map((fuel) => (
-                          <SelectItem key={fuel} value={fuel}>
-                            {humanizeEnum(fuel)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="odometerKm"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Odometer (km)</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        min={0}
-                        value={field.value}
-                        onChange={(event) => field.onChange(Number(event.target.value))}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            submitting={mutation.isPending}
+            submitLabel="Add truck"
+            erroredStepIds={erroredStepIds}
+            footerStart={
+              <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button type="submit" loading={mutation.isPending}>
-                Add truck
-              </Button>
-            </DialogFooter>
-          </form>
+            }
+          />
         </Form>
       </DialogContent>
     </Dialog>

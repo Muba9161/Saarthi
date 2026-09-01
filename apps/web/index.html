@@ -119,13 +119,20 @@
         to { transform: translate3d(3%, 2%, 0) scale(1.08); }
       }
 
-      @media (prefers-color-scheme: dark) {
-        #boot-splash {
-          background: radial-gradient(120% 90% at 50% 18%, #0d1526 0%, #080c17 62%, #05080f 100%);
-        }
-        #boot-splash__road { background: rgba(255, 255, 255, 0.12); }
-        #boot-splash__word { color: #8b9cb8; }
+      /*
+        Follows the stored choice rather than the OS.
+
+        Light is Saarthi's default on every device, so keying this off
+        `prefers-color-scheme` would paint a dark boot splash and then hand
+        over to a light app on any machine set to dark. The `dark` class is put
+        on <html> by the pre-paint script below, from the same localStorage key
+        the theme provider writes.
+      */
+      .dark #boot-splash {
+        background: radial-gradient(120% 90% at 50% 18%, #0d1526 0%, #080c17 62%, #05080f 100%);
       }
+      .dark #boot-splash__road { background: rgba(255, 255, 255, 0.12); }
+      .dark #boot-splash__word { color: #8b9cb8; }
 
       /*
         Motion is decoration here, so it goes entirely when asked. The splash
@@ -140,6 +147,34 @@
         #boot-splash__road::after { width: 100%; transform: none; }
       }
     </style>
+    <script>
+      /*
+        Resolve the theme before the first paint.
+
+        Saarthi defaults to light on every device — a fleet office is usually a
+        bright room, and the operational screens were designed light first. The
+        OS preference is honoured only when somebody has explicitly asked for
+        it by choosing "Match my device" in the app.
+
+        Inline and synchronous on purpose: anything deferred would let the
+        browser paint the light splash first and then repaint it dark, which is
+        the exact flash this removes. It reads the same key the theme provider
+        writes, so the two can never disagree.
+      */
+      (function () {
+        try {
+          var stored = window.localStorage.getItem('saarthi.theme');
+          var dark =
+            stored === 'dark' ||
+            (stored === 'system' &&
+              window.matchMedia('(prefers-color-scheme: dark)').matches);
+          if (dark) document.documentElement.classList.add('dark');
+          document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
+        } catch (error) {
+          /* Blocked storage just means the light default stands. */
+        }
+      })();
+    </script>
   </head>
   <body class="h-full bg-background font-sans text-foreground antialiased">
     <div id="root" class="h-full"></div>

@@ -3,9 +3,11 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft,
+  CalendarClock,
   Car,
   Check,
   Clock,
+  Contact,
   Fuel,
   MapPin,
   ShieldCheck,
@@ -21,11 +23,9 @@ import { PageHeader, SectionHeader } from '@/components/common/page-header';
 import { ErrorState, LoadingState } from '@/components/common/states';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Separator } from '@/components/ui/separator';
+import { FormWizard, WizardField, type WizardStep } from '@/components/common/form-wizard';
 
 /**
  * Package detail and the booking form.
@@ -34,6 +34,11 @@ import { Separator } from '@/components/ui/separator';
  * figure is snapshotted onto the booking — so a later change to the package
  * price cannot alter what they agreed to pay.
  */
+
+/** Per-field messages for the booking wizard. */
+type BookingErrors = Partial<
+  Record<'passengers' | 'startDate' | 'contactName' | 'contactPhone', string>
+>;
 
 /** Minimum notice Saarthi requires, mirrored from the shared domain rules. */
 const MIN_LEAD_HOURS = 4;
@@ -61,6 +66,8 @@ export function TravelPackageDetailPage() {
   const [pickup, setPickup] = React.useState('');
   const [requests, setRequests] = React.useState('');
   const [formError, setFormError] = React.useState<string | null>(null);
+  const [bookingErrors, setBookingErrors] = React.useState<BookingErrors>({});
+  const [erroredStepIds, setErroredStepIds] = React.useState<string[]>([]);
 
   // Seed the form from the package and the signed-in user once loaded.
   React.useEffect(() => {
@@ -124,6 +131,194 @@ export function TravelPackageDetailPage() {
     : Number.POSITIVE_INFINITY;
   const tooSoon = leadHours < MIN_LEAD_HOURS;
   const partyValid = partySize >= data.minPassengers && partySize <= data.maxPassengers;
+
+  /**
+   * The quote rides along beside every step rather than sitting under the last
+   * one. Party size is set on step one and drives the price, so the customer
+   * sees the total move while they are still choosing it.
+   */
+  const priceSummary = quote.data ? (
+    <div className="glass-inset space-y-1.5 p-3 text-sm">
+      <div className="flex justify-between gap-3">
+        <span className="text-muted-foreground">{quote.data.breakdown}</span>
+        <span className="tabular-nums">{formatCurrency(quote.data.subtotal)}</span>
+      </div>
+      <div className="flex justify-between gap-3">
+        <span className="text-muted-foreground">Saarthi booking fee</span>
+        <span className="tabular-nums">{formatCurrency(quote.data.platformFee)}</span>
+      </div>
+      <div className="flex justify-between gap-3 border-t border-white/40 pt-1.5 font-semibold dark:border-white/[0.08]">
+        <span>Total</span>
+        <span className="tabular-nums">{formatCurrency(quote.data.total)}</span>
+      </div>
+      {formError ? <p className="pt-1 text-xs text-destructive">{formError}</p> : null}
+    </div>
+  ) : partyValid ? (
+    <p className="text-sm text-muted-foreground">Working out the price…</p>
+  ) : formError ? (
+    <p className="text-sm text-destructive">{formError}</p>
+  ) : null;
+
+  const bookingSteps: WizardStep[] = [
+    {
+      id: 'trip',
+      title: 'Trip',
+      description: 'When, and how many.',
+      icon: CalendarClock,
+      content: (
+        <>
+          <WizardField
+            label="Passengers"
+            htmlFor="party"
+            required
+            error={
+              bookingErrors.passengers ??
+              (!partyValid && passengers
+                ? `${data.minPassengers}–${data.maxPassengers} passengers`
+                : null)
+            }
+          >
+            <Input
+              id="party"
+              type="number"
+              min={data.minPassengers}
+              max={data.maxPassengers}
+              value={passengers}
+              aria-invalid={(!partyValid && Boolean(passengers)) || undefined}
+              onChange={(event) => {
+                setPassengers(event.target.value);
+                setBookingErrors((previous) => ({ ...previous, passengers: undefined }));
+              }}
+            />
+          </WizardField>
+
+          <WizardField
+            label="Start"
+            htmlFor="start"
+            required
+            error={
+              bookingErrors.startDate ?? (tooSoon ? `At least ${MIN_LEAD_HOURS} hours' notice` : null)
+            }
+          >
+            <Input
+              id="start"
+              type="datetime-local"
+              value={startDate}
+              aria-invalid={tooSoon || undefined}
+              onChange={(event) => {
+                setStartDate(event.target.value);
+                setBookingErrors((previous) => ({ ...previous, startDate: undefined }));
+              }}
+            />
+          </WizardField>
+        </>
+      ),
+    },
+    {
+      id: 'contact',
+      title: 'Contact',
+      description: 'Who the provider calls.',
+      icon: Contact,
+      content: (
+        <>
+          <WizardField
+            label="Contact name"
+            htmlFor="contact-name"
+            required
+            error={bookingErrors.contactName}
+          >
+            <Input
+              id="contact-name"
+              value={contactName}
+              aria-invalid={Boolean(bookingErrors.contactName) || undefined}
+              onChange={(event) => {
+                setContactName(event.target.value);
+                setBookingErrors((previous) => ({ ...previous, contactName: undefined }));
+              }}
+            />
+          </WizardField>
+
+          <WizardField
+            label="Contact phone"
+            htmlFor="contact-phone"
+            required
+            error={bookingErrors.contactPhone}
+          >
+            <Input
+              id="contact-phone"
+              value={contactPhone}
+              aria-invalid={Boolean(bookingErrors.contactPhone) || undefined}
+              onChange={(event) => {
+                setContactPhone(event.target.value);
+                setBookingErrors((previous) => ({ ...previous, contactPhone: undefined }));
+              }}
+              placeholder="9876543210"
+            />
+          </WizardField>
+        </>
+      ),
+    },
+    {
+      id: 'pickup',
+      title: 'Pickup',
+      description: 'Where to collect you.',
+      icon: MapPin,
+      content: (
+        <>
+          <WizardField label="Pickup" htmlFor="pickup">
+            <Input
+              id="pickup"
+              value={pickup}
+              onChange={(event) => setPickup(event.target.value)}
+            />
+          </WizardField>
+
+          <WizardField label="Anything the provider should know?" htmlFor="requests">
+            <Textarea
+              id="requests"
+              rows={3}
+              value={requests}
+              onChange={(event) => setRequests(event.target.value)}
+              placeholder="Early start, child seat needed."
+            />
+          </WizardField>
+
+          <p className="text-2xs text-muted-foreground">
+            Paying reserves the trip. The provider confirms a vehicle and driver next — if they
+            cannot, you are refunded in full.
+          </p>
+        </>
+      ),
+    },
+  ];
+
+  const validateBookingStep = (step: WizardStep): boolean => {
+    const found: BookingErrors = {};
+
+    if (step.id === 'trip') {
+      if (!partyValid)
+        found.passengers = `${data.minPassengers}–${data.maxPassengers} passengers`;
+      if (!startDate) found.startDate = 'Pick a start date and time.';
+      else if (tooSoon) found.startDate = `At least ${MIN_LEAD_HOURS} hours' notice`;
+    }
+
+    if (step.id === 'contact') {
+      if (!contactName.trim()) found.contactName = 'Who should the provider ask for?';
+      if (!contactPhone.trim()) found.contactPhone = 'A number they can reach on the day.';
+    }
+
+    const ok = Object.keys(found).length === 0;
+    setBookingErrors(found);
+    setErroredStepIds((previous) =>
+      ok
+        ? previous.filter((entry) => entry !== step.id)
+        : previous.includes(step.id)
+          ? previous
+          : [...previous, step.id],
+    );
+
+    return ok;
+  };
 
   return (
     <div className="space-y-5">
@@ -333,138 +528,39 @@ export function TravelPackageDetailPage() {
             </Card>
           ) : null}
 
-          <Card>
-            <CardHeader className="pb-3">
-              <SectionHeader title="Book this trip" />
-            </CardHeader>
-            <CardContent className="space-y-3 pt-0">
-              {isOwnPackage ? (
+          {isOwnPackage || !canBook ? (
+            <Card>
+              <CardHeader className="pb-3">
+                <SectionHeader title="Book this trip" />
+              </CardHeader>
+              <CardContent className="pt-0">
                 <p className="text-sm text-muted-foreground">
-                  This is your own package. Bookings arrive under Travel → Bookings.
+                  {isOwnPackage
+                    ? 'This is your own package. Bookings arrive under Travel → Bookings.'
+                    : 'Sign in with a customer account to book this trip.'}
                 </p>
-              ) : !canBook ? (
-                <p className="text-sm text-muted-foreground">
-                  Sign in with a customer account to book this trip.
-                </p>
-              ) : (
-                <>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="party">Passengers</Label>
-                      <Input
-                        id="party"
-                        type="number"
-                        min={data.minPassengers}
-                        max={data.maxPassengers}
-                        value={passengers}
-                        onChange={(event) => setPassengers(event.target.value)}
-                      />
-                      {!partyValid && passengers ? (
-                        <p className="text-2xs text-destructive">
-                          {data.minPassengers}–{data.maxPassengers} passengers
-                        </p>
-                      ) : null}
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="start">Start</Label>
-                      <Input
-                        id="start"
-                        type="datetime-local"
-                        value={startDate}
-                        onChange={(event) => setStartDate(event.target.value)}
-                      />
-                      {tooSoon ? (
-                        <p className="text-2xs text-destructive">
-                          At least {MIN_LEAD_HOURS} hours&rsquo; notice
-                        </p>
-                      ) : null}
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label htmlFor="contact-name">Contact name</Label>
-                    <Input
-                      id="contact-name"
-                      value={contactName}
-                      onChange={(event) => setContactName(event.target.value)}
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label htmlFor="contact-phone">Contact phone</Label>
-                    <Input
-                      id="contact-phone"
-                      value={contactPhone}
-                      onChange={(event) => setContactPhone(event.target.value)}
-                      placeholder="9876543210"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label htmlFor="pickup">Pickup</Label>
-                    <Input
-                      id="pickup"
-                      value={pickup}
-                      onChange={(event) => setPickup(event.target.value)}
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label htmlFor="requests">Anything the provider should know?</Label>
-                    <Textarea
-                      id="requests"
-                      rows={2}
-                      value={requests}
-                      onChange={(event) => setRequests(event.target.value)}
-                      placeholder="Early start, child seat needed."
-                    />
-                  </div>
-
-                  <Separator />
-
-                  {quote.data ? (
-                    <div className="space-y-1.5 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">{quote.data.breakdown}</span>
-                        <span>{formatCurrency(quote.data.subtotal)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Saarthi booking fee</span>
-                        <span>{formatCurrency(quote.data.platformFee)}</span>
-                      </div>
-                      <div className="flex justify-between border-t border-border pt-1.5 font-semibold">
-                        <span>Total</span>
-                        <span>{formatCurrency(quote.data.total)}</span>
-                      </div>
-                    </div>
-                  ) : partyValid ? (
-                    <p className="text-sm text-muted-foreground">Working out the price…</p>
-                  ) : null}
-
-                  {formError ? <p className="text-sm text-destructive">{formError}</p> : null}
-
-                  <Button
-                    className="w-full"
-                    loading={book.isPending}
-                    disabled={
-                      !partyValid || tooSoon || !contactName.trim() || !contactPhone.trim()
-                    }
-                    onClick={() => {
-                      setFormError(null);
-                      book.mutate();
-                    }}
-                  >
-                    Continue to payment
-                  </Button>
-
-                  <p className="text-2xs text-muted-foreground">
-                    Paying reserves the trip. The provider confirms a vehicle and driver next — if
-                    they cannot, you are refunded in full.
-                  </p>
-                </>
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          ) : (
+            /*
+              The strip layout, not the rail: this column is a sidebar, and a
+              vertical rail would leave the fields about ten characters wide.
+            */
+            <FormWizard
+              variant="strip"
+              title="Book this trip"
+              steps={bookingSteps}
+              aside={priceSummary}
+              onValidateStep={validateBookingStep}
+              onSubmit={() => {
+                setFormError(null);
+                book.mutate();
+              }}
+              submitting={book.isPending}
+              submitLabel="Continue to payment"
+              erroredStepIds={erroredStepIds}
+            />
+          )}
 
           <Card>
             <CardContent className="flex items-start gap-2 py-3 text-xs text-muted-foreground">

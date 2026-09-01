@@ -3,6 +3,7 @@ import { Navigate, Outlet, createBrowserRouter, useRouteError } from 'react-rout
 import { AppShell } from '@/layouts/app-shell';
 import { AuthLayout } from '@/layouts/auth-layout';
 import { useAuth } from '@/features/auth/auth-context';
+import { useT } from '@/features/i18n';
 import { LoadingState } from '@/components/common/states';
 import { SplashScreen } from '@/components/common/splash';
 import { NotFoundPage } from '@/pages/not-found';
@@ -44,8 +45,9 @@ function RootRoute() {
 
 function RequireAuth() {
   const { status } = useAuth();
+  const t = useT();
 
-  if (status === 'loading') return <SplashScreen label="Checking your session" />;
+  if (status === 'loading') return <SplashScreen label={t('Checking your session')} />;
   if (status === 'unauthenticated') return <Navigate to="/login" replace />;
   return <Outlet />;
 }
@@ -257,7 +259,9 @@ export const router = createBrowserRouter([
           },
           { path: '/qr', element: lazyPage(() => import('@/pages/qr/qr-codes')) },
           { path: '/verification', element: lazyPage(() => import('@/pages/verification')) },
-          { path: '/settings', element: lazyPage(() => import('@/pages/settings/settings')) },
+          // The Settings screen was folded into the profile builder. Kept as a
+          // redirect so bookmarks and older links still land somewhere useful.
+          { path: '/settings', element: <Navigate to="/settings/profile" replace /> },
           {
             path: '/settings/qr-privacy',
             element: lazyPage(() => import('@/pages/settings/qr-privacy')),

@@ -74,7 +74,7 @@ export function ProviderPackagesPage() {
           action={
             can(Permission.PROVIDER_MANAGE) ? (
               <Button asChild>
-                <Link to="/settings">Open settings</Link>
+                <Link to="/settings/profile">Open your profile</Link>
               </Button>
             ) : undefined
           }
