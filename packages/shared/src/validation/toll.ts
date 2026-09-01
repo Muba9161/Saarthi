@@ -124,6 +124,26 @@ export const syncFastagSchema = z.object({
 });
 export type SyncFastagInput = z.infer<typeof syncFastagSchema>;
 
+/**
+ * Find the tag fitted to a vehicle from its registration number alone.
+ *
+ * The one FASTag operation that takes no tag id — discovering it is the point.
+ * NETC resolves a vehicle number to the tag on record, which is what lets a
+ * fleet add a truck and have its tag appear without anybody reading a
+ * 24-character identifier off a windscreen sticker.
+ *
+ * `includeTransactions` defaults to false here, unlike sync: the caller is
+ * often adding a vehicle and wants to know *whether* there is a tag, and a
+ * crossing feed is a second billed call for a question nobody asked.
+ */
+export const discoverFastagSchema = z.object({
+  vehicleId: uuidSchema,
+  /** Record what NETC returns rather than only reporting it. */
+  apply: z.coerce.boolean().default(true),
+  includeTransactions: z.coerce.boolean().default(false),
+});
+export type DiscoverFastagInput = z.infer<typeof discoverFastagSchema>;
+
 // ---------------------------------------------------------------------------
 // Toll transactions
 // ---------------------------------------------------------------------------

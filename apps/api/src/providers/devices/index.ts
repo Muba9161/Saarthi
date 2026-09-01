@@ -2,6 +2,7 @@ import { DeviceProvider } from '@saarthi/shared';
 import { logger } from '../../lib/logger';
 import { FreematicsAdapter } from './freematics.adapter';
 import { GenericTelemetryAdapter } from './generic.adapter';
+import { PhoneDeviceAdapter } from './phone.adapter';
 import type { DeviceAdapter } from './device.adapter';
 
 /**
@@ -13,6 +14,11 @@ import type { DeviceAdapter } from './device.adapter';
  */
 const ADAPTERS: DeviceAdapter[] = [
   new FreematicsAdapter(),
+  // The Saarthi Device app. It gets its own adapter rather than reusing the
+  // generic one because it is the only source that mixes measured and simulated
+  // values in a single frame, and the generic shape has no way to say which is
+  // which.
+  new PhoneDeviceAdapter(),
   new GenericTelemetryAdapter(DeviceProvider.MOCK),
   new GenericTelemetryAdapter(DeviceProvider.GENERIC_GPS),
   new GenericTelemetryAdapter(DeviceProvider.GENERIC_OBD),

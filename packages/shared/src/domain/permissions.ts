@@ -158,10 +158,26 @@ export const Permission = {
   // Payments
   PAYMENTS_READ: 'payments.read',
 
-  // Hardware devices
+  // Hardware devices.
+  //
+  // `manage` and `assign` are Saarthi-side: a telematics unit is a physical
+  // asset Saarthi ships, tracks and supports across its whole life, so
+  // registering one and moving it between vehicles stays central.
   DEVICES_READ: 'devices.read',
   DEVICES_MANAGE: 'devices.manage',
   DEVICES_ASSIGN: 'devices.assign',
+  /**
+   * Connect an app-based device to a vehicle in your own fleet.
+   *
+   * Deliberately separate from `devices.assign`. That grant covers fitted
+   * hardware Saarthi provisions; this one covers a phone somebody already owns
+   * running the Saarthi Device app, which a fleet must be able to connect to
+   * its own truck without a support ticket — that is the entire point of a test
+   * device. The boundary is enforced by device *type*: this permission issues
+   * pairing codes for app-based units only, so it cannot be used to fit a
+   * Freematics or claim a YC06.
+   */
+  DEVICES_PAIR: 'devices.pair',
 
   // Telemetry
   TELEMETRY_READ: 'telemetry.read',
@@ -264,6 +280,9 @@ const FLEET_MANAGER_PERMISSIONS: Permission[] = [
   Permission.MATERIALS_READ,
   Permission.SUPPLIERS_READ,
   Permission.DEVICES_READ,
+  // Pairing a phone to one of the fleet's own vehicles. Not `devices.assign`:
+  // fitted hardware is still provisioned centrally.
+  Permission.DEVICES_PAIR,
   Permission.TELEMETRY_READ,
   Permission.TELEMETRY_ALERTS_READ,
   Permission.PROVIDER_READ,
@@ -290,55 +309,66 @@ const FLEET_MANAGER_PERMISSIONS: Permission[] = [
   Permission.ROUTE_INTEL_REPORT,
 ];
 
+/**
+ * Everything the owner of an operating business holds.
+ *
+ * Named rather than written inline because two roles need it: a freight fleet
+ * owner and a mobility provider. They differ in what they *sell* — tonnes moved
+ * against seats filled — but not in what they own. Both hold vehicles, employ
+ * drivers, service and insure them, carry the finance, and answer for who is
+ * driving what. A permission set that only one of them could hold would be
+ * describing the commercial surface, not the responsibility.
+ */
+const OPERATOR_OWNER_PERMISSIONS: Permission[] = [
+  ...FLEET_MANAGER_PERMISSIONS,
+  Permission.ORG_UPDATE,
+  Permission.ORG_MEMBERS_MANAGE,
+  Permission.TRUCKS_DELETE,
+  Permission.DRIVERS_SCORE_ADJUST,
+  Permission.ANALYTICS_FINANCIAL,
+  // Vehicle finance follows the same rule as financial analytics: the person
+  // who signed for the loan is the person who sees it.
+  Permission.LOANS_READ,
+  Permission.LOANS_MANAGE,
+  Permission.LOANS_SENSITIVE,
+  // The tag id is a payment instrument identifier — owner level, like the
+  // loan and mandate references above it.
+  Permission.FASTAG_SENSITIVE,
+  Permission.SUBSCRIPTION_MANAGE,
+  Permission.VEHICLE_LOOKUP_SENSITIVE,
+  Permission.DRIVER_LICENCE_LOOKUP_SENSITIVE,
+  // Buying, selling and transferring an asset commits money — the owner only.
+  Permission.RESALE_OFFER,
+  Permission.RESALE_TRANSFER,
+  // A fleet may record its own private access rules and hazards.
+  Permission.CITY_ACCESS_MANAGE,
+  Permission.ROUTE_INTEL_MANAGE,
+  // The scan log for the fleet's own codes: who scanned their vehicle, where
+  // and when. It carries scanner identity and location, so it sits at owner
+  // level rather than with every manager — but withholding a fleet's own
+  // operational record from its owner while granting it to Saarthi support
+  // would have been backwards.
+  Permission.QR_AUDIT,
+  Permission.TELEMETRY_ALERTS_MANAGE,
+  // Telematics hardware is provisioned and fitted by Saarthi, so an operator
+  // reads its devices and works their alerts but cannot register a unit or
+  // move one between vehicles — see DEVICES_MANAGE / DEVICES_ASSIGN.
+  // Pairing a phone to one of its own vehicles is a lighter grant and comes
+  // through FLEET_MANAGER_PERMISSIONS as DEVICES_PAIR.
+  Permission.PAYMENTS_READ,
+  // Selling travel is gated by organization type, not by role: only a
+  // MOBILITY_PROVIDER organization may publish packages. This decides which
+  // role inside such an organization may act, and a freight fleet holding it
+  // still cannot sell a tour because the type guard refuses first.
+  Permission.PROVIDER_MANAGE,
+  Permission.TRAVEL_PACKAGES_MANAGE,
+  Permission.BOOKINGS_MANAGE,
+];
+
 const ROLE_PERMISSIONS: Record<RoleName, Permission[]> = {
   [RoleName.PLATFORM_ADMIN]: [...ALL_PERMISSIONS],
 
-  [RoleName.FLEET_OWNER]: [
-    ...FLEET_MANAGER_PERMISSIONS,
-    Permission.ORG_UPDATE,
-    Permission.ORG_MEMBERS_MANAGE,
-    Permission.TRUCKS_DELETE,
-    Permission.DRIVERS_SCORE_ADJUST,
-    Permission.ANALYTICS_FINANCIAL,
-    // Vehicle finance follows the same rule as financial analytics: the person
-    // who signed for the loan is the person who sees it.
-    Permission.LOANS_READ,
-    Permission.LOANS_MANAGE,
-    Permission.LOANS_SENSITIVE,
-    // The tag id is a payment instrument identifier — owner level, like the
-    // loan and mandate references above it.
-    Permission.FASTAG_SENSITIVE,
-    Permission.SUBSCRIPTION_MANAGE,
-    Permission.VEHICLE_LOOKUP_SENSITIVE,
-    Permission.DRIVER_LICENCE_LOOKUP_SENSITIVE,
-    // Buying, selling and transferring an asset commits money — the owner only.
-    Permission.RESALE_OFFER,
-    Permission.RESALE_TRANSFER,
-    // A fleet may record its own private access rules and hazards.
-    Permission.CITY_ACCESS_MANAGE,
-    Permission.ROUTE_INTEL_MANAGE,
-    // The scan log for the fleet's own codes: who scanned their vehicle, where
-    // and when. It carries scanner identity and location, so it sits at owner
-    // level rather than with every manager — but withholding a fleet's own
-    // operational record from its owner while granting it to Saarthi support
-    // would have been backwards.
-    Permission.QR_AUDIT,
-    Permission.TELEMETRY_ALERTS_MANAGE,
-    // Telematics hardware is provisioned and fitted by Saarthi, so a fleet
-    // reads its devices and works their alerts but cannot register a unit or
-    // move one between vehicles — see DEVICES_MANAGE / DEVICES_ASSIGN.
-    //
-    // Selling passenger travel is likewise not a freight fleet's surface: it
-    // belongs to a MOBILITY_PROVIDER organization, which is a distinct account
-    // type chosen at registration.
-    Permission.PAYMENTS_READ,
-    // A MOBILITY_PROVIDER organization is administered by its owner. The
-    // organization-type guard decides *which* orgs may sell travel; this
-    // decides which role inside them may act.
-    Permission.PROVIDER_MANAGE,
-    Permission.TRAVEL_PACKAGES_MANAGE,
-    Permission.BOOKINGS_MANAGE,
-  ],
+  [RoleName.FLEET_OWNER]: [...OPERATOR_OWNER_PERMISSIONS],
 
   [RoleName.FLEET_MANAGER]: [...FLEET_MANAGER_PERMISSIONS],
 
@@ -351,73 +381,23 @@ const ROLE_PERMISSIONS: Record<RoleName, Permission[]> = {
    * fleet cannot list tour packages.
    */
   [RoleName.MOBILITY_PROVIDER]: [
-    Permission.ORG_READ,
-    Permission.ORG_UPDATE,
-    Permission.ORG_MEMBERS_READ,
-    Permission.ORG_MEMBERS_MANAGE,
-    Permission.VEHICLES_READ,
-    Permission.VEHICLES_CREATE,
-    Permission.VEHICLES_UPDATE,
-    Permission.TRUCKS_READ,
-    Permission.TRUCKS_CREATE,
-    Permission.TRUCKS_UPDATE,
-    Permission.TRUCKS_ASSIGN,
-    Permission.DRIVERS_READ,
-    Permission.DRIVERS_MANAGE,
-    Permission.DRIVERS_SCORE_READ,
-    Permission.DOCUMENTS_READ,
-    Permission.DOCUMENTS_UPLOAD,
-    Permission.DOCUMENTS_DELETE,
-    Permission.VERIFICATION_READ,
-    Permission.VERIFICATION_SUBMIT,
-    Permission.TRIPS_READ,
-    Permission.TRIPS_MANAGE,
-    Permission.TRACKING_READ,
-    Permission.TRACKING_HISTORY,
-    Permission.SOS_READ,
-    Permission.MAINTENANCE_READ,
-    Permission.MAINTENANCE_MANAGE,
-    Permission.FUEL_READ,
-    Permission.FUEL_MANAGE,
-    Permission.NEARBY_READ,
-    Permission.NOTIFICATIONS_READ,
-    Permission.ANALYTICS_READ,
-    Permission.ANALYTICS_FINANCIAL,
-    Permission.SUBSCRIPTION_READ,
-    Permission.SUBSCRIPTION_MANAGE,
-    // Its own vehicles only, same as any other operator.
-    Permission.VEHICLE_LOOKUP,
-    Permission.VEHICLE_LOOKUP_SENSITIVE,
-    Permission.DRIVER_LICENCE_LOOKUP,
-    Permission.DRIVER_LICENCE_LOOKUP_SENSITIVE,
-    Permission.DEVICES_READ,
-    Permission.TELEMETRY_READ,
-    Permission.TELEMETRY_ALERTS_READ,
     /*
-     * QR identity, on the same terms as a freight fleet.
+     * The same grants as a fleet owner, because it is one.
      *
-     * A taxi or tour operator runs the same two subjects a QR code is issued
-     * for — vehicles and drivers — and has, if anything, a stronger case for
-     * the printed code: a passenger getting into a cab at night is exactly the
-     * person who needs to confirm the car and the driver are the ones that were
-     * sent. The omission here was an oversight, not a decision.
+     * A taxi or tour operator owns vehicles, employs drivers, services and
+     * insures them, carries the finance and answers for who is driving what.
+     * Every one of those is the same responsibility a freight fleet owner
+     * carries, and the earlier narrower list produced results that could not be
+     * defended: this role could create a vehicle and read its devices, but
+     * never connect one to it — visible hardware it had no way to add.
+     *
+     * What separates the two is what they sell, and that is enforced by the
+     * organization-type guard rather than here. A freight fleet holding
+     * TRAVEL_PACKAGES_MANAGE still cannot publish a tour, and a mobility
+     * provider holding ORDERS_MANAGE still cannot take a freight consignment,
+     * because `requireOrganizationType` refuses before any permission is read.
      */
-    Permission.QR_READ,
-    Permission.QR_MANAGE,
-    Permission.QR_AUDIT,
-    // The passenger-transport surface — this role's reason to exist.
-    Permission.PROVIDER_READ,
-    Permission.PROVIDER_MANAGE,
-    Permission.TRAVEL_PACKAGES_READ,
-    Permission.TRAVEL_PACKAGES_MANAGE,
-    Permission.BOOKINGS_READ,
-    Permission.BOOKINGS_MANAGE,
-    Permission.PAYMENTS_READ,
-    Permission.MEDIA_READ,
-    Permission.MEDIA_UPLOAD,
-    Permission.MEDIA_DELETE,
-    Permission.PROFILE_DIRECTORY,
-    Permission.AI_USE,
+    ...OPERATOR_OWNER_PERMISSIONS,
   ],
 
   [RoleName.DISPATCHER]: [

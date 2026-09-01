@@ -51,6 +51,7 @@ import { SellVehiclePanel } from '@/features/resale/sell-vehicle-panel';
 import { LoanPanel } from '@/features/loans/loan-panel';
 import { ServiceTimelinePanel } from '@/features/service/service-timeline';
 import { CameraGrid } from '@/features/cameras/camera-grid';
+import { VehicleHardware } from '@/features/devices/vehicle-hardware';
 import { VehicleFastagPanel } from '@/features/toll/fastag-panel';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -177,6 +178,11 @@ export function VehicleDetailPage() {
   const canSeeFinance = can(Permission.LOANS_READ) && hasFeature(Feature.FINANCE_LOANS);
   const canSeeCameras =
     can(Permission.TELEMETRY_READ) && hasFeature(Feature.HARDWARE_CONNECTIVITY);
+  // Hardware is a `devices.read` question rather than a telemetry one: what is
+  // fitted to a vehicle is an inventory fact, and somebody may legitimately
+  // need to see it without being entitled to read what it reports.
+  const canSeeHardware =
+    can(Permission.DEVICES_READ) && hasFeature(Feature.HARDWARE_CONNECTIVITY);
   const canSeeToll = can(Permission.TOLL_READ) && hasFeature(Feature.TOLL_FASTAG);
   // Offered on the strength of a fitted device rather than the type's declared
   // capability: if a unit is reporting, its readings are worth reading.
@@ -426,6 +432,7 @@ export function VehicleDetailPage() {
           <TabsTrigger value="maintenance">Maintenance</TabsTrigger>
           {canSeeFinance ? <TabsTrigger value="finance">Loan &amp; finance</TabsTrigger> : null}
           {canSeeToll ? <TabsTrigger value="fastag">FASTag</TabsTrigger> : null}
+          {canSeeHardware ? <TabsTrigger value="hardware">Hardware</TabsTrigger> : null}
           {canSeeCameras ? <TabsTrigger value="cameras">Cameras</TabsTrigger> : null}
           <TabsTrigger value="drivers">Driver history</TabsTrigger>
           {canSell ? <TabsTrigger value="sell">Sell</TabsTrigger> : null}
@@ -684,6 +691,15 @@ export function VehicleDetailPage() {
               description="The tag fitted to this vehicle, what it can still pay, and what it spends at the barrier."
             />
             <VehicleFastagPanel vehicleId={vehicle.id} />
+          </TabsContent>
+        ) : null}
+
+        {canSeeHardware ? (
+          <TabsContent value="hardware" className="space-y-4">
+            <VehicleHardware
+              vehicleId={vehicle.id}
+              registrationNumber={vehicle.registrationNumber}
+            />
           </TabsContent>
         ) : null}
 

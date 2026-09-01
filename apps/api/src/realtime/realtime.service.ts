@@ -5,6 +5,10 @@ import {
   type AssociationAlertPayload,
   type BookingUpdatePayload,
   type ChannelMessage,
+  type DeviceAssignmentPayload,
+  type DeviceCommandPayload,
+  type DeviceConfigPayload,
+  type DeviceHeartbeatPayload,
   type DeviceStatusPayload,
   type NotificationPayload,
   type OrderUpdatePayload,
@@ -264,6 +268,83 @@ export async function broadcastDeviceStatus(
       retarget(message, vehicleChannel(payload.vehicleId)),
     );
   }
+}
+
+/**
+ * Push a device's own health report.
+ *
+ * Goes to the fleet stream as well as the device's own, because "the driver's
+ * phone is on 4% and buffering" is an operational fact a dispatcher acts on,
+ * not a detail you should have to open a device page to discover. It is low
+ * frequency by construction — one message every thirty seconds per unit — so
+ * unlike telemetry it needs no throttle.
+ */
+export async function broadcastDeviceHeartbeat(payload: DeviceHeartbeatPayload): Promise<void> {
+  const message: ChannelMessage = {
+    type: RealtimeEvent.DEVICE_HEARTBEAT,
+    channel: RealtimeChannel.device(payload.deviceId),
+    payload,
+  };
+  await publish(RealtimeChannel.device(payload.deviceId), message);
+  await publish(
+    RealtimeChannel.fleet(payload.organizationId),
+    retarget(message, RealtimeChannel.fleet(payload.organizationId)),
+  );
+  if (payload.vehicleId) {
+    await publish(
+      vehicleChannel(payload.vehicleId),
+      retarget(message, vehicleChannel(payload.vehicleId)),
+    );
+  }
+}
+
+/** A device joined or left a vehicle. Drives the Hardware tab without a refetch. */
+export async function broadcastDeviceAssignment(
+  payload: DeviceAssignmentPayload,
+  paired: boolean,
+): Promise<void> {
+  const event = paired ? RealtimeEvent.DEVICE_PAIRED : RealtimeEvent.DEVICE_UNPAIRED;
+  const message: ChannelMessage = {
+    type: event,
+    channel: RealtimeChannel.fleet(payload.organizationId),
+    payload,
+  };
+  await publish(RealtimeChannel.fleet(payload.organizationId), message);
+  await publish(
+    RealtimeChannel.device(payload.deviceId),
+    retarget(message, RealtimeChannel.device(payload.deviceId)),
+  );
+  await publish(
+    vehicleChannel(payload.vehicleId),
+    retarget(message, vehicleChannel(payload.vehicleId)),
+  );
+}
+
+/**
+ * Address a command to one device.
+ *
+ * Published only on the device's own channel. A device socket joins that
+ * channel and nothing else, so this is the whole of the server-to-device
+ * surface — there is no path by which a unit could be handed another unit's
+ * instructions. Dashboards watching the same device see it too, which is
+ * intended: an operator should see what was asked of the unit they are looking
+ * at.
+ */
+export async function broadcastDeviceCommand(payload: DeviceCommandPayload): Promise<void> {
+  await publish(RealtimeChannel.device(payload.deviceId), {
+    type: RealtimeEvent.DEVICE_COMMAND,
+    channel: RealtimeChannel.device(payload.deviceId),
+    payload,
+  });
+}
+
+/** Configuration a device must adopt without waiting for its next poll. */
+export async function broadcastDeviceConfig(payload: DeviceConfigPayload): Promise<void> {
+  await publish(RealtimeChannel.device(payload.deviceId), {
+    type: RealtimeEvent.DEVICE_CONFIG_UPDATED,
+    channel: RealtimeChannel.device(payload.deviceId),
+    payload,
+  });
 }
 
 export async function broadcastTelemetryAlert(payload: TelemetryAlertPayload): Promise<void> {

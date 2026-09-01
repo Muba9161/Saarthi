@@ -9,6 +9,9 @@
 import {
   AssociationAlertStatus,
   BookingStatus,
+  DEFAULT_DEVICE_ROLE,
+  DeviceProvider,
+  DeviceRole,
   DeviceStatus,
   OrderStatus,
   RelayStatus,
@@ -360,6 +363,34 @@ export const ASSIGNABLE_DEVICE_STATUSES: DeviceStatus[] = [
   DeviceStatus.OFFLINE,
   DeviceStatus.INACTIVE,
 ];
+
+/**
+ * Whether a role may only be filled by one device per vehicle.
+ *
+ * A vehicle is allowed to carry a telematics unit, a multi-camera recorder and
+ * a phone at the same time — that is the whole point of separating the device
+ * from the vehicle. What it may not carry is two position sources: a truck
+ * whose Freematics and whose phone disagree about where it is produces a map
+ * that flickers between two points and a support call nobody can settle. So the
+ * exclusivity is on the *role*, not on the device.
+ */
+export function roleIsExclusivePerVehicle(role: DeviceRole): boolean {
+  return role === DeviceRole.TELEMETRY;
+}
+
+/**
+ * The role a device plays, falling back to its hardware family.
+ *
+ * Stored devices carry an explicit role; the fallback exists for records
+ * created before the column did, and for adapters describing a unit they have
+ * only just met.
+ */
+export function resolveDeviceRole(
+  provider: DeviceProvider,
+  explicit?: DeviceRole | null,
+): DeviceRole {
+  return explicit ?? DEFAULT_DEVICE_ROLE[provider] ?? DeviceRole.AUXILIARY;
+}
 
 // ---------------------------------------------------------------------------
 // Vehicle resale listings

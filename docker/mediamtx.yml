@@ -1,0 +1,112 @@
+# Saarthi video gateway.
+#
+# MediaMTX terminates WebRTC so Saarthi never touches a video frame. A phone
+# publishes over WHIP, a browser subscribes over WHEP, and the API's only
+# involvement is answering "may this connection happen" — which is exactly the
+# split the video provider was designed around.
+#
+#   phone ──WHIP──▶ MediaMTX ──WHEP──▶ dashboard
+#                      │
+#                      └── POST /api/v1/video-gateway/authorize ──▶ Saarthi
+#
+# Everything else MediaMTX can do — RTSP, RTMP, HLS, recording to disk — is off.
+# A gateway that also accepts RTSP is a gateway with a second front door nobody
+# is watching, and recording to disk would put driver-facing footage somewhere
+# Saarthi has no record of.
+
+logLevel: info
+logDestinations: [stdout]
+
+# --- Protocols ---------------------------------------------------------------
+
+rtsp: no
+rtmp: no
+hls: no
+srt: no
+# Media-over-QUIC. Off for the same reason as the rest: it is a listener nobody
+# is watching, and Saarthi's clients speak WHIP and WHEP.
+moq: no
+
+webrtc: yes
+webrtcAddress: :8889
+
+# The ports WebRTC media actually flows over.
+#
+# A single port for everything, which is what makes this practical to expose
+# through Docker and a firewall: the alternative is the whole ephemeral range.
+webrtcLocalUDPAddress: :8189
+
+# The same port over TCP.
+#
+# WebRTC prefers UDP and should get it, but there are two situations where UDP
+# never arrives and a stream that only speaks UDP simply fails: corporate and
+# hotel Wi-Fi that blocks it outright, and any attempt to reach this through an
+# HTTP tunnel, which forwards TCP and nothing else.
+#
+# ICE tries both and uses whichever connects, so this costs nothing when UDP
+# works and is the difference between a stream and no stream when it does not.
+webrtcLocalTCPAddress: :8189
+
+# Extra hostnames to advertise in ICE candidates.
+#
+# Empty for a LAN, where MediaMTX works out its own address correctly. Behind a
+# tunnel or a NAT the address the container sees is not the address a phone can
+# dial, so the public hostname has to be stated. Overridden by the
+# MTX_WEBRTCADDITIONALHOSTS environment variable, which docker-compose passes
+# from VIDEO_GATEWAY_PUBLIC_HOST.
+webrtcAdditionalHosts: []
+
+# ICE servers MediaMTX itself uses.
+#
+# Empty on a LAN, where the phone and the gateway find each other with host
+# candidates and no relay is involved at all.
+#
+# Across networks — a phone on mobile data, or a gateway behind a tunnel — they
+# cannot see each other, and *both ends* need the same TURN server: the phone
+# gathers a relay candidate, MediaMTX gathers one too, and the media flows
+# between them through the relay. Saarthi hands the phone its copy through
+# VIDEO_ICE_SERVERS; this is the gateway's copy, and the two must name the same
+# server or the ends will have no candidate pair in common.
+#
+# Set through the environment so there is one place to configure it:
+#   MTX_WEBRTCICESERVERS2_0_URL, _USERNAME, _PASSWORD
+webrtcICEServers2: []
+
+# Trust the reverse proxy's forwarded address, so the authorisation callback
+# sees the client's IP rather than the proxy's.
+webrtcTrustedProxies: []
+
+# --- Authorisation -----------------------------------------------------------
+#
+# Every publish and every read is referred to Saarthi. MediaMTX holds no user
+# list of its own, which is the point: a camera pointed at a driver must be
+# governed by the fleet's own permissions and appear in the fleet's own access
+# log, not by a config file on an SFU.
+#
+# `host.docker.internal` reaches the API running on the host under Docker
+# Desktop. In a Linux deployment this becomes the API's service name or address.
+
+authMethod: http
+authHTTPAddress: http://host.docker.internal:4000/api/v1/video-gateway/authorize
+
+# Which request fields are forwarded. `token` carries the signed Saarthi ticket
+# the device or browser presented as a bearer credential.
+authHTTPExclude: []
+
+# --- Paths -------------------------------------------------------------------
+
+pathDefaults:
+  # Nothing is recorded here. Footage retention is a decision with legal weight
+  # in a cab, and it does not belong to a relay.
+  record: no
+
+  # Drop a path as soon as its publisher goes. A session is one stream; leaving
+  # the path alive would let a later ticket for a different camera land on it.
+  runOnDemandCloseAfter: 10s
+
+paths:
+  # Any path is allowed to exist — the path *is* the Saarthi stream-session id,
+  # and the authorisation callback refuses any ticket whose session does not
+  # match the path being requested. So the check that matters is Saarthi's, not
+  # a list here that would have to be kept in step with the database.
+  all_others:

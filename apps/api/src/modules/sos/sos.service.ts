@@ -1,5 +1,6 @@
 import {
   ACTIVE_SOS_STATUSES,
+  DeviceEventType,
   NotificationPriority,
   NotificationType,
   RealtimeEvent,
@@ -13,6 +14,7 @@ import {
   buildPaginationMeta,
   distanceKm,
   sosStateMachine,
+  type DeviceSosInput,
   type Paginated,
   type ResolveSosInput,
   type SosListQuery,
@@ -463,6 +465,48 @@ export async function triggerSos(
     include: incidentInclude,
   });
 
+  return escalateIncident(incident, {
+    organizationId,
+    truckId,
+    tripId,
+    type: input.type,
+    latitude: input.latitude,
+    longitude: input.longitude,
+    description: input.description ?? null,
+  });
+}
+
+/**
+ * Everything that happens once an incident exists.
+ *
+ * Extracted so the device path and the user path share one implementation
+ * rather than two that drift. Which of them raised the alarm changes who is
+ * recorded as the trigger and nothing else: the truck is flagged, the trip is
+ * flagged, the fleet is notified, nearby Saarthi vehicles are searched and the
+ * district associations are routed to, identically either way. An emergency
+ * raised by a phone bolted to a windscreen must reach exactly the same people
+ * as one raised by a driver holding it.
+ */
+async function escalateIncident(
+  incident: IncidentRecord,
+  context: {
+    organizationId: string;
+    truckId: string | null;
+    tripId: string | null;
+    type: SosType;
+    latitude: number;
+    longitude: number;
+    description: string | null;
+  },
+): Promise<SosIncidentSummary> {
+  const { organizationId, truckId, tripId, type: incidentType } = context;
+  const input = {
+    type: incidentType,
+    latitude: context.latitude,
+    longitude: context.longitude,
+    description: context.description,
+  };
+
   // Flag the truck and trip so the whole system reflects the emergency.
   if (truckId) {
     await prisma.truck.update({
@@ -544,6 +588,156 @@ export async function triggerSos(
 
   void moved;
   return toSummary(final);
+}
+
+/**
+ * Raise an emergency from a device.
+ *
+ * Section 27 of the device specification, and the parts of it that matter are
+ * the ones about what the device is *not* allowed to say. It sends a position,
+ * a type and some context about its own state. It does not name a vehicle, a
+ * driver, an organization or a recipient — all four are resolved here from the
+ * device's active assignment, because a phone that could name its own driver
+ * could name somebody else's, and recipient selection is a decision about
+ * people's safety that does not belong on a handset.
+ *
+ * The escalation that follows is byte-for-byte the same as a driver-raised SOS:
+ * same fleet notification, same expanding responder search, same association
+ * routing. An emergency does not become less urgent because a machine noticed
+ * it instead of a person.
+ */
+export async function triggerSosFromDevice(
+  device: {
+    id: string;
+    deviceIdentifier: string;
+    organizationId: string;
+    vehicleId: string | null;
+  },
+  input: DeviceSosInput,
+): Promise<SosIncidentSummary> {
+  if (!device.vehicleId) {
+    throw errors.businessRule(
+      'This device is not paired to a vehicle, so Saarthi cannot tell who to alert. Pair it before raising an emergency.',
+    );
+  }
+
+  const vehicle = await prisma.truck.findUnique({
+    where: { id: device.vehicleId },
+    select: {
+      id: true,
+      organizationId: true,
+      registrationNumber: true,
+      currentDriverId: true,
+      currentTripId: true,
+      archivedAt: true,
+    },
+  });
+  if (!vehicle || vehicle.archivedAt) throw errors.notFound('Vehicle');
+
+  const driverId = vehicle.currentDriverId;
+
+  // One live incident per vehicle. A driver hammering the button on a phone
+  // that lost signal must not open six incidents when it reconnects, and a
+  // second alarm for a truck already being responded to helps nobody.
+  const existing = await prisma.sosIncident.findFirst({
+    where: { truckId: vehicle.id, status: { in: ACTIVE_SOS_STATUSES } },
+    include: incidentInclude,
+  });
+  if (existing) {
+    await prisma.sosEvent.create({
+      data: {
+        incidentId: existing.id,
+        eventType: 'NOTE',
+        description: `${device.deviceIdentifier} raised SOS again while this incident was still open.`,
+      },
+    });
+    return toSummary(existing);
+  }
+
+  const contactPhone = driverId
+    ? (
+        await prisma.driver.findUnique({
+          where: { id: driverId },
+          select: { user: { select: { phone: true } } },
+        })
+      )?.user.phone ?? null
+    : null;
+
+  const incident = await prisma.sosIncident.create({
+    data: {
+      reference: await nextReference(),
+      organizationId: vehicle.organizationId,
+      driverId,
+      truckId: vehicle.id,
+      tripId: vehicle.currentTripId,
+      // No user acted. Recording the driver as the trigger would be a claim
+      // about who pressed the button that nobody verified.
+      triggeredByUserId: null,
+      triggeredByDeviceId: device.id,
+      type: input.type,
+      status: SosStatus.TRIGGERED,
+      latitude: input.latitude,
+      longitude: input.longitude,
+      description: input.description ?? null,
+      contactPhone,
+      searchRadiusMeters: SOS_SEARCH_RADII[0],
+      events: {
+        create: [
+          {
+            eventType: 'TRIGGERED',
+            description:
+              `${input.type} emergency raised from ${device.deviceIdentifier}` +
+              // The device's own state at the moment of the alarm. A responder
+              // heading out benefits from knowing the phone is on 3% and about
+              // to go dark.
+              (input.batteryPercent !== null && input.batteryPercent !== undefined
+                ? ` (battery ${input.batteryPercent}%`
+                : '') +
+              (input.networkType ? `, ${input.networkType.toLowerCase()}` : '') +
+              (input.batteryPercent !== null && input.batteryPercent !== undefined
+                ? ').'
+                : '.'),
+          },
+        ],
+      },
+    },
+    include: incidentInclude,
+  });
+
+  await prisma.deviceEvent.create({
+    data: {
+      deviceId: device.id,
+      organizationId: device.organizationId,
+      eventType: DeviceEventType.SOS_RAISED,
+      description: `${input.type} emergency raised for ${vehicle.registrationNumber}.`,
+      metadata: {
+        incidentId: incident.id,
+        latitude: input.latitude,
+        longitude: input.longitude,
+        cameraAvailable: input.cameraAvailable ?? null,
+      },
+    },
+  });
+
+  sosLogger.warn(
+    {
+      incidentId: incident.id,
+      deviceIdentifier: device.deviceIdentifier,
+      vehicleId: vehicle.id,
+      type: input.type,
+    },
+    'SOS raised by a device',
+  );
+
+  return escalateIncident(incident, {
+    organizationId: vehicle.organizationId,
+    truckId: vehicle.id,
+    tripId: vehicle.currentTripId,
+    type: input.type,
+    latitude: input.latitude,
+    longitude: input.longitude,
+    description: input.description ?? null,
+  });
 }
 
 function assertIncidentAccess(auth: AuthContext, incident: IncidentRecord): void {

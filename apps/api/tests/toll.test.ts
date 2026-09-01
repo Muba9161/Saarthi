@@ -1,6 +1,9 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { OrganizationType, PlanTier, RoleName, TruckType } from '@saarthi/shared';
 import { prisma } from '../src/database/prisma';
+import { errors } from '../src/lib/errors';
+import { fastagProvider } from '../src/providers/fastag';
+import { MockFastagProvider } from '../src/providers/fastag/mock-fastag.provider';
 import { runFastagBalanceSweep } from '../src/modules/toll/fastag.service';
 import { buildDailyBrief } from '../src/modules/ai/daily-brief.service';
 import {
@@ -344,6 +347,294 @@ describe('FASTag and toll', () => {
       // button that fails when somebody urgently needs it.
       expect(body.data.supportsRecharge).toBe(false);
       expect(body.data.defaultLowBalanceThreshold).toBeGreaterThan(0);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+
+  /**
+   * Discovery — finding the tag from the registration number alone.
+   *
+   * The assertions that matter here are the negative ones. NETC answering
+   * "this vehicle has no tag" is a fact about the vehicle rather than a failed
+   * request, and must not reach the operator as an error. A provider that
+   * serves no balance must not produce a tag reading zero. And a tag already
+   * recorded against another vehicle must stop the write rather than quietly
+   * move between them.
+   */
+  describe('finding a tag from the registration number', () => {
+    const NETC_TAG_ID = '34161FA820328C7A94E11B44';
+
+    /** The internal provider's own values, restored after every test below. */
+    const originalSupportsLookup = fastagProvider.supportsLookup;
+    const originalSupportsTransactions = fastagProvider.supportsTransactions;
+
+    interface DiscoveryBody {
+      provider: string;
+      found: boolean;
+      reason: string | null;
+      applied: boolean;
+      alreadyKnown: boolean;
+      replacedPreviousTag: boolean;
+      issuerNamed: boolean;
+      balanceServed: boolean;
+      fastag:
+        | {
+            id: string;
+            tagId: string | null;
+            issuerBank: string;
+            vehicleClass: string | null;
+            status: string;
+            balance: number | null;
+            source: string;
+          }
+        | null;
+    }
+
+    /**
+     * Stand in for a deployment connected to NETC.
+     *
+     * `supportsLookup` is a plain instance field rather than a getter, so it is
+     * redefined rather than spied on. Both it and the method stub are undone
+     * afterwards — leaving lookup enabled would make every later test in this
+     * file believe the deployment is connected.
+     */
+    const connectProvider = (fetchTagDetails: () => Promise<unknown>): void => {
+      Object.defineProperty(fastagProvider, 'supportsLookup', {
+        value: true,
+        configurable: true,
+        writable: true,
+      });
+      vi.spyOn(fastagProvider, 'fetchTagDetails').mockImplementation(fetchTagDetails as never);
+    };
+
+    /** What the real adapter returns: status and class, a bank code, no money. */
+    const netcTag = (overrides: Record<string, unknown> = {}) => ({
+      tagId: NETC_TAG_ID,
+      registrationNumber: vehicle.registrationNumber,
+      vehicleClass: 'VC11',
+      status: 'ACTIVE',
+      rawStatus: 'A',
+      exceptionCode: '00',
+      issuerBank: null,
+      issuerCode: '607469',
+      issuedAt: '2023-04-11',
+      commercialVehicle: true,
+      balance: null,
+      provider: 'mastersindia',
+      retrievedAt: new Date().toISOString(),
+      simulated: false,
+      ...overrides,
+    });
+
+    const discover = (user: TestUser = owner, payload: Record<string, unknown> = {}) =>
+      request<DiscoveryBody>({
+        method: 'POST',
+        url: '/api/v1/fleet/toll/fastag/discover',
+        user,
+        payload: { vehicleId: vehicle.id, ...payload },
+      });
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+      Object.defineProperty(fastagProvider, 'supportsLookup', {
+        value: originalSupportsLookup,
+        configurable: true,
+        writable: true,
+      });
+      Object.defineProperty(fastagProvider, 'supportsTransactions', {
+        value: originalSupportsTransactions,
+        configurable: true,
+        writable: true,
+      });
+    });
+
+    it('explains that Saarthi is not connected rather than reporting no tag', async () => {
+      const { status, body } = await discover();
+
+      expect(status).toBe(503);
+      expect(body.error?.code).toBe('PROVIDER_NOT_CONFIGURED');
+      expect(body.error?.message).toContain('not connected');
+    });
+
+    it('records the tag NETC reports against the vehicle', async () => {
+      connectProvider(async () => netcTag());
+
+      const { status, body } = await discover();
+
+      expect(status).toBe(200);
+      expect(body.data.found).toBe(true);
+      expect(body.data.applied).toBe(true);
+      expect(body.data.alreadyKnown).toBe(false);
+      expect(body.data.fastag?.tagId).toBe(NETC_TAG_ID);
+      expect(body.data.fastag?.vehicleClass).toBe('VC11');
+      expect(body.data.fastag?.status).toBe('ACTIVE');
+      // Recorded as the provider's, not as something somebody typed.
+      expect(body.data.fastag?.source).toBe('PROVIDER_SYNC');
+    });
+
+    it('leaves the balance unknown when the provider serves none, rather than zero', async () => {
+      connectProvider(async () => netcTag());
+
+      const { body } = await discover();
+
+      expect(body.data.balanceServed).toBe(false);
+      expect(body.data.fastag?.balance).toBeNull();
+    });
+
+    it('carries the issuer code through rather than guessing a bank name', async () => {
+      connectProvider(async () => netcTag());
+
+      const { body } = await discover();
+
+      expect(body.data.issuerNamed).toBe(false);
+      // A tag labelled with the wrong bank sends an operator to the wrong app
+      // to top it up, so the code is shown as a code.
+      expect(body.data.fastag?.issuerBank).toContain('607469');
+    });
+
+    it('reports a vehicle with no tag as an answer rather than a failure', async () => {
+      connectProvider(async () => {
+        throw errors.notFound(
+          'FASTag',
+          'No FASTag is registered against this vehicle in the NETC system.',
+        );
+      });
+
+      const { status, body } = await discover();
+
+      expect(status).toBe(200);
+      expect(body.data.found).toBe(false);
+      expect(body.data.fastag).toBeNull();
+      expect(body.data.reason).toContain('no FASTag');
+    });
+
+    it('refreshes a tag it already holds rather than recording it twice', async () => {
+      const created = await registerTag({ tagId: NETC_TAG_ID, status: 'UNKNOWN' });
+      connectProvider(async () => netcTag({ status: 'BLACKLISTED', rawStatus: 'B' }));
+
+      const { status, body } = await discover();
+
+      expect(status).toBe(200);
+      expect(body.data.alreadyKnown).toBe(true);
+      expect(body.data.replacedPreviousTag).toBe(false);
+      expect(body.data.fastag?.id).toBe(created.body.data.id);
+      expect(body.data.fastag?.status).toBe('BLACKLISTED');
+
+      const rows = await prisma.fastagAccount.count({ where: { vehicleId: vehicle.id } });
+      expect(rows).toBe(1);
+    });
+
+    it('closes the tag it held when NETC reports a different one fitted', async () => {
+      const created = await registerTag();
+      connectProvider(async () => netcTag());
+
+      const { body } = await discover();
+
+      expect(body.data.replacedPreviousTag).toBe(true);
+      expect(body.data.fastag?.id).not.toBe(created.body.data.id);
+
+      // Closed rather than deleted, so a disputed crossing from last year still
+      // resolves to the tag that paid for it.
+      const previous = await prisma.fastagAccount.findUniqueOrThrow({
+        where: { id: created.body.data.id },
+      });
+      expect(previous.closedAt).not.toBeNull();
+      expect(previous.status).toBe('CLOSED');
+    });
+
+    it('refuses to record a tag another vehicle in the fleet already holds', async () => {
+      const sibling = await prisma.truck.create({
+        data: {
+          organizationId: fleet.id,
+          registrationNumber: unique('UP32ZZ').toUpperCase().slice(0, 12),
+          truckType: TruckType.TIPPER,
+          capacityTons: 25,
+        },
+      });
+      await prisma.fastagAccount.create({
+        data: {
+          organizationId: fleet.id,
+          vehicleId: sibling.id,
+          tagId: NETC_TAG_ID,
+          issuerBank: 'ICICI Bank',
+        },
+      });
+      connectProvider(async () => netcTag());
+
+      const { status, body } = await discover();
+
+      expect(status).toBe(409);
+      expect(body.error?.code).toBe('DUPLICATE_RESOURCE');
+    });
+
+    it('writes nothing on a dry run', async () => {
+      connectProvider(async () => netcTag());
+
+      const { body } = await discover(owner, { apply: false });
+
+      expect(body.data.found).toBe(true);
+      expect(body.data.applied).toBe(false);
+
+      const rows = await prisma.fastagAccount.count({ where: { vehicleId: vehicle.id } });
+      expect(rows).toBe(0);
+    });
+
+    it('does not look up a vehicle belonging to another fleet', async () => {
+      connectProvider(async () => netcTag());
+
+      const { status } = await discover(otherOwner);
+
+      expect(status).toBe(404);
+    });
+
+    /**
+     * The simulator, driven through the same route an operator uses.
+     *
+     * Worth its own tests because it is the only configuration that serves a
+     * balance — a real NETC lookup cannot — so it is the only way the discovery
+     * path can be exercised end to end without a paid provider account. The
+     * assertion that matters is the last one: everything it produces is stored
+     * as SIMULATED and can never be mistaken for a real reading.
+     */
+    describe('against the local simulator', () => {
+      const simulator = new MockFastagProvider();
+
+      it('records the tag the simulator serves, balance and all', async () => {
+        connectProvider(() =>
+          simulator.fetchTagDetails({ registrationNumber: vehicle.registrationNumber }),
+        );
+
+        const { status, body } = await discover();
+
+        expect(status).toBe(200);
+        expect(body.data.found).toBe(true);
+        expect(body.data.balanceServed).toBe(true);
+        expect(typeof body.data.fastag?.balance).toBe('number');
+        expect(body.data.fastag?.tagId).toMatch(/^[0-9A-F]{24}$/);
+        // Stored as simulated, so a demo figure can never pass for a real one.
+        expect(body.data.fastag?.source).toBe('SIMULATED');
+      });
+
+      it('imports the simulated crossings when they are asked for', async () => {
+        connectProvider(() =>
+          simulator.fetchTagDetails({ registrationNumber: vehicle.registrationNumber }),
+        );
+        Object.defineProperty(fastagProvider, 'supportsTransactions', {
+          value: true,
+          configurable: true,
+          writable: true,
+        });
+        vi.spyOn(fastagProvider, 'fetchTollHistory').mockImplementation((request) =>
+          simulator.fetchTollHistory(request),
+        );
+
+        const { body } = await discover(owner, { includeTransactions: true });
+
+        expect(body.data.crossingsImported).toBeGreaterThan(0);
+        // The note says how little of the history this actually is.
+        expect(body.data.coverageNote).toContain('72 hours');
+      });
     });
   });
 

@@ -55,11 +55,17 @@ export const isRoutingConfigured: boolean = ORS_API_KEY.length > 0;
  * OpenRouteService host.
  *
  * HeiGIT is migrating from `api.openrouteservice.org` to `api.heigit.org` and
- * has marked the old host deprecated, so the new one is the default. Override
- * with `VITE_ORS_BASE_URL` if a given endpoint has not moved across yet.
+ * has marked the old host deprecated — but as of 2026-08-31 the new host
+ * answers 404 for every endpoint Saarthi calls: `/v2/directions`, `/v2/snap`,
+ * `/geocode/search` and `/geocode/reverse`. Defaulting to it silently disabled
+ * routing, place search and map-matching at once, with the deprecated host
+ * serving all four correctly.
+ *
+ * So the default is the host that works. Move it across with
+ * `VITE_ORS_BASE_URL` once api.heigit.org actually serves these paths.
  */
 export const ORS_BASE_URL: string = (
-  (import.meta.env.VITE_ORS_BASE_URL as string | undefined) || 'https://api.heigit.org'
+  (import.meta.env.VITE_ORS_BASE_URL as string | undefined) || 'https://api.openrouteservice.org'
 ).replace(/\/+$/, '');
 
 // ---------------------------------------------------------------------------
@@ -331,6 +337,13 @@ export const ROUTE_COLOURS = {
   casing: '#0b2a63',
   /** The road already covered, dimmed back. */
   driven: '#7c8ba1',
+  /**
+   * Casing under the covered stretch.
+   *
+   * Needed as its own colour: dimming only the inner line left the navy casing
+   * showing through, so a road already driven still read as a live blue route.
+   */
+  drivenCasing: '#4a556b',
   alternative: '#94a3b8',
   trail: '#4338ca',
   trailHead: '#a855f7',

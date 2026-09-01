@@ -114,6 +114,29 @@ export async function cameraStreamRoutes(app: FastifyInstance): Promise<void> {
     },
   );
 
+  /**
+   * Still watching.
+   *
+   * Called periodically by an open player. Without it a live view would be cut
+   * off mid-stream by the sweep, and every viewing would appear in the access
+   * log as exactly one ticket-length long.
+   *
+   * Rate limit is generous because the player pings on a timer, and being
+   * throttled here would end a session somebody is actively watching.
+   */
+  app.post(
+    '/sessions/:id/keepalive',
+    {
+      preHandler: requirePermission(Permission.TELEMETRY_READ),
+      config: { rateLimit: { max: 120, timeWindow: '1 minute' } },
+    },
+    async (request, reply) => {
+      const auth = requireAuth(request);
+      const { id } = parseParams(idParamSchema, request.params);
+      return ok(reply, await cameraService.keepStreamSessionAlive(id, { auth }));
+    },
+  );
+
   app.post(
     '/sessions/:id/end',
     { preHandler: requirePermission(Permission.TELEMETRY_READ) },

@@ -313,6 +313,8 @@ export interface LiveTruckPosition {
   driver: { id: string; name: string } | null;
   trip: { id: string; reference: string; status: string; progressPercent: number } | null;
   stale: boolean;
+  /** Whether this vehicle's position came from a simulator rather than a device. */
+  simulated: boolean;
 }
 
 export interface DashboardMetrics {
@@ -468,9 +470,15 @@ export interface NearbyPlaceResult {
   phone: string | null;
   rating: number | null;
   open24Hours: boolean;
+  /** Opening hours exactly as the directory publishes them. */
+  openingHours: string | null;
   attributes: unknown;
   distanceKm: number;
   direction: string;
+  /** `osm` for OpenStreetMap, `local` for Saarthi's own corridor dataset. */
+  source: string;
+  /** True when the live directory could not be reached and the mirror answered. */
+  stale: boolean;
 }
 
 export interface NearbyTruckResult {
@@ -1157,6 +1165,27 @@ export interface FastagCapabilities {
   supportsTransactions: boolean;
   unavailableReason: string;
   defaultLowBalanceThreshold: number;
+}
+
+/** The result of looking a vehicle up on NETC by its registration number. */
+export interface FastagDiscoveryResult {
+  provider: string;
+  registrationNumber: string;
+  /** NETC holds a tag against this vehicle. `false` is an answer, not a failure. */
+  found: boolean;
+  /** Why nothing was recorded, when nothing was. */
+  reason: string | null;
+  applied: boolean;
+  alreadyKnown: boolean;
+  replacedPreviousTag: boolean;
+  /** The provider named the issuing bank rather than serving only a code. */
+  issuerNamed: boolean;
+  balanceServed: boolean;
+  crossingsImported: number;
+  coverageNote: string | null;
+  retrievedAt: string;
+  simulated: boolean;
+  fastag: FastagView | null;
 }
 
 export interface FastagListTotals {

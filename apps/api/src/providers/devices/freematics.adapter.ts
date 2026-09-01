@@ -288,6 +288,9 @@ function parseFrame(
     vehicleId: context.vehicleId,
     recordedAt,
     metrics,
+    // Every value a Freematics reports, it read from the vehicle bus or its own
+    // GPS receiver. Nothing here is fabricated.
+    simulatedMetrics: [],
     location,
     vehicleData,
     motion,

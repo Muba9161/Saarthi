@@ -5,12 +5,15 @@ import {
   DeviceAssignmentStatus,
   DeviceEventType,
   DeviceProvider,
+  DeviceRole,
   DeviceStatus,
   NotificationPriority,
   NotificationType,
   VehicleCapability,
   VehicleType,
   buildPaginationMeta,
+  resolveDeviceRole,
+  roleIsExclusivePerVehicle,
   vehicleSupports,
   type AssignDeviceInput,
   type DeviceListQuery,
@@ -53,6 +56,8 @@ export interface DeviceSummary {
   deviceIdentifier: string;
   provider: DeviceProvider;
   deviceType: string;
+  /** Whether this unit is the vehicle's position source, a camera, or neither. */
+  role: DeviceRole;
   serialNumber: string;
   /** Masked — an IMEI is enough to attempt a SIM swap. */
   imeiMasked: string | null;
@@ -84,6 +89,29 @@ export interface DeviceSummary {
   activatedAt: string | null;
   deactivatedAt: string | null;
   createdAt: string;
+
+  /**
+   * What an app-based device reports about itself.
+   *
+   * Every field is null for fitted hardware, which reports none of it. The UI
+   * treats absence as "not applicable to this kind of unit" rather than as a
+   * fault, because a Freematics has no battery percentage to be missing.
+   */
+  client: {
+    selfEnrolled: boolean;
+    platform: string | null;
+    deviceModel: string | null;
+    osVersion: string | null;
+    appVersion: string | null;
+    lastHeartbeatAt: string | null;
+    batteryPercent: number | null;
+    batteryCharging: boolean | null;
+    networkType: string | null;
+    gpsStatus: string | null;
+    cameraStatus: string | null;
+    bufferedEvents: number | null;
+    reportingIntervalSeconds: number | null;
+  };
 }
 
 /** Keep the last four digits — enough to match a unit in the field. */
@@ -115,6 +143,7 @@ function toSummary(device: DeviceRecord, openAlerts = 0): DeviceSummary {
     deviceIdentifier: device.deviceIdentifier,
     provider: device.provider as DeviceProvider,
     deviceType: device.deviceType,
+    role: device.role as DeviceRole,
     serialNumber: device.serialNumber,
     imeiMasked: maskTail(device.imei),
     manufacturer: device.manufacturer,
@@ -144,6 +173,21 @@ function toSummary(device: DeviceRecord, openAlerts = 0): DeviceSummary {
     activatedAt: device.activatedAt?.toISOString() ?? null,
     deactivatedAt: device.deactivatedAt?.toISOString() ?? null,
     createdAt: device.createdAt.toISOString(),
+    client: {
+      selfEnrolled: device.selfEnrolled,
+      platform: device.platform,
+      deviceModel: device.deviceModel,
+      osVersion: device.osVersion,
+      appVersion: device.appVersion,
+      lastHeartbeatAt: device.lastHeartbeatAt?.toISOString() ?? null,
+      batteryPercent: device.batteryPercent,
+      batteryCharging: device.batteryCharging,
+      networkType: device.networkType,
+      gpsStatus: device.gpsStatus,
+      cameraStatus: device.cameraStatus,
+      bufferedEvents: device.bufferedEvents,
+      reportingIntervalSeconds: device.reportingIntervalSeconds,
+    },
   };
 }
 
@@ -251,6 +295,10 @@ export async function registerDevice(
       simOperator: input.simOperator ?? null,
       secretHash: await passwordHasher.hash(secret),
       status: DeviceStatus.REGISTERED,
+      // Derived from the hardware family rather than asked for on the form:
+      // whether a YC06 is a camera is a property of the product, not a decision
+      // the person registering it should have to get right.
+      role: resolveDeviceRole(input.provider),
       supportedMetrics: input.supportedMetrics,
       observedMetrics: [],
       notes: input.notes ?? null,
@@ -301,6 +349,12 @@ export async function updateDevice(
         ? {
             status: input.status,
             ...(input.status === DeviceStatus.RETIRED ? { deactivatedAt: new Date() } : {}),
+            // Suspending or retiring a unit has to stop it now. Without this a
+            // stolen phone keeps reporting until its current token expires,
+            // which makes revocation advisory rather than real.
+            ...(input.status === DeviceStatus.SUSPENDED || input.status === DeviceStatus.RETIRED
+              ? { credentialVersion: { increment: 1 } }
+              : {}),
           }
         : {}),
     },
@@ -350,7 +404,14 @@ export async function rotateDeviceSecret(
   const secret = generateSecret();
   const device = await prisma.hardwareDevice.update({
     where: { id: deviceId },
-    data: { secretHash: await passwordHasher.hash(secret), secretRotatedAt: new Date() },
+    data: {
+      secretHash: await passwordHasher.hash(secret),
+      secretRotatedAt: new Date(),
+      // Access tokens minted from the old secret die on their next request
+      // rather than at their next expiry. A rotation that left them working for
+      // another quarter of an hour would be theatre.
+      credentialVersion: { increment: 1 },
+    },
     include: deviceInclude,
   });
 
@@ -455,6 +516,45 @@ export async function getDevice(auth: AuthContext, deviceId: string): Promise<De
 // ---------------------------------------------------------------------------
 
 /**
+ * Refuse a fitment that would give a vehicle two of something it may only have
+ * one of.
+ *
+ * A vehicle is expected to carry several devices at once — a Freematics for
+ * telemetry, a YC06 for its cameras, a phone standing in for either while the
+ * hardware is on order. What it must not carry is two *position sources*: a
+ * truck whose Freematics and whose phone disagree by forty metres produces a
+ * map that flickers between two points, an ETA that oscillates, and a support
+ * call nobody can settle. So the exclusivity is on the role rather than on the
+ * device, and CAMERA and AUXILIARY units are unrestricted.
+ */
+export async function assertVehicleAcceptsRole(
+  vehicleId: string,
+  registrationNumber: string,
+  role: DeviceRole,
+  db: typeof prisma | Prisma.TransactionClient = prisma,
+): Promise<void> {
+  if (!roleIsExclusivePerVehicle(role)) return;
+
+  const occupant = await db.deviceAssignment.findFirst({
+    where: {
+      vehicleId,
+      status: DeviceAssignmentStatus.ACTIVE,
+      device: { role },
+    },
+    select: { device: { select: { deviceIdentifier: true, provider: true } } },
+  });
+
+  if (occupant) {
+    throw errors.conflict(
+      `${registrationNumber} already reports its position from ${occupant.device.deviceIdentifier}. ` +
+        'A vehicle can have only one telemetry source at a time — remove that device first, ' +
+        'or fit this one as a camera or auxiliary unit.',
+      { conflictingDevice: occupant.device.deviceIdentifier, role },
+    );
+  }
+}
+
+/**
  * Fit a device to a vehicle.
  *
  * Both sides are validated first, because a half-applied assignment is worse
@@ -500,16 +600,11 @@ export async function assignDevice(
     );
   }
 
-  // One active device per vehicle, and one vehicle per device.
-  const vehicleOccupied = await prisma.deviceAssignment.findFirst({
-    where: { vehicleId: input.vehicleId, status: DeviceAssignmentStatus.ACTIVE },
-    include: { device: { select: { deviceIdentifier: true } } },
-  });
-  if (vehicleOccupied) {
-    throw errors.conflict(
-      `${vehicle.registrationNumber} already has device ${vehicleOccupied.device.deviceIdentifier} fitted. Remove it first.`,
-    );
-  }
+  await assertVehicleAcceptsRole(
+    input.vehicleId,
+    vehicle.registrationNumber,
+    resolveDeviceRole(device.provider as DeviceProvider, device.role as DeviceRole),
+  );
 
   const current = device.assignments[0];
   if (current) {
@@ -599,7 +694,22 @@ export async function unassignDevice(
     // in the fleet's offline-device count.
     await tx.hardwareDevice.update({
       where: { id: deviceId },
-      data: { status: DeviceStatus.INACTIVE },
+      data: {
+        status: DeviceStatus.INACTIVE,
+        // Unpairing must silence the unit immediately. An app-based device is
+        // often removed *because* it should stop reporting — a driver leaving,
+        // a phone being sold — and letting its current token keep working for
+        // another quarter of an hour defeats the point.
+        credentialVersion: { increment: 1 },
+        // Health figures describe a unit that is no longer fitted, so keeping
+        // them would show a stale battery reading against an empty slot.
+        batteryPercent: null,
+        batteryCharging: null,
+        networkType: null,
+        gpsStatus: null,
+        cameraStatus: null,
+        bufferedEvents: null,
+      },
     });
   });
 

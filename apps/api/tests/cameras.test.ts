@@ -117,6 +117,44 @@ describe('Vehicle cameras', () => {
 
   // -------------------------------------------------------------------------
 
+  /*
+   * Run a block with live viewing switched off.
+   *
+   * These tests are about what happens on a deployment with no camera
+   * infrastructure, and they used to establish that by assuming the
+   * developer's own `.env` had none — so they passed until somebody
+   * configured a gateway locally, and then failed for a reason that had
+   * nothing to do with the code under test.
+   *
+   * `supportsLive` is a plain readonly property rather than a getter, so it
+   * is redefined and restored instead of spied on.
+   */
+  async function withoutGateway<T>(body: () => Promise<T>): Promise<T> {
+    const { videoProvider } = await import('../src/providers/video');
+    const live = videoProvider.supportsLive;
+    const publish = videoProvider.supportsPublishing;
+    Object.defineProperty(videoProvider, 'supportsLive', {
+      value: false,
+      configurable: true,
+    });
+    Object.defineProperty(videoProvider, 'supportsPublishing', {
+      value: false,
+      configurable: true,
+    });
+    try {
+      return await body();
+    } finally {
+      Object.defineProperty(videoProvider, 'supportsLive', {
+        value: live,
+        configurable: true,
+      });
+      Object.defineProperty(videoProvider, 'supportsPublishing', {
+        value: publish,
+        configurable: true,
+      });
+    }
+  }
+
   describe('registration', () => {
     it('registers all four channels of a YC06', async () => {
       const cameras = await registerFourCameras();
@@ -251,13 +289,16 @@ describe('Vehicle cameras', () => {
     it('explains that no gateway is configured rather than failing obscurely', async () => {
       const cameras = await registerFourCameras();
 
-      const response = await request({
-        method: 'POST',
-        url: `/api/v1/cameras/${cameras[0]!.id}/live`,
-        user: owner,
-      });
+      const response = await withoutGateway(() =>
+        request({
+          method: 'POST',
+          url: `/api/v1/cameras/${cameras[0]!.id}/live`,
+          user: owner,
+        }),
+      );
 
-      // The default deployment has no camera infrastructure, and says so.
+      // A deployment with no camera infrastructure says so, rather than
+      // handing back a ticket that leads nowhere.
       expect(response.status).toBe(503);
       expect(response.body.error?.code).toBe('PROVIDER_NOT_CONFIGURED');
     });
@@ -265,11 +306,13 @@ describe('Vehicle cameras', () => {
     it('records the attempt even when it is refused', async () => {
       const cameras = await registerFourCameras();
 
-      await request({
-        method: 'POST',
-        url: `/api/v1/cameras/${cameras[0]!.id}/live`,
-        user: owner,
-      });
+      await withoutGateway(() =>
+        request({
+          method: 'POST',
+          url: `/api/v1/cameras/${cameras[0]!.id}/live`,
+          user: owner,
+        }),
+      );
 
       // A refused view is still somebody trying to watch a driver, so it is
       // logged exactly like a successful one.
@@ -323,11 +366,13 @@ describe('Vehicle cameras', () => {
     it('shows who tried to watch, and when', async () => {
       const cameras = await registerFourCameras();
 
-      await request({
-        method: 'POST',
-        url: `/api/v1/cameras/${cameras[0]!.id}/live`,
-        user: owner,
-      });
+      await withoutGateway(() =>
+        request({
+          method: 'POST',
+          url: `/api/v1/cameras/${cameras[0]!.id}/live`,
+          user: owner,
+        }),
+      );
 
       const response = await request<
         { watchedBy: string; status: string; requestedAt: string }[]

@@ -492,6 +492,17 @@ export interface LiveTruckPosition {
   driver: { id: string; name: string } | null;
   trip: { id: string; reference: string; status: string; progressPercent: number } | null;
   stale: boolean;
+  /**
+   * Whether *this* vehicle's position came from a simulator.
+   *
+   * Per vehicle rather than per environment, because a fleet can legitimately
+   * have both at once: a demo truck driven by the GPS simulator beside a real
+   * phone running the Saarthi Device app. The map used to label the whole
+   * screen as simulated whenever demo mode was on, which meant a genuine
+   * position from a real device was captioned as invented — the exact
+   * confusion the `simulated` column exists to prevent.
+   */
+  simulated: boolean;
 }
 
 const STALE_AFTER_MS = 5 * 60_000;
@@ -543,6 +554,8 @@ async function overlayLiveState(positions: LiveTruckPosition[]): Promise<LiveTru
       heading: state.heading ?? position.heading,
       recordedAt: state.timestamp,
       stale: false,
+      // The overlay is the fresher fact, so its provenance wins too.
+      simulated: state.simulated,
     };
   });
 }
@@ -620,6 +633,11 @@ async function loadFleetPositions(organizationId: string): Promise<LiveTruckPosi
       stale: truck.lastLocationAt
         ? Date.now() - truck.lastLocationAt.getTime() > STALE_AFTER_MS
         : true,
+      // The stored snapshot carries no provenance of its own, so this is the
+      // honest default and the live-state overlay corrects it where it can.
+      // Erring towards "real" matters: labelling a genuine position as
+      // simulated invites somebody to dismiss a truck that is actually there.
+      simulated: false,
     };
   });
 }

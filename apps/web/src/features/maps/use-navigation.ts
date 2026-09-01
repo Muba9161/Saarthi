@@ -36,6 +36,13 @@ export interface UseNavigationOptions {
   offRouteThresholdMeters?: number;
   /** Recalculate automatically once the vehicle has clearly left the route. */
   autoReroute?: boolean;
+  /**
+   * Re-route from where the vehicle actually is rather than from the original
+   * origin. On by default, and the only thing that makes a reroute useful: a
+   * driver 6 km down the road who has missed a turn needs a route from here,
+   * not the same route from a point they left half an hour ago.
+   */
+  rerouteFromCurrentPosition?: boolean;
 }
 
 export interface NavigationState {
@@ -76,9 +83,10 @@ export function useNavigation(options: UseNavigationOptions): NavigationState {
     currentPosition,
     offRouteThresholdMeters = OFF_ROUTE_THRESHOLD_METERS,
     autoReroute = true,
+    rerouteFromCurrentPosition = true,
   } = options;
 
-  const usableWaypoints = React.useMemo(
+  const requestedWaypoints = React.useMemo(
     () =>
       (waypoints ?? []).filter(
         (point) =>
@@ -89,13 +97,37 @@ export function useNavigation(options: UseNavigationOptions): NavigationState {
     [waypoints],
   );
 
+  /**
+   * Origin substituted on a recalculate.
+   *
+   * Held in state rather than folded into the caller's waypoints, so the route
+   * itself stays keyed on a *stable* origin: a live position in the query key
+   * would spend a routing request every eleven metres of driving.
+   */
+  const [rerouteOrigin, setRerouteOrigin] = React.useState<LatLng | null>(null);
+
+  const usableWaypoints = React.useMemo(() => {
+    if (!rerouteOrigin || requestedWaypoints.length < 2) return requestedWaypoints;
+    return [rerouteOrigin, ...requestedWaypoints.slice(1)];
+  }, [requestedWaypoints, rerouteOrigin]);
+
   const active = enabled && isRoutingConfigured && usableWaypoints.length >= 2;
+  const requestedKey = React.useMemo(() => roundedKey(requestedWaypoints), [requestedWaypoints]);
   const waypointKey = React.useMemo(() => roundedKey(usableWaypoints), [usableWaypoints]);
   const excludeKey = exclude?.join(',') ?? '';
 
   const [selectedRouteIndex, setSelectedRouteIndex] = React.useState(0);
   const [rerouteToken, setRerouteToken] = React.useState(0);
   const [isRerouting, setIsRerouting] = React.useState(false);
+
+  // A new destination discards the previous reroute origin — the caller's own
+  // origin is the right starting point for a trip that has not begun.
+  const appliedRequestKey = React.useRef(requestedKey);
+  React.useEffect(() => {
+    if (appliedRequestKey.current === requestedKey) return;
+    appliedRequestKey.current = requestedKey;
+    setRerouteOrigin(null);
+  }, [requestedKey]);
 
   const query: UseQueryResult<DirectionsResult, DirectionsError> = useQuery({
     queryKey: ['ors-directions', waypointKey, profile, alternatives, excludeKey, rerouteToken],
@@ -140,10 +172,22 @@ export function useNavigation(options: UseNavigationOptions): NavigationState {
     return computeRouteProgress(route, currentPosition, { offRouteThresholdMeters });
   }, [route, currentPosition, offRouteThresholdMeters]);
 
+  const positionRef = React.useRef(currentPosition);
+  positionRef.current = currentPosition;
+
   const recalculate = React.useCallback(() => {
     setIsRerouting(true);
+    const here = positionRef.current;
+    if (
+      rerouteFromCurrentPosition &&
+      here &&
+      Number.isFinite(here.latitude) &&
+      Number.isFinite(here.longitude)
+    ) {
+      setRerouteOrigin({ latitude: here.latitude, longitude: here.longitude });
+    }
     setRerouteToken((token) => token + 1);
-  }, []);
+  }, [rerouteFromCurrentPosition]);
 
   // --- Automatic reroute -------------------------------------------------
   const offRouteStreak = React.useRef(0);

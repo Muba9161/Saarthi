@@ -9,6 +9,13 @@ export { MapSettingsControl, type MapSettings } from './map-controls';
 export { NavigationPanel, type NavigationPanelProps } from './navigation-panel';
 export { ManeuverIcon, maneuverIcon, maneuverLabel } from './maneuver-icon';
 export { useNavigation, type NavigationState, type UseNavigationOptions } from './use-navigation';
+export {
+  useDeviceLocation,
+  type DeviceLocation,
+  type DeviceLocationState,
+  type DeviceLocationStatus,
+  type UseDeviceLocationOptions,
+} from './use-device-location';
 
 export {
   DirectionsError,

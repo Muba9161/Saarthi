@@ -4,7 +4,14 @@ import type {
   GeoJSONSource,
   Map as MapLibreMap,
 } from 'maplibre-gl';
-import type { Feature, FeatureCollection, GeoJSON as GeoJsonValue, Geometry, LineString } from 'geojson';
+import type {
+  Feature,
+  FeatureCollection,
+  GeoJSON as GeoJsonValue,
+  Geometry,
+  LineString,
+  Polygon,
+} from 'geojson';
 import type { LatLng } from '@saarthi/shared';
 import {
   ROUTE_COLOURS,
@@ -28,11 +35,14 @@ export const SOURCE_IDS = {
   route: 'saarthi-route',
   alternatives: 'saarthi-route-alternatives',
   trail: 'saarthi-trail',
+  accuracy: 'saarthi-location-accuracy',
 } as const;
 
 export const LAYER_IDS = {
   hillshade: 'saarthi-hillshade',
   buildings: 'saarthi-3d-buildings',
+  accuracyFill: 'saarthi-location-accuracy-fill',
+  accuracyOutline: 'saarthi-location-accuracy-outline',
   alternatives: 'saarthi-route-alternatives-line',
   routeCasing: 'saarthi-route-casing',
   routeLine: 'saarthi-route-line',
@@ -299,11 +309,23 @@ const ROUTE_WIDTH: DataDrivenPropertyValueSpecification<number> = [
   14,
 ];
 
-/** Colour ramp that dims the driven head of the route and lights the rest. */
-function progressGradient(completedFraction: number): ExpressionSpecification {
+/**
+ * Colour ramp that dims the driven head of the route and lights the rest.
+ *
+ * Applied to the casing as well as the inner line. Dimming only the line left
+ * the navy casing showing either side of it, so a stretch already driven still
+ * read as a live blue route — which is the whole point of the split.
+ */
+function progressGradient(
+  completedFraction: number,
+  colours: { driven: string; ahead: string },
+): ExpressionSpecification {
   const cut = Math.max(0.0001, Math.min(0.9999, completedFraction));
-  return ['step', ['line-progress'], ROUTE_COLOURS.driven, cut, ROUTE_COLOURS.line];
+  return ['step', ['line-progress'], colours.driven, cut, colours.ahead];
 }
+
+const LINE_COLOURS = { driven: ROUTE_COLOURS.driven, ahead: ROUTE_COLOURS.line };
+const CASING_COLOURS = { driven: ROUTE_COLOURS.drivenCasing, ahead: ROUTE_COLOURS.casing };
 
 /**
  * Creates the route and trail sources and layers. Safe to call on every style
@@ -317,6 +339,40 @@ export function ensureOverlayLayers(map: MapLibreMap): void {
       // lineMetrics powers both the driven/remaining split and the trail fade.
       map.addSource(id, { type: 'geojson', data: EMPTY, lineMetrics: true });
     }
+  }
+
+  if (!hasSource(map, SOURCE_IDS.accuracy)) {
+    map.addSource(SOURCE_IDS.accuracy, { type: 'geojson', data: EMPTY });
+  }
+
+  // The GPS accuracy halo sits beneath everything Saarthi draws: it is context
+  // for the position marker, never a thing to read in its own right.
+  if (!hasLayer(map, LAYER_IDS.accuracyFill)) {
+    map.addLayer(
+      {
+        id: LAYER_IDS.accuracyFill,
+        type: 'fill',
+        source: SOURCE_IDS.accuracy,
+        paint: { 'fill-color': ROUTE_COLOURS.line, 'fill-opacity': 0.12 },
+      },
+      before,
+    );
+  }
+
+  if (!hasLayer(map, LAYER_IDS.accuracyOutline)) {
+    map.addLayer(
+      {
+        id: LAYER_IDS.accuracyOutline,
+        type: 'line',
+        source: SOURCE_IDS.accuracy,
+        paint: {
+          'line-color': ROUTE_COLOURS.line,
+          'line-width': 1,
+          'line-opacity': 0.35,
+        },
+      },
+      before,
+    );
   }
 
   // Alternatives sit lowest so the chosen route always reads as primary.
@@ -346,7 +402,7 @@ export function ensureOverlayLayers(map: MapLibreMap): void {
         source: SOURCE_IDS.route,
         layout: { 'line-cap': 'round', 'line-join': 'round' },
         paint: {
-          'line-color': ROUTE_COLOURS.casing,
+          'line-gradient': progressGradient(0, CASING_COLOURS),
           'line-width': ['interpolate', ['linear'], ['zoom'], 5, 4.5, 10, 8, 14, 12, 18, 19],
           'line-opacity': 0.9,
         },
@@ -365,7 +421,7 @@ export function ensureOverlayLayers(map: MapLibreMap): void {
         paint: {
           // A gradient rather than two layers: one step expression splits the
           // driven part from the road ahead, and moves as the truck moves.
-          'line-gradient': progressGradient(0),
+          'line-gradient': progressGradient(0, LINE_COLOURS),
           'line-width': ROUTE_WIDTH,
           'line-opacity': 0.98,
         },
@@ -475,14 +531,81 @@ export function setRouteState(map: MapLibreMap, state: RouteRenderState): void {
       : EMPTY,
   );
 
+  // The gradient is re-pushed on every position tick, so this can land inside
+  // the window between a `setStyle()` and the next `style.load` — where
+  // MapLibre throws. The next `style.load` re-applies it.
+  if (!isStyleReady(map)) return;
+
   if (hasLayer(map, LAYER_IDS.routeLine)) {
-    map.setPaintProperty(LAYER_IDS.routeLine, 'line-gradient', progressGradient(completedFraction));
+    map.setPaintProperty(
+      LAYER_IDS.routeLine,
+      'line-gradient',
+      progressGradient(completedFraction, LINE_COLOURS),
+    );
+  }
+  if (hasLayer(map, LAYER_IDS.routeCasing)) {
+    map.setPaintProperty(
+      LAYER_IDS.routeCasing,
+      'line-gradient',
+      progressGradient(completedFraction, CASING_COLOURS),
+    );
   }
 }
 
 /** Push the travelled trail geometry. */
 export function setTrailState(map: MapLibreMap, trail: readonly LatLng[] | undefined): void {
   setGeoJson(map, SOURCE_IDS.trail, trail && trail.length >= 2 ? lineFeature(trail) : EMPTY);
+}
+
+/** Vertices used to approximate the accuracy circle — smooth at any zoom. */
+const ACCURACY_CIRCLE_STEPS = 48;
+/** Below this the halo is smaller than the marker and only adds noise. */
+const MIN_ACCURACY_METERS = 15;
+/** Above this the fix is too vague to draw a meaningful circle for. */
+const MAX_ACCURACY_METERS = 5_000;
+
+/**
+ * The reported GPS accuracy as a geographic circle.
+ *
+ * Drawn as a polygon rather than a screen-space circle so it scales with the
+ * map: a 40 m halo has to stay 40 m across whether the operator is looking at a
+ * street or at a state, which is the only way it can be read as a distance.
+ */
+function accuracyCircle(centre: LatLng, radiusMeters: number): Feature<Polygon> {
+  const latitudeDegrees = radiusMeters / 111_320;
+  const longitudeDegrees =
+    radiusMeters / (111_320 * Math.max(0.01, Math.cos((centre.latitude * Math.PI) / 180)));
+
+  const ring: [number, number][] = [];
+  for (let step = 0; step <= ACCURACY_CIRCLE_STEPS; step += 1) {
+    const angle = (step / ACCURACY_CIRCLE_STEPS) * Math.PI * 2;
+    ring.push([
+      centre.longitude + Math.cos(angle) * longitudeDegrees,
+      centre.latitude + Math.sin(angle) * latitudeDegrees,
+    ]);
+  }
+
+  return { type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [ring] } };
+}
+
+/** Push (or clear) the accuracy halo around the device's own position. */
+export function setLocationAccuracyState(
+  map: MapLibreMap,
+  centre: LatLng | null,
+  radiusMeters: number | null,
+): void {
+  const usable =
+    centre !== null &&
+    radiusMeters !== null &&
+    Number.isFinite(radiusMeters) &&
+    radiusMeters >= MIN_ACCURACY_METERS &&
+    radiusMeters <= MAX_ACCURACY_METERS;
+
+  setGeoJson(
+    map,
+    SOURCE_IDS.accuracy,
+    usable ? accuracyCircle(centre, radiusMeters) : EMPTY,
+  );
 }
 
 /** Show or hide every route-related layer in one call. */

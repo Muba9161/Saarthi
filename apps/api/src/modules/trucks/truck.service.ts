@@ -13,6 +13,7 @@ import { type Prisma, prisma } from '../../database/prisma';
 import { errors } from '../../lib/errors';
 import { skipTake } from '../../lib/http';
 import { assertTenantAccess } from '../../server/guards';
+import { scheduleFastagDiscovery } from '../toll/fastag.service';
 import type { AuthContext } from '../../auth/context';
 import { broadcastTruckStatus } from '../../realtime/realtime.service';
 
@@ -269,6 +270,14 @@ export async function createTruck(
       actorUserId: auth.user.id,
     },
   });
+
+  // A vehicle joining the fleet almost always has a tag on its windscreen
+  // already, and asking an operator to type a 24-character identifier they do
+  // not have is how the toll module stays empty. NETC resolves it from the
+  // registration number, so Saarthi asks — in the background, because adding a
+  // vehicle must not wait on a third party, and only for plans that include
+  // the lookup.
+  scheduleFastagDiscovery(auth, truck.id);
 
   return toSummary(truck);
 }

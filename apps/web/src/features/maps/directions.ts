@@ -584,8 +584,10 @@ export async function geocodeForward(
     'boundary.country': options.country ?? 'IND',
   });
   if (options.proximity) {
-    parameters.set('focus.point.lon', options.proximity.longitude.toFixed(6));
-    parameters.set('focus.point.lat', options.proximity.latitude.toFixed(6));
+    // Three decimals is ~110 m. Any finer and the cache key changes with every
+    // pan, spending a metered geocode on a bias that has not meaningfully moved.
+    parameters.set('focus.point.lon', options.proximity.longitude.toFixed(3));
+    parameters.set('focus.point.lat', options.proximity.latitude.toFixed(3));
   }
 
   const url = `${API_BASE}/geocode/search?${parameters.toString()}`;

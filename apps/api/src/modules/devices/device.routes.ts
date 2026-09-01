@@ -5,6 +5,7 @@ import {
   assignDeviceSchema,
   deviceListQuerySchema,
   idParamSchema,
+  issueDeviceCommandSchema,
   registerDeviceSchema,
   startMockDeviceSchema,
   unassignDeviceSchema,
@@ -22,6 +23,8 @@ import {
 import { AuditAction, auditFromRequest } from '../audit/audit.service';
 import * as deviceService from './device.service';
 import * as mockDeviceService from './mock-device.service';
+import * as pairingService from './pairing.service';
+import * as commandService from './device-command.service';
 
 /**
  * Hardware device routes.
@@ -211,6 +214,83 @@ export async function deviceRoutes(app: FastifyInstance): Promise<void> {
       });
 
       return ok(reply, device);
+    },
+  );
+
+  /**
+   * Cancel an outstanding pairing code.
+   *
+   * A pairing code is a bearer capability, so it has to be revocable: a QR
+   * screenshotted and shared in a group chat is exactly the situation this
+   * exists for.
+   */
+  app.delete(
+    '/pairing-tokens/:id',
+    // Cancelling takes the same grant as issuing. A fleet that can produce a
+    // code but cannot withdraw it has no way to react to one being shared.
+    { preHandler: requirePermission(Permission.DEVICES_PAIR, Permission.DEVICES_ASSIGN) },
+    async (request, reply) => {
+      const auth = requireAuth(request);
+      const { id } = parseParams(idParamSchema, request.params);
+      const token = await pairingService.revokePairingToken(auth, id);
+
+      await auditFromRequest(request, {
+        action: AuditAction.DEVICE_UNASSIGNED,
+        entityType: 'DevicePairingToken',
+        entityId: id,
+        after: { vehicleId: token.vehicleId, revoked: true },
+      });
+
+      return ok(reply, token);
+    },
+  );
+
+  // -------------------------------------------------------------------------
+  // Server → device commands
+  // -------------------------------------------------------------------------
+
+  /**
+   * Ask a device to do something.
+   *
+   * `devices.manage` rather than `devices.read`, because these are actions with
+   * physical consequences — starting a camera pointed at a driver is not a
+   * read. Rate limited so a stuck UI cannot queue hundreds of instructions for
+   * a device that is in a tunnel.
+   */
+  app.post(
+    '/:id/commands',
+    {
+      preHandler: [
+        requirePermission(Permission.DEVICES_MANAGE, Permission.DEVICES_PAIR),
+        requireFeature(Feature.HARDWARE_CONNECTIVITY),
+      ],
+      config: { rateLimit: { max: 30, timeWindow: '1 minute' } },
+    },
+    async (request, reply) => {
+      const auth = requireAuth(request);
+      const { id } = parseParams(idParamSchema, request.params);
+      const input = parseBody(issueDeviceCommandSchema, request.body);
+      const command = await commandService.issueCommand(auth, id, input);
+
+      await auditFromRequest(request, {
+        action: AuditAction.DEVICE_UPDATED,
+        entityType: 'DeviceCommand',
+        entityId: command.id,
+        after: { deviceId: id, type: input.type },
+      });
+
+      return created(reply, command);
+    },
+  );
+
+  /** What was asked of this device, and whether it ever confirmed. */
+  app.get(
+    '/:id/commands',
+    { preHandler: requirePermission(Permission.DEVICES_READ) },
+    async (request, reply) => {
+      const auth = requireAuth(request);
+      const { id } = parseParams(idParamSchema, request.params);
+      return ok(reply, await commandService.listCommands(auth, id));
     },
   );
 

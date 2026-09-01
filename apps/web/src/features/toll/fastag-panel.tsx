@@ -9,11 +9,12 @@ import {
   Clock,
   HelpCircle,
   RefreshCw,
+  ScanSearch,
   Wallet,
 } from 'lucide-react';
 import { formatCurrency, humanizeEnum } from '@saarthi/shared';
 import { ApiError, api, errorMessage } from '@/lib/api-client';
-import type { FastagCapabilities, FastagView } from '@/lib/api-types';
+import type { FastagCapabilities, FastagDiscoveryResult, FastagView } from '@/lib/api-types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -451,6 +452,39 @@ export function VehicleFastagPanel({
     void queryClient.invalidateQueries({ queryKey: ['fastag'] });
   };
 
+  /**
+   * Find the tag from the registration number.
+   *
+   * Offered only where the provider can actually look one up, because on a
+   * deployment with no NETC integration this button could do nothing but fail.
+   * "No tag on this vehicle" is a normal answer and gets an informational
+   * toast, not a red one — plenty of vehicles genuinely have no tag.
+   */
+  const discover = useMutation({
+    mutationFn: () =>
+      api.post<FastagDiscoveryResult>('/fleet/toll/fastag/discover', { vehicleId }),
+    onSuccess: (result) => {
+      if (!result.found) {
+        toast.info(result.reason ?? 'No FASTag is registered against this vehicle.');
+        return;
+      }
+      toast.success(
+        result.alreadyKnown ? 'Tag refreshed from the network' : 'FASTag found and added',
+      );
+      refresh();
+    },
+    onError: (error) => {
+      // Not connected, or not on this plan: expected answers on most
+      // deployments rather than failures worth a red toast.
+      const message = errorMessage(error);
+      if (error instanceof ApiError && (error.status === 503 || error.status === 403)) {
+        toast.info(message);
+      } else {
+        toast.error(message);
+      }
+    },
+  });
+
   const active = (tags.data ?? []).filter((tag) => tag.closedAt === null);
 
   if (active.length === 0) {
@@ -463,6 +497,26 @@ export function VehicleFastagPanel({
             Add the tag fitted to this vehicle to track its balance, see what it spends at each
             plaza, and be warned before it runs out at a barrier.
           </p>
+
+          {capabilities.data?.supportsLookup ? (
+            <>
+              <Button
+                className="mt-4"
+                size="sm"
+                onClick={() => discover.mutate()}
+                disabled={discover.isPending}
+              >
+                <ScanSearch
+                  className={cn('mr-1.5 h-3.5 w-3.5', discover.isPending && 'animate-pulse')}
+                />
+                {discover.isPending ? 'Checking with NETC…' : 'Find tag from registration'}
+              </Button>
+              <p className="mx-auto mt-2 max-w-md text-2xs text-muted-foreground">
+                Looks this vehicle up on the NETC network. It returns the tag and its status —
+                the rupee balance stays with your issuing bank.
+              </p>
+            </>
+          ) : null}
         </CardContent>
       </Card>
     );

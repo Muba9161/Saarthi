@@ -7,7 +7,7 @@ import multipart from '@fastify/multipart';
 import websocket from '@fastify/websocket';
 import { ErrorCode } from '@saarthi/shared';
 import { config } from '../config/env';
-import { DEV_TUNNEL_ORIGIN } from '../lib/public-url';
+import { DEV_TUNNEL_ORIGIN, LOCAL_ORIGIN } from '../lib/public-url';
 import { redisClient } from '../infra/redis';
 import { logger } from '../lib/logger';
 import { errorHandlerPlugin } from './plugins/error-handler';
@@ -16,6 +16,7 @@ import { authenticatePlugin } from './plugins/authenticate';
 import { healthRoutes } from '../modules/health/health.routes';
 import { registerApiRoutes } from './routes';
 import { websocketRoutes } from '../realtime/websocket.routes';
+import { deviceWebsocketRoutes } from '../realtime/device-websocket.routes';
 
 export const API_PREFIX = '/api/v1';
 
@@ -45,7 +46,12 @@ export async function buildApp(): Promise<FastifyInstance> {
       // Same-origin/native clients send no Origin header.
       if (!origin) return callback(null, true);
       if (config.server.corsOrigins.includes(origin)) return callback(null, true);
-      if (!config.isProduction && /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin)) {
+      // Loopback *and* the private ranges, outside production. The private
+      // ranges are what make a phone work: testing a pairing QR means opening
+      // the dashboard on the machine's LAN address, and an origin the browser
+      // is refused is an origin the QR must not encode either. The same
+      // pattern decides both, so the two cannot drift apart.
+      if (!config.isProduction && LOCAL_ORIGIN.test(origin)) {
         return callback(null, true);
       }
       // Outside production, allow the dev-tunnel providers. Reaching the app
@@ -122,6 +128,10 @@ export async function buildApp(): Promise<FastifyInstance> {
 
   await app.register(healthRoutes);
   await app.register(websocketRoutes);
+  // A separate endpoint from /ws, with its own credential population and no
+  // channel-subscription surface at all — see the file header for why the
+  // duplication is the cheaper risk.
+  await app.register(deviceWebsocketRoutes);
   await app.register(registerApiRoutes, { prefix: API_PREFIX });
 
   return app;

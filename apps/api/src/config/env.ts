@@ -62,6 +62,22 @@ const secret = (name: string) =>
     .string({ required_error: `${name} is required` })
     .min(32, `${name} must be at least 32 characters long`);
 
+/**
+ * An optional setting that is either absent or has to satisfy a constraint.
+ *
+ * `.optional()` alone is not enough for anything with a rule attached. A key
+ * left blank in `.env` arrives as an empty string rather than as undefined, so
+ * `z.string().url().optional()` refuses it and the process will not start —
+ * which is exactly what happens to somebody who copies `.env.example` and fills
+ * in only what they need. Blank means "not set", and this makes it mean that.
+ */
+const blankAsUnset = <T extends z.ZodTypeAny>(schema: T) =>
+  z
+    .string()
+    .optional()
+    .transform((value) => (value === undefined || value.trim() === '' ? undefined : value.trim()))
+    .pipe(schema.optional());
+
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
@@ -147,12 +163,63 @@ const envSchema = z.object({
   // Live video never passes through the API. The provider issues a short-lived,
   // camera-scoped ticket and the browser negotiates with a video gateway
   // directly. 'none' is the honest default for a deployment with no cameras.
-  VIDEO_PROVIDER: z.enum(['none', 'mock']).default('none'),
+  // 'device' routes both the viewer and the publisher through an external
+  // WHIP/WHEP gateway, which is what a phone or a YC06 pushing a live stream
+  // needs. It requires VIDEO_GATEWAY_URL and VIDEO_GATEWAY_SECRET; without
+  // them the factory falls back to 'none' rather than issuing tickets nothing
+  // will honour.
+  VIDEO_PROVIDER: z.enum(['none', 'mock', 'device']).default('none'),
   /// Seconds a live-view ticket stays valid. Short: it is re-issued on demand,
   /// and a long-lived ticket is a camera credential someone can pass around.
   VIDEO_TICKET_TTL: z.coerce.number().int().min(15).max(600).default(120),
   /// Cameras a single multi-camera device may have. The YC06 has four.
   VIDEO_MAX_CAMERAS_PER_DEVICE: z.coerce.number().int().min(1).max(16).default(4),
+  /// Base URL of the WHIP/WHEP gateway. Never a device address.
+  VIDEO_GATEWAY_URL: blankAsUnset(z.string().url()),
+  /// Shared secret used to sign gateway tickets. Never sent to a client.
+  VIDEO_GATEWAY_SECRET: blankAsUnset(z.string().min(32)),
+  /// Seconds a publisher ticket stays valid. Longer than a viewer ticket
+  /// because a device re-establishing a stream after a tunnel should not have
+  /// to make a round trip to Saarthi first.
+  VIDEO_PUBLISH_TTL: z.coerce.number().int().min(30).max(1_800).default(300),
+  /**
+   * STUN and TURN servers, as a comma-separated list.
+   *
+   * A phone and a gateway on the same LAN need none of this — host candidates
+   * find each other. A phone on a mobile network behind carrier-grade NAT needs
+   * at least STUN, and often a TURN relay, because two NATed peers cannot see
+   * each other at all. Which is why it is configuration rather than a constant:
+   * the answer depends entirely on where the gateway is deployed.
+   *
+   * e.g. `stun:stun.l.google.com:19302,turn:turn.example.com:3478`
+   */
+  VIDEO_ICE_SERVERS: csv([]),
+  /// Long-term credential for the TURN servers above, when they need one.
+  VIDEO_TURN_USERNAME: z.string().optional(),
+  VIDEO_TURN_CREDENTIAL: z.string().optional(),
+
+  // --- Saarthi Device client -------------------------------------------------
+  //
+  // A phone running the Saarthi Device app authenticates as a device, not as a
+  // person, so it gets its own signing secret. Sharing JWT_ACCESS_SECRET would
+  // mean a leaked device token and a leaked user token were forgeable from the
+  // same key, and the two populations have completely different threat models.
+  DEVICE_JWT_SECRET: blankAsUnset(z.string().min(32)),
+  /// Seconds a device access token stays valid before the secret must refresh it.
+  DEVICE_TOKEN_TTL: z.coerce.number().int().min(60).max(86_400).default(900),
+  /// Whether a phone may create its own identity without an administrator.
+  DEVICE_SELF_ENROLMENT: booleanish(true),
+  /// Enrolments per IP per window. An unauthenticated endpoint needs a ceiling.
+  DEVICE_ENROLMENT_RATE_LIMIT_MAX: z.coerce.number().int().min(1).default(5),
+  DEVICE_ENROLMENT_RATE_LIMIT_WINDOW: z.string().default('1 hour'),
+  /// Hours an unclaimed enrolment is kept before the sweep removes it.
+  DEVICE_ENROLMENT_TTL_HOURS: z.coerce.number().int().min(1).max(720).default(24),
+  /// Seconds a pairing QR stays scannable.
+  DEVICE_PAIRING_TOKEN_TTL: z.coerce.number().int().min(60).max(3_600).default(300),
+  /// Default reporting cadence handed to a newly paired device, in seconds.
+  DEVICE_DEFAULT_REPORTING_INTERVAL: z.coerce.number().int().min(1).max(300).default(5),
+  /// Whether this environment accepts simulated engine data from a device.
+  DEVICE_SIMULATION_ALLOWED: booleanish(true),
 
   // --- FASTag & toll (NETC) --------------------------------------------------
   //
@@ -166,7 +233,12 @@ const envSchema = z.object({
   // FASTAG_SUB_ID and falls back to recorded-only if either is missing.
   FASTAG_PROVIDER: z.enum(['internal', 'mastersindia', 'mock']).default('internal'),
   FASTAG_API_BASE_URL: z.string().url().default('https://api-platform.mastersindia.co'),
+  // Masters India issues a 24-hour JWT rather than a permanent key, so the
+  // normal setup is a username and password and the adapter mints its own
+  // token. FASTAG_API_KEY stays supported for a token pasted in by hand.
   FASTAG_API_KEY: z.string().optional(),
+  FASTAG_API_USERNAME: z.string().optional(),
+  FASTAG_API_PASSWORD: z.string().optional(),
   /// Subscriber id, issued by the provider alongside the key.
   FASTAG_SUB_ID: z.string().optional(),
   FASTAG_PRODUCT_ID: z.string().default('arap'),
@@ -256,6 +328,63 @@ const envSchema = z.object({
   SSR_PETROL_TIMEOUT_MS: z.coerce.number().int().min(1000).max(60_000).default(12_000),
   PETROL_STATION_CACHE_TTL: z.coerce.number().int().min(0).max(30 * 86_400).default(21_600),
 
+  // --- Nearby places (OpenStreetMap via Overpass) --------------------------
+  //
+  // `overpass` reads live points of interest from OpenStreetMap — the same
+  // survey the basemap, the routing and the elevation already come from, so the
+  // pins agree with the map under them. It needs no key.
+  //
+  // `local` serves only the `nearby_places` table, which is what an air-gapped
+  // install or a strictly offline demo needs.
+  PLACES_PROVIDER: z.enum(['overpass', 'local']).default('overpass'),
+  /**
+   * Overpass endpoints, tried in order until one answers.
+   *
+   * The public instances are shared, unfunded and individually unreliable — all
+   * three were refusing queries at some point while this was built — so a list
+   * is the realistic configuration, not a luxury.
+   */
+  OVERPASS_API_URLS: z
+    .string()
+    .default(
+      'https://overpass-api.de/api/interpreter,https://overpass.kumi.systems/api/interpreter,https://overpass.private.coffee/api/interpreter',
+    ),
+  /** Overall deadline for a search, across every endpoint tried. */
+  OVERPASS_TIMEOUT_MS: z.coerce.number().int().min(6_000).max(60_000).default(25_000),
+  /**
+   * Largest radius sent upstream, in km. Past this the mirror answers, and the
+   * mirror does measure distance.
+   */
+  OVERPASS_MAX_RADIUS_KM: z.coerce.number().min(1).max(200).default(25),
+  /**
+   * Query cost ceiling, in selector-kilometres.
+   *
+   * Overpass cost tracks (number of tag selectors × search radius). Measured
+   * against the public instance in dense Gurugram, ~200 lands around nine
+   * seconds and ~350 exceeds its dispatcher budget entirely. Raise it freely for
+   * a self-hosted instance, which has no such ceiling.
+   */
+  OVERPASS_WORK_BUDGET: z.coerce.number().min(20).max(20_000).default(200),
+  /** Seconds a places search is reused before the directory is queried again. */
+  NEARBY_PLACE_CACHE_TTL: z.coerce.number().int().min(0).max(30 * 86_400).default(10_800),
+
+  // --- City fuel rates -----------------------------------------------------
+  //
+  // A separate source from the station directory, and deliberately so: the
+  // directory's own prices are a single city figure years out of date with no
+  // timestamp, so Saarthi publishes none of them.
+  //
+  // `none` disables the feature and shows no rate, which is the correct
+  // behaviour whenever a rate cannot be had honestly.
+  FUEL_RATE_PROVIDER: z.enum(['cardekho', 'none']).default('cardekho'),
+  FUEL_RATE_BASE_URL: z.string().url().default('https://www.cardekho.com'),
+  FUEL_RATE_TIMEOUT_MS: z.coerce.number().int().min(1000).max(60_000).default(12_000),
+  /**
+   * Retail rates revise once daily at 06:00 IST, so a six-hour cache is fresh
+   * enough while keeping Saarthi to a handful of requests per city per day.
+   */
+  FUEL_RATE_CACHE_TTL: z.coerce.number().int().min(0).max(7 * 86_400).default(21_600),
+
   // `openfreemap` needs no credentials at all. The older values stay accepted
   // so an existing deployment does not fail to boot on an outdated .env.
   MAP_PROVIDER: z.enum(['openfreemap', 'maplibre', 'mapbox']).default('openfreemap'),
@@ -301,6 +430,18 @@ if (isProduction) {
   }
   if (raw.DEMO_MODE) {
     throw new Error('DEMO_MODE must be false in production — simulation endpoints would be exposed.');
+  }
+  // Devices and people are separate credential populations with separate threat
+  // models. Signing both with one key means a compromise of either forges both.
+  if (!raw.DEVICE_JWT_SECRET) {
+    throw new Error(
+      'DEVICE_JWT_SECRET is required in production — device tokens must not be signed with the user access secret.',
+    );
+  }
+  if (raw.VIDEO_PROVIDER === 'device' && (!raw.VIDEO_GATEWAY_URL || !raw.VIDEO_GATEWAY_SECRET)) {
+    throw new Error(
+      'VIDEO_PROVIDER=device requires VIDEO_GATEWAY_URL and VIDEO_GATEWAY_SECRET — otherwise Saarthi would issue camera tickets nothing can honour.',
+    );
   }
 }
 
@@ -390,6 +531,8 @@ export const config = {
     provider: raw.FASTAG_PROVIDER,
     baseUrl: raw.FASTAG_API_BASE_URL.replace(/\/$/, ''),
     apiKey: raw.FASTAG_API_KEY || undefined,
+    username: raw.FASTAG_API_USERNAME || undefined,
+    password: raw.FASTAG_API_PASSWORD || undefined,
     subId: raw.FASTAG_SUB_ID || undefined,
     productId: raw.FASTAG_PRODUCT_ID,
     mode: raw.FASTAG_MODE,
@@ -401,6 +544,31 @@ export const config = {
     provider: raw.VIDEO_PROVIDER,
     ticketTtlSeconds: raw.VIDEO_TICKET_TTL,
     maxCamerasPerDevice: raw.VIDEO_MAX_CAMERAS_PER_DEVICE,
+    gatewayUrl: raw.VIDEO_GATEWAY_URL?.replace(/\/$/, '') || undefined,
+    gatewaySecret: raw.VIDEO_GATEWAY_SECRET || undefined,
+    publishTtlSeconds: raw.VIDEO_PUBLISH_TTL,
+    iceServers: raw.VIDEO_ICE_SERVERS,
+    turnUsername: raw.VIDEO_TURN_USERNAME || undefined,
+    turnCredential: raw.VIDEO_TURN_CREDENTIAL || undefined,
+  },
+
+  device: {
+    /**
+     * Falls back to the user access secret only outside production, so a
+     * developer does not have to set another key to run the device app locally.
+     * Production refuses to start without a dedicated one — see the guard below.
+     */
+    jwtSecret: raw.DEVICE_JWT_SECRET || raw.JWT_ACCESS_SECRET,
+    /** True when the secret above is genuinely device-specific. */
+    hasDedicatedJwtSecret: Boolean(raw.DEVICE_JWT_SECRET),
+    tokenTtlSeconds: raw.DEVICE_TOKEN_TTL,
+    selfEnrolmentEnabled: raw.DEVICE_SELF_ENROLMENT,
+    enrolmentRateLimitMax: raw.DEVICE_ENROLMENT_RATE_LIMIT_MAX,
+    enrolmentRateLimitWindow: raw.DEVICE_ENROLMENT_RATE_LIMIT_WINDOW,
+    enrolmentTtlHours: raw.DEVICE_ENROLMENT_TTL_HOURS,
+    pairingTokenTtlSeconds: raw.DEVICE_PAIRING_TOKEN_TTL,
+    defaultReportingIntervalSeconds: raw.DEVICE_DEFAULT_REPORTING_INTERVAL,
+    simulationAllowed: raw.DEVICE_SIMULATION_ALLOWED,
   },
 
   finance: {
@@ -483,6 +651,24 @@ export const config = {
     apiKey: raw.SSR_PETROL_API_KEY || undefined,
     timeoutMs: raw.SSR_PETROL_TIMEOUT_MS,
     cacheTtlSeconds: raw.PETROL_STATION_CACHE_TTL,
+  },
+
+  places: {
+    provider: raw.PLACES_PROVIDER,
+    overpassUrls: raw.OVERPASS_API_URLS.split(',')
+      .map((url) => url.trim().replace(/\/+$/, ''))
+      .filter((url) => /^https?:\/\//.test(url)),
+    timeoutMs: raw.OVERPASS_TIMEOUT_MS,
+    maxRadiusKm: raw.OVERPASS_MAX_RADIUS_KM,
+    workBudget: raw.OVERPASS_WORK_BUDGET,
+    cacheTtlSeconds: raw.NEARBY_PLACE_CACHE_TTL,
+  },
+
+  fuelRates: {
+    provider: raw.FUEL_RATE_PROVIDER,
+    baseUrl: raw.FUEL_RATE_BASE_URL.replace(/\/$/, ''),
+    timeoutMs: raw.FUEL_RATE_TIMEOUT_MS,
+    cacheTtlSeconds: raw.FUEL_RATE_CACHE_TTL,
   },
 
   maps: {

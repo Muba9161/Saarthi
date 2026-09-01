@@ -10,10 +10,13 @@ import {
   withinBounds,
   type NormalizedTelemetry,
 } from '@saarthi/shared';
-import { prisma } from '../../database/prisma';
+import { isUniqueViolation, prisma } from '../../database/prisma';
+import { cache } from '../../infra/cache';
+import { cacheKeys, cacheTtl } from '../../infra/cache-keys';
 import { errors } from '../../lib/errors';
 import { logger } from '../../lib/logger';
 import { adapterFor } from '../../providers/devices';
+import { clientEventIdOf } from '../../providers/devices/phone.adapter';
 import { ingestLocation } from '../tracking/tracking.service';
 import { broadcastDeviceStatus, broadcastTelemetry } from '../../realtime/realtime.service';
 import type { AuthenticatedDevice } from '../devices/device.service';
@@ -62,6 +65,15 @@ const lastBroadcastAt = new Map<string, number>();
 export interface IngestOutcome {
   accepted: number;
   rejected: number;
+  /**
+   * Readings Saarthi already had.
+   *
+   * Counted apart from rejections on purpose. A device replaying a buffer after
+   * an outage is behaving correctly, and filing those repeats as faults would
+   * fill its event log — and the fleet's device screen — with alarms that
+   * describe the system working.
+   */
+  duplicates: number;
   /** Human-readable reasons, returned to the device for its own logs. */
   reasons: string[];
   alertsRaised: number;
@@ -172,7 +184,13 @@ export async function ingest(
   options: { sequence?: number | null; simulated?: boolean } = {},
 ): Promise<IngestOutcome> {
   const now = new Date();
-  const outcome: IngestOutcome = { accepted: 0, rejected: 0, reasons: [], alertsRaised: 0 };
+  const outcome: IngestOutcome = {
+    accepted: 0,
+    rejected: 0,
+    duplicates: 0,
+    reasons: [],
+    alertsRaised: 0,
+  };
 
   // --- Eligibility --------------------------------------------------------
   if (!TELEMETRY_ELIGIBLE_DEVICE_STATUSES.includes(device.status)) {
@@ -278,57 +296,103 @@ export async function ingest(
       continue;
     }
 
-    const stored = await prisma.telemetryReading.create({
-      data: {
-        deviceId: device.id,
-        vehicleId: vehicle.id,
-        organizationId: vehicle.organizationId,
-        // Denormalised so driver-behaviour queries and score attribution do not
-        // need a point-in-time assignment lookup years later.
-        driverId: vehicle.currentDriverId,
-        tripId: vehicle.currentTripId,
-        metrics: reading.metrics,
-        latitude: reading.location?.latitude ?? null,
-        longitude: reading.location?.longitude ?? null,
-        speedKph: reading.location?.speed ?? null,
-        heading: reading.location?.heading ?? null,
-        altitude: reading.location?.altitude ?? null,
-        accuracy: reading.location?.accuracy ?? null,
-        satellites: reading.location?.satellites ?? null,
-        rpm: reading.vehicleData.rpm,
-        engineLoad: reading.vehicleData.engineLoad,
-        coolantTemperature: reading.vehicleData.coolantTemperature,
-        intakeTemperature: reading.vehicleData.intakeTemperature,
-        fuelLevel: reading.vehicleData.fuelLevel,
-        fuelRate: reading.vehicleData.fuelRate,
-        throttlePosition: reading.vehicleData.throttlePosition,
-        batteryVoltage: reading.vehicleData.batteryVoltage,
-        odometerKm: reading.vehicleData.odometerKm,
-        vin: reading.vehicleData.vin,
-        accelerationX: reading.motion.accelerationX,
-        accelerationY: reading.motion.accelerationY,
-        accelerationZ: reading.motion.accelerationZ,
-        harshBraking: reading.motion.harshBraking,
-        harshAcceleration: reading.motion.harshAcceleration,
-        suddenMovement: reading.motion.suddenMovement,
-        deviceTemperature: reading.deviceHealth.temperature,
-        signalStrength: reading.deviceHealth.signalStrength,
-        simulated: options.simulated ?? false,
-        sequence: reading.sequence,
-        rawPayload: reading.raw === null ? undefined : (reading.raw as never),
-        recordedAt: reading.recordedAt,
-        receivedAt: now,
-        diagnostics: {
-          create: reading.diagnostics.map((code) => ({
-            vehicleId: vehicle.id,
-            organizationId: vehicle.organizationId,
-            code: code.code,
-            description: code.description,
-            confirmed: code.confirmed,
-          })),
+    // --- Idempotency ------------------------------------------------------
+    //
+    // A device that buffered events through an outage retries the whole batch,
+    // so the same frame legitimately arrives more than once. Sequence numbers
+    // cannot express that — a batch is replayed as a unit — so an app-based
+    // device stamps each event with a key it generated before buffering, and a
+    // repeat is *skipped*, never counted as a rejection. Rejecting it would
+    // fill the device's event log with faults that describe correct behaviour.
+    const clientEventId = clientEventIdOf(reading);
+    if (clientEventId) {
+      const seenKey = cacheKeys.deviceEventIdempotency(device.id, clientEventId);
+      const seen = await cache.get<boolean>(seenKey).catch(() => null);
+      if (seen) {
+        outcome.duplicates += 1;
+        continue;
+      }
+    }
+
+    let stored;
+    try {
+      stored = await prisma.telemetryReading.create({
+        data: {
+          deviceId: device.id,
+          vehicleId: vehicle.id,
+          organizationId: vehicle.organizationId,
+          // Denormalised so driver-behaviour queries and score attribution do
+          // not need a point-in-time assignment lookup years later.
+          driverId: vehicle.currentDriverId,
+          tripId: vehicle.currentTripId,
+          metrics: reading.metrics,
+          // Which of those metrics were invented rather than measured. Empty
+          // for every fitted device; populated for a phone, whose engine block
+          // comes from an on-device simulator.
+          simulatedMetrics: reading.simulatedMetrics,
+          clientEventId: clientEventId ?? null,
+          latitude: reading.location?.latitude ?? null,
+          longitude: reading.location?.longitude ?? null,
+          speedKph: reading.location?.speed ?? null,
+          heading: reading.location?.heading ?? null,
+          altitude: reading.location?.altitude ?? null,
+          accuracy: reading.location?.accuracy ?? null,
+          satellites: reading.location?.satellites ?? null,
+          rpm: reading.vehicleData.rpm,
+          engineLoad: reading.vehicleData.engineLoad,
+          coolantTemperature: reading.vehicleData.coolantTemperature,
+          intakeTemperature: reading.vehicleData.intakeTemperature,
+          fuelLevel: reading.vehicleData.fuelLevel,
+          fuelRate: reading.vehicleData.fuelRate,
+          throttlePosition: reading.vehicleData.throttlePosition,
+          batteryVoltage: reading.vehicleData.batteryVoltage,
+          odometerKm: reading.vehicleData.odometerKm,
+          vin: reading.vehicleData.vin,
+          accelerationX: reading.motion.accelerationX,
+          accelerationY: reading.motion.accelerationY,
+          accelerationZ: reading.motion.accelerationZ,
+          harshBraking: reading.motion.harshBraking,
+          harshAcceleration: reading.motion.harshAcceleration,
+          suddenMovement: reading.motion.suddenMovement,
+          deviceTemperature: reading.deviceHealth.temperature,
+          signalStrength: reading.deviceHealth.signalStrength,
+          simulated: options.simulated ?? false,
+          sequence: reading.sequence,
+          rawPayload: reading.raw === null ? undefined : (reading.raw as never),
+          recordedAt: reading.recordedAt,
+          receivedAt: now,
+          diagnostics: {
+            create: reading.diagnostics.map((code) => ({
+              vehicleId: vehicle.id,
+              organizationId: vehicle.organizationId,
+              code: code.code,
+              description: code.description,
+              confirmed: code.confirmed,
+            })),
+          },
         },
-      },
-    });
+      });
+    } catch (error) {
+      // The unique index on (deviceId, clientEventId) is the durable half of
+      // the idempotency guarantee — the cache above is only a cheap short cut,
+      // and it expires. A device that retries a day-old buffer lands here, and
+      // the correct answer is still "already have it", not a failed batch.
+      if (isUniqueViolation(error)) {
+        outcome.duplicates += 1;
+        continue;
+      }
+      throw error;
+    }
+
+    if (clientEventId) {
+      void cache
+        .set(
+          cacheKeys.deviceEventIdempotency(device.id, clientEventId),
+          true,
+          cacheTtl.deviceIdempotency,
+        )
+        .catch(() => undefined);
+    }
 
     outcome.accepted += 1;
     latestAccepted = reading;
@@ -438,6 +502,7 @@ export async function ingest(
         organizationId: vehicle.organizationId,
         recordedAt: latestAccepted.recordedAt.toISOString(),
         metrics: latestAccepted.metrics,
+        simulatedMetrics: latestAccepted.simulatedMetrics,
         latitude: latestAccepted.location?.latitude ?? null,
         longitude: latestAccepted.location?.longitude ?? null,
         speedKph: latestAccepted.location?.speed ?? null,

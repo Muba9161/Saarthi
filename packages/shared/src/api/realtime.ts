@@ -11,7 +11,10 @@ import type {
   AlertSeverity,
   AssociationAlertStatus,
   BookingStatus,
+  DeviceCommandType,
+  DeviceNetworkType,
   DeviceStatus,
+  DeviceSubsystemStatus,
   NotificationPriority,
   NotificationType,
   OrderStatus,
@@ -131,6 +134,20 @@ export const RealtimeEvent = {
   DEVICE_ONLINE: 'vehicle.device.online',
   DEVICE_OFFLINE: 'vehicle.device.offline',
   TELEMETRY_ALERT_CREATED: 'telemetry.alert.created',
+
+  // Device client (Saarthi Device app and any future connected unit).
+  //
+  // Heartbeat is separate from DEVICE_ONLINE/OFFLINE because they answer
+  // different questions: online is Saarthi's verdict formed from telemetry
+  // silence, heartbeat is the unit's own report on its battery, radio and
+  // sensors. A parked phone is quiet and perfectly healthy.
+  DEVICE_HEARTBEAT: 'vehicle.device.heartbeat',
+  DEVICE_PAIRED: 'vehicle.device.paired',
+  DEVICE_UNPAIRED: 'vehicle.device.unpaired',
+  /** Server → device. Delivered only on the device's own channel. */
+  DEVICE_COMMAND: 'device.command',
+  /** Server → device. Configuration the unit must adopt. */
+  DEVICE_CONFIG_UPDATED: 'device.config.updated',
 
   // Association emergency network
   ASSOCIATION_ALERT_CREATED: 'association.alert.created',
@@ -275,6 +292,15 @@ export interface TelemetryUpdatePayload {
   organizationId: string;
   recordedAt: string;
   metrics: TelemetryMetric[];
+  /**
+   * Metrics in this reading that were produced by a simulator, not measured.
+   *
+   * Always a subset of `metrics`. A phone standing in for fitted hardware sends
+   * a real position alongside an invented RPM, and a gauge must be able to say
+   * which is which — "SIMULATED" beside the engine figures and nothing beside
+   * the speed.
+   */
+  simulatedMetrics: TelemetryMetric[];
   latitude: number | null;
   longitude: number | null;
   speedKph: number | null;
@@ -299,6 +325,71 @@ export interface DeviceStatusPayload {
   lastSeenAt: string | null;
   /** Seconds of silence that produced an offline verdict. */
   silentForSeconds: number | null;
+  updatedAt: string;
+}
+
+/**
+ * A connected device's own report on itself.
+ *
+ * Distinct from `DeviceStatusPayload`, which carries Saarthi's verdict about
+ * whether a unit is reporting. This carries what the unit says about its own
+ * battery, radio and subsystems, which is what a dispatcher needs in order to
+ * tell "the driver's phone is on 4%" from "the SIM is dead".
+ */
+export interface DeviceHeartbeatPayload {
+  deviceId: string;
+  deviceIdentifier: string;
+  organizationId: string;
+  vehicleId: string | null;
+  batteryPercent: number | null;
+  batteryCharging: boolean | null;
+  networkType: DeviceNetworkType;
+  gpsStatus: DeviceSubsystemStatus;
+  cameraStatus: DeviceSubsystemStatus;
+  /** Events the device is still holding locally because it could not upload. */
+  bufferedEvents: number;
+  appVersion: string | null;
+  reportedAt: string;
+}
+
+/** A device joined or left a vehicle. Drives the Hardware tab without a refetch. */
+export interface DeviceAssignmentPayload {
+  deviceId: string;
+  deviceIdentifier: string;
+  organizationId: string;
+  vehicleId: string;
+  registrationNumber: string;
+  deviceType: string;
+  provider: string;
+  assignedAt: string | null;
+  unassignedAt: string | null;
+  reason: string | null;
+}
+
+/**
+ * A command addressed to one device.
+ *
+ * Published only on `device:{deviceId}`, which a device socket joins for itself
+ * and nothing else. Dashboards subscribed to the same channel see it too, which
+ * is intended: an operator watching a unit should see what was asked of it.
+ */
+export interface DeviceCommandPayload {
+  commandId: string;
+  deviceId: string;
+  organizationId: string;
+  type: DeviceCommandType;
+  payload: Record<string, unknown> | null;
+  issuedAt: string;
+  expiresAt: string;
+}
+
+/** Configuration a device must adopt without waiting for its next poll. */
+export interface DeviceConfigPayload {
+  deviceId: string;
+  reportingIntervalSeconds: number;
+  heartbeatIntervalSeconds: number;
+  videoEnabled: boolean;
+  simulationAllowed: boolean;
   updatedAt: string;
 }
 
@@ -409,6 +500,27 @@ export type ChannelMessage =
     }
   | { type: typeof RealtimeEvent.DEVICE_ONLINE; channel: string; payload: DeviceStatusPayload }
   | { type: typeof RealtimeEvent.DEVICE_OFFLINE; channel: string; payload: DeviceStatusPayload }
+  | {
+      type: typeof RealtimeEvent.DEVICE_HEARTBEAT;
+      channel: string;
+      payload: DeviceHeartbeatPayload;
+    }
+  | {
+      type: typeof RealtimeEvent.DEVICE_PAIRED;
+      channel: string;
+      payload: DeviceAssignmentPayload;
+    }
+  | {
+      type: typeof RealtimeEvent.DEVICE_UNPAIRED;
+      channel: string;
+      payload: DeviceAssignmentPayload;
+    }
+  | { type: typeof RealtimeEvent.DEVICE_COMMAND; channel: string; payload: DeviceCommandPayload }
+  | {
+      type: typeof RealtimeEvent.DEVICE_CONFIG_UPDATED;
+      channel: string;
+      payload: DeviceConfigPayload;
+    }
   | {
       type: typeof RealtimeEvent.TELEMETRY_ALERT_CREATED;
       channel: string;

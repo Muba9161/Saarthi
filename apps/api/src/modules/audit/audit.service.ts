@@ -295,6 +295,8 @@ export const AuditAction = {
   CAMERA_VIEWED: 'camera.viewed',
 
   FASTAG_REGISTERED: 'fastag.registered',
+  /// A tag Saarthi found on NETC rather than one somebody typed in.
+  FASTAG_DISCOVERED: 'fastag.discovered',
   FASTAG_SYNCED: 'fastag.synced',
   FASTAG_RECHARGE_RECORDED: 'fastag.recharge_recorded',
   TOLL_RECORDED: 'toll.recorded',

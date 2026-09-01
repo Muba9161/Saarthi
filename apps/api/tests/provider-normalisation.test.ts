@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
+import { NEARBY_CATEGORIES, NearbyCategory } from '@saarthi/shared';
 import { normalizeWay2ApiRecord } from '../src/providers/vehicle-rc/way2api-rc.provider';
 import { normalizeSsrStation } from '../src/providers/petrol-stations/ssr-petrol-station.provider';
+import {
+  normalizeOverpassElement,
+  resolveRadii,
+} from '../src/providers/places/overpass-place.provider';
 import {
   normalizeWay2ApiLicence,
   toProviderDate,
@@ -320,5 +325,186 @@ describe('Way2API driving licence mapping', () => {
     // dd/mm/yyyy, zero padded — not ISO, and not the locale's order.
     expect(toProviderDate(new Date('1992-06-15T00:00:00Z'))).toBe('15/06/1992');
     expect(toProviderDate(new Date('2001-01-05T00:00:00Z'))).toBe('05/01/2001');
+  });
+});
+
+describe('OpenStreetMap place mapping', () => {
+  const ALL = NEARBY_CATEGORIES;
+
+  const pump = {
+    type: 'node',
+    id: 249054695,
+    lat: 28.4892384,
+    lon: 77.0909884,
+    tags: {
+      amenity: 'fuel',
+      name: 'Indian Oil',
+      brand: 'Indian Oil',
+      opening_hours: '24/7',
+      'addr:city': 'Gurugram',
+      'addr:state': 'Haryana',
+      'addr:street': 'Golf Course Road',
+      'addr:housenumber': '12',
+      'contact:phone': '+911244567890',
+      'fuel:diesel': 'yes',
+      wikipedia: 'en:Indian Oil',
+    },
+  };
+
+  it('maps a node onto the Saarthi category and fields', () => {
+    const place = normalizeOverpassElement(pump, ALL)!;
+
+    expect(place.externalId).toBe('n249054695');
+    expect(place.category).toBe(NearbyCategory.FUEL);
+    expect(place.name).toBe('Indian Oil');
+    expect(place.latitude).toBeCloseTo(28.4892384, 6);
+    expect(place.longitude).toBeCloseTo(77.0909884, 6);
+    expect(place.address).toBe('12 Golf Course Road, Gurugram');
+    expect(place.city).toBe('Gurugram');
+    expect(place.state).toBe('Haryana');
+    expect(place.phone).toBe('+911244567890');
+  });
+
+  it('takes the centre of a way, so a mapped forecourt still has a position', () => {
+    const place = normalizeOverpassElement(
+      { type: 'way', id: 555, center: { lat: 28.5, lon: 77.1 }, tags: { amenity: 'fuel' } },
+      ALL,
+    )!;
+
+    expect(place.externalId).toBe('w555');
+    expect(place.latitude).toBe(28.5);
+    expect(place.longitude).toBe(77.1);
+  });
+
+  it('treats only an explicit 24/7 as round-the-clock opening', () => {
+    expect(normalizeOverpassElement(pump, ALL)!.open24Hours).toBe(true);
+
+    const restricted = normalizeOverpassElement(
+      { ...pump, tags: { ...pump.tags, opening_hours: 'Mo-Sa 06:00-22:00' } },
+      ALL,
+    )!;
+    // "Not stated as always open" must never be reported as always open.
+    expect(restricted.open24Hours).toBe(false);
+    expect(restricted.openingHours).toBe('Mo-Sa 06:00-22:00');
+
+    const unstated = normalizeOverpassElement(
+      { ...pump, tags: { amenity: 'fuel', name: 'Indian Oil' } },
+      ALL,
+    )!;
+    expect(unstated.open24Hours).toBe(false);
+    expect(unstated.openingHours).toBeNull();
+  });
+
+  it('invents no rating, because OpenStreetMap publishes none', () => {
+    // `rating` is absent from the provider place entirely, and the service layer
+    // sends null onward — a plausible number here would be a fabrication.
+    expect('rating' in normalizeOverpassElement(pump, ALL)!).toBe(false);
+  });
+
+  it('keeps only the curated tag subset in attributes', () => {
+    const place = normalizeOverpassElement(pump, ALL)!;
+
+    expect(place.attributes['fuel:diesel']).toBe('yes');
+    expect(place.attributes.brand).toBe('Indian Oil');
+    // Not on the keep-list: mirroring every tag is storage nothing reads.
+    expect(place.attributes.wikipedia).toBeUndefined();
+  });
+
+  it('names an unnamed pump generically, but drops an unnamed restaurant', () => {
+    const anonymousPump = normalizeOverpassElement(
+      { type: 'node', id: 1, lat: 28.4, lon: 77.0, tags: { amenity: 'fuel' } },
+      ALL,
+    )!;
+    // You can drive to an unnamed pump and use it.
+    expect(anonymousPump.name).toBe('Fuel station');
+
+    // You cannot ask for, phone or recognise an unnamed restaurant.
+    expect(
+      normalizeOverpassElement(
+        { type: 'node', id: 2, lat: 28.4, lon: 77.0, tags: { amenity: 'restaurant' } },
+        ALL,
+      ),
+    ).toBeNull();
+  });
+
+  it('falls back through name:en, brand and operator for identity', () => {
+    const byOperator = normalizeOverpassElement(
+      {
+        type: 'node',
+        id: 3,
+        lat: 28.4,
+        lon: 77.0,
+        tags: { amenity: 'restaurant', operator: 'Haldiram’s' },
+      },
+      ALL,
+    )!;
+    expect(byOperator.name).toBe('Haldiram’s');
+  });
+
+  it('never smuggles in a category the caller filtered out', () => {
+    // A café inside a fuel station matches two selectors; asking only for food
+    // must not return it as a fuel station, or vice versa.
+    const forecourtCafe = {
+      type: 'node',
+      id: 4,
+      lat: 28.4,
+      lon: 77.0,
+      tags: { amenity: 'fuel', name: 'Highway Stop', cuisine: 'coffee_shop' },
+    };
+    expect(normalizeOverpassElement(forecourtCafe, [NearbyCategory.FOOD])).toBeNull();
+    expect(normalizeOverpassElement(forecourtCafe, [NearbyCategory.FUEL])?.category).toBe(
+      NearbyCategory.FUEL,
+    );
+  });
+
+  it('rejects records that cannot be placed on a map', () => {
+    const base = { type: 'node', id: 9, tags: { amenity: 'fuel', name: 'X' } };
+    // No coordinate at all.
+    expect(normalizeOverpassElement(base, ALL)).toBeNull();
+    // Null island — never a real place.
+    expect(normalizeOverpassElement({ ...base, lat: 0, lon: 0 }, ALL)).toBeNull();
+    // Out of range.
+    expect(normalizeOverpassElement({ ...base, lat: 999, lon: 77 }, ALL)).toBeNull();
+    // No id, so nothing to key an idempotent import on.
+    expect(normalizeOverpassElement({ ...base, id: undefined, lat: 28.4, lon: 77 }, ALL)).toBeNull();
+    // A tag set matching nothing Saarthi lists.
+    expect(
+      normalizeOverpassElement({ type: 'node', id: 10, lat: 28.4, lon: 77, tags: { shop: 'books' } }, ALL),
+    ).toBeNull();
+  });
+});
+
+describe('Overpass search radius budget', () => {
+  const options = { maxRadiusKm: 25, workBudget: 200 };
+
+  it('spends nothing it does not need on a focused search', () => {
+    // One selector, so the caller's full radius fits inside the budget.
+    const radii = resolveRadii(25, 0, 1, options);
+    expect(radii.sparseKm).toBe(25);
+  });
+
+  it('shrinks a whole-category search to what the instance will serve', () => {
+    // The measured shape: 10 dense selectors and 11 sparse ones. Left alone
+    // that costs ~355 selector-km, which the public instance refuses outright.
+    const radii = resolveRadii(25, 10, 11, options);
+
+    expect(10 * radii.denseKm + 11 * radii.sparseKm).toBeLessThanOrEqual(options.workBudget + 1);
+    // Sparse categories keep the reach a driver actually needs for them.
+    expect(radii.sparseKm).toBeGreaterThan(radii.denseKm);
+    expect(radii.sparseKm).toBeGreaterThan(10);
+  });
+
+  it('never searches wider than the caller asked for', () => {
+    const radii = resolveRadii(3, 10, 11, options);
+    expect(radii.denseKm).toBeLessThanOrEqual(3);
+    expect(radii.sparseKm).toBeLessThanOrEqual(3);
+  });
+
+  it('lets a self-hosted instance search wide by raising the budget', () => {
+    const radii = resolveRadii(25, 10, 11, { maxRadiusKm: 25, workBudget: 20_000 });
+    expect(radii.sparseKm).toBe(25);
+    // Dense categories still stay near — that is about what a driver would
+    // travel for a café, not about cost.
+    expect(radii.denseKm).toBe(8);
   });
 });

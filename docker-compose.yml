@@ -1,15 +1,34 @@
 # Saarthi local infrastructure.
-# Optional: if you already run PostgreSQL/Redis natively, skip this file and
-# point DATABASE_URL / REDIS_URL at your local services instead.
 #
-#   docker compose up -d
+# Every service here is optional and every service is behind a profile, so
+# `docker compose up -d` on its own starts nothing. Ask for what you want:
+#
+#   docker compose --profile infra up -d     PostgreSQL + Redis
+#   docker compose --profile video up -d     the WHIP/WHEP video gateway
 #
 name: saarthi
+
+# PostgreSQL and Redis are behind the `infra` profile, and that is deliberate.
+#
+# `docker compose up -d` starts every service without a profile — including, for
+# anyone running PostgreSQL natively, a *second* server bound to the same port.
+# Windows permits both binds, connections then land on whichever answers first,
+# and the result is a database that appears to lose data at random. It cost a
+# real development database to learn.
+#
+# So nothing starts unless it is asked for by name:
+#
+#   docker compose --profile infra up -d     PostgreSQL + Redis
+#   docker compose --profile video up -d     the video gateway
+#
+# If you already run PostgreSQL and Redis natively — the default in `.env` — you
+# never need the infra profile at all.
 
 services:
   postgres:
     image: postgres:17-alpine
     container_name: saarthi-postgres
+    profiles: ['infra']
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
@@ -28,6 +47,7 @@ services:
   redis:
     image: redis:7-alpine
     container_name: saarthi-redis
+    profiles: ['infra']
     restart: unless-stopped
     command: ['redis-server', '--appendonly', 'yes']
     ports:
@@ -39,6 +59,64 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
+
+  # Video gateway.
+  #
+  # Optional: only needed to watch a phone or a YC06 live. Nothing else in
+  # Saarthi depends on it, and with VIDEO_PROVIDER=none the app says plainly
+  # that there is nowhere to publish rather than offering a button that fails.
+  #
+  #   docker compose --profile video up -d
+  #
+  # WebRTC media needs a real UDP port rather than a proxied TCP one, which is
+  # why 8189/udp is published directly. A phone and the gateway on the same LAN
+  # then talk over host candidates and need no STUN at all.
+  mediamtx:
+    image: bluenviron/mediamtx:latest
+    container_name: saarthi-mediamtx
+    profiles: ['video']
+    restart: unless-stopped
+    ports:
+      - '8889:8889' # WHIP / WHEP signalling
+      - '8189:8189/udp' # WebRTC media, preferred
+      # The same port over TCP. ICE tries both and takes whichever connects, so
+      # this is only ever used where UDP does not arrive — restrictive Wi-Fi, or
+      # an HTTP tunnel, which forwards TCP and nothing else.
+      - '8189:8189/tcp'
+    volumes:
+      - ./docker/mediamtx.yml:/mediamtx.yml:ro
+    environment:
+      # Everything below is empty on a LAN and only matters across networks.
+      # MediaMTX maps every config key to an MTX_ variable, so these override
+      # the file without a second copy of it.
+      #
+      # The public hostname to advertise in ICE candidates, when the gateway is
+      # behind a tunnel or a NAT and the address it sees is not the address a
+      # phone can dial.
+      MTX_WEBRTCADDITIONALHOSTS: ${VIDEO_GATEWAY_PUBLIC_HOST:-}
+      # An external ICE server the gateway uses for its own candidates.
+      #
+      # Defaulted to public STUN rather than left empty, for two reasons. An
+      # empty URL is not "no ICE server" to MediaMTX — it is an invalid one, and
+      # it refuses to start in a restart loop whose only symptom is
+      # `invalid ICE server: ''`. And STUN earns its place: it is what makes the
+      # gateway discover its own public address, which is the difference between
+      # a phone off the local network having something to dial and having
+      # nothing.
+      #
+      # Set VIDEO_TURN_URL to a TURN server to relay media instead, for phones
+      # that cannot reach the gateway directly at all. It must be the same
+      # server Saarthi hands the phone in VIDEO_ICE_SERVERS — each end gathers
+      # its own candidate, and candidates from different relays have no route
+      # between them.
+      MTX_WEBRTCICESERVERS2_0_URL: ${VIDEO_TURN_URL:-stun:stun.l.google.com:19302}
+      # Empty is correct for STUN, which takes no credentials.
+      MTX_WEBRTCICESERVERS2_0_USERNAME: ${VIDEO_TURN_USERNAME:-}
+      MTX_WEBRTCICESERVERS2_0_PASSWORD: ${VIDEO_TURN_CREDENTIAL:-}
+    extra_hosts:
+      # So the authorisation callback can reach an API running on the host.
+      # Docker Desktop provides this already; declaring it makes Linux work too.
+      - 'host.docker.internal:host-gateway'
 
 volumes:
   saarthi-postgres-data:

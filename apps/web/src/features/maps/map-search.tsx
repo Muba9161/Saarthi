@@ -1,6 +1,12 @@
 import * as React from 'react';
 import { MapPin, Search, X } from 'lucide-react';
-import type { LatLng } from '@saarthi/shared';
+import {
+  bearing,
+  compassDirection,
+  distanceKm,
+  formatDistanceKm,
+  type LatLng,
+} from '@saarthi/shared';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { geocodeForward, type GeocodeFeature } from './directions';
@@ -11,6 +17,16 @@ import { isRoutingConfigured } from './map-config';
  *
  * Geocoding is metered, so queries are debounced and only fire from three
  * characters up; an in-flight request is aborted the moment the query changes.
+ *
+ * Two things make the results trustworthy rather than merely present:
+ *
+ *  * Every result is measured against the point the search was biased towards
+ *    and shows that distance. India has the same place name in a dozen states —
+ *    a row that cannot say how far away it is cannot be checked.
+ *  * Results near that point are listed before distant ones, keeping the
+ *    geocoder's own relevance order inside each group. The geocoder treats
+ *    proximity as one signal among many, so without this a nationally
+ *    better-known match a thousand kilometres away outranks the one next door.
  */
 
 export interface MapSearchProps {
@@ -19,13 +35,63 @@ export interface MapSearchProps {
   onSelect: (feature: GeocodeFeature) => void;
   className?: string;
   placeholder?: string;
+  /**
+   * How far "near here" reaches, in km. Wide enough to cover a day's driving,
+   * so a genuine long-distance destination is grouped second rather than lost.
+   */
+  localRadiusKm?: number;
 }
 
 const DEBOUNCE_MS = 320;
+const DEFAULT_LOCAL_RADIUS_KM = 150;
 
-export function MapSearch({ proximity, onSelect, className, placeholder }: MapSearchProps) {
+interface RankedFeature {
+  feature: GeocodeFeature;
+  distanceKm: number | null;
+  direction: string | null;
+}
+
+/**
+ * Measure each result against the bias point, then float the local ones.
+ *
+ * `sort` is stable in every engine Saarthi supports, so the geocoder's ordering
+ * survives inside each group and only the grouping is Saarthi's opinion.
+ */
+function rankFeatures(
+  features: GeocodeFeature[],
+  origin: LatLng | null,
+  localRadiusKm: number,
+): RankedFeature[] {
+  const ranked: RankedFeature[] = features.map((feature) => {
+    if (!origin) return { feature, distanceKm: null, direction: null };
+    return {
+      feature,
+      distanceKm: distanceKm(origin, feature.position),
+      direction: compassDirection(bearing(origin, feature.position)),
+    };
+  });
+
+  if (!origin) return ranked;
+
+  return ranked.sort((a, b) => {
+    const aLocal = (a.distanceKm ?? Number.POSITIVE_INFINITY) <= localRadiusKm;
+    const bLocal = (b.distanceKm ?? Number.POSITIVE_INFINITY) <= localRadiusKm;
+    if (aLocal !== bLocal) return aLocal ? -1 : 1;
+    return 0;
+  });
+}
+
+export function MapSearch({
+  proximity,
+  onSelect,
+  className,
+  placeholder,
+  localRadiusKm = DEFAULT_LOCAL_RADIUS_KM,
+}: MapSearchProps) {
   const [query, setQuery] = React.useState('');
   const [results, setResults] = React.useState<GeocodeFeature[]>([]);
+  /** The bias point the current results were fetched against. */
+  const [resultOrigin, setResultOrigin] = React.useState<LatLng | null>(null);
   const [open, setOpen] = React.useState(false);
   const [searching, setSearching] = React.useState(false);
   const [failed, setFailed] = React.useState(false);
@@ -50,9 +116,13 @@ export function MapSearch({ proximity, onSelect, className, placeholder }: MapSe
       geocodeForward(trimmed, {
         signal: controller.signal,
         ...(bias ? { proximity: bias } : {}),
+        // Ask for more than are shown: the local group is picked from these, so
+        // a nearby match ranked eighth nationally still surfaces first here.
+        limit: 10,
       })
         .then((features) => {
           setResults(features);
+          setResultOrigin(bias ?? null);
           setFailed(false);
           setOpen(true);
         })
@@ -74,6 +144,8 @@ export function MapSearch({ proximity, onSelect, className, placeholder }: MapSe
   // Geocoding rides on the routing key; without it there is nothing to search.
   if (!isRoutingConfigured) return null;
 
+  const ranked = rankFeatures(results, resultOrigin, localRadiusKm);
+
   const choose = (feature: GeocodeFeature): void => {
     onSelect(feature);
     setQuery(feature.name);
@@ -83,6 +155,7 @@ export function MapSearch({ proximity, onSelect, className, placeholder }: MapSe
   const clear = (): void => {
     setQuery('');
     setResults([]);
+    setResultOrigin(null);
     setOpen(false);
     setFailed(false);
   };
@@ -100,7 +173,9 @@ export function MapSearch({ proximity, onSelect, className, placeholder }: MapSe
           onFocus={() => results.length > 0 && setOpen(true)}
           onKeyDown={(event) => {
             if (event.key === 'Escape') clear();
-            if (event.key === 'Enter' && results[0]) choose(results[0]);
+            // Enter takes the top row as displayed, which is the nearest good
+            // match rather than whatever the geocoder happened to list first.
+            if (event.key === 'Enter' && ranked[0]) choose(ranked[0].feature);
           }}
           placeholder={placeholder ?? 'Search a place, address or highway'}
           aria-label="Search the map"
@@ -120,7 +195,7 @@ export function MapSearch({ proximity, onSelect, className, placeholder }: MapSe
               Search is unavailable right now.
             </li>
           ) : (
-            results.map((feature) => (
+            ranked.map(({ feature, distanceKm: away, direction }) => (
               <li key={feature.id}>
                 <button
                   type="button"
@@ -128,12 +203,18 @@ export function MapSearch({ proximity, onSelect, className, placeholder }: MapSe
                   className="flex w-full items-start gap-2 px-3 py-2 text-left hover:bg-secondary/70"
                 >
                   <MapPin className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
-                  <span className="min-w-0">
+                  <span className="min-w-0 flex-1">
                     <span className="block truncate text-xs font-medium">{feature.name}</span>
                     <span className="block truncate text-2xs text-muted-foreground">
                       {feature.address}
                     </span>
                   </span>
+                  {away !== null ? (
+                    <span className="tabular shrink-0 text-right text-2xs text-muted-foreground">
+                      <span className="block">{formatDistanceKm(away)}</span>
+                      {direction ? <span className="block">{direction}</span> : null}
+                    </span>
+                  ) : null}
                 </button>
               </li>
             ))

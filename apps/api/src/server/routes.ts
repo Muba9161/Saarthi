@@ -22,6 +22,7 @@ import { tripRoutes } from '../modules/trips/trip.routes';
 import { trackingRoutes } from '../modules/tracking/tracking.routes';
 import { nearbyRoutes } from '../modules/nearby/nearby.routes';
 import { petrolStationRoutes } from '../modules/petrol-stations/petrol-station.routes';
+import { fuelRateRoutes } from '../modules/fuel-rates/fuel-rate.routes';
 import { licenceLookupRoutes } from '../modules/licence-lookup/licence-lookup.routes';
 import { vehicleLookupRoutes } from '../modules/vehicle-lookup/vehicle-lookup.routes';
 import { sosRoutes } from '../modules/sos/sos.routes';
@@ -36,6 +37,9 @@ import { vehicleRoutes } from '../modules/vehicles/vehicle.routes';
 import { associationRoutes } from '../modules/associations/association.routes';
 import { travelRoutes } from '../modules/travel/travel.routes';
 import { deviceRoutes } from '../modules/devices/device.routes';
+import { vehiclePairingRoutes } from '../modules/devices/pairing.routes';
+import { deviceClientRoutes } from '../modules/devices/device-client.routes';
+import { videoGatewayRoutes } from '../modules/devices/video-gateway.routes';
 import { telemetryRoutes } from '../modules/telemetry/telemetry.routes';
 import { deviceGatewayRoutes } from '../modules/telemetry/gateway.routes';
 import { aiRoutes } from '../modules/ai/ai.routes';
@@ -98,6 +102,7 @@ export async function registerApiRoutes(app: FastifyInstance): Promise<void> {
   await app.register(trackingRoutes, { prefix: '/tracking' });
   await app.register(nearbyRoutes, { prefix: '/nearby' });
   await app.register(petrolStationRoutes, { prefix: '/petrol-stations' });
+  await app.register(fuelRateRoutes, { prefix: '/fuel-rates' });
   await app.register(vehicleLookupRoutes, { prefix: '/vehicles' });
   await app.register(licenceLookupRoutes, { prefix: '/drivers' });
   await app.register(sosRoutes, { prefix: '/sos' });
@@ -127,6 +132,9 @@ export async function registerApiRoutes(app: FastifyInstance): Promise<void> {
   await app.register(vehicleLoanRoutes, { prefix: '/fleet/vehicles' });
   await app.register(vehicleServiceRoutes, { prefix: '/fleet/vehicles' });
   await app.register(vehicleCameraRoutes, { prefix: '/fleet/vehicles' });
+  // Vehicle → Hardware → Add Device. Issuing the QR belongs beside the vehicle
+  // it connects something to, not under /devices.
+  await app.register(vehiclePairingRoutes, { prefix: '/fleet/vehicles' });
   await app.register(vehicleTollRoutes, { prefix: '/fleet/vehicles' });
   // Trip cost and toll variance, mounted where the question is asked.
   await app.register(tripTollRoutes, { prefix: '/trips' });
@@ -140,6 +148,18 @@ export async function registerApiRoutes(app: FastifyInstance): Promise<void> {
   await app.register(cameraStreamRoutes, { prefix: '/cameras' });
   // Device-authenticated ingestion. Mounted apart from the user-facing API
   // because it does not use the session guard at all.
+  //
+  // Two plugins share the prefix: the original firmware-facing gateway, and the
+  // client surface an app-based device needs on top of it (enrolment, pairing,
+  // heartbeat, its own identity). They are separate files because their callers
+  // differ — a Freematics never enrols and a phone never speaks Freematics —
+  // but they are one endpoint from the device's point of view, and splitting
+  // the base URL would mean configuring two.
+  await app.register(deviceClientRoutes, { prefix: '/device-gateway' });
   await app.register(deviceGatewayRoutes, { prefix: '/device-gateway' });
+  // The video gateway's authorisation callback. Its caller is an SFU, not a
+  // person and not a device — the signed ticket it presents is the whole
+  // credential, and it is verified inside the route.
+  await app.register(videoGatewayRoutes, { prefix: '/video-gateway' });
   await app.register(adminRoutes, { prefix: '/admin' });
 }

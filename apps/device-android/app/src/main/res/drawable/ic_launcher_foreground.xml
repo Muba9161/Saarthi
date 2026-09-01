@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  A steering wheel: "saarthi" is the driver, and the app turns a phone into one.
+  Drawn as a vector so the icon needs no binary assets in the repository.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#38BDF8"
+        android:pathData="M54,26a28,28 0 1,0 0.1,0zM54,34a20,20 0 0,1 19.4,15.2L58,49.2a4.4,4.4 0 0,0 -8,0L34.6,49.2A20,20 0 0,1 54,34zM34.3,57.2L49.9,57.2a4.4,4.4 0 0,0 0.1,0.6L50,74a20,20 0 0,1 -15.7,-16.8zM58,74L58,57.8a4.4,4.4 0 0,0 0.1,-0.6L73.7,57.2A20,20 0 0,1 58,74z" />
+    <path
+        android:fillColor="#F8FAFC"
+        android:pathData="M54,50.6m-3.4,0a3.4,3.4 0 1,0 6.8,0a3.4,3.4 0 1,0 -6.8,0" />
+</vector>

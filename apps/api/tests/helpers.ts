@@ -38,7 +38,49 @@ export async function closeApp(): Promise<void> {
 }
 
 /** Truncate every operational table, keeping reference data intact. */
+/**
+ * Refuse to touch a database that is not a test database.
+ *
+ * `resetDatabase` truncates every table. The only thing that made that safe was
+ * `setup.ts` rewriting DATABASE_URL to `saarthi_test` — a single string
+ * substitution, with nothing verifying it had worked.
+ *
+ * It stopped working once two PostgreSQL servers were listening on the same
+ * port: connections landed on whichever answered first, and a developer's
+ * database was truncated by a test run. Recovering that is not possible, so the
+ * cost of being wrong here is unbounded and the check has to be a hard
+ * precondition rather than a convention.
+ *
+ * Asserted against the *live connection* rather than the environment variable,
+ * because the whole class of failure is the two disagreeing.
+ */
+let verifiedTestDatabase = false;
+
+async function assertTestDatabase(): Promise<void> {
+  if (verifiedTestDatabase) return;
+
+  const [row] = await prisma.$queryRaw<{ db: string }[]>`SELECT current_database() AS db`;
+  const name = row?.db ?? '(unknown)';
+
+  if (!name.endsWith('_test')) {
+    throw new Error(
+      `Refusing to run tests: connected to database "${name}", which is not a test database.\n` +
+        `\n` +
+        `resetDatabase() truncates every table, so this would destroy real data.\n` +
+        `\n` +
+        `Most likely cause: something else is listening on the database port — for\n` +
+        `example a Docker postgres container alongside a native server — so the\n` +
+        `connection did not reach the server the URL names. Check with:\n` +
+        `  docker ps --filter name=postgres\n`,
+    );
+  }
+
+  verifiedTestDatabase = true;
+}
+
 export async function resetDatabase(): Promise<void> {
+  await assertTestDatabase();
+
   const tables = [
     'sos_events',
     'sos_responders',
@@ -97,6 +139,9 @@ export async function resetDatabase(): Promise<void> {
     'video_stream_sessions',
     'device_cameras',
     'device_events',
+    'device_commands',
+    'device_pairing_tokens',
+    'device_enrolments',
     'device_assignments',
     'hardware_devices',
     'travel_reviews',

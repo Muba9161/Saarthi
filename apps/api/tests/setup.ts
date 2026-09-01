@@ -36,6 +36,14 @@ process.env.SSR_PETROL_API_BASE_URL = 'https://petrol.test';
 process.env.SSR_PETROL_API_KEY = '';
 process.env.SSR_PETROL_TIMEOUT_MS = '2000';
 process.env.PETROL_STATION_CACHE_TTL = '600';
+// Nearby places read the `nearby_places` table only.
+//
+// The Overpass adapter has its own unit tests over recorded payloads; wiring the
+// live directory in here would put a shared, unfunded public instance on the
+// critical path of the whole suite, and make every assertion about what happens
+// to be mapped in OpenStreetMap today.
+process.env.PLACES_PROVIDER = 'local';
+process.env.NEARBY_PLACE_CACHE_TTL = '0';
 
 // Rate limits are raised, not disabled.
 //
@@ -49,6 +57,12 @@ process.env.PETROL_STATION_CACHE_TTL = '600';
 process.env.AUTH_RATE_LIMIT_MAX = '10000';
 process.env.RATE_LIMIT_MAX = '100000';
 process.env.QR_RESOLVE_RATE_LIMIT_MAX = '10000';
+
+// Device credentials are their own population with their own signing key, so
+// the tests exercise the same split production enforces rather than falling
+// back to the user secret.
+process.env.DEVICE_JWT_SECRET ||= 'test-device-secret-value-that-is-long-enough-123456';
+process.env.DEVICE_ENROLMENT_RATE_LIMIT_MAX = '10000';
 
 process.env.JWT_ACCESS_SECRET ||= 'test-access-secret-value-that-is-long-enough-123456';
 process.env.JWT_REFRESH_SECRET ||= 'test-refresh-secret-value-that-is-long-enough-123456';

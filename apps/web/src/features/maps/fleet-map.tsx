@@ -4,8 +4,10 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { Box, Crosshair, Layers, Maximize2, Navigation, Route, TriangleAlert } from 'lucide-react';
 import {
   compassDirection,
-  fuelOfferingLabel,
+  fuelOfferingText,
+  stationFuelOffering,
   type LatLng,
+  type PetrolFuelFilter,
   type PetrolStation,
 } from '@saarthi/shared';
 import { Button } from '@/components/ui/button';
@@ -16,6 +18,7 @@ import {
   applyBuildings,
   applyLabelConfig,
   ensureOverlayLayers,
+  setLocationAccuracyState,
   setRouteState,
   setTrailState,
 } from './map-layers';
@@ -23,6 +26,7 @@ import { MapSettingsControl, type MapSettings } from './map-controls';
 import { MapSearch } from './map-search';
 import { NavigationPanel } from './navigation-panel';
 import { useNavigation } from './use-navigation';
+import type { DeviceLocation } from './use-device-location';
 import {
   DEFAULT_CENTER,
   DEFAULT_STYLE_ID,
@@ -96,6 +100,26 @@ export interface FleetMapProps {
   onSelectStation?: (stationId: string | null) => void;
   selectedTruckId?: string | null;
   onSelectTruck?: (truckId: string) => void;
+  /**
+   * The viewer's own live position, from `useDeviceLocation`.
+   *
+   * Supplying it does three things nothing else can: it draws the "you are
+   * here" marker with its accuracy halo, it lets the camera follow the viewer
+   * when no truck is selected, and — the important one — it is what turn-by-turn
+   * guidance measures progress against. Without a live position the route
+   * distance, ETA and the driven/remaining split are frozen at their start
+   * values, because there is nothing to measure them from.
+   */
+  livePosition?: DeviceLocation | null;
+  /**
+   * A point the camera should move to whenever it changes.
+   *
+   * For a caller that owns the search point — typing a coordinate has to move
+   * the map, or the list and the map are describing different places. Pass null
+   * while the camera should be left alone.
+   */
+  focusPoint?: LatLng | null;
+  focusZoom?: number;
   /** Show the 2D/3D switch and default to the tilted camera — gated upstream. */
   allow3D?: boolean;
   className?: string;
@@ -275,6 +299,42 @@ function paintStationElement(element: HTMLElement, selected: boolean): void {
     : '0 2px 6px rgba(15,23,42,.35)';
 }
 
+// ---------------------------------------------------------------------------
+// The viewer's own position
+// ---------------------------------------------------------------------------
+
+/**
+ * "You are here" marker.
+ *
+ * Deliberately unlike the truck markers: a blue dot with a white collar is the
+ * convention every phone map uses for *your* position, and reusing it here means
+ * a driver never has to work out which pin is them.
+ */
+function buildLiveElement(): HTMLDivElement {
+  const element = document.createElement('div');
+  element.style.willChange = 'transform';
+  element.innerHTML = `
+    <div style="position:relative;display:flex;align-items:center;justify-content:center;width:30px;height:30px;">
+      <div data-pulse style="position:absolute;inset:0;border-radius:9999px;background:#2563eb;opacity:.22;"></div>
+      <div data-cone style="position:absolute;top:-6px;left:50%;margin-left:-7px;width:14px;height:14px;clip-path:polygon(50% 0,100% 100%,0 100%);background:#2563eb;opacity:.85;"></div>
+      <div style="position:relative;width:16px;height:16px;border-radius:9999px;background:#2563eb;border:3px solid #fff;box-shadow:0 2px 8px rgba(15,23,42,.45);"></div>
+    </div>`;
+  return element;
+}
+
+function paintLiveElement(element: HTMLElement, position: DeviceLocation): void {
+  const cone = element.querySelector<HTMLElement>('[data-cone]');
+  const pulse = element.querySelector<HTMLElement>('[data-pulse]');
+
+  // The heading cone is shown only when the device actually reports a course.
+  // Pointing it at north by default would be a confident lie about direction.
+  if (cone) cone.style.display = position.headingDegrees === null ? 'none' : 'block';
+  if (pulse) {
+    pulse.style.animation =
+      (position.speedKph ?? 0) > 3 ? 'pulse-ring 2s cubic-bezier(.4,0,.6,1) infinite' : 'none';
+  }
+}
+
 /**
  * Station popup.
  *
@@ -283,13 +343,12 @@ function paintStationElement(element: HTMLElement, selected: boolean): void {
  * or dispenser state, so nothing here may read as live availability.
  */
 function stationPopupHtml(station: PetrolStation): string {
-  const price = (value: number | null): string => (value === null ? '—' : `₹${value.toFixed(2)}`);
-  const row = (label: string, offered: boolean | null, value: number | null): string =>
+  const row = (label: string, fuel: PetrolFuelFilter): string =>
     `<div style="display:flex;justify-content:space-between;gap:10px;">
        <span style="color:#64748b;">${label}</span>
-       <span><strong>${price(value)}</strong> <span style="color:#94a3b8;">${escapeHtml(
-         fuelOfferingLabel(offered),
-       )}</span></span>
+       <span style="color:#475569;">${escapeHtml(
+         fuelOfferingText(stationFuelOffering(station, fuel)),
+       )}</span>
      </div>`;
 
   const place = [station.city, station.state].filter(Boolean).join(', ');
@@ -305,15 +364,15 @@ function stationPopupHtml(station: PetrolStation): string {
       }
       <div style="font-weight:600;font-size:13px;">${escapeHtml(station.name ?? 'Petrol station')}</div>
       <div style="color:#64748b;margin-bottom:6px;">${escapeHtml(station.address ?? place)}</div>
-      ${row('Petrol', station.hasPetrol, station.petrolPrice)}
-      ${row('Diesel', station.hasDiesel, station.dieselPrice)}
-      ${row('CNG', station.hasCng, station.cngPrice)}
+      ${row('Petrol', 'petrol')}
+      ${row('Diesel', 'diesel')}
+      ${row('CNG', 'cng')}
       ${
         station.timings
           ? `<div style="margin-top:6px;color:#64748b;">${escapeHtml(station.timings)}</div>`
           : ''
       }
-      <div style="margin-top:6px;font-size:10px;color:#94a3b8;">Published directory rates — not a live pump reading.</div>
+      <div style="margin-top:6px;font-size:10px;color:#94a3b8;">Fuel types as listed by the directory. It publishes no current rate.</div>
     </div>`;
 }
 
@@ -331,6 +390,9 @@ export function FleetMap({
   onSelectStation,
   selectedTruckId,
   onSelectTruck,
+  livePosition = null,
+  focusPoint = null,
+  focusZoom = 12,
   allow3D = false,
   className,
   autoFit = true,
@@ -349,11 +411,21 @@ export function FleetMap({
   interactive = true,
 }: FleetMapProps) {
   const containerRef = React.useRef<HTMLDivElement | null>(null);
+  /**
+   * The element that goes fullscreen.
+   *
+   * It has to be the wrapper, not the canvas container: the guidance panel, the
+   * search box and the controls are siblings of the canvas, so making the canvas
+   * alone fullscreen hides exactly the instructions a driver went fullscreen to
+   * read.
+   */
+  const wrapperRef = React.useRef<HTMLDivElement | null>(null);
   const mapRef = React.useRef<MapLibreMap | null>(null);
   const truckMarkers = React.useRef(new Map<string, maplibregl.Marker>());
   const pointMarkers = React.useRef(new Map<string, maplibregl.Marker>());
   const stationMarkers = React.useRef(new Map<string, maplibregl.Marker>());
   const searchMarker = React.useRef<maplibregl.Marker | null>(null);
+  const liveMarker = React.useRef<maplibregl.Marker | null>(null);
 
   const [mode, setMode] = React.useState<MapMode>(allow3D ? '3d' : '2d');
   const [cameraMode, setCameraMode] = React.useState<CameraMode>(defaultCameraMode);
@@ -367,6 +439,15 @@ export function FleetMap({
   /** Bumped on every `style.load`; data effects re-run against the new style. */
   const [styleEpoch, setStyleEpoch] = React.useState(0);
   const [initError, setInitError] = React.useState<string | null>(null);
+  const [isFullscreen, setIsFullscreen] = React.useState(false);
+  /**
+   * Where the camera is looking, refreshed when it settles.
+   *
+   * Place search is biased towards this. Without it the geocoder ranks a whole
+   * country's matches by name alone, which is how a search for a local sector
+   * comes back with a same-named place a thousand kilometres away.
+   */
+  const [viewCentre, setViewCentre] = React.useState<LatLng | null>(null);
 
   const ready = styleEpoch > 0;
   const activeStyle = styleDefinition(settings.styleId);
@@ -393,10 +474,19 @@ export function FleetMap({
     return trucks.length === 1 ? (trucks[0] ?? null) : null;
   }, [trucks, selectedTruckId]);
 
-  const currentPosition = React.useMemo<LatLng | null>(
-    () => (focusTruck ? { latitude: focusTruck.latitude, longitude: focusTruck.longitude } : null),
-    [focusTruck],
-  );
+  /**
+   * The position guidance is measured from.
+   *
+   * The device's own fix wins when there is one: on a driver's screen the phone
+   * is the vehicle, and it updates every second where a telemetry-backed truck
+   * position may not.
+   */
+  const currentPosition = React.useMemo<LatLng | null>(() => {
+    if (livePosition) {
+      return { latitude: livePosition.latitude, longitude: livePosition.longitude };
+    }
+    return focusTruck ? { latitude: focusTruck.latitude, longitude: focusTruck.longitude } : null;
+  }, [livePosition, focusTruck]);
 
   const derivedWaypoints = React.useMemo<LatLng[] | undefined>(() => {
     if (navigationWaypoints && navigationWaypoints.length >= 2) return navigationWaypoints;
@@ -480,7 +570,14 @@ export function FleetMap({
         }),
         'top-right',
       );
-      map.addControl(new maplibregl.FullscreenControl(), 'top-right');
+      // Fullscreen takes the wrapper, so the guidance panel, the search box and
+      // the controls come with it rather than being left behind on the page.
+      map.addControl(
+        new maplibregl.FullscreenControl(
+          wrapperRef.current ? { container: wrapperRef.current } : {},
+        ),
+        'top-right',
+      );
       map.addControl(new maplibregl.ScaleControl({ maxWidth: 100, unit: 'metric' }), 'bottom-left');
     }
     // The OpenFreeMap style already declares its own attribution; adding ours
@@ -493,6 +590,15 @@ export function FleetMap({
       applyStyleFeatures(map);
       setStyleEpoch((epoch) => epoch + 1);
     });
+
+    // `moveend` rather than `move`: the search bias only has to be right when
+    // the operator types, and one state write per gesture beats one per frame.
+    const recordCentre = (): void => {
+      const centre = map.getCenter();
+      setViewCentre({ latitude: centre.lat, longitude: centre.lng });
+    };
+    map.on('moveend', recordCentre);
+    map.once('load', recordCentre);
 
     map.on('error', (event) => {
       // Tile hiccups are transient; only surface a hard style failure.
@@ -517,6 +623,7 @@ export function FleetMap({
       canvas.removeEventListener('mousedown', release);
       canvas.removeEventListener('touchstart', release);
       canvas.removeEventListener('wheel', release);
+      map.off('moveend', recordCentre);
       truckMarkers.current.forEach((marker) => marker.remove());
       truckMarkers.current.clear();
       pointMarkers.current.forEach((marker) => marker.remove());
@@ -525,11 +632,33 @@ export function FleetMap({
       stationMarkers.current.clear();
       searchMarker.current?.remove();
       searchMarker.current = null;
+      liveMarker.current?.remove();
+      liveMarker.current = null;
       map.remove();
       mapRef.current = null;
       setStyleEpoch(0);
     };
   }, [applyStyleFeatures, interactive]);
+
+  // --- Fullscreen --------------------------------------------------------
+  // Tracked so the guidance panel can open its step list and take the extra
+  // width the moment there is room for it.
+  React.useEffect(() => {
+    let frame = 0;
+    const onChange = (): void => {
+      const element = document.fullscreenElement;
+      setIsFullscreen(Boolean(element) && element === wrapperRef.current);
+      // The canvas has to be told its box changed, or fullscreen renders the
+      // old size letterboxed into the new one. One frame later, so the browser
+      // has laid the new box out first.
+      frame = window.requestAnimationFrame(() => mapRef.current?.resize());
+    };
+    document.addEventListener('fullscreenchange', onChange);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      document.removeEventListener('fullscreenchange', onChange);
+    };
+  }, []);
 
   // --- Basemap switch ----------------------------------------------------
   // Tracked explicitly so a re-run for any other reason cannot trigger a
@@ -724,6 +853,44 @@ export function FleetMap({
     }
   }, [stations, selectedStationId, ready]);
 
+  // --- The viewer's own position -----------------------------------------
+  React.useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready) return;
+
+    if (!livePosition) {
+      liveMarker.current?.remove();
+      liveMarker.current = null;
+      setLocationAccuracyState(map, null, null);
+      return;
+    }
+
+    const lngLat: [number, number] = [livePosition.longitude, livePosition.latitude];
+
+    if (liveMarker.current) {
+      // Moved in place, like the truck markers, so the dot glides between fixes.
+      liveMarker.current.setLngLat(lngLat);
+      liveMarker.current.setRotation(livePosition.headingDegrees ?? 0);
+      paintLiveElement(liveMarker.current.getElement(), livePosition);
+    } else {
+      const element = buildLiveElement();
+      paintLiveElement(element, livePosition);
+      liveMarker.current = new maplibregl.Marker({
+        element,
+        rotationAlignment: 'map',
+        pitchAlignment: 'viewport',
+        opacityWhenCovered: '1',
+      })
+        .setLngLat(lngLat)
+        .setRotation(livePosition.headingDegrees ?? 0)
+        .addTo(map);
+    }
+
+    setLocationAccuracyState(map, livePosition, livePosition.accuracyMeters);
+    // `styleEpoch`, not `ready`: a basemap switch discards every GeoJSON source,
+    // so the halo has to be pushed again once the new style is up.
+  }, [livePosition, ready, styleEpoch]);
+
   // --- Route & trail -----------------------------------------------------
   React.useEffect(() => {
     const map = mapRef.current;
@@ -736,22 +903,33 @@ export function FleetMap({
         .map((option) => option.geometry),
       completedFraction: navigationState.progress?.completedFraction ?? 0,
     });
+    // Re-run on `styleEpoch` as well: `setStyle` empties every GeoJSON source,
+    // so a basemap switch mid-journey would otherwise erase the route line.
   }, [
     routedRoute,
     route,
     navigationState.routes,
     navigationState.progress?.completedFraction,
     ready,
+    styleEpoch,
   ]);
 
   React.useEffect(() => {
     const map = mapRef.current;
     if (!map || !ready) return;
     setTrailState(map, trail);
-  }, [trail, ready]);
+  }, [trail, ready, styleEpoch]);
 
   // --- Fit ---------------------------------------------------------------
-  const fitToContent = React.useCallback(() => {
+  /**
+   * Frame everything on the map.
+   *
+   * `release` says whether framing also hands the camera back to the operator.
+   * A deliberate act — the Fit button, a newly chosen destination — should; the
+   * automatic first framing should not, or a caller that asked for a following
+   * camera loses it before the first position fix has even landed.
+   */
+  const fitToContent = React.useCallback((release = true) => {
     const map = mapRef.current;
     if (!map) return;
 
@@ -763,10 +941,13 @@ export function FleetMap({
       ...(trail ?? []).map((point) => [point.longitude, point.latitude] as [number, number]),
       ...markers.map((marker) => [marker.longitude, marker.latitude] as [number, number]),
       ...stations.map((station) => [station.longitude, station.latitude] as [number, number]),
+      ...(livePosition
+        ? [[livePosition.longitude, livePosition.latitude] as [number, number]]
+        : []),
     ].filter(([lng, lat]) => Number.isFinite(lng) && Number.isFinite(lat));
 
     if (points.length === 0) return;
-    setCameraMode('free');
+    if (release) setCameraMode('free');
 
     // Framing must not silently flatten the camera. `fitBounds` derives its own
     // camera and drops pitch/bearing to zero, which left the map looking 2D
@@ -797,34 +978,130 @@ export function FleetMap({
       ...camera,
       duration: 700,
     });
-  }, [trucks, route, routedRoute, trail, markers, stations]);
+  }, [trucks, route, routedRoute, trail, markers, stations, livePosition]);
 
   // Fit once the first content arrives, not on every tick — otherwise the
   // camera would fight the user while a simulation is running.
   const hasFitted = React.useRef(false);
   React.useEffect(() => {
     if (!ready || !autoFit || hasFitted.current) return;
+    // A caller supplying a focus point has taken charge of where the map opens.
+    // Not latched, so if they later stop supplying one this can still fire.
+    if (focusPoint) return;
+
     const hasContent =
-      trucks.length > 0 || (route?.length ?? 0) > 0 || markers.length > 0 || stations.length > 0;
+      trucks.length > 0 ||
+      (route?.length ?? 0) > 0 ||
+      markers.length > 0 ||
+      stations.length > 0 ||
+      Boolean(livePosition);
     if (!hasContent) return;
     hasFitted.current = true;
+
+    // Nothing to fit around when the camera is already locked onto a live
+    // target — the follow logic frames it, and two animations at once read as a
+    // glitch.
+    if (defaultCameraMode !== 'free' && (livePosition || focusTruck)) return;
+
+    // Framing here never releases the camera when a following mode was asked
+    // for, so a caller keeps following once its first position fix arrives.
+    fitToContent(defaultCameraMode === 'free');
+  }, [
+    ready,
+    autoFit,
+    trucks.length,
+    route?.length,
+    markers.length,
+    stations.length,
+    livePosition,
+    focusTruck,
+    focusPoint,
+    defaultCameraMode,
+    fitToContent,
+  ]);
+
+  /**
+   * Frame a newly chosen destination once.
+   *
+   * Keyed on the destination itself rather than on the route object, so an
+   * automatic reroute — which produces a new route to the *same* place — never
+   * yanks the camera away from a driver mid-turn.
+   */
+  const framedDestination = React.useRef<string | null>(null);
+  React.useEffect(() => {
+    if (!ready || !autoFit || !routedRoute) return;
+    const destination = derivedWaypoints?.[derivedWaypoints.length - 1];
+    if (!destination) return;
+
+    const key = `${destination.latitude.toFixed(4)},${destination.longitude.toFixed(4)}`;
+    if (framedDestination.current === key) return;
+    framedDestination.current = key;
     fitToContent();
-  }, [ready, autoFit, trucks.length, route?.length, markers.length, stations.length, fitToContent]);
+  }, [ready, autoFit, routedRoute, derivedWaypoints, fitToContent]);
+
+  /**
+   * Move to an externally chosen point.
+   *
+   * Keyed on the coordinate rounded to ~11 m, so re-renders that leave the point
+   * where it was cost nothing.
+   *
+   * The first application is treated as placement and leaves the camera mode
+   * alone — it is how a caller says "start here", often before any live position
+   * exists. Every later change is a deliberate move by the operator and does
+   * release the camera, because they have just said where they want to look.
+   */
+  const focusKey = focusPoint
+    ? `${focusPoint.latitude.toFixed(4)},${focusPoint.longitude.toFixed(4)}`
+    : null;
+  const appliedFocus = React.useRef<string | null>(null);
+  React.useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready || !focusPoint || !focusKey) return;
+    if (appliedFocus.current === focusKey) return;
+    const isFirstPlacement = appliedFocus.current === null;
+    appliedFocus.current = focusKey;
+    if (!isFirstPlacement) setCameraMode('free');
+    map.easeTo({
+      center: [focusPoint.longitude, focusPoint.latitude],
+      zoom: Math.max(map.getZoom(), focusZoom),
+      ...MAP_CAMERA[modeRef.current],
+      duration: 800,
+    });
+  }, [focusKey, focusPoint, focusZoom, ready]);
 
   // --- Follow / chase camera ---------------------------------------------
   const progress = navigationState.progress;
+  /** What the camera tracks: the viewer's own fix first, else the focused truck. */
+  const cameraTarget = React.useMemo(() => {
+    if (livePosition) {
+      return {
+        latitude: livePosition.latitude,
+        longitude: livePosition.longitude,
+        heading: livePosition.headingDegrees,
+      };
+    }
+    if (focusTruck) {
+      return {
+        latitude: focusTruck.latitude,
+        longitude: focusTruck.longitude,
+        heading: focusTruck.heading ?? null,
+      };
+    }
+    return null;
+  }, [livePosition, focusTruck]);
+
   React.useEffect(() => {
     const map = mapRef.current;
-    if (!map || !ready || cameraMode === 'free' || !focusTruck) return;
+    if (!map || !ready || cameraMode === 'free' || !cameraTarget) return;
 
     if (cameraMode === 'chase') {
       const centre = progress?.snapped ?? {
-        latitude: focusTruck.latitude,
-        longitude: focusTruck.longitude,
+        latitude: cameraTarget.latitude,
+        longitude: cameraTarget.longitude,
       };
       map.easeTo({
         center: [centre.longitude, centre.latitude],
-        bearing: progress?.routeBearing ?? focusTruck.heading ?? map.getBearing(),
+        bearing: progress?.routeBearing ?? cameraTarget.heading ?? map.getBearing(),
         pitch: NAV_CAMERA.pitch,
         zoom: Math.max(map.getZoom(), NAV_CAMERA.zoom),
         // Linear and just under the GPS tick, so the pan reads as continuous.
@@ -835,12 +1112,12 @@ export function FleetMap({
     }
 
     map.easeTo({
-      center: [focusTruck.longitude, focusTruck.latitude],
+      center: [cameraTarget.longitude, cameraTarget.latitude],
       zoom: Math.max(map.getZoom(), FOLLOW_CAMERA.zoom),
       duration: 900,
       easing: (t) => t * (2 - t),
     });
-  }, [cameraMode, focusTruck, progress, ready]);
+  }, [cameraMode, cameraTarget, progress, ready]);
 
   // Entering chase view implies the 3D camera.
   React.useEffect(() => {
@@ -886,10 +1163,22 @@ export function FleetMap({
     });
   }, []);
 
-  const mapCentre = React.useMemo<LatLng | null>(() => {
+  /**
+   * Bias point for place search.
+   *
+   * Where the camera is looking comes first — "search near what I am looking at"
+   * is what an operator means, whether they got there by following a truck or by
+   * panning. The live fix and the focused truck are fallbacks for the moment
+   * before the map has settled anywhere.
+   */
+  const searchProximity = React.useMemo<LatLng | null>(() => {
+    if (viewCentre) return viewCentre;
+    if (livePosition) {
+      return { latitude: livePosition.latitude, longitude: livePosition.longitude };
+    }
     const truck = focusTruck ?? trucks[0];
     return truck ? { latitude: truck.latitude, longitude: truck.longitude } : null;
-  }, [focusTruck, trucks]);
+  }, [viewCentre, livePosition, focusTruck, trucks]);
 
   const updateSettings = React.useCallback((patch: Partial<MapSettings>) => {
     setSettings((current) => ({ ...current, ...patch }));
@@ -924,11 +1213,25 @@ export function FleetMap({
     !route?.length &&
     markers.length === 0 &&
     stations.length === 0 &&
-    !routedRoute;
+    !routedRoute &&
+    !livePosition;
 
   return (
-    <div className={cn('relative overflow-hidden rounded-lg border border-border', className)}>
-      <div ref={containerRef} style={{ height }} className="w-full" />
+    <div
+      ref={wrapperRef}
+      className={cn(
+        'relative overflow-hidden rounded-lg border border-border',
+        // Fullscreen paints the wrapper's own background behind the canvas, so
+        // give it one rather than letting the page show through.
+        isFullscreen && 'rounded-none border-0 bg-background',
+        className,
+      )}
+    >
+      <div
+        ref={containerRef}
+        style={{ height: isFullscreen ? '100%' : height }}
+        className="w-full"
+      />
 
       {showControls ? (
         <>
@@ -946,12 +1249,17 @@ export function FleetMap({
               </Button>
             ) : null}
 
-            <Button size="sm" variant="glass" onClick={fitToContent} className="shadow-lifted">
+            <Button
+              size="sm"
+              variant="glass"
+              onClick={() => fitToContent(true)}
+              className="shadow-lifted"
+            >
               <Maximize2 className="size-4" />
               Fit
             </Button>
 
-            {focusTruck ? (
+            {cameraTarget ? (
               <div className="glass flex overflow-hidden rounded-md shadow-lifted">
                 <button
                   type="button"
@@ -962,7 +1270,11 @@ export function FleetMap({
                       ? 'bg-primary text-primary-foreground'
                       : 'hover:bg-secondary',
                   )}
-                  title="Keep the selected truck centred"
+                  title={
+                    livePosition && !focusTruck
+                      ? 'Keep your own position centred'
+                      : 'Keep the selected truck centred'
+                  }
                 >
                   <Crosshair className="size-3.5" />
                   Follow
@@ -994,7 +1306,7 @@ export function FleetMap({
           {showSearch ? (
             <div className="absolute left-1/2 top-3 w-[min(22rem,calc(100%-8rem))] -translate-x-1/2">
               <MapSearch
-                proximity={mapCentre}
+                proximity={searchProximity}
                 onSelect={(feature) => flyToSearchResult(feature.position, feature.name)}
               />
             </div>
@@ -1003,8 +1315,20 @@ export function FleetMap({
       ) : null}
 
       {showNavigationPanel ? (
-        <div className="absolute bottom-3 left-3 right-3 sm:right-auto sm:w-[22rem]">
-          <NavigationPanel state={navigationState} compact={!showControls} />
+        <div
+          className={cn(
+            'absolute bottom-3 left-3 right-3 sm:right-auto sm:w-[22rem]',
+            // Fullscreen is where a driver reads the directions, so the panel
+            // gets the room to show them.
+            isFullscreen && 'sm:w-[26rem]',
+          )}
+        >
+          <NavigationPanel
+            state={navigationState}
+            compact={!showControls}
+            speedKph={livePosition?.speedKph ?? focusTruck?.speedKph ?? null}
+            defaultExpanded={isFullscreen}
+          />
         </div>
       ) : null}
 

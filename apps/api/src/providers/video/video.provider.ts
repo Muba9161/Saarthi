@@ -37,6 +37,46 @@ export interface StreamRequest {
   ttlSeconds: number;
 }
 
+/**
+ * A credential for the *sending* side of a stream.
+ *
+ * The mirror of `StreamTicket`, and needed because a phone is the first source
+ * Saarthi has that pushes video rather than being pulled from. A YC06 is
+ * reached at its own address by a gateway that knows how to talk to it; a
+ * handset behind carrier NAT cannot be reached at all, so it has to publish
+ * outward. Both end up as WebRTC at the browser, and the dashboard cannot tell
+ * which kind of device it is watching — which is the point.
+ */
+export interface PublishTicket {
+  /** Where the device publishes. A gateway ingest URL, never another device. */
+  ingestUrl: string;
+  /** The session this ticket belongs to, echoed for the device's own logs. */
+  sessionId?: string;
+  /** Opaque credential the gateway validates. One camera, one session. */
+  token: string;
+  /** How the device should publish. */
+  protocol: 'whip' | 'rtmp' | 'mock';
+  expiresAt: string;
+  iceServers?: { urls: string; username?: string; credential?: string }[];
+  /** Hints the device should honour, so one phone cannot saturate an uplink. */
+  constraints: {
+    maxWidth: number;
+    maxHeight: number;
+    maxFrameRate: number;
+    maxBitrateKbps: number;
+  };
+  /** `true` when nothing on the other end will actually receive the stream. */
+  simulated: boolean;
+}
+
+export interface PublishRequest {
+  cameraId: string;
+  deviceIdentifier: string;
+  channel: number;
+  sessionId: string;
+  ttlSeconds: number;
+}
+
 export interface RecordingClip {
   clipId: string;
   cameraId: string;
@@ -66,7 +106,19 @@ export interface VideoProvider {
   readonly supportsLive: boolean;
   /** Whether stored footage can be listed and played back. */
   readonly supportsPlayback: boolean;
+  /**
+   * Whether a device may push a stream to this gateway.
+   *
+   * Separate from `supportsLive` because they are different capabilities. A
+   * deployment can be able to *view* a recorder the gateway dials out to while
+   * having nowhere for a phone to publish, and a device told otherwise would
+   * open its camera, burn battery and mobile data, and send frames into
+   * nothing.
+   */
+  readonly supportsPublishing: boolean;
   readonly unavailableReason: string;
   issueTicket(request: StreamRequest): Promise<StreamTicket>;
+  /** Credential for a device that publishes its own stream. */
+  issuePublishTicket(request: PublishRequest): Promise<PublishTicket>;
   listClips(query: ClipQuery): Promise<RecordingClip[]>;
 }

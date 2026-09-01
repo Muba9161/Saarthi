@@ -32,13 +32,37 @@ import type {
  *  * **The crossing feed is short-lived** — the provider states 72 hours — so
  *    the coverage note says so and the sync is designed to run often rather
  *    than to backfill history.
+ *  * **Authentication is a short-lived token, not a key.** The platform issues a
+ *    JWT from `/api/v2/token-auth/` against a username and password, it expires
+ *    after 24 hours, and it must be sent as `Authorization: JWT <token>` — the
+ *    bare token is rejected. This adapter mints and re-mints its own token, so
+ *    nobody has to paste a fresh one in every morning. A token obtained some
+ *    other way can still be supplied through `FASTAG_API_KEY`.
  *  * Credentials are read from configuration and never logged or echoed.
  */
 
 const TAG_DETAILS_PATH = '/api/v2/sbt/FASTAG/02';
 const TOLL_HISTORY_PATH = '/api/v2/sbt/FASTAG/';
+const TOKEN_PATH = '/api/v2/token-auth/';
 const PROVIDER_NAME = 'mastersindia';
 const TIMEOUT_MS = 20_000;
+
+/**
+ * The token is documented as valid for 24 hours. It is renewed an hour early so
+ * a request never sets off with a token that expires mid-flight; a 401 still
+ * triggers one forced renewal, because the clock is theirs, not ours.
+ */
+const TOKEN_TTL_MS = 23 * 3_600_000;
+
+/**
+ * "This vehicle has no tag."
+ *
+ * The two documented endpoints report it with different codes — 740 on the
+ * crossings feed, 239 on tag details — so both are treated as the same answer.
+ * Reading one of them as a generic failure would turn a plain fact about the
+ * vehicle into an error banner.
+ */
+const NO_TAG_CODES = new Set(['740', '239']);
 
 /** The provider keeps crossings for three days; nothing older is retrievable. */
 const HISTORY_WINDOW_HOURS = 72;
@@ -200,11 +224,89 @@ export class MastersIndiaFastagProvider implements FastagProvider {
 
   private readonly log = logger.child({ module: 'fastag', provider: PROVIDER_NAME });
 
+  /** A token this adapter minted, with the moment it stops being usable. */
+  private token: { value: string; expiresAt: number } | null = null;
+  /** In-flight sign-in, shared so a burst of lookups mints one token, not ten. */
+  private pendingToken: Promise<string> | null = null;
+
   constructor() {
-    if (!config.fastag.apiKey || !config.fastag.subId) {
+    const { apiKey, username, password, subId } = config.fastag;
+
+    if (!subId) {
+      throw new Error('FASTAG_PROVIDER=mastersindia requires FASTAG_SUB_ID.');
+    }
+    if (!apiKey && !(username && password)) {
       throw new Error(
-        'FASTAG_PROVIDER=mastersindia requires FASTAG_API_KEY and FASTAG_SUB_ID.',
+        'FASTAG_PROVIDER=mastersindia requires FASTAG_API_USERNAME and FASTAG_API_PASSWORD ' +
+          '(or a FASTAG_API_KEY holding a token obtained elsewhere).',
       );
+    }
+  }
+
+  /**
+   * The `Authorization` header value, minting a token when there is none.
+   *
+   * A configured key wins, so an environment that already holds a token keeps
+   * working. It is sent with the `JWT ` prefix the platform requires, added
+   * only when the configured value does not already carry it — otherwise a key
+   * pasted in complete with its prefix would be sent as `JWT JWT …`.
+   */
+  private async authorization(): Promise<string> {
+    const configured = config.fastag.apiKey;
+    if (configured) {
+      return configured.startsWith('JWT ') ? configured : `JWT ${configured}`;
+    }
+
+    if (this.token && this.token.expiresAt > Date.now()) {
+      return `JWT ${this.token.value}`;
+    }
+
+    this.pendingToken ??= this.signIn().finally(() => {
+      this.pendingToken = null;
+    });
+
+    return `JWT ${await this.pendingToken}`;
+  }
+
+  private async signIn(): Promise<string> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
+
+    try {
+      const response = await fetch(`${config.fastag.baseUrl}${TOKEN_PATH}`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          username: config.fastag.username,
+          password: config.fastag.password,
+        }),
+        signal: controller.signal,
+      });
+
+      const payload = (await response.json().catch(() => ({}))) as {
+        token?: string;
+        message?: string;
+      };
+
+      if (!response.ok || !payload.token) {
+        // The password is in scope here, so nothing but the status is logged.
+        this.log.error({ status: response.status }, 'FASTag provider sign-in failed');
+        throw errors.providerNotConfigured(
+          PROVIDER_NAME,
+          'Saarthi could not sign in to the FASTag service. Check the configured credentials.',
+        );
+      }
+
+      this.token = { value: payload.token, expiresAt: Date.now() + TOKEN_TTL_MS };
+      this.log.info('FASTag provider session established');
+      return payload.token;
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw errors.providerTimeout(PROVIDER_NAME);
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeout);
     }
   }
 
@@ -221,7 +323,7 @@ export class MastersIndiaFastagProvider implements FastagProvider {
     const inner = this.unwrap(envelope);
     const vehicle = inner?.vehicle;
 
-    if (vehicle?.errCode === '740') {
+    if (vehicle?.errCode && NO_TAG_CODES.has(vehicle.errCode)) {
       // A real answer, not a failure: NETC has no tag against this vehicle.
       throw errors.notFound(
         'FASTag',
@@ -270,7 +372,7 @@ export class MastersIndiaFastagProvider implements FastagProvider {
     const inner = this.unwrap(envelope);
     const vehicle = inner?.vehicle;
 
-    if (vehicle?.errCode === '740') {
+    if (vehicle?.errCode && NO_TAG_CODES.has(vehicle.errCode)) {
       return {
         registrationNumber,
         crossings: [],
@@ -347,7 +449,19 @@ export class MastersIndiaFastagProvider implements FastagProvider {
     return indexed;
   }
 
-  private async post(path: string, body: Record<string, unknown>): Promise<Envelope> {
+  /**
+   * One call, with a single retry when the token has gone stale.
+   *
+   * `retryOnExpiry` is what stops that retry becoming a loop: the second
+   * attempt passes false, so credentials that are genuinely wrong fail once
+   * rather than hammering the provider with sign-ins.
+   */
+  private async post(
+    path: string,
+    body: Record<string, unknown>,
+    retryOnExpiry = true,
+  ): Promise<Envelope> {
+    const authorization = await this.authorization();
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
@@ -356,7 +470,7 @@ export class MastersIndiaFastagProvider implements FastagProvider {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
-          authorization: config.fastag.apiKey!,
+          authorization,
           Subid: config.fastag.subId!,
           Productid: config.fastag.productId,
           Mode: config.fastag.mode,
@@ -374,6 +488,15 @@ export class MastersIndiaFastagProvider implements FastagProvider {
 
         if (response.status === 400) throw errors.validation(message);
         if (response.status === 401 || response.status === 403) {
+          // A token that expired early, or a clock that disagrees with theirs.
+          // Worth exactly one silent renewal before this becomes the operator's
+          // problem — and only when the token is ours to renew.
+          if (retryOnExpiry && !config.fastag.apiKey) {
+            this.log.info('FASTag token rejected — renewing and retrying once');
+            this.token = null;
+            return this.post(path, body, false);
+          }
+
           this.log.error({ status: response.status }, 'FASTag provider rejected our credentials');
           throw errors.providerNotConfigured(
             PROVIDER_NAME,

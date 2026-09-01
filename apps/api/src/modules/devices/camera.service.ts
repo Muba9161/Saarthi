@@ -392,6 +392,230 @@ async function recordDeniedSession(
 }
 
 /** Close a live view. Called by the client; also swept on expiry. */
+// ---------------------------------------------------------------------------
+// Publishing — device side
+// ---------------------------------------------------------------------------
+
+export interface PublishGrant {
+  sessionId: string;
+  ingestUrl: string;
+  token: string;
+  protocol: string;
+  expiresAt: string;
+  /**
+   * STUN and TURN servers, when the deployment provides them.
+   *
+   * Empty on a LAN. A phone on a mobile network behind carrier-grade NAT
+   * needs at least STUN to find a route to the gateway at all, so an empty
+   * list here is a deployment answer rather than an omission.
+   */
+  iceServers: { urls: string; username?: string; credential?: string }[];
+  constraints: {
+    maxWidth: number;
+    maxHeight: number;
+    maxFrameRate: number;
+    maxBitrateKbps: number;
+  };
+  simulated: boolean;
+}
+
+/**
+ * Let a device push one of its cameras.
+ *
+ * The mirror of `startLiveView`, and it records into the same
+ * `VideoStreamSession` table on purpose. A camera in a cab points at a person,
+ * and the only thing that keeps that accountable is a complete record of when
+ * it was on — which has to include the times the device started it, not merely
+ * the times somebody watched.
+ *
+ * `requestedById` is the device's own id rather than a user's, because no user
+ * asked. Recording the driver would be a claim about who acted that nobody
+ * verified.
+ */
+export async function startPublishing(
+  device: { id: string; deviceIdentifier: string; organizationId: string; vehicleId: string | null },
+  channel: number,
+): Promise<PublishGrant> {
+  const camera = await prisma.deviceCamera.findUnique({
+    where: { deviceId_channel: { deviceId: device.id, channel } },
+  });
+  if (!camera) {
+    throw errors.notFound(
+      'Camera',
+      `This device has no camera registered on channel ${channel}.`,
+    );
+  }
+
+  if (!camera.enabled) {
+    throw errors.businessRule(
+      'This camera has been switched off from the Saarthi dashboard.',
+    );
+  }
+
+  if (!videoProvider.supportsPublishing) {
+    // Told plainly, so the app can stop the encoder and say why rather than
+    // opening the camera and sending frames into nothing — which on a phone
+    // costs battery and a driver's mobile data for no result.
+    throw errors.providerNotConfigured(
+      'video',
+      videoProvider.supportsLive
+        ? 'This environment can display cameras but has nowhere for a device to publish to.'
+        : videoProvider.unavailableReason,
+    );
+  }
+
+  const token = randomBytes(32).toString('base64url');
+  const expiresAt = new Date(Date.now() + config.video.publishTtlSeconds * 1000);
+
+  const session = await prisma.videoStreamSession.create({
+    data: {
+      cameraId: camera.id,
+      organizationId: device.organizationId,
+      vehicleId: device.vehicleId,
+      requestedById: device.id,
+      status: 'REQUESTED',
+      // Only the hash is stored. A stream credential in a database is a
+      // credential in every backup of that database.
+      tokenHash: createHash('sha256').update(token).digest('hex'),
+      expiresAt,
+      userAgent: `device:${device.deviceIdentifier}`,
+    },
+  });
+
+  const ticket = await videoProvider.issuePublishTicket({
+    cameraId: camera.id,
+    deviceIdentifier: device.deviceIdentifier,
+    channel,
+    sessionId: session.id,
+    ttlSeconds: config.video.publishTtlSeconds,
+  });
+
+  await prisma.$transaction([
+    prisma.videoStreamSession.update({
+      where: { id: session.id },
+      data: { status: 'ACTIVE', startedAt: new Date() },
+    }),
+    prisma.deviceCamera.update({
+      where: { id: camera.id },
+      data: { status: 'ONLINE', lastFrameAt: new Date() },
+    }),
+  ]);
+
+  cameraLogger.info(
+    { deviceIdentifier: device.deviceIdentifier, channel, sessionId: session.id },
+    'Device camera publishing started',
+  );
+
+  return {
+    sessionId: session.id,
+    ingestUrl: ticket.ingestUrl,
+    token: ticket.token,
+    protocol: ticket.protocol,
+    expiresAt: ticket.expiresAt,
+    constraints: ticket.constraints,
+    iceServers: ticket.iceServers ?? [],
+    simulated: ticket.simulated,
+  };
+}
+
+/**
+ * Close a session the device itself opened.
+ *
+ * Best-effort from the device's side — a phone that loses signal mid-stream
+ * never gets to call this, which is what `runStreamSessionSweep` is for. When
+ * it does arrive it gives the access log an honest end time rather than one
+ * inferred from a timeout.
+ */
+export async function stopPublishing(
+  device: { id: string },
+  sessionId: string,
+): Promise<void> {
+  const session = await prisma.videoStreamSession.findUnique({
+    where: { id: sessionId },
+    include: { camera: { select: { id: true, deviceId: true } } },
+  });
+  if (!session) throw errors.notFound('Stream session');
+
+  // A device may only close its own. Reported as not-found so one unit cannot
+  // probe for another's session ids.
+  if (session.camera.deviceId !== device.id) throw errors.notFound('Stream session');
+
+  if (session.endedAt) return;
+
+  await prisma.$transaction([
+    prisma.videoStreamSession.update({
+      where: { id: sessionId },
+      data: { status: 'ENDED', endedAt: new Date() },
+    }),
+    prisma.deviceCamera.update({
+      where: { id: session.camera.id },
+      data: { status: 'OFFLINE' },
+    }),
+  ]);
+}
+
+/**
+ * How long a session survives without hearing from whoever opened it.
+ *
+ * Distinct from the ticket TTL, and the distinction is the whole point.
+ *
+ * A *ticket* is a credential: short-lived on purpose, because it admits its
+ * holder to a camera and a leaked one should be worthless within minutes. It
+ * governs whether a *new* connection may be opened.
+ *
+ * A *session* is somebody watching. It should last exactly as long as they are
+ * watching — which is not known in advance, so it cannot be a fixed window.
+ * Conflating the two ended live views after two minutes and recorded every
+ * viewing in the access log as two minutes long, however long it really was.
+ *
+ * So a connected client says "still here" periodically and this is the grace
+ * period between those. Generous enough to ride out a stalled tab or a phone
+ * on a weak signal; short enough that a browser somebody closed without warning
+ * is not recorded as having watched for hours.
+ */
+const SESSION_KEEPALIVE_GRACE_MS = 2 * 60_000;
+
+/**
+ * Keep a session open because its client is still connected.
+ *
+ * Deliberately does not re-issue a ticket. The credential that opened the
+ * connection has done its job and is not extended; this extends only Saarthi's
+ * record that the connection is still up, which is what the access log and the
+ * sweep read.
+ */
+export async function keepStreamSessionAlive(
+  sessionId: string,
+  actor: { auth?: AuthContext; deviceId?: string },
+): Promise<{ expiresAt: string }> {
+  const session = await prisma.videoStreamSession.findUnique({
+    where: { id: sessionId },
+    include: { camera: { select: { deviceId: true } } },
+  });
+  if (!session) throw errors.notFound('Stream session');
+
+  if (actor.auth) {
+    assertTenantAccess(actor.auth, session.organizationId, 'Stream session');
+  } else if (actor.deviceId && session.camera.deviceId !== actor.deviceId) {
+    // A device may only refresh its own, and is told "not found" so one unit
+    // cannot probe for another's session ids.
+    throw errors.notFound('Stream session');
+  }
+
+  // A session somebody has closed stays closed. Reviving it on a late keep-alive
+  // from a client that has not noticed yet would defeat the Close button.
+  if (session.status !== 'ACTIVE' && session.status !== 'REQUESTED') {
+    throw errors.businessRule('This viewing session has already ended.');
+  }
+
+  const expiresAt = new Date(Date.now() + SESSION_KEEPALIVE_GRACE_MS);
+  await prisma.videoStreamSession.update({
+    where: { id: sessionId },
+    data: { expiresAt, status: 'ACTIVE' },
+  });
+
+  return { expiresAt: expiresAt.toISOString() };
+}
+
 export async function endLiveView(auth: AuthContext, sessionId: string): Promise<void> {
   const session = await prisma.videoStreamSession.findUnique({ where: { id: sessionId } });
   if (!session) throw errors.notFound('Stream session');
@@ -484,9 +708,17 @@ export async function listCameraClips(
  * long someone watched.
  */
 export async function runStreamSessionSweep(): Promise<number> {
+  // `expiresAt` is pushed forward by `keepStreamSessionAlive` for as long as a
+  // client is connected, so a session past it is one nobody is holding open any
+  // more — a closed tab, a phone that lost signal, or a ticket never redeemed.
+  // Ending those is what keeps the access log's durations honest.
   const result = await prisma.videoStreamSession.updateMany({
     where: { status: { in: ['REQUESTED', 'ACTIVE'] }, expiresAt: { lt: new Date() } },
-    data: { status: 'ENDED', endedAt: new Date(), reason: 'Ticket expired.' },
+    data: {
+      status: 'ENDED',
+      endedAt: new Date(),
+      reason: 'Client stopped responding.',
+    },
   });
 
   if (result.count > 0) {

@@ -35,6 +35,50 @@ function targetFor(token: string, baseUrl?: string): string {
   return qrTargetUrl(baseUrl ?? config.server.frontendUrl, token);
 }
 
+/**
+ * Render an arbitrary payload, with no URL wrapping.
+ *
+ * `renderSvg` below encodes a *link* — a Saarthi identity code points a phone's
+ * default camera app at a web page. A device pairing code is not that: it is a
+ * bearer credential read by one specific app, and turning it into a URL would
+ * mean any passer-by's camera offered to open it.
+ *
+ * Error correction stays at the same level for the same reason: this is read
+ * off a screen at arm's length, sometimes through a cracked one.
+ */
+export async function renderPayloadSvg(
+  payload: string,
+  options: Omit<RenderOptions, 'baseUrl'> = {},
+): Promise<string> {
+  const size = Math.min(options.size ?? 512, config.qr.maxImageSize);
+  try {
+    return await QRCode.toString(payload, {
+      type: 'svg',
+      width: size,
+      margin: options.margin ?? 4,
+      errorCorrectionLevel: options.errorCorrection ?? 'Q',
+      color: { dark: '#0f172a', light: '#ffffff' },
+    });
+  } catch (error) {
+    throw errors.internal('The QR image could not be generated.', error);
+  }
+}
+
+/**
+ * The same, as a data URI ready for an `<img src>`.
+ *
+ * Returned inline with the pairing code so the dashboard renders it without a
+ * second round trip and without a QR library of its own — and, because it is an
+ * image rather than markup, without any component having to inject HTML.
+ */
+export async function renderPayloadDataUri(
+  payload: string,
+  options: Omit<RenderOptions, 'baseUrl'> = {},
+): Promise<string> {
+  const svg = await renderPayloadSvg(payload, options);
+  return `data:image/svg+xml;base64,${Buffer.from(svg, 'utf8').toString('base64')}`;
+}
+
 export async function renderSvg(token: string, options: RenderOptions = {}): Promise<string> {
   const size = Math.min(options.size ?? 512, config.qr.maxImageSize);
   try {

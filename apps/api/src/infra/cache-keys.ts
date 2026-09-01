@@ -35,9 +35,48 @@ export const cacheKeys = {
   subscriptionEntitlement: (organizationId: string): string =>
     `${PREFIX}:subscription:${organizationId}:entitlement`,
 
+  // --- Connected devices ---------------------------------------------------
+  //
+  // Keyed by device rather than by tenant because a device's own health is the
+  // same fact whichever vehicle it is fitted to today, and it must survive a
+  // reassignment. Tenant isolation is enforced where the key is *read*, by the
+  // same authorisation that guards the device record itself.
+
+  /** The unit's last self-reported health. Absence means "not heard from". */
+  deviceStatus: (deviceId: string): string => `${PREFIX}:device:${deviceId}:status`,
+
+  /**
+   * Queued commands for a device that is not currently holding a socket.
+   *
+   * The durable record is `device_commands`; this is only the fast path, so
+   * losing it costs a poll rather than a command.
+   */
+  deviceCommandQueue: (deviceId: string): string => `${PREFIX}:device:${deviceId}:commands`,
+
+  /**
+   * Single-use claim on a pairing token.
+   *
+   * The database row is authoritative, but two phones scanning the same QR
+   * within the same millisecond would both pass a read-then-write check. This
+   * key is taken with SET NX first, so exactly one of them proceeds to the
+   * transaction.
+   */
+  devicePairingClaim: (tokenHash: string): string => `${PREFIX}:device:pair:${tokenHash}`,
+
+  /**
+   * Idempotency guard for a replayed offline event.
+   *
+   * A backstop in front of the unique index on `telemetry_readings`, so a phone
+   * retrying a hundred-frame batch costs a hundred Redis reads rather than a
+   * hundred failed inserts.
+   */
+  deviceEventIdempotency: (deviceId: string, eventId: string): string =>
+    `${PREFIX}:device:${deviceId}:idem:${eventId}`,
+
   /** Prefix for everything derived from one tenant, for bulk invalidation. */
   organizationPrefix: (organizationId: string): string => `${PREFIX}:fleet:${organizationId}`,
   vehiclePrefix: (vehicleId: string): string => `${PREFIX}:vehicle:${vehicleId}`,
+  devicePrefix: (deviceId: string): string => `${PREFIX}:device:${deviceId}`,
 } as const;
 
 /**
@@ -59,4 +98,25 @@ export const cacheTtl = {
   serviceSummary: 300,
   /** Subscription entitlement — invalidated on any billing change. */
   entitlement: 15,
+
+  /**
+   * Device health. Six heartbeats' grace, so one dropped packet on a train does
+   * not read as a dead phone.
+   */
+  deviceStatus: 180,
+
+  /** Queued commands. Matches the longest command TTL the API will issue. */
+  deviceCommandQueue: 3_600,
+
+  /** A pairing claim only has to outlive the transaction it guards. */
+  devicePairingClaim: 60,
+
+  /**
+   * Idempotency window for replayed device events.
+   *
+   * Matches how long a device may hold an event before the gateway refuses it
+   * as too old, so the guard cannot expire while a valid retry is still
+   * possible.
+   */
+  deviceIdempotency: 86_400,
 } as const;

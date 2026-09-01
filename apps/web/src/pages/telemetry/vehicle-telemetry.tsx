@@ -53,6 +53,7 @@ function MetricTile({
   unit,
   icon: Icon,
   available,
+  simulated = false,
   tone,
 }: {
   label: string;
@@ -61,8 +62,21 @@ function MetricTile({
   icon: React.ComponentType<{ className?: string }>;
   /** False when this vehicle does not report the metric at all. */
   available: boolean;
+  /**
+   * True when this particular figure was invented rather than measured.
+   *
+   * Per metric, not per reading. A phone paired to a vehicle sends a real
+   * position and a simulated RPM in the same frame, so a row-level flag would
+   * either brand the position as fake or present the RPM as real.
+   */
+  simulated?: boolean;
   tone?: 'warning' | 'destructive';
 }) {
+  // A made-up 112 °C must not be painted like a real overheating engine. The
+  // colour is a claim about the vehicle, and a simulator has no standing to
+  // make it.
+  const effectiveTone = simulated ? undefined : tone;
+
   return (
     <div className="rounded-lg border border-border p-3">
       <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -74,18 +88,27 @@ function MetricTile({
       ) : value === null ? (
         <p className="mt-1 text-sm text-muted-foreground">No reading</p>
       ) : (
-        <p
-          className={
-            tone === 'destructive'
-              ? 'mt-1 text-xl font-semibold text-destructive'
-              : tone === 'warning'
-                ? 'mt-1 text-xl font-semibold text-warning'
-                : 'mt-1 text-xl font-semibold'
-          }
-        >
-          {Math.round(value * 10) / 10}
-          <span className="ml-1 text-xs font-normal text-muted-foreground">{unit}</span>
-        </p>
+        <>
+          <p
+            className={
+              effectiveTone === 'destructive'
+                ? 'mt-1 text-xl font-semibold text-destructive'
+                : effectiveTone === 'warning'
+                  ? 'mt-1 text-xl font-semibold text-warning'
+                  : simulated
+                    ? 'mt-1 text-xl font-semibold text-muted-foreground'
+                    : 'mt-1 text-xl font-semibold'
+            }
+          >
+            {Math.round(value * 10) / 10}
+            <span className="ml-1 text-xs font-normal text-muted-foreground">{unit}</span>
+          </p>
+          {simulated ? (
+            <Badge variant="warning" size="sm" className="mt-1">
+              Simulated
+            </Badge>
+          ) : null}
+        </>
       )}
     </div>
   );
@@ -158,6 +181,12 @@ export function VehicleTelemetryPage() {
   const supported = new Set(capabilities.data?.observedMetrics ?? []);
   const has = (metric: TelemetryMetric) => supported.has(metric);
 
+  // Which figures in *this* reading were invented. A phone standing in for
+  // fitted hardware reports real GPS and a simulated engine, and the difference
+  // has to survive all the way to the gauge.
+  const simulatedMetrics = new Set(reading?.simulatedMetrics ?? []);
+  const isSimulated = (metric: TelemetryMetric) => simulatedMetrics.has(metric);
+
   const noDevice = capabilities.data && !capabilities.data.hasDevice;
 
   return (
@@ -180,6 +209,10 @@ export function VehicleTelemetryPage() {
         actions={
           reading?.simulated ? (
             <Badge variant="warning">Simulated data</Badge>
+          ) : simulatedMetrics.size > 0 ? (
+            // Some of it is invented, not all. Saying "simulated data" outright
+            // would discredit a position that is genuinely this vehicle's.
+            <Badge variant="warning">Partly simulated</Badge>
           ) : capabilities.data?.hasDevice ? (
             <Badge variant="success">Live hardware</Badge>
           ) : null
@@ -283,6 +316,7 @@ export function VehicleTelemetryPage() {
                       unit="rpm"
                       icon={Gauge}
                       available={has(TelemetryMetric.RPM)}
+                      simulated={isSimulated(TelemetryMetric.RPM)}
                     />
                     <MetricTile
                       label="Coolant"
@@ -290,6 +324,7 @@ export function VehicleTelemetryPage() {
                       unit="°C"
                       icon={Thermometer}
                       available={has(TelemetryMetric.COOLANT_TEMPERATURE)}
+                      simulated={isSimulated(TelemetryMetric.COOLANT_TEMPERATURE)}
                       tone={
                         reading.coolantTemperature !== null && reading.coolantTemperature > 105
                           ? 'destructive'
@@ -302,6 +337,7 @@ export function VehicleTelemetryPage() {
                       unit="%"
                       icon={Activity}
                       available={has(TelemetryMetric.ENGINE_LOAD)}
+                      simulated={isSimulated(TelemetryMetric.ENGINE_LOAD)}
                     />
                     <MetricTile
                       label="Throttle"
@@ -309,6 +345,7 @@ export function VehicleTelemetryPage() {
                       unit="%"
                       icon={Activity}
                       available={has(TelemetryMetric.THROTTLE_POSITION)}
+                      simulated={isSimulated(TelemetryMetric.THROTTLE_POSITION)}
                     />
                   </CardContent>
                 </Card>
@@ -324,6 +361,7 @@ export function VehicleTelemetryPage() {
                       unit="%"
                       icon={Fuel}
                       available={has(TelemetryMetric.FUEL_LEVEL)}
+                      simulated={isSimulated(TelemetryMetric.FUEL_LEVEL)}
                       tone={
                         reading.fuelLevel !== null && reading.fuelLevel < 15 ? 'warning' : undefined
                       }
@@ -334,6 +372,7 @@ export function VehicleTelemetryPage() {
                       unit="L/h"
                       icon={Fuel}
                       available={has(TelemetryMetric.FUEL_RATE)}
+                      simulated={isSimulated(TelemetryMetric.FUEL_RATE)}
                     />
                     <MetricTile
                       label="Battery"
@@ -341,6 +380,7 @@ export function VehicleTelemetryPage() {
                       unit="V"
                       icon={BatteryCharging}
                       available={has(TelemetryMetric.BATTERY_VOLTAGE)}
+                      simulated={isSimulated(TelemetryMetric.BATTERY_VOLTAGE)}
                       tone={
                         reading.batteryVoltage !== null && reading.batteryVoltage < 11.8
                           ? 'warning'
@@ -353,6 +393,7 @@ export function VehicleTelemetryPage() {
                       unit="km"
                       icon={Gauge}
                       available={has(TelemetryMetric.ODOMETER)}
+                      simulated={isSimulated(TelemetryMetric.ODOMETER)}
                     />
                   </CardContent>
                 </Card>

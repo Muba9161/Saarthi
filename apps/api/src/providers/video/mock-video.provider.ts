@@ -2,6 +2,8 @@ import { randomBytes } from 'node:crypto';
 import { config } from '../../config/env';
 import type {
   ClipQuery,
+  PublishRequest,
+  PublishTicket,
   RecordingClip,
   StreamRequest,
   StreamTicket,
@@ -23,6 +25,7 @@ export class MockVideoProvider implements VideoProvider {
   readonly name = 'mock';
   readonly supportsLive = true;
   readonly supportsPlayback = true;
+  readonly supportsPublishing = true;
   readonly unavailableReason = '';
 
   async issueTicket(request: StreamRequest): Promise<StreamTicket> {
@@ -34,6 +37,31 @@ export class MockVideoProvider implements VideoProvider {
       protocol: 'mock',
       expiresAt: new Date(Date.now() + request.ttlSeconds * 1000).toISOString(),
       posterUrl: null,
+      simulated: true,
+    };
+  }
+
+  /**
+   * A publisher credential for a gateway that does not exist.
+   *
+   * Lets the Android side be built and exercised end to end — permissions,
+   * preview, encoder start, reconnect, the whole state machine — without an SFU
+   * running anywhere. `simulated: true` travels with it so the app can say so
+   * on screen rather than showing a stream indicator over nothing.
+   */
+  async issuePublishTicket(request: PublishRequest): Promise<PublishTicket> {
+    return {
+      ingestUrl: `${config.server.apiUrl}/mock-video/publish/${request.sessionId}`,
+      sessionId: request.sessionId,
+      token: randomBytes(24).toString('base64url'),
+      protocol: 'mock',
+      expiresAt: new Date(Date.now() + request.ttlSeconds * 1000).toISOString(),
+      constraints: {
+        maxWidth: 1280,
+        maxHeight: 720,
+        maxFrameRate: 15,
+        maxBitrateKbps: 800,
+      },
       simulated: true,
     };
   }

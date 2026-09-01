@@ -502,6 +502,15 @@ export interface TelemetryReadingSummary {
    * absent must be rendered as "not reported", never as its zero value.
    */
   metrics: TelemetryMetric[];
+  /**
+   * Which of those were invented rather than measured.
+   *
+   * A phone reports a real position and a simulated RPM in one reading, so this
+   * is a subset of `metrics` rather than a flag on the row. Render anything
+   * listed here with a `SIMULATED` label — an operator who mistakes a made-up
+   * coolant temperature for a reading sends a working truck to a workshop.
+   */
+  simulatedMetrics: TelemetryMetric[];
   latitude: number | null;
   longitude: number | null;
   speedKph: number | null;

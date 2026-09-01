@@ -1,5 +1,6 @@
 import {
   FastagStatus,
+  Feature,
   NotificationPriority,
   NotificationType,
   Permission,
@@ -10,6 +11,7 @@ import {
   hasPermission,
   maskTagId,
   resolveFastagHealth,
+  type DiscoverFastagInput,
   type FastagHealthResult,
   type FastagListQuery,
   type Paginated,
@@ -21,14 +23,15 @@ import {
 } from '@saarthi/shared';
 import { type Prisma, prisma } from '../../database/prisma';
 import { config } from '../../config/env';
-import { errors } from '../../lib/errors';
+import { AppError, errors } from '../../lib/errors';
 import { logger } from '../../lib/logger';
 import { skipTake } from '../../lib/http';
 import { withLock } from '../../infra/lock';
-import { assertTenantAccess } from '../../server/guards';
+import { queue } from '../../infra/queue';
+import { assertTenantAccess, hasFeature } from '../../server/guards';
 import { AuditAction, recordAudit } from '../audit/audit.service';
 import { notifyOrganization } from '../notifications/notification.service';
-import { fastagProvider } from '../../providers/fastag';
+import { fastagProvider, type ProviderTagDetails } from '../../providers/fastag';
 import { importProviderCrossings } from './toll.service';
 import type { AuthContext } from '../../auth/context';
 
@@ -637,6 +640,323 @@ export async function syncFastag(
     coverageNote,
     fastag: await getFastag(auth, fastagId),
   };
+}
+
+// ---------------------------------------------------------------------------
+// Discovery
+// ---------------------------------------------------------------------------
+
+/**
+ * What a discovery attempt found — including the cases where it found nothing.
+ *
+ * "This vehicle has no tag" is a real answer rather than a failure, and it is
+ * reported as one. The caller is often a background job fired by adding a
+ * vehicle, and a fleet whose truck genuinely has no FASTag must not be shown an
+ * error, nor a tag row invented to fill the space.
+ */
+export interface FastagDiscoveryResult {
+  provider: string;
+  registrationNumber: string;
+  /** NETC holds a tag against this vehicle. */
+  found: boolean;
+  /** Why nothing was recorded, when nothing was. Null once a tag is stored. */
+  reason: string | null;
+  applied: boolean;
+  /** Saarthi already held this exact tag; it was refreshed, not added again. */
+  alreadyKnown: boolean;
+  /** A previously recorded tag was closed because NETC reports a different one. */
+  replacedPreviousTag: boolean;
+  /** The provider named the issuing bank rather than serving only a code. */
+  issuerNamed: boolean;
+  /** Almost always false — see the note at the top of this module. */
+  balanceServed: boolean;
+  crossingsImported: number;
+  coverageNote: string | null;
+  retrievedAt: string;
+  simulated: boolean;
+  fastag: FastagView | null;
+}
+
+/**
+ * A name for the issuing bank, which the column requires and NETC does not give.
+ *
+ * The feed serves a numeric bank identifier. It is carried through as a code
+ * rather than mapped to a bank name, because a tag labelled with the wrong bank
+ * sends an operator to the wrong app to top it up — worse than an unlovely
+ * label they can correct in one edit.
+ */
+function issuerLabel(details: ProviderTagDetails): string {
+  if (details.issuerBank) return details.issuerBank;
+  if (details.issuerCode) return `NETC issuer ${details.issuerCode}`;
+  return 'Issuer not reported';
+}
+
+/**
+ * Resolve the tag fitted to a vehicle from its registration number alone.
+ *
+ * This is the only FASTag lookup that needs no tag id, and that is what makes
+ * it worth having: it lets a fleet add a truck and have its tag appear without
+ * anybody reading a 24-character identifier off a windscreen sticker.
+ *
+ * What comes back is tag *status*, not money. The rupee balance belongs to the
+ * issuing bank, so a discovered tag arrives with `balance: null` unless the
+ * provider genuinely served one — never as zero.
+ *
+ * The organization is taken from the vehicle rather than from the caller: the
+ * tag belongs where the vehicle does, which also stops a platform admin acting
+ * on a tenant from filing the tag under the wrong one.
+ */
+export async function discoverFastag(
+  auth: AuthContext,
+  input: DiscoverFastagInput,
+): Promise<FastagDiscoveryResult> {
+  const vehicle = await prisma.truck.findUnique({ where: { id: input.vehicleId } });
+  if (!vehicle) throw errors.notFound('Vehicle');
+  assertTenantAccess(auth, vehicle.organizationId, 'Vehicle');
+
+  if (!fastagProvider.supportsLookup) {
+    throw errors.providerNotConfigured('fastag', fastagProvider.unavailableReason);
+  }
+
+  const organizationId = vehicle.organizationId;
+  const registrationNumber = vehicle.registrationNumber;
+
+  const nothingFound = (reason: string): FastagDiscoveryResult => ({
+    provider: fastagProvider.name,
+    registrationNumber,
+    found: false,
+    reason,
+    applied: false,
+    alreadyKnown: false,
+    replacedPreviousTag: false,
+    issuerNamed: false,
+    balanceServed: false,
+    crossingsImported: 0,
+    coverageNote: null,
+    retrievedAt: new Date().toISOString(),
+    simulated: false,
+    fastag: null,
+  });
+
+  let details: ProviderTagDetails;
+  try {
+    details = await fastagProvider.fetchTagDetails({ registrationNumber });
+  } catch (error) {
+    // The adapter reports "no tag against this vehicle" as a 404. That is an
+    // answer rather than a fault, and it is the likeliest outcome for a
+    // second-hand vehicle — so it is returned instead of thrown.
+    if (error instanceof AppError && error.statusCode === 404) {
+      return nothingFound('NETC has no FASTag registered against this vehicle.');
+    }
+    throw error;
+  }
+
+  if (!details.tagId) {
+    return nothingFound(
+      'NETC recognises this vehicle but did not return a tag identifier, so there is nothing ' +
+        'to record. Add the tag by hand from your issuer app.',
+    );
+  }
+
+  // The same tag id already sitting on another vehicle in this fleet is a data
+  // problem, not something to resolve silently — one of the two is wrong.
+  const clash = await prisma.fastagAccount.findFirst({
+    where: { organizationId, tagId: details.tagId, vehicleId: { not: vehicle.id } },
+  });
+  if (clash) {
+    throw errors.duplicate(
+      'NETC reports a tag that is already recorded against another vehicle in this fleet. ' +
+        'Check which vehicle it belongs to before recording it again.',
+      { fastagId: clash.id },
+    );
+  }
+
+  const openTag = await prisma.fastagAccount.findFirst({
+    where: { vehicleId: vehicle.id, closedAt: null },
+  });
+  const alreadyKnown = openTag?.tagId === details.tagId;
+
+  const base = {
+    provider: details.provider,
+    registrationNumber,
+    found: true,
+    reason: null,
+    alreadyKnown,
+    issuerNamed: details.issuerBank !== null,
+    balanceServed: details.balance !== null,
+    retrievedAt: details.retrievedAt,
+    simulated: details.simulated,
+  } as const;
+
+  // A dry run reports what NETC holds and writes nothing.
+  if (!input.apply) {
+    return {
+      ...base,
+      applied: false,
+      replacedPreviousTag: false,
+      crossingsImported: 0,
+      coverageNote: null,
+      fastag: openTag ? await getFastag(auth, openTag.id) : null,
+    };
+  }
+
+  const fromProvider = {
+    status: details.status,
+    ...(details.vehicleClass ? { vehicleClass: details.vehicleClass } : {}),
+    ...(details.issuerCode ? { issuerCode: details.issuerCode } : {}),
+    ...(details.issuerBank ? { issuerBank: details.issuerBank } : {}),
+    ...(details.issuedAt ? { issuedAt: new Date(details.issuedAt) } : {}),
+    // Only written when the provider actually served one. Never defaulted.
+    ...(details.balance !== null
+      ? { balance: details.balance, balanceUpdatedAt: new Date(details.retrievedAt) }
+      : {}),
+    source: details.simulated ? TollDataSource.SIMULATED : TollDataSource.PROVIDER_SYNC,
+    providerName: details.provider,
+    lastSyncedAt: new Date(details.retrievedAt),
+    lastSyncError: null,
+  };
+
+  let replacedPreviousTag = false;
+  let fastagId: string;
+
+  if (openTag && alreadyKnown) {
+    // Saarthi already had this tag. Refresh it in place rather than adding a
+    // second row for the same sticker.
+    await prisma.fastagAccount.update({ where: { id: openTag.id }, data: fromProvider });
+    fastagId = openTag.id;
+  } else {
+    if (openTag) {
+      // NETC reports a different tag fitted to this vehicle. The old row is
+      // closed rather than deleted, so a disputed crossing from last year still
+      // resolves to the tag that paid for it.
+      await prisma.fastagAccount.update({
+        where: { id: openTag.id },
+        data: {
+          closedAt: new Date(),
+          closeReason: 'NETC reports a different tag fitted to this vehicle.',
+          status: FastagStatus.CLOSED,
+        },
+      });
+      replacedPreviousTag = true;
+    }
+
+    const row = await prisma.fastagAccount.create({
+      data: {
+        organizationId,
+        vehicleId: vehicle.id,
+        tagId: details.tagId,
+        issuerBank: issuerLabel(details),
+        issuerCode: details.issuerCode,
+        vehicleClass: details.vehicleClass,
+        status: details.status,
+        balance: details.balance,
+        balanceUpdatedAt: details.balance === null ? null : new Date(details.retrievedAt),
+        issuedAt: details.issuedAt ? new Date(details.issuedAt) : null,
+        source: details.simulated ? TollDataSource.SIMULATED : TollDataSource.PROVIDER_SYNC,
+        providerName: details.provider,
+        lastSyncedAt: new Date(details.retrievedAt),
+        createdById: auth.user.id,
+      },
+    });
+    fastagId = row.id;
+  }
+
+  let crossingsImported = 0;
+  let coverageNote: string | null = null;
+
+  if (input.includeTransactions && fastagProvider.supportsTransactions) {
+    const history = await fastagProvider.fetchTollHistory({
+      registrationNumber,
+      tagId: details.tagId,
+    });
+    coverageNote = history.coverageNote;
+    crossingsImported = await importProviderCrossings(
+      organizationId,
+      vehicle.id,
+      fastagId,
+      history,
+    );
+  }
+
+  // A tag that arrives already unusable is worth interrupting somebody for, but
+  // only on first discovery — re-running this must never re-alarm a fleet about
+  // a tag it has already been told about.
+  if (!alreadyKnown && fastagBlocksTravel(details.status)) {
+    await notifyOrganization(organizationId, {
+      type: NotificationType.FASTAG_BLACKLISTED,
+      title: `FASTag ${details.status.toLowerCase()} — ${registrationNumber}`,
+      body:
+        `The tag found on this vehicle is ${details.status.toLowerCase()} with its issuer. ` +
+        'Toll will be charged at double the cash rate until it is cleared.',
+      priority: NotificationPriority.CRITICAL,
+      actionUrl: '/fleet/toll',
+      roles: ['FLEET_OWNER', 'FLEET_MANAGER'],
+    });
+  }
+
+  await recordAudit({
+    action: AuditAction.FASTAG_DISCOVERED,
+    entityType: 'FastagAccount',
+    entityId: fastagId,
+    actorUserId: auth.user.id,
+    organizationId,
+    // The tag id is never written to the audit trail in full.
+    after: {
+      vehicleId: vehicle.id,
+      provider: details.provider,
+      status: details.status,
+      alreadyKnown,
+      replacedPreviousTag,
+      simulated: details.simulated,
+    },
+  });
+
+  return {
+    ...base,
+    applied: true,
+    replacedPreviousTag,
+    crossingsImported,
+    coverageNote,
+    fastag: await getFastag(auth, fastagId),
+  };
+}
+
+/**
+ * Look for a tag on a newly added vehicle, without making anybody wait for it.
+ *
+ * Fire-and-forget on purpose, for three reasons that all point the same way:
+ * adding a vehicle is a foreground action that must succeed whether or not a
+ * third-party NETC service is reachable; every lookup is billed, so it runs
+ * only for fleets whose plan includes the sync entitlement; and a failure here
+ * is an optional enrichment nobody asked for, so it is logged and goes no
+ * further rather than surfacing as an error on an unrelated screen.
+ */
+export function scheduleFastagDiscovery(auth: AuthContext, vehicleId: string): void {
+  if (!fastagProvider.supportsLookup) return;
+  if (!hasFeature(auth, Feature.TOLL_FASTAG)) return;
+  if (!hasFeature(auth, Feature.TOLL_FASTAG_SYNC)) return;
+
+  // The vehicle id is part of the job name on purpose. The distributed driver
+  // takes a lock keyed on that name, so a single `fastag:discover` would mean
+  // two vehicles added seconds apart suppress each other and one silently never
+  // gets looked up. Per-vehicle keys also make a repeated add idempotent.
+  queue.enqueue(`fastag:discover:${vehicleId}`, async () => {
+    try {
+      const result = await discoverFastag(auth, {
+        vehicleId,
+        apply: true,
+        // One billed call, not two. The crossing feed is pulled when somebody
+        // actually opens the tag.
+        includeTransactions: false,
+      });
+      fastagLogger.info(
+        { vehicleId, found: result.found, alreadyKnown: result.alreadyKnown },
+        'FASTag discovery for a new vehicle complete',
+      );
+    } catch (error) {
+      fastagLogger.warn({ err: error, vehicleId }, 'FASTag discovery for a new vehicle failed');
+    }
+  });
 }
 
 // ---------------------------------------------------------------------------

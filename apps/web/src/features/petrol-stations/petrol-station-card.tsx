@@ -1,5 +1,18 @@
-import { ExternalLink, Fuel } from 'lucide-react';
-import { fuelOfferingLabel, isAlwaysOpen, type PetrolStation } from '@saarthi/shared';
+import { ExternalLink, Fuel, Route as RouteIcon, X } from 'lucide-react';
+import {
+  FUEL_DIRECTORY_PRICE_NOTE,
+  describeFuelRate,
+  formatFuelRate,
+  fuelOfferingText,
+  hasAnyFuelRate,
+  isAlwaysOpen,
+  stationFuelOffering,
+  type CityFuelRate,
+  type FuelOffering,
+  type FuelRateEntry,
+  type PetrolFuelFilter,
+  type PetrolStation,
+} from '@saarthi/shared';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
@@ -7,51 +20,58 @@ import { cn } from '@/lib/utils';
 /**
  * A petrol station in the results list.
  *
- * Deliberate wording: the directory tells us which fuels a station *sells* and
- * the rate published for its area. It does not report tank levels, dispenser
- * status or live stock, so nothing here says "available now" and no quantity
- * is ever shown.
+ * Two deliberate omissions, both because the directory cannot support the
+ * claim:
+ *
+ *  * No price, at all. The directory's rate is a city figure years out of date
+ *    — 8% below the real pump price when measured — and carries no timestamp to
+ *    disclose that. See `FUEL_DIRECTORY_PRICE_NOTE` in the domain model.
+ *  * Nothing says "available now". The directory reports no tank level,
+ *    dispenser state or stock, and no quantity is ever shown.
+ *
+ * What it does show is the part that holds up: where the station is, who brands
+ * it, its hours, and which fuels it sells.
  */
 
-function priceLabel(value: number | null): string {
-  return value === null ? '—' : `₹${value.toFixed(2)}`;
-}
+const OFFERING_TONE: Record<FuelOffering, string> = {
+  sold: 'text-success',
+  'not-sold': 'text-muted-foreground',
+  unknown: 'text-muted-foreground',
+};
 
-function FuelRow({
-  label,
-  offered,
-  price,
-}: {
-  label: string;
-  offered: boolean | null;
-  price: number | null;
-}) {
+function FuelRow({ label, offering }: { label: string; offering: FuelOffering }) {
   return (
     <div className="flex items-baseline justify-between gap-2 text-xs">
       <span className="text-muted-foreground">{label}</span>
-      <span className="text-right">
-        <span className="tabular font-medium">{priceLabel(price)}</span>
-        <span
-          className={cn(
-            'ml-2 text-[11px]',
-            offered ? 'text-success' : 'text-muted-foreground',
-          )}
-        >
-          {fuelOfferingLabel(offered)}
-        </span>
+      <span className={cn('text-[11px]', OFFERING_TONE[offering])}>
+        {fuelOfferingText(offering)}
       </span>
     </div>
   );
 }
 
+const FUEL_ROWS: { fuel: PetrolFuelFilter; label: string }[] = [
+  { fuel: 'petrol', label: 'Petrol' },
+  { fuel: 'diesel', label: 'Diesel' },
+  { fuel: 'cng', label: 'CNG' },
+];
+
 export function PetrolStationCard({
   station,
   selected = false,
   onSelect,
+  onShowRoute,
+  onClearRoute,
+  routeActive = false,
 }: {
   station: PetrolStation;
   selected?: boolean;
   onSelect?: (stationId: string) => void;
+  /** Draw the route to this station on the map already on screen. */
+  onShowRoute?: (station: PetrolStation) => void;
+  onClearRoute?: () => void;
+  /** This station is the one currently routed to. */
+  routeActive?: boolean;
 }) {
   const place = [station.city, station.state].filter(Boolean).join(', ');
 
@@ -86,9 +106,9 @@ export function PetrolStationCard({
       </div>
 
       <div className="space-y-1 border-t border-border pt-2">
-        <FuelRow label="Petrol" offered={station.hasPetrol} price={station.petrolPrice} />
-        <FuelRow label="Diesel" offered={station.hasDiesel} price={station.dieselPrice} />
-        <FuelRow label="CNG" offered={station.hasCng} price={station.cngPrice} />
+        {FUEL_ROWS.map(({ fuel, label }) => (
+          <FuelRow key={fuel} label={label} offering={stationFuelOffering(station, fuel)} />
+        ))}
       </div>
 
       <div className="flex flex-wrap items-center gap-1.5">
@@ -97,7 +117,35 @@ export function PetrolStationCard({
             {station.timings}
           </Badge>
         ) : null}
-        {station.directionsUrl ? (
+
+        {onShowRoute ? (
+          routeActive ? (
+            <button
+              type="button"
+              className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:underline"
+              onClick={(event) => {
+                event.stopPropagation();
+                onClearRoute?.();
+              }}
+            >
+              <X className="size-3" />
+              Clear route
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+              onClick={(event) => {
+                event.stopPropagation();
+                onShowRoute(station);
+              }}
+            >
+              <RouteIcon className="size-3" />
+              Route
+            </button>
+          )
+        ) : station.directionsUrl ? (
+          // Fallback for callers that cannot draw a route themselves.
           <a
             href={station.directionsUrl}
             target="_blank"
@@ -114,24 +162,68 @@ export function PetrolStationCard({
   );
 }
 
-/** Header strip for the station list, including the honesty note on prices. */
+/**
+ * Header strip for the station list.
+ *
+ * Carries the city's published rate when one could be had honestly, and says
+ * plainly that there is none when it could not. The rate comes from a retail
+ * rate publisher rather than the station directory, and always with the date
+ * the publisher stamped on it — the directory's own figures were a single city
+ * number years out of date with no date attached, which is exactly the failure
+ * this display exists to make impossible.
+ */
 export function PetrolStationListHeader({
   count,
   stale,
+  rate = null,
+  rateLoading = false,
 }: {
   count: number;
   stale: boolean;
+  /** The city's published rate, or `null` when none is available. */
+  rate?: CityFuelRate | null;
+  rateLoading?: boolean;
 }) {
+  const rows: { label: string; entry: FuelRateEntry | null }[] = [
+    { label: 'Petrol', entry: rate?.petrol ?? null },
+    { label: 'Diesel', entry: rate?.diesel ?? null },
+    { label: 'CNG', entry: rate?.cng ?? null },
+  ].filter((row) => row.entry !== null);
+
+  const showRate = hasAnyFuelRate(rate) && rows.length > 0;
+
   return (
-    <div className="space-y-1">
+    <div className="space-y-1.5">
       <p className="flex items-center gap-1.5 text-xs font-medium">
         <Fuel className="size-3.5 text-warning" />
         {count} station{count === 1 ? '' : 's'} nearby
       </p>
+
+      {showRate && rate ? (
+        <div className="rounded-lg border border-border bg-muted/40 p-2">
+          <p className="text-[11px] font-medium">{describeFuelRate(rate)}</p>
+          <div className="mt-1 flex flex-wrap gap-x-4 gap-y-0.5 text-xs">
+            {rows.map((row) => (
+              <span key={row.label}>
+                <span className="text-muted-foreground">{row.label} </span>
+                <span className="tabular font-medium">{formatFuelRate(row.entry)}</span>
+              </span>
+            ))}
+          </div>
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            City rate via {rate.source}, not an individual pump price.
+          </p>
+        </div>
+      ) : null}
+
       <p className="text-[11px] text-muted-foreground">
         {stale
           ? 'The fuel directory is unreachable — showing the last data Saarthi stored for this area.'
-          : 'Fuel types and prices as published by the fuel directory, not live pump readings.'}
+          : showRate
+            ? 'Fuel types as listed by the station directory. It reports no tank level or stock.'
+            : rateLoading
+              ? 'Checking today’s published rate…'
+              : FUEL_DIRECTORY_PRICE_NOTE}
       </p>
     </div>
   );

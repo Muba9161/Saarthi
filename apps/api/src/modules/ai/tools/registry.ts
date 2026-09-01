@@ -12,6 +12,7 @@ import { SERVICE_TOOLS } from './service.tools';
 import { DRIVER_TOOLS } from './driver.tools';
 import { COST_TOOLS } from './cost.tools';
 import { SUBSCRIPTION_TOOLS } from './subscription.tools';
+import { DEVICE_TOOLS } from './device.tools';
 import type { AiTool, RecordedToolCall, ToolResult, ToolSpecification } from './tool.types';
 
 /**
@@ -42,6 +43,7 @@ const ALL_TOOLS: AiTool[] = [
   ...DRIVER_TOOLS,
   ...COST_TOOLS,
   ...SUBSCRIPTION_TOOLS,
+  ...DEVICE_TOOLS,
 ] as AiTool[];
 
 const BY_NAME = new Map(ALL_TOOLS.map((tool) => [tool.name, tool]));

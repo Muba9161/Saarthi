@@ -142,6 +142,10 @@ export class GenericTelemetryAdapter implements DeviceAdapter {
         vehicleId: context.vehicleId,
         recordedAt: input.recordedAt ?? context.receivedAt,
         metrics,
+        // A payload that arrives already normalised is a measurement as far as
+        // Saarthi is concerned. A caller that simulates does so behind its own
+        // device record and its own provider, where the flag belongs.
+        simulatedMetrics: [],
         location,
         vehicleData,
         motion,

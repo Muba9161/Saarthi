@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Saarthi Device</string>
+
+    <string name="service_channel_name">Vehicle tracking</string>
+    <string name="service_channel_description">Shown while this phone is reporting as a Saarthi vehicle device.</string>
+
+    <!--
+      The notification is the privacy notice.
+
+      It is the one place the person holding the phone reliably sees, and it
+      cannot be dismissed while the service runs. Section 46 asks that the user
+      be told plainly that their location is being shared, and the vehicle is
+      named so it is obvious which one they are reporting for.
+    -->
+    <string name="service_title">Reporting to Saarthi</string>
+    <string name="service_text_paired">Sharing this phone\u2019s location for %1$s.</string>
+    <string name="service_text_unpaired">Not paired to a vehicle.</string>
+    <string name="service_action_stop">Stop</string>
+
+    <!--
+      Said in the notification, not only on a screen the driver may never
+      open. A camera in a cab points at a person, and the strongest
+      disclosure available is a line they cannot dismiss while it happens.
+    -->
+    <string name="service_text_streaming">Sharing location and streaming the camera for %1$s.</string>
+</resources>

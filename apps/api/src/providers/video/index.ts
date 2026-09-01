@@ -2,8 +2,11 @@ import { config } from '../../config/env';
 import { errors } from '../../lib/errors';
 import { logger } from '../../lib/logger';
 import { MockVideoProvider } from './mock-video.provider';
+import { DeviceWebRtcVideoProvider } from './device-webrtc.provider';
 import type {
   ClipQuery,
+  PublishRequest,
+  PublishTicket,
   RecordingClip,
   StreamRequest,
   StreamTicket,
@@ -21,11 +24,16 @@ class NoVideoProvider implements VideoProvider {
   readonly name = 'none';
   readonly supportsLive = false;
   readonly supportsPlayback = false;
+  readonly supportsPublishing = false;
   readonly unavailableReason =
     'No video gateway is configured on this environment, so live camera viewing is unavailable. ' +
     'Cameras can still be registered against a device so the fleet record is complete.';
 
   async issueTicket(_request: StreamRequest): Promise<StreamTicket> {
+    throw errors.providerNotConfigured('video', this.unavailableReason);
+  }
+
+  async issuePublishTicket(_request: PublishRequest): Promise<PublishTicket> {
     throw errors.providerNotConfigured('video', this.unavailableReason);
   }
 
@@ -36,6 +44,19 @@ class NoVideoProvider implements VideoProvider {
 
 function createVideoProvider(): VideoProvider {
   switch (config.video.provider) {
+    case 'device':
+      try {
+        return new DeviceWebRtcVideoProvider();
+      } catch (error) {
+        // Falling back to 'none' rather than to 'mock': a deployment that asked
+        // for real video and did not get it should show a live-view button that
+        // says why, not one that plays a placeholder.
+        logger.error(
+          { err: error },
+          'Video gateway is selected but not configured — live video is unavailable',
+        );
+        return new NoVideoProvider();
+      }
     case 'mock':
       if (config.isProduction) {
         throw new Error(
@@ -53,7 +74,11 @@ function createVideoProvider(): VideoProvider {
 export const videoProvider: VideoProvider = createVideoProvider();
 
 logger.info(
-  { provider: videoProvider.name, live: videoProvider.supportsLive },
+  {
+    provider: videoProvider.name,
+    live: videoProvider.supportsLive,
+    publishing: videoProvider.supportsPublishing,
+  },
   'Video provider ready',
 );
 

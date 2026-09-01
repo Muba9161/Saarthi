@@ -96,6 +96,23 @@ export interface NormalizedTelemetry {
   recordedAt: Date;
   /** Which of the fields below are genuinely present. */
   metrics: TelemetryMetric[];
+  /**
+   * Metrics in this reading that were produced by a simulator rather than
+   * measured.
+   *
+   * Always a subset of `metrics`. It exists because a phone is not uniformly
+   * real or uniformly fake: its GPS fix, its accelerometer and its battery are
+   * genuine measurements of a genuine vehicle, while its RPM and coolant
+   * temperature come from an on-device simulator because a phone has no access
+   * to the engine.
+   *
+   * A single `simulated` boolean cannot express that. Setting it would brand a
+   * real position as fabricated and keep it off the map; leaving it clear would
+   * present an invented coolant temperature as a measurement and send a mechanic
+   * looking for a fault that does not exist. So the honesty is per metric, and
+   * a consumer must check this list before presenting any value as measured.
+   */
+  simulatedMetrics: TelemetryMetric[];
   location: TelemetryLocation | null;
   vehicleData: TelemetryVehicleData;
   motion: TelemetryMotion;
@@ -154,6 +171,20 @@ export function readMetric<T>(
   value: T,
 ): T | null {
   return hasMetric(reading, metric) ? value : null;
+}
+
+/**
+ * True when this particular metric was fabricated rather than measured.
+ *
+ * The check a UI must make before labelling a gauge. Written to accept a bare
+ * list as well as a reading, because the stored row, the realtime payload and
+ * the normalised reading all carry the same array under the same name.
+ */
+export function isSimulatedMetric(
+  source: { simulatedMetrics?: readonly TelemetryMetric[] | readonly string[] | null },
+  metric: TelemetryMetric,
+): boolean {
+  return (source.simulatedMetrics ?? []).includes(metric);
 }
 
 // ---------------------------------------------------------------------------

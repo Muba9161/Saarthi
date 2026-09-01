@@ -108,10 +108,16 @@ export function LiveMapPage() {
     driverName: position.driver?.name ?? null,
     tripReference: position.trip?.reference ?? null,
     stale: position.stale,
-    simulated: session?.demoMode ?? false,
+    // The position's own provenance, not the environment's. Demo mode says a
+    // simulator is *available*; it says nothing about whether this particular
+    // truck's position came from one, and a real device reporting on a demo
+    // environment was being marked invented.
+    simulated: position.simulated,
   }));
 
   const moving = all.filter((position) => (position.speedKph ?? 0) > 3).length;
+  // How many of these positions were invented rather than measured.
+  const simulatedCount = all.filter((position) => position.simulated).length;
 
   return (
     <div className="space-y-5">
@@ -127,10 +133,19 @@ export function LiveMapPage() {
         }
       />
 
-      {session?.demoMode ? (
+      {/*
+        Said only when it is true, and only about the vehicles it is true of.
+
+        This used to appear whenever demo mode was on and claim the whole map
+        was simulated — so a real phone reporting a real position was captioned
+        as invented, which is worse than saying nothing. The `simulated` flag
+        travels with each position precisely so this can be accurate.
+      */}
+      {simulatedCount > 0 ? (
         <p className="glass rounded-lg px-3 py-2 text-xs text-muted-foreground">
-          Demo mode: positions on this map are produced by the VorldX Saarthi GPS simulator, not by
-          hardware trackers.
+          {simulatedCount === all.length
+            ? 'Every position on this map is produced by the VorldX Saarthi GPS simulator, not by a device.'
+            : `${simulatedCount} of ${all.length} positions come from the VorldX Saarthi GPS simulator; the rest are from real devices.`}
         </p>
       ) : null}
 

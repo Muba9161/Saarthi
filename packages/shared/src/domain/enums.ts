@@ -883,6 +883,22 @@ export type PaymentMethod = EnumValue<typeof PaymentMethod>;
 export const DeviceProvider = asEnum({
   /** Freematics ONE+ Model H — the initial physical target. */
   FREEMATICS: 'FREEMATICS',
+  /**
+   * YC06 four-channel mobile recorder. Video only — Saarthi does not take
+   * position from one even where the unit has a GPS receiver, because a vehicle
+   * carrying both a Freematics and a YC06 must have exactly one designated
+   * telemetry source.
+   */
+  YC06: 'YC06',
+  /**
+   * An Android phone running the Saarthi Device app.
+   *
+   * A real device with real GPS, a real camera and real motion sensors — but no
+   * access to the engine. Its engine block is produced by an on-device
+   * simulator and is always marked as such, so a phone reading is never
+   * mistaken for CAN data.
+   */
+  MOBILE: 'MOBILE',
   /** The local simulator. Never conflated with real hardware. */
   MOCK: 'MOCK',
   GENERIC_GPS: 'GENERIC_GPS',
@@ -898,9 +914,14 @@ export const DeviceType = asEnum({
   CAN_LOGGER: 'CAN_LOGGER',
   J1939_LOGGER: 'J1939_LOGGER',
   DASHCAM: 'DASHCAM',
+  /** A recorder with several camera channels, such as the YC06. */
+  MULTI_CAMERA: 'MULTI_CAMERA',
+  /** A phone running the Saarthi Device app in place of fitted hardware. */
+  MOBILE_TEST_DEVICE: 'MOBILE_TEST_DEVICE',
   OTHER: 'OTHER',
 });
 export type DeviceType = EnumValue<typeof DeviceType>;
+export const DEVICE_TYPES = Object.values(DeviceType) as DeviceType[];
 
 export const DeviceStatus = asEnum({
   /** Registered but never seen. */
@@ -937,8 +958,109 @@ export const DeviceEventType = asEnum({
   RETIRED: 'RETIRED',
   REJECTED_PAYLOAD: 'REJECTED_PAYLOAD',
   DIAGNOSTIC: 'DIAGNOSTIC',
+  /** A device enrolled itself; it holds no tenant until it pairs. */
+  ENROLLED: 'ENROLLED',
+  /** A pairing token was redeemed and an assignment opened. */
+  PAIRED: 'PAIRED',
+  /** The device released its own assignment. */
+  UNPAIRED: 'UNPAIRED',
+  /** A device access token was issued from the device secret. */
+  TOKEN_ISSUED: 'TOKEN_ISSUED',
+  /** The heartbeat gap crossed the configured threshold. */
+  HEARTBEAT_MISSED: 'HEARTBEAT_MISSED',
+  /** The device raised an emergency. */
+  SOS_RAISED: 'SOS_RAISED',
+  COMMAND_ISSUED: 'COMMAND_ISSUED',
+  COMMAND_ACKED: 'COMMAND_ACKED',
 });
 export type DeviceEventType = EnumValue<typeof DeviceEventType>;
+
+/**
+ * What a device *does* on a vehicle, as distinct from what it is.
+ *
+ * Section 35 of the device specification requires one vehicle to carry a
+ * Freematics, a YC06 and a phone at once, while section 10 is equally clear
+ * that only one of them may be the position source. The role is what reconciles
+ * those: any number of CAMERA and AUXILIARY devices may be fitted, but exactly
+ * one TELEMETRY device — because two units reporting slightly different
+ * positions for the same truck is a support call nobody can resolve.
+ */
+export const DeviceRole = asEnum({
+  /** The designated position and engine-data source. One per vehicle. */
+  TELEMETRY: 'TELEMETRY',
+  /** Video only. Contributes no position. */
+  CAMERA: 'CAMERA',
+  /** Sensors, diagnostics or anything else that is not position or video. */
+  AUXILIARY: 'AUXILIARY',
+});
+export type DeviceRole = EnumValue<typeof DeviceRole>;
+
+/**
+ * The role each hardware family plays by default.
+ *
+ * A phone is a TELEMETRY device: on a test vehicle it *is* the position source.
+ * When a Freematics is later fitted to the same truck, the phone is unpaired
+ * first — which is the migration the specification describes, not a conflict.
+ */
+export const DEFAULT_DEVICE_ROLE: Record<DeviceProvider, DeviceRole> = {
+  [DeviceProvider.FREEMATICS]: DeviceRole.TELEMETRY,
+  [DeviceProvider.YC06]: DeviceRole.CAMERA,
+  [DeviceProvider.MOBILE]: DeviceRole.TELEMETRY,
+  [DeviceProvider.MOCK]: DeviceRole.TELEMETRY,
+  [DeviceProvider.GENERIC_GPS]: DeviceRole.TELEMETRY,
+  [DeviceProvider.GENERIC_OBD]: DeviceRole.TELEMETRY,
+  [DeviceProvider.GENERIC_CAN]: DeviceRole.TELEMETRY,
+};
+
+/** Commands Saarthi may send to a connected device. */
+export const DeviceCommandType = asEnum({
+  START_CAMERA: 'START_CAMERA',
+  STOP_CAMERA: 'STOP_CAMERA',
+  CHANGE_REPORTING_INTERVAL: 'CHANGE_REPORTING_INTERVAL',
+  REQUEST_LOCATION: 'REQUEST_LOCATION',
+  PING: 'PING',
+  UPDATE_CONFIGURATION: 'UPDATE_CONFIGURATION',
+});
+export type DeviceCommandType = EnumValue<typeof DeviceCommandType>;
+export const DEVICE_COMMAND_TYPES = Object.values(DeviceCommandType) as DeviceCommandType[];
+
+export const DeviceCommandStatus = asEnum({
+  PENDING: 'PENDING',
+  DELIVERED: 'DELIVERED',
+  ACKNOWLEDGED: 'ACKNOWLEDGED',
+  FAILED: 'FAILED',
+  /** Never collected before its deadline. */
+  EXPIRED: 'EXPIRED',
+});
+export type DeviceCommandStatus = EnumValue<typeof DeviceCommandStatus>;
+
+/** Connectivity a device reports about itself. */
+export const DeviceNetworkType = asEnum({
+  WIFI: 'WIFI',
+  CELLULAR: 'CELLULAR',
+  ETHERNET: 'ETHERNET',
+  OFFLINE: 'OFFLINE',
+  UNKNOWN: 'UNKNOWN',
+});
+export type DeviceNetworkType = EnumValue<typeof DeviceNetworkType>;
+
+/**
+ * A subsystem's own verdict on itself.
+ *
+ * Reported by the device rather than inferred, because only the device knows
+ * the difference between "the user refused the permission" and "the hardware
+ * is not there" — and a dashboard that conflates them sends an engineer to
+ * look at a phone whose owner simply tapped Deny.
+ */
+export const DeviceSubsystemStatus = asEnum({
+  OK: 'OK',
+  DEGRADED: 'DEGRADED',
+  /** Present, but the user has not granted access. */
+  PERMISSION_DENIED: 'PERMISSION_DENIED',
+  UNAVAILABLE: 'UNAVAILABLE',
+  UNKNOWN: 'UNKNOWN',
+});
+export type DeviceSubsystemStatus = EnumValue<typeof DeviceSubsystemStatus>;
 
 // ---------------------------------------------------------------------------
 // Telemetry

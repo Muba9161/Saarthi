@@ -47,6 +47,16 @@ export interface TelemetryReadingSummary {
   receivedAt: string;
   /** Which values below are genuinely present. */
   metrics: TelemetryMetric[];
+  /**
+   * Which of those values were invented rather than measured.
+   *
+   * A phone sends a real position and a simulated RPM in the same reading, so
+   * this is a subset of `metrics` rather than a flag on the whole row. A
+   * consumer that renders a value without checking this will eventually show an
+   * operator a coolant temperature a test app made up, and send a working truck
+   * to a workshop.
+   */
+  simulatedMetrics: TelemetryMetric[];
   latitude: number | null;
   longitude: number | null;
   speedKph: number | null;
@@ -86,6 +96,7 @@ function toReadingSummary(reading: ReadingRecord): TelemetryReadingSummary {
     recordedAt: reading.recordedAt.toISOString(),
     receivedAt: reading.receivedAt.toISOString(),
     metrics: reading.metrics as TelemetryMetric[],
+    simulatedMetrics: reading.simulatedMetrics as TelemetryMetric[],
     latitude: reading.latitude,
     longitude: reading.longitude,
     speedKph: reading.speedKph,

@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { WhepPlayer } from '@/features/cameras/whep-player';
 import { cn } from '@/lib/utils';
 
 /**
@@ -144,8 +145,8 @@ export function CameraGrid({
             </div>
           </CardHeader>
           <CardContent className="pt-0">
-            <div className="flex aspect-video items-center justify-center rounded-lg border border-border bg-muted/40">
-              {active.simulated ? (
+            {active.simulated ? (
+              <div className="flex aspect-video items-center justify-center rounded-lg border border-border bg-muted/40">
                 <div className="max-w-sm p-6 text-center">
                   <Camera className="mx-auto h-8 w-8 text-muted-foreground" />
                   <p className="mt-2 text-sm font-medium">Simulated stream</p>
@@ -155,20 +156,24 @@ export function CameraGrid({
                     footage behind it.
                   </p>
                 </div>
-              ) : (
-                <video
-                  className="h-full w-full rounded-lg"
-                  autoPlay
-                  muted
-                  playsInline
-                  poster={active.posterUrl ?? undefined}
-                />
-              )}
-            </div>
+              </div>
+            ) : (
+              // WHEP, negotiated straight against the gateway. Frames never pass
+              // through the Saarthi API, which is what makes watching four
+              // cameras on a truck affordable.
+              <WhepPlayer ticket={active} />
+            )}
+            {/*
+              No expiry time here any more.
+
+              It used to show when the *ticket* lapsed, which read as "your view
+              ends at 11:18" — alarming, and wrong: the ticket only has to last
+              long enough to open the connection, and the view now stays up until
+              it is closed. The player refreshes the session while it is open.
+            */}
             <p className="mt-2 flex items-start gap-1.5 text-2xs text-muted-foreground">
               <ShieldAlert className="mt-0.5 h-3 w-3 shrink-0" />
-              This view is recorded against your account. Session expires{' '}
-              {new Date(active.expiresAt).toLocaleTimeString('en-IN')}.
+              This view is recorded against your account, for as long as it stays open.
             </p>
           </CardContent>
         </Card>

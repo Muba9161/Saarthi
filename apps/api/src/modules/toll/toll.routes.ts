@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import {
   Feature,
   Permission,
+  discoverFastagSchema,
   fastagListQuerySchema,
   idParamSchema,
   importTollSchema,
@@ -138,6 +139,33 @@ export async function tollRoutes(app: FastifyInstance): Promise<void> {
       const { id } = parseParams(idParamSchema, request.params);
       const input = parseBody(recordFastagRechargeSchema, request.body);
       return created(reply, await fastagService.recordRecharge(auth, id, input));
+    },
+  );
+
+  /**
+   * Find the tag fitted to a vehicle from its registration number.
+   *
+   * The one FASTag call that needs no tag id, which is what makes it usable the
+   * moment a vehicle is added — nobody has to read a 24-character identifier
+   * off a windscreen. Gated and rate limited like sync, because it is the same
+   * billed lookup underneath.
+   *
+   * "This vehicle has no tag" comes back as a 200 with `found: false`, not as a
+   * 404: it is an answer about the vehicle, not a failure of the request.
+   */
+  app.post(
+    '/fastag/discover',
+    {
+      preHandler: [
+        requirePermission(Permission.TOLL_MANAGE),
+        requireFeature(Feature.TOLL_FASTAG_SYNC),
+      ],
+      config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
+    },
+    async (request, reply) => {
+      const auth = requireAuth(request);
+      const input = parseBody(discoverFastagSchema, request.body);
+      return ok(reply, await fastagService.discoverFastag(auth, input));
     },
   );
 

@@ -16,6 +16,10 @@ import { runVehicleLookupRetentionSweep } from '../modules/vehicle-lookup/vehicl
 import { runLicenceLookupRetentionSweep } from '../modules/licence-lookup/licence-lookup.service';
 import { runAssociationEscalationSweep } from '../modules/associations/association-alert.service';
 import { runDeviceOfflineSweep } from '../modules/devices/device.service';
+import { runHeartbeatSweep } from '../modules/devices/device-status.service';
+import { runCommandExpirySweep } from '../modules/devices/device-command.service';
+import { runEnrolmentExpirySweep } from '../modules/devices/enrolment.service';
+import { runPairingTokenSweep } from '../modules/devices/pairing.service';
 import { runStreamSessionSweep } from '../modules/devices/camera.service';
 import { runTelemetryRetentionSweep } from '../modules/telemetry/telemetry.service';
 import { runReturnLoadMatchSweep } from '../modules/return-loads/return-load.service';
@@ -233,10 +237,30 @@ export function registerBackgroundJobs(): void {
     initialDelayMs: 60_000,
     handler: async () => {
       await runDeviceOfflineSweep();
+      // A phone parked overnight is silent and perfectly healthy; the same
+      // phone with a flat battery is silent and gone. Telemetry silence cannot
+      // tell those apart, so heartbeat silence is swept separately.
+      await runHeartbeatSweep();
+      // "Start the camera" is not a request that ages well. A device back from
+      // a two-hour tunnel must not act on what somebody asked at breakfast.
+      await runCommandExpirySweep();
       // A browser that closes without telling us would otherwise leave a
       // camera session showing as ACTIVE for ever, and the access log would
       // misreport how long somebody watched.
       await runStreamSessionSweep();
+    },
+  });
+
+  // Bearer capabilities with a short life, both of them. Sweeping is not
+  // tidiness: self-enrolment is an open endpoint, and unclaimed identities that
+  // are never removed are how one becomes a storage-exhaustion vector.
+  queue.registerRepeating({
+    name: 'devices:credential-sweep',
+    everyMs: HOUR,
+    initialDelayMs: 210_000,
+    handler: async () => {
+      await runEnrolmentExpirySweep();
+      await runPairingTokenSweep();
     },
   });
 

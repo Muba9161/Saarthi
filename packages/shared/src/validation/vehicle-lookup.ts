@@ -86,3 +86,21 @@ export const petrolStationQuerySchema = z.object({
   company: optionalTrimmedString(80),
 });
 export type PetrolStationQuery = z.infer<typeof petrolStationQuerySchema>;
+
+/**
+ * City fuel rate lookup.
+ *
+ * By city name rather than coordinates: the publishers of retail rates key
+ * their pages on cities, and the station directory already tells Saarthi which
+ * city a search landed in, so a second reverse-geocode would add a dependency
+ * and a failure mode for nothing.
+ */
+export const cityFuelRateQuerySchema = z.object({
+  city: z
+    .string()
+    .trim()
+    .min(2, 'Name the city to look up.')
+    .max(60, 'That does not look like a city name.'),
+  state: optionalTrimmedString(60),
+});
+export type CityFuelRateQuery = z.infer<typeof cityFuelRateQuerySchema>;

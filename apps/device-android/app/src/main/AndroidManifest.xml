@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!--
+      Location.
+
+      COARSE is requested alongside FINE because Android 12 and later let the
+      user grant only the approximate one. An app that treats that as a refusal
+      is an app that stops working for somebody who made a reasonable choice —
+      so both are declared, the app reports which it got, and the dashboard sees
+      the accuracy it actually has rather than a promise.
+    -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <!--
+      Background location is deliberately NOT declared.
+
+      A foreground service with a persistent notification covers tracking while
+      the app is not in front, which is what a device in a truck needs.
+      ACCESS_BACKGROUND_LOCATION would additionally allow tracking with no
+      running service and no notification — more capability than this app has a
+      reason for, and a Play Store review burden that buys nothing.
+    -->
+
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <!--
+      Camera as a foreground-service type.
+
+      Required from Android 14 for a service that touches the camera, and it is
+      the honest declaration: section 40 has START_CAMERA as a command the
+      dashboard can send, which means a stream has to be able to start while the
+      phone is in somebody's pocket. The notification says so for as long as it
+      is happening.
+    -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Kept alive across a screen lock while actively reporting. -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- So a device fitted permanently to a vehicle resumes after a reboot. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <uses-feature android:name="android.hardware.location.gps" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.any" android:required="false" />
+
+    <application
+        android:name=".SaarthiDeviceApp"
+        android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:networkSecurityConfig="@xml/network_security_config"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.SaarthiDevice"
+        tools:targetApi="35">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.SaarthiDevice"
+            tools:ignore="LockedOrientationActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!--
+          The tracking service.
+
+          `location` type is mandatory from Android 14, and it is the honest
+          declaration: this service exists to report where the vehicle is, and
+          the user sees a permanent notification saying so for as long as it
+          runs. Section 46 of the specification asks that the person be told
+          their location is being shared, and a notification they cannot dismiss
+          is the strongest form of that.
+        -->
+        <service
+            android:name=".service.TelemetryService"
+            android:exported="false"
+            android:foregroundServiceType="location|camera" />
+
+        <receiver
+            android:name=".service.BootReceiver"
+            android:enabled="true"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>

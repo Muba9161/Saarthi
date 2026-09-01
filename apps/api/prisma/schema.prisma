@@ -978,6 +978,7 @@ model Truck {
   maintenance        MaintenanceRecord[]
   fuelRecords        FuelRecord[]
   deviceAssignments  DeviceAssignment[]  @relation("VehicleDeviceAssignments")
+  devicePairingTokens DevicePairingToken[] @relation("VehiclePairingTokens")
   telemetryReadings  TelemetryReading[]  @relation("VehicleTelemetry")
   telemetryAlerts    TelemetryAlert[]    @relation("VehicleTelemetryAlerts")
   travelPackages     TravelPackage[]     @relation("PackageVehicle")
@@ -1746,13 +1747,23 @@ enum SimulationStatus {
 // ===========================================================================
 
 model SosIncident {
-  id                String  @id @default(uuid()) @db.Uuid
-  reference         String  @unique
-  organizationId    String  @db.Uuid
-  driverId          String? @db.Uuid
-  truckId           String? @db.Uuid
-  tripId            String? @db.Uuid
-  triggeredByUserId String  @db.Uuid
+  id             String  @id @default(uuid()) @db.Uuid
+  reference      String  @unique
+  organizationId String  @db.Uuid
+  driverId       String? @db.Uuid
+  truckId        String? @db.Uuid
+  tripId         String? @db.Uuid
+
+  /// The person who raised it.
+  ///
+  /// Nullable because a device can raise one. When a phone bolted to a
+  /// windscreen presses SOS there may be no signed-in human on the other end,
+  /// and recording the driver's user as the trigger would be a claim about who
+  /// acted that nobody verified.
+  triggeredByUserId String? @db.Uuid
+
+  /// The device that raised it, when it was not a person.
+  triggeredByDeviceId String? @db.Uuid
 
   type               SosType
   status             SosStatus @default(TRIGGERED)
@@ -1778,6 +1789,9 @@ model SosIncident {
   events            SosEvent[]
   associationAlerts AssociationAlert[]
 
+  triggeredByDevice HardwareDevice? @relation(fields: [triggeredByDeviceId], references: [id], onDelete: SetNull)
+
+  @@index([triggeredByDeviceId])
   @@index([organizationId, status, triggeredAt])
   @@index([status, triggeredAt])
   @@index([driverId])
@@ -2251,6 +2265,10 @@ enum DeviceProvider {
   /// YC06 four-channel mobile recorder. Video only — see the note on
   /// DeviceType.MULTI_CAMERA about why it is not treated as a GPS source.
   YC06
+  /// An Android phone running the Saarthi Device app. Real GPS, camera and
+  /// motion sensors; its engine block comes from an on-device simulator and is
+  /// always stored with `simulated = true`.
+  MOBILE
   MOCK
   GENERIC_GPS
   GENERIC_OBD
@@ -2270,7 +2288,24 @@ enum DeviceType {
   /// designated telemetry source, and two devices reporting slightly different
   /// positions for the same truck is a support call nobody can resolve.
   MULTI_CAMERA
+  /// A phone standing in for fitted hardware during testing.
+  MOBILE_TEST_DEVICE
   OTHER
+}
+
+/// What a device *does* on a vehicle, as distinct from what it is.
+///
+/// One vehicle may carry a Freematics, a YC06 and a phone at once, but only one
+/// of them may be the position source — two units reporting slightly different
+/// positions for the same truck is a support call nobody can resolve. The role
+/// is what reconciles those two requirements.
+enum DeviceRole {
+  /// The designated position and engine-data source. One per vehicle.
+  TELEMETRY
+  /// Video only. Contributes no position.
+  CAMERA
+  /// Sensors or diagnostics; neither position nor video.
+  AUXILIARY
 }
 
 enum DeviceStatus {
@@ -2302,6 +2337,66 @@ enum DeviceEventType {
   RETIRED
   REJECTED_PAYLOAD
   DIAGNOSTIC
+  ENROLLED
+  PAIRED
+  UNPAIRED
+  TOKEN_ISSUED
+  HEARTBEAT_MISSED
+  SOS_RAISED
+  COMMAND_ISSUED
+  COMMAND_ACKED
+}
+
+/// Lifecycle of a self-enrolled device identity before it belongs to anyone.
+enum DeviceEnrolmentStatus {
+  /// Identity issued; no tenant, no vehicle, no data reachable.
+  PENDING
+  /// Redeemed a pairing token and became a HardwareDevice.
+  CLAIMED
+  /// Never claimed within its window and swept away.
+  EXPIRED
+  REVOKED
+}
+
+enum DeviceCommandType {
+  START_CAMERA
+  STOP_CAMERA
+  CHANGE_REPORTING_INTERVAL
+  REQUEST_LOCATION
+  PING
+  UPDATE_CONFIGURATION
+}
+
+enum DeviceCommandStatus {
+  PENDING
+  DELIVERED
+  ACKNOWLEDGED
+  FAILED
+  /// Never collected before its deadline.
+  EXPIRED
+}
+
+/// Connectivity a device reports about itself.
+enum DeviceNetworkType {
+  WIFI
+  CELLULAR
+  ETHERNET
+  OFFLINE
+  UNKNOWN
+}
+
+/// A subsystem's own verdict on itself.
+///
+/// Reported rather than inferred, because only the device knows the difference
+/// between "the user refused the permission" and "the hardware is not there" —
+/// and a dashboard that conflates them sends an engineer to look at a phone
+/// whose owner simply tapped Deny.
+enum DeviceSubsystemStatus {
+  OK
+  DEGRADED
+  PERMISSION_DENIED
+  UNAVAILABLE
+  UNKNOWN
 }
 
 enum TelemetryAlertType {
@@ -2897,6 +2992,42 @@ model HardwareDevice {
 
   status DeviceStatus @default(REGISTERED)
 
+  /// What this unit does on a vehicle. Only one TELEMETRY device may be fitted
+  /// to a vehicle at a time; CAMERA and AUXILIARY units are unrestricted.
+  role DeviceRole @default(TELEMETRY)
+
+  /// Incremented on every credential change — rotation, suspension, retirement,
+  /// unpairing. Device access tokens carry the version they were issued under,
+  /// so raising this revokes every outstanding token immediately.
+  credentialVersion Int @default(1)
+
+  /// True when the unit registered itself through the enrolment endpoint rather
+  /// than being provisioned by a platform administrator.
+  selfEnrolled Boolean @default(false)
+
+  // --- Client-reported identity -------------------------------------------
+  //
+  // Populated by app-based devices. A Freematics reports none of this, so every
+  // column is nullable and the UI treats absence as "not applicable" rather
+  // than as data that went missing.
+  platform    String?
+  deviceModel String?
+  osVersion   String?
+  appVersion  String?
+
+  // --- Client-reported health (device specification section 29) ------------
+  lastHeartbeatAt DateTime?
+  batteryPercent  Int?
+  batteryCharging Boolean?
+  networkType     DeviceNetworkType?
+  gpsStatus       DeviceSubsystemStatus?
+  cameraStatus    DeviceSubsystemStatus?
+  /// Events the device said it was still holding locally at its last heartbeat.
+  bufferedEvents  Int?
+
+  /// Reporting cadence Saarthi has asked this unit to use, in seconds.
+  reportingIntervalSeconds Int?
+
   /// Metrics this unit is expected to report. The union actually observed is
   /// tracked separately, because what a device *can* do and what a given
   /// vehicle exposes are different questions.
@@ -2917,18 +3048,148 @@ model HardwareDevice {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  assignments DeviceAssignment[]
-  events      DeviceEvent[]
-  readings    TelemetryReading[]
-  alerts      TelemetryAlert[]
-  mockRuns    MockDeviceRun[]
-  cameras     DeviceCamera[]
+  assignments   DeviceAssignment[]
+  events        DeviceEvent[]
+  readings      TelemetryReading[]
+  alerts        TelemetryAlert[]
+  mockRuns      MockDeviceRun[]
+  cameras       DeviceCamera[]
+  commands      DeviceCommand[]
+  pairingTokens DevicePairingToken[]
+  enrolment     DeviceEnrolment?
+  sosIncidents  SosIncident[]
 
   @@index([organizationId, status])
   @@index([provider, status])
   @@index([lastSeenAt])
   @@index([organizationId, archivedAt])
   @@map("hardware_devices")
+}
+
+/// A device identity that exists before it belongs to anyone.
+///
+/// Self-enrolment has to produce a usable credential — the app shows its device
+/// id on first launch, and it needs to authenticate the pairing call — but it
+/// must not create a row inside somebody's fleet before an authorised person
+/// has approved it. So enrolment lands here: a real identifier and a real
+/// secret, with no organization, no vehicle and nothing reachable. Redeeming a
+/// pairing token promotes it into a HardwareDevice; never redeeming it means
+/// the sweep removes it, so an anonymous endpoint cannot grow the database
+/// without bound.
+model DeviceEnrolment {
+  id String @id @default(uuid()) @db.Uuid
+
+  /// Random per-installation identity the app generates and keeps in secure
+  /// storage. Deliberately not derived from ANDROID_ID or an IMEI: those are
+  /// spoofable and survive a factory reset.
+  installationId String @unique
+
+  /// The identifier Saarthi issues, carried unchanged onto the device row.
+  deviceIdentifier String @unique
+
+  /// bcrypt hash. The plaintext is returned once, at enrolment.
+  secretHash String
+
+  deviceType  DeviceType @default(MOBILE_TEST_DEVICE)
+  platform    String
+  deviceModel String?
+  osVersion   String?
+  appVersion  String?
+
+  status    DeviceEnrolmentStatus @default(PENDING)
+  claimedAt DateTime?
+
+  /// Set when the enrolment is promoted; kept afterwards for provenance.
+  deviceId String? @unique @db.Uuid
+
+  /// Retained only for abuse investigation on an unauthenticated endpoint.
+  ipAddress String?
+
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  device HardwareDevice? @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+
+  @@index([status, expiresAt])
+  @@map("device_enrolments")
+}
+
+/// A short-lived capability to join one vehicle.
+///
+/// Issued by an authorised person in the web dashboard and rendered as a QR. The
+/// printed artefact carries only the opaque token — never the vehicle, the
+/// driver or anything commercial — because a QR on a screen is photographed by
+/// whoever walks past, and everything the pairing discloses is decided
+/// server-side at redemption time.
+model DevicePairingToken {
+  id             String @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  vehicleId      String @db.Uuid
+
+  /// SHA-256 of the token. A pairing credential stored in plaintext is a
+  /// credential in every backup of that database.
+  tokenHash String @unique
+
+  /// What kind of unit this token expects, so a phone cannot take a slot
+  /// reserved for a fitted recorder.
+  deviceType DeviceType @default(MOBILE_TEST_DEVICE)
+
+  createdById String   @db.Uuid
+  note        String?
+  expiresAt   DateTime
+
+  /// Single-use. Both columns are written in the same transaction as the
+  /// assignment they create.
+  consumedAt         DateTime?
+  consumedByDeviceId String?   @db.Uuid
+
+  revokedAt   DateTime?
+  revokedById String?   @db.Uuid
+
+  createdAt DateTime @default(now())
+
+  vehicle          Truck           @relation("VehiclePairingTokens", fields: [vehicleId], references: [id], onDelete: Cascade)
+  consumedByDevice HardwareDevice? @relation(fields: [consumedByDeviceId], references: [id], onDelete: SetNull)
+
+  @@index([vehicleId, expiresAt])
+  @@index([organizationId, createdAt])
+  @@map("device_pairing_tokens")
+}
+
+/// An instruction addressed to one device.
+///
+/// Redis carries the command to a connected unit within milliseconds; this row
+/// is the durable record of what was asked, by whom, and whether it was ever
+/// acknowledged. A camera that was told to start and never confirmed is a
+/// different situation from one that was never told, and only a stored record
+/// can tell them apart afterwards.
+model DeviceCommand {
+  id             String @id @default(uuid()) @db.Uuid
+  deviceId       String @db.Uuid
+  organizationId String @db.Uuid
+
+  type    DeviceCommandType
+  payload Json?
+
+  status DeviceCommandStatus @default(PENDING)
+
+  issuedById  String    @db.Uuid
+  issuedAt    DateTime  @default(now())
+  deliveredAt DateTime?
+  ackedAt     DateTime?
+  expiresAt   DateTime
+
+  /// Whatever the device reported back, and why it failed if it did.
+  result Json?
+  error  String?
+
+  device HardwareDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@index([deviceId, status, issuedAt])
+  @@index([organizationId, issuedAt])
+  @@index([status, expiresAt])
+  @@map("device_commands")
 }
 
 /// Device-to-vehicle assignment history.
@@ -3040,6 +3301,27 @@ model TelemetryReading {
   /// Untouched vendor payload, retained for adapter debugging.
   rawPayload Json?
 
+  /// Metrics in this reading that were produced by a simulator, not measured.
+  ///
+  /// Always a subset of `metrics`. A phone is not uniformly real or uniformly
+  /// fake: its GPS fix and its accelerometer are genuine measurements of a
+  /// genuine vehicle, while its RPM and coolant temperature come from an
+  /// on-device simulator because a phone has no access to the engine. The
+  /// `simulated` boolean below cannot express that — setting it would brand a
+  /// real position as fabricated, and leaving it clear would present an invented
+  /// temperature as a measurement — so the honesty is recorded per metric.
+  simulatedMetrics String[]
+
+  /// Idempotency key generated by the device before the event was buffered.
+  ///
+  /// A phone that uploads a batch, times out and retries must not double-write
+  /// its own history. The sequence counter cannot express that on its own — an
+  /// offline buffer is retried as a whole — so an app-based device stamps every
+  /// event once and the unique index below makes the retry harmless. Null for
+  /// firmware that has no such concept, which is why it is not part of the
+  /// primary key.
+  clientEventId String?
+
   /// When the device observed it.
   recordedAt DateTime
   /// When Saarthi accepted it. The gap is the ingestion delay.
@@ -3049,6 +3331,7 @@ model TelemetryReading {
   vehicle     Truck                     @relation("VehicleTelemetry", fields: [vehicleId], references: [id], onDelete: Cascade)
   diagnostics TelemetryDiagnosticCode[]
 
+  @@unique([deviceId, clientEventId])
   @@index([vehicleId, recordedAt])
   @@index([deviceId, recordedAt])
   @@index([organizationId, recordedAt])
