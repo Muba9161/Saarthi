@@ -5,11 +5,14 @@ import {
   ArrowLeft,
   CheckCircle2,
   Clock,
+  Contact,
   MapPin,
   Phone,
   Siren,
+  Timer,
   TriangleAlert,
   UserPlus,
+  Users,
 } from 'lucide-react';
 import { Permission, humanizeEnum } from '@saarthi/shared';
 import { ApiError, api } from '@/lib/api-client';
@@ -28,7 +31,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -40,6 +42,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  FormWizard,
+  WizardField,
+  WIZARD_DIALOG_CONTENT,
+  WIZARD_DIALOG_HEADER,
+  WIZARD_DIALOG_PANEL,
+  WIZARD_IN_DIALOG,
+  type WizardStep,
+} from '@/components/common/form-wizard';
 
 /**
  * One emergency, as the association sees it.
@@ -58,6 +69,9 @@ const SEVERITY_TONE = {
   INFO: 'info',
 } as const;
 
+/** Per-field messages for the assign-responder wizard. */
+type ResponderErrors = Partial<Record<'name' | 'phone' | 'eta', string>>;
+
 export function AssociationAlertDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { can } = useAuth();
@@ -66,11 +80,14 @@ export function AssociationAlertDetailPage() {
   const [note, setNote] = React.useState('');
   const [outcome, setOutcome] = React.useState('');
   const [escalation, setEscalation] = React.useState('');
+  const [responderOpen, setResponderOpen] = React.useState(false);
   const [responderKind, setResponderKind] = React.useState<'MEMBER' | 'EXTERNAL'>('EXTERNAL');
   const [responderName, setResponderName] = React.useState('');
   const [responderPhone, setResponderPhone] = React.useState('');
   const [responderOrg, setResponderOrg] = React.useState('');
   const [responderEta, setResponderEta] = React.useState('');
+  const [responderErrors, setResponderErrors] = React.useState<ResponderErrors>({});
+  const [responderErroredSteps, setResponderErroredSteps] = React.useState<string[]>([]);
   const [actionError, setActionError] = React.useState<string | null>(null);
 
   const canRespond = can(Permission.ASSOCIATION_ALERTS_RESPOND);
@@ -175,6 +192,156 @@ export function AssociationAlertDetailPage() {
       kind: 'incident',
     },
   ];
+
+  /**
+   * Assigning a responder.
+   *
+   * Who is coming is asked before how they are reached, because the answer to
+   * the first changes the second: an external workshop needs a name and a
+   * number typed in, while a member is already on the association roster.
+   */
+  const responderSteps: WizardStep[] = [
+    {
+      id: 'kind',
+      title: 'Responder',
+      description: 'Who is being sent.',
+      icon: Users,
+      content: (
+        <WizardField
+          label="Responder type"
+          required
+          hint="An external service is anyone outside your association roster."
+        >
+          <Select
+            value={responderKind}
+            onValueChange={(value) => setResponderKind(value as 'MEMBER' | 'EXTERNAL')}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="EXTERNAL">External service (crane, tyre, workshop)</SelectItem>
+              <SelectItem value="MEMBER">Association member</SelectItem>
+            </SelectContent>
+          </Select>
+        </WizardField>
+      ),
+    },
+    {
+      id: 'details',
+      title: responderKind === 'EXTERNAL' ? 'Their details' : 'Member',
+      description: 'How the driver identifies them.',
+      icon: Contact,
+      content:
+        responderKind === 'EXTERNAL' ? (
+          <>
+            <WizardField
+              label="Name"
+              htmlFor="responder-name"
+              required
+              error={responderErrors.name}
+            >
+              <Input
+                id="responder-name"
+                value={responderName}
+                aria-invalid={Boolean(responderErrors.name) || undefined}
+                onChange={(event) => {
+                  setResponderName(event.target.value);
+                  setResponderErrors((previous) => ({ ...previous, name: undefined }));
+                }}
+                placeholder="Shakti Tyre Works"
+              />
+            </WizardField>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <WizardField
+                label="Phone"
+                htmlFor="responder-phone"
+                error={responderErrors.phone}
+                hint="Shown to the driver so they can call ahead."
+              >
+                <Input
+                  id="responder-phone"
+                  value={responderPhone}
+                  aria-invalid={Boolean(responderErrors.phone) || undefined}
+                  onChange={(event) => {
+                    setResponderPhone(event.target.value);
+                    setResponderErrors((previous) => ({ ...previous, phone: undefined }));
+                  }}
+                  placeholder="9876543210"
+                />
+              </WizardField>
+
+              <WizardField label="Organisation" htmlFor="responder-org">
+                <Input
+                  id="responder-org"
+                  value={responderOrg}
+                  onChange={(event) => setResponderOrg(event.target.value)}
+                  placeholder="Kanpur Road"
+                />
+              </WizardField>
+            </div>
+          </>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            Member assignment is available from the API; pick the member from your association
+            roster in Settings → Team.
+          </p>
+        ),
+    },
+    {
+      id: 'eta',
+      title: 'Arrival',
+      description: 'When they reach the driver.',
+      icon: Timer,
+      content: (
+        <WizardField
+          label="ETA in minutes"
+          htmlFor="responder-eta"
+          error={responderErrors.eta}
+          hint="Sent to the driver as soon as you assign."
+        >
+          <Input
+            id="responder-eta"
+            type="number"
+            min={1}
+            value={responderEta}
+            aria-invalid={Boolean(responderErrors.eta) || undefined}
+            onChange={(event) => {
+              setResponderEta(event.target.value);
+              setResponderErrors((previous) => ({ ...previous, eta: undefined }));
+            }}
+            placeholder="35"
+          />
+        </WizardField>
+      ),
+    },
+  ];
+
+  const validateResponderStep = (step: WizardStep): boolean => {
+    const found: ResponderErrors = {};
+
+    if (step.id === 'details' && responderKind === 'EXTERNAL' && !responderName.trim()) {
+      found.name = 'The driver needs a name to expect.';
+    }
+
+    if (step.id === 'eta' && responderEta) {
+      const minutes = Number(responderEta);
+      if (!Number.isFinite(minutes) || minutes < 1) found.eta = 'Enter the ETA in whole minutes.';
+    }
+
+    const ok = Object.keys(found).length === 0;
+    setResponderErrors(found);
+    setResponderErroredSteps((previous) =>
+      ok
+        ? previous.filter((entry) => entry !== step.id)
+        : previous.includes(step.id)
+          ? previous
+          : [...previous, step.id],
+    );
+
+    return ok;
+  };
 
   return (
     <div className="space-y-5">
@@ -412,97 +579,41 @@ export function AssociationAlertDetailPage() {
                   </ul>
                 )}
 
-                <Dialog>
+                <Dialog open={responderOpen} onOpenChange={setResponderOpen}>
                   <DialogTrigger asChild>
                     <Button variant="secondary" className="w-full gap-1.5">
                       <UserPlus className="h-4 w-4" />
                       Assign a responder
                     </Button>
                   </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
+                  <DialogContent className={`${WIZARD_DIALOG_CONTENT} sm:max-w-3xl`}>
+                    <DialogHeader className={WIZARD_DIALOG_HEADER}>
                       <DialogTitle>Assign a responder</DialogTitle>
                       <DialogDescription>
                         The driver is told who is coming and their estimated arrival.
                       </DialogDescription>
                     </DialogHeader>
-                    <div className="space-y-3">
-                      <div className="space-y-1.5">
-                        <Label>Responder type</Label>
-                        <Select
-                          value={responderKind}
-                          onValueChange={(value) =>
-                            setResponderKind(value as 'MEMBER' | 'EXTERNAL')
-                          }
+
+                    <FormWizard
+                      steps={responderSteps}
+                      className={WIZARD_IN_DIALOG}
+                      panelClassName={WIZARD_DIALOG_PANEL}
+                      resetKey={responderOpen}
+                      onValidateStep={validateResponderStep}
+                      onSubmit={() => assignResponder.mutate()}
+                      submitting={assignResponder.isPending}
+                      submitLabel="Assign"
+                      erroredStepIds={responderErroredSteps}
+                      footerStart={
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          onClick={() => setResponderOpen(false)}
                         >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="EXTERNAL">
-                              External service (crane, tyre, workshop)
-                            </SelectItem>
-                            <SelectItem value="MEMBER">Association member</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      {responderKind === 'EXTERNAL' ? (
-                        <>
-                          <div className="space-y-1.5">
-                            <Label htmlFor="responder-name">Name</Label>
-                            <Input
-                              id="responder-name"
-                              value={responderName}
-                              onChange={(event) => setResponderName(event.target.value)}
-                              placeholder="Shakti Tyre Works"
-                            />
-                          </div>
-                          <div className="space-y-1.5">
-                            <Label htmlFor="responder-phone">Phone</Label>
-                            <Input
-                              id="responder-phone"
-                              value={responderPhone}
-                              onChange={(event) => setResponderPhone(event.target.value)}
-                              placeholder="9876543210"
-                            />
-                          </div>
-                          <div className="space-y-1.5">
-                            <Label htmlFor="responder-org">Organisation</Label>
-                            <Input
-                              id="responder-org"
-                              value={responderOrg}
-                              onChange={(event) => setResponderOrg(event.target.value)}
-                              placeholder="Kanpur Road"
-                            />
-                          </div>
-                        </>
-                      ) : (
-                        <p className="text-sm text-muted-foreground">
-                          Member assignment is available from the API; pick the member from your
-                          association roster in Settings → Team.
-                        </p>
-                      )}
-                      <div className="space-y-1.5">
-                        <Label htmlFor="responder-eta">ETA in minutes</Label>
-                        <Input
-                          id="responder-eta"
-                          type="number"
-                          min={1}
-                          value={responderEta}
-                          onChange={(event) => setResponderEta(event.target.value)}
-                          placeholder="35"
-                        />
-                      </div>
-                    </div>
-                    <DialogFooter>
-                      <Button
-                        onClick={() => assignResponder.mutate()}
-                        loading={assignResponder.isPending}
-                        disabled={responderKind === 'EXTERNAL' && !responderName.trim()}
-                      >
-                        Assign
-                      </Button>
-                    </DialogFooter>
+                          Cancel
+                        </Button>
+                      }
+                    />
                   </DialogContent>
                 </Dialog>
               </CardContent>

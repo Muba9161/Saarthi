@@ -5,6 +5,8 @@ import android.util.Base64
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -49,7 +51,7 @@ import com.saarthi.terminal.telemetry.Metric
 import com.saarthi.terminal.ui.Gutter
 import com.saarthi.terminal.ui.LivePulse
 import com.saarthi.terminal.ui.SectionLabel
-import com.saarthi.terminal.ui.SolidCard
+import com.saarthi.terminal.ui.GlassCard
 import com.saarthi.terminal.ui.StatusChip
 import com.saarthi.terminal.ui.StatusTone
 import com.saarthi.terminal.ui.TerminalPage
@@ -73,6 +75,7 @@ import com.saarthi.terminal.ui.TerminalViewModel
  * GPS, is it talking to Saarthi — because a terminal that has quietly stopped
  * reporting looks exactly like one that is working until somebody checks.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun VehicleIdentityScreen(
     viewModel: TerminalViewModel,
@@ -118,7 +121,7 @@ fun VehicleIdentityScreen(
         Spacer(Modifier.height(Gutter))
 
         val qrPanel: @Composable (Modifier) -> Unit = { modifier ->
-            SolidCard(modifier) {
+            GlassCard(modifier) {
                 SectionLabel("Vehicle QR")
                 Spacer(Modifier.height(12.dp))
                 VehicleQrImage(qr, Modifier.fillMaxWidth())
@@ -148,7 +151,7 @@ fun VehicleIdentityScreen(
 
         val detailPanel: @Composable (Modifier) -> Unit = { modifier ->
             Column(modifier, verticalArrangement = Arrangement.spacedBy(Gutter)) {
-                SolidCard(Modifier.fillMaxWidth()) {
+                GlassCard(Modifier.fillMaxWidth()) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             Icons.Rounded.LocalShipping,
@@ -189,11 +192,17 @@ fun VehicleIdentityScreen(
                     )
                 }
 
-                SolidCard(Modifier.fillMaxWidth()) {
+                GlassCard(Modifier.fillMaxWidth()) {
                     SectionLabel("Terminal")
                     Spacer(Modifier.height(12.dp))
 
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // Wraps rather than squeezes. Three chips do not fit
+                    // across a phone, and a `Row` answers that by crushing its
+                    // children instead of moving one to the next line.
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
                         StatusChip(
                             icon = if (state.offline) Icons.Rounded.CloudOff else Icons.Rounded.CloudDone,
                             label = if (state.offline) "Offline" else "Connected",

@@ -1,6 +1,8 @@
 package com.saarthi.terminal.ui.screens
 
 import android.Manifest
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
@@ -46,8 +48,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -61,7 +67,7 @@ import com.saarthi.terminal.ui.Gutter
 import com.saarthi.terminal.ui.PrimaryAction
 import com.saarthi.terminal.ui.SaarthiWarning
 import com.saarthi.terminal.ui.SectionLabel
-import com.saarthi.terminal.ui.SolidCard
+import com.saarthi.terminal.ui.GlassCard
 import com.saarthi.terminal.ui.StatusTone
 import com.saarthi.terminal.ui.TerminalPage
 import com.saarthi.terminal.ui.TerminalViewModel
@@ -92,7 +98,20 @@ fun PairingScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
     val busy by viewModel.busy.collectAsState()
-    var code by remember { mutableStateOf("") }
+    /*
+     * Held as a `TextFieldValue` so the caret can be placed deliberately.
+     *
+     * With a plain `String`, reformatting on every keystroke left Compose to
+     * guess where the caret had gone, and it guessed wrong the moment the
+     * formatter inserted a dash: the caret stayed *before* it, so the next
+     * character landed mid-code. Typing STHRIG10001 produced STH-IG10-010R —
+     * silently, with every character accepted and the result wrong. An
+     * installer in a yard would read that as the code being rejected.
+     *
+     * The caret is pinned to the end after each edit, which is exactly right
+     * for a fixed-shape code nobody edits in the middle of.
+     */
+    var code by remember { mutableStateOf(TextFieldValue("")) }
     var scanned by remember { mutableStateOf<String?>(null) }
 
     /**
@@ -189,7 +208,7 @@ fun PairingScreen(
         }
 
         val codePanel: @Composable () -> Unit = {
-            SolidCard(
+            GlassCard(
                 modifier = if (expanded) {
                     Modifier.fillMaxHeight()
                 } else {
@@ -212,7 +231,11 @@ fun PairingScreen(
                         // reading it aloud off a phone in a yard, and matching
                         // the shape they can see is the whole reason the code
                         // has dashes in it.
-                        code = formatPairingCode(input)
+                        val formatted = formatPairingCode(input.text)
+                        code = TextFieldValue(
+                            text = formatted,
+                            selection = TextRange(formatted.length),
+                        )
                     },
                     label = { Text("STH-XXXX-XXXX") },
                     singleLine = true,
@@ -232,8 +255,8 @@ fun PairingScreen(
                 PrimaryAction(
                     label = if (busy) "Connecting…" else "Connect",
                     icon = Icons.Rounded.Link,
-                    enabled = !busy && code.length == 13,
-                    onClick = { viewModel.pairWithCode(code) },
+                    enabled = !busy && code.text.length == 13,
+                    onClick = { viewModel.pairWithCode(code.text) },
                     modifier = Modifier.fillMaxWidth(),
                 )
 
@@ -307,9 +330,41 @@ private fun ScannerPanel(
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-    val hasCamera = remember { DeviceEnvironment.hasPermission(context, Manifest.permission.CAMERA) }
 
-    SolidCard(modifier) {
+    /*
+     * Whether the camera may be used — re-read, not decided once.
+     *
+     * This was a keyless `remember`, so it captured the answer at the instant
+     * the pairing screen first composed. On a fresh install that is *before* the
+     * installer has answered the permission dialog, and the value never changed
+     * afterwards: the panel showed "Camera unavailable on this terminal" for the
+     * rest of the process lifetime, on a tablet whose camera was working and
+     * whose permission had just been granted. The only way out was to kill the
+     * app, which nobody thinks to do because the message says the hardware is
+     * missing.
+     *
+     * Now it is re-checked whenever the screen resumes — which covers the grant
+     * dialog closing, and a return from Android's settings page.
+     */
+    var hasCamera by remember {
+        mutableStateOf(DeviceEnvironment.hasPermission(context, Manifest.permission.CAMERA))
+    }
+
+    val cameraPermission = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted -> hasCamera = granted }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                hasCamera = DeviceEnvironment.hasPermission(context, Manifest.permission.CAMERA)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    GlassCard(modifier) {
         SectionLabel("Scan the pairing code")
         Spacer(Modifier.height(12.dp))
 
@@ -331,14 +386,31 @@ private fun ScannerPanel(
                     )
                     Spacer(Modifier.height(12.dp))
                     Text(
-                        "Camera unavailable on this terminal. Use the pairing code instead.",
+                        // Two different situations, and the installer can only
+                        // act on one of them. Saying "unavailable" for both sent
+                        // somebody looking for a hardware fault on a tablet that
+                        // was simply waiting to be asked.
+                        if (DeviceEnvironment.hasCameraHardware(context)) {
+                            "Saarthi needs the camera to scan a pairing code."
+                        } else {
+                            "This terminal has no camera. Use the pairing code instead."
+                        },
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
                     )
+                    if (DeviceEnvironment.hasCameraHardware(context)) {
+                        Spacer(Modifier.height(16.dp))
+                        PrimaryAction(
+                            label = "Allow camera",
+                            icon = Icons.Rounded.CameraAlt,
+                            tone = StatusTone.INFO,
+                            onClick = { cameraPermission.launch(Manifest.permission.CAMERA) },
+                        )
+                    }
                 }
             }
-            return@SolidCard
+            return@GlassCard
         }
 
         val executor = remember { Executors.newSingleThreadExecutor() }

@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -14,9 +16,25 @@ plugins {
  * machine, which is what a developer running `npm run dev` needs and is useless
  * anywhere else. That is the point: a build that shipped with a localhost
  * default fails loudly rather than quietly talking to the wrong server.
+ *
+ * `local.properties` is read explicitly, because Gradle does not do it for you.
+ * The comment above promised it did, and the promise was worth keeping rather
+ * than deleting: a URL that only lives in a `-P` flag is a URL that survives
+ * exactly as long as somebody remembers to type it, and forgetting produces a
+ * tablet quietly pointed at localhost with nothing on screen to say so.
+ *
+ * `local.properties` is machine-local and untracked, which is the right home
+ * for a dev tunnel that changes between sessions.
  */
-val saarthiApiUrl: String =
-    (project.findProperty("saarthiApiUrl") as String?) ?: "http://10.0.2.2:4000"
+val localProperties = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.exists()) file.inputStream().use { stream -> load(stream) }
+}
+
+fun setting(name: String): String? =
+    (project.findProperty(name) as String?) ?: localProperties.getProperty(name)
+
+val saarthiApiUrl: String = setting("saarthiApiUrl") ?: "http://10.0.2.2:4000"
 
 /**
  * The basemap style.
@@ -26,8 +44,7 @@ val saarthiApiUrl: String =
  * request ceiling — see `apps/web/src/features/maps/map-config.ts`.
  */
 val saarthiMapStyleUrl: String =
-    (project.findProperty("saarthiMapStyleUrl") as String?)
-        ?: "https://tiles.openfreemap.org/styles/liberty"
+    setting("saarthiMapStyleUrl") ?: "https://tiles.openfreemap.org/styles/liberty"
 
 android {
     namespace = "com.saarthi.terminal"
@@ -157,6 +174,7 @@ dependencies {
 
     implementation(libs.maplibre.android)
     implementation(libs.coil.compose)
+    implementation(libs.haze)
 
     implementation(libs.okhttp)
     implementation(libs.kotlinx.serialization.json)

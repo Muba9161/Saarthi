@@ -13,6 +13,7 @@ import { useAuth } from '@/features/auth/auth-context';
 import { useRealtimeEvent } from '@/hooks/use-realtime';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { MediaImage } from '@/features/media/media-image';
 import { Separator } from '@/components/ui/separator';
 
 /**
@@ -308,9 +309,10 @@ export function DriverSignOnCard({
 
             {session.selfieUrl ? (
               <div className="flex items-center gap-3">
-                <img
-                  src={session.selfieUrl}
+                <MediaImage
+                  source={session.selfieUrl}
                   alt="Your arrival photo"
+                  variant="thumbnail"
                   className="size-16 rounded-lg border object-cover"
                 />
                 {session.status === 'SELFIE_SUBMITTED' ? (

@@ -69,6 +69,12 @@ export interface SessionPayload {
   driver: SessionDriverProfile | null;
   /** Server-confirmed demo/simulation availability. */
   demoMode: boolean;
+  /**
+   * The language this account reads Saarthi in, as a BCP-47 tag from the
+   * language catalogue. Carried on the session rather than fetched separately
+   * so the first authenticated render is already in it.
+   */
+  locale: string;
 }
 
 export interface AuthTokens {

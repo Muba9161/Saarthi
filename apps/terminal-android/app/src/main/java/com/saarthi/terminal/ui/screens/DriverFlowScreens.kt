@@ -54,7 +54,7 @@ import com.saarthi.terminal.ui.PrimaryAction
 import com.saarthi.terminal.ui.SaarthiDanger
 import com.saarthi.terminal.ui.SaarthiSuccess
 import com.saarthi.terminal.ui.SaarthiWarning
-import com.saarthi.terminal.ui.SolidCard
+import com.saarthi.terminal.ui.GlassCard
 import com.saarthi.terminal.ui.StatusTone
 import com.saarthi.terminal.ui.TerminalPage
 import com.saarthi.terminal.ui.TerminalViewModel
@@ -149,7 +149,7 @@ fun ApprovalWaitingScreen(viewModel: TerminalViewModel) {
 
         Spacer(Modifier.height(32.dp))
 
-        SolidCard(Modifier.fillMaxWidth()) {
+        GlassCard(Modifier.fillMaxWidth()) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text(
@@ -331,7 +331,7 @@ fun RejectedScreen(viewModel: TerminalViewModel) {
 
             Spacer(Modifier.height(16.dp))
 
-            SolidCard(Modifier.fillMaxWidth()) {
+            GlassCard(Modifier.fillMaxWidth()) {
                 Text(
                     session?.rejectionReason
                         ?: "Your fleet did not approve this request.",

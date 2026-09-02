@@ -40,6 +40,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 /**
  * The terminal's shared surfaces.
@@ -74,61 +75,21 @@ fun StatusTone.color(): Color = when (this) {
 }
 
 /**
- * A frosted panel that reads over a map without hiding it.
+ * A pane of glass.
  *
- * Three layers, and each earns its place:
- *
- *  * a **tint** dense enough to hold 4.5:1 text contrast over the brightest
- *    basemap tile — a panel that looks lovely over a dark satellite view and
- *    becomes unreadable over a white motorway fails exactly when the driver is
- *    on a motorway;
- *  * an **inner highlight**, brighter along the top edge, which is what makes a
- *    flat translucent rectangle read as glass rather than as a faded box;
- *  * a **hairline edge**, so the panel has a boundary against a busy map.
- *
- * A true backdrop blur is deliberately not used. `Modifier.blur` does nothing
- * below API 31 and costs a full-screen render pass above it, and this panel
- * sits over a live map on tablets chosen for their price. Simulated frost is
- * indistinguishable at this size and works on every unit a fleet will fit.
+ * The implementation lives in [GlassPanel], which does what the web app's
+ * `.glass-panel` does — a real backdrop blur under a light tint, a specular top
+ * edge and a hairline border. This name is kept because every screen in the app
+ * already calls it, so the redesign reached all of them at once rather than
+ * screen by screen.
  */
 @Composable
 fun GlassCard(
     modifier: Modifier = Modifier,
-    /** Padding inside the panel. Tightened on a phone, where space is scarce. */
     contentPadding: androidx.compose.ui.unit.Dp = Gutter,
     content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit,
 ) {
-    val dark = LocalDarkCockpit.current
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(22.dp),
-        color = Color.Transparent,
-        border = androidx.compose.foundation.BorderStroke(
-            1.dp,
-            if (dark) Color.White.copy(alpha = 0.14f) else Color.White.copy(alpha = 0.7f),
-        ),
-        shadowElevation = 10.dp,
-    ) {
-        Box(
-            Modifier.background(
-                Brush.verticalGradient(
-                    if (dark) {
-                        listOf(
-                            Color(0xFF1B2338).copy(alpha = 0.92f),
-                            Color(0xFF0B1020).copy(alpha = 0.88f),
-                        )
-                    } else {
-                        listOf(
-                            Color.White.copy(alpha = 0.92f),
-                            Color(0xFFEDF2FB).copy(alpha = 0.86f),
-                        )
-                    },
-                ),
-            ),
-        ) {
-            Column(Modifier.padding(contentPadding), content = content)
-        }
-    }
+    GlassPanel(modifier = modifier, contentPadding = contentPadding, content = content)
 }
 
 /** A solid card. For anything a translucent one could not carry. */
@@ -171,16 +132,26 @@ fun Readout(
         Row(verticalAlignment = Alignment.Bottom) {
             Text(
                 text = value ?: "—",
-                style = if (large) {
-                    MaterialTheme.typography.displayMedium
-                } else {
-                    MaterialTheme.typography.headlineMedium
+                /*
+                 * A missing large value drops to the small size.
+                 *
+                 * An em dash set at 56sp is not a dash, it is a thick horizontal
+                 * bar floating above a label — which is exactly how the speed
+                 * readout rendered on a vehicle with no OBD adapter fitted, and
+                 * it read as a broken component rather than as "not reported".
+                 * The size is carried by the number; there is no number here.
+                 */
+                style = when {
+                    value == null -> MaterialTheme.typography.headlineSmall
+                    large -> MaterialTheme.typography.displayMedium
+                    else -> MaterialTheme.typography.headlineMedium
                 },
                 color = if (value == null) {
                     MaterialTheme.colorScheme.onSurfaceVariant
                 } else {
                     tone.color()
                 },
+                maxLines = 1,
             )
             if (unit != null && value != null) {
                 Spacer(Modifier.width(4.dp))
@@ -188,20 +159,46 @@ fun Readout(
                     text = unit,
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    // "50,000 km" in a narrow column wrapped the unit itself,
+                    // giving "50,000 k" over "m" — which reads as a rendering
+                    // fault rather than as kilometres.
+                    maxLines = 1,
+                    softWrap = false,
                     modifier = Modifier.padding(bottom = if (large) 10.dp else 3.dp),
                 )
             }
         }
 
+        /*
+         * A dot, not a badge.
+         *
+         * Section 19 requires simulated data to be marked, and it still is — but
+         * a shouted "SIMULATED" pill under every reading was three words of
+         * clutter on a card holding one number, and on a narrow card it clipped
+         * to "SIMULAT" anyway. An amber dot beside the label carries the same
+         * fact in a tenth of the space, and the accessibility label spells it
+         * out for anyone who cannot see the colour.
+         */
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = label.uppercase(),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                softWrap = false,
             )
             if (simulated) {
-                Spacer(Modifier.width(8.dp))
-                SimulatedTag()
+                Spacer(Modifier.width(6.dp))
+                Box(
+                    Modifier
+                        .size(7.dp)
+                        .clip(CircleShape)
+                        .background(SaarthiWarning)
+                        .semantics {
+                            contentDescription =
+                                "This value is simulated, not measured from the vehicle"
+                        },
+                )
             }
         }
     }
@@ -226,10 +223,19 @@ fun SimulatedTag(modifier: Modifier = Modifier) {
         border = androidx.compose.foundation.BorderStroke(1.dp, SaarthiWarning.copy(alpha = 0.6f)),
     ) {
         Text(
+            // "SIMULAT / ED" across two lines read as a rendering fault rather
+            // than as the warning it is, which is the one thing this label
+            // cannot afford to look like.
             text = "SIMULATED",
-            style = MaterialTheme.typography.labelMedium,
+            // Tighter tracking and padding so the whole word fits inside a
+            // half-width card. `labelMedium` carries 1sp of letter spacing,
+            // which was enough on its own to clip the final letters to
+            // "SIMULATE" — a marker nobody can read fails at the one job it has.
+            style = MaterialTheme.typography.labelMedium.copy(letterSpacing = 0.2.sp),
             color = SaarthiWarning,
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+            maxLines = 1,
+            softWrap = false,
+            modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp),
         )
     }
 }
@@ -254,7 +260,23 @@ fun StatusChip(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(16.dp))
-            Text(label, style = MaterialTheme.typography.labelLarge, color = tint)
+            /*
+             * Never wrapped, never broken across lines.
+             *
+             * Squeezed into a narrow row, the label folded onto four lines
+             * inside a shape with a 999dp corner radius — which is to say, it
+             * rendered as a circle with "No / vehi / cle / data" stacked in it.
+             * A chip is a fixed-size object: it either fits on its line or its
+             * row wraps it to the next one, and the caller's `FlowRow` is what
+             * makes that second case work.
+             */
+            Text(
+                label,
+                style = MaterialTheme.typography.labelLarge,
+                color = tint,
+                maxLines = 1,
+                softWrap = false,
+            )
         }
     }
 }

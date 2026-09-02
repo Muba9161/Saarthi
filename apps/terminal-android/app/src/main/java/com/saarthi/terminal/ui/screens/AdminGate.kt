@@ -30,7 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.saarthi.terminal.data.TerminalSettings
 import com.saarthi.terminal.ui.PrimaryAction
-import com.saarthi.terminal.ui.SolidCard
+import com.saarthi.terminal.ui.GlassCard
 import com.saarthi.terminal.ui.StatusTone
 import com.saarthi.terminal.ui.TerminalPage
 import java.security.MessageDigest
@@ -83,7 +83,7 @@ fun AdminGate(
 
         Spacer(Modifier.weight(1f))
 
-        SolidCard(Modifier.fillMaxWidth()) {
+        GlassCard(Modifier.fillMaxWidth()) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp),

@@ -32,6 +32,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { MediaImage } from '@/features/media/media-image';
 import {
   Dialog,
   DialogContent,
@@ -151,17 +152,23 @@ function RequestCard({
   return (
     <Card className={cn(pending && 'border-primary/40')}>
       <CardContent className="flex flex-wrap items-center gap-4 p-4">
-        {session.selfieUrl ? (
-          <img
-            src={session.selfieUrl}
-            alt={`Arrival photo for ${session.driver?.name ?? 'the driver'}`}
-            className="size-16 shrink-0 rounded-lg border object-cover"
-          />
-        ) : (
-          <div className="flex size-16 shrink-0 items-center justify-center rounded-lg border border-dashed text-2xs text-muted-foreground">
-            No photo
-          </div>
-        )}
+{/*
+          The photograph the approver is deciding on.
+          Fetched with the session token: a plain `<img src>` sends no
+          Authorization header, so this rendered as an empty box — which meant
+          approving a driver on the strength of a photo nobody had seen.
+        */}
+        <MediaImage
+          source={session.selfieUrl}
+          alt={`Arrival photo for ${session.driver?.name ?? 'the driver'}`}
+          variant="thumbnail"
+          className="size-16 shrink-0 rounded-lg border object-cover"
+          fallback={
+            <div className="flex size-16 shrink-0 items-center justify-center rounded-lg border border-dashed text-2xs text-muted-foreground">
+              No photo
+            </div>
+          }
+        />
 
         <div className="min-w-[12rem] flex-1 space-y-1">
           <p className="font-medium">{session.driver?.name ?? 'Unknown driver'}</p>
@@ -262,17 +269,16 @@ function DecisionDialog({
         {session ? (
           <div className="space-y-4">
             <div className="flex gap-4">
-              {session.selfieUrl ? (
-                <img
-                  src={session.selfieUrl}
-                  alt={`Arrival photo for ${session.driver?.name ?? 'the driver'}`}
-                  className="size-28 rounded-lg border object-cover"
-                />
-              ) : (
-                <div className="flex size-28 items-center justify-center rounded-lg border border-dashed text-center text-2xs text-muted-foreground">
-                  No arrival photo submitted
-                </div>
-              )}
+              <MediaImage
+                source={session.selfieUrl}
+                alt={`Arrival photo for ${session.driver?.name ?? 'the driver'}`}
+                className="size-28 rounded-lg border object-cover"
+                fallback={
+                  <div className="flex size-28 items-center justify-center rounded-lg border border-dashed text-center text-2xs text-muted-foreground">
+                    No arrival photo submitted
+                  </div>
+                }
+              />
               <div className="flex-1 space-y-1.5">
                 <p className="text-lg font-semibold">{session.driver?.name ?? 'Unknown driver'}</p>
                 <p className="text-sm text-muted-foreground">{session.registrationNumber}</p>

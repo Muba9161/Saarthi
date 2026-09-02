@@ -35,6 +35,7 @@ import type {
   TripSummary,
 } from '@/lib/api-types';
 import { useAuth } from '@/features/auth/auth-context';
+import { useT } from '@/features/i18n';
 import { useChannels, useRealtimeEvent } from '@/hooks/use-realtime';
 import { PageHeader, SectionHeader } from '@/components/common/page-header';
 import { StatCard } from '@/components/common/stat-card';
@@ -58,6 +59,7 @@ import { DailyBriefCard } from '@/features/ai/daily-brief-card';
 export function DashboardPage() {
   const { session, can, hasFeature } = useAuth();
   const navigate = useNavigate();
+  const t = useT();
   const queryClient = useQueryClient();
   const organizationId = session?.organization?.id;
 
@@ -73,7 +75,8 @@ export function DashboardPage() {
   const positions = useQuery({
     queryKey: ['tracking', 'fleet', organizationId],
     queryFn: () => api.get<LiveTruckPosition[]>('/tracking/fleet'),
-    enabled: Boolean(organizationId) && can(Permission.TRACKING_READ) && hasFeature(Feature.TRACKING_LIVE),
+    enabled:
+      Boolean(organizationId) && can(Permission.TRACKING_READ) && hasFeature(Feature.TRACKING_LIVE),
     refetchInterval: 30_000,
   });
 
@@ -86,8 +89,7 @@ export function DashboardPage() {
 
   const openOrders = useQuery({
     queryKey: ['orders', 'recent', organizationId],
-    queryFn: () =>
-      api.get<Paginated<OrderSummary>>('/orders', { activeOnly: true, pageSize: 6 }),
+    queryFn: () => api.get<Paginated<OrderSummary>>('/orders', { activeOnly: true, pageSize: 6 }),
     enabled: Boolean(organizationId) && can(Permission.ORDERS_READ),
   });
 
@@ -98,7 +100,9 @@ export function DashboardPage() {
   });
 
   // --- Live wiring ------------------------------------------------------
-  const [livePositions, setLivePositions] = React.useState<Map<string, LiveTruckPosition>>(new Map());
+  const [livePositions, setLivePositions] = React.useState<Map<string, LiveTruckPosition>>(
+    new Map(),
+  );
 
   React.useEffect(() => {
     if (!positions.data) return;
@@ -154,8 +158,8 @@ export function DashboardPage() {
   if (!organizationId) {
     return (
       <EmptyState
-        title="No organization selected"
-        description="Your account is not linked to an organization yet."
+        title={t('No organization selected')}
+        description={t('Your account is not linked to an organization yet.')}
       />
     );
   }
@@ -168,39 +172,54 @@ export function DashboardPage() {
         100
       : undefined;
 
-  type AttentionItem = { tone: 'destructive' | 'warning'; icon: React.ComponentType<{ className?: string }>; label: string; to: string };
+  type AttentionItem = {
+    tone: 'destructive' | 'warning';
+    icon: React.ComponentType<{ className?: string }>;
+    label: string;
+    to: string;
+  };
   const attentionCandidates: (AttentionItem | null)[] = data
     ? [
-        data.safety.activeSosIncidents > 0 ? {
-          tone: 'destructive' as const,
-          icon: LifeBuoy,
-          label: `${data.safety.activeSosIncidents} active SOS incident${data.safety.activeSosIncidents > 1 ? 's' : ''}`,
-          to: '/sos',
-        } : null,
-        data.compliance.documentsExpired > 0 ? {
-          tone: 'destructive' as const,
-          icon: FileWarning,
-          label: `${data.compliance.documentsExpired} expired document${data.compliance.documentsExpired > 1 ? 's' : ''}`,
-          to: '/fleet/documents',
-        } : null,
-        data.compliance.maintenanceOverdue > 0 ? {
-          tone: 'warning' as const,
-          icon: Wrench,
-          label: `${data.compliance.maintenanceOverdue} maintenance job${data.compliance.maintenanceOverdue > 1 ? 's' : ''} overdue`,
-          to: '/fleet/maintenance',
-        } : null,
-        data.trips.delayed > 0 ? {
-          tone: 'warning' as const,
-          icon: AlertTriangle,
-          label: `${data.trips.delayed} trip${data.trips.delayed > 1 ? 's' : ''} running late`,
-          to: '/trips?activeOnly=true',
-        } : null,
-        data.compliance.documentsExpiringSoon > 0 ? {
-          tone: 'warning' as const,
-          icon: FileWarning,
-          label: `${data.compliance.documentsExpiringSoon} document${data.compliance.documentsExpiringSoon > 1 ? 's' : ''} expiring within 30 days`,
-          to: '/fleet/documents?filter=expiring',
-        } : null,
+        data.safety.activeSosIncidents > 0
+          ? {
+              tone: 'destructive' as const,
+              icon: LifeBuoy,
+              label: `${data.safety.activeSosIncidents} active SOS incident${data.safety.activeSosIncidents > 1 ? 's' : ''}`,
+              to: '/sos',
+            }
+          : null,
+        data.compliance.documentsExpired > 0
+          ? {
+              tone: 'destructive' as const,
+              icon: FileWarning,
+              label: `${data.compliance.documentsExpired} expired document${data.compliance.documentsExpired > 1 ? 's' : ''}`,
+              to: '/fleet/documents',
+            }
+          : null,
+        data.compliance.maintenanceOverdue > 0
+          ? {
+              tone: 'warning' as const,
+              icon: Wrench,
+              label: `${data.compliance.maintenanceOverdue} maintenance job${data.compliance.maintenanceOverdue > 1 ? 's' : ''} overdue`,
+              to: '/fleet/maintenance',
+            }
+          : null,
+        data.trips.delayed > 0
+          ? {
+              tone: 'warning' as const,
+              icon: AlertTriangle,
+              label: `${data.trips.delayed} trip${data.trips.delayed > 1 ? 's' : ''} running late`,
+              to: '/trips?activeOnly=true',
+            }
+          : null,
+        data.compliance.documentsExpiringSoon > 0
+          ? {
+              tone: 'warning' as const,
+              icon: FileWarning,
+              label: `${data.compliance.documentsExpiringSoon} document${data.compliance.documentsExpiringSoon > 1 ? 's' : ''} expiring within 30 days`,
+              to: '/fleet/documents?filter=expiring',
+            }
+          : null,
       ]
     : [];
   const attention = attentionCandidates.filter((entry): entry is AttentionItem => entry !== null);
@@ -208,21 +227,21 @@ export function DashboardPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Live operational picture"
-        title="Fleet command centre"
-        description={session.organization?.name ?? 'Your fleet at a glance'}
+        eyebrow={t('Live operational picture')}
+        title={t('Fleet command centre')}
+        description={session.organization?.name ?? t('Your fleet at a glance')}
         actions={
           <>
             {can(Permission.ORDERS_CREATE) ? (
               <Button variant="outline" onClick={() => navigate('/orders/new')}>
                 <Package className="size-4" />
-                New requirement
+                {t('New requirement')}
               </Button>
             ) : null}
             {session.demoMode && can(Permission.TRUCKS_UPDATE) ? (
               <Button onClick={() => navigate('/simulator')}>
                 <Gauge className="size-4" />
-                Run demo simulation
+                {t('Run demo simulation')}
               </Button>
             ) : null}
           </>
@@ -266,7 +285,7 @@ export function DashboardPage() {
           <Stagger className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <StaggerItem>
               <StatCard
-                label="Fleet"
+                label={t('Fleet')}
                 numericValue={data.fleet.totalTrucks}
                 format={(value) => formatNumber(value)}
                 icon={Truck}
@@ -276,7 +295,7 @@ export function DashboardPage() {
             </StaggerItem>
             <StaggerItem>
               <StatCard
-                label="Utilisation"
+                label={t('Utilisation')}
                 numericValue={data.fleet.utilizationPercent}
                 format={(value) => `${Math.round(value)}%`}
                 icon={Gauge}
@@ -286,7 +305,7 @@ export function DashboardPage() {
             </StaggerItem>
             <StaggerItem>
               <StatCard
-                label="Active trips"
+                label={t('Active trips')}
                 numericValue={data.trips.active}
                 format={(value) => formatNumber(value)}
                 icon={RouteIcon}
@@ -302,7 +321,7 @@ export function DashboardPage() {
             </StaggerItem>
             <StaggerItem>
               <StatCard
-                label="Revenue this month"
+                label={t('Revenue this month')}
                 numericValue={data.financial.revenueThisMonth}
                 format={formatCompactCurrency}
                 icon={Package}
@@ -318,7 +337,7 @@ export function DashboardPage() {
           <Stagger className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4" delay={0.08}>
             <StaggerItem>
               <StatCard
-                label="Drivers"
+                label={t('Drivers')}
                 numericValue={data.drivers.total}
                 format={(value) => formatNumber(value)}
                 icon={Users}
@@ -328,7 +347,7 @@ export function DashboardPage() {
             </StaggerItem>
             <StaggerItem>
               <StatCard
-                label="Distance this month"
+                label={t('Distance this month')}
                 numericValue={data.trips.totalDistanceThisMonthKm}
                 format={formatDistanceKm}
                 icon={RouteIcon}
@@ -337,7 +356,7 @@ export function DashboardPage() {
             </StaggerItem>
             <StaggerItem>
               <StatCard
-                label="Open orders"
+                label={t('Open orders')}
                 numericValue={data.orders.open}
                 format={(value) => formatNumber(value)}
                 icon={Package}
@@ -347,7 +366,7 @@ export function DashboardPage() {
             </StaggerItem>
             <StaggerItem>
               <StatCard
-                label="Safety events"
+                label={t('Safety events')}
                 numericValue={data.safety.safetyEventsThisMonth}
                 format={(value) => formatNumber(value)}
                 icon={LifeBuoy}
@@ -380,7 +399,7 @@ export function DashboardPage() {
               actions={
                 <Button variant="outline" size="sm" asChild>
                   <Link to="/tracking">
-                    Open live map
+                    {t('Open live map')}
                     <ArrowRight className="size-4" />
                   </Link>
                 </Button>
@@ -403,7 +422,7 @@ export function DashboardPage() {
         <Card variant="glass">
           <CardHeader className="pb-3">
             <SectionHeader
-              title="Trips in progress"
+              title={t('Trips in progress')}
               actions={
                 <Button variant="ghost" size="sm" asChild>
                   <Link to="/trips">View all</Link>
@@ -413,12 +432,12 @@ export function DashboardPage() {
           </CardHeader>
           <CardContent className="space-y-3 pt-0">
             {activeTrips.isLoading ? (
-              <LoadingState label="Loading trips…" />
+              <LoadingState label={t('Loading trips…')} />
             ) : (activeTrips.data ?? []).length === 0 ? (
               <EmptyState
                 icon={RouteIcon}
-                title="No trips in progress"
-                description="Accepted orders will appear here once a trip is created."
+                title={t('No trips in progress')}
+                description={t('Accepted orders will appear here once a trip is created.')}
                 className="min-h-32 border-0 p-6"
               />
             ) : (
@@ -463,7 +482,7 @@ export function DashboardPage() {
           <Card variant="glass">
             <CardHeader className="pb-3">
               <SectionHeader
-                title="Orders needing action"
+                title={t('Orders needing action')}
                 actions={
                   <Button variant="ghost" size="sm" asChild>
                     <Link to="/orders">View all</Link>
@@ -473,7 +492,7 @@ export function DashboardPage() {
             </CardHeader>
             <CardContent className="space-y-2 pt-0">
               {openOrders.isLoading ? (
-                <LoadingState label="Loading orders…" />
+                <LoadingState label={t('Loading orders…')} />
               ) : (openOrders.data?.items ?? []).length === 0 ? (
                 <p className="py-4 text-center text-sm text-muted-foreground">
                   No open orders right now.
@@ -508,7 +527,7 @@ export function DashboardPage() {
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-sm">
                   <FileWarning className="size-4 text-warning" />
-                  Documents needing attention
+                  {t('Documents needing attention')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 pt-0">
@@ -538,13 +557,13 @@ export function DashboardPage() {
                   <Bot className="size-5 text-primary" />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium">Ask the Fleet Copilot</p>
+                  <p className="text-sm font-medium">{t('Ask the Fleet Copilot')}</p>
                   <p className="text-xs text-muted-foreground">
-                    &ldquo;What needs my attention today?&rdquo; — answered from your own records.
+                    {t('“What needs my attention today?” — answered from your own records.')}
                   </p>
                 </div>
                 <Button size="sm" asChild>
-                  <Link to="/copilot">Open</Link>
+                  <Link to="/copilot">{t('Open')}</Link>
                 </Button>
               </CardContent>
             </Card>

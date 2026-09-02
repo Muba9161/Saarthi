@@ -1,23 +1,73 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Package } from 'lucide-react';
+import { ArrowLeft, Flag, MapPin, NotebookPen, Package } from 'lucide-react';
 import { toast } from 'sonner';
-import { MaterialUnit, Permission, TruckType, formatCurrency, formatNumber, humanizeEnum } from '@saarthi/shared';
+import {
+  MaterialUnit,
+  Permission,
+  TruckType,
+  formatCurrency,
+  formatNumber,
+  humanizeEnum,
+} from '@saarthi/shared';
 import { api, errorMessage } from '@/lib/api-client';
 import type { MaterialSummary, OrderSummary, Paginated, TransportMatch } from '@/lib/api-types';
 import { useAuth } from '@/features/auth/auth-context';
 import { PageHeader, SectionHeader } from '@/components/common/page-header';
 import { UnauthorizedState, LoadingState, EmptyState } from '@/components/common/states';
+import {
+  FormWizard,
+  WizardField,
+  type WizardStep,
+} from '@/components/common/form-wizard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
-/** Post a transport requirement, then compare the transport VorldX Saarthi can find. */
+/**
+ * Post a transport requirement, then compare the transport VorldX Saarthi can find.
+ *
+ * The matching panel beside the form is live: it re-queries as the capacity,
+ * body type and either endpoint change, so the customer can see what a wider
+ * body type or a slightly larger truck does to availability *before* they
+ * commit to the requirement. Splitting the form into pickup and delivery steps
+ * keeps that panel meaningful — each step changes one end of the route, and
+ * the answer updates against it.
+ */
+
+interface Place {
+  addressLine: string;
+  latitude: number;
+  longitude: number;
+}
+
+type FieldKey =
+  | 'quantity'
+  | 'capacity'
+  | 'originAddress'
+  | 'originLatitude'
+  | 'originLongitude'
+  | 'destinationAddress'
+  | 'destinationLatitude'
+  | 'destinationLongitude';
+
+type FieldErrors = Partial<Record<FieldKey, string>>;
+
+/** A coordinate the API will accept. */
+function withinRange(value: number, limit: number): boolean {
+  return Number.isFinite(value) && Math.abs(value) <= limit;
+}
+
 export function NewOrderPage() {
   const { can } = useAuth();
   const navigate = useNavigate();
@@ -26,13 +76,30 @@ export function NewOrderPage() {
   const [quantity, setQuantity] = React.useState(20);
   const [capacity, setCapacity] = React.useState(20);
   const [truckType, setTruckType] = React.useState<string>('any');
-  const [origin, setOrigin] = React.useState({ addressLine: '', latitude: 26.8351, longitude: 75.9843 });
-  const [destination, setDestination] = React.useState({ addressLine: '', latitude: 28.4089, longitude: 77.0789 });
+  const [origin, setOrigin] = React.useState<Place>({
+    addressLine: '',
+    latitude: 26.8351,
+    longitude: 75.9843,
+  });
+  const [destination, setDestination] = React.useState<Place>({
+    addressLine: '',
+    latitude: 28.4089,
+    longitude: 77.0789,
+  });
   const [notes, setNotes] = React.useState('');
+  const [errors, setErrors] = React.useState<FieldErrors>({});
+  const [erroredStepIds, setErroredStepIds] = React.useState<string[]>([]);
+
+  const clearError = (key: FieldKey): void =>
+    setErrors((previous) => (key in previous ? { ...previous, [key]: undefined } : previous));
 
   const materials = useQuery({
     queryKey: ['materials', 'available'],
-    queryFn: () => api.get<Paginated<MaterialSummary>>('/marketplace/materials', { availableOnly: true, pageSize: 100 }),
+    queryFn: () =>
+      api.get<Paginated<MaterialSummary>>('/marketplace/materials', {
+        availableOnly: true,
+        pageSize: 100,
+      }),
     enabled: can(Permission.ORDERS_CREATE),
   });
 
@@ -78,125 +145,364 @@ export function NewOrderPage() {
       toast.success('Requirement posted', { description: 'Fleets can now quote for it.' });
       navigate(`/orders/${order.id}`);
     },
-    onError: (error) => toast.error('Could not post the requirement', { description: errorMessage(error) }),
+    onError: (error) =>
+      toast.error('Could not post the requirement', { description: errorMessage(error) }),
   });
+
+  const rulesFor = (stepId: string): FieldErrors => {
+    const found: FieldErrors = {};
+
+    if (stepId === 'load') {
+      if (!(quantity > 0)) found.quantity = 'How much needs moving?';
+      if (!(capacity > 0)) found.capacity = 'Enter the truck size this needs.';
+    }
+
+    if (stepId === 'pickup') {
+      if (origin.addressLine.trim().length < 3)
+        found.originAddress = 'Enter where the load is collected.';
+      if (!withinRange(origin.latitude, 90))
+        found.originLatitude = 'Enter a latitude between -90 and 90.';
+      if (!withinRange(origin.longitude, 180))
+        found.originLongitude = 'Enter a longitude between -180 and 180.';
+    }
+
+    if (stepId === 'delivery') {
+      if (destination.addressLine.trim().length < 3)
+        found.destinationAddress = 'Enter where the load is delivered.';
+      if (!withinRange(destination.latitude, 90))
+        found.destinationLatitude = 'Enter a latitude between -90 and 90.';
+      if (!withinRange(destination.longitude, 180))
+        found.destinationLongitude = 'Enter a longitude between -180 and 180.';
+    }
+
+    return found;
+  };
+
+  const validateStep = (step: WizardStep): boolean => {
+    const found = rulesFor(step.id);
+    const ok = Object.keys(found).length === 0;
+
+    setErrors(found);
+    setErroredStepIds((previous) =>
+      ok
+        ? previous.filter((id) => id !== step.id)
+        : previous.includes(step.id)
+          ? previous
+          : [...previous, step.id],
+    );
+
+    return ok;
+  };
 
   if (!can(Permission.ORDERS_CREATE)) return <UnauthorizedState />;
 
-  const valid = origin.addressLine.length > 2 && destination.addressLine.length > 2 && quantity > 0;
+  const steps: WizardStep[] = [
+    {
+      id: 'load',
+      title: 'The load',
+      description: 'What needs moving.',
+      icon: Package,
+      content: (
+        <>
+          <WizardField
+            label="Material from the marketplace"
+            hint={
+              selected
+                ? `${selected.supplierName} · ${formatNumber(selected.availableQuantity)} available · minimum ${selected.minimumOrderQty}`
+                : 'Optional — leave it blank to move goods you already own.'
+            }
+          >
+            <Select value={materialId} onValueChange={setMaterialId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Optional — or move goods you already own" />
+              </SelectTrigger>
+              <SelectContent>
+                {(materials.data?.items ?? []).map((material) => (
+                  <SelectItem key={material.id} value={material.id}>
+                    {material.name} · {formatCurrency(material.pricePerUnit)}/
+                    {humanizeEnum(material.unit).toLowerCase()}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </WizardField>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <WizardField label="Quantity" htmlFor="order-quantity" required error={errors.quantity}>
+              <Input
+                id="order-quantity"
+                type="number"
+                min={1}
+                value={quantity}
+                aria-invalid={Boolean(errors.quantity) || undefined}
+                onChange={(event) => {
+                  setQuantity(Number(event.target.value));
+                  clearError('quantity');
+                }}
+              />
+            </WizardField>
+            <WizardField
+              label="Truck capacity needed (tonnes)"
+              htmlFor="order-capacity"
+              required
+              error={errors.capacity}
+            >
+              <Input
+                id="order-capacity"
+                type="number"
+                min={1}
+                value={capacity}
+                aria-invalid={Boolean(errors.capacity) || undefined}
+                onChange={(event) => {
+                  setCapacity(Number(event.target.value));
+                  clearError('capacity');
+                }}
+              />
+            </WizardField>
+          </div>
+
+          <WizardField label="Body type" hint="Widening this usually finds more transport.">
+            <Select value={truckType} onValueChange={setTruckType}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="any">Any suitable body</SelectItem>
+                {Object.values(TruckType).map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {humanizeEnum(type)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </WizardField>
+        </>
+      ),
+    },
+    {
+      id: 'pickup',
+      title: 'Pickup',
+      description: 'Where it is collected.',
+      icon: MapPin,
+      content: (
+        <>
+          <WizardField
+            label="Pickup address"
+            htmlFor="order-origin"
+            required
+            error={errors.originAddress}
+          >
+            <Input
+              id="order-origin"
+              value={origin.addressLine}
+              aria-invalid={Boolean(errors.originAddress) || undefined}
+              onChange={(event) => {
+                setOrigin({ ...origin, addressLine: event.target.value });
+                clearError('originAddress');
+              }}
+              placeholder="Bassi Industrial Area, Jaipur"
+            />
+          </WizardField>
+
+          <div className="grid grid-cols-2 gap-3">
+            <WizardField
+              label="Latitude"
+              htmlFor="order-origin-lat"
+              error={errors.originLatitude}
+            >
+              <Input
+                id="order-origin-lat"
+                type="number"
+                step="0.0001"
+                value={origin.latitude}
+                aria-invalid={Boolean(errors.originLatitude) || undefined}
+                onChange={(event) => {
+                  setOrigin({ ...origin, latitude: Number(event.target.value) });
+                  clearError('originLatitude');
+                }}
+              />
+            </WizardField>
+            <WizardField
+              label="Longitude"
+              htmlFor="order-origin-lng"
+              error={errors.originLongitude}
+            >
+              <Input
+                id="order-origin-lng"
+                type="number"
+                step="0.0001"
+                value={origin.longitude}
+                aria-invalid={Boolean(errors.originLongitude) || undefined}
+                onChange={(event) => {
+                  setOrigin({ ...origin, longitude: Number(event.target.value) });
+                  clearError('originLongitude');
+                }}
+              />
+            </WizardField>
+          </div>
+        </>
+      ),
+    },
+    {
+      id: 'delivery',
+      title: 'Delivery',
+      description: 'Where it has to arrive.',
+      icon: Flag,
+      content: (
+        <>
+          <WizardField
+            label="Delivery address"
+            htmlFor="order-destination"
+            required
+            error={errors.destinationAddress}
+          >
+            <Input
+              id="order-destination"
+              value={destination.addressLine}
+              aria-invalid={Boolean(errors.destinationAddress) || undefined}
+              onChange={(event) => {
+                setDestination({ ...destination, addressLine: event.target.value });
+                clearError('destinationAddress');
+              }}
+              placeholder="Sector 62, Gurugram"
+            />
+          </WizardField>
+
+          <div className="grid grid-cols-2 gap-3">
+            <WizardField
+              label="Latitude"
+              htmlFor="order-destination-lat"
+              error={errors.destinationLatitude}
+            >
+              <Input
+                id="order-destination-lat"
+                type="number"
+                step="0.0001"
+                value={destination.latitude}
+                aria-invalid={Boolean(errors.destinationLatitude) || undefined}
+                onChange={(event) => {
+                  setDestination({ ...destination, latitude: Number(event.target.value) });
+                  clearError('destinationLatitude');
+                }}
+              />
+            </WizardField>
+            <WizardField
+              label="Longitude"
+              htmlFor="order-destination-lng"
+              error={errors.destinationLongitude}
+            >
+              <Input
+                id="order-destination-lng"
+                type="number"
+                step="0.0001"
+                value={destination.longitude}
+                aria-invalid={Boolean(errors.destinationLongitude) || undefined}
+                onChange={(event) => {
+                  setDestination({ ...destination, longitude: Number(event.target.value) });
+                  clearError('destinationLongitude');
+                }}
+              />
+            </WizardField>
+          </div>
+        </>
+      ),
+    },
+    {
+      id: 'notes',
+      title: 'Notes',
+      description: 'Anything the fleet should know.',
+      icon: NotebookPen,
+      optional: true,
+      content: (
+        <WizardField
+          label="Notes for the fleet"
+          htmlFor="order-notes"
+          hint="Site access hours, weighbridge requirements, anything that affects the run."
+        >
+          <Textarea
+            id="order-notes"
+            value={notes}
+            onChange={(event) => setNotes(event.target.value)}
+            rows={4}
+            placeholder="Site access hours, weighbridge requirements…"
+          />
+        </WizardField>
+      ),
+    },
+  ];
 
   return (
     <div className="space-y-5">
       <Button variant="ghost" size="sm" className="-ml-2" onClick={() => navigate('/orders')}>
-        <ArrowLeft className="size-4" />All orders
+        <ArrowLeft className="size-4" />
+        All orders
       </Button>
 
-      <PageHeader title="Post a transport requirement" description="Tell Saarthi what needs moving; verified fleets will quote for it." />
+      <PageHeader
+        title="Post a transport requirement"
+        description="Tell Saarthi what needs moving; verified fleets will quote for it."
+      />
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_400px]">
-        <Card>
-          <CardHeader className="pb-3"><SectionHeader title="Requirement" /></CardHeader>
-          <CardContent className="space-y-4 pt-0">
-            <div className="space-y-1.5">
-              <Label>Material from the marketplace</Label>
-              <Select value={materialId} onValueChange={setMaterialId}>
-                <SelectTrigger><SelectValue placeholder="Optional — or move goods you already own" /></SelectTrigger>
-                <SelectContent>
-                  {(materials.data?.items ?? []).map((material) => (
-                    <SelectItem key={material.id} value={material.id}>
-                      {material.name} · {formatCurrency(material.pricePerUnit)}/{humanizeEnum(material.unit).toLowerCase()}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {selected ? (
-                <p className="text-xs text-muted-foreground">
-                  {selected.supplierName} · {formatNumber(selected.availableQuantity)} available · minimum {selected.minimumOrderQty}
-                </p>
-              ) : null}
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label required>Quantity</Label>
-                <Input type="number" min={1} value={quantity} onChange={(event) => setQuantity(Number(event.target.value))} />
-              </div>
-              <div className="space-y-1.5">
-                <Label required>Truck capacity needed (tonnes)</Label>
-                <Input type="number" min={1} value={capacity} onChange={(event) => setCapacity(Number(event.target.value))} />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label>Body type</Label>
-              <Select value={truckType} onValueChange={setTruckType}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="any">Any suitable body</SelectItem>
-                  {Object.values(TruckType).map((type) => (
-                    <SelectItem key={type} value={type}>{humanizeEnum(type)}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label required>Pickup address</Label>
-              <Input value={origin.addressLine} onChange={(event) => setOrigin({ ...origin, addressLine: event.target.value })} placeholder="Bassi Industrial Area, Jaipur" />
-              <div className="grid grid-cols-2 gap-2">
-                <Input type="number" step="0.0001" value={origin.latitude} onChange={(event) => setOrigin({ ...origin, latitude: Number(event.target.value) })} aria-label="Pickup latitude" />
-                <Input type="number" step="0.0001" value={origin.longitude} onChange={(event) => setOrigin({ ...origin, longitude: Number(event.target.value) })} aria-label="Pickup longitude" />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label required>Delivery address</Label>
-              <Input value={destination.addressLine} onChange={(event) => setDestination({ ...destination, addressLine: event.target.value })} placeholder="Sector 62, Gurugram" />
-              <div className="grid grid-cols-2 gap-2">
-                <Input type="number" step="0.0001" value={destination.latitude} onChange={(event) => setDestination({ ...destination, latitude: Number(event.target.value) })} aria-label="Delivery latitude" />
-                <Input type="number" step="0.0001" value={destination.longitude} onChange={(event) => setDestination({ ...destination, longitude: Number(event.target.value) })} aria-label="Delivery longitude" />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label>Notes for the fleet</Label>
-              <Textarea value={notes} onChange={(event) => setNotes(event.target.value)} rows={3} placeholder="Site access hours, weighbridge requirements…" />
-            </div>
-
-            <Button className="w-full" disabled={!valid} loading={create.isPending} onClick={() => create.mutate()}>
-              <Package className="size-4" />Post requirement
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <FormWizard
+          steps={steps}
+          title="Your requirement"
+          description="Four steps. Nothing is posted until the last one."
+          onValidateStep={validateStep}
+          onSubmit={() => create.mutate()}
+          submitting={create.isPending}
+          submitLabel={
+            <>
+              <Package className="size-4" />
+              Post requirement
+            </>
+          }
+          erroredStepIds={erroredStepIds}
+        />
 
         <Card>
           <CardHeader className="pb-3">
-            <SectionHeader title="Transport VorldX Saarthi can find" description="Ranked by distance, capacity fit, driver score and availability." />
+            <SectionHeader
+              title="Transport VorldX Saarthi can find"
+              description="Ranked by distance, capacity fit, driver score and availability."
+            />
           </CardHeader>
           <CardContent className="space-y-3 pt-0">
             {matches.isLoading ? (
               <LoadingState label="Finding transport…" />
             ) : (matches.data ?? []).length === 0 ? (
-              <EmptyState title="No matching transport yet" description="No verified truck of this size is close enough right now. Posting the requirement still lets fleets quote." className="min-h-40 border-0" />
+              <EmptyState
+                title="No matching transport yet"
+                description="No verified truck of this size is close enough right now. Posting the requirement still lets fleets quote."
+                className="min-h-40 border-0"
+              />
             ) : (
               (matches.data ?? []).map((match) => (
                 <div key={match.truckId} className="rounded-lg border border-border p-3">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium">{match.registrationNumber}</p>
-                      <p className="truncate text-xs text-muted-foreground">{match.fleetName} · {match.capacityTons}T {humanizeEnum(match.truckType)}</p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {match.fleetName} · {match.capacityTons}T {humanizeEnum(match.truckType)}
+                      </p>
                     </div>
-                    <Badge variant="default" className="tabular shrink-0">{match.matchScore}</Badge>
+                    <Badge variant="default" className="tabular shrink-0">
+                      {match.matchScore}
+                    </Badge>
                   </div>
                   <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                     <span>{match.distanceToPickupKm} km away</span>
                     <span>~{match.estimatedPickupMinutes} min to pickup</span>
-                    <span className="font-medium text-foreground">{formatCurrency(match.estimatedPrice)}</span>
+                    <span className="font-medium text-foreground">
+                      {formatCurrency(match.estimatedPrice)}
+                    </span>
                   </div>
                   {match.reasons.length > 0 ? (
                     <ul className="mt-2 space-y-0.5">
                       {match.reasons.map((reason) => (
-                        <li key={reason} className="text-xs text-muted-foreground">• {reason}</li>
+                        <li key={reason} className="text-xs text-muted-foreground">
+                          • {reason}
+                        </li>
                       ))}
                     </ul>
                   ) : null}

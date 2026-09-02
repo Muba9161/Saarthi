@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Plus, Search, Users } from 'lucide-react';
+import { Contact, IdCard, Plus, Search, UserRound, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   Permission,
@@ -38,7 +38,24 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import {
+  FormWizard,
+  WIZARD_DIALOG_CONTENT,
+  WIZARD_DIALOG_HEADER,
+  WIZARD_DIALOG_PANEL,
+  WIZARD_IN_DIALOG,
+  type WizardStep,
+} from '@/components/common/form-wizard';
 
+/**
+ * Add a driver.
+ *
+ * Saarthi creates the account, so the questions split cleanly into who the
+ * person is, how the platform reaches them, and what licenses them to drive.
+ * The licence step is last because it is the one an owner most often has to go
+ * and find — and by then the account details are already entered rather than
+ * lost to an abandoned dialog.
+ */
 function AddDriverDialog({
   open,
   onOpenChange,
@@ -79,10 +96,161 @@ function AddDriverDialog({
     if (!next) setSetupUrl(null);
   };
 
+  const steps: WizardStep[] = [
+    {
+      id: 'name',
+      title: 'Name',
+      description: 'Who is driving.',
+      icon: UserRound,
+      fields: ['firstName', 'lastName'],
+      content: (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <FormField
+            control={form.control}
+            name="firstName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel required>First name</FormLabel>
+                <FormControl>
+                  <Input {...field} autoFocus />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="lastName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel required>Last name</FormLabel>
+                <FormControl>
+                  <Input {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+      ),
+    },
+    {
+      id: 'contact',
+      title: 'Contact',
+      description: 'Where the invite goes.',
+      icon: Contact,
+      fields: ['email', 'phone'],
+      content: (
+        <>
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel required>Email</FormLabel>
+                <FormControl>
+                  <Input {...field} type="email" />
+                </FormControl>
+                <FormDescription>The one-time password link is sent here.</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="phone"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel required>Mobile number</FormLabel>
+                <FormControl>
+                  <Input {...field} placeholder="9876543210" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </>
+      ),
+    },
+    {
+      id: 'licence',
+      title: 'Licence',
+      description: 'What lets them drive.',
+      icon: IdCard,
+      fields: ['licenseNumber', 'licenseExpiryDate', 'experienceYears'],
+      content: (
+        <>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <FormField
+              control={form.control}
+              name="licenseNumber"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel required>Licence number</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="licenseExpiryDate"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Licence expiry</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="date"
+                      value={field.value ? String(field.value).slice(0, 10) : ''}
+                      onChange={(event) => field.onChange(event.target.value || undefined)}
+                    />
+                  </FormControl>
+                  <FormDescription>Feeds the compliance score.</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <FormField
+            control={form.control}
+            name="experienceYears"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Experience (years)</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={60}
+                    value={field.value}
+                    onChange={(event) => field.onChange(Number(event.target.value))}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </>
+      ),
+    },
+  ];
+
+  const erroredStepIds = steps
+    .filter((step) => step.fields?.some((name) => name in form.formState.errors))
+    .map((step) => step.id);
+
   return (
     <Dialog open={open} onOpenChange={close}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
+      <DialogContent
+        className={
+          setupUrl ? 'max-w-lg' : `${WIZARD_DIALOG_CONTENT} sm:max-w-3xl`
+        }
+      >
+        <DialogHeader className={setupUrl ? undefined : WIZARD_DIALOG_HEADER}>
           <DialogTitle>Add a driver</DialogTitle>
           <DialogDescription>
             Saarthi creates the account and issues a one-time link so the driver chooses their own
@@ -108,131 +276,26 @@ function AddDriverDialog({
           </div>
         ) : (
           <Form {...form}>
-            <form
+            <FormWizard
+              steps={steps}
+              className={WIZARD_IN_DIALOG}
+              panelClassName={WIZARD_DIALOG_PANEL}
+              resetKey={open}
+              onValidateStep={(step) =>
+                step.fields?.length
+                  ? form.trigger(step.fields as (keyof CreateDriverInput)[], { shouldFocus: true })
+                  : true
+              }
               onSubmit={form.handleSubmit((values) => mutation.mutate(values))}
-              className="space-y-4"
-              noValidate
-            >
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <FormField
-                  control={form.control}
-                  name="firstName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel required>First name</FormLabel>
-                      <FormControl>
-                        <Input {...field} autoFocus />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="lastName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel required>Last name</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel required>Email</FormLabel>
-                    <FormControl>
-                      <Input {...field} type="email" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="phone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel required>Mobile number</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="9876543210" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <FormField
-                  control={form.control}
-                  name="licenseNumber"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel required>Licence number</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="licenseExpiryDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Licence expiry</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="date"
-                          value={field.value ? String(field.value).slice(0, 10) : ''}
-                          onChange={(event) => field.onChange(event.target.value || undefined)}
-                        />
-                      </FormControl>
-                      <FormDescription>Feeds the compliance score.</FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <FormField
-                control={form.control}
-                name="experienceYears"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Experience (years)</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        min={0}
-                        max={60}
-                        value={field.value}
-                        onChange={(event) => field.onChange(Number(event.target.value))}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => close(false)}>
+              submitting={mutation.isPending}
+              submitLabel="Add driver"
+              erroredStepIds={erroredStepIds}
+              footerStart={
+                <Button type="button" variant="ghost" onClick={() => close(false)}>
                   Cancel
                 </Button>
-                <Button type="submit" loading={mutation.isPending}>
-                  Add driver
-                </Button>
-              </DialogFooter>
-            </form>
+              }
+            />
           </Form>
         )}
       </DialogContent>

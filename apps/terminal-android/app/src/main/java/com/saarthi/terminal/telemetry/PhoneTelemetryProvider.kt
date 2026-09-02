@@ -93,12 +93,38 @@ class PhoneTelemetryProvider(
                 // a cold start has none, and reporting 0 km/h for a moving truck
                 // would corrupt the speed series and everything built on it.
                 if (fix.hasSpeed()) {
+                    /*
+                     * Below walking pace, report a standstill.
+                     *
+                     * A phone lying still on a desk does not report 0 m/s — it
+                     * reports a metre or two per second of noise, wandering as
+                     * the satellite geometry shifts. Passed through untouched
+                     * that became a truck spontaneously doing 5 km/h in a locked
+                     * yard: the gauge swept, the marker twitched, and a driver
+                     * watching a stationary vehicle move on screen has no reason
+                     * to believe the next number either.
+                     *
+                     * 1.4 m/s is a slow walk. Anything under it, from a device
+                     * whose own accuracy estimate is worse than 25 m, is noise
+                     * rather than motion — and a vehicle genuinely creeping that
+                     * slowly is a vehicle whose speed nobody is reading.
+                     */
+                    val kph = fix.speed * 3.6
+                    val jitter = fix.speed < STATIONARY_MPS &&
+                        (!fix.hasAccuracy() || fix.accuracy > NOISY_FIX_METRES)
                     put(
                         Metric.SPEED,
-                        MetricValue((fix.speed * 3.6).toDouble(), MetricSource.PHONE, fix.time),
+                        MetricValue(
+                            if (jitter) 0.0 else kph.toDouble(),
+                            MetricSource.PHONE,
+                            fix.time,
+                        ),
                     )
                 }
-                if (fix.hasBearing()) {
+                // Bearing from a stationary fix is meaningless — the vehicle
+                // is not pointing anywhere in particular, and letting it through
+                // spins the marker on the spot.
+                if (fix.hasBearing() && fix.hasSpeed() && fix.speed >= STATIONARY_MPS) {
                     put(
                         Metric.HEADING,
                         MetricValue(fix.bearing.toDouble(), MetricSource.PHONE, fix.time),
@@ -234,6 +260,12 @@ class PhoneTelemetryProvider(
     override fun sample(): Map<Metric, MetricValue> = latest.get()
 
     private companion object {
+        /** A slow walk. Below this a vehicle is parked, whatever GPS reports. */
+        const val STATIONARY_MPS = 1.4f
+
+        /** Past this much error, a small speed is the error rather than motion. */
+        const val NOISY_FIX_METRES = 25f
+
         const val GRAVITY = 9.80665
         /** Change in g between samples that counts as harsh. */
         const val HARSH_G = 0.45

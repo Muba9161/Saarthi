@@ -37,6 +37,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.saarthi.terminal.network.RouteDto
 import com.saarthi.terminal.ui.Gutter
+import com.saarthi.terminal.ui.SaarthiSuccess
 import com.saarthi.terminal.ui.TerminalViewModel
 import java.time.Instant
 import java.time.ZoneId
@@ -66,12 +67,13 @@ fun NavigationBanner(
     route: RouteDto,
     next: TerminalViewModel.NextManeuverUi?,
     onCancel: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier,
         shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
-        tonalElevation = 4.dp,
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+        shadowElevation = 10.dp,
     ) {
         Column(Modifier.padding(Gutter)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -122,33 +124,66 @@ fun NavigationBanner(
                 )
             }
 
-            Spacer(Modifier.size(10.dp))
-
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Text(
-                    "${route.destination.name} · %.1f km".format(route.distanceKm),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    modifier = Modifier.weight(1f, fill = false),
-                )
-                Text(
-                    "${route.durationMinutes} min · arrive ${formatEta(route.etaAt)}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-
             if (route.summary.isNotBlank()) {
+                Spacer(Modifier.size(6.dp))
                 Text(
                     "via ${route.summary}",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
                 )
             }
+        }
+    }
+}
+
+/**
+ * How far, how long, and when you arrive.
+ *
+ * Split out of the turn card and moved to the foot of the map, which is where a
+ * driver already looks for it — every in-car navigator built in the last decade
+ * puts the turn at the top and the journey at the bottom, and a terminal that
+ * stacks both in one block makes the driver read a paragraph to find a number.
+ *
+ * It also carries the way out. Stopping navigation was an icon inside a dense
+ * card; here it is a target of its own, at the edge, where a thumb can reach it
+ * without crossing the instruction.
+ */
+@Composable
+fun TripSummaryBar(
+    route: RouteDto,
+    onCancel: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(18.dp),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+        shadowElevation = 8.dp,
+    ) {
+        Row(
+            Modifier.padding(start = 6.dp, end = 16.dp, top = 6.dp, bottom = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            IconButton(onClick = onCancel) {
+                Icon(
+                    Icons.Rounded.Close,
+                    contentDescription = "Stop navigating",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Text(
+                "${route.durationMinutes} min",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = SaarthiSuccess,
+            )
+            Text(
+                "  ·  %.1f km  ·  ${formatEta(route.etaAt)}".format(route.distanceKm),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+            )
         }
     }
 }

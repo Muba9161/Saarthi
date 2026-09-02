@@ -425,7 +425,15 @@ class SaarthiApi(
                 )
             }
 
-            if (raw.code == 401) throw Failure.Unauthenticated
+            if (raw.code == 401) {
+                // Logged before it is thrown. Every other refusal leaves a line
+                // in the log and this one did not, so a terminal whose token had
+                // gone stale failed every request in complete silence — the
+                // button was pressed, nothing happened, and the log showed only
+                // the unrelated traffic around it.
+                DebugLog.warn("api", "401 $method $path — credentials rejected")
+                throw Failure.Unauthenticated
+            }
 
             val error = runCatching {
                 json.decodeFromString(

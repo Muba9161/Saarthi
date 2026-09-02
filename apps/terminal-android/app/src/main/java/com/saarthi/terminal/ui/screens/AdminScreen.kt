@@ -48,7 +48,7 @@ import com.saarthi.terminal.ui.PrimaryAction
 import com.saarthi.terminal.ui.SaarthiSuccess
 import com.saarthi.terminal.ui.SaarthiWarning
 import com.saarthi.terminal.ui.SectionLabel
-import com.saarthi.terminal.ui.SolidCard
+import com.saarthi.terminal.ui.GlassCard
 import com.saarthi.terminal.ui.StatusTone
 import com.saarthi.terminal.ui.TerminalPage
 import com.saarthi.terminal.ui.TerminalViewModel
@@ -125,7 +125,7 @@ fun AdminScreen(
             verticalArrangement = Arrangement.spacedBy(Gutter),
         ) {
             // --- Identity ----------------------------------------------------
-            SolidCard(Modifier.fillMaxWidth()) {
+            GlassCard(Modifier.fillMaxWidth()) {
                 SectionLabel("Identity")
                 Spacer(Modifier.height(10.dp))
                 DiagnosticRow("Terminal id", state.server?.terminal?.deviceIdentifier)
@@ -180,7 +180,7 @@ fun AdminScreen(
             }
 
             // --- Connection --------------------------------------------------
-            SolidCard(Modifier.fillMaxWidth()) {
+            GlassCard(Modifier.fillMaxWidth()) {
                 SectionLabel("Connection")
                 Spacer(Modifier.height(10.dp))
                 DiagnosticRow("Saarthi", state.connection.name.humanise())
@@ -209,7 +209,7 @@ fun AdminScreen(
             }
 
             // --- Telemetry providers ------------------------------------------
-            SolidCard(Modifier.fillMaxWidth()) {
+            GlassCard(Modifier.fillMaxWidth()) {
                 SectionLabel("Telemetry sources")
                 Spacer(Modifier.height(10.dp))
 
@@ -244,7 +244,7 @@ fun AdminScreen(
             }
 
             // --- Bluetooth ----------------------------------------------------
-            SolidCard(Modifier.fillMaxWidth()) {
+            GlassCard(Modifier.fillMaxWidth()) {
                 SectionLabel("Bluetooth")
                 Spacer(Modifier.height(10.dp))
                 val adapters by viewModel.telemetryHub.obd.pairedAdapters.collectAsState()
@@ -267,7 +267,7 @@ fun AdminScreen(
 
             // --- Simulator, debug builds only ---------------------------------
             if (BuildConfig.DEVELOPER_TOOLS) {
-                SolidCard(Modifier.fillMaxWidth()) {
+                GlassCard(Modifier.fillMaxWidth()) {
                     SectionLabel("Telemetry simulator · debug build only")
                     Spacer(Modifier.height(4.dp))
                     Text(
@@ -315,7 +315,7 @@ fun AdminScreen(
             }
 
             // --- Device mode ---------------------------------------------------
-            SolidCard(Modifier.fillMaxWidth()) {
+            GlassCard(Modifier.fillMaxWidth()) {
                 SectionLabel("Dedicated device")
                 Spacer(Modifier.height(10.dp))
                 Text(
@@ -336,7 +336,7 @@ fun AdminScreen(
             }
 
             // --- Accessibility --------------------------------------------------
-            SolidCard(Modifier.fillMaxWidth()) {
+            GlassCard(Modifier.fillMaxWidth()) {
                 SectionLabel("Accessibility")
                 Spacer(Modifier.height(10.dp))
                 /*
@@ -369,7 +369,7 @@ fun AdminScreen(
             }
 
             // --- Log -----------------------------------------------------------
-            SolidCard(Modifier.fillMaxWidth()) {
+            GlassCard(Modifier.fillMaxWidth()) {
                 Row(
                     Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,

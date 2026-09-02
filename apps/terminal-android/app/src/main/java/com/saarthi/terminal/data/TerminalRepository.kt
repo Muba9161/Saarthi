@@ -542,9 +542,11 @@ class TerminalRepository(
      * through Android settings, which on a kiosk-locked tablet is not an option
      * at all.
      *
-     * The installation id deliberately survives (see `identity.reset`), so
-     * re-pairing returns the same Saarthi device rather than adding a second
-     * one to the fleet's hardware list every time a tablet changes vehicle.
+     * The installation id is rotated as well, and it has to be: Saarthi refuses
+     * to re-enrol an installation whose enrolment has already been claimed, so
+     * a terminal that kept its id got a 409 on the very next step and sat on the
+     * setup screen unable to pair with anything. Keeping it would have been
+     * tidier in the fleet's hardware list and would have made the button useless.
      *
      * Queued telemetry is dropped rather than kept. It belongs to a vehicle
      * this terminal is no longer fitted to, and delivering it later would file
@@ -553,6 +555,7 @@ class TerminalRepository(
     fun forgetPairing() {
         outbox.clear()
         identity.reset()
+        identity.rotateInstallationId()
         _state.value = null
         _connection.value = Connection.UNKNOWN
         _lastError.value = null

@@ -337,6 +337,194 @@
   .gradient-text {
     @apply bg-gradient-to-br from-primary to-accent bg-clip-text text-transparent;
   }
+
+  /* --- Step wizard -------------------------------------------------------
+     A long form broken into named steps. Everything here is scoped to the
+     wizard so the dense operational screens keep their solid, high-contrast
+     surfaces â frosted glass behind a twenty-row table costs legibility and
+     paint time for nothing.
+
+     The shell is one glass pane holding two regions: a rail that says where
+     you are, and the panel for the current step. */
+  .wizard-shell {
+    @apply relative overflow-hidden rounded-2xl border border-white/40 bg-white/55 shadow-lifted backdrop-blur-2xl backdrop-saturate-150;
+  }
+  .dark .wizard-shell {
+    @apply border-white/[0.07] bg-white/[0.035];
+  }
+
+  /* Brand wash the glass refracts. Two corners rather than a flat tint, so
+     the pane reads as lit from somewhere rather than simply coloured. */
+  .wizard-shell::before {
+    @apply pointer-events-none absolute inset-0 z-0 content-[''];
+    background:
+      radial-gradient(120% 90% at 0% 0%, hsl(var(--primary) / 0.10), transparent 62%),
+      radial-gradient(100% 80% at 100% 100%, hsl(var(--accent) / 0.09), transparent 60%);
+  }
+  .dark .wizard-shell::before {
+    background:
+      radial-gradient(120% 90% at 0% 0%, hsl(var(--primary) / 0.16), transparent 62%),
+      radial-gradient(100% 80% at 100% 100%, hsl(var(--accent) / 0.10), transparent 60%);
+  }
+
+  /* Specular highlight along the top edge â what actually sells the glass. */
+  .wizard-shell::after {
+    @apply pointer-events-none absolute inset-x-0 top-0 z-0 h-px content-[''];
+    background: linear-gradient(90deg, transparent, hsl(0 0% 100% / 0.7), transparent);
+  }
+  .dark .wizard-shell::after {
+    background: linear-gradient(90deg, transparent, hsl(0 0% 100% / 0.14), transparent);
+  }
+
+  /* Both pseudo-elements are positioned, so in-flow children would paint
+     underneath them without this. */
+  .wizard-shell > * {
+    @apply relative z-[1];
+  }
+
+  /* Divider between rail and panel. A hairline that fades at both ends reads
+     as part of the glass rather than a table border. */
+  .wizard-divider {
+    @apply pointer-events-none absolute inset-y-0 w-px;
+    background: linear-gradient(
+      180deg,
+      transparent,
+      hsl(var(--border-strong) / 0.55) 12%,
+      hsl(var(--border-strong) / 0.55) 88%,
+      transparent
+    );
+  }
+  .dark .wizard-divider {
+    background: linear-gradient(
+      180deg,
+      transparent,
+      hsl(0 0% 100% / 0.09) 12%,
+      hsl(0 0% 100% / 0.09) 88%,
+      transparent
+    );
+  }
+
+  /* --- Progress ----------------------------------------------------------
+     Both tracks are driven by a single `--wizard-progress` percentage set
+     inline, so the fill animates in CSS and never re-renders React. */
+  .wizard-spine {
+    @apply pointer-events-none absolute w-0.5 overflow-hidden rounded-full bg-border/80;
+  }
+  .dark .wizard-spine {
+    @apply bg-white/10;
+  }
+  .wizard-spine::after {
+    @apply absolute inset-x-0 top-0 rounded-full content-[''];
+    height: var(--wizard-progress, 0%);
+    background: linear-gradient(180deg, hsl(var(--primary)), hsl(var(--accent)));
+    transition: height 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .wizard-track {
+    @apply relative h-1 w-full overflow-hidden rounded-full bg-border/80;
+  }
+  .dark .wizard-track {
+    @apply bg-white/10;
+  }
+  .wizard-track::after {
+    @apply absolute inset-y-0 left-0 rounded-full content-[''];
+    width: var(--wizard-progress, 0%);
+    background: linear-gradient(90deg, hsl(var(--primary)), hsl(var(--accent)));
+    transition: width 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* --- Step markers ------------------------------------------------------
+     The done state carries the brand gradient; the current one gets a halo so
+     it is findable without reading any label. */
+  .wizard-dot-done {
+    @apply border-transparent bg-brand-gradient text-primary-foreground shadow-sm;
+  }
+  .wizard-dot-current {
+    @apply border-primary/70 bg-card text-primary;
+    box-shadow:
+      0 0 0 4px hsl(var(--primary) / 0.12),
+      0 4px 14px -4px hsl(var(--primary) / 0.45);
+  }
+  .dark .wizard-dot-current {
+    @apply bg-primary/15;
+  }
+  .wizard-dot-upcoming {
+    @apply border-border-strong/70 bg-white/50 text-muted-foreground;
+  }
+  .dark .wizard-dot-upcoming {
+    @apply border-white/[0.12] bg-white/[0.04];
+  }
+  .wizard-dot-error {
+    @apply border-destructive/60 bg-destructive/10 text-destructive;
+    box-shadow: 0 0 0 4px hsl(var(--destructive) / 0.10);
+  }
+
+  /* --- Controls on glass -------------------------------------------------
+     `bg-card` is opaque, so an untouched input reads as a patch stuck onto the
+     pane. Inside `.glass-fields` the controls take a translucent fill instead.
+     Scoped by that class so no form outside a wizard changes.
+
+     Each rule below repeats the full selector rather than nesting, so base,
+     hover, focus and invalid land on rising specificity in that order â an
+     invalid field stays red while the pointer is over it, and the whole set
+     outranks the `bg-card` utility sitting on the element. */
+  .glass-fields
+    :is(input:not([type='checkbox']):not([type='radio']), textarea, button[role='combobox']) {
+    @apply border-white/60 bg-white/55 shadow-none backdrop-blur-sm;
+    transition:
+      background-color 0.2s ease,
+      border-color 0.2s ease,
+      box-shadow 0.2s ease;
+  }
+  .dark
+    .glass-fields
+    :is(input:not([type='checkbox']):not([type='radio']), textarea, button[role='combobox']) {
+    @apply border-white/[0.10] bg-white/[0.045];
+  }
+
+  .glass-fields
+    :is(input:not([type='checkbox']):not([type='radio']), textarea, button[role='combobox']):hover:not(:disabled) {
+    @apply border-white/80 bg-white/70;
+  }
+  .dark
+    .glass-fields
+    :is(input:not([type='checkbox']):not([type='radio']), textarea, button[role='combobox']):hover:not(:disabled) {
+    @apply border-white/[0.16] bg-white/[0.07];
+  }
+
+  .glass-fields
+    :is(input:not([type='checkbox']):not([type='radio']), textarea, button[role='combobox']):is(:focus, :focus-visible) {
+    @apply border-primary/60 bg-white/85;
+  }
+  .dark
+    .glass-fields
+    :is(input:not([type='checkbox']):not([type='radio']), textarea, button[role='combobox']):is(:focus, :focus-visible) {
+    @apply border-primary/50 bg-white/[0.09];
+  }
+
+  .glass-fields
+    :is(input:not([type='checkbox']):not([type='radio']), textarea, button[role='combobox'])[aria-invalid='true'] {
+    @apply border-destructive/70 bg-destructive/[0.06];
+  }
+
+  /* A bordered group inside a wizard panel â switch rows, radio cards. */
+  .glass-inset {
+    @apply rounded-xl border border-white/50 bg-white/40 backdrop-blur-sm;
+  }
+  .dark .glass-inset {
+    @apply border-white/[0.08] bg-white/[0.03];
+  }
+
+  /* The selected state of a choice card. */
+  .glass-choice-selected {
+    @apply border-primary/60 bg-primary/[0.07];
+    box-shadow:
+      inset 0 0 0 1px hsl(var(--primary) / 0.25),
+      0 6px 18px -8px hsl(var(--primary) / 0.5);
+  }
+  .dark .glass-choice-selected {
+    @apply bg-primary/[0.14];
+  }
 }
 
 @layer utilities {

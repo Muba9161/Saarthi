@@ -1,0 +1,16 @@
+<!-- A bus or a long-body van, plan view. Same conventions as ic_marker_truck. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="44dp"
+    android:height="44dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M14,5 h20 a4,4 0 0 1 4,4 v30 a4,4 0 0 1 -4,4 h-20 a4,4 0 0 1 -4,-4 v-30 a4,4 0 0 1 4,-4 z" />
+    <path
+        android:fillColor="#2B41B8"
+        android:pathData="M15.6,6.8 h16.8 a3,3 0 0 1 3,3 v28.4 a3,3 0 0 1 -3,3 h-16.8 a3,3 0 0 1 -3,-3 v-28.4 a3,3 0 0 1 3,-3 z" />
+    <path
+        android:fillColor="#7A93FA"
+        android:pathData="M17.5,9.5 h13 v5.5 h-13 z" />
+</vector>

@@ -49,7 +49,7 @@ import com.saarthi.terminal.ui.SaarthiSuccess
 import com.saarthi.terminal.ui.SaarthiWarning
 import com.saarthi.terminal.ui.SectionLabel
 import com.saarthi.terminal.ui.SimulatedTag
-import com.saarthi.terminal.ui.SolidCard
+import com.saarthi.terminal.ui.GlassCard
 import com.saarthi.terminal.ui.StatusTone
 import com.saarthi.terminal.ui.TerminalPage
 import com.saarthi.terminal.ui.TerminalViewModel
@@ -245,7 +245,7 @@ private fun ChecklistRow(
     val automatic = !item.manualInputRequired && item.status != null
     val status = answer ?: item.status
 
-    SolidCard(Modifier.fillMaxWidth()) {
+    GlassCard(Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             StatusGlyph(status, automatic)
             Spacer(Modifier.width(12.dp))

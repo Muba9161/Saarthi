@@ -1,14 +1,16 @@
 import * as React from 'react';
 import { Car } from 'lucide-react';
-import { absoluteApiUrl, getAccessToken } from '@/lib/api-client';
+import { MediaImage } from '@/features/media/media-image';
 
 /**
  * A listing's cover photograph.
  *
- * Media inherits its owner's visibility, so images are fetched with the session
- * token and rendered from an object URL rather than referenced by `src`. A
- * listing without a usable photo falls back to a placeholder instead of a
- * broken image — a card with a torn thumbnail reads as a broken product.
+ * The authenticated-fetch dance this used to perform in full now lives in
+ * [MediaImage], because it was needed everywhere a media asset is shown and
+ * existed only here — so every other image in the product silently rendered
+ * blank. What is left is the part that is genuinely about a resale listing: a
+ * card with a torn thumbnail reads as a broken product, so a missing photo
+ * falls back to a vehicle mark rather than to a broken-image icon.
  */
 export function ListingPhoto({
   photoId,
@@ -19,51 +21,19 @@ export function ListingPhoto({
   alt: string;
   className?: string;
 }) {
-  const [source, setSource] = React.useState<string | null>(null);
-  const [failed, setFailed] = React.useState(false);
-
-  React.useEffect(() => {
-    if (!photoId) {
-      setSource(null);
-      return undefined;
-    }
-
-    let cancelled = false;
-    let objectUrl: string | null = null;
-
-    void (async () => {
-      try {
-        const response = await fetch(absoluteApiUrl(`/media/${photoId}/file?variant=thumbnail`), {
-          credentials: 'include',
-          headers: { authorization: `Bearer ${getAccessToken() ?? ''}` },
-        });
-        if (!response.ok) throw new Error('unavailable');
-        const blob = await response.blob();
-        if (cancelled) return;
-        objectUrl = URL.createObjectURL(blob);
-        setSource(objectUrl);
-      } catch {
-        if (!cancelled) setFailed(true);
+  return (
+    <MediaImage
+      source={photoId}
+      alt={alt}
+      variant="thumbnail"
+      className={className ?? 'size-full object-cover'}
+      fallback={
+        <div className="flex size-full items-center justify-center bg-muted" aria-hidden>
+          <Car className="size-8 text-muted-foreground/50" />
+        </div>
       }
-    })();
-
-    return () => {
-      cancelled = true;
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
-    };
-  }, [photoId]);
-
-  if (!photoId || failed) {
-    return (
-      <div className="flex size-full items-center justify-center bg-muted" aria-hidden>
-        <Car className="size-8 text-muted-foreground/50" />
-      </div>
-    );
-  }
-
-  if (!source) {
-    return <div className="size-full animate-pulse bg-muted" aria-hidden />;
-  }
-
-  return <img src={source} alt={alt} className={className ?? 'size-full object-cover'} loading="lazy" />;
+    />
+  );
 }
+
+export default ListingPhoto;

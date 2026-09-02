@@ -5,12 +5,14 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { AuthProvider } from '@/features/auth/auth-context';
 import { RealtimeProvider } from '@/hooks/use-realtime';
 import { ThemeProvider } from '@/features/theme/theme-context';
+import { AppLocaleProvider } from '@/features/i18n';
 import { ApiError } from '@/lib/api-client';
 import { router } from '@/app/router';
 
 /**
- * Application root: data layer, session, realtime, theme, then routing.
- * Ordering matters — realtime needs the session, and the router needs both.
+ * Application root: data layer, session, language, realtime, theme, then
+ * routing. Ordering matters — realtime needs the session, language reads the
+ * account's stored preference from it, and the router needs all three.
  */
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -33,17 +35,19 @@ export function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <AuthProvider>
-          <RealtimeProvider>
-            <TooltipProvider delayDuration={200}>
-              <RouterProvider router={router} />
-              <Toaster
-                position="top-right"
-                richColors
-                closeButton
-                toastOptions={{ className: 'font-sans' }}
-              />
-            </TooltipProvider>
-          </RealtimeProvider>
+          <AppLocaleProvider>
+            <RealtimeProvider>
+              <TooltipProvider delayDuration={200}>
+                <RouterProvider router={router} />
+                <Toaster
+                  position="top-right"
+                  richColors
+                  closeButton
+                  toastOptions={{ className: 'font-sans' }}
+                />
+              </TooltipProvider>
+            </RealtimeProvider>
+          </AppLocaleProvider>
         </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>

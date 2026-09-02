@@ -3,8 +3,10 @@ package com.saarthi.terminal.ui
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.rememberScrollState
@@ -25,6 +27,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
 import com.saarthi.terminal.domain.TerminalState
 import com.saarthi.terminal.kiosk.KioskController
@@ -133,11 +136,27 @@ fun TerminalRoot(
                 }
             },
             transitionSpec = {
-                // Section 57 asks for polished transitions; section 23 asks that
-                // nothing distracting happens while driving. A cross-fade is the
-                // compromise: it reads as deliberate and it does not move.
-                val duration = if (reducedMotion) 0 else 320
-                fadeIn(tween(duration)) togetherWith fadeOut(tween(duration))
+                /*
+                 * Section 57 asks for polished transitions; section 23 asks that
+                 * nothing distracting happens while driving. The compromise is a
+                 * cross-fade with a small rise underneath it: enough that moving
+                 * forward through the sign-on flow feels like progress, far too
+                 * little to pull a driver's eye at speed.
+                 *
+                 * Reduced motion cuts instead. Not a slower version — a slower
+                 * slide is still a slide, and the setting exists for people for
+                 * whom that is the problem.
+                 */
+                if (reducedMotion) {
+                    fadeIn(tween(0)) togetherWith fadeOut(tween(0))
+                } else {
+                    (
+                        fadeIn(tween(300, easing = LinearOutSlowInEasing)) +
+                            slideInVertically(
+                                tween(300, easing = LinearOutSlowInEasing),
+                            ) { height -> height / 22 }
+                        ) togetherWith fadeOut(tween(200))
+                }
             },
             label = "terminal-screen",
         ) { screen ->
@@ -236,8 +255,26 @@ fun TerminalPage(
     scrollable: Boolean = true,
     content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit,
 ) {
+    /*
+     * A tinted ground rather than a flat fill.
+     *
+     * Every panel in this app is a translucent card, and glass over one uniform
+     * colour does not read as glass — it reads as a slightly different grey. The
+     * gradient is what the frost has something to refract, and it is barely
+     * perceptible on its own, which is the point.
+     */
+    val scheme = MaterialTheme.colorScheme
+    val ground = Brush.linearGradient(
+        listOf(
+            scheme.background,
+            scheme.surfaceVariant,
+            scheme.background,
+        ),
+    )
+
     val base = modifier
         .fillMaxSize()
+        .background(ground)
         .systemBarsPadding()
 
     Column(

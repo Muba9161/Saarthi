@@ -135,13 +135,29 @@ class TerminalIdentityStore(context: Context) {
     }
 
     /**
-     * Forget everything except the installation id.
+     * A fresh installation id, for a terminal deliberately starting over.
      *
-     * The installation id survives on purpose: re-enrolling with the same one
-     * returns the *same* Saarthi device identity rather than accumulating a new
-     * pending enrolment on every reset, which is what stops a terminal that has
-     * been factory-reset three times appearing as three devices in a fleet's
-     * hardware list.
+     * Required, not optional. Saarthi refuses to re-enrol an installation id
+     * whose enrolment has been *claimed* — and it is right to: honouring that
+     * would let anyone holding an installation id take over a paired unit. The
+     * consequence is that a terminal which forgets its pairing and then asks to
+     * enrol under the same id gets a 409 and is stranded on the setup screen
+     * with no way forward, which is exactly what happened.
+     *
+     * Rotating is safe here because this only ever runs from a deliberate act
+     * on the device itself. The cost is a spent enrolment row left behind; the
+     * alternative was a tablet that could never be connected to anything again.
+     */
+    fun rotateInstallationId(): String {
+        preferences.edit().remove(KEY_INSTALLATION_ID).apply()
+        return installationId
+    }
+
+    /**
+     * Forget the pairing, keeping the installation id.
+     *
+     * Callers starting over completely want [rotateInstallationId] as well —
+     * see the note there about why re-enrolling under a claimed id is refused.
      */
     fun reset() {
         preferences.edit()

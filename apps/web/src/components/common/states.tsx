@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ApiError, errorMessage } from '@/lib/api-client';
 import { motion } from '@/components/motion';
+import { useT } from '@/features/i18n';
 import { cn } from '@/lib/utils';
 
 /**
@@ -13,12 +14,14 @@ import { cn } from '@/lib/utils';
  */
 
 export function LoadingState({
-  label = 'Loading…',
+  label,
   className,
 }: {
   label?: string;
   className?: string;
 }) {
+  const t = useT();
+
   return (
     <div
       className={cn('flex min-h-40 flex-col items-center justify-center gap-3 p-8', className)}
@@ -29,7 +32,7 @@ export function LoadingState({
         <div className="absolute inset-0 animate-ping rounded-full bg-primary/20" />
         <Loader2 className="relative size-6 animate-spin text-primary" aria-hidden />
       </div>
-      <p className="text-sm text-muted-foreground">{label}</p>
+      <p className="text-sm text-muted-foreground">{label ?? t('Loading…')}</p>
     </div>
   );
 }
@@ -101,13 +104,14 @@ export function ErrorState({
   onRetry?: () => void;
   className?: string;
 }) {
+  const t = useT();
   const apiError = error instanceof ApiError ? error : null;
 
   if (apiError?.isForbidden) {
     return (
       <Alert variant="warning" className={className}>
         <Lock className="size-4" />
-        <AlertTitle>You do not have access to this</AlertTitle>
+        <AlertTitle>{t('You do not have access to this')}</AlertTitle>
         <AlertDescription>{apiError.message}</AlertDescription>
       </Alert>
     );
@@ -126,13 +130,13 @@ export function ErrorState({
   return (
     <Alert variant="destructive" className={className}>
       <AlertTriangle className="size-4" />
-      <AlertTitle>Something went wrong</AlertTitle>
+      <AlertTitle>{t('Something went wrong')}</AlertTitle>
       <AlertDescription className="space-y-3">
         {/* Server messages can carry an unbreakable identifier or URL. */}
         <p className="break-words">{errorMessage(error)}</p>
         {onRetry ? (
           <Button variant="outline" size="sm" onClick={onRetry}>
-            Try again
+            {t('Try again')}
           </Button>
         ) : null}
       </AlertDescription>

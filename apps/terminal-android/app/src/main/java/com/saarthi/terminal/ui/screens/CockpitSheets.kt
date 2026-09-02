@@ -65,7 +65,7 @@ import com.saarthi.terminal.ui.PrimaryAction
 import com.saarthi.terminal.ui.Readout
 import com.saarthi.terminal.ui.SaarthiWarning
 import com.saarthi.terminal.ui.SectionLabel
-import com.saarthi.terminal.ui.SolidCard
+import com.saarthi.terminal.ui.GlassCard
 import com.saarthi.terminal.ui.StatusTone
 import com.saarthi.terminal.ui.TerminalViewModel
 
@@ -147,7 +147,12 @@ private val SERVICE_CHIPS = listOf(
 )
 
 @Composable
-fun ServicesSheet(viewModel: TerminalViewModel, onClose: () -> Unit) {
+fun ServicesSheet(
+    viewModel: TerminalViewModel,
+    /** Wide enough for words beside the category icons. */
+    expanded: Boolean,
+    onClose: () -> Unit,
+) {
     val places by viewModel.places.collectAsState()
     val busy by viewModel.busy.collectAsState()
     val error by viewModel.lastError.collectAsState()
@@ -158,6 +163,20 @@ fun ServicesSheet(viewModel: TerminalViewModel, onClose: () -> Unit) {
     LaunchedEffect(selected) { viewModel.findServices(selected) }
 
     Sheet("Nearby services", onClose) {
+        /*
+         * Icons alone on a narrow screen, icons and words where there is room.
+         *
+         * Six labelled chips need roughly 700dp. On a phone that overflowed into
+         * a horizontal scroller with "Par…" clipped at the edge, so the
+         * categories past the third existed only for somebody who thought to
+         * swipe a row that did not look swipeable. Icon-only, all six fit at
+         * once and the row stops being a row of half-words.
+         *
+         * The label survives as the content description, so the chip still
+         * announces itself properly — dropping the word from the screen must not
+         * drop it from the accessibility tree.
+         */
+        val compactChips = !expanded
         Row(
             Modifier
                 .fillMaxWidth()
@@ -165,41 +184,43 @@ fun ServicesSheet(viewModel: TerminalViewModel, onClose: () -> Unit) {
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             SERVICE_CHIPS.forEach { chip ->
+                val active = selected == chip.key
+                val ink = if (active) {
+                    MaterialTheme.colorScheme.onPrimary
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                }
                 Surface(
                     modifier = Modifier
-                        .height(48.dp)
+                        .height(52.dp)
                         .clickable { selected = chip.key },
                     shape = RoundedCornerShape(999.dp),
-                    color = if (selected == chip.key) {
+                    color = if (active) {
                         MaterialTheme.colorScheme.primary
                     } else {
                         MaterialTheme.colorScheme.surfaceVariant
                     },
                 ) {
                     Row(
-                        Modifier.padding(horizontal = 14.dp),
+                        Modifier.padding(horizontal = if (compactChips) 16.dp else 14.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(
                             chip.icon,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                            tint = if (selected == chip.key) {
-                                MaterialTheme.colorScheme.onPrimary
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            },
+                            contentDescription = chip.label,
+                            modifier = Modifier.size(22.dp),
+                            tint = ink,
                         )
-                        Spacer(Modifier.width(6.dp))
-                        Text(
-                            chip.label,
-                            style = MaterialTheme.typography.labelLarge,
-                            color = if (selected == chip.key) {
-                                MaterialTheme.colorScheme.onPrimary
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            },
-                        )
+                        if (!compactChips) {
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                chip.label,
+                                style = MaterialTheme.typography.labelLarge,
+                                color = ink,
+                                maxLines = 1,
+                                softWrap = false,
+                            )
+                        }
                     }
                 }
             }
@@ -240,7 +261,15 @@ fun ServicesSheet(viewModel: TerminalViewModel, onClose: () -> Unit) {
          * open, and nothing on screen changed. A driver reads that as a broken
          * button, taps it again, and gets the same silence.
          */
-        error?.let { message ->
+        /*
+         * Only when it is not already being said above.
+         *
+         * A routing failure sets both the amber note and this banner, and they
+         * carry the same sentence — so a rejected key printed the identical
+         * paragraph twice, one on top of the other, which reads as a fault in
+         * the app rather than a fault in the configuration.
+         */
+        error?.takeUnless { it == routingNote || !roadDistances }?.let { message ->
             Surface(
                 color = MaterialTheme.colorScheme.errorContainer,
                 shape = RoundedCornerShape(12.dp),
@@ -307,7 +336,7 @@ fun ServicesSheet(viewModel: TerminalViewModel, onClose: () -> Unit) {
  */
 @Composable
 private fun PlaceRow(place: NearbyPlaceDto, onNavigate: () -> Unit) {
-    SolidCard(Modifier.fillMaxWidth()) {
+    GlassCard(Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(place.name, style = MaterialTheme.typography.titleMedium)
@@ -404,7 +433,7 @@ fun VehicleSheet(viewModel: TerminalViewModel, onClose: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(Gutter),
         ) {
             // --- Live data ---------------------------------------------------
-            SolidCard(Modifier.fillMaxWidth()) {
+            GlassCard(Modifier.fillMaxWidth()) {
                 SectionLabel("Live vehicle data")
                 Spacer(Modifier.height(12.dp))
                 Row(
@@ -454,7 +483,7 @@ fun VehicleSheet(viewModel: TerminalViewModel, onClose: () -> Unit) {
             }
 
             // --- Passport ----------------------------------------------------
-            SolidCard(Modifier.fillMaxWidth()) {
+            GlassCard(Modifier.fillMaxWidth()) {
                 SectionLabel("Vehicle passport")
                 Spacer(Modifier.height(12.dp))
                 PassportRow("Registration", vehicle?.registrationNumber)
@@ -472,7 +501,7 @@ fun VehicleSheet(viewModel: TerminalViewModel, onClose: () -> Unit) {
             }
 
             // --- Driver ------------------------------------------------------
-            SolidCard(Modifier.fillMaxWidth()) {
+            GlassCard(Modifier.fillMaxWidth()) {
                 SectionLabel("You")
                 Spacer(Modifier.height(12.dp))
                 PassportRow("Name", driver?.name)
@@ -487,7 +516,7 @@ fun VehicleSheet(viewModel: TerminalViewModel, onClose: () -> Unit) {
             }
 
             // --- Issues ------------------------------------------------------
-            SolidCard(Modifier.fillMaxWidth()) {
+            GlassCard(Modifier.fillMaxWidth()) {
                 Row(
                     Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -654,7 +683,7 @@ fun AssistantSheet(viewModel: TerminalViewModel, onClose: () -> Unit) {
         }
 
         assistant.answer?.let { answer ->
-            SolidCard(Modifier.fillMaxWidth()) {
+            GlassCard(Modifier.fillMaxWidth()) {
                 Text(answer, style = MaterialTheme.typography.titleMedium)
 
                 assistant.caveats.forEach { caveat ->

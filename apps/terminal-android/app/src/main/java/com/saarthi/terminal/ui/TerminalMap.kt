@@ -1,6 +1,10 @@
 package com.saarthi.terminal.ui
 
+import android.content.Context
+import android.graphics.Canvas
+import androidx.appcompat.content.res.AppCompatResources
 import androidx.compose.runtime.Composable
+import androidx.core.graphics.createBitmap
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -9,18 +13,22 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.saarthi.terminal.BuildConfig
+import com.saarthi.terminal.R
 import com.saarthi.terminal.telemetry.Position
 import com.saarthi.terminal.util.DebugLog
 import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.maps.MapLibreMap
+import org.maplibre.android.maps.MapLibreMapOptions
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
+import org.maplibre.android.style.expressions.Expression
 import org.maplibre.android.style.layers.CircleLayer
 import org.maplibre.android.style.layers.LineLayer
 import org.maplibre.android.style.layers.Property
 import org.maplibre.android.style.layers.PropertyFactory
+import org.maplibre.android.style.layers.SymbolLayer
 import org.maplibre.android.style.sources.GeoJsonSource
 
 /**
@@ -80,6 +88,15 @@ fun TerminalMap(
     followVehicle: Boolean = true,
     /** Raised when a drag or a pinch moves the camera, so following can stop. */
     onUserPannedMap: () -> Unit = {},
+    /**
+     * What the vehicle is, so the marker looks like it.
+     *
+     * A `VehicleType` name from the server. Anything unrecognised — including
+     * null, and including a type added to the API after this build shipped —
+     * falls back to the lorry, because this is a freight product and a wrong
+     * silhouette is a smaller failure than no marker at all.
+     */
+    vehicleType: String? = null,
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val reducedMotion = LocalReducedMotion.current
@@ -112,14 +129,31 @@ fun TerminalMap(
     AndroidView(
         modifier = modifier,
         factory = { context ->
-            MapView(context).also { view ->
+            /*
+             * Texture mode, not the default surface mode.
+             *
+             * MapLibre renders to a `SurfaceView` by default, which the system
+             * composites on its own layer — nothing in the app can read those
+             * pixels, so the frosted panels floating over the map had no
+             * backdrop to blur and fell back to being flat translucent boxes.
+             * A `TextureView` draws into the view hierarchy where they can
+             * sample it.
+             *
+             * It costs a little: texture mode goes through an extra copy and is
+             * measurably slower than a surface. Worth it here, because the map
+             * is the backdrop for every panel on the cockpit and the alternative
+             * is glass that cannot exist.
+             */
+            val options = MapLibreMapOptions.createFromAttributes(context).textureMode(true)
+            MapView(context, options).also { view ->
                 mapView.value = view
                 view.onCreate(null)
                 view.getMapAsync { map ->
                     map.setStyle(BuildConfig.MAP_STYLE_URL) { style ->
                         DebugLog.info("map", "Basemap loaded")
+                        registerVehicleIcon(context, style, vehicleType)
                         drawRoute(style, routeGeometry, destination)
-                        drawVehicle(style, position, headingDegrees)
+                        drawVehicle(style, position, headingDegrees, vehicleType)
                     }
                     /*
                      * A gesture means the driver wants to look somewhere else.
@@ -153,8 +187,11 @@ fun TerminalMap(
         update = { view ->
             view.getMapAsync { map ->
                 map.style?.let { style ->
+                    // Cheap when the type has not changed: the style is asked
+                    // for the image it already holds and nothing is decoded.
+                    registerVehicleIcon(view.context, style, vehicleType)
                     drawRoute(style, routeGeometry, destination)
-                    drawVehicle(style, position, headingDegrees)
+                    drawVehicle(style, position, headingDegrees, vehicleType)
                 }
                 // The marker keeps updating either way. Only the camera stops
                 // when the driver has taken it somewhere.
@@ -195,74 +232,84 @@ private fun applyCamera(
 }
 
 /**
+ * Put the right vehicle silhouette into the style.
+ *
+ * Registered once per style and per type. `getImage` is checked first because
+ * this runs on every recomposition — a speed change, a battery tick — and
+ * decoding a vector to a bitmap sixty times a minute on a low-end tablet is a
+ * cost with nothing to show for it.
+ */
+private fun registerVehicleIcon(context: Context, style: Style, vehicleType: String?) {
+    val id = "$VEHICLE_ICON-${vehicleType ?: "DEFAULT"}"
+    if (style.getImage(id) != null) return
+
+    val drawable = AppCompatResources.getDrawable(context, markerDrawableFor(vehicleType)) ?: return
+    val bitmap = createBitmap(drawable.intrinsicWidth, drawable.intrinsicHeight)
+    val canvas = Canvas(bitmap)
+    drawable.setBounds(0, 0, canvas.width, canvas.height)
+    drawable.draw(canvas)
+    style.addImage(id, bitmap)
+}
+
+/**
+ * Which silhouette a vehicle gets.
+ *
+ * Grouped by *shape on a map* rather than by commercial category, because that
+ * is all the marker can convey at fifteen pixels: a long rigid body, a car-sized
+ * body, or something narrow. A taxi and a private car are the same shape from
+ * above, and pretending otherwise would be detail nobody could see.
+ */
+private fun markerDrawableFor(vehicleType: String?): Int = when (vehicleType?.uppercase()) {
+    "CAR", "TAXI", "SUV" -> R.drawable.ic_marker_car
+    "BUS", "VAN", "TEMPO" -> R.drawable.ic_marker_bus
+    "AUTO_RICKSHAW" -> R.drawable.ic_marker_auto
+    // TRUCK, PICKUP, OTHER, null, and anything this build has never heard of.
+    else -> R.drawable.ic_marker_truck
+}
+
+/**
  * Where the vehicle is, and which way it is pointing.
  *
- * Stacked circles rather than a bitmap icon: a soft halo, a white ring and a
- * solid core. It costs no drawable, stays crisp at every zoom, and reads over
- * both a pale motorway and a dark park — the same reasoning as drawing the
- * route as a casing under a core.
+ * The marker is the vehicle itself — a lorry for a lorry, a car for a car —
+ * drawn plan-view and rotated to the heading. A generic dot told the driver
+ * where they were; this also tells anyone glancing at the screen *what* is
+ * there, which matters on a dispatcher's map and matters again in a yard where
+ * several Saarthi vehicles are parked together.
  *
- * The heading is a short line from the marker rather than a rotated icon, so a
- * stationary driver can tell which way the cab faces without waiting for the
- * camera to rotate — and it simply disappears when no heading is reported,
- * rather than defaulting to north and pointing somewhere wrong.
+ * A soft halo sits under it, because a silhouette alone can vanish against a
+ * built-up basemap in a way a haloed one cannot.
+ *
+ * `iconRotationAlignment` is pinned to the map rather than the viewport, so the
+ * vehicle keeps pointing at the road it is on when the camera rotates into the
+ * driving view. With no heading reported the icon simply renders unrotated
+ * rather than snapping to north and pointing somewhere wrong.
  */
 private fun drawVehicle(
     style: Style,
     position: Position?,
     headingDegrees: Double?,
+    vehicleType: String? = null,
 ) {
-    setGeoJson(style, VEHICLE_SOURCE, pointFeature(position?.let { it.latitude to it.longitude })) {
+    val point = position?.let { it.latitude to it.longitude }
+    setGeoJson(style, VEHICLE_SOURCE, pointFeature(point, headingDegrees)) {
         style.addLayer(
             CircleLayer(VEHICLE_HALO_LAYER, VEHICLE_SOURCE).withProperties(
-                PropertyFactory.circleRadius(22f),
+                PropertyFactory.circleRadius(26f),
                 PropertyFactory.circleColor("#2B41B8"),
-                PropertyFactory.circleOpacity(0.16f),
+                PropertyFactory.circleOpacity(0.14f),
             ),
         )
         style.addLayer(
-            CircleLayer(VEHICLE_LAYER, VEHICLE_SOURCE).withProperties(
-                PropertyFactory.circleRadius(9f),
-                PropertyFactory.circleColor("#2B41B8"),
-                PropertyFactory.circleStrokeWidth(3.5f),
-                PropertyFactory.circleStrokeColor("#FFFFFF"),
+            SymbolLayer(VEHICLE_LAYER, VEHICLE_SOURCE).withProperties(
+                PropertyFactory.iconImage("$VEHICLE_ICON-${vehicleType ?: "DEFAULT"}"),
+                PropertyFactory.iconRotate(Expression.get(HEADING_PROPERTY)),
+                PropertyFactory.iconRotationAlignment(Property.ICON_ROTATION_ALIGNMENT_MAP),
+                PropertyFactory.iconAllowOverlap(true),
+                PropertyFactory.iconIgnorePlacement(true),
+                PropertyFactory.iconSize(0.85f),
             ),
         )
     }
-
-    val heading = if (position == null || headingDegrees == null) {
-        EMPTY_GEOJSON
-    } else {
-        lineFeature(headingStub(position, headingDegrees))
-    }
-    setGeoJson(style, HEADING_SOURCE, heading) {
-        style.addLayer(
-            LineLayer(HEADING_LAYER, HEADING_SOURCE).withProperties(
-                PropertyFactory.lineColor("#2B41B8"),
-                PropertyFactory.lineWidth(4f),
-                PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
-                PropertyFactory.lineOpacity(0.9f),
-            ),
-        )
-    }
-}
-
-/**
- * Twenty-five metres ahead of the vehicle, along its heading.
- *
- * Flat-earth arithmetic on purpose. Over twenty-five metres the error is well
- * under a centimetre, and a great-circle projection here would be precision
- * spent on a decoration.
- */
-private fun headingStub(position: Position, headingDegrees: Double): List<Pair<Double, Double>> {
-    val radians = Math.toRadians(headingDegrees)
-    val northMetres = 25.0 * Math.cos(radians)
-    val eastMetres = 25.0 * Math.sin(radians)
-    val latitude = position.latitude + northMetres / 111_320.0
-    val metresPerDegreeLongitude =
-        111_320.0 * Math.cos(Math.toRadians(position.latitude)).coerceAtLeast(1e-6)
-    val longitude = position.longitude + eastMetres / metresPerDegreeLongitude
-    return listOf(position.latitude to position.longitude, latitude to longitude)
 }
 
 /**
@@ -356,9 +403,12 @@ private fun lineFeature(geometry: List<Pair<Double, Double>>): String {
         "{\"type\":\"LineString\",\"coordinates\":[$coordinates]}}"
 }
 
-private fun pointFeature(point: Pair<Double, Double>?): String {
+private fun pointFeature(point: Pair<Double, Double>?, headingDegrees: Double? = null): String {
     if (point == null) return EMPTY_GEOJSON
-    return "{\"type\":\"Feature\",\"properties\":{},\"geometry\":" +
+    // The heading rides on the feature rather than on the layer, so the icon
+    // rotates with the data instead of needing the layer rebuilt on every fix.
+    val properties = if (headingDegrees == null) "{}" else "{\"$HEADING_PROPERTY\":$headingDegrees}"
+    return "{\"type\":\"Feature\",\"properties\":$properties,\"geometry\":" +
         "{\"type\":\"Point\",\"coordinates\":[${point.second},${point.first}]}}"
 }
 
@@ -369,9 +419,9 @@ private const val DESTINATION_SOURCE = "saarthi-destination"
 private const val DESTINATION_LAYER = "saarthi-destination-point"
 private const val VEHICLE_SOURCE = "saarthi-vehicle"
 private const val VEHICLE_HALO_LAYER = "saarthi-vehicle-halo"
-private const val VEHICLE_LAYER = "saarthi-vehicle-point"
-private const val HEADING_SOURCE = "saarthi-heading"
-private const val HEADING_LAYER = "saarthi-heading-line"
+private const val VEHICLE_LAYER = "saarthi-vehicle-icon"
+private const val VEHICLE_ICON = "saarthi-vehicle-image"
+private const val HEADING_PROPERTY = "heading"
 
 /** A mutable holder for the MapView, kept out of recomposition. */
 private fun mutableMapReference(): androidx.compose.runtime.MutableState<MapView?> =

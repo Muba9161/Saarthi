@@ -13,6 +13,7 @@
  */
 
 import { MediaPurpose, OrganizationType, RoleName } from './enums';
+import { LANGUAGE_OPTIONS } from './languages';
 
 /** Which blueprint a signed-in user gets. */
 export const ProfileAudience = {
@@ -282,14 +283,11 @@ const PREFERENCES_SECTION: ProfileSection = {
       target: ProfileTarget.USER_PROFILE,
       column: 'preferences.locale',
       required: false,
-      options: [
-        { value: 'en-IN', label: 'English' },
-        { value: 'hi-IN', label: 'हिन्दी' },
-        { value: 'kn-IN', label: 'ಕನ್ನಡ' },
-        { value: 'ta-IN', label: 'தமிழ்' },
-        { value: 'te-IN', label: 'తెలుగు' },
-        { value: 'mr-IN', label: 'मराठी' },
-      ],
+      help: 'Saarthi switches to this language everywhere it has a translation.',
+      // The same catalogue the registration form offers, so the choice made on
+      // the way in is the choice shown here rather than a shorter list that
+      // cannot represent it.
+      options: [...LANGUAGE_OPTIONS],
     },
     {
       key: 'theme',

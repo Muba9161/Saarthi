@@ -209,11 +209,32 @@ export class OrsRoutingProvider implements RoutingProvider {
     }
 
     if (response.status === 401 || response.status === 403) {
-      // A configuration fault, not something the driver can act on. Logged
-      // loudly because a fleet whose routing key has lapsed will otherwise see
-      // only straight-line distances and never know why.
-      ROUTING_LOGGER.error({ status: response.status }, 'OpenRouteService rejected the API key');
-      throw new RoutingError('UNAUTHORISED', 'Routing is not available on this Saarthi instance.');
+      /*
+       * A key was supplied and refused — which is a different fault from no key
+       * at all, and the two must not read the same.
+       *
+       * "Routing is not available on this Saarthi instance" was the old wording,
+       * and it sent somebody looking for an unconfigured feature while a
+       * perfectly configured key sat in the environment being rejected on every
+       * request. ORS answers a wrong, revoked or plan-restricted key with
+       * `Access to this API has been disallowed`, and repeating its own words is
+       * what turns a silent fallback into something fixable.
+       */
+      const body = (await response.json().catch(() => ({}))) as {
+        error?: string | { message?: string };
+      };
+      const reason =
+        typeof body.error === 'string' ? body.error : body.error?.message ?? 'no reason given';
+
+      ROUTING_LOGGER.error(
+        { status: response.status, reason },
+        'OpenRouteService rejected the configured API key — check ORS_API_KEY',
+      );
+      throw new RoutingError(
+        'UNAUTHORISED',
+        `The routing key was rejected by OpenRouteService (${reason}). ` +
+          'Distances shown are straight-line until it is replaced.',
+      );
     }
 
     if (response.status === 429) {

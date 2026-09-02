@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Plus } from 'lucide-react';
+import { CarFront, Gauge, IdCard, Plus } from 'lucide-react';
 import {
   FuelType,
   VEHICLE_TYPE_CATALOGUE,
@@ -16,7 +16,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -31,6 +30,15 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import {
+  FormWizard,
+  WizardField,
+  WIZARD_DIALOG_CONTENT,
+  WIZARD_DIALOG_HEADER,
+  WIZARD_DIALOG_PANEL,
+  WIZARD_IN_DIALOG,
+  type WizardStep,
+} from '@/components/common/form-wizard';
 
 /**
  * Register a vehicle of any type.
@@ -40,6 +48,10 @@ import { Switch } from '@/components/ui/switch';
  * be asking for a number that does not exist. The type chosen at the top
  * decides which capacity field appears, and the same rule is enforced again by
  * the API — this only spares the user a round trip.
+ *
+ * Because that one choice reshapes the rest of the form, it gets a step of its
+ * own. Fields do not appear and disappear under the cursor as the type is
+ * changed; the capacity step is simply asked after the answer is known.
  */
 
 interface AddVehicleDialogProps {
@@ -62,6 +74,8 @@ interface VehicleFormState {
   fuelType: FuelType;
   odometerKm: string;
 }
+
+type FieldErrors = Partial<Record<keyof VehicleFormState, string>>;
 
 function initialState(defaultType: VehicleType): VehicleFormState {
   return {
@@ -87,6 +101,8 @@ export function AddVehicleDialog({
   const queryClient = useQueryClient();
   const [open, setOpen] = React.useState(false);
   const [form, setForm] = React.useState<VehicleFormState>(() => initialState(defaultType));
+  const [errors, setErrors] = React.useState<FieldErrors>({});
+  const [erroredStepIds, setErroredStepIds] = React.useState<string[]>([]);
 
   const types = React.useMemo(
     () =>
@@ -100,8 +116,10 @@ export function AddVehicleDialog({
   const carriesFreight = definition.capabilities.includes(VehicleCapability.CARGO_CAPACITY);
   const carriesPassengers = definition.capabilities.includes(VehicleCapability.PASSENGER_CAPACITY);
 
-  const set = <K extends keyof VehicleFormState>(key: K, value: VehicleFormState[K]): void =>
+  const set = <K extends keyof VehicleFormState>(key: K, value: VehicleFormState[K]): void => {
     setForm((previous) => ({ ...previous, [key]: value }));
+    setErrors((previous) => (key in previous ? { ...previous, [key]: undefined } : previous));
+  };
 
   const create = useMutation({
     mutationFn: (payload: Record<string, unknown>) => api.post('/fleet/vehicles', payload),
@@ -111,12 +129,14 @@ export function AddVehicleDialog({
       void queryClient.invalidateQueries({ queryKey: ['trucks'] });
       setOpen(false);
       setForm(initialState(defaultType));
+      setErrors({});
+      setErroredStepIds([]);
     },
-    onError: (error) => toast.error('Could not add the vehicle', { description: errorMessage(error) }),
+    onError: (error) =>
+      toast.error('Could not add the vehicle', { description: errorMessage(error) }),
   });
 
-  const submit = (event: React.FormEvent): void => {
-    event.preventDefault();
+  const submit = (): void => {
     // Blank optional fields are omitted rather than sent as empty strings, so
     // the API stores a real null instead of an empty value.
     create.mutate({
@@ -136,136 +156,195 @@ export function AddVehicleDialog({
     });
   };
 
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button>
-          <Plus className="size-4" />
-          {triggerLabel}
-        </Button>
-      </DialogTrigger>
+  /**
+   * The capacity rules depend on the type chosen on step one, so they are
+   * written here against the live capability flags rather than in a static
+   * table.
+   */
+  const rulesFor = (stepId: string): FieldErrors => {
+    const found: FieldErrors = {};
 
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>{triggerLabel}</DialogTitle>
-          <DialogDescription>
-            Register a vehicle to your organization. You can pull its RC record and upload photos
-            once it is added.
-          </DialogDescription>
-        </DialogHeader>
+    if (stepId === 'identity') {
+      const registration = form.registrationNumber.trim();
+      if (registration.length < 4) found.registrationNumber = 'Enter the registration number.';
+      const year = Number(form.year);
+      if (form.year && (!Number.isFinite(year) || year < 1980 || year > new Date().getFullYear() + 1))
+        found.year = 'Enter a realistic model year.';
+    }
 
-        <form className="space-y-4" onSubmit={submit}>
-          <div className="space-y-1.5">
-            <Label htmlFor="vehicle-type">Vehicle type</Label>
-            <Select
-              value={form.vehicleType}
-              onValueChange={(value) => set('vehicleType', value as VehicleType)}
-            >
-              <SelectTrigger id="vehicle-type">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {types.map((option) => (
-                  <SelectItem key={option.type} value={option.type}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">{definition.description}</p>
-          </div>
+    if (stepId === 'capacity') {
+      if (carriesFreight && !(Number(form.capacityTons) > 0))
+        found.capacityTons = 'Enter what this vehicle can carry.';
+      if (carriesPassengers && !(Number(form.passengerCapacity) >= 1))
+        found.passengerCapacity = 'Enter how many passengers it seats.';
+      if (Number(form.odometerKm) < 0) found.odometerKm = 'An odometer cannot be negative.';
+    }
 
-          <div className="space-y-1.5">
-            <Label htmlFor="vehicle-registration">Registration number</Label>
+    return found;
+  };
+
+  const validateStep = (step: WizardStep): boolean => {
+    const found = rulesFor(step.id);
+    const ok = Object.keys(found).length === 0;
+
+    setErrors(found);
+    setErroredStepIds((previous) =>
+      ok
+        ? previous.filter((id) => id !== step.id)
+        : previous.includes(step.id)
+          ? previous
+          : [...previous, step.id],
+    );
+
+    return ok;
+  };
+
+  const steps: WizardStep[] = [
+    {
+      id: 'type',
+      title: 'Vehicle type',
+      description: 'Decides what else we ask.',
+      icon: CarFront,
+      content: (
+        <WizardField
+          label="Vehicle type"
+          htmlFor="vehicle-type"
+          required
+          hint={definition.description}
+        >
+          <Select
+            value={form.vehicleType}
+            onValueChange={(value) => set('vehicleType', value as VehicleType)}
+          >
+            <SelectTrigger id="vehicle-type">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {types.map((option) => (
+                <SelectItem key={option.type} value={option.type}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </WizardField>
+      ),
+    },
+    {
+      id: 'identity',
+      title: 'Identity',
+      description: 'Registration, make and model.',
+      icon: IdCard,
+      content: (
+        <>
+          <WizardField
+            label="Registration number"
+            htmlFor="vehicle-registration"
+            required
+            error={errors.registrationNumber}
+          >
             <Input
               id="vehicle-registration"
-              required
               value={form.registrationNumber}
+              aria-invalid={Boolean(errors.registrationNumber) || undefined}
               onChange={(event) => set('registrationNumber', event.target.value.toUpperCase())}
               placeholder="UP32AB1234"
               className="font-mono uppercase tracking-wide"
               autoComplete="off"
               spellCheck={false}
             />
-          </div>
+          </WizardField>
 
           <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="vehicle-make">Make</Label>
+            <WizardField label="Make" htmlFor="vehicle-make">
               <Input
                 id="vehicle-make"
                 value={form.manufacturer}
                 onChange={(event) => set('manufacturer', event.target.value)}
                 placeholder="Mahindra"
               />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="vehicle-model">Model</Label>
+            </WizardField>
+            <WizardField label="Model" htmlFor="vehicle-model">
               <Input
                 id="vehicle-model"
                 value={form.model}
                 onChange={(event) => set('model', event.target.value)}
                 placeholder="Blazo X 35"
               />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="vehicle-year">Year</Label>
+            </WizardField>
+            <WizardField label="Year" htmlFor="vehicle-year" error={errors.year}>
               <Input
                 id="vehicle-year"
                 type="number"
                 min={1980}
                 max={new Date().getFullYear() + 1}
                 value={form.year}
+                aria-invalid={Boolean(errors.year) || undefined}
                 onChange={(event) => set('year', event.target.value)}
                 placeholder="2024"
               />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="vehicle-colour">Colour</Label>
+            </WizardField>
+            <WizardField label="Colour" htmlFor="vehicle-colour">
               <Input
                 id="vehicle-colour"
                 value={form.colour}
                 onChange={(event) => set('colour', event.target.value)}
                 placeholder="White"
               />
-            </div>
+            </WizardField>
           </div>
-
+        </>
+      ),
+    },
+    {
+      id: 'capacity',
+      title: 'Capacity & fuel',
+      description: 'What it carries and burns.',
+      icon: Gauge,
+      content: (
+        <>
           <div className="grid gap-3 sm:grid-cols-2">
             {carriesFreight ? (
-              <div className="space-y-1.5">
-                <Label htmlFor="vehicle-capacity">Payload capacity (tonnes)</Label>
+              <WizardField
+                label="Payload capacity (tonnes)"
+                htmlFor="vehicle-capacity"
+                required
+                error={errors.capacityTons}
+              >
                 <Input
                   id="vehicle-capacity"
                   type="number"
                   step="0.1"
                   min={0}
-                  required
                   value={form.capacityTons}
+                  aria-invalid={Boolean(errors.capacityTons) || undefined}
                   onChange={(event) => set('capacityTons', event.target.value)}
                   placeholder="35"
                 />
-              </div>
+              </WizardField>
             ) : null}
 
             {carriesPassengers ? (
-              <div className="space-y-1.5">
-                <Label htmlFor="vehicle-seats">Passenger seats</Label>
+              <WizardField
+                label="Passenger seats"
+                htmlFor="vehicle-seats"
+                required
+                error={errors.passengerCapacity}
+              >
                 <Input
                   id="vehicle-seats"
                   type="number"
                   min={1}
                   max={80}
-                  required
                   value={form.passengerCapacity}
+                  aria-invalid={Boolean(errors.passengerCapacity) || undefined}
                   onChange={(event) => set('passengerCapacity', event.target.value)}
                   placeholder="4"
                 />
-              </div>
+              </WizardField>
             ) : null}
 
-            <div className="space-y-1.5">
-              <Label htmlFor="vehicle-fuel">Fuel</Label>
+            <WizardField label="Fuel" htmlFor="vehicle-fuel">
               <Select
                 value={form.fuelType}
                 onValueChange={(value) => set('fuelType', value as FuelType)}
@@ -281,22 +360,22 @@ export function AddVehicleDialog({
                   ))}
                 </SelectContent>
               </Select>
-            </div>
+            </WizardField>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="vehicle-odometer">Odometer (km)</Label>
+            <WizardField label="Odometer (km)" htmlFor="vehicle-odometer" error={errors.odometerKm}>
               <Input
                 id="vehicle-odometer"
                 type="number"
                 min={0}
                 value={form.odometerKm}
+                aria-invalid={Boolean(errors.odometerKm) || undefined}
                 onChange={(event) => set('odometerKm', event.target.value)}
               />
-            </div>
+            </WizardField>
           </div>
 
           {carriesPassengers ? (
-            <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2.5">
+            <div className="glass-inset flex items-center justify-between px-3 py-2.5">
               <div>
                 <Label htmlFor="vehicle-ac">Air conditioned</Label>
                 <p className="text-xs text-muted-foreground">
@@ -310,16 +389,45 @@ export function AddVehicleDialog({
               />
             </div>
           ) : null}
+        </>
+      ),
+    },
+  ];
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button>
+          <Plus className="size-4" />
+          {triggerLabel}
+        </Button>
+      </DialogTrigger>
+
+      <DialogContent className={`${WIZARD_DIALOG_CONTENT} sm:max-w-3xl`}>
+        <DialogHeader className={WIZARD_DIALOG_HEADER}>
+          <DialogTitle>{triggerLabel}</DialogTitle>
+          <DialogDescription>
+            Register a vehicle to your organization. You can pull its RC record and upload photos
+            once it is added.
+          </DialogDescription>
+        </DialogHeader>
+
+        <FormWizard
+          steps={steps}
+          className={WIZARD_IN_DIALOG}
+          panelClassName={WIZARD_DIALOG_PANEL}
+          resetKey={open}
+          onValidateStep={validateStep}
+          onSubmit={submit}
+          submitting={create.isPending}
+          submitLabel="Add vehicle"
+          erroredStepIds={erroredStepIds}
+          footerStart={
+            <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={create.isPending}>
-              {create.isPending ? 'Adding…' : 'Add vehicle'}
-            </Button>
-          </DialogFooter>
-        </form>
+          }
+        />
       </DialogContent>
     </Dialog>
   );

@@ -50,6 +50,18 @@ object DeviceEnvironment {
     fun hasPermission(context: Context, permission: String): Boolean =
         ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
 
+    /**
+     * Whether this unit has a camera at all.
+     *
+     * Distinct from holding the permission, and the pairing screen needs both:
+     * "no camera fitted" is a fact the installer must work around with a typed
+     * code, while "permission not granted" is one tap away from being fixed.
+     * Reporting them with the same sentence sent people looking for a hardware
+     * fault on a tablet that was only waiting to be asked.
+     */
+    fun hasCameraHardware(context: Context): Boolean =
+        context.packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY)
+
     fun hasLocationPermission(context: Context): Boolean =
         hasPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) ||
             hasPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION)

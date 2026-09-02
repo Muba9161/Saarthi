@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { OrganizationType, RoleName } from '../domain/enums';
+import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '../domain/languages';
 import {
   emailSchema,
   optionalTrimmedString,
@@ -40,6 +41,15 @@ export const registerSchema = z
     phone: phoneSchema,
     password: passwordSchema,
     role: registrableRoleSchema,
+    /**
+     * The language Saarthi speaks to this person in, stored on their profile
+     * as `preferences.locale`. Asked first at registration rather than left to
+     * a settings screen, because somebody who cannot read the form is not
+     * going to find the setting that fixes it.
+     */
+    preferredLanguage: z
+      .enum(SUPPORTED_LOCALES as [string, ...string[]])
+      .default(DEFAULT_LOCALE),
     /** Required for FLEET_OWNER / SUPPLIER / CUSTOMER. */
     organizationName: optionalTrimmedString(160),
     /** Optional business registration number for the new organization. */
