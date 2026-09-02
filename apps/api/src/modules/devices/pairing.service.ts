@@ -1,5 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import {
+  ACTIVE_TERMINAL_SESSION_STATUSES,
+  AssignmentStatus,
   DEFAULT_DEVICE_ROLE,
   DEVICE_BUFFER,
   DEVICE_HEARTBEAT_INTERVAL_SECONDS,
@@ -13,6 +15,7 @@ import {
   MOBILE_DEVICE_METRICS,
   NotificationPriority,
   NotificationType,
+  TerminalSessionStatus,
   VehicleCapability,
   VehicleType,
   resolveDeviceRole,
@@ -221,7 +224,17 @@ export async function createPairingToken(
  */
 function deviceTypeToProvider(deviceType: DeviceType): DeviceProvider {
   switch (deviceType) {
+    /*
+     * A phone and a terminal are both MOBILE.
+     *
+     * A Saarthi Terminal is an Android device with the same sensor set as a
+     * phone: real GPS, real camera, real motion, and an engine block that is
+     * simulated until an OBD adapter is connected. MOBILE is the honest
+     * provider, and it is what makes a terminal's readings carry the same
+     * simulated-metric labelling everything downstream already understands.
+     */
     case DeviceType.MOBILE_TEST_DEVICE:
+    case DeviceType.VEHICLE_TERMINAL:
       return DeviceProvider.MOBILE;
     case DeviceType.DASHCAM:
     case DeviceType.MULTI_CAMERA:
@@ -373,8 +386,28 @@ export async function redeemPairingToken(
   caller: DeviceCaller,
   input: PairDeviceInput,
 ): Promise<PairingResult> {
-  const tokenHash = hashPairingToken(input.token);
+  return redeemPairingTokenByHash(caller, hashPairingToken(input.token), input);
+}
 
+/**
+ * The same redemption, for a caller that already holds the token hash.
+ *
+ * Exists for the Saarthi Terminal's typed pairing code. That code is a second
+ * presentation of this same credential, looked up on its own column — and the
+ * raw token genuinely cannot be recovered from it, because the raw token was
+ * never stored. Rather than let the terminal path grow a parallel copy of the
+ * transaction below (which is where single use, tenant isolation and the role
+ * check actually live), it hands the hash in here and everything downstream is
+ * byte-for-byte identical.
+ *
+ * `input.token` is ignored by this overload. Nothing outside this module and
+ * `terminal-pairing.service.ts` should call it.
+ */
+export async function redeemPairingTokenByHash(
+  caller: DeviceCaller,
+  tokenHash: string,
+  input: Omit<PairDeviceInput, 'token'>,
+): Promise<PairingResult> {
   // Fast, best-effort mutual exclusion, held only for the length of the
   // transaction below. The transaction is what actually guarantees single use;
   // this exists so two phones scanning the same QR in the same second do not
@@ -392,7 +425,7 @@ export async function redeemPairingToken(
   await cache.set(claimKey, caller.deviceIdentifier, cacheTtl.devicePairingClaim);
 
   try {
-    return await pairWithinTransaction(caller, input, tokenHash);
+    return await pairWithinTransaction(caller, { ...input, token: '' }, tokenHash);
   } finally {
     await cache.delete(claimKey).catch(() => undefined);
   }
@@ -729,6 +762,11 @@ async function registerClientCameras(deviceId: string, organizationId: string): 
  */
 const SELF_PAIRABLE_TYPES: DeviceType[] = [
   DeviceType.MOBILE_TEST_DEVICE,
+  // A Saarthi Terminal self-enrols like a phone, so it has to be removable like
+  // one. Leaving it out made the vehicle's single telemetry slot a one-way
+  // door: connect a terminal once and the vehicle could never take another,
+  // which is precisely the failure the note above this list warns about.
+  DeviceType.VEHICLE_TERMINAL,
   DeviceType.DASHCAM,
   DeviceType.GPS_TRACKER,
 ];
@@ -820,6 +858,59 @@ export async function unpairSelf(
         metadata: { vehicleId: assignment.vehicleId },
       },
     });
+
+    /*
+     * Sign off any driver the terminal was carrying.
+     *
+     * Hardware leaving a vehicle has to take its driver authorisation with it.
+     * Without this the session outlives the terminal: the approval queue keeps
+     * listing a live driver, the vehicle keeps naming them, and neither screen
+     * offers a way to end it — the terminal that would have signed them off is
+     * no longer on the truck.
+     *
+     * Written inline rather than by calling `endSession`, because the terminal
+     * session service imports this module; closing that cycle for four columns
+     * would cost more than repeating them. It follows the same shape as the
+     * sign-off path, and deliberately keeps its two narrowing guards:
+     * the assignment ended is the one the *session* opened, and the driver
+     * cleared is the one actually named — so a dispatcher's own assignment on
+     * the same vehicle survives having a terminal unplugged.
+     */
+    const openSessions = await tx.terminalSession.findMany({
+      where: {
+        terminalDeviceId: deviceId,
+        status: { in: ACTIVE_TERMINAL_SESSION_STATUSES },
+      },
+      select: { id: true, vehicleId: true, driverId: true, truckAssignmentId: true },
+    });
+
+    for (const session of openSessions) {
+      if (session.truckAssignmentId) {
+        await tx.truckAssignment.updateMany({
+          where: { id: session.truckAssignmentId, status: AssignmentStatus.ACTIVE },
+          data: { status: AssignmentStatus.ENDED, unassignedAt: now },
+        });
+        await tx.truck.updateMany({
+          where: { id: session.vehicleId, currentDriverId: session.driverId },
+          data: { currentDriverId: null },
+        });
+        await tx.driver.updateMany({
+          where: { id: session.driverId, currentTruckId: session.vehicleId },
+          data: { currentTruckId: null },
+        });
+      }
+
+      // The session row itself is kept. It is the record of who was
+      // authorised, by whom and when, and that outlives the hardware.
+      await tx.terminalSession.update({
+        where: { id: session.id },
+        data: {
+          status: TerminalSessionStatus.COMPLETED,
+          endedAt: now,
+          endReason: 'The terminal was disconnected from the vehicle.',
+        },
+      });
+    }
   });
 
   await cache.delete(cacheKeys.deviceStatus(deviceId)).catch(() => undefined);

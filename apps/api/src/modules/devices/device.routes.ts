@@ -228,7 +228,18 @@ export async function deviceRoutes(app: FastifyInstance): Promise<void> {
     '/pairing-tokens/:id',
     // Cancelling takes the same grant as issuing. A fleet that can produce a
     // code but cannot withdraw it has no way to react to one being shared.
-    { preHandler: requirePermission(Permission.DEVICES_PAIR, Permission.DEVICES_ASSIGN) },
+    //
+    // `terminal.manage` is here for exactly that reason: it issues terminal
+    // pairing codes, and the dashboard cancels both kinds from one control.
+    // The two grants happen to be held together today, but relying on that
+    // would make this correct by coincidence.
+    {
+      preHandler: requirePermission(
+        Permission.DEVICES_PAIR,
+        Permission.DEVICES_ASSIGN,
+        Permission.TERMINAL_MANAGE,
+      ),
+    },
     async (request, reply) => {
       const auth = requireAuth(request);
       const { id } = parseParams(idParamSchema, request.params);

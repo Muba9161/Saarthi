@@ -378,12 +378,55 @@ export async function request<T = unknown>(options: {
 }
 
 /**
+ * A request whose body is not JSON.
+ *
+ * `request` above parses every response, which is right for an API and wrong
+ * for the handful of endpoints that stream bytes — a QR image, a document, a
+ * driver's arrival photo. Those need the status and the headers, and parsing
+ * their body throws before a test can assert anything about either.
+ */
+export async function requestRaw(options: {
+  method: 'GET' | 'POST';
+  url: string;
+  user?: TestUser;
+  headers?: Record<string, string>;
+}): Promise<{ status: number; headers: Record<string, unknown>; body: Buffer }> {
+  const instance = await getApp();
+  const response = await instance.inject({
+    method: options.method,
+    url: options.url,
+    headers: {
+      ...(options.user ? authHeaders(options.user) : {}),
+      ...options.headers,
+    },
+  });
+
+  return {
+    status: response.statusCode,
+    headers: response.headers as Record<string, unknown>,
+    body: response.rawPayload,
+  };
+}
+
+export interface MultipartFile {
+  fieldName: string;
+  fileName: string;
+  contentType: string;
+  content: Buffer;
+}
+
+/**
  * Build a multipart/form-data body by hand so upload routes can be exercised
  * end-to-end through `app.inject` without an extra dependency.
+ *
+ * Takes a *list* of files. It used to take exactly one, which is why a bug
+ * where the server aborted the second file part went unnoticed until a driver
+ * tried to upload an arrival photo: the browser sends the photo and its
+ * thumbnail, and no test could express that shape.
  */
 export function multipart(
   fields: Record<string, string>,
-  file?: { fieldName: string; fileName: string; contentType: string; content: Buffer },
+  file?: MultipartFile | MultipartFile[],
 ): { payload: Buffer; headers: Record<string, string> } {
   const boundary = `----saarthitest${Date.now().toString(16)}`;
   const chunks: Buffer[] = [];
@@ -396,13 +439,14 @@ export function multipart(
     );
   }
 
-  if (file) {
+  const files = file === undefined ? [] : Array.isArray(file) ? file : [file];
+  for (const part of files) {
     chunks.push(
       Buffer.from(
-        `--${boundary}\r\nContent-Disposition: form-data; name="${file.fieldName}"; filename="${file.fileName}"\r\n` +
-          `Content-Type: ${file.contentType}\r\n\r\n`,
+        `--${boundary}\r\nContent-Disposition: form-data; name="${part.fieldName}"; filename="${part.fileName}"\r\n` +
+          `Content-Type: ${part.contentType}\r\n\r\n`,
       ),
-      file.content,
+      part.content,
       Buffer.from('\r\n'),
     );
   }
@@ -413,6 +457,18 @@ export function multipart(
     payload: Buffer.concat(chunks),
     headers: { 'content-type': `multipart/form-data; boundary=${boundary}` },
   };
+}
+
+/**
+ * The smallest bytes that sniff as a JPEG.
+ *
+ * Uploads are typed by content, never by the declared header, so a test image
+ * has to start with a real SOI marker. Nothing beyond it needs to decode: the
+ * media library stores the bytes and does not render them.
+ */
+export function sampleJpeg(sizeBytes = 512): Buffer {
+  const body = Buffer.alloc(Math.max(0, sizeBytes - 4), 0x20);
+  return Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), body]);
 }
 
 /** A small but structurally valid PDF, for document upload tests. */

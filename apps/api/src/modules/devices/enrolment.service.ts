@@ -338,6 +338,9 @@ export async function enrolmentOverview(): Promise<{
 /** The device types a self-enrolling client may claim to be. */
 export const SELF_ENROLLABLE_DEVICE_TYPES: DeviceType[] = [
   DeviceType.MOBILE_TEST_DEVICE,
+  // A terminal self-enrols exactly like a test phone. It holds nothing and
+  // reaches nothing until an authorised person pairs it to a vehicle.
+  DeviceType.VEHICLE_TERMINAL,
   DeviceType.DASHCAM,
   DeviceType.GPS_TRACKER,
 ];

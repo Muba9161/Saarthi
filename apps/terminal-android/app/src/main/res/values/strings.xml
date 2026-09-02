@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Saarthi Terminal</string>
+    <string name="app_name_short">Saarthi</string>
+
+    <string name="service_channel_name">Vehicle terminal</string>
+    <string name="service_channel_description">Shown while this terminal is reporting for its vehicle.</string>
+
+    <!--
+      The notification is the privacy notice.
+
+      It is the one surface a person in the cab reliably sees, and it cannot be
+      dismissed while the service runs. The vehicle is named so it is obvious
+      which one the terminal is reporting for — a tablet that has been moved
+      between trucks and not repaired is a real failure, and this is where it
+      becomes visible.
+    -->
+    <string name="service_title">Saarthi Terminal</string>
+    <string name="service_text_paired">Reporting position and vehicle data for %1$s.</string>
+    <string name="service_text_unpaired">Not connected to a vehicle.</string>
+    <string name="service_action_stop">Stop</string>
+</resources>

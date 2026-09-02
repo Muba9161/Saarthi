@@ -586,6 +586,16 @@ export const NotificationType = asEnum({
   LOAN_PAYMENT_RECORDED: 'LOAN_PAYMENT_RECORDED',
   LOAN_CLOSED: 'LOAN_CLOSED',
   LOAN_SYNC_CONFLICT: 'LOAN_SYNC_CONFLICT',
+
+  // Saarthi Terminal — driver arrival and authorisation
+  TERMINAL_DRIVER_REQUEST: 'TERMINAL_DRIVER_REQUEST',
+  TERMINAL_DRIVER_REQUEST_REMINDER: 'TERMINAL_DRIVER_REQUEST_REMINDER',
+  TERMINAL_DRIVER_REQUEST_ESCALATED: 'TERMINAL_DRIVER_REQUEST_ESCALATED',
+  TERMINAL_DRIVER_APPROVED: 'TERMINAL_DRIVER_APPROVED',
+  TERMINAL_DRIVER_REJECTED: 'TERMINAL_DRIVER_REJECTED',
+  TERMINAL_DRIVER_REQUEST_EXPIRED: 'TERMINAL_DRIVER_REQUEST_EXPIRED',
+  TERMINAL_CHECKLIST_FAILED: 'TERMINAL_CHECKLIST_FAILED',
+  TERMINAL_ISSUE_REPORTED: 'TERMINAL_ISSUE_REPORTED',
 });
 export type NotificationType = EnumValue<typeof NotificationType>;
 
@@ -918,6 +928,16 @@ export const DeviceType = asEnum({
   MULTI_CAMERA: 'MULTI_CAMERA',
   /** A phone running the Saarthi Device app in place of fitted hardware. */
   MOBILE_TEST_DEVICE: 'MOBILE_TEST_DEVICE',
+  /**
+   * A vehicle-mounted tablet or phone running Saarthi Terminal.
+   *
+   * Its own type rather than a MOBILE_TEST_DEVICE, because the two are
+   * different products: a test phone is carried in and out of a cab by an
+   * engineer, a terminal is fitted to one vehicle and stays there. The type is
+   * what lets a fleet tell them apart, and what stops a pairing code issued for
+   * one being redeemed by the other.
+   */
+  VEHICLE_TERMINAL: 'VEHICLE_TERMINAL',
   OTHER: 'OTHER',
 });
 export type DeviceType = EnumValue<typeof DeviceType>;
@@ -1179,6 +1199,14 @@ export const MediaPurpose = asEnum({
   INSPECTION: 'INSPECTION',
   SIGNATURE: 'SIGNATURE',
   ATTACHMENT: 'ATTACHMENT',
+  /**
+   * A driver arrival selfie taken at a Saarthi Terminal.
+   *
+   * Its own purpose rather than reusing HANDOVER: it is a photograph of a
+   * person, taken to prove they were physically at a vehicle, and it has to be
+   * findable — and deletable — as that rather than folded in with cargo photos.
+   */
+  DRIVER_VERIFICATION: 'DRIVER_VERIFICATION',
 });
 export type MediaPurpose = EnumValue<typeof MediaPurpose>;
 export const MEDIA_PURPOSES = Object.values(MediaPurpose) as MediaPurpose[];
@@ -1894,3 +1922,136 @@ export const TollPaymentMode = asEnum({
   UNKNOWN: 'UNKNOWN',
 });
 export type TollPaymentMode = EnumValue<typeof TollPaymentMode>;
+
+// ---------------------------------------------------------------------------
+// Saarthi Terminal
+// ---------------------------------------------------------------------------
+
+/**
+ * The lifecycle of one driver on one terminal, as persisted.
+ *
+ * A single explicit state rather than a scatter of booleans, because the rules
+ * that matter are statements about which state the session is in: a driver is
+ * not active until somebody approved them, and a trip cannot start before the
+ * safety check. A pair of booleans can represent "rejected and approved" at
+ * once; this cannot.
+ */
+export const TerminalSessionStatus = asEnum({
+  /** The driver scanned the vehicle QR from their own Saarthi account. */
+  DRIVER_IDENTIFIED: 'DRIVER_IDENTIFIED',
+  SELFIE_SUBMITTED: 'SELFIE_SUBMITTED',
+  /** Waiting on the fleet owner or mobility provider. */
+  PENDING_APPROVAL: 'PENDING_APPROVAL',
+  /** Authorised by a named person. The safety check is still outstanding. */
+  APPROVED: 'APPROVED',
+  /** Checklist complete. The driver may start driving. */
+  READY: 'READY',
+  TRIP_ACTIVE: 'TRIP_ACTIVE',
+  COMPLETED: 'COMPLETED',
+  REJECTED: 'REJECTED',
+  /** Withdrawn by the driver before a decision. */
+  CANCELLED: 'CANCELLED',
+  /**
+   * Never answered inside the SLA window and closed by the sweep.
+   *
+   * Expiry closes the request; it never activates the driver. Fifteen minutes
+   * is an escalation, not an approval.
+   */
+  EXPIRED: 'EXPIRED',
+});
+export type TerminalSessionStatus = EnumValue<typeof TerminalSessionStatus>;
+export const TERMINAL_SESSION_STATUSES = Object.values(
+  TerminalSessionStatus,
+) as TerminalSessionStatus[];
+
+/** Session states that are still live — at most one per terminal at a time. */
+export const ACTIVE_TERMINAL_SESSION_STATUSES: TerminalSessionStatus[] = [
+  TerminalSessionStatus.DRIVER_IDENTIFIED,
+  TerminalSessionStatus.SELFIE_SUBMITTED,
+  TerminalSessionStatus.PENDING_APPROVAL,
+  TerminalSessionStatus.APPROVED,
+  TerminalSessionStatus.READY,
+  TerminalSessionStatus.TRIP_ACTIVE,
+];
+
+/** States in which the driver is authorised to use the vehicle. */
+export const AUTHORIZED_TERMINAL_SESSION_STATUSES: TerminalSessionStatus[] = [
+  TerminalSessionStatus.APPROVED,
+  TerminalSessionStatus.READY,
+  TerminalSessionStatus.TRIP_ACTIVE,
+];
+
+export const TerminalSessionEventType = asEnum({
+  REQUESTED: 'REQUESTED',
+  SELFIE_SUBMITTED: 'SELFIE_SUBMITTED',
+  SUBMITTED_FOR_APPROVAL: 'SUBMITTED_FOR_APPROVAL',
+  REMINDER_SENT: 'REMINDER_SENT',
+  ESCALATED: 'ESCALATED',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED',
+  CHECKLIST_SUBMITTED: 'CHECKLIST_SUBMITTED',
+  TRIP_STARTED: 'TRIP_STARTED',
+  TRIP_COMPLETED: 'TRIP_COMPLETED',
+  CANCELLED: 'CANCELLED',
+  EXPIRED: 'EXPIRED',
+  NOTE: 'NOTE',
+});
+export type TerminalSessionEventType = EnumValue<typeof TerminalSessionEventType>;
+
+/**
+ * Where a checklist item's verdict comes from.
+ *
+ * The distinction is the whole point of the intelligent checklist. A driver
+ * looking at a tyre and a sensor reporting a coolant temperature are different
+ * kinds of evidence, and presenting one as the other is how a vehicle gets
+ * signed off on a reading nobody took.
+ */
+export const TerminalChecklistItemKind = asEnum({
+  /** The driver has to look at it. Nothing on the vehicle can answer. */
+  MANUAL: 'MANUAL',
+  /** Answered from live telemetry, when the metric is genuinely reported. */
+  TELEMETRY: 'TELEMETRY',
+  MAINTENANCE: 'MAINTENANCE',
+  DOCUMENT: 'DOCUMENT',
+});
+export type TerminalChecklistItemKind = EnumValue<typeof TerminalChecklistItemKind>;
+
+export const TerminalChecklistItemStatus = asEnum({
+  OK: 'OK',
+  ATTENTION: 'ATTENTION',
+  CRITICAL: 'CRITICAL',
+  /** No data and no inspection — recorded as unknown, never as a pass. */
+  UNAVAILABLE: 'UNAVAILABLE',
+  SKIPPED: 'SKIPPED',
+});
+export type TerminalChecklistItemStatus = EnumValue<typeof TerminalChecklistItemStatus>;
+
+export const TerminalChecklistOutcome = asEnum({
+  PASSED: 'PASSED',
+  PASSED_WITH_WARNINGS: 'PASSED_WITH_WARNINGS',
+  FAILED: 'FAILED',
+});
+export type TerminalChecklistOutcome = EnumValue<typeof TerminalChecklistOutcome>;
+
+export const TerminalIssueCategory = asEnum({
+  ENGINE: 'ENGINE',
+  TYRE: 'TYRE',
+  BRAKE: 'BRAKE',
+  ELECTRICAL: 'ELECTRICAL',
+  ACCIDENT: 'ACCIDENT',
+  BODY: 'BODY',
+  OTHER: 'OTHER',
+});
+export type TerminalIssueCategory = EnumValue<typeof TerminalIssueCategory>;
+export const TERMINAL_ISSUE_CATEGORIES = Object.values(
+  TerminalIssueCategory,
+) as TerminalIssueCategory[];
+
+export const TerminalIssueStatus = asEnum({
+  OPEN: 'OPEN',
+  ACKNOWLEDGED: 'ACKNOWLEDGED',
+  IN_PROGRESS: 'IN_PROGRESS',
+  RESOLVED: 'RESOLVED',
+  DISMISSED: 'DISMISSED',
+});
+export type TerminalIssueStatus = EnumValue<typeof TerminalIssueStatus>;

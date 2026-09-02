@@ -10,6 +10,7 @@ import {
   Plus,
   Signal,
   SignalZero,
+  MonitorSmartphone,
   Smartphone,
   Video,
 } from 'lucide-react';
@@ -23,6 +24,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
+import { TerminalPairingPanel } from '@/features/terminal/terminal-pairing-panel';
 import { cn } from '@/lib/utils';
 
 /**
@@ -88,6 +90,9 @@ interface DeviceDetail {
   client: DeviceClientHealth;
 }
 
+/** What a device may be connected as. Decided before the code is issued. */
+type PairingKind = 'DEVICE' | 'TERMINAL';
+
 interface IssuedPairingCode {
   id: string;
   registrationNumber: string;
@@ -97,6 +102,16 @@ interface IssuedPairingCode {
   qrImage: string;
   /** What the code actually encodes. Surfaced so `api` can be checked. */
   qrPayload: { v: number; kind: string; api: string; token: string };
+  /**
+   * The human-typeable form, `STH-XXXX-XXXX`.
+   *
+   * Terminal codes only. A tablet bolted into a cab often has a scratched
+   * camera or is mounted where nothing can be held in front of it, and a
+   * pairing flow that only works through a lens fails on exactly the units that
+   * are hardest to reach. A test phone always has a working camera, so its code
+   * has never needed one.
+   */
+  pairingCode?: string;
 }
 
 /**
@@ -275,6 +290,14 @@ function DeviceCard({
 
   const isPhone = row.provider === 'MOBILE';
   const client = detail.data?.client;
+  /*
+   * A terminal is listed here too, and correctly so: it genuinely is this
+   * vehicle's telemetry source and this list answers "what is reporting".
+   * But it enrols as provider MOBILE, so unlabelled it reads "Mobile" here and
+   * "Saarthi Terminal" in the section below — the same identifier twice under
+   * two names, which is exactly how one unit gets mistaken for two.
+   */
+  const isTerminal = detail.data?.deviceType === 'VEHICLE_TERMINAL';
 
   return (
     <Card>
@@ -282,7 +305,9 @@ function DeviceCard({
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-1">
             <span className="inline-flex items-center gap-2 text-sm font-semibold">
-              {isPhone ? (
+              {isTerminal ? (
+                <MonitorSmartphone className="size-4 text-muted-foreground" />
+              ) : isPhone ? (
                 <Smartphone className="size-4 text-muted-foreground" />
               ) : (
                 <Cpu className="size-4 text-muted-foreground" />
@@ -292,7 +317,7 @@ function DeviceCard({
               </Link>
             </span>
             <p className="text-xs text-muted-foreground">
-              {humanizeEnum(row.provider)}
+              {isTerminal ? 'Saarthi Terminal' : humanizeEnum(row.provider)}
               {row.model ? ` · ${row.model}` : ''}
               {detail.data ? ` · ${humanizeEnum(detail.data.role)}` : ''}
             </p>
@@ -371,23 +396,29 @@ function DeviceCard({
 
 function PairingDialog({
   code,
+  kind,
   onClose,
   onCancel,
   cancelling,
 }: {
   code: IssuedPairingCode | null;
+  kind: PairingKind;
   onClose: () => void;
   onCancel: () => void;
   cancelling: boolean;
 }): React.ReactElement {
   const remaining = useCountdown(code?.expiresAt);
   const expired = code !== null && remaining === 0;
+  const terminal = kind === 'TERMINAL';
 
   return (
     <Dialog open={code !== null} onOpenChange={(open) => (open ? undefined : onClose())}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Pair a device to {code?.registrationNumber}</DialogTitle>
+          <DialogTitle>
+            {terminal ? 'Connect a terminal to ' : 'Pair a device to '}
+            {code?.registrationNumber}
+          </DialogTitle>
         </DialogHeader>
 
         {code ? (
@@ -408,6 +439,22 @@ function PairingDialog({
               )}
             </div>
 
+            {code.pairingCode ? (
+              <div className="rounded-lg border bg-muted/40 p-3 text-center">
+                <p className="text-2xs uppercase tracking-wide text-muted-foreground">
+                  Or type this on the terminal
+                </p>
+                <p
+                  className={cn(
+                    'select-all font-mono text-2xl font-semibold tracking-[0.2em]',
+                    expired && 'text-muted-foreground line-through',
+                  )}
+                >
+                  {code.pairingCode}
+                </p>
+              </div>
+            ) : null}
+
             <div className="text-center">
               <p
                 className={cn(
@@ -418,7 +465,9 @@ function PairingDialog({
                 {formatCountdown(remaining)}
               </p>
               <p className="text-xs text-muted-foreground">
-                Open Saarthi Device on the phone and scan this code.
+                {terminal
+                  ? 'Open Saarthi Terminal on the tablet and scan or type this code.'
+                  : 'Open Saarthi Device on the phone and scan this code.'}
               </p>
             </div>
 
@@ -451,9 +500,12 @@ function PairingDialog({
                 nobody opens: this code is a credential, and it is what makes
                 the phone part of this fleet. */}
             <p className="rounded-md bg-muted p-3 text-xs text-muted-foreground">
-              Anyone who scans this code before it expires can connect a device to{' '}
-              {code.registrationNumber} and start reporting its position. Cancel it if you did not
-              mean to show it.
+              Anyone who uses this code before it expires can connect{' '}
+              {terminal ? 'a terminal' : 'a device'} to {code.registrationNumber}
+              {terminal
+                ? ' and drivers will sign on to the vehicle through it.'
+                : ' and start reporting its position.'}{' '}
+              Cancel it if you did not mean to show it.
             </p>
 
             <div className="flex justify-end gap-2">
@@ -478,6 +530,7 @@ export function VehicleHardware({
   const { can } = useAuth();
   const queryClient = useQueryClient();
   const [code, setCode] = React.useState<IssuedPairingCode | null>(null);
+  const [pairingKind, setPairingKind] = React.useState<PairingKind>('DEVICE');
 
   const canPair = can(Permission.DEVICES_PAIR) || can(Permission.DEVICES_ASSIGN);
   /*
@@ -501,11 +554,30 @@ export function VehicleHardware({
     refetchInterval: 30_000,
   });
 
+  /**
+   * Issue a pairing code, for either kind of unit.
+   *
+   * One mutation and one dialog rather than two of each. They are the same
+   * decision — "connect something to this vehicle" — differing only in what is
+   * on the other end, and two near-identical dialogs metres apart on the same
+   * tab is how somebody opens the wrong one, scans a genuinely valid code and
+   * watches nothing happen.
+   *
+   * The endpoints differ because the permissions do: connecting a terminal is
+   * `terminal.manage`, connecting a test phone is `devices.pair`.
+   */
   const issue = useMutation({
-    mutationFn: () =>
-      api.post<IssuedPairingCode>(`/fleet/vehicles/${vehicleId}/pairing-token`, {
-        deviceType: 'MOBILE_TEST_DEVICE',
-      }),
+    mutationFn: (kind: PairingKind) => {
+      setPairingKind(kind);
+      return kind === 'TERMINAL'
+        ? api.post<IssuedPairingCode>(
+            `/fleet/vehicles/${vehicleId}/terminal-pairing`,
+            {},
+          )
+        : api.post<IssuedPairingCode>(`/fleet/vehicles/${vehicleId}/pairing-token`, {
+            deviceType: 'MOBILE_TEST_DEVICE',
+          });
+    },
     onSuccess: (issued) => setCode(issued),
     onError: (error) => {
       // "This vehicle already reports its position from X" is an ordinary
@@ -562,12 +634,29 @@ export function VehicleHardware({
           title="Devices"
           description="Everything currently reporting for this vehicle. A vehicle can carry one telemetry source plus any number of cameras."
         />
-        {canPair ? (
-          <Button size="sm" onClick={() => issue.mutate()} disabled={issue.isPending}>
-            <Plus className="mr-1.5 size-3.5" />
-            Add device
-          </Button>
-        ) : null}
+        <div className="flex flex-wrap gap-2">
+          {canPair ? (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => issue.mutate('DEVICE')}
+              disabled={issue.isPending}
+            >
+              <Plus className="mr-1.5 size-3.5" />
+              Add device
+            </Button>
+          ) : null}
+          {can(Permission.TERMINAL_MANAGE) ? (
+            <Button
+              size="sm"
+              onClick={() => issue.mutate('TERMINAL')}
+              disabled={issue.isPending}
+            >
+              <MonitorSmartphone className="mr-1.5 size-3.5" />
+              Connect a terminal
+            </Button>
+          ) : null}
+        </div>
       </div>
 
       {active.length === 0 ? (
@@ -629,8 +718,19 @@ export function VehicleHardware({
         </p>
       ) : null}
 
+      <Separator />
+
+      {/*
+        Terminals fitted to this vehicle, and who is signed on to them.
+        Read-only: connecting one is the "Connect a terminal" action in the
+        header above, so there is one pairing flow on this screen rather than
+        two that look alike.
+      */}
+      <TerminalPairingPanel vehicleId={vehicleId} registrationNumber={registrationNumber} />
+
       <PairingDialog
         code={code}
+        kind={pairingKind}
         onClose={() => setCode(null)}
         onCancel={() => code && cancel.mutate(code.id)}
         cancelling={cancel.isPending}

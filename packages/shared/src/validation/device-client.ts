@@ -72,9 +72,22 @@ export const enrolDeviceSchema = z.object({
   deviceModel: optionalTrimmedString(120),
   osVersion: optionalTrimmedString(60),
   appVersion: optionalTrimmedString(40),
-  /** What the operator intends this unit to be. Phones are the only self-enrolling type today. */
+  /**
+   * What the operator intends this unit to be.
+   *
+   * App-based units only. A Saarthi Terminal enrols through exactly this
+   * endpoint — it is a device like any other until an authorised person pairs
+   * it — and declaring its own type here is what stops it redeeming a pairing
+   * code issued for a test phone, and a test phone redeeming one issued for a
+   * terminal. The check is enforced at redemption, not here.
+   */
   deviceType: z
-    .enum([DeviceType.MOBILE_TEST_DEVICE, DeviceType.DASHCAM, DeviceType.GPS_TRACKER])
+    .enum([
+      DeviceType.MOBILE_TEST_DEVICE,
+      DeviceType.VEHICLE_TERMINAL,
+      DeviceType.DASHCAM,
+      DeviceType.GPS_TRACKER,
+    ])
     .default(DeviceType.MOBILE_TEST_DEVICE),
 });
 export type EnrolDeviceInput = z.infer<typeof enrolDeviceSchema>;
@@ -124,7 +137,12 @@ export type UnpairDeviceFromDeviceInput = z.infer<typeof unpairDeviceFromDeviceS
 /** Issued by the web dashboard: Vehicle → Hardware → Add Device. */
 export const createPairingTokenSchema = z.object({
   deviceType: z
-    .enum([DeviceType.MOBILE_TEST_DEVICE, DeviceType.DASHCAM, DeviceType.GPS_TRACKER])
+    .enum([
+      DeviceType.MOBILE_TEST_DEVICE,
+      DeviceType.VEHICLE_TERMINAL,
+      DeviceType.DASHCAM,
+      DeviceType.GPS_TRACKER,
+    ])
     .default(DeviceType.MOBILE_TEST_DEVICE),
   /** Seconds. Bounded so a token cannot be made long-lived by mistake. */
   ttlSeconds: z.coerce.number().int().min(60).max(3_600).optional(),

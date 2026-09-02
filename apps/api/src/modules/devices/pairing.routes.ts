@@ -124,7 +124,15 @@ export async function vehiclePairingRoutes(app: FastifyInstance): Promise<void> 
     '/:id/devices/:deviceId/unpair',
     {
       preHandler: [
-        requirePermission(Permission.DEVICES_PAIR, Permission.DEVICES_ASSIGN),
+        // `terminal.manage` sits alongside for the same reason the comment
+        // above gives: it is the grant that connects a terminal, and a grant
+        // that can connect but not disconnect turns the vehicle's single
+        // telemetry slot into a one-way door.
+        requirePermission(
+          Permission.DEVICES_PAIR,
+          Permission.DEVICES_ASSIGN,
+          Permission.TERMINAL_MANAGE,
+        ),
         requireFeature(Feature.HARDWARE_CONNECTIVITY),
       ],
     },

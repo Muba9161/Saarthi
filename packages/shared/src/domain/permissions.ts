@@ -179,6 +179,28 @@ export const Permission = {
    */
   DEVICES_PAIR: 'devices.pair',
 
+  // Saarthi Terminal.
+  //
+  // Deliberately its own group rather than folded into `devices.*`. A terminal
+  // is a device, but what these grants govern is not hardware — it is who may
+  // authorise a person to take a vehicle out. Somebody who can read a fleet's
+  // telematics has no automatic business making that call, and a fleet that
+  // wants a yard supervisor to approve arrivals should not have to hand them
+  // device management to do it.
+  TERMINAL_READ: 'terminal.read',
+  /**
+   * Approve or reject a driver's arrival at a vehicle.
+   *
+   * The single most consequential grant in this module: it is what puts a
+   * person behind a wheel. Held by fleet owners, mobility providers and fleet
+   * managers, and by nobody else by default.
+   */
+  TERMINAL_APPROVE: 'terminal.approve',
+  /** Connect a terminal to a vehicle, and configure the pre-trip checklist. */
+  TERMINAL_MANAGE: 'terminal.manage',
+  /** Ask to be assigned to a vehicle by scanning its QR. A driver's grant. */
+  TERMINAL_DRIVE: 'terminal.drive',
+
   // Telemetry
   TELEMETRY_READ: 'telemetry.read',
   TELEMETRY_ALERTS_READ: 'telemetry.alerts.read',
@@ -285,6 +307,12 @@ const FLEET_MANAGER_PERMISSIONS: Permission[] = [
   Permission.DEVICES_PAIR,
   Permission.TELEMETRY_READ,
   Permission.TELEMETRY_ALERTS_READ,
+  // Saarthi Terminal. A manager runs the yard, so a manager answers the
+  // arrival queue — an approval that only an owner could give would leave a
+  // driver standing at a truck until somebody woke up.
+  Permission.TERMINAL_READ,
+  Permission.TERMINAL_APPROVE,
+  Permission.TERMINAL_MANAGE,
   Permission.PROVIDER_READ,
   Permission.TRAVEL_PACKAGES_READ,
   Permission.BOOKINGS_READ,
@@ -417,6 +445,9 @@ const ROLE_PERMISSIONS: Record<RoleName, Permission[]> = {
     Permission.NOTIFICATIONS_READ,
     Permission.NEARBY_READ,
     Permission.VEHICLE_LOOKUP,
+    // Sees the terminal arrival queue but cannot decide it. A dispatcher
+    // allocates work; authorising a person to drive is the operator's call.
+    Permission.TERMINAL_READ,
     Permission.ANALYTICS_READ,
     Permission.MEDIA_READ,
     Permission.MEDIA_UPLOAD,
@@ -465,6 +496,10 @@ const ROLE_PERMISSIONS: Record<RoleName, Permission[]> = {
     Permission.ORDERS_READ,
     Permission.DEVICES_READ,
     Permission.TELEMETRY_READ,
+    // Walk up to a vehicle, scan its QR and ask to be assigned to it. Reading
+    // is scoped by the service to the driver's own sessions.
+    Permission.TERMINAL_READ,
+    Permission.TERMINAL_DRIVE,
     Permission.BOOKINGS_READ,
     // A driver photographs damage, odometer readings, handovers and deliveries;
     // withholding upload would make the evidence trail depend on the office.

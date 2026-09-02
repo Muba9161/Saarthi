@@ -391,6 +391,25 @@ const envSchema = z.object({
   MAP_API_KEY: z.string().optional(),
   /** OpenRouteService key — routing and geocoding only, never the basemap. */
   ORS_API_KEY: z.string().optional(),
+  /**
+   * Where routing requests go.
+   *
+   * HeiGIT is migrating from `api.openrouteservice.org` to `api.heigit.org`, and
+   * as of 2026-08-31 the new host still answers 404 for the endpoints Saarthi
+   * calls. The default is therefore the host that works; move it across with
+   * `ORS_BASE_URL` once the new one serves `/v2/directions` and `/v2/matrix`.
+   * The web client makes the same choice for the same reason — see
+   * `apps/web/src/features/maps/map-config.ts`.
+   */
+  ORS_BASE_URL: z.string().url().default('https://api.openrouteservice.org'),
+  /**
+   * Routing timeout.
+   *
+   * Short. A terminal asking "how far is the nearest pump" is a driver waiting
+   * at the roadside, and an answer that takes fifteen seconds is one they have
+   * already given up on — the straight-line fallback is better than a stall.
+   */
+  ORS_TIMEOUT_MS: z.coerce.number().int().min(1_000).max(30_000).default(8_000),
   MAP_STYLE_URL: z.string().optional(),
 
   DEMO_MODE: booleanish(true),
@@ -676,6 +695,8 @@ export const config = {
     /** Basemap credential. The open stack needs none; kept for other providers. */
     apiKey: raw.MAP_API_KEY || undefined,
     routingApiKey: raw.ORS_API_KEY || undefined,
+    routingBaseUrl: raw.ORS_BASE_URL,
+    routingTimeoutMs: raw.ORS_TIMEOUT_MS,
     styleUrl: raw.MAP_STYLE_URL || undefined,
   },
 

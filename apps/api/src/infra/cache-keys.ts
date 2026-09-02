@@ -73,6 +73,52 @@ export const cacheKeys = {
   deviceEventIdempotency: (deviceId: string, eventId: string): string =>
     `${PREFIX}:device:${deviceId}:idem:${eventId}`,
 
+  // --- Saarthi Terminal ----------------------------------------------------
+
+  /**
+   * The assembled terminal state view.
+   *
+   * Keyed by the terminal's device id, and invalidated explicitly on every
+   * session transition rather than left to expire — a driver standing at a
+   * truck watching a tablet for an approval must not wait out a TTL.
+   */
+  terminalState: (deviceId: string): string => `${PREFIX}:terminal:${deviceId}:state`,
+
+  /**
+   * Claim on one approval decision.
+   *
+   * Two managers opening the queue on two phones and both tapping Approve is an
+   * entirely ordinary thing to happen. The transaction is what guarantees one
+   * decision; this is what stops the second one doing the work and then
+   * discovering it lost.
+   */
+  terminalDecisionClaim: (sessionId: string): string =>
+    `${PREFIX}:terminal:decision:${sessionId}`,
+
+  /**
+   * Assistant request budget for one terminal session.
+   *
+   * A tablet with a stuck wake-word detector would otherwise spend a fleet's
+   * AI quota overnight, and the driver would find out when they asked a real
+   * question in the morning.
+   */
+  terminalAssistantBudget: (sessionId: string): string =>
+    `${PREFIX}:terminal:ai:${sessionId}`,
+
+  /**
+   * Road distances for one origin and one set of destinations.
+   *
+   * Not tenant-scoped, and deliberately so: this is a fact about the public road
+   * network between two points, identical for every fleet, and keying it per
+   * tenant would multiply a bounded daily routing allowance by the number of
+   * customers. Nothing tenant-owned is in the key or the value.
+   */
+  terminalRoadDistances: (signature: string): string =>
+    `${PREFIX}:routing:matrix:${signature}`,
+
+  /** One computed route. Same reasoning as above. */
+  terminalRoute: (signature: string): string => `${PREFIX}:routing:route:${signature}`,
+
   /** Prefix for everything derived from one tenant, for bulk invalidation. */
   organizationPrefix: (organizationId: string): string => `${PREFIX}:fleet:${organizationId}`,
   vehiclePrefix: (vehicleId: string): string => `${PREFIX}:vehicle:${vehicleId}`,
@@ -119,4 +165,29 @@ export const cacheTtl = {
    * possible.
    */
   deviceIdempotency: 86_400,
+
+  /**
+   * Assembled terminal state.
+   *
+   * Short: it carries an approval a person is waiting on, and being sixty
+   * seconds stale about that is the difference between a driver setting off
+   * and a driver standing in a yard wondering whether the tablet is broken.
+   */
+  terminalState: 10,
+
+  /** Long enough to cover one decision transaction, and no longer. */
+  terminalDecisionClaim: 30,
+
+  /** One hour, matching the assistant's per-session ceiling. */
+  terminalAssistantBudget: 3_600,
+
+  /**
+   * Routing results.
+   *
+   * Long, because the road network does not change in an afternoon and the
+   * daily routing allowance is the scarce resource. There is no traffic model
+   * behind these figures, so there is nothing that goes stale except the roads
+   * themselves — the arrival time is recomputed from `now` on every cache hit.
+   */
+  terminalRoute: 1_800,
 } as const;

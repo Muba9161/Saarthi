@@ -23,10 +23,12 @@ import type {
   TelemetryAlertType,
   TelemetryMetric,
   TrackingSource,
+  TerminalSessionStatus,
   TripStatus,
   TruckStatus,
   VehicleType,
 } from '../domain/enums';
+import type { TerminalState } from '../domain/terminal';
 
 export const RealtimeChannel = {
   fleet: (organizationId: string) => `fleet:${organizationId}`,
@@ -156,6 +158,20 @@ export const RealtimeEvent = {
   // Travel bookings
   BOOKING_CREATED: 'booking.created',
   BOOKING_UPDATED: 'booking.updated',
+
+  /**
+   * Saarthi Terminal — a driver's authorisation on one terminal changed.
+   *
+   * One event for the whole lifecycle rather than six (`requested`,
+   * `approved`, `rejected`, …), because every subscriber needs the same thing:
+   * the session as it now stands. Six events would mean a client that missed
+   * one holds a state its server disagrees with, and this is the state a
+   * driver is standing in a yard waiting on.
+   *
+   * Published on `device:{terminalId}` (the tablet), `fleet:{orgId}` (the
+   * approval queue) and `driver:{driverId}` (the driver's own phone).
+   */
+  TERMINAL_SESSION_UPDATED: 'terminal.session.updated',
 } as const;
 
 export type RealtimeEvent = (typeof RealtimeEvent)[keyof typeof RealtimeEvent];
@@ -464,6 +480,33 @@ export interface BookingUpdatePayload {
   updatedAt: string;
 }
 
+/**
+ * A Saarthi Terminal driver session, as broadcast.
+ *
+ * Note what is *not* here: the selfie. A photograph of a person is disclosed
+ * through an authorised media fetch, not pushed onto every socket subscribed
+ * to a fleet channel.
+ */
+export interface TerminalSessionPayload {
+  sessionId: string;
+  organizationId: string;
+  terminalDeviceId: string;
+  vehicleId: string;
+  registrationNumber: string;
+  driverId: string;
+  driverName: string;
+  status: TerminalSessionStatus;
+  /** The terminal-level projection, so the tablet needs no local mapping. */
+  state: TerminalState;
+  requestedAt: string;
+  decidedAt: string | null;
+  decidedByName: string | null;
+  rejectionReason: string | null;
+  /** Seconds until the approval SLA escalates. Negative once it has. */
+  secondsUntilEscalation: number | null;
+  updatedAt: string;
+}
+
 /** Connection-level messages that are not addressed to a channel. */
 export type ControlMessage =
   | { type: typeof RealtimeEvent.CONNECTED; userId: string; channels: string[] }
@@ -541,6 +584,11 @@ export type ChannelMessage =
       type: typeof RealtimeEvent.BOOKING_UPDATED;
       channel: string;
       payload: BookingUpdatePayload;
+    }
+  | {
+      type: typeof RealtimeEvent.TERMINAL_SESSION_UPDATED;
+      channel: string;
+      payload: TerminalSessionPayload;
     };
 
 export type ServerMessage = ControlMessage | ChannelMessage;

@@ -13,6 +13,7 @@ import { DRIVER_TOOLS } from './driver.tools';
 import { COST_TOOLS } from './cost.tools';
 import { SUBSCRIPTION_TOOLS } from './subscription.tools';
 import { DEVICE_TOOLS } from './device.tools';
+import { TERMINAL_TOOLS } from './terminal.tools';
 import type { AiTool, RecordedToolCall, ToolResult, ToolSpecification } from './tool.types';
 
 /**
@@ -44,6 +45,11 @@ const ALL_TOOLS: AiTool[] = [
   ...COST_TOOLS,
   ...SUBSCRIPTION_TOOLS,
   ...DEVICE_TOOLS,
+  // Terminal tools resolve the caller's *own* live vehicle assignment and take
+  // no vehicle id, so they are only ever offered to somebody who has one. A
+  // dispatcher asking the fleet copilot sees none of them, which is correct:
+  // "my vehicle" is not a question they can ask.
+  ...TERMINAL_TOOLS,
 ] as AiTool[];
 
 const BY_NAME = new Map(ALL_TOOLS.map((tool) => [tool.name, tool]));

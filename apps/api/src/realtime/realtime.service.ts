@@ -17,6 +17,7 @@ import {
   type SosResponderRequestPayload,
   type TelemetryAlertPayload,
   type TelemetryUpdatePayload,
+  type TerminalSessionPayload,
   type TripEventPayload,
   type TripProgressPayload,
   type TripUpdatePayload,
@@ -336,6 +337,46 @@ export async function broadcastDeviceCommand(payload: DeviceCommandPayload): Pro
     channel: RealtimeChannel.device(payload.deviceId),
     payload,
   });
+}
+
+/**
+ * A Saarthi Terminal driver session changed.
+ *
+ * Three recipients, and each of them is waiting on this specific fact:
+ *
+ *   * the **terminal** itself, on its own device channel — a tablet showing
+ *     "waiting for approval" has nothing else to go on;
+ *   * the **fleet**, so the approval queue updates without a poll, and so a
+ *     second manager sees a request disappear the moment a colleague decides it;
+ *   * the **driver**, on their own channel, because they made the request from
+ *     their phone and are standing next to the truck looking at it.
+ *
+ * The selfie is deliberately not in the payload — a photograph of a person is
+ * fetched through the media endpoint by somebody entitled to it, never pushed
+ * onto every socket subscribed to a fleet.
+ */
+export async function broadcastTerminalSession(
+  payload: TerminalSessionPayload,
+): Promise<void> {
+  const message: ChannelMessage = {
+    type: RealtimeEvent.TERMINAL_SESSION_UPDATED,
+    channel: RealtimeChannel.device(payload.terminalDeviceId),
+    payload,
+  };
+
+  await publish(RealtimeChannel.device(payload.terminalDeviceId), message);
+  await publish(
+    RealtimeChannel.fleet(payload.organizationId),
+    retarget(message, RealtimeChannel.fleet(payload.organizationId)),
+  );
+  await publish(
+    RealtimeChannel.driver(payload.driverId),
+    retarget(message, RealtimeChannel.driver(payload.driverId)),
+  );
+  await publish(
+    vehicleChannel(payload.vehicleId),
+    retarget(message, vehicleChannel(payload.vehicleId)),
+  );
 }
 
 /** Configuration a device must adopt without waiting for its next poll. */

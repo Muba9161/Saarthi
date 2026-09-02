@@ -205,11 +205,16 @@ saarthi/
 │   │   │   ├── infra/          cache, queue, pub/sub (memory today, Redis later)
 │   │   │   └── jobs/           Scheduled background work
 │   │   └── tests/      Integration tests against real PostgreSQL
-│   └── web/            React + Vite + Tailwind + shadcn/ui
-│       └── src/
-│           ├── features/       auth, maps, documents, drivers, theme
-│           ├── components/     ui primitives + shared building blocks
-│           └── pages/          Route modules
+│   ├── web/            React + Vite + Tailwind + shadcn/ui
+│   │   └── src/
+│   │       ├── features/       auth, maps, documents, drivers, theme
+│   │       ├── components/     ui primitives + shared building blocks
+│   │       └── pages/          Route modules
+│   ├── device-android/ Saarthi Device — the local test harness for phone
+│   │                   GPS, camera, sensors and simulated telemetry
+│   └── terminal-android/
+│                       Saarthi Terminal — the driver-facing cockpit for a
+│                       vehicle-mounted tablet. Kotlin + Compose.
 ├── packages/
 │   └── shared/         Domain enums, RBAC, entitlements, geo, scoring,
 │                       state machines, validation — used by API *and* web
@@ -243,6 +248,8 @@ saarthi/
 - [`docs/DEVELOPMENT_PROGRESS.md`](docs/DEVELOPMENT_PROGRESS.md) — what is done, what is next
 - [`docs/PRODUCTION.md`](docs/PRODUCTION.md) — the production migration path
 - [`docs/SPEC_V3_IMPLEMENTATION_REPORT.md`](docs/SPEC_V3_IMPLEMENTATION_REPORT.md) — what spec v3.0 changed, and what it deliberately did not
+- [`docs/SAARTHI_TERMINAL_IMPLEMENTATION_MAP.md`](docs/SAARTHI_TERMINAL_IMPLEMENTATION_MAP.md) — what Saarthi Terminal reuses, extends and adds
+- [`apps/terminal-android/README.md`](apps/terminal-android/README.md) — building, pairing and the kiosk deployment strategy
 
 ---
 

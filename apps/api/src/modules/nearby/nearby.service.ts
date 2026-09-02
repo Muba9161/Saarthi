@@ -288,7 +288,15 @@ async function collectNearbyPlaces(input: NearbySearchInput): Promise<NearbyPlac
     if (!provider) {
       // `PLACES_PROVIDER=local`: the mirror is the whole dataset, and it is not
       // stale — it is the configured source.
-      return { places: await storedPlaces(input, { stale: false }), stale: false };
+      //
+      // Ranked, like every other branch. `storedPlaces` issues a `findMany` with
+      // no `orderBy`, so without this the list comes back in whatever physical
+      // order PostgreSQL happens to hold the rows in — and "find me the nearest
+      // fuel station" returns an arbitrary one. Every other path through this
+      // function already called `rank`; this one did not, which made the
+      // ordering depend on table layout and produced a test that passed or
+      // failed according to what had been inserted before it.
+      return { places: rank(await storedPlaces(input, { stale: false })), stale: false };
     }
 
     try {

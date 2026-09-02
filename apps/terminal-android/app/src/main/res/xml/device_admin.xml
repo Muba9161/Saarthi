@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Device-owner policy for a dedicated vehicle terminal.
+
+  Deliberately minimal. A device-owner app can do almost anything to a device,
+  and the only thing Saarthi needs is the ability to stay in the foreground:
+  lock-task mode, and the reboot-persistence that comes with being the device
+  owner. Nothing here asks to wipe data, read a password, or force encryption,
+  because none of those are things a vehicle terminal has a reason to do.
+
+  The policies below are the narrow set lock-task and kiosk operation require.
+-->
+<device-admin xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-policies>
+        <!-- Required for lock-task mode to be grantable at all. -->
+        <disable-keyguard-features />
+    </uses-policies>
+</device-admin>

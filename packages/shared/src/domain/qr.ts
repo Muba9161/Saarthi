@@ -324,3 +324,60 @@ export function shortTokenLabel(token: string): string {
 export function qrTargetUrl(frontendUrl: string, token: string): string {
   return `${frontendUrl.replace(/\/$/, '')}/q/${token}`;
 }
+
+/**
+ * What a scanner just read.
+ *
+ * A camera pointed at a yard will read things that are not Saarthi identity
+ * codes: a terminal's pairing code, a consignment label, a courier's sticker.
+ * Silence is the wrong answer to all of them — the driver holds the phone
+ * steady, nothing happens, and there is no way to tell a bad scan from a bad
+ * camera. So every outcome is named, and the caller can say which one it was.
+ */
+export type ScannedQr =
+  /** A Saarthi identity code — a vehicle sticker or a driver badge. */
+  | { kind: 'IDENTITY'; token: string }
+  /** A device or terminal pairing credential, meant for an app, not a person. */
+  | { kind: 'PAIRING'; target: 'DEVICE' | 'TERMINAL' }
+  /** Read cleanly, and it is not ours. */
+  | { kind: 'FOREIGN'; value: string };
+
+/** 32 random bytes, base64url. Fixed length, so a truncated read is caught. */
+const IDENTITY_TOKEN_PATTERN = /^[A-Za-z0-9_-]{40,64}$/;
+
+/**
+ * Interpret the raw text a QR decoder produced.
+ *
+ * The host is deliberately *not* checked against the configured frontend. The
+ * same sticker is scanned through a dev tunnel, a staging domain and
+ * production, and a code printed last year still has last year's host baked
+ * into it. What identifies the code is the token; where it was printed to point
+ * is not a security property, because resolving it proves nothing on its own —
+ * the API decides what any given scanner may see.
+ */
+export function readScannedQr(raw: string): ScannedQr {
+  const value = raw.trim();
+  if (!value) return { kind: 'FOREIGN', value };
+
+  // A pairing credential is JSON, never a URL. Recognised so the driver can be
+  // told they scanned the tablet's setup code rather than a vehicle.
+  if (value.startsWith('{')) {
+    try {
+      const parsed = JSON.parse(value) as { kind?: unknown };
+      if (parsed.kind === 'saarthi.terminal.pair') return { kind: 'PAIRING', target: 'TERMINAL' };
+      if (parsed.kind === 'saarthi.device.pair') return { kind: 'PAIRING', target: 'DEVICE' };
+    } catch {
+      // Not JSON after all. Falls through to the remaining forms.
+    }
+    return { kind: 'FOREIGN', value };
+  }
+
+  // `/q/<token>`, with or without a scheme and host, with or without a query.
+  const path = value.match(/\/q\/([A-Za-z0-9_-]+)/);
+  if (path?.[1]) return { kind: 'IDENTITY', token: path[1] };
+
+  // Typed by hand, from the short code printed under the sticker.
+  if (IDENTITY_TOKEN_PATTERN.test(value)) return { kind: 'IDENTITY', token: value };
+
+  return { kind: 'FOREIGN', value };
+}

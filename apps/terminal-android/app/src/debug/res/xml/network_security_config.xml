@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Transport security — DEBUG BUILDS ONLY.
+
+  This file replaces the one in `src/main` for debug builds and nothing else.
+  The release build keeps the strict policy: HTTPS everywhere, enforced by the
+  platform before a request is made.
+
+  Why it has to exist. A developer testing on a real phone reaches the API on
+  the machine's LAN address — `http://192.168.x.x:4000` — which has no
+  certificate and never will. The main config permits cleartext only to
+  `localhost` and `10.0.2.2`, which covers the emulator and nothing else, and
+  Android's network security config cannot express "any private range": it
+  matches domains and literal addresses, not CIDR blocks. Listing every
+  plausible LAN address is not possible, so the split is by build type instead.
+
+  This is the right shape for the risk. A debug build is sideloaded onto a test
+  handset by the person who compiled it; a release build is what reaches a
+  driver, and that one still refuses cleartext to anything at all.
+-->
+<network-security-config>
+    <!--
+      Cleartext is permitted in debug builds because the developer's own API is
+      the only thing this build is ever pointed at.
+    -->
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+            <!--
+              Also trust certificates the developer installed on the handset, so
+              a local HTTPS setup or a proxy like mitmproxy works without
+              further changes. Debug only — a release build trusts the system
+              store alone, so a compromised device cannot silently intercept a
+              driver's telemetry.
+            -->
+            <certificates src="user" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

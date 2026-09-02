@@ -9,17 +9,20 @@ import {
   Navigation,
   Play,
   Route as RouteIcon,
+  ScanLine,
   ShieldCheck,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   Feature,
+  Permission,
   RealtimeChannel,
   RealtimeEvent,
   TripStatus,
   formatDistanceKm,
   formatSpeedKph,
   relativeTimeFrom,
+  type TerminalSessionView,
 } from '@saarthi/shared';
 import { api, errorMessage } from '@/lib/api-client';
 import type { TripSummary } from '@/lib/api-types';
@@ -30,6 +33,7 @@ import { EmptyState, LoadingState } from '@/components/common/states';
 import { ScoreBadge, StatusBadge } from '@/components/common/status-badge';
 import { MiniStat } from '@/components/common/stat-card';
 import { FleetMap } from '@/features/maps/fleet-map';
+import { DriverSignOnCard } from '@/features/terminal/driver-signon-card';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -43,7 +47,7 @@ import { AnimatedNumber, LiveValue, Stagger, StaggerItem } from '@/components/mo
  * truck actually is rather than where the driver last refreshed.
  */
 export function DriverHomePage() {
-  const { session, hasFeature } = useAuth();
+  const { session, hasFeature, can } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const driverId = session?.driver?.id;
@@ -54,6 +58,22 @@ export function DriverHomePage() {
     queryKey: ['trips', 'current'],
     queryFn: () => api.get<TripSummary | null>('/trips/current'),
     refetchInterval: 30_000,
+  });
+
+  /*
+   * Whether the driver is signed on to a vehicle, and where in that handshake
+   * they are.
+   *
+   * This is the first screen after login, so it is where "you have a request
+   * waiting on your arrival photo" has to appear. A driver who has to remember
+   * to go and look for it is a driver standing beside a truck they cannot
+   * legally move.
+   */
+  const signOn = useQuery({
+    queryKey: ['terminal', 'my-session'],
+    queryFn: () => api.get<TerminalSessionView | null>('/terminal/assignments/mine'),
+    enabled: can(Permission.TERMINAL_READ),
+    refetchInterval: 20_000,
   });
 
   const [position, setPosition] = React.useState<{
@@ -124,6 +144,34 @@ export function DriverHomePage() {
           }
         />
       </StaggerItem>
+
+      {/*
+        Sign-on comes before everything but the header. A shift starts by
+        getting authorised onto a vehicle; a score and a map are of no use to a
+        driver who is not yet allowed to drive.
+      */}
+      {can(Permission.TERMINAL_DRIVE) ? (
+        <StaggerItem>
+          {signOn.data ? (
+            <DriverSignOnCard registrationNumber={signOn.data.registrationNumber} />
+          ) : (
+            <Card variant="glass">
+              <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
+                <div>
+                  <p className="text-sm font-medium">Starting a shift?</p>
+                  <p className="text-xs text-muted-foreground">
+                    Scan the QR on the terminal or the windscreen to sign on.
+                  </p>
+                </div>
+                <Button onClick={() => navigate('/driver/scan')}>
+                  <ScanLine className="size-4" />
+                  Scan a vehicle
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+        </StaggerItem>
+      ) : null}
 
       {session?.driver ? (
         <StaggerItem>

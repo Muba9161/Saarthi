@@ -26,10 +26,12 @@ import {
   Package,
   PlayCircle,
   Route,
+  ScanLine,
   ScrollText,
   Settings,
   ShieldCheck,
   ShoppingCart,
+  MonitorSmartphone,
   Truck,
   Users,
   Wrench,
@@ -122,6 +124,15 @@ export const FLEET_NAVIGATION: NavSection[] = [
         icon: BadgeCheck,
         permissions: [Permission.VEHICLE_LOOKUP],
         feature: Feature.FLEET_BASIC,
+      },
+      {
+        // Placed under Fleet rather than Safety: it is a roster decision made
+        // several times a day, not an incident. It sits directly above
+        // Maintenance because both are about whether a vehicle may go out.
+        label: 'Terminal arrivals',
+        to: '/fleet/terminal-approvals',
+        icon: MonitorSmartphone,
+        permissions: [Permission.TERMINAL_READ],
       },
       {
         label: 'Maintenance',
@@ -418,6 +429,15 @@ export const MOBILITY_NAVIGATION: NavSection[] = [
         feature: Feature.FLEET_BASIC,
       },
       {
+        // Placed under Fleet rather than Safety: it is a roster decision made
+        // several times a day, not an incident. It sits directly above
+        // Maintenance because both are about whether a vehicle may go out.
+        label: 'Terminal arrivals',
+        to: '/fleet/terminal-approvals',
+        icon: MonitorSmartphone,
+        permissions: [Permission.TERMINAL_READ],
+      },
+      {
         label: 'Maintenance',
         to: '/fleet/maintenance',
         icon: Wrench,
@@ -485,6 +505,15 @@ export const DRIVER_NAVIGATION: NavSection[] = [
     title: 'Driving',
     items: [
       { label: 'My trip', to: '/driver', icon: Gauge, end: true },
+      // Second, under the trip itself: signing on to a vehicle is the first
+      // thing a driver does at the start of a shift and the thing they come
+      // back to when a request is waiting on their arrival photo.
+      {
+        label: 'Scan a vehicle',
+        to: '/driver/scan',
+        icon: ScanLine,
+        permissions: [Permission.TERMINAL_DRIVE],
+      },
       { label: 'Nearby', to: '/driver/nearby', icon: MapPin },
       { label: 'My score', to: '/driver/score', icon: ShieldCheck },
       { label: 'Documents', to: '/driver/documents', icon: FileText },

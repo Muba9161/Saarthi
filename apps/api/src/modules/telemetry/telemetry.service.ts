@@ -157,7 +157,24 @@ export async function latestReading(
   vehicleId: string,
 ): Promise<TelemetryReadingSummary | null> {
   await assertVehicleAccess(auth, vehicleId);
+  return latestReadingForVehicle(vehicleId);
+}
 
+/**
+ * The same read, without a user session.
+ *
+ * For callers whose authorisation is *not* a person's permissions — a terminal
+ * or a device authenticated against its own assignment, which by construction
+ * can only ask about the one vehicle it is fitted to. Splitting it out keeps
+ * that authorisation decision at the call site, where the caller's identity is
+ * actually known, rather than smuggling a synthetic AuthContext through
+ * `assertVehicleAccess` and hoping it was built correctly.
+ *
+ * Never expose this on a route. The route's own guard is what makes it safe.
+ */
+export async function latestReadingForVehicle(
+  vehicleId: string,
+): Promise<TelemetryReadingSummary | null> {
   const reading = await prisma.telemetryReading.findFirst({
     where: { vehicleId },
     include: { diagnostics: true },

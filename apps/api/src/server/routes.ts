@@ -41,6 +41,11 @@ import { vehiclePairingRoutes } from '../modules/devices/pairing.routes';
 import { deviceClientRoutes } from '../modules/devices/device-client.routes';
 import { videoGatewayRoutes } from '../modules/devices/video-gateway.routes';
 import { telemetryRoutes } from '../modules/telemetry/telemetry.routes';
+import {
+  terminalRoutes,
+  vehicleTerminalRoutes,
+} from '../modules/terminal/terminal.routes';
+import { terminalClientRoutes } from '../modules/terminal/terminal-client.routes';
 import { deviceGatewayRoutes } from '../modules/telemetry/gateway.routes';
 import { aiRoutes } from '../modules/ai/ai.routes';
 import { loanRoutes, vehicleLoanRoutes } from '../modules/loans/loan.routes';
@@ -135,12 +140,19 @@ export async function registerApiRoutes(app: FastifyInstance): Promise<void> {
   // Vehicle → Hardware → Add Device. Issuing the QR belongs beside the vehicle
   // it connects something to, not under /devices.
   await app.register(vehiclePairingRoutes, { prefix: '/fleet/vehicles' });
+  // Connecting a Saarthi Terminal, beside the device pairing it sits next to on
+  // the same Hardware screen.
+  await app.register(vehicleTerminalRoutes, { prefix: '/fleet/vehicles' });
   await app.register(vehicleTollRoutes, { prefix: '/fleet/vehicles' });
   // Trip cost and toll variance, mounted where the question is asked.
   await app.register(tripTollRoutes, { prefix: '/trips' });
   await app.register(associationRoutes, { prefix: '/associations' });
   await app.register(travelRoutes, { prefix: '/travel' });
   await app.register(deviceRoutes, { prefix: '/devices' });
+  // Saarthi Terminal, people-facing half: the driver asking to be assigned to a
+  // vehicle, and the owner or provider deciding. The terminal's own half is
+  // mounted under /device-gateway below, because its caller is a device.
+  await app.register(terminalRoutes, { prefix: '/terminal' });
   await app.register(telemetryRoutes, { prefix: '/telemetry' });
   // Multi-camera devices (YC06). Registration hangs off the device; watching a
   // camera is its own surface, because that is how a person thinks about it.
@@ -157,6 +169,11 @@ export async function registerApiRoutes(app: FastifyInstance): Promise<void> {
   // the base URL would mean configuring two.
   await app.register(deviceClientRoutes, { prefix: '/device-gateway' });
   await app.register(deviceGatewayRoutes, { prefix: '/device-gateway' });
+  // The Saarthi Terminal client surface. A third plugin on the same prefix, so
+  // a tablet in a truck configures one base URL and no more. It re-declares
+  // nothing: heartbeat, telemetry, location, SOS, commands and camera are the
+  // endpoints above, used unchanged.
+  await app.register(terminalClientRoutes, { prefix: '/device-gateway/terminal' });
   // The video gateway's authorisation callback. Its caller is an SFU, not a
   // person and not a device — the signed ticket it presents is the whole
   // credential, and it is verified inside the route.

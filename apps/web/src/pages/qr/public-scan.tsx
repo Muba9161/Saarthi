@@ -30,6 +30,7 @@ import {
   RcRecordDetails,
   RtoDetail,
 } from '@/features/documents/rto-record-details';
+import { DriverSignOnCard } from '@/features/terminal/driver-signon-card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -380,6 +381,20 @@ export function PublicScanPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/*
+        --- Driver sign-on --------------------------------------------------
+        Only ever rendered for a signed-in driver scanning a vehicle in their
+        own fleet; it returns null for everyone else. Placed directly under the
+        identity card because for that one reader it is the whole reason they
+        scanned.
+      */}
+      {isVehicle ? (
+        <DriverSignOnCard
+          qrToken={token}
+          registrationNumber={result.vehicle?.registrationNumber ?? result.identity.displayName}
+        />
+      ) : null}
 
       {/* --- Registration certificate -------------------------------------- */}
       {result.rc ? (

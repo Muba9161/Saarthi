@@ -367,6 +367,16 @@ enum NotificationType {
   LOAN_PAYMENT_RECORDED
   LOAN_CLOSED
   LOAN_SYNC_CONFLICT
+
+  // Saarthi Terminal
+  TERMINAL_DRIVER_REQUEST
+  TERMINAL_DRIVER_REQUEST_REMINDER
+  TERMINAL_DRIVER_REQUEST_ESCALATED
+  TERMINAL_DRIVER_APPROVED
+  TERMINAL_DRIVER_REJECTED
+  TERMINAL_DRIVER_REQUEST_EXPIRED
+  TERMINAL_CHECKLIST_FAILED
+  TERMINAL_ISSUE_REPORTED
 }
 
 // ===========================================================================
@@ -838,11 +848,13 @@ model Driver {
   createdAt             DateTime           @default(now())
   updatedAt             DateTime           @updatedAt
 
-  user         User                @relation("DriverUser", fields: [userId], references: [id], onDelete: Cascade)
-  assignments  TruckAssignment[]
-  scores       DriverScore[]
-  scoreEvents  DriverScoreEvent[]
-  achievements DriverAchievement[]
+  user             User                  @relation("DriverUser", fields: [userId], references: [id], onDelete: Cascade)
+  assignments      TruckAssignment[]
+  scores           DriverScore[]
+  scoreEvents      DriverScoreEvent[]
+  achievements     DriverAchievement[]
+  terminalSessions TerminalSession[]     @relation("DriverTerminalSessions")
+  terminalIssues   TerminalIssueReport[] @relation("DriverTerminalIssues")
 
   @@unique([organizationId, licenseNumber])
   @@index([organizationId, availability])
@@ -972,22 +984,24 @@ model Truck {
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 
-  assignments        TruckAssignment[]
-  locations          TruckLocation[]
-  events             TruckEvent[]
-  maintenance        MaintenanceRecord[]
-  fuelRecords        FuelRecord[]
-  deviceAssignments  DeviceAssignment[]  @relation("VehicleDeviceAssignments")
-  devicePairingTokens DevicePairingToken[] @relation("VehiclePairingTokens")
-  telemetryReadings  TelemetryReading[]  @relation("VehicleTelemetry")
-  telemetryAlerts    TelemetryAlert[]    @relation("VehicleTelemetryAlerts")
-  travelPackages     TravelPackage[]     @relation("PackageVehicle")
-  travelBookings     TravelBooking[]     @relation("BookingVehicle")
-  resaleListings     VehicleListing[]
-  returnLoadRequests ReturnLoadRequest[]
-  loans              VehicleLoan[]
-  fastagAccounts     FastagAccount[]
-  tollTransactions   TollTransaction[]
+  assignments         TruckAssignment[]
+  locations           TruckLocation[]
+  events              TruckEvent[]
+  maintenance         MaintenanceRecord[]
+  fuelRecords         FuelRecord[]
+  deviceAssignments   DeviceAssignment[]    @relation("VehicleDeviceAssignments")
+  devicePairingTokens DevicePairingToken[]  @relation("VehiclePairingTokens")
+  telemetryReadings   TelemetryReading[]    @relation("VehicleTelemetry")
+  telemetryAlerts     TelemetryAlert[]      @relation("VehicleTelemetryAlerts")
+  travelPackages      TravelPackage[]       @relation("PackageVehicle")
+  travelBookings      TravelBooking[]       @relation("BookingVehicle")
+  resaleListings      VehicleListing[]
+  returnLoadRequests  ReturnLoadRequest[]
+  loans               VehicleLoan[]
+  fastagAccounts      FastagAccount[]
+  tollTransactions    TollTransaction[]
+  terminalSessions    TerminalSession[]     @relation("VehicleTerminalSessions")
+  terminalIssues      TerminalIssueReport[] @relation("VehicleTerminalIssues")
 
   @@index([organizationId, status])
   @@index([organizationId, archivedAt])
@@ -2290,6 +2304,14 @@ enum DeviceType {
   MULTI_CAMERA
   /// A phone standing in for fitted hardware during testing.
   MOBILE_TEST_DEVICE
+  /// A vehicle-mounted tablet or phone running Saarthi Terminal.
+  ///
+  /// Distinct from MOBILE_TEST_DEVICE because the two are different products
+  /// with different lifecycles: a test phone is carried in and out of a cab by
+  /// an engineer, while a terminal is fitted to one vehicle and stays there.
+  /// The type is what lets a fleet see which is which, and what stops a
+  /// pairing code issued for one being redeemed by the other.
+  VEHICLE_TERMINAL
   OTHER
 }
 
@@ -3048,16 +3070,18 @@ model HardwareDevice {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  assignments   DeviceAssignment[]
-  events        DeviceEvent[]
-  readings      TelemetryReading[]
-  alerts        TelemetryAlert[]
-  mockRuns      MockDeviceRun[]
-  cameras       DeviceCamera[]
-  commands      DeviceCommand[]
-  pairingTokens DevicePairingToken[]
-  enrolment     DeviceEnrolment?
-  sosIncidents  SosIncident[]
+  assignments      DeviceAssignment[]
+  events           DeviceEvent[]
+  readings         TelemetryReading[]
+  alerts           TelemetryAlert[]
+  mockRuns         MockDeviceRun[]
+  cameras          DeviceCamera[]
+  commands         DeviceCommand[]
+  pairingTokens    DevicePairingToken[]
+  enrolment        DeviceEnrolment?
+  sosIncidents     SosIncident[]
+  terminalSessions TerminalSession[]     @relation("TerminalDeviceSessions")
+  terminalIssues   TerminalIssueReport[] @relation("TerminalDeviceIssues")
 
   @@index([organizationId, status])
   @@index([provider, status])
@@ -3134,6 +3158,21 @@ model DevicePairingToken {
   /// What kind of unit this token expects, so a phone cannot take a slot
   /// reserved for a fitted recorder.
   deviceType DeviceType @default(MOBILE_TEST_DEVICE)
+
+  /// Human-typeable form of this credential, e.g. `STH-4K2P-9XQ7`.
+  ///
+  /// Populated only for Saarthi Terminal codes. A terminal is a tablet bolted
+  /// to a truck, sometimes with a cracked digitiser and always in bad light, so
+  /// it has to be pairable without a working camera — and reading a
+  /// 43-character base64url token aloud over a phone is not a plan.
+  ///
+  /// It is the same single-use credential as `tokenHash`, in a shorter
+  /// alphabet: eight Crockford base32 characters, which is a smaller space than
+  /// the raw token but is protected by the same five-minute life, the same
+  /// single-use consumption, the same tenant check at redemption and a hard
+  /// per-device rate limit on the redeem endpoint. Null for every other kind of
+  /// device, which is why it is nullable rather than defaulted.
+  pairingCode String? @unique
 
   createdById String   @db.Uuid
   note        String?
@@ -3534,6 +3573,12 @@ enum MediaPurpose {
   INSPECTION
   SIGNATURE
   ATTACHMENT
+  /// A driver arrival selfie, taken at a Saarthi Terminal.
+  ///
+  /// Its own purpose rather than reusing HANDOVER: it is a photograph of a
+  /// person taken to prove they were physically at a vehicle, and it needs to
+  /// be findable — and deletable — as that, not folded in with cargo photos.
+  DRIVER_VERIFICATION
 }
 
 enum MediaVisibility {
@@ -5638,4 +5683,378 @@ model TollTransaction {
   @@index([tripId])
   @@index([fastagId, crossedAt])
   @@map("toll_transactions")
+}
+
+// ===========================================================================
+// Enums — Saarthi Terminal
+// ===========================================================================
+
+/// The lifecycle of one driver on one terminal.
+///
+/// Persisted as a single explicit state rather than as a scatter of booleans,
+/// because the rules that matter — a driver is not active until somebody
+/// approved them, a trip cannot start before the safety check — are statements
+/// about *which* state the session is in. A boolean pair can represent
+/// "rejected and approved" at the same time; this cannot.
+enum TerminalSessionStatus {
+  /// The driver scanned the vehicle QR from their own Saarthi account.
+  DRIVER_IDENTIFIED
+  /// An arrival selfie has been captured and stored.
+  SELFIE_SUBMITTED
+  /// Waiting on the fleet owner or mobility provider.
+  PENDING_APPROVAL
+  /// Authorised by a named person. The safety check is still outstanding.
+  APPROVED
+  /// Checklist complete. The driver may start driving.
+  READY
+  /// A trip is under way.
+  TRIP_ACTIVE
+  /// The driver signed off, or the trip finished.
+  COMPLETED
+  /// Explicitly refused by the owner or provider.
+  REJECTED
+  /// Withdrawn by the driver before a decision.
+  CANCELLED
+  /// Never answered inside the SLA window and closed by the sweep.
+  ///
+  /// Expiry closes the *request*; it never activates the driver. Section 15 of
+  /// the specification is explicit that fifteen minutes is an escalation, not
+  /// an approval.
+  EXPIRED
+}
+
+enum TerminalSessionEventType {
+  REQUESTED
+  SELFIE_SUBMITTED
+  SUBMITTED_FOR_APPROVAL
+  REMINDER_SENT
+  ESCALATED
+  APPROVED
+  REJECTED
+  CHECKLIST_SUBMITTED
+  TRIP_STARTED
+  TRIP_COMPLETED
+  CANCELLED
+  EXPIRED
+  NOTE
+}
+
+/// Where a checklist item's verdict comes from.
+///
+/// The distinction is the whole point of the intelligent checklist: a driver
+/// looking at a tyre and a sensor reporting a coolant temperature are different
+/// kinds of evidence, and presenting one as the other is how a vehicle gets
+/// signed off on a reading nobody took.
+enum TerminalChecklistItemKind {
+  /// The driver has to look at it. Nothing on the vehicle can answer.
+  MANUAL
+  /// Answered from live telemetry when the metric is genuinely reported.
+  TELEMETRY
+  /// Answered from maintenance and service records.
+  MAINTENANCE
+  /// Answered from document validity.
+  DOCUMENT
+}
+
+enum TerminalChecklistItemStatus {
+  OK
+  ATTENTION
+  CRITICAL
+  /// No data and no inspection — recorded as unknown rather than as a pass.
+  UNAVAILABLE
+  SKIPPED
+}
+
+enum TerminalChecklistOutcome {
+  PASSED
+  PASSED_WITH_WARNINGS
+  FAILED
+}
+
+enum TerminalIssueCategory {
+  ENGINE
+  TYRE
+  BRAKE
+  ELECTRICAL
+  ACCIDENT
+  BODY
+  OTHER
+}
+
+enum TerminalIssueStatus {
+  OPEN
+  ACKNOWLEDGED
+  IN_PROGRESS
+  RESOLVED
+  DISMISSED
+}
+
+// ===========================================================================
+// Saarthi Terminal
+// ===========================================================================
+
+/// One driver's authorisation to use one vehicle, raised from a terminal.
+///
+/// Deliberately one row for the whole lifecycle — request, selfie, approval,
+/// safety check, trip, sign-off — rather than a request table and a session
+/// table. They are one thing that happens once, in order, and splitting them
+/// would mean every read of "who is on this truck right now" is a join, while
+/// buying nothing: there is no state in which a session exists without the
+/// request that produced it.
+///
+/// The terminal is `HardwareDevice`; the vehicle is `Truck`; the driver is
+/// `Driver`. None of them is duplicated here.
+model TerminalSession {
+  id             String @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+
+  /// The terminal the driver walked up to.
+  terminalDeviceId String @db.Uuid
+  vehicleId        String @db.Uuid
+  driverId         String @db.Uuid
+  /// Denormalised from the driver, so the approval queue renders without a
+  /// second join and a later driver archive does not blank the history.
+  driverUserId     String @db.Uuid
+
+  status TerminalSessionStatus @default(DRIVER_IDENTIFIED)
+
+  /// The QR code the driver actually scanned, for the audit trail.
+  ///
+  /// Nullable because a session may also be opened from a typed vehicle code,
+  /// and because a code can be rotated after the fact.
+  scannedQrCodeId String? @db.Uuid
+
+  /// Where the driver was when they scanned. Evidence they were at the vehicle.
+  scanLatitude  Float?
+  scanLongitude Float?
+
+  /// The arrival selfie, stored once in the media library.
+  ///
+  /// A reference, never a second copy of the bytes: section 13 is explicit that
+  /// the terminal must not create duplicate image storage.
+  selfieMediaId    String?   @db.Uuid
+  selfieCapturedAt DateTime?
+
+  requestedAt DateTime  @default(now())
+  submittedAt DateTime?
+
+  /// SLA bookkeeping (section 15). None of these ever approves anything.
+  remindedAt  DateTime?
+  escalatedAt DateTime?
+  /// When the request stops being answerable.
+  expiresAt   DateTime?
+
+  decidedAt       DateTime?
+  decidedById     String?   @db.Uuid
+  decisionNote    String?
+  rejectionReason String?
+
+  /// The TruckAssignment opened on approval, so the two stay reconcilable.
+  truckAssignmentId String? @db.Uuid
+
+  checklistCompletedAt DateTime?
+  tripStartedAt        DateTime?
+  tripCompletedAt      DateTime?
+  endedAt              DateTime?
+  endReason            String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  terminal   HardwareDevice                @relation("TerminalDeviceSessions", fields: [terminalDeviceId], references: [id], onDelete: Cascade)
+  vehicle    Truck                         @relation("VehicleTerminalSessions", fields: [vehicleId], references: [id], onDelete: Cascade)
+  driver     Driver                        @relation("DriverTerminalSessions", fields: [driverId], references: [id], onDelete: Cascade)
+  events     TerminalSessionEvent[]
+  checklists TerminalChecklistSubmission[]
+  issues     TerminalIssueReport[]
+
+  @@index([organizationId, status, requestedAt])
+  @@index([terminalDeviceId, status])
+  @@index([vehicleId, status])
+  @@index([driverId, status])
+  @@index([status, expiresAt])
+  @@map("terminal_sessions")
+}
+
+/// Append-only history of one session.
+///
+/// Kept separate from the status column because "what state is it in" and "how
+/// did it get here" are different questions, and an approval dispute needs the
+/// second one.
+model TerminalSessionEvent {
+  id          String                   @id @default(uuid()) @db.Uuid
+  sessionId   String                   @db.Uuid
+  eventType   TerminalSessionEventType
+  description String?
+  metadata    Json?
+  actorUserId String?                  @db.Uuid
+  createdAt   DateTime                 @default(now())
+
+  session TerminalSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId, createdAt])
+  @@map("terminal_session_events")
+}
+
+/// A fleet's pre-trip checklist definition.
+///
+/// Section 17 requires the ten points be configurable from the backend rather
+/// than hard-coded for ever. A fleet with no row falls back to the shared
+/// default catalogue, so the feature works on day one without anybody
+/// configuring anything, and a fleet that does configure it is not fighting a
+/// hard-coded list.
+model TerminalChecklistTemplate {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @db.Uuid
+  name           String       @default("Pre-trip safety check")
+  /// Vehicle type this template applies to. Null = every vehicle type.
+  vehicleType    VehicleType?
+  active         Boolean      @default(true)
+  version        Int          @default(1)
+
+  updatedById String?  @db.Uuid
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  items       TerminalChecklistTemplateItem[]
+  submissions TerminalChecklistSubmission[]
+
+  @@unique([organizationId, vehicleType])
+  @@index([organizationId, active])
+  @@map("terminal_checklist_templates")
+}
+
+model TerminalChecklistTemplateItem {
+  id         String @id @default(uuid()) @db.Uuid
+  templateId String @db.Uuid
+
+  /// Stable machine key (e.g. `TYRES`). What results are keyed on, so renaming
+  /// the label does not orphan a year of submissions.
+  code        String
+  label       String
+  description String?
+  kind        TerminalChecklistItemKind @default(MANUAL)
+  /// The telemetry metric that can answer this item, when `kind` is TELEMETRY.
+  /// A value from the shared `TelemetryMetric` catalogue, stored as text for
+  /// the same reason `telemetry_readings.metrics` is: the catalogue grows
+  /// often, and a database enum would need a migration for every addition.
+  metric      String?
+  /// A failure here blocks the trip. A warning does not.
+  blocking    Boolean                   @default(false)
+  required    Boolean                   @default(true)
+  sortOrder   Int                       @default(0)
+
+  template TerminalChecklistTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@unique([templateId, code])
+  @@index([templateId, sortOrder])
+  @@map("terminal_checklist_template_items")
+}
+
+/// One completed pre-trip check.
+model TerminalChecklistSubmission {
+  id             String  @id @default(uuid()) @db.Uuid
+  organizationId String  @db.Uuid
+  sessionId      String  @db.Uuid
+  vehicleId      String  @db.Uuid
+  driverId       String  @db.Uuid
+  templateId     String? @db.Uuid
+
+  outcome TerminalChecklistOutcome @default(PASSED)
+
+  /// Where the vehicle was when the check was signed off.
+  latitude   Float?
+  longitude  Float?
+  odometerKm Float?
+
+  /// True when any automated verdict in this submission came from simulated
+  /// telemetry rather than a real sensor. Stored, not inferred, so a submission
+  /// read a year later still says so.
+  usedSimulatedData Boolean @default(false)
+
+  notes       String?
+  submittedAt DateTime @default(now())
+
+  session  TerminalSession               @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  template TerminalChecklistTemplate?    @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  results  TerminalChecklistItemResult[]
+
+  @@index([organizationId, submittedAt])
+  @@index([vehicleId, submittedAt])
+  @@index([sessionId])
+  @@map("terminal_checklist_submissions")
+}
+
+model TerminalChecklistItemResult {
+  id           String @id @default(uuid()) @db.Uuid
+  submissionId String @db.Uuid
+
+  code   String
+  label  String
+  kind   TerminalChecklistItemKind   @default(MANUAL)
+  status TerminalChecklistItemStatus @default(OK)
+
+  /// The observed figure, when one was available, and what it was.
+  observedValue Float?
+  unit          String?
+  /// A value from the shared `TelemetryMetric` catalogue. Text, as above.
+  metric        String?
+  /// True when `observedValue` came from a simulator rather than a sensor.
+  simulated     Boolean @default(false)
+  /// Free text from the driver, and the rule's own explanation.
+  note          String?
+  detail        String?
+
+  submission TerminalChecklistSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@index([submissionId])
+  @@map("terminal_checklist_item_results")
+}
+
+/// A problem the driver reported from the cab.
+///
+/// Not a MaintenanceRecord: a maintenance record is what a workshop did, and
+/// this is what a driver noticed. Triage turns one into the other, and
+/// conflating them would put unverified driver reports into the service history
+/// a resale valuation reads.
+model TerminalIssueReport {
+  id               String  @id @default(uuid()) @db.Uuid
+  organizationId   String  @db.Uuid
+  sessionId        String? @db.Uuid
+  terminalDeviceId String? @db.Uuid
+  vehicleId        String  @db.Uuid
+  driverId         String? @db.Uuid
+  reportedByUserId String? @db.Uuid
+
+  category    TerminalIssueCategory @default(OTHER)
+  status      TerminalIssueStatus   @default(OPEN)
+  severity    AlertSeverity         @default(WARNING)
+  description String
+
+  /// Photographs, in the media library. Ids only — see TerminalSession.selfieMediaId.
+  mediaIds String[]
+
+  latitude   Float?
+  longitude  Float?
+  odometerKm Float?
+
+  /// The maintenance record raised from this report, once one exists.
+  maintenanceRecordId String?   @db.Uuid
+  acknowledgedAt      DateTime?
+  acknowledgedById    String?   @db.Uuid
+  resolvedAt          DateTime?
+  resolutionNote      String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  session  TerminalSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  terminal HardwareDevice?  @relation("TerminalDeviceIssues", fields: [terminalDeviceId], references: [id], onDelete: SetNull)
+  vehicle  Truck            @relation("VehicleTerminalIssues", fields: [vehicleId], references: [id], onDelete: Cascade)
+  driver   Driver?          @relation("DriverTerminalIssues", fields: [driverId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, status, createdAt])
+  @@index([vehicleId, createdAt])
+  @@index([sessionId])
+  @@map("terminal_issue_reports")
 }

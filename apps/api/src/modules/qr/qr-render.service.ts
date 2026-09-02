@@ -79,6 +79,37 @@ export async function renderPayloadDataUri(
   return `data:image/svg+xml;base64,${Buffer.from(svg, 'utf8').toString('base64')}`;
 }
 
+/**
+ * The same payload as a PNG data URI.
+ *
+ * For native clients. The SVG variant above is right for a browser and useless
+ * to an Android `BitmapFactory`, which decodes PNG, JPEG and WebP and has never
+ * decoded SVG — so a terminal handed the SVG form renders nothing at all, with
+ * no error, which is exactly the bug this exists to prevent.
+ *
+ * Rendered at the size the caller asks for rather than scaled on the device: a
+ * QR upscaled from a small bitmap loses the crisp module edges a camera needs to
+ * read it at arm's length.
+ */
+export async function renderPayloadPngDataUri(
+  payload: string,
+  options: Omit<RenderOptions, 'baseUrl'> = {},
+): Promise<string> {
+  const size = Math.min(options.size ?? 512, config.qr.maxImageSize);
+  try {
+    const buffer = await QRCode.toBuffer(payload, {
+      type: 'png',
+      width: size,
+      margin: options.margin ?? 4,
+      errorCorrectionLevel: options.errorCorrection ?? 'Q',
+      color: { dark: '#0f172a', light: '#ffffff' },
+    });
+    return `data:image/png;base64,${buffer.toString('base64')}`;
+  } catch (error) {
+    throw errors.internal('The QR image could not be generated.', error);
+  }
+}
+
 export async function renderSvg(token: string, options: RenderOptions = {}): Promise<string> {
   const size = Math.min(options.size ?? 512, config.qr.maxImageSize);
   try {

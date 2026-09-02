@@ -333,6 +333,100 @@ export async function ensureForSubject(
   return createQrCode(auth, { subjectType, subjectId } as CreateQrCodeInput, frontendUrl);
 }
 
+/**
+ * The vehicle's permanent QR, provisioned if it does not exist yet.
+ *
+ * For callers whose authority is a *device*, not a person — specifically a
+ * Saarthi Terminal, which is fitted to exactly one vehicle and must display
+ * that vehicle's own code. Section 10 of the terminal specification is blunt
+ * about why this matters: the vehicle already has a permanent QR, that QR is
+ * the vehicle's identity, and the terminal must show *that one*. It must never
+ * mint a temporary per-driver code.
+ *
+ * No AuthContext, because there is no person in the loop: the caller has
+ * already proved it is the device assigned to this vehicle, which is a stronger
+ * claim than any permission check could make here. `createdById` is attributed
+ * to whoever registered the vehicle, so the provenance trail still names a
+ * human rather than recording the code as having appeared from nowhere.
+ *
+ * Never expose this on a route. The route's own device authentication is what
+ * makes it safe.
+ */
+export async function ensureVehicleCodeForDevice(
+  vehicleId: string,
+  frontendUrl?: string,
+): Promise<QrCodeView> {
+  const existing = await prisma.qrCode.findFirst({
+    where: {
+      subjectType: QrSubjectType.VEHICLE,
+      subjectId: vehicleId,
+      status: QrCodeStatus.ACTIVE,
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  if (existing) {
+    if (!existing.expiresAt || existing.expiresAt.getTime() >= Date.now()) {
+      return toView(existing, frontendUrl);
+    }
+    // An expiry that has passed is a fact, not a state to discover later.
+    await prisma.qrCode.update({
+      where: { id: existing.id },
+      data: { status: QrCodeStatus.EXPIRED },
+    });
+  }
+
+  const vehicle = await prisma.truck.findUnique({
+    where: { id: vehicleId },
+    select: { id: true, organizationId: true, registrationNumber: true, archivedAt: true },
+  });
+  if (!vehicle || vehicle.archivedAt) throw errors.notFound('Vehicle');
+
+  // Attribute the code to the fleet's owner. A QrCode row requires a creator,
+  // and recording a real accountable person is better than inventing a system
+  // user that nothing else in Saarthi has.
+  const owner = await prisma.membership.findFirst({
+    where: {
+      organizationId: vehicle.organizationId,
+      status: 'ACTIVE',
+      role: { in: ['FLEET_OWNER', 'MOBILITY_PROVIDER', 'FLEET_MANAGER'] },
+    },
+    orderBy: { createdAt: 'asc' },
+    select: { userId: true },
+  });
+  if (!owner) {
+    throw errors.businessRule(
+      'This vehicle has no fleet owner on record, so a vehicle QR cannot be issued for it.',
+    );
+  }
+
+  const expiresAt =
+    config.qr.defaultTtlDays > 0
+      ? new Date(Date.now() + config.qr.defaultTtlDays * 86_400_000)
+      : null;
+
+  const code = await prisma.qrCode.create({
+    data: {
+      organizationId: vehicle.organizationId,
+      subjectType: QrSubjectType.VEHICLE,
+      subjectId: vehicle.id,
+      token: generateToken(),
+      scopes: defaultScopesFor(QrSubjectType.VEHICLE),
+      label: vehicle.registrationNumber,
+      allowPublicResolve: publicResolveDefaultFor(QrSubjectType.VEHICLE),
+      expiresAt,
+      createdById: owner.userId,
+    },
+  });
+
+  qrLogger.info(
+    { vehicleId: vehicle.id, registrationNumber: vehicle.registrationNumber },
+    'Vehicle QR provisioned for a terminal',
+  );
+
+  return toView(code, frontendUrl);
+}
+
 export async function listQrCodes(
   auth: AuthContext,
   query: QrListQuery,

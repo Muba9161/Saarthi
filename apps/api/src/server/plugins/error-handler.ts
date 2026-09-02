@@ -98,6 +98,20 @@ function toFailure(error: unknown): { statusCode: number; body: ApiFailure } {
       FST_ERR_CTP_BODY_TOO_LARGE: ErrorCode.PAYLOAD_TOO_LARGE,
       FST_ERR_NOT_FOUND: ErrorCode.NOT_FOUND,
       FST_REQ_FILE_TOO_LARGE: ErrorCode.PAYLOAD_TOO_LARGE,
+      FST_FILES_LIMIT: ErrorCode.VALIDATION_ERROR,
+      FST_PARTS_LIMIT: ErrorCode.VALIDATION_ERROR,
+      FST_FIELDS_LIMIT: ErrorCode.VALIDATION_ERROR,
+    };
+
+    /*
+     * Busboy's own wording for these is "reach files limit" — no subject, no
+     * number, nothing to do about it. Someone uploading a photo reads that as
+     * a storage quota they have hit, which it is not.
+     */
+    const multipartMessage: Record<string, string> = {
+      FST_FILES_LIMIT: 'Too many files were attached to this upload.',
+      FST_PARTS_LIMIT: 'This upload had too many parts.',
+      FST_FIELDS_LIMIT: 'This upload had too many fields.',
     };
     return {
       statusCode: fastifyError.statusCode,
@@ -105,7 +119,10 @@ function toFailure(error: unknown): { statusCode: number; body: ApiFailure } {
         success: false,
         error: {
           code: codeMap[fastifyError.code ?? ''] ?? ErrorCode.VALIDATION_ERROR,
-          message: fastifyError.message ?? 'The request could not be processed.',
+          message:
+            multipartMessage[fastifyError.code ?? ''] ??
+            fastifyError.message ??
+            'The request could not be processed.',
         },
       },
     };

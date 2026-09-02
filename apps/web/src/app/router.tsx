@@ -130,6 +130,10 @@ export const router = createBrowserRouter([
             path: '/fleet/maintenance',
             element: lazyPage(() => import('@/pages/fleet/maintenance')),
           },
+          {
+            path: '/fleet/terminal-approvals',
+            element: lazyPage(() => import('@/pages/fleet/terminal-approvals')),
+          },
           { path: '/fleet/loans', element: lazyPage(() => import('@/pages/fleet/loans')) },
           { path: '/fleet/toll', element: lazyPage(() => import('@/pages/fleet/toll')) },
           {
@@ -232,6 +236,17 @@ export const router = createBrowserRouter([
 
           // Driver app
           { path: '/driver', element: lazyPage(() => import('@/pages/driver/home')) },
+          /*
+           * The driver's own scanner.
+           *
+           * Inside the authenticated shell, unlike `/q/:token` above, and that
+           * is the whole point of it: a sign-on request has to be made by a
+           * signed-in driver. Sending them out to the phone's camera app meant
+           * landing back in whichever browser the OS preferred, often without a
+           * session, where the scan resolved but the sign-on card never
+           * appeared.
+           */
+          { path: '/driver/scan', element: lazyPage(() => import('@/pages/driver/scan')) },
           { path: '/driver/nearby', element: lazyPage(() => import('@/pages/driver/nearby')) },
           { path: '/driver/score', element: lazyPage(() => import('@/pages/driver/score')) },
           {

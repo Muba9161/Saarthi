@@ -240,6 +240,32 @@ export const MEDIA_PURPOSE_CATALOGUE: MediaPurposeDefinition[] = [
     ownerTypes: [],
     allowsDocuments: true,
   },
+  {
+    purpose: MediaPurpose.DRIVER_VERIFICATION,
+    label: 'Driver arrival selfie',
+    description: 'Taken at a Saarthi Terminal to verify a driver arrived at the vehicle.',
+    /*
+     * Not singular. Each arrival is its own evidence, and overwriting last
+     * week's selfie with today's would destroy the record of who was at the
+     * vehicle then — which is precisely the question an incident investigation
+     * asks.
+     */
+    singular: false,
+    aspectRatio: 1,
+    /*
+     * Small. It is a face at arm's length on a tablet, uploaded over whatever
+     * signal a yard has, and a 2000px portrait buys nothing an approver needs.
+     */
+    maxDimension: 800,
+    /*
+     * ORGANIZATION rather than PRIVATE: the fleet owner has to see it to
+     * approve, and the driver has to see what they submitted. Nothing wider —
+     * a photograph of a person is never PLATFORM or PUBLIC.
+     */
+    defaultVisibility: MediaVisibility.ORGANIZATION,
+    ownerTypes: [MediaOwnerType.DRIVER],
+    allowsDocuments: false,
+  },
 ];
 
 const BY_PURPOSE = new Map<MediaPurpose, MediaPurposeDefinition>(

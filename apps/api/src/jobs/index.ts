@@ -31,6 +31,7 @@ import {
 import { runTopUpExpirySweep } from '../modules/subscriptions/topup.service';
 import { runDailyBriefSweep } from '../modules/ai/daily-brief.service';
 import { runFastagBalanceSweep } from '../modules/toll/fastag.service';
+import { runTerminalApprovalSweep } from '../modules/terminal/approval-sweep.service';
 
 /**
  * Scheduled background work.
@@ -351,6 +352,26 @@ export function registerBackgroundJobs(): void {
     initialDelayMs: 140_000,
     handler: async () => {
       await runFastagBalanceSweep();
+    },
+  });
+
+  /*
+   * The terminal approval SLA (section 15).
+   *
+   * Runs every minute, which is more often than any other sweep here, because
+   * the thing it is measuring is a person standing beside a truck unable to
+   * start work. A five-minute reminder that arrives at minute nine is not a
+   * five-minute reminder.
+   *
+   * It reminds, escalates and expires. It never approves — see the file header
+   * for why that is not a configuration option.
+   */
+  queue.registerRepeating({
+    name: 'terminal:approval-sla',
+    everyMs: 60_000,
+    initialDelayMs: 45_000,
+    handler: async () => {
+      await runTerminalApprovalSweep();
     },
   });
 

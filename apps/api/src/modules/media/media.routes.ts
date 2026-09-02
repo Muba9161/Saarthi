@@ -55,7 +55,20 @@ async function readMultipart(request: FastifyRequest): Promise<{
   let file: mediaService.UploadFilePart | null = null;
   let thumbnail: mediaService.UploadFilePart | null = null;
 
-  for await (const part of request.parts()) {
+  /*
+   * Two file parts, not one.
+   *
+   * The application-wide multipart limit is a single file, which is right for
+   * every other upload and wrong here: an uploader that sends its own
+   * thumbnail sends two, and busboy aborts the *second* one with a bare
+   * "reach files limit". The photo never arrives and the message names no
+   * photo, no limit anybody set, and nothing the person holding the phone can
+   * change.
+   *
+   * Raised only for this reader. A route that accepts one file keeps rejecting
+   * a second, which is the actual protection.
+   */
+  for await (const part of request.parts({ limits: { files: 2 } })) {
     if (part.type === 'file') {
       const buffer = await part.toBuffer();
       if (part.file.truncated) {

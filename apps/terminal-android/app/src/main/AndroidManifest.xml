@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!--
+      Location.
+
+      COARSE is requested alongside FINE because Android 12 and later let the
+      user grant only the approximate one. An app that treats that as a refusal
+      is an app that stops working for somebody who made a reasonable choice, so
+      both are declared, the terminal reports which it actually got, and the
+      dashboard sees the accuracy it has rather than a promise.
+
+      ACCESS_BACKGROUND_LOCATION is deliberately NOT declared. A foreground
+      service with a permanent notification covers everything a vehicle-mounted
+      terminal needs; the background permission would additionally allow
+      tracking with no running service and no notification, which is more
+      capability than this app has any reason for.
+    -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- Driver selfie, QR scanning and issue photographs. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <!--
+      Voice. "Hey Saarthi" is detected on the device using Android's own
+      recogniser; audio is never uploaded to detect the phrase, which is what
+      section 33 asks for.
+    -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+    <!-- Kept alive across a screen blank while actively reporting. -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- So a terminal fitted permanently to a vehicle resumes after a reboot. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- Battery level for the heartbeat. Read-only, no special permission. -->
+
+    <!--
+      Bluetooth, for the OBD adapter that has been ordered but has not arrived.
+      Declared now because the permission model differs sharply either side of
+      Android 12 and discovering that later would be a release-day problem;
+      `neverForLocation` is asserted because Saarthi does not use a BLE scan to
+      infer position and should not be asked to justify doing so.
+    -->
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission
+        android:name="android.permission.BLUETOOTH_SCAN"
+        android:usesPermissionFlags="neverForLocation"
+        tools:targetApi="s" />
+    <uses-permission
+        android:name="android.permission.BLUETOOTH"
+        android:maxSdkVersion="30" />
+    <uses-permission
+        android:name="android.permission.BLUETOOTH_ADMIN"
+        android:maxSdkVersion="30" />
+
+    <uses-feature android:name="android.hardware.location.gps" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.any" android:required="false" />
+    <uses-feature android:name="android.hardware.bluetooth_le" android:required="false" />
+    <!--
+      Touchscreen not required: some vehicle displays are not touch, and the app
+      is navigable without one.
+    -->
+    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+
+    <application
+        android:name=".SaarthiTerminalApp"
+        android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:label="@string/app_name"
+        android:networkSecurityConfig="@xml/network_security_config"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.SaarthiTerminal"
+        tools:targetApi="35">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:launchMode="singleTask"
+            android:theme="@style/Theme.SaarthiTerminal"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|uiMode|density">
+
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!--
+              HOME, so a dedicated-device deployment can make Saarthi the
+              launcher (section 45). This is only *offered*: on an ordinary
+              tablet Android asks the user which launcher to use and they can
+              say no, and on a provisioned dedicated device the device-owner
+              policy sets it without a prompt. Nothing here seizes the home
+              button — that would be the kind of unsafe hack section 45 rules
+              out.
+            -->
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.HOME" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <!--
+          The terminal service.
+
+          `location` type is mandatory from Android 14 and it is the honest
+          declaration: this service exists to report where the vehicle is, and
+          the person in the cab sees a permanent notification saying so for as
+          long as it runs.
+        -->
+        <service
+            android:name=".service.TerminalService"
+            android:exported="false"
+            android:foregroundServiceType="location" />
+
+        <receiver
+            android:name=".service.BootReceiver"
+            android:enabled="true"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <!-- Some vendors send only this one after an OTA. -->
+                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+        <!--
+          Device-owner policy, for a provisioned dedicated device.
+
+          Declaring the receiver is what lets an EMM or `dpm set-device-owner`
+          make Saarthi the device owner; without it, lock-task mode and the
+          restrictions in section 45 are simply unavailable and the app runs as
+          an ordinary application. It grants nothing on its own.
+        -->
+        <receiver
+            android:name=".kiosk.TerminalDeviceAdminReceiver"
+            android:exported="true"
+            android:permission="android.permission.BIND_DEVICE_ADMIN">
+            <meta-data
+                android:name="android.app.device_admin"
+                android:resource="@xml/device_admin" />
+            <intent-filter>
+                <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>

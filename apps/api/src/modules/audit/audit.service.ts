@@ -318,6 +318,17 @@ export const AuditAction = {
   LOAN_SCHEDULE_IMPORTED: 'loan.schedule_imported',
 
   AI_QUERY: 'ai.query',
+
+  // Saarthi Terminal.
+  //
+  // The approval entry is the one that matters. It records who authorised a
+  // named person to take a specific vehicle out, and it is the record somebody
+  // will look for months later after an incident.
+  TERMINAL_PAIRING_ISSUED: 'terminal.pairing_issued',
+  TERMINAL_ASSIGNMENT_REQUESTED: 'terminal.assignment_requested',
+  TERMINAL_ASSIGNMENT_APPROVED: 'terminal.assignment_approved',
+  TERMINAL_ASSIGNMENT_REJECTED: 'terminal.assignment_rejected',
+  TERMINAL_CHECKLIST_UPDATED: 'terminal.checklist_updated',
 } as const;
 
 export type AuditAction = (typeof AuditAction)[keyof typeof AuditAction];
