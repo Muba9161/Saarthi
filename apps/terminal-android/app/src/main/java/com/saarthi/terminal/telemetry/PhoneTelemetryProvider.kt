@@ -73,6 +73,19 @@ class PhoneTelemetryProvider(
     @Volatile private var harshAcceleration = false
     @Volatile private var suddenMovement = false
 
+    /**
+     * Running totals, alongside the one-shot flags.
+     *
+     * The flags are cleared by whoever reads them first, which is correct for a
+     * telemetry frame — an event belongs in exactly one frame — and useless for
+     * anything that wants to count events over a journey, because the frame
+     * loop would consume every one before the counter saw it. So the events are
+     * recorded twice: once as a flag for the next frame, once as a monotonic
+     * total that anybody can sample without taking it away from anybody else.
+     */
+    private val harshBrakingTotal = java.util.concurrent.atomic.AtomicLong(0)
+    private val harshAccelerationTotal = java.util.concurrent.atomic.AtomicLong(0)
+
     val position: Position? get() = latestPosition.get()
 
     fun consumeMotionFlags(): Triple<Boolean, Boolean, Boolean> {
@@ -82,6 +95,10 @@ class PhoneTelemetryProvider(
         suddenMovement = false
         return flags
     }
+
+    /** Harsh events since the provider started. Never decreases, never resets. */
+    fun motionTotals(): Pair<Long, Long> =
+        harshBrakingTotal.get() to harshAccelerationTotal.get()
 
     private val locationCallback = object : LocationCallback() {
         override fun onLocationResult(result: LocationResult) {
@@ -142,15 +159,34 @@ class PhoneTelemetryProvider(
             }
 
             latest.set(values)
-            latestPosition.set(
-                Position(
-                    latitude = fix.latitude,
-                    longitude = fix.longitude,
-                    accuracyMetres = if (fix.hasAccuracy()) fix.accuracy.toDouble() else null,
-                    source = MetricSource.PHONE,
-                    at = fix.time,
-                ),
-            )
+            /*
+             * Only publish a position the vehicle actually reached.
+             *
+             * A stationary device does not sit on one coordinate. Its fixes
+             * wander — twenty, thirty, occasionally fifty metres between samples
+             * — as satellites rise, set and reflect off buildings. Published
+             * raw, that wander is indistinguishable from driving: the marker
+             * crawls around the map on a parked vehicle, and every consumer that
+             * measures the gap between two fixes books it as distance. Three
+             * kilometres appeared on an odometer overnight in a car park.
+             *
+             * So the last *accepted* fix is held as an anchor and only replaced
+             * when the new one is real movement — see [isRealMovement]. Nothing
+             * downstream needs to know: the map, the trip recorder and the
+             * frames posted to Saarthi all read one position that stops moving
+             * when the vehicle does.
+             */
+            if (isRealMovement(fix)) {
+                latestPosition.set(
+                    Position(
+                        latitude = fix.latitude,
+                        longitude = fix.longitude,
+                        accuracyMetres = if (fix.hasAccuracy()) fix.accuracy.toDouble() else null,
+                        source = MetricSource.PHONE,
+                        at = fix.time,
+                    ),
+                )
+            }
 
             // A fix with 500 m of error still moves a marker across a map, so the
             // provider says it is degraded rather than pretending it is fine.
@@ -160,6 +196,42 @@ class PhoneTelemetryProvider(
                 ProviderStatus.RUNNING
             }
         }
+    }
+
+    /**
+     * Has the vehicle moved, or has the sky changed?
+     *
+     * **A position is only believed when the fix says the vehicle is moving.**
+     * That is a stronger rule than the obvious one — "did the coordinates
+     * change" — and it is the only one that actually holds indoors.
+     *
+     * Android's speed comes from Doppler shift on the satellite carrier, not
+     * from differencing two positions, so it stays at zero on a stationary
+     * device however far the coordinates wander. A *fused* fix, though, may have
+     * no speed at all: indoors and in dense streets the platform falls back to
+     * Wi-Fi and cell positioning, which can place a device to within twenty
+     * metres, cannot say how fast it is going, and re-triangulates to a
+     * different spot every few seconds as access points come and go.
+     *
+     * That is the case that put three kilometres on a parked vehicle's odometer
+     * and made the marker crawl around a car park: no speed, plausible-looking
+     * accuracy, and a fresh position every fix. Comparing the step against the
+     * accuracy is not enough, because the *jump between two Wi-Fi fixes* is
+     * routinely larger than the *claimed accuracy of either*.
+     *
+     * So a fix with no speed is treated as no evidence of movement, and the
+     * position is held. A vehicle that is genuinely driving gets satellite
+     * fixes with a speed on them within seconds of moving, which is exactly when
+     * this starts believing it again.
+     */
+    private fun isRealMovement(fix: android.location.Location): Boolean {
+        if (latestPosition.get() == null) return true
+
+        // No speed, no movement. See above: this is the Wi-Fi-fix case, and
+        // there is no displacement large enough to make it trustworthy.
+        if (!fix.hasSpeed()) return false
+
+        return fix.speed >= STATIONARY_MPS
     }
 
     private val sensorListener = object : SensorEventListener {
@@ -192,8 +264,14 @@ class PhoneTelemetryProvider(
         lastAcceleration = magnitude
 
         if (abs(delta) > SUDDEN_G) suddenMovement = true
-        if (delta < -HARSH_G) harshBraking = true
-        if (delta > HARSH_G) harshAcceleration = true
+        if (delta < -HARSH_G) {
+            harshBraking = true
+            harshBrakingTotal.incrementAndGet()
+        }
+        if (delta > HARSH_G) {
+            harshAcceleration = true
+            harshAccelerationTotal.incrementAndGet()
+        }
 
         val current = latest.get().toMutableMap()
         current[Metric.ACCELEROMETER] = MetricValue(magnitude, MetricSource.PHONE)
@@ -265,6 +343,18 @@ class PhoneTelemetryProvider(
 
         /** Past this much error, a small speed is the error rather than motion. */
         const val NOISY_FIX_METRES = 25f
+
+        /**
+         * The smallest step believed from position alone.
+         *
+         * A floor under the accuracy test, for the optimistic fixes: a device
+         * claiming three metres of accuracy while sitting on a desk would
+         * otherwise have every twitch accepted.
+         */
+        const val MIN_MOVE_METRES = 15.0
+
+        /** What to assume when a fix does not say how good it is. Pessimistic. */
+        const val ASSUMED_ACCURACY_METRES = 30.0
 
         const val GRAVITY = 9.80665
         /** Change in g between samples that counts as harsh. */

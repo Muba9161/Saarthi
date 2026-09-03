@@ -18,6 +18,7 @@ import { logger } from '../../lib/logger';
 import { adapterFor } from '../../providers/devices';
 import { clientEventIdOf } from '../../providers/devices/phone.adapter';
 import { ingestLocation } from '../tracking/tracking.service';
+import { applyOdometer } from '../vehicles/odometer.service';
 import { broadcastDeviceStatus, broadcastTelemetry } from '../../realtime/realtime.service';
 import type { AuthenticatedDevice } from '../devices/device.service';
 import { evaluateTelemetryRules } from './alert-engine';
@@ -429,6 +430,43 @@ export async function ingest(
           'Tracking pipeline rejected a hardware position',
         );
       }
+    }
+
+    /*
+     * An odometer the vehicle itself reported.
+     *
+     * Preferred over the distance the tracking pipeline accumulates, because an
+     * ECU reading is the vehicle's own total and an accumulated one has been
+     * drifting since the first fix that went missing. `applyOdometer` keeps the
+     * larger of the two, so a device that reads the dash wins and one that
+     * cannot falls back to GPS without either of them needing to know.
+     *
+     * Simulated readings are excluded. A fabricated total must never become a
+     * vehicle's official mileage — that figure drives maintenance intervals and
+     * resale valuations, and section 19's rule that simulated data is never
+     * presented as real would mean very little if it could quietly rewrite this.
+     */
+    const odometerIsSimulated = reading.simulatedMetrics.includes(TelemetryMetric.ODOMETER);
+    if (
+      !options.simulated &&
+      !odometerIsSimulated &&
+      reading.vehicleData.odometerKm !== null &&
+      reading.vehicleData.odometerKm !== undefined
+    ) {
+      await applyOdometer({
+        vehicleId: vehicle.id,
+        odometerKm: reading.vehicleData.odometerKm,
+        reason: `device:${device.deviceIdentifier}`,
+        // The vehicle stated its own total, so it replaces whatever was held —
+        // usually the rough figure typed in at onboarding.
+        authoritative: true,
+      }).catch((error: unknown) => {
+        gatewayLogger.warn(
+          { err: error, vehicleId: vehicle.id },
+          'Reported odometer could not be applied',
+        );
+        return null;
+      });
     }
 
     // --- Rules ------------------------------------------------------------

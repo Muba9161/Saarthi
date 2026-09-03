@@ -193,6 +193,59 @@ export function TripDetailPage() {
         />
       </div>
 
+      {/*
+        How the vehicle was driven.
+        
+        Written when a trip closes, from the figures the terminal accumulated
+        while it was open. Shown only once there are any: a trip still under way
+        has nothing to report here, and four dashes read as a broken panel rather
+        than as an unfinished journey.
+        
+        It matters most on a service run — a trip nobody dispatched — because
+        that is the case where these figures are the *only* record that the
+        vehicle went anywhere at all.
+      */}
+      {data.topSpeedKph !== null ||
+      data.averageSpeedKph !== null ||
+      data.harshBrakingCount > 0 ? (
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <StatCard
+            label="Top speed"
+            value={data.topSpeedKph !== null ? formatSpeedKph(data.topSpeedKph) : '—'}
+            icon={Gauge}
+          />
+          <StatCard
+            label="Average speed"
+            value={data.averageSpeedKph !== null ? formatSpeedKph(data.averageSpeedKph) : '—'}
+            icon={Gauge}
+            hint="While moving"
+          />
+          <StatCard
+            label="Harsh braking"
+            value={String(data.harshBrakingCount)}
+            icon={Gauge}
+            tone={data.harshBrakingCount > 3 ? 'warning' : 'default'}
+            hint={`${data.harshAccelerationCount} harsh starts`}
+          />
+          <StatCard
+            label="Odometer"
+            value={
+              data.endOdometerKm !== null
+                ? formatDistanceKm(data.endOdometerKm)
+                : data.startOdometerKm !== null
+                  ? formatDistanceKm(data.startOdometerKm)
+                  : '—'
+            }
+            icon={RouteIcon}
+            hint={
+              data.startOdometerKm !== null && data.endOdometerKm !== null
+                ? `+${formatDistanceKm(Math.max(0, data.endOdometerKm - data.startOdometerKm))} this trip`
+                : 'At the end of the trip'
+            }
+          />
+        </div>
+      ) : null}
+
       <Progress value={progress} className="h-2" />
 
       <Tabs defaultValue="live">

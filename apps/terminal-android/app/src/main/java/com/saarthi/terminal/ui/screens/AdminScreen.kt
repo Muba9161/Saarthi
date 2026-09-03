@@ -27,7 +27,17 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import android.content.Context
+import android.media.AudioAttributes
+import android.media.AudioManager
+import android.os.Handler
+import android.os.Looper
+import android.speech.tts.TextToSpeech
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.platform.LocalContext
+import com.saarthi.terminal.ui.Readout
+import java.util.Locale
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -90,6 +100,11 @@ fun AdminScreen(
 
     var apiUrl by remember { mutableStateOf(viewModel.settings.apiUrl) }
     var reducedMotion by remember { mutableStateOf(viewModel.settings.reducedMotion) }
+    // Collected rather than remembered: the driver also mutes this from the
+    // navigation banner, and a remembered copy would show the wrong switch
+    // position the moment they did.
+    val voiceGuidance by viewModel.voiceGuidance.collectAsState()
+    val speech = rememberSpeechCheck()
     var darkTheme by remember { mutableStateOf(viewModel.settings.darkTheme) }
     var kioskOn by remember { mutableStateOf(viewModel.settings.kioskEnabled) }
     var scenario by remember { mutableStateOf(viewModel.settings.simulationScenario) }
@@ -253,9 +268,71 @@ fun AdminScreen(
                     if (viewModel.telemetryHub.obd.hasBluetoothPermission()) "granted" else "denied",
                 )
                 DiagnosticRow("Paired adapters", adapters.size.toString())
-                adapters.forEach { adapter ->
-                    DiagnosticRow(adapter.name, adapter.address)
+
+                val connected by viewModel.telemetryHub.obd.connectedTo.collectAsState()
+                val obdStatus by viewModel.telemetryHub.obd.status.collectAsState()
+                DiagnosticRow("Link", obdStatus.name.humanise())
+                DiagnosticRow("Reading from", connected?.name)
+
+                /*
+                 * What the vehicle actually answers.
+                 *
+                 * "Why is there no fuel reading" is the first question of every
+                 * OBD install, and the answer is nearly always that the ECU does
+                 * not expose that PID. Printing the list turns a support call
+                 * into a glance.
+                 */
+                val vin by viewModel.telemetryHub.obd.vin.collectAsState()
+                val pids by viewModel.telemetryHub.obd.supportedPids.collectAsState()
+                DiagnosticRow("Vehicle VIN", vin)
+                DiagnosticRow("PIDs answered", pids.size.takeIf { it > 0 }?.toString())
+                if (pids.isNotEmpty()) {
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        pids.joinToString(" "),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        "2F is fuel level, 5E is fuel rate, 10 is air flow, A6 is the " +
+                            "odometer. A value missing from the cockpit is a PID missing " +
+                            "from this list.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
+
+                /*
+                 * One row per adapter, and tapping it connects.
+                 *
+                 * The list used to be read-only, which meant a paired adapter
+                 * was visible and unreachable — the installer could see the
+                 * hardware and had no way to tell the terminal to use it.
+                 */
+                adapters.forEach { adapter ->
+                    val live = connected?.address == adapter.address
+                    Spacer(Modifier.height(8.dp))
+                    PrimaryAction(
+                        label = if (live) "${adapter.name} · connected" else "Connect ${adapter.name}",
+                        tone = if (live) StatusTone.GOOD else StatusTone.INFO,
+                        enabled = !live,
+                        onClick = { viewModel.connectObd(adapter) },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+
+                if (adapters.isEmpty()) {
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "No OBD adapter is paired with this device. Pair it in Android's " +
+                            "Bluetooth settings first — the PIN is usually 1234 or 0000 — " +
+                            "then rescan here.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+
                 Spacer(Modifier.height(10.dp))
                 PrimaryAction(
                     label = "Rescan paired devices",
@@ -366,6 +443,67 @@ fun AdminScreen(
                         onReducedMotionChanged(it)
                     },
                 )
+                Spacer(Modifier.height(12.dp))
+                /*
+                 * On by default, unlike the wake word.
+                 *
+                 * A speaker that only makes a sound while the driver is
+                 * following a route they chose is a different proposition from a
+                 * microphone left listening all shift. The driver also has this
+                 * on the navigation banner itself, which is where they will
+                 * actually reach for it; this is here so a fleet can set the
+                 * default for a cab with a sleeper berth.
+                 */
+                ToggleRow(
+                    label = "Speak turn directions",
+                    checked = voiceGuidance,
+                    onChange = { viewModel.setVoiceGuidance(it) },
+                )
+            }
+
+            // --- Speech ---------------------------------------------------------
+            //
+            // "The voice is not working" has four completely different causes —
+            // no engine installed, no voice data for the language, the media
+            // volume at zero, or the app never having been asked to speak — and
+            // a driver standing in a yard cannot tell them apart. Neither could
+            // support, over the phone. This card answers it in one tap.
+            GlassCard(Modifier.fillMaxWidth()) {
+                SectionLabel("Spoken directions")
+                Spacer(Modifier.height(10.dp))
+                Readout(label = "Engine", value = speech.status)
+                Spacer(Modifier.height(8.dp))
+                Readout(
+                    label = "Wake word",
+                    // A recogniser that has given up says so here rather than
+                    // leaving a driver repeating "Hey Saarthi" at a terminal
+                    // that stopped listening twenty minutes ago.
+                    value = if (viewModel.settings.wakeWordEnabled) {
+                        "On — say “Hey Saarthi”"
+                    } else {
+                        "Off"
+                    },
+                )
+                Spacer(Modifier.height(12.dp))
+                PrimaryAction(
+                    label = "Test the voice",
+                    onClick = { speech.test() },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = speech.ready,
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    // The distinction that matters when nothing comes out: this
+                    // is the *device* speaking, with none of the app's own
+                    // gating in the way. Silence here is a tablet problem;
+                    // sound here but not on the road is ours.
+                    "Plays through the navigation channel, so it will duck music " +
+                        "rather than stop it. If nothing is heard, check the media " +
+                        "volume and that a text-to-speech voice is installed in " +
+                        "Android settings.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
 
             // --- Log -----------------------------------------------------------
@@ -457,6 +595,92 @@ private fun DiagnosticRow(label: String, value: String?) {
             fontFamily = FontFamily.Monospace,
         )
     }
+}
+
+/**
+ * A speech engine of its own, for the diagnostic.
+ *
+ * Deliberately *not* the cockpit's [com.saarthi.terminal.voice.VoiceAssistant].
+ * The question this card answers is "can this tablet speak at all", and routing
+ * it through the app's own guidance pipeline — with its mute switch, its
+ * assistant gating and its navigation state — would answer a different and much
+ * less useful question. If this speaks and the road does not, the fault is ours;
+ * if neither speaks, it is the device.
+ */
+private class SpeechCheck(
+    val ready: Boolean,
+    val status: String,
+    val test: () -> Unit,
+)
+
+@Composable
+private fun rememberSpeechCheck(): SpeechCheck {
+    val context = LocalContext.current
+    var engine by remember { mutableStateOf<TextToSpeech?>(null) }
+    var status by remember { mutableStateOf("Starting…") }
+    var ready by remember { mutableStateOf(false) }
+
+    DisposableEffect(Unit) {
+        // Configured on the main thread after construction returns — the init
+        // callback can fire synchronously from inside the constructor, before
+        // the reference exists. See `VoiceAssistant.prepareSpeech`.
+        val handler = Handler(Looper.getMainLooper())
+        var created: TextToSpeech? = null
+        created = TextToSpeech(context) { result ->
+            handler.post {
+                val tts = created
+                if (result != TextToSpeech.SUCCESS || tts == null) {
+                    status = "No text-to-speech engine on this device"
+                    ready = false
+                    return@post
+                }
+                tts.setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_ASSISTANCE_NAVIGATION_GUIDANCE)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                        .build(),
+                )
+                val indian = tts.setLanguage(Locale("en", "IN"))
+                if (indian == TextToSpeech.LANG_MISSING_DATA ||
+                    indian == TextToSpeech.LANG_NOT_SUPPORTED
+                ) {
+                    tts.language = Locale.UK
+                }
+
+                val audio = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+                val volume = audio?.getStreamVolume(AudioManager.STREAM_MUSIC) ?: -1
+                val max = audio?.getStreamMaxVolume(AudioManager.STREAM_MUSIC) ?: -1
+                val voice = tts.voice?.locale?.toLanguageTag() ?: "default voice"
+
+                engine = tts
+                ready = true
+                status = buildString {
+                    append(voice)
+                    if (volume >= 0) append(" · volume $volume/$max")
+                    if (volume == 0) append(" · MUTED")
+                }
+            }
+        }
+
+        onDispose {
+            created?.stop()
+            created?.shutdown()
+            engine = null
+        }
+    }
+
+    return SpeechCheck(
+        ready = ready,
+        status = status,
+        test = {
+            engine?.speak(
+                "Spoken directions are working. In four hundred metres, turn left.",
+                TextToSpeech.QUEUE_FLUSH,
+                null,
+                "saarthi-speech-check",
+            )
+        },
+    )
 }
 
 @Composable

@@ -35,6 +35,8 @@ import { notify, notifyOrganization } from '../notifications/notification.servic
 import { broadcastTerminalSession } from '../../realtime/realtime.service';
 import { uploadMedia, type UploadFilePart } from '../media/media.service';
 import { invalidateTerminalState } from './terminal.service';
+import { applyOdometer } from '../vehicles/odometer.service';
+import { releaseVehicleFromAdHocTrip } from './adhoc-trip.service';
 import {
   sessionInclude,
   toSessionPayload,
@@ -813,12 +815,6 @@ export async function startTrip(
       data: { status: TerminalSessionStatus.TRIP_ACTIVE, tripStartedAt: new Date() },
       include: sessionInclude,
     });
-    if (input.odometerKm !== undefined) {
-      await tx.truck.update({
-        where: { id: session.vehicleId },
-        data: { odometerKm: input.odometerKm },
-      });
-    }
     await recordEvent(tx, sessionId, TerminalSessionEventType.TRIP_STARTED, 'Trip started.', {
       actorUserId: session.driverUserId,
       metadata: {
@@ -829,6 +825,16 @@ export async function startTrip(
       },
     });
     return next;
+  });
+
+  // Outside the transaction, and through the one function allowed to move it.
+  // The odometer belongs to the vehicle rather than to this session, it must
+  // never go backwards, and a terminal reinstalled on a truck used to be able to
+  // wind it back here and quietly reset every service interval hanging off it.
+  await applyOdometer({
+    vehicleId: session.vehicleId,
+    odometerKm: input.odometerKm ?? null,
+    reason: 'terminal-trip-start',
   });
 
   await announce(updated);
@@ -856,12 +862,6 @@ export async function completeTrip(
       data: { status: TerminalSessionStatus.READY, tripCompletedAt: new Date() },
       include: sessionInclude,
     });
-    if (input.odometerKm !== undefined) {
-      await tx.truck.update({
-        where: { id: session.vehicleId },
-        data: { odometerKm: input.odometerKm },
-      });
-    }
     await recordEvent(
       tx,
       sessionId,
@@ -878,6 +878,12 @@ export async function completeTrip(
       },
     );
     return next;
+  });
+
+  await applyOdometer({
+    vehicleId: session.vehicleId,
+    odometerKm: input.odometerKm ?? null,
+    reason: 'terminal-trip-complete',
   });
 
   await announce(updated);
@@ -903,6 +909,21 @@ export async function endSession(
   }
 
   const now = new Date();
+
+  /*
+   * Close any service run before the driver leaves.
+   *
+   * The terminal closes its own run on arrival, but a driver who signs off
+   * halfway to a workshop — or whose tablet died on the way — would otherwise
+   * leave a trip open against the vehicle, and a vehicle with an open trip
+   * cannot be dispatched. The distance banked so far is kept; only the run is
+   * ended.
+   */
+  await releaseVehicleFromAdHocTrip(
+    session.vehicleId,
+    'Closed automatically: the driver signed off at the terminal.',
+  ).catch(() => false);
+
   const updated = await prisma.$transaction(async (tx) => {
     if (session.truckAssignmentId) {
       await tx.truckAssignment.updateMany({

@@ -261,6 +261,23 @@ export interface TripSummary {
   progressPercent: number;
   price: number | null;
   expenses: number | null;
+  /**
+   * A journey the vehicle made on its own account.
+   *
+   * True for a run to a petrol pump, a workshop or a weighbridge that the
+   * terminal opened because the driver navigated there with no dispatched trip
+   * against the vehicle. Surfaced rather than hidden: a fleet reporting on
+   * delivered work needs to leave these out, and an owner looking at an
+   * unexplained forty kilometres needs to find them.
+   */
+  adHoc: boolean;
+  /** Driving summary, written when the trip closed. Null while it is open. */
+  topSpeedKph: number | null;
+  averageSpeedKph: number | null;
+  harshBrakingCount: number;
+  harshAccelerationCount: number;
+  startOdometerKm: number | null;
+  endOdometerKm: number | null;
   currentLocation: {
     latitude: number;
     longitude: number;

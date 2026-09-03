@@ -8,6 +8,7 @@ import com.saarthi.terminal.data.TerminalRepository
 import com.saarthi.terminal.domain.AssistantState
 import com.saarthi.terminal.domain.TerminalState
 import com.saarthi.terminal.domain.VoiceClassifier
+import com.saarthi.terminal.domain.RouteFollower
 import com.saarthi.terminal.domain.VoiceIntent
 import com.saarthi.terminal.network.ChecklistAnswer
 import com.saarthi.terminal.network.ChecklistPreparationDto
@@ -16,18 +17,23 @@ import com.saarthi.terminal.network.IssueDto
 import com.saarthi.terminal.network.NearbyPlaceDto
 import com.saarthi.terminal.network.RouteDto
 import com.saarthi.terminal.network.RouteStepDto
+import com.saarthi.terminal.network.ServiceRunDto
 import com.saarthi.terminal.network.SubmitChecklistRequest
 import com.saarthi.terminal.network.TerminalStateDto
+import com.saarthi.terminal.telemetry.BluetoothObdTelemetryProvider
 import com.saarthi.terminal.telemetry.Metric
 import com.saarthi.terminal.telemetry.SimulatedTelemetryProvider
 import com.saarthi.terminal.telemetry.TelemetrySnapshot
 import com.saarthi.terminal.util.DebugLog
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -153,6 +159,18 @@ class TerminalViewModel(application: Application) : AndroidViewModel(application
     val busy: StateFlow<Boolean> = _busy.asStateFlow()
 
     /** The SOS confirmation gate. See [armSos] for why it exists. */
+    /**
+     * Whether turn instructions are spoken.
+     *
+     * A flow rather than a value read from settings at composition, because two
+     * screens change it — the mute control on the navigation banner, where a
+     * driver actually reaches for it, and the admin toggle where a fleet sets
+     * the default for a cab with a sleeper berth. Two remembered copies of a
+     * preference are two copies that disagree the moment either one is used.
+     */
+    private val _voiceGuidance = MutableStateFlow(app.settings.voiceGuidanceEnabled)
+    val voiceGuidance: StateFlow<Boolean> = _voiceGuidance.asStateFlow()
+
     private val _sosArmed = MutableStateFlow(false)
     val sosArmed: StateFlow<Boolean> = _sosArmed.asStateFlow()
 
@@ -183,6 +201,34 @@ class TerminalViewModel(application: Application) : AndroidViewModel(application
             repository.refresh()
         }
         observeRealtime()
+        observeFixes()
+        adoptOpenServiceRun()
+    }
+
+    /**
+     * Follow the route as the vehicle moves.
+     *
+     * The navigation state is driven from the telemetry snapshot, which is the
+     * only thing in the app that changes when — and *because* — the vehicle
+     * moves. It used to be recomputed inside the cockpit's composition instead,
+     * which meant the next turn was refreshed when the clock ticked or the voice
+     * blob wobbled: frequently while the driver was talking, and not at all on a
+     * still screen.
+     *
+     * Deduplicated on the *position*, not on the snapshot. The hub republishes
+     * on its own cadence whether or not a new fix arrived — every snapshot
+     * carries a fresh assembly timestamp — so keying on the snapshot would
+     * dedupe nothing. Running the projection again for a position already seen
+     * would advance the off-route counter without the vehicle having moved, and
+     * a parked truck sitting fifty metres from its route would re-route itself
+     * on a timer.
+     */
+    private fun observeFixes() {
+        viewModelScope.launch {
+            app.telemetry.snapshot
+                .distinctUntilChangedBy { it.position }
+                .collect { snapshot -> onFix(snapshot) }
+        }
     }
 
     /**
@@ -241,6 +287,21 @@ class TerminalViewModel(application: Application) : AndroidViewModel(application
      * destination was invisible on the sheet the driver was looking at.
      */
     val lastError = repository.lastError
+
+    /**
+     * Connect the terminal to an OBD adapter, and remember it.
+     *
+     * Remembering is the point: the link drops every time the ignition is cycled,
+     * and a driver who had to re-select the adapter each morning would use it
+     * once. The provider reconnects to this address on its own from then on.
+     */
+    fun connectObd(candidate: BluetoothObdTelemetryProvider.ObdCandidate) {
+        viewModelScope.launch {
+            settings.obdAddress = candidate.address
+            app.telemetry.obd.preferredAddress = candidate.address
+            app.telemetry.obd.connect(candidate)
+        }
+    }
 
     fun clearError() = repository.clearError()
 
@@ -376,80 +437,431 @@ class TerminalViewModel(application: Application) : AndroidViewModel(application
     }
 
     /**
-     * Route to a place the driver picked.
+     * Work out the route to a place the driver picked, and show it to them.
      *
-     * The polyline goes on the map and the first step becomes the navigation
-     * banner. Nothing is fetched until the driver has actually chosen — a route
-     * per row in a list they scrolled past would spend a fleet's daily routing
-     * allowance on polylines nobody looked at.
+     * **This does not start navigating.** Choosing a row in a list is a driver
+     * saying "how far is that?", and the app answering by immediately taking
+     * over the map, tilting the camera and talking is the app deciding on their
+     * behalf. Worse, it is unrecoverable in the direction that matters: a
+     * mis-tap on a 7-inch screen in a moving cab opened a trip against the
+     * vehicle and started a journey the driver then had to cancel.
+     *
+     * So this fetches the route, draws it, and stops. The driver sees where it
+     * goes, how far it is and how long it will take, and presses Start when they
+     * mean it — which is also the point at which a trip is opened, because that
+     * is when they have actually committed to going.
+     *
+     * The routing call still happens here rather than on Start: the driver needs
+     * the distance and the shape of the route *in order* to decide, and asking
+     * again a moment later would spend two of a fleet's routing requests on one
+     * decision.
      */
     fun navigateTo(place: NearbyPlaceDto, onDone: (Boolean) -> Unit = {}) {
         viewModelScope.launch {
             _busy.value = true
             val result = repository.route(place.latitude, place.longitude, place.name)
-            result.onSuccess { _route.value = it }
+            result.onSuccess { route -> previewRoute(route, place.category) }
             _busy.value = false
             onDone(result.isSuccess)
         }
     }
 
-    fun clearRoute() {
-        _route.value = null
-    }
-
     /**
-     * The next instruction, given where the vehicle is now.
+     * Draw a route without following it.
      *
-     * Computed on the device from a route it already holds, because a terminal
-     * has to keep telling a driver where to turn inside a tunnel — a server round
-     * trip per instruction would be slow when it worked and useless when it did
-     * not.
-     *
-     * The nearest step ahead is chosen by straight-line proximity to the
-     * manoeuvre point. That is crude next to projecting the vehicle onto the
-     * polyline, and it is enough for a banner: the steps are far enough apart
-     * that the nearest one is the next one, and being briefly wrong about which
-     * turn is coming is recovered on the next fix.
+     * The state between choosing somewhere and setting off. The line and the
+     * destination are on the map, the camera frames the whole journey, and
+     * nothing is being measured — no turn instructions, no off-route detection,
+     * no trip, no talking.
      */
-    fun nextManeuver(): NextManeuverUi? {
-        val current = _route.value ?: return null
-        val position = app.telemetry.snapshot.value.position ?: return null
-
-        var best: RouteStepDto? = null
-        var bestMetres = Double.MAX_VALUE
-
-        for (step in current.steps) {
-            // `depart` is behind the driver the moment they move off.
-            if (step.maneuver == "depart") continue
-            val metres = haversineMetres(
-                position.latitude,
-                position.longitude,
-                step.latitude,
-                step.longitude,
-            )
-            if (metres < bestMetres) {
-                bestMetres = metres
-                best = step
-            }
-        }
-
-        val step = best ?: return null
-        return NextManeuverUi(
-            instruction = step.instruction,
-            maneuver = step.maneuver,
-            modifier = step.modifier,
-            distanceMetres = bestMetres.toInt(),
-            roadName = step.name,
+    private fun previewRoute(route: RouteDto, service: String?) {
+        pendingService = service
+        _route.value = route
+        follower = null
+        arriving = false
+        rerouteAttempts = 0
+        _navigation.value = NavigationUi(
+            route = route,
+            guiding = false,
+            remainingMetres = (route.distanceKm * 1_000).toInt(),
+            remainingMinutes = route.durationMinutes,
         )
     }
 
-    data class NextManeuverUi(
-        val instruction: String,
-        val maneuver: String,
-        val modifier: String?,
-        val distanceMetres: Int,
-        val roadName: String,
-    )
+    /**
+     * The driver pressed Start.
+     *
+     * Everything that used to happen the instant a place was tapped happens
+     * here instead, and it is the same list — following begins, and a trip is
+     * opened for a journey nobody dispatched. The difference is that a person
+     * has now said they are going.
+     *
+     * Opening the trip is deliberately last and deliberately cannot fail the
+     * call. Recording a journey is worth doing; it is not worth stopping a
+     * driver reaching a petrol pump for.
+     */
+    fun startNavigation() {
+        val route = _route.value ?: return
+        if (_navigation.value.guiding) return
+
+        beginNavigation(route)
+        openServiceRun(route, pendingService)
+    }
+
+    /**
+     * Stop navigating, or dismiss a route the driver decided against.
+     *
+     * The run — if one was ever opened — is closed as cancelled rather than
+     * discarded: the vehicle covered that distance whether or not anybody
+     * arrived anywhere, and throwing the figures away would put the odometer
+     * back out of step with the road. A route dismissed from the preview has no
+     * trip behind it and nothing to close, which is the point of the preview.
+     */
+    fun clearRoute() {
+        val trip = _serviceRun.value
+        _route.value = null
+        _navigation.value = NavigationUi()
+        follower = null
+        rerouteAttempts = 0
+        arriving = false
+        pendingService = null
+
+        if (trip != null) closeServiceRun(trip, cancelled = true, reason = null)
+    }
+
+    // -----------------------------------------------------------------------
+    // Following a route
+    // -----------------------------------------------------------------------
+
+    /**
+     * Everything the cockpit needs to know about the journey, in one object.
+     *
+     * One value rather than six flows, for the same reason [uiState] is one
+     * object: a banner reading them separately could render a distance from one
+     * fix against an instruction from the next, and a driver glancing up would
+     * be told to turn in 400 m into a road they passed two junctions ago.
+     */
+    data class NavigationUi(
+        val route: RouteDto? = null,
+        /**
+         * True once the driver has pressed Start.
+         *
+         * The flag that separates "here is the route you asked about" from "I am
+         * taking you there". Until it is set nothing is measured, nothing is
+         * spoken and no trip exists — see [previewRoute].
+         */
+        val guiding: Boolean = false,
+        val step: RouteStepDto? = null,
+        /** Metres to the next manoeuvre, measured along the road. */
+        val stepMetres: Int = 0,
+        val remainingMetres: Int = 0,
+        val remainingMinutes: Int = 0,
+        /** Fraction of the route covered, for the progress bar. */
+        val fraction: Float = 0f,
+        /** The driver has left the route and a new one is being fetched. */
+        val rerouting: Boolean = false,
+        /** Off the line, but not yet re-routed — see the routing budget. */
+        val offRoute: Boolean = false,
+        /** True for the few seconds between arriving and the banner clearing. */
+        val arrived: Boolean = false,
+        /** Saarthi could not produce a new route after the driver left the old one. */
+        val rerouteFailed: Boolean = false,
+    ) {
+        /** A route is on the map, whether or not it is being followed. */
+        val active: Boolean get() = route != null
+
+        /** Drawn, but not yet started. The driver is deciding. */
+        val previewing: Boolean get() = route != null && !guiding
+    }
+
+    private val _navigation = MutableStateFlow(NavigationUi())
+    val navigation: StateFlow<NavigationUi> = _navigation.asStateFlow()
+
+    /** The trip this run is being recorded against, when one was opened. */
+    private val _serviceRun = MutableStateFlow<ServiceRunDto?>(null)
+    val serviceRun: StateFlow<ServiceRunDto?> = _serviceRun.asStateFlow()
+
+    /** Stateful across fixes — leaving a route has to be sustained to count. */
+    private var follower: RouteFollower? = null
+
+    /**
+     * The service category the previewed route came from, held until Start.
+     *
+     * Only used to label the trip — "Service run started from the terminal
+     * (FUEL)" — so a fleet reading the record afterwards knows what the vehicle
+     * went for.
+     */
+    private var pendingService: String? = null
+
+    private var rerouteJob: Job? = null
+    private var rerouteAttempts = 0
+    private var lastRerouteAtMs = 0L
+
+    /** Guards the arrival path, which must run once rather than once per fix. */
+    private var arriving = false
+
+    /**
+     * Start following a route.
+     *
+     * [freshJourney] separates the two callers, and getting it wrong is a data
+     * bug rather than a cosmetic one. A driver choosing a destination starts a
+     * new journey, so the run's figures reset. A *re-route* is the same journey
+     * on a different road — the driver is still going to the same petrol pump —
+     * and resetting there would throw away the distance, top speed and braking
+     * already accumulated, so the trip would close crediting only whatever
+     * happened after the last wrong turn.
+     */
+    private fun beginNavigation(route: RouteDto, freshJourney: Boolean = true) {
+        _route.value = route
+        follower = RouteFollower(route)
+        arriving = false
+        _navigation.value = NavigationUi(
+            route = route,
+            guiding = true,
+            remainingMetres = (route.distanceKm * 1_000).toInt(),
+            remainingMinutes = route.durationMinutes,
+        )
+        if (freshJourney) {
+            rerouteAttempts = 0
+            // The recorder keeps counting for the odometer regardless; this only
+            // resets what *this run* is credited with.
+            app.telemetry.recorder.beginSegment()
+        }
+    }
+
+    /**
+     * Advance the journey with a new fix.
+     *
+     * Driven from the telemetry snapshot rather than from recomposition, which
+     * is the difference between "the banner updates when the vehicle moves" and
+     * "the banner updates when something on screen happens to change". The old
+     * arrangement recomputed the next turn inside the cockpit's composition, so
+     * it ran when the clock ticked or the voice blob wobbled, and on a still
+     * screen could go seconds without running at all.
+     */
+    private fun onFix(snapshot: TelemetrySnapshot) {
+        val route = _route.value ?: return
+        // A route the driver has not started is a drawing, not a journey. There
+        // is nothing to measure against it and nothing to say about it.
+        if (!_navigation.value.guiding) return
+        val position = snapshot.position ?: return
+        val current = follower ?: return
+
+        val progress = current.update(position.latitude, position.longitude)
+
+        if (progress == null) {
+            // A route with no usable polyline — a straight-line fallback from a
+            // router that could not produce one. There is a destination and a
+            // distance but no turn-by-turn, and saying so is better than
+            // inventing instructions.
+            _navigation.value = _navigation.value.copy(route = route, step = null)
+            return
+        }
+
+        _navigation.value = _navigation.value.copy(
+            route = route,
+            step = progress.step,
+            stepMetres = progress.stepMetres,
+            remainingMetres = progress.remainingMetres,
+            remainingMinutes = progress.remainingMinutes,
+            fraction = progress.fraction,
+            offRoute = progress.offRoute,
+        )
+
+        if (progress.arrived) {
+            onArrived()
+            return
+        }
+
+        if (progress.offRoute) requestReroute(route)
+    }
+
+    /**
+     * The driver went a different way. Get them a new route from where they are.
+     *
+     * This is the behaviour a driver assumes every navigator has, and its
+     * absence is not so much a missing feature as a wrong one: a route drawn
+     * along a road the vehicle is no longer on, with instructions for turns it
+     * will never reach, is worse than no route at all — the banner keeps
+     * confidently naming a junction while the driver works out that the screen
+     * has stopped describing the world.
+     *
+     * Bounded on both axes, because routing costs the fleet money and a vehicle
+     * genuinely somewhere the router cannot reach — a private yard, an unmapped
+     * site road — would otherwise re-route on every fix for the rest of the
+     * shift:
+     *
+     *  * **A cooldown**, so a driver weaving through a diversion gets one new
+     *    route rather than one per fix.
+     *  * **An attempt ceiling** per journey. Past it the terminal stops asking
+     *    and says so, which is the honest outcome: the line on screen is the old
+     *    one, and the driver should navigate by their own judgement.
+     */
+    private fun requestReroute(current: RouteDto) {
+        if (rerouteJob?.isActive == true) return
+        if (rerouteAttempts >= MAX_REROUTES) {
+            _navigation.value = _navigation.value.copy(rerouteFailed = true)
+            return
+        }
+
+        val now = System.currentTimeMillis()
+        if (now - lastRerouteAtMs < REROUTE_COOLDOWN_MS) return
+        lastRerouteAtMs = now
+        rerouteAttempts += 1
+
+        _navigation.value = _navigation.value.copy(rerouting = true)
+
+        rerouteJob = viewModelScope.launch {
+            DebugLog.info("navigation", "Off route; asking Saarthi for a new one")
+            val result = repository.route(
+                current.destination.latitude,
+                current.destination.longitude,
+                current.destination.name,
+            )
+
+            result
+                .onSuccess { fresh ->
+                    /*
+                     * The destination is unchanged, so the run stays open.
+                     *
+                     * Re-routing is not a new journey — the driver is still going
+                     * to the same petrol pump — and closing the trip to open
+                     * another would split one run's distance across two records
+                     * and count the driver as having arrived nowhere, twice.
+                     */
+                    beginNavigation(fresh, freshJourney = false)
+                }
+                .onFailure { error ->
+                    DebugLog.warn("navigation", "Could not re-route: ${error.message}")
+                    _navigation.value = _navigation.value.copy(
+                        rerouting = false,
+                        // Only the last attempt is worth telling the driver
+                        // about. Saying "could not re-route" on the first of
+                        // three tries would be a warning that fixes itself.
+                        rerouteFailed = rerouteAttempts >= MAX_REROUTES,
+                    )
+                }
+        }
+    }
+
+    /**
+     * The vehicle got there.
+     *
+     * Navigation used to have no idea. The route was cleared by exactly one
+     * thing — the driver tapping the cross — so a terminal left alone kept
+     * drawing a line to a pump the truck was parked on, counting down a distance
+     * that had stopped changing and offering a turn that would never come.
+     *
+     * The banner stays up briefly rather than vanishing at the moment of
+     * arrival: a driver pulling onto a forecourt is looking at the road, and a
+     * screen that empties itself the instant they get there tells them nothing.
+     */
+    private fun onArrived() {
+        if (arriving) return
+        arriving = true
+
+        val trip = _serviceRun.value
+        _navigation.value = _navigation.value.copy(
+            arrived = true,
+            rerouting = false,
+            offRoute = false,
+            stepMetres = 0,
+            remainingMetres = 0,
+            remainingMinutes = 0,
+            fraction = 1f,
+        )
+
+        DebugLog.info("navigation", "Arrived at ${_route.value?.destination?.name}")
+
+        if (trip != null) closeServiceRun(trip, cancelled = false, reason = null)
+
+        viewModelScope.launch {
+            delay(ARRIVAL_BANNER_MS)
+            // Only if the driver has not already set off somewhere else. A route
+            // chosen during the pause belongs to a new journey and must survive.
+            if (arriving) {
+                arriving = false
+                _route.value = null
+                _navigation.value = NavigationUi()
+                follower = null
+                rerouteAttempts = 0
+            }
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // Service runs — a trip nobody dispatched
+    // -----------------------------------------------------------------------
+
+    private fun openServiceRun(route: RouteDto, service: String?) {
+        viewModelScope.launch {
+            repository
+                .startServiceRun(route, service, originName = uiState.value.registration)
+                .onSuccess { run ->
+                    _serviceRun.value = run
+                    if (run != null) DebugLog.info("trip", "Service run ${run.reference} opened")
+                }
+        }
+    }
+
+    private fun closeServiceRun(run: ServiceRunDto, cancelled: Boolean, reason: String?) {
+        // Cleared first, so a second call — an arrival racing a cancel — cannot
+        // close the same run twice.
+        _serviceRun.value = null
+
+        viewModelScope.launch {
+            val summary = app.telemetry.recorder.beginSegment()
+            repository.finishServiceRun(
+                tripId = run.id,
+                summary = summary,
+                // Only a reading the vehicle itself produced. See
+                // `TerminalRepository.measuredOdometerKm` — a GPS-derived total
+                // sent as an absolute would be counted a second time when the
+                // frames it was derived from reach Saarthi.
+                odometerKm = repository.measuredOdometerKm(),
+                cancelled = cancelled,
+                reason = reason,
+            )
+            DebugLog.info(
+                "trip",
+                "Service run ${run.reference} closed: " +
+                    "%.1f km, top %.0f km/h, %d harsh stops".format(
+                        summary.distanceKm,
+                        summary.topSpeedKph,
+                        summary.harshBrakingCount,
+                    ),
+            )
+            // The vehicle's odometer moved. Pull the new figure so the cockpit
+            // gauge and the server agree without waiting for the next poll.
+            repository.refresh()
+        }
+    }
+
+    /**
+     * Adopt a run this terminal opened before it restarted.
+     *
+     * A tablet that lost power on a forecourt comes back with no memory of the
+     * trip it had open. Without this it would open a second one for the same
+     * journey and split the distance between them — and the first would sit
+     * against the vehicle blocking dispatch until the twelve-hour sweep closed
+     * it.
+     *
+     * The route itself is not restored. Saarthi holds where the vehicle was
+     * going, but the driver has been looking at a black screen, and the honest
+     * thing is to let them choose again rather than resume a journey they may
+     * have abandoned. The *trip* is adopted so that whatever they do next closes
+     * it properly.
+     */
+    private fun adoptOpenServiceRun() {
+        viewModelScope.launch {
+            repository.openServiceRun().onSuccess { run ->
+                if (run != null && _serviceRun.value == null) {
+                    _serviceRun.value = run
+                    DebugLog.info("trip", "Adopted open service run ${run.reference}")
+                }
+            }
+        }
+    }
 
     fun loadIssues() {
         viewModelScope.launch {
@@ -606,24 +1018,42 @@ class TerminalViewModel(application: Application) : AndroidViewModel(application
         app.settings.reducedMotion = enabled
     }
 
+    fun setVoiceGuidance(enabled: Boolean) {
+        app.settings.voiceGuidanceEnabled = enabled
+        _voiceGuidance.value = enabled
+    }
+
     private companion object {
         const val MOVING_KPH = 5.0
 
-        /** Metres between two points on the sphere. Good to a few metres here. */
-        fun haversineMetres(
-            fromLat: Double,
-            fromLng: Double,
-            toLat: Double,
-            toLng: Double,
-        ): Double {
-            val earthRadius = 6_371_000.0
-            val dLat = Math.toRadians(toLat - fromLat)
-            val dLng = Math.toRadians(toLng - fromLng)
-            val a = kotlin.math.sin(dLat / 2) * kotlin.math.sin(dLat / 2) +
-                kotlin.math.cos(Math.toRadians(fromLat)) *
-                kotlin.math.cos(Math.toRadians(toLat)) *
-                kotlin.math.sin(dLng / 2) * kotlin.math.sin(dLng / 2)
-            return 2 * earthRadius * kotlin.math.atan2(kotlin.math.sqrt(a), kotlin.math.sqrt(1 - a))
-        }
+        /**
+         * The shortest gap between two re-routes.
+         *
+         * A driver crossing a diversion, or threading a service road that runs
+         * beside the route, comes back off-route repeatedly over a minute or so.
+         * One new route covers all of it; one per fix would spend twelve routing
+         * calls on the same wrong turn.
+         */
+        const val REROUTE_COOLDOWN_MS = 20_000L
+
+        /**
+         * How many times to try before giving up on a journey.
+         *
+         * A vehicle somewhere the router genuinely cannot reach — a private
+         * yard, an unmapped site road, a ferry — is off-route for as long as it
+         * stays there. Without a ceiling that is a routing call every twenty
+         * seconds for the rest of the shift, and a fleet's daily allowance gone
+         * by lunch. Past it the terminal says so and leaves the old line up.
+         */
+        const val MAX_REROUTES = 4
+
+        /**
+         * How long "Arrived" stays on screen before the map clears.
+         *
+         * A driver pulling onto a forecourt is looking at the road, not at the
+         * tablet. A banner that vanished at the instant of arrival would tell
+         * them nothing at all.
+         */
+        const val ARRIVAL_BANNER_MS = 12_000L
     }
 }

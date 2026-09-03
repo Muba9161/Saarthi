@@ -27,6 +27,7 @@ import { notifyOrganization } from '../notifications/notification.service';
 import { cache } from '../../infra/cache';
 import { cacheKeys, cacheTtl } from '../../infra/cache-keys';
 import { readLiveStates, writeLiveState } from './live-state.service';
+import { applyOdometer } from '../vehicles/odometer.service';
 import type { AuthContext } from '../../auth/context';
 
 /**
@@ -41,6 +42,35 @@ import type { AuthContext } from '../../auth/context';
  */
 
 const trackingLogger = logger.child({ module: 'tracking' });
+
+/**
+ * The smallest step worth believing.
+ *
+ * A stationary vehicle's fixes wander by a metre or two as the satellite
+ * geometry shifts. Twenty metres is comfortably above that and far below any
+ * real movement between fixes at the intervals this pipeline runs at.
+ */
+const MIN_STEP_KM = 0.02;
+
+/**
+ * The largest step worth believing from one pair of fixes.
+ *
+ * Fifty kilometres between two consecutive positions is a glitch, a cold-start
+ * fix that landed in the wrong place, or a buffer replayed across a long gap in
+ * coverage. The vehicle may genuinely have covered that ground — but not in a
+ * way this single step can account for, and letting it through would put a
+ * hundred kilometres on an odometer because a tablet came back online.
+ */
+const MAX_STEP_KM = 50;
+
+/**
+ * Below this the vehicle is parked, whatever its coordinates are doing.
+ *
+ * Low enough to include a truck crawling through a yard, high enough to exclude
+ * the residual speed a stationary receiver reports. Distance below it is not
+ * added to the odometer at all.
+ */
+const MIN_MOVING_KPH = 3;
 
 export interface IngestResult {
   accepted: boolean;
@@ -167,6 +197,54 @@ export async function ingestLocation(
 
   const position: LatLng = { latitude: input.latitude, longitude: input.longitude };
 
+  /*
+   * How far the vehicle moved since the last fix.
+   *
+   * Computed for every vehicle, whether or not there is a trip. It used to be
+   * computed only inside the trip branch, which is why a truck with no trip
+   * against it could cover a county and leave its odometer exactly where it
+   * started — the distance was measured, used for one trip's progress bar and
+   * then thrown away.
+   *
+   * Bounded at both ends. Below `MIN_STEP_KM` is a parked vehicle's GPS wander,
+   * and letting that through adds roughly a kilometre a day to a truck that has
+   * not moved. Above `MAX_STEP_KM` is a glitch, a cold-start fix in the wrong
+   * hemisphere, or a buffer replayed with a gap in the middle — real distance
+   * the vehicle covered while out of coverage, but not distance this single step
+   * can honestly claim.
+   */
+  const stepKm =
+    truck.lastLatitude !== null && truck.lastLongitude !== null
+      ? distanceKm({ latitude: truck.lastLatitude, longitude: truck.lastLongitude }, position)
+      : 0;
+  /*
+   * A step has to be bigger than the uncertainty around it.
+   *
+   * A fixed threshold is not enough on its own: a device reporting thirty metres
+   * of accuracy produces thirty-metre steps while completely stationary, and at
+   * a five-second cadence that is a kilometre of invented distance every few
+   * minutes on a parked vehicle. The terminal now holds its own position still,
+   * but every other source — a driver's phone, a fitted tracker, the simulator —
+   * arrives here raw, so the rule belongs on this side too.
+   */
+  const uncertaintyKm = (input.accuracy ?? 0) / 1000;
+  const floorKm = Math.max(MIN_STEP_KM, uncertaintyKm);
+
+  /*
+   * And the vehicle has to actually be moving.
+   *
+   * The strongest of the three tests, and the only one that holds for a device
+   * with no satellite lock. Positions derived from Wi-Fi and cell towers jump
+   * tens of metres between samples on a stationary vehicle while reporting
+   * flattering accuracy figures, so no comparison of step against uncertainty
+   * separates them from driving. A speed reading does: it is derived from
+   * Doppler shift rather than from differencing positions, and it is zero or
+   * absent when the vehicle is parked.
+   */
+  const movingKph = input.speedKph ?? 0;
+  const usableStepKm =
+    movingKph >= MIN_MOVING_KPH && stepKm >= floorKm && stepKm <= MAX_STEP_KM ? stepKm : 0;
+
   const derived: DerivedState = {
     distanceCoveredKm: trip?.actualDistanceKm ?? 0,
     progressPercent: 0,
@@ -230,13 +308,8 @@ export async function ingestLocation(
     if (along !== null) {
       // Distance only ever moves forward, so a noisy sample cannot rewind it.
       derived.distanceCoveredKm = Math.max(trip.actualDistanceKm, Number(along.toFixed(2)));
-    } else if (truck.lastLatitude !== null && truck.lastLongitude !== null) {
-      const step = distanceKm(
-        { latitude: truck.lastLatitude, longitude: truck.lastLongitude },
-        position,
-      );
-      // Ignore obviously bogus jumps (GPS glitch or teleporting mock data).
-      if (step < 50) derived.distanceCoveredKm = trip.actualDistanceKm + step;
+    } else if (usableStepKm > 0) {
+      derived.distanceCoveredKm = trip.actualDistanceKm + usableStepKm;
     }
 
     if (plannedDistance && plannedDistance > 0) {
@@ -462,6 +535,40 @@ export async function ingestLocation(
     source: input.source,
     simulated,
   });
+
+  /*
+   * The odometer, moved by the distance just covered.
+   *
+   * This is the line that makes a vehicle's mileage true everywhere rather than
+   * only inside whichever screen happened to be doing its own sums. The fleet
+   * list, the vehicle passport, maintenance-due, the resale valuation, the QR
+   * roadside page and the assistant all read `trucks.odometerKm`, and until now
+   * nothing moved it while the vehicle was driving — it only changed when
+   * somebody filled in a form.
+   *
+   * Every source arrives here: a fitted tracker through the gateway, a terminal
+   * in a cab, a driver's phone, the simulator. So one rule, applied once, in
+   * `applyOdometer`: it never goes backwards and it never jumps.
+   *
+   * Awaited rather than fired and forgotten. A caller that returns before this
+   * lands would let two frames in the same batch both read the pre-update figure,
+   * and the compare-and-set inside would then discard one of them.
+   */
+  if (usableStepKm > 0) {
+    await applyOdometer({
+      vehicleId: truck.id,
+      addKm: usableStepKm,
+      reason: `tracking:${input.source}`,
+    }).catch((error: unknown) => {
+      // The position is already stored. An odometer that missed one step is a
+      // rounding error; a lost fix is a hole in a journey.
+      trackingLogger.warn(
+        { err: error, truckId: truck.id },
+        'Odometer could not be advanced for this fix',
+      );
+      return null;
+    });
+  }
 
   return {
     accepted: true,

@@ -1608,6 +1608,32 @@ model Trip {
   parentTripId        String?     @db.Uuid
   returnLoadRequestId String?     @db.Uuid
 
+  // --- Ad-hoc service runs ------------------------------------------------
+  //
+  // A driver with no dispatched trip who drives to a petrol pump, a workshop or
+  // a weighbridge is still making a journey the fleet pays for. The terminal
+  // opens one of these when the driver starts navigating to a nearby service
+  // and closes it on arrival, so the run lands in the trip history with real
+  // figures instead of disappearing. The flag is what lets the fleet tell a
+  // dispatched movement from one the vehicle made on its own account, and what
+  // lets `createTrip` close a service run rather than refuse a real trip
+  // because the truck was still "busy" fetching diesel.
+  adHoc Boolean @default(false)
+
+  // --- Driving summary ----------------------------------------------------
+  //
+  // Written when the trip closes, from the figures the terminal accumulated
+  // while it was open. Stored on the trip rather than recomputed from the
+  // reading series because the series is pruned and the summary is not.
+  topSpeedKph            Float?
+  averageSpeedKph        Float?
+  harshBrakingCount      Int    @default(0)
+  harshAccelerationCount Int    @default(0)
+
+  /// Vehicle odometer at each end of the movement.
+  startOdometerKm Float?
+  endOdometerKm   Float?
+
   cancellationReason String?
   createdById        String   @db.Uuid
   createdAt          DateTime @default(now())
@@ -1622,6 +1648,7 @@ model Trip {
 
   @@index([organizationId, status, createdAt])
   @@index([truckId, status])
+  @@index([truckId, adHoc, status])
   @@index([driverId, status])
   @@index([status])
   @@index([legType, status])

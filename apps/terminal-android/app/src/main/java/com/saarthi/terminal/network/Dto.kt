@@ -346,6 +346,7 @@ data class TelemetryFrame(
     val location: FrameLocation? = null,
     val motion: FrameMotion? = null,
     val health: FrameHealth? = null,
+    val vehicle: FrameVehicle? = null,
     val simulated: FrameSimulated? = null,
 )
 
@@ -376,6 +377,29 @@ data class FrameHealth(
     val networkType: String? = null,
     val batteryPercent: Int? = null,
     val batteryCharging: Boolean? = null,
+)
+
+/**
+ * Engine data the vehicle actually reported.
+ *
+ * A different object from [FrameSimulated], and deliberately so. Sending a
+ * measured coolant temperature through the simulated block would have stored a
+ * real reading under a label saying it was invented — which is worse than not
+ * sending it, because a year later nobody can tell the two apart.
+ */
+@Serializable
+data class FrameVehicle(
+    val rpm: Double? = null,
+    val engineLoad: Double? = null,
+    val coolantTemperature: Double? = null,
+    val intakeTemperature: Double? = null,
+    val fuelLevel: Double? = null,
+    val fuelRate: Double? = null,
+    val throttlePosition: Double? = null,
+    val batteryVoltage: Double? = null,
+    val odometerKm: Double? = null,
+    val vin: String? = null,
+    val diagnostics: List<DiagnosticCodeDto>? = null,
 )
 
 @Serializable
@@ -670,3 +694,87 @@ data class TerminalSessionEventPayload(
     val secondsUntilEscalation: Int? = null,
     val updatedAt: String,
 )
+
+// ---------------------------------------------------------------------------
+// Service runs — a trip nobody dispatched
+// ---------------------------------------------------------------------------
+
+/**
+ * Open a trip for a run to a nearby service.
+ *
+ * Sent when the driver picks a destination out of the nearby list and the
+ * vehicle has no dispatched trip against it. The route goes with it because the
+ * terminal already holds one — asking Saarthi to route the same pair again a
+ * second later would spend a routing call on an answer that is already on
+ * screen.
+ */
+@Serializable
+data class StartServiceRunRequest(
+    val destinationName: String,
+    /** The category the driver was browsing, e.g. FUEL. Display only. */
+    val service: String? = null,
+    val fromLatitude: Double,
+    val fromLongitude: Double,
+    val toLatitude: Double,
+    val toLongitude: Double,
+    val originName: String? = null,
+    val plannedDistanceKm: Double? = null,
+    val plannedDurationMinutes: Int? = null,
+    val route: List<RoutePointDto>? = null,
+    val odometerKm: Double? = null,
+)
+
+/**
+ * What the run added up to.
+ *
+ * Sent on arrival, and again with [cancelled] when the driver stops navigating
+ * short of the destination. The figures go either way: a cancelled run is still
+ * a journey the vehicle made, and dropping its distance would leave exactly the
+ * hole this whole path exists to fill.
+ */
+@Serializable
+data class FinishServiceRunRequest(
+    val tripId: String? = null,
+    val distanceKm: Double? = null,
+    val topSpeedKph: Double? = null,
+    val averageSpeedKph: Double? = null,
+    val harshBrakingCount: Int = 0,
+    val harshAccelerationCount: Int = 0,
+    val odometerKm: Double? = null,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
+    val cancelled: Boolean = false,
+    val reason: String? = null,
+)
+
+/** The trip a service run is being recorded against. */
+@Serializable
+data class ServiceRunDto(
+    val id: String,
+    val reference: String,
+    val status: String,
+    val destinationName: String,
+    val destinationLatitude: Double,
+    val destinationLongitude: Double,
+    val plannedDistanceKm: Double? = null,
+    val actualDistanceKm: Double = 0.0,
+    val startedAt: String,
+    val startOdometerKm: Double? = null,
+)
+
+/**
+ * The odometer, as this terminal reads it.
+ *
+ * The reply carries what Saarthi holds *afterwards*, which is not always what
+ * was sent: the odometer never moves backwards, so a terminal fitted to a
+ * different truck learns the real reading here rather than overwriting it.
+ */
+@Serializable
+data class ReportOdometerRequest(
+    val odometerKm: Double,
+    /** `OBD`, `GPS` or `MANUAL` — how the figure was arrived at. */
+    val source: String = "GPS",
+)
+
+@Serializable
+data class OdometerDto(val odometerKm: Double)

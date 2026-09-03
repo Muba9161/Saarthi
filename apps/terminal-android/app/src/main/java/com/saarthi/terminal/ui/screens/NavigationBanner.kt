@@ -1,6 +1,7 @@
 package com.saarthi.terminal.ui.screens
 
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,9 +10,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Autorenew
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.FlagCircle
 import androidx.compose.material.icons.rounded.Merge
@@ -22,7 +25,10 @@ import androidx.compose.material.icons.rounded.TurnLeft
 import androidx.compose.material.icons.rounded.TurnRight
 import androidx.compose.material.icons.rounded.TurnSlightLeft
 import androidx.compose.material.icons.rounded.TurnSlightRight
+import androidx.compose.material.icons.automirrored.rounded.VolumeUp
 import androidx.compose.material.icons.rounded.UTurnLeft
+import androidx.compose.material.icons.rounded.VolumeOff
+import androidx.compose.material.icons.rounded.WrongLocation
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -37,7 +43,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.saarthi.terminal.network.RouteDto
 import com.saarthi.terminal.ui.Gutter
+import com.saarthi.terminal.ui.PrimaryAction
 import com.saarthi.terminal.ui.SaarthiSuccess
+import com.saarthi.terminal.ui.SaarthiWarning
+import com.saarthi.terminal.ui.StatusTone
+import com.saarthi.terminal.ui.TouchTarget
 import com.saarthi.terminal.ui.TerminalViewModel
 import java.time.Instant
 import java.time.ZoneId
@@ -65,10 +75,30 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun NavigationBanner(
     route: RouteDto,
-    next: TerminalViewModel.NextManeuverUi?,
+    navigation: TerminalViewModel.NavigationUi,
+    /** Whether spoken turn instructions are silenced. */
+    guidanceMuted: Boolean,
+    onToggleGuidance: () -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val next = navigation.step
+
+    /*
+     * Three states, and each replaces the turn rather than sitting beside it.
+     *
+     * A driver has about a second. Adding a "rerouting" chip next to an
+     * instruction that is now known to be wrong would leave the wrong
+     * instruction as the biggest thing on the screen — so while a new route is
+     * being fetched the banner says so and shows nothing else, and on arrival it
+     * says that instead.
+     */
+    val tone = when {
+        navigation.arrived -> SaarthiSuccess
+        navigation.rerouting || navigation.rerouteFailed -> SaarthiWarning
+        else -> MaterialTheme.colorScheme.primary
+    }
+
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(20.dp),
@@ -82,9 +112,18 @@ fun NavigationBanner(
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
-                        maneuverIcon(next?.maneuver, next?.modifier),
-                        contentDescription = next?.instruction ?: "Navigating",
-                        tint = MaterialTheme.colorScheme.primary,
+                        when {
+                            navigation.arrived -> Icons.Rounded.FlagCircle
+                            navigation.rerouting -> Icons.Rounded.Autorenew
+                            navigation.rerouteFailed -> Icons.Rounded.WrongLocation
+                            else -> maneuverIcon(next?.maneuver, next?.modifier)
+                        },
+                        contentDescription = when {
+                            navigation.arrived -> "Arrived"
+                            navigation.rerouting -> "Finding a new route"
+                            else -> next?.instruction ?: "Navigating"
+                        },
+                        tint = tone,
                         modifier = Modifier.size(52.dp),
                     )
                 }
@@ -93,15 +132,54 @@ fun NavigationBanner(
 
                 Column(Modifier.weight(1f)) {
                     Text(
-                        next?.let { formatDistance(it.distanceMetres) } ?: "On route",
+                        when {
+                            navigation.arrived -> "Arrived"
+                            navigation.rerouting -> "New route"
+                            navigation.rerouteFailed -> "Off route"
+                            next != null -> formatDistance(navigation.stepMetres)
+                            else -> "On route"
+                        },
                         style = MaterialTheme.typography.displaySmall,
                         fontWeight = FontWeight.SemiBold,
+                        color = if (navigation.arrived) SaarthiSuccess else Color.Unspecified,
+                        maxLines = 1,
                     )
                     Text(
-                        next?.roadName ?: route.destination.name,
+                        when {
+                            navigation.arrived -> route.destination.name
+                            navigation.rerouting -> "Working out the way from here"
+                            navigation.rerouteFailed -> "Saarthi cannot find a road from here"
+                            else -> next?.name ?: route.destination.name
+                        },
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
+                    )
+                }
+
+                /*
+                 * Silence, within reach.
+                 *
+                 * On the banner rather than buried in the admin screen, because
+                 * the moment a driver wants the talking to stop is a moment they
+                 * are driving — a second person asleep in the cab, a phone call,
+                 * a road they know by heart. A mute that takes a PIN and three
+                 * taps is a mute nobody uses; they turn the volume down instead
+                 * and lose the emergency announcements with it.
+                 */
+                IconButton(onClick = onToggleGuidance) {
+                    Icon(
+                        if (guidanceMuted) Icons.Rounded.VolumeOff else Icons.AutoMirrored.Rounded.VolumeUp,
+                        contentDescription = if (guidanceMuted) {
+                            "Turn spoken directions on"
+                        } else {
+                            "Mute spoken directions"
+                        },
+                        tint = if (guidanceMuted) {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        } else {
+                            MaterialTheme.colorScheme.primary
+                        },
                     )
                 }
 
@@ -114,17 +192,36 @@ fun NavigationBanner(
                 }
             }
 
-            next?.instruction?.let { instruction ->
+            /*
+             * The instruction, and only when it is still true.
+             *
+             * Hidden while re-routing: the step belongs to a route the vehicle
+             * has left, and a driver reading "turn left onto NH 48" from a road
+             * that no longer meets it is worse off than one reading nothing.
+             */
+            if (!navigation.rerouting && !navigation.arrived) {
+                next?.instruction?.let { instruction ->
+                    Spacer(Modifier.size(6.dp))
+                    Text(
+                        instruction,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 2,
+                    )
+                }
+            }
+
+            if (navigation.rerouteFailed) {
                 Spacer(Modifier.size(6.dp))
                 Text(
-                    instruction,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    "Carry on and Saarthi will pick the route back up, or stop navigating.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 2,
                 )
             }
 
-            if (route.summary.isNotBlank()) {
+            if (route.summary.isNotBlank() && !navigation.arrived) {
                 Spacer(Modifier.size(6.dp))
                 Text(
                     "via ${route.summary}",
@@ -145,6 +242,11 @@ fun NavigationBanner(
  * puts the turn at the top and the journey at the bottom, and a terminal that
  * stacks both in one block makes the driver read a paragraph to find a number.
  *
+ * The figures count *down* now. They used to be the route's own totals, fixed at
+ * the moment it was fetched, so a driver forty minutes into an hour's journey
+ * was still being told it was an hour — and the arrival time, computed once by
+ * the server, quietly slid into the past. What is shown is what is left.
+ *
  * It also carries the way out. Stopping navigation was an icon inside a dense
  * card; here it is a target of its own, at the edge, where a thumb can reach it
  * without crossing the instruction.
@@ -152,9 +254,23 @@ fun NavigationBanner(
 @Composable
 fun TripSummaryBar(
     route: RouteDto,
+    navigation: TerminalViewModel.NavigationUi,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    /*
+     * Fall back to the route's own totals until the first fix lands.
+     *
+     * `remainingMetres` is zero for the moment between the route arriving and
+     * the vehicle being projected onto it, and "0.0 km" on a journey that has
+     * not started reads as a fault.
+     */
+    val started = navigation.remainingMetres > 0 || navigation.arrived
+    val remainingKm =
+        if (started) navigation.remainingMetres / 1_000.0 else route.distanceKm
+    val remainingMinutes =
+        if (started) navigation.remainingMinutes else route.durationMinutes
+
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(18.dp),
@@ -172,18 +288,162 @@ fun TripSummaryBar(
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Text(
-                "${route.durationMinutes} min",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = SaarthiSuccess,
-            )
-            Text(
-                "  ·  %.1f km  ·  ${formatEta(route.etaAt)}".format(route.distanceKm),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-            )
+            if (navigation.arrived) {
+                Text(
+                    "Arrived",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = SaarthiSuccess,
+                )
+                Text(
+                    "  ·  ${route.destination.name}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                )
+            } else {
+                Text(
+                    "$remainingMinutes min",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = SaarthiSuccess,
+                )
+                Text(
+                    "  ·  %.1f km  ·  %s".format(remainingKm, arrivalClock(remainingMinutes)),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                )
+            }
+        }
+    }
+}
+
+/**
+ * When the vehicle gets there, from the minutes still to run.
+ *
+ * Computed here rather than taken from the route's `etaAt`, which the server
+ * stamped once when the route was fetched and which is therefore wrong by
+ * however long the journey has taken so far. The tablet's *clock* is still not
+ * trusted for anything absolute — a cheap device that has been off for a week
+ * has a wrong one — but it is perfectly good for adding minutes to now, and a
+ * driver reads an arrival time as "how much longer" in any case.
+ */
+private fun arrivalClock(minutesRemaining: Int): String = runCatching {
+    DateTimeFormatter.ofPattern("HH:mm")
+        .withZone(ZoneId.systemDefault())
+        .format(Instant.now().plusSeconds(minutesRemaining * 60L))
+}.getOrDefault("—")
+
+/**
+ * The route, before the driver commits to it.
+ *
+ * Choosing a petrol pump from a list is a question — "how far is that?" — and
+ * this is the answer. Tapping a row used to be the answer *and* the decision:
+ * the camera took over, the terminal started talking, and a trip was opened
+ * against the vehicle. On a 7-inch screen in a moving cab that made a mis-tap
+ * expensive, and it took a choice away from the person whose journey it is.
+ *
+ * Everything needed for the decision and nothing else: where, how far, how long,
+ * and which roads. Start is the large control because it is the one being asked
+ * for; dismissing is deliberately smaller and beside it, because a driver who
+ * meant Start and hit Cancel has lost a routing request and their place in the
+ * list.
+ */
+@Composable
+fun RoutePreviewCard(
+    route: RouteDto,
+    onStart: () -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+        shadowElevation = 12.dp,
+    ) {
+        Column(Modifier.padding(Gutter)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Rounded.FlagCircle,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(28.dp),
+                )
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    route.destination.name,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 2,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+
+            Spacer(Modifier.size(10.dp))
+
+            Row(verticalAlignment = Alignment.Bottom) {
+                Text(
+                    "${route.durationMinutes} min",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = SaarthiSuccess,
+                )
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    "%.1f km · arrive %s".format(
+                        route.distanceKm,
+                        arrivalClock(route.durationMinutes),
+                    ),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 4.dp),
+                    maxLines = 1,
+                )
+            }
+
+            if (route.summary.isNotBlank()) {
+                Spacer(Modifier.size(4.dp))
+                Text(
+                    "via ${route.summary}",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                )
+            }
+
+            Spacer(Modifier.size(14.dp))
+
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                PrimaryAction(
+                    label = "Start",
+                    icon = Icons.Rounded.Navigation,
+                    onClick = onStart,
+                    tone = StatusTone.GOOD,
+                    modifier = Modifier.weight(1f),
+                )
+                Surface(
+                    modifier = Modifier
+                        .sizeIn(minHeight = TouchTarget, minWidth = TouchTarget)
+                        .clip(RoundedCornerShape(16.dp))
+                        .clickable(onClick = onDismiss),
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    shape = RoundedCornerShape(16.dp),
+                ) {
+                    Box(Modifier.padding(horizontal = 20.dp), contentAlignment = Alignment.Center) {
+                        Text(
+                            "Cancel",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -224,9 +484,3 @@ private fun formatDistance(metres: Int): String = when {
     else -> "${metres / 1000} km"
 }
 
-/** Local wall-clock time. The server sent an instant; the driver reads a clock. */
-private fun formatEta(iso: String): String = runCatching {
-    DateTimeFormatter.ofPattern("HH:mm")
-        .withZone(ZoneId.systemDefault())
-        .format(Instant.parse(iso))
-}.getOrDefault("—")

@@ -390,3 +390,90 @@ export const terminalAskSchema = z.object({
   moving: z.boolean().optional(),
 });
 export type TerminalAskInput = z.infer<typeof terminalAskSchema>;
+
+// ---------------------------------------------------------------------------
+// Ad-hoc service runs (terminal → Saarthi)
+// ---------------------------------------------------------------------------
+
+/**
+ * Open a trip for a journey nobody dispatched.
+ *
+ * Sent when the driver picks a destination out of the nearby-services list and
+ * the vehicle has no assigned trip. Everything here describes *where the driver
+ * chose to go*; the vehicle, the driver and the fleet are resolved from the
+ * terminal's own assignment as they are everywhere else on this surface.
+ *
+ * The planned route is sent because the terminal already holds it — the routing
+ * call was made a moment ago for the map — and asking the server to route the
+ * same pair again would spend a second request on an answer already in hand.
+ */
+export const startAdHocTripSchema = z.object({
+  destinationName: trimmedString(1, 160),
+  /** The service category the driver was browsing, e.g. FUEL. Display only. */
+  service: optionalTrimmedString(40),
+  fromLatitude: latitudeSchema,
+  fromLongitude: longitudeSchema,
+  toLatitude: latitudeSchema,
+  toLongitude: longitudeSchema,
+  /** Where the vehicle started, in words, when the terminal knows. */
+  originName: optionalTrimmedString(160),
+  plannedDistanceKm: z.coerce.number().min(0).max(20_000).optional(),
+  plannedDurationMinutes: z.coerce.number().int().min(0).max(20_000).optional(),
+  /**
+   * The polyline the driver is following.
+   *
+   * Capped rather than unbounded: a terminal on a bad link should not be able to
+   * post a megabyte of geometry, and a route long enough to exceed this is one
+   * whose shape the fleet map can approximate from far fewer points.
+   */
+  route: z
+    .array(z.object({ latitude: latitudeSchema, longitude: longitudeSchema }))
+    .max(2_000)
+    .optional(),
+  odometerKm: z.coerce.number().min(0).max(5_000_000).optional(),
+});
+export type StartAdHocTripInput = z.infer<typeof startAdHocTripSchema>;
+
+/**
+ * What the run added up to.
+ *
+ * Sent on arrival, and again — with `cancelled` set — when the driver stops
+ * navigating before getting there. A cancelled run is still a real journey with
+ * real distance on it, so the figures are kept either way; only the trip's
+ * closing status differs.
+ */
+export const finishAdHocTripSchema = z.object({
+  tripId: uuidSchema.optional(),
+  distanceKm: z.coerce.number().min(0).max(20_000).optional(),
+  topSpeedKph: z.coerce.number().min(0).max(400).optional(),
+  averageSpeedKph: z.coerce.number().min(0).max(400).optional(),
+  harshBrakingCount: z.coerce.number().int().min(0).max(100_000).default(0),
+  harshAccelerationCount: z.coerce.number().int().min(0).max(100_000).default(0),
+  odometerKm: z.coerce.number().min(0).max(5_000_000).optional(),
+  latitude: latitudeSchema.optional(),
+  longitude: longitudeSchema.optional(),
+  /** True when the driver stopped navigating rather than arriving. */
+  cancelled: z.boolean().default(false),
+  reason: optionalTrimmedString(300),
+});
+export type FinishAdHocTripInput = z.infer<typeof finishAdHocTripSchema>;
+
+/**
+ * The odometer, as the vehicle currently reads it.
+ *
+ * Posted independently of any trip, because a vehicle accrues distance whether
+ * or not anybody opened a movement against it — and because the figure needs to
+ * reach the maintenance schedule, the passport and the resale valuation, not
+ * just the screen in the cab.
+ *
+ * The server never lets this move a vehicle's odometer backwards. A terminal
+ * reinstalled on a truck, or one whose GPS drifted while parked, must not be
+ * able to wind the clock back on a service interval.
+ */
+export const reportOdometerSchema = z.object({
+  odometerKm: z.coerce.number().min(0).max(5_000_000),
+  /** How the figure was arrived at, so the fleet can judge it. */
+  source: z.enum(['OBD', 'GPS', 'MANUAL']).default('GPS'),
+  recordedAt: z.coerce.date().optional(),
+});
+export type ReportOdometerInput = z.infer<typeof reportOdometerSchema>;

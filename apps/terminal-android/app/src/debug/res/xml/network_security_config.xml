@@ -1,39 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Transport security — DEBUG BUILDS ONLY.
+  Transport security, debug builds only.
 
-  This file replaces the one in `src/main` for debug builds and nothing else.
-  The release build keeps the strict policy: HTTPS everywhere, enforced by the
-  platform before a request is made.
+  This file replaces `main`'s copy in a debug build and does one thing to it:
+  adds the loopback address, so a phone tethered over USB with
+  `adb reverse tcp:4000 tcp:4000` can reach the developer's own API. `localhost`
+  already worked; `127.0.0.1` is the same machine written the way people
+  actually type it, and a build that refuses one but not the other is a
+  half-hour nobody gets back.
 
-  Why it has to exist. A developer testing on a real phone reaches the API on
-  the machine's LAN address — `http://192.168.x.x:4000` — which has no
-  certificate and never will. The main config permits cleartext only to
-  `localhost` and `10.0.2.2`, which covers the emulator and nothing else, and
-  Android's network security config cannot express "any private range": it
-  matches domains and literal addresses, not CIDR blocks. Listing every
-  plausible LAN address is not possible, so the split is by build type instead.
-
-  This is the right shape for the risk. A debug build is sideloaded onto a test
-  handset by the person who compiled it; a release build is what reaches a
-  driver, and that one still refuses cleartext to anything at all.
+  The release build is untouched and still refuses cleartext to anything but the
+  two dev aliases — the point of putting this in `src/debug` rather than
+  loosening the shared config is that a developer convenience cannot follow the
+  app onto a vehicle.
 -->
 <network-security-config>
-    <!--
-      Cleartext is permitted in debug builds because the developer's own API is
-      the only thing this build is ever pointed at.
-    -->
-    <base-config cleartextTrafficPermitted="true">
+    <base-config cleartextTrafficPermitted="false">
         <trust-anchors>
             <certificates src="system" />
-            <!--
-              Also trust certificates the developer installed on the handset, so
-              a local HTTPS setup or a proxy like mitmproxy works without
-              further changes. Debug only — a release build trusts the system
-              store alone, so a compromised device cannot silently intercept a
-              driver's telemetry.
-            -->
-            <certificates src="user" />
         </trust-anchors>
     </base-config>
+
+    <domain-config cleartextTrafficPermitted="true">
+        <!-- The emulator's alias for the host machine. -->
+        <domain includeSubdomains="false">10.0.2.2</domain>
+        <!-- A USB-tethered phone, through `adb reverse`. -->
+        <domain includeSubdomains="false">localhost</domain>
+        <domain includeSubdomains="false">127.0.0.1</domain>
+    </domain-config>
 </network-security-config>

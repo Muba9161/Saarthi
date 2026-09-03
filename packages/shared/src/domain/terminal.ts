@@ -1111,3 +1111,55 @@ export interface NextManeuver {
   distanceMeters: number;
   roadName: string;
 }
+
+// ---------------------------------------------------------------------------
+// Ad-hoc service runs (a trip nobody dispatched)
+// ---------------------------------------------------------------------------
+
+/**
+ * A journey the vehicle made on its own account.
+ *
+ * A driver with no dispatched trip who takes the truck to a petrol pump, a
+ * workshop or a weighbridge is still covering distance, wearing tyres and
+ * burning diesel — and until now none of that was written down anywhere. The
+ * terminal opens one of these the moment the driver picks a destination from
+ * the nearby-services list, and closes it when the vehicle arrives.
+ *
+ * It is a real `Trip`, not a parallel record. That is the whole point: the
+ * fleet map, the trip list, the driver score and the analytics already know how
+ * to read a trip, and a second kind of movement would have to be taught to all
+ * of them one at a time.
+ */
+export interface AdHocTripView {
+  id: string;
+  reference: string;
+  status: string;
+  destinationName: string;
+  destinationLatitude: number;
+  destinationLongitude: number;
+  plannedDistanceKm: number | null;
+  /** Distance the tracking pipeline has actually observed so far. */
+  actualDistanceKm: number;
+  startedAt: string;
+  /** Vehicle odometer when the run opened. */
+  startOdometerKm: number | null;
+}
+
+/**
+ * What the terminal measured while a service run was open.
+ *
+ * Every figure is optional because a terminal that lost GPS for the whole run
+ * has nothing honest to report, and a zero would read as "the vehicle did not
+ * move" rather than "nobody knows". The server keeps the larger of its own
+ * tracked distance and the terminal's, since the two measure the same journey
+ * by different means and the longer one is the one with fewer gaps.
+ */
+export interface AdHocTripSummary {
+  distanceKm: number | null;
+  topSpeedKph: number | null;
+  averageSpeedKph: number | null;
+  harshBrakingCount: number;
+  harshAccelerationCount: number;
+  /** Odometer at the end of the run. Never allowed to move backwards. */
+  odometerKm: number | null;
+}

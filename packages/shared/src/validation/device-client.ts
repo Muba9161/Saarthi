@@ -237,6 +237,58 @@ export type DeviceSimulatedVehicleDataInput = z.infer<
   typeof deviceSimulatedVehicleDataSchema
 >;
 
+/**
+ * Engine data the vehicle actually reported.
+ *
+ * A separate block from `simulated`, and that separation is the whole design.
+ * Until an OBD adapter existed, the only engine values a phone could send were
+ * invented, so the frame had one block and the gateway marked everything in it
+ * as simulated. A terminal with an adapter fitted reads the same fields from the
+ * ECU, and putting those through the simulated block would have been the exact
+ * failure section 19 forbids — a measurement stored under a label that says it
+ * was made up, or worse, the label quietly dropped so an invented reading and a
+ * real one become indistinguishable a year later.
+ *
+ * Two blocks, two meanings, and a frame may carry either or both: a terminal can
+ * be reading real coolant from the ECU while the simulator fills in a value the
+ * vehicle does not expose. Every field lands in `metrics`; only the simulated
+ * ones land in `simulatedMetrics`.
+ */
+export const deviceVehicleDataSchema = z.object({
+  rpm: z.coerce.number().min(0).max(16_000).nullish(),
+  engineLoad: z.coerce.number().min(0).max(100).nullish(),
+  coolantTemperature: z.coerce.number().min(-40).max(215).nullish(),
+  intakeTemperature: z.coerce.number().min(-40).max(215).nullish(),
+  fuelLevel: z.coerce.number().min(0).max(100).nullish(),
+  /** Litres per hour, straight from the ECU. */
+  fuelRate: z.coerce.number().min(0).max(1_000).nullish(),
+  throttlePosition: z.coerce.number().min(0).max(100).nullish(),
+  batteryVoltage: z.coerce.number().min(0).max(60).nullish(),
+  odometerKm: z.coerce.number().min(0).max(5_000_000).nullish(),
+  /** Seventeen characters, or absent. A partial VIN is worse than none. */
+  vin: z.string().trim().length(17).nullish(),
+  diagnostics: z
+    .array(
+      z.object({
+        code: trimmedString(2, 16),
+        /*
+         * Nullable, not merely optional.
+         *
+         * A generic OBD adapter reads the code and never the text for it, so a
+         * client that fills the field with an explicit null is behaving
+         * reasonably. `optionalTrimmedString` accepts a string or nothing at
+         * all and rejects null — which would fail validation for the whole
+         * frame and discard a perfectly good set of engine readings over a
+         * cosmetic field.
+         */
+        description: optionalTrimmedString(300).nullable(),
+      }),
+    )
+    .max(20)
+    .optional(),
+});
+export type DeviceVehicleDataInput = z.infer<typeof deviceVehicleDataSchema>;
+
 /** Radio and power state the phone measures about itself. */
 export const deviceRadioHealthSchema = z.object({
   /** dBm, as Android reports cellular signal strength. */
@@ -262,6 +314,8 @@ export const devicePhoneFrameSchema = z.object({
   location: deviceLocationSchema.omit({ eventId: true, recordedAt: true }).optional(),
   motion: deviceMotionSchema.optional(),
   health: deviceRadioHealthSchema.optional(),
+  /** Measured engine data, when an OBD adapter is fitted and answering. */
+  vehicle: deviceVehicleDataSchema.optional(),
   simulated: deviceSimulatedVehicleDataSchema.optional(),
 });
 export type DevicePhoneFrame = z.infer<typeof devicePhoneFrameSchema>;

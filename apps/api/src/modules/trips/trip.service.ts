@@ -26,6 +26,7 @@ import { skipTake } from '../../lib/http';
 import { notifyAsync, notifyOrganization } from '../notifications/notification.service';
 import { broadcastTripEvent, broadcastTripUpdate, broadcastTruckStatus } from '../../realtime/realtime.service';
 import { recalculateDriverScore, evaluateAndAwardAchievements } from '../drivers/driver.service';
+import { releaseVehicleFromAdHocTrip } from '../terminal/adhoc-trip.service';
 import type { AuthContext } from '../../auth/context';
 
 /**
@@ -64,6 +65,23 @@ export interface TripSummary {
   progressPercent: number;
   price: number | null;
   expenses: number | null;
+  /**
+   * A journey the vehicle made on its own account.
+   *
+   * True for a run to a petrol pump, a workshop or a weighbridge that a terminal
+   * opened because the driver navigated there with no dispatched trip against
+   * the vehicle. Surfaced rather than hidden: a fleet reporting on delivered
+   * work needs to be able to leave these out, and an owner looking at an
+   * unexplained forty kilometres needs to be able to find them.
+   */
+  adHoc: boolean;
+  /** Driving summary, written when the trip closed. Null while it is open. */
+  topSpeedKph: number | null;
+  averageSpeedKph: number | null;
+  harshBrakingCount: number;
+  harshAccelerationCount: number;
+  startOdometerKm: number | null;
+  endOdometerKm: number | null;
   currentLocation: {
     latitude: number;
     longitude: number;
@@ -191,6 +209,13 @@ async function decorate(trips: TripRecord[]): Promise<TripSummary[]> {
       progressPercent: progressOf(trip),
       price: trip.price ? Number(trip.price) : null,
       expenses: trip.expenses ? Number(trip.expenses) : null,
+      adHoc: trip.adHoc,
+      topSpeedKph: trip.topSpeedKph,
+      averageSpeedKph: trip.averageSpeedKph,
+      harshBrakingCount: trip.harshBrakingCount,
+      harshAccelerationCount: trip.harshAccelerationCount,
+      startOdometerKm: trip.startOdometerKm,
+      endOdometerKm: trip.endOdometerKm,
       currentLocation:
         truck?.lastLatitude !== null &&
         truck?.lastLongitude !== null &&
@@ -370,7 +395,24 @@ export async function createTrip(
     );
   }
   if (truck.currentTripId) {
-    throw errors.conflict('This truck is already on an active trip.');
+    /*
+     * A service run is not a reason to refuse a dispatch.
+     *
+     * Terminals open an ad-hoc trip when a driver navigates to a petrol pump or
+     * a workshop, and that trip occupies `currentTripId` exactly as a real one
+     * does — which is what makes the tracking pipeline record it. Refusing here
+     * would mean a dispatcher could not assign work to a vehicle whose driver
+     * had gone for diesel, with nothing on the dashboard to explain why. So the
+     * run is closed and the dispatch proceeds; the distance it covered is
+     * already banked on its own trip.
+     */
+    const released = await releaseVehicleFromAdHocTrip(
+      input.truckId,
+      'Closed automatically: the vehicle was dispatched on a new trip.',
+    );
+    if (!released) {
+      throw errors.conflict('This truck is already on an active trip.');
+    }
   }
 
   const driverId = input.driverId ?? truck.currentDriverId;

@@ -71,6 +71,33 @@
     -->
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
 
+    <!--
+      Who this app is allowed to see.
+
+      Android 11 hides every other installed package from an app targeting API 30
+      or above unless it says what it needs. Speech is delivered by *other
+      packages* — the text-to-speech engine and the recogniser are both separate
+      services — so without these two declarations the platform quietly refuses
+      to let the app bind to either.
+
+      The failure is silent and looks nothing like a permissions problem:
+      `TextToSpeech` reports ERROR from its init callback and never speaks a
+      word, and `SpeechRecognizer.isRecognitionAvailable` returns false, so the
+      wake word never starts. Everything else about the app works, which is what
+      makes it hard to find — there is no crash, no log, and no prompt.
+
+      This is why spoken directions did nothing on a real tablet while the whole
+      pipeline above them was correct.
+    -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE" />
+        </intent>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+    </queries>
+
     <application
         android:name=".SaarthiTerminalApp"
         android:allowBackup="false"

@@ -146,6 +146,78 @@ function toReading(frame: DevicePhoneFrame, context: AdapterContext): Normalized
     }
   }
 
+  /*
+   * --- Engine data: measured ------------------------------------------------
+   *
+   * Read from the vehicle's ECU over an OBD adapter, so it is declared in
+   * `metrics` and deliberately *not* in `simulatedMetrics`. It is applied before
+   * the simulated block below, and the simulated block then refuses to overwrite
+   * any field already filled — a real coolant temperature must never be replaced
+   * by an invented one just because the simulator is also running.
+   */
+  const vehicleData = { ...EMPTY_VEHICLE_DATA };
+  const diagnostics: NormalizedTelemetry['diagnostics'] = [];
+
+  if (frame.vehicle) {
+    const engine = frame.vehicle;
+    const measured = (metric: TelemetryMetric): void => {
+      metrics.push(metric);
+    };
+
+    if (engine.rpm !== null && engine.rpm !== undefined) {
+      vehicleData.rpm = engine.rpm;
+      measured(TelemetryMetric.RPM);
+    }
+    if (engine.engineLoad !== null && engine.engineLoad !== undefined) {
+      vehicleData.engineLoad = engine.engineLoad;
+      measured(TelemetryMetric.ENGINE_LOAD);
+    }
+    if (engine.coolantTemperature !== null && engine.coolantTemperature !== undefined) {
+      vehicleData.coolantTemperature = engine.coolantTemperature;
+      measured(TelemetryMetric.COOLANT_TEMPERATURE);
+    }
+    if (engine.intakeTemperature !== null && engine.intakeTemperature !== undefined) {
+      vehicleData.intakeTemperature = engine.intakeTemperature;
+      measured(TelemetryMetric.INTAKE_TEMPERATURE);
+    }
+    if (engine.fuelLevel !== null && engine.fuelLevel !== undefined) {
+      vehicleData.fuelLevel = engine.fuelLevel;
+      measured(TelemetryMetric.FUEL_LEVEL);
+    }
+    if (engine.fuelRate !== null && engine.fuelRate !== undefined) {
+      vehicleData.fuelRate = engine.fuelRate;
+      measured(TelemetryMetric.FUEL_RATE);
+    }
+    if (engine.throttlePosition !== null && engine.throttlePosition !== undefined) {
+      vehicleData.throttlePosition = engine.throttlePosition;
+      measured(TelemetryMetric.THROTTLE_POSITION);
+    }
+    if (engine.batteryVoltage !== null && engine.batteryVoltage !== undefined) {
+      vehicleData.batteryVoltage = engine.batteryVoltage;
+      measured(TelemetryMetric.BATTERY_VOLTAGE);
+    }
+    if (engine.odometerKm !== null && engine.odometerKm !== undefined) {
+      vehicleData.odometerKm = engine.odometerKm;
+      measured(TelemetryMetric.ODOMETER);
+    }
+    if (engine.vin) {
+      vehicleData.vin = engine.vin;
+      measured(TelemetryMetric.VIN);
+    }
+    if (engine.diagnostics && engine.diagnostics.length > 0) {
+      measured(TelemetryMetric.DTC);
+      for (const code of engine.diagnostics) {
+        diagnostics.push({
+          code: code.code,
+          description: code.description ?? null,
+          // Read from the ECU's stored-code memory, which is what a confirmed
+          // fault means — unlike a simulated one, where no lamp was involved.
+          confirmed: true,
+        });
+      }
+    }
+  }
+
   // --- Engine data: simulated ----------------------------------------------
   //
   // Everything below this line is invented by the app. It is stored because the
@@ -153,41 +225,71 @@ function toReading(frame: DevicePhoneFrame, context: AdapterContext): Normalized
   // scoring and the AI tools before hardware arrives — but every field is
   // enumerated in `simulatedMetrics` on the way past, so no consumer can mistake
   // it for a measurement.
-  const vehicleData = { ...EMPTY_VEHICLE_DATA };
-  const diagnostics: NormalizedTelemetry['diagnostics'] = [];
-
   if (frame.simulated && frame.simulated.mode !== 'OFF') {
     const engine = frame.simulated;
+    /*
+     * Fills a gap, never overwrites a measurement.
+     *
+     * A terminal can run both: an adapter answering coolant while the simulator
+     * covers a fuel level the vehicle does not expose. Where both offer the same
+     * field the measured one has already been written and stays — anything else
+     * would let an invented value shadow a real one, which is the failure the
+     * two-block split exists to make impossible.
+     */
     const declare = (metric: TelemetryMetric): void => {
       metrics.push(metric);
       simulatedMetrics.push(metric);
     };
 
-    if (engine.rpm !== null && engine.rpm !== undefined) {
+    if (vehicleData.rpm === null && engine.rpm !== null && engine.rpm !== undefined) {
       vehicleData.rpm = engine.rpm;
       declare(TelemetryMetric.RPM);
     }
-    if (engine.engineLoad !== null && engine.engineLoad !== undefined) {
+    if (
+      vehicleData.engineLoad === null &&
+      engine.engineLoad !== null &&
+      engine.engineLoad !== undefined
+    ) {
       vehicleData.engineLoad = engine.engineLoad;
       declare(TelemetryMetric.ENGINE_LOAD);
     }
-    if (engine.coolantTemperature !== null && engine.coolantTemperature !== undefined) {
+    if (
+      vehicleData.coolantTemperature === null &&
+      engine.coolantTemperature !== null &&
+      engine.coolantTemperature !== undefined
+    ) {
       vehicleData.coolantTemperature = engine.coolantTemperature;
       declare(TelemetryMetric.COOLANT_TEMPERATURE);
     }
-    if (engine.fuelLevel !== null && engine.fuelLevel !== undefined) {
+    if (
+      vehicleData.fuelLevel === null &&
+      engine.fuelLevel !== null &&
+      engine.fuelLevel !== undefined
+    ) {
       vehicleData.fuelLevel = engine.fuelLevel;
       declare(TelemetryMetric.FUEL_LEVEL);
     }
-    if (engine.batteryVoltage !== null && engine.batteryVoltage !== undefined) {
+    if (
+      vehicleData.batteryVoltage === null &&
+      engine.batteryVoltage !== null &&
+      engine.batteryVoltage !== undefined
+    ) {
       vehicleData.batteryVoltage = engine.batteryVoltage;
       declare(TelemetryMetric.BATTERY_VOLTAGE);
     }
-    if (engine.throttlePosition !== null && engine.throttlePosition !== undefined) {
+    if (
+      vehicleData.throttlePosition === null &&
+      engine.throttlePosition !== null &&
+      engine.throttlePosition !== undefined
+    ) {
       vehicleData.throttlePosition = engine.throttlePosition;
       declare(TelemetryMetric.THROTTLE_POSITION);
     }
-    if (engine.odometerKm !== null && engine.odometerKm !== undefined) {
+    if (
+      vehicleData.odometerKm === null &&
+      engine.odometerKm !== null &&
+      engine.odometerKm !== undefined
+    ) {
       vehicleData.odometerKm = engine.odometerKm;
       declare(TelemetryMetric.ODOMETER);
     }

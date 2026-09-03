@@ -12,13 +12,19 @@ import com.saarthi.terminal.network.FrameHealth
 import com.saarthi.terminal.network.FrameLocation
 import com.saarthi.terminal.network.FrameMotion
 import com.saarthi.terminal.network.FrameSimulated
+import com.saarthi.terminal.network.FrameVehicle
 import com.saarthi.terminal.network.HeartbeatRequest
 import com.saarthi.terminal.network.IssueDto
 import com.saarthi.terminal.network.NearbyResponse
 import com.saarthi.terminal.network.PairRequest
 import com.saarthi.terminal.network.ReportIssueRequest
 import com.saarthi.terminal.network.RouteDto
+import com.saarthi.terminal.network.ReportOdometerRequest
+import com.saarthi.terminal.network.RoutePointDto
 import com.saarthi.terminal.network.RouteRequest
+import com.saarthi.terminal.network.ServiceRunDto
+import com.saarthi.terminal.network.StartServiceRunRequest
+import com.saarthi.terminal.network.FinishServiceRunRequest
 import com.saarthi.terminal.network.SaarthiApi
 import com.saarthi.terminal.network.SosRequest
 import com.saarthi.terminal.network.SosResponse
@@ -28,8 +34,10 @@ import com.saarthi.terminal.network.TelemetryFrame
 import com.saarthi.terminal.network.TerminalStateDto
 import com.saarthi.terminal.network.TripEventRequest
 import com.saarthi.terminal.telemetry.Metric
+import com.saarthi.terminal.telemetry.MetricSource
 import com.saarthi.terminal.telemetry.TelemetryHub
 import com.saarthi.terminal.telemetry.TelemetrySnapshot
+import com.saarthi.terminal.telemetry.TripRecorder
 import com.saarthi.terminal.util.DebugLog
 import com.saarthi.terminal.util.DeviceEnvironment
 import kotlinx.coroutines.CoroutineScope
@@ -177,6 +185,17 @@ class TerminalRepository(
             if (telemetry.simulator.odometerKm == 0.0) {
                 telemetry.simulator.odometerKm = vehicle.odometerKm
             }
+            /*
+             * And seed the real one.
+             *
+             * The recorder tracks the vehicle's mileage from the figure Saarthi
+             * holds plus the distance this terminal has watched it cover, so the
+             * cockpit gauge moves with the road instead of stepping once every
+             * thirty seconds when this poll returns. Seeding is monotonic — see
+             * `seedOdometer` — so a refresh cannot rewind what has been measured
+             * since the last one.
+             */
+            telemetry.recorder.seedOdometer(vehicle.odometerKm)
         }
     }
 
@@ -204,6 +223,48 @@ class TerminalRepository(
             telemetry.phone.consumeMotionFlags()
 
         val battery = DeviceEnvironment.battery(context)
+
+        /*
+         * Measured engine data, in its own block.
+         *
+         * This was the gap that made the whole OBD path pointless: the frame
+         * carried only `filterValues { it.simulated }`, so a terminal reading a
+         * real coolant temperature showed it on the cockpit and threw it away on
+         * the way to Saarthi. The dashboard saw nothing, and the fleet had a
+         * fitted adapter producing a local-only display.
+         */
+        val measured = snapshot.values.filterValues { !it.simulated }
+        val vehicleBlock = FrameVehicle(
+            rpm = measured[Metric.RPM]?.value,
+            engineLoad = measured[Metric.ENGINE_LOAD]?.value,
+            coolantTemperature = measured[Metric.COOLANT_TEMPERATURE]?.value,
+            intakeTemperature = measured[Metric.INTAKE_TEMPERATURE]?.value,
+            fuelLevel = measured[Metric.FUEL_LEVEL]?.value,
+            fuelRate = measured[Metric.FUEL_RATE]?.value,
+            throttlePosition = measured[Metric.THROTTLE_POSITION]?.value,
+            batteryVoltage = measured[Metric.BATTERY_VOLTAGE]?.value,
+            odometerKm = measured[Metric.ODOMETER]?.value,
+            vin = telemetry.obd.vin.value,
+            diagnostics = snapshot.diagnostics
+                .filter { !it.simulated }
+                .map {
+                    com.saarthi.terminal.network.DiagnosticCodeDto(it.code, it.description)
+                }
+                .ifEmpty { null },
+        )
+        // Speed, heading and position ride in `location` and are not repeated
+        // here; an all-null block is an empty statement and is left off.
+        val hasVehicleData = listOfNotNull(
+            vehicleBlock.rpm,
+            vehicleBlock.engineLoad,
+            vehicleBlock.coolantTemperature,
+            vehicleBlock.intakeTemperature,
+            vehicleBlock.fuelLevel,
+            vehicleBlock.fuelRate,
+            vehicleBlock.throttlePosition,
+            vehicleBlock.batteryVoltage,
+            vehicleBlock.odometerKm,
+        ).isNotEmpty() || vehicleBlock.vin != null || vehicleBlock.diagnostics != null
 
         val simulatedValues = snapshot.values.filterValues { it.simulated }
         val simulatedBlock = if (simulatedValues.isEmpty()) {
@@ -253,6 +314,7 @@ class TerminalRepository(
                     batteryPercent = battery.percent,
                     batteryCharging = battery.charging,
                 ),
+                vehicle = if (hasVehicleData) vehicleBlock else null,
                 simulated = simulatedBlock,
             ),
         )
@@ -398,6 +460,144 @@ class TerminalRepository(
             ),
         )
     }
+
+    // -----------------------------------------------------------------------
+    // Service runs — a trip nobody dispatched
+    // -----------------------------------------------------------------------
+
+    /**
+     * Open a trip for a run to a nearby service.
+     *
+     * Called the moment a route to a chosen place comes back. The route goes with
+     * it rather than being re-derived on the server, because the terminal has it
+     * in hand and routing is the one part of the map stack that costs a fleet
+     * money.
+     *
+     * A null result is a *decision*, not a failure: Saarthi returns nothing when
+     * the vehicle is already on a dispatched trip, because that journey is
+     * already being recorded. Navigation carries on either way — recording a run
+     * must never be able to stop a driver getting to a petrol pump.
+     */
+    suspend fun startServiceRun(
+        route: RouteDto,
+        service: String?,
+        originName: String?,
+    ): Result<ServiceRunDto?> = runCatchingApi {
+        val snapshot = telemetry.snapshot.value
+        val position = snapshot.position
+            ?: throw SaarthiApi.Failure.Refused(
+                409,
+                "NO_POSITION",
+                "Saarthi does not know where this vehicle is yet.",
+            )
+
+        api.startServiceRun(
+            StartServiceRunRequest(
+                destinationName = route.destination.name,
+                service = service,
+                fromLatitude = position.latitude,
+                fromLongitude = position.longitude,
+                toLatitude = route.destination.latitude,
+                toLongitude = route.destination.longitude,
+                originName = originName,
+                plannedDistanceKm = route.distanceKm,
+                plannedDurationMinutes = route.durationMinutes,
+                // Thinned before sending. A long route is thousands of points,
+                // and the fleet map draws the same shape from a few hundred —
+                // posting all of them over a mobile link in a truck cab spends
+                // the driver's bandwidth on precision nobody can see.
+                route = route.geometry.thinned(MAX_ROUTE_POINTS),
+                odometerKm = snapshot.value(Metric.ODOMETER),
+            ),
+        )
+    }
+
+    /**
+     * Close the run, with what it added up to.
+     *
+     * `cancelled` distinguishes the driver stopping short from the vehicle
+     * arriving. The figures are sent either way — a cancelled run is still real
+     * distance on a real vehicle, and dropping it would put the odometer back
+     * out of step with the road, which is the whole problem this path exists to
+     * solve.
+     */
+    suspend fun finishServiceRun(
+        tripId: String?,
+        summary: TripRecorder.Segment,
+        odometerKm: Double?,
+        cancelled: Boolean,
+        reason: String?,
+    ): Result<ServiceRunDto?> = runCatchingApi {
+        val position = telemetry.snapshot.value.position
+        api.finishServiceRun(
+            FinishServiceRunRequest(
+                tripId = tripId,
+                distanceKm = summary.distanceKm.takeIf { summary.hasData },
+                topSpeedKph = summary.topSpeedKph.takeIf { it > 0.0 },
+                averageSpeedKph = summary.averageSpeedKph.takeIf { it > 0.0 },
+                harshBrakingCount = summary.harshBrakingCount,
+                harshAccelerationCount = summary.harshAccelerationCount,
+                odometerKm = odometerKm,
+                latitude = position?.latitude,
+                longitude = position?.longitude,
+                cancelled = cancelled,
+                reason = reason,
+            ),
+        )
+    }
+
+    /**
+     * An odometer reading worth sending, or null.
+     *
+     * **Only a figure the vehicle itself produced.** This is the single most
+     * important rule on this path and it is not obvious, so:
+     *
+     * Saarthi derives a vehicle's odometer from the positions it receives. The
+     * terminal derives its own from the same fixes, for the cockpit gauge, so
+     * that the number moves with the road rather than stepping once every state
+     * poll. Those two are the *same measurement counted twice*, and sending the
+     * terminal's as an absolute reading is fine right up until the terminal has
+     * been out of coverage.
+     *
+     * Picture it: half an hour in a dead spot, thirty kilometres covered. The
+     * terminal's local odometer is thirty higher; Saarthi's has not moved,
+     * because the frames are still in the outbox. Signal returns, the odometer
+     * report goes first, Saarthi adopts the higher figure — and then the buffer
+     * flushes and the tracking pipeline adds those same thirty kilometres on
+     * top. Sixty kilometres for a thirty-kilometre journey, on the number that
+     * drives every service interval.
+     *
+     * An ECU reading has none of that problem: it is the vehicle's own total,
+     * not an accumulation, so re-sending it is idempotent by construction. So
+     * that is the only kind that leaves this device.
+     */
+    fun measuredOdometerKm(): Double? {
+        val snapshot = telemetry.snapshot.value
+        val reading = snapshot[Metric.ODOMETER] ?: return null
+        return if (reading.source == MetricSource.OBD) reading.value else null
+    }
+
+    /** The run already open on this vehicle, for a terminal that restarted. */
+    suspend fun openServiceRun(): Result<ServiceRunDto?> = runCatchingApi {
+        api.openServiceRun()
+    }
+
+    /**
+     * Tell Saarthi what the odometer reads.
+     *
+     * Separate from any trip, because a vehicle accrues distance whether or not
+     * anybody opened a movement against it — and because the figure has to reach
+     * the maintenance schedule, the passport, the resale valuation and the fleet
+     * list, not just the gauge in the cab.
+     *
+     * The reply is what Saarthi holds afterwards, which is not always what was
+     * sent: the odometer never moves backwards, so a terminal moved to another
+     * truck learns that vehicle's real reading here instead of overwriting it.
+     */
+    suspend fun reportOdometer(odometerKm: Double, source: String): Result<Double> =
+        runCatchingApi {
+            api.reportOdometer(ReportOdometerRequest(odometerKm, source)).odometerKm
+        }
 
     suspend fun reportIssue(category: String, description: String): Result<IssueDto> =
         runCatchingApi {
@@ -565,5 +765,27 @@ class TerminalRepository(
     private companion object {
         /** Above this the vehicle counts as moving, and the UI simplifies. */
         const val MOVING_KPH = 5.0
+
+        /**
+         * How many route points to send with a service run.
+         *
+         * Enough for the fleet map to draw the shape of the journey. A long
+         * route carries thousands, and the extra ones describe curvature at a
+         * scale no dashboard renders — paid for out of a truck's mobile data.
+         */
+        const val MAX_ROUTE_POINTS = 300
+    }
+
+    /**
+     * Every nth point, keeping the ends.
+     *
+     * The ends matter: dropping the last point would end the drawn route short
+     * of the destination pin, which reads as a routing fault rather than as
+     * thinning.
+     */
+    private fun List<RoutePointDto>.thinned(limit: Int): List<RoutePointDto> {
+        if (size <= limit || limit < 2) return this
+        val stride = (size + limit - 1) / limit
+        return filterIndexed { index, _ -> index % stride == 0 || index == lastIndex }
     }
 }

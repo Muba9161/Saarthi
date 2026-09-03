@@ -284,6 +284,239 @@ describe('Saarthi Device ingestion', () => {
   });
 
   // -------------------------------------------------------------------------
+  // Measured engine data, from an OBD adapter
+  // -------------------------------------------------------------------------
+
+  /**
+   * The other half of the simulated/measured split.
+   *
+   * A terminal with an OBD adapter reads the same fields the simulator invents,
+   * and the frame carries them in a separate `vehicle` block precisely so the
+   * two can never be confused. Storing a measured coolant temperature under
+   * `simulatedMetrics` would be section 19's failure in reverse: a real reading
+   * labelled as fabricated, dismissed by every consumer downstream.
+   */
+  describe('measured vehicle telemetry', () => {
+    it('stores real engine data as measured, never as simulated', async () => {
+      await request({
+        method: 'POST',
+        url: '/api/v1/device-gateway/telemetry',
+        headers: deviceAuth(device.token),
+        payload: {
+          frames: [
+            {
+              eventId: nextEventId(),
+              recordedAt: new Date().toISOString(),
+              location: { latitude: 28.6139, longitude: 77.209, speedKph: 52, heading: 90 },
+              vehicle: {
+                rpm: 1726,
+                coolantTemperature: 88,
+                intakeTemperature: 41,
+                fuelLevel: 62,
+                fuelRate: 18.4,
+                batteryVoltage: 27.4,
+                odometerKm: 128_450,
+                vin: 'MAT445023N4C12345',
+                diagnostics: [{ code: 'P0143', description: null }],
+              },
+            },
+          ],
+        },
+      });
+
+      const reading = await prisma.telemetryReading.findFirstOrThrow({
+        where: { deviceId: device.deviceId },
+      });
+
+      expect(reading.rpm).toBe(1726);
+      expect(reading.coolantTemperature).toBe(88);
+      expect(reading.intakeTemperature).toBe(41);
+      expect(reading.fuelRate).toBe(18.4);
+      expect(reading.odometerKm).toBe(128_450);
+      expect(reading.vin).toBe('MAT445023N4C12345');
+
+      expect(reading.metrics).toEqual(
+        expect.arrayContaining([
+          TelemetryMetric.RPM,
+          TelemetryMetric.COOLANT_TEMPERATURE,
+          TelemetryMetric.INTAKE_TEMPERATURE,
+          TelemetryMetric.FUEL_RATE,
+          TelemetryMetric.ODOMETER,
+          TelemetryMetric.VIN,
+          TelemetryMetric.DTC,
+        ]),
+      );
+
+      // The whole point: none of it is branded invented.
+      expect(reading.simulatedMetrics).toHaveLength(0);
+      expect(reading.simulated).toBe(false);
+    });
+
+    it('replaces a wrong stored odometer with the vehicle own reading', async () => {
+      /*
+       * The correction that could not happen before.
+       *
+       * A vehicle is onboarded with a rough figure typed by hand, and the ECU
+       * later reports its real total. The gap is routinely tens of thousands of
+       * kilometres — far past the 1,500 km guard that protects the accumulated
+       * odometer from a corrupt frame — so the only trustworthy reading in the
+       * system was being rejected as implausible.
+       */
+      await prisma.truck.update({
+        where: { id: vehicle.id },
+        data: { odometerKm: 50_000 },
+      });
+
+      await request({
+        method: 'POST',
+        url: '/api/v1/device-gateway/telemetry',
+        headers: deviceAuth(device.token),
+        payload: {
+          frames: [
+            {
+              eventId: nextEventId(),
+              recordedAt: new Date().toISOString(),
+              location: { latitude: 28.6139, longitude: 77.209 },
+              vehicle: { odometerKm: 128_450 },
+            },
+          ],
+        },
+      });
+
+      const truck = await prisma.truck.findUniqueOrThrow({ where: { id: vehicle.id } });
+      expect(truck.odometerKm).toBe(128_450);
+    });
+
+    it('corrects an odometer downwards when the vehicle says so', async () => {
+      // The stored figure can be too high as easily as too low — a transposed
+      // digit at onboarding — and the vehicle is the authority either way.
+      await prisma.truck.update({
+        where: { id: vehicle.id },
+        data: { odometerKm: 900_000 },
+      });
+
+      await request({
+        method: 'POST',
+        url: '/api/v1/device-gateway/telemetry',
+        headers: deviceAuth(device.token),
+        payload: {
+          frames: [
+            {
+              eventId: nextEventId(),
+              recordedAt: new Date().toISOString(),
+              location: { latitude: 28.6139, longitude: 77.209 },
+              vehicle: { odometerKm: 90_000 },
+            },
+          ],
+        },
+      });
+
+      const truck = await prisma.truck.findUniqueOrThrow({ where: { id: vehicle.id } });
+      expect(truck.odometerKm).toBe(90_000);
+    });
+
+    it('never lets a simulated odometer rewrite the vehicle mileage', async () => {
+      /*
+       * The counterpart, and the reason the authoritative path is gated on the
+       * metric rather than on the reading. A frame can carry both blocks; only
+       * the measured one is the vehicle speaking. An invented total driving
+       * maintenance intervals and resale valuations is precisely what section 19
+       * exists to prevent.
+       */
+      await prisma.truck.update({
+        where: { id: vehicle.id },
+        data: { odometerKm: 70_000 },
+      });
+
+      await request({
+        method: 'POST',
+        url: '/api/v1/device-gateway/telemetry',
+        headers: deviceAuth(device.token),
+        payload: {
+          frames: [
+            {
+              eventId: nextEventId(),
+              recordedAt: new Date().toISOString(),
+              location: { latitude: 28.6139, longitude: 77.209 },
+              simulated: { mode: DeviceSimulationMode.NORMAL, odometerKm: 999_999 },
+            },
+          ],
+        },
+      });
+
+      const truck = await prisma.truck.findUniqueOrThrow({ where: { id: vehicle.id } });
+      expect(truck.odometerKm).toBe(70_000);
+    });
+
+    it('records an ECU fault code as confirmed', async () => {
+      // A code read out of the ECU's stored-code memory is a fault the vehicle
+      // itself recorded — unlike a simulated one, where no lamp was involved.
+      await request({
+        method: 'POST',
+        url: '/api/v1/device-gateway/telemetry',
+        headers: deviceAuth(device.token),
+        payload: {
+          frames: [
+            {
+              eventId: nextEventId(),
+              recordedAt: new Date().toISOString(),
+              location: { latitude: 28.6139, longitude: 77.209 },
+              vehicle: { diagnostics: [{ code: 'P0217', description: null }] },
+            },
+          ],
+        },
+      });
+
+      const code = await prisma.telemetryDiagnosticCode.findFirstOrThrow({
+        where: { code: 'P0217' },
+      });
+      expect(code.confirmed).toBe(true);
+    });
+
+    it('never lets a simulated value overwrite a measured one', async () => {
+      /*
+       * Both blocks in one frame, disagreeing.
+       *
+       * A terminal can legitimately send both — an adapter answering coolant
+       * while the simulator fills a fuel level the vehicle does not expose. The
+       * measured value has to win, and the simulated one must not even be
+       * declared for that metric, or the reading claims to be invented and
+       * measured at once.
+       */
+      await request({
+        method: 'POST',
+        url: '/api/v1/device-gateway/telemetry',
+        headers: deviceAuth(device.token),
+        payload: {
+          frames: [
+            {
+              eventId: nextEventId(),
+              recordedAt: new Date().toISOString(),
+              location: { latitude: 28.6139, longitude: 77.209 },
+              vehicle: { coolantTemperature: 88 },
+              simulated: {
+                mode: DeviceSimulationMode.NORMAL,
+                coolantTemperature: 40,
+                fuelLevel: 55,
+              },
+            },
+          ],
+        },
+      });
+
+      const reading = await prisma.telemetryReading.findFirstOrThrow({
+        where: { deviceId: device.deviceId },
+      });
+
+      expect(reading.coolantTemperature).toBe(88);
+      expect(reading.simulatedMetrics).not.toContain(TelemetryMetric.COOLANT_TEMPERATURE);
+      // The gap the simulator genuinely filled is still labelled as filled.
+      expect(reading.fuelLevel).toBe(55);
+      expect(reading.simulatedMetrics).toContain(TelemetryMetric.FUEL_LEVEL);
+    });
+  });
+
+  // -------------------------------------------------------------------------
   // Simulated engine data
   // -------------------------------------------------------------------------
 

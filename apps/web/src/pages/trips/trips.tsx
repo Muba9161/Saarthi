@@ -77,7 +77,21 @@ export function TripsPage() {
       header: 'Trip',
       cell: (trip) => (
         <div className="min-w-0">
-          <p className="font-medium">{trip.reference}</p>
+          <p className="flex items-center gap-2 font-medium">
+            {trip.reference}
+            {/*
+              A run the vehicle made on its own account — to a pump, a workshop,
+              a weighbridge — opened by the terminal because the driver navigated
+              there with nothing dispatched against the vehicle. Marked, because
+              a fleet reading this list as delivered work would otherwise count
+              a diesel run as a job.
+            */}
+            {trip.adHoc ? (
+              <span className="rounded-full border border-border px-2 py-0.5 text-[11px] font-normal text-muted-foreground">
+                Service run
+              </span>
+            ) : null}
+          </p>
           <p className="truncate text-xs text-muted-foreground">
             {trip.truck?.registrationNumber ?? '—'}
             {trip.driver ? ` · ${trip.driver.name}` : ''}

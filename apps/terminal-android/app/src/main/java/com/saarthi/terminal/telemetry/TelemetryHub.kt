@@ -39,6 +39,20 @@ class TelemetryHub(
 
     private val providers: List<TelemetryProvider> = listOf(phone, obd, simulator)
 
+    /**
+     * Distance, speeds and harsh events, accumulated across fixes.
+     *
+     * Lives here rather than in a screen or a view model because it has to keep
+     * counting while the driver is looking at something else — the whole point
+     * of a foreground service is that the vehicle is still being measured when
+     * nobody is watching the cockpit.
+     */
+    val recorder = TripRecorder()
+
+    /** Harsh-event totals as of the last assembly, so only the delta is folded in. */
+    private var lastHarshBraking: Long = 0L
+    private var lastHarshAcceleration: Long = 0L
+
     private val _snapshot = MutableStateFlow(TelemetrySnapshot())
     val snapshot: StateFlow<TelemetrySnapshot> = _snapshot.asStateFlow()
 
@@ -46,7 +60,16 @@ class TelemetryHub(
 
     /** Whether the simulator is permitted at all, on this build and this server. */
     @Volatile
-    var simulationAllowed: Boolean = BuildConfig.ALLOW_SIMULATION
+    /**
+     * Whether the simulator may run at all.
+     *
+     * Three gates, and every one has to agree: the build must permit simulation,
+     * the server must not have forbidden it for this fleet, and somebody must
+     * have switched it on in Terminal settings. The last one is new and defaults
+     * to off — with a real adapter fitted, invented engine values are no longer
+     * a useful stand-in but a second opinion nobody asked for.
+     */
+    var simulationAllowed: Boolean = false
         set(value) {
             // The build type is the ceiling. A server saying "simulation is fine"
             // must not switch it on in a release build, because a release build
@@ -81,6 +104,11 @@ class TelemetryHub(
         pollJob?.cancel()
         pollJob = null
         providers.forEach { it.stop() }
+        // The last position is dropped with the providers. Keeping it would make
+        // the first fix after a restart measure the whole gap as distance
+        // covered in one step — a truck that was switched off in one city and on
+        // in another would book the difference as a journey.
+        recorder.forgetPosition()
         _snapshot.value = TelemetrySnapshot()
     }
 
@@ -136,13 +164,53 @@ class TelemetryHub(
             if (simulationAllowed) addAll(simulator.diagnostics())
         }
 
-        _snapshot.value = TelemetrySnapshot(
+        /*
+         * The odometer, when nothing measured one.
+         *
+         * A tablet cannot read a truck's dash, and in a release build there is
+         * no simulator either — so `Metric.ODOMETER` was simply absent and the
+         * cockpit fell back to whatever figure the server last sent, stepping
+         * once every thirty seconds and never moving between polls.
+         *
+         * The recorder's figure is a real vehicle's stored reading plus the
+         * distance this terminal has watched it cover, so it is derived from
+         * measurement and stamped PHONE rather than SIMULATED. It is offered
+         * only when nothing better exists: an OBD adapter reading the ECU wins,
+         * because that is the vehicle's own total rather than an accumulation
+         * with a hole in it wherever GPS was lost.
+         */
+        if (!merged.containsKey(Metric.ODOMETER) || merged[Metric.ODOMETER]?.simulated == true) {
+            recorder.odometerKm.value?.let { odometer ->
+                merged[Metric.ODOMETER] = MetricValue(odometer, MetricSource.PHONE)
+            }
+        }
+
+        val snapshot = TelemetrySnapshot(
             at = System.currentTimeMillis(),
             values = merged,
             position = phone.position,
             diagnostics = diagnostics,
             contributors = contributors,
         )
+        _snapshot.value = snapshot
+
+        /*
+         * Fold the fix into the running totals.
+         *
+         * Deltas rather than flags: `consumeMotionFlags` clears what it reads,
+         * because a harsh-braking event belongs in exactly one telemetry frame —
+         * so a recorder reading the same flags would race the frame loop and
+         * each would see roughly half the events. The provider's monotonic
+         * totals can be sampled by anyone without taking anything away.
+         */
+        val (braking, acceleration) = phone.motionTotals()
+        recorder.record(
+            snapshot = snapshot,
+            harshBraking = (braking - lastHarshBraking).toInt().coerceAtLeast(0),
+            harshAcceleration = (acceleration - lastHarshAcceleration).toInt().coerceAtLeast(0),
+        )
+        lastHarshBraking = braking
+        lastHarshAcceleration = acceleration
     }
 
     /**

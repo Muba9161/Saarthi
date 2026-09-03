@@ -20,6 +20,7 @@ import {
   type VehicleType,
 } from '@saarthi/shared';
 import { prisma } from '../../database/prisma';
+import { applyOdometer } from '../vehicles/odometer.service';
 import { errors } from '../../lib/errors';
 import { logger } from '../../lib/logger';
 import { notifyOrganization } from '../notifications/notification.service';
@@ -510,16 +511,18 @@ export async function submitChecklist(
       })),
     });
 
-    // A driver who read the odometer is a better source than the last device
-    // frame, so the reading is carried onto the vehicle.
-    if (input.odometerKm !== undefined) {
-      await tx.truck.update({
-        where: { id: session.vehicleId },
-        data: { odometerKm: input.odometerKm },
-      });
-    }
-
     return created;
+  });
+
+  // A driver who read the odometer is a better source than the last device
+  // frame, so the reading is carried onto the vehicle — through the one function
+  // allowed to move it, outside the transaction, and never backwards. A tablet
+  // moved to a different truck used to be able to overwrite the new vehicle's
+  // mileage with the old one's on the first pre-trip check.
+  await applyOdometer({
+    vehicleId: session.vehicleId,
+    odometerKm: input.odometerKm ?? null,
+    reason: 'terminal-checklist',
   });
 
   const blockedBy = results

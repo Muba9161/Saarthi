@@ -10,6 +10,8 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
@@ -83,6 +85,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.saarthi.terminal.domain.AssistantState
+import com.saarthi.terminal.domain.NavigationAnnouncer
 import com.saarthi.terminal.domain.TerminalState
 import com.saarthi.terminal.network.RouteDto
 import com.saarthi.terminal.telemetry.Metric
@@ -105,6 +108,7 @@ import com.saarthi.terminal.ui.StatusTone
 import com.saarthi.terminal.ui.TerminalMap
 import com.saarthi.terminal.ui.TerminalViewModel
 import com.saarthi.terminal.ui.TouchTarget
+import com.saarthi.terminal.util.DebugLog
 import com.saarthi.terminal.voice.VoiceAssistant
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
@@ -153,11 +157,27 @@ fun CockpitScreen(
      * Whether the camera is still tracking the vehicle.
      *
      * A driver looking ahead down the route drags the map; the next GPS fix used
-     * to yank it straight back, which made looking ahead impossible. Panning now
-     * stops the tracking and raises the recentre control, and only the driver
-     * turns it back on.
+     * to yank it straight back, which made looking ahead impossible. Panning
+     * stops the tracking and raises the recentre control.
+     *
+     * And then it comes back on its own. That second half was missing, and its
+     * absence was most of what "the map does not move with the marker" described:
+     * a tablet bracketed beside a gear lever collects accidental touches all day,
+     * every one of them ended tracking permanently, and the driver was left
+     * dragging the map back by hand for the rest of the shift. Every navigator
+     * resumes after a quiet interval, and so does this — while leaving the
+     * recentre control for a driver who wants it back immediately.
      */
     var followVehicle by remember { mutableStateOf(true) }
+
+    /** Bumped on every pan, so the resume timer restarts rather than stacking. */
+    var panEpoch by remember { mutableStateOf(0) }
+
+    LaunchedEffect(followVehicle, panEpoch) {
+        if (followVehicle) return@LaunchedEffect
+        delay(RESUME_FOLLOW_MS)
+        followVehicle = true
+    }
 
     /** Panels cleared away, map to the edges. See the note on this screen. */
     var expandMap by remember { mutableStateOf(false) }
@@ -168,14 +188,32 @@ fun CockpitScreen(
     val route by viewModel.route.collectAsState()
 
     /*
-     * The next instruction, recomputed as the vehicle moves.
+     * The journey, as the view model is following it.
      *
-     * Derived on the device from a route it already holds, so a driver keeps
-     * being told where to turn inside a tunnel. `telemetry.at` is the dependency
-     * rather than the position itself: it changes on every fix, including one
-     * that lands on the same coordinates.
+     * The next turn, what is left, whether the driver has come off the route and
+     * whether they have arrived — all computed against the polyline on every
+     * fix, in one object. It used to be recomputed here, inside the composition,
+     * from whichever manoeuvre point happened to be nearest in a straight line:
+     * so the banner pointed at junctions already behind the cab, and it
+     * refreshed when the clock ticked rather than when the vehicle moved.
      */
-    val nextTurn = remember(route, telemetry.at) { viewModel.nextManeuver() }
+    val navigation by viewModel.navigation.collectAsState()
+
+    /*
+     * Show the driver where they are going, once.
+     *
+     * Incremented when the destination changes, which is the map's cue to frame
+     * the whole route before handing the camera back to the vehicle. Choosing a
+     * petrol pump and being shown no more of the map than you could already see
+     * is the other half of what was reported.
+     */
+    var frameRouteRequest by remember { mutableStateOf(0) }
+    LaunchedEffect(route?.destination?.latitude, route?.destination?.longitude) {
+        if (route != null) {
+            followVehicle = true
+            frameRouteRequest += 1
+        }
+    }
 
     /*
      * Voice.
@@ -188,18 +226,146 @@ fun CockpitScreen(
     val voice = remember {
         VoiceAssistant(
             context = context,
-            onWake = { viewModel.setAssistantState(AssistantState.LISTENING) },
+            // The engine reports the transition itself through `onStateChange`,
+            // including the case where waking fails to open the microphone. This
+            // is only the hook for anything else that should happen on a wake.
+            onWake = {},
             onUtterance = { heard -> viewModel.ask(heard, spoken = true) },
+            /*
+             * The engine drives the state, rather than each caller setting it on
+             * the way in and nobody clearing it on the way out.
+             *
+             * That was the old arrangement, and it meant the assistant showed as
+             * listening from the first wake word until a driver happened to
+             * dismiss a card — so the one indicator that says whether the cab
+             * microphone is live was permanently stuck on. Transitions now come
+             * from the class that actually knows.
+             */
+            onStateChange = { next -> viewModel.setAssistantState(next) },
         )
     }
     val voiceAmplitude by voice.amplitude.collectAsState()
+    val assistantBusy by voice.assistantBusy.collectAsState()
+
+    /*
+     * The speaker and the microphone have different lifetimes.
+     *
+     * Text-to-speech comes up with the cockpit and stays: spoken turn
+     * instructions are the whole reason navigation is usable at speed, and they
+     * must not depend on a wake word that is off by default. Listening is the
+     * one that waits to be asked for — a microphone in a cab where people have
+     * private conversations, and a real cost in battery.
+     *
+     * They used to be started together, which is why a terminal with the default
+     * settings could navigate a driver across a state in complete silence.
+     */
+    DisposableEffect(Unit) {
+        voice.prepareSpeech()
+        onDispose { voice.releaseSpeech() }
+    }
 
     DisposableEffect(viewModel.settings.wakeWordEnabled) {
-        // Off unless the fleet turned it on. Continuous listening costs battery
-        // and, more to the point, is a microphone left on in a space where people
-        // have private conversations.
-        if (viewModel.settings.wakeWordEnabled) voice.start()
-        onDispose { voice.stop() }
+        if (viewModel.settings.wakeWordEnabled) voice.startListening()
+        onDispose { voice.stopListening() }
+    }
+
+    /*
+     * Turn instructions, spoken.
+     *
+     * The banner tells a driver where to turn on a screen they must not be
+     * looking at, which makes it half a feature. This is the other half.
+     *
+     * All the judgement — which cue, which band, how often, in what words — is
+     * in [NavigationAnnouncer], which is pure and tested. What lives here is
+     * only the two things that need the running app: whether the driver has
+     * asked for silence, and whether Saarthi is already using the speaker.
+     */
+    val guidanceOn by viewModel.voiceGuidance.collectAsState()
+    val guidanceMuted = !guidanceOn
+    val announcer = remember { NavigationAnnouncer() }
+
+    LaunchedEffect(navigation, telemetry.at, guidanceMuted, assistantBusy) {
+        if (guidanceMuted || !voice.canSpeak) return@LaunchedEffect
+
+        /*
+         * Never talk over the driver, or over Saarthi answering them.
+         *
+         * Gated on the *audio channel* rather than on `assistant.state`, which
+         * describes the card on screen and stays in SPEAKING until somebody
+         * dismisses it — waiting on that would silence navigation for the rest
+         * of the shift after a single question. THINKING is included because it
+         * is the gap between the driver asking and the answer arriving, and
+         * filling it with a turn instruction reads as the terminal ignoring them.
+         *
+         * The whole evaluation is skipped rather than the sentence discarded, so
+         * the announcer's state does not advance — on the next fix the vehicle
+         * is closer and the cue that gets spoken is the one that is true *then*,
+         * rather than a stale instruction queued behind a conversation.
+         */
+        if (assistantBusy || assistant.state == AssistantState.THINKING) return@LaunchedEffect
+
+        // A previewed route is a drawing, not a journey. Passing a null key
+        // resets the announcer, so pressing Start opens with "Heading to …"
+        // rather than resuming mid-sentence from a route the driver was only
+        // looking at.
+        val route = navigation.route?.takeIf { navigation.guiding }
+        val cue = announcer.next(
+            NavigationAnnouncer.Input(
+                journeyKey = route?.let {
+                    "${it.destination.name}|${it.destination.latitude}|${it.destination.longitude}"
+                },
+                // The polyline's own identity, so a re-route to the same place
+                // resets the manoeuvres without repeating the opening line.
+                routeKey = route?.let { "${it.geometry.size}|${it.distanceKm}|${it.summary}" },
+                destinationName = route?.destination?.name.orEmpty(),
+                routeDistanceKm = route?.distanceKm ?: 0.0,
+                routeDurationMinutes = route?.durationMinutes ?: 0,
+                instruction = navigation.step?.instruction,
+                maneuver = navigation.step?.maneuver,
+                modifier = navigation.step?.modifier,
+                roadName = navigation.step?.name,
+                stepMetres = navigation.stepMetres,
+                speedKph = telemetry.value(Metric.SPEED) ?: 0.0,
+                rerouting = navigation.rerouting,
+                rerouteFailed = navigation.rerouteFailed,
+                arrived = navigation.arrived,
+                nowMs = System.currentTimeMillis(),
+            ),
+        )
+
+        if (cue != null) voice.speakGuidance(cue)
+    }
+
+    /*
+     * The assistant always goes away.
+     *
+     * Every path out of a non-idle state used to depend on something else
+     * finishing: speech ending, an answer arriving, a driver tapping a card. Any
+     * one of those failing — no speech engine, a request that never returns, a
+     * recogniser that dies mid-phrase — left the blob on screen for the rest of
+     * the session with nothing on the cockpit able to clear it.
+     *
+     * Those individual paths are fixed, but a visible indicator that *can* get
+     * stuck is a class of bug worth closing rather than a list of cases worth
+     * chasing. This is the backstop: whatever the assistant is doing, if it is
+     * still doing it well past the point of plausibility, it stops.
+     *
+     * The budgets differ because the states do — listening is bounded by the
+     * recogniser's own timeout, thinking by a network round trip, speaking by
+     * the length of an answer. `setAssistantState` rather than `dismiss`, so a
+     * spoken answer stays on screen to be read after the blob has gone.
+     */
+    LaunchedEffect(assistant.state) {
+        val budget = when (assistant.state) {
+            AssistantState.IDLE -> return@LaunchedEffect
+            AssistantState.LISTENING -> 15_000L
+            AssistantState.THINKING -> 25_000L
+            AssistantState.SPEAKING -> 45_000L
+            AssistantState.ERROR -> 8_000L
+        }
+        delay(budget)
+        DebugLog.warn("voice", "Assistant stuck in ${assistant.state}; clearing")
+        viewModel.setAssistantState(AssistantState.IDLE)
     }
 
     // Read the answer aloud when the question was asked aloud. A driver who
@@ -227,17 +393,6 @@ fun CockpitScreen(
     ) {
 
         // Shared by both layouts, so they cannot drift apart.
-        val openAssistant: () -> Unit = {
-            // Tapping starts listening directly when voice is available;
-            // otherwise it opens the sheet, which has a text field. A terminal
-            // with no microphone permission must still be able to ask.
-            if (voice.available) {
-                voice.listenNow()
-                viewModel.setAssistantState(AssistantState.LISTENING)
-            } else {
-                sheet = CockpitSheet.ASSISTANT
-            }
-        }
         val signOff: () -> Unit = {
             if (state.state == TerminalState.TRIP_ACTIVE) {
                 viewModel.completeTrip()
@@ -305,8 +460,6 @@ fun CockpitScreen(
                 modifier = m,
                 moving = moving,
                 tripActive = state.state == TerminalState.TRIP_ACTIVE,
-                assistantState = assistant.state,
-                voiceAmplitude = voiceAmplitude,
                 sosArmed = sosArmed,
                 clockBattery = state.server?.health?.batteryPercent,
                 offline = state.offline,
@@ -318,7 +471,6 @@ fun CockpitScreen(
                 expandMap = expandMap,
                 onToggleExpand = { expandMap = !expandMap },
                 onSos = { if (sosArmed) viewModel.triggerSos() else viewModel.armSos() },
-                onAssistant = openAssistant,
                 onServices = { sheet = CockpitSheet.SERVICES },
                 onVehicle = { sheet = CockpitSheet.VEHICLE },
                 onFuelNearby = {
@@ -372,13 +524,26 @@ fun CockpitScreen(
                 MapPanel(
                     state = state,
                     route = route,
-                    nextTurn = nextTurn,
+                    navigation = navigation,
                     moving = moving,
                     followVehicle = followVehicle,
+                    frameRouteRequest = frameRouteRequest,
+                    guidanceMuted = guidanceMuted,
+                    onStartNavigation = { viewModel.startNavigation() },
+                    onToggleGuidance = {
+                        viewModel.setVoiceGuidance(guidanceMuted)
+                        // Stop mid-sentence. A driver reaching for the mute
+                        // button wants the talking to stop now, not at the end
+                        // of the road name.
+                        if (!guidanceMuted) voice.stopSpeaking()
+                    },
                     showStatus = !expanded,
                     fullBleed = expandMap,
                     onRecentre = { followVehicle = true },
-                    onPanned = { followVehicle = false },
+                    onPanned = {
+                        followVehicle = false
+                        panEpoch += 1
+                    },
                     onCancelRoute = { viewModel.clearRoute() },
                     onOpenAdmin = onOpenAdmin,
                     modifier = Modifier.weight(1f).fillMaxHeight(),
@@ -419,6 +584,53 @@ fun CockpitScreen(
             bar(Modifier.fillMaxWidth())
         }
 
+        /*
+         * Saarthi, when Saarthi is actually doing something.
+         *
+         * Hidden at idle and floated over the map the moment the wake phrase
+         * lands — which is what "pops up when I say Hey Saarthi" means, and also
+         * what makes the shape informative: a blob on screen now means the
+         * microphone is live or an answer is coming, rather than meaning nothing
+         * at all because it is always there.
+         *
+         * Over the map rather than in the bar, because at that moment it is the
+         * only thing the driver is interacting with, and 88dp of it is readable
+         * in peripheral vision where 52dp in a row of six was not.
+         */
+        AnimatedVisibility(
+            visible = assistant.state != AssistantState.IDLE,
+            enter = fadeIn(tween(160)) + scaleIn(initialScale = 0.8f, animationSpec = tween(200)),
+            exit = fadeOut(tween(140)) + scaleOut(targetScale = 0.8f, animationSpec = tween(160)),
+            modifier = Modifier.align(Alignment.Center),
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                AiBlob(
+                    state = assistant.state,
+                    size = 108.dp,
+                    amplitude = voiceAmplitude,
+                    // Tapping the blob puts it away. A driver who set it off by
+                    // accident — and the wake phrase does fire on road noise —
+                    // needs one obvious way to stop it that is not a menu.
+                    onClick = { viewModel.dismissAssistant() },
+                )
+                assistant.transcript?.takeIf { it.isNotBlank() }?.let { heard ->
+                    Spacer(Modifier.height(12.dp))
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+                        shadowElevation = 6.dp,
+                    ) {
+                        Text(
+                            "“$heard”",
+                            Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                            style = MaterialTheme.typography.bodyLarge,
+                            maxLines = 2,
+                        )
+                    }
+                }
+            }
+        }
+
         // --- Sheets -----------------------------------------------------------
         when (sheet) {
             CockpitSheet.SERVICES -> ServicesSheet(viewModel, expanded) { sheet = null }
@@ -430,6 +642,17 @@ fun CockpitScreen(
 }
 
 internal enum class CockpitSheet { SERVICES, VEHICLE, ASSISTANT }
+
+/**
+ * How long the map stays where the driver put it before tracking resumes.
+ *
+ * Long enough to read the road ahead or check a junction; short enough that an
+ * accidental knock does not leave the vehicle sliding off the screen for the
+ * rest of the shift. Twelve seconds is roughly what in-car systems settle on,
+ * and it is the number that matters most to the complaint this fixes: without
+ * it, every stray touch was permanent.
+ */
+private const val RESUME_FOLLOW_MS = 12_000L
 
 // ---------------------------------------------------------------------------
 // Speed
@@ -453,100 +676,66 @@ private fun VehicleCard(
     modifier: Modifier = Modifier,
 ) {
     val speedKph = telemetry.value(Metric.SPEED)
-    val reduced = LocalReducedMotion.current
-    val target = ((speedKph ?: 0.0) / 120.0).coerceIn(0.0, 1.0).toFloat()
-
-    // Eased rather than snapped. A needle that jumps between fixes reads as a
-    // fault; a sweep reads as the vehicle changing speed, which it is.
-    val sweep by animateFloatAsState(
-        targetValue = target,
-        animationSpec = if (reduced) {
-            tween(0)
-        } else {
-            spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessLow)
-        },
-        label = "speed-sweep",
-    )
-
-    val tone = when {
-        speedKph == null -> MaterialTheme.colorScheme.onSurfaceVariant
-        speedKph >= 90 -> SaarthiWarning
-        else -> MaterialTheme.colorScheme.primary
-    }
-    val track = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+    val rpm = telemetry.value(Metric.RPM)
     val odometer = (telemetry.value(Metric.ODOMETER) ?: fallbackOdometerKm)
         ?.let { "%,d".format(it.toLong()) }
 
+    /*
+     * Mileage, in the unit an Indian driver actually thinks in.
+     *
+     * Kilometres per litre, from two readings the vehicle is already giving:
+     * road speed and fuel consumption. It is only meaningful while moving —
+     * standing still with the engine running is zero km/L and infinite thirst,
+     * which is true and useless — so below walking pace it reads as nothing
+     * rather than as a number that swings between 0 and absurd at every light.
+     */
+    val fuelRate = telemetry.value(Metric.FUEL_RATE)
+    val speedForMileage = telemetry.value(Metric.SPEED)
+    val mileage = if (
+        fuelRate != null && fuelRate > 0.1 &&
+        speedForMileage != null && speedForMileage > 5.0
+    ) {
+        "%.1f".format(speedForMileage / fuelRate)
+    } else {
+        null
+    }
+
     GlassCard(modifier, contentPadding = if (compact) 12.dp else 16.dp) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(if (compact) 82.dp else 96.dp), contentAlignment = Alignment.Center) {
-                Canvas(Modifier.fillMaxSize()) {
-                    val stroke = Stroke(width = 10.dp.toPx(), cap = StrokeCap.Round)
-                    val inset = stroke.width / 2
-                    val arcSize = Size(size.width - stroke.width, size.height - stroke.width)
-                    // 240° starting bottom-left: the shape a driver expects a
-                    // dial to have, rather than a closed ring.
-                    drawArc(
-                        color = track,
-                        startAngle = 150f,
-                        sweepAngle = 240f,
-                        useCenter = false,
-                        topLeft = Offset(inset, inset),
-                        size = arcSize,
-                        style = stroke,
-                    )
-                    drawArc(
-                        color = tone,
-                        startAngle = 150f,
-                        sweepAngle = 240f * sweep,
-                        useCenter = false,
-                        topLeft = Offset(inset, inset),
-                        size = arcSize,
-                        style = stroke,
-                    )
-                }
+            /*
+             * Two dials, the pair a driver expects to see together.
+             *
+             * Speed answers "am I within the limit"; RPM answers "am I in the
+             * right gear, and is the engine labouring" — which is the reading a
+             * fleet's fuel bill actually turns on. They were never going to be
+             * one gauge and a list of numbers.
+             */
+            Dial(
+                value = speedKph,
+                maximum = 120.0,
+                unit = "km/h",
+                warnAbove = 90.0,
+                simulated = telemetry.isSimulated(Metric.SPEED),
+                size = if (compact) 78.dp else 92.dp,
+                label = "speed",
+            )
 
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    /*
-                     * The digits move when they change: slide-and-fade rather
-                     * than a straight swap, so a changing value registers in
-                     * peripheral vision. Instant under reduced motion.
-                     */
-                    AnimatedContent(
-                        targetState = speedKph?.toInt(),
-                        transitionSpec = {
-                            if (reduced) {
-                                fadeIn(tween(0)) togetherWith fadeOut(tween(0))
-                            } else {
-                                (fadeIn(tween(180)) + slideInVertically { it / 3 }) togetherWith
-                                    (fadeOut(tween(140)) + slideOutVertically { -it / 3 })
-                            }
-                        },
-                        label = "speed-digits",
-                    ) { value ->
-                        Text(
-                            value?.toString() ?: "—",
-                            style = MaterialTheme.typography.displaySmall,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1,
-                            color = if (value == null) {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            } else {
-                                MaterialTheme.colorScheme.onSurface
-                            },
-                        )
-                    }
-                    Text(
-                        "km/h",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        softWrap = false,
-                    )
-                }
-            }
+            Spacer(Modifier.width(if (compact) 10.dp else 14.dp))
 
-            Spacer(Modifier.width(if (compact) 14.dp else 18.dp))
+            Dial(
+                value = rpm,
+                // 4,000 rather than a car's 8,000: a diesel truck lives between
+                // idle and about 2,200, and a scale built for a petrol engine
+                // would leave the needle in the first third all day.
+                maximum = 4_000.0,
+                unit = "rpm",
+                warnAbove = 2_600.0,
+                simulated = telemetry.isSimulated(Metric.RPM),
+                size = if (compact) 78.dp else 92.dp,
+                label = "rpm",
+            )
+
+            Spacer(Modifier.width(if (compact) 12.dp else 16.dp))
 
             Column(
                 Modifier.weight(1f),
@@ -571,6 +760,22 @@ private fun VehicleCard(
                         modifier = Modifier.weight(1f),
                     )
                 }
+                Row(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
+                    Readout(
+                        label = "Mileage",
+                        value = mileage,
+                        unit = "km/L",
+                        simulated = telemetry.isSimulated(Metric.FUEL_RATE),
+                        modifier = Modifier.weight(1f),
+                    )
+                    Readout(
+                        label = "Consumption",
+                        value = fuelRate?.let { "%.1f".format(it) },
+                        unit = "L/h",
+                        simulated = telemetry.isSimulated(Metric.FUEL_RATE),
+                        modifier = Modifier.weight(1f),
+                    )
+                }
                 Readout(
                     label = "Odometer",
                     value = odometer,
@@ -578,6 +783,127 @@ private fun VehicleCard(
                     simulated = telemetry.isSimulated(Metric.ODOMETER),
                     modifier = Modifier.fillMaxWidth(),
                 )
+            }
+        }
+    }
+}
+
+/**
+ * One instrument: an arc that fills, and the figure inside it.
+ *
+ * The number has to be read; the shape can be caught. That difference is the
+ * whole reason a vehicle has dials rather than a table of values, and it is why
+ * speed and RPM get this and fuel level does not — a driver checks fuel when
+ * they think about it and checks speed without thinking at all.
+ *
+ * `maximum` is a display scale, never a limit: past it the arc simply stays
+ * full while the figure keeps counting. A gauge that rescaled itself would make
+ * the same needle position mean different things a minute apart.
+ */
+@Composable
+private fun Dial(
+    value: Double?,
+    maximum: Double,
+    unit: String,
+    warnAbove: Double,
+    simulated: Boolean,
+    size: Dp,
+    label: String,
+) {
+    val reduced = LocalReducedMotion.current
+    val sweep by animateFloatAsState(
+        targetValue = ((value ?: 0.0) / maximum).coerceIn(0.0, 1.0).toFloat(),
+        // Eased rather than snapped. A needle that jumps between readings looks
+        // like a fault; a sweep looks like the vehicle changing, which it is.
+        animationSpec = if (reduced) {
+            tween(0)
+        } else {
+            spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessLow)
+        },
+        label = "$label-sweep",
+    )
+
+    val tone = when {
+        value == null -> MaterialTheme.colorScheme.onSurfaceVariant
+        value >= warnAbove -> SaarthiWarning
+        else -> MaterialTheme.colorScheme.primary
+    }
+    val track = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+
+    Box(Modifier.size(size), contentAlignment = Alignment.Center) {
+        Canvas(Modifier.fillMaxSize()) {
+            val stroke = Stroke(width = 10.dp.toPx(), cap = StrokeCap.Round)
+            val inset = stroke.width / 2
+            val arcSize = Size(this.size.width - stroke.width, this.size.height - stroke.width)
+            // 240° starting bottom-left: the shape a driver expects a dial to
+            // have, rather than a closed ring.
+            drawArc(
+                color = track,
+                startAngle = 150f,
+                sweepAngle = 240f,
+                useCenter = false,
+                topLeft = Offset(inset, inset),
+                size = arcSize,
+                style = stroke,
+            )
+            drawArc(
+                color = tone,
+                startAngle = 150f,
+                sweepAngle = 240f * sweep,
+                useCenter = false,
+                topLeft = Offset(inset, inset),
+                size = arcSize,
+                style = stroke,
+            )
+        }
+
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            /*
+             * The digits move when they change: slide-and-fade rather than a
+             * straight swap, so a changing value registers in peripheral vision.
+             * Instant under reduced motion.
+             */
+            AnimatedContent(
+                targetState = value?.toInt(),
+                transitionSpec = {
+                    if (reduced) {
+                        fadeIn(tween(0)) togetherWith fadeOut(tween(0))
+                    } else {
+                        (fadeIn(tween(180)) + slideInVertically { it / 3 }) togetherWith
+                            (fadeOut(tween(140)) + slideOutVertically { -it / 3 })
+                    }
+                },
+                label = "$label-digits",
+            ) { shown ->
+                Text(
+                    shown?.toString() ?: "—",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    color = if (shown == null) {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    },
+                )
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    unit,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    softWrap = false,
+                )
+                if (simulated) {
+                    Spacer(Modifier.width(5.dp))
+                    Box(
+                        Modifier
+                            .size(6.dp)
+                            .clip(CircleShape)
+                            .background(SaarthiWarning),
+                    )
+                }
             }
         }
     }
@@ -650,9 +976,16 @@ private fun DriverCard(
 private fun MapPanel(
     state: TerminalViewModel.UiState,
     route: RouteDto?,
-    nextTurn: TerminalViewModel.NextManeuverUi?,
+    navigation: TerminalViewModel.NavigationUi,
     moving: Boolean,
     followVehicle: Boolean,
+    /** Bumped to ask the map to frame the whole route once. */
+    frameRouteRequest: Int,
+    /** Whether spoken turn instructions are silenced. */
+    guidanceMuted: Boolean,
+    onToggleGuidance: () -> Unit,
+    /** The driver pressed Start on a previewed route. */
+    onStartNavigation: () -> Unit,
     /** Clock and battery ride here when the bar has no room for them. */
     showStatus: Boolean,
     /** Edge to edge, with no frame — the driver asked for the whole map. */
@@ -689,11 +1022,19 @@ private fun MapPanel(
                 position = state.telemetry.position,
                 headingDegrees = state.telemetry.value(Metric.HEADING),
                 driving = moving,
-                routeGeometry = route?.geometry?.map { it.latitude to it.longitude }
-                    ?: emptyList(),
+                // Remembered against the route, so the map's update path is not
+                // handed a freshly-allocated list of several thousand pairs on
+                // every recomposition — the clock alone would rebuild it three
+                // times a minute.
+                routeGeometry = remember(route) {
+                    route?.geometry?.map { it.latitude to it.longitude } ?: emptyList()
+                },
                 destination = route?.destination?.let { it.latitude to it.longitude },
                 followVehicle = followVehicle,
                 onUserPannedMap = onPanned,
+                navigating = navigation.guiding,
+                previewingRoute = navigation.previewing,
+                frameRouteRequest = frameRouteRequest,
                 vehicleType = state.server?.vehicle?.vehicleType,
                 modifier = Modifier.fillMaxSize(),
             )
@@ -784,11 +1125,21 @@ private fun MapPanel(
 
             // Navigation survives the expand toggle. Clearing the panels is a
             // request for a clearer map, not for fewer instructions.
-            AnimatedVisibility(visible = route != null, enter = panelEnter(), exit = panelExit()) {
+            //
+            // Only once the driver has started, though: a previewed route has no
+            // next turn to show, and the preview card at the foot of the map is
+            // already saying everything there is to say about it.
+            AnimatedVisibility(
+                visible = navigation.guiding,
+                enter = panelEnter(),
+                exit = panelExit(),
+            ) {
                 route?.let { current ->
                     NavigationBanner(
                         route = current,
-                        next = nextTurn,
+                        navigation = navigation,
+                        guidanceMuted = guidanceMuted,
+                        onToggleGuidance = onToggleGuidance,
                         onCancel = onCancelRoute,
                         modifier = Modifier.widthIn(max = 440.dp),
                     )
@@ -796,8 +1147,11 @@ private fun MapPanel(
             }
         }
 
+        // Hidden while a route is being previewed: the camera is deliberately
+        // showing the whole journey there, so offering to recentre it on the
+        // vehicle is offering to undo what the driver just asked for.
         AnimatedVisibility(
-            visible = !followVehicle,
+            visible = !followVehicle && !navigation.previewing,
             enter = panelEnter(),
             exit = panelExit(),
             modifier = Modifier
@@ -811,15 +1165,47 @@ private fun MapPanel(
             )
         }
 
+        /*
+         * The foot of the map says one of two things.
+         *
+         * Before Start: what this journey would be, and the button that begins
+         * it. After Start: what is left of it. They share a corner because they
+         * are the same question at two moments, and because a driver's thumb
+         * already goes there.
+         */
         AnimatedVisibility(
-            visible = route != null,
+            visible = navigation.previewing,
             enter = panelEnter(),
             exit = panelExit(),
             modifier = Modifier
                 .align(Alignment.BottomStart)
                 .padding(12.dp),
         ) {
-            route?.let { current -> TripSummaryBar(route = current, onCancel = onCancelRoute) }
+            route?.let { current ->
+                RoutePreviewCard(
+                    route = current,
+                    onStart = onStartNavigation,
+                    onDismiss = onCancelRoute,
+                    modifier = Modifier.widthIn(max = 420.dp),
+                )
+            }
+        }
+
+        AnimatedVisibility(
+            visible = navigation.guiding,
+            enter = panelEnter(),
+            exit = panelExit(),
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(12.dp),
+        ) {
+            route?.let { current ->
+                TripSummaryBar(
+                    route = current,
+                    navigation = navigation,
+                    onCancel = onCancelRoute,
+                )
+            }
         }
 
         /*
@@ -994,8 +1380,6 @@ private fun CockpitBar(
     modifier: Modifier = Modifier,
     moving: Boolean,
     tripActive: Boolean,
-    assistantState: AssistantState,
-    voiceAmplitude: Float,
     sosArmed: Boolean,
     clockBattery: Int?,
     offline: Boolean,
@@ -1003,7 +1387,6 @@ private fun CockpitBar(
     expandMap: Boolean,
     onToggleExpand: () -> Unit,
     onSos: () -> Unit,
-    onAssistant: () -> Unit,
     onServices: () -> Unit,
     onVehicle: () -> Unit,
     onFuelNearby: () -> Unit,
@@ -1041,15 +1424,6 @@ private fun CockpitBar(
                 modifier = Modifier.weight(1f),
                 onClick = onToggleExpand,
             )
-
-            Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                AiBlob(
-                    state = assistantState,
-                    size = 52.dp,
-                    amplitude = voiceAmplitude,
-                    onClick = onAssistant,
-                )
-            }
 
             if (moving) {
                 // Moving: one destination, and it is fuel. A driver at speed

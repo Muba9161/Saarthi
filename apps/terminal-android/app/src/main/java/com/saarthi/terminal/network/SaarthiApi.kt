@@ -285,6 +285,51 @@ class SaarthiApi(
         RouteDto.serializer(),
     )
 
+    /**
+     * Open a trip for a run to a nearby service.
+     *
+     * Returns null when Saarthi decided there was nothing to open — the vehicle
+     * is already on a dispatched trip, so the journey is already being recorded.
+     * That is an outcome, not a failure, and it must not stop the driver
+     * navigating.
+     */
+    suspend fun startServiceRun(request: StartServiceRunRequest): ServiceRunDto? =
+        postNullable(
+            "/api/v1/device-gateway/terminal/trip/service-run",
+            request,
+            StartServiceRunRequest.serializer(),
+            ServiceRunDto.serializer(),
+        )
+
+    suspend fun finishServiceRun(request: FinishServiceRunRequest): ServiceRunDto? =
+        postNullable(
+            "/api/v1/device-gateway/terminal/trip/service-run/finish",
+            request,
+            FinishServiceRunRequest.serializer(),
+            ServiceRunDto.serializer(),
+        )
+
+    /**
+     * The service run already open on this vehicle, if any.
+     *
+     * A terminal that restarted mid-run — a flat battery on a forecourt, the app
+     * killed for memory — comes back with no idea it had a trip open. Without
+     * this it would open a second one for the same journey and split the
+     * distance between them.
+     */
+    suspend fun openServiceRun(): ServiceRunDto? =
+        getNullable(
+            "/api/v1/device-gateway/terminal/trip/service-run",
+            ServiceRunDto.serializer(),
+        )
+
+    suspend fun reportOdometer(request: ReportOdometerRequest): OdometerDto = post(
+        "/api/v1/device-gateway/terminal/odometer",
+        request,
+        ReportOdometerRequest.serializer(),
+        OdometerDto.serializer(),
+    )
+
     suspend fun reportIssue(request: ReportIssueRequest): IssueDto = post(
         "/api/v1/device-gateway/terminal/issues",
         request,
@@ -366,6 +411,29 @@ class SaarthiApi(
         ),
         responseSerializer,
     )
+
+    /**
+     * A POST whose success case may legitimately carry no record.
+     *
+     * Distinct from [post], which treats an empty envelope as a fault. Saarthi
+     * answers "there was nothing to open" with a null body on the service-run
+     * endpoints — a vehicle already on a dispatched trip is already being
+     * recorded — and turning that into an exception would surface a red banner
+     * in the cab for a decision that was entirely correct.
+     */
+    private suspend fun <B, R> postNullable(
+        path: String,
+        body: B,
+        requestSerializer: KSerializer<B>,
+        responseSerializer: KSerializer<R>,
+    ): R? {
+        val raw = requestRaw(
+            method = "POST",
+            path = path,
+            body = json.encodeToString(requestSerializer, body),
+        )
+        return json.decodeFromString(ApiEnvelope.serializer(responseSerializer), raw).data
+    }
 
     private fun <R> decode(raw: String, responseSerializer: KSerializer<R>): R =
         json.decodeFromString(ApiEnvelope.serializer(responseSerializer), raw).data

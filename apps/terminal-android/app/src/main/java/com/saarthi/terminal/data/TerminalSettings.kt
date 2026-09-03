@@ -64,6 +64,34 @@ class TerminalSettings(context: Context) {
         set(value) = preferences.edit().putBoolean(KEY_REDUCED_MOTION, value).apply()
 
     /**
+     * Whether the on-device simulator may contribute readings.
+     *
+     * **Off by default**, and that default changed the day an OBD adapter could
+     * be fitted. The simulator existed to exercise the alert rules, the driver
+     * scoring and the AI tools before any hardware arrived; once a vehicle is
+     * genuinely answering, an invented coolant temperature sitting beside a
+     * measured one is noise at best and a wrong workshop visit at worst.
+     *
+     * It stays available rather than being deleted, because a terminal on a
+     * bench with no vehicle attached is still worth testing — but it is now
+     * something somebody turns on, not something that runs unless stopped.
+     */
+    var simulationEnabled: Boolean
+        get() = preferences.getBoolean(KEY_SIMULATION, false)
+        set(value) = preferences.edit().putBoolean(KEY_SIMULATION, value).apply()
+
+    /**
+     * The OBD adapter this terminal talks to.
+     *
+     * A Bluetooth MAC address, remembered so the terminal reconnects on its own
+     * after an ignition cycle. Asking a driver to pick an adapter from a
+     * settings screen every morning is asking them to stop using the feature.
+     */
+    var obdAddress: String?
+        get() = preferences.getString(KEY_OBD_ADDRESS, null)
+        set(value) = preferences.edit().putString(KEY_OBD_ADDRESS, value).apply()
+
+    /**
      * Whether the cockpit is drawn dark.
      *
      * Off by default, so the terminal opens light. The earlier default was the
@@ -83,14 +111,46 @@ class TerminalSettings(context: Context) {
     /**
      * Whether the wake phrase is listened for.
      *
-     * Off by default. Continuous listening costs battery and, more importantly,
-     * is a microphone left on in a space where people have private conversations
-     * — so it is something the fleet turns on deliberately rather than something
-     * that starts on its own.
+     * **Off.** Android's `SpeechRecognizer` gives up after a few seconds of
+     * silence and has to be restarted, so "always listening" is really "acquire
+     * the microphone, release it, acquire it again", several times a minute for
+     * a twelve-hour shift. From Android 12 each acquisition lights the system
+     * privacy indicator, so the cab display shows the microphone dot blinking
+     * continuously while nobody is talking to it — and a driver has no way to
+     * tell that from being recorded.
+     *
+     * Spacing the restarts out reduced the blinking without removing it, because
+     * the cycling is inherent to the API rather than to how it is being driven.
+     * A real wake-word engine listens on a small always-resident model and never
+     * cycles; that is a licensed component and a per-device fee, and it is the
+     * proper fix when this feature is picked back up.
+     *
+     * Until then the honest position is off: the microphone is never opened, and
+     * the assistant is reached some other way. Turning this on in the admin
+     * screen still works and behaves exactly as before.
      */
     var wakeWordEnabled: Boolean
         get() = preferences.getBoolean(KEY_WAKE_WORD, false)
         set(value) = preferences.edit().putBoolean(KEY_WAKE_WORD, value).apply()
+
+    /**
+     * Whether turn instructions are spoken aloud.
+     *
+     * **On** by default, and the asymmetry with [wakeWordEnabled] is deliberate
+     * rather than an oversight. That one is a microphone, live in a space where
+     * people have private conversations, so it waits to be asked for. This is a
+     * speaker: it only makes a sound while the driver is actively following a
+     * route they chose, and without it the navigation is something they have to
+     * read — which is the one thing the cockpit is designed to stop them doing
+     * at speed.
+     *
+     * It stays a switch because a cab is sometimes shared, sometimes has a
+     * sleeping second driver in it, and sometimes has a radio nobody wants
+     * interrupted.
+     */
+    var voiceGuidanceEnabled: Boolean
+        get() = preferences.getBoolean(KEY_VOICE_GUIDANCE, true)
+        set(value) = preferences.edit().putBoolean(KEY_VOICE_GUIDANCE, value).apply()
 
     /** Lock-task mode, when this app is the device owner (section 45). */
     var kioskEnabled: Boolean
@@ -116,9 +176,12 @@ class TerminalSettings(context: Context) {
         const val FILE = "saarthi_terminal_settings"
         const val KEY_API_URL = "api_url"
         const val KEY_SCENARIO = "simulation_scenario"
+        const val KEY_SIMULATION = "simulation_enabled"
+        const val KEY_OBD_ADDRESS = "obd_address"
         const val KEY_DARK_THEME = "dark_theme"
         const val KEY_REDUCED_MOTION = "reduced_motion"
         const val KEY_WAKE_WORD = "wake_word"
+        const val KEY_VOICE_GUIDANCE = "voice_guidance"
         const val KEY_KIOSK = "kiosk"
         const val KEY_ADMIN_PIN = "admin_pin"
     }

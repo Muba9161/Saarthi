@@ -116,6 +116,19 @@ android {
     }
 
     /**
+     * Let a JVM test call into the Android framework without a device.
+     *
+     * `android.util.Log` is a stub in the unit-test runtime and throws rather
+     * than doing nothing, so any class that logs — which is every class worth
+     * testing here — took the whole suite down with "Method i in android.util.Log
+     * not mocked". Returning defaults makes the logging calls silent no-ops,
+     * which is exactly what a test wants from them.
+     */
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+    }
+
+    /**
      * Per-architecture APKs.
      *
      * MapLibre ships a native renderer per ABI. Carrying all of them roughly

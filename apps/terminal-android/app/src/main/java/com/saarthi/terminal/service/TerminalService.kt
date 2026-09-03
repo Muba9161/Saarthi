@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
+import com.saarthi.terminal.BuildConfig
 import com.saarthi.terminal.MainActivity
 import com.saarthi.terminal.R
 import com.saarthi.terminal.SaarthiTerminalApp
@@ -79,6 +80,13 @@ class TerminalService : Service() {
         loops += serviceScope.launch {
             repository.ensureEnrolled()
             repository.refresh()
+            // The adapter the installer chose, restored before the hub starts so
+            // the OBD provider reconnects on its own rather than waiting to be
+            // told again after every ignition cycle.
+            app.telemetry.obd.preferredAddress = app.settings.obdAddress
+            // Off unless somebody asked for it. See `simulationEnabled`.
+            app.telemetry.simulationAllowed =
+                BuildConfig.ALLOW_SIMULATION && app.settings.simulationEnabled
             app.telemetry.start()
             app.realtime.start()
         }
@@ -113,6 +121,29 @@ class TerminalService : Service() {
                 repository.sendHeartbeat()
                 app.realtime.ping()
                 delay(HEARTBEAT_INTERVAL_MS)
+            }
+        }
+
+        // --- Odometer -------------------------------------------------------
+        //
+        // The vehicle's own reading, when there is one.
+        //
+        // Saarthi derives an odometer from the positions it receives, so a
+        // GPS-derived figure needs no help from here — and must not be sent, or
+        // a spell out of coverage would be counted twice. See
+        // `TerminalRepository.measuredOdometerKm`, which is where that rule
+        // lives and why. What this loop carries is the case the server cannot
+        // derive: an ECU total read off the vehicle over OBD.
+        //
+        // Slow on purpose. An odometer four minutes stale is one nobody can tell
+        // from a live one, and a truck's data allowance is not spent on it.
+        loops += serviceScope.launch {
+            while (isActive) {
+                delay(ODOMETER_INTERVAL_MS)
+                val odometer = repository.measuredOdometerKm()
+                if (odometer != null && odometer > 0.0) {
+                    repository.reportOdometer(odometerKm = odometer, source = "OBD")
+                }
             }
         }
 
@@ -203,6 +234,16 @@ class TerminalService : Service() {
         private const val HEARTBEAT_INTERVAL_MS = 30_000L
         private const val UPLOAD_INTERVAL_MS = 20_000L
         private const val STATE_POLL_INTERVAL_MS = 30_000L
+
+        /**
+         * How often a measured odometer is pushed to Saarthi.
+         *
+         * Four minutes. The server derives its own figure from the positions it
+         * receives, so this exists solely for the case derivation cannot cover:
+         * an ECU total from a fitted OBD adapter, which is the vehicle's real
+         * mileage rather than an accumulation with gaps in it.
+         */
+        private const val ODOMETER_INTERVAL_MS = 240_000L
 
         fun start(context: Context) {
             val intent = Intent(context, TerminalService::class.java)

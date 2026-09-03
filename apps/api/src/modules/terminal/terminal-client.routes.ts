@@ -3,9 +3,12 @@ import {
   DocumentOwnerType,
   documentListQuerySchema,
   endTerminalSessionSchema,
+  finishAdHocTripSchema,
   nearbyCategoriesFor,
   pairTerminalSchema,
+  reportOdometerSchema,
   reportTerminalIssueSchema,
+  startAdHocTripSchema,
   submitChecklistSchema,
   terminalAskSchema,
   terminalNearbySchema,
@@ -42,6 +45,12 @@ import {
 } from './session.service';
 import { prepareChecklist, submitChecklist } from './checklist.service';
 import { findServices, routeTo } from './navigation.service';
+import {
+  finishAdHocTrip,
+  openAdHocTripForVehicle,
+  startAdHocTrip,
+} from './adhoc-trip.service';
+import { applyOdometer } from '../vehicles/odometer.service';
 import { issuesForVehicle, reportIssue } from './issue.service';
 import { ask } from './assistant.service';
 
@@ -193,6 +202,103 @@ export async function terminalClientRoutes(app: FastifyInstance): Promise<void> 
     const session = await authorizedSessionForTerminal(terminal.device.id);
     const input = parseBody(terminalTripEventSchema, request.body ?? {});
     return ok(reply, await completeTrip(session.id, input));
+  });
+
+  // -------------------------------------------------------------------------
+  // Service runs — a trip nobody dispatched
+  // -------------------------------------------------------------------------
+
+  /**
+   * Open a trip for a run to a nearby service (specification sections 28 and 29).
+   *
+   * Posted when the driver picks a destination out of the nearby list and the
+   * vehicle has no dispatched trip. Until this existed, a truck that drove
+   * forty kilometres for diesel left no record of it anywhere: no distance, no
+   * speeds, no braking, and an odometer that had not moved since the last time
+   * somebody filled in a form.
+   *
+   * `null` is a valid answer and not an error. A vehicle already on a dispatched
+   * trip is already being recorded, and failing here would break navigation for
+   * the ordinary case in order to serve the exceptional one.
+   */
+  app.post('/trip/service-run', { config: terminalLimit(20) }, async (request, reply) => {
+    const terminal = requireTerminal(await authenticateDeviceRequest(request));
+    const session = await authorizedSessionForTerminal(terminal.device.id);
+    const input = parseBody(startAdHocTripSchema, request.body);
+    return ok(reply, await startAdHocTrip(session, input));
+  });
+
+  /**
+   * Close it, with what the run added up to.
+   *
+   * Sent on arrival, and again with `cancelled` when the driver stops navigating
+   * short of the destination. Both keep the figures — a cancelled run is still a
+   * journey the vehicle made, and discarding its distance would leave the same
+   * hole this endpoint exists to fill.
+   */
+  app.post('/trip/service-run/finish', { config: terminalLimit(20) }, async (request, reply) => {
+    const terminal = requireTerminal(await authenticateDeviceRequest(request));
+    const session = await authorizedSessionForTerminal(terminal.device.id);
+    const input = parseBody(finishAdHocTripSchema, request.body ?? {});
+    return ok(reply, await finishAdHocTrip(session, input));
+  });
+
+  /**
+   * The service run currently open on this vehicle, if any.
+   *
+   * A terminal that restarted mid-run — a flat battery on a forecourt, an app
+   * killed for memory — comes back with no idea it had a trip open. Without this
+   * it would open a second one for the same journey and split the distance
+   * between them.
+   */
+  app.get('/trip/service-run', { config: terminalLimit(30) }, async (request, reply) => {
+    const terminal = requireTerminal(await authenticateDeviceRequest(request));
+    await authorizedSessionForTerminal(terminal.device.id);
+    const open = await openAdHocTripForVehicle(terminal.vehicleId);
+    return ok(
+      reply,
+      open
+        ? {
+            id: open.id,
+            reference: open.reference,
+            status: open.status,
+            destinationName: open.destinationAddress,
+            destinationLatitude: open.destinationLatitude,
+            destinationLongitude: open.destinationLongitude,
+            plannedDistanceKm: open.plannedDistanceKm,
+            actualDistanceKm: open.actualDistanceKm,
+            startedAt: (open.actualStartAt ?? open.createdAt).toISOString(),
+            startOdometerKm: open.startOdometerKm,
+          }
+        : null,
+    );
+  });
+
+  /**
+   * The odometer, as the vehicle currently reads it.
+   *
+   * Independent of any trip, because a vehicle accrues distance whether or not
+   * anybody opened a movement against it — and because the figure has to reach
+   * the maintenance schedule, the passport, the resale valuation and the fleet
+   * list, not just the gauge in the cab.
+   *
+   * The reply carries the figure Saarthi actually holds afterwards, which is not
+   * always the one that was sent: the odometer never moves backwards, so a
+   * terminal fitted to a different truck learns the real reading here instead of
+   * overwriting it.
+   */
+  app.post('/odometer', { config: terminalLimit(30) }, async (request, reply) => {
+    const terminal = requireTerminal(await authenticateDeviceRequest(request));
+    await authorizedSessionForTerminal(terminal.device.id);
+    const input = parseBody(reportOdometerSchema, request.body);
+
+    const odometerKm = await applyOdometer({
+      vehicleId: terminal.vehicleId,
+      odometerKm: input.odometerKm,
+      reason: `terminal-report:${input.source}`,
+    });
+
+    return ok(reply, { odometerKm: odometerKm ?? input.odometerKm });
   });
 
   /** The driver signs off. The terminal returns to showing the vehicle QR. */

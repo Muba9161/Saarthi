@@ -71,7 +71,13 @@ enum class Metric {
     RPM,
     ENGINE_LOAD,
     COOLANT_TEMPERATURE,
+    // Air on the way in. Reads high on a blocked filter, which is a fault a
+    // driver cannot see and a workshop charges to diagnose.
+    INTAKE_TEMPERATURE,
     FUEL_LEVEL,
+    // Litres per hour, straight from the ECU — the number a fuel card cannot
+    // give a fleet, because a card only knows what was bought.
+    FUEL_RATE,
     THROTTLE_POSITION,
     BATTERY_VOLTAGE,
     ODOMETER,
