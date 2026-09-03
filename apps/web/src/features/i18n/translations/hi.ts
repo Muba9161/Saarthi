@@ -173,8 +173,8 @@ export const hi: Catalogue = {
   'Travel business name': 'ट्रैवल व्यवसाय का नाम',
   'I own trucks and want to manage my fleet and win loads.':
     'मेरे पास ट्रक हैं और मैं अपना बेड़ा चलाना तथा लोड पाना चाहता हूँ।',
-  'I need materials moved and want to track the delivery.':
-    'मुझे सामान भिजवाना है और डिलीवरी पर नज़र रखनी है।',
+  'I need materials, transport, a cab or a tour, and want offers to compare.':
+    'मुझे सामग्री, परिवहन, कैब या यात्रा चाहिए, और तुलना के लिए प्रस्ताव चाहिए।',
   'I sell materials and arrange dispatch from my yard.':
     'मैं सामान बेचता हूँ और अपने यार्ड से भेजने की व्यवस्था करता हूँ।',
   'I run taxis, buses or tour packages and sell passenger journeys.':
@@ -246,6 +246,10 @@ export const hi: Catalogue = {
   'My orders': 'मेरे ऑर्डर',
   'Track deliveries': 'डिलीवरी ट्रैक करें',
   'My travel': 'मेरी यात्रा',
+  'My requirements': 'मेरी आवश्यकताएँ',
+  'Bid on work': 'काम के लिए बोली लगाएँ',
+  'Terminal arrivals': 'टर्मिनल पर आगमन',
+  'Scan a vehicle': 'वाहन स्कैन करें',
   'Emergency desk': 'आपातकालीन डेस्क',
   'Trip history': 'ट्रिप इतिहास',
   'My QR badge': 'मेरा QR बैज',

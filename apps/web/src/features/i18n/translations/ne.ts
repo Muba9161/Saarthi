@@ -174,8 +174,8 @@ export const ne: Catalogue = {
   'Travel business name': 'ट्राभल व्यवसायको नाम',
   'I own trucks and want to manage my fleet and win loads.':
     'मसँग ट्रक छन् र म आफ्नो बेडा चलाउन तथा लोड पाउन चाहन्छु।',
-  'I need materials moved and want to track the delivery.':
-    'मलाई सामान पठाउनु छ र डेलिभरी हेर्नु छ।',
+  'I need materials, transport, a cab or a tour, and want offers to compare.':
+    'मलाई सामग्री, ढुवानी, ट्याक्सी वा भ्रमण चाहिन्छ, र तुलना गर्न प्रस्तावहरू चाहिन्छ।',
   'I sell materials and arrange dispatch from my yard.':
     'म सामान बेच्छु र आफ्नो यार्डबाट पठाउने व्यवस्था गर्छु।',
   'I run taxis, buses or tour packages and sell passenger journeys.':
@@ -246,6 +246,10 @@ export const ne: Catalogue = {
   'My orders': 'मेरा अर्डरहरू',
   'Track deliveries': 'डेलिभरी ट्र्याक गर्नुहोस्',
   'My travel': 'मेरो यात्रा',
+  'My requirements': 'मेरा आवश्यकताहरू',
+  'Bid on work': 'कामका लागि बोली लगाउनुहोस्',
+  'Terminal arrivals': 'टर्मिनलमा आगमन',
+  'Scan a vehicle': 'सवारी स्क्यान गर्नुहोस्',
   'Emergency desk': 'आपतकालीन डेस्क',
   'Trip history': 'यात्रा इतिहास',
   'My QR badge': 'मेरो QR ब्याज',

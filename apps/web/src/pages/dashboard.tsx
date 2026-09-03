@@ -232,7 +232,18 @@ export function DashboardPage() {
         description={session.organization?.name ?? t('Your fleet at a glance')}
         actions={
           <>
-            {can(Permission.ORDERS_CREATE) ? (
+            {/*
+              The cross-category wizard when the account has it, and the
+              freight-only form otherwise. The wizard is strictly the wider
+              door — it still posts a transport requirement — so an account
+              that can reach both should never be sent to the narrower one.
+            */}
+            {can(Permission.REQUIREMENTS_CREATE) ? (
+              <Button variant="outline" onClick={() => navigate('/requirements/new')}>
+                <Package className="size-4" />
+                {t('New requirement')}
+              </Button>
+            ) : can(Permission.ORDERS_CREATE) ? (
               <Button variant="outline" onClick={() => navigate('/orders/new')}>
                 <Package className="size-4" />
                 {t('New requirement')}

@@ -173,8 +173,8 @@ export const doi: Catalogue = {
   'Travel business name': 'ट्रैवल कारोबार दा नां',
   'I own trucks and want to manage my fleet and win loads.':
     'मेरे कोल ट्रक न ते मैं अपना बेड़ा चलाना ते लोड हासल करना चांहदा आं।',
-  'I need materials moved and want to track the delivery.':
-    'मिगी सामान भेजना ऐ ते डिलीवरी पर नजर रक्खनी ऐ।',
+  'I need materials, transport, a cab or a tour, and want offers to compare.':
+    'मिगी सामग्री, ढुलाई, कैब जां सैर दी लोड़ ऐ, ते तुलना आस्तै बोलियां चाहिदियां।',
   'I sell materials and arrange dispatch from my yard.':
     'मैं सामान बेचना आं ते अपने यार्ड थमां भेजने दा इंतजाम करना आं।',
   'I run taxis, buses or tour packages and sell passenger journeys.':
@@ -245,6 +245,10 @@ export const doi: Catalogue = {
   'My orders': 'मेरे ऑर्डर',
   'Track deliveries': 'डिलीवरी ट्रैक करो',
   'My travel': 'मेरा सफर',
+  'My requirements': 'मेरियां लोड़ां',
+  'Bid on work': 'कम्म आस्तै बोली लाओ',
+  'Terminal arrivals': 'टर्मिनल पर पुज्ज',
+  'Scan a vehicle': 'गड्डी स्कैन करो',
   'Emergency desk': 'एमरजेंसी डेस्क',
   'Trip history': 'सफर इतिहास',
   'My QR badge': 'मेरा QR बैज',

@@ -155,6 +155,15 @@ export const AuditAction = {
   ORDER_CANCELLED: 'order.cancelled',
   ORDER_RATED: 'order.rated',
 
+  REQUIREMENT_CREATED: 'requirement.created',
+  REQUIREMENT_UPDATED: 'requirement.updated',
+  REQUIREMENT_CANCELLED: 'requirement.cancelled',
+  REQUIREMENT_BID_PLACED: 'requirement.bid_placed',
+  REQUIREMENT_BID_WITHDRAWN: 'requirement.bid_withdrawn',
+  REQUIREMENT_BID_SHORTLISTED: 'requirement.bid_shortlisted',
+  REQUIREMENT_BID_REJECTED: 'requirement.bid_rejected',
+  REQUIREMENT_BID_AWARDED: 'requirement.bid_awarded',
+
   TRIP_CREATED: 'trip.created',
   TRIP_STATUS_CHANGED: 'trip.status_changed',
   TRIP_UPDATED: 'trip.updated',

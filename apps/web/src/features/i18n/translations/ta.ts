@@ -175,8 +175,8 @@ export const ta: Catalogue = {
   'Travel business name': 'பயண வணிகப் பெயர்',
   'I own trucks and want to manage my fleet and win loads.':
     'என்னிடம் லாரிகள் உள்ளன; என் வாகனத் தொகுப்பை நிர்வகிக்கவும் சரக்கு பெறவும் விரும்புகிறேன்.',
-  'I need materials moved and want to track the delivery.':
-    'எனக்குப் பொருட்களை அனுப்ப வேண்டும், விநியோகத்தைக் கண்காணிக்க வேண்டும்.',
+  'I need materials, transport, a cab or a tour, and want offers to compare.':
+    'எனக்கு பொருட்கள், போக்குவரத்து, வாடகை வாகனம் அல்லது சுற்றுலா தேவை, ஒப்பிட ஏல விலைகளும் தேவை.',
   'I sell materials and arrange dispatch from my yard.':
     'நான் பொருட்களை விற்று, என் முற்றத்திலிருந்து அனுப்ப ஏற்பாடு செய்கிறேன்.',
   'I run taxis, buses or tour packages and sell passenger journeys.':
@@ -247,6 +247,10 @@ export const ta: Catalogue = {
   'My orders': 'எனது ஆர்டர்கள்',
   'Track deliveries': 'விநியோகத்தைக் கண்காணி',
   'My travel': 'எனது பயணம்',
+  'My requirements': 'எனது தேவைகள்',
+  'Bid on work': 'வேலைக்கு ஏலம் இடுங்கள்',
+  'Terminal arrivals': 'டெர்மினல் வருகைகள்',
+  'Scan a vehicle': 'வாகனத்தை ஸ்கேன் செய்யவும்',
   'Emergency desk': 'அவசர மையம்',
   'Trip history': 'பயண வரலாறு',
   'My QR badge': 'எனது QR அடையாளம்',

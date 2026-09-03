@@ -19,6 +19,8 @@ infrastructure change rather than a rewrite.
 | Document management: upload, version, verify, expiry engine | Working |
 | Truck & driver management, assignments, history | Working |
 | Supplier catalogue & customer marketplace | Working |
+| Requirements: one front door for material, freight, cab and tour | Working |
+| Bidding: suppliers, fleets and mobility operators quote; customer awards | Working |
 | Orders: post → quote → accept → trip | Working |
 | Trips: full lifecycle with state-machine validation | Working |
 | Tracking pipeline (ingest → persist → derive → broadcast) | Working |
@@ -70,24 +72,21 @@ npm run db:seed
 npm run dev                 # API on :4000, web on :5173
 ```
 
-Open <http://localhost:5173> and sign in with any demo account below.
+Open <http://localhost:5173> and register an account.
 
-### Demo accounts
+### There is no demo data
 
-Four accounts, one per side of the product. All use the password **`Saarthi@2026`**, and the login
-screen fills them in for you.
+`npm run db:seed` loads reference data only — roles, subscription plans and feature entitlements.
+Every organization, vehicle, requirement and bid in a Saarthi database is something a real person
+created.
 
-| Role | Email | What it shows |
-|---|---|---|
-| Fleet owner | `owner@saarthi.local` | Fleet, trips, live map, GPS simulator, AI copilot |
-| Driver | `driver@saarthi.local` | Driver app, SOS, safety score, documents |
-| Customer | `customer@saarthi.local` | Marketplace, orders, live tracking of a delivery |
-| Platform admin | `admin@saarthi.local` | Verification queue, audit log, organizations |
+That is deliberate rather than an omission. A marketplace seeded with fabricated demand tells a
+fleet there is work to bid on that does not exist, and a bidding board is worth exactly what its
+contents are true.
 
-The admin account also holds a membership in the supplier organization — switch organization from
-the sidebar to act as a supplier and manage materials. A second fleet and a second customer exist in
-the data without logins, so tenant isolation is demonstrable: their trucks and orders must never
-appear for the accounts above.
+To see the full flow, register two accounts and use them against each other: a **Customer** posts a
+requirement, and a **Fleet owner**, **Supplier** or **Travel & tour operator** sees it on *Bid on
+work* and quotes for it.
 
 ### Registering your own
 
@@ -233,7 +232,7 @@ saarthi/
 | `npm run lint` | ESLint across the monorepo |
 | `npm test` | All unit + integration tests |
 | `npm run db:migrate` | Apply migrations |
-| `npm run db:seed` | Reference data + demo world |
+| `npm run db:seed` | Reference data (roles, plans, features) |
 | `npm run db:reset` | Drop, re-migrate and re-seed |
 | `npm run db:studio` | Prisma Studio |
 

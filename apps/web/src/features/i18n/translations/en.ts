@@ -199,8 +199,8 @@ export const en = {
   // --- Account types --------------------------------------------------------
   'I own trucks and want to manage my fleet and win loads.':
     'I own trucks and want to manage my fleet and win loads.',
-  'I need materials moved and want to track the delivery.':
-    'I need materials moved and want to track the delivery.',
+  'I need materials, transport, a cab or a tour, and want offers to compare.':
+    'I need materials, transport, a cab or a tour, and want offers to compare.',
   'I sell materials and arrange dispatch from my yard.':
     'I sell materials and arrange dispatch from my yard.',
   'I run taxis, buses or tour packages and sell passenger journeys.':
@@ -305,6 +305,14 @@ export const en = {
   'Track deliveries': 'Track deliveries',
   'My travel': 'My travel',
   'Emergency desk': 'Emergency desk',
+  // Requirements: the customer's cross-category front door, and the board the
+  // businesses that serve it bid on.
+  'My requirements': 'My requirements',
+  'Bid on work': 'Bid on work',
+  // Two labels that shipped before this file was checked against the real
+  // navigation tables, and rendered in English on otherwise translated menus.
+  'Terminal arrivals': 'Terminal arrivals',
+  'Scan a vehicle': 'Scan a vehicle',
   'Trip history': 'Trip history',
   'My QR badge': 'My QR badge',
   'Verification queue': 'Verification queue',

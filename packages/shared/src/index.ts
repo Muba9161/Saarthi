@@ -31,6 +31,7 @@ export * from './domain/return-loads';
 export * from './domain/city-access';
 export * from './domain/route-intelligence';
 export * from './domain/terminal';
+export * from './domain/requirements';
 
 // API contracts
 export * from './api/envelope';
@@ -43,6 +44,7 @@ export * from './validation/auth';
 export * from './validation/fleet';
 export * from './validation/documents';
 export * from './validation/marketplace';
+export * from './validation/requirements';
 export * from './validation/operations';
 export * from './validation/fleet-vehicles';
 export * from './validation/associations';

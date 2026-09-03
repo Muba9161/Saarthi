@@ -32,6 +32,7 @@ import { runTopUpExpirySweep } from '../modules/subscriptions/topup.service';
 import { runDailyBriefSweep } from '../modules/ai/daily-brief.service';
 import { runFastagBalanceSweep } from '../modules/toll/fastag.service';
 import { runTerminalApprovalSweep } from '../modules/terminal/approval-sweep.service';
+import { runRequirementExpirySweep } from '../modules/requirements/expiry.service';
 
 /**
  * Scheduled background work.
@@ -372,6 +373,18 @@ export function registerBackgroundJobs(): void {
     initialDelayMs: 45_000,
     handler: async () => {
       await runTerminalApprovalSweep();
+    },
+  });
+
+  // Bidding windows have to actually close. A requirement left OPEN past
+  // its deadline keeps the customer waiting for offers that will not come
+  // and fills every provider's board with dates that have already gone by.
+  queue.registerRepeating({
+    name: 'requirements:expiry-sweep',
+    everyMs: 15 * 60_000,
+    initialDelayMs: 75_000,
+    handler: async () => {
+      await runRequirementExpirySweep();
     },
   });
 

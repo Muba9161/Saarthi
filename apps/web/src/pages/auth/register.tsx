@@ -69,7 +69,7 @@ const ACCOUNT_TYPES = [
     role: RoleName.CUSTOMER,
     icon: ShoppingCart,
     title: 'Customer',
-    description: 'I need materials moved and want to track the delivery.',
+    description: 'I need materials, transport, a cab or a tour, and want offers to compare.',
   },
   {
     role: RoleName.SUPPLIER,

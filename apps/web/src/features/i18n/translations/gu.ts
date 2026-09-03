@@ -173,8 +173,8 @@ export const gu: Catalogue = {
   'Travel business name': 'ટ્રાવેલ વ્યવસાયનું નામ',
   'I own trucks and want to manage my fleet and win loads.':
     'મારી પાસે ટ્રક છે અને હું મારો કાફલો ચલાવવા તથા લોડ મેળવવા માંગું છું.',
-  'I need materials moved and want to track the delivery.':
-    'મારે માલ મોકલવો છે અને ડિલિવરી પર નજર રાખવી છે.',
+  'I need materials, transport, a cab or a tour, and want offers to compare.':
+    'મને સામગ્રી, પરિવહન, કેબ કે પ્રવાસ જોઈએ છે, અને સરખામણી માટે ઓફર જોઈએ છે.',
   'I sell materials and arrange dispatch from my yard.':
     'હું માલ વેચું છું અને મારા યાર્ડમાંથી મોકલવાની વ્યવસ્થા કરું છું.',
   'I run taxis, buses or tour packages and sell passenger journeys.':
@@ -245,6 +245,10 @@ export const gu: Catalogue = {
   'My orders': 'મારા ઓર્ડર',
   'Track deliveries': 'ડિલિવરી ટ્રેક કરો',
   'My travel': 'મારો પ્રવાસ',
+  'My requirements': 'મારી જરૂરિયાતો',
+  'Bid on work': 'કામ માટે બિડ કરો',
+  'Terminal arrivals': 'ટર્મિનલ પર આગમન',
+  'Scan a vehicle': 'વાહન સ્કેન કરો',
   'Emergency desk': 'કટોકટી ડેસ્ક',
   'Trip history': 'ટ્રિપ ઇતિહાસ',
   'My QR badge': 'મારો QR બેજ',

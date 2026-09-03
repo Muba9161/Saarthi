@@ -18,6 +18,7 @@ import { verificationRoutes } from '../modules/verification/verification.routes'
 import { notificationRoutes } from '../modules/notifications/notification.routes';
 import { marketplaceRoutes } from '../modules/marketplace/marketplace.routes';
 import { orderRoutes } from '../modules/orders/order.routes';
+import { requirementRoutes } from '../modules/requirements/requirement.routes';
 import { tripRoutes } from '../modules/trips/trip.routes';
 import { trackingRoutes } from '../modules/tracking/tracking.routes';
 import { nearbyRoutes } from '../modules/nearby/nearby.routes';
@@ -103,6 +104,10 @@ export async function registerApiRoutes(app: FastifyInstance): Promise<void> {
   await app.register(verificationRoutes, { prefix: '/verification' });
   await app.register(marketplaceRoutes, { prefix: '/marketplace' });
   await app.register(orderRoutes, { prefix: '/orders' });
+  // The customer's cross-category front door. Mounted apart from /orders
+  // because a requirement is not an order yet — it may become one, or a
+  // travel booking, or nothing at all if nobody bids.
+  await app.register(requirementRoutes, { prefix: '/requirements' });
   await app.register(tripRoutes, { prefix: '/trips' });
   await app.register(trackingRoutes, { prefix: '/tracking' });
   await app.register(nearbyRoutes, { prefix: '/nearby' });

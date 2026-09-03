@@ -173,8 +173,8 @@ export const kn: Catalogue = {
   'Travel business name': 'ಟ್ರಾವೆಲ್ ವ್ಯವಹಾರದ ಹೆಸರು',
   'I own trucks and want to manage my fleet and win loads.':
     'ನನ್ನ ಬಳಿ ಟ್ರಕ್‌ಗಳಿವೆ, ನನ್ನ ವಾಹನ ಸಮೂಹವನ್ನು ನಿರ್ವಹಿಸಲು ಮತ್ತು ಲೋಡ್ ಪಡೆಯಲು ಬಯಸುತ್ತೇನೆ.',
-  'I need materials moved and want to track the delivery.':
-    'ನನಗೆ ಸಾಮಗ್ರಿ ಕಳುಹಿಸಬೇಕು ಮತ್ತು ವಿತರಣೆಯನ್ನು ಗಮನಿಸಬೇಕು.',
+  'I need materials, transport, a cab or a tour, and want offers to compare.':
+    'ನನಗೆ ಸಾಮಗ್ರಿ, ಸಾಗಣೆ, ಕ್ಯಾಬ್ ಅಥವಾ ಪ್ರವಾಸ ಬೇಕು, ಮತ್ತು ಹೋಲಿಸಲು ಬಿಡ್‌ಗಳು ಬೇಕು.',
   'I sell materials and arrange dispatch from my yard.':
     'ನಾನು ಸಾಮಗ್ರಿ ಮಾರುತ್ತೇನೆ ಮತ್ತು ನನ್ನ ಯಾರ್ಡ್‌ನಿಂದ ಕಳುಹಿಸುವ ವ್ಯವಸ್ಥೆ ಮಾಡುತ್ತೇನೆ.',
   'I run taxis, buses or tour packages and sell passenger journeys.':
@@ -246,6 +246,10 @@ export const kn: Catalogue = {
   'My orders': 'ನನ್ನ ಆರ್ಡರ್‌ಗಳು',
   'Track deliveries': 'ವಿತರಣೆ ಟ್ರ್ಯಾಕ್ ಮಾಡಿ',
   'My travel': 'ನನ್ನ ಪ್ರಯಾಣ',
+  'My requirements': 'ನನ್ನ ಅಗತ್ಯಗಳು',
+  'Bid on work': 'ಕೆಲಸಕ್ಕೆ ಬಿಡ್ ಮಾಡಿ',
+  'Terminal arrivals': 'ಟರ್ಮಿನಲ್ ಆಗಮನ',
+  'Scan a vehicle': 'ವಾಹನ ಸ್ಕ್ಯಾನ್ ಮಾಡಿ',
   'Emergency desk': 'ತುರ್ತು ಡೆಸ್ಕ್',
   'Trip history': 'ಪ್ರಯಾಣ ಇತಿಹಾಸ',
   'My QR badge': 'ನನ್ನ QR ಬ್ಯಾಡ್ಜ್',

@@ -173,8 +173,8 @@ export const mai: Catalogue = {
   'Travel business name': 'ट्रैवल व्यवसायक नाम',
   'I own trucks and want to manage my fleet and win loads.':
     'हमरा लग ट्रक अछि आ हम अपन बेड़ा चलाबय आ लोड पाबय चाहैत छी।',
-  'I need materials moved and want to track the delivery.':
-    'हमरा सामान पठाबय अछि आ डिलीवरी पर नजरि रखय अछि।',
+  'I need materials, transport, a cab or a tour, and want offers to compare.':
+    'हमरा सामग्री, ढुलाई, कैब वा यात्रा चाही, आ तुलना लेल प्रस्ताव चाही।',
   'I sell materials and arrange dispatch from my yard.':
     'हम सामान बेचैत छी आ अपन यार्ड सँ पठाबय के व्यवस्था करैत छी।',
   'I run taxis, buses or tour packages and sell passenger journeys.':
@@ -245,6 +245,10 @@ export const mai: Catalogue = {
   'My orders': 'हमर ऑर्डर',
   'Track deliveries': 'डिलीवरी ट्रैक करू',
   'My travel': 'हमर यात्रा',
+  'My requirements': 'हमर जरूरत',
+  'Bid on work': 'काज लेल बोली लगाउ',
+  'Terminal arrivals': 'टर्मिनल पर आगमन',
+  'Scan a vehicle': 'गाड़ी स्कैन करू',
   'Emergency desk': 'आपातकालीन डेस्क',
   'Trip history': 'यात्रा इतिहास',
   'My QR badge': 'हमर QR बैज',

@@ -40,6 +40,18 @@ const STATUS_VARIANTS: Record<string, Variant> = {
   DELIVERED: 'success',
   FAILED: 'destructive',
 
+  // Requirements & bids. REJECTED, EXPIRED, CANCELLED and COMPLETED are shared
+  // with the statuses above and deliberately not restated.
+  OPEN: 'info',
+  BIDDING: 'accent',
+  PARTIALLY_AWARDED: 'warning',
+  AWARDED: 'success',
+  FULFILLED: 'success',
+  OFFERED: 'info',
+  SHORTLISTED: 'accent',
+  ACCEPTED: 'success',
+  WITHDRAWN: 'muted',
+
   // Verification & documents
   PENDING: 'muted',
   SUBMITTED: 'info',

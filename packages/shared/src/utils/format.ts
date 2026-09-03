@@ -118,3 +118,34 @@ export function truncate(value: string, maxLength: number): string {
   if (value.length <= maxLength) return value;
   return `${value.slice(0, Math.max(0, maxLength - 1))}…`;
 }
+
+/**
+ * A date and time, in the locale Saarthi is used in.
+ *
+ * Deliberately not relative: `relativeTimeFrom` is right for "when did this
+ * happen", but a deadline or a departure has to be readable as an actual
+ * date somebody can put in a diary.
+ */
+export function formatDateTime(
+  date: Date | string | null | undefined,
+  locale = 'en-IN',
+): string {
+  if (!date) return '—';
+  const target = typeof date === 'string' ? new Date(date) : date;
+  if (Number.isNaN(target.getTime())) return '—';
+  return target.toLocaleString(locale, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
+/** The date alone, for fields where the time carries no information. */
+export function formatDate(date: Date | string | null | undefined, locale = 'en-IN'): string {
+  if (!date) return '—';
+  const target = typeof date === 'string' ? new Date(date) : date;
+  if (Number.isNaN(target.getTime())) return '—';
+  return target.toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' });
+}

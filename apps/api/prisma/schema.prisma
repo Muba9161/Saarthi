@@ -289,6 +289,12 @@ enum NotificationType {
   ORDER_CREATED
   ORDER_QUOTED
   ORDER_UPDATED
+  REQUIREMENT_POSTED
+  REQUIREMENT_BID_RECEIVED
+  REQUIREMENT_BID_ACCEPTED
+  REQUIREMENT_BID_REJECTED
+  REQUIREMENT_AWARDED
+  REQUIREMENT_CANCELLED
   ORDER_DELIVERED
   TRIP_ASSIGNED
   TRIP_STARTED
@@ -995,6 +1001,8 @@ model Truck {
   telemetryAlerts     TelemetryAlert[]      @relation("VehicleTelemetryAlerts")
   travelPackages      TravelPackage[]       @relation("PackageVehicle")
   travelBookings      TravelBooking[]       @relation("BookingVehicle")
+  /// Bids that offered this vehicle against a customer requirement.
+  requirementBids     RequirementBid[]      @relation("BidVehicle")
   resaleListings      VehicleListing[]
   returnLoadRequests  ReturnLoadRequest[]
   loans               VehicleLoan[]
@@ -1240,6 +1248,76 @@ enum QuoteStatus {
   EXPIRED
 }
 
+// ---------------------------------------------------------------------------
+// Enums — requirements & bidding
+// ---------------------------------------------------------------------------
+
+/// What the customer actually needs. Decides which fields the form collects,
+/// which kind of business is shown the requirement, and which fulfilment
+/// record an awarded bid turns into.
+enum RequirementKind {
+  MATERIAL_SUPPLY
+  FREIGHT_TRANSPORT
+  CAB_HIRE
+  TOUR_PACKAGE
+}
+
+/// What a bidder is offering to supply. Separate from the requirement kind
+/// because one material requirement attracts a supplier quoting for the goods
+/// and a fleet quoting to move them.
+enum RequirementBidScope {
+  MATERIAL
+  TRANSPORT
+  TRAVEL
+}
+
+enum RequirementStatus {
+  OPEN
+  BIDDING
+  /// Material awarded, transport still open. Only reachable on a material
+  /// requirement that asked for delivery.
+  PARTIALLY_AWARDED
+  AWARDED
+  FULFILLED
+  CANCELLED
+  EXPIRED
+}
+
+enum RequirementBidStatus {
+  OFFERED
+  SHORTLISTED
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+  EXPIRED
+}
+
+enum RequirementEventType {
+  CREATED
+  UPDATED
+  BID_PLACED
+  BID_UPDATED
+  BID_WITHDRAWN
+  BID_SHORTLISTED
+  BID_ACCEPTED
+  BID_REJECTED
+  AWARDED
+  ORDER_CREATED
+  BOOKING_CREATED
+  FULFILLED
+  CANCELLED
+  EXPIRED
+  NOTE
+}
+
+/// How a cab or tour is priced and scheduled.
+enum HireBasis {
+  ONE_WAY
+  ROUND_TRIP
+  HOURLY
+  DAILY
+}
+
 enum TripStatus {
   DRAFT
   ASSIGNED
@@ -1368,10 +1446,12 @@ model Material {
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 
-  supplier   Supplier            @relation(fields: [supplierId], references: [id], onDelete: Cascade)
-  orders     Order[]
-  stockItems StockItem[]
-  priceTiers MaterialPriceTier[]
+  supplier     Supplier            @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  orders       Order[]
+  stockItems   StockItem[]
+  priceTiers   MaterialPriceTier[]
+  requirements Requirement[]       @relation("RequirementMaterial")
+  bids         RequirementBid[]    @relation("BidMaterial")
 
   @@index([supplierId, status])
   @@index([organizationId, status])
@@ -1399,7 +1479,8 @@ model Customer {
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
 
-  orders Order[]
+  orders       Order[]
+  requirements Requirement[]
 
   @@index([verificationStatus])
   @@map("customers")
@@ -1486,6 +1567,9 @@ model Order {
   stockReservations StockReservation[]
   returnLoadMatches ReturnLoadMatch[]
   relayDeliveries   RelayDelivery[]
+  /// Set when the order was produced by awarding a requirement bid rather
+  /// than by posting a freight order directly.
+  requirement       Requirement?       @relation("RequirementOrder")
 
   @@index([customerOrganizationId, status, createdAt])
   @@index([supplierOrganizationId, status])
@@ -1559,6 +1643,214 @@ model OrderRating {
   @@index([driverId])
   @@index([fleetOrganizationId])
   @@map("order_ratings")
+}
+
+// ===========================================================================
+// Requirements & bidding
+//
+// The customer's single front door. Before this existed a customer could only
+// post a freight load, so demand for materials, cabs and tours was invisible
+// to the businesses that could serve it. A requirement inverts that for every
+// category at once: the customer states a need, the qualifying businesses bid,
+// and an awarded bid becomes an Order or a TravelBooking on the fulfilment
+// pipelines that already exist — nothing downstream had to change.
+// ===========================================================================
+
+model Requirement {
+  id        String @id @default(uuid()) @db.Uuid
+  /// Human-friendly reference shown in the UI, e.g. RQ-2026-00123.
+  reference String @unique
+
+  kind                   RequirementKind
+  customerId             String          @db.Uuid
+  /// Tenant of the customer who raised it.
+  customerOrganizationId String          @db.Uuid
+
+  title       String
+  description String?
+
+  originAddress   String
+  originLatitude  Float
+  originLongitude Float
+  originCity      String?
+  originState     String?
+
+  /// Null only for a tour, where the itinerary is the route.
+  destinationAddress   String?
+  destinationLatitude  Float?
+  destinationLongitude Float?
+  destinationCity      String?
+  destinationState     String?
+
+  /// Straight-line origin to destination, for board ranking.
+  distanceKm Float?
+
+  startAt       DateTime
+  endAt         DateTime?
+  scheduleNotes String?
+
+  budgetAmount   Decimal? @db.Decimal(12, 2)
+  /// Whether bidders may see the budget. Off by default: a visible budget
+  /// tends to become the price, which is not what an auction is for.
+  budgetIsPublic Boolean  @default(false)
+
+  /// Bidding closes here. Enforced on write, and swept by the expiry job.
+  bidsCloseAt DateTime
+
+  contactName  String?
+  contactPhone String?
+
+  // --- Kind-specific detail ------------------------------------------------
+  //
+  // Typed columns rather than a JSON blob: these are filtered, sorted and
+  // shown on the provider board, and a board that cannot query tonnage or
+  // passenger count is not a board.
+
+  /// MATERIAL_SUPPLY. An existing listing, when the customer picked one.
+  materialId       String?       @db.Uuid
+  materialName     String?
+  materialCategory String?
+  specification    String?
+  quantity         Float?
+  unit             MaterialUnit?
+  /// Whether Saarthi should also find the lorry.
+  needsTransport   Boolean       @default(false)
+
+  /// FREIGHT_TRANSPORT.
+  goodsDescription     String?
+  requiredCapacityTons Float?
+  requiredTruckType    TruckType?
+  handlingNotes        String?
+
+  /// CAB_HIRE and TOUR_PACKAGE.
+  hireBasis            HireBasis?
+  passengers           Int?
+  preferredVehicleType VehicleType?
+  durationHours        Int?
+  durationDays         Int?
+  durationNights       Int?
+  luggageCount         Int?
+  acRequired           Boolean?
+  destinations         String[]
+  requiredInclusions   String[]
+  accommodationNeeded  Boolean?
+  mealsNeeded          Boolean?
+
+  // --- Lifecycle -----------------------------------------------------------
+  status RequirementStatus @default(OPEN)
+
+  /// Denormalised so the customer's list needs no aggregate query.
+  bidCount  Int      @default(0)
+  lowestBid Decimal? @db.Decimal(12, 2)
+
+  /// The winning bids. A material requirement that asked for delivery settles
+  /// two: one for the goods, one for the lorry.
+  awardedMaterialBidId  String? @unique @db.Uuid
+  awardedTransportBidId String? @unique @db.Uuid
+  awardedTravelBidId    String? @unique @db.Uuid
+
+  /// What the award produced. Exactly one is set once fully awarded.
+  orderId   String? @unique @db.Uuid
+  bookingId String? @unique @db.Uuid
+
+  cancellationReason String?
+  createdById        String    @db.Uuid
+  awardedAt          DateTime?
+  fulfilledAt        DateTime?
+  cancelledAt        DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  customer Customer           @relation(fields: [customerId], references: [id])
+  material Material?          @relation("RequirementMaterial", fields: [materialId], references: [id], onDelete: SetNull)
+  order    Order?             @relation("RequirementOrder", fields: [orderId], references: [id], onDelete: SetNull)
+  booking  TravelBooking?     @relation("RequirementBooking", fields: [bookingId], references: [id], onDelete: SetNull)
+  bids     RequirementBid[]
+  events   RequirementEvent[]
+  packages TravelPackage[]    @relation("RequirementPackage")
+
+  @@index([customerOrganizationId, status, createdAt])
+  // The provider board's primary query: open requirements of a kind I can
+  // serve, soonest first.
+  @@index([status, kind, startAt])
+  @@index([kind, status, createdAt])
+  @@index([bidsCloseAt, status])
+  @@index([originLatitude, originLongitude])
+  @@map("requirements")
+}
+
+model RequirementBid {
+  id            String @id @default(uuid()) @db.Uuid
+  requirementId String @db.Uuid
+
+  scope                RequirementBidScope
+  /// The business making the offer.
+  bidderOrganizationId String              @db.Uuid
+
+  price          Decimal   @db.Decimal(12, 2)
+  priceBreakdown String?
+  message        String?
+  validUntil     DateTime?
+
+  // --- Transport -----------------------------------------------------------
+  vehicleId          String?   @db.Uuid
+  driverId           String?   @db.Uuid
+  estimatedPickupAt  DateTime?
+  estimatedArrivalAt DateTime?
+  /// Distance from the offered vehicle to the pickup point at bid time.
+  distanceToPickupKm Float?
+
+  // --- Material ------------------------------------------------------------
+  materialId        String? @db.Uuid
+  includesDelivery  Boolean @default(false)
+  availableQuantity Float?
+  leadTimeDays      Int?
+
+  // --- Travel --------------------------------------------------------------
+  offeredVehicleType VehicleType?
+  inclusions         String[]
+  exclusions         String[]
+  itinerarySummary   String?
+  driverIncluded     Boolean      @default(true)
+  fuelIncluded       Boolean      @default(true)
+
+  status RequirementBidStatus @default(OFFERED)
+
+  rejectionReason String?
+  createdById     String    @db.Uuid
+  shortlistedAt   DateTime?
+  acceptedAt      DateTime?
+  rejectedAt      DateTime?
+  withdrawnAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  requirement Requirement @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+  vehicle     Truck?      @relation("BidVehicle", fields: [vehicleId], references: [id], onDelete: SetNull)
+  material    Material?   @relation("BidMaterial", fields: [materialId], references: [id], onDelete: SetNull)
+
+  /// One live offer per business per scope. A bidder revises its price by
+  /// updating the bid rather than stacking a second one beside it.
+  @@unique([requirementId, bidderOrganizationId, scope])
+  @@index([requirementId, status, price])
+  @@index([bidderOrganizationId, status, createdAt])
+  @@index([vehicleId])
+  @@map("requirement_bids")
+}
+
+model RequirementEvent {
+  id            String               @id @default(uuid()) @db.Uuid
+  requirementId String               @db.Uuid
+  type          RequirementEventType
+  description   String
+  metadata      Json?
+  actorUserId   String?              @db.Uuid
+  createdAt     DateTime             @default(now())
+
+  requirement Requirement @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+
+  @@index([requirementId, createdAt])
+  @@map("requirement_events")
 }
 
 // ===========================================================================
@@ -2802,11 +3094,18 @@ model TravelPackage {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  provider  ServiceProviderProfile @relation(fields: [providerId], references: [id], onDelete: Cascade)
-  vehicle   Truck?                 @relation("PackageVehicle", fields: [vehicleId], references: [id], onDelete: SetNull)
-  itinerary TravelItineraryDay[]
-  bookings  TravelBooking[]
+  /// Set when the operator minted this package by winning a customer
+  /// requirement. Such a package is never PUBLISHED, so it stays out of
+  /// customer search and out of the operator's own catalogue listing.
+  sourceRequirementId String? @db.Uuid
 
+  provider          ServiceProviderProfile @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  vehicle           Truck?                 @relation("PackageVehicle", fields: [vehicleId], references: [id], onDelete: SetNull)
+  sourceRequirement Requirement?           @relation("RequirementPackage", fields: [sourceRequirementId], references: [id], onDelete: SetNull)
+  itinerary         TravelItineraryDay[]
+  bookings          TravelBooking[]
+
+  @@index([sourceRequirementId])
   @@index([status, serviceKind])
   @@index([organizationId, status])
   @@index([providerId, status])
@@ -2898,12 +3197,15 @@ model TravelBooking {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  package  TravelPackage        @relation(fields: [packageId], references: [id])
-  vehicle  Truck?               @relation("BookingVehicle", fields: [vehicleId], references: [id], onDelete: SetNull)
-  trip     Trip?                @relation("BookingTrip", fields: [tripId], references: [id])
-  events   TravelBookingEvent[]
-  payments Payment[]
-  review   TravelReview?
+  package     TravelPackage        @relation(fields: [packageId], references: [id])
+  vehicle     Truck?               @relation("BookingVehicle", fields: [vehicleId], references: [id], onDelete: SetNull)
+  trip        Trip?                @relation("BookingTrip", fields: [tripId], references: [id])
+  events      TravelBookingEvent[]
+  payments    Payment[]
+  review      TravelReview?
+  /// Set when the booking came from awarding a travel bid rather than from
+  /// the customer booking a published package.
+  requirement Requirement?         @relation("RequirementBooking")
 
   @@index([customerOrganizationId, status, startDate])
   @@index([providerOrganizationId, status, startDate])

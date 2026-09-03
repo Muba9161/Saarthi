@@ -155,6 +155,34 @@ export const router = createBrowserRouter([
             path: '/marketplace',
             element: lazyPage(() => import('@/pages/marketplace/requirements')),
           },
+
+          /*
+           * Requirements — the customer's cross-category front door, and the
+           * board the businesses that serve it bid on.
+           *
+           * `/requirements/board` is declared before `/requirements/:id` so
+           * "board" is matched as the route it is rather than as an id.
+           */
+          {
+            path: '/requirements',
+            element: lazyPage(() => import('@/pages/requirements/requirements')),
+          },
+          {
+            path: '/requirements/new',
+            element: lazyPage(() => import('@/pages/requirements/new-requirement')),
+          },
+          {
+            path: '/requirements/board',
+            element: lazyPage(() => import('@/pages/requirements/board')),
+          },
+          {
+            path: '/requirements/board/:id',
+            element: lazyPage(() => import('@/pages/requirements/requirement-detail')),
+          },
+          {
+            path: '/requirements/:id',
+            element: lazyPage(() => import('@/pages/requirements/requirement-detail')),
+          },
           { path: '/browse', element: lazyPage(() => import('@/pages/marketplace/browse')) },
           {
             path: '/marketplace/vehicles',

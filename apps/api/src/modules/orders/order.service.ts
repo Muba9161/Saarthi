@@ -7,6 +7,8 @@ import {
   QuoteStatus,
   TruckStatus,
   VerificationStatus,
+  type MaterialUnit,
+  type TruckType,
   buildPaginationMeta,
   distanceKm,
   orderStateMachine,
@@ -25,6 +27,10 @@ import { errors } from '../../lib/errors';
 import { skipTake } from '../../lib/http';
 import { notifyAsync, notifyOrganization } from '../notifications/notification.service';
 import { broadcastOrderUpdate } from '../../realtime/realtime.service';
+import {
+  markRequirementCancelled,
+  markRequirementFulfilled,
+} from '../requirements/fulfilment.service';
 import type { AuthContext } from '../../auth/context';
 
 /**
@@ -1012,6 +1018,166 @@ export async function acceptQuote(
 }
 
 // ---------------------------------------------------------------------------
+// Orders raised by awarding a requirement
+// ---------------------------------------------------------------------------
+
+export interface RequirementOrderInput {
+  requirementId: string;
+  customerId: string;
+  customerOrganizationId: string;
+
+  materialId: string | null;
+  supplierOrganizationId: string | null;
+  materialName: string;
+  quantity: number;
+  unit: MaterialUnit;
+  /** Agreed price for the goods, from the winning material bid. */
+  materialPrice: number | null;
+
+  originAddress: string;
+  originLatitude: number;
+  originLongitude: number;
+  destinationAddress: string;
+  destinationLatitude: number;
+  destinationLongitude: number;
+
+  requiredCapacityTons: number;
+  requiredTruckType: TruckType | null;
+  pickupAt: Date | null;
+  deliverBy: Date | null;
+  budget: number | null;
+  notes: string | null;
+
+  /**
+   * The winning transport bid, when the customer awarded one. Absent when the
+   * customer is arranging their own transport or the supplier priced delivery
+   * into the goods, in which case the order is confirmed without a trip.
+   */
+  transport: {
+    fleetOrganizationId: string;
+    truckId: string;
+    driverId: string | null;
+    price: number;
+    estimatedPickupAt: Date | null;
+    estimatedArrivalAt: Date | null;
+    message: string | null;
+  } | null;
+}
+
+/**
+ * Turn an awarded requirement into an order.
+ *
+ * Lives here rather than in the requirements module because everything it
+ * touches — the reference series, the order event log, the customer's order
+ * count, the material reservation — belongs to orders, and a second module
+ * writing those would be a second definition of what an order is.
+ *
+ * When a transport bid was awarded the order is created as a normal REQUESTED
+ * requirement carrying a single OFFERED quote, and then `acceptQuote` runs
+ * against it. That is deliberate: accepting a quote is what creates the trip,
+ * reserves the vehicle, moves the driver to ON_TRIP and reserves the stock, and
+ * reimplementing any of that here would be a second, divergent copy of the most
+ * consequential transaction in the system.
+ */
+export async function createOrderFromRequirement(
+  auth: AuthContext,
+  input: RequirementOrderInput,
+): Promise<{ order: OrderSummary; tripId: string | null }> {
+  const distance = distanceKm(
+    { latitude: input.originLatitude, longitude: input.originLongitude },
+    { latitude: input.destinationLatitude, longitude: input.destinationLongitude },
+  );
+
+  const created = await prisma.order.create({
+    data: {
+      reference: await nextReference(),
+      customerId: input.customerId,
+      customerOrganizationId: input.customerOrganizationId,
+      materialId: input.materialId,
+      supplierOrganizationId: input.supplierOrganizationId,
+      materialName: input.materialName,
+      quantity: input.quantity,
+      unit: input.unit,
+      materialPrice: input.materialPrice,
+      budget: input.budget,
+      originAddress: input.originAddress,
+      originLatitude: input.originLatitude,
+      originLongitude: input.originLongitude,
+      destinationAddress: input.destinationAddress,
+      destinationLatitude: input.destinationLatitude,
+      destinationLongitude: input.destinationLongitude,
+      distanceKm: Number(distance.toFixed(1)),
+      requiredCapacityTons: input.requiredCapacityTons,
+      requiredTruckType: input.requiredTruckType,
+      pickupAt: input.pickupAt,
+      deliverBy: input.deliverBy,
+      status: OrderStatus.REQUESTED,
+      notes: input.notes,
+      createdById: auth.user.id,
+    },
+    include: orderInclude,
+  });
+
+  await recordEvent(
+    created.id,
+    'CREATED',
+    `Order raised from awarded requirement ${input.requirementId}.`,
+    auth.user.id,
+    { requirementId: input.requirementId },
+  );
+  await prisma.customer.update({
+    where: { id: input.customerId },
+    data: { totalOrders: { increment: 1 } },
+  });
+
+  if (!input.transport) {
+    // Nothing to dispatch: the goods are collected by the customer, or the
+    // supplier priced delivery in. The order is agreed, so it is confirmed.
+    const confirmed = await prisma.order.update({
+      where: { id: created.id },
+      data: {
+        status: OrderStatus.CONFIRMED,
+        totalPrice: input.materialPrice,
+        confirmedAt: new Date(),
+      },
+      include: orderInclude,
+    });
+    await recordEvent(created.id, 'CONFIRMED', 'Supplier appointed by the customer.', auth.user.id);
+
+    if (input.supplierOrganizationId) {
+      void notifyOrganization(input.supplierOrganizationId, {
+        type: NotificationType.ORDER_CREATED,
+        title: 'Order confirmed',
+        body: `${confirmed.reference}: ${confirmed.quantity} ${confirmed.unit.toLowerCase()} of ${confirmed.materialName}.`,
+        priority: NotificationPriority.HIGH,
+        actionUrl: `/orders/${confirmed.id}`,
+      });
+    }
+
+    await publishUpdate(confirmed.id);
+    return { order: (await decorate([confirmed]))[0]!, tripId: null };
+  }
+
+  const quote = await prisma.orderQuote.create({
+    data: {
+      orderId: created.id,
+      fleetOrganizationId: input.transport.fleetOrganizationId,
+      truckId: input.transport.truckId,
+      driverId: input.transport.driverId,
+      price: input.transport.price,
+      estimatedPickupAt: input.transport.estimatedPickupAt,
+      estimatedArrivalAt: input.transport.estimatedArrivalAt,
+      message: input.transport.message,
+      status: QuoteStatus.OFFERED,
+      createdById: auth.user.id,
+    },
+  });
+
+  const result = await acceptQuote(auth, created.id, quote.id);
+  return { order: result.order, tripId: result.tripId };
+}
+
+// ---------------------------------------------------------------------------
 // Lifecycle
 // ---------------------------------------------------------------------------
 
@@ -1056,6 +1222,18 @@ export async function transitionOrder(
     priority: NotificationPriority.NORMAL,
     actionUrl: `/orders/${orderId}`,
   });
+
+  // An order raised from a requirement carries that requirement's outcome with
+  // it, so the customer's requirement list agrees with what was actually
+  // delivered rather than showing finished work as still in flight.
+  if (status === OrderStatus.COMPLETED) {
+    void markRequirementFulfilled({ orderId }, `Order ${order.reference} completed.`);
+  } else if (status === OrderStatus.CANCELLED) {
+    void markRequirementCancelled(
+      { orderId },
+      reason ?? `Order ${order.reference} was cancelled.`,
+    );
+  }
 
   await publishUpdate(orderId);
   return (await decorate([updated]))[0]!;

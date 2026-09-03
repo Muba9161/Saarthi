@@ -174,8 +174,8 @@ export const kok: Catalogue = {
   'Travel business name': 'ट्रॅव्हल वेवसायाचें नांव',
   'I own trucks and want to manage my fleet and win loads.':
     'म्हजे कडेन ट्रक आसात आनी म्हाका म्हजो वाहनसमूह सांबाळपाचो आनी लोड मेळोवपाचो आसा.',
-  'I need materials moved and want to track the delivery.':
-    'म्हाका माल धाडपाचो आसा आनी डिलिव्हरी चेर नदर दवरपाची आसा.',
+  'I need materials, transport, a cab or a tour, and want offers to compare.':
+    'म्हाका सामग्री, वाहतूक, कॅब वा प्रवास जाय, आनी तुळाजोगे प्रस्ताव जाय.',
   'I sell materials and arrange dispatch from my yard.':
     'हांव माल विकतां आनी म्हज्या यार्डा वयल्यान धाडपाची वेवस्था करतां.',
   'I run taxis, buses or tour packages and sell passenger journeys.':
@@ -246,6 +246,10 @@ export const kok: Catalogue = {
   'My orders': 'म्हजे ऑर्डर',
   'Track deliveries': 'डिलिव्हरी ट्रॅक करात',
   'My travel': 'म्हजो प्रवास',
+  'My requirements': 'म्हज्यो गरजो',
+  'Bid on work': 'कामाखातीर बोली मारात',
+  'Terminal arrivals': 'टर्मिनलार आगमन',
+  'Scan a vehicle': 'वाहन स्कॅन करात',
   'Emergency desk': 'आपत्कालीन डेस्क',
   'Trip history': 'प्रवास इतिहास',
   'My QR badge': 'म्हजो QR बॅज',

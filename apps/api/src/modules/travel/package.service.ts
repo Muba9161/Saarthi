@@ -411,6 +411,10 @@ export async function listOwnPackages(
   const where: Prisma.TravelPackageWhereInput = {
     providerId: provider.id,
     archivedAt: null,
+    // A package minted to fulfil one customer requirement is not catalogue
+    // stock. It exists so the booking has something to reference, and listing
+    // it here would tell the operator they publish tours they never wrote.
+    sourceRequirementId: null,
     ...(query.search ? { title: { contains: query.search, mode: 'insensitive' } } : {}),
     ...(query.serviceKind ? { serviceKind: { in: query.serviceKind as TravelServiceKind[] } } : {}),
   };

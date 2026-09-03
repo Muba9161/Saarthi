@@ -175,8 +175,8 @@ export const te: Catalogue = {
   'Travel business name': 'ట్రావెల్ వ్యాపార పేరు',
   'I own trucks and want to manage my fleet and win loads.':
     'నా వద్ద ట్రక్కులు ఉన్నాయి, నా వాహన సముదాయాన్ని నడపాలని, లోడ్లు పొందాలని అనుకుంటున్నాను.',
-  'I need materials moved and want to track the delivery.':
-    'నాకు సరుకు పంపాలి, డెలివరీని గమనించాలి.',
+  'I need materials, transport, a cab or a tour, and want offers to compare.':
+    'నాకు సామగ్రి, రవాణా, క్యాబ్ లేదా యాత్ర కావాలి, పోల్చడానికి ఆఫర్లు కూడా కావాలి.',
   'I sell materials and arrange dispatch from my yard.':
     'నేను సరుకు అమ్ముతాను, నా యార్డ్ నుండి పంపే ఏర్పాటు చేస్తాను.',
   'I run taxis, buses or tour packages and sell passenger journeys.':
@@ -248,6 +248,10 @@ export const te: Catalogue = {
   'My orders': 'నా ఆర్డర్లు',
   'Track deliveries': 'డెలివరీ ట్రాక్ చేయండి',
   'My travel': 'నా ప్రయాణం',
+  'My requirements': 'నా అవసరాలు',
+  'Bid on work': 'పనికి బిడ్ వేయండి',
+  'Terminal arrivals': 'టెర్మినల్ రాకలు',
+  'Scan a vehicle': 'వాహనాన్ని స్కాన్ చేయండి',
   'Emergency desk': 'అత్యవసర డెస్క్',
   'Trip history': 'ట్రిప్ చరిత్ర',
   'My QR badge': 'నా QR బ్యాడ్జ్',

@@ -251,6 +251,108 @@ export const QuoteStatus = asEnum({
 export type QuoteStatus = EnumValue<typeof QuoteStatus>;
 
 // ---------------------------------------------------------------------------
+// Requirements — the customer's single front door
+// ---------------------------------------------------------------------------
+
+/**
+ * What the customer actually needs.
+ *
+ * A customer arrives with a need, not with a table name. This enum is the
+ * first question the requirement wizard asks, and it decides three things at
+ * once: which fields the form collects, which kind of business is shown the
+ * requirement, and which fulfilment record an awarded bid turns into.
+ */
+export const RequirementKind = asEnum({
+  /** Goods sourced from a supplier, optionally delivered. */
+  MATERIAL_SUPPLY: 'MATERIAL_SUPPLY',
+  /** The customer already owns the goods and needs a truck. */
+  FREIGHT_TRANSPORT: 'FREIGHT_TRANSPORT',
+  /** A vehicle with a driver, point-to-point or by the hour/day. */
+  CAB_HIRE: 'CAB_HIRE',
+  /** A multi-day itinerary priced as a package. */
+  TOUR_PACKAGE: 'TOUR_PACKAGE',
+});
+export type RequirementKind = EnumValue<typeof RequirementKind>;
+export const REQUIREMENT_KINDS = Object.values(RequirementKind) as RequirementKind[];
+
+/**
+ * What a bidder is offering to supply.
+ *
+ * Deliberately separate from the requirement kind: one MATERIAL_SUPPLY
+ * requirement can attract a supplier quoting for the goods and a fleet quoting
+ * to move them, and the customer awards each half on its own merits.
+ */
+export const RequirementBidScope = asEnum({
+  /** The goods themselves, priced ex-yard unless the bid includes delivery. */
+  MATERIAL: 'MATERIAL',
+  /** Moving the goods. Offered by a freight fleet. */
+  TRANSPORT: 'TRANSPORT',
+  /** A passenger journey or tour, offered by a mobility provider. */
+  TRAVEL: 'TRAVEL',
+});
+export type RequirementBidScope = EnumValue<typeof RequirementBidScope>;
+
+export const RequirementStatus = asEnum({
+  /** Published and visible to the businesses that can serve it. */
+  OPEN: 'OPEN',
+  /** At least one bid has been received. */
+  BIDDING: 'BIDDING',
+  /** One half is settled — material awarded, transport still open. */
+  PARTIALLY_AWARDED: 'PARTIALLY_AWARDED',
+  /** Every half is settled and the fulfilment record has been created. */
+  AWARDED: 'AWARDED',
+  /** The order or booking it produced reached its end state. */
+  FULFILLED: 'FULFILLED',
+  CANCELLED: 'CANCELLED',
+  /** The bidding window closed with nothing awarded. */
+  EXPIRED: 'EXPIRED',
+});
+export type RequirementStatus = EnumValue<typeof RequirementStatus>;
+
+export const RequirementBidStatus = asEnum({
+  OFFERED: 'OFFERED',
+  /** The customer is considering it. Visible to the bidder as interest. */
+  SHORTLISTED: 'SHORTLISTED',
+  ACCEPTED: 'ACCEPTED',
+  REJECTED: 'REJECTED',
+  WITHDRAWN: 'WITHDRAWN',
+  EXPIRED: 'EXPIRED',
+});
+export type RequirementBidStatus = EnumValue<typeof RequirementBidStatus>;
+
+export const RequirementEventType = asEnum({
+  CREATED: 'CREATED',
+  UPDATED: 'UPDATED',
+  BID_PLACED: 'BID_PLACED',
+  BID_UPDATED: 'BID_UPDATED',
+  BID_WITHDRAWN: 'BID_WITHDRAWN',
+  BID_SHORTLISTED: 'BID_SHORTLISTED',
+  BID_ACCEPTED: 'BID_ACCEPTED',
+  BID_REJECTED: 'BID_REJECTED',
+  AWARDED: 'AWARDED',
+  ORDER_CREATED: 'ORDER_CREATED',
+  BOOKING_CREATED: 'BOOKING_CREATED',
+  FULFILLED: 'FULFILLED',
+  CANCELLED: 'CANCELLED',
+  EXPIRED: 'EXPIRED',
+  NOTE: 'NOTE',
+});
+export type RequirementEventType = EnumValue<typeof RequirementEventType>;
+
+/** How a cab or tour requirement is priced and scheduled. */
+export const HireBasis = asEnum({
+  /** A single run from A to B. */
+  ONE_WAY: 'ONE_WAY',
+  /** Out and back on the same booking. */
+  ROUND_TRIP: 'ROUND_TRIP',
+  /** The vehicle is retained for a number of hours. */
+  HOURLY: 'HOURLY',
+  /** The vehicle is retained for whole days. */
+  DAILY: 'DAILY',
+});
+export type HireBasis = EnumValue<typeof HireBasis>;
+
+// ---------------------------------------------------------------------------
 // Trips & tracking
 // ---------------------------------------------------------------------------
 
@@ -492,6 +594,15 @@ export const NotificationType = asEnum({
   VERIFICATION_RESULT: 'VERIFICATION_RESULT',
   ORDER_CREATED: 'ORDER_CREATED',
   ORDER_QUOTED: 'ORDER_QUOTED',
+
+  // Requirements & bidding
+  REQUIREMENT_POSTED: 'REQUIREMENT_POSTED',
+  REQUIREMENT_BID_RECEIVED: 'REQUIREMENT_BID_RECEIVED',
+  REQUIREMENT_BID_ACCEPTED: 'REQUIREMENT_BID_ACCEPTED',
+  REQUIREMENT_BID_REJECTED: 'REQUIREMENT_BID_REJECTED',
+  REQUIREMENT_AWARDED: 'REQUIREMENT_AWARDED',
+  REQUIREMENT_CANCELLED: 'REQUIREMENT_CANCELLED',
+
   ORDER_UPDATED: 'ORDER_UPDATED',
   ORDER_DELIVERED: 'ORDER_DELIVERED',
   TRIP_ASSIGNED: 'TRIP_ASSIGNED',

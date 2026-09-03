@@ -17,7 +17,9 @@ import {
   bookingStateMachine,
   buildPaginationMeta,
   calculateRefund,
+  platformFeeFor,
   quotePackage,
+  type TravelServiceKind,
   type BookingListQuery,
   type CancelBookingInput,
   type ConfirmBookingInput,
@@ -39,6 +41,10 @@ import { broadcastBooking } from '../../realtime/realtime.service';
 import type { AuthContext } from '../../auth/context';
 import { recalculatePackageRating } from './package.service';
 import { recalculateProviderRating } from './provider.service';
+import {
+  markRequirementCancelled,
+  markRequirementFulfilled,
+} from '../requirements/fulfilment.service';
 
 /**
  * Travel bookings.
@@ -428,6 +434,177 @@ export async function createBooking(
 
   await publish(booking, true);
   return toSummary(booking);
+}
+
+// ---------------------------------------------------------------------------
+// Bookings raised by awarding a travel requirement
+// ---------------------------------------------------------------------------
+
+export interface RequirementBookingInput {
+  requirementId: string;
+  requirementReference: string;
+  requirementTitle: string;
+  providerOrganizationId: string;
+  customerOrganizationId: string;
+
+  serviceKind: TravelServiceKind;
+  startDate: Date;
+  endDate: Date;
+  passengers: number;
+
+  startLocation: string;
+  startLatitude: number;
+  startLongitude: number;
+  endLocation: string;
+  destinations: string[];
+  durationDays: number;
+  durationNights: number | null;
+  approxDistanceKm: number | null;
+
+  contactName: string;
+  contactPhone: string;
+  contactEmail: string | null;
+  specialRequests: string | null;
+
+  /** The awarded bid: what the operator offered and at what price. */
+  offeredVehicleType: VehicleType;
+  agreedPrice: number;
+  priceBreakdown: string | null;
+  inclusions: string[];
+  exclusions: string[];
+  itinerarySummary: string | null;
+  driverIncluded: boolean;
+  fuelIncluded: boolean;
+}
+
+/**
+ * Turn an awarded travel bid into a booking.
+ *
+ * A bespoke journey has no catalogue entry, and `TravelBooking.packageId` is
+ * required — so the award mints one. The minted package is owned by the winning
+ * operator, carries `sourceRequirementId`, and is left in DRAFT, which keeps it
+ * out of customer search and out of the operator's own catalogue listing while
+ * still giving the booking something real to hang from.
+ *
+ * That choice is what let the entire travel pipeline be reused unchanged:
+ * payment, provider confirmation, vehicle and driver assignment, the trip, live
+ * tracking, completion and the review all run on the code that was already
+ * there. Making `packageId` nullable instead would have meant a null check at
+ * roughly thirty call sites in this file alone, each one a chance to regress a
+ * flow that works today.
+ *
+ * The booking is created in PENDING_PAYMENT for the same reason a catalogue
+ * booking is: the operator has committed to a price, and the customer pays
+ * before the operator is asked to hold a vehicle for the date.
+ */
+export async function createBookingFromRequirement(
+  auth: AuthContext,
+  input: RequirementBookingInput,
+): Promise<{ bookingId: string; packageId: string; totalAmount: number }> {
+  const provider = await prisma.serviceProviderProfile.findUnique({
+    where: { organizationId: input.providerOrganizationId },
+    select: { id: true, status: true },
+  });
+  if (!provider) {
+    throw errors.businessRule('The winning operator no longer has a provider profile.');
+  }
+
+  const customer = await prisma.customer.findFirst({
+    where: { organizationId: input.customerOrganizationId },
+    select: { id: true },
+  });
+
+  // The operator quoted a single all-in figure, so the price is fixed for this
+  // party rather than recomputed per head.
+  const platformFee = platformFeeFor(input.agreedPrice);
+
+  const created = await prisma.$transaction(async (tx) => {
+    const pkg = await tx.travelPackage.create({
+      data: {
+        providerId: provider.id,
+        organizationId: input.providerOrganizationId,
+        sourceRequirementId: input.requirementId,
+        title: input.requirementTitle,
+        summary: `Built for requirement ${input.requirementReference}.`,
+        description: input.itinerarySummary,
+        serviceKind: input.serviceKind,
+        imageUrls: [],
+        destinations: input.destinations.length > 0 ? input.destinations : [input.endLocation],
+        startLocation: input.startLocation,
+        startLatitude: input.startLatitude,
+        startLongitude: input.startLongitude,
+        endLocation: input.endLocation,
+        durationDays: input.durationDays,
+        durationNights: input.durationNights,
+        approxDistanceKm: input.approxDistanceKm,
+        vehicleType: input.offeredVehicleType,
+        minPassengers: 1,
+        maxPassengers: input.passengers,
+        pricingModel: PricingModel.FIXED_PACKAGE,
+        basePrice: input.agreedPrice,
+        inclusions: input.inclusions,
+        exclusions: input.exclusions,
+        advanceBookingDays: 0,
+        availableWeekdays: [],
+        driverIncluded: input.driverIncluded,
+        fuelIncluded: input.fuelIncluded,
+        // Never PUBLISHED: this was built for one customer, not for sale.
+        status: TravelPackageStatus.DRAFT,
+        createdById: auth.user.id,
+      },
+    });
+
+    const bookingCount = await tx.travelBooking.count();
+    const booking = await tx.travelBooking.create({
+      data: {
+        reference: `TB-${new Date().getFullYear()}-${String(bookingCount + 1).padStart(5, '0')}`,
+        packageId: pkg.id,
+        providerOrganizationId: input.providerOrganizationId,
+        customerOrganizationId: input.customerOrganizationId,
+        customerId: customer?.id ?? null,
+        bookedByUserId: auth.user.id,
+        status: BookingStatus.PENDING_PAYMENT,
+        startDate: input.startDate,
+        endDate: input.endDate,
+        passengers: input.passengers,
+        pickupAddress: input.startLocation,
+        pickupLatitude: input.startLatitude,
+        pickupLongitude: input.startLongitude,
+        contactName: input.contactName,
+        contactPhone: input.contactPhone,
+        contactEmail: input.contactEmail,
+        specialRequests: input.specialRequests,
+        pricingModel: PricingModel.FIXED_PACKAGE,
+        subtotal: input.agreedPrice,
+        platformFee,
+        totalAmount: input.agreedPrice + platformFee,
+        priceBreakdown:
+          input.priceBreakdown ?? `Agreed price for requirement ${input.requirementReference}`,
+      },
+    });
+
+    await tx.travelPackage.update({
+      where: { id: pkg.id },
+      data: { bookingCount: { increment: 1 } },
+    });
+
+    return { bookingId: booking.id, packageId: pkg.id, totalAmount: Number(booking.totalAmount) };
+  });
+
+  await recordEvent(
+    created.bookingId,
+    BookingEventType.CREATED,
+    `Created from awarded requirement ${input.requirementReference}.`,
+    auth.user.id,
+  );
+
+  const booking = await prisma.travelBooking.findUnique({
+    where: { id: created.bookingId },
+    include: bookingInclude,
+  });
+  if (booking) await publish(booking, true);
+
+  return created;
 }
 
 // ---------------------------------------------------------------------------
@@ -921,6 +1098,13 @@ export async function completeBooking(
 
   await recordEvent(booking.id, BookingEventType.COMPLETED, 'Trip completed.', auth.user.id);
 
+  // A booking raised from a requirement closes that requirement out, so the
+  // customer's requirement list reflects the journey that actually happened.
+  void markRequirementFulfilled(
+    { bookingId: booking.id },
+    `Booking ${booking.reference} completed.`,
+  );
+
   void notify({
     userId: booking.bookedByUserId,
     organizationId: booking.customerOrganizationId,
@@ -1094,6 +1278,11 @@ export async function cancelBooking(
     BookingEventType.CANCELLED,
     `${cancelledBy.toLowerCase()} cancelled: ${input.reason}`,
     auth.user.id,
+  );
+
+  void markRequirementCancelled(
+    { bookingId: booking.id },
+    `Booking ${booking.reference} was cancelled: ${input.reason}`,
   );
 
   // Free the vehicle and close the trip so the provider's fleet is accurate.

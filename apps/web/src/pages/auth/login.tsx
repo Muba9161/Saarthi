@@ -3,17 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { toast } from 'sonner';
-import {
-  ArrowRight,
-  KeyRound,
-  Mail,
-  ShieldCheck,
-  ShoppingCart,
-  Sparkles,
-  Truck,
-  UserRound,
-} from 'lucide-react';
+import { ArrowRight, KeyRound, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PasswordInput } from '@/components/ui/password-input';
@@ -31,7 +21,6 @@ import { useAuth } from '@/features/auth/auth-context';
 import { ApiError } from '@/lib/api-client';
 import { AnimatePresence, Stagger, StaggerItem, motion } from '@/components/motion';
 import { useT } from '@/features/i18n';
-import { cn } from '@/lib/utils';
 
 // Deliberately permissive: the server decides whether credentials are valid,
 // and the form should not pre-judge a legacy password.
@@ -41,36 +30,6 @@ const schema = z.object({
 });
 
 type FormValues = z.infer<typeof schema>;
-
-/** Four accounts, one per side of the product. Password is shared. */
-const DEMO_ACCOUNTS = [
-  {
-    label: 'Fleet owner',
-    email: 'owner@saarthi.local',
-    hint: 'Fleet, trips, live map, simulator',
-    icon: Truck,
-  },
-  {
-    label: 'Driver',
-    email: 'driver@saarthi.local',
-    hint: 'Driver app, SOS, safety score',
-    icon: UserRound,
-  },
-  {
-    label: 'Customer',
-    email: 'customer@saarthi.local',
-    hint: 'Marketplace, orders, tracking',
-    icon: ShoppingCart,
-  },
-  {
-    label: 'Platform admin',
-    email: 'admin@saarthi.local',
-    hint: 'Verification queue, audit log',
-    icon: ShieldCheck,
-  },
-] as const;
-
-const DEMO_PASSWORD = 'Saarthi@2026';
 
 export function LoginPage() {
   const { login } = useAuth();
@@ -95,13 +54,6 @@ export function LoginPage() {
           : 'Unable to sign in right now. Please try again.';
       setFormError(message);
     }
-  };
-
-  const useDemoAccount = (email: string): void => {
-    form.setValue('email', email, { shouldValidate: true });
-    form.setValue('password', DEMO_PASSWORD, { shouldValidate: true });
-    setFormError(null);
-    toast.info(t('Demo credentials filled in'), { description: email });
   };
 
   const submitting = form.formState.isSubmitting;
@@ -214,56 +166,6 @@ export function LoginPage() {
         </AuthCard>
       </StaggerItem>
 
-      {import.meta.env.VITE_DEMO_MODE === 'true' ? (
-        <StaggerItem>
-          <section className="glass rounded-2xl p-4 sm:p-5">
-            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-              <p className="section-label inline-flex items-center gap-1.5">
-                <Sparkles className="size-3 text-accent" aria-hidden />
-                {t('Try it instantly')}
-              </p>
-              <p className="text-2xs text-muted-foreground">
-                {t('Four demo accounts, password')}{' '}
-                <span className="rounded bg-muted px-1 py-0.5 font-mono text-2xs text-foreground">
-                  {DEMO_PASSWORD}
-                </span>
-              </p>
-            </div>
-
-            <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-              {DEMO_ACCOUNTS.map((account) => (
-                <button
-                  key={account.email}
-                  type="button"
-                  onClick={() => useDemoAccount(account.email)}
-                  disabled={submitting}
-                  className={cn(
-                    'group flex items-center gap-2.5 rounded-xl border border-border/70 bg-card/50 p-2.5 text-left',
-                    'transition-all duration-200 ease-smooth',
-                    'hover:-translate-y-0.5 hover:border-primary/40 hover:bg-card hover:shadow-lifted',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                    'active:translate-y-0 disabled:pointer-events-none disabled:opacity-60',
-                  )}
-                >
-                  <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors duration-200 group-hover:bg-primary/15">
-                    <account.icon className="size-4" aria-hidden />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium">{t(account.label)}</span>
-                    <span className="block truncate text-2xs text-muted-foreground">
-                      {t(account.hint)}
-                    </span>
-                  </span>
-                  <ArrowRight
-                    className="size-3.5 shrink-0 text-muted-foreground opacity-0 transition-all duration-200 group-hover:translate-x-0.5 group-hover:opacity-100"
-                    aria-hidden
-                  />
-                </button>
-              ))}
-            </div>
-          </section>
-        </StaggerItem>
-      ) : null}
     </Stagger>
   );
 }

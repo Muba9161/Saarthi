@@ -176,8 +176,8 @@ export const ml: Catalogue = {
   'Travel business name': 'ട്രാവൽ ബിസിനസ് പേര്',
   'I own trucks and want to manage my fleet and win loads.':
     'എനിക്ക് ട്രക്കുകളുണ്ട്, എന്റെ വാഹനനിര നടത്താനും ലോഡ് നേടാനും ആഗ്രഹിക്കുന്നു.',
-  'I need materials moved and want to track the delivery.':
-    'എനിക്ക് സാധനങ്ങൾ അയക്കണം, ഡെലിവറി നിരീക്ഷിക്കണം.',
+  'I need materials, transport, a cab or a tour, and want offers to compare.':
+    'എനിക്ക് സാമഗ്രികൾ, ഗതാഗതം, ക്യാബ് അല്ലെങ്കിൽ യാത്ര വേണം, താരതമ്യം ചെയ്യാൻ ഓഫറുകളും വേണം.',
   'I sell materials and arrange dispatch from my yard.':
     'ഞാൻ സാധനങ്ങൾ വിൽക്കുകയും എന്റെ യാർഡിൽ നിന്ന് അയക്കാൻ ക്രമീകരിക്കുകയും ചെയ്യുന്നു.',
   'I run taxis, buses or tour packages and sell passenger journeys.':
@@ -249,6 +249,10 @@ export const ml: Catalogue = {
   'My orders': 'എന്റെ ഓർഡറുകൾ',
   'Track deliveries': 'ഡെലിവറി ട്രാക്ക് ചെയ്യുക',
   'My travel': 'എന്റെ യാത്ര',
+  'My requirements': 'എന്റെ ആവശ്യങ്ങൾ',
+  'Bid on work': 'ജോലിക്ക് ബിഡ് ചെയ്യുക',
+  'Terminal arrivals': 'ടെർമിനൽ വരവുകൾ',
+  'Scan a vehicle': 'വാഹനം സ്കാൻ ചെയ്യുക',
   'Emergency desk': 'അടിയന്തര ഡെസ്ക്',
   'Trip history': 'യാത്രാ ചരിത്രം',
   'My QR badge': 'എന്റെ QR ബാഡ്ജ്',

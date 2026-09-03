@@ -15,6 +15,8 @@ import {
   DeviceStatus,
   OrderStatus,
   RelayStatus,
+  RequirementBidStatus,
+  RequirementStatus,
   ReturnLoadStatus,
   SosStatus,
   TripStatus,
@@ -88,6 +90,77 @@ export const ACTIVE_ORDER_STATUSES: OrderStatus[] = [
   OrderStatus.ASSIGNED,
   OrderStatus.PICKUP,
   OrderStatus.IN_TRANSIT,
+];
+
+// ---------------------------------------------------------------------------
+// Requirements & bids
+// ---------------------------------------------------------------------------
+
+/**
+ * PARTIALLY_AWARDED exists only for a material requirement that also needs
+ * transport: the customer has picked a supplier but no lorry yet, so the
+ * requirement must stay on the transport board while being closed to further
+ * material bids. Every other kind goes straight from BIDDING to AWARDED.
+ */
+const REQUIREMENT_TRANSITIONS: Record<RequirementStatus, readonly RequirementStatus[]> = {
+  [RequirementStatus.OPEN]: [
+    RequirementStatus.BIDDING,
+    RequirementStatus.CANCELLED,
+    RequirementStatus.EXPIRED,
+  ],
+  [RequirementStatus.BIDDING]: [
+    RequirementStatus.PARTIALLY_AWARDED,
+    RequirementStatus.AWARDED,
+    RequirementStatus.CANCELLED,
+    RequirementStatus.EXPIRED,
+  ],
+  [RequirementStatus.PARTIALLY_AWARDED]: [
+    RequirementStatus.AWARDED,
+    RequirementStatus.CANCELLED,
+    RequirementStatus.EXPIRED,
+  ],
+  // Cancelling after the award is still possible, because the order or booking
+  // it produced can itself be cancelled and the requirement must follow it.
+  [RequirementStatus.AWARDED]: [RequirementStatus.FULFILLED, RequirementStatus.CANCELLED],
+  [RequirementStatus.FULFILLED]: [],
+  [RequirementStatus.CANCELLED]: [],
+  [RequirementStatus.EXPIRED]: [],
+};
+
+export const requirementStateMachine = buildValidator('Requirement', REQUIREMENT_TRANSITIONS);
+
+const REQUIREMENT_BID_TRANSITIONS: Record<RequirementBidStatus, readonly RequirementBidStatus[]> = {
+  [RequirementBidStatus.OFFERED]: [
+    RequirementBidStatus.SHORTLISTED,
+    RequirementBidStatus.ACCEPTED,
+    RequirementBidStatus.REJECTED,
+    RequirementBidStatus.WITHDRAWN,
+    RequirementBidStatus.EXPIRED,
+  ],
+  // A shortlisted bid can fall back to plain OFFERED when the customer changes
+  // their mind, so shortlisting stays a low-commitment signal.
+  [RequirementBidStatus.SHORTLISTED]: [
+    RequirementBidStatus.OFFERED,
+    RequirementBidStatus.ACCEPTED,
+    RequirementBidStatus.REJECTED,
+    RequirementBidStatus.WITHDRAWN,
+    RequirementBidStatus.EXPIRED,
+  ],
+  [RequirementBidStatus.ACCEPTED]: [],
+  [RequirementBidStatus.REJECTED]: [],
+  [RequirementBidStatus.WITHDRAWN]: [],
+  [RequirementBidStatus.EXPIRED]: [],
+};
+
+export const requirementBidStateMachine = buildValidator(
+  'Bid',
+  REQUIREMENT_BID_TRANSITIONS,
+);
+
+/** Bid statuses that are still in play for the customer to award. */
+export const LIVE_BID_STATUSES: RequirementBidStatus[] = [
+  RequirementBidStatus.OFFERED,
+  RequirementBidStatus.SHORTLISTED,
 ];
 
 // ---------------------------------------------------------------------------

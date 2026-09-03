@@ -50,6 +50,20 @@ export const Permission = {
   CUSTOMERS_READ: 'customers.read',
   CUSTOMERS_MANAGE: 'customers.manage',
 
+  // Requirements — the customer's cross-category request for quotes.
+  //
+  // Deliberately its own group rather than an extension of `orders.*`. An
+  // order is a freight consignment; a requirement may be a cab, a tour or a
+  // load of cement, and the businesses that answer it are different in each
+  // case. Folding the two would have meant granting a tour operator the
+  // freight order surface just so it could see a customer asking for a car.
+  REQUIREMENTS_READ: 'requirements.read',
+  REQUIREMENTS_CREATE: 'requirements.create',
+  /** Award, shortlist, cancel — the customer's own requirement. */
+  REQUIREMENTS_MANAGE: 'requirements.manage',
+  /** Answer somebody else's requirement with a priced offer. */
+  REQUIREMENTS_BID: 'requirements.bid',
+
   // Orders
   ORDERS_READ: 'orders.read',
   ORDERS_CREATE: 'orders.create',
@@ -280,6 +294,10 @@ const FLEET_MANAGER_PERMISSIONS: Permission[] = [
   Permission.ORDERS_READ,
   Permission.ORDERS_MANAGE,
   Permission.ORDERS_QUOTE,
+  // The cross-category requirement board. A fleet bids with TRANSPORT scope;
+  // which kinds it is shown is decided by its organization type, not here.
+  Permission.REQUIREMENTS_READ,
+  Permission.REQUIREMENTS_BID,
   Permission.TRIPS_READ,
   Permission.TRIPS_MANAGE,
   Permission.TRACKING_READ,
@@ -437,6 +455,8 @@ const ROLE_PERMISSIONS: Record<RoleName, Permission[]> = {
     Permission.ORDERS_READ,
     Permission.ORDERS_MANAGE,
     Permission.ORDERS_QUOTE,
+    Permission.REQUIREMENTS_READ,
+    Permission.REQUIREMENTS_BID,
     Permission.TRIPS_READ,
     Permission.TRIPS_MANAGE,
     Permission.TRACKING_READ,
@@ -526,6 +546,10 @@ const ROLE_PERMISSIONS: Record<RoleName, Permission[]> = {
     Permission.MATERIALS_MANAGE,
     Permission.ORDERS_READ,
     Permission.ORDERS_MANAGE,
+    // A supplier answers material requirements with a priced offer, which is
+    // the demand side it previously had no sight of at all.
+    Permission.REQUIREMENTS_READ,
+    Permission.REQUIREMENTS_BID,
     Permission.DOCUMENTS_READ,
     Permission.DOCUMENTS_UPLOAD,
     Permission.VERIFICATION_READ,
@@ -557,6 +581,12 @@ const ROLE_PERMISSIONS: Record<RoleName, Permission[]> = {
     Permission.ORDERS_READ,
     Permission.ORDERS_CREATE,
     Permission.ORDERS_RATE,
+    // Posting a requirement is the customer's entry point to every category,
+    // so it is granted unconditionally — demand is what the marketplace runs
+    // on, and gating it would starve the businesses that answer it.
+    Permission.REQUIREMENTS_READ,
+    Permission.REQUIREMENTS_CREATE,
+    Permission.REQUIREMENTS_MANAGE,
     Permission.DOCUMENTS_READ,
     Permission.DOCUMENTS_UPLOAD,
     Permission.VERIFICATION_READ,
@@ -592,6 +622,8 @@ const ROLE_PERMISSIONS: Record<RoleName, Permission[]> = {
     Permission.VERIFICATION_READ,
     Permission.VERIFICATION_REVIEW,
     Permission.ORDERS_READ,
+    // Read-only: support explains why a bid was rejected, it does not award.
+    Permission.REQUIREMENTS_READ,
     Permission.TRIPS_READ,
     Permission.TRACKING_READ,
     Permission.SOS_READ,

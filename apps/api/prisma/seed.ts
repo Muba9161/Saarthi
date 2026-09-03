@@ -9,33 +9,29 @@ dotenv.config({ path: path.join(repoRoot, '.env.local'), override: true });
 
 import { PrismaClient } from '@prisma/client';
 import { seedReferenceData } from './seed/reference';
-import { seedDemoData } from './seed/demo';
 
 /**
  * Seed entrypoint.
  *
- *   npm run db:seed              reference data + full local demo dataset
- *   SEED_DEMO=false npm run db:seed   reference data only (production-safe)
+ *   npm run db:seed    roles, subscription plans and feature entitlements
  *
- * Reference data (roles, plans, features) is required for the application to
- * function. Demo data is local-only and is skipped in production.
+ * Reference data only, and idempotent — safe to run on every deploy, in every
+ * environment, including production.
+ *
+ * There is deliberately no demo dataset. Fabricated fleets, orders, packages
+ * and bookings made a fresh install look busy, but they also made it lie: a
+ * marketplace seeded with fake demand tells an operator there is work to bid on
+ * that does not exist, and a bidding board is worth precisely what its contents
+ * are true. Every organization, vehicle, requirement and bid in a Saarthi
+ * database is now something a real person actually created.
  */
 async function main(): Promise<void> {
   const prisma = new PrismaClient();
-  const includeDemo =
-    process.env.SEED_DEMO !== 'false' && process.env.NODE_ENV !== 'production';
 
   try {
     console.log('› Seeding reference data (roles, plans, features)…');
     await seedReferenceData(prisma);
     console.log('  ✓ reference data ready');
-
-    if (includeDemo) {
-      console.log('› Seeding local demo dataset…');
-      await seedDemoData(prisma);
-    } else {
-      console.log('› Skipping demo dataset (production or SEED_DEMO=false)');
-    }
 
     console.log('\n✓ Seed complete.\n');
   } finally {

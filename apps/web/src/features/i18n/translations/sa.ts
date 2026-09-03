@@ -178,8 +178,8 @@ export const sa: Catalogue = {
   'Travel business name': 'यात्राव्यवसायनाम',
   'I own trucks and want to manage my fleet and win loads.':
     'मम भारयानानि सन्ति, स्वयानसमूहं परिपालयितुं भारं प्राप्तुं च इच्छामि।',
-  'I need materials moved and want to track the delivery.':
-    'मया सामग्री प्रेषणीया, वितरणं च अनुसर्तव्यम्।',
+  'I need materials, transport, a cab or a tour, and want offers to compare.':
+    'मह्यं सामग्री, परिवहनं, यानं वा यात्रा आवश्यकी, तुलनार्थं मूल्यनिवेदनानि च इच्छामि।',
   'I sell materials and arrange dispatch from my yard.':
     'अहं सामग्रीं विक्रीणामि स्वाङ्गणात् प्रेषणं च व्यवस्थापयामि।',
   'I run taxis, buses or tour packages and sell passenger journeys.':
@@ -250,6 +250,10 @@ export const sa: Catalogue = {
   'My orders': 'मम आदेशाः',
   'Track deliveries': 'वितरणम् अनुसरतु',
   'My travel': 'मम यात्रा',
+  'My requirements': 'मम आवश्यकताः',
+  'Bid on work': 'कार्याय मूल्यं ददातु',
+  'Terminal arrivals': 'स्थानकागमनानि',
+  'Scan a vehicle': 'यानं स्कैन् करोतु',
   'Emergency desk': 'आपत्कालीनपीठम्',
   'Trip history': 'यात्रावृत्तान्तः',
   'My QR badge': 'मम QR चिह्नम्',

@@ -60,15 +60,12 @@ npm run db:migrate
 npm run db:seed
 ```
 
-The seed creates reference data (roles, plans, feature entitlements) and a complete demo world:
-6 organizations, 18 users, 12 trucks, 9 drivers, 8 materials, 11 orders, 9 trips, 54 documents with
-real PDF files on disk, 529 tracking points, 416 nearby POIs and one resolved SOS incident.
+The seed creates reference data only — roles, subscription plans and feature entitlements. It is
+idempotent and safe to run in any environment, including production.
 
-To load reference data only (production-safe):
-
-```bash
-SEED_DEMO=false npm run db:seed
-```
+There is no demo dataset. A marketplace seeded with fabricated organizations, orders and bids shows
+an operator work to bid on that does not exist, and a bidding board is worth exactly what its
+contents are true. Register the accounts you need instead; the first one you create is real.
 
 ## 4. Run
 
@@ -79,8 +76,9 @@ npm run dev
 - API — <http://localhost:4000> (health at `/health`)
 - Web — <http://localhost:5173>
 
-Sign in with any demo account; the password is `Saarthi@2026`. The login screen lists them and can
-fill the form for you while `VITE_DEMO_MODE=true`.
+Register an account at <http://localhost:5173/register>. Pick the organization type that matches
+what you are testing — a customer posts requirements, a supplier and a fleet bid on them, a mobility
+provider bids on cabs and tours.
 
 ## Verifying the install
 
@@ -92,7 +90,7 @@ curl http://localhost:4000/health
 ```
 
 Tests use a separate `saarthi_test` database, created and migrated automatically on first run. Your
-demo data is never touched.
+development data is never touched.
 
 ## Troubleshooting
 

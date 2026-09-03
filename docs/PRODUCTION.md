@@ -33,7 +33,7 @@ same folder — no service, route or component changes.
 
 ### Database
 - [ ] `npm run db:deploy` (never `migrate dev`)
-- [ ] `SEED_DEMO=false npm run db:seed` for reference data only
+- [ ] `npm run db:seed` — reference data only, and idempotent
 - [ ] Automated backups configured and a restore rehearsed
 - [ ] Review indexes on `truck_locations` for your write volume; consider partitioning by month
 

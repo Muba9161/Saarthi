@@ -15,8 +15,16 @@ import type {
   TollPaymentMode,
   DocumentValidity,
   DocumentVerificationStatus,
+  HireBasis,
+  MaterialUnit,
   OrderStatus,
   PaginationMeta,
+  RequirementBidScope,
+  RequirementBidStatus,
+  RequirementKind,
+  RequirementStatus,
+  TruckType,
+  VehicleType,
   SosStatus,
   SosType,
   TripStatus,
@@ -1275,4 +1283,163 @@ export interface TollVarianceResult {
   sampleSize: number;
   verdict: 'NORMAL' | 'HIGH' | 'LOW' | 'INSUFFICIENT_DATA';
   basis: 'calculated';
+}
+
+
+// ---------------------------------------------------------------------------
+// Requirements & bidding
+// ---------------------------------------------------------------------------
+
+/**
+ * A customer requirement.
+ *
+ * One shape carries all four kinds, with the fields that do not apply left
+ * null — the same compromise the table makes, for the same reason: the board
+ * shows material, freight, cab and tour side by side, and a discriminated
+ * union would mean every list rendered through a switch.
+ */
+export interface RequirementSummary {
+  id: string;
+  reference: string;
+  kind: RequirementKind;
+  status: RequirementStatus;
+  title: string;
+  description: string | null;
+
+  customerOrganizationId: string;
+  customerName: string;
+
+  originAddress: string;
+  originLatitude: number;
+  originLongitude: number;
+  originCity: string | null;
+  destinationAddress: string | null;
+  destinationLatitude: number | null;
+  destinationLongitude: number | null;
+  destinationCity: string | null;
+  distanceKm: number | null;
+
+  startAt: string;
+  endAt: string | null;
+  scheduleNotes: string | null;
+  bidsCloseAt: string;
+  biddingClosed: boolean;
+
+  /** Null unless the customer published it, or the caller raised it. */
+  budgetAmount: number | null;
+  budgetIsPublic: boolean;
+  /** Released to a bidder only once they have won. */
+  contactName: string | null;
+  contactPhone: string | null;
+
+  materialId: string | null;
+  materialName: string | null;
+  materialCategory: string | null;
+  specification: string | null;
+  quantity: number | null;
+  unit: MaterialUnit | null;
+  needsTransport: boolean;
+
+  goodsDescription: string | null;
+  requiredCapacityTons: number | null;
+  requiredTruckType: TruckType | null;
+  handlingNotes: string | null;
+
+  hireBasis: HireBasis | null;
+  passengers: number | null;
+  preferredVehicleType: VehicleType | null;
+  durationHours: number | null;
+  durationDays: number | null;
+  durationNights: number | null;
+  luggageCount: number | null;
+  acRequired: boolean | null;
+  destinations: string[];
+  requiredInclusions: string[];
+  accommodationNeeded: boolean | null;
+  mealsNeeded: boolean | null;
+
+  bidCount: number;
+  lowestBid: number | null;
+  awardedMaterialBidId: string | null;
+  awardedTransportBidId: string | null;
+  awardedTravelBidId: string | null;
+  orderId: string | null;
+  bookingId: string | null;
+
+  cancellationReason: string | null;
+  awardedAt: string | null;
+  fulfilledAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RequirementBidSummary {
+  id: string;
+  requirementId: string;
+  scope: RequirementBidScope;
+  status: RequirementBidStatus;
+
+  bidderOrganizationId: string;
+  bidderName: string;
+  bidderVerified: boolean;
+  bidderRating: number | null;
+  bidderRatingCount: number;
+
+  price: number;
+  priceBreakdown: string | null;
+  message: string | null;
+  validUntil: string | null;
+  expired: boolean;
+
+  vehicle: {
+    id: string;
+    registrationNumber: string;
+    vehicleType: string;
+    capacityTons: number;
+    verificationStatus: string;
+  } | null;
+  driver: { id: string; name: string; overallScore: number | null } | null;
+  estimatedPickupAt: string | null;
+  estimatedArrivalAt: string | null;
+  distanceToPickupKm: number | null;
+
+  materialId: string | null;
+  includesDelivery: boolean;
+  availableQuantity: number | null;
+  leadTimeDays: number | null;
+
+  offeredVehicleType: VehicleType | null;
+  inclusions: string[];
+  exclusions: string[];
+  itinerarySummary: string | null;
+  driverIncluded: boolean;
+  fuelIncluded: boolean;
+
+  rejectionReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** A row on the provider board. */
+export interface BoardRequirement extends RequirementSummary {
+  distanceToOriginKm: number | null;
+  /** Scopes this organization may still offer against it. */
+  availableScopes: RequirementBidScope[];
+  myBid: RequirementBidSummary | null;
+}
+
+export interface RequirementTimelineEvent {
+  id: string;
+  type: string;
+  description: string;
+  createdAt: string;
+}
+
+export interface AwardResult {
+  requirement: RequirementSummary;
+  orderId: string | null;
+  tripId: string | null;
+  bookingId: string | null;
+  /** What the customer has to do next, in their own terms. */
+  nextStep: string;
 }

@@ -173,8 +173,8 @@ export const or: Catalogue = {
   'Travel business name': 'ଟ୍ରାଭେଲ ବ୍ୟବସାୟର ନାମ',
   'I own trucks and want to manage my fleet and win loads.':
     'ମୋର ଟ୍ରକ ଅଛି ଏବଂ ମୁଁ ମୋର ଯାନବାହିନୀ ଚଳାଇବାକୁ ଓ ଲୋଡ ପାଇବାକୁ ଚାହେଁ।',
-  'I need materials moved and want to track the delivery.':
-    'ମୋର ସାମଗ୍ରୀ ପଠାଇବାକୁ ଅଛି ଏବଂ ଡେଲିଭରୀ ଉପରେ ନଜର ରଖିବାକୁ ଚାହେଁ।',
+  'I need materials, transport, a cab or a tour, and want offers to compare.':
+    'ମୋର ସାମଗ୍ରୀ, ପରିବହନ, କ୍ୟାବ କିମ୍ବା ଭ୍ରମଣ ଦରକାର, ଏବଂ ତୁଳନା ପାଇଁ ଦର ଦରକାର।',
   'I sell materials and arrange dispatch from my yard.':
     'ମୁଁ ସାମଗ୍ରୀ ବିକ୍ରି କରେ ଏବଂ ମୋ ୟାର୍ଡରୁ ପଠାଇବାର ବ୍ୟବସ୍ଥା କରେ।',
   'I run taxis, buses or tour packages and sell passenger journeys.':
@@ -245,6 +245,10 @@ export const or: Catalogue = {
   'My orders': 'ମୋର ଅର୍ଡର',
   'Track deliveries': 'ଡେଲିଭରୀ ଟ୍ରାକ କରନ୍ତୁ',
   'My travel': 'ମୋର ଯାତ୍ରା',
+  'My requirements': 'ମୋର ଆବଶ୍ୟକତା',
+  'Bid on work': 'କାମ ପାଇଁ ଦର ଦିଅନ୍ତୁ',
+  'Terminal arrivals': 'ଟର୍ମିନାଲ ଆଗମନ',
+  'Scan a vehicle': 'ଯାନ ସ୍କାନ କରନ୍ତୁ',
   'Emergency desk': 'ଜରୁରୀକାଳୀନ ଡେସ୍କ',
   'Trip history': 'ଯାତ୍ରା ଇତିହାସ',
   'My QR badge': 'ମୋର QR ବ୍ୟାଜ',

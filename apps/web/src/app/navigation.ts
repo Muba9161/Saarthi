@@ -30,6 +30,8 @@ import {
   ScrollText,
   ShieldCheck,
   ShoppingCart,
+  Gavel,
+  ClipboardList,
   MonitorSmartphone,
   Truck,
   Users,
@@ -93,6 +95,14 @@ export const FLEET_NAVIGATION: NavSection[] = [
         icon: Package,
         permissions: [Permission.ORDERS_QUOTE],
         feature: Feature.ORDERS_MARKETPLACE,
+      },
+      {
+        // Customer demand across every category this fleet can serve. Distinct
+        // from Marketplace above, which lists freight orders only.
+        label: 'Bid on work',
+        to: '/requirements/board',
+        icon: Gavel,
+        permissions: [Permission.REQUIREMENTS_BID],
       },
     ],
   },
@@ -244,6 +254,14 @@ export const SUPPLIER_NAVIGATION: NavSection[] = [
       },
       { label: 'Orders', to: '/orders', icon: ShoppingCart, permissions: [Permission.ORDERS_READ] },
       {
+        // The demand side a supplier previously could not see at all: customers
+        // asking for material, rather than customers finding a listing.
+        label: 'Bid on work',
+        to: '/requirements/board',
+        icon: Gavel,
+        permissions: [Permission.REQUIREMENTS_BID],
+      },
+      {
         label: 'Deliveries',
         to: '/trips',
         icon: Route,
@@ -271,6 +289,16 @@ export const CUSTOMER_NAVIGATION: NavSection[] = [
     title: 'Buying',
     items: [
       { label: 'Dashboard', to: '/dashboard', icon: LayoutDashboard, end: true },
+      {
+        // First, and deliberately so. Stating a need is now the customer's main
+        // way into Saarthi for every category — material, freight, a cab or a
+        // tour — rather than browsing four different catalogues and hoping one
+        // of them holds what they were after.
+        label: 'My requirements',
+        to: '/requirements',
+        icon: ClipboardList,
+        permissions: [Permission.REQUIREMENTS_READ],
+      },
       {
         label: 'Find materials',
         to: '/browse',
@@ -374,6 +402,16 @@ export const MOBILITY_NAVIGATION: NavSection[] = [
   {
     title: 'Travel',
     items: [
+      {
+        // Passenger demand, which until now an operator had no way to see: a
+        // customer wanting a car to Ayodhya had to find a published package
+        // rather than ask, so the operator only ever heard from the ones who
+        // happened to match something already in the catalogue.
+        label: 'Bid on work',
+        to: '/requirements/board',
+        icon: Gavel,
+        permissions: [Permission.REQUIREMENTS_BID],
+      },
       {
         label: 'Packages',
         to: '/travel/provider/packages',
