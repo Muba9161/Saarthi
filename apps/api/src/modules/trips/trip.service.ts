@@ -25,6 +25,7 @@ import { errors } from '../../lib/errors';
 import { skipTake } from '../../lib/http';
 import { notifyAsync, notifyOrganization } from '../notifications/notification.service';
 import { broadcastTripEvent, broadcastTripUpdate, broadcastTruckStatus } from '../../realtime/realtime.service';
+import { recordTripFuel } from './trip-fuel.service';
 import { recalculateDriverScore, evaluateAndAwardAchievements } from '../drivers/driver.service';
 import { releaseVehicleFromAdHocTrip } from '../terminal/adhoc-trip.service';
 import type { AuthContext } from '../../auth/context';
@@ -753,6 +754,18 @@ export async function transitionTrip(
 
     return next;
   });
+
+  if (isComplete) {
+    /*
+     * What the journey cost in fuel, worked out from the engine's own readings.
+     *
+     * Outside the transaction on purpose. It reads a window of telemetry, which
+     * is a heavier query than anything in the completion path, and a trip must
+     * complete whether or not its fuel can be established — a driver at the end
+     * of a shift cannot be blocked by a reporting figure.
+     */
+    await recordTripFuel(tripId);
+  }
 
   if (isComplete && trip.driverId) {
     await recalculateDriverScore(trip.driverId);

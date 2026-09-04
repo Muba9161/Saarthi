@@ -952,6 +952,13 @@ model Truck {
   /// Average consumption in litres per 100 km, used for cost estimates.
   fuelEfficiency     Float?
   odometerKm         Float              @default(0)
+  /// The chassis number the vehicle's own ECU reports.
+  ///
+  /// Recorded the first time a terminal reads it, and compared on every
+  /// connection afterwards. A mismatch means the adapter has been moved to a
+  /// different vehicle — at which point every reading since is filed against
+  /// the wrong truck, and nobody would otherwise notice.
+  vin                String?
   status             TruckStatus        @default(AVAILABLE)
   verificationStatus VerificationStatus @default(PENDING)
   currentDriverId    String?            @db.Uuid
@@ -1876,6 +1883,17 @@ model Trip {
   plannedRoute       Json?
   plannedDistanceKm  Float?
   actualDistanceKm   Float  @default(0)
+  /// Litres burned, integrated from the engine's own consumption reading.
+  ///
+  /// Null when the vehicle never reported a fuel rate, which is most of the
+  /// fleet: absent means "not measured", never zero. A trip showing 0 L would
+  /// make every average built on it wrong in the flattering direction.
+  fuelLitres         Float?
+  /// Kilometres per litre for this trip, from the two figures above.
+  ///
+  /// Stored rather than derived on read, because the readings it came from are
+  /// pruned long before the trip record is.
+  fuelEconomyKmpl    Float?
   plannedDurationMin Int?
   actualDurationMin  Int?
 

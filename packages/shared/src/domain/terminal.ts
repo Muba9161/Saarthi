@@ -758,6 +758,22 @@ export interface TerminalSessionView {
   tripCompletedAt: string | null;
 }
 
+/**
+ * One place a driver's search matched.
+ *
+ * Deliberately the same shape a nearby result exposes for navigation, so the
+ * cockpit can route to either without caring which list it came from.
+ */
+export interface TerminalPlaceMatch {
+  id: string;
+  name: string;
+  address: string | null;
+  latitude: number;
+  longitude: number;
+  /** Straight line from the driver. Ordering and sanity, never a route. */
+  straightLineKm: number | null;
+}
+
 /** What the terminal reports about itself, on top of the device heartbeat. */
 export interface TerminalHealthView {
   online: boolean;

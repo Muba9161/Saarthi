@@ -138,6 +138,12 @@ export async function upsertProviderProfile(
   const record = await prisma.$transaction(async (tx) => {
     const existing = await tx.serviceProviderProfile.findUnique({ where: { organizationId } });
 
+    // A suspension is an administrative decision. This upsert is self-serve, so
+    // it may change every other field but must not be a way out of one — and
+    // `requireProviderProfile` already refuses to sell anything while suspended.
+    const status =
+      existing?.status === ProviderStatus.SUSPENDED ? ProviderStatus.SUSPENDED : input.status;
+
     const profile = existing
       ? await tx.serviceProviderProfile.update({
           where: { organizationId },
@@ -153,7 +159,7 @@ export async function upsertProviderProfile(
             businessRegistrationNumber: input.businessRegistrationNumber ?? null,
             yearsInBusiness: input.yearsInBusiness ?? null,
             languages: input.languages,
-            status: input.status,
+            status,
             archivedAt: null,
           },
         })
@@ -171,7 +177,7 @@ export async function upsertProviderProfile(
             businessRegistrationNumber: input.businessRegistrationNumber ?? null,
             yearsInBusiness: input.yearsInBusiness ?? null,
             languages: input.languages,
-            status: input.status,
+            status,
           },
         });
 

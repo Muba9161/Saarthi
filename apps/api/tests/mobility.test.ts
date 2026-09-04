@@ -4,6 +4,7 @@ import {
   DeviceStatus,
   OrganizationType,
   PlanTier,
+  ProviderStatus,
   RoleName,
   TelemetryAlertType,
   TruckType,
@@ -771,6 +772,63 @@ describe('Mobility expansion', () => {
       // AIRPORT_TRANSFER needs TAXI or TRAVEL — TRAVEL is held, so this passes.
       expect(response.status).toBe(201);
     });
+
+    it('does not let a suspended provider lift its own suspension', async () => {
+      await prisma.serviceProviderProfile.update({
+        where: { organizationId: providerOrg.id },
+        data: { status: ProviderStatus.SUSPENDED },
+      });
+
+      // The profile form submits the whole record, status included, so the
+      // upsert is the obvious way out of a suspension if it trusts the input.
+      const response = await request<{ status: string }>({
+        method: 'PUT',
+        url: '/api/v1/travel/me/profile',
+        user: provider,
+        payload: {
+          displayName: 'Test Voyages',
+          serviceTypes: ['TOUR', 'TRAVEL'],
+          contactPhone: '+919220000101',
+          status: 'ACTIVE',
+          serviceAreas: [
+            {
+              city: 'Lucknow',
+              state: 'Uttar Pradesh',
+              latitude: 26.8467,
+              longitude: 80.9462,
+              radiusKm: 200,
+            },
+          ],
+        },
+      });
+
+      expect(response.status).toBe(200);
+      // Everything else saved; only the status was held back.
+      expect(response.body.data.status).toBe(ProviderStatus.SUSPENDED);
+
+      const blocked = await request({
+        method: 'POST',
+        url: '/api/v1/travel/me/packages',
+        user: provider,
+        payload: {
+          title: 'Post-suspension Weekend Escape',
+          summary: 'Two nights in the hills by private SUV.',
+          serviceKind: 'MULTI_DAY_TOUR',
+          destinations: ['Nainital'],
+          startLocation: 'Lucknow',
+          startLatitude: 26.8467,
+          startLongitude: 80.9462,
+          endLocation: 'Lucknow',
+          durationDays: 3,
+          vehicleType: VehicleType.SUV,
+          minPassengers: 2,
+          maxPassengers: 6,
+          pricingModel: 'FIXED_PACKAGE',
+          basePrice: 18000,
+        },
+      });
+      expect(blocked.status).toBe(403);
+    });
   });
 
   // =========================================================================
@@ -1001,6 +1059,72 @@ describe('Mobility expansion', () => {
       });
 
       expect(response.status).toBe(403);
+    });
+
+    it('raises a charging fault when voltage sags with the engine running', async () => {
+      /*
+       * The fault a single flat threshold could never catch.
+       *
+       * A healthy battery reads about 12.6 V at rest and 13.8-14.4 V while the
+       * alternator charges it. So a resting threshold of 12 V never fires with
+       * the engine running — and "the alternator has stopped charging" is the
+       * more urgent of the two faults by a wide margin. A weak battery strands a
+       * truck one cold morning; a dead alternator strands it that afternoon,
+       * wherever it happens to be.
+       */
+      const { device, secret } = await registerDevice();
+      await request({
+        method: 'POST',
+        url: `/api/v1/devices/${device.id}/assign`,
+        user: provisioner,
+        payload: { vehicleId },
+      });
+
+      await request({
+        method: 'POST',
+        url: '/api/v1/device-gateway/telemetry',
+        headers: gatewayHeaders(device.deviceIdentifier, secret),
+        payload: {
+          deviceId: device.deviceIdentifier,
+          payload: reading({
+            vehicleData: { rpm: 1400, batteryVoltage: 12.4 },
+          }),
+        },
+      });
+
+      const alert = await prisma.telemetryAlert.findFirstOrThrow({
+        where: { vehicleId, type: TelemetryAlertType.LOW_VOLTAGE },
+      });
+      expect(alert.message).toContain('alternator');
+      expect(alert.observedValue).toBe(12.4);
+      expect(alert.threshold).toBe(13.2);
+    });
+
+    it('does not call a resting battery an alternator fault', async () => {
+      // Engine off at 12.4 V is a normal battery a few hours after a run. Only
+      // the resting rule may speak here, and its threshold is the fleet's.
+      const { device, secret } = await registerDevice();
+      await request({
+        method: 'POST',
+        url: `/api/v1/devices/${device.id}/assign`,
+        user: provisioner,
+        payload: { vehicleId },
+      });
+
+      await request({
+        method: 'POST',
+        url: '/api/v1/device-gateway/telemetry',
+        headers: gatewayHeaders(device.deviceIdentifier, secret),
+        payload: {
+          deviceId: device.deviceIdentifier,
+          payload: reading({ vehicleData: { rpm: 0, batteryVoltage: 12.4 } }),
+        },
+      });
+
+      const alerts = await prisma.telemetryAlert.findMany({
+        where: { vehicleId, type: TelemetryAlertType.LOW_VOLTAGE },
+      });
+      expect(alerts.some((alert) => alert.message.includes('alternator'))).toBe(false);
     });
 
     it('raises an overspeed alert with an explainable score deduction', async () => {

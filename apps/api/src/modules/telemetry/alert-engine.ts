@@ -103,6 +103,16 @@ async function inCooldown(
   return recent !== null;
 }
 
+/**
+ * Below this with the engine running, nothing is charging the battery.
+ *
+ * A working alternator holds 13.8-14.4 V. Anything under 13.2 is the battery
+ * discharging while the vehicle runs on it, which ends in a stop rather than a
+ * slow decline — so the figure is fixed rather than configurable: it is a fact
+ * about lead-acid chemistry, not a fleet's tolerance.
+ */
+const NOT_CHARGING_VOLTS = 13.2;
+
 interface Finding {
   type: TelemetryAlertType;
   severity: AlertSeverity;
@@ -301,10 +311,56 @@ export async function evaluateTelemetryRules(context: RuleContext): Promise<numb
   }
 
   // --- Low voltage --------------------------------------------------------
+  /*
+   * Battery, judged against what the engine is doing.
+   *
+   * One flat threshold cannot express the fault worth catching. A healthy
+   * battery reads about 12.6 V at rest and 13.8-14.4 V with the engine running,
+   * because the alternator is charging it. So a resting threshold of 12 V never
+   * fires while the engine runs, and a charging threshold of 13.2 V would fire
+   * constantly the moment it stops.
+   *
+   * Two rules from one configured threshold, then. The resting one is the
+   * fleet's own setting; the charging one is fixed, because "the alternator is
+   * not charging" is a property of the vehicle rather than a preference — and it
+   * is the more valuable of the two. A weak battery strands a truck one cold
+   * morning; a dead alternator strands it that afternoon, wherever it happens to
+   * be, with the lights and the ECU draining what is left.
+   *
+   * Both need the engine state, so a device reporting voltage without RPM gets
+   * the resting rule only rather than a guess.
+   */
+  const engineRunning = reading.vehicleData.rpm !== null && reading.vehicleData.rpm > 300;
+  const charging = rules.get(TelemetryAlertType.LOW_VOLTAGE);
+  if (
+    charging?.enabled &&
+    engineRunning &&
+    has(TelemetryMetric.BATTERY_VOLTAGE) &&
+    reading.vehicleData.batteryVoltage !== null &&
+    reading.vehicleData.batteryVoltage > 6 &&
+    reading.vehicleData.batteryVoltage < NOT_CHARGING_VOLTS
+  ) {
+    findings.push({
+      type: TelemetryAlertType.LOW_VOLTAGE,
+      // Always at least a warning, whatever the fleet set for a flat battery.
+      // This one does not wait until morning.
+      severity: AlertSeverity.WARNING,
+      message:
+        `Battery at ${reading.vehicleData.batteryVoltage.toFixed(1)} V with the engine ` +
+        'running — the alternator is not charging. Expect the vehicle to stop.',
+      observedValue: reading.vehicleData.batteryVoltage,
+      threshold: NOT_CHARGING_VOLTS,
+      unit: 'V',
+    });
+  }
+
   const voltage = rules.get(TelemetryAlertType.LOW_VOLTAGE);
   if (
     voltage?.enabled &&
     voltage.threshold !== null &&
+    // The charging rule above owns the running case. Without this a vehicle
+    // with a failing alternator raises both, and the pair reads as two faults.
+    !engineRunning &&
     has(TelemetryMetric.BATTERY_VOLTAGE) &&
     reading.vehicleData.batteryVoltage !== null &&
     // Ignore cranking dips: voltage sags hard for a second while starting, and

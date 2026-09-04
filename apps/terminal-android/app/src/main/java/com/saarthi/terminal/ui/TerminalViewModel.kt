@@ -15,6 +15,7 @@ import com.saarthi.terminal.network.ChecklistPreparationDto
 import com.saarthi.terminal.network.ChecklistResultDto
 import com.saarthi.terminal.network.IssueDto
 import com.saarthi.terminal.network.NearbyPlaceDto
+import com.saarthi.terminal.network.PlaceMatchDto
 import com.saarthi.terminal.network.RouteDto
 import com.saarthi.terminal.network.RouteStepDto
 import com.saarthi.terminal.network.ServiceRunDto
@@ -517,6 +518,129 @@ class TerminalViewModel(application: Application) : AndroidViewModel(application
      * back out of step with the road. A route dismissed from the preview has no
      * trip behind it and nothing to close, which is the point of the preview.
      */
+    /**
+     * What a search returned.
+     *
+     * Held separately from [places] so a search does not destroy the category
+     * results behind it — a driver who searches, finds nothing and goes back to
+     * "Fuel" should find the list they had, not an empty one.
+     */
+    private val _searchResults = MutableStateFlow<List<PlaceMatchDto>>(emptyList())
+    val searchResults: StateFlow<List<PlaceMatchDto>> = _searchResults.asStateFlow()
+
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+
+    /** True while a search is in flight, separate from every other busy state. */
+    private val _searching = MutableStateFlow(false)
+    val searching: StateFlow<Boolean> = _searching.asStateFlow()
+
+    /** Why the last search failed, or null when it simply found nothing. */
+    private val _searchFailure = MutableStateFlow<String?>(null)
+    val searchFailure: StateFlow<String?> = _searchFailure.asStateFlow()
+
+    /** Cancelled and restarted on every keystroke — see [setSearchQuery]. */
+    private var searchJob: Job? = null
+
+    /**
+     * The driver typed.
+     *
+     * Searching runs on its own after a short pause rather than waiting to be
+     * asked. The first version fired only on the keyboard's Search key, and a
+     * keyboard that shows a newline instead — or a driver who types and looks up
+     * — got a box that did nothing at all. Nothing is the one response a search
+     * field must never give.
+     *
+     * The pause is what keeps that from being one request per keystroke: each
+     * new character cancels the last pending search.
+     */
+    fun setSearchQuery(value: String) {
+        _searchQuery.value = value
+        searchJob?.cancel()
+
+        if (value.trim().length < 2) {
+            _searchResults.value = emptyList()
+            _searching.value = false
+            _searchFailure.value = null
+            return
+        }
+
+        searchJob = viewModelScope.launch {
+            delay(SEARCH_DEBOUNCE_MS)
+            runSearch(value.trim())
+        }
+    }
+
+    /** Search now, for the keyboard's Search key and the button beside the box. */
+    fun searchPlaces() {
+        val query = _searchQuery.value.trim()
+        if (query.length < 2) return
+        searchJob?.cancel()
+        searchJob = viewModelScope.launch { runSearch(query) }
+    }
+
+    private suspend fun runSearch(query: String) {
+        _searching.value = true
+        _searchFailure.value = null
+        repository
+            .searchPlaces(query)
+            .onSuccess {
+                _searchResults.value = it
+                _searchFailure.value = null
+            }
+            .onFailure { failure ->
+                /*
+                 * A failed search is not an empty one.
+                 *
+                 * Both end with no rows, and the sheet used to phrase both as
+                 * "Nothing found for X" — which tells a driver the place does
+                 * not exist when in fact Saarthi never managed to ask. They
+                 * then stop typing that name and try to find it another way,
+                 * on the strength of an answer the app never had.
+                 *
+                 * So the reason is kept separately from the results, and the
+                 * sheet leads with it.
+                 */
+                _searchResults.value = emptyList()
+                _searchFailure.value = failure.message?.takeIf { it.isNotBlank() }
+                    ?: "The search could not be completed."
+            }
+        _searching.value = false
+    }
+
+    fun clearSearch() {
+        searchJob?.cancel()
+        _searchQuery.value = ""
+        _searchResults.value = emptyList()
+        _searching.value = false
+        _searchFailure.value = null
+        repository.clearError()
+    }
+
+    /**
+     * Start navigating to a searched place.
+     *
+     * The same path a nearby result takes, which is the point of giving both the
+     * same shape: one route call, one destination on the map, one turn list.
+     */
+    fun navigateToMatch(match: PlaceMatchDto, onDone: (Boolean) -> Unit = {}) {
+        viewModelScope.launch {
+            _busy.value = true
+            val result = repository.route(match.latitude, match.longitude, match.name)
+            /*
+             * Through `previewRoute`, exactly as a nearby result goes.
+             *
+             * Setting `_route` alone drew the line and left the navigation state
+             * untouched, so `previewing` stayed false and the Start card never
+             * appeared — a route on the map with no way to begin it. The two
+             * entry points have to converge here or they drift again.
+             */
+            result.onSuccess { route -> previewRoute(route, null) }
+            _busy.value = false
+            onDone(result.isSuccess)
+        }
+    }
+
     fun clearRoute() {
         val trip = _serviceRun.value
         _route.value = null
@@ -1024,6 +1148,15 @@ class TerminalViewModel(application: Application) : AndroidViewModel(application
     }
 
     private companion object {
+        /**
+         * How long to wait after the last keystroke before searching.
+         *
+         * Long enough that typing a word is one request rather than seven,
+         * short enough that a driver who has stopped typing does not wonder
+         * whether the box is working.
+         */
+        const val SEARCH_DEBOUNCE_MS = 450L
+
         const val MOVING_KPH = 5.0
 
         /**

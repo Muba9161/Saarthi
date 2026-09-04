@@ -562,6 +562,31 @@ data class RoutePointDto(
     val longitude: Double,
 )
 
+/** What the driver typed, and where they were when they typed it. */
+@Serializable
+data class PlaceSearchRequest(
+    val query: String,
+    val latitude: Double,
+    val longitude: Double,
+    val limit: Int = 8,
+)
+
+/**
+ * One search result.
+ *
+ * Deliberately the same fields a nearby place exposes for navigation, so the
+ * cockpit routes to either without caring which list it came from.
+ */
+@Serializable
+data class PlaceMatchDto(
+    val id: String,
+    val name: String,
+    val address: String? = null,
+    val latitude: Double,
+    val longitude: Double,
+    val straightLineKm: Double? = null,
+)
+
 @Serializable
 data class RouteRequest(
     val fromLatitude: Double,

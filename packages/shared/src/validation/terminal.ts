@@ -357,6 +357,22 @@ export type TerminalNearbyQuery = z.infer<typeof terminalNearbySchema>;
  * terminal that could ask to be routed as a car would be a terminal that could
  * send a 40-tonne truck under a low bridge.
  */
+/**
+ * Search for somewhere by name.
+ *
+ * Separate from the nearby search, because they answer different questions. A
+ * category list finds *a* fuel station; only a name finds the society, the
+ * warehouse or the customer gate a driver has actually been sent to.
+ */
+export const terminalPlaceSearchSchema = z.object({
+  query: z.string().trim().min(2).max(120),
+  /** Where the driver is. Results are ranked around it, not filtered to it. */
+  latitude: latitudeSchema,
+  longitude: longitudeSchema,
+  limit: z.coerce.number().int().min(1).max(15).default(8),
+});
+export type TerminalPlaceSearchInput = z.infer<typeof terminalPlaceSearchSchema>;
+
 export const terminalRouteSchema = z.object({
   fromLatitude: latitudeSchema,
   fromLongitude: longitudeSchema,

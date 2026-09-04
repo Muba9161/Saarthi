@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { CarFront, IndianRupee, ListChecks, NotebookPen, Plus, Route, X } from 'lucide-react';
+import { CarFront, IndianRupee, ListChecks, NotebookPen, Plus, Route } from 'lucide-react';
 import {
   PricingModel,
   TravelPackageStatus,
@@ -10,7 +10,6 @@ import {
   humanizeEnum,
 } from '@saarthi/shared';
 import { api, errorMessage } from '@/lib/api-client';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -40,6 +39,7 @@ import {
   WIZARD_IN_DIALOG,
   type WizardStep,
 } from '@/components/common/form-wizard';
+import { ChipInput } from '@/components/common/chip-input';
 
 /**
  * Publish a travel package.
@@ -56,80 +56,6 @@ import {
  * toast — discovered only on submit, after every other field was filled — into
  * a message on the step that owns it.
  */
-
-/** Free-text lists (destinations, inclusions) as removable chips. */
-function ChipInput({
-  id,
-  label,
-  placeholder,
-  values,
-  onChange,
-  required,
-  error,
-  hint,
-}: {
-  id: string;
-  label: string;
-  placeholder: string;
-  values: string[];
-  onChange: (values: string[]) => void;
-  required?: boolean;
-  error?: string | null;
-  hint?: string;
-}) {
-  const [draft, setDraft] = React.useState('');
-
-  const commit = (): void => {
-    const value = draft.trim();
-    if (!value || values.includes(value)) {
-      setDraft('');
-      return;
-    }
-    onChange([...values, value]);
-    setDraft('');
-  };
-
-  return (
-    <WizardField label={label} htmlFor={id} required={required} error={error} hint={hint}>
-      <div className="flex gap-2">
-        <Input
-          id={id}
-          value={draft}
-          placeholder={placeholder}
-          aria-invalid={Boolean(error) || undefined}
-          onChange={(event) => setDraft(event.target.value)}
-          onKeyDown={(event) => {
-            // Enter adds a chip. Without this it would reach the wizard and
-            // advance the step instead.
-            if (event.key === 'Enter' || event.key === ',') {
-              event.preventDefault();
-              commit();
-            }
-          }}
-        />
-        <Button type="button" variant="outline" onClick={commit}>
-          Add
-        </Button>
-      </div>
-      {values.length > 0 ? (
-        <div className="flex flex-wrap gap-1.5 pt-1">
-          {values.map((value) => (
-            <Badge key={value} variant="secondary" size="sm" className="gap-1">
-              {value}
-              <button
-                type="button"
-                aria-label={`Remove ${value}`}
-                onClick={() => onChange(values.filter((entry) => entry !== value))}
-              >
-                <X className="size-3" />
-              </button>
-            </Badge>
-          ))}
-        </div>
-      ) : null}
-    </WizardField>
-  );
-}
 
 interface PackageFormState {
   title: string;
@@ -254,8 +180,9 @@ export function CreatePackageDialog() {
       toast.success('Package created', {
         description: 'It is saved as a draft — publish it when you are ready.',
       });
-      void queryClient.invalidateQueries({ queryKey: ['travel-packages'] });
-      void queryClient.invalidateQueries({ queryKey: ['provider-packages'] });
+      // Every travel query is keyed under 'travel' — the list, the provider
+      // profile and its published count all move when a package is added.
+      void queryClient.invalidateQueries({ queryKey: ['travel'] });
       setOpen(false);
       setForm(EMPTY);
       setErrors({});

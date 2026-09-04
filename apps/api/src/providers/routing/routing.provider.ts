@@ -96,6 +96,32 @@ export interface RoutingProvider {
     to: readonly LatLng[],
     profile: RoutingProfile,
   ): Promise<RoadDistance[]>;
+
+  /**
+   * Places matching what somebody typed.
+   *
+   * Distinct from the nearby search, and needed because the two answer different
+   * questions. Nearby asks "what fuel stations are around me", from a fixed set
+   * of categories, and is the right tool for a driver who needs *a* pump. This
+   * asks "where is Sushant Golf City" — a named place, a society, a warehouse, a
+   * customer's gate — which no category list can ever cover.
+   *
+   * Ordered by relevance to [near], because a driver searching "MG Road" means
+   * the one in this city rather than the better-known one four states away.
+   */
+  searchPlaces(query: string, near: LatLng, limit: number): Promise<PlaceMatch[]>;
+}
+
+/** One result from [RoutingProvider.searchPlaces]. */
+export interface PlaceMatch {
+  /** What to show. The geocoder's own label, which includes locality. */
+  name: string;
+  /** Street, locality, region — whatever the geocoder could resolve. */
+  address: string | null;
+  latitude: number;
+  longitude: number;
+  /** Metres from the driver, straight line. Ordering and sanity, not a route. */
+  distanceMeters: number | null;
 }
 
 /** Why a routing call failed, in terms a screen in a cab can act on. */

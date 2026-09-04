@@ -473,6 +473,116 @@ describe('Saarthi Device ingestion', () => {
       expect(code.confirmed).toBe(true);
     });
 
+    it('explains a fault code the device could not', async () => {
+      /*
+       * The device sends a code and no description — it has no dictionary and no
+       * business carrying one. Translating on ingestion means every reader gets
+       * the meaning: the dashboard, the assistant, a report written next year.
+       */
+      await request({
+        method: 'POST',
+        url: '/api/v1/device-gateway/telemetry',
+        headers: deviceAuth(device.token),
+        payload: {
+          frames: [
+            {
+              eventId: nextEventId(),
+              recordedAt: new Date().toISOString(),
+              location: { latitude: 28.6139, longitude: 77.209 },
+              vehicle: { diagnostics: [{ code: 'P0301', description: null }] },
+            },
+          ],
+        },
+      });
+
+      const code = await prisma.telemetryDiagnosticCode.findFirstOrThrow({
+        where: { code: 'P0301' },
+      });
+      expect(code.description).toBe('Misfire, cylinder 1');
+    });
+
+    it('keeps a description the device supplied', async () => {
+      // A vendor that decodes its own manufacturer codes knows more about that
+      // vehicle than a generic table ever will.
+      await request({
+        method: 'POST',
+        url: '/api/v1/device-gateway/telemetry',
+        headers: deviceAuth(device.token),
+        payload: {
+          frames: [
+            {
+              eventId: nextEventId(),
+              recordedAt: new Date().toISOString(),
+              location: { latitude: 28.6139, longitude: 77.209 },
+              vehicle: {
+                diagnostics: [{ code: 'P1234', description: 'Vendor: injector trim drift' }],
+              },
+            },
+          ],
+        },
+      });
+
+      const code = await prisma.telemetryDiagnosticCode.findFirstOrThrow({
+        where: { code: 'P1234' },
+      });
+      expect(code.description).toBe('Vendor: injector trim drift');
+    });
+
+    it('records the VIN the vehicle reports about itself', async () => {
+      await request({
+        method: 'POST',
+        url: '/api/v1/device-gateway/telemetry',
+        headers: deviceAuth(device.token),
+        payload: {
+          frames: [
+            {
+              eventId: nextEventId(),
+              recordedAt: new Date().toISOString(),
+              location: { latitude: 28.6139, longitude: 77.209 },
+              vehicle: { vin: 'MAT445023N4C12345' },
+            },
+          ],
+        },
+      });
+
+      const truck = await prisma.truck.findUniqueOrThrow({ where: { id: vehicle.id } });
+      expect(truck.vin).toBe('MAT445023N4C12345');
+    });
+
+    it('does not overwrite a known VIN when the adapter reports a different one', async () => {
+      /*
+       * An OBD adapter is a plug, and moving it to another vehicle takes ten
+       * seconds. Once moved, every reading is filed against a truck that was not
+       * moving — and nothing else in the system would notice.
+       *
+       * The stored VIN is what the fleet believes; a conflicting one must not
+       * quietly replace it, or the evidence of the swap disappears with it.
+       */
+      await prisma.truck.update({
+        where: { id: vehicle.id },
+        data: { vin: 'MAT445023N4C12345' },
+      });
+
+      await request({
+        method: 'POST',
+        url: '/api/v1/device-gateway/telemetry',
+        headers: deviceAuth(device.token),
+        payload: {
+          frames: [
+            {
+              eventId: nextEventId(),
+              recordedAt: new Date().toISOString(),
+              location: { latitude: 28.6139, longitude: 77.209 },
+              vehicle: { vin: 'MAT999999N9C99999' },
+            },
+          ],
+        },
+      });
+
+      const truck = await prisma.truck.findUniqueOrThrow({ where: { id: vehicle.id } });
+      expect(truck.vin).toBe('MAT445023N4C12345');
+    });
+
     it('never lets a simulated value overwrite a measured one', async () => {
       /*
        * Both blocks in one frame, disagreeing.

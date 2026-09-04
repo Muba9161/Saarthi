@@ -4,6 +4,7 @@ export * from './domain/languages';
 export * from './domain/permissions';
 export * from './domain/entitlements';
 export * from './domain/geo';
+export * from './domain/fault-codes';
 export * from './domain/state-machines';
 export * from './domain/scoring';
 export * from './domain/documents';

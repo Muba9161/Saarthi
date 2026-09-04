@@ -1,8 +1,14 @@
 import * as React from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Eye, Plane, Star, Users } from 'lucide-react';
-import { Feature, Permission, formatCurrency, humanizeEnum } from '@saarthi/shared';
+import { Eye, Plane, Plus, Star, Users } from 'lucide-react';
+import {
+  Feature,
+  Permission,
+  ProviderStatus,
+  formatCurrency,
+  humanizeEnum,
+} from '@saarthi/shared';
 import { api } from '@/lib/api-client';
 import type { PackageSummary, ProviderSummary } from '@/lib/mobility-types';
 import type { Paginated } from '@/lib/api-types';
@@ -12,6 +18,7 @@ import { DataTable, type Column } from '@/components/common/data-table';
 import { EmptyState, FeatureLockedState, UnauthorizedState } from '@/components/common/states';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { CreatePackageDialog } from '@/features/travel/create-package-dialog';
+import { ProviderProfileDialog } from '@/features/travel/provider-profile-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
@@ -22,6 +29,21 @@ import { Button } from '@/components/ui/button';
  * sits inside the same fleet shell — a truck operator who starts running tours
  * does not change account, only what they sell.
  */
+
+/**
+ * Why the provider's own status is on the card: a paused or suspended profile
+ * is invisible in customer search, and without this the operator sees packages
+ * marked "Published" and no enquiries, with nothing to explain the silence.
+ */
+const PROVIDER_STATUS_TONE: Record<
+  ProviderStatus,
+  'secondary' | 'success' | 'warning' | 'destructive'
+> = {
+  [ProviderStatus.DRAFT]: 'secondary',
+  [ProviderStatus.ACTIVE]: 'success',
+  [ProviderStatus.PAUSED]: 'warning',
+  [ProviderStatus.SUSPENDED]: 'destructive',
+};
 
 export function ProviderPackagesPage() {
   const { can, hasFeature } = useAuth();
@@ -73,9 +95,14 @@ export function ProviderPackagesPage() {
           description="Tell customers who you are, which services you offer and the cities you work from. Your vehicles, drivers and account stay exactly as they are — this only adds what you sell."
           action={
             can(Permission.PROVIDER_MANAGE) ? (
-              <Button asChild>
-                <Link to="/settings/profile">Open your profile</Link>
-              </Button>
+              <ProviderProfileDialog
+                trigger={
+                  <Button>
+                    <Plus className="size-4" />
+                    Set up provider profile
+                  </Button>
+                }
+              />
             ) : undefined
           }
         />
@@ -191,7 +218,19 @@ export function ProviderPackagesPage() {
       {profile.data ? (
         <Card>
           <CardHeader className="pb-3">
-            <SectionHeader title={profile.data.displayName} />
+            <SectionHeader
+              title={profile.data.displayName}
+              actions={
+                <>
+                  <Badge variant={PROVIDER_STATUS_TONE[profile.data.status]} size="sm">
+                    {humanizeEnum(profile.data.status)}
+                  </Badge>
+                  {can(Permission.PROVIDER_MANAGE) ? (
+                    <ProviderProfileDialog profile={profile.data} />
+                  ) : null}
+                </>
+              }
+            />
           </CardHeader>
           <CardContent className="grid grid-cols-2 gap-4 pt-0 text-sm sm:grid-cols-4">
             <div>

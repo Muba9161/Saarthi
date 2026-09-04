@@ -2,9 +2,11 @@ import {
   DistanceBasis,
   VehicleCapability,
   VehicleType,
+  distanceKm,
   vehicleSupports,
   type LatLng,
   type MeasuredDistance,
+  type TerminalPlaceMatch,
   type TerminalRouteView,
   type TerminalServiceResult,
   type TerminalServicesResponse,
@@ -260,6 +262,57 @@ async function roadDistances(
 /** ~100 m. Enough to cache across a vehicle idling, not across a junction. */
 function round(value: number): string {
   return value.toFixed(3);
+}
+
+/**
+ * Places matching what the driver typed.
+ *
+ * Straight through to the geocoder — nothing is stored, and nothing is mixed in
+ * from the local `nearby_places` table. That table holds generated demonstration
+ * rows, and a search that quietly blended them with real results would send
+ * somebody to an address that does not exist.
+ *
+ * Requires routing to be configured, and says so plainly when it is not. A
+ * search box that silently returns nothing is indistinguishable from a place
+ * that does not exist, and a driver would conclude the wrong one.
+ */
+export async function searchPlaces(input: {
+  query: string;
+  from: LatLng;
+  limit: number;
+}): Promise<TerminalPlaceMatch[]> {
+  if (!routingProvider) {
+    throw errors.providerNotConfigured(
+      'routing',
+      'Place search is not configured on this Saarthi instance. ' +
+        'Use the service categories, or ask your fleet for the coordinates.',
+    );
+  }
+
+  const matches = await routingProvider
+    .searchPlaces(input.query, input.from, input.limit)
+    .catch((error: unknown) => {
+      if (error instanceof RoutingError) throw errors.businessRule(error.message);
+      throw error;
+    });
+
+  return matches.map((match, index) => ({
+    // The geocoder has no stable id, and the cockpit needs one to key a list.
+    // Position plus name is unique within a single set of results, which is the
+    // only scope this id ever has to survive.
+    id: `${match.latitude.toFixed(5)},${match.longitude.toFixed(5)}:${index}`,
+    name: match.name,
+    address: match.address,
+    latitude: match.latitude,
+    longitude: match.longitude,
+    straightLineKm:
+      match.distanceMeters !== null
+        ? Math.round((match.distanceMeters / 1000) * 10) / 10
+        : Math.round(distanceKm(input.from, {
+            latitude: match.latitude,
+            longitude: match.longitude,
+          }) * 10) / 10,
+  }));
 }
 
 /**

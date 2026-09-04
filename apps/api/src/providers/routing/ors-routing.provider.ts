@@ -3,6 +3,7 @@ import { config } from '../../config/env';
 import { logger } from '../../lib/logger';
 import {
   RoutingError,
+  type PlaceMatch,
   type RoadDistance,
   type Route,
   type RouteRequest,
@@ -65,6 +66,22 @@ interface RawResponse {
     };
   }[];
   error?: { message?: string };
+}
+
+/** Only the fields used. ORS returns a full GeoJSON feature collection. */
+interface RawGeocodeResponse {
+  features?: {
+    geometry?: { coordinates?: [number, number] };
+    properties?: {
+      name?: string;
+      label?: string;
+      street?: string;
+      locality?: string;
+      region?: string;
+      /** Kilometres from `focus.point`, when ORS chose to compute one. */
+      distance?: number;
+    };
+  }[];
 }
 
 interface RawMatrixResponse {
@@ -179,24 +196,103 @@ export class OrsRoutingProvider implements RoutingProvider {
   // Transport
   // -------------------------------------------------------------------------
 
+  /**
+   * Named places near the driver.
+   *
+   * `/geocode/autocomplete` rather than `/geocode/search`: it is built for
+   * partial input, which is what a driver typing on a tablet in a moving cab
+   * actually produces. `focus.point` biases towards them without excluding
+   * anything, so "MG Road" finds the one in this city first while a genuinely
+   * distant match is still reachable.
+   *
+   * `boundary.country=IND` is deliberate. Saarthi runs Indian fleets, and
+   * without it a search for a common name returns half of it from other
+   * continents — results a driver has to read past every time.
+   */
+  async searchPlaces(query: string, near: LatLng, limit: number): Promise<PlaceMatch[]> {
+    const trimmed = query.trim();
+    if (trimmed.length < 2) return [];
+
+    const params = new URLSearchParams({
+      api_key: this.apiKey,
+      text: trimmed,
+      'focus.point.lat': near.latitude.toFixed(6),
+      'focus.point.lon': near.longitude.toFixed(6),
+      'boundary.country': 'IND',
+      size: String(Math.min(Math.max(limit, 1), 20)),
+    });
+
+    const raw = await this.get<RawGeocodeResponse>(`/geocode/autocomplete?${params.toString()}`);
+
+    return (raw.features ?? []).flatMap((feature) => {
+      const [longitude, latitude] = feature.geometry?.coordinates ?? [];
+      if (typeof latitude !== 'number' || typeof longitude !== 'number') return [];
+
+      const properties = feature.properties ?? {};
+      // `label` carries the locality; `name` alone is ambiguous between the six
+      // places in a city that share it.
+      const name = properties.name ?? properties.label ?? trimmed;
+      const address = [properties.street, properties.locality, properties.region]
+        .filter((part): part is string => Boolean(part) && part !== name)
+        .join(', ');
+
+      return [
+        {
+          name,
+          address: address || properties.label || null,
+          latitude,
+          longitude,
+          distanceMeters:
+            typeof properties.distance === 'number'
+              ? Math.round(properties.distance * 1000)
+              : null,
+        },
+      ];
+    });
+  }
+
   private async post<T>(
     path: string,
     body: unknown,
     accept = 'application/json',
   ): Promise<T> {
+    return this.send<T>(path, {
+      method: 'POST',
+      headers: {
+        authorization: this.apiKey,
+        'content-type': 'application/json',
+        accept,
+      },
+      body: JSON.stringify(body),
+    });
+  }
+
+  /**
+   * A GET, for the endpoints that only take one.
+   *
+   * The geocoder authenticates by query parameter rather than by header, so the
+   * key is already in the path and nothing is added here.
+   */
+  private async get<T>(path: string): Promise<T> {
+    return this.send<T>(path, { method: 'GET', headers: { accept: 'application/json' } });
+  }
+
+  /**
+   * One request, and one place that knows what each failure means.
+   *
+   * Split out from `post` when the geocoder arrived: a rejected key, an
+   * exhausted quota and an unroutable pair have to read the same whichever
+   * endpoint produced them, and two copies of that mapping would have drifted
+   * the first time one of them was corrected.
+   */
+  private async send<T>(path: string, init: RequestInit): Promise<T> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
 
     let response: Response;
     try {
       response = await fetch(`${this.baseUrl}${path}`, {
-        method: 'POST',
-        headers: {
-          authorization: this.apiKey,
-          'content-type': 'application/json',
-          accept,
-        },
-        body: JSON.stringify(body),
+        ...init,
         signal: controller.signal,
       });
     } catch (error) {
@@ -258,7 +354,34 @@ export class OrsRoutingProvider implements RoutingProvider {
       throw new RoutingError('UNAVAILABLE', `The routing service answered ${response.status}.`);
     }
 
-    return (await response.json()) as T;
+    /*
+     * A 200 is not a promise of JSON.
+     *
+     * ORS sits behind a gateway that occasionally answers a perfectly good
+     * request with an HTML holding page carrying a 200, and `response.json()`
+     * throws a SyntaxError on it. That escaped as an unhandled error, and the
+     * driver's search box — which had returned the same query correctly a
+     * moment earlier — reported a server fault. Everything else in this method
+     * turns a failure into a `RoutingError` the caller can phrase for a
+     * driver; this was the one exit that did not.
+     *
+     * The first part of the body is logged because the status alone says
+     * nothing about which gateway answered, and it is the only way to tell an
+     * outage page from a truncated response.
+     */
+    const body = await response.text();
+    try {
+      return JSON.parse(body) as T;
+    } catch {
+      ROUTING_LOGGER.warn(
+        { path: path.split('?')[0], body: body.slice(0, 200) },
+        'OpenRouteService answered 200 with something that is not JSON',
+      );
+      throw new RoutingError(
+        'UNAVAILABLE',
+        'The routing service gave an unreadable answer. Please try again.',
+      );
+    }
   }
 }
 

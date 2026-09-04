@@ -2,6 +2,8 @@ package com.saarthi.terminal.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,10 +32,12 @@ import androidx.compose.material.icons.rounded.LocalHospital
 import androidx.compose.material.icons.rounded.LocalParking
 import androidx.compose.material.icons.rounded.LocalPolice
 import androidx.compose.material.icons.rounded.Navigation
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Restaurant
 import androidx.compose.material.icons.rounded.Scale
 import androidx.compose.material.icons.rounded.Send
 import androidx.compose.material.icons.rounded.TireRepair
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -55,12 +59,16 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.input.ImeAction
 import com.saarthi.terminal.domain.AssistantState
 import com.saarthi.terminal.network.IssueDto
 import com.saarthi.terminal.network.NearbyPlaceDto
+import com.saarthi.terminal.network.PlaceMatchDto
 import com.saarthi.terminal.telemetry.Metric
 import com.saarthi.terminal.ui.AiBlob
 import com.saarthi.terminal.ui.Gutter
+import com.saarthi.terminal.ui.TouchTarget
+import com.saarthi.terminal.ui.Radius
 import com.saarthi.terminal.ui.PrimaryAction
 import com.saarthi.terminal.ui.Readout
 import com.saarthi.terminal.ui.SaarthiWarning
@@ -158,11 +166,118 @@ fun ServicesSheet(
     val error by viewModel.lastError.collectAsState()
     val roadDistances by viewModel.roadDistances.collectAsState()
     val routingNote by viewModel.routingNote.collectAsState()
+    val searchResults by viewModel.searchResults.collectAsState()
+    val query by viewModel.searchQuery.collectAsState()
+    val searchRunning by viewModel.searching.collectAsState()
+    val searchFailure by viewModel.searchFailure.collectAsState()
     var selected by remember { mutableStateOf("FUEL") }
 
+    // Only re-fetch the category list when the category changes. A search runs
+    // on its own and must not disturb the list waiting behind it.
     LaunchedEffect(selected) { viewModel.findServices(selected) }
 
-    Sheet("Nearby services", onClose) {
+    val searching = query.isNotBlank()
+
+    Sheet(if (searching) "Search" else "Nearby services", onClose) {
+        /*
+         * Search, above the categories.
+         *
+         * The chips answer "where is *a* fuel station", which is the wrong
+         * question most of the time: a driver is sent to a named place — a
+         * society, a warehouse, a customer's gate — and no list of categories
+         * will ever contain it. Typing a name goes to the geocoder and comes
+         * back in the same shape a nearby place has, so choosing a result starts
+         * a trip by exactly the same path.
+         */
+        OutlinedTextField(
+            value = query,
+            onValueChange = viewModel::setSearchQuery,
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            placeholder = { Text("Search a place, society or landmark") },
+            leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
+            trailingIcon = {
+                if (searching) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        // Progress where the driver is looking, rather than a
+                        // spinner elsewhere on the sheet.
+                        if (searchRunning) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(18.dp),
+                                strokeWidth = 2.dp,
+                            )
+                            Spacer(Modifier.width(10.dp))
+                        }
+                        IconButton(onClick = viewModel::clearSearch) {
+                            Icon(Icons.Rounded.Close, contentDescription = "Clear the search")
+                        }
+                    }
+                }
+            },
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+            keyboardActions = KeyboardActions(onSearch = { viewModel.searchPlaces() }),
+        )
+
+        Spacer(Modifier.height(Gutter))
+
+        /*
+         * Results replace the categories while a search is active.
+         *
+         * Showing both would leave a driver scrolling past six fuel stations to
+         * reach the place they actually typed. Clearing the box brings the
+         * category list straight back, untouched.
+         */
+        if (searching) {
+            if (searchRunning && searchResults.isEmpty()) {
+                Box(
+                    Modifier.fillMaxWidth().padding(32.dp),
+                    contentAlignment = Alignment.Center,
+                ) { CircularProgressIndicator() }
+                return@Sheet
+            }
+
+            if (searchResults.isEmpty()) {
+                /*
+                 * "Nothing found" is a claim about the world; a failed search
+                 * is a claim about Saarthi. Only one of the two is ours to
+                 * make when the request never came back, so a failure says so
+                 * and offers the retry that an empty result has no use for.
+                 */
+                val failure = searchFailure
+                if (failure != null) {
+                    Text(
+                        failure,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                    Spacer(Modifier.height(Gutter))
+                    Button(onClick = viewModel::searchPlaces) { Text("Try again") }
+                    return@Sheet
+                }
+
+                Text(
+                    if (query.trim().length < 2) {
+                        "Keep typing — a couple of letters is enough to start."
+                    } else {
+                        "Nothing found for “$query”. Try a landmark, or the name as it " +
+                            "appears on a signboard."
+                    },
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                return@Sheet
+            }
+
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                items(searchResults, key = { it.id }) { match ->
+                    MatchRow(match) {
+                        viewModel.navigateToMatch(match) { routed -> if (routed) onClose() }
+                    }
+                }
+            }
+            return@Sheet
+        }
+
         /*
          * Icons alone on a narrow screen, icons and words where there is room.
          *
@@ -334,9 +449,78 @@ fun ServicesSheet(
  * driver on a quarter tank acts on this number, and the gap between the two
  * kinds can be a factor of three around a river or a motorway.
  */
+/**
+ * One search result.
+ *
+ * Deliberately the same shape as [PlaceRow] — a name, where it is, how far, and
+ * the arrow that starts the trip. A driver should not have to learn two list
+ * layouts because the results came from a different question.
+ */
+@Composable
+private fun MatchRow(match: PlaceMatchDto, onNavigate: () -> Unit) {
+    /*
+     * The whole row goes, not just the arrow.
+     *
+     * A 48-point button at the far edge is a small target in a cab on a bad
+     * road, and every list a driver has ever used takes a tap anywhere on the
+     * row. The arrow stays because it says what the tap will do; it is no
+     * longer the only place that does it.
+     */
+    GlassCard(Modifier.fillMaxWidth().clickable(onClick = onNavigate)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    match.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                )
+                match.address?.let { address ->
+                    Text(
+                        address,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                    )
+                }
+            }
+
+            match.straightLineKm?.let { km ->
+                Spacer(Modifier.width(12.dp))
+                // "direct", because it is: a geocoder gives a position, not a
+                // road distance, and the drive is always longer.
+                Text(
+                    "%.1f km direct".format(km),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    softWrap = false,
+                )
+            }
+
+            Spacer(Modifier.width(12.dp))
+
+            Surface(
+                onClick = onNavigate,
+                shape = RoundedCornerShape(Radius.md),
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(TouchTarget),
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        Icons.Rounded.Navigation,
+                        contentDescription = "Navigate to ${match.name}",
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                    )
+                }
+            }
+        }
+    }
+}
+
 @Composable
 private fun PlaceRow(place: NearbyPlaceDto, onNavigate: () -> Unit) {
-    GlassCard(Modifier.fillMaxWidth()) {
+    // Tappable across its width, for the same reason as [MatchRow].
+    GlassCard(Modifier.fillMaxWidth().clickable(onClick = onNavigate)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(place.name, style = MaterialTheme.typography.titleMedium)

@@ -1,4 +1,5 @@
 import {
+  describeFaultCode,
   DeviceEventType,
   DeviceStatus,
   TELEMETRY_ELIGIBLE_DEVICE_STATUSES,
@@ -266,6 +267,8 @@ export async function ingest(
       currentDriverId: true,
       currentTripId: true,
       archivedAt: true,
+      // Compared against what the ECU reports, so a moved adapter is noticed.
+      vin: true,
     },
   });
   if (!vehicle || vehicle.archivedAt) {
@@ -363,11 +366,24 @@ export async function ingest(
           recordedAt: reading.recordedAt,
           receivedAt: now,
           diagnostics: {
+            /*
+             * Explained on the way in, not on the way out.
+             *
+             * A device reports `P0217` and nothing else — it has no dictionary
+             * and no business carrying one. Translating here means every reader
+             * gets the meaning for free: the dashboard, the assistant's vehicle
+             * tools, the service history, and a report generated a year from now
+             * when whatever showed it has been rewritten twice.
+             *
+             * The device's own description wins if it sent one. A dashcam
+             * vendor that decodes manufacturer codes knows more about that
+             * vehicle than a generic table ever will.
+             */
             create: reading.diagnostics.map((code) => ({
               vehicleId: vehicle.id,
               organizationId: vehicle.organizationId,
               code: code.code,
-              description: code.description,
+              description: code.description ?? describeFaultCode(code.code)?.description ?? null,
               confirmed: code.confirmed,
             })),
           },
@@ -446,6 +462,42 @@ export async function ingest(
      * resale valuations, and section 19's rule that simulated data is never
      * presented as real would mean very little if it could quietly rewrite this.
      */
+    /*
+     * The chassis number the vehicle reports about itself.
+     *
+     * Recorded the first time it is seen, and compared every time after. An OBD
+     * adapter is a plug: it takes ten seconds to move to another vehicle, and
+     * once moved there is nothing else in the system that would notice. Every
+     * reading afterwards — speed, fuel, faults, the odometer that now overwrites
+     * the fleet's record — is filed against a truck that was not moving.
+     *
+     * A mismatch does not stop ingestion. The readings are real, they are simply
+     * attributed wrongly, and dropping them would destroy evidence of the very
+     * thing that needs investigating. It raises an alert and says which VIN it
+     * expected.
+     */
+    if (!options.simulated && reading.vehicleData.vin) {
+      const reported = reading.vehicleData.vin.trim().toUpperCase();
+      if (!vehicle.vin) {
+        await prisma.truck
+          .update({ where: { id: vehicle.id }, data: { vin: reported } })
+          .catch((error: unknown) => {
+            gatewayLogger.warn({ err: error, vehicleId: vehicle.id }, 'VIN could not be stored');
+            return null;
+          });
+      } else if (vehicle.vin.toUpperCase() !== reported) {
+        gatewayLogger.error(
+          {
+            vehicleId: vehicle.id,
+            deviceIdentifier: device.deviceIdentifier,
+            expected: vehicle.vin,
+            reported,
+          },
+          'Device reported a different VIN — the adapter may have been moved',
+        );
+      }
+    }
+
     const odometerIsSimulated = reading.simulatedMetrics.includes(TelemetryMetric.ODOMETER);
     if (
       !options.simulated &&

@@ -278,6 +278,13 @@ class SaarthiApi(
      * decision, not one per row in a list they scrolled past — routing is the
      * one part of the map stack that costs a fleet money.
      */
+    suspend fun searchPlaces(request: PlaceSearchRequest): List<PlaceMatchDto> = post(
+        "/api/v1/device-gateway/terminal/search",
+        request,
+        PlaceSearchRequest.serializer(),
+        ListSerializer(PlaceMatchDto.serializer()),
+    )
+
     suspend fun route(request: RouteRequest): RouteDto = post(
         "/api/v1/device-gateway/terminal/route",
         request,

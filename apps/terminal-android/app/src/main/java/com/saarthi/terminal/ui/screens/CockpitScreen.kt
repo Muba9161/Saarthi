@@ -42,6 +42,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Build
 import androidx.compose.material.icons.rounded.CloseFullscreen
 import androidx.compose.material.icons.rounded.DirectionsCar
@@ -79,6 +80,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -92,8 +94,14 @@ import com.saarthi.terminal.telemetry.Metric
 import com.saarthi.terminal.telemetry.TelemetrySnapshot
 import com.saarthi.terminal.ui.AiBlob
 import com.saarthi.terminal.ui.ConnectionBanner
+import com.saarthi.terminal.ui.ControlDrawer
+import com.saarthi.terminal.ui.ControlHandle
+import com.saarthi.terminal.ui.DrawerAction
 import com.saarthi.terminal.ui.GlassBackdrop
 import com.saarthi.terminal.ui.GlassCard
+import com.saarthi.terminal.ui.Gauge
+import com.saarthi.terminal.ui.GaugeBand
+import com.saarthi.terminal.ui.GaugeSizes
 import com.saarthi.terminal.ui.Gutter
 import com.saarthi.terminal.ui.LivePulse
 import com.saarthi.terminal.ui.LocalDarkCockpit
@@ -154,6 +162,33 @@ fun CockpitScreen(
     var sheet by remember { mutableStateOf<CockpitSheet?>(null) }
 
     /*
+     * How big the dials are, decided once, from the screen.
+     *
+     * `expanded` asks only how *wide* the screen is, so a phone on its side and
+     * a dash display both take the two-column layout — which is right, they
+     * both have room for a map beside a rail. But the rail is about 280dp tall
+     * on the phone against more than twice that on the display, and the same
+     * dials in both left fuel and coolant below the fold on the phone.
+     *
+     * So width picks the layout and height picks the dial. Both readings come
+     * from here, and every other part of the screen that has to agree with them
+     * derives from `dialSize` rather than asking the configuration again.
+     */
+    val shortScreen = LocalConfiguration.current.screenHeightDp < 500
+    val dialSize = when {
+        !expanded -> GaugeSizes.Compact
+        shortScreen -> GaugeSizes.Dense
+        else -> GaugeSizes.Regular
+    }
+
+    /**
+     * Odometer and mileage live in the drawer whenever the cluster is too small
+     * to carry them — the exact complement of the cluster's own condition, so
+     * they are never in both places and, more importantly, never in neither.
+     */
+    val readoutsInDrawer = dialSize < GaugeSizes.Regular
+
+    /*
      * Whether the camera is still tracking the vehicle.
      *
      * A driver looking ahead down the route drags the map; the next GPS fix used
@@ -181,6 +216,9 @@ fun CockpitScreen(
 
     /** Panels cleared away, map to the edges. See the note on this screen. */
     var expandMap by remember { mutableStateOf(false) }
+
+    /** Whether the controls are showing. Closed by default — see [ControlDrawer]. */
+    var drawerOpen by remember { mutableStateOf(false) }
 
     val moving = state.moving
     val telemetry = state.telemetry
@@ -393,6 +431,24 @@ fun CockpitScreen(
     ) {
 
         // Shared by both layouts, so they cannot drift apart.
+        /*
+         * Asking the assistant.
+         *
+         * Voice where the microphone is available, and the text sheet where it
+         * is not — a terminal whose microphone permission was refused must still
+         * be able to ask a question. The wake phrase reaches the same place
+         * without the drawer being opened at all, which is the path a driver
+         * mid-corner should be taking.
+         */
+        val openAssistant: () -> Unit = {
+            if (voice.available) {
+                voice.listenNow()
+                viewModel.setAssistantState(AssistantState.LISTENING)
+            } else {
+                sheet = CockpitSheet.ASSISTANT
+            }
+        }
+
         val signOff: () -> Unit = {
             if (state.state == TerminalState.TRIP_ACTIVE) {
                 viewModel.completeTrip()
@@ -403,14 +459,18 @@ fun CockpitScreen(
         }
 
         /*
-         * The card column.
+         * The instrument cluster.
          *
-         * Two cards, not four. The vehicle's numbers belong together — a driver
-         * reads speed, fuel and temperature as one glance at the dashboard, not
-         * as four separate objects — and pairing them off into a grid was what
-         * produced cards of mismatched heights sitting beside each other.
+         * Four dials, because that is what a driver has spent their life reading
+         * and a screen has no reason to be different. Speed and engine speed
+         * change continuously and are caught by needle position long before the
+         * digits are parsed; fuel and coolant move slowly and are read the same
+         * way a dashboard's are — by where they sit, not by what they say.
+         *
+         * A dial with nothing to show stays empty rather than resting at zero.
+         * On a fuel gauge those look identical and mean opposite things.
          */
-        val cards: @Composable ColumnScope.() -> Unit = {
+        val gauges: @Composable ColumnScope.() -> Unit = {
             AnimatedVisibility(visible = sosArmed, enter = panelEnter(), exit = panelExit()) {
                 SosConfirmation(
                     onConfirm = { viewModel.triggerSos() },
@@ -437,48 +497,10 @@ fun CockpitScreen(
                 )
             }
 
-            VehicleCard(
+            GaugeCluster(
                 telemetry = telemetry,
-                fallbackOdometerKm = state.server?.vehicle?.odometerKm,
-                compact = expanded,
+                dialSize = dialSize,
                 modifier = Modifier.fillMaxWidth(),
-            )
-
-            if (state.driverName != null) {
-                DriverCard(
-                    registration = state.registration,
-                    driverName = state.driverName,
-                    selfie = selfie,
-                    compact = expanded,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-        }
-
-        val bar: @Composable (Modifier) -> Unit = { m ->
-            CockpitBar(
-                modifier = m,
-                moving = moving,
-                tripActive = state.state == TerminalState.TRIP_ACTIVE,
-                sosArmed = sosArmed,
-                clockBattery = state.server?.health?.batteryPercent,
-                offline = state.offline,
-                // Six controls plus a clock plus a wrench do not fit across
-                // 360dp: the clock was pushed off the right edge entirely. On a
-                // narrow screen the status cluster moves up to the identity
-                // pill, where it has room and is still one glance away.
-                showStatus = expanded,
-                expandMap = expandMap,
-                onToggleExpand = { expandMap = !expandMap },
-                onSos = { if (sosArmed) viewModel.triggerSos() else viewModel.armSos() },
-                onServices = { sheet = CockpitSheet.SERVICES },
-                onVehicle = { sheet = CockpitSheet.VEHICLE },
-                onFuelNearby = {
-                    viewModel.findServices("FUEL")
-                    sheet = CockpitSheet.SERVICES
-                },
-                onSignOff = signOff,
-                onOpenAdmin = onOpenAdmin,
             )
         }
 
@@ -539,6 +561,7 @@ fun CockpitScreen(
                     },
                     showStatus = !expanded,
                     fullBleed = expandMap,
+                    onToggleExpand = { expandMap = !expandMap },
                     onRecentre = { followVehicle = true },
                     onPanned = {
                         followVehicle = false
@@ -556,15 +579,26 @@ fun CockpitScreen(
                         exit = panelExit(),
                     ) {
                         Column(
+                            /*
+                             * A fixed column, so the map keeps the majority.
+                             *
+                             * 330dp is what two readable dials side by side
+                             * need and no more. Fixed rather than a fraction
+                             * because a fraction gives a landscape phone too
+                             * little and a tablet far too much — held at this
+                             * width the map takes about sixty per cent of a
+                             * phone and three quarters of a dash display, which
+                             * is the right way round.
+                             */
                             Modifier
-                                .width(360.dp)
+                                .width(330.dp)
                                 .fillMaxHeight()
                                 .verticalScroll(rememberScrollState()),
                             // Tighter than the portrait stack. A landscape phone
                             // has roughly 320dp of rail, and at 10dp the driver
                             // card was left half under the bar.
                             verticalArrangement = Arrangement.spacedBy(8.dp),
-                            content = cards,
+                            content = gauges,
                         )
                     }
                 }
@@ -575,13 +609,166 @@ fun CockpitScreen(
                     Column(
                         Modifier.fillMaxWidth().padding(top = 10.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp),
-                        content = cards,
+                        content = gauges,
                     )
                 }
             }
 
-            Spacer(Modifier.height(10.dp))
-            bar(Modifier.fillMaxWidth())
+            Spacer(Modifier.height(8.dp))
+
+            /*
+             * The foot of the screen: one line, two things.
+             *
+             * The handle takes the width it needs to be grabbed and SOS sits at
+             * the end of the same row. Giving the emergency control a row of its
+             * own would have cost sixty points of map for a button that is
+             * sixty-four points wide — and pushed the handle further from the
+             * thumb that reaches for it.
+             */
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                GlassCard(Modifier.weight(1f), contentPadding = 0.dp) {
+                    ControlHandle(
+                        onOpen = { drawerOpen = true },
+                        label = "Show services, vehicle and sign-off",
+                    )
+                }
+                SosButton(
+                    armed = sosArmed,
+                    onClick = { if (sosArmed) viewModel.triggerSos() else viewModel.armSos() },
+                )
+            }
+        }
+
+        /*
+         * The controls, on request.
+         *
+         * Everything that used to sit permanently along the foot — services, the
+         * vehicle's own screens, sign-off, the assistant, diagnostics — lives
+         * here now. It is a row of things to hit by accident on a moving
+         * dashboard, and section 23 asks the interface not to invite that.
+         *
+         * The assistant comes in here too. It is a deliberate act, not a reflex:
+         * a driver who needs it mid-corner says the wake phrase rather than
+         * finding a button.
+         */
+        ControlDrawer(
+            visible = drawerOpen,
+            onDismiss = { drawerOpen = false },
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .navigationBarsPadding()
+                .padding(horizontal = 10.dp, vertical = 8.dp),
+        ) {
+            /*
+             * The figures the cluster gave up.
+             *
+             * Odometer and mileage are read at a standstill, not glanced at
+             * mid-corner, so they belong behind a deliberate gesture rather than
+             * competing with the map. The condition is the exact complement of
+             * the cluster's, deliberately: wherever the dials are compact the
+             * cluster drops these two, and the drawer picks them up. They are
+             * never in both places, and — the part that matters — never in
+             * neither, which is what a phone on its side would have got if this
+             * had kept asking about width alone.
+             */
+            if (readoutsInDrawer) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                ) {
+                    Readout(
+                        label = "Odometer",
+                        value = telemetry.value(Metric.ODOMETER)
+                            ?.let { "%,d".format(it.toLong()) },
+                        unit = "km",
+                        simulated = telemetry.isSimulated(Metric.ODOMETER),
+                        modifier = Modifier.weight(1f),
+                    )
+                    Readout(
+                        label = "Mileage",
+                        value = run {
+                            val rate = telemetry.value(Metric.FUEL_RATE)
+                            val speed = telemetry.value(Metric.SPEED)
+                            if (rate != null && rate > 0.1 && speed != null && speed > 5.0) {
+                                "%.1f".format(speed / rate)
+                            } else {
+                                null
+                            }
+                        },
+                        unit = "km/L",
+                        simulated = telemetry.isSimulated(Metric.FUEL_RATE),
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                Spacer(Modifier.height(10.dp))
+            }
+
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                if (moving) {
+                    // Moving: one destination, and it is fuel. A driver at speed
+                    // asking for anything else should be asking out loud.
+                    DrawerAction(
+                        Icons.Rounded.LocalGasStation,
+                        "Fuel nearby",
+                        Modifier.weight(1f),
+                    ) {
+                        drawerOpen = false
+                        viewModel.findServices("FUEL")
+                        sheet = CockpitSheet.SERVICES
+                    }
+                } else {
+                    DrawerAction(Icons.Rounded.Storefront, "Services", Modifier.weight(1f)) {
+                        drawerOpen = false
+                        sheet = CockpitSheet.SERVICES
+                    }
+                    DrawerAction(Icons.Rounded.DirectionsCar, "Vehicle", Modifier.weight(1f)) {
+                        drawerOpen = false
+                        sheet = CockpitSheet.VEHICLE
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                DrawerAction(Icons.Rounded.AutoAwesome, "Ask Saarthi", Modifier.weight(1f)) {
+                    drawerOpen = false
+                    openAssistant()
+                }
+                if (!moving) {
+                    DrawerAction(
+                        Icons.Rounded.Logout,
+                        if (state.state == TerminalState.TRIP_ACTIVE) "End trip" else "Sign off",
+                        Modifier.weight(1f),
+                    ) {
+                        drawerOpen = false
+                        signOff()
+                    }
+                }
+            }
+
+            if (!moving) {
+                Spacer(Modifier.height(8.dp))
+                DrawerAction(
+                    Icons.Rounded.Build,
+                    "Terminal diagnostics",
+                    Modifier.fillMaxWidth(),
+                ) {
+                    drawerOpen = false
+                    onOpenAdmin()
+                }
+            }
         }
 
         /*
@@ -659,251 +846,172 @@ private const val RESUME_FOLLOW_MS = 12_000L
 // ---------------------------------------------------------------------------
 
 /**
- * Everything the vehicle is reporting, in one card.
+ * The instrument cluster.
  *
- * Speed, fuel, temperature and distance are one glance at a dashboard, not four
- * separate objects — and splitting them across a grid is what produced cards of
- * different heights sitting awkwardly beside one another. Speed leads because it
- * is the only figure that matters at every moment; the rest sit under it in a
- * row, which is also how they appear on the web dashboard.
+ * Four dials in the order a dashboard puts them: the two that change constantly
+ * on the left, the two that change slowly on the right. On a wide screen they
+ * run across in one row; on a phone they pair off two by two, which keeps each
+ * dial large enough to read at a glance rather than shrinking four of them into
+ * a strip.
+ *
+ * Ranges are fixed rather than adaptive. A gauge that rescales itself is a gauge
+ * whose needle position means something different from one minute to the next,
+ * and the whole value of a dial is that the same angle always means the same
+ * thing. 140 km/h and 5,000 rpm cover any road vehicle Saarthi runs on; a value
+ * past either pins the needle instead of redrawing the dial.
  */
 @Composable
-private fun VehicleCard(
+private fun GaugeCluster(
     telemetry: TelemetrySnapshot,
-    fallbackOdometerKm: Double?,
-    /** Tighter where the column is short — a landscape phone's rail. */
-    compact: Boolean = false,
+    /** How large the dials are drawn — chosen from the screen by the caller. */
+    dialSize: Dp,
     modifier: Modifier = Modifier,
 ) {
-    val speedKph = telemetry.value(Metric.SPEED)
+    val speed = telemetry.value(Metric.SPEED)
     val rpm = telemetry.value(Metric.RPM)
-    val odometer = (telemetry.value(Metric.ODOMETER) ?: fallbackOdometerKm)
-        ?.let { "%,d".format(it.toLong()) }
+    val fuel = telemetry.value(Metric.FUEL_LEVEL)
+    val coolant = telemetry.value(Metric.COOLANT_TEMPERATURE)
 
-    /*
-     * Mileage, in the unit an Indian driver actually thinks in.
-     *
-     * Kilometres per litre, from two readings the vehicle is already giving:
-     * road speed and fuel consumption. It is only meaningful while moving —
-     * standing still with the engine running is zero km/L and infinite thirst,
-     * which is true and useless — so below walking pace it reads as nothing
-     * rather than as a number that swings between 0 and absurd at every light.
-     */
-    val fuelRate = telemetry.value(Metric.FUEL_RATE)
-    val speedForMileage = telemetry.value(Metric.SPEED)
-    val mileage = if (
-        fuelRate != null && fuelRate > 0.1 &&
-        speedForMileage != null && speedForMileage > 5.0
-    ) {
-        "%.1f".format(speedForMileage / fuelRate)
-    } else {
-        null
+    val speedGauge: @Composable (Modifier) -> Unit = { m ->
+        Gauge(
+            label = "Speed",
+            value = speed,
+            max = 140.0,
+            unit = "km/h",
+            // Above ninety is where a loaded truck stops being comfortable, and
+            // where most Indian state limits sit for goods vehicles.
+            bands = listOf(GaugeBand(90f / 140f, 1f, SaarthiWarning)),
+            tone = if ((speed ?: 0.0) >= 90) SaarthiWarning else null,
+            simulated = telemetry.isSimulated(Metric.SPEED),
+            dialSize = dialSize,
+            modifier = m,
+        )
+    }
+    val rpmGauge: @Composable (Modifier) -> Unit = { m ->
+        Gauge(
+            label = "Engine",
+            value = rpm,
+            max = 5_000.0,
+            unit = "rpm",
+            // The redline, printed on the dial the way it is on a real one.
+            bands = listOf(GaugeBand(3_500f / 5_000f, 1f, SaarthiDanger)),
+            tone = if ((rpm ?: 0.0) >= 3_500) SaarthiDanger else null,
+            simulated = telemetry.isSimulated(Metric.RPM),
+            dialSize = dialSize,
+            modifier = m,
+        )
+    }
+    val fuelGauge: @Composable (Modifier) -> Unit = { m ->
+        Gauge(
+            label = "Fuel",
+            value = fuel,
+            max = 100.0,
+            unit = "%",
+            // The reserve, at the bottom of the dial where a driver looks for it.
+            bands = listOf(GaugeBand(0f, 0.15f, SaarthiWarning)),
+            tone = when {
+                fuel == null -> null
+                fuel <= 8 -> SaarthiDanger
+                fuel <= 20 -> SaarthiWarning
+                else -> SaarthiSuccess
+            },
+            simulated = telemetry.isSimulated(Metric.FUEL_LEVEL),
+            dialSize = dialSize,
+            modifier = m,
+        )
+    }
+    val coolantGauge: @Composable (Modifier) -> Unit = { m ->
+        Gauge(
+            label = "Coolant",
+            value = coolant,
+            max = 130.0,
+            unit = "°C",
+            // Past 100 is hot, past 108 is a stop-the-vehicle problem.
+            bands = listOf(GaugeBand(100f / 130f, 1f, SaarthiDanger)),
+            tone = when {
+                coolant == null -> null
+                coolant >= 108 -> SaarthiDanger
+                coolant >= 100 -> SaarthiWarning
+                else -> null
+            },
+            simulated = telemetry.isSimulated(Metric.COOLANT_TEMPERATURE),
+            dialSize = dialSize,
+            modifier = m,
+        )
     }
 
-    GlassCard(modifier, contentPadding = if (compact) 12.dp else 16.dp) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            /*
-             * Two dials, the pair a driver expects to see together.
-             *
-             * Speed answers "am I within the limit"; RPM answers "am I in the
-             * right gear, and is the engine labouring" — which is the reading a
-             * fleet's fuel bill actually turns on. They were never going to be
-             * one gauge and a list of numbers.
-             */
-            Dial(
-                value = speedKph,
-                maximum = 120.0,
-                unit = "km/h",
-                warnAbove = 90.0,
-                simulated = telemetry.isSimulated(Metric.SPEED),
-                size = if (compact) 78.dp else 92.dp,
-                label = "speed",
-            )
+    GlassCard(modifier, contentPadding = 10.dp) {
+        /*
+         * Two by two, in every orientation.
+         *
+         * The dials sit in the side column, and that column is narrow whichever
+         * way the screen is turned — a phone upright gives it the full width and
+         * a phone sideways gives it a fixed 330dp. Four across either of those
+         * is roughly ninety points per dial, at which point the needle is a
+         * smudge and the figure inside it does not fit. Two by two keeps each
+         * one large enough to read at the glance a dial exists for.
+         */
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            speedGauge(Modifier.weight(1f))
+            rpmGauge(Modifier.weight(1f))
+        }
+        Spacer(Modifier.height(10.dp))
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            fuelGauge(Modifier.weight(1f))
+            coolantGauge(Modifier.weight(1f))
+        }
 
-            Spacer(Modifier.width(if (compact) 10.dp else 14.dp))
+        /*
+         * The figures a dial cannot carry.
+         *
+         * Odometer and mileage are read deliberately rather than glanced at, and
+         * neither has a meaningful "position on a range" — an odometer's scale
+         * would be the life of the vehicle. So they stay as numbers, under the
+         * dials, where they do not compete with them.
+         */
+        val odometer = telemetry.value(Metric.ODOMETER)?.let { "%,d".format(it.toLong()) }
+        val fuelRate = telemetry.value(Metric.FUEL_RATE)
+        val mileage = if (
+            fuelRate != null && fuelRate > 0.1 && speed != null && speed > 5.0
+        ) {
+            "%.1f".format(speed / fuelRate)
+        } else {
+            null
+        }
 
-            Dial(
-                value = rpm,
-                // 4,000 rather than a car's 8,000: a diesel truck lives between
-                // idle and about 2,200, and a scale built for a petrol engine
-                // would leave the needle in the first third all day.
-                maximum = 4_000.0,
-                unit = "rpm",
-                warnAbove = 2_600.0,
-                simulated = telemetry.isSimulated(Metric.RPM),
-                size = if (compact) 78.dp else 92.dp,
-                label = "rpm",
-            )
-
-            Spacer(Modifier.width(if (compact) 12.dp else 16.dp))
-
-            Column(
-                Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(if (compact) 8.dp else 12.dp),
+        /*
+         * Odometer and mileage, only where there is room.
+         *
+         * Neither is glanced at — they are read deliberately, at a standstill —
+         * and on a phone they were the rows that pushed the cluster past the
+         * map. Nothing is lost: the drawer carries them, one tap away.
+         */
+        if (dialSize >= GaugeSizes.Regular && (odometer != null || mileage != null)) {
+            Spacer(Modifier.height(12.dp))
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
-                    Readout(
-                        label = "Fuel",
-                        value = telemetry.value(Metric.FUEL_LEVEL)?.let { it.toInt().toString() },
-                        unit = "%",
-                        tone = fuelTone(telemetry.value(Metric.FUEL_LEVEL)),
-                        simulated = telemetry.isSimulated(Metric.FUEL_LEVEL),
-                        modifier = Modifier.weight(1f),
-                    )
-                    Readout(
-                        label = "Coolant",
-                        value = telemetry.value(Metric.COOLANT_TEMPERATURE)
-                            ?.let { it.toInt().toString() },
-                        unit = "°C",
-                        tone = coolantTone(telemetry.value(Metric.COOLANT_TEMPERATURE)),
-                        simulated = telemetry.isSimulated(Metric.COOLANT_TEMPERATURE),
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
-                    Readout(
-                        label = "Mileage",
-                        value = mileage,
-                        unit = "km/L",
-                        simulated = telemetry.isSimulated(Metric.FUEL_RATE),
-                        modifier = Modifier.weight(1f),
-                    )
-                    Readout(
-                        label = "Consumption",
-                        value = fuelRate?.let { "%.1f".format(it) },
-                        unit = "L/h",
-                        simulated = telemetry.isSimulated(Metric.FUEL_RATE),
-                        modifier = Modifier.weight(1f),
-                    )
-                }
                 Readout(
                     label = "Odometer",
                     value = odometer,
                     unit = "km",
                     simulated = telemetry.isSimulated(Metric.ODOMETER),
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.weight(1f),
                 )
-            }
-        }
-    }
-}
-
-/**
- * One instrument: an arc that fills, and the figure inside it.
- *
- * The number has to be read; the shape can be caught. That difference is the
- * whole reason a vehicle has dials rather than a table of values, and it is why
- * speed and RPM get this and fuel level does not — a driver checks fuel when
- * they think about it and checks speed without thinking at all.
- *
- * `maximum` is a display scale, never a limit: past it the arc simply stays
- * full while the figure keeps counting. A gauge that rescaled itself would make
- * the same needle position mean different things a minute apart.
- */
-@Composable
-private fun Dial(
-    value: Double?,
-    maximum: Double,
-    unit: String,
-    warnAbove: Double,
-    simulated: Boolean,
-    size: Dp,
-    label: String,
-) {
-    val reduced = LocalReducedMotion.current
-    val sweep by animateFloatAsState(
-        targetValue = ((value ?: 0.0) / maximum).coerceIn(0.0, 1.0).toFloat(),
-        // Eased rather than snapped. A needle that jumps between readings looks
-        // like a fault; a sweep looks like the vehicle changing, which it is.
-        animationSpec = if (reduced) {
-            tween(0)
-        } else {
-            spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessLow)
-        },
-        label = "$label-sweep",
-    )
-
-    val tone = when {
-        value == null -> MaterialTheme.colorScheme.onSurfaceVariant
-        value >= warnAbove -> SaarthiWarning
-        else -> MaterialTheme.colorScheme.primary
-    }
-    val track = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
-
-    Box(Modifier.size(size), contentAlignment = Alignment.Center) {
-        Canvas(Modifier.fillMaxSize()) {
-            val stroke = Stroke(width = 10.dp.toPx(), cap = StrokeCap.Round)
-            val inset = stroke.width / 2
-            val arcSize = Size(this.size.width - stroke.width, this.size.height - stroke.width)
-            // 240° starting bottom-left: the shape a driver expects a dial to
-            // have, rather than a closed ring.
-            drawArc(
-                color = track,
-                startAngle = 150f,
-                sweepAngle = 240f,
-                useCenter = false,
-                topLeft = Offset(inset, inset),
-                size = arcSize,
-                style = stroke,
-            )
-            drawArc(
-                color = tone,
-                startAngle = 150f,
-                sweepAngle = 240f * sweep,
-                useCenter = false,
-                topLeft = Offset(inset, inset),
-                size = arcSize,
-                style = stroke,
-            )
-        }
-
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            /*
-             * The digits move when they change: slide-and-fade rather than a
-             * straight swap, so a changing value registers in peripheral vision.
-             * Instant under reduced motion.
-             */
-            AnimatedContent(
-                targetState = value?.toInt(),
-                transitionSpec = {
-                    if (reduced) {
-                        fadeIn(tween(0)) togetherWith fadeOut(tween(0))
-                    } else {
-                        (fadeIn(tween(180)) + slideInVertically { it / 3 }) togetherWith
-                            (fadeOut(tween(140)) + slideOutVertically { -it / 3 })
-                    }
-                },
-                label = "$label-digits",
-            ) { shown ->
-                Text(
-                    shown?.toString() ?: "—",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    color = if (shown == null) {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    } else {
-                        MaterialTheme.colorScheme.onSurface
-                    },
+                Readout(
+                    label = "Mileage",
+                    value = mileage,
+                    unit = "km/L",
+                    simulated = telemetry.isSimulated(Metric.FUEL_RATE),
+                    modifier = Modifier.weight(1f),
                 )
-            }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    unit,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    softWrap = false,
-                )
-                if (simulated) {
-                    Spacer(Modifier.width(5.dp))
-                    Box(
-                        Modifier
-                            .size(6.dp)
-                            .clip(CircleShape)
-                            .background(SaarthiWarning),
-                    )
-                }
             }
         }
     }
@@ -990,6 +1098,7 @@ private fun MapPanel(
     showStatus: Boolean,
     /** Edge to edge, with no frame — the driver asked for the whole map. */
     fullBleed: Boolean,
+    onToggleExpand: () -> Unit,
     onRecentre: () -> Unit,
     onPanned: () -> Unit,
     onCancelRoute: () -> Unit,
@@ -1150,6 +1259,24 @@ private fun MapPanel(
         // Hidden while a route is being previewed: the camera is deliberately
         // showing the whole journey there, so offering to recentre it on the
         // vehicle is offering to undo what the driver just asked for.
+        /*
+         * Expand, on the map rather than in a menu.
+         *
+         * It went missing when the bottom bar became a drawer: a control that
+         * acts on the map had been filed with the destinations, and the drawer
+         * then swallowed it. It belongs on the thing it acts on, in the corner
+         * every map application puts it.
+         */
+        FloatingCircle(
+            icon = if (fullBleed) Icons.Rounded.CloseFullscreen else Icons.Rounded.OpenInFull,
+            description = if (fullBleed) "Show the instruments" else "Expand the map",
+            onClick = onToggleExpand,
+            size = 48.dp,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(12.dp),
+        )
+
         AnimatedVisibility(
             visible = !followVehicle && !navigation.previewing,
             enter = panelEnter(),
@@ -1543,13 +1670,14 @@ private fun FloatingCircle(
     description: String,
     onClick: () -> Unit,
     size: Dp = TouchTarget,
+    modifier: Modifier = Modifier,
 ) {
     Surface(
         onClick = onClick,
         shape = CircleShape,
         color = MaterialTheme.colorScheme.surface,
         shadowElevation = 8.dp,
-        modifier = Modifier.size(size),
+        modifier = modifier.size(size),
     ) {
         Box(contentAlignment = Alignment.Center) {
             Icon(icon, contentDescription = description, tint = MaterialTheme.colorScheme.primary)

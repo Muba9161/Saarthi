@@ -21,6 +21,8 @@ import com.saarthi.terminal.network.ReportIssueRequest
 import com.saarthi.terminal.network.RouteDto
 import com.saarthi.terminal.network.ReportOdometerRequest
 import com.saarthi.terminal.network.RoutePointDto
+import com.saarthi.terminal.network.PlaceMatchDto
+import com.saarthi.terminal.network.PlaceSearchRequest
 import com.saarthi.terminal.network.RouteRequest
 import com.saarthi.terminal.network.ServiceRunDto
 import com.saarthi.terminal.network.StartServiceRunRequest
@@ -437,6 +439,29 @@ class TerminalRepository(
      * mechanic is asking about where they are now, and the last uploaded frame
      * may be a minute and half a kilometre old.
      */
+    /**
+     * Search for a place by name.
+     *
+     * Needs a position, like routing does — the results are ranked around the
+     * driver, and a search for "MG Road" from nowhere in particular returns the
+     * wrong city's.
+     */
+    suspend fun searchPlaces(query: String): Result<List<PlaceMatchDto>> = runCatchingApi {
+        val position = telemetry.snapshot.value.position
+            ?: throw SaarthiApi.Failure.Refused(
+                409,
+                "NO_POSITION",
+                "Saarthi does not know where this vehicle is yet, so it cannot search near you.",
+            )
+        api.searchPlaces(
+            PlaceSearchRequest(
+                query = query,
+                latitude = position.latitude,
+                longitude = position.longitude,
+            ),
+        )
+    }
+
     suspend fun route(
         toLatitude: Double,
         toLongitude: Double,

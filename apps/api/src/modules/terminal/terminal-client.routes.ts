@@ -12,6 +12,7 @@ import {
   submitChecklistSchema,
   terminalAskSchema,
   terminalNearbySchema,
+  terminalPlaceSearchSchema,
   terminalRouteSchema,
   terminalTripEventSchema,
 } from '@saarthi/shared';
@@ -44,7 +45,7 @@ import {
   startTrip,
 } from './session.service';
 import { prepareChecklist, submitChecklist } from './checklist.service';
-import { findServices, routeTo } from './navigation.service';
+import { findServices, routeTo, searchPlaces } from './navigation.service';
 import {
   finishAdHocTrip,
   openAdHocTripForVehicle,
@@ -482,6 +483,29 @@ export async function terminalClientRoutes(app: FastifyInstance): Promise<void> 
    * and a terminal in a loop would spend a fleet's daily allowance before
    * anybody noticed.
    */
+  /**
+   * Search for somewhere by name.
+   *
+   * A driver is sent to a named place far more often than to a category — a
+   * society, a warehouse, a customer's gate — and no list of chips could ever
+   * cover that. Results come back in the same shape a nearby place does, so
+   * choosing one starts a trip through exactly the same path.
+   */
+  app.post('/search', { config: terminalLimit(30) }, async (request, reply) => {
+    const terminal = requireTerminal(await authenticateDeviceRequest(request));
+    await authorizedSessionForTerminal(terminal.device.id);
+    const input = parseBody(terminalPlaceSearchSchema, request.body);
+
+    return ok(
+      reply,
+      await searchPlaces({
+        query: input.query,
+        from: { latitude: input.latitude, longitude: input.longitude },
+        limit: input.limit,
+      }),
+    );
+  });
+
   app.post('/route', { config: terminalLimit(20) }, async (request, reply) => {
     const terminal = requireTerminal(await authenticateDeviceRequest(request));
     await authorizedSessionForTerminal(terminal.device.id);
