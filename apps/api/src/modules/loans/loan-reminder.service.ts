@@ -5,6 +5,7 @@ import {
   LoanStatus,
   NotificationPriority,
   NotificationType,
+  OPERATOR_OWNER_ROLES,
   addDays,
   daysBetween,
   formatCurrency,
@@ -230,7 +231,7 @@ export async function runEmiReminderSweep(): Promise<ReminderSweepResult> {
         priority: copy.priority,
         actionUrl: `/fleet/loans/${installment.loanId}`,
         // Finance is owner-level information — see Permission.LOANS_READ.
-        roles: ['FLEET_OWNER'],
+        roles: OPERATOR_OWNER_ROLES,
       });
 
       await prisma.loanEvent.create({

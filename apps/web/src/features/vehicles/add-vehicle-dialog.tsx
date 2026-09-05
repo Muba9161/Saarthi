@@ -4,6 +4,8 @@ import { toast } from 'sonner';
 import { CarFront, Gauge, IdCard, Plus } from 'lucide-react';
 import {
   FuelType,
+  MediaOwnerType,
+  MediaPurpose,
   VEHICLE_TYPE_CATALOGUE,
   VehicleCapability,
   VehicleType,
@@ -39,6 +41,12 @@ import {
   WIZARD_IN_DIALOG,
   type WizardStep,
 } from '@/components/common/form-wizard';
+import { ImageCircleField } from '@/components/common/file-dropzone';
+import { uploadImageOrWarn } from '@/features/media/upload-image';
+
+/** Mirrors MEDIA_MAX_FILE_SIZE on the API, so a rejection happens here first. */
+const PHOTO_MAX_SIZE_MB = 5;
+const PHOTO_ACCEPT = '.jpg,.jpeg,.png,.webp,.heic';
 
 /**
  * Register a vehicle of any type.
@@ -103,6 +111,11 @@ export function AddVehicleDialog({
   const [form, setForm] = React.useState<VehicleFormState>(() => initialState(defaultType));
   const [errors, setErrors] = React.useState<FieldErrors>({});
   const [erroredStepIds, setErroredStepIds] = React.useState<string[]>([]);
+  /**
+   * Held until the vehicle exists: media is addressed to an owner id, and
+   * there is no vehicle to own the photograph until the registration is saved.
+   */
+  const [photo, setPhoto] = React.useState<File | null>(null);
 
   const types = React.useMemo(
     () =>
@@ -122,13 +135,31 @@ export function AddVehicleDialog({
   };
 
   const create = useMutation({
-    mutationFn: (payload: Record<string, unknown>) => api.post('/fleet/vehicles', payload),
+    mutationFn: async (payload: Record<string, unknown>) => {
+      const vehicle = await api.post<{ id: string }>('/fleet/vehicles', payload);
+      // Inside the mutation rather than after it, so the dialog stays open and
+      // its button stays busy until the photograph has actually landed.
+      if (photo) {
+        await uploadImageOrWarn(
+          {
+            ownerType: MediaOwnerType.VEHICLE,
+            ownerId: vehicle.id,
+            purpose: MediaPurpose.VEHICLE_EXTERIOR,
+            file: photo,
+          },
+          'The vehicle was added, but its photo could not be saved.',
+        );
+      }
+      return vehicle;
+    },
     onSuccess: () => {
       toast.success('Vehicle added');
       void queryClient.invalidateQueries({ queryKey: ['vehicles'] });
       void queryClient.invalidateQueries({ queryKey: ['trucks'] });
+      void queryClient.invalidateQueries({ queryKey: ['media'] });
       setOpen(false);
       setForm(initialState(defaultType));
+      setPhoto(null);
       setErrors({});
       setErroredStepIds([]);
     },
@@ -237,6 +268,18 @@ export function AddVehicleDialog({
       icon: IdCard,
       content: (
         <>
+          <ImageCircleField
+            value={photo}
+            onChange={setPhoto}
+            label="Vehicle photo"
+            hint={`Optional · JPEG, PNG, WebP or HEIC up to ${PHOTO_MAX_SIZE_MB} MB`}
+            accept={PHOTO_ACCEPT}
+            maxSizeMb={PHOTO_MAX_SIZE_MB}
+            icon={CarFront}
+            onReject={(reason) => toast.error(reason)}
+            className="pb-1"
+          />
+
           <WizardField
             label="Registration number"
             htmlFor="vehicle-registration"

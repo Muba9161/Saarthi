@@ -205,7 +205,7 @@ export const sa: Catalogue = {
     'उत्तराणि केवलं तेभ्यः अभिलेखेभ्यः रच्यन्ते येषां दर्शने भवतः भूमिकायाः अनुमतिः अस्ति।',
   'Local development build — simulated GPS, mock payments, local document storage.':
     'स्थानीयविकासनिर्माणम् — अनुकृतं GPS, कृत्रिमाः भुक्तयः, स्थानीयपत्रसञ्चयः।',
-  'Back to saarthi.com': 'saarthi.com प्रति प्रत्यागमनम्',
+  'Back to vorldxsaarthi.com': 'vorldxsaarthi.com प्रति प्रत्यागमनम्',
   'Loading Saarthi…': 'Saarthi आपूर्यते…',
   'Try it instantly': 'तत्क्षणमेव प्रयततु',
   'Platform admin': 'मञ्चप्रशासकः',

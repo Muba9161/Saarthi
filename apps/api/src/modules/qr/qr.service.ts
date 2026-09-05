@@ -5,6 +5,7 @@ import {
   MediaOwnerType,
   Permission,
   MediaPurpose,
+  OPERATOR_MANAGEMENT_ROLES,
   QrCodeStatus,
   QrScanPurpose,
   QrScanResult,
@@ -389,7 +390,7 @@ export async function ensureVehicleCodeForDevice(
     where: {
       organizationId: vehicle.organizationId,
       status: 'ACTIVE',
-      role: { in: ['FLEET_OWNER', 'MOBILITY_PROVIDER', 'FLEET_MANAGER'] },
+      role: { in: [...OPERATOR_MANAGEMENT_ROLES] },
     },
     orderBy: { createdAt: 'asc' },
     select: { userId: true },

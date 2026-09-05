@@ -236,12 +236,40 @@ export const createBookingSchema = z
     pickupAddress: optionalTrimmedString(300),
     pickupLatitude: latitudeSchema.optional(),
     pickupLongitude: longitudeSchema.optional(),
+    /**
+     * Where the party is going, when the customer names it.
+     *
+     * A multi-day tour ends where the package says it ends. A taxi does not —
+     * it goes where the passenger is going, and a per-kilometre fare cannot be
+     * quoted until that is known. Optional here because only the second kind
+     * of package asks for it; `createBooking` refuses a per-kilometre booking
+     * that arrives without one.
+     */
+    dropoffAddress: optionalTrimmedString(300),
+    dropoffLatitude: latitudeSchema.optional(),
+    dropoffLongitude: longitudeSchema.optional(),
     contactName: trimmedString(2, 160),
     contactPhone: phoneSchema,
     contactEmail: optionalTrimmedString(254),
     specialRequests: optionalTrimmedString(2000),
   })
   .superRefine((value, ctx) => {
+    // A half-given destination is worse than none: an address with no
+    // coordinates cannot be measured, and coordinates with no address cannot
+    // be read out to a driver.
+    const dropoffParts = [
+      value.dropoffAddress,
+      value.dropoffLatitude,
+      value.dropoffLongitude,
+    ].filter((part) => part !== undefined && part !== '');
+    if (dropoffParts.length > 0 && dropoffParts.length < 3) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['dropoffAddress'],
+        message: 'Give the destination as an address and a point on the map.',
+      });
+    }
+
     const leadHours = (value.startDate.getTime() - Date.now()) / 3_600_000;
     if (leadHours < MIN_BOOKING_LEAD_HOURS) {
       ctx.addIssue({
@@ -320,5 +348,17 @@ export type RateBookingInput = z.infer<typeof rateBookingSchema>;
 export const quoteQuerySchema = z.object({
   packageId: uuidSchema,
   passengers: z.coerce.number().int().min(1).max(80),
+  /**
+   * The journey the customer actually intends, for a per-kilometre package.
+   *
+   * Without these the quote can only price the package's own nominal
+   * distance, which is not what a taxi passenger is about to be charged. The
+   * booking measures the same way, so the figure quoted here is the figure
+   * that gets billed.
+   */
+  pickupLatitude: latitudeSchema.optional(),
+  pickupLongitude: longitudeSchema.optional(),
+  dropoffLatitude: latitudeSchema.optional(),
+  dropoffLongitude: longitudeSchema.optional(),
 });
 export type QuoteQuery = z.infer<typeof quoteQuerySchema>;

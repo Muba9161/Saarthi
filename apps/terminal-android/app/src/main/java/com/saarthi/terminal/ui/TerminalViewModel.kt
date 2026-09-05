@@ -11,6 +11,7 @@ import com.saarthi.terminal.domain.VoiceClassifier
 import com.saarthi.terminal.domain.RouteFollower
 import com.saarthi.terminal.domain.VoiceIntent
 import com.saarthi.terminal.network.ChecklistAnswer
+import com.saarthi.terminal.update.UpdateManager
 import com.saarthi.terminal.network.ChecklistPreparationDto
 import com.saarthi.terminal.network.ChecklistResultDto
 import com.saarthi.terminal.network.IssueDto
@@ -279,6 +280,48 @@ class TerminalViewModel(application: Application) : AndroidViewModel(application
                 }
         }
     }
+
+    // -----------------------------------------------------------------------
+    // Keeping this terminal current
+    // -----------------------------------------------------------------------
+
+    /**
+     * Where this terminal is in the business of updating itself.
+     *
+     * `Idle` nearly always — a fleet on the current build never sees any of
+     * this. See `UpdateManager` for why each step exists.
+     */
+    private val updates = UpdateManager(application, viewModelScope)
+    val updateState: StateFlow<UpdateManager.State> = updates.state
+
+    init {
+        /*
+         * Ask on the same rhythm as the rest of the screen, not on a timer.
+         *
+         * The check is one small request and the answer is almost always "no",
+         * so it rides along with the state the cockpit is already refreshing
+         * rather than adding a schedule of its own to a tablet that is trying
+         * to conserve a fleet SIM.
+         */
+        viewModelScope.launch {
+            repository.state
+                .map { it?.vehicle?.registrationNumber }
+                .distinctUntilChanged()
+                .collect { updates.check(repository.api) }
+        }
+    }
+
+    /** Fetch the offered build. Verified against its checksum before installing. */
+    fun downloadUpdate() = updates.download(repository.api)
+
+    /** Hand the verified build to Android, which asks the driver to confirm. */
+    fun installUpdate() = updates.install()
+
+    /** Put the update card away. A mandatory release refuses to be dismissed. */
+    fun dismissUpdate() = updates.dismiss()
+
+    /** Report a failure the package installer discovered after we lost control. */
+    fun updateInstallFailed(reason: String) = updates.installFailed(reason)
 
     /**
      * The last thing that was refused, in the server's own words.

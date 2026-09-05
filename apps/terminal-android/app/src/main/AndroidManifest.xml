@@ -41,6 +41,25 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <!-- So a terminal fitted permanently to a vehicle resumes after a reboot. -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <!--
+      Installing a newer build of this app, over the air.
+
+      A terminal is bolted into a cab that may be three states away, and the
+      person nearest it is driving; carrying a laptop to every vehicle for every
+      fix does not scale past a handful of trucks. So the app fetches its own
+      updates from Saarthi and offers the driver a button.
+
+      This permission does *not* let the app install silently. Android still
+      shows its own confirmation, and the driver still has to agree — which is
+      the right division: an app that could replace itself unattended could also
+      be made to downgrade itself unattended.
+
+      Nothing else can be installed with it either. The download is authenticated
+      as this device, served only from Saarthi, and checked against a SHA-256 the
+      server published before the bytes are handed to the package installer.
+    -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <!-- Battery level for the heartbeat. Read-only, no special permission. -->
 
     <!--

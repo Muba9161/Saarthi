@@ -493,3 +493,51 @@ export const reportOdometerSchema = z.object({
   recordedAt: z.coerce.date().optional(),
 });
 export type ReportOdometerInput = z.infer<typeof reportOdometerSchema>;
+
+// ---------------------------------------------------------------------------
+// Over-the-air updates
+// ---------------------------------------------------------------------------
+
+/**
+ * What a terminal says about itself when asking whether it is behind.
+ *
+ * Both fields are optional, and their absence is meaningful rather than an
+ * error. A build old enough to predate this pipeline sends neither, and is
+ * treated as version zero on an unknown platform — so it is offered the update
+ * instead of being left behind by its own silence, which is the failure that
+ * would be impossible to diagnose from a workshop.
+ */
+export const terminalUpdateCheckSchema = z.object({
+  /** The `versionCode` of the build asking. */
+  versionCode: z.coerce.number().int().min(0).max(2_100_000_000).optional(),
+  /** The tablet's Android API level, so a build it cannot install is not offered. */
+  sdk: z.coerce.number().int().min(1).max(100).optional(),
+});
+export type TerminalUpdateCheckQuery = z.infer<typeof terminalUpdateCheckSchema>;
+
+/**
+ * Which build to download.
+ *
+ * Named in the path rather than implied by "the newest", so a download that
+ * began before a release was archived cannot silently resume against different
+ * bytes than the checksum the terminal is holding.
+ */
+export const terminalUpdateDownloadParamsSchema = z.object({
+  versionCode: z.coerce.number().int().min(1).max(2_100_000_000),
+});
+export type TerminalUpdateDownloadParams = z.infer<typeof terminalUpdateDownloadParamsSchema>;
+
+/**
+ * Publishing a release, from the admin console.
+ *
+ * There is no version field: the version is read out of the APK. The only
+ * things a person supplies are the two the binary cannot tell us — what changed,
+ * and whether it is urgent enough to stop a driver working until it is applied.
+ */
+export const createTerminalReleaseSchema = z.object({
+  /** Shown to the driver on the update card. */
+  notes: z.string().trim().max(2_000).optional(),
+  /** Blocks the cockpit until installed. For security or data-integrity fixes. */
+  mandatory: z.coerce.boolean().default(false),
+});
+export type CreateTerminalReleaseInput = z.infer<typeof createTerminalReleaseSchema>;

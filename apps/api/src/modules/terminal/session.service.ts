@@ -9,6 +9,7 @@ import {
   MediaVisibility,
   NotificationPriority,
   NotificationType,
+  OPERATOR_MANAGEMENT_ROLES,
   QrScanPurpose,
   QrSubjectType,
   TERMINAL_APPROVAL_SLA,
@@ -499,7 +500,7 @@ export async function submitForApproval(
     body: `Approve or reject the driver assignment. Expected response within ${TERMINAL_APPROVAL_SLA.escalateAfterMinutes} minutes.`,
     priority: NotificationPriority.HIGH,
     actionUrl: `/fleet/terminal-approvals?session=${updated.id}`,
-    roles: ['FLEET_OWNER', 'FLEET_MANAGER', 'MOBILITY_PROVIDER'],
+    roles: OPERATOR_MANAGEMENT_ROLES,
   });
 
   await announce(updated);

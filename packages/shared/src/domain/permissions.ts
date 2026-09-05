@@ -151,6 +151,8 @@ export const Permission = {
   VEHICLES_READ: 'fleet.trucks.read',
   VEHICLES_CREATE: 'fleet.trucks.create',
   VEHICLES_UPDATE: 'fleet.trucks.update',
+  VEHICLES_DELETE: 'fleet.trucks.delete',
+  VEHICLES_ASSIGN: 'fleet.trucks.assign',
 
   // Truck associations
   ASSOCIATION_READ: 'association.read',
@@ -739,3 +741,40 @@ export function hasAllPermissions(
 }
 
 export { ROLE_PERMISSIONS };
+
+// ---------------------------------------------------------------------------
+// Role audiences for organization-wide notifications
+// ---------------------------------------------------------------------------
+
+/**
+ * Who inside an operating business should hear about something.
+ *
+ * `notifyOrganization` addresses members by their *membership role*, so a list
+ * written as `['FLEET_OWNER', 'FLEET_MANAGER']` reaches nobody in a mobility
+ * provider: the person who owns a taxi business holds MOBILITY_PROVIDER, not
+ * FLEET_OWNER. Every such list was written before that role existed, and the
+ * result was silent — a document expiring, a device pairing, an EMI falling
+ * due, and an SOS raised by one of their own drivers, all delivered to an
+ * empty set.
+ *
+ * These three groups exist so the audience is named once. A call site picks
+ * the level of responsibility it is addressing; it never enumerates roles.
+ */
+
+/** The person who signed for the business: money, finance, subscriptions. */
+export const OPERATOR_OWNER_ROLES: readonly RoleName[] = Object.freeze([
+  RoleName.FLEET_OWNER,
+  RoleName.MOBILITY_PROVIDER,
+]);
+
+/** Owners plus the manager who runs the yard — compliance, maintenance, hardware. */
+export const OPERATOR_MANAGEMENT_ROLES: readonly RoleName[] = Object.freeze([
+  ...OPERATOR_OWNER_ROLES,
+  RoleName.FLEET_MANAGER,
+]);
+
+/** Management plus the dispatcher who allocates work — anything time-critical. */
+export const OPERATOR_OPERATIONS_ROLES: readonly RoleName[] = Object.freeze([
+  ...OPERATOR_MANAGEMENT_ROLES,
+  RoleName.DISPATCHER,
+]);

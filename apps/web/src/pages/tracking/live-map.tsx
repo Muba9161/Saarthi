@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Radio, Search, Truck } from 'lucide-react';
 import {
   Feature,
+  OrganizationType,
   RealtimeChannel,
   RealtimeEvent,
   compassDirection,
@@ -32,6 +33,12 @@ export function LiveMapPage() {
   const navigate = useNavigate();
   const { connected } = useRealtime();
   const organizationId = session?.organization?.id;
+  // A travel operator runs cars and buses. The map, the markers and the
+  // realtime channel are identical — only the noun changes, and calling a
+  // customer's taxi a truck on the operator's own screen is the kind of
+  // detail that makes a product feel borrowed from somebody else's business.
+  const isMobility = session?.organization?.type === OrganizationType.MOBILITY_PROVIDER;
+  const noun = isMobility ? 'vehicle' : 'truck';
   const [search, setSearch] = React.useState('');
   const [selected, setSelected] = React.useState<string | null>(null);
 
@@ -124,7 +131,7 @@ export function LiveMapPage() {
       <PageHeader
         eyebrow="Operations"
         title="Live map"
-        description={`${all.length} truck${all.length === 1 ? '' : 's'} reporting · ${moving} moving now`}
+        description={`${all.length} ${noun}${all.length === 1 ? '' : 's'} reporting · ${moving} moving now`}
         actions={
           <Badge variant={connected ? 'success' : 'muted'} className="gap-1.5">
             {connected ? <span className="live-dot" aria-hidden /> : <Radio className="size-3" />}
@@ -161,9 +168,9 @@ export function LiveMapPage() {
               <Input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search truck or driver…"
+                placeholder={`Search ${noun} or driver…`}
                 className="pl-9"
-                aria-label="Search trucks"
+                aria-label={`Search ${noun}s`}
               />
             </div>
 
@@ -171,7 +178,7 @@ export function LiveMapPage() {
               {filtered.length === 0 ? (
                 <EmptyState
                   icon={Truck}
-                  title={all.length === 0 ? 'No positions yet' : 'No matching trucks'}
+                  title={all.length === 0 ? 'No positions yet' : `No matching ${noun}s`}
                   description={
                     all.length === 0
                       ? 'Start a trip or run the GPS simulator to see live movement.'

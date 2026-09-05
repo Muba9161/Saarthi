@@ -1,8 +1,11 @@
 import {
   ACTIVE_TRIP_STATUSES,
+  BookingStatus,
   DocumentValidity,
   MaintenanceStatus,
   OrderStatus,
+  OrganizationType,
+  TravelPackageStatus,
   TripStatus,
   TruckStatus,
   resolveDocumentValidity,
@@ -68,11 +71,100 @@ export interface DashboardMetrics {
     sosThisMonth: number;
     safetyEventsThisMonth: number;
   };
+  /**
+   * Passenger work, for an organization that sells it.
+   *
+   * `null` for a freight fleet rather than a block of zeroes: a command centre
+   * that shows "0 bookings" to a haulier is inventing a business it does not
+   * run, and the screen would have no way to tell that apart from a travel
+   * operator having a quiet week.
+   */
+  travel: {
+    /** Requests the provider has not yet accepted or declined. */
+    awaitingConfirmation: number;
+    /** Confirmed and still to depart. */
+    upcoming: number;
+    inProgress: number;
+    completedThisMonth: number;
+    cancelledThisMonth: number;
+    publishedPackages: number;
+  } | null;
 }
 
 function startOfMonth(offset = 0): Date {
   const now = new Date();
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + offset, 1));
+}
+
+/**
+ * Passenger figures for a mobility provider's command centre.
+ *
+ * The freight equivalents — open orders, orders in transit — are meaningless
+ * to a taxi or tour operator, and the questions it does ask are different in
+ * kind: not "how much is moving" but "who is waiting on me to say yes".
+ * `awaitingConfirmation` is therefore first, because it is the only figure on
+ * the board that represents a customer being kept waiting.
+ */
+async function travelMetrics(
+  organizationId: string,
+  monthStart: Date,
+): Promise<NonNullable<DashboardMetrics['travel']>> {
+  const now = new Date();
+
+  const [
+    awaitingConfirmation,
+    upcoming,
+    inProgress,
+    completedThisMonth,
+    cancelledThisMonth,
+    publishedPackages,
+  ] = await Promise.all([
+    prisma.travelBooking.count({
+      where: {
+        providerOrganizationId: organizationId,
+        status: { in: [BookingStatus.AWAITING_CONFIRMATION, BookingStatus.PENDING_PAYMENT] },
+      },
+    }),
+    prisma.travelBooking.count({
+      where: {
+        providerOrganizationId: organizationId,
+        status: BookingStatus.CONFIRMED,
+        startDate: { gte: now },
+      },
+    }),
+    prisma.travelBooking.count({
+      where: { providerOrganizationId: organizationId, status: BookingStatus.IN_PROGRESS },
+    }),
+    prisma.travelBooking.count({
+      where: {
+        providerOrganizationId: organizationId,
+        status: BookingStatus.COMPLETED,
+        completedAt: { gte: monthStart },
+      },
+    }),
+    prisma.travelBooking.count({
+      where: {
+        providerOrganizationId: organizationId,
+        // A declined request is a booking the operator lost, exactly as a
+        // cancelled one is, so both are counted here rather than leaving
+        // declines invisible.
+        status: { in: [BookingStatus.CANCELLED, BookingStatus.DECLINED] },
+        OR: [{ cancelledAt: { gte: monthStart } }, { declinedAt: { gte: monthStart } }],
+      },
+    }),
+    prisma.travelPackage.count({
+      where: { organizationId, status: TravelPackageStatus.PUBLISHED },
+    }),
+  ]);
+
+  return {
+    awaitingConfirmation,
+    upcoming,
+    inProgress,
+    completedThisMonth,
+    cancelledThisMonth,
+    publishedPackages,
+  };
 }
 
 export async function dashboardMetrics(organizationId: string): Promise<DashboardMetrics> {
@@ -81,6 +173,7 @@ export async function dashboardMetrics(organizationId: string): Promise<Dashboar
     const previousMonthStart = startOfMonth(-1);
 
     const [
+      organization,
       trucks,
       drivers,
       driverScoreAggregate,
@@ -98,6 +191,10 @@ export async function dashboardMetrics(organizationId: string): Promise<Dashboar
       sosThisMonth,
       safetyEvents,
     ] = await Promise.all([
+      // Which business this is. Read here rather than passed in, so every
+      // caller of the dashboard gets the same answer without having to know
+      // the organization type itself.
+      prisma.organization.findUnique({ where: { id: organizationId }, select: { type: true } }),
       prisma.truck.groupBy({
         by: ['status'],
         where: { organizationId, archivedAt: null },
@@ -229,6 +326,13 @@ export async function dashboardMetrics(organizationId: string): Promise<Dashboar
       where: { organizationId, archivedAt: null, verificationStatus: 'VERIFIED' },
     });
 
+    // Passenger work. Only queried for an organization that sells it — a
+    // freight fleet pays for none of these round trips.
+    const travel =
+      organization?.type === OrganizationType.MOBILITY_PROVIDER
+        ? await travelMetrics(organizationId, monthStart)
+        : null;
+
     return {
       fleet: {
         totalTrucks,
@@ -298,6 +402,7 @@ export async function dashboardMetrics(organizationId: string): Promise<Dashboar
         pendingVerification,
         maintenanceOverdue: overdueMaintenance,
       },
+      travel,
       safety: {
         activeSosIncidents: activeSos,
         sosThisMonth,

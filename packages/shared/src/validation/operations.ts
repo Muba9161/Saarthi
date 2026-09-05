@@ -36,6 +36,16 @@ export const createTripSchema = z.object({
 export type CreateTripInput = z.infer<typeof createTripSchema>;
 
 export const updateTripSchema = z.object({
+  /**
+   * Move the job to a different vehicle.
+   *
+   * A dispatch is a plan, and plans change before the wheels turn — the lorry
+   * that was going to take it is in the workshop, or a bigger one came free.
+   * Allowed only while the trip has not started, for the same reason the
+   * driver is: re-pointing a moving trip at another vehicle would orphan the
+   * telemetry already recorded against the first.
+   */
+  truckId: uuidSchema.optional(),
   driverId: uuidSchema.optional(),
   plannedStartAt: z.coerce.date().optional(),
   plannedArrivalAt: z.coerce.date().optional(),

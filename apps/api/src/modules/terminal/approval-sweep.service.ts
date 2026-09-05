@@ -1,6 +1,8 @@
 import {
   NotificationPriority,
   NotificationType,
+  OPERATOR_MANAGEMENT_ROLES,
+  OPERATOR_OWNER_ROLES,
   TERMINAL_APPROVAL_SLA,
   TERMINAL_SESSION_IDLE_HOURS,
   TerminalSessionEventType,
@@ -95,7 +97,7 @@ export async function runTerminalApprovalSweep(): Promise<ApprovalSweepResult> {
       body: `Submitted ${TERMINAL_APPROVAL_SLA.remindAfterMinutes} minutes ago. Approve or reject the assignment.`,
       priority: NotificationPriority.HIGH,
       actionUrl: `/fleet/terminal-approvals?session=${session.id}`,
-      roles: ['FLEET_OWNER', 'FLEET_MANAGER', 'MOBILITY_PROVIDER'],
+      roles: OPERATOR_MANAGEMENT_ROLES,
     });
 
     await prisma.terminalSessionEvent.create({
@@ -145,7 +147,7 @@ export async function runTerminalApprovalSweep(): Promise<ApprovalSweepResult> {
       body: `${driverName} is waiting at the vehicle and cannot start work until somebody approves or rejects the request.`,
       priority: NotificationPriority.CRITICAL,
       actionUrl: `/fleet/terminal-approvals?session=${session.id}`,
-      roles: ['FLEET_OWNER', 'MOBILITY_PROVIDER'],
+      roles: OPERATOR_OWNER_ROLES,
     });
 
     await prisma.terminalSessionEvent.create({

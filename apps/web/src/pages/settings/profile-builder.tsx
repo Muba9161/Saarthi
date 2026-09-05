@@ -518,7 +518,7 @@ function SecurityStep() {
 export function ProfileBuilderPage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const { session } = useAuth();
+  const { session, refreshSession } = useAuth();
   const { setLocale } = useLocale();
   /** Keyed by section key, then by `sectionKey.fieldKey`. */
   const [drafts, setDrafts] = React.useState<Record<string, Record<string, unknown>>>({});
@@ -530,6 +530,10 @@ export function ProfileBuilderPage() {
 
   function refresh() {
     void queryClient.invalidateQueries({ queryKey: ['profile'] });
+    // A profile photo is mirrored onto the user record, and the app shell
+    // reads it from the session rather than re-fetching it per render. Without
+    // this the new photograph does not appear in the header until a reload.
+    void refreshSession();
   }
 
   if (builder.isLoading) return <LoadingState label="Loading your profile…" />;

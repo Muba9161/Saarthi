@@ -17,6 +17,7 @@ import {
   bookingStateMachine,
   buildPaginationMeta,
   calculateRefund,
+  journeyDistanceKm,
   platformFeeFor,
   quotePackage,
   type TravelServiceKind,
@@ -86,6 +87,13 @@ export interface BookingSummary {
   durationDays: number;
   passengers: number;
   pickupAddress: string | null;
+  pickupLatitude: number | null;
+  pickupLongitude: number | null;
+  dropoffAddress: string | null;
+  dropoffLatitude: number | null;
+  dropoffLongitude: number | null;
+  /** Pickup to drop-off, as measured when the fare was agreed. */
+  distanceKm: number | null;
   contactName: string;
   contactPhone: string;
   contactEmail: string | null;
@@ -192,6 +200,12 @@ async function toSummary(booking: BookingRecord): Promise<BookingSummary> {
     durationDays: booking.package.durationDays,
     passengers: booking.passengers,
     pickupAddress: booking.pickupAddress,
+    pickupLatitude: booking.pickupLatitude,
+    pickupLongitude: booking.pickupLongitude,
+    dropoffAddress: booking.dropoffAddress,
+    dropoffLatitude: booking.dropoffLatitude,
+    dropoffLongitude: booking.dropoffLongitude,
+    distanceKm: booking.distanceKm,
     contactName: booking.contactName,
     contactPhone: booking.contactPhone,
     contactEmail: booking.contactEmail,
@@ -371,6 +385,45 @@ export async function createBooking(
     throw errors.businessRule('This package does not depart on that day of the week.');
   }
 
+  const pickup = {
+    address: input.pickupAddress ?? pkg.startLocation,
+    latitude: input.pickupLatitude ?? pkg.startLatitude,
+    longitude: input.pickupLongitude ?? pkg.startLongitude,
+  };
+  // Named by the customer, or not named at all — a fixed tour ends where the
+  // package says it ends, and only the taxi-shaped packages ask.
+  const dropoff =
+    input.dropoffAddress &&
+    input.dropoffLatitude !== undefined &&
+    input.dropoffLongitude !== undefined
+      ? {
+          address: input.dropoffAddress,
+          latitude: input.dropoffLatitude,
+          longitude: input.dropoffLongitude,
+        }
+      : null;
+
+  const distance = journeyDistanceKm(pickup, dropoff, pkg.approxDistanceKm);
+
+  /*
+   * A per-kilometre fare has to be charged on the journey actually asked for.
+   *
+   * The package declares a nominal distance so it can be listed with a "from"
+   * price, and falling back to it here would look harmless — the fare would be
+   * a real number rather than zero. It would also be the wrong number for
+   * every passenger who is not going exactly that far, quietly billing a
+   * cross-district run at the price of a station drop. So the destination is
+   * required rather than assumed.
+   */
+  if (pkg.pricingModel === PricingModel.PER_KM && (!dropoff || !(distance && distance > 0))) {
+    throw errors.validation(
+      'Tell us where you are going — this fare is charged by the kilometre.',
+      {
+        fields: { dropoffAddress: ['Enter your destination.'] },
+      },
+    );
+  }
+
   // Price is snapshotted now. A later change to the package price must never
   // silently alter what the customer agreed to pay.
   const quote = quotePackage(
@@ -378,7 +431,7 @@ export async function createBooking(
       pricingModel: pkg.pricingModel as PricingModel,
       basePrice: Number(pkg.basePrice),
       durationDays: pkg.durationDays,
-      distanceKm: pkg.approxDistanceKm,
+      distanceKm: distance,
     },
     input.passengers,
   );
@@ -404,9 +457,13 @@ export async function createBooking(
       startDate: input.startDate,
       endDate,
       passengers: input.passengers,
-      pickupAddress: input.pickupAddress ?? pkg.startLocation,
-      pickupLatitude: input.pickupLatitude ?? pkg.startLatitude,
-      pickupLongitude: input.pickupLongitude ?? pkg.startLongitude,
+      pickupAddress: pickup.address,
+      pickupLatitude: pickup.latitude,
+      pickupLongitude: pickup.longitude,
+      dropoffAddress: dropoff?.address ?? null,
+      dropoffLatitude: dropoff?.latitude ?? null,
+      dropoffLongitude: dropoff?.longitude ?? null,
+      distanceKm: distance,
       contactName: input.contactName,
       contactPhone: input.contactPhone,
       contactEmail: input.contactEmail ?? null,
@@ -798,8 +855,6 @@ export async function confirmBooking(
   );
   if (!check.allowed) throw errors.invalidTransition(check.reason!);
 
-  const vehicleId = input.vehicleId ?? booking.package.providerId ? input.vehicleId : undefined;
-
   // Validate the vehicle before writing anything: a confirmation that assigns
   // an unavailable vehicle is worse than a refused confirmation.
   if (input.vehicleId) {
@@ -861,13 +916,14 @@ export async function confirmBooking(
           originAddress: booking.pickupAddress ?? booking.package.startLocation,
           originLatitude: booking.pickupLatitude ?? booking.package.startLatitude,
           originLongitude: booking.pickupLongitude ?? booking.package.startLongitude,
-          destinationAddress: booking.package.endLocation,
-          // A package describes a round trip in the common case, so the
-          // destination coordinates default to the start point rather than
-          // inventing a location the itinerary does not give us.
-          destinationLatitude: booking.package.startLatitude,
-          destinationLongitude: booking.package.startLongitude,
-          plannedDistanceKm: null,
+          // Where the customer said they are going, when they said it. A fixed
+          // tour names no destination of its own, and a package describes a
+          // round trip in the common case — so that falls back to the start
+          // point rather than inventing a location the itinerary never gave.
+          destinationAddress: booking.dropoffAddress ?? booking.package.endLocation,
+          destinationLatitude: booking.dropoffLatitude ?? booking.package.startLatitude,
+          destinationLongitude: booking.dropoffLongitude ?? booking.package.startLongitude,
+          plannedDistanceKm: booking.distanceKm,
           plannedStartAt: booking.startDate,
           plannedArrivalAt: booking.endDate,
           status: TripStatus.ASSIGNED,
@@ -960,7 +1016,6 @@ export async function confirmBooking(
     }
   }
 
-  void vehicleId;
   await publish(updated, false);
   return toSummary(updated);
 }

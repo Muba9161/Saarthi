@@ -229,7 +229,7 @@ export const en = {
     'Answers built only from records your role is allowed to see.',
   'Local development build — simulated GPS, mock payments, local document storage.':
     'Local development build — simulated GPS, mock payments, local document storage.',
-  'Back to saarthi.com': 'Back to saarthi.com',
+  'Back to vorldxsaarthi.com': 'Back to vorldxsaarthi.com',
   'Loading Saarthi…': 'Loading Saarthi…',
 
   // --- Demo accounts --------------------------------------------------------

@@ -9,6 +9,7 @@
  */
 
 import { CancelledBy, PricingModel, ServiceType, TravelServiceKind } from './enums';
+import { distanceKm, type LatLng } from './geo';
 
 // ---------------------------------------------------------------------------
 // Pricing
@@ -22,6 +23,32 @@ export interface PackagePricingInput {
   durationDays: number;
   /** Approximate route distance, used only by the PER_KM model. */
   distanceKm: number | null;
+}
+
+/**
+ * The distance a fare is quoted on.
+ *
+ * A package carries a nominal distance, and for a fixed tour that is the right
+ * figure. A per-kilometre package is not sold against it: a taxi charges for
+ * the journey the passenger actually asks for, so once both ends are known the
+ * journey wins.
+ *
+ * Measured straight-line, which is how a freight order sizes itself before a
+ * routing provider refines it. An estimate that is honest about being one
+ * beats a road distance nobody has paid a routing call for on every keystroke
+ * of a fare preview.
+ *
+ * Shared so the quote endpoint, the booking and the customer's live preview
+ * all arrive at the same number — a fare that changes between the screen and
+ * the invoice is the one thing a passenger will never forgive.
+ */
+export function journeyDistanceKm(
+  pickup: LatLng | null | undefined,
+  dropoff: LatLng | null | undefined,
+  packageDistanceKm: number | null | undefined,
+): number | null {
+  if (pickup && dropoff) return Math.round(distanceKm(pickup, dropoff) * 10) / 10;
+  return packageDistanceKm ?? null;
 }
 
 export interface PriceQuote {

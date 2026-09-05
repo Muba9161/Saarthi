@@ -24,6 +24,26 @@ export const registrableRoleSchema = z.enum([
 ]);
 export type RegistrableRole = z.infer<typeof registrableRoleSchema>;
 
+/**
+ * Account types that must name a business.
+ *
+ * A customer need not be one. Somebody booking a cab, or ordering a load of
+ * sand for a house they are building, is an individual — demanding a company
+ * name turns the field into something they invent an answer for, and every
+ * order then carries that invention. They still get an organization, because
+ * memberships, orders and bookings all hang off one; it is simply named after
+ * them (see `registerUser`).
+ *
+ * Drivers are absent for a different reason: they join an existing fleet by
+ * invite code and create no organization at all.
+ */
+export const ORGANIZATION_NAME_REQUIRED_ROLES: readonly RegistrableRole[] = [
+  RoleName.FLEET_OWNER,
+  RoleName.SUPPLIER,
+  RoleName.MOBILITY_PROVIDER,
+  RoleName.ASSOCIATION_ADMIN,
+];
+
 export const ROLE_TO_ORGANIZATION_TYPE: Record<RegistrableRole, OrganizationType | null> = {
   [RoleName.FLEET_OWNER]: OrganizationType.FLEET_OWNER,
   [RoleName.SUPPLIER]: OrganizationType.SUPPLIER,
@@ -32,6 +52,23 @@ export const ROLE_TO_ORGANIZATION_TYPE: Record<RegistrableRole, OrganizationType
   [RoleName.MOBILITY_PROVIDER]: OrganizationType.MOBILITY_PROVIDER,
   [RoleName.ASSOCIATION_ADMIN]: OrganizationType.TRUCK_ASSOCIATION,
 };
+
+/**
+ * Organization types a driver may join with an invite code.
+ *
+ * A driver signs on to a business that runs vehicles and employs people to
+ * drive them. That is as true of a taxi or tour operator as it is of a freight
+ * fleet — the same licence, the same documents, the same terminal approval at
+ * the start of a shift — so a mobility provider's invite code is accepted
+ * here. Before this list existed the check named FLEET_OWNER and ENTERPRISE
+ * directly, and a travel operator's own drivers were told their employer's
+ * code 'does not belong to a fleet'.
+ */
+export const DRIVER_JOINABLE_ORGANIZATION_TYPES: readonly OrganizationType[] = [
+  OrganizationType.FLEET_OWNER,
+  OrganizationType.ENTERPRISE,
+  OrganizationType.MOBILITY_PROVIDER,
+];
 
 export const registerSchema = z
   .object({
@@ -50,7 +87,7 @@ export const registerSchema = z
     preferredLanguage: z
       .enum(SUPPORTED_LOCALES as [string, ...string[]])
       .default(DEFAULT_LOCALE),
-    /** Required for FLEET_OWNER / SUPPLIER / CUSTOMER. */
+    /** Required for the roles in `ORGANIZATION_NAME_REQUIRED_ROLES`. */
     organizationName: optionalTrimmedString(160),
     /** Optional business registration number for the new organization. */
     registrationNumber: optionalTrimmedString(60),
@@ -64,7 +101,7 @@ export const registerSchema = z
     }),
   })
   .superRefine((value, ctx) => {
-    if (value.role !== RoleName.DRIVER && !value.organizationName) {
+    if (ORGANIZATION_NAME_REQUIRED_ROLES.includes(value.role) && !value.organizationName) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['organizationName'],

@@ -201,7 +201,7 @@ export const as: Catalogue = {
     'উত্তৰ কেৱল সেই নথিৰ পৰা তৈয়াৰ হয় যিবোৰ চাবলৈ আপোনাৰ ভূমিকাক অনুমতি আছে।',
   'Local development build — simulated GPS, mock payments, local document storage.':
     'স্থানীয় ডেভেলপমেণ্ট বিল্ড — কৃত্ৰিম GPS, নকল পেমেণ্ট, স্থানীয় নথি সংৰক্ষণ।',
-  'Back to saarthi.com': 'saarthi.com লৈ ঘূৰি যাওক',
+  'Back to vorldxsaarthi.com': 'vorldxsaarthi.com লৈ ঘূৰি যাওক',
   'Loading Saarthi…': 'Saarthi লোড হৈ আছে…',
   'Try it instantly': 'এতিয়াই চাই লওক',
   'Platform admin': 'প্লেটফৰ্ম প্ৰশাসক',

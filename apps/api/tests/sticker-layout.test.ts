@@ -220,7 +220,7 @@ function decode(svg: string, url: string, mirror: boolean) {
 // --- Fixtures ---------------------------------------------------------------
 
 const TOKEN = 'kQ7bZ2mR9xT4vL8nP1sW3yG6hJ0dF5aC2eU7iO4rK9M';
-const URL = `https://app.saarthi.in/q/${TOKEN}`;
+const URL = `https://app.vorldxsaarthi.com/q/${TOKEN}`;
 
 const base: StickerInput = {
   token: TOKEN,

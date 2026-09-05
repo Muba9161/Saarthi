@@ -131,7 +131,7 @@ export function notifyAsync(input: NotifyInput): void {
 /** Notify every active member of an organization holding one of `roles`. */
 export async function notifyOrganization(
   organizationId: string,
-  input: Omit<NotifyInput, 'userId' | 'organizationId'> & { roles?: string[] },
+  input: Omit<NotifyInput, 'userId' | 'organizationId'> & { roles?: readonly string[] },
 ): Promise<void> {
   const memberships = await prisma.membership.findMany({
     where: {

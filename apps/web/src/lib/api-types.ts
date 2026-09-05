@@ -390,6 +390,20 @@ export interface DashboardMetrics {
     sosThisMonth: number;
     safetyEventsThisMonth: number;
   };
+  /**
+   * Passenger work, present only for a mobility provider.
+   *
+   * `null` for a freight fleet rather than zeroes, so the command centre can
+   * tell "does not sell travel" apart from "sold none this month".
+   */
+  travel: {
+    awaitingConfirmation: number;
+    upcoming: number;
+    inProgress: number;
+    completedThisMonth: number;
+    cancelledThisMonth: number;
+    publishedPackages: number;
+  } | null;
 }
 
 export interface MaterialSummary {

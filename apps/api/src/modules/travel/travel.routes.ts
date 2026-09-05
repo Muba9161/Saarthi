@@ -305,7 +305,19 @@ export async function travelRoutes(app: FastifyInstance): Promise<void> {
     { preHandler: requirePermission(Permission.TRAVEL_BROWSE, Permission.TRAVEL_PACKAGES_READ) },
     async (request, reply) => {
       const query = parseQuery(quoteQuerySchema, request.query);
-      return ok(reply, await packageService.quoteFor(query.packageId, query.passengers));
+      return ok(
+        reply,
+        await packageService.quoteFor(query.packageId, query.passengers, {
+          pickup:
+            query.pickupLatitude !== undefined && query.pickupLongitude !== undefined
+              ? { latitude: query.pickupLatitude, longitude: query.pickupLongitude }
+              : null,
+          dropoff:
+            query.dropoffLatitude !== undefined && query.dropoffLongitude !== undefined
+              ? { latitude: query.dropoffLatitude, longitude: query.dropoffLongitude }
+              : null,
+        }),
+      );
     },
   );
 

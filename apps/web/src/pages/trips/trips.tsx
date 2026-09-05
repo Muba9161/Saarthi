@@ -17,6 +17,7 @@ import type { Paginated, TripSummary } from '@/lib/api-types';
 import { useAuth } from '@/features/auth/auth-context';
 import { useChannels, useRealtimeEvent } from '@/hooks/use-realtime';
 import { PageHeader } from '@/components/common/page-header';
+import { CreateTripDialog } from '@/features/trips/create-trip-dialog';
 import { DataView, type Column } from '@/components/common/data-view';
 import { StatusBadge } from '@/components/common/status-badge';
 import { UnauthorizedState } from '@/components/common/states';
@@ -160,7 +161,11 @@ export function TripsPage() {
 
   return (
     <div className="space-y-5">
-      <PageHeader title="Trips" description="Every movement, planned and in progress." />
+      <PageHeader
+        title="Trips"
+        description="Every movement, planned and in progress."
+        actions={can(Permission.TRIPS_MANAGE) ? <CreateTripDialog /> : undefined}
+      />
 
       <div className="flex flex-col gap-2 sm:flex-row">
         <div className="relative flex-1">

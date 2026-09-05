@@ -4,6 +4,7 @@ import {
   MaintenanceStatus,
   NotificationPriority,
   NotificationType,
+  OPERATOR_MANAGEMENT_ROLES,
   type TerminalChecklistItemKind,
   TerminalChecklistItemStatus,
   TerminalChecklistOutcome,
@@ -543,7 +544,7 @@ export async function submitChecklist(
       body: `Blocked by: ${blockedBy.join(', ')}. The driver cannot start the trip.`,
       priority: NotificationPriority.CRITICAL,
       actionUrl: `/fleet/vehicles/${session.vehicleId}`,
-      roles: ['FLEET_OWNER', 'FLEET_MANAGER', 'MOBILITY_PROVIDER'],
+      roles: OPERATOR_MANAGEMENT_ROLES,
     });
   } else {
     // Only a passing check makes the driver READY. This is the one call that

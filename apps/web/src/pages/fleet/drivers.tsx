@@ -6,6 +6,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Contact, IdCard, Plus, Search, UserRound, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import {
+  MediaOwnerType,
+  MediaPurpose,
   Permission,
   createDriverSchema,
   formatDistanceKm,
@@ -46,6 +48,12 @@ import {
   WIZARD_IN_DIALOG,
   type WizardStep,
 } from '@/components/common/form-wizard';
+import { ImageCircleField } from '@/components/common/file-dropzone';
+import { uploadImageOrWarn } from '@/features/media/upload-image';
+
+/** Mirrors MEDIA_MAX_FILE_SIZE on the API, so a rejection happens here first. */
+const PHOTO_MAX_SIZE_MB = 5;
+const PHOTO_ACCEPT = '.jpg,.jpeg,.png,.webp,.heic';
 
 /**
  * Add a driver.
@@ -65,6 +73,11 @@ function AddDriverDialog({
 }) {
   const queryClient = useQueryClient();
   const [setupUrl, setSetupUrl] = React.useState<string | null>(null);
+  /**
+   * Held until the driver record exists: media is addressed to an owner id,
+   * and there is nothing to own the photograph until the account is created.
+   */
+  const [photo, setPhoto] = React.useState<File | null>(null);
 
   const form = useForm<CreateDriverInput>({
     resolver: zodResolver(createDriverSchema),
@@ -79,13 +92,30 @@ function AddDriverDialog({
   });
 
   const mutation = useMutation({
-    mutationFn: (input: CreateDriverInput) =>
-      api.post<{ driver: DriverSummary; setupUrl: string }>('/drivers', input),
+    mutationFn: async (input: CreateDriverInput) => {
+      const result = await api.post<{ driver: DriverSummary; setupUrl: string }>('/drivers', input);
+      // Inside the mutation rather than after it, so the submit button stays
+      // busy until the photograph has actually landed.
+      if (photo) {
+        await uploadImageOrWarn(
+          {
+            ownerType: MediaOwnerType.DRIVER,
+            ownerId: result.driver.id,
+            purpose: MediaPurpose.AVATAR,
+            file: photo,
+          },
+          'The driver was added, but their photo could not be saved.',
+        );
+      }
+      return result;
+    },
     onSuccess: (result) => {
       toast.success('Driver account created');
       // There is no email provider locally, so the one-time link is surfaced here.
       setSetupUrl(result.setupUrl);
       void queryClient.invalidateQueries({ queryKey: ['drivers'] });
+      void queryClient.invalidateQueries({ queryKey: ['media'] });
+      setPhoto(null);
       form.reset();
     },
     onError: (error) => toast.error('Could not add driver', { description: errorMessage(error) }),
@@ -104,34 +134,48 @@ function AddDriverDialog({
       icon: UserRound,
       fields: ['firstName', 'lastName'],
       content: (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <FormField
-            control={form.control}
-            name="firstName"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel required>First name</FormLabel>
-                <FormControl>
-                  <Input {...field} autoFocus />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+        <>
+          <ImageCircleField
+            value={photo}
+            onChange={setPhoto}
+            label="Driver photo"
+            hint={`Optional · JPEG, PNG, WebP or HEIC up to ${PHOTO_MAX_SIZE_MB} MB`}
+            accept={PHOTO_ACCEPT}
+            maxSizeMb={PHOTO_MAX_SIZE_MB}
+            icon={UserRound}
+            onReject={(reason) => toast.error(reason)}
+            className="pb-1"
           />
-          <FormField
-            control={form.control}
-            name="lastName"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel required>Last name</FormLabel>
-                <FormControl>
-                  <Input {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <FormField
+              control={form.control}
+              name="firstName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel required>First name</FormLabel>
+                  <FormControl>
+                    <Input {...field} autoFocus />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="lastName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel required>Last name</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </>
       ),
     },
     {

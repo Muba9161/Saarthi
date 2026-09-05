@@ -201,7 +201,7 @@ export const kok: Catalogue = {
     'जाप फकत त्या नोंदी वयल्यान तयार जाता जियो पळोवपाची तुमच्या भुमिकेक परवानगी आसा.',
   'Local development build — simulated GPS, mock payments, local document storage.':
     'लोकल डेव्हलपमेंट बिल्ड — नकली GPS, नकली पेमेंट, थळावी दस्तावेज सांठवण.',
-  'Back to saarthi.com': 'saarthi.com चेर परत',
+  'Back to vorldxsaarthi.com': 'vorldxsaarthi.com चेर परत',
   'Loading Saarthi…': 'Saarthi लोड जाता…',
   'Try it instantly': 'तेच घडये वापरून पळयात',
   'Platform admin': 'प्लॅटफॉर्म प्रशासक',

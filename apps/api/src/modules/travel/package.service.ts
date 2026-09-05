@@ -8,9 +8,11 @@ import {
   VerificationStatus,
   buildPaginationMeta,
   canOfferServiceKind,
+  journeyDistanceKm,
   quotePackage,
   vehicleSupports,
   type CreateTravelPackageInput,
+  type LatLng,
   type Paginated,
   type PriceQuote,
   type TravelSearchQuery,
@@ -557,8 +559,18 @@ export async function recordPackageView(packageId: string): Promise<void> {
     .catch(() => undefined);
 }
 
-/** Price preview for a party size, shown before the customer commits. */
-export async function quoteFor(packageId: string, passengers: number): Promise<PriceQuote> {
+/**
+ * Price preview for a party size, shown before the customer commits.
+ *
+ * `journey` is what a per-kilometre package needs: the customer's own pickup
+ * and destination, measured the same way `createBooking` measures them, so the
+ * figure on the screen is the figure on the invoice.
+ */
+export async function quoteFor(
+  packageId: string,
+  passengers: number,
+  journey?: { pickup?: LatLng | null; dropoff?: LatLng | null },
+): Promise<PriceQuote> {
   const record = await prisma.travelPackage.findFirst({
     where: { id: packageId, archivedAt: null },
     select: {
@@ -583,7 +595,7 @@ export async function quoteFor(packageId: string, passengers: number): Promise<P
       pricingModel: record.pricingModel as PricingModel,
       basePrice: Number(record.basePrice),
       durationDays: record.durationDays,
-      distanceKm: record.approxDistanceKm,
+      distanceKm: journeyDistanceKm(journey?.pickup, journey?.dropoff, record.approxDistanceKm),
     },
     passengers,
   );

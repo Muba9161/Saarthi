@@ -200,7 +200,7 @@ export const mai: Catalogue = {
     'उत्तर केवल ओहि रिकॉर्ड सँ बनैत अछि जकरा देखय के अहाँक भूमिकाकेँ अनुमति अछि।',
   'Local development build — simulated GPS, mock payments, local document storage.':
     'लोकल डेवलपमेंट बिल्ड — नकली GPS, नकली भुगतान, स्थानीय कागजात भंडारण।',
-  'Back to saarthi.com': 'saarthi.com पर वापस',
+  'Back to vorldxsaarthi.com': 'vorldxsaarthi.com पर वापस',
   'Loading Saarthi…': 'Saarthi लोड भ रहल अछि…',
   'Try it instantly': 'तुरंत आजमाउ',
   'Platform admin': 'प्लेटफॉर्म एडमिन',

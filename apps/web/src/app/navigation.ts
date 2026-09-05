@@ -27,6 +27,7 @@ import {
   PlayCircle,
   Route,
   ScanLine,
+  PackageCheck,
   ScrollText,
   ShieldCheck,
   ShoppingCart,
@@ -518,6 +519,22 @@ export const MOBILITY_NAVIGATION: NavSection[] = [
     ],
   },
   {
+    // A travel operator fits the same telematics hardware and holds the same
+    // grants to work its alerts — including telemetry.alerts.manage. The link
+    // was simply never added, so a harsh-braking alert on a taxi raised a
+    // notification pointing at a screen the operator had no way to open.
+    title: 'Connect',
+    items: [
+      {
+        label: 'Telemetry alerts',
+        to: '/telemetry/alerts',
+        icon: Radio,
+        permissions: [Permission.TELEMETRY_ALERTS_READ],
+        feature: Feature.TELEMETRY_LIVE,
+      },
+    ],
+  },
+  {
     title: 'Intelligence',
     items: [
       {
@@ -532,6 +549,17 @@ export const MOBILITY_NAVIGATION: NavSection[] = [
         icon: Bot,
         permissions: [Permission.AI_USE],
         feature: Feature.AI_COPILOT,
+      },
+    ],
+  },
+  {
+    title: 'Demo',
+    items: [
+      {
+        label: 'GPS simulator',
+        to: '/simulator',
+        icon: PlayCircle,
+        permissions: [Permission.TRUCKS_UPDATE, Permission.ADMIN_SIMULATOR],
       },
     ],
   },
@@ -596,6 +624,14 @@ export const ADMIN_NAVIGATION: NavSection[] = [
         to: '/devices',
         icon: Cpu,
         permissions: [Permission.DEVICES_READ],
+      },
+      {
+        // Beneath Devices, because that is where somebody goes when they are
+        // thinking about the tablets in the trucks.
+        label: 'Terminal releases',
+        to: '/admin/terminal-releases',
+        icon: PackageCheck,
+        permissions: [Permission.ADMIN_PLATFORM],
       },
       {
         label: 'Audit log',

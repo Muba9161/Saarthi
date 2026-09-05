@@ -3,6 +3,7 @@ import {
   DeviceEventType,
   NotificationPriority,
   NotificationType,
+  OPERATOR_OPERATIONS_ROLES,
   RealtimeEvent,
   SOS_ELIGIBLE_TRUCK_STATUSES,
   SosResponderStatus,
@@ -549,7 +550,7 @@ async function escalateIncident(
     body: input.description ?? 'A driver in your fleet has raised an emergency.',
     priority: NotificationPriority.CRITICAL,
     actionUrl: `/sos/${incident.id}`,
-    roles: ['FLEET_OWNER', 'FLEET_MANAGER', 'DISPATCHER'],
+    roles: OPERATOR_OPERATIONS_ROLES,
   });
 
   const moved = await prisma.sosIncident.update({

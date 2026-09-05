@@ -3,6 +3,7 @@ import {
   EXPIRY_ALERT_WINDOWS,
   NotificationPriority,
   NotificationType,
+  OPERATOR_MANAGEMENT_ROLES,
   documentTypeDefinition,
   resolveDocumentValidity,
 } from '@saarthi/shared';
@@ -122,7 +123,7 @@ export async function runDocumentExpirySweep(): Promise<{ expiring: number; expi
       body: labels.slice(0, 5).join(', ') + (labels.length > 5 ? '…' : ''),
       priority: NotificationPriority.HIGH,
       actionUrl: '/fleet/documents?filter=expiring',
-      roles: ['FLEET_OWNER', 'FLEET_MANAGER'],
+      roles: OPERATOR_MANAGEMENT_ROLES,
     });
   }
 
@@ -133,7 +134,7 @@ export async function runDocumentExpirySweep(): Promise<{ expiring: number; expi
       body: labels.slice(0, 5).join(', ') + (labels.length > 5 ? '…' : ''),
       priority: NotificationPriority.CRITICAL,
       actionUrl: '/fleet/documents?filter=expired',
-      roles: ['FLEET_OWNER', 'FLEET_MANAGER'],
+      roles: OPERATOR_MANAGEMENT_ROLES,
     });
   }
 

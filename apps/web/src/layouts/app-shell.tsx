@@ -23,7 +23,6 @@ import {
   OrganizationType,
   Permission,
   RealtimeEvent,
-  initialsOf,
   type RoleName,
 } from '@saarthi/shared';
 import { toast } from 'sonner';
@@ -48,6 +47,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { MediaImage } from '@/features/media/media-image';
 import { Separator } from '@/components/ui/separator';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -643,8 +643,21 @@ function TopBar({ onOpenNav }: { onOpenNav: () => void }) {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="rounded-full" aria-label={t('Account menu')}>
+              {/* The photograph is media like any other: fetched with the
+                  session token rather than referenced by address, so it cannot
+                  be an `<img src>`. No `variant` is asked for here — the URL
+                  mirrored onto the user already names the rendition it wants. */}
               <Avatar className="size-8 ring-1 ring-border">
-                <AvatarFallback>{initialsOf(user?.firstName, user?.lastName)}</AvatarFallback>
+                <MediaImage
+                  source={user?.avatarUrl}
+                  alt={user?.fullName ?? t('Your profile photo')}
+                  className="aspect-square size-full object-cover"
+                  fallback={
+                    <AvatarFallback>
+                      <UserIcon className="size-4" aria-hidden />
+                    </AvatarFallback>
+                  }
+                />
               </Avatar>
             </Button>
           </DropdownMenuTrigger>

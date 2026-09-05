@@ -202,7 +202,7 @@ export const ta: Catalogue = {
     'உங்கள் பணிக்குப் பார்க்க அனுமதிக்கப்பட்ட பதிவுகளிலிருந்து மட்டுமே பதில்கள் உருவாகின்றன.',
   'Local development build — simulated GPS, mock payments, local document storage.':
     'உள்ளூர் மேம்பாட்டுப் பதிப்பு — போலி GPS, போலிப் பணப்பரிமாற்றம், உள்ளூர் ஆவணச் சேமிப்பு.',
-  'Back to saarthi.com': 'saarthi.com-க்குத் திரும்பு',
+  'Back to vorldxsaarthi.com': 'vorldxsaarthi.com-க்குத் திரும்பு',
   'Loading Saarthi…': 'Saarthi ஏற்றப்படுகிறது…',
   'Try it instantly': 'உடனே முயற்சி செய்யுங்கள்',
   'Platform admin': 'தள நிர்வாகி',

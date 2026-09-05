@@ -45,7 +45,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Build
 import androidx.compose.material.icons.rounded.CloseFullscreen
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.DirectionsCar
+import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.LocalGasStation
 import androidx.compose.material.icons.rounded.Logout
 import androidx.compose.material.icons.rounded.MyLocation
@@ -53,8 +55,10 @@ import androidx.compose.material.icons.rounded.OpenInFull
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Sos
 import androidx.compose.material.icons.rounded.Storefront
+import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -104,6 +108,7 @@ import com.saarthi.terminal.ui.GaugeBand
 import com.saarthi.terminal.ui.GaugeSizes
 import com.saarthi.terminal.ui.Gutter
 import com.saarthi.terminal.ui.LivePulse
+import com.saarthi.terminal.ui.SolidCard
 import com.saarthi.terminal.ui.LocalDarkCockpit
 import com.saarthi.terminal.ui.LocalReducedMotion
 import com.saarthi.terminal.ui.Radius
@@ -115,6 +120,8 @@ import com.saarthi.terminal.ui.SimulatedTag
 import com.saarthi.terminal.ui.StatusTone
 import com.saarthi.terminal.ui.TerminalMap
 import com.saarthi.terminal.ui.TerminalViewModel
+import com.saarthi.terminal.update.UpdateInstaller
+import com.saarthi.terminal.update.UpdateManager
 import com.saarthi.terminal.ui.TouchTarget
 import com.saarthi.terminal.util.DebugLog
 import com.saarthi.terminal.voice.VoiceAssistant
@@ -157,6 +164,8 @@ fun CockpitScreen(
     val assistant by viewModel.assistant.collectAsState()
     val sosArmed by viewModel.sosArmed.collectAsState()
     val sosReference by viewModel.sosReference.collectAsState()
+    val updateState by viewModel.updateState.collectAsState()
+
     val selfie by viewModel.selfie.collectAsState()
 
     var sheet by remember { mutableStateOf<CockpitSheet?>(null) }
@@ -223,6 +232,23 @@ fun CockpitScreen(
     val moving = state.moving
     val telemetry = state.telemetry
     val context = LocalContext.current
+
+    /*
+     * Listen for what the package installer decides.
+     *
+     * The result arrives long after the app handed the file over — Android was
+     * showing its own dialog in between — and it arrives as a broadcast, so
+     * there is nothing to await. Registered for as long as this screen exists
+     * and torn down with it; a manifest receiver would wake the app for a
+     * session nobody is watching.
+     */
+    DisposableEffect(context) {
+        val receiver = UpdateInstaller.observe(context) { reason ->
+            viewModel.updateInstallFailed(reason)
+        }
+        onDispose { runCatching { context.unregisterReceiver(receiver) } }
+    }
+
     val route by viewModel.route.collectAsState()
 
     /*
@@ -479,6 +505,28 @@ fun CockpitScreen(
             }
 
             sosReference?.let { reference -> EmergencyRaisedCard(reference) }
+
+            /*
+             * A newer build of this app.
+             *
+             * Never while the vehicle is moving. An update is a five-minute
+             * interruption that ends with the app restarting, and section 23 is
+             * explicit that the interface must not invite that at speed — so the
+             * card simply is not there until the truck stops. The build does not
+             * go anywhere; it is offered again at the next standstill.
+             */
+            AnimatedVisibility(
+                visible = updateState !is UpdateManager.State.Idle && !moving,
+                enter = panelEnter(),
+                exit = panelExit(),
+            ) {
+                UpdateCard(
+                    state = updateState,
+                    onDownload = { viewModel.downloadUpdate() },
+                    onInstall = { viewModel.installUpdate() },
+                    onDismiss = { viewModel.dismissUpdate() },
+                )
+            }
 
             AnimatedVisibility(
                 visible = state.state == TerminalState.READY && !moving,
@@ -1483,6 +1531,152 @@ private fun StartTripCard(compact: Boolean = false, onStart: () -> Unit) {
                     )
                 }
             }
+        }
+    }
+}
+
+/**
+ * A newer build, and what the driver can do about it.
+ *
+ * One card for the whole sequence rather than a dialog per step. A driver
+ * glances at this screen; a modal that has to be dismissed before the map comes
+ * back is the wrong shape for something entirely optional.
+ *
+ * The wording avoids "version" and "APK". What a driver needs to know is that
+ * there is a newer Saarthi, roughly how big it is, and that the vehicle will be
+ * unavailable for a minute — everything else belongs in the office.
+ */
+@Composable
+private fun UpdateCard(
+    state: UpdateManager.State,
+    onDownload: () -> Unit,
+    onInstall: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val offer = when (state) {
+        is UpdateManager.State.Available -> state.offer
+        is UpdateManager.State.Downloading -> state.offer
+        is UpdateManager.State.Ready -> state.offer
+        is UpdateManager.State.Installing -> state.offer
+        is UpdateManager.State.Failed -> state.offer
+        UpdateManager.State.Idle -> null
+    } ?: return
+
+    SolidCard(Modifier.fillMaxWidth(), contentPadding = 14.dp) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                Icons.Rounded.Download,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+            )
+            Spacer(Modifier.width(10.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    if (offer.mandatory) "Required update" else "Update available",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    // Megabytes, not bytes: the figure exists so a driver on a
+                    // metered SIM can decide, and nobody decides in bytes.
+                    "Saarthi ${offer.versionName} · ${offer.sizeBytes / 1_000_000} MB",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            // A required update has no dismiss. The manager refuses it too, so
+            // hiding the control here is presentation agreeing with policy
+            // rather than being the policy.
+            if (!offer.mandatory && state !is UpdateManager.State.Downloading) {
+                IconButton(onClick = onDismiss) {
+                    Icon(Icons.Rounded.Close, contentDescription = "Not now")
+                }
+            }
+        }
+
+        offer.notes?.takeIf { it.isNotBlank() }?.let { notes ->
+            Spacer(Modifier.height(8.dp))
+            Text(
+                notes,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 3,
+            )
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        when (state) {
+            is UpdateManager.State.Available -> {
+                Button(onClick = onDownload, modifier = Modifier.fillMaxWidth()) {
+                    Text("Download")
+                }
+            }
+
+            is UpdateManager.State.Downloading -> {
+                // Determinate only when the length is known. A progress bar that
+                // is guessing is worse than one that admits it is waiting.
+                if (state.fraction != null) {
+                    LinearProgressIndicator(
+                        progress = { state.fraction },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        "Downloading — ${(state.fraction * 100).toInt()}%",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } else {
+                    LinearProgressIndicator(Modifier.fillMaxWidth())
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        "Downloading…",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+
+            is UpdateManager.State.Ready -> {
+                Button(onClick = onInstall, modifier = Modifier.fillMaxWidth()) {
+                    Text("Install now")
+                }
+                Spacer(Modifier.height(6.dp))
+                // Said before it happens, not discovered afterwards: the app
+                // closes and reopens, and a driver who was not told assumes it
+                // crashed.
+                Text(
+                    "Saarthi will close and reopen. Do this while parked.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            is UpdateManager.State.Installing -> {
+                LinearProgressIndicator(Modifier.fillMaxWidth())
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    "Installing — confirm on screen when Android asks.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            is UpdateManager.State.Failed -> {
+                Text(
+                    state.reason,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error,
+                )
+                Spacer(Modifier.height(8.dp))
+                Button(onClick = onDownload, modifier = Modifier.fillMaxWidth()) {
+                    Text("Try again")
+                }
+            }
+
+            UpdateManager.State.Idle -> Unit
         }
     }
 }

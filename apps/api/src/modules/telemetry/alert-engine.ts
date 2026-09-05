@@ -2,6 +2,7 @@ import {
   AlertSeverity,
   NotificationPriority,
   NotificationType,
+  OPERATOR_OPERATIONS_ROLES,
   TELEMETRY_ALERT_RULES,
   TELEMETRY_SCORE_PENALTIES,
   TelemetryAlertType,
@@ -218,7 +219,7 @@ async function raise(context: RuleContext, finding: Finding): Promise<void> {
       body: 'Open the vehicle to see the reading that triggered this.',
       priority: NotificationPriority.HIGH,
       actionUrl: `/fleet/vehicles/${vehicle.id}/telemetry`,
-      roles: ['FLEET_OWNER', 'FLEET_MANAGER', 'DISPATCHER'],
+      roles: OPERATOR_OPERATIONS_ROLES,
     });
   }
 

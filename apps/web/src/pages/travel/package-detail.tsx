@@ -15,7 +15,7 @@ import {
   UserRound,
   X,
 } from 'lucide-react';
-import { Feature, Permission, formatCurrency, humanizeEnum } from '@saarthi/shared';
+import { Feature, Permission, PricingModel, formatCurrency, humanizeEnum } from '@saarthi/shared';
 import { ApiError, api } from '@/lib/api-client';
 import type { BookingSummary, PackageSummary, PriceQuote } from '@/lib/mobility-types';
 import { useAuth } from '@/features/auth/auth-context';
@@ -26,6 +26,12 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { FormWizard, WizardField, type WizardStep } from '@/components/common/form-wizard';
+import {
+  EMPTY_POINT,
+  JourneyPicker,
+  isLocatable,
+  type JourneyPoint,
+} from '@/features/travel/journey-picker';
 
 /**
  * Package detail and the booking form.
@@ -37,7 +43,7 @@ import { FormWizard, WizardField, type WizardStep } from '@/components/common/fo
 
 /** Per-field messages for the booking wizard. */
 type BookingErrors = Partial<
-  Record<'passengers' | 'startDate' | 'contactName' | 'contactPhone', string>
+  Record<'passengers' | 'startDate' | 'contactName' | 'contactPhone' | 'pickup' | 'dropoff', string>
 >;
 
 /** Minimum notice Saarthi requires, mirrored from the shared domain rules. */
@@ -63,7 +69,8 @@ export function TravelPackageDetailPage() {
   const [startDate, setStartDate] = React.useState('');
   const [contactName, setContactName] = React.useState('');
   const [contactPhone, setContactPhone] = React.useState('');
-  const [pickup, setPickup] = React.useState('');
+  const [pickup, setPickup] = React.useState<JourneyPoint>(EMPTY_POINT);
+  const [dropoff, setDropoff] = React.useState<JourneyPoint>(EMPTY_POINT);
   const [requests, setRequests] = React.useState('');
   const [formError, setFormError] = React.useState<string | null>(null);
   const [bookingErrors, setBookingErrors] = React.useState<BookingErrors>({});
@@ -74,7 +81,17 @@ export function TravelPackageDetailPage() {
     if (!pkg.data) return;
     setPassengers((current) => current || String(pkg.data.minPassengers));
     setStartDate((current) => current || defaultStartDate(pkg.data.advanceBookingDays));
-    setPickup((current) => current || pkg.data.startLocation);
+    // Seeded with the package's own start point, coordinates included, so the
+    // map has something to show and a fixed tour needs no searching at all.
+    setPickup((current) =>
+      current.address
+        ? current
+        : {
+            address: pkg.data.startLocation,
+            latitude: pkg.data.startLatitude,
+            longitude: pkg.data.startLongitude,
+          },
+    );
   }, [pkg.data]);
 
   React.useEffect(() => {
@@ -85,9 +102,28 @@ export function TravelPackageDetailPage() {
 
   const partySize = Number(passengers) || 0;
 
+  // A per-kilometre fare depends on the journey, so the quote is keyed on it:
+  // change the destination and the price is asked for again.
+  const journeyKey =
+    isLocatable(pickup) && isLocatable(dropoff)
+      ? `${pickup.latitude},${pickup.longitude}>${dropoff.latitude},${dropoff.longitude}`
+      : '';
+
   const quote = useQuery({
-    queryKey: ['travel', 'quote', id, partySize],
-    queryFn: () => api.get<PriceQuote>('/travel/quote', { packageId: id!, passengers: partySize }),
+    queryKey: ['travel', 'quote', id, partySize, journeyKey],
+    queryFn: () =>
+      api.get<PriceQuote>('/travel/quote', {
+        packageId: id!,
+        passengers: partySize,
+        ...(journeyKey
+          ? {
+              pickupLatitude: pickup.latitude!,
+              pickupLongitude: pickup.longitude!,
+              dropoffLatitude: dropoff.latitude!,
+              dropoffLongitude: dropoff.longitude!,
+            }
+          : {}),
+      }),
     enabled:
       Boolean(id) &&
       partySize > 0 &&
@@ -104,7 +140,17 @@ export function TravelPackageDetailPage() {
         passengers: partySize,
         contactName: contactName.trim(),
         contactPhone: contactPhone.trim(),
-        pickupAddress: pickup.trim() || undefined,
+        pickupAddress: pickup.address.trim() || undefined,
+        ...(isLocatable(pickup)
+          ? { pickupLatitude: pickup.latitude, pickupLongitude: pickup.longitude }
+          : {}),
+        ...(isLocatable(dropoff)
+          ? {
+              dropoffAddress: dropoff.address.trim(),
+              dropoffLatitude: dropoff.latitude,
+              dropoffLongitude: dropoff.longitude,
+            }
+          : {}),
         specialRequests: requests.trim() || undefined,
       }),
     onSuccess: (booking) => {
@@ -260,18 +306,21 @@ export function TravelPackageDetailPage() {
     },
     {
       id: 'pickup',
-      title: 'Pickup',
-      description: 'Where to collect you.',
+      title: 'Journey',
+      description: 'Where to collect you, and where you are going.',
       icon: MapPin,
       content: (
         <>
-          <WizardField label="Pickup" htmlFor="pickup">
-            <Input
-              id="pickup"
-              value={pickup}
-              onChange={(event) => setPickup(event.target.value)}
-            />
-          </WizardField>
+          <JourneyPicker
+            pickup={pickup}
+            onPickupChange={setPickup}
+            dropoff={dropoff}
+            onDropoffChange={setDropoff}
+            dropoffRequired={data.pricingModel === PricingModel.PER_KM}
+            departAt={startDate ? new Date(startDate) : null}
+            pickupError={bookingErrors.pickup ?? null}
+            dropoffError={bookingErrors.dropoff ?? null}
+          />
 
           <WizardField label="Anything the provider should know?" htmlFor="requests">
             <Textarea
@@ -294,6 +343,16 @@ export function TravelPackageDetailPage() {
 
   const validateBookingStep = (step: WizardStep): boolean => {
     const found: BookingErrors = {};
+
+    if (step.id === 'pickup') {
+      if (!isLocatable(pickup)) {
+        found.pickup = 'Search for the pickup point so the driver knows where to go.';
+      }
+      // Only the per-kilometre packages need one; the rest run their own route.
+      if (data.pricingModel === PricingModel.PER_KM && !isLocatable(dropoff)) {
+        found.dropoff = 'Search for your destination — this fare is charged by the kilometre.';
+      }
+    }
 
     if (step.id === 'trip') {
       if (!partyValid)

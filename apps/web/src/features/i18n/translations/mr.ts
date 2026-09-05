@@ -201,7 +201,7 @@ export const mr: Catalogue = {
     'उत्तरे फक्त त्या नोंदींवरून बनतात ज्या पाहण्याची तुमच्या भूमिकेला परवानगी आहे.',
   'Local development build — simulated GPS, mock payments, local document storage.':
     'लोकल डेव्हलपमेंट बिल्ड — कृत्रिम GPS, बनावट पेमेंट, स्थानिक कागदपत्र साठवण.',
-  'Back to saarthi.com': 'saarthi.com वर परत',
+  'Back to vorldxsaarthi.com': 'vorldxsaarthi.com वर परत',
   'Loading Saarthi…': 'Saarthi लोड होत आहे…',
   'Try it instantly': 'लगेच वापरून पहा',
   'Platform admin': 'प्लॅटफॉर्म प्रशासक',

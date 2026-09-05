@@ -200,7 +200,7 @@ export const doi: Catalogue = {
     'जवाब सिर्फ उऐ रिकार्ड थमां बनदे न जिंदे गी दिक्खने दी तुंदी भूमिका गी इजाजत ऐ।',
   'Local development build — simulated GPS, mock payments, local document storage.':
     'लोकल डेवलपमेंट बिल्ड — नकली GPS, नकली भुगतान, स्थानीय कागजात भंडारण।',
-  'Back to saarthi.com': 'saarthi.com पर वापस',
+  'Back to vorldxsaarthi.com': 'vorldxsaarthi.com पर वापस',
   'Loading Saarthi…': 'Saarthi लोड होआ करदा ऐ…',
   'Try it instantly': 'फौरन अजमाओ',
   'Platform admin': 'प्लेटफॉर्म एडमिन',

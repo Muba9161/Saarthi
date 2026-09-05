@@ -3,6 +3,7 @@ import {
   MediaOwnerType,
   NotificationPriority,
   NotificationType,
+  OPERATOR_OPERATIONS_ROLES,
   type TerminalIssueCategory,
   TerminalIssueStatus,
   buildPaginationMeta,
@@ -155,7 +156,7 @@ export async function reportIssue(
         ? NotificationPriority.CRITICAL
         : NotificationPriority.HIGH,
     actionUrl: `/fleet/vehicles/${session.vehicleId}?tab=issues`,
-    roles: ['FLEET_OWNER', 'FLEET_MANAGER', 'MOBILITY_PROVIDER', 'DISPATCHER'],
+    roles: OPERATOR_OPERATIONS_ROLES,
   });
 
   return toView(issue);

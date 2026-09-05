@@ -2085,6 +2085,27 @@ export const ACTIVE_TERMINAL_SESSION_STATUSES: TerminalSessionStatus[] = [
   TerminalSessionStatus.TRIP_ACTIVE,
 ];
 
+/**
+ * How far along a Terminal build is on its way to the fleet.
+ *
+ * Uploading and shipping are separate acts. A build arrives as a DRAFT and is
+ * offered to nobody until somebody publishes it, so an APK cannot reach a
+ * vehicle because a file picker was in the wrong folder.
+ */
+export const TerminalReleaseStatus = asEnum({
+  DRAFT: 'DRAFT',
+  PUBLISHED: 'PUBLISHED',
+  /**
+   * Withdrawn.
+   *
+   * Terminals stop being offered it. The ones that already installed it keep
+   * running it — an install cannot be recalled, and pretending otherwise would
+   * be the most dangerous kind of wrong here.
+   */
+  ARCHIVED: 'ARCHIVED',
+});
+export type TerminalReleaseStatus = EnumValue<typeof TerminalReleaseStatus>;
+
 /** States in which the driver is authorised to use the vehicle. */
 export const AUTHORIZED_TERMINAL_SESSION_STATUSES: TerminalSessionStatus[] = [
   TerminalSessionStatus.APPROVED,

@@ -338,6 +338,16 @@ export const AuditAction = {
   TERMINAL_ASSIGNMENT_APPROVED: 'terminal.assignment_approved',
   TERMINAL_ASSIGNMENT_REJECTED: 'terminal.assignment_rejected',
   TERMINAL_CHECKLIST_UPDATED: 'terminal.checklist_updated',
+  /*
+   * Shipping a build to the fleet.
+   *
+   * Recorded separately from the upload: uploading is private and reversible,
+   * publishing reaches every vehicle. "Who shipped this, and when" is the first
+   * question asked when a build misbehaves in the field.
+   */
+  TERMINAL_RELEASE_UPLOADED: 'terminal.release_uploaded',
+  TERMINAL_RELEASE_PUBLISHED: 'terminal.release_published',
+  TERMINAL_RELEASE_ARCHIVED: 'terminal.release_archived',
 } as const;
 
 export type AuditAction = (typeof AuditAction)[keyof typeof AuditAction];

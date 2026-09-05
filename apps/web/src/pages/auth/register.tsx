@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { toast } from 'sonner';
 import {
   Building2,
   Check,
@@ -17,7 +18,15 @@ import {
   UserRound,
   Users,
 } from 'lucide-react';
-import { RoleName, registerSchema, type RegisterInput } from '@saarthi/shared';
+import {
+  MediaOwnerType,
+  MediaPurpose,
+  ORGANIZATION_NAME_REQUIRED_ROLES,
+  RoleName,
+  registerSchema,
+  type RegisterInput,
+  type SessionPayload,
+} from '@saarthi/shared';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PasswordInput } from '@/components/ui/password-input';
@@ -33,11 +42,13 @@ import {
 } from '@/components/ui/form';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { FormWizard, type WizardStep } from '@/components/common/form-wizard';
+import { ImageCircleField } from '@/components/common/file-dropzone';
 import { PasswordStrength } from '@/components/common/password-strength';
 import { AuthDivider, AuthHeading } from '@/features/auth/auth-card';
 import { LanguageGrid, useLocale } from '@/features/i18n';
 import { useAuth } from '@/features/auth/auth-context';
 import { ApiError } from '@/lib/api-client';
+import { uploadImageOrWarn } from '@/features/media/upload-image';
 import { AnimatePresence, motion } from '@/components/motion';
 import { cn } from '@/lib/utils';
 
@@ -104,10 +115,35 @@ const ORGANIZATION_LABEL: Partial<Record<RoleName, string>> = {
   [RoleName.MOBILITY_PROVIDER]: 'Travel business name',
 };
 
+/**
+ * An example of the kind of name we mean.
+ *
+ * Worth getting right per role: the placeholder is the first thing that tells
+ * somebody whether this product is meant for their business, and a travel
+ * operator being shown a construction company read as a form built for
+ * somebody else.
+ */
+const ORGANIZATION_PLACEHOLDER: Partial<Record<RoleName, string>> = {
+  [RoleName.FLEET_OWNER]: 'Sharma Transport Company',
+  [RoleName.MOBILITY_PROVIDER]: 'Sharma Travels & Tours',
+  [RoleName.ASSOCIATION_ADMIN]: 'Jaipur District Truck Association',
+  [RoleName.SUPPLIER]: 'Kumar Building Materials',
+};
+
+/** Mirrors MEDIA_MAX_FILE_SIZE on the API, so a rejection happens here first. */
+const IMAGE_MAX_SIZE_MB = 5;
+const IMAGE_ACCEPT = '.jpg,.jpeg,.png,.webp,.heic';
+
 export function RegisterPage() {
-  const { register } = useAuth();
+  const { register, refreshSession } = useAuth();
   const navigate = useNavigate();
   const [formError, setFormError] = React.useState<string | null>(null);
+  /**
+   * Held locally rather than uploaded as it is picked: media uploads are
+   * authenticated and addressed to an owner id, and neither the session nor
+   * the organization exists until the account is created a few steps later.
+   */
+  const [image, setImage] = React.useState<File | null>(null);
 
   const { locale, setLocale, t } = useLocale();
 
@@ -130,11 +166,61 @@ export function RegisterPage() {
 
   const role = form.watch('role');
   const isDriver = role === RoleName.DRIVER;
+  // A customer may be one person with no company at all — the API names the
+  // organization after them when this is left blank.
+  const isCustomer = role === RoleName.CUSTOMER;
+  /**
+   * An account that must name a business is a business, and what belongs on
+   * its orders, listings and invoices is its logo — not the face of whoever
+   * happened to sign up. The individual accounts are the other way round.
+   */
+  const wantsLogo = ORGANIZATION_NAME_REQUIRED_ROLES.includes(role);
+
+  // Switching account type changes what the image *means*. Carrying a company
+  // logo across to a driver's profile photo would publish it as their face.
+  React.useEffect(() => setImage(null), [wantsLogo]);
+
+  /**
+   * The image goes up on the session the registration just returned — onto
+   * the new organization for a business, onto the new user for a person.
+   *
+   * A failure here is not a failed registration — the account exists, and the
+   * image can be added from the profile — so it is reported and stepped over
+   * rather than thrown, which would strand somebody who is already signed in
+   * on the sign-up form.
+   */
+  const uploadImage = async (session: SessionPayload, file: File): Promise<void> => {
+    // Nullable on the session at large — a platform admin operates outside a
+    // tenant — though a freshly registered account always has one.
+    const organizationId = session.organization?.id;
+
+    const attached = await uploadImageOrWarn(
+      wantsLogo && organizationId
+        ? {
+            ownerType: MediaOwnerType.ORGANIZATION,
+            ownerId: organizationId,
+            purpose: MediaPurpose.LOGO,
+            file,
+          }
+        : {
+            ownerType: MediaOwnerType.USER,
+            ownerId: session.user.id,
+            purpose: MediaPurpose.AVATAR,
+            file,
+          },
+      t('Your account is ready, but the image could not be saved.'),
+    );
+
+    // The API mirrors these onto `User.avatarUrl` and `Organization.logoUrl`;
+    // without this the shell shows the placeholder until the next reload.
+    if (attached) await refreshSession();
+  };
 
   const onSubmit = async (values: RegisterInput): Promise<void> => {
     setFormError(null);
     try {
-      await register(values as unknown as Record<string, unknown>);
+      const session = await register(values as unknown as Record<string, unknown>);
+      if (image) await uploadImage(session, image);
       navigate('/', { replace: true });
     } catch (error) {
       if (error instanceof ApiError) {
@@ -296,6 +382,24 @@ export function RegisterPage() {
       fields: ['firstName', 'lastName', 'email', 'phone'],
       content: (
         <>
+          {/* Not a form field: it is not part of `registerSchema` and does not
+              travel with the registration — see `uploadImage`. */}
+          {!wantsLogo ? (
+            <ImageCircleField
+              value={image}
+              onChange={setImage}
+              label={t('Profile photo')}
+              hint={t('Optional · JPEG, PNG, WebP or HEIC up to {size} MB', {
+                size: IMAGE_MAX_SIZE_MB,
+              })}
+              accept={IMAGE_ACCEPT}
+              maxSizeMb={IMAGE_MAX_SIZE_MB}
+              icon={UserRound}
+              onReject={(reason) => toast.error(reason)}
+              className="pb-1"
+            />
+          ) : null}
+
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <FormField
               control={form.control}
@@ -424,37 +528,57 @@ export function RegisterPage() {
         }
       : {
           id: 'business',
-          title: t('Your business'),
-          description: t('The organization we create for you.'),
+          title: isCustomer ? t('Your organization') : t('Your business'),
+          description: isCustomer
+            ? t('Only if you buy for a company.')
+            : t('The organization we create for you.'),
           icon: Building2,
           fields: ['organizationName'],
           content: (
-            <FormField
-              control={form.control}
-              name="organizationName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel required>{t(ORGANIZATION_LABEL[role] ?? 'Company name')}</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      value={field.value ?? ''}
-                      autoComplete="organization"
-                      className="h-10"
-                      placeholder={
-                        role === RoleName.FLEET_OWNER
-                          ? 'Sharma Transport Company'
-                          : 'Kumar Constructions'
-                      }
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    {t('Saarthi creates this organization and makes you its administrator.')}
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <>
+              {wantsLogo ? (
+                <ImageCircleField
+                  value={image}
+                  onChange={setImage}
+                  label={t('Company logo')}
+                  hint={t('Optional · shown on your listings, orders and invoices')}
+                  accept={IMAGE_ACCEPT}
+                  maxSizeMb={IMAGE_MAX_SIZE_MB}
+                  icon={Building2}
+                  onReject={(reason) => toast.error(reason)}
+                  className="pb-1"
+                />
+              ) : null}
+
+              <FormField
+                control={form.control}
+                name="organizationName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel required={!isCustomer}>
+                      {t(ORGANIZATION_LABEL[role] ?? 'Company name')}
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        value={field.value ?? ''}
+                        autoComplete="organization"
+                        className="h-10"
+                        placeholder={ORGANIZATION_PLACEHOLDER[role] ?? 'Kumar Constructions'}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      {isCustomer
+                        ? t(
+                            'Leave this blank if you are booking for yourself — your account will simply carry your own name.',
+                          )
+                        : t('Saarthi creates this organization and makes you its administrator.')}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </>
           ),
         },
     {

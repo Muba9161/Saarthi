@@ -416,6 +416,92 @@ describe('Operations end-to-end', () => {
       return { orderId: order.body.data.id, tripId: accepted.body.data.tripId };
     }
 
+    it('dispatches a trip for work that never came through Saarthi', async () => {
+      // A load agreed on the phone is still a movement: it needs a vehicle, a
+      // driver and tracking, and none of it exists until a trip does.
+      const { status, body } = await request<{
+        id: string;
+        reference: string;
+        order: { id: string } | null;
+        truck: { id: string } | null;
+      }>({
+        method: 'POST',
+        url: '/api/v1/trips',
+        user: owner,
+        payload: {
+          truckId: helperTruckId,
+          driverId: helperDriver.driverId,
+          origin: {
+            addressLine: 'Transport Nagar, Lucknow',
+            latitude: ORIGIN.latitude,
+            longitude: ORIGIN.longitude,
+          },
+          destination: {
+            addressLine: 'Panki Industrial Area, Kanpur',
+            latitude: 26.4499,
+            longitude: 80.3319,
+          },
+          price: 14_000,
+          notes: 'Cement for Verma Builders, booked over the phone.',
+        },
+      });
+
+      expect(status).toBe(201);
+      expect(body.data.reference).toBeTruthy();
+      // No order behind it, and that is the point.
+      expect(body.data.order).toBeNull();
+      expect(body.data.truck?.id).toBe(helperTruckId);
+
+      const truck = await prisma.truck.findUnique({
+        where: { id: helperTruckId },
+        select: { status: true, currentTripId: true },
+      });
+      expect(truck?.currentTripId).toBe(body.data.id);
+      expect(truck?.status).toBe(TruckStatus.ASSIGNED);
+    });
+
+    it('moves a dispatched trip to another vehicle before it starts', async () => {
+      const { tripId } = await arrangeTrip();
+
+      const { status, body } = await request<{ truck: { id: string } | null }>({
+        method: 'PATCH',
+        url: `/api/v1/trips/${tripId}`,
+        user: owner,
+        payload: { truckId: helperTruckId },
+      });
+
+      expect(status).toBe(200);
+      expect(body.data.truck?.id).toBe(helperTruckId);
+
+      // The handover has to move the pointer, not just the trip: a vehicle
+      // still holding a trip it is not on cannot be dispatched again.
+      const [previous, next] = await Promise.all([
+        prisma.truck.findUnique({ where: { id: truckId }, select: { status: true, currentTripId: true } }),
+        prisma.truck.findUnique({ where: { id: helperTruckId }, select: { status: true, currentTripId: true } }),
+      ]);
+      expect(previous?.currentTripId).toBeNull();
+      expect(previous?.status).toBe(TruckStatus.AVAILABLE);
+      expect(next?.currentTripId).toBe(tripId);
+      expect(next?.status).toBe(TruckStatus.ASSIGNED);
+    });
+
+    it('refuses to move a trip that is already on the road', async () => {
+      const { tripId } = await arrangeTrip();
+      await request({ method: 'POST', url: `/api/v1/trips/${tripId}/start`, user: driver });
+
+      const { status } = await request({
+        method: 'PATCH',
+        url: `/api/v1/trips/${tripId}`,
+        user: owner,
+        payload: { truckId: helperTruckId },
+      });
+
+      // Distance, fuel and telemetry are already banked against the first
+      // vehicle and cannot follow the trip to a second one. A business rule,
+      // not a malformed request.
+      expect(status).toBe(422);
+    });
+
     it('rejects an invalid trip state transition', async () => {
       const { tripId } = await arrangeTrip();
 

@@ -47,6 +47,7 @@ import {
   vehicleTerminalRoutes,
 } from '../modules/terminal/terminal.routes';
 import { terminalClientRoutes } from '../modules/terminal/terminal-client.routes';
+import { terminalReleaseRoutes } from '../modules/terminal/release.routes';
 import { deviceGatewayRoutes } from '../modules/telemetry/gateway.routes';
 import { aiRoutes } from '../modules/ai/ai.routes';
 import { loanRoutes, vehicleLoanRoutes } from '../modules/loans/loan.routes';
@@ -158,6 +159,9 @@ export async function registerApiRoutes(app: FastifyInstance): Promise<void> {
   // vehicle, and the owner or provider deciding. The terminal's own half is
   // mounted under /device-gateway below, because its caller is a device.
   await app.register(terminalRoutes, { prefix: '/terminal' });
+  // Shipping new Terminal builds. Platform administration, not a fleet's — see
+  // `release.routes.ts`.
+  await app.register(terminalReleaseRoutes, { prefix: '/terminal-releases' });
   await app.register(telemetryRoutes, { prefix: '/telemetry' });
   // Multi-camera devices (YC06). Registration hangs off the device; watching a
   // camera is its own surface, because that is how a person thinks about it.

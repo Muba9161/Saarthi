@@ -2,6 +2,7 @@ import {
   AlertSeverity,
   MaintenanceStatus,
   MaintenanceType,
+  OPERATOR_MANAGEMENT_ROLES,
   PLAN_LIMITS,
   PlanTier,
   NotificationPriority,
@@ -719,7 +720,7 @@ export async function notifyMaintenanceRecommendations(organizationId: string): 
       .join('; '),
     priority: NotificationPriority.HIGH,
     actionUrl: '/telemetry/maintenance',
-    roles: ['FLEET_OWNER', 'FLEET_MANAGER'],
+    roles: OPERATOR_MANAGEMENT_ROLES,
   });
 
   return critical.length;

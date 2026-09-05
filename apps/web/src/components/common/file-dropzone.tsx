@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { FileText, Loader2, UploadCloud, X } from 'lucide-react';
+import { FileText, ImagePlus, Loader2, UploadCloud, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 /**
@@ -62,23 +62,30 @@ export interface FileDropzoneProps {
   className?: string;
 }
 
-export function FileDropzone({
+/**
+ * Drop target behaviour, shared by every picker in this file.
+ *
+ * The panel and the round image field look nothing alike but answer a drag
+ * identically, and the two fiddly parts — the enter/leave depth count and the
+ * type/size filter — are exactly the parts that rot when they are copied.
+ */
+function useFileDrop({
   accept,
-  multiple = false,
-  disabled = false,
-  busy = false,
-  busyLabel = 'Uploading…',
-  onFiles,
   maxFiles,
   maxSizeMb,
+  multiple = false,
+  locked = false,
+  onFiles,
   onReject,
-  title,
-  hint,
-  icon: Icon = UploadCloud,
-  compact = false,
-  className,
-}: FileDropzoneProps) {
-  const inputRef = React.useRef<HTMLInputElement>(null);
+}: {
+  accept?: string;
+  maxFiles?: number;
+  maxSizeMb?: number;
+  multiple?: boolean;
+  locked?: boolean;
+  onFiles: (files: File[]) => void;
+  onReject?: (reason: string) => void;
+}) {
   const [dragging, setDragging] = React.useState(false);
   /**
    * Dragging over a child fires `dragleave` on the parent, so tracking a
@@ -86,8 +93,6 @@ export function FileDropzone({
    * the standard fix.
    */
   const depth = React.useRef(0);
-
-  const locked = disabled || busy;
 
   const accepted = React.useCallback(
     (candidates: File[]): File[] => {
@@ -110,16 +115,64 @@ export function FileDropzone({
     [accept, maxFiles, maxSizeMb, onReject],
   );
 
-  const handleDrop = (event: React.DragEvent): void => {
-    event.preventDefault();
-    depth.current = 0;
-    setDragging(false);
-    if (locked) return;
+  const dropHandlers = {
+    onDragEnter: (event: React.DragEvent): void => {
+      event.preventDefault();
+      depth.current += 1;
+      if (!locked) setDragging(true);
+    },
+    onDragOver: (event: React.DragEvent): void => event.preventDefault(),
+    onDragLeave: (event: React.DragEvent): void => {
+      event.preventDefault();
+      depth.current -= 1;
+      if (depth.current <= 0) {
+        depth.current = 0;
+        setDragging(false);
+      }
+    },
+    onDrop: (event: React.DragEvent): void => {
+      event.preventDefault();
+      depth.current = 0;
+      setDragging(false);
+      if (locked) return;
 
-    const dropped = Array.from(event.dataTransfer.files ?? []);
-    const usable = accepted(multiple ? dropped : dropped.slice(0, 1));
-    if (usable.length > 0) onFiles(usable);
+      const dropped = Array.from(event.dataTransfer.files ?? []);
+      const usable = accepted(multiple ? dropped : dropped.slice(0, 1));
+      if (usable.length > 0) onFiles(usable);
+    },
   };
+
+  return { dragging, dropHandlers, accepted };
+}
+
+export function FileDropzone({
+  accept,
+  multiple = false,
+  disabled = false,
+  busy = false,
+  busyLabel = 'Uploading…',
+  onFiles,
+  maxFiles,
+  maxSizeMb,
+  onReject,
+  title,
+  hint,
+  icon: Icon = UploadCloud,
+  compact = false,
+  className,
+}: FileDropzoneProps) {
+  const inputRef = React.useRef<HTMLInputElement>(null);
+  const locked = disabled || busy;
+
+  const { dragging, dropHandlers, accepted } = useFileDrop({
+    ...(accept !== undefined ? { accept } : {}),
+    ...(maxFiles !== undefined ? { maxFiles } : {}),
+    ...(maxSizeMb !== undefined ? { maxSizeMb } : {}),
+    ...(onReject !== undefined ? { onReject } : {}),
+    multiple,
+    locked,
+    onFiles,
+  });
 
   return (
     <>
@@ -127,21 +180,7 @@ export function FileDropzone({
         type="button"
         disabled={locked}
         onClick={() => inputRef.current?.click()}
-        onDragEnter={(event) => {
-          event.preventDefault();
-          depth.current += 1;
-          if (!locked) setDragging(true);
-        }}
-        onDragOver={(event) => event.preventDefault()}
-        onDragLeave={(event) => {
-          event.preventDefault();
-          depth.current -= 1;
-          if (depth.current <= 0) {
-            depth.current = 0;
-            setDragging(false);
-          }
-        }}
-        onDrop={handleDrop}
+        {...dropHandlers}
         aria-busy={busy || undefined}
         className={cn(
           'flex w-full items-center justify-center rounded-xl border border-dashed text-center',
@@ -260,6 +299,138 @@ export function FilePreviewCard({
         disabled={disabled}
         label={`Remove ${file.name}`}
         className="static shrink-0"
+      />
+    </div>
+  );
+}
+
+/**
+ * A round image field — a profile photo, or a business logo.
+ *
+ * The panel above is right for a document and wrong for a face: an image
+ * chosen against a wide rectangle and then shown everywhere else as a circle
+ * is how somebody discovers their own head has been cropped off. This picks
+ * and previews in the shape the image will actually be seen in, and shows the
+ * same circle empty, so the crop is never a surprise.
+ *
+ * It holds no file of its own — the caller owns that, because on a sign-up
+ * form the upload cannot happen until the account it belongs to exists.
+ */
+export function ImageCircleField({
+  value,
+  onChange,
+  existing,
+  label,
+  hint,
+  accept = 'image/*',
+  maxSizeMb,
+  disabled = false,
+  onReject,
+  icon: Icon = ImagePlus,
+  className,
+}: {
+  value: File | null;
+  /** Called with the chosen file, or `null` when it is taken back off. */
+  onChange: (file: File | null) => void;
+  /**
+   * Drawn inside the circle when nothing has been picked — the image already
+   * on the record. A node rather than a URL because stored media is fetched
+   * with the session token: callers pass `<MediaImage>`, which knows how.
+   */
+  existing?: React.ReactNode;
+  /** Caption under the circle. Also names the control for screen readers. */
+  label: string;
+  hint?: React.ReactNode;
+  accept?: string;
+  maxSizeMb?: number;
+  disabled?: boolean;
+  onReject?: (reason: string) => void;
+  /** Stands in for the empty circle — a person, a building, whatever is asked for. */
+  icon?: React.ComponentType<{ className?: string }>;
+  className?: string;
+}) {
+  const inputRef = React.useRef<HTMLInputElement>(null);
+  // A freshly chosen file always wins over what is already on the record.
+  const preview = useObjectUrl(value);
+
+  const { dragging, dropHandlers, accepted } = useFileDrop({
+    accept,
+    ...(maxSizeMb !== undefined ? { maxSizeMb } : {}),
+    ...(onReject !== undefined ? { onReject } : {}),
+    maxFiles: 1,
+    locked: disabled,
+    onFiles: (files) => onChange(files[0] ?? null),
+  });
+
+  return (
+    <div className={cn('flex flex-col items-center gap-2 text-center', className)}>
+      <div className="relative">
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() => inputRef.current?.click()}
+          {...dropHandlers}
+          aria-label={value ? `Change ${label.toLowerCase()}` : `Add ${label.toLowerCase()}`}
+          className={cn(
+            'group relative flex size-24 items-center justify-center overflow-hidden rounded-full',
+            'border-2 border-dashed transition-all duration-200 ease-smooth',
+            dragging
+              ? 'scale-105 border-primary bg-primary/[0.08] text-primary shadow-glow'
+              : 'border-border-strong/70 bg-white/40 text-muted-foreground dark:bg-white/[0.03]',
+            (preview || existing) &&
+              !dragging &&
+              'border-solid border-white/70 dark:border-white/15',
+            !disabled &&
+              !dragging &&
+              'hover:border-primary/60 hover:text-primary focus-visible:border-primary/60',
+            disabled && 'cursor-not-allowed opacity-60',
+          )}
+        >
+          {preview ? (
+            <img src={preview} alt="" className="size-full object-cover" />
+          ) : existing ? (
+            existing
+          ) : (
+            <Icon
+              className={cn('size-7 transition-transform duration-200', dragging && 'scale-110')}
+            />
+          )}
+
+          {/* Only a hover affordance: a tap on a touch screen opens the picker
+              anyway, so nothing is hidden behind the hover. */}
+          {preview || existing ? (
+            <span className="absolute inset-0 hidden items-center justify-center bg-background/70 text-2xs font-semibold uppercase tracking-wide text-foreground backdrop-blur-[1px] group-hover:flex">
+              Change
+            </span>
+          ) : null}
+        </button>
+
+        {value ? (
+          <RemoveButton
+            onClick={() => onChange(null)}
+            disabled={disabled}
+            label={`Remove ${label.toLowerCase()}`}
+            className="-right-1 -top-1"
+          />
+        ) : null}
+      </div>
+
+      <div className="space-y-0.5">
+        <p className="text-sm font-medium">{label}</p>
+        {hint ? <p className="text-xs leading-snug text-muted-foreground">{hint}</p> : null}
+      </div>
+
+      <input
+        ref={inputRef}
+        type="file"
+        accept={accept}
+        hidden
+        onChange={(event) => {
+          const usable = accepted(Array.from(event.target.files ?? []));
+          if (usable.length > 0) onChange(usable[0] ?? null);
+          // Let the same file be re-picked after it was removed.
+          event.target.value = '';
+        }}
       />
     </div>
   );

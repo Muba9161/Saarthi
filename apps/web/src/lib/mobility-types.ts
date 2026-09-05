@@ -324,6 +324,13 @@ export interface BookingSummary {
   durationDays: number;
   passengers: number;
   pickupAddress: string | null;
+  pickupLatitude: number | null;
+  pickupLongitude: number | null;
+  dropoffAddress: string | null;
+  dropoffLatitude: number | null;
+  dropoffLongitude: number | null;
+  /** Pickup to drop-off, as measured when the fare was agreed. */
+  distanceKm: number | null;
   contactName: string;
   contactPhone: string;
   contactEmail: string | null;

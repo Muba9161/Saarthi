@@ -204,7 +204,7 @@ export const ml: Catalogue = {
     'നിങ്ങളുടെ റോളിന് കാണാൻ അനുമതിയുള്ള രേഖകളിൽ നിന്ന് മാത്രമാണ് ഉത്തരങ്ങൾ ഉണ്ടാകുന്നത്.',
   'Local development build — simulated GPS, mock payments, local document storage.':
     'ലോക്കൽ ഡെവലപ്‌മെന്റ് ബിൽഡ് — കൃത്രിമ GPS, വ്യാജ പേയ്‌മെന്റ്, പ്രാദേശിക രേഖാ സംഭരണം.',
-  'Back to saarthi.com': 'saarthi.com-ലേക്ക് മടങ്ങുക',
+  'Back to vorldxsaarthi.com': 'vorldxsaarthi.com-ലേക്ക് മടങ്ങുക',
   'Loading Saarthi…': 'Saarthi ലോഡ് ചെയ്യുന്നു…',
   'Try it instantly': 'ഉടനെ പരീക്ഷിക്കൂ',
   'Platform admin': 'പ്ലാറ്റ്‌ഫോം അഡ്മിൻ',

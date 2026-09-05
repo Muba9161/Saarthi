@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   FUEL_RATE_BANDS,
+  FUEL_SHARE_OF_FARE,
   describeFuelRate,
+  estimateTripFare,
+  fuelRateForVehicle,
   formatFuelRate,
   fuelRateUnit,
   hasAnyFuelRate,
@@ -116,5 +119,44 @@ describe('describeFuelRate', () => {
 
   it('copes with a city whose state is unknown', () => {
     expect(describeFuelRate(rate({ state: null }))).toBe('Lucknow — published 2026-08-31');
+  });
+});
+
+describe('trip fare estimation', () => {
+  const diesel = { price: 94.7, unit: 'litre' as const };
+
+  it('prices the fuel a run will actually burn', () => {
+    const estimate = estimateTripFare({ distanceKm: 300, fuelEfficiency: 6, rate: diesel });
+
+    // 300 km at 6 km/L is 50 litres.
+    expect(estimate?.fuelUnits).toBe(50);
+    expect(estimate?.fuelCost).toBe(Math.round(50 * 94.7));
+    // Fuel is 55% of the suggested fare, so the fare is the cost over 0.55.
+    expect(estimate?.suggestedFare).toBe(Math.round((50 * 94.7) / FUEL_SHARE_OF_FARE));
+  });
+
+  it('suggests nothing when the vehicle has never recorded a mileage', () => {
+    // A fare built on a guessed mileage looks calculated and is not; absent
+    // beats invented, exactly as it does for the rates themselves.
+    expect(estimateTripFare({ distanceKm: 300, fuelEfficiency: null, rate: diesel })).toBeNull();
+    expect(estimateTripFare({ distanceKm: 300, fuelEfficiency: 0, rate: diesel })).toBeNull();
+  });
+
+  it('suggests nothing without a published rate for the city', () => {
+    expect(estimateTripFare({ distanceKm: 300, fuelEfficiency: 6, rate: null })).toBeNull();
+  });
+
+  it('suggests nothing for a journey of no length', () => {
+    expect(estimateTripFare({ distanceKm: 0, fuelEfficiency: 6, rate: diesel })).toBeNull();
+  });
+
+  it('reads the rate that matches the vehicle, and refuses to invent one', () => {
+    const city = rate();
+    expect(fuelRateForVehicle(city, 'DIESEL')).toBe(city.diesel);
+    expect(fuelRateForVehicle(city, 'PETROL')).toBe(city.petrol);
+    // No publisher quotes a per-unit price for these, so none is offered.
+    expect(fuelRateForVehicle(city, 'ELECTRIC')).toBeNull();
+    expect(fuelRateForVehicle(city, 'LNG')).toBeNull();
+    expect(fuelRateForVehicle(null, 'DIESEL')).toBeNull();
   });
 });

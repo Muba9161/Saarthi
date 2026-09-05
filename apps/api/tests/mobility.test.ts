@@ -632,6 +632,180 @@ describe('Mobility expansion', () => {
       expect(response.body.data.totalAmount).toBe(18900);
     });
 
+    it('prices a per-kilometre trip on the journey the passenger asks for', async () => {
+      // A taxi is not sold against the package's nominal distance. Lucknow to
+      // Kanpur is roughly 75 km straight-line; at Rs.20/km that is the fare.
+      const taxi = await request<{ id: string }>({
+        method: 'POST',
+        url: '/api/v1/travel/me/packages',
+        user: provider,
+        payload: {
+          title: 'City and intercity taxi',
+          summary: 'Point to point by sedan, charged per kilometre.',
+          serviceKind: 'INTERCITY',
+          destinations: ['Anywhere in Uttar Pradesh'],
+          startLocation: 'Lucknow',
+          startLatitude: 26.8467,
+          startLongitude: 80.9462,
+          endLocation: 'As directed',
+          durationDays: 1,
+          vehicleType: VehicleType.SUV,
+          minPassengers: 1,
+          maxPassengers: 4,
+          pricingModel: 'PER_KM',
+          basePrice: 20,
+          approxDistanceKm: 10,
+          status: 'PUBLISHED',
+        },
+      });
+      expect(taxi.status).toBe(201);
+
+      const booked = await request<{ subtotal: number; distanceKm: number | null }>({
+        method: 'POST',
+        url: '/api/v1/travel/bookings',
+        user: customer,
+        payload: {
+          packageId: taxi.body.data.id,
+          startDate: new Date(Date.now() + 14 * 86_400_000).toISOString(),
+          passengers: 2,
+          contactName: 'Priya Nair',
+          contactPhone: '+919845000001',
+          pickupAddress: 'Hazratganj, Lucknow',
+          pickupLatitude: 26.8467,
+          pickupLongitude: 80.9462,
+          dropoffAddress: 'Mall Road, Kanpur',
+          dropoffLatitude: 26.4499,
+          dropoffLongitude: 80.3319,
+        },
+      });
+
+      expect(booked.status).toBe(201);
+      const distance = booked.body.data.distanceKm;
+      expect(distance).toBeGreaterThan(60);
+      expect(distance).toBeLessThan(90);
+      // The stored distance is the one the fare was struck on, not a fresh
+      // measurement — a passenger must never be billed a different number.
+      expect(booked.body.data.subtotal).toBeCloseTo(20 * distance!, 1);
+    });
+
+    it('dispatches the trip to the destination the passenger named', async () => {
+      const taxi = await request<{ id: string }>({
+        method: 'POST',
+        url: '/api/v1/travel/me/packages',
+        user: provider,
+        payload: {
+          title: 'Intercity sedan',
+          summary: 'Point to point, charged per kilometre.',
+          serviceKind: 'INTERCITY',
+          destinations: ['Uttar Pradesh'],
+          startLocation: 'Lucknow',
+          startLatitude: 26.8467,
+          startLongitude: 80.9462,
+          endLocation: 'As directed',
+          durationDays: 1,
+          vehicleType: VehicleType.SUV,
+          minPassengers: 1,
+          maxPassengers: 4,
+          pricingModel: 'PER_KM',
+          basePrice: 18,
+          approxDistanceKm: 10,
+          status: 'PUBLISHED',
+        },
+      });
+
+      const booked = await request<{ id: string }>({
+        method: 'POST',
+        url: '/api/v1/travel/bookings',
+        user: customer,
+        payload: {
+          packageId: taxi.body.data.id,
+          startDate: new Date(Date.now() + 14 * 86_400_000).toISOString(),
+          passengers: 2,
+          contactName: 'Priya Nair',
+          contactPhone: '+919845000001',
+          pickupAddress: 'Hazratganj, Lucknow',
+          pickupLatitude: 26.8467,
+          pickupLongitude: 80.9462,
+          dropoffAddress: 'Mall Road, Kanpur',
+          dropoffLatitude: 26.4499,
+          dropoffLongitude: 80.3319,
+        },
+      });
+      expect(booked.status).toBe(201);
+
+      await request({
+        method: 'POST',
+        url: `/api/v1/travel/bookings/${booked.body.data.id}/pay`,
+        user: customer,
+        payload: { method: 'MOCK' },
+      });
+
+      const confirmed = await request<{ tripId: string | null }>({
+        method: 'POST',
+        url: `/api/v1/travel/bookings/${booked.body.data.id}/confirm`,
+        user: provider,
+        payload: { vehicleId },
+      });
+      expect(confirmed.body.data.tripId).toBeTruthy();
+
+      // The driver has to be sent where the passenger is going, not back to
+      // wherever the package happens to start.
+      const trip = await prisma.trip.findUnique({
+        where: { id: confirmed.body.data.tripId! },
+        select: {
+          destinationAddress: true,
+          destinationLatitude: true,
+          plannedDistanceKm: true,
+        },
+      });
+      expect(trip?.destinationAddress).toBe('Mall Road, Kanpur');
+      expect(trip?.destinationLatitude).toBeCloseTo(26.4499, 3);
+      expect(trip?.plannedDistanceKm).toBeGreaterThan(60);
+    });
+
+    it('refuses a per-kilometre booking that never says where it is going', async () => {
+      const taxi = await request<{ id: string }>({
+        method: 'POST',
+        url: '/api/v1/travel/me/packages',
+        user: provider,
+        payload: {
+          title: 'Airport drop',
+          summary: 'Sedan to the terminal, charged per kilometre.',
+          serviceKind: 'AIRPORT_TRANSFER',
+          destinations: ['Airport'],
+          startLocation: 'Lucknow',
+          startLatitude: 26.8467,
+          startLongitude: 80.9462,
+          endLocation: 'As directed',
+          durationDays: 1,
+          vehicleType: VehicleType.SUV,
+          minPassengers: 1,
+          maxPassengers: 4,
+          pricingModel: 'PER_KM',
+          basePrice: 25,
+          approxDistanceKm: 15,
+          status: 'PUBLISHED',
+        },
+      });
+
+      const response = await request({
+        method: 'POST',
+        url: '/api/v1/travel/bookings',
+        user: customer,
+        payload: {
+          packageId: taxi.body.data.id,
+          startDate: new Date(Date.now() + 14 * 86_400_000).toISOString(),
+          passengers: 1,
+          contactName: 'Priya Nair',
+          contactPhone: '+919845000001',
+        },
+      });
+
+      // Without a distance the fare multiplies out to nothing, and the ride
+      // would be taken for free.
+      expect(response.status).toBe(400);
+    });
+
     it('refuses a party larger than the package allows', async () => {
       const response = await book(9);
       expect(response.status).toBe(400);

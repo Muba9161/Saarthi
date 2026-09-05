@@ -244,7 +244,7 @@ export function FormWizard({
     <form onSubmit={handleSubmit} noValidate className={cn('wizard-shell', className)}>
       <div
         className={cn(
-          'relative',
+          'relative flex min-h-0 flex-auto flex-col',
           variant === 'rail' && 'lg:grid lg:grid-cols-[15rem_minmax(0,1fr)]',
         )}
       >
@@ -267,11 +267,11 @@ export function FormWizard({
           </aside>
         ) : null}
 
-        <div className="min-w-0">
+        <div className="flex min-h-0 min-w-0 flex-auto flex-col">
           {/* --- Strip (narrow, or the strip variant) --------------------- */}
           <div
             className={cn(
-              'border-b border-white/40 p-4 dark:border-white/[0.06] sm:px-6',
+              'shrink-0 border-b border-white/40 p-4 dark:border-white/[0.06] sm:px-6',
               variant === 'rail' && 'lg:hidden',
             )}
           >
@@ -299,7 +299,7 @@ export function FormWizard({
           ) : null}
 
           {/* --- Footer ---------------------------------------------------- */}
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/40 p-4 dark:border-white/[0.06] sm:px-6">
+          <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-white/40 p-4 dark:border-white/[0.06] sm:px-6">
             <div className="flex items-center gap-2">
               {footerStart}
               {safeIndex > 0 ? (
@@ -389,7 +389,7 @@ function StepPanel({
             exit: (towards: number) => ({ opacity: 0, x: towards * -26 }),
           }}
           transition={{ duration: 0.28, ease: EASE }}
-          className={cn('glass-fields space-y-4 p-5 sm:p-6', className)}
+          className="glass-fields space-y-4 p-5 sm:p-6"
         >
           {children}
         </motion.div>
@@ -397,11 +397,18 @@ function StepPanel({
     </div>
   );
 
-  if (reduced) return body;
+  /*
+   * `className` lands here rather than on the content inside, because it is
+   * what the caller sizes: this is the box whose height is animated, and the
+   * one that has to shrink and scroll when the dialog runs out of screen.
+   * `overflow-hidden` clips the sideways step transition; a caller asking for
+   * `overflow-y-auto` still gets a vertical scrollbar over the top of it.
+   */
+  if (reduced) return <div className={cn('overflow-hidden', className)}>{body}</div>;
 
   return (
     <motion.div
-      className="overflow-hidden"
+      className={cn('overflow-hidden', className)}
       animate={{ height }}
       initial={false}
       transition={{ duration: 0.32, ease: EASE }}
@@ -425,7 +432,9 @@ function StepPanel({
 
 /** For `<DialogContent>`. Pair with a width, e.g. `sm:max-w-3xl`. */
 export const WIZARD_DIALOG_CONTENT = [
-  'gap-0 overflow-hidden rounded-2xl p-0 sm:p-0',
+  // A column capped to the viewport, so the footer cannot be pushed off the
+  // bottom of a short screen: the step panel is the only part that scrolls.
+  'flex max-h-[92dvh] flex-col gap-0 overflow-hidden rounded-2xl p-0 sm:p-0',
   'border-white/30 bg-white/75 shadow-overlay backdrop-blur-2xl backdrop-saturate-150',
   'dark:border-white/[0.09] dark:bg-[hsl(226_36%_13%_/_0.82)]',
 ].join(' ');
@@ -438,14 +447,23 @@ export const WIZARD_DIALOG_CONTENT = [
  * `px-*` over it. Without this the title runs under the X.
  */
 export const WIZARD_DIALOG_HEADER =
-  'space-y-1 border-b border-white/40 px-5 py-4 pr-12 dark:border-white/[0.06] sm:px-6 sm:pr-12';
+  'shrink-0 space-y-1 border-b border-white/40 px-5 py-4 pr-12 dark:border-white/[0.06] sm:px-6 sm:pr-12';
 
 /** For the `<FormWizard>` itself when it sits inside a dialog. */
 export const WIZARD_IN_DIALOG =
-  'rounded-none border-0 bg-transparent shadow-none backdrop-blur-none';
+  'flex min-h-0 flex-auto flex-col rounded-none border-0 bg-transparent shadow-none backdrop-blur-none';
 
-/** Keeps the step rail, header and footer still while long steps scroll. */
-export const WIZARD_DIALOG_PANEL = 'max-h-[min(58vh,30rem)] overflow-y-auto';
+/**
+ * Keeps the step rail, header and footer still while long steps scroll.
+ *
+ * `flex-auto` rather than `flex-1`: with a basis of zero the panel collapses
+ * to nothing inside an auto-height dialog. Sized by its content, capped on a
+ * tall screen, and shrunk on a short one — which is the case that used to
+ * push the Continue button off the bottom of a phone with no way to reach it,
+ * because the panel scrolled and the dialog behind it did not.
+ */
+export const WIZARD_DIALOG_PANEL =
+  'min-h-0 max-h-[30rem] flex-auto overflow-y-auto overscroll-contain';
 
 /**
  * Label, hint and error for one control.

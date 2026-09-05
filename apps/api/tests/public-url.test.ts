@@ -92,9 +92,9 @@ describe('publicAppUrl in development', () => {
   });
 
   it('accepts anything explicitly listed in CORS_ORIGINS', async () => {
-    ({ publicAppUrl } = await loadWith(false, ['https://staging.saarthi.in']));
-    expect(publicAppUrl(request({ origin: 'https://staging.saarthi.in' }))).toBe(
-      'https://staging.saarthi.in',
+    ({ publicAppUrl } = await loadWith(false, ['https://staging.vorldxsaarthi.com']));
+    expect(publicAppUrl(request({ origin: 'https://staging.vorldxsaarthi.com' }))).toBe(
+      'https://staging.vorldxsaarthi.com',
     );
   });
 });

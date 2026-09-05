@@ -325,6 +325,10 @@ export const router = createBrowserRouter([
             path: '/admin/organizations',
             element: lazyPage(() => import('@/pages/admin/organizations')),
           },
+          {
+            path: '/admin/terminal-releases',
+            element: lazyPage(() => import('@/pages/admin/terminal-releases')),
+          },
           { path: '/admin/audit', element: lazyPage(() => import('@/pages/admin/audit')) },
 
           { path: '*', element: <NotFoundPage /> },

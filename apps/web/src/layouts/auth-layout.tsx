@@ -314,7 +314,7 @@ export function AuthLayout() {
           <Button variant="outline" size="sm" className="hidden lg:inline-flex" asChild>
             <Link to="/">
               <ArrowLeft className="size-3.5" />
-              {t('Back to saarthi.com')}
+              {t('Back to vorldxsaarthi.com')}
             </Link>
           </Button>
 

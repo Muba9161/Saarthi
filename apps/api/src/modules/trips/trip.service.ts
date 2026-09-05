@@ -569,6 +569,39 @@ export async function updateTrip(
     throw errors.businessRule('A completed or cancelled trip can no longer be edited.');
   }
 
+  /*
+   * Re-pointing the job at another vehicle.
+   *
+   * Held to the same rules a fresh dispatch is — the vehicle has to be this
+   * fleet's, usable, and not already carrying a live trip — and only before
+   * departure, because telemetry, fuel and distance already banked against the
+   * first vehicle cannot be moved with it.
+   */
+  const movingVehicle = Boolean(input.truckId && input.truckId !== trip.truckId);
+  if (movingVehicle) {
+    if (trip.status !== TripStatus.ASSIGNED && trip.status !== TripStatus.DRAFT) {
+      throw errors.businessRule('The vehicle can only be changed before the trip starts.');
+    }
+
+    const truck = await prisma.truck.findUnique({ where: { id: input.truckId! } });
+    if (!truck || truck.organizationId !== trip.organizationId) throw errors.notFound('Truck');
+    if (truck.archivedAt) throw errors.businessRule('This truck is archived.');
+    if (!ASSIGNABLE_TRUCK_STATUSES.includes(truck.status as TruckStatus)) {
+      throw errors.businessRule(
+        `${truck.registrationNumber} is ${truck.status.toLowerCase().replace(/_/g, ' ')} and cannot take this trip.`,
+      );
+    }
+    if (truck.currentTripId && truck.currentTripId !== trip.id) {
+      // Same reasoning as a fresh dispatch: a service run is not a reason to
+      // refuse work, so it is closed out rather than standing in the way.
+      const released = await releaseVehicleFromAdHocTrip(
+        input.truckId!,
+        'Closed automatically: the vehicle was dispatched on a new trip.',
+      );
+      if (!released) throw errors.conflict('This truck is already on an active trip.');
+    }
+  }
+
   if (input.driverId && input.driverId !== trip.driverId) {
     const driver = await prisma.driver.findUnique({ where: { id: input.driverId } });
     if (!driver || driver.organizationId !== trip.organizationId) throw errors.notFound('Driver');
@@ -580,18 +613,48 @@ export async function updateTrip(
     }
   }
 
-  const updated = await prisma.trip.update({
-    where: { id: tripId },
-    data: {
-      ...(input.driverId !== undefined ? { driverId: input.driverId } : {}),
-      ...(input.plannedStartAt !== undefined ? { plannedStartAt: input.plannedStartAt } : {}),
-      ...(input.plannedArrivalAt !== undefined
-        ? { plannedArrivalAt: input.plannedArrivalAt, etaAt: input.plannedArrivalAt }
-        : {}),
-      ...(input.price !== undefined ? { price: input.price } : {}),
-      ...(input.notes !== undefined ? { notes: input.notes } : {}),
-    },
-    include: tripInclude,
+  const updated = await prisma.$transaction(async (tx) => {
+    const next = await tx.trip.update({
+      where: { id: tripId },
+      data: {
+        ...(movingVehicle ? { truckId: input.truckId } : {}),
+        ...(input.driverId !== undefined ? { driverId: input.driverId } : {}),
+        ...(input.plannedStartAt !== undefined ? { plannedStartAt: input.plannedStartAt } : {}),
+        ...(input.plannedArrivalAt !== undefined
+          ? { plannedArrivalAt: input.plannedArrivalAt, etaAt: input.plannedArrivalAt }
+          : {}),
+        ...(input.price !== undefined ? { price: input.price } : {}),
+        ...(input.notes !== undefined ? { notes: input.notes } : {}),
+      },
+      include: tripInclude,
+    });
+
+    if (movingVehicle) {
+      // Hand the job over: the vehicle that was holding it goes back to the
+      // yard, and the new one picks it up. Guarded on `currentTripId` so a
+      // vehicle already reassigned elsewhere is not freed by accident.
+      await tx.truck.updateMany({
+        where: { id: trip.truckId, currentTripId: trip.id },
+        data: { status: TruckStatus.AVAILABLE, currentTripId: null },
+      });
+      await tx.truck.update({
+        where: { id: input.truckId! },
+        data: {
+          status: TruckStatus.ASSIGNED,
+          currentTripId: trip.id,
+          ...(next.driverId ? { currentDriverId: next.driverId } : {}),
+        },
+      });
+      await tx.tripEvent.create({
+        data: {
+          tripId: trip.id,
+          type: 'ASSIGNED',
+          description: 'Reassigned to another vehicle.',
+        },
+      });
+    }
+
+    return next;
   });
 
   return (await decorate([updated]))[0]!;

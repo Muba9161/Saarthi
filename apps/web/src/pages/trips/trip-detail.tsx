@@ -5,6 +5,7 @@ import { ArrowLeft, Clock, Gauge, MapPin, Play, Route as RouteIcon } from 'lucid
 import { toast } from 'sonner';
 import {
   Feature,
+  Permission,
   RealtimeChannel,
   RealtimeEvent,
   TripStatus,
@@ -16,7 +17,8 @@ import {
   relativeTimeFrom,
 } from '@saarthi/shared';
 import { api, errorMessage } from '@/lib/api-client';
-import type { TripDetail } from '@/lib/api-types';
+import type { DriverSummary, Paginated, TripDetail } from '@/lib/api-types';
+import type { VehicleSummary } from '@/lib/mobility-types';
 import { useAuth } from '@/features/auth/auth-context';
 import { useChannels, useRealtimeEvent } from '@/hooks/use-realtime';
 import { PageHeader, SectionHeader } from '@/components/common/page-header';
@@ -24,18 +26,32 @@ import { StatCard } from '@/components/common/stat-card';
 import { StatusBadge } from '@/components/common/status-badge';
 import { EmptyState, ErrorState, LoadingState } from '@/components/common/states';
 import { FleetMap, type MapMarkerPoint } from '@/features/maps/fleet-map';
+import type { NavigationRoute } from '@/features/maps/directions';
+import { RouteSummary } from '@/features/travel/journey-picker';
 import { TripReplay } from '@/features/trips/trip-replay';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 /** Live trip view: map, progress, stops and the full event timeline. */
 export function TripDetailPage() {
   const { id = '' } = useParams();
   const navigate = useNavigate();
-  const { hasFeature } = useAuth();
+  const { can, hasFeature } = useAuth();
   const queryClient = useQueryClient();
+  const [nextTruckId, setNextTruckId] = React.useState('');
+  const [nextDriverId, setNextDriverId] = React.useState('');
+  /** What the map's router made of this run — how far, how long, arriving when. */
+  const [route, setRoute] = React.useState<NavigationRoute | null>(null);
 
   useChannels(id ? [RealtimeChannel.trip(id)] : []);
 
@@ -82,6 +98,39 @@ export function TripDetailPage() {
   useRealtimeEvent(RealtimeEvent.TRIP_UPDATED, (message) => {
     if (message.payload.tripId !== id) return;
     void queryClient.invalidateQueries({ queryKey: ['trip', id] });
+  });
+
+  const canDispatch = can(Permission.TRIPS_MANAGE);
+  // Only worth loading once the panel that uses them can appear: a trip that
+  // has already departed cannot be handed to another vehicle.
+  const beforeDeparture =
+    trip.data?.status === TripStatus.DRAFT || trip.data?.status === TripStatus.ASSIGNED;
+
+  const vehicles = useQuery({
+    queryKey: ['vehicles', 'dispatchable'],
+    queryFn: () => api.get<Paginated<VehicleSummary>>('/fleet/vehicles', { pageSize: 100 }),
+    enabled: canDispatch && beforeDeparture,
+  });
+
+  const drivers = useQuery({
+    queryKey: ['drivers', 'dispatchable'],
+    queryFn: () => api.get<Paginated<DriverSummary>>('/drivers', { pageSize: 100 }),
+    enabled: canDispatch && beforeDeparture,
+  });
+
+  const reassign = useMutation({
+    mutationFn: (payload: { truckId?: string; driverId?: string }) =>
+      api.patch(`/trips/${id}`, payload),
+    onSuccess: () => {
+      toast.success('Trip reassigned');
+      setNextTruckId('');
+      setNextDriverId('');
+      void queryClient.invalidateQueries({ queryKey: ['trip', id] });
+      void queryClient.invalidateQueries({ queryKey: ['trips'] });
+      void queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+    },
+    onError: (error) =>
+      toast.error('Could not reassign the trip', { description: errorMessage(error) }),
   });
 
   const transition = useMutation({
@@ -280,7 +329,13 @@ export function TripDetailPage() {
         /* Road routing with turn-by-turn guidance, driven by the origin and
            destination markers below the map. */
         navigation
+        onRouteChange={setRoute}
         showSearch
+      />
+
+      <RouteSummary
+        route={route}
+        departAt={data.plannedStartAt ? new Date(data.plannedStartAt) : null}
       />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
@@ -358,6 +413,100 @@ export function TripDetailPage() {
                   <Link to={`/orders/${data.order.id}`} className="font-medium hover:underline">
                     {data.order.reference}
                   </Link>
+                </div>
+              ) : null}
+
+              {/*
+                * Dispatch is a plan, and plans change before the wheels turn:
+                * the lorry that was going to take this is in the workshop, or a
+                * bigger one came free. Once the trip has started the API
+                * refuses the move — telemetry already banked against the first
+                * vehicle cannot follow it — so the controls go away with it.
+                */}
+              {canDispatch && beforeDeparture ? (
+                <div className="space-y-3 border-t border-border pt-3">
+                  {/*
+                    * What is being handed over, restated where the decision is
+                    * made. Choosing between two lorries means knowing where
+                    * this load is going and how long it will take — scrolling
+                    * back up to the map to find that out is how the wrong one
+                    * gets picked.
+                    */}
+                  <div className="glass-inset space-y-2 p-3 text-sm">
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                        Collect from
+                      </p>
+                      <p className="font-medium">{data.originAddress}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                        Deliver to
+                      </p>
+                      <p className="font-medium">{data.destinationAddress}</p>
+                    </div>
+                    <RouteSummary
+                      route={route}
+                      departAt={data.plannedStartAt ? new Date(data.plannedStartAt) : null}
+                      className="grid-cols-2 sm:grid-cols-2"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="dispatch-vehicle">Move to another vehicle</Label>
+                    <Select value={nextTruckId} onValueChange={setNextTruckId}>
+                      <SelectTrigger id="dispatch-vehicle">
+                        <SelectValue placeholder="Choose a vehicle" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(vehicles.data?.items ?? [])
+                          .filter((vehicle) => vehicle.id !== data.truck?.id)
+                          .map((vehicle) => (
+                            <SelectItem key={vehicle.id} value={vehicle.id}>
+                              {vehicle.registrationNumber} · {vehicle.typeLabel}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="dispatch-driver">Driver</Label>
+                    <Select value={nextDriverId} onValueChange={setNextDriverId}>
+                      <SelectTrigger id="dispatch-driver">
+                        <SelectValue placeholder="Choose a driver" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(drivers.data?.items ?? [])
+                          // The API refuses an unverified driver, so offering
+                          // one here would only be a rejection two clicks later.
+                          .filter(
+                            (driver) =>
+                              driver.verificationStatus === 'VERIFIED' &&
+                              driver.id !== data.driver?.id,
+                          )
+                          .map((driver) => (
+                            <SelectItem key={driver.id} value={driver.id}>
+                              {driver.fullName}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <Button
+                    className="w-full"
+                    loading={reassign.isPending}
+                    disabled={!nextTruckId && !nextDriverId}
+                    onClick={() =>
+                      reassign.mutate({
+                        ...(nextTruckId ? { truckId: nextTruckId } : {}),
+                        ...(nextDriverId ? { driverId: nextDriverId } : {}),
+                      })
+                    }
+                  >
+                    Reassign trip
+                  </Button>
                 </div>
               ) : null}
             </CardContent>

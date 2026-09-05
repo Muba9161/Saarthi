@@ -201,7 +201,7 @@ export const kn: Catalogue = {
     'ನಿಮ್ಮ ಪಾತ್ರಕ್ಕೆ ನೋಡಲು ಅನುಮತಿ ಇರುವ ದಾಖಲೆಗಳಿಂದ ಮಾತ್ರ ಉತ್ತರಗಳು ರೂಪುಗೊಳ್ಳುತ್ತವೆ.',
   'Local development build — simulated GPS, mock payments, local document storage.':
     'ಲೋಕಲ್ ಡೆವಲಪ್‌ಮೆಂಟ್ ಬಿಲ್ಡ್ — ಕೃತಕ GPS, ನಕಲಿ ಪಾವತಿ, ಸ್ಥಳೀಯ ದಾಖಲೆ ಸಂಗ್ರಹ.',
-  'Back to saarthi.com': 'saarthi.com ಗೆ ಹಿಂತಿರುಗಿ',
+  'Back to vorldxsaarthi.com': 'vorldxsaarthi.com ಗೆ ಹಿಂತಿರುಗಿ',
   'Loading Saarthi…': 'Saarthi ಲೋಡ್ ಆಗುತ್ತಿದೆ…',
   'Try it instantly': 'ಈಗಲೇ ಪ್ರಯತ್ನಿಸಿ',
   'Platform admin': 'ಪ್ಲಾಟ್‌ಫಾರ್ಮ್ ನಿರ್ವಾಹಕ',

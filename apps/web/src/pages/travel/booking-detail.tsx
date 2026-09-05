@@ -13,10 +13,11 @@ import {
 import { Permission, RealtimeEvent, formatCurrency, humanizeEnum } from '@saarthi/shared';
 import { ApiError, api } from '@/lib/api-client';
 import type { BookingDetail, BookingTracking, VehicleSummary } from '@/lib/mobility-types';
-import type { Paginated } from '@/lib/api-types';
+import type { DriverSummary, Paginated } from '@/lib/api-types';
 import { useAuth } from '@/features/auth/auth-context';
 import { useRealtimeEvent } from '@/hooks/use-realtime';
-import { FleetMap, type MapMarkerPoint } from '@/features/maps';
+import { FleetMap, type MapMarkerPoint, type NavigationRoute } from '@/features/maps';
+import { RouteSummary } from '@/features/travel/journey-picker';
 import { PageHeader, SectionHeader } from '@/components/common/page-header';
 import { ErrorState, LoadingState, UnauthorizedState } from '@/components/common/states';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -54,6 +55,9 @@ export function TravelBookingDetailPage() {
   const queryClient = useQueryClient();
 
   const [vehicleId, setVehicleId] = React.useState('');
+  const [driverId, setDriverId] = React.useState('');
+  /** Whatever the map's router worked out for this journey. */
+  const [route, setRoute] = React.useState<NavigationRoute | null>(null);
   const [declineReason, setDeclineReason] = React.useState('');
   const [cancelReason, setCancelReason] = React.useState('');
   const [comment, setComment] = React.useState('');
@@ -89,6 +93,14 @@ export function TravelBookingDetailPage() {
     enabled: isProvider && data?.status === 'AWAITING_CONFIRMATION',
   });
 
+  // Assigning the driver at the same time as the vehicle is what lets the trip
+  // start without a second visit: the API creates it with both attached.
+  const drivers = useQuery({
+    queryKey: ['travel', 'assignable-drivers'],
+    queryFn: () => api.get<Paginated<DriverSummary>>('/drivers', { pageSize: 50 }),
+    enabled: isProvider && data?.status === 'AWAITING_CONFIRMATION',
+  });
+
   useRealtimeEvent(RealtimeEvent.BOOKING_UPDATED, (message) => {
     if (message.payload.bookingId === id) void booking.refetch();
   });
@@ -116,6 +128,7 @@ export function TravelBookingDetailPage() {
     mutationFn: () =>
       api.post(`/travel/bookings/${id}/confirm`, {
         vehicleId: vehicleId || undefined,
+        driverId: driverId || undefined,
       }),
     onSuccess: () => {
       setActionError(null);
@@ -180,8 +193,35 @@ export function TravelBookingDetailPage() {
   if (booking.error) return <ErrorState error={booking.error} onRetry={() => void booking.refetch()} />;
   if (!data) return <ErrorState error={new Error('Booking not found')} />;
 
+  /**
+   * The journey itself — known from the moment the booking is made, long
+   * before a vehicle is moving. The provider needs it to decide which vehicle
+   * to send, and the passenger needs it to recognise their own trip.
+   */
+  const journeyMarkers: MapMarkerPoint[] = [];
+  if (data.pickupLatitude !== null && data.pickupLongitude !== null) {
+    journeyMarkers.push({
+      id: 'pickup',
+      latitude: data.pickupLatitude,
+      longitude: data.pickupLongitude,
+      label: data.pickupAddress ?? 'Pickup',
+      kind: 'origin',
+    });
+  }
+  if (data.dropoffLatitude !== null && data.dropoffLongitude !== null) {
+    journeyMarkers.push({
+      id: 'dropoff',
+      latitude: data.dropoffLatitude,
+      longitude: data.dropoffLongitude,
+      label: data.dropoffAddress ?? 'Destination',
+      kind: 'destination',
+    });
+  }
+  const routable = journeyMarkers.length === 2;
+
   const markers: MapMarkerPoint[] = tracking.data?.available
     ? [
+        ...journeyMarkers,
         {
           id: 'vehicle',
           latitude: tracking.data.latitude!,
@@ -218,6 +258,49 @@ export function TravelBookingDetailPage() {
 
       <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
         <div className="space-y-4">
+          {/* The route is shown whether or not anything is moving yet: before
+              departure it is what the provider dispatches against, and after
+              it the live map above takes over. */}
+          {journeyMarkers.length > 0 && !trackable ? (
+            <Card className="overflow-hidden">
+              <CardHeader className="pb-3">
+                <SectionHeader
+                  title="The journey"
+                  description={
+                    data.distanceKm
+                      ? `About ${data.distanceKm} km from pickup to destination.`
+                      : 'Pickup and destination for this booking.'
+                  }
+                />
+              </CardHeader>
+              <CardContent className="space-y-3 pt-0">
+                <FleetMap
+                  markers={journeyMarkers}
+                  navigation={routable}
+                  onRouteChange={setRoute}
+                  height="260px"
+                  autoFit
+                  showControls={false}
+                />
+                <RouteSummary route={route} departAt={new Date(data.startDate)} />
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">Pickup</p>
+                    <p className="text-sm font-medium">{data.pickupAddress ?? '—'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                      Destination
+                    </p>
+                    <p className="text-sm font-medium">
+                      {data.dropoffAddress ?? 'As per the package itinerary'}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ) : null}
+
           {trackable ? (
             <Card className="overflow-hidden">
               <CardHeader className="pb-3">
@@ -231,7 +314,16 @@ export function TravelBookingDetailPage() {
                   <LoadingState label="Locating the vehicle…" className="min-h-[200px]" />
                 ) : tracking.data?.available ? (
                   <>
-                    <FleetMap markers={markers} height="280px" autoFit />
+                    {/* The planned road route under the live position, so a
+                        passenger can see how far along the journey is. */}
+                    <FleetMap
+                      markers={markers}
+                      navigation={routable}
+                      onRouteChange={setRoute}
+                      height="280px"
+                      autoFit
+                    />
+                    <RouteSummary route={route} />
                     <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
                       <div>
                         <p className="text-xs uppercase tracking-wide text-muted-foreground">
@@ -504,6 +596,34 @@ export function TravelBookingDetailPage() {
                     </SelectContent>
                   </Select>
                 </div>
+
+                <div className="space-y-1.5">
+                  <Label>Driver</Label>
+                  <Select value={driverId} onValueChange={setDriverId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose a driver" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(drivers.data?.items ?? [])
+                        // The API refuses an unverified driver on a passenger
+                        // trip, so offering one here would only be a rejection
+                        // three clicks later.
+                        .filter((driver) => driver.verificationStatus === 'VERIFIED')
+                        .map((driver) => (
+                          <SelectItem key={driver.id} value={driver.id}>
+                            {driver.fullName}
+                            {driver.currentTruck
+                              ? ` · on ${driver.currentTruck.registrationNumber}`
+                              : ''}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Optional now — the trip can be created and the driver added later.
+                  </p>
+                </div>
+
                 <Button
                   className="w-full"
                   loading={confirm.isPending}

@@ -7,6 +7,7 @@ import {
   LoanStatus,
   NotificationPriority,
   NotificationType,
+  OPERATOR_OWNER_ROLES,
   Permission,
   addMonthsClamped,
   buildPaginationMeta,
@@ -1269,7 +1270,7 @@ export async function closeLoan(
     body: `${loan.lenderName} — loan closed (${input.status.toLowerCase()}).`,
     priority: NotificationPriority.NORMAL,
     actionUrl: `/fleet/loans/${loanId}`,
-    roles: ['FLEET_OWNER'],
+    roles: OPERATOR_OWNER_ROLES,
   });
 
   await recordAudit({
@@ -1626,7 +1627,7 @@ export async function syncLoan(
       body: `${loan.lenderName}: ${differences.map((d) => d.field).join(', ')} differ. Review before relying on either figure.`,
       priority: NotificationPriority.HIGH,
       actionUrl: `/fleet/loans/${loanId}`,
-      roles: ['FLEET_OWNER'],
+      roles: OPERATOR_OWNER_ROLES,
     });
   }
 

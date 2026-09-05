@@ -97,6 +97,9 @@ model User {
   profile         UserProfile?
   viewPreferences UserViewPreference[]
 
+  uploadedTerminalReleases  TerminalRelease[] @relation("TerminalReleaseUploader")
+  publishedTerminalReleases TerminalRelease[] @relation("TerminalReleasePublisher")
+
   @@index([status])
   @@index([createdAt])
   @@map("users")
@@ -3178,6 +3181,17 @@ model TravelBooking {
   pickupAddress   String?
   pickupLatitude  Float?
   pickupLongitude Float?
+
+  /// Where the party is going, when the customer names it rather than riding
+  /// the package's own fixed route. This is what makes a per-kilometre taxi
+  /// bookable: the package prices the kilometre, the booking says how many.
+  dropoffAddress   String?
+  dropoffLatitude  Float?
+  dropoffLongitude Float?
+  /// Pickup to drop-off, measured when the booking was taken. Stored rather
+  /// than recomputed because it is what the fare was quoted on, and a later
+  /// change to either point must not silently restate the agreed price.
+  distanceKm       Float?
 
   contactName     String
   contactPhone    String
@@ -6404,4 +6418,76 @@ model TerminalIssueReport {
   @@index([vehicleId, createdAt])
   @@index([sessionId])
   @@map("terminal_issue_reports")
+}
+
+// ===========================================================================
+// Saarthi Terminal — over-the-air releases
+// ===========================================================================
+
+/// How far along a build is on its way to the fleet.
+enum TerminalReleaseStatus {
+  /// Uploaded and inspected, offered to nobody. The state every release starts
+  /// in, so uploading is never the same act as shipping.
+  DRAFT
+  /// Offered to every terminal running an older version code.
+  PUBLISHED
+  /// Withdrawn. Terminals stop being offered it; those that already installed
+  /// it keep running it, because an install cannot be recalled.
+  ARCHIVED
+}
+
+/// A build of the Saarthi Terminal app that vehicles can install over the air.
+///
+/// Platform-wide, deliberately: there is one Terminal app, and a fleet running
+/// a private build of it is a support case nobody could reason about. Only a
+/// platform administrator may publish.
+///
+/// The row records what was *found in the APK*, not what the uploader typed.
+/// `versionCode`, `versionName`, `minSdk` and `applicationId` are read out of
+/// the binary, so a release cannot claim to be something it is not — and
+/// `versionCode` is the only field the update check compares.
+model TerminalRelease {
+  id String @id @default(uuid()) @db.Uuid
+
+  /// Read from the APK. Unique because two builds sharing a code are
+  /// indistinguishable to Android, which would make "is this newer?" unanswerable.
+  versionCode   Int    @unique
+  versionName   String
+  /// Refused at upload if it does not match the installed package.
+  applicationId String
+  /// A terminal below this cannot install the build, and is not offered it.
+  minSdk        Int
+
+  storageKey    String
+  fileName      String
+  fileSize      Int
+  /// Lower-case hex SHA-256 of the exact bytes stored. The terminal recomputes
+  /// this after downloading and refuses to install on a mismatch, so a truncated
+  /// or tampered download cannot reach the package installer.
+  sha256        String
+  /// The signing certificate's SHA-256, as apksigner reports it. Recorded so a
+  /// release signed by the wrong key is visible here rather than as an
+  /// unexplained install failure in a cab.
+  signingSha256 String?
+
+  status    TerminalReleaseStatus @default(DRAFT)
+  /// Blocks the cockpit until installed. For a security or data-integrity fix
+  /// only — a driver who cannot start a trip cannot earn.
+  mandatory Boolean               @default(false)
+  /// What changed, in the words a driver reads on the update card.
+  notes     String?
+
+  publishedAt   DateTime?
+  publishedById String?   @db.Uuid
+  uploadedById  String    @db.Uuid
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  uploadedBy  User  @relation("TerminalReleaseUploader", fields: [uploadedById], references: [id], onDelete: Restrict)
+  publishedBy User? @relation("TerminalReleasePublisher", fields: [publishedById], references: [id], onDelete: SetNull)
+
+  @@index([status, versionCode])
+  @@index([uploadedById])
+  @@map("terminal_releases")
 }

@@ -201,7 +201,7 @@ export const pa: Catalogue = {
     'ਜਵਾਬ ਸਿਰਫ਼ ਉਨ੍ਹਾਂ ਰਿਕਾਰਡਾਂ ਤੋਂ ਬਣਦੇ ਹਨ ਜਿਨ੍ਹਾਂ ਨੂੰ ਵੇਖਣ ਦੀ ਤੁਹਾਡੀ ਭੂਮਿਕਾ ਨੂੰ ਇਜਾਜ਼ਤ ਹੈ।',
   'Local development build — simulated GPS, mock payments, local document storage.':
     'ਲੋਕਲ ਡਿਵੈਲਪਮੈਂਟ ਬਿਲਡ — ਨਕਲੀ GPS, ਨਕਲੀ ਭੁਗਤਾਨ, ਸਥਾਨਕ ਦਸਤਾਵੇਜ਼ ਭੰਡਾਰ।',
-  'Back to saarthi.com': 'saarthi.com ਉੱਤੇ ਵਾਪਸ',
+  'Back to vorldxsaarthi.com': 'vorldxsaarthi.com ਉੱਤੇ ਵਾਪਸ',
   'Loading Saarthi…': 'Saarthi ਲੋਡ ਹੋ ਰਿਹਾ ਹੈ…',
   'Try it instantly': 'ਹੁਣੇ ਅਜ਼ਮਾਓ',
   'Platform admin': 'ਪਲੇਟਫਾਰਮ ਐਡਮਿਨ',

@@ -15,9 +15,11 @@ import {
   terminalPlaceSearchSchema,
   terminalRouteSchema,
   terminalTripEventSchema,
+  terminalUpdateCheckSchema,
+  terminalUpdateDownloadParamsSchema,
 } from '@saarthi/shared';
 import { errors } from '../../lib/errors';
-import { created, ok, parseBody, parseQuery } from '../../lib/http';
+import { created, ok, parseBody, parseParams, parseQuery } from '../../lib/http';
 import { publicAppUrl } from '../../lib/public-url';
 import {
   authenticateDeviceRequest,
@@ -30,6 +32,7 @@ import { latestReadingForVehicle } from '../telemetry/telemetry.service';
 import { prisma } from '../../database/prisma';
 import { storageProvider } from '../../providers/storage';
 import { redeemTerminalPairing } from './terminal-pairing.service';
+import { openPublishedRelease, updateOfferFor } from './release.service';
 import {
   driverAuthForSession,
   invalidateTerminalState,
@@ -431,6 +434,69 @@ export async function terminalClientRoutes(app: FastifyInstance): Promise<void> 
 
     if (etag) reply.header('etag', etag);
     return reply.send(download.stream);
+  });
+
+  // -------------------------------------------------------------------------
+  // Over-the-air updates
+  // -------------------------------------------------------------------------
+
+  /**
+   * Is there a newer build for this terminal?
+   *
+   * Answered for any authenticated terminal, paired or not, and without a live
+   * driver session: a unit sitting unpaired in a workshop is exactly the one
+   * most likely to be behind, and requiring a signed-on driver would leave it
+   * stranded until somebody started a shift on it.
+   *
+   * `null` is the ordinary answer and the cheap one — a fleet already on the
+   * current build asks this on every heartbeat.
+   */
+  app.get('/update', { config: terminalLimit(20) }, async (request, reply) => {
+    requireTerminal(await authenticateDeviceRequest(request));
+    const query = parseQuery(terminalUpdateCheckSchema, request.query ?? {});
+
+    return ok(
+      reply,
+      await updateOfferFor({
+        currentVersionCode: query.versionCode ?? null,
+        deviceSdk: query.sdk ?? null,
+      }),
+    );
+  });
+
+  /**
+   * The APK itself.
+   *
+   * Streamed through the device gateway rather than handed out as a signed link
+   * to storage, for the same reason every other terminal endpoint is: a
+   * terminal already holds exactly one credential and one base URL, and a
+   * second, differently-authenticated host is a second thing to go wrong in a
+   * cab with one bar of signal.
+   *
+   * Only a published version can be fetched, and the version is named in the
+   * path — so a download that started before a release was archived cannot be
+   * resumed against a different build than the one whose checksum the terminal
+   * is holding.
+   */
+  app.get('/update/:versionCode/download', { config: terminalLimit(6) }, async (request, reply) => {
+    requireTerminal(await authenticateDeviceRequest(request));
+    const { versionCode } = parseParams(terminalUpdateDownloadParamsSchema, request.params);
+
+    const release = await openPublishedRelease(versionCode);
+
+    reply
+      .header('content-type', 'application/vnd.android.package-archive')
+      .header('content-length', release.size)
+      .header('content-disposition', `attachment; filename="${release.fileName}"`)
+      // The bytes for a version code never change — the version code is unique
+      // and a release is never rewritten — so this is safe to hold for a long
+      // time. It matters: several terminals in one yard on one connection will
+      // ask for the same file within minutes of each other.
+      .header('cache-control', 'private, max-age=86400, immutable')
+      .header('etag', `"${release.sha256}"`)
+      .header('x-content-type-options', 'nosniff');
+
+    return reply.send(release.stream);
   });
 
   /** The live reading behind the dashboard gauges. */

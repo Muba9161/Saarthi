@@ -15,6 +15,7 @@ import {
 import { Fuel, IndianRupee, Route as RouteIcon, TrendingUp } from 'lucide-react';
 import {
   Feature,
+  OrganizationType,
   Permission,
   formatCompactCurrency,
   formatCurrency,
@@ -54,8 +55,12 @@ const chartTooltip = {
 };
 
 export function AnalyticsPage() {
-  const { can, hasFeature } = useAuth();
+  const { can, hasFeature, session } = useAuth();
   const enabled = can(Permission.ANALYTICS_READ) && hasFeature(Feature.FLEET_ANALYTICS);
+  // Same rows, same maths, same table — a travel operator's profit per car is
+  // computed exactly as a haulier's profit per lorry. Only the word differs.
+  const isMobility = session?.organization?.type === OrganizationType.MOBILITY_PROVIDER;
+  const noun = isMobility ? 'vehicle' : 'truck';
 
   const series = useQuery({
     queryKey: ['analytics', 'performance'],
@@ -104,7 +109,7 @@ export function AnalyticsPage() {
   const truckColumns: Column<TruckPerformance>[] = [
     {
       key: 'truck',
-      header: 'Truck',
+      header: isMobility ? 'Vehicle' : 'Truck',
       cell: (row) => <span className="font-medium">{row.registrationNumber}</span>,
     },
     { key: 'trips', header: 'Trips', numeric: true, cell: (row) => row.trips },
@@ -358,7 +363,7 @@ export function AnalyticsPage() {
 
       <Tabs defaultValue="trucks">
         <TabsList>
-          <TabsTrigger value="trucks">By truck</TabsTrigger>
+          <TabsTrigger value="trucks">By {noun}</TabsTrigger>
           <TabsTrigger value="drivers">By driver</TabsTrigger>
           <TabsTrigger value="routes">By route</TabsTrigger>
         </TabsList>
@@ -368,7 +373,7 @@ export function AnalyticsPage() {
             <Card variant="glass">
               <CardHeader className="pb-2">
                 <SectionHeader
-                  title="Profit by truck"
+                  title={`Profit by ${noun}`}
                   description="Revenue less fuel and maintenance, per vehicle."
                 />
               </CardHeader>
@@ -419,7 +424,7 @@ export function AnalyticsPage() {
             isLoading={trucks.isLoading}
             error={trucks.error}
             onRetry={() => void trucks.refetch()}
-            emptyTitle="No truck performance yet"
+            emptyTitle={`No ${noun} performance yet`}
             emptyDescription="Complete a trip and the numbers appear here."
           />
         </TabsContent>

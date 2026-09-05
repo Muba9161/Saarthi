@@ -1,6 +1,7 @@
 import {
   NotificationPriority,
   NotificationType,
+  OPERATOR_OWNER_ROLES,
   PLAN_LIMITS,
   PlanTier,
   VEHICLE_TOPUP,
@@ -206,7 +207,7 @@ export async function purchaseTopUp(
         body: payment.failureMessage ?? 'The payment was declined. No capacity was added.',
         priority: NotificationPriority.HIGH,
         actionUrl: '/settings/subscription',
-        roles: ['FLEET_OWNER'],
+        roles: OPERATOR_OWNER_ROLES,
       });
 
       throw errors.businessRule(
@@ -250,7 +251,7 @@ export async function purchaseTopUp(
       body: `A +1 vehicle top-up is active. You can now add one more vehicle.`,
       priority: NotificationPriority.NORMAL,
       actionUrl: '/settings/subscription',
-      roles: ['FLEET_OWNER'],
+      roles: OPERATOR_OWNER_ROLES,
     });
 
     return toView(row);
@@ -339,7 +340,7 @@ export async function runTopUpExpirySweep(): Promise<number> {
         body: 'A +1 vehicle top-up has lapsed. Your vehicles keep working — you just cannot add another until you renew or upgrade.',
         priority: NotificationPriority.NORMAL,
         actionUrl: '/settings/subscription',
-        roles: ['FLEET_OWNER'],
+        roles: OPERATOR_OWNER_ROLES,
       });
     }
 

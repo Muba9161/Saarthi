@@ -200,7 +200,7 @@ export const or: Catalogue = {
     'ଉତ୍ତର କେବଳ ସେହି ରେକର୍ଡରୁ ତିଆରି ହୁଏ ଯାହା ଦେଖିବାକୁ ଆପଣଙ୍କ ଭୂମିକାର ଅନୁମତି ଅଛି।',
   'Local development build — simulated GPS, mock payments, local document storage.':
     'ଲୋକାଲ ଡେଭେଲପମେଣ୍ଟ ବିଲ୍ଡ — ନକଲି GPS, ନକଲି ପେମେଣ୍ଟ, ସ୍ଥାନୀୟ ଦଲିଲ ସଂରକ୍ଷଣ।',
-  'Back to saarthi.com': 'saarthi.com କୁ ଫେରନ୍ତୁ',
+  'Back to vorldxsaarthi.com': 'vorldxsaarthi.com କୁ ଫେରନ୍ତୁ',
   'Loading Saarthi…': 'Saarthi ଲୋଡ ହେଉଛି…',
   'Try it instantly': 'ତୁରନ୍ତ ଦେଖନ୍ତୁ',
   'Platform admin': 'ପ୍ଲାଟଫର୍ମ ପ୍ରଶାସକ',

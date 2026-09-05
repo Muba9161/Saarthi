@@ -200,7 +200,7 @@ export const bn: Catalogue = {
     'উত্তর কেবল সেই নথি থেকে তৈরি হয় যা দেখার অনুমতি আপনার ভূমিকার আছে।',
   'Local development build — simulated GPS, mock payments, local document storage.':
     'লোকাল ডেভেলপমেন্ট বিল্ড — কৃত্রিম GPS, নকল পেমেন্ট, স্থানীয় নথি সংরক্ষণ।',
-  'Back to saarthi.com': 'saarthi.com-এ ফিরে যান',
+  'Back to vorldxsaarthi.com': 'vorldxsaarthi.com-এ ফিরে যান',
   'Loading Saarthi…': 'Saarthi লোড হচ্ছে…',
   'Try it instantly': 'এখনই দেখে নিন',
   'Platform admin': 'প্ল্যাটফর্ম প্রশাসক',

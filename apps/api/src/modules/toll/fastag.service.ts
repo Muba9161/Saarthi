@@ -3,6 +3,7 @@ import {
   Feature,
   NotificationPriority,
   NotificationType,
+  OPERATOR_MANAGEMENT_ROLES,
   Permission,
   TollDataSource,
   buildPaginationMeta,
@@ -588,7 +589,7 @@ export async function syncFastag(
         'Toll will be charged at double the cash rate until it is cleared with the issuing bank.',
       priority: NotificationPriority.CRITICAL,
       actionUrl: '/fleet/toll',
-      roles: ['FLEET_OWNER', 'FLEET_MANAGER'],
+      roles: OPERATOR_MANAGEMENT_ROLES,
     });
   }
 
@@ -890,7 +891,7 @@ export async function discoverFastag(
         'Toll will be charged at double the cash rate until it is cleared.',
       priority: NotificationPriority.CRITICAL,
       actionUrl: '/fleet/toll',
-      roles: ['FLEET_OWNER', 'FLEET_MANAGER'],
+      roles: OPERATOR_MANAGEMENT_ROLES,
     });
   }
 
@@ -1014,7 +1015,7 @@ export async function runFastagBalanceSweep(): Promise<{ warned: number; blocked
           body: `${bucket.blocked.slice(0, 5).join(', ')} will be charged double at the next plaza.`,
           priority: NotificationPriority.CRITICAL,
           actionUrl: '/fleet/toll',
-          roles: ['FLEET_OWNER', 'FLEET_MANAGER'],
+          roles: OPERATOR_MANAGEMENT_ROLES,
         });
         blocked += bucket.blocked.length;
       }
@@ -1026,7 +1027,7 @@ export async function runFastagBalanceSweep(): Promise<{ warned: number; blocked
           body: `${bucket.low.slice(0, 5).join(', ')} — roughly one more national plaza each.`,
           priority: NotificationPriority.HIGH,
           actionUrl: '/fleet/toll',
-          roles: ['FLEET_OWNER', 'FLEET_MANAGER'],
+          roles: OPERATOR_MANAGEMENT_ROLES,
         });
         warned += bucket.low.length;
       }

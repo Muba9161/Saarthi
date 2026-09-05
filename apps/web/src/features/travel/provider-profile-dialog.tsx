@@ -2,13 +2,20 @@ import * as React from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Building2, MapPinned, Pencil, Phone, Plus, Search, Trash2 } from 'lucide-react';
-import { ProviderStatus, SERVICE_TYPES, type ServiceType, humanizeEnum } from '@saarthi/shared';
+import {
+  MediaOwnerType,
+  MediaPurpose,
+  ProviderStatus,
+  SERVICE_TYPES,
+  type ServiceType,
+  humanizeEnum,
+} from '@saarthi/shared';
 import { api, errorMessage } from '@/lib/api-client';
 import type { ProviderSummary } from '@/lib/mobility-types';
 // Reached through the modules rather than `@/features/maps`, because that index
 // also exports the MapLibre-backed map: a city lookup in a dialog has no
 // business pulling the whole map engine into the travel chunk.
-import { geocodeForward, type GeocodeFeature } from '@/features/maps/directions';
+import { searchPlaces, type PlaceResult } from '@/features/maps/places';
 import { isRoutingConfigured } from '@/features/maps/map-config';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -25,6 +32,10 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { ChipInput } from '@/components/common/chip-input';
+import { ImageCircleField } from '@/components/common/file-dropzone';
+import { useAuth } from '@/features/auth/auth-context';
+import { MediaImage } from '@/features/media/media-image';
+import { uploadImageOrWarn } from '@/features/media/upload-image';
 import {
   FormWizard,
   WizardField,
@@ -54,6 +65,10 @@ import { cn } from '@/lib/utils';
 
 const PHONE_PATTERN = /^(\+91)?[6-9]\d{9}$/;
 const EMAIL_PATTERN = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
+/** Mirrors MEDIA_MAX_FILE_SIZE on the API, so a rejection happens here first. */
+const LOGO_MAX_SIZE_MB = 5;
+const LOGO_ACCEPT = '.jpg,.jpeg,.png,.webp,.heic';
 
 /** Matches `phoneSchema`, which strips separators before it validates. */
 function normalizePhone(value: string): string {
@@ -214,7 +229,7 @@ function ServiceAreaFields({
   onRemove: () => void;
 }) {
   const [query, setQuery] = React.useState('');
-  const [results, setResults] = React.useState<GeocodeFeature[]>([]);
+  const [results, setResults] = React.useState<PlaceResult[]>([]);
   const [searching, setSearching] = React.useState(false);
   const idBase = `area-${area.key}`;
 
@@ -226,7 +241,7 @@ function ServiceAreaFields({
     }
     setSearching(true);
     try {
-      const found = await geocodeForward(text, { limit: 5 });
+      const found = await searchPlaces(text, { limit: 5 });
       setResults(found);
       if (found.length === 0) toast.info('No place matched that name.');
     } catch (error) {
@@ -236,15 +251,20 @@ function ServiceAreaFields({
     }
   };
 
-  const choose = (feature: GeocodeFeature): void => {
-    const { city, state } = splitPlaceLabel(feature.address);
+  const choose = (place: PlaceResult): void => {
+    // The search now returns the city and state as fields rather than buried
+    // in a label, so nothing has to be unpicked from a comma-separated string.
+    const { city, state } = place.city
+      ? { city: place.city, state: place.state ?? '' }
+      : splitPlaceLabel(place.address);
+
     onChange({
-      city: city || feature.name,
-      // Only fill the state when the label carried one — never blank out a
-      // value the operator has already typed.
+      city: city || place.name,
+      // Only fill the state when one came back — never blank out a value the
+      // operator has already typed.
       ...(state ? { state } : {}),
-      latitude: feature.position.latitude.toFixed(6),
-      longitude: feature.position.longitude.toFixed(6),
+      latitude: place.position.latitude.toFixed(6),
+      longitude: place.position.longitude.toFixed(6),
     });
     setResults([]);
     setQuery('');
@@ -391,12 +411,15 @@ export interface ProviderProfileDialogProps {
 
 export function ProviderProfileDialog({ profile, trigger }: ProviderProfileDialogProps) {
   const queryClient = useQueryClient();
+  const { session } = useAuth();
   const isEdit = Boolean(profile);
   const [open, setOpen] = React.useState(false);
   const [form, setForm] = React.useState<ProfileFormState>(() => initialState(profile));
   const [errors, setErrors] = React.useState<FieldErrors>({});
   const [areaErrors, setAreaErrors] = React.useState<Record<string, AreaErrors>>({});
   const [erroredStepIds, setErroredStepIds] = React.useState<string[]>([]);
+  /** A newly picked logo. Null while the one already on the profile stands. */
+  const [logo, setLogo] = React.useState<File | null>(null);
 
   // Read through a ref so a background refetch of the profile cannot reset the
   // form under someone who is halfway through editing it.
@@ -406,6 +429,7 @@ export function ProviderProfileDialog({ profile, trigger }: ProviderProfileDialo
   React.useEffect(() => {
     if (!open) return;
     setForm(initialState(profileRef.current));
+    setLogo(null);
     setErrors({});
     setAreaErrors({});
     setErroredStepIds([]);
@@ -437,8 +461,30 @@ export function ProviderProfileDialog({ profile, trigger }: ProviderProfileDialo
   };
 
   const save = useMutation({
-    mutationFn: (payload: Record<string, unknown>) =>
-      api.put<ProviderSummary>('/travel/me/profile', payload),
+    mutationFn: async (payload: Record<string, unknown>) => {
+      // The logo goes up first because the profile records its URL. The
+      // organization already exists, so unlike the vehicle and driver forms
+      // there is nothing to wait for — and a logo left behind by a profile
+      // that then fails validation is simply replaced by the next one.
+      const organizationId = session?.organization?.id;
+      const asset =
+        logo && organizationId
+          ? await uploadImageOrWarn(
+              {
+                ownerType: MediaOwnerType.ORGANIZATION,
+                ownerId: organizationId,
+                purpose: MediaPurpose.LOGO,
+                file: logo,
+              },
+              'The profile was saved, but the logo could not be.',
+            )
+          : null;
+
+      return api.put<ProviderSummary>('/travel/me/profile', {
+        ...payload,
+        ...(asset ? { logoUrl: asset.thumbnailUrl ?? asset.url } : {}),
+      });
+    },
     onSuccess: () => {
       toast.success(isEdit ? 'Profile updated' : 'Provider profile created', {
         description: isEdit
@@ -535,6 +581,29 @@ export function ProviderProfileDialog({ profile, trigger }: ProviderProfileDialo
       icon: Building2,
       content: (
         <>
+          <ImageCircleField
+            value={logo}
+            onChange={setLogo}
+            existing={
+              profile?.logoUrl ? (
+                <MediaImage
+                  source={profile.logoUrl}
+                  alt={`${profile.displayName} logo`}
+                  variant="thumbnail"
+                  className="size-full object-cover"
+                  fallback={null}
+                />
+              ) : null
+            }
+            label="Business logo"
+            hint={`Optional · JPEG, PNG, WebP or HEIC up to ${LOGO_MAX_SIZE_MB} MB`}
+            accept={LOGO_ACCEPT}
+            maxSizeMb={LOGO_MAX_SIZE_MB}
+            icon={Building2}
+            onReject={(reason) => toast.error(reason)}
+            className="pb-1"
+          />
+
           <WizardField
             label="Trading name"
             htmlFor="provider-name"

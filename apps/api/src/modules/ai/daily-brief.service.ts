@@ -4,6 +4,7 @@ import {
   MaintenanceStatus,
   NotificationPriority,
   NotificationType,
+  OPERATOR_MANAGEMENT_ROLES,
   formatCurrency,
   resolveDocumentValidity,
   resolveFastagHealth,
@@ -416,7 +417,7 @@ export async function runDailyBriefSweep(): Promise<{ sent: number; skipped: num
           .join(' · '),
         priority: critical > 0 ? NotificationPriority.HIGH : NotificationPriority.NORMAL,
         actionUrl: '/dashboard',
-        roles: ['FLEET_OWNER', 'FLEET_MANAGER'],
+        roles: OPERATOR_MANAGEMENT_ROLES,
       });
       sent += 1;
     }

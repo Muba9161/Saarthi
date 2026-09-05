@@ -1,5 +1,7 @@
 package com.saarthi.terminal.network
 
+import android.os.Build
+import com.saarthi.terminal.BuildConfig
 import com.saarthi.terminal.data.TerminalIdentityStore
 import com.saarthi.terminal.util.DebugLog
 import kotlinx.coroutines.Dispatchers
@@ -14,7 +16,9 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import java.io.File
 import java.io.IOException
+import java.security.MessageDigest
 import java.util.concurrent.TimeUnit
 
 /**
@@ -200,6 +204,79 @@ class SaarthiApi(
                 // cockpit's point of view, and neither is worth a banner.
                 else -> null
             }
+        }
+    }
+
+    /**
+     * Is there a newer build?
+     *
+     * The version code and API level are sent so the server can answer for
+     * *this* tablet — a build whose floor is above what this device runs is not
+     * offered, because Android would refuse the install and a button that always
+     * fails reads as a broken app rather than an old one.
+     */
+    suspend fun checkForUpdate(): UpdateOfferDto? = getNullable(
+        "/api/v1/device-gateway/terminal/update" +
+            "?versionCode=${BuildConfig.VERSION_CODE}&sdk=${Build.VERSION.SDK_INT}",
+        UpdateOfferDto.serializer(),
+    )
+
+    /**
+     * Fetch a build, to a file, hashing as it goes.
+     *
+     * Streamed rather than buffered. The universal APK is the better part of a
+     * hundred megabytes and these tablets are not generous with heap; holding
+     * one in memory to hash it afterwards is how a download succeeds and the app
+     * dies at the last moment.
+     *
+     * Returns the SHA-256 of what was actually written, for the caller to check
+     * against what the server promised. Computed here, over the same stream that
+     * produced the file, so there is no window in which the two could differ.
+     */
+    suspend fun downloadUpdate(
+        versionCode: Int,
+        target: File,
+        onProgress: (downloaded: Long, total: Long) -> Unit,
+    ): String = withContext(Dispatchers.IO) {
+        val request = Request.Builder()
+            .url("$baseUrl/api/v1/device-gateway/terminal/update/$versionCode/download")
+            .get()
+            .header("Authorization", "Bearer ${bearer()}")
+            .header("X-Saarthi-Client", "terminal/$appVersion")
+            .build()
+
+        val response = try {
+            client.newCall(request).execute()
+        } catch (error: IOException) {
+            throw Failure.Offline(error)
+        }
+
+        response.use { raw ->
+            if (raw.code == 401) throw Failure.Unauthenticated
+            if (!raw.isSuccessful) {
+                throw Failure.Refused(raw.code, "UPDATE_UNAVAILABLE", "The update could not be downloaded.")
+            }
+
+            val body = raw.body ?: throw Failure.Refused(502, "UPDATE_EMPTY", "The update download was empty.")
+            val total = body.contentLength().takeIf { it > 0 } ?: 0L
+            val digest = MessageDigest.getInstance("SHA-256")
+            var downloaded = 0L
+
+            body.byteStream().use { input ->
+                target.outputStream().use { output ->
+                    val buffer = ByteArray(DOWNLOAD_BUFFER)
+                    while (true) {
+                        val read = input.read(buffer)
+                        if (read == -1) break
+                        output.write(buffer, 0, read)
+                        digest.update(buffer, 0, read)
+                        downloaded += read
+                        onProgress(downloaded, total)
+                    }
+                }
+            }
+
+            digest.digest().joinToString("") { byte -> "%02x".format(byte) }
         }
     }
 
@@ -531,5 +608,15 @@ class SaarthiApi(
 
     private companion object {
         val JSON_MEDIA = "application/json; charset=utf-8".toMediaType()
+
+        /**
+         * How much of the download to hold at once.
+         *
+         * 64 KB is comfortably above the point where syscall overhead matters
+         * and far below anything a cheap tablet would notice. The whole reason
+         * this constant exists is that the alternative — `body.bytes()` — puts
+         * the entire APK on the heap.
+         */
+        const val DOWNLOAD_BUFFER = 64 * 1024
     }
 }

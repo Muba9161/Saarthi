@@ -9,6 +9,8 @@ import {
   DeviceStatus,
   NotificationPriority,
   NotificationType,
+  OPERATOR_MANAGEMENT_ROLES,
+  OPERATOR_OPERATIONS_ROLES,
   VehicleCapability,
   VehicleType,
   buildPaginationMeta,
@@ -651,7 +653,7 @@ export async function assignDevice(
     body: `${device.deviceIdentifier} is now reporting for ${vehicle.registrationNumber}.`,
     priority: NotificationPriority.NORMAL,
     actionUrl: `/devices/${deviceId}`,
-    roles: ['FLEET_OWNER', 'FLEET_MANAGER'],
+    roles: OPERATOR_MANAGEMENT_ROLES,
   });
 
   return getDevice(auth, deviceId);
@@ -929,7 +931,7 @@ export async function runDeviceOfflineSweep(): Promise<number> {
       } has stopped reporting.`,
       priority: NotificationPriority.HIGH,
       actionUrl: `/devices/${device.id}`,
-      roles: ['FLEET_OWNER', 'FLEET_MANAGER', 'DISPATCHER'],
+      roles: OPERATOR_OPERATIONS_ROLES,
     });
   }
 

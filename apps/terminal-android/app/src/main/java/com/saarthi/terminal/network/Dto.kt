@@ -803,3 +803,25 @@ data class ReportOdometerRequest(
 
 @Serializable
 data class OdometerDto(val odometerKm: Double)
+
+/**
+ * A newer build of this app, waiting to be installed.
+ *
+ * The server answers `null` when there is nothing newer, which is the ordinary
+ * case — a terminal on the current build asks this on every heartbeat.
+ *
+ * `sha256` is not decoration. The terminal recomputes it over the bytes it
+ * actually received and refuses to install on a mismatch, so a download
+ * truncated by a tunnel collapsing halfway through a level crossing cannot
+ * reach the package installer.
+ */
+@Serializable
+data class UpdateOfferDto(
+    val versionCode: Int,
+    val versionName: String,
+    val sizeBytes: Long,
+    val sha256: String,
+    val notes: String? = null,
+    /** Blocks the cockpit until installed. Security and data-integrity fixes only. */
+    val mandatory: Boolean = false,
+)

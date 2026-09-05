@@ -13,7 +13,7 @@ describe('readScannedQr', () => {
   const token = 'a'.repeat(43);
 
   it('reads the URL a printed sticker actually encodes', () => {
-    expect(readScannedQr(qrTargetUrl('https://fleet.saarthi.in', token))).toEqual({
+    expect(readScannedQr(qrTargetUrl('https://app.vorldxsaarthi.com', token))).toEqual({
       kind: 'IDENTITY',
       token,
     });
@@ -30,7 +30,7 @@ describe('readScannedQr', () => {
   });
 
   it('ignores a query string and surrounding whitespace', () => {
-    expect(readScannedQr(`  https://fleet.saarthi.in/q/${token}?utm=print \n`)).toEqual({
+    expect(readScannedQr(`  https://app.vorldxsaarthi.com/q/${token}?utm=print \n`)).toEqual({
       kind: 'IDENTITY',
       token,
     });
@@ -46,7 +46,7 @@ describe('readScannedQr', () => {
     const payload = JSON.stringify({
       v: 1,
       kind: 'saarthi.terminal.pair',
-      api: 'https://api.saarthi.in',
+      api: 'https://api.vorldxsaarthi.com',
       token: 'irrelevant',
     });
     expect(readScannedQr(payload)).toEqual({ kind: 'PAIRING', target: 'TERMINAL' });

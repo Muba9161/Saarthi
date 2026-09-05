@@ -15,6 +15,7 @@ import {
   MOBILE_DEVICE_METRICS,
   NotificationPriority,
   NotificationType,
+  OPERATOR_MANAGEMENT_ROLES,
   TerminalSessionStatus,
   VehicleCapability,
   VehicleType,
@@ -645,7 +646,7 @@ async function pairWithinTransaction(
     body: `${identity.deviceIdentifier} is now reporting for ${outcome.vehicle.registrationNumber}.`,
     priority: NotificationPriority.NORMAL,
     actionUrl: `/devices/${outcome.deviceId}`,
-    roles: ['FLEET_OWNER', 'FLEET_MANAGER'],
+    roles: OPERATOR_MANAGEMENT_ROLES,
   });
 
   await broadcastDeviceAssignment(
@@ -921,7 +922,7 @@ export async function unpairSelf(
     body: `${device.deviceIdentifier} stopped reporting for ${assignment.vehicle.registrationNumber}.`,
     priority: NotificationPriority.NORMAL,
     actionUrl: `/devices/${deviceId}`,
-    roles: ['FLEET_OWNER', 'FLEET_MANAGER'],
+    roles: OPERATOR_MANAGEMENT_ROLES,
   });
 
   await broadcastDeviceAssignment(

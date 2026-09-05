@@ -1,4 +1,5 @@
 import {
+  DRIVER_JOINABLE_ORGANIZATION_TYPES,
   MembershipStatus,
   OrganizationType,
   PlanTier,
@@ -161,9 +162,14 @@ export async function register(input: RegisterInput, meta: RequestMeta) {
           fields: { fleetInviteCode: ['That fleet invite code is not valid.'] },
         });
       }
-      if (fleet.type !== OrganizationType.FLEET_OWNER && fleet.type !== OrganizationType.ENTERPRISE) {
-        throw errors.validation('That invite code does not belong to a fleet.', {
-          fields: { fleetInviteCode: ['That invite code does not belong to a fleet.'] },
+      // A taxi or tour operator employs drivers exactly as a freight fleet does,
+      // so its invite code is honoured here too — see
+      // DRIVER_JOINABLE_ORGANIZATION_TYPES.
+      if (!DRIVER_JOINABLE_ORGANIZATION_TYPES.includes(fleet.type)) {
+        throw errors.validation('That invite code does not belong to an employer of drivers.', {
+          fields: {
+            fleetInviteCode: ['That invite code does not belong to an employer of drivers.'],
+          },
         });
       }
       organizationId = fleet.id;
@@ -190,7 +196,11 @@ export async function register(input: RegisterInput, meta: RequestMeta) {
       const organizationType = ROLE_TO_ORGANIZATION_TYPE[input.role] ?? OrganizationType.CUSTOMER;
       const organization = await tx.organization.create({
         data: {
-          name: input.organizationName!,
+          // A customer may register as an individual — see
+          // `ORGANIZATION_NAME_REQUIRED_ROLES`. The organization is still
+          // created, because every membership, order and booking hangs off
+          // one; it just carries the person's own name.
+          name: input.organizationName?.trim() || `${input.firstName} ${input.lastName}`.trim(),
           type: organizationType,
           registrationNumber: input.registrationNumber ?? null,
           email: input.email,

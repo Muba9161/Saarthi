@@ -97,3 +97,90 @@ export function describeFuelRate(rate: CityFuelRate): string {
   if (!rate.publishedOn) return `${place} — published rate, date not stated`;
   return `${place} — published ${rate.publishedOn}`;
 }
+
+// ---------------------------------------------------------------------------
+// What a trip will burn, and therefore what it should earn
+// ---------------------------------------------------------------------------
+
+/**
+ * The published rate that applies to a given vehicle.
+ *
+ * Electric and hybrid vehicles are absent on purpose: no fuel publisher quotes
+ * a per-unit price for them, and inventing one is exactly the failure this
+ * module exists to prevent. LNG is missing for the same reason — it is not in
+ * the daily city tables.
+ */
+export function fuelRateForVehicle(
+  rate: CityFuelRate | null | undefined,
+  fuelType: string,
+): FuelRateEntry | null {
+  if (!rate) return null;
+  switch (fuelType) {
+    case 'DIESEL':
+      return rate.diesel;
+    case 'PETROL':
+      return rate.petrol;
+    case 'CNG':
+      return rate.cng;
+    default:
+      return null;
+  }
+}
+
+/**
+ * Fuel's share of a fare that also has to cover the driver, the tyres, the
+ * maintenance, the tolls and something left over.
+ *
+ * Fifty-five percent is the middle of the range Indian road freight is
+ * generally run at. It is a starting point for a dispatcher pricing a job over
+ * the phone, not a rate card: the screen shows the arithmetic that produced it
+ * so the number can be argued with, which is the only honest way to present a
+ * figure derived from an assumption.
+ */
+export const FUEL_SHARE_OF_FARE = 0.55;
+
+export interface FareEstimateInput {
+  distanceKm: number;
+  /** Kilometres per litre — or per kg for CNG. Null when never recorded. */
+  fuelEfficiency: number | null;
+  /** The city's published rate for this vehicle's fuel. */
+  rate: FuelRateEntry | null;
+}
+
+export interface FareEstimate {
+  distanceKm: number;
+  /** Litres, or kilograms for CNG. */
+  fuelUnits: number;
+  unit: 'litre' | 'kg';
+  pricePerUnit: number;
+  /** What the fuel alone costs. A fare below this loses money on the spot. */
+  fuelCost: number;
+  /** Fuel plus the usual margin — see `FUEL_SHARE_OF_FARE`. */
+  suggestedFare: number;
+}
+
+/**
+ * What this trip burns, and a fare that covers it.
+ *
+ * Returns null rather than a zero whenever a piece is missing — an unknown
+ * mileage, a city with no published rate, an electric van. A suggestion built
+ * on a guessed input is worse than no suggestion, because it looks like it was
+ * calculated.
+ */
+export function estimateTripFare(input: FareEstimateInput): FareEstimate | null {
+  const { distanceKm, fuelEfficiency, rate } = input;
+  if (!rate || !Number.isFinite(distanceKm) || distanceKm <= 0) return null;
+  if (!fuelEfficiency || !Number.isFinite(fuelEfficiency) || fuelEfficiency <= 0) return null;
+
+  const fuelUnits = distanceKm / fuelEfficiency;
+  const fuelCost = fuelUnits * rate.price;
+
+  return {
+    distanceKm: Math.round(distanceKm * 10) / 10,
+    fuelUnits: Math.round(fuelUnits * 10) / 10,
+    unit: rate.unit,
+    pricePerUnit: rate.price,
+    fuelCost: Math.round(fuelCost),
+    suggestedFare: Math.round(fuelCost / FUEL_SHARE_OF_FARE),
+  };
+}

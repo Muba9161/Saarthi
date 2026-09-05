@@ -2,6 +2,7 @@ import {
   MaintenanceStatus,
   NotificationPriority,
   NotificationType,
+  OPERATOR_MANAGEMENT_ROLES,
   TruckStatus,
   buildPaginationMeta,
   type CreateFuelRecordInput,
@@ -457,7 +458,7 @@ export async function runMaintenanceReminderSweep(): Promise<number> {
       body: `${truck?.registrationNumber ?? 'A truck'}: ${record.title}`,
       priority: overdue ? NotificationPriority.HIGH : NotificationPriority.NORMAL,
       actionUrl: `/fleet/maintenance`,
-      roles: ['FLEET_OWNER', 'FLEET_MANAGER'],
+      roles: OPERATOR_MANAGEMENT_ROLES,
     });
     notified += 1;
   }

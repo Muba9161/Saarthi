@@ -200,7 +200,7 @@ export const ur: Catalogue = {
     'جوابات صرف ان ریکارڈز سے بنتے ہیں جنہیں دیکھنے کی آپ کے کردار کو اجازت ہے۔',
   'Local development build — simulated GPS, mock payments, local document storage.':
     'لوکل ڈیولپمنٹ بلڈ — مصنوعی GPS، فرضی ادائیگیاں، مقامی دستاویزی ذخیرہ۔',
-  'Back to saarthi.com': 'saarthi.com پر واپس',
+  'Back to vorldxsaarthi.com': 'vorldxsaarthi.com پر واپس',
   'Loading Saarthi…': 'Saarthi لوڈ ہو رہا ہے…',
   'Try it instantly': 'ابھی آزمائیں',
   'Platform admin': 'پلیٹ فارم ایڈمن',

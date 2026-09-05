@@ -5,6 +5,8 @@ import {
   AlertTriangle,
   ArrowRight,
   Bot,
+  CalendarDays,
+  Car,
   FileWarning,
   Gauge,
   LifeBuoy,
@@ -16,6 +18,7 @@ import {
 } from 'lucide-react';
 import {
   Feature,
+  OrganizationType,
   Permission,
   RealtimeChannel,
   RealtimeEvent,
@@ -34,6 +37,7 @@ import type {
   Paginated,
   TripSummary,
 } from '@/lib/api-types';
+import type { BookingSummary } from '@/lib/mobility-types';
 import { useAuth } from '@/features/auth/auth-context';
 import { useT } from '@/features/i18n';
 import { useChannels, useRealtimeEvent } from '@/hooks/use-realtime';
@@ -50,11 +54,18 @@ import { Stagger, StaggerItem } from '@/components/motion';
 import { DailyBriefCard } from '@/features/ai/daily-brief-card';
 
 /**
- * Fleet command centre.
+ * The operator's command centre — freight and passenger alike.
  *
  * Every figure is served by /analytics/dashboard, which aggregates real rows.
  * Live positions and trip progress arrive over the WebSocket, so the board
  * moves without a refresh.
+ *
+ * One screen serves both kinds of operator, because the questions barely
+ * differ: what is out, who is driving it, what is late, what is due. Only the
+ * commercial column changes — freight orders against passenger bookings — so
+ * that column is chosen from the organization type and everything else is
+ * shared. A second dashboard would have drifted from this one within a
+ * release, and a mobility provider would have kept the worse copy.
  */
 export function DashboardPage() {
   const { session, can, hasFeature } = useAuth();
@@ -62,6 +73,10 @@ export function DashboardPage() {
   const t = useT();
   const queryClient = useQueryClient();
   const organizationId = session?.organization?.id;
+  // A taxi or tour operator sells seats, not tonnes. It holds the freight
+  // permissions (it is an operating fleet), so the commercial half of this
+  // board is chosen by what the organization *is*, not by what it may do.
+  const isMobility = session?.organization?.type === OrganizationType.MOBILITY_PROVIDER;
 
   useChannels(organizationId ? [RealtimeChannel.fleet(organizationId)] : []);
 
@@ -90,7 +105,20 @@ export function DashboardPage() {
   const openOrders = useQuery({
     queryKey: ['orders', 'recent', organizationId],
     queryFn: () => api.get<Paginated<OrderSummary>>('/orders', { activeOnly: true, pageSize: 6 }),
-    enabled: Boolean(organizationId) && can(Permission.ORDERS_READ),
+    // Not fetched for a travel operator: it holds `orders.read` and would get
+    // a valid, permanently empty page. An empty panel headed "Orders needing
+    // action" reads as a broken feed, not as a business it does not run.
+    enabled: Boolean(organizationId) && !isMobility && can(Permission.ORDERS_READ),
+  });
+
+  const openBookings = useQuery({
+    queryKey: ['travel', 'bookings', 'provider', 'dashboard', organizationId],
+    queryFn: () =>
+      api.get<Paginated<BookingSummary>>('/travel/me/bookings', {
+        activeOnly: true,
+        pageSize: 6,
+      }),
+    enabled: Boolean(organizationId) && isMobility && can(Permission.BOOKINGS_READ),
   });
 
   const expiring = useQuery({
@@ -204,6 +232,16 @@ export function DashboardPage() {
               to: '/fleet/maintenance',
             }
           : null,
+        // A booking request nobody has answered is a customer waiting on a
+        // reply, which outranks a late trip: the trip is at least under way.
+        data.travel && data.travel.awaitingConfirmation > 0
+          ? {
+              tone: 'warning' as const,
+              icon: CalendarDays,
+              label: `${data.travel.awaitingConfirmation} booking${data.travel.awaitingConfirmation > 1 ? 's' : ''} awaiting your confirmation`,
+              to: '/travel/provider/bookings',
+            }
+          : null,
         data.trips.delayed > 0
           ? {
               tone: 'warning' as const,
@@ -228,8 +266,11 @@ export function DashboardPage() {
     <div className="space-y-6">
       <PageHeader
         eyebrow={t('Live operational picture')}
-        title={t('Fleet command centre')}
-        description={session.organization?.name ?? t('Your fleet at a glance')}
+        title={isMobility ? t('Travel command centre') : t('Fleet command centre')}
+        description={
+          session.organization?.name ??
+          (isMobility ? t('Your operation at a glance') : t('Your fleet at a glance'))
+        }
         actions={
           <>
             {/*
@@ -296,12 +337,14 @@ export function DashboardPage() {
           <Stagger className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <StaggerItem>
               <StatCard
-                label={t('Fleet')}
+                label={isMobility ? t('Vehicles') : t('Fleet')}
                 numericValue={data.fleet.totalTrucks}
                 format={(value) => formatNumber(value)}
-                icon={Truck}
+                icon={isMobility ? Car : Truck}
                 hint={`${data.fleet.onTrip} on trip · ${data.fleet.available} available`}
-                onClick={() => navigate('/fleet/trucks')}
+                // A travel operator has no Trucks screen, so sending it there
+                // would be a dead end inside its own command centre.
+                onClick={() => navigate(isMobility ? '/fleet/vehicles' : '/fleet/trucks')}
               />
             </StaggerItem>
             <StaggerItem>
@@ -366,14 +409,26 @@ export function DashboardPage() {
               />
             </StaggerItem>
             <StaggerItem>
-              <StatCard
-                label={t('Open orders')}
-                numericValue={data.orders.open}
-                format={(value) => formatNumber(value)}
-                icon={Package}
-                hint={`${data.orders.inTransit} in transit`}
-                onClick={() => navigate('/orders')}
-              />
+              {data.travel ? (
+                <StatCard
+                  label={t('Bookings to confirm')}
+                  numericValue={data.travel.awaitingConfirmation}
+                  format={(value) => formatNumber(value)}
+                  icon={CalendarDays}
+                  tone={data.travel.awaitingConfirmation > 0 ? 'warning' : 'default'}
+                  hint={`${data.travel.upcoming} upcoming · ${data.travel.inProgress} under way`}
+                  onClick={() => navigate('/travel/provider/bookings')}
+                />
+              ) : (
+                <StatCard
+                  label={t('Open orders')}
+                  numericValue={data.orders.open}
+                  format={(value) => formatNumber(value)}
+                  icon={Package}
+                  hint={`${data.orders.inTransit} in transit`}
+                  onClick={() => navigate('/orders')}
+                />
+              )}
             </StaggerItem>
             <StaggerItem>
               <StatCard
@@ -396,16 +451,16 @@ export function DashboardPage() {
             <SectionHeader
               title={
                 <span className="flex items-center gap-2">
-                  Live fleet positions
+                  {isMobility ? t('Live vehicle positions') : t('Live fleet positions')}
                   {mapTrucks.length > 0 ? <span className="live-dot" aria-hidden /> : null}
                 </span>
               }
               description={
                 positions.isLoading
                   ? 'Loading positions…'
-                  : `${mapTrucks.length} truck${mapTrucks.length === 1 ? '' : 's'} reporting${
-                      session.demoMode ? ' · simulated GPS' : ''
-                    }`
+                  : `${mapTrucks.length} ${isMobility ? 'vehicle' : 'truck'}${
+                      mapTrucks.length === 1 ? '' : 's'
+                    } reporting${session.demoMode ? ' · simulated GPS' : ''}`
               }
               actions={
                 <Button variant="outline" size="sm" asChild>
@@ -423,7 +478,9 @@ export function DashboardPage() {
               allow3D={hasFeature(Feature.MAPS_3D)}
               height="clamp(320px, 42vh, 460px)"
               className="rounded-none border-0 border-t"
-              onSelectTruck={(truckId) => navigate(`/fleet/trucks/${truckId}`)}
+              onSelectTruck={(truckId) =>
+                navigate(isMobility ? `/fleet/vehicles/${truckId}` : `/fleet/trucks/${truckId}`)
+              }
             />
           </CardContent>
         </Card>
@@ -448,7 +505,11 @@ export function DashboardPage() {
               <EmptyState
                 icon={RouteIcon}
                 title={t('No trips in progress')}
-                description={t('Accepted orders will appear here once a trip is created.')}
+                description={
+                  isMobility
+                    ? t('Confirmed bookings will appear here once a vehicle is assigned.')
+                    : t('Accepted orders will appear here once a trip is created.')
+                }
                 className="min-h-32 border-0 p-6"
               />
             ) : (
@@ -490,48 +551,101 @@ export function DashboardPage() {
         </Card>
 
         <div className="space-y-4">
-          <Card variant="glass">
-            <CardHeader className="pb-3">
-              <SectionHeader
-                title={t('Orders needing action')}
-                actions={
-                  <Button variant="ghost" size="sm" asChild>
-                    <Link to="/orders">View all</Link>
-                  </Button>
-                }
-              />
-            </CardHeader>
-            <CardContent className="space-y-2 pt-0">
-              {openOrders.isLoading ? (
-                <LoadingState label={t('Loading orders…')} />
-              ) : (openOrders.data?.items ?? []).length === 0 ? (
-                <p className="py-4 text-center text-sm text-muted-foreground">
-                  No open orders right now.
-                </p>
-              ) : (
-                (openOrders.data?.items ?? []).map((order) => (
-                  <Link
-                    key={order.id}
-                    to={`/orders/${order.id}`}
-                    className="flex items-center justify-between gap-3 rounded-lg border border-border p-3 transition-colors hover:bg-muted/50"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">
-                        {order.materialName}{' '}
-                        <span className="text-muted-foreground">
-                          · {formatNumber(order.quantity)} {humanizeEnum(order.unit).toLowerCase()}
-                        </span>
-                      </p>
-                      <p className="truncate text-xs text-muted-foreground">
-                        {order.reference} · {order.customerName}
-                      </p>
-                    </div>
-                    <StatusBadge status={order.status} size="sm" />
-                  </Link>
-                ))
-              )}
-            </CardContent>
-          </Card>
+          {/*
+            The commercial column. A freight fleet works an order book; a
+            travel operator works a booking sheet. Same position on the board,
+            same shape of row — the operator's next decision, one click away.
+          */}
+          {isMobility ? (
+            <Card variant="glass">
+              <CardHeader className="pb-3">
+                <SectionHeader
+                  title={t('Bookings needing action')}
+                  actions={
+                    <Button variant="ghost" size="sm" asChild>
+                      <Link to="/travel/provider/bookings">View all</Link>
+                    </Button>
+                  }
+                />
+              </CardHeader>
+              <CardContent className="space-y-2 pt-0">
+                {openBookings.isLoading ? (
+                  <LoadingState label={t('Loading bookings…')} />
+                ) : (openBookings.data?.items ?? []).length === 0 ? (
+                  <p className="py-4 text-center text-sm text-muted-foreground">
+                    {t('No bookings need attention right now.')}
+                  </p>
+                ) : (
+                  (openBookings.data?.items ?? []).map((booking) => (
+                    <Link
+                      key={booking.id}
+                      to={`/travel/bookings/${booking.id}`}
+                      className="flex items-center justify-between gap-3 rounded-lg border border-border p-3 transition-colors hover:bg-muted/50"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium">
+                          {booking.packageTitle}{' '}
+                          <span className="text-muted-foreground">
+                            · {formatNumber(booking.passengers)}{' '}
+                            {booking.passengers === 1 ? 'passenger' : 'passengers'}
+                          </span>
+                        </p>
+                        <p className="truncate text-xs text-muted-foreground">
+                          {booking.reference} · {booking.contactName} ·{' '}
+                          {relativeTimeFrom(booking.startDate)}
+                        </p>
+                      </div>
+                      <StatusBadge status={booking.status} size="sm" />
+                    </Link>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+          ) : (
+            <Card variant="glass">
+              <CardHeader className="pb-3">
+                <SectionHeader
+                  title={t('Orders needing action')}
+                  actions={
+                    <Button variant="ghost" size="sm" asChild>
+                      <Link to="/orders">View all</Link>
+                    </Button>
+                  }
+                />
+              </CardHeader>
+              <CardContent className="space-y-2 pt-0">
+                {openOrders.isLoading ? (
+                  <LoadingState label={t('Loading orders…')} />
+                ) : (openOrders.data?.items ?? []).length === 0 ? (
+                  <p className="py-4 text-center text-sm text-muted-foreground">
+                    No open orders right now.
+                  </p>
+                ) : (
+                  (openOrders.data?.items ?? []).map((order) => (
+                    <Link
+                      key={order.id}
+                      to={`/orders/${order.id}`}
+                      className="flex items-center justify-between gap-3 rounded-lg border border-border p-3 transition-colors hover:bg-muted/50"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium">
+                          {order.materialName}{' '}
+                          <span className="text-muted-foreground">
+                            · {formatNumber(order.quantity)}{' '}
+                            {humanizeEnum(order.unit).toLowerCase()}
+                          </span>
+                        </p>
+                        <p className="truncate text-xs text-muted-foreground">
+                          {order.reference} · {order.customerName}
+                        </p>
+                      </div>
+                      <StatusBadge status={order.status} size="sm" />
+                    </Link>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {(expiring.data ?? []).length > 0 ? (
             <Card variant="glass">

@@ -1,5 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import {
+  MediaOwnerType,
+  MediaPurpose,
   OrganizationType,
   PLAN_LIMITS,
   PlanTier,
@@ -14,8 +16,10 @@ import {
   createOrganization,
   createUser,
   getApp,
+  multipart,
   request,
   resetDatabase,
+  sampleJpeg,
   unique,
   type TestOrganization,
   type TestUser,
@@ -80,6 +84,44 @@ describe('Fleet management', () => {
       expect(stored?.organizationId).toBe(fleetA.id);
       expect(stored?.status).toBe(TruckStatus.AVAILABLE);
       expect(stored?.verificationStatus).toBe(VerificationStatus.PENDING);
+    });
+
+    it('accepts a photo onto a vehicle the moment it has been created', async () => {
+      // The add-vehicle form holds the photograph while the registration is
+      // saved, because media is addressed to an owner id that does not exist
+      // until then. This is the second call it makes.
+      const vehicle = await request<{ id: string }>({
+        method: 'POST',
+        url: '/api/v1/trucks',
+        user: ownerA,
+        payload: truckPayload({ registrationNumber: 'UP16PH0101' }),
+      });
+      expect(vehicle.status).toBe(201);
+
+      const body = multipart(
+        {
+          ownerType: MediaOwnerType.VEHICLE,
+          ownerId: vehicle.body.data.id,
+          purpose: MediaPurpose.VEHICLE_EXTERIOR,
+        },
+        {
+          fieldName: 'file',
+          fileName: 'lorry.jpg',
+          contentType: 'image/jpeg',
+          content: sampleJpeg(2_048),
+        },
+      );
+
+      const upload = await request<{ ownerId: string }>({
+        method: 'POST',
+        url: '/api/v1/media',
+        user: ownerA,
+        payload: body.payload,
+        headers: body.headers,
+      });
+
+      expect(upload.status).toBe(201);
+      expect(upload.body.data.ownerId).toBe(vehicle.body.data.id);
     });
 
     it('rejects a duplicate registration number', async () => {
@@ -363,6 +405,48 @@ describe('Fleet management', () => {
       const driver = await prisma.driver.findUnique({ where: { id: body.data.driver.id } });
       expect(driver?.organizationId).toBe(fleetA.id);
       expect(driver?.verificationStatus).toBe(VerificationStatus.PENDING);
+    });
+
+    it('accepts a photo onto a driver the moment the account has been created', async () => {
+      const created = await request<{ driver: { id: string } }>({
+        method: 'POST',
+        url: '/api/v1/drivers',
+        user: ownerA,
+        payload: {
+          firstName: 'Sunil',
+          lastName: 'Yadav',
+          email: `${unique('photodriver')}@test.local`,
+          phone: `+9197${String(Date.now()).slice(-8)}`,
+          licenseNumber: unique('DL-'),
+          experienceYears: 3,
+        },
+      });
+      expect(created.status).toBe(201);
+
+      const body = multipart(
+        {
+          ownerType: MediaOwnerType.DRIVER,
+          ownerId: created.body.data.driver.id,
+          purpose: MediaPurpose.AVATAR,
+        },
+        {
+          fieldName: 'file',
+          fileName: 'sunil.jpg',
+          contentType: 'image/jpeg',
+          content: sampleJpeg(2_048),
+        },
+      );
+
+      const upload = await request<{ ownerId: string }>({
+        method: 'POST',
+        url: '/api/v1/media',
+        user: ownerA,
+        payload: body.payload,
+        headers: body.headers,
+      });
+
+      expect(upload.status).toBe(201);
+      expect(upload.body.data.ownerId).toBe(created.body.data.driver.id);
     });
 
     it('refuses to assign an unverified driver', async () => {

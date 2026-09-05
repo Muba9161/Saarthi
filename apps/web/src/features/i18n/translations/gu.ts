@@ -200,7 +200,7 @@ export const gu: Catalogue = {
     'જવાબ ફક્ત એ રેકોર્ડમાંથી બને છે જે જોવાની તમારી ભૂમિકાને પરવાનગી છે.',
   'Local development build — simulated GPS, mock payments, local document storage.':
     'લોકલ ડેવલપમેન્ટ બિલ્ડ — નકલી GPS, નકલી ચુકવણી, સ્થાનિક દસ્તાવેજ સંગ્રહ.',
-  'Back to saarthi.com': 'saarthi.com પર પાછા',
+  'Back to vorldxsaarthi.com': 'vorldxsaarthi.com પર પાછા',
   'Loading Saarthi…': 'Saarthi લોડ થઈ રહ્યું છે…',
   'Try it instantly': 'હમણાં જ અજમાવો',
   'Platform admin': 'પ્લેટફોર્મ એડમિન',

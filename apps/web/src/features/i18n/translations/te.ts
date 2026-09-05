@@ -203,7 +203,7 @@ export const te: Catalogue = {
     'మీ పాత్రకు చూడటానికి అనుమతి ఉన్న రికార్డుల నుండి మాత్రమే సమాధానాలు తయారవుతాయి.',
   'Local development build — simulated GPS, mock payments, local document storage.':
     'లోకల్ డెవలప్‌మెంట్ బిల్డ్ — కృత్రిమ GPS, నకిలీ చెల్లింపులు, స్థానిక పత్ర నిల్వ.',
-  'Back to saarthi.com': 'saarthi.com కు తిరిగి',
+  'Back to vorldxsaarthi.com': 'vorldxsaarthi.com కు తిరిగి',
   'Loading Saarthi…': 'Saarthi లోడ్ అవుతోంది…',
   'Try it instantly': 'వెంటనే ప్రయత్నించండి',
   'Platform admin': 'ప్లాట్‌ఫారమ్ నిర్వాహకుడు',

@@ -1,8 +1,15 @@
 import * as React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
-import { Activity, Car, Cpu, Truck } from 'lucide-react';
-import { OrganizationType, Permission, VehicleType, humanizeEnum } from '@saarthi/shared';
+import { Activity, AlertTriangle, Car, Cpu, Truck } from 'lucide-react';
+import {
+  OrganizationType,
+  Permission,
+  TruckStatus,
+  VehicleType,
+  formatNumber,
+  humanizeEnum,
+} from '@saarthi/shared';
 import { api } from '@/lib/api-client';
 import type { VehicleSummary, VehicleTypeOption } from '@/lib/mobility-types';
 import type { Paginated } from '@/lib/api-types';
@@ -33,6 +40,11 @@ import {
  * a truck shows tonnes, and neither shows the other as a misleading zero.
  */
 
+const STATUS_FILTERS = [
+  { value: 'ALL', label: 'Any status' },
+  ...Object.values(TruckStatus).map((status) => ({ value: status, label: humanizeEnum(status) })),
+];
+
 /** Passenger types a travel operator can register. No goods vehicles. */
 const PASSENGER_VEHICLE_TYPES = [
   VehicleType.CAR,
@@ -52,6 +64,7 @@ export function VehiclesPage() {
   const [search, setSearch] = React.useState('');
   const [capability, setCapability] = React.useState('');
   const [vehicleType, setVehicleType] = React.useState('');
+  const [status, setStatus] = React.useState('');
 
   const types = useQuery({
     queryKey: ['vehicle-types'],
@@ -61,7 +74,7 @@ export function VehiclesPage() {
   });
 
   const vehicles = useQuery({
-    queryKey: ['vehicles', page, search, capability, vehicleType],
+    queryKey: ['vehicles', page, search, capability, vehicleType, status],
     queryFn: () =>
       api.get<Paginated<VehicleSummary>>('/fleet/vehicles', {
         page,
@@ -69,6 +82,7 @@ export function VehiclesPage() {
         ...(search.trim() ? { search: search.trim() } : {}),
         ...(capability ? { capability } : {}),
         ...(vehicleType ? { vehicleType } : {}),
+        ...(status ? { status } : {}),
       }),
     enabled: can(Permission.VEHICLES_READ),
   });
@@ -133,6 +147,43 @@ export function VehiclesPage() {
         ),
     },
     {
+      // The same three compliance columns the Trucks table carries. A taxi
+      // needs its permit and insurance in date exactly as a lorry does, and
+      // an operator that could only see this on the freight screen had no way
+      // to see it at all.
+      key: 'compliance',
+      header: 'Documents',
+      hideOnMobile: true,
+      cell: (row) => {
+        const { expired, expiringSoon, pending, total } = row.documentHealth;
+        if (total === 0) return <Badge variant="muted">None uploaded</Badge>;
+        if (expired > 0) {
+          return (
+            <Badge variant="destructive" className="gap-1">
+              <AlertTriangle className="size-3" />
+              {expired} expired
+            </Badge>
+          );
+        }
+        if (expiringSoon > 0) return <Badge variant="warning">{expiringSoon} expiring</Badge>;
+        if (pending > 0) return <Badge variant="info">{pending} in review</Badge>;
+        return <Badge variant="success">All valid</Badge>;
+      },
+    },
+    {
+      key: 'verification',
+      header: 'Verification',
+      hideOnMobile: true,
+      cell: (row) => <StatusBadge status={row.verificationStatus} size="sm" />,
+    },
+    {
+      key: 'odometer',
+      header: 'Odometer',
+      numeric: true,
+      hideOnMobile: true,
+      cell: (row) => <span className="text-sm">{formatNumber(Math.round(row.odometerKm))} km</span>,
+    },
+    {
       key: 'alerts',
       header: 'Alerts',
       numeric: true,
@@ -177,7 +228,7 @@ export function VehiclesPage() {
     },
   ];
 
-  const hasFilters = Boolean(search || capability || vehicleType);
+  const hasFilters = Boolean(search || capability || vehicleType || status);
   const isTravelOperator = session?.organization?.type === OrganizationType.MOBILITY_PROVIDER;
 
   return (
@@ -186,7 +237,7 @@ export function VehiclesPage() {
         title="Vehicles"
         description={
           isTravelOperator
-            ? 'Cars, taxis, buses and vans across the whole organization.'
+            ? 'Every vehicle you run, with live status and document health.'
             : 'Trucks, taxis, buses and vans across the whole organization.'
         }
         actions={
@@ -213,6 +264,28 @@ export function VehiclesPage() {
             }}
             placeholder="Registration, make or model"
           />
+        </div>
+
+        <div className="w-[180px] space-y-1.5">
+          <Label>Status</Label>
+          <Select
+            value={status || 'ALL'}
+            onValueChange={(value) => {
+              setStatus(value === 'ALL' ? '' : value);
+              setPage(1);
+            }}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Any status" />
+            </SelectTrigger>
+            <SelectContent>
+              {STATUS_FILTERS.map((filter) => (
+                <SelectItem key={filter.value} value={filter.value}>
+                  {filter.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="w-[180px] space-y-1.5">
@@ -290,6 +363,7 @@ export function VehiclesPage() {
                 setSearch('');
                 setCapability('');
                 setVehicleType('');
+                setStatus('');
               }}
             >
               Clear filters

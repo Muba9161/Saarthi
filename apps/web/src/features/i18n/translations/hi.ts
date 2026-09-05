@@ -201,7 +201,7 @@ export const hi: Catalogue = {
     'उत्तर केवल उन रिकॉर्ड से बनते हैं जिन्हें देखने की आपकी भूमिका को अनुमति है।',
   'Local development build — simulated GPS, mock payments, local document storage.':
     'लोकल डेवलपमेंट बिल्ड — नकली GPS, नकली भुगतान, स्थानीय दस्तावेज़ भंडारण।',
-  'Back to saarthi.com': 'saarthi.com पर वापस',
+  'Back to vorldxsaarthi.com': 'vorldxsaarthi.com पर वापस',
   'Loading Saarthi…': 'Saarthi लोड हो रहा है…',
   'Try it instantly': 'तुरंत आज़माएँ',
   'Platform admin': 'प्लेटफ़ॉर्म एडमिन',

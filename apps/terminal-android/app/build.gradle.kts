@@ -12,10 +12,11 @@ plugins {
  *
  * Read from a Gradle property so one source tree produces a development,
  * staging or production build without an edit — `-PsaarthiApiUrl=...`, or a
- * line in `local.properties`. The default is the emulator's alias for the host
- * machine, which is what a developer running `npm run dev` needs and is useless
- * anywhere else. That is the point: a build that shipped with a localhost
- * default fails loudly rather than quietly talking to the wrong server.
+ * line in `local.properties`. Without one, the default follows the build type:
+ * a debug build gets the emulator's alias for the host machine, which is what a
+ * developer running `npm run dev` needs, and a release build gets the official
+ * API. Neither default can reach the other's server by accident — cleartext is
+ * permitted only to the two development addresses.
  *
  * `local.properties` is read explicitly, because Gradle does not do it for you.
  * The comment above promised it did, and the promise was worth keeping rather
@@ -34,7 +35,32 @@ val localProperties = Properties().apply {
 fun setting(name: String): String? =
     (project.findProperty(name) as String?) ?: localProperties.getProperty(name)
 
-val saarthiApiUrl: String = setting("saarthiApiUrl") ?: "http://10.0.2.2:4000"
+/**
+ * The official Saarthi API.
+ *
+ * `vorldxsaarthi.com` is the product's domain; the API and the device gateway
+ * both live on `api.` beneath it. A release build points here unless it is told
+ * otherwise, so a production APK is correct by default rather than by somebody
+ * remembering a flag.
+ */
+val productionApiUrl = "https://api.vorldxsaarthi.com"
+
+/**
+ * The version this build is.
+ *
+ * `versionCode` is the only thing the update pipeline compares — a terminal
+ * offers an update when the published release's code is higher than its own, so
+ * it must increase on every release and never repeat. `versionName` is what a
+ * driver reads on the update card.
+ */
+val appVersionCode = 1
+val appVersionName = "1.0.0"
+
+/** An explicit `-PsaarthiApiUrl=` or `local.properties` entry beats both defaults. */
+val saarthiApiUrlOverride: String? = setting("saarthiApiUrl")
+
+/** Debug: the emulator's alias for the machine running `npm run dev`. */
+val saarthiApiUrl: String = saarthiApiUrlOverride ?: "http://10.0.2.2:4000"
 
 /**
  * The basemap style.
@@ -46,9 +72,42 @@ val saarthiApiUrl: String = setting("saarthiApiUrl") ?: "http://10.0.2.2:4000"
 val saarthiMapStyleUrl: String =
     setting("saarthiMapStyleUrl") ?: "https://tiles.openfreemap.org/styles/liberty"
 
+/**
+ * Release signing.
+ *
+ * Every release must be signed by the *same* key, for ever. Android refuses an
+ * update whose signature does not match the installed app, so a key that
+ * changes — or is lost — strands every terminal already fitted to a vehicle:
+ * the only remedy is uninstalling each tablet by hand, in the cab. That is why
+ * the keystore lives outside the repository and is named from
+ * `local.properties` rather than being generated per machine like the debug key.
+ *
+ * A build with no keystore configured still succeeds and simply produces an
+ * unsigned release — which `installRelease` will refuse. Failing at install
+ * time is better than silently signing with the debug key and shipping an APK
+ * that can never be updated.
+ */
+val releaseStoreFile: String? = setting("releaseStoreFile")
+
 android {
     namespace = "com.saarthi.terminal"
     compileSdk = 36
+
+    signingConfigs {
+        if (releaseStoreFile != null) {
+            create("release") {
+                storeFile = file(releaseStoreFile)
+                storePassword = setting("releaseStorePassword")
+                keyAlias = setting("releaseKeyAlias")
+                keyPassword = setting("releaseKeyPassword")
+
+                // v1 as well as v2/v3: minSdk is 26, and the older scheme costs
+                // nothing while remaining what some vendor installers check.
+                enableV1Signing = true
+                enableV2Signing = true
+            }
+        }
+    }
 
     defaultConfig {
         applicationId = "com.saarthi.terminal"
@@ -62,8 +121,18 @@ android {
          */
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = appVersionCode
+        versionName = appVersionName
+
+        /*
+         * The version code, as a BuildConfig field.
+         *
+         * `versionCode` is already in the package manager, but reading it back
+         * costs a PackageManager round trip at every update check and returns
+         * a `Long` on newer APIs and an `Int` on older ones. The number that
+         * decides whether an update applies is worth having as a constant.
+         */
+        buildConfigField("int", "VERSION_CODE", "$appVersionCode")
 
         buildConfigField("String", "SAARTHI_API_URL", "\"$saarthiApiUrl\"")
         buildConfigField("String", "MAP_STYLE_URL", "\"$saarthiMapStyleUrl\"")
@@ -90,6 +159,7 @@ android {
             buildConfigField("boolean", "ALLOW_SIMULATION", "true")
         }
         release {
+            signingConfig = signingConfigs.findByName("release")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
@@ -98,6 +168,24 @@ android {
             )
             buildConfigField("boolean", "DEVELOPER_TOOLS", "false")
             buildConfigField("boolean", "ALLOW_SIMULATION", "false")
+
+            /*
+             * Release points at the real API, not at the developer's laptop.
+             *
+             * The default used to be the emulator host for every build type,
+             * on the reasoning that a shipped build should fail loudly rather
+             * than quietly talk to the wrong server. The reasoning was right
+             * and the conclusion is now unnecessary: there is a canonical
+             * production host, so a release can simply be correct. Nothing is
+             * given up either — `network_security_config.xml` permits cleartext
+             * only to `localhost` and `10.0.2.2`, so a release build cannot
+             * silently reach a development server whatever it is pointed at.
+             */
+            buildConfigField(
+                "String",
+                "SAARTHI_API_URL",
+                "\"${saarthiApiUrlOverride ?: productionApiUrl}\"",
+            )
         }
     }
 

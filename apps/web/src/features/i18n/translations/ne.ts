@@ -201,7 +201,7 @@ export const ne: Catalogue = {
     'उत्तर केवल ती रेकर्डबाट बन्छन् जुन हेर्न तपाईंको भूमिकालाई अनुमति छ।',
   'Local development build — simulated GPS, mock payments, local document storage.':
     'लोकल डेभलपमेन्ट बिल्ड — नक्कली GPS, नक्कली भुक्तानी, स्थानीय कागजात भण्डारण।',
-  'Back to saarthi.com': 'saarthi.com मा फर्कनुहोस्',
+  'Back to vorldxsaarthi.com': 'vorldxsaarthi.com मा फर्कनुहोस्',
   'Loading Saarthi…': 'Saarthi लोड हुँदैछ…',
   'Try it instantly': 'तुरुन्तै प्रयोग गरी हेर्नुहोस्',
   'Platform admin': 'प्लेटफर्म प्रशासक',
