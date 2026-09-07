@@ -1,10 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
-import { Building2, LifeBuoy, ShieldCheck, Truck, Users } from 'lucide-react';
+import { Building2, ShieldCheck } from 'lucide-react';
 import { Permission, formatNumber, humanizeEnum } from '@saarthi/shared';
 import { api } from '@/lib/api-client';
 import { useAuth } from '@/features/auth/auth-context';
 import { PageHeader, SectionHeader } from '@/components/common/page-header';
 import { StatCard } from '@/components/common/stat-card';
+import { toSeriesPoints } from '@/components/common/mini-chart';
 import { ErrorState, LoadingState, UnauthorizedState } from '@/components/common/states';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -24,6 +25,13 @@ export function AdminOverviewPage() {
 
   const data = overview.data;
 
+  /**
+   * The fortnight behind each platform tile, counted from row timestamps by
+   * /admin/overview. Empty arrays when the API predates the field, so the
+   * tiles draw nothing rather than a stand-in for history.
+   */
+  const trends = data?.trends ?? { days: [], users: [], trucks: [], tripsStarted: [], sosTriggered: [] };
+
   return (
     <div className="space-y-5">
       <PageHeader title="Platform overview" description="Saarthi operations across every tenant." />
@@ -31,10 +39,37 @@ export function AdminOverviewPage() {
       {overview.isLoading ? <StatCardsSkeleton /> : overview.error ? <ErrorState error={overview.error} onRetry={() => void overview.refetch()} /> : data ? (
         <>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <StatCard label="Users" value={formatNumber(data.users)} icon={Users} />
-            <StatCard label="Trucks" value={formatNumber(data.trucks)} icon={Truck} />
-            <StatCard label="Active trips" value={formatNumber(data.activeTrips)} icon={Truck} />
-            <StatCard label="Active SOS" value={formatNumber(data.activeSos)} icon={LifeBuoy} tone={data.activeSos > 0 ? 'destructive' : 'default'} />
+            <StatCard
+              label="Users"
+              value={formatNumber(data.users)}
+              chart={{ kind: 'area', points: toSeriesPoints(trends.users), format: formatNumber }}
+              hint="Accounts on the platform"
+            />
+            <StatCard
+              label="Trucks"
+              value={formatNumber(data.trucks)}
+              chart={{ kind: 'area', points: toSeriesPoints(trends.trucks), format: formatNumber }}
+              hint={`${formatNumber(data.drivers)} drivers`}
+            />
+            <StatCard
+              label="Active trips"
+              value={formatNumber(data.activeTrips)}
+              chart={{
+                kind: 'bars',
+                points: toSeriesPoints(trends.tripsStarted),
+                format: (value) => `${formatNumber(value)} started`,
+              }}
+            />
+            <StatCard
+              label="Active SOS"
+              value={formatNumber(data.activeSos)}
+              chart={{
+                kind: 'bars',
+                points: toSeriesPoints(trends.sosTriggered),
+                format: (value) => `${formatNumber(value)} raised`,
+              }}
+              tone={data.activeSos > 0 ? 'destructive' : 'default'}
+            />
           </div>
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">

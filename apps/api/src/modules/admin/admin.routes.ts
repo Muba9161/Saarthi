@@ -14,6 +14,14 @@ import { ok, paginated, parseBody, parseParams, parseQuery, skipTake } from '../
 import { requirePermission } from '../../server/guards';
 import { AuditAction, auditFromRequest } from '../audit/audit.service';
 import { connectedClientCount } from '../../realtime/websocket.routes';
+import {
+  TREND_WINDOW_DAYS,
+  countByDay,
+  toSeries,
+  trendDays,
+  trendWindowStart,
+  walkPopulationBack,
+} from '../../lib/trend';
 import { config } from '../../config/env';
 
 /**
@@ -77,6 +85,57 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
         prisma.subscription.groupBy({ by: ['status'], _count: { _all: true } }),
       ]);
 
+      /*
+       * The fortnight behind each headline tile.
+       *
+       * Platform-wide and unscoped, like every other figure on this screen.
+       * Signups and vehicle registrations are counted from `createdAt`; the
+       * running totals are walked backwards from today's count, because there
+       * is no snapshot table and inventing one for a chart would be worse than
+       * deriving it from the rows that already exist.
+       */
+      const days = trendDays(TREND_WINDOW_DAYS);
+      const windowStart = trendWindowStart(TREND_WINDOW_DAYS);
+
+      const [usersCreated, trucksCreated, trucksArchived, tripsStarted, sosTriggered] =
+        await Promise.all([
+          prisma.user.findMany({
+            where: { createdAt: { gte: windowStart } },
+            select: { createdAt: true },
+          }),
+          prisma.truck.findMany({
+            where: { createdAt: { gte: windowStart } },
+            select: { createdAt: true },
+          }),
+          prisma.truck.findMany({
+            where: { archivedAt: { gte: windowStart } },
+            select: { archivedAt: true },
+          }),
+          prisma.trip.findMany({
+            where: { actualStartAt: { gte: windowStart } },
+            select: { actualStartAt: true },
+          }),
+          prisma.sosIncident.findMany({
+            where: { triggeredAt: { gte: windowStart } },
+            select: { triggeredAt: true },
+          }),
+        ]);
+
+      const trends = {
+        days,
+        // A user row is never deleted, only suspended, so nothing leaves this
+        // population and the walk back needs no removals.
+        users: walkPopulationBack(days, users, usersCreated.map((row) => row.createdAt), []),
+        trucks: walkPopulationBack(
+          days,
+          trucks,
+          trucksCreated.map((row) => row.createdAt),
+          trucksArchived.flatMap((row) => (row.archivedAt ? [row.archivedAt] : [])),
+        ),
+        tripsStarted: toSeries(days, countByDay(tripsStarted, 'actualStartAt')),
+        sosTriggered: toSeries(days, countByDay(sosTriggered, 'triggeredAt')),
+      };
+
       return ok(reply, {
         users,
         organizations: Object.fromEntries(
@@ -87,6 +146,7 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
         activeTrips,
         activeSos,
         pendingVerifications,
+        trends,
         subscriptions: Object.fromEntries(
           subscriptions.map((entry) => [entry.status, entry._count._all]),
         ),

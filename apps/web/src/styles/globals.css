@@ -634,3 +634,21 @@
     transform: translate3d(3%, 2%, 0) scale(1.08);
   }
 }
+
+/* --- Metric tile charts ---------------------------------------------------
+   The sparkline on a metric tile draws itself in once on mount, so a value
+   that changed reads as movement rather than a silent redraw. The stroke is
+   revealed along its own length; the OS reduced-motion rule above collapses
+   the duration, and the component skips the class entirely when the user has
+   asked for less motion. */
+.mini-chart-draw {
+  stroke-dasharray: 400;
+  stroke-dashoffset: 400;
+  animation: mini-chart-draw 900ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes mini-chart-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}

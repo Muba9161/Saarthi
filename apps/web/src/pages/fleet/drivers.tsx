@@ -17,6 +17,7 @@ import { api, errorMessage } from '@/lib/api-client';
 import type { DriverSummary, Paginated } from '@/lib/api-types';
 import { useAuth } from '@/features/auth/auth-context';
 import { PageHeader } from '@/components/common/page-header';
+import { SubjectQrPanel } from '@/features/qr/subject-qr-panel';
 import { DataView, type Column } from '@/components/common/data-view';
 import { ScoreBadge, StatusBadge } from '@/components/common/status-badge';
 import { UnauthorizedState } from '@/components/common/states';
@@ -73,6 +74,8 @@ function AddDriverDialog({
 }) {
   const queryClient = useQueryClient();
   const [setupUrl, setSetupUrl] = React.useState<string | null>(null);
+  /** The driver just created — their badge is shown beside the set-up link. */
+  const [created, setCreated] = React.useState<DriverSummary | null>(null);
   /**
    * Held until the driver record exists: media is addressed to an owner id,
    * and there is nothing to own the photograph until the account is created.
@@ -113,6 +116,7 @@ function AddDriverDialog({
       toast.success('Driver account created');
       // There is no email provider locally, so the one-time link is surfaced here.
       setSetupUrl(result.setupUrl);
+      setCreated(result.driver);
       void queryClient.invalidateQueries({ queryKey: ['drivers'] });
       void queryClient.invalidateQueries({ queryKey: ['media'] });
       setPhoto(null);
@@ -123,7 +127,10 @@ function AddDriverDialog({
 
   const close = (next: boolean): void => {
     onOpenChange(next);
-    if (!next) setSetupUrl(null);
+    if (!next) {
+      setSetupUrl(null);
+      setCreated(null);
+    }
   };
 
   const steps: WizardStep[] = [
@@ -303,16 +310,38 @@ function AddDriverDialog({
         </DialogHeader>
 
         {setupUrl ? (
-          <div className="space-y-4">
+          <div className="max-h-[70vh] space-y-4 overflow-y-auto">
             <Alert variant="success">
-              <AlertTitle>Driver added</AlertTitle>
+              <AlertTitle>
+                {created ? `${created.fullName} is on the team` : 'Driver added'}
+              </AlertTitle>
               <AlertDescription className="space-y-2">
                 <p>Share this one-time link so they can set a password:</p>
                 <code className="block break-all rounded bg-muted p-2 text-xs">{setupUrl}</code>
               </AlertDescription>
             </Alert>
+
+            {/*
+              Their badge, issued automatically with the account. It is here
+              rather than in a dialog of its own because both of these are
+              things the operator has to hand to the same person once.
+            */}
+            {created ? (
+              <SubjectQrPanel
+                subjectType="DRIVER"
+                subjectId={created.id}
+                description="Issued automatically with the account. Print it as a lanyard card so a gate or a customer can verify them without a phone call."
+              />
+            ) : null}
+
             <DialogFooter>
-              <Button variant="outline" onClick={() => setSetupUrl(null)}>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSetupUrl(null);
+                  setCreated(null);
+                }}
+              >
                 Add another
               </Button>
               <Button onClick={() => close(false)}>Done</Button>

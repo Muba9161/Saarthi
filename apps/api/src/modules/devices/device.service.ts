@@ -28,6 +28,7 @@ import { type Prisma, prisma } from '../../database/prisma';
 import { errors } from '../../lib/errors';
 import { logger } from '../../lib/logger';
 import { skipTake } from '../../lib/http';
+import { TREND_WINDOW_DAYS, trendDays, type TrendPoint } from '../../lib/trend';
 import { passwordHasher, verifyWithTimingGuard } from '../../auth/password';
 import { adapterFor } from '../../providers/devices';
 import { notifyOrganization } from '../notifications/notification.service';
@@ -941,7 +942,15 @@ export async function runDeviceOfflineSweep(): Promise<number> {
   return stale.length;
 }
 
-/** Fleet-wide device health, for the hardware dashboard. */
+/**
+ * Fleet-wide device health, for the hardware dashboard.
+ *
+ * `readingsTrend` gives the tile its fortnight of history. It is counted a day
+ * at a time rather than pulled as rows: a fleet reporting every ten seconds
+ * writes six figures of telemetry a fortnight, and the dashboard needs the
+ * fourteen totals, not the readings. Each count is a range scan on the
+ * existing `(organizationId, recordedAt)` index.
+ */
 export async function deviceOverview(auth: AuthContext): Promise<{
   total: number;
   active: number;
@@ -950,6 +959,7 @@ export async function deviceOverview(auth: AuthContext): Promise<{
   suspended: number;
   readingsToday: number;
   openAlerts: number;
+  readingsTrend: TrendPoint[];
 }> {
   const organizationId = auth.organizationId;
   const scope = auth.isPlatformAdmin && !organizationId ? {} : { organizationId: organizationId ?? '__none__' };
@@ -979,5 +989,30 @@ export async function deviceOverview(auth: AuthContext): Promise<{
       prisma.telemetryAlert.count({ where: { ...scope, status: 'OPEN' } }),
     ]);
 
-  return { total, active, offline, unassigned, suspended, readingsToday, openAlerts };
+  const days = trendDays(TREND_WINDOW_DAYS);
+  const dailyReadings = await Promise.all(
+    days.map((date) => {
+      const from = new Date(`${date}T00:00:00.000Z`);
+      const to = new Date(from);
+      to.setUTCDate(to.getUTCDate() + 1);
+      return prisma.telemetryReading.count({
+        where: { ...scope, recordedAt: { gte: from, lt: to } },
+      });
+    }),
+  );
+  const readingsTrend: TrendPoint[] = days.map((date, index) => ({
+    date,
+    value: dailyReadings[index] ?? 0,
+  }));
+
+  return {
+    total,
+    active,
+    offline,
+    unassigned,
+    suspended,
+    readingsToday,
+    openAlerts,
+    readingsTrend,
+  };
 }

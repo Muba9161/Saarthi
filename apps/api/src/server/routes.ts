@@ -15,6 +15,7 @@ import {
   returnLoadRoutes,
 } from '../modules/return-loads/return-load.routes';
 import { verificationRoutes } from '../modules/verification/verification.routes';
+import { identityVerificationRoutes } from '../modules/identity-verification/identity-verification.routes';
 import { notificationRoutes } from '../modules/notifications/notification.routes';
 import { marketplaceRoutes } from '../modules/marketplace/marketplace.routes';
 import { orderRoutes } from '../modules/orders/order.routes';
@@ -103,6 +104,11 @@ export async function registerApiRoutes(app: FastifyInstance): Promise<void> {
   // asks about rather than under /return-loads.
   await app.register(orderReturnCandidateRoutes, { prefix: '/orders' });
   await app.register(verificationRoutes, { prefix: '/verification' });
+  // Instant identity checks — Aadhaar, PAN, Voter ID, GSTIN. Mounted apart
+  // from /verification because they answer a different question: that one is
+  // a case a reviewer works, this one is a number a government source either
+  // confirms or does not.
+  await app.register(identityVerificationRoutes, { prefix: '/identity' });
   await app.register(marketplaceRoutes, { prefix: '/marketplace' });
   await app.register(orderRoutes, { prefix: '/orders' });
   // The customer's cross-category front door. Mounted apart from /orders

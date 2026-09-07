@@ -4,6 +4,7 @@ import type { Catalogue } from './en';
 export const kn: Catalogue = {
   Operations: 'ಕಾರ್ಯಾಚರಣೆಗಳು',
   Fleet: 'ವಾಹನ ಸಮೂಹ',
+  'Documents & costs': 'ದಾಖಲೆಗಳು & ವೆಚ್ಚಗಳು',
   Marketplace: 'ಮಾರುಕಟ್ಟೆ',
   Travel: 'ಪ್ರಯಾಣ',
   Connect: 'ಕನೆಕ್ಟ್',

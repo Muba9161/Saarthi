@@ -9,6 +9,7 @@ import type { Catalogue } from './en';
 export const sa: Catalogue = {
   Operations: 'संचालनम्',
   Fleet: 'यानसमूहः',
+  'Documents & costs': 'पत्राणि व्ययाः च',
   Marketplace: 'विपणिः',
   Travel: 'यात्रा',
   Connect: 'संयोगः',

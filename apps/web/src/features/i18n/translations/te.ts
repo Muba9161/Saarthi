@@ -4,6 +4,7 @@ import type { Catalogue } from './en';
 export const te: Catalogue = {
   Operations: 'కార్యకలాపాలు',
   Fleet: 'వాహన సముదాయం',
+  'Documents & costs': 'పత్రాలు & ఖర్చులు',
   Marketplace: 'మార్కెట్',
   Travel: 'ప్రయాణం',
   Connect: 'కనెక్ట్',

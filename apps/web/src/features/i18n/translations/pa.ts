@@ -4,6 +4,7 @@ import type { Catalogue } from './en';
 export const pa: Catalogue = {
   Operations: 'ਕਾਰਜ',
   Fleet: 'ਬੇੜਾ',
+  'Documents & costs': 'ਦਸਤਾਵੇਜ਼ ਅਤੇ ਖਰਚੇ',
   Marketplace: 'ਬਾਜ਼ਾਰ',
   Travel: 'ਸਫ਼ਰ',
   Connect: 'ਕਨੈਕਟ',

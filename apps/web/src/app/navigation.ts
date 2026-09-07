@@ -9,22 +9,17 @@ import {
   Plane,
   Cpu,
   Car,
-  BadgeCheck,
   BarChart3,
   Bell,
   Bot,
   Building2,
   FileCheck2,
   FileText,
-  Fuel,
-  Banknote,
-  Receipt,
   Gauge,
   LayoutDashboard,
   LifeBuoy,
   MapPin,
   Package,
-  PlayCircle,
   Route,
   ScanLine,
   PackageCheck,
@@ -59,6 +54,15 @@ export interface NavItem {
   badgeKey?: 'sos' | 'verification' | 'notifications' | 'expiringDocuments';
   /** Match child routes too. */
   end?: boolean;
+  /**
+   * Other routes this one destination owns.
+   *
+   * One entry can stand for several screens — the running-cost roll-ups share
+   * a tab strip rather than taking four rows in the sidebar. Without this the
+   * entry would go unhighlighted on three of the four, because matching is
+   * done against `to` alone.
+   */
+  alsoMatches?: string[];
 }
 
 export interface NavSection {
@@ -91,15 +95,15 @@ export const FLEET_NAVIGATION: NavSection[] = [
         permissions: [Permission.ORDERS_READ],
       },
       {
-        label: 'Marketplace',
-        to: '/marketplace',
-        icon: Package,
-        permissions: [Permission.ORDERS_QUOTE],
-        feature: Feature.ORDERS_MARKETPLACE,
-      },
-      {
-        // Customer demand across every category this fleet can serve. Distinct
-        // from Marketplace above, which lists freight orders only.
+        // Customer demand across every category this fleet can serve.
+        //
+        // There is no separate "Marketplace" entry beside this one any more.
+        // Both rendered a screen headed "Open requirements", and this is the
+        // wider of the two: `/orders/marketplace` lists freight orders only,
+        // while the board carries freight transport plus the transport leg of
+        // material supply. Every role granted ORDERS_QUOTE also holds
+        // REQUIREMENTS_BID, so nothing became unreachable - and `/marketplace`
+        // is still routed for anything linking to it directly.
         label: 'Bid on work',
         to: '/requirements/board',
         icon: Gavel,
@@ -108,6 +112,10 @@ export const FLEET_NAVIGATION: NavSection[] = [
     ],
   },
   {
+    // The operational core: the two rosters, and the two questions asked about a
+    // vehicle before it leaves the yard. Everything that is a fleet-wide total
+    // of per-vehicle records - paperwork, diesel, EMIs, toll - moved to
+    // "Documents & costs" below, so this section stays short enough to scan.
     title: 'Fleet',
     items: [
       // No generalized "Vehicles" entry here: for a freight fleet every vehicle
@@ -120,20 +128,6 @@ export const FLEET_NAVIGATION: NavSection[] = [
         to: '/fleet/drivers',
         icon: Users,
         permissions: [Permission.DRIVERS_READ],
-      },
-      {
-        label: 'Documents',
-        to: '/fleet/documents',
-        icon: FileText,
-        permissions: [Permission.DOCUMENTS_READ],
-        badgeKey: 'expiringDocuments',
-      },
-      {
-        label: 'Vehicle registration',
-        to: '/fleet/rc-lookup',
-        icon: BadgeCheck,
-        permissions: [Permission.VEHICLE_LOOKUP],
-        feature: Feature.FLEET_BASIC,
       },
       {
         // Placed under Fleet rather than Safety: it is a roster decision made
@@ -152,28 +146,42 @@ export const FLEET_NAVIGATION: NavSection[] = [
         feature: Feature.MAINTENANCE_BASIC,
       },
       {
-        label: 'Fuel',
-        to: '/fleet/fuel',
-        icon: Fuel,
-        permissions: [Permission.FUEL_READ],
+        // One entry for four screens — documents, fuel, EMIs and toll — which
+        // between them held four sidebar rows for records that are also on each
+        // vehicle's own page. They remain four distinct screens behind a tab
+        // strip (see `features/fleet/running-costs-tabs`), each on the URL it
+        // always had; the menu simply stopped listing them separately.
+        label: 'Documents & costs',
+        to: '/fleet/documents',
+        icon: FileText,
+        permissions: [
+          Permission.DOCUMENTS_READ,
+          Permission.FUEL_READ,
+          Permission.LOANS_READ,
+          Permission.TOLL_READ,
+        ],
+        badgeKey: 'expiringDocuments',
+        alsoMatches: ['/fleet/fuel', '/fleet/loans', '/fleet/toll'],
       },
-      {
-        label: 'Loans & EMI',
-        to: '/fleet/loans',
-        icon: Banknote,
-        permissions: [Permission.LOANS_READ],
-        feature: Feature.FINANCE_LOANS,
-      },
-      {
-        label: 'Toll & FASTag',
-        to: '/fleet/toll',
-        icon: Receipt,
-        permissions: [Permission.TOLL_READ],
-        feature: Feature.TOLL_FASTAG,
-      },
+      // No QR entry. A code is an attribute of one vehicle or one driver, and it
+      // is now issued with them automatically and shown as a tab on their own
+      // page — so a menu row pointing at a fleet-wide list of codes only asked
+      // the operator to match registration numbers by eye. `/qr` still exists
+      // as the register of every code, reached from a vehicle or driver.
+      // There is deliberately no "Vehicle registration" entry. That screen is
+      // nothing but `RcLookupPanel`, which every vehicle already carries on its
+      // own Registration tab - the same arrangement as the driver licence
+      // lookup, which lives on the driver's page and has never had a menu entry
+      // of its own. `/fleet/rc-lookup` still exists for the one case a vehicle
+      // page cannot serve, a plate that is not in the fleet at all, and is
+      // reached from the button on the Trucks screen.
     ],
   },
   {
+    // Everything that means something has gone wrong, or is about to. Telemetry
+    // alerts belong here rather than in a section of their own: overspeed,
+    // harsh braking and temperature are safety events, and an operator working
+    // an SOS is the same person who works these.
     title: 'Safety',
     items: [
       {
@@ -184,30 +192,18 @@ export const FLEET_NAVIGATION: NavSection[] = [
         badgeKey: 'sos',
       },
       {
-        label: 'Nearby services',
-        to: '/nearby',
-        icon: Activity,
-        permissions: [Permission.NEARBY_READ],
-        feature: Feature.NEARBY_SERVICES,
-      },
-    ],
-  },
-  {
-    title: 'Connect',
-    items: [
-      {
-        label: 'QR codes',
-        to: '/qr',
-        icon: QrCode,
-        permissions: [Permission.QR_READ],
-        feature: Feature.QR_IDENTITY,
-      },
-      {
         label: 'Telemetry alerts',
         to: '/telemetry/alerts',
         icon: Radio,
         permissions: [Permission.TELEMETRY_ALERTS_READ],
         feature: Feature.TELEMETRY_LIVE,
+      },
+      {
+        label: 'Nearby services',
+        to: '/nearby',
+        icon: Activity,
+        permissions: [Permission.NEARBY_READ],
+        feature: Feature.NEARBY_SERVICES,
       },
     ],
   },
@@ -229,17 +225,10 @@ export const FLEET_NAVIGATION: NavSection[] = [
       },
     ],
   },
-  {
-    title: 'Demo',
-    items: [
-      {
-        label: 'GPS simulator',
-        to: '/simulator',
-        icon: PlayCircle,
-        permissions: [Permission.TRUCKS_UPDATE, Permission.ADMIN_SIMULATOR],
-      },
-    ],
-  },
+  // No Demo section. It held one entry pointing at `/simulator`, which the
+  // command centre already offers as a primary button under the same demo-mode
+  // gate, so the menu was carrying a section heading and a row to repeat a
+  // control the operator lands on anyway. The route is untouched.
 ];
 
 export const SUPPLIER_NAVIGATION: NavSection[] = [
@@ -273,13 +262,6 @@ export const SUPPLIER_NAVIGATION: NavSection[] = [
         to: '/fleet/documents',
         icon: FileText,
         permissions: [Permission.DOCUMENTS_READ],
-      },
-      {
-        label: 'QR codes',
-        to: '/qr',
-        icon: QrCode,
-        permissions: [Permission.QR_READ],
-        feature: Feature.QR_IDENTITY,
       },
     ],
   },
@@ -428,6 +410,8 @@ export const MOBILITY_NAVIGATION: NavSection[] = [
     ],
   },
   {
+    // Same split as FLEET_NAVIGATION, and for the same reason: a taxi operator
+    // reads this menu on a phone as often as at a desk.
     title: 'Fleet',
     items: [
       {
@@ -442,30 +426,9 @@ export const MOBILITY_NAVIGATION: NavSection[] = [
         icon: Users,
         permissions: [Permission.DRIVERS_READ],
       },
-      {
-        label: 'Documents',
-        to: '/fleet/documents',
-        icon: FileText,
-        permissions: [Permission.DOCUMENTS_READ],
-        badgeKey: 'expiringDocuments',
-      },
-      {
-        // A passenger getting into a cab at night asks what a loading
-        // supervisor asks at a gate: is this the vehicle and the driver that
-        // were sent? Same question, same codes, same screen as a freight fleet.
-        label: 'QR codes',
-        to: '/qr',
-        icon: QrCode,
-        permissions: [Permission.QR_READ],
-        feature: Feature.QR_IDENTITY,
-      },
-      {
-        label: 'Vehicle registration',
-        to: '/fleet/rc-lookup',
-        icon: BadgeCheck,
-        permissions: [Permission.VEHICLE_LOOKUP],
-        feature: Feature.FLEET_BASIC,
-      },
+      // No QR entry, for the reason given in FLEET_NAVIGATION: a passenger
+      // checking the cab they were sent is answered by the vehicle's own code,
+      // which now lives on the vehicle.
       {
         // Placed under Fleet rather than Safety: it is a roster decision made
         // several times a day, not an incident. It sits directly above
@@ -482,21 +445,27 @@ export const MOBILITY_NAVIGATION: NavSection[] = [
         permissions: [Permission.MAINTENANCE_READ],
         feature: Feature.MAINTENANCE_BASIC,
       },
-      { label: 'Fuel', to: '/fleet/fuel', icon: Fuel, permissions: [Permission.FUEL_READ] },
       {
-        label: 'Loans & EMI',
-        to: '/fleet/loans',
-        icon: Banknote,
-        permissions: [Permission.LOANS_READ],
-        feature: Feature.FINANCE_LOANS,
+        // One entry for four screens — documents, fuel, EMIs and toll — which
+        // between them held four sidebar rows for records that are also on each
+        // vehicle's own page. They remain four distinct screens behind a tab
+        // strip (see `features/fleet/running-costs-tabs`), each on the URL it
+        // always had; the menu simply stopped listing them separately.
+        label: 'Documents & costs',
+        to: '/fleet/documents',
+        icon: FileText,
+        permissions: [
+          Permission.DOCUMENTS_READ,
+          Permission.FUEL_READ,
+          Permission.LOANS_READ,
+          Permission.TOLL_READ,
+        ],
+        badgeKey: 'expiringDocuments',
+        alsoMatches: ['/fleet/fuel', '/fleet/loans', '/fleet/toll'],
       },
-      {
-        label: 'Toll & FASTag',
-        to: '/fleet/toll',
-        icon: Receipt,
-        permissions: [Permission.TOLL_READ],
-        feature: Feature.TOLL_FASTAG,
-      },
+      // No "Vehicle registration" entry, for the reason given in
+      // FLEET_NAVIGATION: it duplicates the vehicle's own Registration tab. The
+      // Vehicles screen carries the button for looking up an outside plate.
     ],
   },
   {
@@ -510,27 +479,21 @@ export const MOBILITY_NAVIGATION: NavSection[] = [
         badgeKey: 'sos',
       },
       {
-        label: 'Nearby services',
-        to: '/nearby',
-        icon: Activity,
-        permissions: [Permission.NEARBY_READ],
-        feature: Feature.NEARBY_SERVICES,
-      },
-    ],
-  },
-  {
-    // A travel operator fits the same telematics hardware and holds the same
-    // grants to work its alerts — including telemetry.alerts.manage. The link
-    // was simply never added, so a harsh-braking alert on a taxi raised a
-    // notification pointing at a screen the operator had no way to open.
-    title: 'Connect',
-    items: [
-      {
+        // A travel operator fits the same telematics hardware and holds the same
+        // grants to work its alerts, including telemetry.alerts.manage. It sits
+        // under Safety for the same reason as in FLEET_NAVIGATION.
         label: 'Telemetry alerts',
         to: '/telemetry/alerts',
         icon: Radio,
         permissions: [Permission.TELEMETRY_ALERTS_READ],
         feature: Feature.TELEMETRY_LIVE,
+      },
+      {
+        label: 'Nearby services',
+        to: '/nearby',
+        icon: Activity,
+        permissions: [Permission.NEARBY_READ],
+        feature: Feature.NEARBY_SERVICES,
       },
     ],
   },
@@ -552,17 +515,7 @@ export const MOBILITY_NAVIGATION: NavSection[] = [
       },
     ],
   },
-  {
-    title: 'Demo',
-    items: [
-      {
-        label: 'GPS simulator',
-        to: '/simulator',
-        icon: PlayCircle,
-        permissions: [Permission.TRUCKS_UPDATE, Permission.ADMIN_SIMULATOR],
-      },
-    ],
-  },
+  // No Demo section, for the reason given in FLEET_NAVIGATION.
 ];
 
 export const DRIVER_NAVIGATION: NavSection[] = [
@@ -652,5 +605,14 @@ export const ACCOUNT_NAVIGATION: NavItem[] = [
   // destination: everything it held is either a profile section already, or
   // was moved onto this screen as a step of its own.
   { label: 'My profile', to: '/settings/profile', icon: UserRoundCog },
+  // Business documents and the GST check. Shown to anyone who can read
+  // documents; the page itself says so plainly when the account is not acting
+  // for an organization, rather than being hidden and leaving people hunting.
+  {
+    label: 'Business documents',
+    to: '/settings/business-documents',
+    icon: Building2,
+    permissions: [Permission.DOCUMENTS_READ],
+  },
   { label: 'Verification', to: '/verification', icon: ShieldCheck },
 ];

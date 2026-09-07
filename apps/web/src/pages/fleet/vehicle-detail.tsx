@@ -8,8 +8,6 @@ import {
   Bus,
   Car,
   Cpu,
-  Fuel,
-  IndianRupee,
   Route as RouteIcon,
   ShieldAlert,
   TriangleAlert,
@@ -43,6 +41,7 @@ import { useAuth } from '@/features/auth/auth-context';
 import { PageHeader, SectionHeader } from '@/components/common/page-header';
 import { DemoVerifyButton } from '@/features/verification/demo-verify-button';
 import { StatCard } from '@/components/common/stat-card';
+import { toSeriesPoints } from '@/components/common/mini-chart';
 import { StatusBadge } from '@/components/common/status-badge';
 import { EmptyState, ErrorState, LoadingState } from '@/components/common/states';
 import { DocumentPanel } from '@/features/documents/document-panel';
@@ -53,6 +52,7 @@ import { ServiceTimelinePanel } from '@/features/service/service-timeline';
 import { CameraGrid } from '@/features/cameras/camera-grid';
 import { VehicleHardware } from '@/features/devices/vehicle-hardware';
 import { VehicleFastagPanel } from '@/features/toll/fastag-panel';
+import { SubjectQrPanel } from '@/features/qr/subject-qr-panel';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -141,6 +141,46 @@ export function VehicleDetailPage() {
     onError: (error) => toast.error('Could not unassign', { description: errorMessage(error) }),
   });
 
+  /*
+   * The two derived series stay above the early returns below, and must.
+   *
+   * A hook after a conditional `return` runs on some renders and not others:
+   * this screen bails out while the vehicle is loading, so React counted six
+   * hooks on the first render and eight on the next, and threw "Rendered more
+   * hooks than during the previous render" instead of drawing the page. Both
+   * read `passport.data` defensively, so computing them before the vehicle is
+   * known costs an empty array and nothing else.
+   */
+
+  /**
+   * The odometer as the vehicle's own fuel records recorded it.
+   *
+   * A fill-up is the one moment a real reading is taken off the dash, so the
+   * passport's fuel rows are the only honest history of this dial. Records
+   * that carried no reading are skipped rather than interpolated, and the
+   * points are ordered by date so the line climbs the way the odometer did.
+   */
+  const odometerCurve = React.useMemo(
+    () =>
+      (passport.data?.fuel ?? [])
+        .filter((record) => record.odometerKm !== null)
+        .map((record) => ({ date: record.recordedAt.slice(0, 10), value: record.odometerKm ?? 0 }))
+        .sort((a, b) => a.date.localeCompare(b.date)),
+    [passport.data],
+  );
+
+  /** What this vehicle spent on fuel, per day it was filled. */
+  const fuelSpend = React.useMemo(() => {
+    const buckets = new Map<string, number>();
+    for (const record of passport.data?.fuel ?? []) {
+      const date = record.recordedAt.slice(0, 10);
+      buckets.set(date, (buckets.get(date) ?? 0) + record.totalCost);
+    }
+    return [...buckets.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, value]) => ({ date, value: Number(value.toFixed(2)) }));
+  }, [passport.data]);
+
   if (vehicleQuery.isLoading) return <LoadingState label="Loading vehicle…" />;
   if (vehicleQuery.error) {
     return <ErrorState error={vehicleQuery.error} onRetry={() => void vehicleQuery.refetch()} />;
@@ -184,6 +224,7 @@ export function VehicleDetailPage() {
   const canSeeHardware =
     can(Permission.DEVICES_READ) && hasFeature(Feature.HARDWARE_CONNECTIVITY);
   const canSeeToll = can(Permission.TOLL_READ) && hasFeature(Feature.TOLL_FASTAG);
+  const canSeeQr = can(Permission.QR_READ) && hasFeature(Feature.QR_IDENTITY);
   // Offered on the strength of a fitted device rather than the type's declared
   // capability: if a unit is reporting, its readings are worth reading.
   const canSeeTelemetry = Boolean(vehicle.device) && can(Permission.TELEMETRY_READ);
@@ -345,7 +386,7 @@ export function VehicleDetailPage() {
         <StatCard
           label="Odometer"
           value={`${formatNumber(Math.round(vehicle.odometerKm))} km`}
-          icon={RouteIcon}
+          chart={{ kind: 'area', points: toSeriesPoints(odometerCurve), format: formatDistanceKm }}
           hint={
             lifetime ? `${formatDistanceKm(lifetime.totalDistanceKm)} on Saarthi trips` : undefined
           }
@@ -353,14 +394,25 @@ export function VehicleDetailPage() {
         <StatCard
           label="Lifetime revenue"
           value={lifetime ? formatCompactCurrency(lifetime.revenue) : '—'}
-          icon={IndianRupee}
+          chart={{
+            // Where the revenue went, not where it came from. The three
+            // segments are the lifetime figures themselves — profit is what is
+            // left after fuel and workshop — so the bar is the money the tile
+            // above it names, split the way the owner has to think about it.
+            kind: 'split',
+            segments: [
+              { label: 'Profit', value: Math.max(0, lifetime?.profit ?? 0), tone: 'success' },
+              { label: 'Fuel', value: lifetime?.fuelCost ?? 0, tone: 'warning' },
+              { label: 'Workshop', value: lifetime?.maintenanceCost ?? 0, tone: 'destructive' },
+            ],
+          }}
           tone={lifetime && lifetime.profit > 0 ? 'success' : 'default'}
           hint={lifetime ? `Profit ${formatCompactCurrency(lifetime.profit)}` : undefined}
         />
         <StatCard
           label="Running cost"
           value={lifetime?.costPerKm ? `${formatCurrency(lifetime.costPerKm)}/km` : '—'}
-          icon={Fuel}
+          chart={{ kind: 'bars', points: toSeriesPoints(fuelSpend), format: formatCurrency }}
           hint={
             lifetime?.fuelEfficiencyL100Km
               ? `${lifetime.fuelEfficiencyL100Km} L/100 km`
@@ -425,6 +477,7 @@ export function VehicleDetailPage() {
         <TabsList className="w-full sm:w-auto">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
+          {canSeeQr ? <TabsTrigger value="qr">QR code</TabsTrigger> : null}
           {canLookupRegistration ? (
             <TabsTrigger value="registration">Registration</TabsTrigger>
           ) : null}
@@ -543,6 +596,17 @@ export function VehicleDetailPage() {
         <TabsContent value="documents">
           <DocumentPanel ownerType="TRUCK" ownerId={id} ownerLabel={vehicle.registrationNumber} />
         </TabsContent>
+
+        {/*
+          The vehicle's code, on the vehicle. It used to live only on a fleet-
+          wide QR screen, which meant finding one truck's sticker started by
+          matching a registration number against a list.
+        */}
+        {canSeeQr ? (
+          <TabsContent value="qr">
+            <SubjectQrPanel subjectType="VEHICLE" subjectId={id} />
+          </TabsContent>
+        ) : null}
 
         {/*
           The plate is already known here, so the panel opens ready to go —

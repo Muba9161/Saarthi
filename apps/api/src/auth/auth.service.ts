@@ -29,6 +29,7 @@ import {
 } from './tokens';
 import { buildSessionPayload, loadUser, resolveActiveMembership } from './session.service';
 import { createDefaultSubscription } from '../modules/subscriptions/entitlements.service';
+import { provisionDriverCodeOnRegistration } from '../modules/qr/qr.service';
 import { AuditAction, recordAudit } from '../modules/audit/audit.service';
 
 /**
@@ -152,6 +153,9 @@ export async function register(input: RegisterInput, meta: RequestMeta) {
 
     let organizationId: string;
     let createdOrganization = false;
+    // Set only on the driver branch; carried out of the transaction so the
+    // driver's QR badge can be issued once the rows are actually committed.
+    let driverId: string | null = null;
 
     if (input.role === RoleName.DRIVER) {
       // A driver joins an existing fleet using its invite code.
@@ -183,7 +187,7 @@ export async function register(input: RegisterInput, meta: RequestMeta) {
         });
       }
 
-      await tx.driver.create({
+      const driver = await tx.driver.create({
         data: {
           userId: user.id,
           organizationId,
@@ -192,6 +196,7 @@ export async function register(input: RegisterInput, meta: RequestMeta) {
           verificationStatus: VerificationStatus.PENDING,
         },
       });
+      driverId = driver.id;
     } else {
       const organizationType = ROLE_TO_ORGANIZATION_TYPE[input.role] ?? OrganizationType.CUSTOMER;
       const organization = await tx.organization.create({
@@ -240,13 +245,30 @@ export async function register(input: RegisterInput, meta: RequestMeta) {
       data: { userId: user.id, preferences: { locale: input.preferredLanguage } },
     });
 
-    return { user, organizationId, createdOrganization };
+    return { user, organizationId, createdOrganization, driverId };
   });
 
   // Fleets, suppliers and customers start on a Pro trial so every feature can
   // be demonstrated; downgrades are handled by the subscription module.
   if (result.createdOrganization) {
     await createDefaultSubscription(result.organizationId, PlanTier.PRO);
+  }
+
+  /*
+   * A driver's badge is issued with the account, not on request.
+   *
+   * After the transaction on purpose: the subscription lookup and the QR row
+   * are not part of what makes a registration valid, and a driver must never
+   * fail to get an account because their badge could not be written. The
+   * helper swallows its own failures for that reason, and the badge screen
+   * mints one on first open if this did not manage it.
+   */
+  if (result.driverId) {
+    await provisionDriverCodeOnRegistration(
+      result.driverId,
+      result.organizationId,
+      result.user.id,
+    );
   }
 
   const issued = await issueSession(

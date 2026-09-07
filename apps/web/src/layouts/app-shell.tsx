@@ -211,8 +211,14 @@ function useActiveNavPath(): string | null {
     const candidates = [...sections.flatMap((section) => section.items), ...ACCOUNT_NAVIGATION];
 
     let best: string | null = null;
-    for (const { to, end } of candidates) {
-      const matches = pathname === to || (!end && pathname.startsWith(`${to.replace(/\/$/, '')}/`));
+    for (const { to, end, alsoMatches } of candidates) {
+      // An entry can own more than one route — the running-cost roll-ups share
+      // a single row — so every path it claims counts as a match, while the
+      // entry still reports itself by `to`, keeping exactly one row lit.
+      const owned = [to, ...(alsoMatches ?? [])];
+      const matches = owned.some(
+        (path) => pathname === path || (!end && pathname.startsWith(`${path.replace(/\/$/, '')}/`)),
+      );
       if (matches && (best === null || to.length > best.length)) best = to;
     }
     return best;

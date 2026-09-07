@@ -4,6 +4,7 @@ import type { Catalogue } from './en';
 export const mai: Catalogue = {
   Operations: 'संचालन',
   Fleet: 'बेड़ा',
+  'Documents & costs': 'कागजात आ खर्च',
   Marketplace: 'बजार',
   Travel: 'यात्रा',
   Connect: 'कनेक्ट',

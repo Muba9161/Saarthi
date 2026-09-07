@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Navigate, Outlet, createBrowserRouter, useRouteError } from 'react-router-dom';
 import { AppShell } from '@/layouts/app-shell';
+import { RunningCostsTabs } from '@/features/fleet/running-costs-tabs';
 import { AuthLayout } from '@/layouts/auth-layout';
 import { useAuth } from '@/features/auth/auth-context';
 import { useT } from '@/features/i18n';
@@ -123,7 +124,6 @@ export const router = createBrowserRouter([
             path: '/fleet/drivers/:id',
             element: lazyPage(() => import('@/pages/fleet/driver-detail')),
           },
-          { path: '/fleet/documents', element: lazyPage(() => import('@/pages/fleet/documents')) },
           {
             path: '/fleet/rc-lookup',
             element: lazyPage(() => import('@/pages/fleet/rc-lookup')),
@@ -136,13 +136,34 @@ export const router = createBrowserRouter([
             path: '/fleet/terminal-approvals',
             element: lazyPage(() => import('@/pages/fleet/terminal-approvals')),
           },
-          { path: '/fleet/loans', element: lazyPage(() => import('@/pages/fleet/loans')) },
-          { path: '/fleet/toll', element: lazyPage(() => import('@/pages/fleet/toll')) },
+
+          /*
+            The four fleet-wide roll-ups, behind one menu entry.
+
+            A pathless layout route, so every path below is exactly what it was
+            before — the dashboard's links, the notification `actionUrl`s the
+            API sends for toll, and any bookmark all still resolve. All the
+            layout adds is the strip that switches between them.
+          */
+          {
+            element: <RunningCostsTabs />,
+            children: [
+              {
+                path: '/fleet/documents',
+                element: lazyPage(() => import('@/pages/fleet/documents')),
+              },
+              { path: '/fleet/fuel', element: lazyPage(() => import('@/pages/fleet/fuel')) },
+              { path: '/fleet/loans', element: lazyPage(() => import('@/pages/fleet/loans')) },
+              { path: '/fleet/toll', element: lazyPage(() => import('@/pages/fleet/toll')) },
+            ],
+          },
+
+          // Outside the strip on purpose: a single loan is a detail screen
+          // reached from the list, not a fifth peer of it.
           {
             path: '/fleet/loans/:id',
             element: lazyPage(() => import('@/pages/fleet/loan-detail')),
           },
-          { path: '/fleet/fuel', element: lazyPage(() => import('@/pages/fleet/fuel')) },
 
           // Operations
           { path: '/tracking', element: lazyPage(() => import('@/pages/tracking/live-map')) },
@@ -305,6 +326,13 @@ export const router = createBrowserRouter([
           // The Settings screen was folded into the profile builder. Kept as a
           // redirect so bookmarks and older links still land somewhere useful.
           { path: '/settings', element: <Navigate to="/settings/profile" replace /> },
+          // The business's own documents. The organization is the one subject
+          // with no detail screen of its own, so its documents — and the GST
+          // check on them — need a destination rather than a tab.
+          {
+            path: '/settings/business-documents',
+            element: lazyPage(() => import('@/pages/settings/business-documents')),
+          },
           {
             path: '/settings/qr-privacy',
             element: lazyPage(() => import('@/pages/settings/qr-privacy')),

@@ -1,17 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  A steering wheel: "saarthi" is the driver, and the app turns a phone into one.
-  Drawn as a vector so the icon needs no binary assets in the repository.
+  The launcher icon foreground: the Saarthi brand mark.
+
+  This replaces a steering wheel drawn for this app. The wheel read well, but it
+  was the only place in the product that did not use the official mark, so the
+  device app now shows the same VX monogram as the terminal app, the web
+  sidebar and the favicon — `saarthi_mark.png`, the shared asset.
+
+  Inset by 22dp on every side. An adaptive icon's 108dp canvas is masked down to
+  a 66dp safe zone, and a mark drawn to the edges is a mark the launcher crops.
 -->
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="108dp"
-    android:height="108dp"
-    android:viewportWidth="108"
-    android:viewportHeight="108">
-    <path
-        android:fillColor="#38BDF8"
-        android:pathData="M54,26a28,28 0 1,0 0.1,0zM54,34a20,20 0 0,1 19.4,15.2L58,49.2a4.4,4.4 0 0,0 -8,0L34.6,49.2A20,20 0 0,1 54,34zM34.3,57.2L49.9,57.2a4.4,4.4 0 0,0 0.1,0.6L50,74a20,20 0 0,1 -15.7,-16.8zM58,74L58,57.8a4.4,4.4 0 0,0 0.1,-0.6L73.7,57.2A20,20 0 0,1 58,74z" />
-    <path
-        android:fillColor="#F8FAFC"
-        android:pathData="M54,50.6m-3.4,0a3.4,3.4 0 1,0 6.8,0a3.4,3.4 0 1,0 -6.8,0" />
-</vector>
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/saarthi_mark"
+    android:insetLeft="22dp"
+    android:insetTop="22dp"
+    android:insetRight="22dp"
+    android:insetBottom="22dp" />

@@ -1,8 +1,9 @@
 import * as React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
-import { Activity, AlertTriangle, Car, Cpu, Truck } from 'lucide-react';
+import { Activity, AlertTriangle, BadgeCheck, Car, Cpu, Truck } from 'lucide-react';
 import {
+  Feature,
   OrganizationType,
   Permission,
   TruckStatus,
@@ -19,6 +20,7 @@ import { DataView, type Column } from '@/components/common/data-view';
 import { EmptyState, UnauthorizedState } from '@/components/common/states';
 import { StatusBadge } from '@/components/common/status-badge';
 import { AddVehicleDialog } from '@/features/vehicles/add-vehicle-dialog';
+import { QrWelcomeDialog } from '@/features/qr/qr-welcome-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -59,7 +61,16 @@ const PASSENGER_VEHICLE_TYPES = [
 
 export function VehiclesPage() {
   const navigate = useNavigate();
-  const { can, session } = useAuth();
+  const { can, hasFeature, session } = useAuth();
+  // Same reasoning as the Trucks screen: the RC lookup lost its sidebar entry
+  // because it repeated each vehicle's own Registration tab, and this is where
+  // a plate from outside the fleet gets looked up.
+  const canLookUpPlate = can(Permission.VEHICLE_LOOKUP) && hasFeature(Feature.FLEET_BASIC);
+  const canAddVehicle = can(Permission.VEHICLES_CREATE);
+  /** The vehicle just added, held while its QR is shown. */
+  const [added, setAdded] = React.useState<{ id: string; registrationNumber: string } | null>(
+    null,
+  );
   const [page, setPage] = React.useState(1);
   const [search, setSearch] = React.useState('');
   const [capability, setCapability] = React.useState('');
@@ -241,14 +252,25 @@ export function VehiclesPage() {
             : 'Trucks, taxis, buses and vans across the whole organization.'
         }
         actions={
-          can(Permission.VEHICLES_CREATE) ? (
-            // A travel operator has no other way in — there is no Trucks screen
-            // for them — so the type list is narrowed rather than hidden.
-            <AddVehicleDialog
-              {...(isTravelOperator ? { allowedTypes: PASSENGER_VEHICLE_TYPES } : {})}
-              defaultType={isTravelOperator ? VehicleType.CAR : VehicleType.TRUCK}
-            />
-          ) : undefined
+          canLookUpPlate || canAddVehicle ? (
+            <>
+              {canLookUpPlate ? (
+                <Button variant="outline" onClick={() => navigate('/fleet/rc-lookup')}>
+                  <BadgeCheck className="size-4" />
+                  Look up a plate
+                </Button>
+              ) : null}
+              {canAddVehicle ? (
+                // A travel operator has no other way in — there is no Trucks screen
+                // for them — so the type list is narrowed rather than hidden.
+                <AddVehicleDialog
+                  {...(isTravelOperator ? { allowedTypes: PASSENGER_VEHICLE_TYPES } : {})}
+                  defaultType={isTravelOperator ? VehicleType.CAR : VehicleType.TRUCK}
+                  onAdded={setAdded}
+                />
+              ) : null}
+            </>
+          ) : null
         }
       />
 
@@ -385,6 +407,17 @@ export function VehiclesPage() {
           emptyDescription="Nothing to show."
         />
       )}
+      <QrWelcomeDialog
+        open={added !== null}
+        onOpenChange={(next) => {
+          if (!next) setAdded(null);
+        }}
+        subjectType="VEHICLE"
+        subjectId={added?.id ?? null}
+        subjectLabel={added?.registrationNumber ?? ''}
+        isFirst={(vehicles.data?.pagination.total ?? 0) <= 1}
+      />
+
     </div>
   );
 }

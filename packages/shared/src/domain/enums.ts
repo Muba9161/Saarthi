@@ -127,6 +127,51 @@ export const DocumentValidity = asEnum({
 });
 export type DocumentValidity = EnumValue<typeof DocumentValidity>;
 
+/**
+ * Identity documents Saarthi can check against a government source rather than
+ * by a human looking at a scan.
+ *
+ * These are *instant* verifications: a number goes out, an authoritative record
+ * comes back. They sit alongside the document-review workflow rather than
+ * replacing it — a verified Aadhaar number still leaves the uploaded card
+ * itself for a reviewer, because a genuine number can be printed on a forged
+ * card.
+ */
+export const IdentityDocumentKind = asEnum({
+  AADHAAR: 'AADHAAR',
+  PAN: 'PAN',
+  VOTER_ID: 'VOTER_ID',
+  /** GSTIN — a business registration, so it hangs off the organization. */
+  GST: 'GST',
+});
+export type IdentityDocumentKind = EnumValue<typeof IdentityDocumentKind>;
+
+/**
+ * Outcome of one identity check.
+ *
+ * `NOT_FOUND` and `MISMATCH` are deliberately distinct from `FAILED`: the first
+ * two are answers about the number, the third is Saarthi failing to get an
+ * answer at all. Collapsing them would tell a fleet manager their driver's PAN
+ * is invalid when the provider was simply down.
+ */
+export const IdentityVerificationOutcome = asEnum({
+  /** The government source confirmed the number, and any cross-check passed. */
+  VERIFIED: 'VERIFIED',
+  /** The source has no such record. */
+  NOT_FOUND: 'NOT_FOUND',
+  /** The record exists but contradicts what was submitted (name, PAN link…). */
+  MISMATCH: 'MISMATCH',
+  /** The number failed Saarthi's own format or checksum rules — never sent. */
+  INVALID_FORMAT: 'INVALID_FORMAT',
+  /**
+   * Checked as far as this environment can. Used where no online source
+   * exists — a standalone Aadhaar with no PAN to link-check against passes its
+   * checksum and stops here, awaiting a human reviewer.
+   */
+  UNCONFIRMED: 'UNCONFIRMED',
+});
+export type IdentityVerificationOutcome = EnumValue<typeof IdentityVerificationOutcome>;
+
 // ---------------------------------------------------------------------------
 // Fleet
 // ---------------------------------------------------------------------------

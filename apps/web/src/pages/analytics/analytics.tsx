@@ -12,7 +12,6 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { Fuel, IndianRupee, Route as RouteIcon, TrendingUp } from 'lucide-react';
 import {
   Feature,
   OrganizationType,
@@ -32,6 +31,7 @@ import { useAuth } from '@/features/auth/auth-context';
 import { PageHeader, SectionHeader } from '@/components/common/page-header';
 import { DataTable, type Column } from '@/components/common/data-table';
 import { StatCard } from '@/components/common/stat-card';
+import { toSeriesPoints } from '@/components/common/mini-chart';
 import { FeatureLockedState, LoadingState, UnauthorizedState } from '@/components/common/states';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -234,7 +234,11 @@ export function AnalyticsPage() {
             label="Trips completed"
             numericValue={totals.trips}
             format={(value) => String(Math.round(value))}
-            icon={RouteIcon}
+            chart={{
+              kind: 'bars',
+              points: toSeriesPoints(points.map((point) => ({ date: point.date, value: point.trips }))),
+              format: (value) => `${value} trips`,
+            }}
             hint="Last 30 days"
           />
         </StaggerItem>
@@ -243,7 +247,11 @@ export function AnalyticsPage() {
             label="Revenue"
             numericValue={totals.revenue}
             format={formatCompactCurrency}
-            icon={IndianRupee}
+            chart={{
+              kind: 'area',
+              points: toSeriesPoints(points.map((point) => ({ date: point.date, value: point.revenue }))),
+              format: formatCompactCurrency,
+            }}
             hint={`${formatDistanceKm(totals.distanceKm)} driven`}
           />
         </StaggerItem>
@@ -252,7 +260,11 @@ export function AnalyticsPage() {
             label="Fuel spend"
             numericValue={totals.fuelCost}
             format={formatCompactCurrency}
-            icon={Fuel}
+            chart={{
+              kind: 'area',
+              points: toSeriesPoints(points.map((point) => ({ date: point.date, value: point.fuelCost }))),
+              format: formatCompactCurrency,
+            }}
             tone="warning"
             hint={costPerKm > 0 ? `${formatCurrency(costPerKm)} per km` : 'No distance recorded'}
           />
@@ -262,7 +274,13 @@ export function AnalyticsPage() {
             label="Gross margin"
             numericValue={totals.revenue - totals.fuelCost}
             format={formatCompactCurrency}
-            icon={TrendingUp}
+            chart={{
+              kind: 'area',
+              points: toSeriesPoints(
+                points.map((point) => ({ date: point.date, value: point.revenue - point.fuelCost })),
+              ),
+              format: formatCompactCurrency,
+            }}
             tone={totals.revenue - totals.fuelCost >= 0 ? 'success' : 'destructive'}
             hint={
               totals.revenue > 0

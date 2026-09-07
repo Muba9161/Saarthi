@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import {
   Feature,
   Permission,
+  QrSubjectType,
   adjustScoreSchema,
   createDriverSchema,
   driverListQuerySchema,
@@ -17,6 +18,8 @@ import {
 } from '../../server/guards';
 import { AuditAction, auditFromRequest } from '../audit/audit.service';
 import * as driverService from './driver.service';
+import * as qrService from '../qr/qr.service';
+import { publicAppUrl } from '../../lib/public-url';
 
 export async function driverRoutes(app: FastifyInstance): Promise<void> {
   app.addHook('preHandler', app.authenticate);
@@ -46,6 +49,14 @@ export async function driverRoutes(app: FastifyInstance): Promise<void> {
       const organizationId = requireOrganizationId(request);
       const input = parseBody(createDriverSchema, request.body);
       const result = await driverService.createDriver(auth, organizationId, input);
+
+      // The driver's badge, issued with the account. See qr.service.ts.
+      await qrService.provisionOnCreate(
+        auth,
+        QrSubjectType.DRIVER,
+        result.driver.id,
+        publicAppUrl(request),
+      );
 
       await auditFromRequest(request, {
         action: AuditAction.DRIVER_CREATED,

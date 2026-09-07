@@ -1,8 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  Saarthi day.
+
+  This was navy (#0F172A) behind a sky-blue steering wheel. The brand mark that
+  replaced the wheel is drawn in navy on transparency, so on a navy field it
+  disappears — it needs a light chip behind it, the same one the terminal app
+  uses. The colour lives in colors.xml so the two cannot drift apart.
+-->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <path android:fillColor="#0F172A" android:pathData="M0,0h108v108h-108z" />
+    <path
+        android:fillColor="@color/ic_launcher_background"
+        android:pathData="M0,0h108v108h-108z" />
 </vector>

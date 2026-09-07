@@ -3,6 +3,7 @@ import {
   ACTIVE_SOS_STATUSES,
   DocumentValidity,
   MediaOwnerType,
+  Feature,
   Permission,
   MediaPurpose,
   OPERATOR_MANAGEMENT_ROLES,
@@ -37,6 +38,11 @@ import { config } from '../../config/env';
 import { errors } from '../../lib/errors';
 import { logger } from '../../lib/logger';
 import type { AuthContext } from '../../auth/context';
+import { hasFeature } from '../../server/guards';
+import {
+  resolveSubscription,
+  subscriptionHasFeature,
+} from '../subscriptions/entitlements.service';
 import { primaryUrlsFor } from '../media/media.service';
 import { applyPrivacyPolicy, getPrivacyPolicy, type ScanPrivacyReport } from './qr-privacy.service';
 
@@ -426,6 +432,110 @@ export async function ensureVehicleCodeForDevice(
   );
 
   return toView(code, frontendUrl);
+}
+
+/**
+ * Issue a subject's code as part of creating the subject.
+ *
+ * Every vehicle and every driver gets its identity code the moment the record
+ * exists, rather than waiting for somebody to remember to ask for one. That is
+ * the whole point: a code nobody generated is a code nobody can scan, and the
+ * gate check that needed it happens long before anyone opens a QR screen.
+ *
+ * Two rules make this safe to call from inside a create handler:
+ *
+ * **It never throws.** Adding a truck must not fail because a QR row could not
+ * be written. A failure here is logged and the truck is still added; the
+ * idempotent `ensureForSubject` will mint the code the first time the vehicle's
+ * page is opened, so the miss is self-healing rather than permanent.
+ *
+ * **It respects the plan.** An organization without QR_IDENTITY gets nothing,
+ * silently — the same answer the feature guard would give, without turning a
+ * plan limit into a failed vehicle creation.
+ */
+export async function provisionOnCreate(
+  auth: AuthContext,
+  subjectType: QrSubjectType,
+  subjectId: string,
+  frontendUrl?: string,
+): Promise<QrCodeView | null> {
+  if (!hasFeature(auth, Feature.QR_IDENTITY)) return null;
+
+  try {
+    return await ensureForSubject(auth, subjectType, subjectId, frontendUrl);
+  } catch (error) {
+    qrLogger.warn(
+      { err: error, subjectType, subjectId },
+      'Could not provision the QR code for a newly created subject; it will be issued on first view',
+    );
+    return null;
+  }
+}
+
+/**
+ * A self-registering driver's own code, issued during sign-up.
+ *
+ * There is no `AuthContext` here — the account is being created, so nobody is
+ * signed in yet — which is why this cannot go through `ensureForSubject`. The
+ * authority is the same one `ensureVehicleCodeForDevice` relies on: the caller
+ * has just created this exact driver row inside the registration transaction,
+ * which is a stronger claim about the subject than any permission check made
+ * afterwards.
+ *
+ * Like `provisionOnCreate` it never throws. A driver whose code could not be
+ * written still gets an account, and their badge screen mints it on first open.
+ */
+export async function provisionDriverCodeOnRegistration(
+  driverId: string,
+  organizationId: string,
+  userId: string,
+  frontendUrl?: string,
+): Promise<void> {
+  try {
+    const subscription = await resolveSubscription(organizationId);
+    if (!subscriptionHasFeature(subscription, Feature.QR_IDENTITY)) return;
+
+    const existing = await prisma.qrCode.findFirst({
+      where: { subjectType: QrSubjectType.DRIVER, subjectId: driverId, status: QrCodeStatus.ACTIVE },
+      select: { id: true },
+    });
+    if (existing) return;
+
+    const driver = await prisma.driver.findUnique({
+      where: { id: driverId },
+      select: { user: { select: { firstName: true, lastName: true } } },
+    });
+
+    const expiresAt =
+      config.qr.defaultTtlDays > 0
+        ? new Date(Date.now() + config.qr.defaultTtlDays * 86_400_000)
+        : null;
+
+    await prisma.qrCode.create({
+      data: {
+        organizationId,
+        subjectType: QrSubjectType.DRIVER,
+        subjectId: driverId,
+        token: generateToken(),
+        scopes: defaultScopesFor(QrSubjectType.DRIVER),
+        label: driver
+          ? `${driver.user.firstName} ${driver.user.lastName}`.trim() || null
+          : null,
+        allowPublicResolve: publicResolveDefaultFor(QrSubjectType.DRIVER),
+        expiresAt,
+        // The driver is the accountable person for their own badge.
+        createdById: userId,
+      },
+    });
+
+    qrLogger.info({ driverId }, 'Driver QR provisioned at registration');
+    void frontendUrl;
+  } catch (error) {
+    qrLogger.warn(
+      { err: error, driverId },
+      'Could not provision a self-registered driver QR; it will be issued on first view',
+    );
+  }
 }
 
 export async function listQrCodes(

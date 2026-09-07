@@ -120,6 +120,10 @@ export async function resetDatabase(): Promise<void> {
     'verification_events',
     'verification_documents',
     'verification_cases',
+    // Identity checks reference a driver, an organization and a document, so
+    // they truncate before all three. Leaving them out let a verified Aadhaar
+    // from one test file survive into the next.
+    'identity_verifications',
     'document_versions',
     'documents',
     'materials',

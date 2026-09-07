@@ -4,6 +4,7 @@ import type { Catalogue } from './en';
 export const ml: Catalogue = {
   Operations: 'പ്രവർത്തനങ്ങൾ',
   Fleet: 'വാഹനനിര',
+  'Documents & costs': 'രേഖകൾ & ചെലവുകൾ',
   Marketplace: 'വിപണി',
   Travel: 'യാത്ര',
   Connect: 'കണക്ട്',

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The themed-icon layer (Android 13+, when the user turns on themed icons).
+
+  Android tints this drawable with the wallpaper palette and uses only its alpha
+  channel, so it has to be a silhouette. Pointing it at ic_launcher_foreground —
+  the full-colour mark — produced a shapeless blob, because the mark's pale sun
+  reads as solid alpha and the road, truck and skyline detail all merge.
+
+  `saarthi_mark_mono.png` is the mark reduced for exactly this: the sun dropped,
+  the interior detail filled in, and the V and X left as two bold strokes.
+
+  Same 22dp inset as the foreground, so the themed icon sits where the real one
+  does.
+-->
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/saarthi_mark_mono"
+    android:insetLeft="22dp"
+    android:insetTop="22dp"
+    android:insetRight="22dp"
+    android:insetBottom="22dp" />

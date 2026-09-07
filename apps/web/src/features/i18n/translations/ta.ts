@@ -4,6 +4,7 @@ import type { Catalogue } from './en';
 export const ta: Catalogue = {
   Operations: 'செயல்பாடுகள்',
   Fleet: 'வாகனத் தொகுப்பு',
+  'Documents & costs': 'ஆவணங்கள் & செலவுகள்',
   Marketplace: 'சந்தை',
   Travel: 'பயணம்',
   Connect: 'இணைப்பு',

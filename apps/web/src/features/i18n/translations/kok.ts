@@ -4,6 +4,7 @@ import type { Catalogue } from './en';
 export const kok: Catalogue = {
   Operations: 'कामकाज',
   Fleet: 'वाहनसमूह',
+  'Documents & costs': 'दस्तावेज आनी खर्च',
   Marketplace: 'बाजार',
   Travel: 'प्रवास',
   Connect: 'कनेक्ट',

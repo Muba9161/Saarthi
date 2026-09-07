@@ -5,6 +5,7 @@ import {
   MembershipStatus,
   RoleName,
   type ScoreCategory,
+  TripStatus,
   VerificationStatus,
   buildPaginationMeta,
   buildScoreBreakdown,
@@ -23,6 +24,15 @@ import {
 import { type Prisma, prisma } from '../../database/prisma';
 import { errors } from '../../lib/errors';
 import { skipTake } from '../../lib/http';
+import {
+  TREND_WINDOW_DAYS,
+  countByDay,
+  sumByDay,
+  toSeries,
+  trendDays,
+  trendWindowStart,
+  type TrendPoint,
+} from '../../lib/trend';
 import { assertTenantAccess } from '../../server/guards';
 import { passwordHasher } from '../../auth/password';
 import { generateOpaqueToken } from '../../auth/tokens';
@@ -458,6 +468,17 @@ export interface DriverScoreDetail {
     reason: string;
     createdAt: string;
   }[];
+  /**
+   * This driver's own fortnight, for the sparklines on their profile.
+   *
+   * Counted from the trips they closed, so the curve beside "completed trips"
+   * is the same work the lifetime figure above it was built from.
+   */
+  trends: {
+    days: string[];
+    tripsCompleted: TrendPoint[];
+    distanceKm: TrendPoint[];
+  };
 }
 
 /** Recompute a driver's score from their full event history. */
@@ -529,7 +550,10 @@ export async function getDriverScore(
 
   const breakdown = buildScoreBreakdown(categories, DEFAULT_SCORING_CONFIG);
 
-  const [history, recentEvents] = await Promise.all([
+  const days = trendDays(TREND_WINDOW_DAYS);
+  const windowStart = trendWindowStart(TREND_WINDOW_DAYS);
+
+  const [history, recentEvents, recentTrips] = await Promise.all([
     prisma.driverScore.findMany({
       where: { driverId },
       orderBy: { calculatedAt: 'desc' },
@@ -540,6 +564,14 @@ export async function getDriverScore(
       where: { driverId },
       orderBy: { createdAt: 'desc' },
       take: 25,
+    }),
+    prisma.trip.findMany({
+      where: {
+        driverId,
+        status: TripStatus.COMPLETED,
+        actualArrivalAt: { gte: windowStart },
+      },
+      select: { actualArrivalAt: true, actualDistanceKm: true },
     }),
   ]);
 
@@ -570,6 +602,19 @@ export async function getDriverScore(
       reason: event.reason,
       createdAt: event.createdAt.toISOString(),
     })),
+    trends: {
+      days,
+      tripsCompleted: toSeries(days, countByDay(recentTrips, 'actualArrivalAt')),
+      distanceKm: toSeries(
+        days,
+        sumByDay(
+          recentTrips,
+          (trip) => trip.actualArrivalAt,
+          (trip) => trip.actualDistanceKm,
+        ),
+        1,
+      ),
+    },
   };
 }
 

@@ -1,5 +1,7 @@
 import type {
   DocumentOwnerType,
+  IdentityDocumentKind,
+  IdentityVerificationSummary,
   EmiFrequency,
   FinanceDataSource,
   FinanceVerificationStatus,
@@ -117,6 +119,12 @@ export interface DriverScoreDetail {
     reason: string;
     createdAt: string;
   }[];
+  /** This driver's own fortnight, for the sparklines on their profile. */
+  trends: {
+    days: string[];
+    tripsCompleted: { date: string; value: number }[];
+    distanceKm: { date: string; value: number }[];
+  };
 }
 
 export interface DocumentSummary {
@@ -404,6 +412,39 @@ export interface DashboardMetrics {
     cancelledThisMonth: number;
     publishedPackages: number;
   } | null;
+  /**
+   * The fortnight behind each headline figure, for the sparkline on its tile.
+   *
+   * Aggregated from the same rows as the figures above, in the same request,
+   * so a curve can never contradict the number it sits beside. A quiet day is
+   * a real zero — nothing is interpolated to smooth the line.
+   */
+  trends: DashboardTrends;
+}
+
+/** One UTC day of a dashboard series. */
+export interface DashboardTrendPoint {
+  /** `YYYY-MM-DD`, UTC. */
+  date: string;
+  value: number;
+}
+
+export interface DashboardTrends {
+  /** Shared x-axis, oldest first. Every series below has one point per day. */
+  days: string[];
+  /** Vehicles on the books at the end of each day. */
+  fleetSize: DashboardTrendPoint[];
+  /** Share of that day's fleet that was out on a trip. */
+  utilizationPercent: DashboardTrendPoint[];
+  tripsStarted: DashboardTrendPoint[];
+  tripsCompleted: DashboardTrendPoint[];
+  distanceKm: DashboardTrendPoint[];
+  revenue: DashboardTrendPoint[];
+  driverCount: DashboardTrendPoint[];
+  ordersCreated: DashboardTrendPoint[];
+  safetyEvents: DashboardTrendPoint[];
+  /** Passenger bookings taken on the day. Null for a freight fleet. */
+  bookingsCreated: DashboardTrendPoint[] | null;
 }
 
 export interface MaterialSummary {
@@ -617,6 +658,27 @@ export interface VerificationCaseSummary {
   documentCount: number;
   createdAt: string;
   updatedAt: string;
+}
+
+/**
+ * Every identity check held for one subject, whether or not it has run.
+ *
+ * One entry per kind that applies to the subject — a driver gets Aadhaar, PAN
+ * and Voter ID, an organization gets GSTIN — with `verification: null` for the
+ * ones never checked. The document panel reads this to decide which rows show a
+ * verified badge and which still need a Verify button.
+ */
+export interface IdentitySubjectView {
+  subjectType: string;
+  subjectId: string;
+  /** `false` when this environment has no provider key, so verify is hidden. */
+  onlineVerificationAvailable: boolean;
+  checks: {
+    kind: IdentityDocumentKind;
+    label: string;
+    documentType: string;
+    verification: IdentityVerificationSummary | null;
+  }[];
 }
 
 export interface TruckPassport {
@@ -1265,6 +1327,8 @@ export interface TollSummaryResult {
   averagePerCrossing: number | null;
   byMode: Partial<Record<TollPaymentMode, number>>;
   topPlazas: { plazaName: string; crossings: number; total: number }[];
+  /** Spend and crossings per UTC day across the whole window, oldest first. */
+  daily: { date: string; amount: number; crossings: number }[];
   windowDays: number;
   /** Crossings a network feed reported without a fare. */
   unpricedCrossings: number;

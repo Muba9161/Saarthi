@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Clock, Gauge, MapPin, Play, Route as RouteIcon } from 'lucide-react';
+import { ArrowLeft, MapPin, Play } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   Feature,
@@ -23,6 +23,7 @@ import { useAuth } from '@/features/auth/auth-context';
 import { useChannels, useRealtimeEvent } from '@/hooks/use-realtime';
 import { PageHeader, SectionHeader } from '@/components/common/page-header';
 import { StatCard } from '@/components/common/stat-card';
+import type { SeriesPoint } from '@/components/common/mini-chart';
 import { StatusBadge } from '@/components/common/status-badge';
 import { EmptyState, ErrorState, LoadingState } from '@/components/common/states';
 import { FleetMap, type MapMarkerPoint } from '@/features/maps/fleet-map';
@@ -75,6 +76,17 @@ export function TripDetailPage() {
     delayMinutes: number;
   } | null>(null);
 
+  /**
+   * The speeds this page has watched arrive, newest last.
+   *
+   * There is no stored speed series to read back — telemetry is pruned long
+   * before a trip record is — so the tile plots the readings the WebSocket has
+   * actually delivered since the page opened. Capped at twenty points: beyond
+   * that the line says nothing a dispatcher can act on, and the array would
+   * grow for as long as the screen stayed open.
+   */
+  const [speedTrail, setSpeedTrail] = React.useState<SeriesPoint[]>([]);
+
   useRealtimeEvent(RealtimeEvent.TRUCK_LOCATION, (message) => {
     if (message.payload.tripId !== id) return;
     setLivePosition({
@@ -83,6 +95,16 @@ export function TripDetailPage() {
       heading: message.payload.heading,
       speedKph: message.payload.speedKph,
     });
+    setSpeedTrail((previous) => [
+      ...previous.slice(-19),
+      {
+        label: new Date(message.payload.recordedAt).toLocaleTimeString('en-IN', {
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
+        value: Math.round(message.payload.speedKph),
+      },
+    ]);
   });
 
   useRealtimeEvent(RealtimeEvent.TRIP_PROGRESS, (message) => {
@@ -155,6 +177,13 @@ export function TripDetailPage() {
 
   const currentPosition = livePosition ?? data.currentLocation;
 
+  // The two speeds the terminal wrote when the trip closed, side by side — the
+  // only honest way to read a top speed is against what was typical.
+  const speedComparison: SeriesPoint[] = [
+    { label: 'Average', value: data.averageSpeedKph ?? 0 },
+    { label: 'Top', value: data.topSpeedKph ?? 0 },
+  ];
+
   const markers: MapMarkerPoint[] = [
     {
       id: 'origin',
@@ -214,19 +243,27 @@ export function TripDetailPage() {
         <StatCard
           label="Progress"
           value={`${progress}%`}
-          icon={RouteIcon}
+          chart={{ kind: 'gauge', percent: progress, caption: 'of the planned distance' }}
           hint={`${formatDistanceKm(covered)} of ${formatDistanceKm(data.plannedDistanceKm ?? 0)}`}
         />
         <StatCard
           label="Current speed"
           value={formatSpeedKph(currentPosition?.speedKph ?? 0)}
-          icon={Gauge}
+          chart={{ kind: 'area', points: speedTrail, format: formatSpeedKph }}
+          live={speedTrail.length > 0}
           hint={currentPosition ? relativeTimeFrom(data.currentLocation?.recordedAt ?? new Date()) : 'No position yet'}
         />
         <StatCard
           label={delay > 0 ? 'Running late' : 'ETA'}
           value={delay > 0 ? `+${formatDurationMinutes(delay)}` : eta ? relativeTimeFrom(eta) : '—'}
-          icon={Clock}
+          chart={{
+            // How much of this journey's clock is plan, and how much is slip.
+            kind: 'split',
+            segments: [
+              { label: 'Planned run', value: data.plannedDurationMin ?? 0, tone: 'info' },
+              { label: 'Late by', value: Math.max(0, delay), tone: 'warning' },
+            ],
+          }}
           tone={delay > 0 ? 'warning' : 'default'}
           hint={
             data.plannedArrivalAt
@@ -237,7 +274,20 @@ export function TripDetailPage() {
         <StatCard
           label="Trip value"
           value={formatCurrency(data.price)}
-          icon={MapPin}
+          chart={{
+            // Expenses are drawn only when some were recorded — a null is "not
+            // logged", never "nothing spent", and a full-width bar of net would
+            // claim the trip ran free.
+            kind: 'split',
+            segments: [
+              {
+                label: 'Net',
+                value: Math.max(0, (data.price ?? 0) - (data.expenses ?? 0)),
+                tone: 'success',
+              },
+              { label: 'Expenses', value: data.expenses ?? 0, tone: 'warning' },
+            ],
+          }}
           hint={data.order ? `Order ${data.order.reference}` : 'Ad-hoc trip'}
         />
       </div>
@@ -261,18 +311,32 @@ export function TripDetailPage() {
           <StatCard
             label="Top speed"
             value={data.topSpeedKph !== null ? formatSpeedKph(data.topSpeedKph) : '—'}
-            icon={Gauge}
+            chart={{ kind: 'bars', points: speedComparison, format: formatSpeedKph }}
           />
           <StatCard
             label="Average speed"
             value={data.averageSpeedKph !== null ? formatSpeedKph(data.averageSpeedKph) : '—'}
-            icon={Gauge}
+            chart={{
+              kind: 'gauge',
+              percent:
+                data.topSpeedKph && data.topSpeedKph > 0
+                  ? ((data.averageSpeedKph ?? 0) / data.topSpeedKph) * 100
+                  : 0,
+              caption: 'of its top speed',
+            }}
             hint="While moving"
           />
           <StatCard
             label="Harsh braking"
             value={String(data.harshBrakingCount)}
-            icon={Gauge}
+            chart={{
+              kind: 'bars',
+              points: [
+                { label: 'Harsh braking', value: data.harshBrakingCount },
+                { label: 'Harsh starts', value: data.harshAccelerationCount },
+              ],
+              format: (value) => `${value} event${value === 1 ? '' : 's'}`,
+            }}
             tone={data.harshBrakingCount > 3 ? 'warning' : 'default'}
             hint={`${data.harshAccelerationCount} harsh starts`}
           />
@@ -285,7 +349,17 @@ export function TripDetailPage() {
                   ? formatDistanceKm(data.startOdometerKm)
                   : '—'
             }
-            icon={RouteIcon}
+            chart={{
+              // Planned against driven. The reading itself has no shape worth
+              // drawing — the gap between the two distances is what an
+              // operator is actually looking for.
+              kind: 'bars',
+              points: [
+                { label: 'Planned', value: data.plannedDistanceKm ?? 0 },
+                { label: 'Driven', value: data.actualDistanceKm },
+              ],
+              format: formatDistanceKm,
+            }}
             hint={
               data.startOdometerKm !== null && data.endOdometerKm !== null
                 ? `+${formatDistanceKm(Math.max(0, data.endOdometerKm - data.startOdometerKm))} this trip`

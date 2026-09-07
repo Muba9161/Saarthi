@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
-import { AlertTriangle, Banknote, CalendarClock, Wallet } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import {
   Feature,
   InstallmentStatus,
@@ -29,6 +29,7 @@ import {
 import { PageHeader, SectionHeader } from '@/components/common/page-header';
 import { DataView, type Column } from '@/components/common/data-view';
 import { StatCard } from '@/components/common/stat-card';
+import { toSeriesPoints } from '@/components/common/mini-chart';
 import { FeatureLockedState, UnauthorizedState } from '@/components/common/states';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -83,6 +84,31 @@ export function FleetLoansPage(): React.ReactElement {
     enabled,
   });
 
+  /**
+   * The next thirty days of instalments, laid out by the day they fall due.
+   *
+   * A loan book has no useful history to plot — what was paid is gone — so the
+   * chart looks forward instead, at the dates the money actually leaves. Built
+   * from the same `/fleet/loans/upcoming` rows the attention list below uses,
+   * bucketed by due date so two instalments on the same day read as one bill.
+   *
+   * Above the guards below, and it has to be: a hook that runs only on the
+   * renders that get past a conditional `return` changes the hook count between
+   * renders, which React refuses to reconcile. The permission and feature
+   * checks rarely flip mid-session, so this would have waited for an
+   * organization switch to break the screen rather than failing honestly here.
+   */
+  const upcomingByDay = React.useMemo(() => {
+    const buckets = new Map<string, number>();
+    for (const instalment of upcoming.data?.items ?? []) {
+      const date = instalment.dueDate.slice(0, 10);
+      buckets.set(date, (buckets.get(date) ?? 0) + instalment.totalDue);
+    }
+    return [...buckets.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, value]) => ({ date, value: Number(value.toFixed(2)) }));
+  }, [upcoming.data]);
+
   if (!can(Permission.LOANS_READ)) {
     return (
       <UnauthorizedState message="Vehicle finance is restricted to the fleet owner. Ask them for access if you need to work EMIs." />
@@ -100,6 +126,11 @@ export function FleetLoansPage(): React.ReactElement {
 
   const totals = (loans.data as unknown as { totals?: LoanListTotals })?.totals;
   const stats = summary.data;
+
+  const monthlyObligation = stats?.monthlyObligation ?? totals?.monthlyObligation ?? 0;
+  const dueThisMonth = stats?.dueThisMonth ?? 0;
+  const overdueAmount = stats?.overdueAmount ?? 0;
+  const totalOutstanding = stats?.totalOutstanding ?? 0;
 
   const columns: Column<LoanSummary>[] = [
     {
@@ -176,29 +207,57 @@ export function FleetLoansPage(): React.ReactElement {
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard
           label="Monthly obligation"
-          value={formatCurrency(stats?.monthlyObligation ?? totals?.monthlyObligation ?? 0)}
-          icon={Wallet}
+          value={formatCurrency(monthlyObligation)}
+          chart={{
+            kind: 'bars',
+            points: toSeriesPoints(upcomingByDay),
+            format: formatCurrency,
+          }}
           hint={`${stats?.activeLoans ?? 0} active loan${(stats?.activeLoans ?? 0) === 1 ? '' : 's'}`}
         />
         <StatCard
           label="Due this month"
-          value={formatCurrency(stats?.dueThisMonth ?? 0)}
-          icon={CalendarClock}
+          value={formatCurrency(dueThisMonth)}
+          chart={{
+            kind: 'split',
+            segments: [
+              { label: 'Already overdue', value: overdueAmount, tone: 'destructive' },
+              {
+                label: 'Still to come',
+                value: Math.max(0, dueThisMonth - overdueAmount),
+                tone: 'info',
+              },
+            ],
+          }}
           hint={
             stats?.nextDueDate ? `Next on ${formatDueDate(stats.nextDueDate)}` : 'Nothing scheduled'
           }
         />
         <StatCard
           label="Overdue"
-          value={formatCurrency(stats?.overdueAmount ?? 0)}
-          icon={AlertTriangle}
+          value={formatCurrency(overdueAmount)}
+          chart={{
+            kind: 'gauge',
+            percent: dueThisMonth > 0 ? (overdueAmount / dueThisMonth) * 100 : 0,
+            caption: "of this month's bill",
+          }}
           tone={(stats?.overdueInstallments ?? 0) > 0 ? 'destructive' : 'default'}
           hint={`${stats?.overdueInstallments ?? 0} installment${(stats?.overdueInstallments ?? 0) === 1 ? '' : 's'}`}
         />
         <StatCard
           label="Total outstanding"
-          value={formatCurrency(stats?.totalOutstanding ?? 0)}
-          icon={Banknote}
+          value={formatCurrency(totalOutstanding)}
+          chart={{
+            kind: 'split',
+            segments: [
+              { label: 'Due this month', value: Math.min(dueThisMonth, totalOutstanding), tone: 'warning' },
+              {
+                label: 'Later instalments',
+                value: Math.max(0, totalOutstanding - dueThisMonth),
+                tone: 'default',
+              },
+            ],
+          }}
           hint={`${stats?.financedVehicles ?? 0} financed vehicle${(stats?.financedVehicles ?? 0) === 1 ? '' : 's'}`}
         />
       </div>

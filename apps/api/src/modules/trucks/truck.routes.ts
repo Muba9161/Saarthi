@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import {
   Permission,
+  QrSubjectType,
   assignDriverSchema,
   createTruckSchema,
   idParamSchema,
@@ -12,6 +13,8 @@ import { created, noContent, ok, paginated, parseBody, parseParams, parseQuery }
 import { requireAuth, requireOrganizationId, requirePermission } from '../../server/guards';
 import { AuditAction, auditFromRequest } from '../audit/audit.service';
 import * as truckService from './truck.service';
+import * as qrService from '../qr/qr.service';
+import { publicAppUrl } from '../../lib/public-url';
 
 /**
  * Truck routes. Authentication is applied to the whole plugin; each route then
@@ -50,6 +53,15 @@ export async function truckRoutes(app: FastifyInstance): Promise<void> {
       const organizationId = requireOrganizationId(request);
       const input = parseBody(createTruckSchema, request.body);
       const truck = await truckService.createTruck(auth, organizationId, input);
+
+      // The vehicle's identity code, issued now rather than on request. Never
+      // throws and honours the plan, so it cannot turn into a failed creation.
+      await qrService.provisionOnCreate(
+        auth,
+        QrSubjectType.VEHICLE,
+        truck.id,
+        publicAppUrl(request),
+      );
 
       await auditFromRequest(request, {
         action: AuditAction.TRUCK_CREATED,

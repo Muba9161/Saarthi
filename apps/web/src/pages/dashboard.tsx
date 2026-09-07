@@ -6,14 +6,11 @@ import {
   ArrowRight,
   Bot,
   CalendarDays,
-  Car,
   FileWarning,
   Gauge,
   LifeBuoy,
   Package,
   Route as RouteIcon,
-  Truck,
-  Users,
   Wrench,
 } from 'lucide-react';
 import {
@@ -43,6 +40,7 @@ import { useT } from '@/features/i18n';
 import { useChannels, useRealtimeEvent } from '@/hooks/use-realtime';
 import { PageHeader, SectionHeader } from '@/components/common/page-header';
 import { StatCard } from '@/components/common/stat-card';
+import { toSeriesPoints } from '@/components/common/mini-chart';
 import { StatusBadge } from '@/components/common/status-badge';
 import { EmptyState, ErrorState, LoadingState } from '@/components/common/states';
 import { StatCardsSkeleton } from '@/components/ui/skeleton';
@@ -193,6 +191,28 @@ export function DashboardPage() {
   }
 
   const data = metrics.data;
+
+  /**
+   * The fortnight each tile draws beside its figure.
+   *
+   * Empty arrays when the API has not sent trends — an older build, or a
+   * response still in cache from before this field existed. The tiles then
+   * draw nothing rather than a shape standing in for missing history.
+   */
+  const trends = data?.trends ?? {
+    days: [],
+    fleetSize: [],
+    utilizationPercent: [],
+    tripsStarted: [],
+    tripsCompleted: [],
+    distanceKm: [],
+    revenue: [],
+    driverCount: [],
+    ordersCreated: [],
+    safetyEvents: [],
+    bookingsCreated: null,
+  };
+
   const revenueTrend =
     data && data.financial.revenuePreviousMonth > 0
       ? ((data.financial.revenueThisMonth - data.financial.revenuePreviousMonth) /
@@ -340,7 +360,11 @@ export function DashboardPage() {
                 label={isMobility ? t('Vehicles') : t('Fleet')}
                 numericValue={data.fleet.totalTrucks}
                 format={(value) => formatNumber(value)}
-                icon={isMobility ? Car : Truck}
+                chart={{
+                  kind: 'area',
+                  points: toSeriesPoints(trends.fleetSize),
+                  format: (value) => formatNumber(value),
+                }}
                 hint={`${data.fleet.onTrip} on trip · ${data.fleet.available} available`}
                 // A travel operator has no Trucks screen, so sending it there
                 // would be a dead end inside its own command centre.
@@ -352,7 +376,12 @@ export function DashboardPage() {
                 label={t('Utilisation')}
                 numericValue={data.fleet.utilizationPercent}
                 format={(value) => `${Math.round(value)}%`}
-                icon={Gauge}
+                chart={{
+                  kind: 'area',
+                  points: toSeriesPoints(trends.utilizationPercent),
+                  format: (value) => `${value}%`,
+                  domainMax: 100,
+                }}
                 tone={data.fleet.utilizationPercent >= 60 ? 'success' : 'warning'}
                 hint={`${data.fleet.idle} idle · ${data.fleet.maintenance} in workshop`}
               />
@@ -362,7 +391,11 @@ export function DashboardPage() {
                 label={t('Active trips')}
                 numericValue={data.trips.active}
                 format={(value) => formatNumber(value)}
-                icon={RouteIcon}
+                chart={{
+                  kind: 'bars',
+                  points: toSeriesPoints(trends.tripsStarted),
+                  format: (value) => `${formatNumber(value)} started`,
+                }}
                 tone={data.trips.delayed > 0 ? 'warning' : 'default'}
                 live={data.trips.active > 0}
                 hint={
@@ -378,7 +411,11 @@ export function DashboardPage() {
                 label={t('Revenue this month')}
                 numericValue={data.financial.revenueThisMonth}
                 format={formatCompactCurrency}
-                icon={Package}
+                chart={{
+                  kind: 'area',
+                  points: toSeriesPoints(trends.revenue),
+                  format: formatCompactCurrency,
+                }}
                 {...(revenueTrend !== undefined
                   ? { trend: { value: revenueTrend, label: 'vs last month' } }
                   : {})}
@@ -394,7 +431,11 @@ export function DashboardPage() {
                 label={t('Drivers')}
                 numericValue={data.drivers.total}
                 format={(value) => formatNumber(value)}
-                icon={Users}
+                chart={{
+                  kind: 'area',
+                  points: toSeriesPoints(trends.driverCount),
+                  format: (value) => formatNumber(value),
+                }}
                 hint={`${data.drivers.verified} verified · avg score ${data.drivers.averageScore ?? '—'}`}
                 onClick={() => navigate('/fleet/drivers')}
               />
@@ -404,7 +445,11 @@ export function DashboardPage() {
                 label={t('Distance this month')}
                 numericValue={data.trips.totalDistanceThisMonthKm}
                 format={formatDistanceKm}
-                icon={RouteIcon}
+                chart={{
+                  kind: 'bars',
+                  points: toSeriesPoints(trends.distanceKm),
+                  format: formatDistanceKm,
+                }}
                 hint={`${data.trips.completedThisMonth} trips completed`}
               />
             </StaggerItem>
@@ -414,7 +459,11 @@ export function DashboardPage() {
                   label={t('Bookings to confirm')}
                   numericValue={data.travel.awaitingConfirmation}
                   format={(value) => formatNumber(value)}
-                  icon={CalendarDays}
+                  chart={{
+                    kind: 'bars',
+                    points: toSeriesPoints(trends.bookingsCreated ?? []),
+                    format: (value) => `${formatNumber(value)} taken`,
+                  }}
                   tone={data.travel.awaitingConfirmation > 0 ? 'warning' : 'default'}
                   hint={`${data.travel.upcoming} upcoming · ${data.travel.inProgress} under way`}
                   onClick={() => navigate('/travel/provider/bookings')}
@@ -424,7 +473,11 @@ export function DashboardPage() {
                   label={t('Open orders')}
                   numericValue={data.orders.open}
                   format={(value) => formatNumber(value)}
-                  icon={Package}
+                  chart={{
+                    kind: 'bars',
+                    points: toSeriesPoints(trends.ordersCreated),
+                    format: (value) => `${formatNumber(value)} raised`,
+                  }}
                   hint={`${data.orders.inTransit} in transit`}
                   onClick={() => navigate('/orders')}
                 />
@@ -435,7 +488,11 @@ export function DashboardPage() {
                 label={t('Safety events')}
                 numericValue={data.safety.safetyEventsThisMonth}
                 format={(value) => formatNumber(value)}
-                icon={LifeBuoy}
+                chart={{
+                  kind: 'bars',
+                  points: toSeriesPoints(trends.safetyEvents),
+                  format: (value) => `${formatNumber(value)} events`,
+                }}
                 tone={data.safety.activeSosIncidents > 0 ? 'destructive' : 'default'}
                 hint={`${data.safety.sosThisMonth} SOS this month`}
                 onClick={() => navigate('/sos')}

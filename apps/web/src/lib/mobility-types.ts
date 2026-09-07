@@ -198,6 +198,15 @@ export interface AssociationOverview {
   resolvedToday: number;
   byType: { type: SosType; count: number }[];
   activeVehiclesInArea: number;
+  /** The fortnight behind the counters, for the sparkline on each tile. */
+  trends: { days: string[]; raised: TrendPoint[]; resolved: TrendPoint[] };
+}
+
+/** One UTC day of a dated series, as the API buckets it. */
+export interface TrendPoint {
+  /** `YYYY-MM-DD`, UTC. */
+  date: string;
+  value: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -443,6 +452,8 @@ export interface DeviceOverview {
   suspended: number;
   readingsToday: number;
   openAlerts: number;
+  /** Readings received per UTC day over the last fortnight, oldest first. */
+  readingsTrend: TrendPoint[];
 }
 
 export interface DeviceAssignmentHistory {

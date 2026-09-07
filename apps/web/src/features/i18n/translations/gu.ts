@@ -4,6 +4,7 @@ import type { Catalogue } from './en';
 export const gu: Catalogue = {
   Operations: 'કામગીરી',
   Fleet: 'કાફલો',
+  'Documents & costs': 'દસ્તાવેજો અને ખર્ચ',
   Marketplace: 'બજાર',
   Travel: 'પ્રવાસ',
   Connect: 'કનેક્ટ',

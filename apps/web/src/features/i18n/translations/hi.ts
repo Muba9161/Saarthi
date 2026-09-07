@@ -4,6 +4,7 @@ import type { Catalogue } from './en';
 export const hi: Catalogue = {
   Operations: 'संचालन',
   Fleet: 'बेड़ा',
+  'Documents & costs': 'दस्तावेज़ और खर्च',
   Marketplace: 'बाज़ार',
   Travel: 'यात्रा',
   Connect: 'कनेक्ट',

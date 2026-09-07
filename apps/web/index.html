@@ -8,9 +8,31 @@
       name="description"
       content="VorldX Saarthi — the operating system for your trucking business. Fleet management, live tracking, logistics marketplace, driver safety and AI intelligence."
     />
+    <!--
+      Icons.
+
+      Split by size, because the brand has two lockups and they do not survive
+      the same treatment. The generated set in /favicon is the *full* lockup —
+      symbol, wordmark and tagline — which is right on a home screen and an
+      unreadable smear in a 16px tab. So:
+
+        - tab and bookmark icons (.ico, the PNGs, the SVG) are the VX mark
+          alone, cut from saarthiLogo.png and framed on white;
+        - apple-touch-icon and the manifest icons are the full lockup, where
+          there are enough pixels to read it.
+
+      The apple-touch icon is flattened onto white on the way in: iOS drops the
+      alpha channel on home-screen icons and would draw the navy half of the
+      mark on black.
+    -->
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png" />
     <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-title" content="Saarthi" />
+    <link rel="manifest" href="/site.webmanifest" />
     <!-- The splash shows the lockup, so fetch it alongside the bundle. -->
     <link rel="preload" as="image" href="/vorldx-saarthi.png" />
     <title>VorldX Saarthi — Fleet Operations Platform</title>

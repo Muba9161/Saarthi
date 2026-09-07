@@ -321,6 +321,26 @@ const envSchema = z.object({
   LICENCE_LOOKUP_RATE_LIMIT_MAX: z.coerce.number().int().min(1).default(10),
   LICENCE_LOOKUP_RATE_LIMIT_WINDOW: z.string().default('1 minute'),
 
+  // --- Identity verification (Way2API) --------------------------------------
+  // Aadhaar, PAN, Voter ID and GSTIN. Shares WAY2API_API_KEY above; billing is
+  // per service, so the cache window, ceiling and rate limit are its own.
+  /**
+   * At-rest key for verified identity numbers, 32 characters or more.
+   *
+   * Optional, and deliberately so: with no key set, Saarthi stores the masked
+   * number and a non-reversible hash but never the full one. There is no weaker
+   * fallback — see `apps/api/src/lib/identity-crypto.ts`.
+   */
+  IDENTITY_ENCRYPTION_KEY: blankAsUnset(z.string().min(32)),
+  /** Seconds a stored identity answer may be reused before a fresh call bills. */
+  IDENTITY_CACHE_TTL: z.coerce.number().int().min(0).max(365 * 86_400).default(30 * 86_400),
+  /** How long a check is kept at all. Longer than the cache: this is retention. */
+  IDENTITY_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).default(730),
+  /** Hard ceiling on billable identity calls from this environment. 0 = none. */
+  IDENTITY_VERIFY_BUDGET: z.coerce.number().int().min(0).default(0),
+  IDENTITY_RATE_LIMIT_MAX: z.coerce.number().int().min(1).default(10),
+  IDENTITY_RATE_LIMIT_WINDOW: z.string().default('1 minute'),
+
   // --- Petrol stations (SSR Innovation Lab) ---------------------------------
   SSR_PETROL_API_BASE_URL: z.string().url().default('https://api.ssrinnovationlab.com'),
   /** Optional: the directory serves unauthenticated reads today. */
@@ -663,6 +683,18 @@ export const config = {
     callBudget: raw.LICENCE_LOOKUP_BUDGET,
     rateLimitMax: raw.LICENCE_LOOKUP_RATE_LIMIT_MAX,
     rateLimitWindow: raw.LICENCE_LOOKUP_RATE_LIMIT_WINDOW,
+  },
+
+  identity: {
+    baseUrl: raw.WAY2API_BASE_URL.replace(/\/$/, ''),
+    apiKey: raw.WAY2API_API_KEY || undefined,
+    timeoutMs: raw.WAY2API_TIMEOUT_MS,
+    encryptionKey: raw.IDENTITY_ENCRYPTION_KEY,
+    cacheTtlSeconds: raw.IDENTITY_CACHE_TTL,
+    retentionDays: raw.IDENTITY_RETENTION_DAYS,
+    callBudget: raw.IDENTITY_VERIFY_BUDGET,
+    rateLimitMax: raw.IDENTITY_RATE_LIMIT_MAX,
+    rateLimitWindow: raw.IDENTITY_RATE_LIMIT_WINDOW,
   },
 
   petrolStations: {

@@ -141,6 +141,20 @@ export const Permission = {
   /** Holder name, parentage, addresses and blood group on a licence record. */
   DRIVER_LICENCE_LOOKUP_SENSITIVE: 'drivers.licence.lookup.sensitive',
 
+  // Identity verification — Aadhaar, PAN, Voter ID, GSTIN.
+  //
+  // Separate from `documents.verify`, which is a reviewer looking at a scan.
+  // This one spends money and reaches a government source, so whoever holds it
+  // can bill the platform; it is granted to the same roles that may upload the
+  // documents in the first place.
+  IDENTITY_VERIFY: 'identity.verify',
+  /**
+   * The holder details a check returns — name on the PAN, the voter roll entry,
+   * the GST principal place of business. Without it a caller sees the outcome
+   * and the masked number and nothing else.
+   */
+  IDENTITY_VERIFY_SENSITIVE: 'identity.verify.sensitive',
+
   // Vehicles.
   //
   // Deliberately reuses the `fleet.trucks.*` strings. The generalized vehicle
@@ -318,6 +332,10 @@ const FLEET_MANAGER_PERMISSIONS: Permission[] = [
   Permission.NEARBY_READ,
   Permission.VEHICLE_LOOKUP,
   Permission.DRIVER_LICENCE_LOOKUP,
+  // Verifying a driver's Aadhaar/PAN/Voter ID is onboarding work, which is the
+  // manager's job. The holder details it returns are not — see
+  // IDENTITY_VERIFY_SENSITIVE in the owner set.
+  Permission.IDENTITY_VERIFY,
   Permission.AI_USE,
   Permission.MATERIALS_READ,
   Permission.SUPPLIERS_READ,
@@ -385,6 +403,10 @@ const OPERATOR_OWNER_PERMISSIONS: Permission[] = [
   Permission.SUBSCRIPTION_MANAGE,
   Permission.VEHICLE_LOOKUP_SENSITIVE,
   Permission.DRIVER_LICENCE_LOOKUP_SENSITIVE,
+  // Same rule as the licence record above: the name on a driver's PAN and the
+  // voter-roll entry behind their EPIC number are personal details, so they
+  // stop at owner level rather than being readable by every manager.
+  Permission.IDENTITY_VERIFY_SENSITIVE,
   // Buying, selling and transferring an asset commits money — the owner only.
   Permission.RESALE_OFFER,
   Permission.RESALE_TRANSFER,
@@ -496,6 +518,12 @@ const ROLE_PERMISSIONS: Record<RoleName, Permission[]> = {
     // Their own licence, and therefore their own personal details.
     Permission.DRIVER_LICENCE_LOOKUP,
     Permission.DRIVER_LICENCE_LOOKUP_SENSITIVE,
+    // And their own Aadhaar, PAN and Voter ID, for the same reason: the tenant
+    // guard limits a driver to their own subject, so the sensitive grant
+    // discloses nothing about anybody else. Without this a driver could upload
+    // their PAN card but not finish verifying it.
+    Permission.IDENTITY_VERIFY,
+    Permission.IDENTITY_VERIFY_SENSITIVE,
     Permission.TRUCKS_READ,
     Permission.DRIVERS_READ,
     Permission.DRIVERS_SCORE_READ,
@@ -556,6 +584,11 @@ const ROLE_PERMISSIONS: Record<RoleName, Permission[]> = {
     Permission.DOCUMENTS_UPLOAD,
     Permission.VERIFICATION_READ,
     Permission.VERIFICATION_SUBMIT,
+    // GSTIN verification for their own business. The record it returns is that
+    // organization's own registered name and address, so the sensitive grant
+    // travels with it rather than being held back from the people it describes.
+    Permission.IDENTITY_VERIFY,
+    Permission.IDENTITY_VERIFY_SENSITIVE,
     Permission.TRIPS_READ,
     Permission.TRACKING_READ,
     Permission.NOTIFICATIONS_READ,
@@ -593,6 +626,11 @@ const ROLE_PERMISSIONS: Record<RoleName, Permission[]> = {
     Permission.DOCUMENTS_UPLOAD,
     Permission.VERIFICATION_READ,
     Permission.VERIFICATION_SUBMIT,
+    // GSTIN verification for their own business. The record it returns is that
+    // organization's own registered name and address, so the sensitive grant
+    // travels with it rather than being held back from the people it describes.
+    Permission.IDENTITY_VERIFY,
+    Permission.IDENTITY_VERIFY_SENSITIVE,
     Permission.TRIPS_READ,
     Permission.TRACKING_READ,
     Permission.NOTIFICATIONS_READ,
@@ -678,6 +716,11 @@ const ROLE_PERMISSIONS: Record<RoleName, Permission[]> = {
     Permission.DOCUMENTS_UPLOAD,
     Permission.VERIFICATION_READ,
     Permission.VERIFICATION_SUBMIT,
+    // GSTIN verification for their own business. The record it returns is that
+    // organization's own registered name and address, so the sensitive grant
+    // travels with it rather than being held back from the people it describes.
+    Permission.IDENTITY_VERIFY,
+    Permission.IDENTITY_VERIFY_SENSITIVE,
     Permission.NOTIFICATIONS_READ,
     Permission.NEARBY_READ,
     Permission.ANALYTICS_READ,

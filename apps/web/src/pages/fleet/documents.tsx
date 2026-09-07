@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
-import { FileWarning, ShieldCheck } from 'lucide-react';
 import { Permission, humanizeEnum } from '@saarthi/shared';
 import { api } from '@/lib/api-client';
 import type { ComplianceSummary, DocumentSummary, Paginated } from '@/lib/api-types';
@@ -60,16 +59,59 @@ export function DocumentsPage() {
 
   const summary = compliance.data;
 
+  /** A count as a share of every document on file. */
+  const documentShare = (count: number): number =>
+    summary && summary.total > 0 ? (count / summary.total) * 100 : 0;
+
   return (
     <div className="space-y-5">
       <PageHeader title="Documents" description="Compliance across every truck, driver and business record." />
 
       {summary ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <StatCard label="Valid" value={summary.valid} icon={ShieldCheck} tone="success" />
-          <StatCard label="Expiring soon" value={summary.expiringSoon} icon={FileWarning} tone={summary.expiringSoon > 0 ? 'warning' : 'default'} onClick={() => setSearchParams({ filter: 'expiring' })} />
-          <StatCard label="Expired" value={summary.expired} icon={FileWarning} tone={summary.expired > 0 ? 'destructive' : 'default'} onClick={() => setSearchParams({ filter: 'expired' })} />
-          <StatCard label="Awaiting review" value={summary.pendingVerification} icon={ShieldCheck} tone={summary.pendingVerification > 0 ? 'info' : 'default'} onClick={() => setSearchParams({ filter: 'review' })} />
+          {/*
+            Documents are a stock, not a flow: what matters is how the estate
+            divides today, not how it moved last fortnight. The first tile
+            therefore carries the whole mix, and each of the others shows its
+            own share of it — every figure straight from the compliance
+            summary, so the four rings always add up to the bar above them.
+          */}
+          <StatCard
+            label="Valid"
+            value={summary.valid}
+            chart={{
+              kind: 'split',
+              segments: [
+                { label: 'Valid', value: summary.valid, tone: 'success' },
+                { label: 'Expiring soon', value: summary.expiringSoon, tone: 'warning' },
+                { label: 'Expired', value: summary.expired, tone: 'destructive' },
+                { label: 'Awaiting review', value: summary.pendingVerification, tone: 'info' },
+              ],
+            }}
+            tone="success"
+            hint={`of ${summary.total} document${summary.total === 1 ? '' : 's'}`}
+          />
+          <StatCard
+            label="Expiring soon"
+            value={summary.expiringSoon}
+            chart={{ kind: 'gauge', percent: documentShare(summary.expiringSoon), caption: 'of all documents' }}
+            tone={summary.expiringSoon > 0 ? 'warning' : 'default'}
+            onClick={() => setSearchParams({ filter: 'expiring' })}
+          />
+          <StatCard
+            label="Expired"
+            value={summary.expired}
+            chart={{ kind: 'gauge', percent: documentShare(summary.expired), caption: 'of all documents' }}
+            tone={summary.expired > 0 ? 'destructive' : 'default'}
+            onClick={() => setSearchParams({ filter: 'expired' })}
+          />
+          <StatCard
+            label="Awaiting review"
+            value={summary.pendingVerification}
+            chart={{ kind: 'gauge', percent: documentShare(summary.pendingVerification), caption: 'of all documents' }}
+            tone={summary.pendingVerification > 0 ? 'info' : 'default'}
+            onClick={() => setSearchParams({ filter: 'review' })}
+          />
         </div>
       ) : null}
 

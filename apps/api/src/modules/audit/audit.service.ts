@@ -138,6 +138,13 @@ export const AuditAction = {
   DOCUMENT_REJECTED: 'document.rejected',
   DOCUMENT_DELETED: 'document.deleted',
 
+  /**
+   * One identity check against a government source. Records the kind, the
+   * outcome and the provider reference — never the number, and never the
+   * holder details the source returned.
+   */
+  IDENTITY_VERIFICATION_CHECKED: 'identity.verification_checked',
+
   VERIFICATION_SUBMITTED: 'verification.submitted',
   VERIFICATION_APPROVED: 'verification.approved',
   VERIFICATION_REJECTED: 'verification.rejected',

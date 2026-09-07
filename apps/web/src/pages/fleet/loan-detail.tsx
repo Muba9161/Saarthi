@@ -32,6 +32,7 @@ import {
 import { PageHeader, SectionHeader } from '@/components/common/page-header';
 import { ErrorState, LoadingState, UnauthorizedState } from '@/components/common/states';
 import { StatCard } from '@/components/common/stat-card';
+import { toSeriesPoints } from '@/components/common/mini-chart';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -153,6 +154,38 @@ export function LoanDetailPage(): React.ReactElement {
       installment.status === InstallmentStatus.UPCOMING,
   );
 
+  /**
+   * The instalments still to run, by the date each falls due.
+   *
+   * Two instalments can share a due date after a reschedule, so they are
+   * summed into one bill rather than drawn as two bars on the same day.
+   */
+  const upcomingInstallments = (() => {
+    const buckets = new Map<string, number>();
+    for (const installment of record.installments) {
+      if (installment.outstanding <= 0) continue;
+      const date = installment.dueDate.slice(0, 10);
+      buckets.set(date, (buckets.get(date) ?? 0) + installment.outstanding);
+    }
+    return [...buckets.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, value]) => ({ date, value: Number(value.toFixed(2)) }));
+  })();
+
+  /**
+   * The amortisation curve — what is left owing after each instalment.
+   *
+   * Taken from the lender's own closing balances where it supplied them. Rows
+   * without one are skipped rather than back-filled: an imported schedule that
+   * did not carry balances should show a shorter curve, not an invented one.
+   */
+  const balanceCurve = record.installments
+    .filter((installment) => installment.closingBalance !== null)
+    .map((installment) => ({
+      date: installment.dueDate.slice(0, 10),
+      value: installment.closingBalance ?? 0,
+    }));
+
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-2">
@@ -219,21 +252,49 @@ export function LoanDetailPage(): React.ReactElement {
       />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label="EMI" value={formatCurrency(record.emiAmount)} hint={humanizeEnum(record.frequency)} />
+        {/*
+          A loan's own schedule is the chart. Every point below is a row from
+          `installments` — what the lender billed and what is still to run —
+          so the curves cannot drift from the figures they sit beside.
+        */}
+        <StatCard
+          label="EMI"
+          value={formatCurrency(record.emiAmount)}
+          chart={{
+            kind: 'split',
+            segments: [
+              { label: 'Principal', value: record.scheduleTotals.principal, tone: 'info' },
+              { label: 'Interest', value: record.scheduleTotals.interest, tone: 'warning' },
+            ],
+          }}
+          hint={humanizeEnum(record.frequency)}
+        />
         <StatCard
           label="Next due"
           value={record.nextDueDate ? formatDueDate(record.nextDueDate) : '—'}
+          chart={{
+            kind: 'bars',
+            points: toSeriesPoints(upcomingInstallments),
+            format: formatCurrency,
+          }}
           hint={record.nextDueAmount !== null ? formatCurrency(record.nextDueAmount) : 'Nothing outstanding'}
           tone={record.overdueInstallments > 0 ? 'destructive' : 'default'}
         />
         <StatCard
           label="Outstanding"
           value={formatCurrency(record.totalOutstanding)}
+          chart={{
+            kind: 'area',
+            points: toSeriesPoints(balanceCurve),
+            format: formatCurrency,
+          }}
           hint={`${formatCurrency(record.outstandingPrincipal)} principal`}
         />
         <StatCard
           label="Repaid"
           value={`${record.paidInstallments}/${record.paidInstallments + record.remainingInstallments}`}
+          chart={{ kind: 'gauge', percent: record.completionPercent, caption: 'of the schedule' }}
+          tone={record.completionPercent >= 100 ? 'success' : 'default'}
           hint={`${record.completionPercent}% of the schedule`}
         />
       </div>

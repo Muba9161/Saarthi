@@ -30,6 +30,14 @@ import { type Prisma, prisma } from '../../database/prisma';
 import { errors } from '../../lib/errors';
 import { logger } from '../../lib/logger';
 import { skipTake } from '../../lib/http';
+import {
+  TREND_WINDOW_DAYS,
+  countByDay,
+  toSeries,
+  trendDays,
+  trendWindowStart,
+  type TrendPoint,
+} from '../../lib/trend';
 import { notify, notifyOrganization } from '../notifications/notification.service';
 import { broadcastAssociationAlert } from '../../realtime/realtime.service';
 import type { AuthContext } from '../../auth/context';
@@ -565,6 +573,14 @@ export async function alertOverview(auth: AuthContext): Promise<{
   resolvedToday: number;
   byType: { type: SosType; count: number }[];
   activeVehiclesInArea: number;
+  /**
+   * The fortnight behind the counters, for the sparkline on each tile.
+   *
+   * `raised` buckets by the moment the association was notified, `resolved` by
+   * the moment it closed the alert — the two events an association is actually
+   * measured on. Counted from the same rows as the figures above.
+   */
+  trends: { days: string[]; raised: TrendPoint[]; resolved: TrendPoint[] };
 }> {
   const associationId = await requireAssociationScope(auth);
   const startOfDay = new Date();
@@ -625,6 +641,19 @@ export async function alertOverview(auth: AuthContext): Promise<{
     ).map((alert) => alert.vehicleRegistration),
   ).size;
 
+  const days = trendDays(TREND_WINDOW_DAYS);
+  const windowStart = trendWindowStart(TREND_WINDOW_DAYS);
+  const [raisedRows, resolvedRows] = await Promise.all([
+    prisma.associationAlert.findMany({
+      where: { associationId, notifiedAt: { gte: windowStart } },
+      select: { notifiedAt: true },
+    }),
+    prisma.associationAlert.findMany({
+      where: { associationId, resolvedAt: { gte: windowStart } },
+      select: { resolvedAt: true },
+    }),
+  ]);
+
   return {
     open,
     critical,
@@ -637,6 +666,11 @@ export async function alertOverview(auth: AuthContext): Promise<{
       count: row._count._all,
     })),
     activeVehiclesInArea,
+    trends: {
+      days,
+      raised: toSeries(days, countByDay(raisedRows, 'notifiedAt')),
+      resolved: toSeries(days, countByDay(resolvedRows, 'resolvedAt')),
+    },
   };
 }
 

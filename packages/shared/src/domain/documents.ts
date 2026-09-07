@@ -6,7 +6,12 @@
  * whether an expiry date is required.
  */
 
-import { DocumentOwnerType, DocumentValidity, DocumentVerificationStatus } from './enums';
+import {
+  DocumentOwnerType,
+  DocumentValidity,
+  DocumentVerificationStatus,
+  IdentityDocumentKind,
+} from './enums';
 
 export interface DocumentTypeDefinition {
   code: string;
@@ -17,6 +22,16 @@ export interface DocumentTypeDefinition {
   /** An expiry date must be supplied at upload time. */
   requiresExpiry: boolean;
   description: string;
+  /**
+   * The instant identity check this document unlocks, when there is one.
+   *
+   * Set on the four documents whose *number* can be checked against a
+   * government source — Aadhaar, PAN, Voter ID and the GST certificate. It is
+   * what puts a "Verify" button beside the row instead of leaving the upload to
+   * wait for a human reviewer, and it is why `documentNumber` is prompted for
+   * (and required) on these types alone.
+   */
+  verifiableAs?: IdentityDocumentKind;
 }
 
 export const DOCUMENT_TYPES: DocumentTypeDefinition[] = [
@@ -44,6 +59,40 @@ export const DOCUMENT_TYPES: DocumentTypeDefinition[] = [
     mandatory: false,
     requiresExpiry: false,
     description: 'Proof of current residential address.',
+  },
+  {
+    code: 'DRIVER_AADHAAR',
+    label: 'Aadhaar card',
+    ownerType: DocumentOwnerType.DRIVER,
+    // Not mandatory: the catalogue already requires one generic identity proof,
+    // and demanding all three of Aadhaar, PAN and Voter ID would block a driver
+    // who legitimately holds only one of them. Uploading any of the three
+    // satisfies the identity-proof requirement and can then be verified
+    // instantly, which is the point.
+    mandatory: false,
+    requiresExpiry: false,
+    verifiableAs: IdentityDocumentKind.AADHAAR,
+    description:
+      'Aadhaar card. The number is checked against its UIDAI checksum; only the last four digits are retained.',
+  },
+  {
+    code: 'DRIVER_PAN',
+    label: 'PAN card',
+    ownerType: DocumentOwnerType.DRIVER,
+    mandatory: false,
+    requiresExpiry: false,
+    verifiableAs: IdentityDocumentKind.PAN,
+    description: 'PAN card, verified in real time against Income Tax Department records.',
+  },
+  {
+    code: 'DRIVER_VOTER_ID',
+    label: 'Voter ID (EPIC)',
+    ownerType: DocumentOwnerType.DRIVER,
+    mandatory: false,
+    requiresExpiry: false,
+    verifiableAs: IdentityDocumentKind.VOTER_ID,
+    description:
+      'Voter ID card, verified against Election Commission records. Also serves as address proof.',
   },
   {
     code: 'DRIVER_PHOTO',
@@ -146,6 +195,21 @@ export const DOCUMENT_TYPES: DocumentTypeDefinition[] = [
     description: 'Tax registration certificate where applicable.',
   },
   {
+    code: 'GST_CERTIFICATE',
+    label: 'GST registration certificate',
+    ownerType: DocumentOwnerType.ORGANIZATION,
+    // Optional for the same reason as the driver identity documents above: a
+    // small operator below the GST threshold has no GSTIN to give, and refusing
+    // to verify them at all would be wrong. A business that *has* one gets an
+    // instant, authoritative check on it.
+    mandatory: false,
+    requiresExpiry: false,
+    verifiableAs: IdentityDocumentKind.GST,
+    description:
+      'GST registration certificate. The GSTIN is verified against the GST portal, which returns ' +
+      'the registered legal name, trade name and filing status.',
+  },
+  {
     code: 'ORGANIZATION_ADDRESS_PROOF',
     label: 'Business address proof',
     ownerType: DocumentOwnerType.ORGANIZATION,
@@ -219,6 +283,25 @@ export function documentTypeDefinition(code: string): DocumentTypeDefinition | u
 
 export function mandatoryDocumentTypes(ownerType: DocumentOwnerType): DocumentTypeDefinition[] {
   return documentTypesFor(ownerType).filter((definition) => definition.mandatory);
+}
+
+/**
+ * Document types whose number can be checked against a government source.
+ *
+ * The UI reads this to decide whether a row gets a "Verify" button and whether
+ * the upload form should insist on a document number — a scan of an Aadhaar
+ * card with no number typed in cannot be verified, only looked at.
+ */
+export function verifiableDocumentTypes(
+  ownerType?: DocumentOwnerType,
+): DocumentTypeDefinition[] {
+  const source = ownerType ? documentTypesFor(ownerType) : DOCUMENT_TYPES;
+  return source.filter((definition) => definition.verifiableAs !== undefined);
+}
+
+/** `true` when this document type carries an instant identity check. */
+export function isVerifiableDocumentType(code: string): boolean {
+  return documentTypeDefinition(code)?.verifiableAs !== undefined;
 }
 
 // ---------------------------------------------------------------------------

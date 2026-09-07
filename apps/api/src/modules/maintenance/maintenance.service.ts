@@ -14,6 +14,13 @@ import {
 import { type Prisma, prisma } from '../../database/prisma';
 import { errors } from '../../lib/errors';
 import { skipTake } from '../../lib/http';
+import {
+  TREND_WINDOW_DAYS,
+  sumByDay,
+  toSeries,
+  trendDays,
+  trendWindowStart,
+} from '../../lib/trend';
 import { assertTenantAccess } from '../../server/guards';
 import { notifyOrganization } from '../notifications/notification.service';
 import type { AuthContext } from '../../auth/context';
@@ -288,7 +295,14 @@ export async function listFuelRecords(
       : {}),
   };
 
-  const [total, records, aggregate] = await Promise.all([
+  // The tiles above the table show a chart of the last fortnight, so the
+  // window is read under the same `where` as the totals beside it. A filter
+  // applied to the table therefore moves the chart too, and the curve can
+  // never describe a different set of records than the figure it sits on.
+  const days = trendDays(TREND_WINDOW_DAYS);
+  const windowStart = trendWindowStart(TREND_WINDOW_DAYS);
+
+  const [total, records, aggregate, recentRecords] = await Promise.all([
     prisma.fuelRecord.count({ where }),
     prisma.fuelRecord.findMany({
       where,
@@ -300,7 +314,38 @@ export async function listFuelRecords(
       _sum: { quantityLitres: true, totalCost: true },
       _avg: { pricePerUnit: true },
     }),
+    prisma.fuelRecord.findMany({
+      // The caller's own date filter still applies; the window only narrows it
+      // further, so the chart never reaches outside what the table is showing.
+      where: {
+        ...where,
+        recordedAt: {
+          gte: query.from && query.from > windowStart ? query.from : windowStart,
+          ...(query.to ? { lte: query.to } : {}),
+        },
+      },
+      select: { recordedAt: true, quantityLitres: true, totalCost: true },
+    }),
   ]);
+
+  const litresByDay = sumByDay(
+    recentRecords,
+    (record) => record.recordedAt,
+    (record) => record.quantityLitres,
+  );
+  const costByDay = sumByDay(
+    recentRecords,
+    (record) => record.recordedAt,
+    (record) => Number(record.totalCost),
+  );
+  // Rate is the day's spend over the day's litres, not an average of posted
+  // rates: a 200-litre fill and a 20-litre top-up should not weigh the same.
+  const rateByDay = new Map<string, number>(
+    [...costByDay].map(([date, cost]) => {
+      const litres = litresByDay.get(date) ?? 0;
+      return [date, litres > 0 ? cost / litres : 0];
+    }),
+  );
 
   const labels = await truckLabels(records.map((record) => record.truckId));
 
@@ -321,6 +366,12 @@ export async function listFuelRecords(
       litres: aggregate._sum.quantityLitres ?? 0,
       cost: Number(aggregate._sum.totalCost ?? 0),
       averagePricePerLitre: Number(aggregate._avg.pricePerUnit ?? 0),
+    },
+    trends: {
+      days,
+      litres: toSeries(days, litresByDay, 1),
+      cost: toSeries(days, costByDay, 2),
+      ratePerLitre: toSeries(days, rateByDay, 2),
     },
   };
 }

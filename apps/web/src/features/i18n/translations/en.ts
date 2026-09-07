@@ -19,6 +19,7 @@ export const en = {
   // --- Navigation: section headings ----------------------------------------
   Operations: 'Operations',
   Fleet: 'Fleet',
+  'Documents & costs': 'Documents & costs',
   Marketplace: 'Marketplace',
   Travel: 'Travel',
   Connect: 'Connect',

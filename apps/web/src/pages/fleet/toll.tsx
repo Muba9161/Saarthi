@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { AlertTriangle, Banknote, Info, MapPin, Receipt, Wallet } from 'lucide-react';
+import { AlertTriangle, Info, MapPin, Wallet } from 'lucide-react';
 import {
   Feature,
   Permission,
@@ -21,6 +21,7 @@ import { FastagCard } from '@/features/toll/fastag-panel';
 import { PageHeader, SectionHeader } from '@/components/common/page-header';
 import { DataView, type Column } from '@/components/common/data-view';
 import { StatCard } from '@/components/common/stat-card';
+import { toSeriesPoints } from '@/components/common/mini-chart';
 import { FeatureLockedState, LoadingState, UnauthorizedState } from '@/components/common/states';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -163,7 +164,13 @@ export function TollPage(): React.ReactElement {
         <StatCard
           label={`Toll spend · ${days}d`}
           value={formatCurrency(spend?.total ?? 0)}
-          icon={Receipt}
+          chart={{
+            kind: 'area',
+            points: toSeriesPoints(
+              (spend?.daily ?? []).map((day) => ({ date: day.date, value: day.amount })),
+            ),
+            format: formatCurrency,
+          }}
           hint={`${spend?.crossings ?? 0} crossing${(spend?.crossings ?? 0) === 1 ? '' : 's'}`}
         />
         <StatCard
@@ -171,19 +178,57 @@ export function TollPage(): React.ReactElement {
           value={spend?.averagePerCrossing !== null && spend?.averagePerCrossing !== undefined
             ? formatCurrency(spend.averagePerCrossing)
             : '—'}
-          icon={Banknote}
+          chart={{
+            kind: 'area',
+            // The day's own average, not the window's: a single expensive
+            // plaza on a quiet day should show as the spike it was.
+            points: toSeriesPoints(
+              (spend?.daily ?? []).map((day) => ({
+                date: day.date,
+                value: day.crossings > 0 ? Number((day.amount / day.crossings).toFixed(2)) : 0,
+              })),
+            ),
+            format: formatCurrency,
+          }}
         />
         <StatCard
           label="Tags needing attention"
           value={String(tagTotals?.needsAttention ?? needsAttention.length)}
-          icon={AlertTriangle}
+          chart={{
+            kind: 'split',
+            segments: [
+              { label: 'Blocked', value: tagTotals?.blocked ?? 0, tone: 'destructive' },
+              { label: 'Low balance', value: tagTotals?.lowBalance ?? 0, tone: 'warning' },
+              {
+                label: 'Healthy',
+                value: Math.max(
+                  0,
+                  (tagTotals?.tags ?? 0) - (tagTotals?.needsAttention ?? needsAttention.length),
+                ),
+                tone: 'success',
+              },
+            ],
+          }}
           tone={(tagTotals?.blocked ?? 0) > 0 ? 'destructive' : needsAttention.length > 0 ? 'warning' : 'default'}
           hint={`${tagTotals?.blocked ?? 0} blocked · ${tagTotals?.lowBalance ?? 0} low`}
         />
         <StatCard
           label="Recorded balance"
           value={formatCurrency(tagTotals?.knownBalanceTotal ?? 0)}
-          icon={Wallet}
+          chart={{
+            kind: 'split',
+            // Tags whose balance the network never returned are shown rather
+            // than folded into the total — the figure beside this chart covers
+            // only the tags Saarthi actually has a balance for.
+            segments: [
+              {
+                label: 'Balance known',
+                value: Math.max(0, (tagTotals?.tags ?? 0) - (tagTotals?.unknownBalance ?? 0)),
+                tone: 'success',
+              },
+              { label: 'Balance unknown', value: tagTotals?.unknownBalance ?? 0, tone: 'warning' },
+            ],
+          }}
           hint={
             (tagTotals?.unknownBalance ?? 0) > 0
               ? `${tagTotals?.unknownBalance} tag(s) unknown`

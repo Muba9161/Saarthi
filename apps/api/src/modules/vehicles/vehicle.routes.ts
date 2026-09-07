@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import {
   Permission,
+  QrSubjectType,
   assignDriverSchema,
   createVehicleSchema,
   idParamSchema,
@@ -25,6 +26,8 @@ import { AuditAction, auditFromRequest } from '../audit/audit.service';
 // is how the two surfaces would start disagreeing about who is driving what.
 import * as truckService from '../trucks/truck.service';
 import * as vehicleService from './vehicle.service';
+import * as qrService from '../qr/qr.service';
+import { publicAppUrl } from '../../lib/public-url';
 
 /**
  * Generalized vehicle routes, mounted at `/fleet/vehicles`.
@@ -76,6 +79,14 @@ export async function vehicleRoutes(app: FastifyInstance): Promise<void> {
       const organizationId = requireOrganizationId(request);
       const input = parseBody(createVehicleSchema, request.body);
       const vehicle = await vehicleService.createVehicle(auth, organizationId, input);
+
+      // See truck.routes.ts: the same code, for the same table.
+      await qrService.provisionOnCreate(
+        auth,
+        QrSubjectType.VEHICLE,
+        vehicle.id,
+        publicAppUrl(request),
+      );
 
       await auditFromRequest(request, {
         action: AuditAction.VEHICLE_CREATED,

@@ -166,6 +166,14 @@ export interface TollSpendSummary {
   byMode: Partial<Record<TollPaymentMode, number>>;
   /** The plazas this fleet pays most at, largest first. */
   topPlazas: { plazaName: string; crossings: number; total: number }[];
+  /**
+   * Spend and crossings per UTC day across the whole window, oldest first.
+   *
+   * Laid over every day in the window rather than only the days with traffic,
+   * so a quiet Sunday reads as a real zero on the chart instead of vanishing
+   * and making the week look busier than it was.
+   */
+  daily: { date: string; amount: number; crossings: number }[];
   windowDays: number;
   basis: 'calculated';
 }
@@ -197,9 +205,48 @@ export function summariseTollSpend(
       .map(([plazaName, entry]) => ({ plazaName, ...entry }))
       .sort((a, b) => b.total - a.total)
       .slice(0, 10),
+    daily: dailyTollSpend(crossings, windowDays),
     windowDays,
     basis: 'calculated',
   };
+}
+
+/** `YYYY-MM-DD` in UTC, matching how the API buckets every other daily series. */
+function utcDayKey(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
+/**
+ * Buckets crossings into one point per day of the window.
+ *
+ * The window ends today and runs back `windowDays`, which is exactly the span
+ * the caller queried, so the series and the total beside it always describe
+ * the same set of crossings.
+ */
+function dailyTollSpend(
+  crossings: TollCrossing[],
+  windowDays: number,
+): { date: string; amount: number; crossings: number }[] {
+  const buckets = new Map<string, { amount: number; crossings: number }>();
+  for (const crossing of crossings) {
+    const key = utcDayKey(crossing.crossedAt);
+    const bucket = buckets.get(key) ?? { amount: 0, crossings: 0 };
+    bucket.amount = round2(bucket.amount + crossing.amount);
+    bucket.crossings += 1;
+    buckets.set(key, bucket);
+  }
+
+  const today = new Date();
+  const span = Math.max(1, Math.min(windowDays, 366));
+  return Array.from({ length: span }, (_, index) => {
+    const day = new Date(
+      Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()),
+    );
+    day.setUTCDate(day.getUTCDate() - (span - 1 - index));
+    const key = utcDayKey(day);
+    const bucket = buckets.get(key);
+    return { date: key, amount: bucket?.amount ?? 0, crossings: bucket?.crossings ?? 0 };
+  });
 }
 
 function round2(value: number): number {

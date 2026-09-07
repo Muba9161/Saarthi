@@ -63,6 +63,13 @@ const PHOTO_ACCEPT = '.jpg,.jpeg,.png,.webp,.heic';
  */
 
 interface AddVehicleDialogProps {
+  /**
+   * Called with the new vehicle's id and plate once it exists.
+   *
+   * The celebration cannot live inside this component: it closes itself on
+   * success, and a dialog nested in one that is unmounting never appears.
+   */
+  onAdded?: (vehicle: { id: string; registrationNumber: string }) => void;
   /** Restrict the offered types, e.g. to passenger vehicles for a travel operator. */
   allowedTypes?: VehicleType[];
   defaultType?: VehicleType;
@@ -105,6 +112,7 @@ export function AddVehicleDialog({
   allowedTypes,
   defaultType = VehicleType.CAR,
   triggerLabel = 'Add vehicle',
+  onAdded,
 }: AddVehicleDialogProps) {
   const queryClient = useQueryClient();
   const [open, setOpen] = React.useState(false);
@@ -152,16 +160,26 @@ export function AddVehicleDialog({
       }
       return vehicle;
     },
-    onSuccess: () => {
-      toast.success('Vehicle added');
+    onSuccess: (vehicle, variables) => {
       void queryClient.invalidateQueries({ queryKey: ['vehicles'] });
       void queryClient.invalidateQueries({ queryKey: ['trucks'] });
       void queryClient.invalidateQueries({ queryKey: ['media'] });
+      // Read off the submitted payload rather than form state, which is reset
+      // two lines below.
+      const registrationNumber = String(variables.registrationNumber ?? '');
       setOpen(false);
       setForm(initialState(defaultType));
       setPhoto(null);
       setErrors({});
       setErroredStepIds([]);
+
+      if (onAdded) {
+        // The caller shows the vehicle's QR; no toast, because that dialog says
+        // the same thing and stays long enough to act on.
+        onAdded({ id: vehicle.id, registrationNumber });
+      } else {
+        toast.success('Vehicle added');
+      }
     },
     onError: (error) =>
       toast.error('Could not add the vehicle', { description: errorMessage(error) }),

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { AlertTriangle, Clock, LifeBuoy, ShieldCheck, Siren, Users } from 'lucide-react';
+import { AlertTriangle, ShieldCheck, Users } from 'lucide-react';
 import { Permission, RealtimeEvent, humanizeEnum } from '@saarthi/shared';
 import { api } from '@/lib/api-client';
 import type {
@@ -14,6 +14,7 @@ import { useAuth } from '@/features/auth/auth-context';
 import { useRealtimeEvent } from '@/hooks/use-realtime';
 import { PageHeader, SectionHeader } from '@/components/common/page-header';
 import { StatCard } from '@/components/common/stat-card';
+import { toSeriesPoints } from '@/components/common/mini-chart';
 import { DataTable, type Column } from '@/components/common/data-table';
 import { EmptyState, UnauthorizedState } from '@/components/common/states';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -98,6 +99,10 @@ export function AssociationDashboardPage() {
 
   const profile = association.data;
   const stats = overview.data;
+
+  /** A count as a share of everything still open in the coverage area. */
+  const openShare = (count: number | undefined): number =>
+    stats && stats.open > 0 ? ((count ?? 0) / stats.open) * 100 : 0;
 
   const columns: Column<AssociationAlertSummary>[] = [
     {
@@ -221,7 +226,11 @@ export function AssociationDashboardPage() {
           label="Open alerts"
           numericValue={stats?.open ?? 0}
           format={(value) => String(Math.round(value))}
-          icon={LifeBuoy}
+          chart={{
+            kind: 'bars',
+            points: toSeriesPoints(stats?.trends.raised ?? []),
+            format: (value) => `${value} raised`,
+          }}
           tone={stats && stats.open > 0 ? 'warning' : 'default'}
           live
         />
@@ -229,7 +238,11 @@ export function AssociationDashboardPage() {
           label="Critical"
           numericValue={stats?.critical ?? 0}
           format={(value) => String(Math.round(value))}
-          icon={Siren}
+          chart={{
+            kind: 'gauge',
+            percent: openShare(stats?.critical),
+            caption: 'of the open alerts',
+          }}
           tone={stats && stats.critical > 0 ? 'destructive' : 'default'}
           hint="Accident, security or medical"
         />
@@ -237,7 +250,13 @@ export function AssociationDashboardPage() {
           label="Awaiting acknowledgement"
           numericValue={stats?.unacknowledged ?? 0}
           format={(value) => String(Math.round(value))}
-          icon={Clock}
+          chart={{
+            kind: 'split',
+            segments: [
+              { label: 'Awaiting acknowledgement', value: stats?.unacknowledged ?? 0, tone: 'warning' },
+              { label: 'Responding', value: stats?.responding ?? 0, tone: 'info' },
+            ],
+          }}
           tone={stats && stats.overdue > 0 ? 'destructive' : 'default'}
           hint={stats && stats.overdue > 0 ? `${stats.overdue} past the response window` : undefined}
         />
@@ -245,7 +264,11 @@ export function AssociationDashboardPage() {
           label="Resolved today"
           numericValue={stats?.resolvedToday ?? 0}
           format={(value) => String(Math.round(value))}
-          icon={ShieldCheck}
+          chart={{
+            kind: 'bars',
+            points: toSeriesPoints(stats?.trends.resolved ?? []),
+            format: (value) => `${value} resolved`,
+          }}
           tone="success"
         />
       </div>

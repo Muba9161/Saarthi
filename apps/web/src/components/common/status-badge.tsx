@@ -64,6 +64,17 @@ const STATUS_VARIANTS: Record<string, Variant> = {
   VALID: 'success',
   NO_EXPIRY: 'muted',
 
+  // Identity checks (Aadhaar, PAN, Voter ID, GSTIN). VERIFIED and REJECTED are
+  // shared with the statuses above and deliberately not restated.
+  //
+  // MISMATCH is destructive rather than a warning on purpose: it means the
+  // number is real and belongs to somebody else, which is a worse answer than
+  // NOT_FOUND, not a softer one.
+  MISMATCH: 'destructive',
+  NOT_FOUND: 'destructive',
+  INVALID_FORMAT: 'destructive',
+  UNCONFIRMED: 'warning',
+
   // SOS
   TRIGGERED: 'destructive',
   BROADCASTING: 'destructive',

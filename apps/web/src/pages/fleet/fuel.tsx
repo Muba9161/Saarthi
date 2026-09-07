@@ -1,12 +1,12 @@
 import * as React from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { Fuel } from 'lucide-react';
 import { Permission, formatCurrency, formatNumber } from '@saarthi/shared';
 import { api } from '@/lib/api-client';
 import { useAuth } from '@/features/auth/auth-context';
 import { PageHeader } from '@/components/common/page-header';
 import { DataTable, type Column } from '@/components/common/data-table';
 import { StatCard } from '@/components/common/stat-card';
+import { toSeriesPoints } from '@/components/common/mini-chart';
 import { UnauthorizedState } from '@/components/common/states';
 
 interface FuelRow {
@@ -31,6 +31,12 @@ export function FuelPage() {
         items: FuelRow[];
         pagination: any;
         totals: { litres: number; cost: number; averagePricePerLitre: number };
+        trends: {
+          days: string[];
+          litres: { date: string; value: number }[];
+          cost: { date: string; value: number }[];
+          ratePerLitre: { date: string; value: number }[];
+        };
       }>('/fuel', { page, pageSize: 20 }),
     enabled: can(Permission.FUEL_READ),
     placeholderData: keepPreviousData,
@@ -39,6 +45,12 @@ export function FuelPage() {
   if (!can(Permission.FUEL_READ)) return <UnauthorizedState />;
 
   const totals = query.data?.totals;
+  /**
+   * The fortnight beside each total, read under the same filter as the table.
+   * Empty until the first page lands, so a tile never draws a shape from a
+   * request that has not returned.
+   */
+  const trends = query.data?.trends;
 
   const columns: Column<FuelRow>[] = [
     { key: 'truck', header: 'Truck', cell: (row) => <span className="font-medium">{row.registrationNumber}</span> },
@@ -55,9 +67,36 @@ export function FuelPage() {
       <PageHeader title="Fuel" description="Every fill-up, with cost and consumption." />
       {totals ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <StatCard label="Total litres" value={formatNumber(totals.litres, 0)} icon={Fuel} />
-          <StatCard label="Total spend" value={formatCurrency(totals.cost)} icon={Fuel} />
-          <StatCard label="Average rate" value={formatCurrency(totals.averagePricePerLitre)} icon={Fuel} hint="per litre" />
+          <StatCard
+            label="Total litres"
+            value={formatNumber(totals.litres, 0)}
+            chart={{
+              kind: 'bars',
+              points: toSeriesPoints(trends?.litres ?? []),
+              format: (value) => `${formatNumber(value, 1)} L`,
+            }}
+            hint="Last 14 days charted"
+          />
+          <StatCard
+            label="Total spend"
+            value={formatCurrency(totals.cost)}
+            chart={{
+              kind: 'bars',
+              points: toSeriesPoints(trends?.cost ?? []),
+              format: formatCurrency,
+            }}
+            hint="Last 14 days charted"
+          />
+          <StatCard
+            label="Average rate"
+            value={formatCurrency(totals.averagePricePerLitre)}
+            chart={{
+              kind: 'area',
+              points: toSeriesPoints(trends?.ratePerLitre ?? []),
+              format: (value) => `${formatCurrency(value)}/L`,
+            }}
+            hint="per litre"
+          />
         </div>
       ) : null}
       <DataTable

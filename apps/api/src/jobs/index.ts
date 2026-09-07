@@ -15,6 +15,7 @@ import { runMaintenanceReminderSweep } from '../modules/maintenance/maintenance.
 import { recalculateDriverScore } from '../modules/drivers/driver.service';
 import { runVehicleLookupRetentionSweep } from '../modules/vehicle-lookup/vehicle-lookup.service';
 import { runLicenceLookupRetentionSweep } from '../modules/licence-lookup/licence-lookup.service';
+import { runIdentityVerificationRetentionSweep } from '../modules/identity-verification/identity-verification.service';
 import { runAssociationEscalationSweep } from '../modules/associations/association-alert.service';
 import { runDeviceOfflineSweep } from '../modules/devices/device.service';
 import { runHeartbeatSweep } from '../modules/devices/device-status.service';
@@ -208,6 +209,9 @@ export function registerBackgroundJobs(): void {
     handler: async () => {
       await runVehicleLookupRetentionSweep();
       await runLicenceLookupRetentionSweep();
+      // Identity checks ride the same sweep: three caches of government data
+      // with three retention windows, one place that enforces all of them.
+      await runIdentityVerificationRetentionSweep();
     },
   });
 

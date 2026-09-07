@@ -4,6 +4,7 @@ import type { Catalogue } from './en';
 export const ur: Catalogue = {
   Operations: 'آپریشنز',
   Fleet: 'بیڑا',
+  'Documents & costs': 'دستاویزات اور اخراجات',
   Marketplace: 'بازار',
   Travel: 'سفر',
   Connect: 'کنیکٹ',

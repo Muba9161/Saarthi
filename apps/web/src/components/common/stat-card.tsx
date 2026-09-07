@@ -2,6 +2,7 @@ import * as React from 'react';
 import { ArrowDownRight, ArrowRight, ArrowUpRight } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { AnimatedNumber, HoverLift } from '@/components/motion';
+import { MiniChart, hasPlottableData, type MiniChartSpec } from '@/components/common/mini-chart';
 import { cn } from '@/lib/utils';
 
 /**
@@ -10,6 +11,12 @@ import { cn } from '@/lib/utils';
  * Every value here is computed by the API from database rows — the component
  * only animates toward it. Numbers count up so a change reads as movement
  * rather than a silent swap.
+ *
+ * The right-hand slot prefers a chart to an icon. An icon repeats what the
+ * label already says; a fortnight of the same figure says whether the number
+ * is climbing, and that is the question an operator actually opens the board
+ * to answer. Pass `chart` and the tile plots it; pass only `icon` and the tile
+ * is exactly what it was, so no existing call site changes behaviour.
  */
 export function StatCard({
   label,
@@ -18,6 +25,7 @@ export function StatCard({
   format,
   hint,
   icon: Icon,
+  chart,
   trend,
   tone = 'default',
   onClick,
@@ -31,7 +39,15 @@ export function StatCard({
   numericValue?: number;
   format?: (value: number) => string;
   hint?: React.ReactNode;
+  /** Drawn only when no `chart` is supplied. */
   icon?: React.ComponentType<{ className?: string }>;
+  /**
+   * Real figures to plot in the icon's place.
+   *
+   * Never synthesised: a series comes from the same API response as the value
+   * above it, so the curve and the number cannot disagree.
+   */
+  chart?: MiniChartSpec;
   /** Percentage change against the comparison period. */
   trend?: { value: number; label?: string; goodDirection?: 'up' | 'down' };
   tone?: 'default' | 'success' | 'warning' | 'destructive' | 'info' | 'accent';
@@ -117,7 +133,11 @@ export function StatCard({
             </div>
           </div>
 
-          {Icon ? (
+          {chart && hasPlottableData(chart) ? (
+            <span className="shrink-0 self-center">
+              <MiniChart spec={chart} tone={tone} />
+            </span>
+          ) : Icon ? (
             <span className={cn('shrink-0 rounded-xl p-2.5 ring-1', iconTones[tone])}>
               <Icon className="size-5" />
             </span>

@@ -134,7 +134,18 @@ model Organization {
   name               String
   type               OrganizationType
   registrationNumber String?
+  /// Free-text tax reference captured at registration. Kept as it was; `gstin`
+  /// below is the verified, structured one and does not replace it.
   taxNumber          String?
+  /// Verified GSTIN. Set only by a successful GST check, never typed in.
+  gstin              String?
+  /// Legal and trade name as the GST portal holds them — the authoritative
+  /// answer to "is this business who it says it is".
+  gstLegalName       String?
+  gstTradeName       String?
+  /// `Active`, `Cancelled`, `Suspended`… as last reported by the GST portal.
+  gstStatus          String?
+  gstVerifiedAt      DateTime?
   email              String?
   phone              String?
   addressLine        String?
@@ -161,6 +172,7 @@ model Organization {
   @@index([type])
   @@index([verificationStatus])
   @@index([createdAt])
+  @@index([gstin])
   @@map("organizations")
 }
 
@@ -544,6 +556,26 @@ enum DocumentVerificationStatus {
   REJECTED
 }
 
+/// Identity documents Saarthi checks against a government source rather than by
+/// a reviewer looking at a scan. Mirrors `IdentityDocumentKind` in @saarthi/shared.
+enum IdentityDocumentKind {
+  AADHAAR
+  PAN
+  VOTER_ID
+  GST
+}
+
+/// Outcome of one identity check. NOT_FOUND and MISMATCH are answers *about the
+/// number*; a provider outage is not recorded as an outcome at all, so a fleet
+/// is never told a valid PAN is invalid because an upstream was down.
+enum IdentityVerificationOutcome {
+  VERIFIED
+  NOT_FOUND
+  MISMATCH
+  INVALID_FORMAT
+  UNCONFIRMED
+}
+
 enum TruckStatus {
   AVAILABLE
   ASSIGNED
@@ -846,6 +878,16 @@ model Driver {
   city                  String?
   state                 String?
   postalCode            String?
+  /// Last four digits of a verified Aadhaar. The full number is never stored on
+  /// this row — see `identity_verifications`, where it is encrypted and swept.
+  aadhaarLast4          String?
+  aadhaarVerifiedAt     DateTime?
+  /// PAN is routinely printed on invoices and payslips, so unlike Aadhaar the
+  /// verified number itself is kept here for fast compliance queries.
+  panNumber             String?
+  panVerifiedAt         DateTime?
+  voterIdNumber         String?
+  voterIdVerifiedAt     DateTime?
   verificationStatus    VerificationStatus @default(PENDING)
   availability          DriverAvailability @default(AVAILABLE)
   currentTruckId        String?            @db.Uuid
@@ -867,6 +909,7 @@ model Driver {
 
   @@unique([organizationId, licenseNumber])
   @@index([organizationId, availability])
+  @@index([panNumber])
   @@index([organizationId, verificationStatus])
   @@index([currentTruckId])
   @@map("drivers")
@@ -2328,6 +2371,62 @@ model LicenceLookup {
   @@index([driverId])
   @@index([fetchedAt])
   @@map("licence_lookups")
+}
+
+/// Identity checks — Aadhaar, PAN, Voter ID and GSTIN.
+///
+/// One row per number per subject, updated in place on re-check, so a driver's
+/// PAN has a single history rather than a row per button press.
+///
+/// Three rules govern what is stored:
+///
+///  * `numberHash` is an HMAC of the normalised number. It is the lookup key —
+///    it answers "have we already checked this number" without the number being
+///    readable in the table.
+///  * `maskedNumber` is the only form that ever reaches a response body.
+///  * `encryptedNumber` holds AES-256-GCM ciphertext, and only when
+///    IDENTITY_ENCRYPTION_KEY is configured. Unset key, no ciphertext — Saarthi
+///    does not fall back to storing an Aadhaar number in plain text.
+///
+/// Like the RC and licence caches, every row carries an explicit retention
+/// boundary and is deleted by the sweep rather than kept indefinitely.
+model IdentityVerification {
+  id                String                      @id @default(uuid()) @db.Uuid
+  kind              IdentityDocumentKind
+  subjectType       VerificationSubjectType
+  subjectId         String                      @db.Uuid
+  organizationId    String?                     @db.Uuid
+  /// The uploaded document this check backs, when it was started from one.
+  documentId        String?                     @db.Uuid
+  /// HMAC-SHA256 of the normalised number. Not reversible.
+  numberHash        String
+  /// Display form, e.g. `XXXX XXXX 9012`. Safe to return.
+  maskedNumber      String
+  /// AES-256-GCM ciphertext of the full number, or null when no key is set.
+  encryptedNumber   String?
+  outcome           IdentityVerificationOutcome
+  /// Why a non-VERIFIED outcome came out that way, in one sentence.
+  reason            String?
+  /// Name the government source holds. Stripped for unauthorised callers.
+  holderName        String?
+  provider          String?
+  providerReference String?
+  /// Saarthi's normalised record, before per-caller redaction.
+  responseData      Json?
+  requestedById     String?                     @db.Uuid
+  verifiedAt        DateTime?
+  checkedAt         DateTime                    @default(now())
+  /// When this stored answer stops being reused and a fresh call is billed.
+  expiresAt         DateTime?
+  createdAt         DateTime                    @default(now())
+  updatedAt         DateTime                    @updatedAt
+
+  @@unique([subjectType, subjectId, kind])
+  @@index([numberHash, kind])
+  @@index([organizationId, kind])
+  @@index([documentId])
+  @@index([checkedAt])
+  @@map("identity_verifications")
 }
 
 // ===========================================================================

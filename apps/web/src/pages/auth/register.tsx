@@ -45,6 +45,12 @@ import { FormWizard, type WizardStep } from '@/components/common/form-wizard';
 import { ImageCircleField } from '@/components/common/file-dropzone';
 import { PasswordStrength } from '@/components/common/password-strength';
 import { AuthDivider, AuthHeading } from '@/features/auth/auth-card';
+import {
+  RegistrationTutorial,
+  RegistrationTutorialLauncher,
+  hasSeenRegistrationTutorial,
+  markRegistrationTutorialSeen,
+} from '@/features/auth/registration-tutorial';
 import { LanguageGrid, useLocale } from '@/features/i18n';
 import { useAuth } from '@/features/auth/auth-context';
 import { ApiError } from '@/lib/api-client';
@@ -144,6 +150,16 @@ export function RegisterPage() {
    * the organization exists until the account is created a few steps later.
    */
   const [image, setImage] = React.useState<File | null>(null);
+  /**
+   * The guided walkthrough.
+   *
+   * Opened by hand from the launcher, and once by itself for somebody who has
+   * never seen this page — the account type is the one decision on this form
+   * that cannot be corrected afterwards, so the first visit is the only moment
+   * where explaining it costs nothing. Never again after that: the flag is
+   * written the moment it closes, however it closes.
+   */
+  const [tutorialOpen, setTutorialOpen] = React.useState(false);
 
   const { locale, setLocale, t } = useLocale();
 
@@ -179,6 +195,28 @@ export function RegisterPage() {
   // Switching account type changes what the image *means*. Carrying a company
   // logo across to a driver's profile photo would publish it as their face.
   React.useEffect(() => setImage(null), [wantsLogo]);
+
+  React.useEffect(() => {
+    if (hasSeenRegistrationTutorial()) return;
+    setTutorialOpen(true);
+  }, []);
+
+  /**
+   * Closing the guided flow is not abandoning the registration.
+   *
+   * It writes into this same form as it goes, so whatever was answered is
+   * already in the wizard below — which is why leaving says so rather than
+   * warning about losing anything.
+   */
+  const closeTutorial = (open: boolean): void => {
+    setTutorialOpen(open);
+    if (open) return;
+
+    markRegistrationTutorialSeen();
+    if (form.formState.isDirty && !form.formState.isSubmitSuccessful) {
+      toast.info(t('Your answers are saved in the form below — carry on from there.'));
+    }
+  };
 
   /**
    * The image goes up on the session the registration just returned — onto
@@ -674,6 +712,25 @@ export function RegisterPage() {
         eyebrow={t('Getting set up')}
         title={t('Create your account')}
         description={t('Set up Saarthi for how you actually work.')}
+      />
+
+      {/* Above the form rather than beside it: the question it answers —
+          "which of these am I?" — is the one somebody has before they start
+          typing, not after. */}
+      <RegistrationTutorialLauncher onOpen={() => setTutorialOpen(true)} />
+
+      {/* Handed the page's own form rather than one of its own: the guided
+          route and the wizard below are the same registration, so answering a
+          question in one fills it in on the other. */}
+      <RegistrationTutorial
+        open={tutorialOpen}
+        onOpenChange={closeTutorial}
+        form={form}
+        image={image}
+        onImageChange={setImage}
+        onSubmit={form.handleSubmit(onSubmit)}
+        submitting={form.formState.isSubmitting}
+        formError={formError}
       />
 
       <AnimatePresence initial={false}>

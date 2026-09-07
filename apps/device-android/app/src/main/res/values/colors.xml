@@ -1,4 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_launcher_background">#0F172A</color>
+    <!--
+      The launcher's light chip. The brand mark is navy on transparency, so it
+      needs a light ground to survive — see the note in
+      drawable/ic_launcher_background.xml.
+    -->
+    <color name="ic_launcher_background">#F8FAFC</color>
 </resources>

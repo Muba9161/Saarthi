@@ -1,6 +1,6 @@
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Award, Route as RouteIcon, ShieldCheck, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Award } from 'lucide-react';
 import { Feature, Permission, formatDistanceKm, humanizeEnum } from '@saarthi/shared';
 import { api } from '@/lib/api-client';
 import type { DriverScoreDetail, DriverSummary } from '@/lib/api-types';
@@ -8,6 +8,7 @@ import { useAuth } from '@/features/auth/auth-context';
 import { PageHeader, SectionHeader } from '@/components/common/page-header';
 import { DemoVerifyButton } from '@/features/verification/demo-verify-button';
 import { StatCard } from '@/components/common/stat-card';
+import { toSeriesPoints } from '@/components/common/mini-chart';
 import { StatusBadge } from '@/components/common/status-badge';
 import { EmptyState, ErrorState, FeatureLockedState, LoadingState } from '@/components/common/states';
 import { ScoreBreakdown } from '@/features/drivers/score-breakdown';
@@ -18,6 +19,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LicenceLookupPanel } from '@/features/drivers/licence-lookup-panel';
+import { SubjectQrPanel } from '@/features/qr/subject-qr-panel';
 
 interface AchievementRow {
   code: string;
@@ -54,9 +56,21 @@ export function DriverDetailPage() {
   if (!driver.data) return <EmptyState title="Driver not found" />;
 
   const person = driver.data;
+
+  /**
+   * The driver's scoring history, one point per recalculation.
+   *
+   * Dated by the day the score was computed, so several recalculations in one
+   * day collapse to that day on the axis — which is what the label reads.
+   */
+  const scoreHistory = (score.data?.history ?? []).map((entry) => ({
+    date: entry.date.slice(0, 10),
+    value: entry.overall,
+  }));
   // Hidden rather than shown-and-refused; the API enforces both the permission
   // and that the licence belongs to a driver on this roster regardless.
   const canLookupLicence = can(Permission.DRIVER_LICENCE_LOOKUP);
+  const canSeeQr = can(Permission.QR_READ) && hasFeature(Feature.QR_IDENTITY);
 
   return (
     <div className="space-y-5">
@@ -88,7 +102,14 @@ export function DriverDetailPage() {
         <StatCard
           label="Driver score"
           value={person.overallScore ?? '—'}
-          icon={ShieldCheck}
+          chart={
+            // Every recalculation this driver has had, where there is more
+            // than one. A driver scored only once has no line to draw, so the
+            // ring shows the score they actually hold instead.
+            scoreHistory.length > 1
+              ? { kind: 'area', points: toSeriesPoints(scoreHistory), domainMax: 100 }
+              : { kind: 'gauge', percent: person.overallScore ?? 0, caption: 'driver score' }
+          }
           tone={
             person.overallScore === null
               ? 'default'
@@ -100,11 +121,25 @@ export function DriverDetailPage() {
           }
           hint={score.data ? humanizeEnum(score.data.band) : undefined}
         />
-        <StatCard label="Completed trips" value={person.totalTrips} icon={RouteIcon} />
+        <StatCard
+          label="Completed trips"
+          value={person.totalTrips}
+          chart={{
+            kind: 'bars',
+            points: toSeriesPoints(score.data?.trends.tripsCompleted ?? []),
+            format: (value) => `${value} trip${value === 1 ? '' : 's'}`,
+          }}
+          hint="Lifetime · last 14 days charted"
+        />
         <StatCard
           label="Distance driven"
           value={formatDistanceKm(person.totalDistanceKm)}
-          icon={TrendingUp}
+          chart={{
+            kind: 'bars',
+            points: toSeriesPoints(score.data?.trends.distanceKm ?? []),
+            format: formatDistanceKm,
+          }}
+          hint="Lifetime · last 14 days charted"
         />
         <StatCard
           label="Experience"
@@ -119,6 +154,7 @@ export function DriverDetailPage() {
           <TabsTrigger value="performance">Performance</TabsTrigger>
           <TabsTrigger value="achievements">Achievements</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
+          {canSeeQr ? <TabsTrigger value="qr">QR badge</TabsTrigger> : null}
           {canLookupLicence ? <TabsTrigger value="licence">Licence</TabsTrigger> : null}
         </TabsList>
 
@@ -180,6 +216,13 @@ export function DriverDetailPage() {
         <TabsContent value="documents">
           <DocumentPanel ownerType="DRIVER" ownerId={id} ownerLabel={person.fullName} />
         </TabsContent>
+
+        {/* Their badge, beside their documents, rather than on a fleet-wide list. */}
+        {canSeeQr ? (
+          <TabsContent value="qr">
+            <SubjectQrPanel subjectType="DRIVER" subjectId={id} />
+          </TabsContent>
+        ) : null}
 
         {/*
           The licence number is already on the profile, so this opens ready to

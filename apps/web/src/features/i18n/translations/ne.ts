@@ -4,6 +4,7 @@ import type { Catalogue } from './en';
 export const ne: Catalogue = {
   Operations: 'सञ्चालन',
   Fleet: 'बेडा',
+  'Documents & costs': 'कागजातहरू र खर्च',
   Marketplace: 'बजार',
   Travel: 'यात्रा',
   Connect: 'कनेक्ट',

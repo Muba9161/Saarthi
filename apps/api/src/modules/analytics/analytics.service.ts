@@ -13,6 +13,16 @@ import {
 } from '@saarthi/shared';
 import { prisma } from '../../database/prisma';
 import { cached } from '../../infra/cache';
+import {
+  TREND_WINDOW_DAYS,
+  countByDay,
+  dayKey,
+  toSeries,
+  trendDays,
+  trendWindowStart,
+  walkPopulationBack,
+  type TrendPoint,
+} from '../../lib/trend';
 
 /**
  * Fleet analytics.
@@ -89,6 +99,52 @@ export interface DashboardMetrics {
     cancelledThisMonth: number;
     publishedPackages: number;
   } | null;
+  /** Recent history behind each headline figure. See {@link DashboardTrends}. */
+  trends: DashboardTrends;
+}
+
+/** One UTC day of a dashboard series. */
+export type DashboardTrendPoint = TrendPoint;
+
+/**
+ * The fortnight behind the headline figures.
+ *
+ * The command centre draws each of these as a sparkline on the tile whose
+ * number it explains, so the two can never disagree — both are aggregated from
+ * the same rows in the same request. Nothing is interpolated: a day with no
+ * activity is a genuine zero, and a fleet that has existed for three days
+ * reports its first eleven buckets at whatever it actually held then.
+ */
+export interface DashboardTrends {
+  /** Shared x-axis, oldest first. Every series below has one point per day. */
+  days: string[];
+  /** Vehicles on the books at the end of each day (created, not yet archived). */
+  fleetSize: DashboardTrendPoint[];
+  /**
+   * Share of that day's fleet that was out on a trip.
+   *
+   * A vehicle counts for every day its trip spanned, not only the day it set
+   * off — a three-day run is three days of utilisation, which is what the
+   * money says too. This is the historical form of the utilisation tile, whose
+   * live figure counts vehicles currently on trip.
+   */
+  utilizationPercent: DashboardTrendPoint[];
+  /** Trips that set off on the day. */
+  tripsStarted: DashboardTrendPoint[];
+  /** Trips that arrived on the day. */
+  tripsCompleted: DashboardTrendPoint[];
+  /** Kilometres on trips that arrived on the day. */
+  distanceKm: DashboardTrendPoint[];
+  /** Billed value of trips that arrived on the day. */
+  revenue: DashboardTrendPoint[];
+  /** Drivers on the books at the end of each day. */
+  driverCount: DashboardTrendPoint[];
+  /** Orders raised on the day, whether this org is buying or hauling. */
+  ordersCreated: DashboardTrendPoint[];
+  /** Speeding, harsh braking, harsh acceleration and incidents on the day. */
+  safetyEvents: DashboardTrendPoint[];
+  /** Passenger bookings taken on the day. Null for a freight fleet. */
+  bookingsCreated: DashboardTrendPoint[] | null;
 }
 
 function startOfMonth(offset = 0): Date {
@@ -165,6 +221,161 @@ async function travelMetrics(
     cancelledThisMonth,
     publishedPackages,
   };
+}
+
+/**
+ * The fortnight behind every headline tile.
+ *
+ * Cached longer than the metrics themselves: these buckets are whole UTC days,
+ * so re-running eight aggregations every twenty seconds would buy nothing but
+ * database load. The live figures on the same board stay on the short cache,
+ * which is where "0 vehicles, 2 trips running" has to be current.
+ */
+export async function dashboardTrends(
+  organizationId: string,
+  includeTravel: boolean,
+): Promise<DashboardTrends> {
+  return cached(`analytics:dashboard-trends:${organizationId}:${includeTravel}`, 300, async () => {
+    const days = trendDays(TREND_WINDOW_DAYS);
+    const windowStart = trendWindowStart(TREND_WINDOW_DAYS);
+    const now = new Date();
+
+    const orderScope = {
+      OR: [{ fleetOrganizationId: organizationId }, { customerOrganizationId: organizationId }],
+    };
+
+    const [
+      trucksNow,
+      trucksCreated,
+      trucksArchived,
+      driversNow,
+      driversCreated,
+      driversArchived,
+      tripsOverlapping,
+      tripsArrived,
+      ordersCreated,
+      safetyEvents,
+      bookingsCreated,
+    ] = await Promise.all([
+      prisma.truck.count({ where: { organizationId, archivedAt: null } }),
+      prisma.truck.findMany({
+        where: { organizationId, createdAt: { gte: windowStart } },
+        select: { createdAt: true },
+      }),
+      prisma.truck.findMany({
+        where: { organizationId, archivedAt: { gte: windowStart } },
+        select: { archivedAt: true },
+      }),
+      prisma.driver.count({ where: { organizationId, archivedAt: null } }),
+      prisma.driver.findMany({
+        where: { organizationId, createdAt: { gte: windowStart } },
+        select: { createdAt: true },
+      }),
+      prisma.driver.findMany({
+        where: { organizationId, archivedAt: { gte: windowStart } },
+        select: { archivedAt: true },
+      }),
+      // Every trip that was under way at any point in the window. A run still
+      // open has no arrival yet, so it is treated as reaching up to now.
+      prisma.trip.findMany({
+        where: {
+          organizationId,
+          actualStartAt: { not: null, lte: now },
+          OR: [{ actualArrivalAt: { gte: windowStart } }, { actualArrivalAt: null }],
+        },
+        select: { truckId: true, actualStartAt: true, actualArrivalAt: true },
+      }),
+      prisma.trip.findMany({
+        where: {
+          organizationId,
+          status: TripStatus.COMPLETED,
+          actualArrivalAt: { gte: windowStart },
+        },
+        select: { actualArrivalAt: true, actualDistanceKm: true, price: true },
+      }),
+      prisma.order.findMany({
+        where: { ...orderScope, createdAt: { gte: windowStart } },
+        select: { createdAt: true },
+      }),
+      prisma.driverScoreEvent.findMany({
+        where: {
+          driver: { organizationId },
+          eventType: {
+            in: ['SPEED_VIOLATION', 'HARSH_BRAKING', 'HARSH_ACCELERATION', 'INCIDENT'],
+          },
+          createdAt: { gte: windowStart },
+        },
+        select: { createdAt: true },
+      }),
+      includeTravel
+        ? prisma.travelBooking.findMany({
+            where: { providerOrganizationId: organizationId, createdAt: { gte: windowStart } },
+            select: { createdAt: true },
+          })
+        : Promise.resolve(null),
+    ]);
+
+    const fleetSize = walkPopulationBack(
+      days,
+      trucksNow,
+      trucksCreated.map((row) => row.createdAt),
+      trucksArchived.flatMap((row) => (row.archivedAt ? [row.archivedAt] : [])),
+    );
+    const driverCount = walkPopulationBack(
+      days,
+      driversNow,
+      driversCreated.map((row) => row.createdAt),
+      driversArchived.flatMap((row) => (row.archivedAt ? [row.archivedAt] : [])),
+    );
+
+    // Vehicles that were out, per day. A Set per day rather than a count, so a
+    // lorry that ran three trips on Tuesday is one utilised vehicle, not three.
+    const startedPerDay = new Map<string, number>();
+    const busyPerDay = new Map<string, Set<string>>();
+    for (const trip of tripsOverlapping) {
+      if (!trip.actualStartAt) continue;
+      const startKey = dayKey(trip.actualStartAt);
+      startedPerDay.set(startKey, (startedPerDay.get(startKey) ?? 0) + 1);
+
+      const until = trip.actualArrivalAt ?? now;
+      for (const day of days) {
+        if (day < startKey) continue;
+        if (day > dayKey(until)) break;
+        const bucket = busyPerDay.get(day) ?? new Set<string>();
+        bucket.add(trip.truckId);
+        busyPerDay.set(day, bucket);
+      }
+    }
+
+    const completedPerDay = new Map<string, number>();
+    const distancePerDay = new Map<string, number>();
+    const revenuePerDay = new Map<string, number>();
+    for (const trip of tripsArrived) {
+      if (!trip.actualArrivalAt) continue;
+      const key = dayKey(trip.actualArrivalAt);
+      completedPerDay.set(key, (completedPerDay.get(key) ?? 0) + 1);
+      distancePerDay.set(key, (distancePerDay.get(key) ?? 0) + trip.actualDistanceKm);
+      revenuePerDay.set(key, (revenuePerDay.get(key) ?? 0) + Number(trip.price ?? 0));
+    }
+
+    return {
+      days,
+      fleetSize,
+      utilizationPercent: days.map((date, index) => {
+        const fleet = fleetSize[index]?.value ?? 0;
+        const busy = busyPerDay.get(date)?.size ?? 0;
+        return { date, value: fleet > 0 ? Math.round((busy / fleet) * 100) : 0 };
+      }),
+      tripsStarted: toSeries(days, startedPerDay),
+      tripsCompleted: toSeries(days, completedPerDay),
+      distanceKm: toSeries(days, distancePerDay, 1),
+      revenue: toSeries(days, revenuePerDay, 2),
+      driverCount,
+      ordersCreated: toSeries(days, countByDay(ordersCreated, 'createdAt')),
+      safetyEvents: toSeries(days, countByDay(safetyEvents, 'createdAt')),
+      bookingsCreated: bookingsCreated ? toSeries(days, countByDay(bookingsCreated, 'createdAt')) : null,
+    };
+  });
 }
 
 export async function dashboardMetrics(organizationId: string): Promise<DashboardMetrics> {
@@ -328,10 +539,11 @@ export async function dashboardMetrics(organizationId: string): Promise<Dashboar
 
     // Passenger work. Only queried for an organization that sells it — a
     // freight fleet pays for none of these round trips.
-    const travel =
-      organization?.type === OrganizationType.MOBILITY_PROVIDER
-        ? await travelMetrics(organizationId, monthStart)
-        : null;
+    const isMobility = organization?.type === OrganizationType.MOBILITY_PROVIDER;
+    const [travel, trends] = await Promise.all([
+      isMobility ? travelMetrics(organizationId, monthStart) : Promise.resolve(null),
+      dashboardTrends(organizationId, isMobility),
+    ]);
 
     return {
       fleet: {
@@ -408,6 +620,7 @@ export async function dashboardMetrics(organizationId: string): Promise<Dashboar
         sosThisMonth,
         safetyEventsThisMonth: safetyEvents,
       },
+      trends,
     };
   });
 }

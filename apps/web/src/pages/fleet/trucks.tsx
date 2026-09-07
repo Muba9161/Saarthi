@@ -3,9 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { AlertTriangle, Gauge, IdCard, Plus, Search, Truck } from 'lucide-react';
+import { AlertTriangle, BadgeCheck, Gauge, IdCard, Plus, Search, Truck } from 'lucide-react';
 import { toast } from 'sonner';
 import {
+  Feature,
   FuelType,
   Permission,
   TruckStatus,
@@ -20,6 +21,7 @@ import { api, errorMessage } from '@/lib/api-client';
 import type { Paginated, TruckSummary } from '@/lib/api-types';
 import { useAuth } from '@/features/auth/auth-context';
 import { PageHeader } from '@/components/common/page-header';
+import { QrWelcomeDialog } from '@/features/qr/qr-welcome-dialog';
 import { DataTable, type Column } from '@/components/common/data-table';
 import { ScoreBadge, StatusBadge } from '@/components/common/status-badge';
 import { UnauthorizedState } from '@/components/common/states';
@@ -74,9 +76,12 @@ const STATUS_FILTERS = [
 function AddTruckDialog({
   open,
   onOpenChange,
+  onAdded,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Hands the new truck up so the page can celebrate it. */
+  onAdded: (truck: TruckSummary) => void;
 }) {
   const queryClient = useQueryClient();
 
@@ -97,13 +102,13 @@ function AddTruckDialog({
   const mutation = useMutation({
     mutationFn: (input: CreateTruckInput) => api.post<TruckSummary>('/trucks', input),
     onSuccess: (truck) => {
-      toast.success('Truck added', {
-        description: `${formatRegistrationNumber(truck.registrationNumber)} is now in your fleet. Upload its documents to start verification.`,
-      });
       void queryClient.invalidateQueries({ queryKey: ['trucks'] });
       void queryClient.invalidateQueries({ queryKey: ['analytics'] });
       form.reset();
       onOpenChange(false);
+      // No toast: the dialog that replaces it says the same thing and stays
+      // long enough to act on.
+      onAdded(truck);
     },
     onError: (error) => {
       const fields =
@@ -328,12 +333,26 @@ function AddTruckDialog({
 }
 
 export function TrucksPage() {
-  const { can } = useAuth();
+  const { can, hasFeature } = useAuth();
   const navigate = useNavigate();
   const [page, setPage] = React.useState(1);
   const [search, setSearch] = React.useState('');
   const [status, setStatus] = React.useState('all');
   const [addOpen, setAddOpen] = React.useState(false);
+  /** The truck just added, held while its QR is shown. */
+  const [added, setAdded] = React.useState<TruckSummary | null>(null);
+
+  /*
+    The RC lookup used to have a sidebar entry of its own, which only repeated
+    the Registration tab every vehicle already carries. What it uniquely does is
+    read the RTO record for a plate that is *not* in this fleet - a
+    subcontractor's truck before a load is assigned, or one being bought - so it
+    belongs here, beside Add truck, rather than in a menu an operator scrolls
+    past every day. Gated on exactly what the removed menu item required, so the
+    button never leads to a locked screen.
+  */
+  const canLookUpPlate = can(Permission.VEHICLE_LOOKUP) && hasFeature(Feature.FLEET_BASIC);
+  const canAddTruck = can(Permission.TRUCKS_CREATE);
 
   // Debounce so typing does not fire a request per keystroke.
   const [debouncedSearch, setDebouncedSearch] = React.useState('');
@@ -445,11 +464,21 @@ export function TrucksPage() {
         title="Trucks"
         description="Every vehicle in your fleet, with live status and document health."
         actions={
-          can(Permission.TRUCKS_CREATE) ? (
-            <Button onClick={() => setAddOpen(true)}>
-              <Plus className="size-4" />
-              Add truck
-            </Button>
+          canLookUpPlate || canAddTruck ? (
+            <>
+              {canLookUpPlate ? (
+                <Button variant="outline" onClick={() => navigate('/fleet/rc-lookup')}>
+                  <BadgeCheck className="size-4" />
+                  Look up a plate
+                </Button>
+              ) : null}
+              {canAddTruck ? (
+                <Button onClick={() => setAddOpen(true)}>
+                  <Plus className="size-4" />
+                  Add truck
+                </Button>
+              ) : null}
+            </>
           ) : null
         }
       />
@@ -511,7 +540,18 @@ export function TrucksPage() {
         }
       />
 
-      <AddTruckDialog open={addOpen} onOpenChange={setAddOpen} />
+      <AddTruckDialog open={addOpen} onOpenChange={setAddOpen} onAdded={setAdded} />
+
+      <QrWelcomeDialog
+        open={added !== null}
+        onOpenChange={(next) => {
+          if (!next) setAdded(null);
+        }}
+        subjectType="VEHICLE"
+        subjectId={added?.id ?? null}
+        subjectLabel={added ? formatRegistrationNumber(added.registrationNumber) : ''}
+        isFirst={(query.data?.pagination.total ?? 0) <= 1}
+      />
     </div>
   );
 }

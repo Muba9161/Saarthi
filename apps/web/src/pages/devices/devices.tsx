@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Cpu, KeyRound, PlugZap, Play, Radio, Square, TriangleAlert } from 'lucide-react';
+import { KeyRound, PlugZap, Play, Square } from 'lucide-react';
 import { Feature, Permission, RealtimeEvent, humanizeEnum } from '@saarthi/shared';
 import { ApiError, api } from '@/lib/api-client';
 import type {
@@ -15,6 +15,7 @@ import { useAuth } from '@/features/auth/auth-context';
 import { useRealtimeEvent } from '@/hooks/use-realtime';
 import { PageHeader, SectionHeader } from '@/components/common/page-header';
 import { StatCard } from '@/components/common/stat-card';
+import { toSeriesPoints } from '@/components/common/mini-chart';
 import { DataView, type Column } from '@/components/common/data-view';
 import { EmptyState, FeatureLockedState, UnauthorizedState } from '@/components/common/states';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -296,6 +297,15 @@ export function DevicesPage() {
 
   const stats = overview.data;
 
+  /**
+   * A count as a share of every unit on the books.
+   *
+   * Zero rather than a blank ring when there are no devices at all: the tile
+   * beside it reads "0", and a ring at nothing says the same thing honestly.
+   */
+  const deviceShare = (count: number | undefined): number =>
+    stats && stats.total > 0 ? ((count ?? 0) / stats.total) * 100 : 0;
+
   return (
     <div className="space-y-5">
       <PageHeader
@@ -420,15 +430,24 @@ export function DevicesPage() {
           label="Reporting"
           numericValue={stats?.active ?? 0}
           format={(value) => String(Math.round(value))}
-          icon={Radio}
+          chart={{
+            kind: 'gauge',
+            percent: deviceShare(stats?.active),
+            caption: 'of every unit on the books',
+          }}
           tone="success"
+          hint={stats ? `of ${stats.total} unit${stats.total === 1 ? '' : 's'}` : undefined}
           live
         />
         <StatCard
           label="Offline"
           numericValue={stats?.offline ?? 0}
           format={(value) => String(Math.round(value))}
-          icon={TriangleAlert}
+          chart={{
+            kind: 'gauge',
+            percent: deviceShare(stats?.offline),
+            caption: 'of every unit on the books',
+          }}
           tone={stats && stats.offline > 0 ? 'destructive' : 'default'}
           hint="No telemetry for over 10 minutes"
         />
@@ -436,13 +455,22 @@ export function DevicesPage() {
           label="Spare units"
           numericValue={stats?.unassigned ?? 0}
           format={(value) => String(Math.round(value))}
-          icon={Cpu}
+          chart={{
+            kind: 'gauge',
+            percent: deviceShare(stats?.unassigned),
+            caption: 'of every unit on the books',
+          }}
+          hint={stats ? 'Not fitted to a vehicle' : undefined}
         />
         <StatCard
           label="Readings today"
           numericValue={stats?.readingsToday ?? 0}
           format={(value) => Math.round(value).toLocaleString('en-IN')}
-          icon={Radio}
+          chart={{
+            kind: 'bars',
+            points: toSeriesPoints(stats?.readingsTrend ?? []),
+            format: (value) => `${value.toLocaleString('en-IN')} readings`,
+          }}
           tone="info"
         />
       </div>
