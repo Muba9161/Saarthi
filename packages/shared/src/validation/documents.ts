@@ -108,6 +108,37 @@ export const reviewVerificationSchema = z
   });
 export type ReviewVerificationInput = z.infer<typeof reviewVerificationSchema>;
 
+/**
+ * Verify a subject directly against the registry that issued its record.
+ *
+ * There is nothing to submit here — the subject *is* the request, named in the
+ * path — so the body only carries the two things the caller may need to add.
+ *
+ * `dateOfBirth` exists because the licensing authority verifies a licence
+ * number *against* a date of birth: it is the second factor that stops the
+ * check being a way to look up a stranger from a number on a photocopy. It is
+ * read from the driver's profile when Saarthi has it, and only asked for when
+ * it does not.
+ */
+export const registryVerifySchema = z.object({
+  dateOfBirth: z.coerce
+    .date({ invalid_type_error: 'Enter a valid date of birth.' })
+    .optional(),
+  /**
+   * The licence number printed on the document being verified.
+   *
+   * Optional, and only meaningful for a driver. When supplied it is
+   * cross-checked against the number on the driver's profile *before* any
+   * billable call — a document whose number does not match the profile is
+   * either attached to the wrong driver or has a typo in it, and both are worth
+   * catching for free rather than paying to be told the licence exists.
+   */
+  licenceNumber: z.string().trim().min(1).max(40).optional(),
+  /** Bypass the stored record and pay for a fresh call to the registry. */
+  refresh: z.boolean().default(false),
+});
+export type RegistryVerifyInput = z.infer<typeof registryVerifySchema>;
+
 export const verificationListQuerySchema = paginationSchema.extend({
   status: csvEnum([
     VerificationStatus.PENDING,

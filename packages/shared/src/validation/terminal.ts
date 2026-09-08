@@ -107,9 +107,33 @@ export type CreateTerminalPairingTokenInput = z.infer<
  * no `vehicleId` field: a driver who could name a vehicle could name any
  * vehicle, and this request is supposed to mean "I am at this truck".
  */
+/**
+ * Which vehicle a driver is asking to drive, and how they named it.
+ *
+ * Two ways in, one meaning. A driver standing at a truck scans the sticker; a
+ * driver whose sticker is peeling, or filthy, or on a trailer parked nose-in
+ * against a wall, types the registration instead. Both resolve to the same
+ * vehicle and then take the identical path — the same fleet check, the same
+ * approval, the same audit trail.
+ *
+ * Neither is authorisation. Possessing a QR does not authorise a driver and
+ * neither does knowing a number: both merely *name* a vehicle, and the fleet's
+ * approval remains the decision. That is why this is one schema with an
+ * alternative rather than two endpoints — a second way in would be a second
+ * place for that rule to be forgotten.
+ */
 export const requestTerminalAssignmentSchema = z.object({
   /** The token from the vehicle QR the driver scanned. */
-  qrToken: z.string().min(20).max(200),
+  qrToken: z.string().min(20).max(200).optional(),
+  /**
+   * The registration number, typed.
+   *
+   * Normalised server-side with the same function that normalised it on the way
+   * in, so `DL 01 AB 1234` and `dl01ab1234` find the same truck. Loose bounds
+   * because formats vary across states and a rejection on length would be a
+   * driver locked out by punctuation.
+   */
+  registrationNumber: z.string().trim().min(4).max(20).optional(),
   /**
    * The terminal displaying that QR.
    *
@@ -123,7 +147,22 @@ export const requestTerminalAssignmentSchema = z.object({
   latitude: latitudeSchema.optional(),
   longitude: longitudeSchema.optional(),
   note: optionalTrimmedString(300),
-});
+})
+  /*
+   * Exactly one way of naming the vehicle.
+   *
+   * Neither is a failure worth a generic "invalid request": a driver who sent
+   * neither has a broken app, and one who sent both has an app that cannot
+   * decide — and silently preferring one would make the other's failures
+   * impossible to explain.
+   */
+  .refine(
+    (input) => Boolean(input.qrToken) !== Boolean(input.registrationNumber),
+    {
+      message: 'Scan the vehicle code or enter its registration number, not both.',
+      path: ['registrationNumber'],
+    },
+  );
 export type RequestTerminalAssignmentInput = z.infer<
   typeof requestTerminalAssignmentSchema
 >;
@@ -512,6 +551,16 @@ export const terminalUpdateCheckSchema = z.object({
   versionCode: z.coerce.number().int().min(0).max(2_100_000_000).optional(),
   /** The tablet's Android API level, so a build it cannot install is not offered. */
   sdk: z.coerce.number().int().min(1).max(100).optional(),
+  /**
+   * Which app is asking.
+   *
+   * Sent by the app because nothing on the server can tell a driver's phone from
+   * a fitted tablet — both authenticate as a `VEHICLE_TERMINAL` device. Without
+   * it a phone would be offered the tablet's build, which would replace its
+   * sign-in with a kiosk. Optional so a build predating the driver app keeps
+   * working: absent means the terminal.
+   */
+  applicationId: z.string().trim().max(120).optional(),
 });
 export type TerminalUpdateCheckQuery = z.infer<typeof terminalUpdateCheckSchema>;
 

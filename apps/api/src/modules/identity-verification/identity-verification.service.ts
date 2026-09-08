@@ -17,6 +17,7 @@ import {
   type AadhaarRecord,
   type GstRecord,
   type IdentityRecord,
+  type DriverVerificationChecklist,
   type IdentityVerificationSummary,
   type PanRecord,
   type VerifyIdentityInput,
@@ -38,6 +39,7 @@ import {
 } from '../../providers/identity';
 import { AuditAction } from '../audit/audit.service';
 import { notifyAsync } from '../notifications/notification.service';
+import { syncDriverVerificationStatus } from '../verification/verification.service';
 import type { AuthContext } from '../../auth/context';
 
 /**
@@ -663,6 +665,13 @@ async function checkGstin(normalizedNumber: string): Promise<CheckResult> {
 
 export interface IdentityVerifyOutcome {
   summary: IdentityVerificationSummary;
+  /**
+   * For a driver: where they now stand against all four checks.
+   *
+   * A verified PAN is one of four, so the reply says what is still outstanding
+   * rather than letting a green tick on one number read as a verified driver.
+   */
+  driverChecklist: DriverVerificationChecklist | null;
   /** Audit metadata. Never contains the number or the holder's details. */
   audit: {
     verificationId: string;
@@ -750,6 +759,13 @@ export async function verifyIdentity(
 
     return {
       summary: toSummary(auth, relinked, { cached: true }),
+      // Still reported on a cache hit: the *driver's* other checks may have
+      // moved since this number was confirmed, and the caller is entitled to
+      // the current picture either way.
+      driverChecklist:
+        input.subjectType === VerificationSubjectType.DRIVER
+          ? await syncDriverVerificationStatus(input.subjectId, auth.user.id)
+          : null,
       audit: {
         verificationId: relinked.id,
         kind: input.kind,
@@ -839,8 +855,23 @@ export async function verifyIdentity(
 
   notifyIdentityOutcome(auth, input, subject, result);
 
+  /**
+   * Re-evaluate the driver against all four checks.
+   *
+   * This is what makes the fourth confirmation complete the set on its own: a
+   * driver whose licence, Aadhaar and PAN are already confirmed becomes
+   * verified the moment their Voter ID lands here, with no separate button to
+   * find. It runs on every outcome, not only a verified one, because a check
+   * that has stopped passing has to take the status down with it.
+   */
+  const driverChecklist =
+    input.subjectType === VerificationSubjectType.DRIVER
+      ? await syncDriverVerificationStatus(input.subjectId, auth.user.id)
+      : null;
+
   return {
     summary: toSummary(auth, row, { cached: false }),
+    driverChecklist,
     audit: {
       verificationId: row.id,
       kind: input.kind,

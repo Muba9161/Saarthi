@@ -57,7 +57,7 @@ async function announce(sessionId: string): Promise<void> {
     include: sessionInclude,
   });
   if (!session) return;
-  await invalidateTerminalState(session.terminalDeviceId);
+  if (session.terminalDeviceId) await invalidateTerminalState(session.terminalDeviceId);
   await broadcastTerminalSession(toSessionPayload(session)).catch((error: unknown) => {
     sweepLogger.warn({ err: error, sessionId }, 'Could not broadcast SLA change');
   });

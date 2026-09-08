@@ -460,6 +460,7 @@ export async function terminalClientRoutes(app: FastifyInstance): Promise<void> 
       await updateOfferFor({
         currentVersionCode: query.versionCode ?? null,
         deviceSdk: query.sdk ?? null,
+        ...(query.applicationId ? { applicationId: query.applicationId } : {}),
       }),
     );
   });
@@ -482,7 +483,9 @@ export async function terminalClientRoutes(app: FastifyInstance): Promise<void> 
     requireTerminal(await authenticateDeviceRequest(request));
     const { versionCode } = parseParams(terminalUpdateDownloadParamsSchema, request.params);
 
-    const release = await openPublishedRelease(versionCode);
+    // The app names itself, so a phone cannot be handed the tablet's build.
+    const applicationId = (request.query as { applicationId?: string }).applicationId;
+    const release = await openPublishedRelease(versionCode, applicationId);
 
     reply
       .header('content-type', 'application/vnd.android.package-archive')

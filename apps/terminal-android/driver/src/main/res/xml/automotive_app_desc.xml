@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  What Saarthi asks Android Auto for.
+
+  `template` only. Saarthi draws its car screens through the car app library's
+  templates, which is the one form Android Auto renders for a third party: the
+  host owns the layout, the type sizes and the interaction limits, and the app
+  supplies content. That is the point — a driving interface whose safety
+  properties are enforced by the platform rather than promised by us.
+
+  No media, no messaging, no projected activity.
+-->
+<automotiveApp>
+    <uses name="template" />
+</automotiveApp>

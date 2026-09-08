@@ -165,6 +165,8 @@ export const ta: Catalogue = {
   'Indian mobile number, with or without +91.': 'இந்திய கைபேசி எண், +91 உடன் அல்லது இல்லாமல்.',
   'Fleet invite code': 'வாகனத் தொகுப்பு அழைப்புக் குறியீடு',
   'Ask your truck owner for this code.': 'இந்தக் குறியீட்டை உங்கள் லாரி உரிமையாளரிடம் கேளுங்கள்.',
+  'No code yet? Leave it blank and join your fleet later.':
+    'இன்னும் குறியீடு இல்லையா? இதைக் காலியாக விடுங்கள், பிறகு உங்கள் வாகனத் தொகுப்பில் இணையலாம்.',
   'Driving licence number': 'ஓட்டுநர் உரிம எண்',
   'Saarthi creates this organization and makes you its administrator.':
     'Saarthi இந்த நிறுவனத்தை உருவாக்கி உங்களை அதன் நிர்வாகியாக்குகிறது.',

@@ -94,7 +94,7 @@ export async function toSessionView(
     driver,
     vehicleId: session.vehicleId,
     registrationNumber: session.vehicle.registrationNumber,
-    terminalDeviceId: session.terminalDeviceId,
+    terminalDeviceId: session.terminalDeviceId ?? null,
     requestedAt: session.requestedAt.toISOString(),
     submittedAt: session.submittedAt?.toISOString() ?? null,
     decidedAt: session.decidedAt?.toISOString() ?? null,
@@ -135,7 +135,7 @@ export function toSessionPayload(session: SessionRecord): TerminalSessionPayload
   return {
     sessionId: session.id,
     organizationId: session.organizationId,
-    terminalDeviceId: session.terminalDeviceId,
+    terminalDeviceId: session.terminalDeviceId ?? null,
     vehicleId: session.vehicleId,
     registrationNumber: session.vehicle.registrationNumber,
     driverId: session.driverId,

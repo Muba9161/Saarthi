@@ -30,13 +30,25 @@ import { ApkInspectionError, inspectApk, type ApkInfo } from './apk-inspector';
 const releaseLogger = logger.child({ module: 'terminal-release' });
 
 /**
- * The package a release must declare.
+ * The two apps this pipeline ships.
  *
- * A debug build has `.debug` appended to this and so is refused, which is the
- * intent: a debug APK carries the simulator and the developer tools, and it is
- * signed with a throwaway key that no fitted terminal will accept.
+ * Saarthi has a fitted-tablet app and a driver's-phone app. They share most of
+ * their code but are separate packages with separate version numbers, and a
+ * release of one must never be offered to the other — a phone that installed
+ * the terminal build would lose its sign-in, and a tablet that installed the
+ * driver build would lose its kiosk.
+ *
+ * A debug build has `.debug` appended and so matches neither, which is the
+ * intent: a debug APK carries the developer tools and is signed with a
+ * throwaway key that nothing in the field will accept.
  */
-const TERMINAL_APPLICATION_ID = 'com.saarthi.terminal';
+const SHIPPABLE_APPLICATION_IDS = ['com.saarthi.terminal', 'com.saarthi.driver'] as const;
+
+/** Which app an application id belongs to, for messages a person reads. */
+const APP_NAMES: Record<string, string> = {
+  'com.saarthi.terminal': 'Saarthi Terminal',
+  'com.saarthi.driver': 'Saarthi Driver',
+};
 
 /** Where release binaries live within the storage provider. */
 const RELEASE_PREFIX = 'terminal-releases';
@@ -97,11 +109,14 @@ export async function createRelease(input: {
     throw error;
   }
 
-  if (info.applicationId !== TERMINAL_APPLICATION_ID) {
+  if (!(SHIPPABLE_APPLICATION_IDS as readonly string[]).includes(info.applicationId)) {
+    const isDebug = SHIPPABLE_APPLICATION_IDS.some(
+      (id) => info.applicationId === `${id}.debug`,
+    );
     throw errors.validation(
-      `That APK is ${info.applicationId}, not the Saarthi Terminal (${TERMINAL_APPLICATION_ID}). ` +
-        (info.applicationId === `${TERMINAL_APPLICATION_ID}.debug`
-          ? 'It is a debug build — release builds are the only ones a terminal will accept.'
+      `That APK is ${info.applicationId}, which is not a Saarthi app. ` +
+        (isDebug
+          ? 'It is a debug build — release builds are the only ones a device will accept.'
           : 'Check which file you selected.'),
     );
   }
@@ -115,13 +130,14 @@ export async function createRelease(input: {
    * to be newest. Bumping the code is the only correct answer, and saying so
    * here is cheaper than the confusion of a silent replacement.
    */
-  const clash = await prisma.terminalRelease.findUnique({
-    where: { versionCode: info.versionCode },
+  const clash = await prisma.terminalRelease.findFirst({
+    where: { applicationId: info.applicationId, versionCode: info.versionCode },
     select: { id: true, versionName: true, status: true },
   });
   if (clash) {
     throw errors.conflict(
-      `Version code ${info.versionCode} is already uploaded as ${clash.versionName}. ` +
+      `${APP_NAMES[info.applicationId] ?? info.applicationId} version code ` +
+        `${info.versionCode} is already uploaded as ${clash.versionName}. ` +
         'Raise versionCode in build.gradle.kts and build again.',
     );
   }
@@ -174,13 +190,24 @@ export async function createRelease(input: {
 export async function publishRelease(id: string, publishedById: string): Promise<void> {
   const release = await prisma.terminalRelease.findUnique({
     where: { id },
-    select: { id: true, versionCode: true, versionName: true, status: true },
+    select: {
+      id: true,
+      versionCode: true,
+      versionName: true,
+      status: true,
+      applicationId: true,
+    },
   });
   if (!release) throw errors.notFound('Release');
   if (release.status === TerminalReleaseStatus.PUBLISHED) return;
 
+  // Scoped to the same app. Publishing a driver build must not be blocked by a
+  // higher-numbered terminal build, which is a different product entirely.
   const newest = await prisma.terminalRelease.findFirst({
-    where: { status: TerminalReleaseStatus.PUBLISHED },
+    where: {
+      applicationId: release.applicationId,
+      status: TerminalReleaseStatus.PUBLISHED,
+    },
     orderBy: { versionCode: 'desc' },
     select: { versionCode: true, versionName: true },
   });
@@ -250,9 +277,20 @@ export async function archiveRelease(id: string): Promise<void> {
 export async function updateOfferFor(input: {
   currentVersionCode: number | null;
   deviceSdk: number | null;
+  /**
+   * Which app is asking.
+   *
+   * Sent by the app itself, because nothing on the server can tell a phone from
+   * a tablet — both authenticate as a `VEHICLE_TERMINAL` device. Defaulted to
+   * the terminal so a build predating the driver app keeps working unchanged.
+   */
+  applicationId?: string;
 }): Promise<TerminalUpdateOffer | null> {
   const newest = await prisma.terminalRelease.findFirst({
-    where: { status: TerminalReleaseStatus.PUBLISHED },
+    where: {
+      applicationId: input.applicationId ?? 'com.saarthi.terminal',
+      status: TerminalReleaseStatus.PUBLISHED,
+    },
     orderBy: { versionCode: 'desc' },
     select: {
       versionCode: true,
@@ -290,14 +328,17 @@ export async function updateOfferFor(input: {
 }
 
 /** The stored bytes of the newest published release, for a terminal to download. */
-export async function openPublishedRelease(versionCode: number): Promise<{
+export async function openPublishedRelease(
+  versionCode: number,
+  applicationId = 'com.saarthi.terminal',
+): Promise<{
   stream: Awaited<ReturnType<typeof storageProvider.download>>['stream'];
   size: number;
   fileName: string;
   sha256: string;
 }> {
   const release = await prisma.terminalRelease.findFirst({
-    where: { versionCode, status: TerminalReleaseStatus.PUBLISHED },
+    where: { applicationId, versionCode, status: TerminalReleaseStatus.PUBLISHED },
     select: { storageKey: true, fileName: true, fileSize: true, sha256: true },
   });
   // Not found *or* not published reads the same on purpose: a device has no
@@ -313,6 +354,56 @@ export async function openPublishedRelease(versionCode: number): Promise<{
   };
 }
 
+/** The application id of the app a driver installs on their own phone. */
+export const DRIVER_APPLICATION_ID = 'com.saarthi.driver';
+
+/**
+ * The newest published driver app, for a signed-in driver to install.
+ *
+ * Separate from the device-facing download above, and authenticated as a
+ * *person* rather than a device — which is the whole point. A driver who has
+ * just registered on the web has no phone app yet, so they have no device
+ * credential either; the thing they need is exactly the thing they cannot yet
+ * ask for as a device.
+ *
+ * Returns null rather than throwing when nothing is published. A dashboard that
+ * showed a broken download button would be worse than one that shows none.
+ */
+export async function latestDriverApp(): Promise<{
+  versionName: string;
+  versionCode: number;
+  sizeBytes: number;
+  sha256: string;
+  notes: string | null;
+  publishedAt: Date | null;
+} | null> {
+  const release = await prisma.terminalRelease.findFirst({
+    where: {
+      applicationId: DRIVER_APPLICATION_ID,
+      status: TerminalReleaseStatus.PUBLISHED,
+    },
+    orderBy: { versionCode: 'desc' },
+    select: {
+      versionName: true,
+      versionCode: true,
+      fileSize: true,
+      sha256: true,
+      notes: true,
+      publishedAt: true,
+    },
+  });
+  if (!release) return null;
+
+  return {
+    versionName: release.versionName,
+    versionCode: release.versionCode,
+    sizeBytes: release.fileSize,
+    sha256: release.sha256,
+    notes: release.notes,
+    publishedAt: release.publishedAt,
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Administration
 // ---------------------------------------------------------------------------
@@ -321,6 +412,7 @@ export async function openPublishedRelease(versionCode: number): Promise<{
 export async function listReleases(): Promise<
   {
     id: string;
+    applicationId: string;
     versionCode: number;
     versionName: string;
     status: TerminalReleaseStatus;
@@ -338,6 +430,7 @@ export async function listReleases(): Promise<
     orderBy: { versionCode: 'desc' },
     select: {
       id: true,
+      applicationId: true,
       versionCode: true,
       versionName: true,
       status: true,

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Saarthi Terminal</string>
+    <string name="app_name_short">Saarthi</string>
+
+    <string name="service_channel_name">Vehicle terminal</string>
+    <string name="service_channel_description">Shown while this terminal is reporting for its vehicle.</string>
+
+    <!-- Overrides the shared default: this one is bolted into a vehicle. -->
+    <string name="service_title">Saarthi Terminal</string>
+</resources>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Saarthi Driver</string>
+    <string name="app_name_short">Saarthi</string>
+
+    <string name="service_channel_name">Trip reporting</string>
+    <string name="service_channel_description">Shown while Saarthi is reporting for the vehicle you are signed on to.</string>
+
+    <!-- Overrides the shared default: a driver's own phone, not a fitted unit. -->
+    <string name="service_title">Saarthi</string>
+</resources>

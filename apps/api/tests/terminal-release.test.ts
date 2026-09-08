@@ -1,13 +1,15 @@
-import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { TerminalReleaseStatus } from '@saarthi/shared';
 import { prisma } from '../src/database/prisma';
 import {
   archiveRelease,
   createRelease,
+  latestDriverApp,
   publishRelease,
   updateOfferFor,
 } from '../src/modules/terminal/release.service';
 import { apk } from './apk-fixture';
+import { unique } from './helpers';
 
 /**
  * Getting a build onto vehicles.
@@ -27,15 +29,45 @@ describe('terminal releases', () => {
    * disconnects the shared Prisma client out from under whichever file runs
    * next. Opening a connection is all that is needed.
    */
-  beforeAll(async () => {
+  /*
+   * Connected before every test, not once before the file.
+   *
+   * Other suites in this project boot Fastify and close it again, and `closeApp`
+   * disconnects the *shared* Prisma client — so whichever file runs next finds a
+   * dead engine partway through, with "Engine is not yet connected" instead of
+   * anything to do with the code under test. A `beforeAll` reconnect is not
+   * enough because the disconnect can land after it. Connecting an already
+   * connected client is free.
+   */
+  beforeEach(async () => {
     await prisma.$connect();
   });
 
   beforeEach(async () => {
     await prisma.terminalRelease.deleteMany();
-    const user = await prisma.user.findFirst({ select: { id: true } });
-    if (!user) throw new Error('The seeded database has no users.');
-    uploaderId = user.id;
+
+    /*
+     * This suite makes its own uploader rather than borrowing a seeded one.
+     *
+     * It used to call `findFirst` on users, which passed alone and failed the
+     * moment a neighbouring file ran first: several suites truncate `users` in
+     * their own setup and do not re-seed, so "the first user" is whatever the
+     * previous file happened to leave behind — or nothing at all. A test whose
+     * result depends on its neighbours is worse than no test, because it fails
+     * for a reason that has nothing to do with the code under test.
+     */
+    const existing = await prisma.user.findFirst({ select: { id: true } });
+    uploaderId = existing?.id ?? (
+      await prisma.user.create({
+        data: {
+          email: unique('release-uploader') + '@saarthi.local',
+          passwordHash: 'not-used-by-these-tests',
+          firstName: 'Release',
+          lastName: 'Uploader',
+        },
+        select: { id: true },
+      })
+    ).id;
   });
 
   /** Upload a build, as the admin console would. */
@@ -200,6 +232,94 @@ describe('terminal releases', () => {
     await publishRelease(id, uploaderId);
 
     expect((await updateOfferFor({ currentVersionCode: 14, deviceSdk: 33 }))?.mandatory).toBe(true);
+  });
+
+  // -------------------------------------------------------------------------
+  // Two apps, one pipeline
+  // -------------------------------------------------------------------------
+
+  it("never offers one app the other app's build", async () => {
+    /*
+     * The rule with the worst consequence if broken.
+     *
+     * The tablet app and the driver app are separate packages that both start
+     * at version code 1. A phone handed the terminal build would lose its
+     * sign-in and gain a kiosk; a tablet handed the driver build would lose its
+     * kiosk and be asked for an email address. Neither is recoverable from the
+     * cab.
+     */
+    const tablet = await upload({ versionCode: 40, versionName: '2.0.0' });
+    const phone = await upload({
+      versionCode: 40,
+      versionName: '9.9.9',
+      packageName: 'com.saarthi.driver',
+    });
+    await publishRelease(tablet, uploaderId);
+    await publishRelease(phone, uploaderId);
+
+    const forTablet = await updateOfferFor({
+      currentVersionCode: 1,
+      deviceSdk: 33,
+      applicationId: 'com.saarthi.terminal',
+    });
+    const forPhone = await updateOfferFor({
+      currentVersionCode: 1,
+      deviceSdk: 33,
+      applicationId: 'com.saarthi.driver',
+    });
+
+    expect(forTablet?.versionName).toBe('2.0.0');
+    expect(forPhone?.versionName).toBe('9.9.9');
+  });
+
+  it('lets both apps use the same version code', async () => {
+    // They are independent packages. A driver build must not be blocked
+    // because a tablet build happens to share a number.
+    await upload({ versionCode: 7 });
+    await expect(
+      upload({ versionCode: 7, packageName: 'com.saarthi.driver' }),
+    ).resolves.toBeTruthy();
+  });
+
+  it('offers the terminal build to a device that does not say which app it is', async () => {
+    // A build predating the driver app sends no application id. Reading that
+    // silence as "the driver app" would push a phone build onto every fitted
+    // tablet in the field.
+    const tablet = await upload({ versionCode: 50, versionName: '3.0.0' });
+    await publishRelease(tablet, uploaderId);
+
+    const offer = await updateOfferFor({ currentVersionCode: 1, deviceSdk: 33 });
+    expect(offer?.versionName).toBe('3.0.0');
+  });
+
+  it('gives a driver the newest published driver app, and nothing else', async () => {
+    const tablet = await upload({ versionCode: 60, versionName: '4.0.0' });
+    const oldPhone = await upload({
+      versionCode: 3,
+      versionName: '1.3.0',
+      packageName: 'com.saarthi.driver',
+    });
+    const newPhone = await upload({
+      versionCode: 4,
+      versionName: '1.4.0',
+      packageName: 'com.saarthi.driver',
+    });
+    await publishRelease(tablet, uploaderId);
+    await publishRelease(oldPhone, uploaderId);
+    await publishRelease(newPhone, uploaderId);
+
+    const app = await latestDriverApp();
+    expect(app?.versionName).toBe('1.4.0');
+  });
+
+  it('offers a driver nothing until a driver build is published', async () => {
+    // A dashboard showing a download button that fails would be worse than one
+    // showing none, so this is null rather than a throw.
+    const tablet = await upload({ versionCode: 70 });
+    await publishRelease(tablet, uploaderId);
+    await upload({ versionCode: 5, packageName: 'com.saarthi.driver' });
+
+    expect(await latestDriverApp()).toBeNull();
   });
 
   it('publishing twice is not an error', async () => {

@@ -168,6 +168,8 @@ export const sa: Catalogue = {
   'Indian mobile number, with or without +91.': 'भारतीयः चलभाषक्रमाङ्कः, +91 सहितः रहितः वा।',
   'Fleet invite code': 'यानसमूह-आमन्त्रणसङ्केतः',
   'Ask your truck owner for this code.': 'एनं सङ्केतं स्वभारयानस्वामिनः प्राप्नोतु।',
+  'No code yet? Leave it blank and join your fleet later.':
+    'सङ्केतः अद्यापि नास्ति? रिक्तं त्यजतु, अनन्तरं स्वयानसमूहे संयोक्तुं शक्यते।',
   'Driving licence number': 'चालन-अनुज्ञापत्रक्रमाङ्कः',
   'Saarthi creates this organization and makes you its administrator.':
     'Saarthi एतां संस्थां रचयति भवन्तं च तस्याः प्रशासकं करोति।',

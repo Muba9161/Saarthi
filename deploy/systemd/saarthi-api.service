@@ -1,0 +1,52 @@
+[Unit]
+Description=Saarthi API (Fastify + Prisma + WebSockets)
+Documentation=https://github.com/Muba9161/Saarthi
+After=network-online.target postgresql.service redis-server.service
+Wants=network-online.target redis-server.service
+Requires=postgresql.service
+
+[Service]
+Type=simple
+User=saarthi
+Group=saarthi
+WorkingDirectory=/opt/saarthi
+ExecStart=/usr/bin/node apps/api/dist/main.js
+Restart=always
+RestartSec=5
+
+# The API installs SIGTERM/SIGINT handlers in main.ts that drain the queue,
+# stop the simulator and close Prisma. Give that a real window before SIGKILL.
+KillSignal=SIGTERM
+TimeoutStopSec=30
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=saarthi-api
+
+# Node reads .env from the repo root itself (config/env.ts walks up to the
+# workspace package.json), so no EnvironmentFile is needed here. NODE_ENV is
+# set in .env alongside every other setting, in one place.
+
+# --- Hardening -------------------------------------------------------------
+# ProtectSystem=strict makes the whole filesystem read-only except ReadWritePaths.
+# The app only ever writes uploaded documents and media, which live outside the
+# code tree at /var/lib/saarthi — so a compromised process cannot rewrite its
+# own source.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/saarthi
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+LockPersonality=true
+
+# Resource ceilings — a runaway process should not take the database with it.
+MemoryMax=3G
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target

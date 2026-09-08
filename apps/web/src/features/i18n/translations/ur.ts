@@ -163,6 +163,8 @@ export const ur: Catalogue = {
   'Indian mobile number, with or without +91.': 'بھارتی موبائل نمبر، +91 کے ساتھ یا بغیر۔',
   'Fleet invite code': 'بیڑا دعوتی کوڈ',
   'Ask your truck owner for this code.': 'یہ کوڈ اپنے ٹرک مالک سے لیں۔',
+  'No code yet? Leave it blank and join your fleet later.':
+    'ابھی کوڈ نہیں ہے؟ اسے خالی چھوڑ دیں، بعد میں اپنے بیڑے میں شامل ہو سکتے ہیں۔',
   'Driving licence number': 'ڈرائیونگ لائسنس نمبر',
   'Saarthi creates this organization and makes you its administrator.':
     'Saarthi یہ ادارہ بناتا ہے اور آپ کو اس کا منتظم بناتا ہے۔',

@@ -1,5 +1,4 @@
 import {
-  DRIVER_JOINABLE_ORGANIZATION_TYPES,
   MembershipStatus,
   OrganizationType,
   PlanTier,
@@ -30,6 +29,7 @@ import {
 import { buildSessionPayload, loadUser, resolveActiveMembership } from './session.service';
 import { createDefaultSubscription } from '../modules/subscriptions/entitlements.service';
 import { provisionDriverCodeOnRegistration } from '../modules/qr/qr.service';
+import { resolveJoinableFleet } from '../modules/organizations/fleet-invite.service';
 import { AuditAction, recordAudit } from '../modules/audit/audit.service';
 
 /**
@@ -158,25 +158,36 @@ export async function register(input: RegisterInput, meta: RequestMeta) {
     let driverId: string | null = null;
 
     if (input.role === RoleName.DRIVER) {
-      // A driver joins an existing fleet using its invite code.
       const code = (input.fleetInviteCode ?? '').trim().toUpperCase();
-      const fleet = await tx.organization.findUnique({ where: { inviteCode: code } });
-      if (!fleet || fleet.archivedAt) {
-        throw errors.validation('That fleet invite code is not valid.', {
-          fields: { fleetInviteCode: ['That fleet invite code is not valid.'] },
-        });
-      }
-      // A taxi or tour operator employs drivers exactly as a freight fleet does,
-      // so its invite code is honoured here too — see
-      // DRIVER_JOINABLE_ORGANIZATION_TYPES.
-      if (!DRIVER_JOINABLE_ORGANIZATION_TYPES.includes(fleet.type)) {
-        throw errors.validation('That invite code does not belong to an employer of drivers.', {
-          fields: {
-            fleetInviteCode: ['That invite code does not belong to an employer of drivers.'],
+
+      if (code) {
+        // A driver who has their employer's code joins that fleet directly.
+        const fleet = await resolveJoinableFleet(code, tx);
+        organizationId = fleet.id;
+      } else {
+        /*
+         * No code: the driver is signing up before an employer has one for
+         * them, which is the commonest way a driver arrives.
+         *
+         * They still need an organization — every membership, driver row,
+         * document and QR badge hangs off one — so they get a single-member
+         * organization carrying their own name, exactly as an individual
+         * customer does below. It is a seat, not a business: no Pro trial is
+         * started on it, and `joinFleet` re-parents the driver out of it and
+         * archives it the moment a real fleet's code is entered.
+         */
+        const personal = await tx.organization.create({
+          data: {
+            name: `${input.firstName} ${input.lastName}`.trim(),
+            type: OrganizationType.FLEET_OWNER,
+            email: input.email,
+            phone: input.phone,
+            inviteCode: await uniqueInviteCode(tx),
+            verificationStatus: VerificationStatus.PENDING,
           },
         });
+        organizationId = personal.id;
       }
-      organizationId = fleet.id;
 
       const duplicateLicence = await tx.driver.findFirst({
         where: { organizationId, licenseNumber: input.licenseNumber! },

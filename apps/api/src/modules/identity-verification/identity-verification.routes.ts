@@ -83,7 +83,10 @@ export async function identityVerificationRoutes(app: FastifyInstance): Promise<
     async (request, reply) => {
       const auth = requireAuth(request);
       const input = parseBody(verifyIdentitySchema, request.body);
-      const { summary, audit } = await identityService.verifyIdentity(auth, input);
+      const { summary, audit, driverChecklist } = await identityService.verifyIdentity(
+        auth,
+        input,
+      );
 
       await auditFromRequest(request, {
         action: AuditAction.IDENTITY_VERIFICATION_CHECKED,
@@ -105,7 +108,10 @@ export async function identityVerificationRoutes(app: FastifyInstance): Promise<
         },
       });
 
-      return ok(reply, summary);
+      // The check's own result, plus where the driver now stands against all
+      // four — so the client can say "PAN confirmed, Voter ID still needed"
+      // from one reply instead of refetching to find out.
+      return ok(reply, { ...summary, driverChecklist });
     },
   );
 }

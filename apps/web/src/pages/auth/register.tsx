@@ -524,12 +524,15 @@ export function RegisterPage() {
           fields: ['fleetInviteCode', 'licenseNumber'],
           content: (
             <>
+              {/* Optional: a driver who has not been given a code yet still
+                  gets an account, and enters one later from their own home
+                  screen. Only the licence is actually required here. */}
               <FormField
                 control={form.control}
                 name="fleetInviteCode"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel required>{t('Fleet invite code')}</FormLabel>
+                    <FormLabel>{t('Fleet invite code')}</FormLabel>
                     <FormControl>
                       <Input
                         {...field}
@@ -538,7 +541,13 @@ export function RegisterPage() {
                         className="h-10 font-mono uppercase tracking-wider"
                       />
                     </FormControl>
-                    <FormDescription>{t('Ask your truck owner for this code.')}</FormDescription>
+                    {/* Two sentences, two keys: the first is already
+                        translated in every language, and rewording it to carry
+                        the second would have orphaned all eighteen. */}
+                    <FormDescription>
+                      {t('Ask your truck owner for this code.')}{' '}
+                      {t('No code yet? Leave it blank and join your fleet later.')}
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

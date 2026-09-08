@@ -323,6 +323,116 @@ describe('Authentication', () => {
       expect(body.data.session.permissions).not.toContain('fleet.trucks.create');
     });
 
+    it('registers a driver with no invite code into a seat of their own', async () => {
+      const { status, body } = await request<{
+        accessToken: string;
+        session: SessionPayload;
+      }>({
+        method: 'POST',
+        url: '/api/v1/auth/register',
+        payload: {
+          firstName: 'Suresh',
+          lastName: 'Yadav',
+          email: `${unique('solodriver')}@test.local`,
+          phone: uniquePhone(),
+          password: TEST_PASSWORD,
+          role: RoleName.DRIVER,
+          licenseNumber: unique('DL-'),
+          acceptedTerms: true,
+        },
+      });
+
+      expect(status).toBe(201);
+      expect(body.data.session.driver).not.toBeNull();
+      // Seated in an organization of their own, named after them, and told
+      // plainly that nobody employs them yet.
+      expect(body.data.session.organization?.name).toBe('Suresh Yadav');
+      expect(body.data.session.driver?.awaitingFleet).toBe(true);
+      // A seat is not a business: no trial is started on it.
+      const subscription = await prisma.subscription.findUnique({
+        where: { organizationId: body.data.session.organization?.id ?? '' },
+      });
+      expect(subscription).toBeNull();
+    });
+
+    it('lets a driver who registered without a code join a fleet later', async () => {
+      const fleet = await createOrganization(OrganizationType.FLEET_OWNER);
+      // A real fleet has an owner in it; that is what makes it an employer.
+      await createUser({ role: RoleName.FLEET_OWNER, organizationId: fleet.id });
+
+      const registration = await request<{
+        accessToken: string;
+        session: SessionPayload;
+      }>({
+        method: 'POST',
+        url: '/api/v1/auth/register',
+        payload: {
+          firstName: 'Anil',
+          lastName: 'Sharma',
+          email: `${unique('joiner')}@test.local`,
+          phone: uniquePhone(),
+          password: TEST_PASSWORD,
+          role: RoleName.DRIVER,
+          licenseNumber: unique('DL-'),
+          acceptedTerms: true,
+        },
+      });
+      expect(registration.status).toBe(201);
+
+      const seatId = registration.body.data.session.organization?.id;
+      const driverId = registration.body.data.session.driver?.id;
+      const token = registration.body.data.accessToken;
+
+      const joined = await request<{ session: SessionPayload }>({
+        method: 'POST',
+        url: '/api/v1/drivers/me/fleet',
+        headers: { authorization: `Bearer ${token}` },
+        payload: { fleetInviteCode: fleet.inviteCode.toLowerCase() },
+      });
+
+      expect(joined.status).toBe(200);
+      // The reply is a session pointing at the fleet, because the driver's
+      // tenant changed with the move.
+      expect(joined.body.data.session.organization?.id).toBe(fleet.id);
+      expect(joined.body.data.session.driver?.awaitingFleet).toBe(false);
+
+      const driver = await prisma.driver.findUniqueOrThrow({ where: { id: driverId ?? '' } });
+      expect(driver.organizationId).toBe(fleet.id);
+
+      const memberships = await prisma.membership.findMany({
+        where: { userId: driver.userId },
+      });
+      expect(memberships).toHaveLength(1);
+      expect(memberships[0]?.organizationId).toBe(fleet.id);
+
+      // The seat they came from is empty, so it is closed behind them.
+      const seat = await prisma.organization.findUniqueOrThrow({ where: { id: seatId ?? '' } });
+      expect(seat.archivedAt).not.toBeNull();
+    });
+
+    it('refuses to move a driver who already belongs to a fleet', async () => {
+      const fleet = await createOrganization(OrganizationType.FLEET_OWNER);
+      await createUser({ role: RoleName.FLEET_OWNER, organizationId: fleet.id });
+      const employed = await createUser({
+        role: RoleName.DRIVER,
+        organizationId: fleet.id,
+        driver: true,
+      });
+
+      const other = await createOrganization(OrganizationType.FLEET_OWNER);
+      await createUser({ role: RoleName.FLEET_OWNER, organizationId: other.id });
+
+      const { status, body } = await request({
+        method: 'POST',
+        url: '/api/v1/drivers/me/fleet',
+        user: employed,
+        payload: { fleetInviteCode: other.inviteCode },
+      });
+
+      expect(status).toBe(400);
+      expect(body.error?.message).toMatch(/already belong/i);
+    });
+
     it('rejects a driver registration with an unknown invite code', async () => {
       const { status, body } = await request({
         method: 'POST',

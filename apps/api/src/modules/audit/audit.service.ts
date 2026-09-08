@@ -129,6 +129,8 @@ export const AuditAction = {
 
   DRIVER_CREATED: 'driver.created',
   DRIVER_UPDATED: 'driver.updated',
+  /** A driver attached themselves to a fleet with its invite code. */
+  DRIVER_JOINED_FLEET: 'driver.joined_fleet',
   DRIVER_SCORE_ADJUSTED: 'driver.score_adjusted',
 
   DOCUMENT_UPLOADED: 'document.uploaded',

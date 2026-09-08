@@ -163,6 +163,8 @@ export const bn: Catalogue = {
   'Indian mobile number, with or without +91.': 'ভারতীয় মোবাইল নম্বর, +91 সহ বা ছাড়া।',
   'Fleet invite code': 'বহর আমন্ত্রণ কোড',
   'Ask your truck owner for this code.': 'এই কোডটি আপনার ট্রক মালিকের কাছ থেকে নিন।',
+  'No code yet? Leave it blank and join your fleet later.':
+    'এখনও কোড নেই? এটি খালি রাখুন, পরে আপনার বহরে যোগ দিতে পারবেন।',
   'Driving licence number': 'ড্রাইভিং লাইসেন্স নম্বর',
   'Saarthi creates this organization and makes you its administrator.':
     'Saarthi এই সংস্থাটি তৈরি করে এবং আপনাকে এর প্রশাসক করে।',

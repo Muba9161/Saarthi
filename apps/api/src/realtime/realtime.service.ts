@@ -358,13 +358,25 @@ export async function broadcastDeviceCommand(payload: DeviceCommandPayload): Pro
 export async function broadcastTerminalSession(
   payload: TerminalSessionPayload,
 ): Promise<void> {
+  /*
+   * The device channel exists only when there is a device.
+   *
+   * A driver's phone waiting for approval has not been paired to the vehicle
+   * yet, so there is nothing subscribed to a device channel and no channel name
+   * to build. The fleet channel below still carries the update, which is the
+   * one that matters here — it is the fleet that is about to decide.
+   */
+  const deviceChannel = payload.terminalDeviceId
+    ? RealtimeChannel.device(payload.terminalDeviceId)
+    : RealtimeChannel.fleet(payload.organizationId);
+
   const message: ChannelMessage = {
     type: RealtimeEvent.TERMINAL_SESSION_UPDATED,
-    channel: RealtimeChannel.device(payload.terminalDeviceId),
+    channel: deviceChannel,
     payload,
   };
 
-  await publish(RealtimeChannel.device(payload.terminalDeviceId), message);
+  if (payload.terminalDeviceId) await publish(deviceChannel, message);
   await publish(
     RealtimeChannel.fleet(payload.organizationId),
     retarget(message, RealtimeChannel.fleet(payload.organizationId)),

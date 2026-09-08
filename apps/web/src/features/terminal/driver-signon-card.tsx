@@ -57,8 +57,12 @@ const STATUS_COPY: Record<string, { title: string; body: string }> = {
     body: 'Complete the vehicle safety check on the terminal before starting your trip.',
   },
   READY: {
-    title: 'Ready to drive',
-    body: 'The safety check is done. Everything else is on the terminal.',
+    title: 'Signed on',
+    body: 'You are signed on to this vehicle and ready to drive. Start your trip from the app in the cab.',
+  },
+  TRIP_COMPLETED: {
+    title: 'Trip finished',
+    body: 'You are still signed on to this vehicle. Sign off in the app when your shift ends.',
   },
   TRIP_ACTIVE: {
     title: 'Trip under way',

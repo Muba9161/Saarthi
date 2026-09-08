@@ -11,8 +11,10 @@ import {
 
 /**
  * Registration is role-driven: the account type decides which organization is
- * created alongside the user. Drivers join an existing fleet by invite code
- * rather than creating an organization of their own.
+ * created alongside the user. A driver may name their employer's fleet with an
+ * invite code, but is not required to: somebody downloading Saarthi before an
+ * owner has a code for them still gets an account, and joins a fleet later
+ * from their own home screen (`joinFleetSchema`).
  */
 export const registrableRoleSchema = z.enum([
   RoleName.FLEET_OWNER,
@@ -34,8 +36,10 @@ export type RegistrableRole = z.infer<typeof registrableRoleSchema>;
  * memberships, orders and bookings all hang off one; it is simply named after
  * them (see `registerUser`).
  *
- * Drivers are absent for a different reason: they join an existing fleet by
- * invite code and create no organization at all.
+ * Drivers are absent for a different reason: they are asked for a licence
+ * rather than a business. A driver who names a fleet by invite code joins that
+ * organization; one who does not is seated in a single-member organization
+ * carrying their own name, exactly as an individual customer is.
  */
 export const ORGANIZATION_NAME_REQUIRED_ROLES: readonly RegistrableRole[] = [
   RoleName.FLEET_OWNER,
@@ -91,7 +95,15 @@ export const registerSchema = z
     organizationName: optionalTrimmedString(160),
     /** Optional business registration number for the new organization. */
     registrationNumber: optionalTrimmedString(60),
-    /** Drivers join an existing fleet using the owner's invite code. */
+    /**
+     * The employer's invite code, for a driver who already has one.
+     *
+     * Optional on purpose. Requiring it made registration impossible for the
+     * driver who finds Saarthi first and the owner second — the commonest way
+     * a driver arrives — and there was nothing useful to tell them but "go and
+     * ask". Left blank, the account is created unattached and the same code is
+     * accepted later from the driver's home screen; see `joinFleetSchema`.
+     */
     fleetInviteCode: optionalTrimmedString(32),
     /** Required for DRIVER — the commercial driving licence number. */
     licenseNumber: optionalTrimmedString(40),
@@ -109,13 +121,9 @@ export const registerSchema = z
       });
     }
     if (value.role === RoleName.DRIVER) {
-      if (!value.fleetInviteCode) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['fleetInviteCode'],
-          message: 'Enter the fleet invite code provided by your truck owner.',
-        });
-      }
+      // No check on `fleetInviteCode`: it is optional, and a code that is
+      // given but wrong is rejected by the API, which is the only side that
+      // can tell a real fleet from a typo.
       if (!value.licenseNumber) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,

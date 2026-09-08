@@ -537,7 +537,9 @@ export function RegistrationTutorial({
       case 'organization':
         return values.organizationName || t('Left blank — the account will carry your own name');
       case 'fleet-code':
-        return values.fleetInviteCode ?? '';
+        return (
+          values.fleetInviteCode || t('Skipped — you can join your fleet from your home screen')
+        );
       case 'licence':
         return values.licenseNumber ?? '';
       case 'password':
@@ -1118,7 +1120,7 @@ function QuestionScreen({
           name="fleetInviteCode"
           render={({ field }) => (
             <FormItem>
-              <FormLabel required>{t('Fleet invite code')}</FormLabel>
+              <FormLabel required={!question.optional}>{t('Fleet invite code')}</FormLabel>
               <FormControl>
                 <Input
                   {...field}

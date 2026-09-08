@@ -31,5 +31,20 @@ dependencyResolutionManagement {
 // cadences — one is a developer's test harness, the other is fitted to a
 // customer's vehicle — and a shared build would make every terminal release
 // wait on the test app compiling.
-rootProject.name = "saarthi-terminal"
-include(":app")
+/*
+ * Three projects, not one.
+ *
+ * `:core` is the job — telemetry, map, cockpit, checklist, trips, updates — and
+ * the two apps are the ways a person reaches it. A tablet is paired to a truck
+ * by a fitter and identifies its driver on arrival; a phone is signed in to by
+ * the driver, who then scans the truck. Everything after that point is the same
+ * work, and it is written once.
+ *
+ * The alternative was a second copy of eighteen thousand lines, which would
+ * have diverged at the first bug fixed in only one of them.
+ */
+rootProject.name = "saarthi-android"
+include(":core")
+include(":terminal")
+include(":driver")
+

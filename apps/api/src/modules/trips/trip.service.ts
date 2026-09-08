@@ -19,6 +19,7 @@ import {
   type TripListQuery,
   type TripTransitionInput,
   type UpdateTripInput,
+  TerminalSessionStatus,
 } from '@saarthi/shared';
 import { type Prisma, prisma } from '../../database/prisma';
 import { errors } from '../../lib/errors';
@@ -746,6 +747,32 @@ export async function transitionTrip(
           status: truckStatus,
           ...(isComplete || isCancel ? { currentTripId: null } : { currentTripId: tripId }),
         },
+      });
+    }
+
+    /*
+     * A trip can be finished from two places, and both have to agree.
+     *
+     * The terminal's own `completeTrip` returns the driver's session from
+     * TRIP_ACTIVE to READY — still signed on to the vehicle, no longer driving.
+     * A dispatcher closing the same trip from the web went through this service
+     * instead, which never touched the session, so it stayed TRIP_ACTIVE for
+     * ever: the driver's dashboard said "Trip under way" while the panel below
+     * it said "No active trip", and nothing but signing off would clear it.
+     *
+     * Scoped to this vehicle's currently-driving session, so a dispatcher
+     * closing an old trip cannot interrupt a driver who has since signed on and
+     * started another one. `updateMany` matching nothing is the right outcome
+     * there, not an error.
+     */
+    if (isComplete || isCancel) {
+      await tx.terminalSession.updateMany({
+        where: {
+          vehicleId: trip.truckId,
+          status: TerminalSessionStatus.TRIP_ACTIVE,
+          ...(trip.driverId ? { driverId: trip.driverId } : {}),
+        },
+        data: { status: TerminalSessionStatus.READY, tripCompletedAt: now },
       });
     }
 

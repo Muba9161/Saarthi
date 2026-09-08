@@ -164,6 +164,8 @@ export const kok: Catalogue = {
   'Indian mobile number, with or without +91.': 'भारतीय मोबायल क्रमांक, +91 सयत वा बगर.',
   'Fleet invite code': 'वाहनसमूह आमंत्रण कोड',
   'Ask your truck owner for this code.': 'हो कोड तुमच्या ट्रक मालका कडेन मागात.',
+  'No code yet? Leave it blank and join your fleet later.':
+    'आजून कोड ना? हें रिकामें सोडात, मागीर तुमच्या वाहनसमूहांत भर्ती जावं येता.',
   'Driving licence number': 'ड्रायव्हिंग परवानो क्रमांक',
   'Saarthi creates this organization and makes you its administrator.':
     'Saarthi ही संस्था तयार करता आनी तुमकां तिचो प्रशासक करता.',

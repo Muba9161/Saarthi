@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Words the shared code puts on screen.
+
+  The reporting notification lives here because the service does. Each app still
+  owns its own `app_name` and channel description — a driver's phone reporting
+  "Saarthi Terminal" would name a product they have never seen.
+-->
+<resources>
+    <!--
+      The notification is the privacy notice.
+
+      It is the one surface a person in the cab reliably sees, and it cannot be
+      dismissed while the service runs. The vehicle is named so it is obvious
+      which one is being reported for — a device that has been moved between
+      trucks and not re-paired is a real failure, and this is where it becomes
+      visible.
+
+      Overridable: each app supplies its own title, so the phone says Saarthi and
+      the fitted tablet says Saarthi Terminal.
+    -->
+    <string name="service_title">Saarthi</string>
+    <string name="service_text_paired">Reporting position and vehicle data for %1$s.</string>
+    <string name="service_text_unpaired">Not connected to a vehicle.</string>
+    <string name="service_action_stop">Stop</string>
+</resources>

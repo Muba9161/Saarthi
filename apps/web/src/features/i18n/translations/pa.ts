@@ -164,6 +164,8 @@ export const pa: Catalogue = {
   'Indian mobile number, with or without +91.': 'ਭਾਰਤੀ ਮੋਬਾਈਲ ਨੰਬਰ, +91 ਨਾਲ ਜਾਂ ਬਿਨਾਂ।',
   'Fleet invite code': 'ਬੇੜਾ ਸੱਦਾ ਕੋਡ',
   'Ask your truck owner for this code.': 'ਇਹ ਕੋਡ ਆਪਣੇ ਟਰੱਕ ਮਾਲਕ ਤੋਂ ਲਵੋ।',
+  'No code yet? Leave it blank and join your fleet later.':
+    'ਹਾਲੇ ਕੋਡ ਨਹੀਂ? ਇਸਨੂੰ ਖਾਲੀ ਛੱਡੋ, ਬਾਅਦ ਵਿੱਚ ਆਪਣੇ ਬੇੜੇ ਵਿੱਚ ਸ਼ਾਮਲ ਹੋ ਸਕਦੇ ਹੋ।',
   'Driving licence number': 'ਡਰਾਈਵਿੰਗ ਲਾਇਸੰਸ ਨੰਬਰ',
   'Saarthi creates this organization and makes you its administrator.':
     'Saarthi ਇਹ ਸੰਸਥਾ ਬਣਾਉਂਦਾ ਹੈ ਅਤੇ ਤੁਹਾਨੂੰ ਇਸ ਦਾ ਪ੍ਰਸ਼ਾਸਕ ਬਣਾਉਂਦਾ ਹੈ।',

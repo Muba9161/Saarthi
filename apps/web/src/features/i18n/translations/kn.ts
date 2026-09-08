@@ -163,6 +163,8 @@ export const kn: Catalogue = {
   'Indian mobile number, with or without +91.': 'ಭಾರತೀಯ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ, +91 ಸಹಿತ ಅಥವಾ ರಹಿತ.',
   'Fleet invite code': 'ವಾಹನ ಸಮೂಹ ಆಹ್ವಾನ ಕೋಡ್',
   'Ask your truck owner for this code.': 'ಈ ಕೋಡ್ ಅನ್ನು ನಿಮ್ಮ ಟ್ರಕ್ ಮಾಲೀಕರಿಂದ ಪಡೆಯಿರಿ.',
+  'No code yet? Leave it blank and join your fleet later.':
+    'ಇನ್ನೂ ಕೋಡ್ ಇಲ್ಲವೇ? ಇದನ್ನು ಖಾಲಿ ಬಿಡಿ, ನಂತರ ನಿಮ್ಮ ವಾಹನ ಸಮೂಹಕ್ಕೆ ಸೇರಬಹುದು.',
   'Driving licence number': 'ಚಾಲನಾ ಪರವಾನಗಿ ಸಂಖ್ಯೆ',
   'Saarthi creates this organization and makes you its administrator.':
     'Saarthi ಈ ಸಂಸ್ಥೆಯನ್ನು ರಚಿಸಿ ನಿಮ್ಮನ್ನು ಅದರ ನಿರ್ವಾಹಕರನ್ನಾಗಿ ಮಾಡುತ್ತದೆ.',

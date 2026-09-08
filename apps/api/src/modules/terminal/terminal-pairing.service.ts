@@ -1,7 +1,9 @@
 import { randomInt } from 'node:crypto';
 import {
+  AUTHORIZED_TERMINAL_SESSION_STATUSES,
   DeviceType,
   TERMINAL_PAIRING_CODE_PREFIX,
+  TerminalSessionStatus,
   normalizeTerminalPairingCode,
   type CreateTerminalPairingTokenInput,
   type PairTerminalInput,
@@ -17,6 +19,7 @@ import {
   type PairingResult,
 } from '../devices/pairing.service';
 import type { DeviceCaller } from '../devices/device-auth';
+import { assertTenantAccess } from '../../server/guards';
 import type { AuthContext } from '../../auth/context';
 
 /**
@@ -90,12 +93,21 @@ export async function createTerminalPairing(
   vehicleId: string,
   input: CreateTerminalPairingTokenInput,
   apiUrl: string,
+  /**
+   * Whether the pairing this creates ends with the driver's shift.
+   *
+   * False for the fitted-tablet path, which is every caller but one: a tablet
+   * is bolted to the truck and stays with it between drivers. True only for a
+   * driver's own phone — see `vehiclePairingForApprovedDriver`.
+   */
+  releaseOnSignOff = false,
 ): Promise<IssuedTerminalPairing> {
   const issued = await createPairingToken(
     auth,
     vehicleId,
     {
       deviceType: DeviceType.VEHICLE_TERMINAL,
+      releaseOnSignOff,
       ...(input.ttlSeconds !== undefined ? { ttlSeconds: input.ttlSeconds } : {}),
       ...(input.note !== undefined ? { note: input.note } : {}),
     },
@@ -276,3 +288,81 @@ export async function listTerminalPairings(
       record.expiresAt.getTime() > now,
   }));
 }
+
+/**
+ * A driver's own phone claiming the vehicle it was just approved onto.
+ *
+ * The fitted-tablet story starts with a fitter: somebody with `TERMINAL_MANAGE`
+ * generates a code on the vehicle's Hardware screen and carries it to the cab.
+ * That is right for a tablet bolted into a truck and wrong for a driver holding
+ * their own phone, who would have to telephone the office before every shift —
+ * which is the whole thing the driver app exists to remove.
+ *
+ * So the approval *is* the authorisation. A fleet that has looked at this
+ * driver's selfie and approved them onto this truck has already made the
+ * decision a pairing code would be asking them to make again, and nothing here
+ * can be reached without that approval having happened first.
+ *
+ * The token is short-lived and single-use like any other. It is minted, handed
+ * to the phone that asked, and redeemed seconds later through the ordinary
+ * device pairing endpoint — so a driver's phone becomes the vehicle's terminal
+ * by exactly the same path a tablet does, with the same slot rules and the same
+ * audit trail.
+ */
+export async function vehiclePairingForApprovedDriver(
+  auth: AuthContext,
+  sessionId: string,
+  apiUrl: string,
+): Promise<IssuedTerminalPairing> {
+  const session = await prisma.terminalSession.findUnique({
+    where: { id: sessionId },
+    select: {
+      id: true,
+      status: true,
+      vehicleId: true,
+      driverUserId: true,
+      organizationId: true,
+      vehicle: { select: { registrationNumber: true } },
+    },
+  });
+  if (!session) throw errors.notFound('Sign-on request');
+
+  /*
+   * The driver's own request, and nobody else's.
+   *
+   * Not a permission check — every driver holds `TERMINAL_DRIVE` — but an
+   * ownership one. Without it, any driver who learned a session id could pair
+   * their phone to somebody else's truck, and the fleet would see an approval
+   * they recognised attached to a device they did not.
+   */
+  if (session.driverUserId !== auth.user.id) {
+    throw errors.forbidden('That sign-on request belongs to another driver.');
+  }
+  assertTenantAccess(auth, session.organizationId, 'Sign-on request');
+
+  if (!AUTHORIZED_TERMINAL_SESSION_STATUSES.includes(session.status as TerminalSessionStatus)) {
+    throw errors.businessRule(
+      `Your request for ${session.vehicle.registrationNumber} has not been approved yet. ` +
+        'Wait for the fleet to approve it before connecting.',
+    );
+  }
+
+  return createTerminalPairing(
+    auth,
+    session.vehicleId,
+    {
+      // Minutes, not hours. The phone redeems this in the same breath as asking
+      // for it; a token that outlives the screen it was made for is a token
+      // that can be used somewhere else.
+      ttlSeconds: DRIVER_PAIRING_TTL_SECONDS,
+      note: 'Driver app, on approval',
+    },
+    apiUrl,
+    // The one caller that sets this. A phone holds the vehicle only for the
+    // shift it was approved for.
+    true,
+  );
+}
+
+/** How long a driver's self-issued pairing token lives. */
+const DRIVER_PAIRING_TTL_SECONDS = 600;

@@ -17,6 +17,8 @@ export * from './domain/device-client';
 export * from './domain/vehicle-rc';
 export * from './domain/driving-licence';
 export * from './domain/identity-verification';
+export * from './domain/registry-verification';
+export * from './domain/driver-verification';
 export * from './domain/petrol-stations';
 export * from './domain/fuel-rates';
 export * from './domain/media';

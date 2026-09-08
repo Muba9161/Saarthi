@@ -26,7 +26,16 @@ import {
 } from '../../server/guards';
 import { AuditAction, auditFromRequest } from '../audit/audit.service';
 import type { UploadFilePart } from '../media/media.service';
-import { createTerminalPairing, listTerminalPairings } from './terminal-pairing.service';
+import {
+  createTerminalPairing,
+  listTerminalPairings,
+  vehiclePairingForApprovedDriver,
+} from './terminal-pairing.service';
+import {
+  DRIVER_APPLICATION_ID,
+  latestDriverApp,
+  openPublishedRelease,
+} from './release.service';
 import { listTerminals } from './terminal.service';
 import * as sessions from './session.service';
 import * as checklist from './checklist.service';
@@ -173,6 +182,98 @@ export async function terminalRoutes(app: FastifyInstance): Promise<void> {
   );
 
   /** Withdraw a request before anybody has decided it. */
+  // -------------------------------------------------------------------------
+  // The driver app itself
+  // -------------------------------------------------------------------------
+
+  /**
+   * What the Saarthi Driver app currently is, if anything is published.
+   *
+   * Read by the web dashboard so a driver who has just registered can install
+   * the app on their phone. Authenticated as a person and gated on
+   * `TERMINAL_DRIVE`, the same permission that lets somebody sign on to a
+   * vehicle — if they may drive, they may have the app that does it.
+   *
+   * `null` when nothing is published yet, so the dashboard shows no card rather
+   * than a button that fails.
+   */
+  app.get(
+    '/driver-app',
+    { preHandler: requirePermission(Permission.TERMINAL_DRIVE) },
+    async (_request, reply) => ok(reply, await latestDriverApp()),
+  );
+
+  /**
+   * The APK.
+   *
+   * Streamed through the API rather than handed out as a link to storage: the
+   * file is only for people entitled to drive, and a signed storage URL is a
+   * URL that can be forwarded. Same reason every other Saarthi download works
+   * this way.
+   */
+  app.get(
+    '/driver-app/download',
+    { preHandler: requirePermission(Permission.TERMINAL_DRIVE) },
+    async (_request, reply) => {
+      const latest = await latestDriverApp();
+      if (!latest) {
+        throw errors.notFound(
+          'Driver app',
+          'No Saarthi Driver release has been published yet. Ask your fleet administrator.',
+        );
+      }
+
+      const release = await openPublishedRelease(latest.versionCode, DRIVER_APPLICATION_ID);
+
+      reply
+        .header('content-type', 'application/vnd.android.package-archive')
+        .header('content-length', release.size)
+        .header(
+          'content-disposition',
+          `attachment; filename="saarthi-driver-${latest.versionName}.apk"`,
+        )
+        // The bytes for a version never change, so this is safe to hold. It
+        // matters on a phone tethered to a yard's connection.
+        .header('cache-control', 'private, max-age=86400, immutable')
+        .header('etag', `"${release.sha256}"`)
+        .header('x-content-type-options', 'nosniff');
+
+      return reply.send(release.stream);
+    },
+  );
+
+  /**
+   * Connect this phone to the vehicle it has been approved onto.
+   *
+   * The step the fitted tablet does not have. A tablet is paired by a fitter
+   * with a code from the dashboard; a driver's phone earns the same thing by
+   * being approved, and mints its own short-lived token here rather than the
+   * driver having to telephone the office before every shift.
+   *
+   * Returns an ordinary pairing credential. The app redeems it seconds later
+   * through the device gateway, so a phone becomes the vehicle's terminal by
+   * exactly the path a tablet does — same slot rules, same audit trail.
+   */
+  app.post(
+    '/assignments/:id/vehicle-pairing',
+    { preHandler: requirePermission(Permission.TERMINAL_DRIVE) },
+    async (request, reply) => {
+      const auth = requireAuth(request);
+      const { id } = parseParams(idParamSchema, request.params);
+
+      const issued = await vehiclePairingForApprovedDriver(auth, id, publicAppUrl(request));
+
+      await auditFromRequest(request, {
+        action: AuditAction.TERMINAL_PAIRING_ISSUED,
+        entityType: 'DevicePairingToken',
+        entityId: issued.id,
+        after: { registrationNumber: issued.registrationNumber, source: 'driver-app' },
+      });
+
+      return created(reply, issued);
+    },
+  );
+
   app.post(
     '/assignments/:id/cancel',
     { preHandler: requirePermission(Permission.TERMINAL_READ) },

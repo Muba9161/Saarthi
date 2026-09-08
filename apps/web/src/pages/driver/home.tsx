@@ -33,7 +33,9 @@ import { EmptyState, LoadingState } from '@/components/common/states';
 import { ScoreBadge, StatusBadge } from '@/components/common/status-badge';
 import { MiniStat } from '@/components/common/stat-card';
 import { FleetMap } from '@/features/maps/fleet-map';
+import { DriverAppCard } from '@/features/driver/driver-app-card';
 import { DriverSignOnCard } from '@/features/terminal/driver-signon-card';
+import { JoinFleetCard } from '@/features/driver/join-fleet-card';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -51,6 +53,13 @@ export function DriverHomePage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const driverId = session?.driver?.id;
+  /*
+   * A driver who registered without a fleet invite code. Several things on this
+   * screen otherwise address an employer that does not exist — a trip that is
+   * coming, a vehicle to sign on to — so they read this rather than each
+   * inventing their own guess.
+   */
+  const awaitingFleet = session?.driver?.awaitingFleet ?? false;
 
   useChannels(driverId ? [RealtimeChannel.driver(driverId)] : []);
 
@@ -130,7 +139,13 @@ export function DriverHomePage() {
         <PageHeader
           eyebrow={new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
           title={`Hello, ${session?.user.firstName}`}
-          description={current ? 'Your current trip' : 'No trip assigned right now'}
+          description={
+            current
+              ? 'Your current trip'
+              : awaitingFleet
+                ? 'Join your fleet to start getting trips'
+                : 'No trip assigned right now'
+          }
           actions={
             <Button
               variant="destructive"
@@ -146,11 +161,35 @@ export function DriverHomePage() {
       </StaggerItem>
 
       {/*
+        The one thing to do first, when there is nothing else to be done: a
+        driver with no fleet has no trips coming and no vehicle that would
+        accept them. Renders nothing once they have an employer.
+      */}
+      <StaggerItem>
+        <JoinFleetCard />
+      </StaggerItem>
+
+      {/*
+        Get Saarthi onto the driver's phone.
+
+        Above sign-on, and only for as long as it is useful: the card knows
+        nothing about whether this driver has installed the app, so it stays put
+        rather than pretending to. Everything below it is a poorer substitute
+        for having the app in the cab — signing on from a browser at a truck
+        works, but the app is what runs the trip.
+
+        Renders nothing at all until a driver build is published.
+      */}
+      <StaggerItem>
+        <DriverAppCard />
+      </StaggerItem>
+
+      {/*
         Sign-on comes before everything but the header. A shift starts by
         getting authorised onto a vehicle; a score and a map are of no use to a
         driver who is not yet allowed to drive.
       */}
-      {can(Permission.TERMINAL_DRIVE) ? (
+      {can(Permission.TERMINAL_DRIVE) && (signOn.data || !awaitingFleet) ? (
         <StaggerItem>
           {signOn.data ? (
             <DriverSignOnCard registrationNumber={signOn.data.registrationNumber} />
@@ -199,7 +238,11 @@ export function DriverHomePage() {
           <EmptyState
             icon={Navigation}
             title="No active trip"
-            description="Your fleet will assign your next trip here. You will get a notification."
+            description={
+              awaitingFleet
+                ? 'Trips are assigned by a fleet. Join yours above and they will appear here.'
+                : 'Your fleet will assign your next trip here. You will get a notification.'
+            }
             action={
               <Button variant="outline" onClick={() => navigate('/driver/trips')}>
                 <RouteIcon className="size-4" />

@@ -1,16 +1,25 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import {
+  Feature,
   Permission,
   VerificationSubjectType,
   idParamSchema,
+  registryVerifySchema,
   reviewVerificationSchema,
   submitVerificationSchema,
   verificationListQuerySchema,
 } from '@saarthi/shared';
+import { config } from '../../config/env';
 import { created, ok, paginated, parseBody, parseParams, parseQuery } from '../../lib/http';
-import { requireAuth, requireDemoMode, requirePermission } from '../../server/guards';
+import {
+  requireAuth,
+  requireDemoMode,
+  requireFeature,
+  requirePermission,
+} from '../../server/guards';
 import { AuditAction, auditFromRequest } from '../audit/audit.service';
+import * as registryVerificationService from './registry-verification.service';
 import * as verificationService from './verification.service';
 
 /**
@@ -88,6 +97,79 @@ export async function verificationRoutes(app: FastifyInstance): Promise<void> {
         entityId: id,
         organizationId: result.organizationId,
         after: { decision: input.decision, reason: input.rejectionReason ?? null },
+      });
+
+      return ok(reply, result);
+    },
+  );
+
+  /**
+   * Verify a vehicle or a driver against the registry that issued its record.
+   *
+   * The one-click path, and the one an owner actually uses: the RC or licence
+   * number Saarthi already holds is checked with the RTO, and the answer
+   * settles the subject's status there and then. Nothing is queued for a
+   * reviewer and nobody is asked to upload anything first.
+   *
+   * Gated on `verification.submit` here, with the matching *lookup* permission
+   * checked in the service — which one applies depends on the subject, and a
+   * driver who may check their own licence must not be stopped by a rule about
+   * RC records.
+   *
+   * It carries its own rate limit, because reaching this endpoint can reach a
+   * billable provider. One route serves both registries, so the *stricter* of
+   * the two configured ceilings applies — an operator who tightened either
+   * lookup limit would not expect this path to be the loose way around it.
+   */
+  app.post(
+    '/subject/:subjectType/:subjectId/registry-verify',
+    {
+      config: {
+        rateLimit: {
+          max: Math.min(config.vehicleRc.rateLimitMax, config.drivingLicence.rateLimitMax),
+          timeWindow: config.vehicleRc.rateLimitWindow,
+        },
+      },
+      preHandler: [
+        requirePermission(Permission.VERIFICATION_SUBMIT),
+        requireFeature(Feature.FLEET_BASIC),
+      ],
+    },
+    async (request, reply) => {
+      const auth = requireAuth(request);
+      const { subjectType, subjectId } = parseParams(subjectParamsSchema, request.params);
+      const input = parseBody(registryVerifySchema, request.body ?? {});
+
+      const { result, audit } = await registryVerificationService.verifyAgainstRegistry(
+        auth,
+        subjectType,
+        subjectId,
+        input,
+      );
+
+      await auditFromRequest(request, {
+        action: audit.verified
+          ? AuditAction.VERIFICATION_APPROVED
+          : AuditAction.VERIFICATION_REJECTED,
+        entityType: 'VerificationCase',
+        entityId: audit.caseId,
+        organizationId: result.case.organizationId,
+        // Outcome and provenance only. The registry's own answer — an owner's
+        // name, a licence holder's address, the date of birth it was checked
+        // against — never enters the audit log.
+        after: {
+          decision: audit.verified ? 'VERIFIED' : 'REJECTED',
+          registryCheck: true,
+          source: audit.source,
+          subjectType: audit.subjectType,
+          subjectId: audit.subjectId,
+          outcome: audit.outcome,
+          providerCalled: audit.checked && !audit.cached,
+          cached: audit.cached,
+          lookupId: audit.lookupId,
+          providerReference: audit.providerReference,
+          findings: audit.findingCodes,
+        },
       });
 
       return ok(reply, result);

@@ -6,7 +6,7 @@ import { api } from '@/lib/api-client';
 import type { DriverScoreDetail, DriverSummary } from '@/lib/api-types';
 import { useAuth } from '@/features/auth/auth-context';
 import { PageHeader, SectionHeader } from '@/components/common/page-header';
-import { DemoVerifyButton } from '@/features/verification/demo-verify-button';
+import { VerifyButton } from '@/features/verification/verify-button';
 import { StatCard } from '@/components/common/stat-card';
 import { toSeriesPoints } from '@/components/common/mini-chart';
 import { StatusBadge } from '@/components/common/status-badge';
@@ -89,9 +89,10 @@ export function DriverDetailPage() {
         }
         description={`${person.email}${person.phone ? ` · ${person.phone}` : ''}`}
         actions={
-          <DemoVerifyButton
+          <VerifyButton
             subjectType="driver"
             subjectId={person.id}
+            subjectLabel={person.fullName}
             verified={person.verificationStatus === 'VERIFIED'}
             invalidateKeys={[['driver', person.id], ['drivers']]}
           />

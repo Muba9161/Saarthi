@@ -25,6 +25,16 @@ serialization = "1.7.3"
 securityCrypto = "1.1.0-alpha06"
 coroutines = "1.9.0"
 datastore = "1.1.1"
+# Android for Cars app library — the templated UI Android Auto renders.
+#
+# 1.4.0 rather than a newer preview: it is the current stable line, and a car
+# app is reviewed by Google against a stable template set before it can be
+# distributed. A preview template that is rejected at review is worse than one
+# that is merely older.
+carApp = "1.4.0"
+# The system biometric prompt. Saarthi never touches a fingerprint itself —
+# this is the library that asks Android to, and hands back only the result.
+biometric = "1.1.0"
 # MapLibre Native for Android. The same renderer and the same OpenFreeMap
 # vector styles the web app uses, so the cockpit map and the dispatcher's map
 # agree about what a road looks like — and neither needs an API key.
@@ -79,8 +89,12 @@ junit = { group = "junit", name = "junit", version.ref = "junit" }
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidxJunit" }
 
+car-app = { group = "androidx.car.app", name = "app", version.ref = "carApp" }
+androidx-biometric = { group = "androidx.biometric", name = "biometric", version.ref = "biometric" }
+
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
+android-library = { id = "com.android.library", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }

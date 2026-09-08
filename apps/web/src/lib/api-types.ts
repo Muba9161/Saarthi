@@ -21,6 +21,9 @@ import type {
   MaterialUnit,
   OrderStatus,
   PaginationMeta,
+  DriverVerificationChecklist,
+  RegistryFinding,
+  RegistryVerificationOutcome,
   RequirementBidScope,
   RequirementBidStatus,
   RequirementKind,
@@ -658,6 +661,42 @@ export interface VerificationCaseSummary {
   documentCount: number;
   createdAt: string;
   updatedAt: string;
+}
+
+/**
+ * The result of checking a vehicle or a driver against the registry that
+ * issued its record.
+ *
+ * `verified` is the answer; `findings` is why. Blocking findings come first
+ * and are the reason a check failed — advisories accompany a *successful*
+ * check and are compliance work the operator now knows about, so the UI must
+ * not read their presence as a failure.
+ */
+export interface RegistryVerificationResult {
+  subjectType: string;
+  subjectId: string;
+  subjectLabel: string;
+  source: 'VEHICLE_RC' | 'DRIVING_LICENCE';
+  /** Plate, or a masked licence number. */
+  reference: string;
+  outcome: RegistryVerificationOutcome;
+  verified: boolean;
+  status: VerificationStatus;
+  summary: string;
+  findings: RegistryFinding[];
+  registry: {
+    /** False when the number was refused locally and nothing was sent. */
+    checked: boolean;
+    cached: boolean;
+    checkedAt: string | null;
+    lookupId: string | null;
+    providerReference: string | null;
+    /** What the registry said, already limited to what this caller may see. */
+    details: { label: string; value: string }[];
+  };
+  case: VerificationCaseSummary;
+  /** For a driver: where they now stand against all four checks. */
+  driverChecklist: DriverVerificationChecklist | null;
 }
 
 /**

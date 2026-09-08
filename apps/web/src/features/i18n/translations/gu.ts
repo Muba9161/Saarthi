@@ -163,6 +163,8 @@ export const gu: Catalogue = {
   'Indian mobile number, with or without +91.': 'ભારતીય મોબાઇલ નંબર, +91 સાથે અથવા વગર.',
   'Fleet invite code': 'કાફલા આમંત્રણ કોડ',
   'Ask your truck owner for this code.': 'આ કોડ તમારા ટ્રક માલિક પાસેથી લો.',
+  'No code yet? Leave it blank and join your fleet later.':
+    'હજી કોડ નથી? આ ખાલી રાખો, પછી તમારા કાફલામાં જોડાઈ શકશો.',
   'Driving licence number': 'ડ્રાઇવિંગ લાઇસન્સ નંબર',
   'Saarthi creates this organization and makes you its administrator.':
     'Saarthi આ સંસ્થા બનાવે છે અને તમને તેના પ્રશાસક બનાવે છે.',

@@ -39,7 +39,7 @@ import type { DriverSummary, Paginated, TruckPassport } from '@/lib/api-types';
 import type { VehicleSummary } from '@/lib/mobility-types';
 import { useAuth } from '@/features/auth/auth-context';
 import { PageHeader, SectionHeader } from '@/components/common/page-header';
-import { DemoVerifyButton } from '@/features/verification/demo-verify-button';
+import { VerifyButton } from '@/features/verification/verify-button';
 import { StatCard } from '@/components/common/stat-card';
 import { toSeriesPoints } from '@/components/common/mini-chart';
 import { StatusBadge } from '@/components/common/status-badge';
@@ -311,9 +311,10 @@ export function VehicleDetailPage() {
         description={description}
         actions={
           <div className="flex flex-wrap gap-2">
-            <DemoVerifyButton
+            <VerifyButton
               subjectType="truck"
               subjectId={vehicle.id}
+              subjectLabel={formatRegistrationNumber(vehicle.registrationNumber)}
               verified={vehicle.verificationStatus === 'VERIFIED'}
               invalidateKeys={[
                 ['vehicle', vehicle.id],

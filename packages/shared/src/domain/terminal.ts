@@ -737,7 +737,14 @@ export interface TerminalSessionView {
   driver: TerminalDriverView | null;
   vehicleId: string;
   registrationNumber: string;
-  terminalDeviceId: string;
+  /**
+   * The device showing this session, once there is one.
+   *
+   * Null while a driver's own phone waits to be approved: it earns the vehicle
+   * by approval, so before that there is genuinely no terminal — and a caller
+   * that assumed otherwise would be reading an id that had to be invented.
+   */
+  terminalDeviceId: string | null;
   requestedAt: string;
   submittedAt: string | null;
   decidedAt: string | null;

@@ -164,6 +164,8 @@ export const ne: Catalogue = {
   'Indian mobile number, with or without +91.': 'भारतीय मोबाइल नम्बर, +91 सहित वा बिना।',
   'Fleet invite code': 'बेडा निमन्त्रणा कोड',
   'Ask your truck owner for this code.': 'यो कोड आफ्नो ट्रक मालिकसँग माग्नुहोस्।',
+  'No code yet? Leave it blank and join your fleet later.':
+    'अझै कोड छैन? यसलाई खाली छोड्नुहोस्, पछि आफ्नो बेडामा सामेल हुन सक्नुहुन्छ।',
   'Driving licence number': 'सवारी चालक अनुमतिपत्र नम्बर',
   'Saarthi creates this organization and makes you its administrator.':
     'Saarthi यो संस्था बनाउँछ र तपाईंलाई यसको प्रशासक बनाउँछ।',

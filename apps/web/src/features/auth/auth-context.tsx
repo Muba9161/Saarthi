@@ -31,6 +31,8 @@ interface AuthContextValue {
   logout: () => Promise<void>;
   refreshSession: () => Promise<void>;
   switchOrganization: (organizationId: string) => Promise<void>;
+  /** For a driver who registered without their employer's invite code. */
+  joinFleet: (fleetInviteCode: string) => Promise<SessionPayload>;
   can: (...permissions: Permission[]) => boolean;
   canAll: (...permissions: Permission[]) => boolean;
   hasFeature: (feature: Feature) => boolean;
@@ -150,6 +152,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [applyAuth],
   );
 
+  /*
+   * A driver attaching themselves to a fleet with its invite code.
+   *
+   * Handled here rather than in the card that offers it because the reply is a
+   * whole new session: joining moves the driver into the fleet's tenant, and
+   * the token they are holding names the seat they have just left. Applying it
+   * through `applyAuth` is what keeps that a single step for the caller.
+   */
+  const joinFleet = React.useCallback(
+    async (fleetInviteCode: string) => {
+      const result = await api.post<AuthResponse>('/drivers/me/fleet', { fleetInviteCode });
+      return applyAuth(result);
+    },
+    [applyAuth],
+  );
+
   const value = React.useMemo<AuthContextValue>(() => {
     const permissions = session?.permissions ?? [];
     const features = session?.subscription?.features ?? [];
@@ -164,6 +182,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       logout,
       refreshSession,
       switchOrganization,
+      joinFleet,
       can: (...required) => hasAnyPermissionOf(permissions, required),
       canAll: (...required) => required.every((permission) => hasPermissionOf(permissions, permission)),
       // Platform admins are never blocked by a tenant's plan.
@@ -175,7 +194,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isPlatformAdmin,
       isDriver: session?.driver !== null && session?.driver !== undefined,
     };
-  }, [session, status, login, register, logout, refreshSession, switchOrganization]);
+  }, [session, status, login, register, logout, refreshSession, switchOrganization, joinFleet]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

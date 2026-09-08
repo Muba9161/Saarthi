@@ -490,7 +490,8 @@ export interface BookingUpdatePayload {
 export interface TerminalSessionPayload {
   sessionId: string;
   organizationId: string;
-  terminalDeviceId: string;
+  /** Null while a driver's phone is waiting to be approved onto the vehicle. */
+  terminalDeviceId: string | null;
   vehicleId: string;
   registrationNumber: string;
   driverId: string;

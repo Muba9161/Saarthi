@@ -172,6 +172,35 @@ export const IdentityVerificationOutcome = asEnum({
 });
 export type IdentityVerificationOutcome = EnumValue<typeof IdentityVerificationOutcome>;
 
+/**
+ * Outcome of verifying a subject against the government registry that issued
+ * its primary record — the RTO's RC database for a vehicle, the driving
+ * licence register for a driver.
+ *
+ * The vocabulary follows `IdentityVerificationOutcome` and for the same
+ * reason: an answer *about* a record and a failure to *get* an answer are
+ * different facts. `NOT_FOUND`, `MISMATCH` and `INELIGIBLE` are all answers,
+ * so each of them settles the subject's status. A provider outage is not an
+ * answer at all — it is raised as an error and changes nothing, because a
+ * records service being down is not evidence that a vehicle stopped existing.
+ */
+export const RegistryVerificationOutcome = asEnum({
+  /** The registry holds this record and nothing about it bars verification. */
+  VERIFIED: 'VERIFIED',
+  /** The registry has no record for the number Saarthi holds. */
+  NOT_FOUND: 'NOT_FOUND',
+  /** A record came back, but it describes something other than this subject. */
+  MISMATCH: 'MISMATCH',
+  /**
+   * The record exists and matches, but its own state bars it — a cancelled or
+   * blacklisted registration, an expired licence.
+   */
+  INELIGIBLE: 'INELIGIBLE',
+  /** The number on file cannot be a real one, so nothing was sent upstream. */
+  INVALID_FORMAT: 'INVALID_FORMAT',
+});
+export type RegistryVerificationOutcome = EnumValue<typeof RegistryVerificationOutcome>;
+
 // ---------------------------------------------------------------------------
 // Fleet
 // ---------------------------------------------------------------------------

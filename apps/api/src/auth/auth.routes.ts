@@ -24,6 +24,24 @@ import { AuditAction, auditFromRequest } from '../modules/audit/audit.service';
  * access token is returned in the response for the client to hold in memory.
  */
 
+/**
+ * Whether the caller is a native app rather than a browser.
+ *
+ * The refresh token normally leaves only as an httpOnly cookie, which is the
+ * right answer for a browser: script cannot read it, so an XSS bug cannot steal
+ * a thirty-day credential. A native app has no such exposure, and no cookie jar
+ * worth trusting across a reinstall — while a driver who has to type an email
+ * and a password at the start of every shift will not use the app twice.
+ *
+ * So the token is returned in the body for the apps and withheld from everyone
+ * else. The header is the one every Saarthi app already sends; a browser cannot
+ * set it cross-origin without CORS approval, which this API grants to nobody.
+ */
+function isNativeClient(request: FastifyRequest): boolean {
+  const client = request.headers['x-saarthi-client'];
+  return typeof client === 'string' && client.length > 0;
+}
+
 function requestMeta(request: FastifyRequest): authService.RequestMeta {
   return {
     ipAddress: request.clientIp ?? null,
@@ -71,6 +89,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
       expiresIn: result.expiresIn,
       tokenType: result.tokenType,
       session: result.session,
+      ...(isNativeClient(request) ? { refreshToken: result.refreshToken } : {}),
     });
   });
 
@@ -83,6 +102,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
       expiresIn: result.expiresIn,
       tokenType: result.tokenType,
       session: result.session,
+      ...(isNativeClient(request) ? { refreshToken: result.refreshToken } : {}),
     });
   });
 
@@ -103,6 +123,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
       expiresIn: result.expiresIn,
       tokenType: result.tokenType,
       session: result.session,
+      ...(isNativeClient(request) ? { refreshToken: result.refreshToken } : {}),
     });
   });
 

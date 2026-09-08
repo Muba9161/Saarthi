@@ -130,7 +130,16 @@ export interface IssuedPairingToken extends PairingTokenView {
 export async function createPairingToken(
   auth: AuthContext,
   vehicleId: string,
-  input: CreatePairingTokenInput,
+  /*
+   * Widened past the wire schema, deliberately.
+   *
+   * `releaseOnSignOff` is a decision this server makes about *how* a pairing
+   * was created, never something a caller asks for. Leaving it out of the Zod
+   * schema is what stops a fleet manager's dashboard — or anything else posting
+   * JSON — from marking a fitted tablet as disposable and having it unpair
+   * itself the next time a driver signs off.
+   */
+  input: CreatePairingTokenInput & { releaseOnSignOff?: boolean },
   /**
    * Where the scanning phone should send everything afterwards.
    *
@@ -191,6 +200,9 @@ export async function createPairingToken(
       deviceType: input.deviceType,
       createdById: auth.user.id,
       note: input.note ?? null,
+      // Only the driver-app path sets this. A fitted tablet's pairing outlives
+      // every driver who signs on to it.
+      releaseOnSignOff: input.releaseOnSignOff ?? false,
       expiresAt,
     },
   });
@@ -612,7 +624,32 @@ async function pairWithinTransaction(
         assignedById: pairing.createdById,
         installedAt: now,
         note: pairing.note ?? 'Paired by QR from the Saarthi Device app.',
+        // Carried from the token, so the decision about whether this pairing
+        // outlives the driver's shift is the one made when it was issued.
+        releaseOnSignOff: pairing.releaseOnSignOff,
       },
+    });
+
+    /*
+     * A session that was waiting for a device now has one.
+     *
+     * The driver app's order is the reverse of the fitted tablet's: a phone
+     * asks to drive, the fleet approves, and only then does the phone pair. The
+     * session it opened has carried a null terminal since the request, and this
+     * is the moment that becomes false.
+     *
+     * Scoped to this vehicle and to sessions with no device, so it can neither
+     * steal another truck's session nor overwrite a tablet that is already
+     * bound. A fitted-tablet pairing matches nothing here, because its sessions
+     * always had a device from the start.
+     */
+    await tx.terminalSession.updateMany({
+      where: {
+        vehicleId: vehicle.id,
+        terminalDeviceId: null,
+        status: { in: ACTIVE_TERMINAL_SESSION_STATUSES },
+      },
+      data: { terminalDeviceId: deviceId },
     });
 
     // Consumed inside the same transaction as the assignment it created, so the

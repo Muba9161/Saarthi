@@ -18,6 +18,7 @@ import { prisma } from '../database/prisma';
 import { errors } from '../lib/errors';
 import { config } from '../config/env';
 import { resolveSubscription } from '../modules/subscriptions/entitlements.service';
+import { hasEmployer } from '../modules/organizations/fleet-invite.service';
 import type { AuthContext } from './context';
 
 /**
@@ -65,6 +66,7 @@ export async function loadUser(userId: string) {
         }[];
         driverProfile: {
           id: string;
+          organizationId: string;
           licenseNumber: string;
           licenseExpiryDate: Date | null;
           verificationStatus: VerificationStatus;
@@ -204,6 +206,15 @@ export async function buildSessionPayload(
   const organizationId = membership?.organizationId ?? null;
   const subscription = organizationId ? await resolveSubscription(organizationId) : null;
 
+  /*
+   * Read against the driver's own organization rather than the active tenant,
+   * so the answer does not change when a driver who also belongs elsewhere
+   * switches organizations.
+   */
+  const awaitingFleet = user.driverProfile
+    ? !(await hasEmployer(user.driverProfile.organizationId))
+    : false;
+
   return {
     user: {
       id: user.id,
@@ -251,6 +262,7 @@ export async function buildSessionPayload(
           verificationStatus: user.driverProfile.verificationStatus,
           currentTruckId: user.driverProfile.currentTruckId,
           overallScore: user.driverProfile.overallScore,
+          awaitingFleet,
         }
       : null,
     demoMode: config.demo.enabled,

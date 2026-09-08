@@ -7,6 +7,7 @@ import {
   createDriverSchema,
   driverListQuerySchema,
   idParamSchema,
+  joinFleetSchema,
   updateDriverSchema,
 } from '@saarthi/shared';
 import { created, noContent, ok, paginated, parseBody, parseParams, parseQuery } from '../../lib/http';
@@ -17,6 +18,7 @@ import {
   requirePermission,
 } from '../../server/guards';
 import { AuditAction, auditFromRequest } from '../audit/audit.service';
+import * as authService from '../../auth/auth.service';
 import * as driverService from './driver.service';
 import * as qrService from '../qr/qr.service';
 import { publicAppUrl } from '../../lib/public-url';
@@ -40,6 +42,41 @@ export async function driverRoutes(app: FastifyInstance): Promise<void> {
       return ok(reply, await driverService.getDriver(auth, id));
     },
   );
+
+  /*
+   * A driver joining their employer's fleet with its invite code.
+   *
+   * Self-service by design, so it carries no permission gate beyond being a
+   * driver: the code itself is the authorisation, and registration no longer
+   * demands it up front (see `registerSchema`). The response is a fresh
+   * session, because the driver's tenant changes with the move and the token
+   * they arrived with names the seat they have just left.
+   */
+  app.post('/me/fleet', async (request, reply) => {
+    const auth = requireAuth(request);
+    const input = parseBody(joinFleetSchema, request.body);
+    const result = await driverService.joinFleet(auth, input);
+
+    await auditFromRequest(request, {
+      action: AuditAction.DRIVER_JOINED_FLEET,
+      entityType: 'Driver',
+      entityId: result.driverId,
+      // Recorded against the fleet that gained the driver, not the seat they
+      // left: the receiving owner is who has to be able to see this happened,
+      // and the seat is archived on the way out.
+      organizationId: result.fleet.id,
+      after: {
+        organizationId: result.fleet.id,
+        organizationName: result.fleet.name,
+        vacatedOrganizationId: result.vacatedOrganizationId,
+      },
+    });
+
+    return ok(
+      reply,
+      await authService.switchOrganization(auth.user.id, auth.sessionId, result.fleet.id),
+    );
+  });
 
   app.post(
     '/',

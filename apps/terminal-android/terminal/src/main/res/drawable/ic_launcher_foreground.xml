@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The launcher icon foreground: the existing Saarthi brand mark.
+  
+  Specification section 3 is explicit that the terminal must reuse the project's
+  official logo rather than invent one, so this is `saarthi_mark.png` — the same
+  VX monogram the web app renders in its sidebar — rather than a drawing made
+  for this app.
+
+  Inset by 22dp on every side. An adaptive icon's 108dp canvas is masked down to
+  a 66dp safe zone, and a mark drawn to the edges is a mark the launcher crops.
+-->
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/saarthi_mark"
+    android:insetLeft="22dp"
+    android:insetTop="22dp"
+    android:insetRight="22dp"
+    android:insetBottom="22dp" />

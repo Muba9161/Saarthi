@@ -17,6 +17,7 @@ import {
   type AdjustScoreInput,
   type CreateDriverInput,
   type DriverListQuery,
+  type JoinFleetInput,
   type Paginated,
   type UpdateDriverInput,
   type AppliedScoreEvent,
@@ -39,6 +40,12 @@ import { generateOpaqueToken } from '../../auth/tokens';
 import { config } from '../../config/env';
 import { logger } from '../../lib/logger';
 import type { AuthContext } from '../../auth/context';
+import {
+  hasEmployer,
+  resolveJoinableFleet,
+  type JoinableFleet,
+} from '../organizations/fleet-invite.service';
+import { resolveSubscription } from '../subscriptions/entitlements.service';
 
 /**
  * Driver management.
@@ -739,4 +746,156 @@ export async function evaluateAndAwardAchievements(driverId: string): Promise<st
     }
   }
   return granted;
+}
+
+
+// ---------------------------------------------------------------------------
+// Joining a fleet
+// ---------------------------------------------------------------------------
+
+export interface JoinFleetResult {
+  driverId: string;
+  fleet: JoinableFleet;
+  /** The single-member organization left behind, when one was archived. */
+  vacatedOrganizationId: string | null;
+}
+
+/**
+ * A driver moving themselves into a fleet with its invite code.
+ *
+ * Registration does not insist on the code — a driver who has not been given
+ * one yet still gets an account, seated alone in an organization of their own
+ * (see `register`). This is how that account later becomes an employee: the
+ * membership and the driver row move to the fleet, and the seat they came from
+ * is archived behind them.
+ *
+ * Only an unemployed driver may do this. Somebody already in a real fleet
+ * cannot walk themselves out of it — their trips, documents and scores belong
+ * to that fleet's records, and leaving is the owner's decision to make with
+ * `archiveDriver`, not a code the driver can type.
+ */
+export async function joinFleet(
+  auth: AuthContext,
+  input: JoinFleetInput,
+): Promise<JoinFleetResult> {
+  const driver = await prisma.driver.findUnique({ where: { userId: auth.user.id } });
+  if (!driver || driver.archivedAt) {
+    throw errors.forbidden('Only a driver account can join a fleet.');
+  }
+
+  const currentOrganizationId = driver.organizationId;
+  if (await hasEmployer(currentOrganizationId)) {
+    throw errors.validation(
+      'You already belong to a fleet. Ask them to release you before joining another.',
+      {
+        fields: {
+          fleetInviteCode: [
+            'You already belong to a fleet. Ask them to release you before joining another.',
+          ],
+        },
+      },
+    );
+  }
+
+  const fleet = await resolveJoinableFleet(input.fleetInviteCode);
+  if (fleet.id === currentOrganizationId) {
+    throw errors.validation('You are already part of this fleet.', {
+      fields: { fleetInviteCode: ['You are already part of this fleet.'] },
+    });
+  }
+
+  /*
+   * The receiving fleet's plan decides whether there is room, not the driver's
+   * own — they are the ones being added to, and their seat carries no plan of
+   * its own. Mirrors `assertDriverLimit`, which reads the limit from the
+   * caller's subscription because there the caller *is* the fleet.
+   */
+  const subscription = await resolveSubscription(fleet.id);
+  const maxDrivers = subscription?.limits.maxDrivers;
+  if (maxDrivers !== null && maxDrivers !== undefined) {
+    const existing = await prisma.driver.count({
+      where: { organizationId: fleet.id, archivedAt: null },
+    });
+    if (existing >= maxDrivers) {
+      throw errors.planLimitReached(
+        'maxDrivers',
+        `${fleet.name} has no room for another driver on its current plan. Ask them to upgrade.`,
+      );
+    }
+  }
+
+  const duplicateLicence = await prisma.driver.findFirst({
+    where: { organizationId: fleet.id, licenseNumber: driver.licenseNumber, id: { not: driver.id } },
+  });
+  if (duplicateLicence) {
+    throw errors.duplicate('This licence number is already registered with that fleet.', {
+      fields: { fleetInviteCode: ['This licence number is already registered with that fleet.'] },
+    });
+  }
+
+  const vacatedOrganizationId = await prisma.$transaction(async (tx) => {
+    await tx.driver.update({
+      where: { id: driver.id },
+      data: {
+        organizationId: fleet.id,
+        // A vehicle from the old seat must not follow the driver into a fleet
+        // that does not own it.
+        currentTruckId: null,
+      },
+    });
+
+    /*
+     * Delete-then-upsert rather than repointing the row: `[userId,
+     * organizationId]` is unique, so an update would collide with a membership
+     * of this fleet the driver somehow already had — an invitation they never
+     * accepted, say — and the upsert reactivates that row instead.
+     */
+    await tx.membership.deleteMany({
+      where: { userId: auth.user.id, organizationId: currentOrganizationId },
+    });
+    await tx.membership.upsert({
+      where: {
+        userId_organizationId: { userId: auth.user.id, organizationId: fleet.id },
+      },
+      create: {
+        userId: auth.user.id,
+        organizationId: fleet.id,
+        role: RoleName.DRIVER,
+        status: MembershipStatus.ACTIVE,
+        isPrimary: true,
+      },
+      update: {
+        role: RoleName.DRIVER,
+        status: MembershipStatus.ACTIVE,
+        isPrimary: true,
+      },
+    });
+
+    /*
+     * Archive the seat the driver came from, but only once it is genuinely
+     * empty. Anything else in it means it was never a placeholder, and an
+     * organization with records in it is not something to close on the way
+     * past.
+     */
+    const [members, drivers, trucks] = await Promise.all([
+      tx.membership.count({ where: { organizationId: currentOrganizationId } }),
+      tx.driver.count({ where: { organizationId: currentOrganizationId } }),
+      tx.truck.count({ where: { organizationId: currentOrganizationId } }),
+    ]);
+    if (members === 0 && drivers === 0 && trucks === 0) {
+      await tx.organization.update({
+        where: { id: currentOrganizationId },
+        data: { archivedAt: new Date() },
+      });
+      return currentOrganizationId;
+    }
+    return null;
+  });
+
+  logger.info(
+    { driverId: driver.id, fleetId: fleet.id, vacatedOrganizationId },
+    'Driver joined a fleet by invite code',
+  );
+
+  return { driverId: driver.id, fleet, vacatedOrganizationId };
 }

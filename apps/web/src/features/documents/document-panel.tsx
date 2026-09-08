@@ -6,11 +6,13 @@ import {
   DOCUMENT_TYPES,
   IdentityDocumentKind,
   Permission,
+  driverCheckForDocumentType,
   identityFormatMessage,
   identityKindForDocumentType,
   isValidIdentityNumber,
   normalizeIdentityNumber,
   type DocumentOwnerType,
+  type DriverVerificationChecklist,
   type VerificationSubjectType,
 } from '@saarthi/shared';
 import { absoluteApiUrl, api, errorMessage, getAccessToken } from '@/lib/api-client';
@@ -20,6 +22,7 @@ import {
   IdentityVerifyDialog,
   type IdentityVerifyTarget,
 } from '@/features/verification/identity-verify-dialog';
+import { InlineNumberVerify } from '@/features/verification/inline-number-verify';
 import { StatusBadge } from '@/components/common/status-badge';
 import { EmptyState, ErrorState, LoadingState } from '@/components/common/states';
 import { SectionHeader } from '@/components/common/page-header';
@@ -110,9 +113,11 @@ export function DocumentPanel({
   const verification = useQuery({
     queryKey: ['verification', 'subject', subjectType, ownerId],
     queryFn: () =>
-      api.get<{ case: { status: string } | null; readiness: Readiness }>(
-        `/verification/subject/${String(subjectType).toLowerCase()}/${ownerId}`,
-      ),
+      api.get<{
+        case: { status: string } | null;
+        readiness: Readiness;
+        driverChecklist: DriverVerificationChecklist | null;
+      }>(`/verification/subject/${String(subjectType).toLowerCase()}/${ownerId}`),
     enabled: Boolean(subjectType && ownerId) && can(Permission.VERIFICATION_READ),
   });
 
@@ -176,6 +181,7 @@ export function DocumentPanel({
 
   const readiness = verification.data?.readiness;
   const caseStatus = verification.data?.case?.status;
+  const driverChecklist = verification.data?.driverChecklist ?? null;
   const identityChecks = identity.data?.checks ?? [];
   const onlineVerificationAvailable = identity.data?.onlineVerificationAvailable ?? false;
   const canVerifyIdentity = can(Permission.IDENTITY_VERIFY) && onlineVerificationAvailable;
@@ -213,6 +219,14 @@ export function DocumentPanel({
 
   return (
     <div className="space-y-4">
+      {/*
+        The four checks, first — because for a driver this is the question that
+        decides their status, and every other panel here is subordinate to it.
+      */}
+      {driverChecklist ? (
+        <DriverChecklistCard checklist={driverChecklist} canVerify={canVerifyIdentity} />
+      ) : null}
+
       {/*
         Subject-level verification. Deliberately worded as a review of the whole
         record rather than of any one number, so it no longer reads as a second,
@@ -329,10 +343,16 @@ export function DocumentPanel({
         ownerType={ownerType}
         ownerId={ownerId}
         ownerLabel={ownerLabel}
+        subjectType={
+          supportsIdentity ? (String(subjectType) as 'DRIVER' | 'ORGANIZATION') : undefined
+        }
+        canVerifyInline={canVerifyIdentity}
         // The prompt straight after upload. This is the "only ask once" half of
         // the flow: it opens by itself, and if it is dismissed the row keeps its
         // Verify button rather than the chance being lost.
-        onUploaded={(document) => {
+        onUploaded={(document, alreadyVerified) => {
+          // Already settled in the form — asking again would be asking twice.
+          if (alreadyVerified) return;
           if (!canVerifyIdentity) return;
           const definition = identityKindForDocumentType(document.documentType);
           if (!definition || !subjectType) return;
@@ -356,6 +376,78 @@ export function DocumentPanel({
         }}
       />
     </div>
+  );
+}
+
+/**
+ * The four checks that decide whether a driver is verified.
+ *
+ * Shown as a list rather than a percentage because the useful information is
+ * *which* check is outstanding — that is what tells somebody which card to go
+ * and find. Each outstanding row carries what to do about it, so nobody has to
+ * infer the next step from a red dot.
+ */
+function DriverChecklistCard({
+  checklist,
+  canVerify,
+}: {
+  checklist: DriverVerificationChecklist;
+  canVerify: boolean;
+}) {
+  return (
+    <Alert variant={checklist.complete ? 'success' : 'warning'}>
+      {checklist.complete ? (
+        <BadgeCheck className="size-4" />
+      ) : (
+        <ShieldQuestion className="size-4" />
+      )}
+      <AlertTitle>
+        {checklist.complete
+          ? 'Fully verified — all four checks confirmed'
+          : `Driver verification: ${checklist.verifiedCount} of ${checklist.totalCount} checks confirmed`}
+      </AlertTitle>
+      <AlertDescription className="space-y-2">
+        {!checklist.complete ? (
+          <p className="text-xs leading-relaxed">
+            A driver is verified once the licensing authority has confirmed their licence and their
+            Aadhaar, PAN and Voter ID have each been confirmed by their own source. Until then they
+            cannot be assigned a trip.
+          </p>
+        ) : null}
+
+        <ul className="space-y-1.5">
+          {checklist.items.map((item) => (
+            <li key={item.key} className="flex gap-2">
+              {item.verified ? (
+                <BadgeCheck className="mt-0.5 size-3.5 shrink-0 text-success" aria-hidden />
+              ) : (
+                <ShieldQuestion
+                  className="mt-0.5 size-3.5 shrink-0 text-muted-foreground"
+                  aria-hidden
+                />
+              )}
+              <div className="min-w-0">
+                <p className="text-xs font-medium">
+                  {item.label}
+                  {item.verified && item.verifiedAt ? (
+                    <span className="ml-1.5 font-normal text-muted-foreground">
+                      confirmed {new Date(item.verifiedAt).toLocaleDateString('en-IN')}
+                    </span>
+                  ) : null}
+                </p>
+                {!item.verified ? (
+                  <p className="text-xs leading-relaxed text-muted-foreground">
+                    {canVerify
+                      ? item.hint
+                      : `${item.hint} Your role cannot run this check — ask an owner or fleet manager.`}
+                  </p>
+                ) : null}
+              </div>
+            </li>
+          ))}
+        </ul>
+      </AlertDescription>
+    </Alert>
   );
 }
 
@@ -470,6 +562,8 @@ function UploadDialog({
   ownerType,
   ownerId,
   ownerLabel,
+  subjectType,
+  canVerifyInline,
   onUploaded,
 }: {
   open: boolean;
@@ -477,7 +571,11 @@ function UploadDialog({
   ownerType: DocumentOwnerType;
   ownerId: string;
   ownerLabel?: string | undefined;
-  onUploaded?: (document: DocumentSummary) => void;
+  /** The verification subject these documents hang off, when there is one. */
+  subjectType?: 'DRIVER' | 'ORGANIZATION' | undefined;
+  /** False where the environment has no provider key, so nothing is offered. */
+  canVerifyInline: boolean;
+  onUploaded?: (document: DocumentSummary, alreadyVerified: boolean) => void;
 }) {
   const queryClient = useQueryClient();
   const [documentType, setDocumentType] = React.useState('');
@@ -485,10 +583,27 @@ function UploadDialog({
   const [issueDate, setIssueDate] = React.useState('');
   const [expiryDate, setExpiryDate] = React.useState('');
   const [file, setFile] = React.useState<File | null>(null);
+  /**
+   * Whether the number in the field has already been confirmed.
+   *
+   * Held here so the upload can say so, and so the automatic prompt that
+   * normally follows an upload is not fired for a number that is already
+   * settled — being asked to verify something you just verified is the kind of
+   * detail that makes a flow feel broken.
+   */
+  const [numberVerified, setNumberVerified] = React.useState(false);
 
   const types = DOCUMENT_TYPES.filter((definition) => definition.ownerType === ownerType);
   const definition = types.find((entry) => entry.code === documentType);
   const identityKind = definition ? identityKindForDocumentType(definition.code) : undefined;
+  /**
+   * One of the four checks a driver must pass, if this is one of them.
+   *
+   * Wider than `identityKind`: it also covers the driving licence, which is
+   * verified against the licensing authority rather than an identity source
+   * but is just as much a number an authority can confirm.
+   */
+  const driverCheck = definition ? driverCheckForDocumentType(definition.code) : undefined;
 
   const normalizedNumber = identityKind ? normalizeIdentityNumber(documentNumber) : documentNumber;
   const numberValid = identityKind
@@ -502,6 +617,7 @@ function UploadDialog({
     setIssueDate('');
     setExpiryDate('');
     setFile(null);
+    setNumberVerified(false);
   };
 
   const upload = useMutation({
@@ -520,18 +636,23 @@ function UploadDialog({
       return api.post<DocumentSummary>('/documents', body);
     },
     onSuccess: (document) => {
+      const verifiedFirst = numberVerified;
       toast.success('Document uploaded', {
-        description: identityKind
-          ? 'Verify the number now to skip the review queue.'
-          : 'It is now awaiting verification.',
+        description: verifiedFirst
+          ? 'The number on it was already confirmed with the issuing authority.'
+          : driverCheck
+            ? 'Verify the number now to skip the review queue.'
+            : 'It is now awaiting verification.',
       });
       void queryClient.invalidateQueries({ queryKey: ['documents'] });
       void queryClient.invalidateQueries({ queryKey: ['verification'] });
       void queryClient.invalidateQueries({ queryKey: ['identity'] });
       onOpenChange(false);
       reset();
-      // Handed back so the panel can open the verify prompt straight away.
-      onUploaded?.(document);
+      // Handed back so the panel can open the verify prompt straight away —
+      // unless the number was confirmed in the form, in which case there is
+      // nothing left to ask.
+      onUploaded?.(document, verifiedFirst);
     },
     onError: (error) => toast.error('Upload failed', { description: errorMessage(error) }),
   });
@@ -604,6 +725,25 @@ function UploadDialog({
                   : `${identityKind.formatHint} Required — it is what gets verified.`}
               </p>
             ) : null}
+
+            {/*
+              Verify, right under the number it verifies.
+              Offered for the four documents whose number an authority can
+              confirm, so the answer arrives while the card is still in hand
+              rather than after the file has been filed away.
+            */}
+            {driverCheck && subjectType && canVerifyInline ? (
+              <div className="pt-1">
+                <InlineNumberVerify
+                  documentType={documentType}
+                  subjectType={subjectType}
+                  subjectId={ownerId}
+                  number={documentNumber}
+                  holderName={ownerLabel}
+                  onOutcome={(outcome) => setNumberVerified(outcome.verified)}
+                />
+              </div>
+            ) : null}
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -646,14 +786,15 @@ function UploadDialog({
             )}
           </div>
 
-          {identityKind ? (
+          {driverCheck && !numberVerified ? (
             <Alert variant="info">
               <ShieldCheck className="size-4" />
-              <AlertTitle>Verified as soon as you upload</AlertTitle>
+              <AlertTitle>One of the four checks a driver must pass</AlertTitle>
               <AlertDescription className="text-xs leading-relaxed">
-                {ownerLabel ? `${ownerLabel}'s ` : 'This '}
-                {identityKind.shortLabel} is checked against the issuing authority the moment this
-                is saved. If you skip it, a Verify button stays on the row.
+                {driverCheck.label} is one of four — with the driving licence, Aadhaar, PAN and
+                Voter ID — that each have to be confirmed by their own authority before
+                {ownerLabel ? ` ${ownerLabel}` : ' this driver'} counts as verified. Verify it above
+                now, or from the row afterwards.
               </AlertDescription>
             </Alert>
           ) : null}

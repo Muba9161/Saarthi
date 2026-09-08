@@ -166,6 +166,8 @@ export const ml: Catalogue = {
     'ഇന്ത്യൻ മൊബൈൽ നമ്പർ, +91 സഹിതം അല്ലെങ്കിൽ ഇല്ലാതെ.',
   'Fleet invite code': 'വാഹനനിര ക്ഷണ കോഡ്',
   'Ask your truck owner for this code.': 'ഈ കോഡ് നിങ്ങളുടെ ട്രക്ക് ഉടമയിൽ നിന്ന് വാങ്ങുക.',
+  'No code yet? Leave it blank and join your fleet later.':
+    'കോഡ് ഇനിയും ഇല്ലേ? ഇത് ശൂന്യമായി വിടുക, പിന്നീട് നിങ്ങളുടെ വാഹനനിരയിൽ ചേരാം.',
   'Driving licence number': 'ഡ്രൈവിംഗ് ലൈസൻസ് നമ്പർ',
   'Saarthi creates this organization and makes you its administrator.':
     'Saarthi ഈ സ്ഥാപനം സൃഷ്ടിക്കുകയും നിങ്ങളെ അതിന്റെ അഡ്മിനിസ്ട്രേറ്ററാക്കുകയും ചെയ്യുന്നു.',

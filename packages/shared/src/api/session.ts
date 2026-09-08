@@ -42,6 +42,16 @@ export interface SessionDriverProfile {
   verificationStatus: VerificationStatus;
   currentTruckId: string | null;
   overallScore: number | null;
+  /**
+   * True when nobody employs this driver yet — they registered without a fleet
+   * invite code and are the only member of their own organization.
+   *
+   * Carried on the session because it decides what the driver's home screen is
+   * for: somebody with no fleet has no trips to show and needs the invite-code
+   * box instead. It is the same condition the API enforces before letting a
+   * driver join a fleet, so the screen and the rule cannot disagree.
+   */
+  awaitingFleet: boolean;
 }
 
 export interface SessionUser {

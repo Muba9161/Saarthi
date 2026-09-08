@@ -25,6 +25,8 @@ import {
   type TerminalAssignmentListQuery,
   type TerminalSelfieMetaInput,
   type TerminalSessionView,
+  normalizeRegistrationNumber,
+  formatRegistrationNumber,
 } from '@saarthi/shared';
 import { type Prisma, prisma } from '../../database/prisma';
 import { errors } from '../../lib/errors';
@@ -101,7 +103,9 @@ async function loadSession(sessionId: string): Promise<SessionRecord> {
  * next poll. A driver standing at a truck notices either one.
  */
 async function announce(session: SessionRecord): Promise<void> {
-  await invalidateTerminalState(session.terminalDeviceId);
+  // No device, nothing cached against one. A phone waiting for approval has
+  // no terminal state to invalidate yet.
+  if (session.terminalDeviceId) await invalidateTerminalState(session.terminalDeviceId);
   await broadcastTerminalSession(toSessionPayload(session)).catch((error: unknown) => {
     sessionLogger.warn(
       { err: error, sessionId: session.id },
@@ -173,14 +177,12 @@ async function requireDriverProfile(auth: AuthContext): Promise<{
  *
  * Scanning is not authorisation (section 52). All this does is open a request.
  */
-export async function requestAssignment(
-  auth: AuthContext,
-  input: RequestTerminalAssignmentInput,
-): Promise<TerminalSessionView> {
-  const driver = await requireDriverProfile(auth);
-
+/** A vehicle named by its QR sticker, and the code that named it. */
+async function resolveByQrToken(
+  qrToken: string,
+): Promise<{ vehicleId: string; qrCodeId: string | null }> {
   const code = await prisma.qrCode.findUnique({
-    where: { token: input.qrToken },
+    where: { token: qrToken },
     select: {
       id: true,
       subjectType: true,
@@ -205,8 +207,68 @@ export async function requestAssignment(
     throw errors.businessRule('That vehicle code has expired. Ask for a new one to be issued.');
   }
 
+  return { vehicleId: code.subjectId, qrCodeId: code.id };
+}
+
+/**
+ * A vehicle named by its registration number, typed.
+ *
+ * Scoped to the driver's own fleet in the query itself, not checked afterwards.
+ * The difference matters: a lookup across every tenant would let a driver
+ * discover, one registration at a time, which trucks exist on Saarthi and which
+ * do not — and "not found" versus "not yours" is exactly the distinction that
+ * makes such a probe worth running. Inside one fleet there is nothing to learn.
+ *
+ * Normalised with the same function that normalised it on the way into the
+ * database, so `DL 01 AB 1234`, `dl-01-ab-1234` and `DL01AB1234` are one truck.
+ */
+async function resolveByRegistration(
+  organizationId: string,
+  registrationNumber: string,
+): Promise<{ vehicleId: string; qrCodeId: string | null }> {
+  const normalised = normalizeRegistrationNumber(registrationNumber);
+  if (normalised.length < 4) {
+    throw errors.validation('That does not look like a registration number.');
+  }
+
+  const vehicle = await prisma.truck.findFirst({
+    where: { organizationId, registrationNumber: normalised, archivedAt: null },
+    select: { id: true },
+  });
+
+  if (!vehicle) {
+    throw errors.notFound(
+      'Vehicle',
+      `No vehicle in your fleet has the number ${formatRegistrationNumber(normalised)}. ` +
+        'Check the number, or scan the code on the vehicle instead.',
+    );
+  }
+
+  // No QR was involved, and the session records that honestly rather than
+  // borrowing the vehicle's code to fill the column.
+  return { vehicleId: vehicle.id, qrCodeId: null };
+}
+
+export async function requestAssignment(
+  auth: AuthContext,
+  input: RequestTerminalAssignmentInput,
+): Promise<TerminalSessionView> {
+  const driver = await requireDriverProfile(auth);
+
+  /*
+   * Naming a vehicle, two ways, one path.
+   *
+   * The driver either scanned the sticker or typed the registration. Both are
+   * resolved to a vehicle id here and everything after this point is identical
+   * — the same fleet check, the same one-session rules, the same approval. That
+   * matters more than it looks: identification is not authorisation, and a
+   * second resolution path would be a second place for that to be forgotten.
+   */
+  const { vehicleId, qrCodeId } = input.qrToken
+    ? await resolveByQrToken(input.qrToken)
+    : await resolveByRegistration(driver.organizationId, input.registrationNumber ?? '');
   const vehicle = await prisma.truck.findUnique({
-    where: { id: code.subjectId },
+    where: { id: vehicleId },
     select: {
       id: true,
       organizationId: true,
@@ -228,9 +290,20 @@ export async function requestAssignment(
     throw errors.notFound('Vehicle', 'That vehicle is not in your fleet.');
   }
 
-  // The terminal fitted to this vehicle. Resolved from the vehicle rather than
-  // taken from the request: a driver naming a terminal could name a terminal in
-  // another cab, and the realtime update would land on the wrong screen.
+  /*
+   * The terminal showing this session, if there already is one.
+   *
+   * Resolved from the vehicle rather than taken from the request: a driver
+   * naming a terminal could name a terminal in another cab, and the realtime
+   * update would land on the wrong screen.
+   *
+   * Absent is legitimate now, and it is the driver app's normal case. A fitted
+   * tablet is paired before anybody signs on — the driver scans the QR on its
+   * screen — but a driver's own phone earns the vehicle by being approved, so
+   * between the request and the approval there is no device to name. Refusing
+   * here, as this did, made the whole driver flow impossible: the phone could
+   * not request approval without a pairing and could not pair without approval.
+   */
   const assignment = await prisma.deviceAssignment.findFirst({
     where: {
       vehicleId: vehicle.id,
@@ -240,11 +313,6 @@ export async function requestAssignment(
     orderBy: { assignedAt: 'desc' },
     select: { deviceId: true },
   });
-  if (!assignment) {
-    throw errors.businessRule(
-      `No Saarthi Terminal is connected to ${vehicle.registrationNumber}. Connect one from Vehicle → Hardware first.`,
-    );
-  }
 
   // One live session per terminal, and one per driver. Both matter: two drivers
   // half-way through arriving at the same truck is a queue nobody can resolve,
@@ -253,7 +321,7 @@ export async function requestAssignment(
   const [terminalBusy, driverBusy] = await Promise.all([
     prisma.terminalSession.findFirst({
       where: {
-        terminalDeviceId: assignment.deviceId,
+        terminalDeviceId: assignment?.deviceId ?? null,
         status: { in: ACTIVE_TERMINAL_SESSION_STATUSES },
       },
       include: sessionInclude,
@@ -284,12 +352,12 @@ export async function requestAssignment(
     const session = await tx.terminalSession.create({
       data: {
         organizationId: vehicle.organizationId,
-        terminalDeviceId: assignment.deviceId,
+        terminalDeviceId: assignment?.deviceId ?? null,
         vehicleId: vehicle.id,
         driverId: driver.id,
         driverUserId: driver.userId,
         status: TerminalSessionStatus.DRIVER_IDENTIFIED,
-        scannedQrCodeId: code.id,
+        scannedQrCodeId: qrCodeId,
         scanLatitude: input.latitude ?? null,
         scanLongitude: input.longitude ?? null,
       },
@@ -300,11 +368,13 @@ export async function requestAssignment(
       tx,
       session.id,
       TerminalSessionEventType.REQUESTED,
-      `${driver.name} scanned the vehicle QR at ${vehicle.registrationNumber}.`,
+      qrCodeId
+        ? `${driver.name} scanned the vehicle QR at ${vehicle.registrationNumber}.`
+        : `${driver.name} entered the vehicle number ${vehicle.registrationNumber}.`,
       {
         actorUserId: driver.userId,
         metadata: {
-          qrCodeId: code.id,
+          qrCodeId,
           latitude: input.latitude ?? null,
           longitude: input.longitude ?? null,
           note: input.note ?? null,
@@ -312,21 +382,29 @@ export async function requestAssignment(
       },
     );
 
-    // The scan itself is recorded in the QR audit log too, so a scan made from
-    // the terminal flow is indistinguishable in the record from one made at a
-    // checkpoint — which is what makes that log worth having.
-    await tx.qrScan.create({
-      data: {
-        qrCodeId: code.id,
-        scannedByUserId: auth.user.id,
-        scannedByOrganizationId: auth.organizationId,
-        purpose: QrScanPurpose.ASSIGNMENT,
-        result: 'ALLOWED',
-        scopesGranted: [],
-        latitude: input.latitude ?? null,
-        longitude: input.longitude ?? null,
-      },
-    });
+    /*
+     * The scan itself is recorded in the QR audit log too, so a scan made from
+     * the terminal flow is indistinguishable in the record from one made at a
+     * checkpoint — which is what makes that log worth having.
+     *
+     * Only when there *was* a scan. A driver who typed the registration did not
+     * scan anything, and writing a scan row for them would put a fiction into
+     * the one log whose value is that it records what actually happened.
+     */
+    if (qrCodeId) {
+      await tx.qrScan.create({
+        data: {
+          qrCodeId,
+          scannedByUserId: auth.user.id,
+          scannedByOrganizationId: auth.organizationId,
+          purpose: QrScanPurpose.ASSIGNMENT,
+          result: 'ALLOWED',
+          scopesGranted: [],
+          latitude: input.latitude ?? null,
+          longitude: input.longitude ?? null,
+        },
+      });
+    }
 
     return session;
   });
@@ -940,6 +1018,53 @@ export async function endSession(
         data: { currentTruckId: null },
       });
     }
+
+    /*
+     * A driver's phone lets go of the vehicle.
+     *
+     * A vehicle has one telemetry slot. A phone that paired itself when the
+     * fleet approved this driver has no business holding that slot once the
+     * shift is over — the next driver's phone would find the truck occupied by
+     * somebody who went home.
+     *
+     * Four things make this safe to run on every sign-off:
+     *
+     *  * **It only touches phones.** `releaseOnSignOff` was written when the
+     *    pairing was made, so a fitted tablet — bolted to the truck and shared
+     *    between drivers — is never matched by this and never unpaired.
+     *
+     *  * **It only touches this device.** Scoped to the terminal that held the
+     *    session, so a vehicle that has since been paired to somebody else is
+     *    untouched: `updateMany` matches nothing and the sign-off proceeds.
+     *    That is the reassignment race, and it resolves in favour of whoever
+     *    holds the vehicle now.
+     *
+     *  * **It is idempotent.** `status: ACTIVE` in the filter means a repeated
+     *    sign-off — a retry, a duplicate tap, a crash between the transaction
+     *    committing and the reply arriving — updates zero rows rather than
+     *    failing.
+     *
+     *  * **It is in the same transaction as the sign-off.** A session that ends
+     *    without releasing, or a release without an ended session, would each
+     *    need somebody to notice and repair it by hand.
+     */
+    await tx.deviceAssignment.updateMany({
+      where: {
+        // `?? ''` matches nothing rather than everything, which is the safe
+        // reading: a session that never had a device cannot have paired one,
+        // and an unscoped release would end somebody else's.
+        deviceId: session.terminalDeviceId ?? '',
+        vehicleId: session.vehicleId,
+        status: DeviceAssignmentStatus.ACTIVE,
+        releaseOnSignOff: true,
+      },
+      data: {
+        status: DeviceAssignmentStatus.ENDED,
+        unassignedAt: now,
+        unassignedById: session.driverUserId,
+        removalReason: 'Driver signed off in the Saarthi Driver app.',
+      },
+    });
 
     const next = await tx.terminalSession.update({
       where: { id: sessionId },

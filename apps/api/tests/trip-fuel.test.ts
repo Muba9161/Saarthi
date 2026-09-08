@@ -1,4 +1,4 @@
-import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { OrganizationType, TruckType } from '@saarthi/shared';
 import { prisma } from '../src/database/prisma';
 import { summariseTripFuel } from '../src/modules/trips/trip-fuel.service';
@@ -27,7 +27,17 @@ describe('trip fuel', () => {
    * client, and a file that does that while its neighbours are still running
    * leaves them querying a closed engine. Opening a connection is enough.
    */
-  beforeAll(async () => {
+  /*
+   * Connected before every test, not once before the file.
+   *
+   * Other suites in this project boot Fastify and close it again, and `closeApp`
+   * disconnects the *shared* Prisma client — so whichever file runs next finds a
+   * dead engine partway through, with "Engine is not yet connected" instead of
+   * anything to do with the code under test. A `beforeAll` reconnect is not
+   * enough because the disconnect can land after it. Connecting an already
+   * connected client is free.
+   */
+  beforeEach(async () => {
     await prisma.$connect();
   });
 

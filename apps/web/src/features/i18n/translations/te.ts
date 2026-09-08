@@ -165,6 +165,8 @@ export const te: Catalogue = {
   'Indian mobile number, with or without +91.': 'భారతీయ మొబైల్ నంబర్, +91 తో లేదా లేకుండా.',
   'Fleet invite code': 'వాహన సముదాయ ఆహ్వాన కోడ్',
   'Ask your truck owner for this code.': 'ఈ కోడ్‌ను మీ ట్రక్ యజమాని నుండి తీసుకోండి.',
+  'No code yet? Leave it blank and join your fleet later.':
+    'ఇంకా కోడ్ లేదా? దీన్ని ఖాళీగా ఉంచండి, తర్వాత మీ వాహన సముదాయంలో చేరవచ్చు.',
   'Driving licence number': 'డ్రైవింగ్ లైసెన్స్ నంబర్',
   'Saarthi creates this organization and makes you its administrator.':
     'Saarthi ఈ సంస్థను సృష్టించి మిమ్మల్ని దాని నిర్వాహకుడిగా చేస్తుంది.',

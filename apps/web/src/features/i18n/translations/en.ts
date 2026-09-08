@@ -187,6 +187,8 @@ export const en = {
   'Indian mobile number, with or without +91.': 'Indian mobile number, with or without +91.',
   'Fleet invite code': 'Fleet invite code',
   'Ask your truck owner for this code.': 'Ask your truck owner for this code.',
+  'No code yet? Leave it blank and join your fleet later.':
+    'No code yet? Leave it blank and join your fleet later.',
   'Driving licence number': 'Driving licence number',
   'Saarthi creates this organization and makes you its administrator.':
     'Saarthi creates this organization and makes you its administrator.',

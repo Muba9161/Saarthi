@@ -5,8 +5,10 @@ import {
   VerificationStatus,
   VerificationSubjectType,
   buildPaginationMeta,
+  driverVerificationChecklist,
   mandatoryDocumentTypes,
   resolveDocumentValidity,
+  type DriverVerificationChecklist,
   type Paginated,
   type ReviewVerificationInput,
   type SubmitVerificationInput,
@@ -112,6 +114,75 @@ async function resolveSubject(
   }
 }
 
+/**
+ * Where a driver stands against the four checks that decide their status.
+ *
+ * Read straight off the driver row: each check writes its own timestamp when
+ * its authority confirms it, so this is a read of recorded facts rather than a
+ * derived guess.
+ */
+export async function getDriverChecklist(
+  driverId: string,
+): Promise<DriverVerificationChecklist | null> {
+  const driver = await prisma.driver.findUnique({
+    where: { id: driverId },
+    select: {
+      licenceVerifiedAt: true,
+      aadhaarVerifiedAt: true,
+      panVerifiedAt: true,
+      voterIdVerifiedAt: true,
+    },
+  });
+  return driver ? driverVerificationChecklist(driver) : null;
+}
+
+/**
+ * The status a driver may actually hold.
+ *
+ * A driver is verified only once the licensing authority has confirmed their
+ * licence *and* their Aadhaar, PAN and Voter ID have each been confirmed by
+ * their own source. Anything asking for VERIFIED while a check is outstanding
+ * gets PENDING instead — including a human reviewer, deliberately: a reviewer
+ * can confirm that a scan looks right, which is not the same fact as an
+ * authority confirming the number, and the platform must not present the one
+ * as the other.
+ *
+ * Only VERIFIED is gated. A rejection needs no checklist to be true.
+ */
+async function driverStatusFor(
+  driverId: string,
+  requested: VerificationStatus,
+): Promise<VerificationStatus> {
+  if (requested !== VerificationStatus.VERIFIED) return requested;
+  const checklist = await getDriverChecklist(driverId);
+  if (!checklist || checklist.complete) return VerificationStatus.VERIFIED;
+  return VerificationStatus.PENDING;
+}
+
+/**
+ * The status a decision can actually take effect as, for any subject.
+ *
+ * Applied to the *case* as well as the subject, and that is the point: a case
+ * reading VERIFIED beside a driver reading PENDING would have the verification
+ * queue and the driver's own page contradicting each other, and whichever one
+ * somebody happened to look at would be the wrong answer.
+ *
+ * Returns the checklist too when one applies, so the caller can say on the
+ * case why a VERIFIED decision did not land as VERIFIED.
+ */
+async function effectiveStatusFor(
+  subjectType: VerificationSubjectType,
+  subjectId: string,
+  requested: VerificationStatus,
+): Promise<{ status: VerificationStatus; checklist: DriverVerificationChecklist | null }> {
+  if (subjectType !== VerificationSubjectType.DRIVER) {
+    return { status: requested, checklist: null };
+  }
+  const checklist = await getDriverChecklist(subjectId);
+  const status = await driverStatusFor(subjectId, requested);
+  return { status, checklist };
+}
+
 /** Propagate the case outcome onto the subject record itself. */
 async function applyStatusToSubject(
   subjectType: VerificationSubjectType,
@@ -120,7 +191,10 @@ async function applyStatusToSubject(
 ): Promise<void> {
   switch (subjectType) {
     case VerificationSubjectType.DRIVER:
-      await prisma.driver.update({ where: { id: subjectId }, data: { verificationStatus: status } });
+      await prisma.driver.update({
+        where: { id: subjectId },
+        data: { verificationStatus: await driverStatusFor(subjectId, status) },
+      });
       break;
     case VerificationSubjectType.TRUCK:
       await prisma.truck.update({ where: { id: subjectId }, data: { verificationStatus: status } });
@@ -357,7 +431,7 @@ export async function reviewVerification(
   });
   if (!record) throw errors.notFound('Verification case');
 
-  const status: VerificationStatus =
+  const requested: VerificationStatus =
     input.decision === 'VERIFIED'
       ? VerificationStatus.VERIFIED
       : input.decision === 'REJECTED'
@@ -370,6 +444,22 @@ export async function reviewVerification(
     throw errors.conflict('This record is already verified.');
   }
 
+  /**
+   * A reviewer's approval is held to the same four checks.
+   *
+   * Deliberately: a reviewer can confirm that a scan looks genuine, which is a
+   * different fact from an authority confirming the number on it. Letting the
+   * first stand in for the second is exactly the substitution this rule
+   * exists to prevent — so the decision is recorded, and the status it lands
+   * as is the one the evidence supports.
+   */
+  const { status, checklist } = await effectiveStatusFor(
+    record.subjectType,
+    record.subjectId,
+    requested,
+  );
+  const heldBack = status !== requested;
+
   const updated = await prisma.$transaction(async (tx) => {
     const next = await tx.verificationCase.update({
       where: { id: caseId },
@@ -377,9 +467,12 @@ export async function reviewVerification(
         status,
         reviewedById: auth.user.id,
         reviewedAt: new Date(),
-        reviewerNotes: input.reviewerNotes ?? null,
-        rejectionReason:
-          input.decision === 'REJECTED' || input.decision === 'CORRECTION_REQUESTED'
+        reviewerNotes: heldBack && checklist
+          ? `${input.reviewerNotes ?? 'Approved on review.'} ${checklist.summary}`
+          : (input.reviewerNotes ?? null),
+        rejectionReason: heldBack && checklist
+          ? checklist.summary
+          : input.decision === 'REJECTED' || input.decision === 'CORRECTION_REQUESTED'
             ? (input.rejectionReason ?? null)
             : null,
       },
@@ -391,8 +484,9 @@ export async function reviewVerification(
         verificationCaseId: caseId,
         status,
         actorUserId: auth.user.id,
-        note:
-          input.decision === 'CORRECTION_REQUESTED'
+        note: heldBack && checklist
+          ? `Approved on review, but not yet verified. ${checklist.summary}`
+          : input.decision === 'CORRECTION_REQUESTED'
             ? `Correction requested: ${input.rejectionReason}`
             : (input.reviewerNotes ?? input.rejectionReason ?? null),
       },
@@ -516,7 +610,205 @@ export async function demoVerifySubject(
     return verificationCase;
   });
 
+  /**
+   * Demo mode confirms all four checks, not just the status.
+   *
+   * The rule that a driver needs licence, Aadhaar, PAN and Voter ID is enforced
+   * wherever a status is set — including here — so setting VERIFIED alone would
+   * be silently downgraded and the demo shortcut would stop working. Filling
+   * the four timestamps keeps one rule in the codebase rather than an exception
+   * to it, and the event above already records that nothing was really checked.
+   */
+  if (subjectType === VerificationSubjectType.DRIVER) {
+    await prisma.driver.update({
+      where: { id: subjectId },
+      data: {
+        licenceVerifiedAt: now,
+        aadhaarVerifiedAt: now,
+        panVerifiedAt: now,
+        voterIdVerifiedAt: now,
+      },
+    });
+  }
+
   await applyStatusToSubject(subjectType, subjectId, VerificationStatus.VERIFIED);
+
+  return toSummary(record);
+}
+
+/**
+ * Bring a driver's status back in line with their four checks.
+ *
+ * Called after any one of them changes, because the fourth confirmation is
+ * what completes the set — a driver whose last outstanding check just passed
+ * must become verified there and then, without somebody having to go and press
+ * a separate button they have no reason to know about.
+ *
+ * It moves the status in both directions, and the downward one is the point:
+ * if a driver is carrying VERIFIED while a check is outstanding, then the
+ * badge is claiming something no authority has confirmed. That can happen
+ * legitimately — a driver verified by a reviewer before this rule existed —
+ * and the first check run on them is the moment to put it right. The case
+ * event says exactly which checks are missing, so the change is never a
+ * mystery to whoever sees it.
+ *
+ * Returns the checklist, so a caller that has just run a check can report what
+ * is still outstanding without reading the row again.
+ */
+export async function syncDriverVerificationStatus(
+  driverId: string,
+  actorUserId: string,
+): Promise<DriverVerificationChecklist | null> {
+  const driver = await prisma.driver.findUnique({
+    where: { id: driverId },
+    select: {
+      id: true,
+      organizationId: true,
+      verificationStatus: true,
+      licenceVerifiedAt: true,
+      aadhaarVerifiedAt: true,
+      panVerifiedAt: true,
+      voterIdVerifiedAt: true,
+    },
+  });
+  if (!driver) return null;
+
+  const checklist = driverVerificationChecklist(driver);
+  const desired = checklist.complete
+    ? VerificationStatus.VERIFIED
+    : driver.verificationStatus === VerificationStatus.VERIFIED
+      ? VerificationStatus.PENDING
+      : driver.verificationStatus;
+
+  if (desired === driver.verificationStatus) return checklist;
+
+  const now = new Date();
+  await prisma.$transaction(async (tx) => {
+    await tx.driver.update({ where: { id: driverId }, data: { verificationStatus: desired } });
+
+    const verificationCase = await tx.verificationCase.upsert({
+      where: {
+        subjectType_subjectId: {
+          subjectType: VerificationSubjectType.DRIVER,
+          subjectId: driverId,
+        },
+      },
+      create: {
+        subjectType: VerificationSubjectType.DRIVER,
+        subjectId: driverId,
+        organizationId: driver.organizationId,
+        status: desired,
+        submittedById: actorUserId,
+        submittedAt: now,
+        reviewedById: actorUserId,
+        reviewedAt: now,
+        reviewerNotes: checklist.summary,
+        rejectionReason: checklist.complete ? null : checklist.summary,
+      },
+      update: {
+        status: desired,
+        reviewedById: actorUserId,
+        reviewedAt: now,
+        reviewerNotes: checklist.summary,
+        rejectionReason: checklist.complete ? null : checklist.summary,
+      },
+    });
+
+    await tx.verificationEvent.create({
+      data: {
+        verificationCaseId: verificationCase.id,
+        status: desired,
+        actorUserId,
+        note: checklist.complete
+          ? 'All four checks confirmed by their issuing authorities — licence, Aadhaar, PAN and Voter ID.'
+          : checklist.summary,
+      },
+    });
+  });
+
+  return checklist;
+}
+
+/**
+ * Record the outcome of a registry check as a verification case.
+ *
+ * The registry path reaches a decision without a reviewer, but it must not
+ * therefore be invisible: the module's whole design is that "verification is a
+ * case with a history, not a boolean flag", and an automatic decision has more
+ * need of that history than a manual one, not less. So the same case, the same
+ * event log and the same subject status are written — the reviewer is simply
+ * the registry, named in the note.
+ *
+ * Both outcomes are recorded. A refusal carries its reason on the case, which
+ * is what puts the problem in front of the operator on the verification queue
+ * and the subject's own page rather than only in the reply to one click.
+ */
+export async function recordRegistryDecision(
+  auth: AuthContext,
+  subjectType: VerificationSubjectType,
+  subjectId: string,
+  organizationId: string | null,
+  decision: {
+    /** `VERIFIED` or `REJECTED` — a registry answer is never a maybe. */
+    status: VerificationStatus;
+    /** The one-line verdict, kept on the case and on the event. */
+    note: string;
+    /** Set for a refusal, so the subject's page can explain itself. */
+    rejectionReason: string | null;
+  },
+): Promise<VerificationCaseSummary> {
+  const now = new Date();
+
+  /**
+   * A confirmed licence is one of four, so a driver whose other checks are
+   * outstanding does not reach VERIFIED on this decision alone. The note then
+   * carries the checklist, which is what turns "still pending" from a puzzle
+   * into a list of what to do next.
+   */
+  const { status, checklist } = await effectiveStatusFor(subjectType, subjectId, decision.status);
+  const downgraded = status !== decision.status;
+  const note = downgraded && checklist ? `${decision.note} ${checklist.summary}` : decision.note;
+  const rejectionReason = downgraded && checklist ? checklist.summary : decision.rejectionReason;
+
+  const record = await prisma.$transaction(async (tx) => {
+    const verificationCase = await tx.verificationCase.upsert({
+      where: { subjectType_subjectId: { subjectType, subjectId } },
+      create: {
+        subjectType,
+        subjectId,
+        organizationId,
+        status,
+        submittedById: auth.user.id,
+        submittedAt: now,
+        reviewedById: auth.user.id,
+        reviewedAt: now,
+        reviewerNotes: note,
+        rejectionReason,
+      },
+      update: {
+        organizationId,
+        status,
+        reviewedById: auth.user.id,
+        reviewedAt: now,
+        reviewerNotes: note,
+        rejectionReason,
+      },
+      include: { documents: true },
+    });
+
+    await tx.verificationEvent.create({
+      data: {
+        verificationCaseId: verificationCase.id,
+        status,
+        actorUserId: auth.user.id,
+        note,
+      },
+    });
+
+    return verificationCase;
+  });
+
+  await applyStatusToSubject(subjectType, subjectId, status);
 
   return toSummary(record);
 }
@@ -610,6 +902,18 @@ export async function getCaseForSubject(
   });
 
   const readiness = await checkReadiness(subjectType, subjectId);
-  if (!record) return { case: null, readiness };
-  return { case: await toSummary(record), readiness };
+  /**
+   * The four checks, for a driver.
+   *
+   * Sent alongside readiness rather than folded into it because they answer
+   * different questions: readiness is "are the mandatory documents on file",
+   * this is "has each number been confirmed by its authority". A driver can
+   * satisfy the first and still not be verified, and the screen has to be able
+   * to say which of the two is holding them up.
+   */
+  const driverChecklist =
+    subjectType === VerificationSubjectType.DRIVER ? await getDriverChecklist(subjectId) : null;
+
+  if (!record) return { case: null, readiness, driverChecklist };
+  return { case: await toSummary(record), readiness, driverChecklist };
 }

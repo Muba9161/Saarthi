@@ -29,12 +29,26 @@ export async function getApp(): Promise<FastifyInstance> {
   return app;
 }
 
+/**
+ * Shut the Fastify instance down, and leave the database alone.
+ *
+ * This used to `$disconnect()` the *shared* Prisma client, which is fine for a
+ * suite running by itself and wrong for a suite running in company: every file
+ * in this project imports the same client, so one file finishing tore the
+ * connection out from under whichever ran next. The symptom was forty-odd
+ * failures reading "Engine is not yet connected" in a file that had not changed
+ * — and it only appeared once suites existed that call services directly rather
+ * than booting their own app.
+ *
+ * Nothing needs disconnecting here. Vitest ends the process when the run
+ * finishes, which closes the pool; and a client left connected between files is
+ * exactly what the next file wants.
+ */
 export async function closeApp(): Promise<void> {
   if (app) {
     await app.close();
     app = null;
   }
-  await prisma.$disconnect();
 }
 
 /** Truncate every operational table, keeping reference data intact. */

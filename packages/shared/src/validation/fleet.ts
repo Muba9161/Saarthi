@@ -166,6 +166,20 @@ export const updateDriverSchema = createDriverSchema
   });
 export type UpdateDriverInput = z.infer<typeof updateDriverSchema>;
 
+/**
+ * A driver attaching themselves to a fleet after registration.
+ *
+ * The same invite code registration asks for, entered later — because
+ * registration no longer insists on it (see `registerSchema`). A driver who
+ * signed up unattached sits in a single-member organization of their own until
+ * they use this, at which point their membership and driver row move to the
+ * fleet and the vacated placeholder is archived.
+ */
+export const joinFleetSchema = z.object({
+  fleetInviteCode: trimmedString(4, 32).transform((value) => value.toUpperCase()),
+});
+export type JoinFleetInput = z.infer<typeof joinFleetSchema>;
+
 export const driverListQuerySchema = paginationSchema.extend({
   search: optionalTrimmedString(120),
   availability: csvEnum([

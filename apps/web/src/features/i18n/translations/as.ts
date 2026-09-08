@@ -164,6 +164,8 @@ export const as: Catalogue = {
   'Indian mobile number, with or without +91.': 'ভাৰতীয় মোবাইল নম্বৰ, +91 সৈতে বা অবিহনে।',
   'Fleet invite code': 'বাহিনী আমন্ত্ৰণ কোড',
   'Ask your truck owner for this code.': 'এই কোডটো আপোনাৰ ট্ৰাক মালিকৰ পৰা লওক।',
+  'No code yet? Leave it blank and join your fleet later.':
+    'এতিযাও কোড নাই? ইযাক খালী ৰাখক, পিছত আপোনাৰ বাহিনীত যোগ দিব পাৰিব।',
   'Driving licence number': 'ড্ৰাইভিং অনুজ্ঞাপত্ৰ নম্বৰ',
   'Saarthi creates this organization and makes you its administrator.':
     'Saarthi-এ এই প্ৰতিষ্ঠানটো সৃষ্টি কৰে আৰু আপোনাক ইয়াৰ প্ৰশাসক কৰে।',

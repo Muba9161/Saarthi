@@ -869,6 +869,14 @@ model Driver {
   licenseNumber         String
   licenseExpiryDate     DateTime?
   licenseClass          String?
+  /// When the licensing authority last confirmed this licence.
+  ///
+  /// Sits beside `aadhaarVerifiedAt`, `panVerifiedAt` and `voterIdVerifiedAt`
+  /// because it is the same kind of fact and the same question is asked of all
+  /// four: a driver reaches VERIFIED only once every one of them is confirmed.
+  /// Cleared when the register contradicts the licence — an expired licence is
+  /// not a confirmed one.
+  licenceVerifiedAt     DateTime?
   experienceYears       Int                @default(0)
   dateOfBirth           DateTime?
   bloodGroup            String?
@@ -3638,6 +3646,15 @@ model DevicePairingToken {
   note        String?
   expiresAt   DateTime
 
+  /// Whether the assignment this token creates should end when the driver does.
+  ///
+  /// Set only by the driver app, which mints its own token once the fleet has
+  /// approved a driver onto a vehicle. Carried onto the `DeviceAssignment` at
+  /// redemption so the decision is recorded where it is later acted on, rather
+  /// than re-derived from a note string in a transaction that disconnects a
+  /// truck.
+  releaseOnSignOff Boolean @default(false)
+
   /// Single-use. Both columns are written in the same transaction as the
   /// assignment they create.
   consumedAt         DateTime?
@@ -3712,6 +3729,19 @@ model DeviceAssignment {
   unassignedById String?   @db.Uuid
   note           String?
   removalReason  String?
+
+  /// Whether this device should let go of the vehicle when the driver signs off.
+  ///
+  /// True only for a driver's own phone, which pairs itself when the fleet
+  /// approves it onto a truck and has no business holding that truck's single
+  /// telemetry slot once the shift ends. A fitted tablet is the opposite case:
+  /// it is bolted to the vehicle and stays with it between drivers, so releasing
+  /// it at sign-off would unpair hardware nobody can reach.
+  ///
+  /// Recorded at pairing time rather than inferred later. The alternative —
+  /// guessing from the device type or the pairing note — would be a guess about
+  /// whether to disconnect a truck, made in a transaction nobody is watching.
+  releaseOnSignOff Boolean @default(false)
 
   device  HardwareDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
   vehicle Truck          @relation("VehicleDeviceAssignments", fields: [vehicleId], references: [id], onDelete: Cascade)
@@ -6269,7 +6299,14 @@ model TerminalSession {
   organizationId String @db.Uuid
 
   /// The terminal the driver walked up to.
-  terminalDeviceId String @db.Uuid
+  /// The device showing this session, once there is one.
+  ///
+  /// Null while a driver's own phone is waiting to be approved. The fitted
+  /// tablet flow has a terminal from the first moment — the driver scans the QR
+  /// on its screen — but a phone earns the vehicle only when the fleet approves
+  /// it, so between request and approval there is genuinely no device, and
+  /// saying so is better than binding one that has not been authorised yet.
+  terminalDeviceId String? @db.Uuid
   vehicleId        String @db.Uuid
   driverId         String @db.Uuid
   /// Denormalised from the driver, so the approval queue renders without a
@@ -6321,7 +6358,7 @@ model TerminalSession {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  terminal   HardwareDevice                @relation("TerminalDeviceSessions", fields: [terminalDeviceId], references: [id], onDelete: Cascade)
+  terminal   HardwareDevice?               @relation("TerminalDeviceSessions", fields: [terminalDeviceId], references: [id], onDelete: Cascade)
   vehicle    Truck                         @relation("VehicleTerminalSessions", fields: [vehicleId], references: [id], onDelete: Cascade)
   driver     Driver                        @relation("DriverTerminalSessions", fields: [driverId], references: [id], onDelete: Cascade)
   events     TerminalSessionEvent[]
@@ -6548,9 +6585,11 @@ enum TerminalReleaseStatus {
 model TerminalRelease {
   id String @id @default(uuid()) @db.Uuid
 
-  /// Read from the APK. Unique because two builds sharing a code are
-  /// indistinguishable to Android, which would make "is this newer?" unanswerable.
-  versionCode   Int    @unique
+  /// Read from the APK. Unique *per app*: the terminal and the driver app are
+  /// separate packages with independent version numbers, and both start at 1.
+  /// Within one app two builds sharing a code would be indistinguishable to
+  /// Android, which is what would make "is this newer?" unanswerable.
+  versionCode   Int
   versionName   String
   /// Refused at upload if it does not match the installed package.
   applicationId String
@@ -6586,7 +6625,8 @@ model TerminalRelease {
   uploadedBy  User  @relation("TerminalReleaseUploader", fields: [uploadedById], references: [id], onDelete: Restrict)
   publishedBy User? @relation("TerminalReleasePublisher", fields: [publishedById], references: [id], onDelete: SetNull)
 
-  @@index([status, versionCode])
+  @@unique([applicationId, versionCode])
+  @@index([applicationId, status, versionCode])
   @@index([uploadedById])
   @@map("terminal_releases")
 }
