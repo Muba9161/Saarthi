@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      The driver app's ground, matching `Obsidian` in FleetTheme.kt.
+
+      Defined here rather than in :core because the terminal's own splash colour
+      is the navy the tablet still uses, and the two are no longer the same
+      product to look at.
+    -->
+    <color name="driver_splash_background">#0A0B0D</color>
+</resources>

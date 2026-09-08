@@ -77,7 +77,11 @@ export function StatCard({
   const goodDirection = trend?.goodDirection ?? 'up';
   const isFlat = trend !== undefined && Math.abs(trend.value) < 0.5;
   const isGood =
-    trend === undefined || isFlat ? null : goodDirection === 'up' ? trend.value > 0 : trend.value < 0;
+    trend === undefined || isFlat
+      ? null
+      : goodDirection === 'up'
+        ? trend.value > 0
+        : trend.value < 0;
   const TrendIcon = isFlat ? ArrowRight : (trend?.value ?? 0) > 0 ? ArrowUpRight : ArrowDownRight;
 
   const Wrapper = onClick ? 'button' : 'div';
@@ -86,13 +90,13 @@ export function StatCard({
     <HoverLift disabled={!onClick} className={cn('h-full', className)}>
       <Card
         variant="glass"
-        className={cn('h-full p-4 sm:p-5', onClick && 'cursor-pointer')}
+        className={cn('h-full rounded-2xl p-5 sm:p-6', onClick && 'cursor-pointer')}
       >
         <Wrapper
           {...(onClick ? { type: 'button' as const, onClick } : {})}
-          className="flex h-full w-full items-start justify-between gap-3 text-left sm:gap-4"
+          className="flex h-full w-full items-center justify-between gap-3 text-left sm:gap-4"
         >
-          <div className="min-w-0 flex-1 space-y-1.5">
+          <div className="min-w-0 flex-1 space-y-2">
             <p className="section-label flex items-center gap-1.5">
               {label}
               {live ? <span className="live-dot" aria-label="Updating live" /> : null}
@@ -100,7 +104,7 @@ export function StatCard({
 
             <p
               className={cn(
-                'tabular text-2xl font-semibold leading-none tracking-[-0.02em] sm:text-[1.75rem]',
+                'tabular text-[1.75rem] font-semibold leading-none tracking-[-0.03em] sm:text-[2rem]',
                 'break-words',
                 valueTones[tone],
               )}
@@ -138,7 +142,7 @@ export function StatCard({
               <MiniChart spec={chart} tone={tone} />
             </span>
           ) : Icon ? (
-            <span className={cn('shrink-0 rounded-xl p-2.5 ring-1', iconTones[tone])}>
+            <span className={cn('shrink-0 rounded-2xl p-3 ring-1', iconTones[tone])}>
               <Icon className="size-5" />
             </span>
           ) : null}

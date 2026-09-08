@@ -97,7 +97,7 @@ export function DataTable<T>({
 
   if (isLoading && !rows) {
     return (
-      <div className={cn('glass-panel glass-sheen overflow-hidden rounded-xl', className)}>
+      <div className={cn('glass-panel glass-sheen overflow-hidden rounded-2xl', className)}>
         <TableSkeleton columns={Math.min(columns.length, 6)} />
       </div>
     );
@@ -114,10 +114,10 @@ export function DataTable<T>({
   }
 
   return (
-    <div className={cn('space-y-3', className)}>
+    <div className={cn('space-y-4', className)}>
       <div
         className={cn(
-          'glass-panel glass-sheen overflow-hidden rounded-xl',
+          'glass-panel glass-sheen overflow-hidden rounded-2xl',
           isLoading && 'opacity-60 transition-opacity',
         )}
       >
@@ -177,7 +177,7 @@ export function DataTable<T>({
       </div>
 
       {pagination && pagination.totalPages > 1 ? (
-        <div className="flex items-center justify-between gap-3 px-1">
+        <div className="flex items-center justify-between gap-3 px-1.5">
           <p className="text-xs text-muted-foreground">
             Showing{' '}
             <span className="tabular font-medium text-foreground">

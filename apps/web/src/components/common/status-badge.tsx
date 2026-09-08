@@ -105,10 +105,20 @@ export function StatusBadge({
   status,
   className,
   size,
+  dot = true,
 }: {
   status: string | null | undefined;
   className?: string;
   size?: BadgeProps['size'];
+  /**
+   * Leading dot in the badge's own colour, on by default.
+   *
+   * This component exists to render the *condition of a thing* — a truck is
+   * on trip, a document has expired — and a dotted pill reads as exactly
+   * that, where a bare coloured pill reads as a category label. Pass false
+   * where the badge is already inside a column whose heading says "Status".
+   */
+  dot?: boolean;
 }) {
   if (!status) return <span className="text-muted-foreground">—</span>;
 
@@ -116,7 +126,12 @@ export function StatusBadge({
   const pulses = status === 'TRIGGERED' || status === 'BROADCASTING' || status === 'EMERGENCY';
 
   return (
-    <Badge variant={variant} size={size} className={cn(pulses && 'animate-pulse', className)}>
+    <Badge
+      variant={variant}
+      size={size}
+      dot={dot}
+      className={cn(pulses && 'animate-pulse', className)}
+    >
       {humanizeEnum(status)}
     </Badge>
   );

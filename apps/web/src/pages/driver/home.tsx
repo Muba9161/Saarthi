@@ -40,6 +40,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { AnimatedNumber, LiveValue, Stagger, StaggerItem } from '@/components/motion';
+import { cn } from '@/lib/utils';
 
 /**
  * Driver home.
@@ -113,7 +114,8 @@ export function DriverHomePage() {
       toast.success('Trip updated');
       void queryClient.invalidateQueries({ queryKey: ['trips'] });
     },
-    onError: (error) => toast.error('Could not update the trip', { description: errorMessage(error) }),
+    onError: (error) =>
+      toast.error('Could not update the trip', { description: errorMessage(error) }),
   });
 
   const current = trip.data;
@@ -123,7 +125,12 @@ export function DriverHomePage() {
     current?.status === TripStatus.ASSIGNED
       ? { label: 'Start trip', next: TripStatus.STARTED, icon: Play, variant: 'gradient' as const }
       : current?.status === TripStatus.STARTED || current?.status === TripStatus.IN_TRANSIT
-        ? { label: 'I have arrived', next: TripStatus.ARRIVED, icon: MapPin, variant: 'default' as const }
+        ? {
+            label: 'I have arrived',
+            next: TripStatus.ARRIVED,
+            icon: MapPin,
+            variant: 'default' as const,
+          }
         : current?.status === TripStatus.ARRIVED
           ? {
               label: 'Complete delivery',
@@ -134,10 +141,22 @@ export function DriverHomePage() {
           : null;
 
   return (
-    <Stagger className="mx-auto max-w-2xl space-y-5">
-      <StaggerItem>
+    <Stagger
+      className={cn(
+        'mx-auto max-w-2xl space-y-5',
+        // At lg the same sections lay out as a board. `space-y-0` is required:
+        // the stack spaces siblings with margins, which inside a grid would
+        // add a stray gap on top of the grid's own.
+        'lg:max-w-6xl lg:grid lg:grid-cols-12 lg:items-start lg:gap-5 lg:space-y-0',
+      )}
+    >
+      <StaggerItem className="lg:col-span-12">
         <PageHeader
-          eyebrow={new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
+          eyebrow={new Date().toLocaleDateString('en-IN', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+          })}
           title={`Hello, ${session?.user.firstName}`}
           description={
             current
@@ -165,7 +184,7 @@ export function DriverHomePage() {
         driver with no fleet has no trips coming and no vehicle that would
         accept them. Renders nothing once they have an employer.
       */}
-      <StaggerItem>
+      <StaggerItem className="lg:col-span-6">
         <JoinFleetCard />
       </StaggerItem>
 
@@ -180,7 +199,7 @@ export function DriverHomePage() {
 
         Renders nothing at all until a driver build is published.
       */}
-      <StaggerItem>
+      <StaggerItem className="lg:col-span-6">
         <DriverAppCard />
       </StaggerItem>
 
@@ -190,7 +209,7 @@ export function DriverHomePage() {
         driver who is not yet allowed to drive.
       */}
       {can(Permission.TERMINAL_DRIVE) && (signOn.data || !awaitingFleet) ? (
-        <StaggerItem>
+        <StaggerItem className="lg:col-span-12">
           {signOn.data ? (
             <DriverSignOnCard registrationNumber={signOn.data.registrationNumber} />
           ) : (
@@ -213,14 +232,17 @@ export function DriverHomePage() {
       ) : null}
 
       {session?.driver ? (
-        <StaggerItem>
+        <StaggerItem className="lg:col-span-4">
           <Card variant="glass">
             <CardContent className="flex items-center justify-between gap-3 p-4">
               <div>
                 <p className="section-label">Your safety score</p>
                 <div className="mt-1.5 flex items-center gap-2.5">
                   <ScoreBadge score={session.driver.overallScore} />
-                  <Link to="/driver/score" className="text-sm font-medium text-primary hover:underline">
+                  <Link
+                    to="/driver/score"
+                    className="text-sm font-medium text-primary hover:underline"
+                  >
                     See breakdown
                   </Link>
                 </div>
@@ -234,7 +256,7 @@ export function DriverHomePage() {
       {trip.isLoading ? (
         <LoadingState label="Checking for a trip…" />
       ) : !current ? (
-        <StaggerItem>
+        <StaggerItem className="lg:col-span-12">
           <EmptyState
             icon={Navigation}
             title="No active trip"
@@ -255,7 +277,7 @@ export function DriverHomePage() {
         <>
           {/* Map first — a driver checks where they are before anything else. */}
           {position && hasFeature(Feature.TRACKING_LIVE) ? (
-            <StaggerItem>
+            <StaggerItem className="lg:col-span-8">
               <Card variant="glass" className="overflow-hidden p-0">
                 <div className="relative">
                   <FleetMap
@@ -294,7 +316,7 @@ export function DriverHomePage() {
             </StaggerItem>
           ) : null}
 
-          <StaggerItem>
+          <StaggerItem className="lg:col-span-4">
             <Card variant="glass">
               <CardContent className="space-y-5 p-5">
                 <div className="flex items-start justify-between gap-3">
@@ -389,7 +411,7 @@ export function DriverHomePage() {
             </Card>
           </StaggerItem>
 
-          <StaggerItem className="grid grid-cols-3 gap-3">
+          <StaggerItem className="grid grid-cols-3 gap-3 lg:col-span-12">
             <MiniStat
               className="glass rounded-xl p-3"
               label="Planned"

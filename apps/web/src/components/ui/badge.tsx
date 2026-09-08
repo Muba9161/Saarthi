@@ -3,7 +3,7 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
 const badgeVariants = cva(
-  'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 [&_svg]:size-3',
+  'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 [&_svg]:size-3',
   {
     variants: {
       variant: {
@@ -18,9 +18,9 @@ const badgeVariants = cva(
         accent: 'border-transparent bg-accent/15 text-accent-foreground',
       },
       size: {
-        default: 'px-2 py-0.5 text-xs',
-        sm: 'px-1.5 py-0 text-2xs',
-        lg: 'px-2.5 py-1 text-sm',
+        default: 'px-2.5 py-0.5 text-xs',
+        sm: 'px-2 py-0 text-2xs',
+        lg: 'px-3 py-1 text-sm',
       },
     },
     defaultVariants: { variant: 'default', size: 'default' },
@@ -29,10 +29,26 @@ const badgeVariants = cva(
 
 export interface BadgeProps
   extends React.HTMLAttributes<HTMLSpanElement>,
-    VariantProps<typeof badgeVariants> {}
+    VariantProps<typeof badgeVariants> {
+  /**
+   * Prefixes the label with a small filled circle in the badge's own colour.
+   *
+   * The reference language marks live state this way — a dot reads as "this
+   * is the current condition of a thing" where a bare coloured pill reads as
+   * a category. It inherits `currentColor`, so it needs no per-variant rule.
+   */
+  dot?: boolean;
+}
 
-function Badge({ className, variant, size, ...props }: BadgeProps) {
-  return <span className={cn(badgeVariants({ variant, size }), className)} {...props} />;
+function Badge({ className, variant, size, dot = false, children, ...props }: BadgeProps) {
+  return (
+    <span className={cn(badgeVariants({ variant, size }), className)} {...props}>
+      {dot ? (
+        <span className="size-1.5 shrink-0 rounded-full bg-current opacity-90" aria-hidden />
+      ) : null}
+      {children}
+    </span>
+  );
 }
 
 export { Badge, badgeVariants };

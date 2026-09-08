@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The window behind the driver app, before Compose has drawn anything.
+
+  Its own theme rather than the terminal's, and for one reason: the two apps no
+  longer share a ground colour. The fitted tablet is indigo-on-night; a driver's
+  phone is near-black with a single ember accent, and a launch window painted in
+  the tablet's navy makes the first frame of the app a visible colour change —
+  the sort of flash that reads as a fault rather than as a load.
+
+  `:core` is untouched by this. The terminal keeps `Theme.SaarthiTerminal` and
+  keeps its navy.
+-->
+<resources>
+    <style name="Theme.SaarthiDriver" parent="android:Theme.Material.NoActionBar">
+        <!-- The same value as `Obsidian` in FleetTheme.kt. -->
+        <item name="android:windowBackground">@color/driver_splash_background</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <!--
+          Light icons in the system bars.
+
+          The app is dark on every screen, so the status and navigation bars are
+          drawn over a near-black ground for the whole of its life. Left to the
+          system default, a phone in light mode puts dark icons there and the
+          clock disappears.
+        -->
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+    </style>
+</resources>

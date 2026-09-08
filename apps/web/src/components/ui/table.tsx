@@ -18,7 +18,24 @@ const TableHeader = React.forwardRef<
   HTMLTableSectionElement,
   React.HTMLAttributes<HTMLTableSectionElement>
 >(({ className, ...props }, ref) => (
-  <thead ref={ref} className={cn('[&_tr]:border-b [&_tr]:border-border', className)} {...props} />
+  <thead
+    ref={ref}
+    className={cn(
+      // A tinted band rather than bare text.
+      //
+      // A table is very often the immediate child of a card, with no padded
+      // header above it, so the label row lands hard against the card's top
+      // edge — and at this corner radius the first label collides with the
+      // curve. Giving the row its own fill turns that into a deliberate
+      // header band that reads as part of the card's frame. The band needs
+      // the card to clip it, so a card wrapping a bare table wants
+      // `overflow-hidden`.
+      'bg-muted/40 dark:bg-white/[0.03]',
+      '[&_tr]:border-b [&_tr]:border-border/70 [&_tr:hover]:bg-transparent',
+      className,
+    )}
+    {...props}
+  />
 ));
 TableHeader.displayName = 'TableHeader';
 
@@ -36,7 +53,7 @@ const TableFooter = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <tfoot
     ref={ref}
-    className={cn('border-t border-border bg-muted/50 font-medium', className)}
+    className={cn('border-t border-border/70 bg-muted/40 font-medium', className)}
     {...props}
   />
 ));
@@ -47,7 +64,8 @@ const TableRow = React.forwardRef<HTMLTableRowElement, React.HTMLAttributes<HTML
     <tr
       ref={ref}
       className={cn(
-        'border-b border-border transition-colors hover:bg-muted/40 data-[state=selected]:bg-primary/5',
+        'border-b border-border/60 transition-colors duration-150 hover:bg-muted/50',
+        'data-[state=selected]:bg-primary/[0.06]',
         className,
       )}
       {...props}
@@ -63,7 +81,7 @@ const TableHead = React.forwardRef<
   <th
     ref={ref}
     className={cn(
-      'h-10 whitespace-nowrap px-3 text-left align-middle text-xs font-semibold uppercase tracking-wide text-muted-foreground',
+      'h-11 whitespace-nowrap px-4 text-left align-middle text-2xs font-semibold uppercase tracking-[0.08em] text-muted-foreground',
       className,
     )}
     {...props}
@@ -75,7 +93,7 @@ const TableCell = React.forwardRef<
   HTMLTableCellElement,
   React.TdHTMLAttributes<HTMLTableCellElement>
 >(({ className, ...props }, ref) => (
-  <td ref={ref} className={cn('px-3 py-2.5 align-middle', className)} {...props} />
+  <td ref={ref} className={cn('px-4 py-3.5 align-middle', className)} {...props} />
 ));
 TableCell.displayName = 'TableCell';
 

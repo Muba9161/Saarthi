@@ -16,7 +16,7 @@ import androidx.compose.runtime.setValue
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.saarthi.core.service.TerminalService
-import com.saarthi.core.ui.SaarthiTerminalTheme
+import com.saarthi.driver.ui.design.FleetTheme
 import com.saarthi.core.ui.TerminalViewModel
 import com.saarthi.core.util.DebugLog
 import com.saarthi.driver.ui.DriverRoot
@@ -81,7 +81,7 @@ class DriverActivity : FragmentActivity() {
             var darkTheme by remember { mutableStateOf(app.settings.darkTheme) }
             val windowSize = calculateWindowSizeClass(this)
 
-            SaarthiTerminalTheme(darkTheme = darkTheme, reducedMotion = reducedMotion) {
+            FleetTheme(darkTheme = darkTheme, reducedMotion = reducedMotion) {
                 DriverRoot(
                     driver = driver,
                     cockpit = cockpit,

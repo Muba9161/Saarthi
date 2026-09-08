@@ -1,24 +1,15 @@
 package com.saarthi.driver.ui
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import com.saarthi.core.ui.TerminalPage
+import com.saarthi.driver.ui.design.Ash
+import com.saarthi.driver.ui.design.FleetEnter
+import com.saarthi.driver.ui.design.FleetSheet
+import com.saarthi.driver.ui.design.FleetSpace
 
 /**
  * Account settings, reachable mid-shift.
@@ -33,28 +24,19 @@ import com.saarthi.core.ui.TerminalPage
  */
 @Composable
 fun DriverSecurityScreen(viewModel: DriverViewModel, onClose: () -> Unit) {
-    Surface(
-        color = MaterialTheme.colorScheme.background,
-        modifier = Modifier.fillMaxSize(),
-    ) {
-        TerminalPage {
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    "Sign-in and security",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                )
-                IconButton(onClick = onClose) {
-                    Icon(Icons.Rounded.Close, contentDescription = "Close")
-                }
-            }
+    FleetSheet(title = "Sign-in and security", onClose = onClose) {
+        FleetEnter(index = 0) {
+            Text(
+                "How you get back into Saarthi on this phone. Your account password " +
+                    "is unchanged either way.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = Ash,
+            )
+        }
 
-            Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(FleetSpace.base))
 
+        FleetEnter(index = 1) {
             QuickLoginSettings(viewModel)
         }
     }

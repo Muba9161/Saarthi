@@ -1,17 +1,15 @@
 package com.saarthi.driver.ui
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Fingerprint
+import androidx.compose.material.icons.rounded.Password
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -19,16 +17,23 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.unit.dp
-import com.saarthi.core.ui.SolidCard
 import com.saarthi.driver.data.QuickLoginPolicy
+import com.saarthi.driver.ui.design.Ash
+import com.saarthi.driver.ui.design.Chalk
+import com.saarthi.driver.ui.design.FleetButton
+import com.saarthi.driver.ui.design.FleetCard
+import com.saarthi.driver.ui.design.FleetError
+import com.saarthi.driver.ui.design.FleetField
+import com.saarthi.driver.ui.design.FleetNotice
+import com.saarthi.driver.ui.design.FleetOutlineButton
+import com.saarthi.driver.ui.design.FleetRule
+import com.saarthi.driver.ui.design.FleetSpace
+import com.saarthi.driver.ui.design.FleetToggleRow
 
 /**
  * Saarthi Quick Login, as the driver controls it.
@@ -49,20 +54,21 @@ fun QuickLoginSettings(viewModel: DriverViewModel) {
     var creatingPin by remember { mutableStateOf(false) }
     var notice by remember { mutableStateOf<String?>(null) }
 
-    SolidCard(Modifier.fillMaxWidth()) {
+    FleetCard(Modifier.fillMaxWidth()) {
         Text(
             "Saarthi Quick Login",
             style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
+            color = Chalk,
         )
+        Spacer(Modifier.height(FleetSpace.hair))
         Text(
             "Get back in without typing your password. Your account sign-in does not " +
                 "change.",
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = Ash,
         )
 
-        Spacer(Modifier.height(14.dp))
+        Spacer(Modifier.height(FleetSpace.snug))
 
         if (creatingPin) {
             PinSetup(
@@ -78,10 +84,11 @@ fun QuickLoginSettings(viewModel: DriverViewModel) {
                     }
                 },
             )
-            return@SolidCard
+            return@FleetCard
         }
 
-        SettingRow(
+        FleetToggleRow(
+            icon = Icons.Rounded.Password,
             title = if (methods.pin) "4-digit PIN" else "Use a 4-digit PIN",
             subtitle = if (methods.pin) "On" else "Off",
             checked = methods.pin,
@@ -92,19 +99,20 @@ fun QuickLoginSettings(viewModel: DriverViewModel) {
         )
 
         if (methods.pin) {
-            Spacer(Modifier.height(6.dp))
-            OutlinedButton(
+            Spacer(Modifier.height(FleetSpace.tight))
+            FleetOutlineButton(
+                label = "Change PIN",
                 onClick = { creatingPin = true },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text("Change PIN")
-            }
+            )
         }
 
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(FleetSpace.snug))
+        FleetRule()
+        Spacer(Modifier.height(FleetSpace.snug))
 
         val biometricHardware = biometricsAvailable(context)
-        SettingRow(
+        FleetToggleRow(
+            icon = Icons.Rounded.Fingerprint,
             title = "Fingerprint or face",
             subtitle = when {
                 !biometricHardware -> "Not set up on this phone"
@@ -149,51 +157,21 @@ fun QuickLoginSettings(viewModel: DriverViewModel) {
         )
 
         if (methods.any) {
-            Spacer(Modifier.height(14.dp))
-            OutlinedButton(
+            Spacer(Modifier.height(FleetSpace.base))
+            FleetOutlineButton(
+                label = "Turn off Quick Login",
+                tint = Ash,
                 onClick = {
                     viewModel.disableQuickLogin()
                     notice = "Quick Login is off. You will sign in with your password."
                 },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text("Turn off Quick Login")
-            }
+            )
         }
 
         notice?.let { message ->
-            Spacer(Modifier.height(10.dp))
-            Text(
-                message,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            Spacer(Modifier.height(FleetSpace.snug))
+            FleetNotice(message)
         }
-    }
-}
-
-@Composable
-private fun SettingRow(
-    title: String,
-    subtitle: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-    enabled: Boolean = true,
-) {
-    Row(
-        Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge)
-            Text(
-                subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        Switch(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled)
     }
 }
 
@@ -217,14 +195,20 @@ private fun PinSetup(
     var second by remember { mutableStateOf("") }
     var problem by remember { mutableStateOf<String?>(null) }
 
-    Text("Choose a 4-digit PIN", style = MaterialTheme.typography.bodyLarge)
-    Spacer(Modifier.height(10.dp))
+    Text(
+        "Choose a 4-digit PIN",
+        style = MaterialTheme.typography.bodyLarge,
+        color = Chalk,
+    )
+    Spacer(Modifier.height(FleetSpace.snug))
 
-    OutlinedTextField(
+    FleetField(
         value = first,
-        onValueChange = { if (it.length <= QuickLoginPolicy.PIN_LENGTH && it.all(Char::isDigit)) first = it },
-        label = { Text("New PIN") },
-        singleLine = true,
+        onValueChange = {
+            if (it.length <= QuickLoginPolicy.PIN_LENGTH && it.all(Char::isDigit)) first = it
+        },
+        label = "New PIN",
+        isError = problem != null,
         // Never legible on screen, and never in a suggestion strip: the number
         // keyboard has no autocorrect and no clipboard history to leak into.
         visualTransformation = PasswordVisualTransformation(),
@@ -232,40 +216,46 @@ private fun PinSetup(
             keyboardType = KeyboardType.NumberPassword,
             imeAction = ImeAction.Next,
         ),
-        modifier = Modifier.fillMaxWidth(),
     )
 
-    Spacer(Modifier.height(10.dp))
+    Spacer(Modifier.height(FleetSpace.snug))
 
-    OutlinedTextField(
+    FleetField(
         value = second,
-        onValueChange = { if (it.length <= QuickLoginPolicy.PIN_LENGTH && it.all(Char::isDigit)) second = it },
-        label = { Text("Confirm PIN") },
-        singleLine = true,
+        onValueChange = {
+            if (it.length <= QuickLoginPolicy.PIN_LENGTH && it.all(Char::isDigit)) second = it
+        },
+        label = "Confirm PIN",
+        isError = problem != null,
         visualTransformation = PasswordVisualTransformation(),
         keyboardOptions = KeyboardOptions(
             keyboardType = KeyboardType.NumberPassword,
             imeAction = ImeAction.Done,
         ),
-        modifier = Modifier.fillMaxWidth(),
     )
 
     problem?.let { message ->
-        Spacer(Modifier.height(8.dp))
-        Text(
-            message,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.error,
-        )
+        Spacer(Modifier.height(FleetSpace.snug))
+        FleetError(message)
     }
 
-    Spacer(Modifier.height(14.dp))
+    Spacer(Modifier.height(FleetSpace.base))
 
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        OutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f)) {
-            Text("Cancel")
-        }
-        Button(
+    Row(
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(FleetSpace.snug),
+    ) {
+        FleetOutlineButton(
+            label = "Cancel",
+            tint = Ash,
+            modifier = Modifier.weight(1f),
+            onClick = onCancel,
+        )
+        FleetButton(
+            label = "Save PIN",
+            modifier = Modifier.weight(1f),
+            enabled = first.length == QuickLoginPolicy.PIN_LENGTH &&
+                second.length == QuickLoginPolicy.PIN_LENGTH,
             onClick = {
                 problem = when (val verdict = QuickLoginPolicy.evaluate(first)) {
                     is QuickLoginPolicy.PinVerdict.Malformed -> verdict.reason
@@ -275,11 +265,6 @@ private fun PinSetup(
                 }
                 if (problem == null) onCreate(first)
             },
-            enabled = first.length == QuickLoginPolicy.PIN_LENGTH &&
-                second.length == QuickLoginPolicy.PIN_LENGTH,
-            modifier = Modifier.weight(1f),
-        ) {
-            Text("Save PIN")
-        }
+        )
     }
 }

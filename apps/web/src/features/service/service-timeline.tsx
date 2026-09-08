@@ -38,9 +38,7 @@ interface ServiceTimelinePanelProps {
   vehicleId: string;
 }
 
-export function ServiceTimelinePanel({
-  vehicleId,
-}: ServiceTimelinePanelProps): React.ReactElement {
+export function ServiceTimelinePanel({ vehicleId }: ServiceTimelinePanelProps): React.ReactElement {
   const timeline = useQuery({
     queryKey: ['service-history', vehicleId],
     queryFn: () => api.get<ServiceTimeline>(`/fleet/vehicles/${vehicleId}/service-history`),
@@ -77,7 +75,7 @@ export function ServiceTimelinePanel({
               description={`${data.records.length} record${data.records.length === 1 ? '' : 's'}, most recent first.`}
             />
           </CardHeader>
-          <CardContent className="pt-2">
+          <CardContent>
             <ol className="relative space-y-4 border-l border-border pl-5">
               {data.records.map((record) => (
                 <ServiceEntry key={record.id} record={record} />
@@ -138,9 +136,7 @@ function HealthCard({ timeline }: { timeline: ServiceTimeline }): React.ReactEle
 
           {timeline.lastServiceAt ? (
             <div className="text-right">
-              <p className="text-2xs uppercase tracking-wide text-muted-foreground">
-                Last service
-              </p>
+              <p className="text-2xs uppercase tracking-wide text-muted-foreground">Last service</p>
               <p className="text-sm font-medium">
                 {new Date(timeline.lastServiceAt).toLocaleDateString('en-IN')}
               </p>
@@ -151,13 +147,19 @@ function HealthCard({ timeline }: { timeline: ServiceTimeline }): React.ReactEle
         <Separator />
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <Figure label="Total spend" value={formatCurrency(spend.total)} hint={`${spend.recordCount} records`} />
+          <Figure
+            label="Total spend"
+            value={formatCurrency(spend.total)}
+            hint={`${spend.recordCount} records`}
+          />
           <Figure label="Parts" value={formatCurrency(spend.parts)} />
           <Figure label="Labour" value={formatCurrency(spend.labour)} />
           <Figure
             label="Cost per km"
             value={spend.costPerKm !== null ? formatCurrency(spend.costPerKm) : '—'}
-            hint={spend.costPerKm === null ? 'Needs two odometer readings' : 'Across recorded history'}
+            hint={
+              spend.costPerKm === null ? 'Needs two odometer readings' : 'Across recorded history'
+            }
           />
         </div>
 
@@ -197,7 +199,7 @@ function RepeatedComponentsCard({ timeline }: { timeline: ServiceTimeline }): Re
           description="Consumables such as oil and filters are excluded — these are components that came back."
         />
       </CardHeader>
-      <CardContent className="space-y-2 pt-2">
+      <CardContent className="space-y-2">
         {timeline.repeated.map((entry) => (
           <div
             key={entry.component}
@@ -298,9 +300,7 @@ function ServiceEntry({ record }: { record: ServiceRecordView }): React.ReactEle
         {record.warrantyActive ? (
           <Badge variant="success" size="sm" className="mt-2">
             Under warranty until{' '}
-            {record.warrantyUntil
-              ? new Date(record.warrantyUntil).toLocaleDateString('en-IN')
-              : ''}
+            {record.warrantyUntil ? new Date(record.warrantyUntil).toLocaleDateString('en-IN') : ''}
           </Badge>
         ) : null}
 

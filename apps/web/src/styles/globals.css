@@ -5,132 +5,172 @@
 @layer base {
   :root {
     /* --- Surfaces -------------------------------------------------------
-       Three depths: canvas (page), raised (cards), overlay (menus/sheets).
-       Keeping them distinct is what makes a dense operational UI readable. */
-    --canvas: 214 40% 97%;
-    --background: 214 40% 97%;
-    --foreground: 222 47% 11%;
+       Near-achromatic depths. The canvas is a soft grey, panels are pure
+       white and float on it with a diffuse shadow rather than a drawn border.
+       At this corner radius a border reads as an outline traced around the
+       content; separating surfaces with light instead is what makes the page
+       feel assembled from planes rather than boxes. */
+    --canvas: 240 6% 94%;
+    --background: 240 6% 94%;
+    --foreground: 240 6% 10%;
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 240 6% 10%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 240 6% 10%;
     --elevated: 0 0% 100%;
 
     /* --- Brand ----------------------------------------------------------
-       Saarthi indigo. Deeper than a stock blue so the saffron accent has
-       something to sit against. */
-    --primary: 231 62% 44%;
-    --primary-foreground: 210 40% 99%;
-    --primary-muted: 231 62% 96%;
-    --primary-soft: 231 55% 92%;
+       Saarthi indigo, desaturated from its former 62%. On a neutral page the
+       accent no longer has to shout over a blue-grey canvas, and pulling the
+       chroma down is what lets it read as the one deliberate colour on the
+       screen instead of a second competing surface. */
+    --primary: 234 52% 48%;
+    --primary-foreground: 0 0% 100%;
+    --primary-muted: 234 60% 97%;
+    --primary-soft: 234 44% 93%;
 
-    --secondary: 214 30% 94%;
-    --secondary-foreground: 222 47% 18%;
+    --secondary: 240 6% 96%;
+    --secondary-foreground: 240 6% 18%;
 
-    /* Saffron. Used sparingly — emphasis, never decoration. */
-    --accent: 33 94% 52%;
+    /* Saffron. Emphasis only — never decoration. */
+    --accent: 30 90% 52%;
     --accent-foreground: 26 84% 12%;
-    --accent-soft: 33 94% 94%;
+    --accent-soft: 30 92% 95%;
 
-    --muted: 214 28% 95%;
-    --muted-foreground: 215 18% 45%;
+    --muted: 240 6% 96%;
+    --muted-foreground: 240 4% 46%;
 
-    /* --- Semantic -------------------------------------------------------- */
-    --success: 158 64% 32%;
-    --success-foreground: 152 60% 98%;
-    --success-soft: 158 60% 94%;
-    --warning: 32 94% 44%;
+    /* --- Semantic --------------------------------------------------------
+       Held one step below full chroma so a status pill sits in the page
+       rather than jumping off it. */
+    --success: 152 52% 34%;
+    --success-foreground: 150 60% 98%;
+    --success-soft: 152 46% 94%;
+    --warning: 32 88% 44%;
     --warning-foreground: 30 90% 12%;
-    --warning-soft: 38 92% 94%;
-    --destructive: 0 72% 48%;
+    --warning-soft: 38 90% 94%;
+    --destructive: 358 68% 50%;
     --destructive-foreground: 0 0% 100%;
-    --destructive-soft: 0 80% 96%;
-    --info: 205 85% 42%;
+    --destructive-soft: 358 76% 96%;
+    --info: 206 78% 44%;
     --info-foreground: 205 100% 98%;
-    --info-soft: 205 85% 94%;
+    --info-soft: 206 80% 95%;
 
-    --border: 215 24% 89%;
-    --border-strong: 215 20% 82%;
-    --input: 215 24% 88%;
-    --ring: 231 62% 52%;
+    /* Hairlines. Deliberately faint — they divide content inside a panel;
+       the panel's own edge is carried by its shadow. */
+    --border: 240 6% 90%;
+    --border-strong: 240 5% 82%;
+    --input: 240 6% 89%;
+    --ring: 234 52% 52%;
 
-    /* --- Command surface (sidebar) --------------------------------------- */
-    --sidebar: 226 44% 11%;
-    --sidebar-foreground: 213 30% 92%;
-    --sidebar-muted: 216 18% 60%;
-    --sidebar-accent: 228 40% 18%;
-    --sidebar-border: 226 32% 20%;
-    --sidebar-highlight: 231 62% 58%;
+    /* --- Command surface (sidebar) ---------------------------------------
+       A neutral near-black rail. Warm or navy tints here fight the grey
+       canvas; achromatic reads as chrome and lets the content hold the eye. */
+    --sidebar: 240 6% 10%;
+    --sidebar-foreground: 240 6% 92%;
+    --sidebar-muted: 240 4% 58%;
+    --sidebar-accent: 240 5% 17%;
+    --sidebar-border: 240 5% 18%;
+    --sidebar-highlight: 234 70% 62%;
 
     /* --- Chart series ----------------------------------------------------
        Six hues that stay distinguishable in both themes and for the common
        forms of colour blindness. */
-    --chart-1: 231 62% 50%;
-    --chart-2: 158 64% 38%;
-    --chart-3: 33 94% 52%;
-    --chart-4: 280 55% 55%;
-    --chart-5: 199 82% 45%;
-    --chart-6: 0 68% 55%;
+    --chart-1: 234 52% 54%;
+    --chart-2: 152 52% 40%;
+    --chart-3: 30 90% 54%;
+    --chart-4: 276 48% 56%;
+    --chart-5: 200 76% 46%;
+    --chart-6: 358 66% 56%;
 
-    --radius: 0.75rem;
+    /* 16px. Large corners are the single loudest signal in the reference
+       language; the scale in tailwind.config.ts derives every other step. */
+    --radius: 1rem;
+
+    /* The fillet radius on the selected rail item — see .nav-merge. */
+    --nav-merge-r: 0.75rem;
+
+    /* The same, for the selected tab — see .tab-merge. */
+    --tab-merge-r: 0.625rem;
+
+    /*
+     * The track the selected tab is cut out of.
+     *
+     * White, so the labels sit on the highest-contrast surface the theme has —
+     * a tab row is a dozen words the user reads before choosing, and it is the
+     * one place in this design worth spending contrast on.
+     *
+     * What matters is only that it *differs* from --canvas, because the tab is
+     * canvas colour and the page below it is too: that shared colour is the
+     * merge, and the track is what the tab is cut out of. Going lighter than
+     * the canvas rather than darker inverts the folder metaphor — the tab reads
+     * as pressed into the row — which is the same effect either way.
+     */
+    --tab-track: 0 0% 100%;
   }
 
   .dark {
-    --canvas: 226 42% 7%;
-    --background: 226 42% 7%;
-    --foreground: 213 30% 95%;
-    --card: 226 36% 11%;
-    --card-foreground: 213 30% 95%;
-    --popover: 226 36% 13%;
-    --popover-foreground: 213 30% 95%;
-    --elevated: 226 32% 14%;
+    /* Neutral near-black rather than the former navy. The reference dark
+       surface is achromatic, which is what lets a single accent colour and a
+       photograph both sit on it without a blue cast pulling at them. */
+    --canvas: 240 6% 6%;
+    --background: 240 6% 6%;
+    --foreground: 240 6% 96%;
+    --card: 240 5% 9%;
+    --card-foreground: 240 6% 96%;
+    --popover: 240 5% 11%;
+    --popover-foreground: 240 6% 96%;
+    --elevated: 240 5% 12%;
 
-    --primary: 228 90% 68%;
-    --primary-foreground: 226 47% 10%;
-    --primary-muted: 228 40% 18%;
-    --primary-soft: 228 38% 22%;
+    --primary: 234 84% 70%;
+    --primary-foreground: 240 40% 10%;
+    --primary-muted: 234 38% 16%;
+    --primary-soft: 234 34% 21%;
 
-    --secondary: 226 28% 18%;
-    --secondary-foreground: 213 30% 95%;
+    --secondary: 240 5% 15%;
+    --secondary-foreground: 240 6% 96%;
 
-    --accent: 33 94% 58%;
+    --accent: 30 90% 58%;
     --accent-foreground: 26 84% 10%;
-    --accent-soft: 30 45% 20%;
+    --accent-soft: 28 38% 18%;
 
-    --muted: 226 26% 16%;
-    --muted-foreground: 216 16% 65%;
+    --muted: 240 5% 14%;
+    --muted-foreground: 240 5% 64%;
 
-    --success: 158 58% 46%;
-    --success-foreground: 152 60% 8%;
-    --success-soft: 158 40% 18%;
-    --warning: 33 92% 56%;
-    --warning-foreground: 30 90% 10%;
-    --warning-soft: 33 45% 20%;
-    --destructive: 0 70% 58%;
+    --success: 152 48% 46%;
+    --success-foreground: 150 60% 7%;
+    --success-soft: 152 32% 17%;
+    --warning: 32 88% 56%;
+    --warning-foreground: 30 90% 9%;
+    --warning-soft: 33 40% 18%;
+    --destructive: 358 70% 58%;
     --destructive-foreground: 0 0% 100%;
-    --destructive-soft: 0 40% 20%;
-    --info: 205 82% 58%;
-    --info-foreground: 205 100% 10%;
-    --info-soft: 205 45% 20%;
+    --destructive-soft: 358 36% 19%;
+    --info: 206 78% 56%;
+    --info-foreground: 205 100% 9%;
+    --info-soft: 206 40% 18%;
 
-    --border: 226 24% 20%;
-    --border-strong: 226 20% 28%;
-    --input: 226 24% 22%;
-    --ring: 228 90% 68%;
+    --border: 240 5% 17%;
+    --border-strong: 240 5% 26%;
+    --input: 240 5% 19%;
+    --ring: 234 84% 70%;
 
-    --sidebar: 226 44% 9%;
-    --sidebar-foreground: 213 30% 93%;
-    --sidebar-muted: 216 16% 58%;
-    --sidebar-accent: 228 38% 16%;
-    --sidebar-border: 226 30% 17%;
-    --sidebar-highlight: 228 90% 66%;
+    --sidebar: 240 6% 8%;
+    --sidebar-foreground: 240 6% 93%;
+    --sidebar-muted: 240 5% 56%;
+    --sidebar-accent: 240 5% 15%;
+    --sidebar-border: 240 5% 16%;
+    --sidebar-highlight: 234 84% 68%;
 
-    --chart-1: 228 90% 68%;
-    --chart-2: 158 58% 50%;
-    --chart-3: 33 94% 60%;
-    --chart-4: 280 65% 68%;
-    --chart-5: 199 85% 60%;
-    --chart-6: 0 70% 65%;
+    --chart-1: 234 84% 70%;
+    --chart-2: 152 48% 50%;
+    --chart-3: 30 90% 60%;
+    --chart-4: 276 60% 68%;
+    --chart-5: 200 80% 58%;
+    --chart-6: 358 70% 64%;
+
+    /* Lighter than --canvas here, being the dark theme's brightest surface. */
+    --tab-track: 240 5% 14%;
   }
 
   * {
@@ -206,78 +246,272 @@
 @layer components {
   /* --- Surfaces --------------------------------------------------------- */
 
-  /* --- Glass ------------------------------------------------------------
-     Frosted surfaces. Three strengths so the effect stays a hierarchy signal
-     rather than a texture applied everywhere:
-       .glass       floating chrome over content (map controls, toolbars)
-       .glass-panel cards and panels that sit on the canvas
-       .glass-deep  modal layers that must separate from everything below
-     Each carries a hairline top highlight, which is what actually sells the
-     "pane of glass" read — blur alone looks like a rendering bug. */
+  /* --- Panels -----------------------------------------------------------
+     The core of the surface language: a panel is a plane of card colour
+     floating on the canvas, bounded by a diffuse shadow and a hairline ring
+     rather than by a border. The ring is what keeps a white panel legible
+     against a light canvas without drawing an outline around it.
+
+     `.surface` is the workhorse and what new code should reach for. The three
+     `.glass-*` names below are kept because a great deal of the product is
+     built on them; they now resolve to the same neutral panels rather than to
+     frosted glass, so every existing call site inherits the new language
+     without being edited.
+
+       .surface / .glass-panel  panels and cards resting on the canvas
+       .glass                   floating chrome over content (map controls)
+       .glass-deep / .surface-overlay  modals and sheets
+       .surface-sunken          an inset well *inside* a panel */
+  .surface,
+  .glass-panel {
+    @apply relative bg-card shadow-card ring-1 ring-foreground/[0.05];
+  }
+  .dark .surface,
+  .dark .glass-panel {
+    @apply ring-white/[0.06];
+  }
+
+  .surface-raised {
+    @apply relative bg-card shadow-lifted ring-1 ring-foreground/[0.05];
+  }
+  .dark .surface-raised {
+    @apply ring-white/[0.07];
+  }
+
+  /* An inset well inside a panel — figure groups, code blocks, read-only
+     rows. Recessed by colour, never by an inner shadow, which at this radius
+     reads as a rendering artefact. */
+  .surface-sunken {
+    @apply bg-muted/70 ring-1 ring-foreground/[0.04];
+  }
+  .dark .surface-sunken {
+    @apply bg-white/[0.03] ring-white/[0.05];
+  }
+
+  /* Floating chrome that genuinely sits over content — map controls, the top
+     bar, a toolbar above imagery. This is the one place blur still earns its
+     paint cost, because there is something behind it worth suggesting. */
   .glass {
-    @apply border border-white/25 bg-white/60 shadow-lifted backdrop-blur-xl backdrop-saturate-150;
+    @apply bg-card/80 shadow-card ring-1 ring-foreground/[0.05] backdrop-blur-xl backdrop-saturate-150;
   }
   .dark .glass {
-    @apply border-white/[0.08] bg-white/[0.06];
+    @apply bg-card/70 ring-white/[0.07];
   }
 
-  .glass-panel {
-    @apply relative border border-white/40 bg-white/55 shadow-card backdrop-blur-2xl backdrop-saturate-150;
+  /* Modal layers, which must separate from everything below them. */
+  .glass-deep,
+  .surface-overlay {
+    @apply bg-popover shadow-overlay ring-1 ring-foreground/[0.06];
   }
-  .dark .glass-panel {
-    @apply border-white/[0.07] bg-white/[0.035];
-  }
-
-  .glass-deep {
-    @apply border border-white/30 bg-white/75 shadow-overlay backdrop-blur-2xl backdrop-saturate-150;
-  }
-  .dark .glass-deep {
-    @apply border-white/[0.09] bg-[hsl(226_36%_13%_/_0.82)];
+  .dark .glass-deep,
+  .dark .surface-overlay {
+    @apply ring-white/[0.09];
   }
 
-  /* The specular highlight along the top edge of a glass pane. */
+  /* Top-edge highlight. On a white panel a white highlight is invisible, so
+     this now does its work only in the dark theme, where it defines the upper
+     edge of a raised near-black plane. The selectors are unchanged so the
+     call sites that ask for a sheen keep working. */
   .glass-panel::after,
   .glass-sheen::after {
     @apply pointer-events-none absolute inset-x-0 top-0 h-px content-[''];
-    background: linear-gradient(90deg, transparent, hsl(0 0% 100% / 0.7), transparent);
+    background: none;
   }
   .dark .glass-panel::after,
   .dark .glass-sheen::after {
-    background: linear-gradient(90deg, transparent, hsl(0 0% 100% / 0.14), transparent);
+    background: linear-gradient(90deg, transparent, hsl(0 0% 100% / 0.1), transparent);
   }
 
-  /* Ambient colour wash the glass refracts. Without something behind it,
-     frosted glass just looks grey. */
+  /* Ambient wash behind the canvas. Almost entirely withdrawn from what it
+     was: a neutral page is the point of this design, and two saturated blobs
+     bleeding through every panel is what stops a grey canvas reading as
+     deliberate rather than dirty. What is left is a barely perceptible
+     warming at the top of the page. */
   .glass-backdrop {
     @apply pointer-events-none fixed inset-0 -z-10 overflow-hidden;
   }
   .glass-backdrop::before,
   .glass-backdrop::after {
     @apply absolute rounded-full content-[''];
-    filter: blur(120px);
+    filter: blur(140px);
   }
   .glass-backdrop::before {
-    @apply -left-40 -top-40 size-[36rem] bg-primary/20;
+    @apply -left-40 -top-52 size-[40rem] bg-primary/[0.06];
   }
   .glass-backdrop::after {
-    @apply -right-40 top-1/3 size-[32rem] bg-accent/15;
+    @apply -right-52 top-1/4 size-[34rem] bg-accent/[0.04];
   }
   .dark .glass-backdrop::before {
-    @apply bg-primary/25;
+    @apply bg-primary/[0.10];
   }
   .dark .glass-backdrop::after {
-    @apply bg-accent/10;
+    @apply bg-accent/[0.05];
   }
 
-  /* A card that lifts slightly on hover — for anything clickable. */
+  /* A panel that lifts on hover — for anything clickable. Deepening the
+     shadow rather than darkening a border is what keeps the borderless read
+     intact through the interaction. */
   .surface-interactive {
-    @apply transition-[transform,box-shadow,border-color] duration-200 ease-out;
+    @apply transition-[transform,box-shadow] duration-200 ease-smooth;
   }
   .surface-interactive:hover {
-    @apply -translate-y-0.5 border-border-strong shadow-lifted;
+    @apply -translate-y-0.5 shadow-lifted;
   }
   .surface-interactive:active {
     @apply translate-y-0 shadow-card;
+  }
+
+  /* --- The selected tab ---------------------------------------------------
+     The same idea as .nav-merge turned through ninety degrees: the selected
+     tab takes the page colour and its fillets sweep down and outward, so it
+     reads as a folder tab the panel below is part of.
+
+     This is why the tab row needs a track behind it. A merge needs the tab and
+     its destination to share a colour that differs from what surrounds them —
+     with the row on the page colour, a page-coloured tab would be invisible.
+     The track is `--muted`, which is also the colour of the two fillet discs,
+     so the join lands exactly whatever the theme.
+
+     The fillets sit at the tab's bottom corners: a square of page colour with a
+     quarter-disc of track colour at the corner nearest the tab. That is the
+     concave sweep no border-radius can draw. */
+  .tab-merge {
+    background: hsl(var(--canvas));
+  }
+
+  .tab-merge::before,
+  .tab-merge::after {
+    @apply pointer-events-none absolute bottom-0 content-[''];
+    width: var(--tab-merge-r);
+    height: var(--tab-merge-r);
+  }
+
+  .tab-merge::before {
+    left: calc(var(--tab-merge-r) * -1);
+    background: radial-gradient(
+      circle at 0 0,
+      hsl(var(--tab-track)) calc(var(--tab-merge-r) - 0.5px),
+      hsl(var(--canvas)) calc(var(--tab-merge-r) + 0.5px)
+    );
+  }
+
+  .tab-merge::after {
+    right: calc(var(--tab-merge-r) * -1);
+    background: radial-gradient(
+      circle at 100% 0,
+      hsl(var(--tab-track)) calc(var(--tab-merge-r) - 0.5px),
+      hsl(var(--canvas)) calc(var(--tab-merge-r) + 0.5px)
+    );
+  }
+
+  /* --- The selected destination -------------------------------------------
+     The active rail item takes the canvas colour and runs to the rail's right
+     edge, so it reads as a notch cut out of the rail that the content flows
+     into, rather than as a chip sitting on top of it.
+
+     The two pseudo-elements are the part `border-radius` cannot do. A radius
+     only ever curves *inwards*; the corners where this notch meets the rail
+     have to curve the other way. Each fillet is a square of canvas colour with
+     a quarter-disc of rail colour at the corner nearest the rail, which is what
+     reads as a concave sweep. The stops are feathered by half a pixel because a
+     hard colour stop in a radial gradient aliases into a visible staircase.
+
+     Both are keyed to --sidebar and --canvas, so the notch stays welded to the
+     content in either theme without a second rule. */
+  .nav-merge {
+    background: hsl(var(--canvas));
+    /*
+     * Background and fillets only.
+     *
+     * The radius and the text colour are set by utilities at the call site,
+     * because a utility outranks this layer whatever the order: declaring
+     * `rounded-r-none` here lost to the shared `rounded-xl` on the link, and
+     * the rail showed through the notch's right corners as two black wedges.
+     */
+  }
+
+  .nav-merge::before,
+  .nav-merge::after {
+    @apply pointer-events-none absolute right-0 content-[''];
+    width: var(--nav-merge-r);
+    height: var(--nav-merge-r);
+  }
+
+  .nav-merge::before {
+    top: calc(var(--nav-merge-r) * -1);
+    background: radial-gradient(
+      circle at 0 0,
+      hsl(var(--sidebar)) calc(var(--nav-merge-r) - 0.5px),
+      hsl(var(--canvas)) calc(var(--nav-merge-r) + 0.5px)
+    );
+  }
+
+  .nav-merge::after {
+    bottom: calc(var(--nav-merge-r) * -1);
+    background: radial-gradient(
+      circle at 0 100%,
+      hsl(var(--sidebar)) calc(var(--nav-merge-r) - 0.5px),
+      hsl(var(--canvas)) calc(var(--nav-merge-r) + 0.5px)
+    );
+  }
+
+  /* --- Controls ----------------------------------------------------------
+     The segmented pill row from the reference language: one sunken track
+     holding fully round items, the active one lifted out in card colour.
+     Used for scope switches — All / Active / Inactive. */
+  .segmented {
+    @apply inline-flex items-center gap-1 rounded-full bg-muted/80 p-1 ring-1 ring-foreground/[0.04];
+  }
+  .dark .segmented {
+    @apply bg-white/[0.04] ring-white/[0.05];
+  }
+  .segmented-item {
+    @apply inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-medium text-muted-foreground transition-all duration-200 ease-smooth;
+  }
+  .segmented-item:hover {
+    @apply text-foreground;
+  }
+  .segmented-item[data-active='true'] {
+    @apply bg-card text-foreground shadow-sm ring-1 ring-foreground/[0.05];
+  }
+  .dark .segmented-item[data-active='true'] {
+    @apply bg-white/[0.10] ring-white/[0.08];
+  }
+
+  /* --- Vehicle imagery ---------------------------------------------------
+     The pedestal a vehicle sits on in a card or detail header. A soft radial
+     pool of light under the vehicle, as in the reference: it grounds the
+     subject so a cut-out illustration or a photograph on a white background
+     does not appear to float. */
+  .vehicle-stage {
+    @apply relative flex items-center justify-center overflow-hidden;
+    background:
+      radial-gradient(
+        120% 80% at 50% 118%,
+        hsl(var(--primary) / 0.1) 0%,
+        hsl(var(--primary) / 0.03) 42%,
+        transparent 72%
+      ),
+      linear-gradient(180deg, hsl(var(--muted) / 0.5), hsl(var(--muted) / 0.9));
+  }
+  .dark .vehicle-stage {
+    background:
+      radial-gradient(
+        120% 80% at 50% 118%,
+        hsl(var(--primary) / 0.2) 0%,
+        hsl(var(--primary) / 0.06) 42%,
+        transparent 72%
+      ),
+      linear-gradient(180deg, hsl(0 0% 100% / 0.035), hsl(0 0% 100% / 0.01));
+  }
+
+  /* The contact shadow beneath a vehicle illustration. */
+  .vehicle-stage::after {
+    @apply pointer-events-none absolute bottom-[9%] left-1/2 h-[5%] w-[58%] -translate-x-1/2 rounded-[50%] content-[''];
+    background: radial-gradient(50% 50% at 50% 50%, hsl(240 6% 10% / 0.16), transparent 72%);
+  }
+  .dark .vehicle-stage::after {
+    background: radial-gradient(50% 50% at 50% 50%, hsl(0 0% 0% / 0.45), transparent 72%);
   }
 
   /* Hairline gradient along the top edge of a feature card. */
@@ -301,12 +535,7 @@
   }
   .skeleton::after {
     @apply absolute inset-0 -translate-x-full animate-shimmer content-[''];
-    background: linear-gradient(
-      90deg,
-      transparent,
-      hsl(var(--foreground) / 0.06),
-      transparent
-    );
+    background: linear-gradient(90deg, transparent, hsl(var(--foreground) / 0.06), transparent);
   }
 
   /* --- Live indicators --------------------------------------------------- */
@@ -347,33 +576,29 @@
      The shell is one glass pane holding two regions: a rail that says where
      you are, and the panel for the current step. */
   .wizard-shell {
-    @apply relative overflow-hidden rounded-2xl border border-white/40 bg-white/55 shadow-lifted backdrop-blur-2xl backdrop-saturate-150;
+    @apply relative overflow-hidden rounded-2xl bg-card shadow-lifted ring-1 ring-foreground/[0.05];
   }
   .dark .wizard-shell {
-    @apply border-white/[0.07] bg-white/[0.035];
+    @apply ring-white/[0.07];
   }
 
   /* Brand wash the glass refracts. Two corners rather than a flat tint, so
      the pane reads as lit from somewhere rather than simply coloured. */
   .wizard-shell::before {
     @apply pointer-events-none absolute inset-0 z-0 content-[''];
-    background:
-      radial-gradient(120% 90% at 0% 0%, hsl(var(--primary) / 0.10), transparent 62%),
-      radial-gradient(100% 80% at 100% 100%, hsl(var(--accent) / 0.09), transparent 60%);
+    background: radial-gradient(120% 90% at 0% 0%, hsl(var(--primary) / 0.05), transparent 58%);
   }
   .dark .wizard-shell::before {
-    background:
-      radial-gradient(120% 90% at 0% 0%, hsl(var(--primary) / 0.16), transparent 62%),
-      radial-gradient(100% 80% at 100% 100%, hsl(var(--accent) / 0.10), transparent 60%);
+    background: radial-gradient(120% 90% at 0% 0%, hsl(var(--primary) / 0.1), transparent 58%);
   }
 
   /* Specular highlight along the top edge â what actually sells the glass. */
   .wizard-shell::after {
     @apply pointer-events-none absolute inset-x-0 top-0 z-0 h-px content-[''];
-    background: linear-gradient(90deg, transparent, hsl(0 0% 100% / 0.7), transparent);
+    background: none;
   }
   .dark .wizard-shell::after {
-    background: linear-gradient(90deg, transparent, hsl(0 0% 100% / 0.14), transparent);
+    background: linear-gradient(90deg, transparent, hsl(0 0% 100% / 0.1), transparent);
   }
 
   /* Both pseudo-elements are positioned, so in-flow children would paint
@@ -449,14 +674,14 @@
     @apply bg-primary/15;
   }
   .wizard-dot-upcoming {
-    @apply border-border-strong/70 bg-white/50 text-muted-foreground;
+    @apply border-border-strong/70 bg-card text-muted-foreground;
   }
   .dark .wizard-dot-upcoming {
     @apply border-white/[0.12] bg-white/[0.04];
   }
   .wizard-dot-error {
     @apply border-destructive/60 bg-destructive/10 text-destructive;
-    box-shadow: 0 0 0 4px hsl(var(--destructive) / 0.10);
+    box-shadow: 0 0 0 4px hsl(var(--destructive) / 0.1);
   }
 
   /* --- Controls on glass -------------------------------------------------
@@ -470,7 +695,7 @@
      outranks the `bg-card` utility sitting on the element. */
   .glass-fields
     :is(input:not([type='checkbox']):not([type='radio']), textarea, button[role='combobox']) {
-    @apply border-white/60 bg-white/55 shadow-none backdrop-blur-sm;
+    @apply border-transparent bg-muted/70 shadow-none;
     transition:
       background-color 0.2s ease,
       border-color 0.2s ease,
@@ -479,48 +704,66 @@
   .dark
     .glass-fields
     :is(input:not([type='checkbox']):not([type='radio']), textarea, button[role='combobox']) {
-    @apply border-white/[0.10] bg-white/[0.045];
+    @apply border-white/[0.08] bg-white/[0.04];
   }
 
   .glass-fields
-    :is(input:not([type='checkbox']):not([type='radio']), textarea, button[role='combobox']):hover:not(:disabled) {
-    @apply border-white/80 bg-white/70;
+    :is(
+      input:not([type='checkbox']):not([type='radio']),
+      textarea,
+      button[role='combobox']
+    ):hover:not(:disabled) {
+    @apply border-transparent bg-muted;
   }
   .dark
     .glass-fields
-    :is(input:not([type='checkbox']):not([type='radio']), textarea, button[role='combobox']):hover:not(:disabled) {
-    @apply border-white/[0.16] bg-white/[0.07];
+    :is(
+      input:not([type='checkbox']):not([type='radio']),
+      textarea,
+      button[role='combobox']
+    ):hover:not(:disabled) {
+    @apply border-white/[0.14] bg-white/[0.07];
   }
 
   .glass-fields
-    :is(input:not([type='checkbox']):not([type='radio']), textarea, button[role='combobox']):is(:focus, :focus-visible) {
-    @apply border-primary/60 bg-white/85;
+    :is(input:not([type='checkbox']):not([type='radio']), textarea, button[role='combobox']):is(
+      :focus,
+      :focus-visible
+    ) {
+    @apply border-primary/50 bg-card;
   }
   .dark
     .glass-fields
-    :is(input:not([type='checkbox']):not([type='radio']), textarea, button[role='combobox']):is(:focus, :focus-visible) {
+    :is(input:not([type='checkbox']):not([type='radio']), textarea, button[role='combobox']):is(
+      :focus,
+      :focus-visible
+    ) {
     @apply border-primary/50 bg-white/[0.09];
   }
 
   .glass-fields
-    :is(input:not([type='checkbox']):not([type='radio']), textarea, button[role='combobox'])[aria-invalid='true'] {
-    @apply border-destructive/70 bg-destructive/[0.06];
+    :is(
+      input:not([type='checkbox']):not([type='radio']),
+      textarea,
+      button[role='combobox']
+    )[aria-invalid='true'] {
+    @apply border-destructive/60 bg-destructive/[0.06];
   }
 
   /* A bordered group inside a wizard panel â switch rows, radio cards. */
   .glass-inset {
-    @apply rounded-xl border border-white/50 bg-white/40 backdrop-blur-sm;
+    @apply rounded-xl bg-muted/60 ring-1 ring-foreground/[0.04];
   }
   .dark .glass-inset {
-    @apply border-white/[0.08] bg-white/[0.03];
+    @apply bg-white/[0.03] ring-white/[0.05];
   }
 
   /* The selected state of a choice card. */
   .glass-choice-selected {
-    @apply border-primary/60 bg-primary/[0.07];
+    @apply border-primary/50 bg-primary/[0.06];
     box-shadow:
-      inset 0 0 0 1px hsl(var(--primary) / 0.25),
-      0 6px 18px -8px hsl(var(--primary) / 0.5);
+      inset 0 0 0 1px hsl(var(--primary) / 0.22),
+      0 8px 20px -10px hsl(var(--primary) / 0.35);
   }
   .dark .glass-choice-selected {
     @apply bg-primary/[0.14];

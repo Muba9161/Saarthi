@@ -289,7 +289,7 @@ export function QrCodeCard({ code, onChanged }: { code: QrCodeView; onChanged: (
 
   return (
     <Card>
-      <CardContent className="flex flex-col gap-4 py-4 sm:flex-row">
+      <CardContent className="flex flex-col gap-4 p-5 sm:flex-row">
         <div className="shrink-0">{active ? <QrCodeImage code={code} /> : null}</div>
 
         <div className="min-w-0 flex-1 space-y-3">

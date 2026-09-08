@@ -39,6 +39,7 @@ import { useAuth } from '@/features/auth/auth-context';
 import { useT } from '@/features/i18n';
 import { useChannels, useRealtimeEvent } from '@/hooks/use-realtime';
 import { PageHeader, SectionHeader } from '@/components/common/page-header';
+import { BentoGrid, BentoTile } from '@/components/common/bento';
 import { StatCard } from '@/components/common/stat-card';
 import { toSeriesPoints } from '@/components/common/mini-chart';
 import { StatusBadge } from '@/components/common/status-badge';
@@ -282,6 +283,13 @@ export function DashboardPage() {
     : [];
   const attention = attentionCandidates.filter((entry): entry is AttentionItem => entry !== null);
 
+  /*
+   * Whether the documents tile is on the board at all. The commercial tile
+   * beside it takes the whole row when it is not, so a clean compliance
+   * record does not leave half a row of empty canvas.
+   */
+  const docsNeedAttention = (expiring.data ?? []).length > 0;
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -502,49 +510,49 @@ export function DashboardPage() {
         </>
       ) : null}
 
-      {can(Permission.TRACKING_READ) && hasFeature(Feature.TRACKING_LIVE) ? (
-        <Card variant="glass" className="overflow-hidden">
-          <CardHeader className="pb-3">
-            <SectionHeader
-              title={
-                <span className="flex items-center gap-2">
-                  {isMobility ? t('Live vehicle positions') : t('Live fleet positions')}
-                  {mapTrucks.length > 0 ? <span className="live-dot" aria-hidden /> : null}
-                </span>
-              }
-              description={
-                positions.isLoading
-                  ? 'Loading positions…'
-                  : `${mapTrucks.length} ${isMobility ? 'vehicle' : 'truck'}${
-                      mapTrucks.length === 1 ? '' : 's'
-                    } reporting${session.demoMode ? ' · simulated GPS' : ''}`
-              }
-              actions={
-                <Button variant="outline" size="sm" asChild>
-                  <Link to="/tracking">
-                    {t('Open live map')}
-                    <ArrowRight className="size-4" />
-                  </Link>
-                </Button>
-              }
-            />
-          </CardHeader>
-          <CardContent className="p-0">
-            <FleetMap
-              trucks={mapTrucks}
-              allow3D={hasFeature(Feature.MAPS_3D)}
-              height="clamp(320px, 42vh, 460px)"
-              className="rounded-none border-0 border-t"
-              onSelectTruck={(truckId) =>
-                navigate(isMobility ? `/fleet/vehicles/${truckId}` : `/fleet/trucks/${truckId}`)
-              }
-            />
-          </CardContent>
-        </Card>
-      ) : null}
+      <BentoGrid>
+        {can(Permission.TRACKING_READ) && hasFeature(Feature.TRACKING_LIVE) ? (
+          <BentoTile span={8} rows={2}>
+            <CardHeader className="pb-3">
+              <SectionHeader
+                title={
+                  <span className="flex items-center gap-2">
+                    {isMobility ? t('Live vehicle positions') : t('Live fleet positions')}
+                    {mapTrucks.length > 0 ? <span className="live-dot" aria-hidden /> : null}
+                  </span>
+                }
+                description={
+                  positions.isLoading
+                    ? 'Loading positions…'
+                    : `${mapTrucks.length} ${isMobility ? 'vehicle' : 'truck'}${
+                        mapTrucks.length === 1 ? '' : 's'
+                      } reporting${session.demoMode ? ' · simulated GPS' : ''}`
+                }
+                actions={
+                  <Button variant="outline" size="sm" asChild>
+                    <Link to="/tracking">
+                      {t('Open live map')}
+                      <ArrowRight className="size-4" />
+                    </Link>
+                  </Button>
+                }
+              />
+            </CardHeader>
+            <CardContent className="flex-1 p-0">
+              <FleetMap
+                trucks={mapTrucks}
+                allow3D={hasFeature(Feature.MAPS_3D)}
+                height="clamp(320px, 42vh, 460px)"
+                className="rounded-none border-0 border-t"
+                onSelectTruck={(truckId) =>
+                  navigate(isMobility ? `/fleet/vehicles/${truckId}` : `/fleet/trucks/${truckId}`)
+                }
+              />
+            </CardContent>
+          </BentoTile>
+        ) : null}
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Card variant="glass">
+        <BentoTile span={4} rows={2}>
           <CardHeader className="pb-3">
             <SectionHeader
               title={t('Trips in progress')}
@@ -555,7 +563,7 @@ export function DashboardPage() {
               }
             />
           </CardHeader>
-          <CardContent className="space-y-3 pt-0">
+          <CardContent className="flex-1 space-y-3 overflow-y-auto pt-0">
             {activeTrips.isLoading ? (
               <LoadingState label={t('Loading trips…')} />
             ) : (activeTrips.data ?? []).length === 0 ? (
@@ -605,153 +613,150 @@ export function DashboardPage() {
               ))
             )}
           </CardContent>
-        </Card>
+        </BentoTile>
 
-        <div className="space-y-4">
-          {/*
+        {/*
             The commercial column. A freight fleet works an order book; a
             travel operator works a booking sheet. Same position on the board,
             same shape of row — the operator's next decision, one click away.
           */}
-          {isMobility ? (
-            <Card variant="glass">
-              <CardHeader className="pb-3">
-                <SectionHeader
-                  title={t('Bookings needing action')}
-                  actions={
-                    <Button variant="ghost" size="sm" asChild>
-                      <Link to="/travel/provider/bookings">View all</Link>
-                    </Button>
-                  }
-                />
-              </CardHeader>
-              <CardContent className="space-y-2 pt-0">
-                {openBookings.isLoading ? (
-                  <LoadingState label={t('Loading bookings…')} />
-                ) : (openBookings.data?.items ?? []).length === 0 ? (
-                  <p className="py-4 text-center text-sm text-muted-foreground">
-                    {t('No bookings need attention right now.')}
-                  </p>
-                ) : (
-                  (openBookings.data?.items ?? []).map((booking) => (
-                    <Link
-                      key={booking.id}
-                      to={`/travel/bookings/${booking.id}`}
-                      className="flex items-center justify-between gap-3 rounded-lg border border-border p-3 transition-colors hover:bg-muted/50"
-                    >
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium">
-                          {booking.packageTitle}{' '}
-                          <span className="text-muted-foreground">
-                            · {formatNumber(booking.passengers)}{' '}
-                            {booking.passengers === 1 ? 'passenger' : 'passengers'}
-                          </span>
-                        </p>
-                        <p className="truncate text-xs text-muted-foreground">
-                          {booking.reference} · {booking.contactName} ·{' '}
-                          {relativeTimeFrom(booking.startDate)}
-                        </p>
-                      </div>
-                      <StatusBadge status={booking.status} size="sm" />
-                    </Link>
-                  ))
-                )}
-              </CardContent>
-            </Card>
-          ) : (
-            <Card variant="glass">
-              <CardHeader className="pb-3">
-                <SectionHeader
-                  title={t('Orders needing action')}
-                  actions={
-                    <Button variant="ghost" size="sm" asChild>
-                      <Link to="/orders">View all</Link>
-                    </Button>
-                  }
-                />
-              </CardHeader>
-              <CardContent className="space-y-2 pt-0">
-                {openOrders.isLoading ? (
-                  <LoadingState label={t('Loading orders…')} />
-                ) : (openOrders.data?.items ?? []).length === 0 ? (
-                  <p className="py-4 text-center text-sm text-muted-foreground">
-                    No open orders right now.
-                  </p>
-                ) : (
-                  (openOrders.data?.items ?? []).map((order) => (
-                    <Link
-                      key={order.id}
-                      to={`/orders/${order.id}`}
-                      className="flex items-center justify-between gap-3 rounded-lg border border-border p-3 transition-colors hover:bg-muted/50"
-                    >
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium">
-                          {order.materialName}{' '}
-                          <span className="text-muted-foreground">
-                            · {formatNumber(order.quantity)}{' '}
-                            {humanizeEnum(order.unit).toLowerCase()}
-                          </span>
-                        </p>
-                        <p className="truncate text-xs text-muted-foreground">
-                          {order.reference} · {order.customerName}
-                        </p>
-                      </div>
-                      <StatusBadge status={order.status} size="sm" />
-                    </Link>
-                  ))
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          {(expiring.data ?? []).length > 0 ? (
-            <Card variant="glass">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-sm">
-                  <FileWarning className="size-4 text-warning" />
-                  {t('Documents needing attention')}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2 pt-0">
-                {(expiring.data ?? []).slice(0, 5).map((document) => (
+        {isMobility ? (
+          <BentoTile span={docsNeedAttention ? 6 : 12}>
+            <CardHeader className="pb-3">
+              <SectionHeader
+                title={t('Bookings needing action')}
+                actions={
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link to="/travel/provider/bookings">View all</Link>
+                  </Button>
+                }
+              />
+            </CardHeader>
+            <CardContent className="space-y-2 pt-0">
+              {openBookings.isLoading ? (
+                <LoadingState label={t('Loading bookings…')} />
+              ) : (openBookings.data?.items ?? []).length === 0 ? (
+                <p className="py-4 text-center text-sm text-muted-foreground">
+                  {t('No bookings need attention right now.')}
+                </p>
+              ) : (
+                (openBookings.data?.items ?? []).map((booking) => (
                   <Link
-                    key={document.id}
-                    to="/fleet/documents"
-                    className="flex items-center justify-between gap-3 rounded-lg border border-border p-2.5 text-sm transition-colors hover:bg-muted/50"
+                    key={booking.id}
+                    to={`/travel/bookings/${booking.id}`}
+                    className="flex items-center justify-between gap-3 rounded-lg border border-border p-3 transition-colors hover:bg-muted/50"
                   >
                     <div className="min-w-0">
-                      <p className="truncate font-medium">{document.documentTypeLabel}</p>
+                      <p className="truncate text-sm font-medium">
+                        {booking.packageTitle}{' '}
+                        <span className="text-muted-foreground">
+                          · {formatNumber(booking.passengers)}{' '}
+                          {booking.passengers === 1 ? 'passenger' : 'passengers'}
+                        </span>
+                      </p>
                       <p className="truncate text-xs text-muted-foreground">
-                        {document.title ?? document.fileName}
+                        {booking.reference} · {booking.contactName} ·{' '}
+                        {relativeTimeFrom(booking.startDate)}
                       </p>
                     </div>
-                    <StatusBadge status={document.validity} size="sm" />
+                    <StatusBadge status={booking.status} size="sm" />
                   </Link>
-                ))}
-              </CardContent>
-            </Card>
-          ) : null}
+                ))
+              )}
+            </CardContent>
+          </BentoTile>
+        ) : (
+          <BentoTile span={docsNeedAttention ? 6 : 12}>
+            <CardHeader className="pb-3">
+              <SectionHeader
+                title={t('Orders needing action')}
+                actions={
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link to="/orders">View all</Link>
+                  </Button>
+                }
+              />
+            </CardHeader>
+            <CardContent className="space-y-2 pt-0">
+              {openOrders.isLoading ? (
+                <LoadingState label={t('Loading orders…')} />
+              ) : (openOrders.data?.items ?? []).length === 0 ? (
+                <p className="py-4 text-center text-sm text-muted-foreground">
+                  No open orders right now.
+                </p>
+              ) : (
+                (openOrders.data?.items ?? []).map((order) => (
+                  <Link
+                    key={order.id}
+                    to={`/orders/${order.id}`}
+                    className="flex items-center justify-between gap-3 rounded-lg border border-border p-3 transition-colors hover:bg-muted/50"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">
+                        {order.materialName}{' '}
+                        <span className="text-muted-foreground">
+                          · {formatNumber(order.quantity)} {humanizeEnum(order.unit).toLowerCase()}
+                        </span>
+                      </p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {order.reference} · {order.customerName}
+                      </p>
+                    </div>
+                    <StatusBadge status={order.status} size="sm" />
+                  </Link>
+                ))
+              )}
+            </CardContent>
+          </BentoTile>
+        )}
 
-          {hasFeature(Feature.AI_COPILOT) ? (
-            <Card className="border-primary/20 bg-primary/[0.03]">
-              <CardContent className="flex items-center gap-4 p-5">
-                <span className="rounded-lg bg-primary/10 p-2.5">
-                  <Bot className="size-5 text-primary" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium">{t('Ask the Fleet Copilot')}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {t('“What needs my attention today?” — answered from your own records.')}
-                  </p>
-                </div>
-                <Button size="sm" asChild>
-                  <Link to="/copilot">{t('Open')}</Link>
-                </Button>
-              </CardContent>
-            </Card>
-          ) : null}
-        </div>
-      </div>
+        {(expiring.data ?? []).length > 0 ? (
+          <BentoTile span={6}>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm">
+                <FileWarning className="size-4 text-warning" />
+                {t('Documents needing attention')}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 pt-0">
+              {(expiring.data ?? []).slice(0, 5).map((document) => (
+                <Link
+                  key={document.id}
+                  to="/fleet/documents"
+                  className="flex items-center justify-between gap-3 rounded-lg border border-border p-2.5 text-sm transition-colors hover:bg-muted/50"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">{document.documentTypeLabel}</p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {document.title ?? document.fileName}
+                    </p>
+                  </div>
+                  <StatusBadge status={document.validity} size="sm" />
+                </Link>
+              ))}
+            </CardContent>
+          </BentoTile>
+        ) : null}
+
+        {hasFeature(Feature.AI_COPILOT) ? (
+          <BentoTile span={12} className="ring-primary/20">
+            <CardContent className="flex items-center gap-4 p-5">
+              <span className="rounded-lg bg-primary/10 p-2.5">
+                <Bot className="size-5 text-primary" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium">{t('Ask the Fleet Copilot')}</p>
+                <p className="text-xs text-muted-foreground">
+                  {t('“What needs my attention today?” — answered from your own records.')}
+                </p>
+              </div>
+              <Button size="sm" asChild>
+                <Link to="/copilot">{t('Open')}</Link>
+              </Button>
+            </CardContent>
+          </BentoTile>
+        ) : null}
+      </BentoGrid>
     </div>
   );
 }

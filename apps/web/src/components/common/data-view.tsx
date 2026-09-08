@@ -43,6 +43,14 @@ interface DataViewProps<T> {
   rowKey: (row: T) => string;
   /** Custom card body. Falls back to the columns as label/value pairs. */
   card?: (row: T) => React.ReactNode;
+  /**
+   * Whether the card supplies its own padding.
+   *
+   * A card whose first element is imagery wants it bled to the card's edges,
+   * and a padded wrapper leaves a white gutter around the picture that reads
+   * as a mistake. Pass false and the renderer owns its own spacing.
+   */
+  cardPadded?: boolean;
   defaultView?: ViewMode;
   isLoading?: boolean;
   error?: unknown;
@@ -64,6 +72,7 @@ export function DataView<T>({
   rows,
   rowKey,
   card,
+  cardPadded = true,
   defaultView = 'TABLE',
   isLoading,
   error,
@@ -92,8 +101,8 @@ export function DataView<T>({
   const tableColumns = visibleColumns.length > 0 ? visibleColumns : columns;
 
   return (
-    <div className={cn('space-y-3', className)}>
-      <div className="flex flex-wrap items-center justify-between gap-2">
+    <div className={cn('space-y-4', className)}>
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0 flex-1">{toolbar}</div>
         <div className="flex items-center gap-1.5">
           <ColumnPicker
@@ -127,6 +136,7 @@ export function DataView<T>({
           rows={rows}
           rowKey={rowKey}
           card={card}
+          cardPadded={cardPadded}
           isLoading={isLoading}
           error={error}
           onRetry={onRetry}
@@ -152,7 +162,7 @@ export function ViewModeToggle({
 }): React.ReactElement {
   return (
     <div
-      className="inline-flex rounded-lg border border-border p-0.5"
+      className="segmented"
       role="group"
       aria-label="List layout"
     >
@@ -191,12 +201,8 @@ function ToggleButton({
           onClick={onClick}
           aria-pressed={active}
           aria-label={label}
-          className={cn(
-            'rounded-md p-1.5 transition-colors',
-            active
-              ? 'bg-secondary text-foreground'
-              : 'text-muted-foreground hover:text-foreground',
-          )}
+          data-active={active}
+          className="segmented-item px-2.5 py-1.5"
         >
           <Icon className="size-4" />
         </button>
@@ -251,6 +257,7 @@ interface CardGridProps<T> {
   rows: T[] | undefined;
   rowKey: (row: T) => string;
   card?: (row: T) => React.ReactNode;
+  cardPadded?: boolean;
   isLoading?: boolean;
   error?: unknown;
   onRetry?: () => void;
@@ -267,6 +274,7 @@ function CardGrid<T>({
   rows,
   rowKey,
   card,
+  cardPadded = true,
   isLoading,
   error,
   onRetry,
@@ -279,7 +287,7 @@ function CardGrid<T>({
 }: CardGridProps<T>): React.ReactElement {
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {Array.from({ length: 6 }).map((_, index) => (
           <CardSkeleton key={index} />
         ))}
@@ -297,7 +305,7 @@ function CardGrid<T>({
 
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {rows.map((row, index) => (
           <motion.div
             key={rowKey(row)}
@@ -311,9 +319,11 @@ function CardGrid<T>({
           >
             <Card
               className={cn(
-                'h-full p-4',
-                onRowClick && 'cursor-pointer transition-colors hover:bg-secondary/40',
+                'h-full overflow-hidden rounded-2xl',
+                cardPadded && 'p-5',
+                onRowClick && 'cursor-pointer',
               )}
+              {...(onRowClick ? { interactive: true as const } : {})}
               onClick={onRowClick ? () => onRowClick(row) : undefined}
             >
               {card ? card(row) : <DefaultCardBody columns={columns} row={row} />}
@@ -367,10 +377,10 @@ function DefaultCardBody<T>({
   const [lead, ...rest] = columns;
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {lead ? <div className="min-w-0">{lead.cell(row)}</div> : null}
       {rest.length > 0 ? (
-        <dl className="space-y-1.5 border-t border-border pt-3">
+        <dl className="space-y-2 border-t border-border/70 pt-4">
           {rest.map((column) => (
             <div key={column.key} className="flex items-baseline justify-between gap-3">
               <dt className="shrink-0 text-2xs uppercase tracking-wide text-muted-foreground">

@@ -152,10 +152,18 @@ describe('collapsed navigation rail', () => {
       expect(className, `${link.getAttribute('href')} has JavaScript in its class`).not.toMatch(
         /=>|&&|\{|\}|\(/,
       );
-      // The active link resolves to full opacity, so match either form — what
-      // matters is that a sidebar colour survived onto the element at all.
+      /*
+       * A text colour survived onto the element. Which one depends on state:
+       * an inactive item takes a rail colour, while the selected item is a
+       * notch of canvas colour merged into the content and so takes the page
+       * foreground instead. Either satisfies this — the opacity and the exact
+       * token are design values expected to be retuned, and what is guarded
+       * here is only that a colour class is present at all.
+       */
       expect(className.split(/\s+/), `${link.getAttribute('href')} lost its colour`).toEqual(
-        expect.arrayContaining([expect.stringMatching(/^text-sidebar-foreground(\/75)?$/)]),
+        expect.arrayContaining([
+          expect.stringMatching(/^text-(?:sidebar-)?foreground(\/\d{1,3})?$/),
+        ]),
       );
     }
   });
@@ -175,8 +183,38 @@ describe('collapsed navigation rail', () => {
     const { container } = renderSidebar(true);
     const trucks = container.querySelector('nav a[href="/fleet/trucks"]');
 
-    expect(trucks?.getAttribute('class')).toContain('bg-sidebar-accent');
-    expect(trucks?.querySelector('svg')?.getAttribute('class')).toContain('text-sidebar-highlight');
+    /*
+     * The selected destination is drawn as a notch of canvas colour running to
+     * the rail's right edge so the content appears to flow into it. Both parts
+     * are asserted because either alone leaves the effect broken: without
+     * `nav-merge` there is no background or fillet, and without the negative
+     * margin the notch stops short of the edge and the rail shows through.
+     *
+     * `rounded-r-none` is pinned too. It has to be a utility rather than live
+     * in `.nav-merge`, or the shared `rounded-xl` outranks it and the rail
+     * shows through the notch's right corners.
+     */
+    const notch = trucks?.querySelector('.nav-merge');
+    expect(notch, 'the selected item has no notch element').not.toBeNull();
+
+    /*
+     * `-right-3` is what carries the notch past the rail's own padding so it
+     * meets the content; without it the shape stops short and the rail shows
+     * through the join. `rounded-l-2xl` with no right radius is what makes it
+     * read as cut out of the rail rather than as a chip sitting on it.
+     */
+    const notchClass = notch?.getAttribute('class') ?? '';
+    expect(notchClass).toContain('-right-3');
+    expect(notchClass).toContain('rounded-l-2xl');
+
+    /*
+     * The link itself must not keep the inactive pill radius: it is the
+     * ancestor of the notch, and a 20px radius on it clips the notch's square
+     * right corners back into rounded ones, which is what let the dark rail
+     * show through as two black wedges.
+     */
+    expect(trucks?.getAttribute('class')).not.toContain('rounded-xl');
+    expect(trucks?.querySelector('svg')?.getAttribute('class')).toContain('text-primary');
   });
 
   /*
@@ -199,7 +237,10 @@ describe('collapsed navigation rail', () => {
       const { container, unmount } = renderSidebar(false, at);
       const active = [...container.querySelectorAll('nav a[aria-current="page"]')];
 
-      expect(active.map((link) => link.getAttribute('href')), `at ${at}`).toEqual([at]);
+      expect(
+        active.map((link) => link.getAttribute('href')),
+        `at ${at}`,
+      ).toEqual([at]);
       unmount();
     }
   });

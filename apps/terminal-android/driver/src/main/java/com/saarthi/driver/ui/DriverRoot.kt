@@ -16,7 +16,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
@@ -26,10 +25,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.collectAsState
 import com.saarthi.core.ui.screens.CockpitScreen
-import com.saarthi.core.ui.screens.SplashScreen
+import com.saarthi.driver.ui.design.FleetSplash
 import kotlinx.coroutines.delay
 
 /**
@@ -119,7 +117,7 @@ fun DriverRoot(
             label = "driver-stage",
         ) { _ ->
             when (val current = stage) {
-                is DriverViewModel.Stage.Restoring -> SplashScreen()
+                is DriverViewModel.Stage.Restoring -> FleetSplash()
 
                 is DriverViewModel.Stage.SignedOut -> SignInScreen(driver)
 

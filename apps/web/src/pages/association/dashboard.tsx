@@ -15,7 +15,9 @@ import { useRealtimeEvent } from '@/hooks/use-realtime';
 import { PageHeader, SectionHeader } from '@/components/common/page-header';
 import { StatCard } from '@/components/common/stat-card';
 import { toSeriesPoints } from '@/components/common/mini-chart';
-import { DataTable, type Column } from '@/components/common/data-table';
+import { DataView } from '@/components/common/data-view';
+import { type Column } from '@/components/common/data-table';
+import { BentoGrid, BentoTile } from '@/components/common/bento';
 import { EmptyState, UnauthorizedState } from '@/components/common/states';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -192,7 +194,9 @@ export function AssociationDashboardPage() {
         description={
           profile
             ? `${profile.district}, ${profile.state} · ${profile.coverageAreas.length} coverage area(s)${
-                profile.memberTruckCount ? ` · ${profile.memberTruckCount.toLocaleString('en-IN')} member trucks` : ''
+                profile.memberTruckCount
+                  ? ` · ${profile.memberTruckCount.toLocaleString('en-IN')} member trucks`
+                  : ''
               }`
             : 'District emergency coordination.'
         }
@@ -221,170 +225,187 @@ export function AssociationDashboardPage() {
         </Card>
       ) : null}
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard
-          label="Open alerts"
-          numericValue={stats?.open ?? 0}
-          format={(value) => String(Math.round(value))}
-          chart={{
-            kind: 'bars',
-            points: toSeriesPoints(stats?.trends.raised ?? []),
-            format: (value) => `${value} raised`,
-          }}
-          tone={stats && stats.open > 0 ? 'warning' : 'default'}
-          live
-        />
-        <StatCard
-          label="Critical"
-          numericValue={stats?.critical ?? 0}
-          format={(value) => String(Math.round(value))}
-          chart={{
-            kind: 'gauge',
-            percent: openShare(stats?.critical),
-            caption: 'of the open alerts',
-          }}
-          tone={stats && stats.critical > 0 ? 'destructive' : 'default'}
-          hint="Accident, security or medical"
-        />
-        <StatCard
-          label="Awaiting acknowledgement"
-          numericValue={stats?.unacknowledged ?? 0}
-          format={(value) => String(Math.round(value))}
-          chart={{
-            kind: 'split',
-            segments: [
-              { label: 'Awaiting acknowledgement', value: stats?.unacknowledged ?? 0, tone: 'warning' },
-              { label: 'Responding', value: stats?.responding ?? 0, tone: 'info' },
-            ],
-          }}
-          tone={stats && stats.overdue > 0 ? 'destructive' : 'default'}
-          hint={stats && stats.overdue > 0 ? `${stats.overdue} past the response window` : undefined}
-        />
-        <StatCard
-          label="Resolved today"
-          numericValue={stats?.resolvedToday ?? 0}
-          format={(value) => String(Math.round(value))}
-          chart={{
-            kind: 'bars',
-            points: toSeriesPoints(stats?.trends.resolved ?? []),
-            format: (value) => `${value} resolved`,
-          }}
-          tone="success"
-        />
-      </div>
-
-      {stats && stats.overdue > 0 ? (
-        <Card className="border-destructive/40 bg-destructive/5">
-          <CardContent className="flex items-start gap-3 py-4">
-            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
-            <div className="space-y-1 text-sm">
-              <p className="font-medium">
-                {stats.overdue} alert{stats.overdue === 1 ? '' : 's'} past the response window
-              </p>
-              <p className="text-muted-foreground">
-                A driver is waiting at the roadside. Acknowledge the alert to take the case and see
-                their contact number.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      ) : null}
-
-      {profile && profile.stats.alertsReceived > 0 ? (
-        <Card>
-          <CardHeader className="pb-3">
-            <SectionHeader
-              title="Response record"
-              description="Measured from alert arrival to acknowledgement by a named member of this association."
-            />
-          </CardHeader>
-          <CardContent className="grid grid-cols-2 gap-4 pt-0 sm:grid-cols-4">
-            <div>
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">Received</p>
-              <p className="text-lg font-semibold">{profile.stats.alertsReceived}</p>
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">Acknowledged</p>
-              <p className="text-lg font-semibold">{profile.stats.alertsAcknowledged}</p>
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">Resolved</p>
-              <p className="text-lg font-semibold">{profile.stats.alertsResolved}</p>
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                Median response
-              </p>
-              <p className="text-lg font-semibold">
-                {profile.stats.avgResponseMinutes === null
-                  ? '—'
-                  : `${profile.stats.avgResponseMinutes} min`}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      ) : null}
-
-      <div className="space-y-3">
-        <div className="flex items-center justify-between gap-3">
-          <SectionHeader
-            title="Emergency queue"
-            description="Ordered by severity, then by how long the driver has been waiting."
-          />
-          <Tabs
-            value={filter}
-            onValueChange={(value) => {
-              setFilter(value as 'open' | 'all');
-              setPage(1);
+      <BentoGrid>
+        <BentoTile span={3} plain>
+          <StatCard
+            label="Open alerts"
+            numericValue={stats?.open ?? 0}
+            format={(value) => String(Math.round(value))}
+            chart={{
+              kind: 'bars',
+              points: toSeriesPoints(stats?.trends.raised ?? []),
+              format: (value) => `${value} raised`,
             }}
-          >
-            <TabsList>
-              <TabsTrigger value="open">Needs action</TabsTrigger>
-              <TabsTrigger value="all">All</TabsTrigger>
-            </TabsList>
-          </Tabs>
-        </div>
-
-        {alerts.data && alerts.data.items.length === 0 && filter === 'open' ? (
-          <EmptyState
-            icon={ShieldCheck}
-            title="Nothing open right now"
-            description="Emergencies in your coverage area will appear here the moment they are raised, and everyone on the desk is notified."
+            tone={stats && stats.open > 0 ? 'warning' : 'default'}
+            live
           />
-        ) : (
-          <DataTable
-            columns={columns}
-            rows={alerts.data?.items}
-            rowKey={(row) => row.id}
-            isLoading={alerts.isLoading}
-            error={alerts.error}
-            pagination={alerts.data?.pagination}
-            onPageChange={setPage}
-            emptyTitle="No alerts yet"
-            emptyDescription="This association has not received an emergency alert."
+        </BentoTile>
+        <BentoTile span={3} plain>
+          <StatCard
+            label="Critical"
+            numericValue={stats?.critical ?? 0}
+            format={(value) => String(Math.round(value))}
+            chart={{
+              kind: 'gauge',
+              percent: openShare(stats?.critical),
+              caption: 'of the open alerts',
+            }}
+            tone={stats && stats.critical > 0 ? 'destructive' : 'default'}
+            hint="Accident, security or medical"
           />
-        )}
-      </div>
+        </BentoTile>
+        <BentoTile span={3} plain>
+          <StatCard
+            label="Awaiting acknowledgement"
+            numericValue={stats?.unacknowledged ?? 0}
+            format={(value) => String(Math.round(value))}
+            chart={{
+              kind: 'split',
+              segments: [
+                {
+                  label: 'Awaiting acknowledgement',
+                  value: stats?.unacknowledged ?? 0,
+                  tone: 'warning',
+                },
+                { label: 'Responding', value: stats?.responding ?? 0, tone: 'info' },
+              ],
+            }}
+            tone={stats && stats.overdue > 0 ? 'destructive' : 'default'}
+            hint={
+              stats && stats.overdue > 0 ? `${stats.overdue} past the response window` : undefined
+            }
+          />
+        </BentoTile>
+        <BentoTile span={3} plain>
+          <StatCard
+            label="Resolved today"
+            numericValue={stats?.resolvedToday ?? 0}
+            format={(value) => String(Math.round(value))}
+            chart={{
+              kind: 'bars',
+              points: toSeriesPoints(stats?.trends.resolved ?? []),
+              format: (value) => `${value} resolved`,
+            }}
+            tone="success"
+          />
+        </BentoTile>
 
-      {profile ? (
-        <Card>
-          <CardHeader className="pb-3">
+        {stats && stats.overdue > 0 ? (
+          <Card className="border-destructive/40 bg-destructive/5 lg:col-span-12">
+            <CardContent className="flex items-start gap-3 py-4">
+              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
+              <div className="space-y-1 text-sm">
+                <p className="font-medium">
+                  {stats.overdue} alert{stats.overdue === 1 ? '' : 's'} past the response window
+                </p>
+                <p className="text-muted-foreground">
+                  A driver is waiting at the roadside. Acknowledge the alert to take the case and
+                  see their contact number.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {profile && profile.stats.alertsReceived > 0 ? (
+          <BentoTile span={4}>
+            <CardHeader className="pb-3">
+              <SectionHeader
+                title="Response record"
+                description="Measured from alert arrival to acknowledgement by a named member of this association."
+              />
+            </CardHeader>
+            <CardContent className="grid grid-cols-2 gap-4 pt-0 sm:grid-cols-4">
+              <div>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Received</p>
+                <p className="text-lg font-semibold">{profile.stats.alertsReceived}</p>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                  Acknowledged
+                </p>
+                <p className="text-lg font-semibold">{profile.stats.alertsAcknowledged}</p>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Resolved</p>
+                <p className="text-lg font-semibold">{profile.stats.alertsResolved}</p>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                  Median response
+                </p>
+                <p className="text-lg font-semibold">
+                  {profile.stats.avgResponseMinutes === null
+                    ? '—'
+                    : `${profile.stats.avgResponseMinutes} min`}
+                </p>
+              </div>
+            </CardContent>
+          </BentoTile>
+        ) : null}
+
+        <BentoTile span={8} className="gap-3 p-5">
+          <div className="flex items-center justify-between gap-3">
             <SectionHeader
-              title="Coverage"
-              description="Alerts are matched geographically. An incident outside every area below never reaches this desk."
+              title="Emergency queue"
+              description="Ordered by severity, then by how long the driver has been waiting."
             />
-          </CardHeader>
-          <CardContent className="flex flex-wrap gap-2 pt-0">
-            {profile.coverageAreas.map((area) => (
-              <Badge key={area.id} variant="secondary" className="gap-1.5">
-                <Users className="h-3 w-3" />
-                {area.district}
-                <span className="text-muted-foreground">· {area.radiusKm} km</span>
-              </Badge>
-            ))}
-          </CardContent>
-        </Card>
-      ) : null}
+            <Tabs
+              value={filter}
+              onValueChange={(value) => {
+                setFilter(value as 'open' | 'all');
+                setPage(1);
+              }}
+            >
+              <TabsList>
+                <TabsTrigger value="open">Needs action</TabsTrigger>
+                <TabsTrigger value="all">All</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
+
+          {alerts.data && alerts.data.items.length === 0 && filter === 'open' ? (
+            <EmptyState
+              icon={ShieldCheck}
+              title="Nothing open right now"
+              description="Emergencies in your coverage area will appear here the moment they are raised, and everyone on the desk is notified."
+            />
+          ) : (
+            <DataView
+              surface="association.alerts"
+              columns={columns}
+              rows={alerts.data?.items}
+              rowKey={(row) => row.id}
+              isLoading={alerts.isLoading}
+              error={alerts.error}
+              pagination={alerts.data?.pagination}
+              onPageChange={setPage}
+              emptyTitle="No alerts yet"
+              emptyDescription="This association has not received an emergency alert."
+            />
+          )}
+        </BentoTile>
+
+        {profile ? (
+          <BentoTile span={12}>
+            <CardHeader className="pb-3">
+              <SectionHeader
+                title="Coverage"
+                description="Alerts are matched geographically. An incident outside every area below never reaches this desk."
+              />
+            </CardHeader>
+            <CardContent className="flex flex-wrap gap-2 pt-0">
+              {profile.coverageAreas.map((area) => (
+                <Badge key={area.id} variant="secondary" className="gap-1.5">
+                  <Users className="h-3 w-3" />
+                  {area.district}
+                  <span className="text-muted-foreground">· {area.radiusKm} km</span>
+                </Badge>
+              ))}
+            </CardContent>
+          </BentoTile>
+        ) : null}
+      </BentoGrid>
     </div>
   );
 }

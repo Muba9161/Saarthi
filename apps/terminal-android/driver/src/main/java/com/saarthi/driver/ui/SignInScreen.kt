@@ -1,54 +1,71 @@
 package com.saarthi.driver.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AlternateEmail
+import androidx.compose.material.icons.rounded.Badge
+import androidx.compose.material.icons.rounded.Phone
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Surface
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
-import com.saarthi.core.R
-import com.saarthi.core.ui.SolidCard
-import com.saarthi.core.ui.TerminalPage
 import com.saarthi.driver.network.DriverApi
+import com.saarthi.driver.ui.design.Ash
+import com.saarthi.driver.ui.design.BrandHero
+import com.saarthi.driver.ui.design.BrandWordmark
+import com.saarthi.driver.ui.design.Chalk
+import com.saarthi.driver.ui.design.EmberBright
+import com.saarthi.driver.ui.design.FleetButton
+import com.saarthi.driver.ui.design.FleetCard
+import com.saarthi.driver.ui.design.FleetEnter
+import com.saarthi.driver.ui.design.FleetError
+import com.saarthi.driver.ui.design.FleetField
+import com.saarthi.driver.ui.design.FleetMotion
+import com.saarthi.driver.ui.design.FleetPasswordField
+import com.saarthi.driver.ui.design.FleetScreen
+import com.saarthi.driver.ui.design.FleetSpace
+import com.saarthi.driver.ui.design.pressable
+import com.saarthi.driver.ui.design.stillOr
 
 /**
  * Signing in, once.
  *
  * The screen a driver should see exactly one time. Everything after this — the
- * thirty-day refresh token, the silent exchange on launch — exists so that they
- * never come back here, because a driver asked for an email address and a
- * password at five in the morning in a yard will stop using the app, and an app
- * nobody opens reports nothing.
+ * thirty-day refresh token, the silent exchange on launch, Quick Login — exists
+ * so that they never come back here, because a driver asked for an email
+ * address and a password at five in the morning in a yard will stop using the
+ * app, and an app nobody opens reports nothing.
  *
  * Registration is on the same screen rather than behind a link. A driver who has
  * just been told to download Saarthi does not know which of the two they are,
- * and a wrong guess on a sign-in screen reads as a rejection.
+ * and a wrong guess on a sign-in screen reads as a rejection. The two modes
+ * share one form and one button; the extra fields expand into place rather than
+ * replacing the screen, so the driver never loses what they had already typed.
+ *
+ * This is also the only screen in the app that is allowed to be atmospheric.
+ * It is where somebody decides whether the thing they just installed is real.
  */
 @Composable
 fun SignInScreen(viewModel: DriverViewModel) {
@@ -65,160 +82,203 @@ fun SignInScreen(viewModel: DriverViewModel) {
     val canSubmit = email.isNotBlank() && password.length >= MIN_PASSWORD &&
         (!creating || (firstName.isNotBlank() && lastName.isNotBlank()))
 
-    TerminalPage {
-        /*
-         * The mark, then the words.
-         *
-         * This screen was a heading and two bare fields, which is the one place
-         * a driver decides whether the thing they just installed is real. It is
-         * also the only screen most of them will ever see twice, so it carries
-         * the brand the same way the cockpit does.
-         */
-        Spacer(Modifier.height(24.dp))
+    /*
+     * The password rule, shown as it becomes relevant.
+     *
+     * Not on an untouched field — a red hint under an empty box on the screen
+     * that decides whether somebody trusts the app reads as a rejection before
+     * they have done anything. It appears once they have started typing, which
+     * is the moment it becomes useful rather than discouraging.
+     */
+    val passwordHint = when {
+        password.isEmpty() -> null
+        password.length < MIN_PASSWORD ->
+            "$MIN_PASSWORD characters or more. ${password.length} so far."
+        else -> null
+    }
 
-        Surface(
-            shape = RoundedCornerShape(24.dp),
-            color = Color.White,
-            shadowElevation = 6.dp,
-            modifier = Modifier.size(88.dp),
-        ) {
-            Image(
-                painter = painterResource(R.drawable.saarthi_mark),
-                contentDescription = null,
-                modifier = Modifier.fillMaxSize().padding(14.dp),
-            )
-        }
+    FleetScreen(horizontalPadding = 0.dp) {
+        BrandHero()
 
-        Spacer(Modifier.height(20.dp))
+        Column(Modifier.padding(horizontal = FleetSpace.roomy)) {
+            Spacer(Modifier.height(FleetSpace.roomy))
 
-        Text(
-            "Saarthi",
-            style = MaterialTheme.typography.displaySmall,
-            fontWeight = FontWeight.Bold,
-        )
-        Text(
-            if (creating) {
-                "Create your driver account. You will only do this once."
-            } else {
-                "Sign in once. Saarthi will remember you."
-            },
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-
-        Spacer(Modifier.height(24.dp))
-
-        SolidCard(Modifier.fillMaxWidth()) {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            if (creating) {
-                OutlinedTextField(
-                    value = firstName,
-                    onValueChange = { firstName = it },
-                    label = { Text("First name") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                OutlinedTextField(
-                    value = lastName,
-                    onValueChange = { lastName = it },
-                    label = { Text("Last name") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                OutlinedTextField(
-                    value = phone,
-                    onValueChange = { phone = it },
-                    label = { Text("Mobile number") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                    modifier = Modifier.fillMaxWidth(),
-                )
+            FleetEnter(index = 0) {
+                BrandWordmark(Modifier.fillMaxWidth())
             }
 
-            OutlinedTextField(
-                value = email,
-                onValueChange = { email = it },
-                label = { Text("Email") },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Email,
-                    imeAction = ImeAction.Next,
-                ),
-                modifier = Modifier.fillMaxWidth(),
-            )
+            Spacer(Modifier.height(FleetSpace.roomy))
 
-            OutlinedTextField(
-                value = password,
-                onValueChange = { password = it },
-                label = { Text("Password") },
-                singleLine = true,
-                visualTransformation = PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Password,
-                    imeAction = ImeAction.Done,
-                ),
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
-        }
-
-        error?.let { message ->
-            Spacer(Modifier.height(12.dp))
-            Text(
-                message,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.error,
-            )
-        }
-
-        Spacer(Modifier.height(20.dp))
-
-        Button(
-            onClick = {
-                if (creating) {
-                    viewModel.register(
-                        DriverApi.RegisterRequest(
-                            email = email.trim(),
-                            password = password,
-                            firstName = firstName.trim(),
-                            lastName = lastName.trim(),
-                            phone = phone.trim().ifBlank { null },
-                        ),
+            FleetEnter(index = 1) {
+                Column(Modifier.fillMaxWidth()) {
+                    Text(
+                        if (creating) "Create your account" else "Your shift starts here",
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = Chalk,
                     )
-                } else {
-                    viewModel.signIn(email, password)
+                    Spacer(Modifier.height(FleetSpace.tight))
+                    Text(
+                        if (creating) {
+                            "You will only do this once. Your fleet connects you to a " +
+                                "vehicle after you scan it."
+                        } else {
+                            "Sign in once and Saarthi will remember you. No password in " +
+                                "a yard at five in the morning."
+                        },
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = Ash,
+                    )
                 }
-            },
-            enabled = canSubmit && !busy,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            if (busy) {
-                CircularProgressIndicator(
-                    modifier = Modifier.height(18.dp),
-                    strokeWidth = 2.dp,
-                )
-            } else {
-                Text(if (creating) "Create account" else "Sign in")
             }
-        }
 
-        Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(FleetSpace.section))
 
-        TextButton(
-            onClick = {
-                creating = !creating
-                viewModel.clearError()
-            },
-            enabled = !busy,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Text(
-                if (creating) {
-                    "I already have an account"
-                } else {
-                    "New to Saarthi? Create an account"
-                },
-            )
+            FleetEnter(index = 2) {
+                FleetCard(Modifier.fillMaxWidth()) {
+                    Column(verticalArrangement = Arrangement.spacedBy(FleetSpace.snug)) {
+                        /*
+                         * The name and telephone fields, expanded rather than swapped.
+                         *
+                         * A driver who taps "create an account" having already typed
+                         * their email must not lose it, and a screen that rebuilds
+                         * itself around them is a screen that has lost their place.
+                         */
+                        AnimatedVisibility(
+                            visible = creating,
+                            enter = fadeIn(FleetMotion.enter(stillOr(FleetMotion.QUICK))) +
+                                expandVertically(FleetMotion.settle()),
+                            exit = fadeOut(FleetMotion.enter(stillOr(FleetMotion.EXIT))) +
+                                shrinkVertically(FleetMotion.settle()),
+                        ) {
+                            Column(verticalArrangement = Arrangement.spacedBy(FleetSpace.snug)) {
+                                FleetField(
+                                    value = firstName,
+                                    onValueChange = { firstName = it },
+                                    label = "First name",
+                                    leadingIcon = Icons.Rounded.Badge,
+                                    keyboardOptions = KeyboardOptions(
+                                        capitalization = androidx.compose.ui.text.input
+                                            .KeyboardCapitalization.Words,
+                                        imeAction = ImeAction.Next,
+                                    ),
+                                )
+                                FleetField(
+                                    value = lastName,
+                                    onValueChange = { lastName = it },
+                                    label = "Last name",
+                                    keyboardOptions = KeyboardOptions(
+                                        capitalization = androidx.compose.ui.text.input
+                                            .KeyboardCapitalization.Words,
+                                        imeAction = ImeAction.Next,
+                                    ),
+                                )
+                                FleetField(
+                                    value = phone,
+                                    onValueChange = { phone = it },
+                                    label = "Mobile number",
+                                    placeholder = "Optional",
+                                    leadingIcon = Icons.Rounded.Phone,
+                                    keyboardOptions = KeyboardOptions(
+                                        keyboardType = KeyboardType.Phone,
+                                        imeAction = ImeAction.Next,
+                                    ),
+                                )
+                                Spacer(Modifier.height(FleetSpace.hair))
+                            }
+                        }
+
+                        FleetField(
+                            value = email,
+                            onValueChange = { email = it },
+                            label = "Email",
+                            leadingIcon = Icons.Rounded.AlternateEmail,
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Email,
+                                autoCorrectEnabled = false,
+                                imeAction = ImeAction.Next,
+                            ),
+                        )
+
+                        FleetPasswordField(
+                            value = password,
+                            onValueChange = { password = it },
+                            label = "Password",
+                            supportingText = passwordHint,
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Password,
+                                imeAction = ImeAction.Done,
+                            ),
+                        )
+                    }
+                }
+            }
+
+            error?.let { message ->
+                Spacer(Modifier.height(FleetSpace.snug))
+                FleetError(message)
+            }
+
+            Spacer(Modifier.height(FleetSpace.roomy))
+
+            FleetEnter(index = 3) {
+                FleetButton(
+                    label = if (creating) "Create account" else "Sign in",
+                    busyLabel = if (creating) "Creating your account…" else "Signing you in…",
+                    busy = busy,
+                    enabled = canSubmit,
+                    onClick = {
+                        if (creating) {
+                            viewModel.register(
+                                DriverApi.RegisterRequest(
+                                    email = email.trim(),
+                                    password = password,
+                                    firstName = firstName.trim(),
+                                    lastName = lastName.trim(),
+                                    phone = phone.trim().ifBlank { null },
+                                ),
+                            )
+                        } else {
+                            viewModel.signIn(email, password)
+                        }
+                    },
+                )
+            }
+
+            Spacer(Modifier.height(FleetSpace.base))
+
+            /*
+             * The other door, as a sentence rather than a second button.
+             *
+             * Two full-width buttons on this screen would give a driver two
+             * things that look equally like the way forward. A question with a
+             * highlighted answer reads as what it is: the case that does not
+             * apply to most people opening this.
+             */
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .pressable(enabled = !busy) {
+                        creating = !creating
+                        viewModel.clearError()
+                    }
+                    .padding(vertical = FleetSpace.base),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    if (creating) "Already have an account? " else "New to Saarthi? ",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Ash,
+                )
+                Text(
+                    if (creating) "Sign in" else "Create an account",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = EmberBright,
+                )
+            }
+
+            Spacer(Modifier.height(FleetSpace.base))
         }
     }
 }

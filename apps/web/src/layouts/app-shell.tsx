@@ -266,38 +266,66 @@ function NavLinkItem({
       // Collapsing drops the visible label, so the icon needs its own name.
       {...(collapsed ? { 'aria-label': t(item.label) } : {})}
       className={cn(
-        'group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all duration-200',
-        'text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-foreground',
+        'group relative flex items-center gap-3 px-3 py-2.5 text-sm transition-all duration-200 ease-smooth',
         collapsed && 'justify-center px-0',
-        isActive && 'bg-sidebar-accent font-medium text-sidebar-foreground',
+        /*
+         * State-dependent classes are emitted for exactly one state, never
+         * applied and then overridden.
+         *
+         * Tailwind's utilities layer outranks the components layer, so a
+         * utility left on the element beats anything `.nav-merge` declares —
+         * regardless of order. That is not theoretical: a shared `rounded-xl`
+         * beat `rounded-r-none`, leaving the notch with rounded right corners
+         * that let the dark rail show through as two black wedges against the
+         * content. A shared `hover:bg-*` repainted the notch on hover.
+         */
+        !isActive &&
+          'rounded-xl text-sidebar-foreground/70 hover:bg-sidebar-accent/70 hover:text-sidebar-foreground',
+        isActive && 'font-medium text-foreground',
       )}
     >
-      {/* Active marker rides between items rather than popping in. */}
+      {/*
+        The notch is its own element rather than a background on the link.
+
+        Styling the selected link directly meant that on every navigation one
+        notch unmounted and another mounted, and for a frame neither was
+        painted — the rail showed through where the shape had been, which read
+        as the black edges flashing. As a single element with a `layoutId`,
+        framer-motion treats the two positions as one object and slides it, so
+        the shape is continuous and never absent.
+
+        `-right-3` cancels the rail's own `px-3` so the notch reaches the rail's
+        edge and meets the content. It stops exactly at the scrollport's
+        padding edge, so the nav's vertical scrolling does not clip it. The
+        concave fillets are pseudo-elements of `.nav-merge`, so they are
+        carried along by the same element.
+      */}
       {isActive ? (
         <motion.span
-          layoutId="nav-active-rail"
-          className="absolute inset-y-1 left-0 w-[3px] rounded-r-full bg-sidebar-highlight"
-          transition={{ type: 'spring', stiffness: 400, damping: 32 }}
+          layoutId="nav-notch"
+          className="nav-merge absolute inset-y-0 -right-3 left-0 z-0 rounded-l-2xl"
+          transition={{ type: 'spring', stiffness: 420, damping: 36 }}
+          aria-hidden
         />
       ) : null}
 
       <Icon
         className={cn(
-          'size-4 shrink-0 transition-transform duration-200 group-hover:scale-110',
-          isActive && 'text-sidebar-highlight',
+          'relative z-10 size-4 shrink-0 transition-transform duration-200 group-hover:scale-110',
+          isActive && 'text-primary',
         )}
       />
 
-      {!collapsed ? <span className="truncate">{t(item.label)}</span> : null}
+      {!collapsed ? <span className="relative z-10 truncate">{t(item.label)}</span> : null}
 
       {count > 0 ? (
         collapsed ? (
-          <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-destructive" />
+          <span className="absolute right-1.5 top-1.5 z-10 size-2 rounded-full bg-destructive" />
         ) : (
           <Badge
             variant={item.badgeKey === 'sos' ? 'destructive' : 'default'}
             size="sm"
-            className="ml-auto tabular"
+            className="relative z-10 ml-auto tabular"
           >
             {count > 99 ? '99+' : count}
           </Badge>
@@ -338,13 +366,13 @@ export function SidebarContent({
     <div className="relative flex h-full flex-col overflow-hidden bg-sidebar">
       {/* Ambient wash so the glass elements above it have something to refract. */}
       <div
-        className="pointer-events-none absolute -left-24 -top-24 size-72 rounded-full bg-sidebar-highlight/20 blur-3xl"
+        className="pointer-events-none absolute -left-24 -top-24 size-72 rounded-full bg-sidebar-highlight/10 blur-3xl"
         aria-hidden
       />
 
       <div
         className={cn(
-          'relative flex h-14 shrink-0 items-center gap-2.5 border-b border-sidebar-border px-4',
+          'relative flex h-16 shrink-0 items-center gap-2.5 border-b border-sidebar-border/70 px-4',
           collapsed && 'justify-center px-0',
         )}
       >
@@ -374,11 +402,11 @@ export function SidebarContent({
         ) : null}
       </div>
 
-      <nav className="relative flex-1 space-y-5 overflow-y-auto px-3 py-4 scrollbar-none">
+      <nav className="relative flex-1 space-y-6 overflow-y-auto px-3 py-5 scrollbar-none">
         {sections.map((section) => (
           <div key={section.title} className="space-y-1">
             {!collapsed ? (
-              <p className="px-3 pb-1 text-2xs font-semibold uppercase tracking-[0.08em] text-sidebar-muted">
+              <p className="px-3 pb-1.5 text-2xs font-semibold uppercase tracking-[0.10em] text-sidebar-muted/80">
                 {t(section.title)}
               </p>
             ) : (
@@ -438,8 +466,8 @@ function PlanFooter() {
   if (!subscription) return null;
 
   return (
-    <div className="relative shrink-0 border-t border-sidebar-border p-3">
-      <div className="rounded-lg border border-white/[0.06] bg-white/[0.04] p-3 backdrop-blur">
+    <div className="relative shrink-0 border-t border-sidebar-border/70 p-3">
+      <div className="rounded-xl bg-white/[0.05] p-3.5 ring-1 ring-white/[0.07]">
         <p className="text-2xs uppercase tracking-[0.08em] text-sidebar-muted">Current plan</p>
         <p className="truncate text-sm font-medium text-sidebar-foreground">
           {subscription.planName}
@@ -562,7 +590,7 @@ function TopBar({ onOpenNav }: { onOpenNav: () => void }) {
   const user = session?.user;
 
   return (
-    <header className="glass sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 rounded-none border-x-0 border-t-0 px-4 shadow-none">
+    <header className="glass sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 rounded-none px-4 shadow-none ring-0 sm:px-6">
       <Button
         variant="ghost"
         size="icon"
@@ -648,7 +676,12 @@ function TopBar({ onOpenNav }: { onOpenNav: () => void }) {
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="rounded-full" aria-label={t('Account menu')}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="rounded-full"
+              aria-label={t('Account menu')}
+            >
               {/* The photograph is media like any other: fetched with the
                   session token rather than referenced by address, so it cannot
                   be an `<img src>`. No `variant` is asked for here — the URL
@@ -705,7 +738,7 @@ function MobileTabBar() {
   if (items.length === 0) return null;
 
   return (
-    <nav className="glass safe-bottom fixed inset-x-0 bottom-0 z-30 flex rounded-none border-x-0 border-b-0 lg:hidden">
+    <nav className="glass safe-bottom fixed inset-x-0 bottom-0 z-30 flex rounded-none ring-0 lg:hidden">
       {items.map((item) => {
         const count = item.badgeKey ? badges[item.badgeKey] : 0;
         const Icon = item.icon;
@@ -802,7 +835,7 @@ export function AppShell() {
       <div className="glass-backdrop" aria-hidden />
 
       <motion.aside
-        className="hidden shrink-0 border-r border-sidebar-border lg:block"
+        className="hidden shrink-0 lg:block"
         animate={{ width: collapsed ? 72 : 256 }}
         transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
       >
@@ -820,7 +853,7 @@ export function AppShell() {
         <CriticalAlerts />
 
         <main className="flex-1 overflow-y-auto pb-20 lg:pb-0">
-          <div className="mx-auto w-full max-w-[1600px] p-4 sm:p-6">
+          <div className="mx-auto w-full max-w-[1600px] p-4 sm:p-6 lg:p-8">
             <PageTransition key={location.pathname}>
               <Outlet />
             </PageTransition>

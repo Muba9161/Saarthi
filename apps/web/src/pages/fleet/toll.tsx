@@ -1,12 +1,7 @@
 import * as React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { AlertTriangle, Info, MapPin, Wallet } from 'lucide-react';
-import {
-  Feature,
-  Permission,
-  formatCurrency,
-  humanizeEnum,
-} from '@saarthi/shared';
+import { Feature, Permission, formatCurrency, humanizeEnum } from '@saarthi/shared';
 import { api } from '@/lib/api-client';
 import type {
   FastagCapabilities,
@@ -146,9 +141,7 @@ export function TollPage(): React.ReactElement {
       header: 'Amount',
       numeric: true,
       cell: (row) => (
-        <span className="tabular-nums">
-          {row.amount > 0 ? formatCurrency(row.amount) : '—'}
-        </span>
+        <span className="tabular-nums">{row.amount > 0 ? formatCurrency(row.amount) : '—'}</span>
       ),
     },
   ];
@@ -175,9 +168,11 @@ export function TollPage(): React.ReactElement {
         />
         <StatCard
           label="Average per crossing"
-          value={spend?.averagePerCrossing !== null && spend?.averagePerCrossing !== undefined
-            ? formatCurrency(spend.averagePerCrossing)
-            : '—'}
+          value={
+            spend?.averagePerCrossing !== null && spend?.averagePerCrossing !== undefined
+              ? formatCurrency(spend.averagePerCrossing)
+              : '—'
+          }
           chart={{
             kind: 'area',
             // The day's own average, not the window's: a single expensive
@@ -209,7 +204,13 @@ export function TollPage(): React.ReactElement {
               },
             ],
           }}
-          tone={(tagTotals?.blocked ?? 0) > 0 ? 'destructive' : needsAttention.length > 0 ? 'warning' : 'default'}
+          tone={
+            (tagTotals?.blocked ?? 0) > 0
+              ? 'destructive'
+              : needsAttention.length > 0
+                ? 'warning'
+                : 'default'
+          }
           hint={`${tagTotals?.blocked ?? 0} blocked · ${tagTotals?.lowBalance ?? 0} low`}
         />
         <StatCard
@@ -341,7 +342,7 @@ export function TollPage(): React.ReactElement {
                 description={`The plazas this fleet pays most at over the last ${days} days.`}
               />
             </CardHeader>
-            <CardContent className="space-y-2 pt-2">
+            <CardContent className="space-y-2">
               {(spend?.topPlazas ?? []).length === 0 ? (
                 <p className="py-4 text-center text-sm text-muted-foreground">
                   Nothing recorded in this window.

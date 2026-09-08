@@ -67,6 +67,8 @@ const config: Config = {
           DEFAULT: 'hsl(var(--muted))',
           foreground: 'hsl(var(--muted-foreground))',
         },
+        /** The track a merged tab is cut out of — see .tab-merge. */
+        'tab-track': 'hsl(var(--tab-track))',
         popover: {
           DEFAULT: 'hsl(var(--popover))',
           foreground: 'hsl(var(--popover-foreground))',
@@ -93,11 +95,14 @@ const config: Config = {
         },
       },
       borderRadius: {
-        '2xl': 'calc(var(--radius) + 6px)',
-        xl: 'calc(var(--radius) + 2px)',
+        // Derived from --radius (1rem). Panels sit at xl/2xl, controls at
+        // lg/md, chips and hairline chrome at sm.
+        '3xl': 'calc(var(--radius) + 16px)',
+        '2xl': 'calc(var(--radius) + 8px)',
+        xl: 'calc(var(--radius) + 4px)',
         lg: 'var(--radius)',
-        md: 'calc(var(--radius) - 4px)',
-        sm: 'calc(var(--radius) - 6px)',
+        md: 'calc(var(--radius) - 5px)',
+        sm: 'calc(var(--radius) - 8px)',
       },
       fontFamily: {
         sans: ['Inter var', 'Inter', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
@@ -107,21 +112,31 @@ const config: Config = {
         '2xs': ['0.6875rem', { lineHeight: '1rem', letterSpacing: '0.01em' }],
       },
       boxShadow: {
-        // A four-step elevation scale — anything more becomes noise.
-        card: '0 1px 2px 0 hsl(222 47% 11% / 0.04), 0 1px 3px 0 hsl(222 47% 11% / 0.06)',
-        lifted:
-          '0 2px 4px -1px hsl(222 47% 11% / 0.06), 0 8px 16px -4px hsl(222 47% 11% / 0.10)',
-        overlay:
-          '0 8px 16px -6px hsl(222 47% 11% / 0.12), 0 20px 40px -12px hsl(222 47% 11% / 0.18)',
-        glow: '0 0 0 1px hsl(var(--primary) / 0.16), 0 6px 24px -6px hsl(var(--primary) / 0.35)',
+        /*
+         * A four-step elevation scale — anything more becomes noise.
+         *
+         * These are achromatic (240 6% 10%) and wider than a conventional
+         * shadow set on purpose: with borders removed from panels, the shadow
+         * is the only thing describing where a surface ends, and a tight
+         * shadow at a 20px radius reads as a smudge rather than an edge.
+         * `sm` is overridden too, so small controls match the same light.
+         */
+        sm: '0 1px 2px 0 hsl(240 6% 10% / 0.05)',
+        card: '0 1px 2px -1px hsl(240 6% 10% / 0.04), 0 4px 12px -3px hsl(240 6% 10% / 0.06)',
+        lifted: '0 2px 4px -2px hsl(240 6% 10% / 0.05), 0 14px 28px -8px hsl(240 6% 10% / 0.12)',
+        overlay: '0 8px 20px -8px hsl(240 6% 10% / 0.14), 0 32px 64px -16px hsl(240 6% 10% / 0.22)',
+        glow: '0 0 0 1px hsl(var(--primary) / 0.14), 0 8px 28px -8px hsl(var(--primary) / 0.32)',
         'glow-danger':
-          '0 0 0 1px hsl(var(--destructive) / 0.2), 0 6px 24px -6px hsl(var(--destructive) / 0.4)',
+          '0 0 0 1px hsl(var(--destructive) / 0.18), 0 8px 28px -8px hsl(var(--destructive) / 0.36)',
       },
       backgroundImage: {
         'grid-subtle':
           'linear-gradient(to right, hsl(var(--border)/0.5) 1px, transparent 1px), linear-gradient(to bottom, hsl(var(--border)/0.5) 1px, transparent 1px)',
         'brand-gradient':
-          'linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary)/0.85) 45%, hsl(var(--accent)/0.9) 130%)',
+          'linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary)/0.88) 55%, hsl(var(--accent)/0.7) 145%)',
+        // The soft pool of light a vehicle image is staged on.
+        'stage-glow':
+          'radial-gradient(120% 80% at 50% 118%, hsl(var(--primary)/0.10) 0%, transparent 72%)',
       },
       backgroundSize: {
         grid: '32px 32px',

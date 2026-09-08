@@ -20,29 +20,43 @@ const buttonVariants = cva(
           'bg-primary text-primary-foreground shadow-sm hover:bg-primary/92 hover:shadow-glow',
         destructive:
           'bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/92 hover:shadow-glow-danger',
+        // A hairline ring rather than a border, so an outline button sits on
+        // the page the same way a panel does.
         outline:
-          'border border-border bg-card shadow-sm hover:border-border-strong hover:bg-secondary',
+          'bg-card shadow-sm ring-1 ring-border hover:bg-muted/60 hover:ring-border-strong',
         secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/70',
-        ghost: 'hover:bg-secondary hover:text-secondary-foreground',
+        ghost: 'hover:bg-muted hover:text-foreground',
         link: 'text-primary underline-offset-4 hover:underline',
         accent: 'bg-accent text-accent-foreground shadow-sm hover:bg-accent/92',
         success: 'bg-success text-success-foreground shadow-sm hover:bg-success/92',
         // Frosted — for controls floating over a map or imagery.
-        glass: 'glass text-foreground hover:bg-white/75 dark:hover:bg-white/[0.10]',
+        glass: 'glass text-foreground hover:bg-card',
         gradient:
           'bg-brand-gradient text-primary-foreground shadow-sm hover:shadow-glow hover:brightness-105',
       },
       size: {
-        default: 'h-9 px-4 py-2',
-        sm: 'h-8 rounded-md px-3 text-xs',
-        lg: 'h-11 rounded-lg px-6',
+        // One step taller than before. The reference language buys its calm
+        // with air, and a 40px control is the smallest that reads as roomy
+        // while still fitting a dense operational toolbar.
+        default: 'h-10 px-4 py-2',
+        sm: 'h-9 rounded-md px-3 text-xs',
+        lg: 'h-11 px-6',
         xl: 'h-14 rounded-xl px-8 text-base',
-        icon: 'size-9',
-        'icon-sm': 'size-8 rounded-md',
+        icon: 'size-10',
+        'icon-sm': 'size-9 rounded-md',
         'icon-lg': 'size-11',
       },
+      /**
+       * Fully round controls, for the pill chrome the reference language uses
+       * on filter rows and floating map buttons. Additive — every existing
+       * call site keeps the default rounding.
+       */
+      shape: {
+        default: '',
+        pill: 'rounded-full',
+      },
     },
-    defaultVariants: { variant: 'default', size: 'default' },
+    defaultVariants: { variant: 'default', size: 'default', shape: 'default' },
   },
 );
 
@@ -56,14 +70,14 @@ export interface ButtonProps
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   (
-    { className, variant, size, asChild = false, loading = false, children, disabled, ...props },
+    { className, variant, size, shape, asChild = false, loading = false, children, disabled, ...props },
     ref,
   ) => {
     const Comp = asChild ? Slot : 'button';
 
     if (asChild) {
       return (
-        <Comp className={cn(buttonVariants({ variant, size, className }))} ref={ref} {...props}>
+        <Comp className={cn(buttonVariants({ variant, size, shape, className }))} ref={ref} {...props}>
           {children}
         </Comp>
       );
@@ -71,7 +85,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 
     return (
       <Comp
-        className={cn(buttonVariants({ variant, size, className }))}
+        className={cn(buttonVariants({ variant, size, shape, className }))}
         ref={ref}
         disabled={disabled || loading}
         aria-busy={loading || undefined}

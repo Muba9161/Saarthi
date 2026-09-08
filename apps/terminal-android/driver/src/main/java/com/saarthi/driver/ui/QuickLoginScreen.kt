@@ -3,21 +3,25 @@ package com.saarthi.driver.ui
 import android.content.Context
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.Backspace
+import androidx.compose.material.icons.rounded.Fingerprint
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -27,13 +31,35 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.fragment.app.FragmentActivity
-import com.saarthi.core.ui.TerminalPage
 import com.saarthi.driver.data.QuickLoginPolicy
 import com.saarthi.driver.data.QuickLoginStore
+import com.saarthi.driver.ui.design.Ash
+import com.saarthi.driver.ui.design.BrandMark
+import com.saarthi.driver.ui.design.Chalk
+import com.saarthi.driver.ui.design.Ember
+import com.saarthi.driver.ui.design.EmberBright
+import com.saarthi.driver.ui.design.FleetEnter
+import com.saarthi.driver.ui.design.FleetError
+import com.saarthi.driver.ui.design.FleetMono
+import com.saarthi.driver.ui.design.FleetMotion
+import com.saarthi.driver.ui.design.FleetOutlineButton
+import com.saarthi.driver.ui.design.FleetScreen
+import com.saarthi.driver.ui.design.FleetSpace
+import com.saarthi.driver.ui.design.FleetTextButton
+import com.saarthi.driver.ui.design.FleetWorking
+import com.saarthi.driver.ui.design.Hairline
+import com.saarthi.driver.ui.design.Onyx
+import com.saarthi.driver.ui.design.OnyxDeep
+import com.saarthi.driver.ui.design.pressable
+import com.saarthi.driver.ui.design.stillOr
 
 /**
  * Saarthi Quick Login: getting back in.
@@ -79,96 +105,128 @@ fun QuickLoginScreen(
         }
     }
 
-    TerminalPage {
-        Text(
-            "Welcome back",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-        )
-        Text(
-            "Unlock Saarthi to carry on.",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+    FleetScreen {
+        Spacer(Modifier.height(FleetSpace.wide))
 
-        Spacer(Modifier.height(28.dp))
+        FleetEnter(index = 0) {
+            Column(
+                Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                BrandMark(size = 64.dp)
+                Spacer(Modifier.height(FleetSpace.base))
+                Text(
+                    "Welcome back",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = Chalk,
+                )
+                Spacer(Modifier.height(FleetSpace.hair))
+                Text(
+                    "Unlock Saarthi to carry on.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Ash,
+                )
+            }
+        }
+
+        Spacer(Modifier.height(FleetSpace.section))
 
         if (busy) {
-            CircularProgressIndicator()
-            Spacer(Modifier.height(8.dp))
-            Text(
-                "Restoring your session…",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            return@TerminalPage
+            FleetWorking("Restoring your session…")
+            Spacer(Modifier.height(FleetSpace.wide))
+            return@FleetScreen
         }
 
         if (methods.pin) {
-            // Filled dots, never the digits. A PIN readable over a driver's
-            // shoulder in a queue is a PIN somebody else knows.
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center,
-            ) {
-                repeat(QuickLoginPolicy.PIN_LENGTH) { index ->
-                    Box(Modifier.size(22.dp), contentAlignment = Alignment.Center) {
-                        Surface(
-                            shape = CircleShape,
-                            color = if (index < pin.length) {
-                                MaterialTheme.colorScheme.primary
-                            } else {
-                                MaterialTheme.colorScheme.outlineVariant
-                            },
-                            modifier = Modifier.size(if (index < pin.length) 14.dp else 10.dp),
-                        ) {}
-                    }
-                    Spacer(Modifier.size(10.dp))
-                }
+            FleetEnter(index = 1) {
+                // Filled dots, never the digits. A PIN readable over a driver's
+                // shoulder in a queue is a PIN somebody else knows.
+                PinDots(entered = pin.length, length = QuickLoginPolicy.PIN_LENGTH)
             }
 
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(FleetSpace.section))
 
-            PinKeypad(
-                onDigit = { digit ->
-                    if (pin.length < QuickLoginPolicy.PIN_LENGTH) {
-                        pin += digit
-                        if (pin.length == QuickLoginPolicy.PIN_LENGTH) {
-                            viewModel.unlockWithPin(pin)
-                            pin = ""
+            FleetEnter(index = 2) {
+                PinKeypad(
+                    onDigit = { digit ->
+                        if (pin.length < QuickLoginPolicy.PIN_LENGTH) {
+                            pin += digit
+                            if (pin.length == QuickLoginPolicy.PIN_LENGTH) {
+                                viewModel.unlockWithPin(pin)
+                                pin = ""
+                            }
                         }
-                    }
-                },
-                onBackspace = { pin = pin.dropLast(1) },
-            )
+                    },
+                    onBackspace = { pin = pin.dropLast(1) },
+                )
+            }
         }
 
         if (biometricUsable) {
-            Spacer(Modifier.height(16.dp))
-            OutlinedButton(
-                onClick = { promptForBiometric(context, viewModel) },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text("Use fingerprint or face")
+            Spacer(Modifier.height(FleetSpace.base))
+            FleetEnter(index = 3) {
+                FleetOutlineButton(
+                    label = "Use fingerprint or face",
+                    icon = Icons.Rounded.Fingerprint,
+                    tint = EmberBright,
+                    onClick = { promptForBiometric(context, viewModel) },
+                )
             }
         }
 
         error?.let { message ->
-            Spacer(Modifier.height(14.dp))
-            Text(
-                message,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.error,
-            )
+            Spacer(Modifier.height(FleetSpace.base))
+            FleetError(message)
         }
 
-        Spacer(Modifier.height(20.dp))
+        Spacer(Modifier.height(FleetSpace.base))
 
-        TextButton(
+        FleetTextButton(
+            label = "Use password instead",
+            tint = Ash,
             onClick = viewModel::signOut,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Text("Use password instead")
+        )
+
+        Spacer(Modifier.height(FleetSpace.wide))
+    }
+}
+
+/**
+ * How much of the PIN is in.
+ *
+ * A filled dot grows as well as changing colour, so the count is readable
+ * without relying on the difference between orange and grey — which is exactly
+ * the difference a driver in direct sunlight cannot see.
+ */
+@Composable
+private fun PinDots(entered: Int, length: Int) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .semantics { contentDescription = "$entered of $length digits entered" },
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        repeat(length) { index ->
+            val filled = index < entered
+            val size by animateFloatAsState(
+                targetValue = if (filled) 16f else 11f,
+                animationSpec = FleetMotion.enter(stillOr(FleetMotion.INSTANT)),
+                label = "pin-dot",
+            )
+            Box(Modifier.size(34.dp), contentAlignment = Alignment.Center) {
+                Box(
+                    Modifier
+                        .size(size.dp)
+                        .clip(CircleShape)
+                        .background(if (filled) Ember else OnyxDeep)
+                        .border(
+                            1.dp,
+                            if (filled) EmberBright else Hairline,
+                            CircleShape,
+                        ),
+                )
+            }
         }
     }
 }
@@ -177,7 +235,8 @@ fun QuickLoginScreen(
  * A numeric keypad, rather than a text field.
  *
  * A keyboard would offer autocorrect, a clipboard, a suggestion strip and a
- * dozen other places four digits could end up. It is also slower with one hand.
+ * dozen other places four digits could end up. It is also slower with one hand,
+ * which is the hand a driver climbing into a cab has free.
  */
 @Composable
 private fun PinKeypad(
@@ -186,41 +245,89 @@ private fun PinKeypad(
 ) {
     val rows = listOf("123", "456", "789")
 
-    for (row in rows) {
-        Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            for (digit in row) {
-                Button(
-                    onClick = { onDigit(digit) },
-                    modifier = Modifier.weight(1f).height(56.dp),
-                ) {
-                    Text(digit.toString(), style = MaterialTheme.typography.titleLarge)
+    Column(verticalArrangement = Arrangement.spacedBy(FleetSpace.snug)) {
+        for (row in rows) {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(FleetSpace.snug),
+            ) {
+                for (digit in row) {
+                    KeypadKey(
+                        label = digit.toString(),
+                        modifier = Modifier.weight(1f),
+                        onClick = { onDigit(digit) },
+                    )
                 }
             }
         }
-        Spacer(Modifier.height(10.dp))
-    }
 
-    Row(
-        Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        // An empty cell keeps the zero under the eight, where a phone keypad
-        // puts it and where a thumb expects it.
-        Spacer(Modifier.weight(1f))
-        Button(
-            onClick = { onDigit('0') },
-            modifier = Modifier.weight(1f).height(56.dp),
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(FleetSpace.snug),
         ) {
-            Text("0", style = MaterialTheme.typography.titleLarge)
+            // An empty cell keeps the zero under the eight, where a phone keypad
+            // puts it and where a thumb expects it.
+            Spacer(Modifier.weight(1f))
+            KeypadKey(
+                label = "0",
+                modifier = Modifier.weight(1f),
+                onClick = { onDigit('0') },
+            )
+            KeypadKey(
+                label = null,
+                icon = Icons.AutoMirrored.Rounded.Backspace,
+                describedAs = "Delete the last digit",
+                modifier = Modifier.weight(1f),
+                onClick = onBackspace,
+            )
         }
-        OutlinedButton(
-            onClick = onBackspace,
-            modifier = Modifier.weight(1f).height(56.dp),
-        ) {
-            Text("⌫")
+    }
+}
+
+/**
+ * One key.
+ *
+ * Square-ish and large — the whole cell is the target, not the glyph inside it.
+ * Monospaced digits so the row does not shift by a pixel between a 1 and a 8.
+ */
+@Composable
+private fun KeypadKey(
+    label: String?,
+    modifier: Modifier = Modifier,
+    icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
+    // Not named `contentDescription`: that is also the name of the semantics
+    // property set below, and the parameter wins the lookup inside the lambda.
+    describedAs: String? = null,
+    onClick: () -> Unit,
+) {
+    Box(
+        modifier
+            .aspectRatio(1.55f)
+            .clip(CircleShape)
+            .background(Onyx)
+            .border(1.dp, Hairline, CircleShape)
+            .pressable(scaleTo = 0.93f, onClick = onClick)
+            .then(
+                describedAs?.let { spoken ->
+                    Modifier.semantics { contentDescription = spoken }
+                } ?: Modifier,
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        when {
+            icon != null -> Icon(
+                icon,
+                contentDescription = null,
+                tint = Ash,
+                modifier = Modifier.size(22.dp),
+            )
+            label != null -> Text(
+                label,
+                fontFamily = FleetMono,
+                fontSize = 26.sp,
+                fontWeight = FontWeight.Bold,
+                color = Chalk,
+            )
         }
     }
 }

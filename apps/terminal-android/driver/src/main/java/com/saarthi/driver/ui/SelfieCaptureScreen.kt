@@ -7,7 +7,12 @@ import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.ImageProxy
 import androidx.camera.view.PreviewView
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -15,11 +20,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.CameraAlt
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -30,19 +35,41 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import com.saarthi.core.ui.CameraBinding
-import com.saarthi.core.ui.TerminalPage
 import com.saarthi.core.util.DebugLog
 import com.saarthi.driver.network.DriverApi
+import com.saarthi.driver.ui.design.Ash
+import com.saarthi.driver.ui.design.Chalk
+import com.saarthi.driver.ui.design.EmberBright
+import com.saarthi.driver.ui.design.FieldLabel
+import com.saarthi.driver.ui.design.FleetButton
+import com.saarthi.driver.ui.design.FleetCard
+import com.saarthi.driver.ui.design.FleetEnter
+import com.saarthi.driver.ui.design.FleetError
+import com.saarthi.driver.ui.design.FleetOutlineButton
+import com.saarthi.driver.ui.design.FleetRadius
+import com.saarthi.driver.ui.design.FleetScreen
+import com.saarthi.driver.ui.design.FleetSpace
+import com.saarthi.driver.ui.design.FleetWorking
+import com.saarthi.driver.ui.design.Obsidian
+import com.saarthi.driver.ui.design.Slate
+import com.saarthi.driver.ui.design.StatusPill
+import com.saarthi.driver.ui.design.TrackingCode
+import com.saarthi.driver.ui.design.rememberBreath
 import java.util.concurrent.Executors
 
 /**
@@ -87,21 +114,36 @@ fun SelfieCaptureScreen(
     var capturing by remember { mutableStateOf(false) }
     var permitted by remember { mutableStateOf(cameraPermitted(context)) }
 
-    TerminalPage {
-        Text(
-            "Arrival photo",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-        )
-        Text(
-            assignment.registrationNumber?.let {
-                "Take a photo of yourself at $it. Your fleet needs it to approve you."
-            } ?: "Take a photo of yourself at the vehicle.",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+    FleetScreen {
+        Spacer(Modifier.height(FleetSpace.base))
 
-        Spacer(Modifier.height(16.dp))
+        FleetEnter(index = 0) {
+            Column(Modifier.fillMaxWidth()) {
+                StatusPill("Step 2 of 2", tint = EmberBright)
+                Spacer(Modifier.height(FleetSpace.snug))
+                Text(
+                    "Arrival photo",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = Chalk,
+                )
+                Spacer(Modifier.height(FleetSpace.tight))
+                Text(
+                    "Your fleet needs a photo of you at the vehicle before they can " +
+                        "approve you.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Ash,
+                )
+
+                assignment.registrationNumber?.let { registration ->
+                    Spacer(Modifier.height(FleetSpace.snug))
+                    FieldLabel("Vehicle")
+                    Spacer(Modifier.height(FleetSpace.hair))
+                    TrackingCode(registration, size = 24.sp)
+                }
+            }
+        }
+
+        Spacer(Modifier.height(FleetSpace.roomy))
 
         if (!permitted) {
             /*
@@ -112,105 +154,107 @@ fun SelfieCaptureScreen(
              * would strand them at the next screen with a refusal they could
              * not act on.
              */
-            Text(
-                "Saarthi needs the camera to take your arrival photo. Allow camera " +
-                    "access in your phone's settings for Saarthi, then come back.",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.error,
-            )
-            Spacer(Modifier.height(12.dp))
-            OutlinedButton(
-                onClick = { permitted = cameraPermitted(context) },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text("I have allowed it")
+            FleetEnter(index = 1) {
+                Column(Modifier.fillMaxWidth()) {
+                    FleetError(
+                        "Saarthi needs the camera to take your arrival photo. Allow " +
+                            "camera access in your phone's settings for Saarthi, then " +
+                            "come back.",
+                    )
+                    Spacer(Modifier.height(FleetSpace.base))
+                    FleetOutlineButton(
+                        label = "I have allowed it",
+                        icon = Icons.Rounded.Refresh,
+                        onClick = { permitted = cameraPermitted(context) },
+                    )
+                }
             }
-            return@TerminalPage
+            Spacer(Modifier.height(FleetSpace.wide))
+            return@FleetScreen
         }
 
         val shot = preview
         if (shot != null) {
             // Preview, with the two decisions only the driver can make.
-            Surface(
-                shape = RoundedCornerShape(20.dp),
-                modifier = Modifier.fillMaxWidth().aspectRatio(3f / 4f),
-            ) {
-                androidx.compose.foundation.Image(
-                    bitmap = shot,
-                    contentDescription = "The photo you just took",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize(),
-                )
+            FleetEnter(index = 1) {
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(3f / 4f)
+                        .clip(RoundedCornerShape(FleetRadius.card))
+                        .background(Obsidian),
+                ) {
+                    Image(
+                        bitmap = shot,
+                        contentDescription = "The photo you just took",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
             }
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(FleetSpace.base))
 
             if (busy) {
-                CircularProgressIndicator()
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    "Sending your photo…",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                FleetWorking("Sending your photo to the fleet…")
             } else {
                 Row(
                     Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(FleetSpace.snug),
                 ) {
-                    OutlinedButton(
+                    FleetOutlineButton(
+                        label = "Retake",
+                        icon = Icons.Rounded.Refresh,
+                        modifier = Modifier.weight(1f),
                         onClick = {
                             captured = null
                             preview = null
                             viewModel.clearError()
                         },
+                    )
+                    FleetButton(
+                        label = if (error != null) "Try again" else "Use this photo",
+                        icon = Icons.Rounded.Check,
                         modifier = Modifier.weight(1f),
-                    ) {
-                        Text("Retake")
-                    }
-                    Button(
                         onClick = {
                             // The same bytes on every retry: nobody is asked to
                             // pose again because a tunnel dropped the upload.
                             captured?.let { viewModel.submitSelfie(assignment.id, it) }
                         },
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Text(if (error != null) "Try again" else "Use this photo")
-                    }
+                    )
                 }
             }
         } else {
-            CameraViewfinder(
-                capturing = capturing,
-                onCapture = { capture ->
-                    capturing = true
-                    takePhoto(
-                        capture = capture,
-                        onResult = { bytes, bitmap ->
-                            capturing = false
-                            captured = bytes
-                            preview = bitmap
-                        },
-                        onFailure = {
-                            capturing = false
-                            viewModel.reportSelfieFailure(
-                                "The camera could not take the photo. Try again.",
-                            )
-                        },
-                    )
-                },
-            )
+            FleetEnter(index = 1) {
+                CameraViewfinder(
+                    capturing = capturing,
+                    onCapture = { capture ->
+                        capturing = true
+                        takePhoto(
+                            capture = capture,
+                            onResult = { bytes, bitmap ->
+                                capturing = false
+                                captured = bytes
+                                preview = bitmap
+                            },
+                            onFailure = {
+                                capturing = false
+                                viewModel.reportSelfieFailure(
+                                    "The camera could not take the photo. Try again.",
+                                )
+                            },
+                        )
+                    },
+                )
+            }
         }
 
         error?.let { message ->
-            Spacer(Modifier.height(12.dp))
-            Text(
-                message,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.error,
-            )
+            Spacer(Modifier.height(FleetSpace.snug))
+            FleetError(message)
         }
+
+        Spacer(Modifier.height(FleetSpace.wide))
     }
 }
 
@@ -220,6 +264,11 @@ fun SelfieCaptureScreen(
  * Front-facing where there is one, falling back to the rear rather than failing:
  * some rugged handsets issued to drivers have no selfie camera at all, and a
  * photo taken by a colleague is worth more than no photo.
+ *
+ * The oval on the glass is a guide and nothing more — nothing is measured
+ * against it and no photo is refused for missing it. It exists because a driver
+ * holding a phone at arm's length in a yard takes a picture of their forehead
+ * roughly a third of the time, and the retake costs everybody a minute.
  */
 @Composable
 private fun CameraViewfinder(
@@ -232,6 +281,7 @@ private fun CameraViewfinder(
     val previewView = remember {
         PreviewView(context).apply { scaleType = PreviewView.ScaleType.FILL_CENTER }
     }
+    val breath by rememberBreath(2_600, restingAt = 0.7f)
 
     // Bound through `:core`, which owns the CameraX dependency and therefore the
     // Guava future its provider hands back. See `CameraBinding`.
@@ -245,24 +295,56 @@ private fun CameraViewfinder(
         )
     }
 
-    Surface(
-        shape = RoundedCornerShape(20.dp),
-        modifier = Modifier.fillMaxWidth().aspectRatio(3f / 4f),
-    ) {
-        AndroidView(
-            factory = { previewView },
-            modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(20.dp)),
+    Column {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .aspectRatio(3f / 4f)
+                .clip(RoundedCornerShape(FleetRadius.card))
+                .background(Obsidian),
+        ) {
+            AndroidView(
+                factory = { previewView },
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(FleetRadius.card)),
+            )
+
+            Canvas(Modifier.fillMaxSize().clearAndSetSemantics { }) {
+                val w = size.width
+                val h = size.height
+                val ovalW = w * 0.62f
+                val ovalH = h * 0.52f
+
+                drawOval(
+                    color = EmberBright.copy(alpha = 0.35f + breath * 0.35f),
+                    topLeft = Offset((w - ovalW) / 2f, (h - ovalH) / 2f - h * 0.04f),
+                    size = Size(ovalW, ovalH),
+                    style = Stroke(
+                        width = 3f,
+                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(18f, 14f), 0f),
+                    ),
+                )
+            }
+        }
+
+        Spacer(Modifier.height(FleetSpace.snug))
+
+        Text(
+            "Stand where the vehicle number can be seen behind you if you can.",
+            style = MaterialTheme.typography.bodySmall,
+            color = Slate,
         )
-    }
 
-    Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(FleetSpace.base))
 
-    Button(
-        onClick = { onCapture(imageCapture) },
-        enabled = !capturing,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Text(if (capturing) "Taking the photo…" else "Take photo")
+        FleetButton(
+            label = "Take photo",
+            busyLabel = "Taking the photo…",
+            busy = capturing,
+            icon = Icons.Rounded.CameraAlt,
+            onClick = { onCapture(imageCapture) },
+        )
     }
 }
 

@@ -44,7 +44,11 @@ interface PolicyField {
   defaultMinProfile: QrPrivacyProfile;
   defaultMaskBelow: QrPrivacyProfile;
   maskStrategy: string;
-  override: { minProfile?: QrPrivacyProfile; maskBelow?: QrPrivacyProfile; disabled?: boolean } | null;
+  override: {
+    minProfile?: QrPrivacyProfile;
+    maskBelow?: QrPrivacyProfile;
+    disabled?: boolean;
+  } | null;
   effectiveMinProfile: QrPrivacyProfile;
   effectiveMaskBelow: QrPrivacyProfile;
   disabled: boolean;
@@ -61,15 +65,7 @@ type Draft = Record<
   { minProfile?: QrPrivacyProfile; maskBelow?: QrPrivacyProfile; disabled?: boolean }
 >;
 
-const GROUP_ORDER = [
-  'Vehicle',
-  'Driver',
-  'Documents',
-  'Service',
-  'Finance',
-  'FASTag',
-  'Emergency',
-];
+const GROUP_ORDER = ['Vehicle', 'Driver', 'Documents', 'Service', 'Finance', 'FASTag', 'Emergency'];
 
 export function QrPrivacyPage(): React.ReactElement {
   const { can } = useAuth();
@@ -133,7 +129,9 @@ export function QrPrivacyPage(): React.ReactElement {
     JSON.stringify(draft) !==
       JSON.stringify(
         Object.fromEntries(
-          data.fields.filter((field) => field.override).map((field) => [field.field, field.override]),
+          data.fields
+            .filter((field) => field.override)
+            .map((field) => [field.field, field.override]),
         ),
       ) || allowPublicScans !== data.allowPublicScans;
 
@@ -183,7 +181,7 @@ export function QrPrivacyPage(): React.ReactElement {
             description="“Visible from” is the lowest access level that sees the field at all. “In full from” is where it stops being masked."
           />
         </CardHeader>
-        <CardContent className="space-y-6 pt-2">
+        <CardContent className="space-y-6">
           {groups.map((entry) => (
             <div key={entry.group}>
               <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -197,10 +195,7 @@ export function QrPrivacyPage(): React.ReactElement {
                   const disabled = current.disabled ?? field.disabled;
 
                   return (
-                    <div
-                      key={field.field}
-                      className="rounded-lg border border-border p-3"
-                    >
+                    <div key={field.field} className="rounded-lg border border-border p-3">
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div className="min-w-0 flex-1">
                           <p className="flex items-center gap-2 text-sm font-medium">
@@ -214,7 +209,8 @@ export function QrPrivacyPage(): React.ReactElement {
                                   </Badge>
                                 </TooltipTrigger>
                                 <TooltipContent className="max-w-xs">
-                                  This rule is set by Saarthi and cannot be loosened. {field.description}
+                                  This rule is set by Saarthi and cannot be loosened.{' '}
+                                  {field.description}
                                 </TooltipContent>
                               </Tooltip>
                             ) : null}
@@ -293,7 +289,9 @@ export function QrPrivacyPage(): React.ReactElement {
                                   </span>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                  {disabled ? 'Switch the field back on' : 'Never disclose this field'}
+                                  {disabled
+                                    ? 'Switch the field back on'
+                                    : 'Never disclose this field'}
                                 </TooltipContent>
                               </Tooltip>
                             </div>

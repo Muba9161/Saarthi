@@ -22,7 +22,10 @@ import type { Paginated, TruckSummary } from '@/lib/api-types';
 import { useAuth } from '@/features/auth/auth-context';
 import { PageHeader } from '@/components/common/page-header';
 import { QrWelcomeDialog } from '@/features/qr/qr-welcome-dialog';
-import { DataTable, type Column } from '@/components/common/data-table';
+import { DataView } from '@/components/common/data-view';
+import { type Column } from '@/components/common/data-table';
+import { VehicleCard } from '@/components/common/vehicle-card';
+import { DeleteAction } from '@/components/common/delete-action';
 import { ScoreBadge, StatusBadge } from '@/components/common/status-badge';
 import { UnauthorizedState } from '@/components/common/states';
 import { Button } from '@/components/ui/button';
@@ -454,12 +457,32 @@ export function TrucksPage() {
       header: 'Odometer',
       numeric: true,
       hideOnMobile: true,
-      cell: (truck) => <span className="text-sm">{formatNumber(Math.round(truck.odometerKm))} km</span>,
+      cell: (truck) => (
+        <span className="text-sm">{formatNumber(Math.round(truck.odometerKm))} km</span>
+      ),
+    },
+    {
+      key: 'actions',
+      header: '',
+      cell: (truck) => (
+        <div className="flex justify-end">
+          <DeleteAction
+            endpoint={`/trucks/${truck.id}`}
+            itemLabel={formatRegistrationNumber(truck.registrationNumber)}
+            entityName="truck"
+            permission={Permission.TRUCKS_DELETE}
+            invalidateKeys={[['trucks']]}
+            /* The API refuses this outright, so say why before it is pressed. */
+            disabled={truck.currentTripId !== null}
+            disabledReason="On an active trip — end the trip first"
+          />
+        </div>
+      ),
     },
   ];
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         title="Trucks"
         description="Every vehicle in your fleet, with live status and document health."
@@ -483,41 +506,77 @@ export function TrucksPage() {
         }
       />
 
-      <div className="flex flex-col gap-2 sm:flex-row">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search by registration, make or model…"
-            className="pl-9"
-            aria-label="Search trucks"
-          />
-        </div>
-        <Select
-          value={status}
-          onValueChange={(value) => {
-            setStatus(value);
-            setPage(1);
-          }}
-        >
-          <SelectTrigger className="sm:w-52">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {STATUS_FILTERS.map((filter) => (
-              <SelectItem key={filter.value} value={filter.value}>
-                {filter.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <DataTable
+      <DataView
+        surface="fleet.trucks"
+        toolbar={
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <div className="relative flex-1 sm:max-w-sm">
+              <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search by registration, make or model…"
+                className="pl-10"
+                aria-label="Search trucks"
+              />
+            </div>
+            <Select
+              value={status}
+              onValueChange={(value) => {
+                setStatus(value);
+                setPage(1);
+              }}
+            >
+              <SelectTrigger className="sm:w-52">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {STATUS_FILTERS.map((filter) => (
+                  <SelectItem key={filter.value} value={filter.value}>
+                    {filter.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        }
         columns={columns}
         rows={query.data?.items}
         rowKey={(truck) => truck.id}
+        card={(truck) => (
+          <VehicleCard
+            registrationNumber={formatRegistrationNumber(truck.registrationNumber)}
+            type={truck.truckType}
+            status={truck.status}
+            facts={[
+              { label: 'Capacity', value: `${truck.capacityTons}T` },
+              { label: 'Odometer', value: `${formatNumber(Math.round(truck.odometerKm))} km` },
+              {
+                label: 'Driver',
+                value: truck.currentDriver?.name ?? (
+                  <span className="font-normal text-muted-foreground">Unassigned</span>
+                ),
+              },
+            ]}
+            footer={
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs text-muted-foreground">
+                  {humanizeEnum(truck.verificationStatus)}
+                </span>
+                <DeleteAction
+                  endpoint={`/trucks/${truck.id}`}
+                  itemLabel={formatRegistrationNumber(truck.registrationNumber)}
+                  entityName="truck"
+                  permission={Permission.TRUCKS_DELETE}
+                  invalidateKeys={[['trucks']]}
+                  disabled={truck.currentTripId !== null}
+                  disabledReason="On an active trip — end the trip first"
+                />
+              </div>
+            }
+          />
+        )}
+        cardPadded={false}
         isLoading={query.isLoading || query.isFetching}
         error={query.error}
         onRetry={() => void query.refetch()}

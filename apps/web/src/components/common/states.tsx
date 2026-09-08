@@ -60,7 +60,7 @@ export function EmptyState({
         className,
       )}
     >
-      <div className="rounded-2xl bg-gradient-to-br from-muted to-secondary p-3.5 ring-1 ring-border">
+      <div className="rounded-2xl bg-muted p-4 ring-1 ring-foreground/[0.05]">
         <Icon className="size-6 text-muted-foreground" />
       </div>
       <div className="space-y-1">
@@ -172,7 +172,7 @@ export function FeatureLockedState({
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-      className="glass-panel glass-sheen flex min-h-52 flex-col items-center justify-center gap-3 rounded-xl p-10 text-center"
+      className="glass-panel glass-sheen flex min-h-52 flex-col items-center justify-center gap-3 rounded-2xl p-10 text-center"
     >
       <div className="rounded-2xl bg-gradient-to-br from-accent/20 to-primary/15 p-3.5 ring-1 ring-accent/25">
         <Sparkles className="size-6 text-accent" />

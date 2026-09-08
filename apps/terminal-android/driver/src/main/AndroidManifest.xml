@@ -25,7 +25,7 @@
         android:label="@string/app_name"
         android:networkSecurityConfig="@xml/network_security_config"
         android:supportsRtl="true"
-        android:theme="@style/Theme.SaarthiTerminal"
+        android:theme="@style/Theme.SaarthiDriver"
         tools:targetApi="35">
 
         <!--
@@ -63,7 +63,7 @@
             android:exported="true"
             android:label="@string/app_name"
             android:launchMode="singleTask"
-            android:theme="@style/Theme.SaarthiTerminal"
+            android:theme="@style/Theme.SaarthiDriver"
             android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|uiMode|density">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

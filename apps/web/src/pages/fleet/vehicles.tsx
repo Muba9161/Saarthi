@@ -19,6 +19,8 @@ import { PageHeader, FilterBar } from '@/components/common/page-header';
 import { DataView, type Column } from '@/components/common/data-view';
 import { EmptyState, UnauthorizedState } from '@/components/common/states';
 import { StatusBadge } from '@/components/common/status-badge';
+import { VehicleCard } from '@/components/common/vehicle-card';
+import { DeleteAction } from '@/components/common/delete-action';
 import { AddVehicleDialog } from '@/features/vehicles/add-vehicle-dialog';
 import { QrWelcomeDialog } from '@/features/qr/qr-welcome-dialog';
 import { Badge } from '@/components/ui/badge';
@@ -68,9 +70,7 @@ export function VehiclesPage() {
   const canLookUpPlate = can(Permission.VEHICLE_LOOKUP) && hasFeature(Feature.FLEET_BASIC);
   const canAddVehicle = can(Permission.VEHICLES_CREATE);
   /** The vehicle just added, held while its QR is shown. */
-  const [added, setAdded] = React.useState<{ id: string; registrationNumber: string } | null>(
-    null,
-  );
+  const [added, setAdded] = React.useState<{ id: string; registrationNumber: string } | null>(null);
   const [page, setPage] = React.useState(1);
   const [search, setSearch] = React.useState('');
   const [capability, setCapability] = React.useState('');
@@ -234,6 +234,15 @@ export function VehiclesPage() {
           <Button asChild variant="ghost" size="sm">
             <Link to={`/fleet/vehicles/${row.id}`}>Open</Link>
           </Button>
+          <DeleteAction
+            endpoint={`/fleet/vehicles/${row.id}`}
+            itemLabel={row.registrationNumber}
+            entityName="vehicle"
+            permission={Permission.VEHICLES_DELETE}
+            invalidateKeys={[['vehicles']]}
+            disabled={row.currentTripId !== null}
+            disabledReason="On an active trip — end the trip first"
+          />
         </div>
       ),
     },
@@ -243,7 +252,7 @@ export function VehiclesPage() {
   const isTravelOperator = session?.organization?.type === OrganizationType.MOBILITY_PROVIDER;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         title="Vehicles"
         description={
@@ -398,6 +407,46 @@ export function VehiclesPage() {
           columns={columns}
           rows={vehicles.data?.items}
           rowKey={(row) => row.id}
+          card={(row) => (
+            <VehicleCard
+              registrationNumber={row.registrationNumber}
+              type={row.vehicleType}
+              status={row.status}
+              facts={[
+                {
+                  label: row.passengerCapacity !== null ? 'Seats' : 'Capacity',
+                  value:
+                    row.passengerCapacity !== null
+                      ? formatNumber(row.passengerCapacity)
+                      : row.capacityTons !== null
+                        ? `${row.capacityTons}T`
+                        : '—',
+                },
+                { label: 'Odometer', value: `${formatNumber(Math.round(row.odometerKm))} km` },
+                {
+                  label: 'Driver',
+                  value: row.currentDriver?.name ?? (
+                    <span className="font-normal text-muted-foreground">Unassigned</span>
+                  ),
+                },
+              ]}
+              footer={
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs text-muted-foreground">{row.typeLabel}</span>
+                  <DeleteAction
+                    endpoint={`/fleet/vehicles/${row.id}`}
+                    itemLabel={row.registrationNumber}
+                    entityName="vehicle"
+                    permission={Permission.VEHICLES_DELETE}
+                    invalidateKeys={[['vehicles']]}
+                    disabled={row.currentTripId !== null}
+                    disabledReason="On an active trip — end the trip first"
+                  />
+                </div>
+              }
+            />
+          )}
+          cardPadded={false}
           isLoading={vehicles.isLoading}
           error={vehicles.error}
           onRowClick={(row) => navigate(`/fleet/vehicles/${row.id}`)}
@@ -417,7 +466,6 @@ export function VehiclesPage() {
         subjectLabel={added?.registrationNumber ?? ''}
         isFirst={(vehicles.data?.pagination.total ?? 0) <= 1}
       />
-
     </div>
   );
 }

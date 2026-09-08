@@ -38,9 +38,11 @@ import { api, errorMessage } from '@/lib/api-client';
 import type { DriverSummary, Paginated, TruckPassport } from '@/lib/api-types';
 import type { VehicleSummary } from '@/lib/mobility-types';
 import { useAuth } from '@/features/auth/auth-context';
-import { PageHeader, SectionHeader } from '@/components/common/page-header';
+import { SectionHeader } from '@/components/common/page-header';
 import { VerifyButton } from '@/features/verification/verify-button';
 import { StatCard } from '@/components/common/stat-card';
+import { VEHICLE_ART_ASPECT, VehicleArt } from '@/components/common/vehicle-art';
+import { cn } from '@/lib/utils';
 import { toSeriesPoints } from '@/components/common/mini-chart';
 import { StatusBadge } from '@/components/common/status-badge';
 import { EmptyState, ErrorState, LoadingState } from '@/components/common/states';
@@ -216,13 +218,11 @@ export function VehicleDetailPage() {
   // Finance is owner-level: the tab is not rendered at all for a caller who
   // cannot read it, because the existence of a loan is itself private.
   const canSeeFinance = can(Permission.LOANS_READ) && hasFeature(Feature.FINANCE_LOANS);
-  const canSeeCameras =
-    can(Permission.TELEMETRY_READ) && hasFeature(Feature.HARDWARE_CONNECTIVITY);
+  const canSeeCameras = can(Permission.TELEMETRY_READ) && hasFeature(Feature.HARDWARE_CONNECTIVITY);
   // Hardware is a `devices.read` question rather than a telemetry one: what is
   // fitted to a vehicle is an inventory fact, and somebody may legitimately
   // need to see it without being entitled to read what it reports.
-  const canSeeHardware =
-    can(Permission.DEVICES_READ) && hasFeature(Feature.HARDWARE_CONNECTIVITY);
+  const canSeeHardware = can(Permission.DEVICES_READ) && hasFeature(Feature.HARDWARE_CONNECTIVITY);
   const canSeeToll = can(Permission.TOLL_READ) && hasFeature(Feature.TOLL_FASTAG);
   const canSeeQr = can(Permission.QR_READ) && hasFeature(Feature.QR_IDENTITY);
   // Offered on the strength of a fitted device rather than the type's declared
@@ -281,76 +281,105 @@ export function VehicleDetailPage() {
   ];
 
   return (
-    <div className="space-y-5">
-      <Button variant="ghost" size="sm" className="-ml-2" onClick={() => navigate(backTo)}>
-        <ArrowLeft className="size-4" />
-        {backLabel}
-      </Button>
+    <div className="space-y-6">
+      {/*
+        The identity band.
 
-      <PageHeader
-        eyebrow={
-          <span className="inline-flex items-center gap-1.5">
-            <TypeIcon className="size-3.5" />
-            {vehicle.typeLabel}
-          </span>
-        }
-        title={
-          <span className="flex flex-wrap items-center gap-2.5">
-            {formatRegistrationNumber(vehicle.registrationNumber)}
-            <StatusBadge status={vehicle.status} />
-            {vehicle.verificationStatus === 'VERIFIED' ? (
-              <span className="inline-flex items-center gap-1 text-xs font-medium text-success">
-                <BadgeCheck className="size-4" />
-                Verified
-              </span>
-            ) : (
-              <StatusBadge status={vehicle.verificationStatus} size="sm" />
-            )}
-          </span>
-        }
-        description={description}
-        actions={
-          <div className="flex flex-wrap gap-2">
-            <VerifyButton
-              subjectType="truck"
-              subjectId={vehicle.id}
-              subjectLabel={formatRegistrationNumber(vehicle.registrationNumber)}
-              verified={vehicle.verificationStatus === 'VERIFIED'}
-              invalidateKeys={[
-                ['vehicle', vehicle.id],
-                ['truck', vehicle.id],
-                ['vehicles'],
-                ['trucks'],
-              ]}
-            />
-            {canSeeTelemetry ? (
-              <Button variant="outline" asChild>
-                <Link to={`/fleet/vehicles/${vehicle.id}/telemetry`}>
-                  <Activity className="size-4" />
-                  Telemetry
-                </Link>
-              </Button>
-            ) : null}
-            {can(Permission.TRUCKS_ASSIGN) ? (
-              vehicle.currentDriver ? (
-                <Button
-                  variant="outline"
-                  onClick={() => unassign.mutate()}
-                  loading={unassign.isPending}
-                >
-                  <UserMinus className="size-4" />
-                  Unassign driver
+        Laid out as the reference vehicle page is: the plate and everything
+        that identifies this one vehicle on the left, the vehicle itself given
+        real size on the right, and the actions directly under the name they
+        act on. The picture is the largest thing on the screen on purpose —
+        it is how someone confirms they opened the right record before they
+        press Assign driver.
+      */}
+      <Card variant="glass" className="overflow-hidden rounded-3xl">
+        <div className="grid gap-6 p-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:items-center lg:gap-8 lg:p-8">
+          <div className="min-w-0 space-y-5">
+            <Button
+              variant="ghost"
+              size="sm"
+              shape="pill"
+              className="-ml-2 text-muted-foreground"
+              onClick={() => navigate(backTo)}
+            >
+              <ArrowLeft className="size-4" />
+              {backLabel}
+            </Button>
+
+            <div className="space-y-3">
+              <p className="section-label inline-flex items-center gap-1.5">
+                <TypeIcon className="size-3.5" />
+                {vehicle.typeLabel}
+              </p>
+
+              <h1 className="text-3xl font-semibold tracking-[-0.03em] sm:text-4xl">
+                {formatRegistrationNumber(vehicle.registrationNumber)}
+              </h1>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <StatusBadge status={vehicle.status} />
+                {vehicle.verificationStatus === 'VERIFIED' ? (
+                  <span className="inline-flex items-center gap-1 text-xs font-medium text-success">
+                    <BadgeCheck className="size-4" />
+                    Verified
+                  </span>
+                ) : (
+                  <StatusBadge status={vehicle.verificationStatus} size="sm" />
+                )}
+              </div>
+
+              <p className="text-sm text-muted-foreground">{description}</p>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <VerifyButton
+                subjectType="truck"
+                subjectId={vehicle.id}
+                subjectLabel={formatRegistrationNumber(vehicle.registrationNumber)}
+                verified={vehicle.verificationStatus === 'VERIFIED'}
+                invalidateKeys={[
+                  ['vehicle', vehicle.id],
+                  ['truck', vehicle.id],
+                  ['vehicles'],
+                  ['trucks'],
+                ]}
+              />
+              {canSeeTelemetry ? (
+                <Button variant="outline" asChild>
+                  <Link to={`/fleet/vehicles/${vehicle.id}/telemetry`}>
+                    <Activity className="size-4" />
+                    Telemetry
+                  </Link>
                 </Button>
-              ) : (
-                <Button onClick={() => setAssignOpen(true)}>
-                  <UserPlus className="size-4" />
-                  Assign driver
-                </Button>
-              )
-            ) : null}
+              ) : null}
+              {can(Permission.TRUCKS_ASSIGN) ? (
+                vehicle.currentDriver ? (
+                  <Button
+                    variant="outline"
+                    onClick={() => unassign.mutate()}
+                    loading={unassign.isPending}
+                  >
+                    <UserMinus className="size-4" />
+                    Unassign driver
+                  </Button>
+                ) : (
+                  <Button onClick={() => setAssignOpen(true)}>
+                    <UserPlus className="size-4" />
+                    Assign driver
+                  </Button>
+                )
+              ) : null}
+            </div>
           </div>
-        }
-      />
+
+          <VehicleArt
+            type={vehicle.vehicleType}
+            registrationNumber={vehicle.registrationNumber}
+            className={cn('w-full rounded-2xl', VEHICLE_ART_ASPECT)}
+            padding="p-4 sm:p-6"
+          />
+        </div>
+      </Card>
 
       {/*
         Capacity is reported per capability. A taxi has no payload and a truck
@@ -422,60 +451,96 @@ export function VehicleDetailPage() {
         />
       </div>
 
+      {/*
+        Who and what is attached to this vehicle right now.
+
+        Separate tiles rather than one wrapped row: each of these is a link to
+        somewhere else, and in a single row they ran together into a strip of
+        text where only some words were clickable. As tiles the target of each
+        is the whole card, which is what the reference layout does with the
+        small panels under its hero.
+      */}
       {vehicle.currentDriver || vehicle.device || vehicle.openTelemetryAlerts > 0 ? (
-        <Card>
-          <CardContent className="flex flex-wrap items-center justify-between gap-4 p-4">
-            {vehicle.currentDriver ? (
-              <div>
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                  Current driver
-                </p>
-                <Link
-                  to={`/fleet/drivers/${vehicle.currentDriver.id}`}
-                  className="text-sm font-medium hover:underline"
-                >
-                  {vehicle.currentDriver.name}
-                </Link>
-              </div>
-            ) : null}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {vehicle.currentDriver ? (
+            <Card variant="glass" interactive className="rounded-2xl">
+              <Link
+                to={`/fleet/drivers/${vehicle.currentDriver.id}`}
+                className="flex items-center gap-3 p-5"
+              >
+                <span className="shrink-0 rounded-2xl bg-primary/10 p-3 text-primary ring-1 ring-primary/15">
+                  <UserPlus className="size-5" />
+                </span>
+                <span className="min-w-0">
+                  <span className="section-label block">Current driver</span>
+                  <span className="mt-0.5 block truncate text-sm font-semibold">
+                    {vehicle.currentDriver.name}
+                  </span>
+                </span>
+              </Link>
+            </Card>
+          ) : null}
 
-            {vehicle.device ? (
-              <div>
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">Hardware</p>
-                <span className="inline-flex items-center gap-1.5 text-sm font-medium">
-                  <Cpu className="size-3.5 text-muted-foreground" />
-                  {vehicle.device.deviceIdentifier}
-                  <Badge
-                    variant={vehicle.device.status === 'ACTIVE' ? 'success' : 'warning'}
-                    size="sm"
-                  >
-                    {humanizeEnum(vehicle.device.status)}
-                  </Badge>
+          {vehicle.device ? (
+            <Card variant="glass" className="rounded-2xl">
+              <div className="flex items-center gap-3 p-5">
+                <span className="shrink-0 rounded-2xl bg-info/10 p-3 text-info ring-1 ring-info/15">
+                  <Cpu className="size-5" />
+                </span>
+                <span className="min-w-0">
+                  <span className="section-label block">Hardware</span>
+                  <span className="mt-0.5 flex items-center gap-1.5">
+                    <span className="truncate text-sm font-semibold">
+                      {vehicle.device.deviceIdentifier}
+                    </span>
+                    <Badge
+                      variant={vehicle.device.status === 'ACTIVE' ? 'success' : 'warning'}
+                      size="sm"
+                    >
+                      {humanizeEnum(vehicle.device.status)}
+                    </Badge>
+                  </span>
                 </span>
               </div>
-            ) : null}
+            </Card>
+          ) : null}
 
-            {vehicle.openTelemetryAlerts > 0 ? (
-              <div>
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">Open alerts</p>
-                <span className="inline-flex items-center gap-1.5 text-sm font-medium text-warning">
-                  <TriangleAlert className="size-3.5" />
-                  {formatNumber(vehicle.openTelemetryAlerts)}
+          {vehicle.openTelemetryAlerts > 0 ? (
+            <Card variant="glass" className="rounded-2xl">
+              <div className="flex items-center gap-3 p-5">
+                <span className="shrink-0 rounded-2xl bg-warning/12 p-3 text-warning ring-1 ring-warning/20">
+                  <TriangleAlert className="size-5" />
+                </span>
+                <span className="min-w-0">
+                  <span className="section-label block">Open alerts</span>
+                  <span className="tabular mt-0.5 block text-sm font-semibold text-warning">
+                    {formatNumber(vehicle.openTelemetryAlerts)}
+                  </span>
                 </span>
               </div>
-            ) : null}
+            </Card>
+          ) : null}
 
-            {vehicle.currentTripId ? (
-              <Button variant="outline" size="sm" asChild>
-                <Link to={`/trips/${vehicle.currentTripId}`}>View active trip</Link>
-              </Button>
-            ) : null}
-          </CardContent>
-        </Card>
+          {vehicle.currentTripId ? (
+            <Card variant="glass" interactive className="rounded-2xl">
+              <Link to={`/trips/${vehicle.currentTripId}`} className="flex items-center gap-3 p-5">
+                <span className="shrink-0 rounded-2xl bg-success/12 p-3 text-success ring-1 ring-success/20">
+                  <Activity className="size-5" />
+                </span>
+                <span className="min-w-0">
+                  <span className="section-label block">Trip in progress</span>
+                  <span className="mt-0.5 block truncate text-sm font-semibold">
+                    View active trip
+                  </span>
+                </span>
+              </Link>
+            </Card>
+          ) : null}
+        </div>
       ) : null}
 
       <Tabs defaultValue="overview">
-        <TabsList className="w-full sm:w-auto">
+        <TabsList variant="merged">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
           {canSeeQr ? <TabsTrigger value="qr">QR code</TabsTrigger> : null}
@@ -628,7 +693,7 @@ export function VehicleDetailPage() {
           {(passport.data?.recentTrips ?? []).length === 0 ? (
             <EmptyState icon={RouteIcon} title="No trips recorded yet" />
           ) : (
-            <Card>
+            <Card className="overflow-hidden">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -675,14 +740,11 @@ export function VehicleDetailPage() {
         <TabsContent value="maintenance" className="space-y-4">
           <ServiceTimelinePanel vehicleId={vehicle.id} />
 
-          <SectionHeader
-            title="Scheduled work"
-            description="Jobs booked but not yet completed."
-          />
+          <SectionHeader title="Scheduled work" description="Jobs booked but not yet completed." />
           {(passport.data?.maintenance ?? []).length === 0 ? (
             <EmptyState icon={Wrench} title="No maintenance recorded" />
           ) : (
-            <Card>
+            <Card className="overflow-hidden">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -774,10 +836,7 @@ export function VehicleDetailPage() {
               title="Cameras"
               description="Channels on the recorder currently fitted to this vehicle. Opening a live view is recorded against your account."
             />
-            <CameraGrid
-              vehicleId={vehicle.id}
-              registrationNumber={vehicle.registrationNumber}
-            />
+            <CameraGrid vehicleId={vehicle.id} registrationNumber={vehicle.registrationNumber} />
           </TabsContent>
         ) : null}
 
@@ -785,7 +844,7 @@ export function VehicleDetailPage() {
           {(passport.data?.driverHistory ?? []).length === 0 ? (
             <EmptyState icon={ShieldAlert} title="No driver assignments yet" />
           ) : (
-            <Card>
+            <Card className="overflow-hidden">
               <Table>
                 <TableHeader>
                   <TableRow>
