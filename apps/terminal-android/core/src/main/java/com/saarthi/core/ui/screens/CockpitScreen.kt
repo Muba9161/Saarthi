@@ -173,6 +173,16 @@ fun CockpitScreen(
      * settings would be unreachable for exactly the drivers who use the app most.
      */
     onOpenSecurity: (() -> Unit)? = null,
+    /**
+     * A sheet to open with, when the host app is arriving from somewhere
+     * specific.
+     *
+     * The driver app's dashboard has a Nearby tile, and a tile that drops
+     * somebody on a map and leaves them to find the control themselves is a tile
+     * that lied about what it does. Defaulted to null so the fitted terminal —
+     * which is only ever entered from itself — is unaffected.
+     */
+    initialSheet: CockpitSheet? = null,
 ) {
     val state by viewModel.uiState.collectAsState()
     val assistant by viewModel.assistant.collectAsState()
@@ -182,7 +192,7 @@ fun CockpitScreen(
 
     val selfie by viewModel.selfie.collectAsState()
 
-    var sheet by remember { mutableStateOf<CockpitSheet?>(null) }
+    var sheet by remember(initialSheet) { mutableStateOf(initialSheet) }
 
     /*
      * How big the dials are, decided once, from the screen.
@@ -905,6 +915,10 @@ fun CockpitScreen(
                     Surface(
                         shape = RoundedCornerShape(14.dp),
                         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+                        // Same trap as the navigation banner: an alpha'd
+                        // copy of `surface` matches no role, so the
+                        // transcript would render black on dark glass.
+                        contentColor = MaterialTheme.colorScheme.onSurface,
                         shadowElevation = 6.dp,
                     ) {
                         Text(
@@ -929,7 +943,7 @@ fun CockpitScreen(
     }
 }
 
-internal enum class CockpitSheet { SERVICES, VEHICLE, ASSISTANT, ADAPTER }
+enum class CockpitSheet { SERVICES, VEHICLE, ASSISTANT, ADAPTER }
 
 /**
  * How long the map stays where the driver put it before tracking resumes.

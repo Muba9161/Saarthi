@@ -33,7 +33,15 @@ import {
   pointAtDistance,
 } from './geo';
 import { orderStateMachine, sosStateMachine, tripStateMachine } from './state-machines';
-import { daysUntil, mandatoryDocumentTypes, resolveDocumentValidity } from './documents';
+import {
+  DOCUMENT_TYPE_CODES,
+  daysUntil,
+  documentTypeDefinition,
+  documentTypesFor,
+  isRetiredDocumentType,
+  mandatoryDocumentTypes,
+  resolveDocumentValidity,
+} from './documents';
 import { Feature, featuresForTier, minimumTierFor, tierHasFeature } from './entitlements';
 import { Permission, hasPermission, permissionsForRole, permissionsForRoles } from './permissions';
 import { evaluateAchievements, emptyAchievementMetrics } from './achievements';
@@ -353,6 +361,27 @@ describe('document expiry', () => {
 
     const driverDocs = mandatoryDocumentTypes('DRIVER').map((definition) => definition.code);
     expect(driverDocs).toContain('DRIVING_LICENCE');
+  });
+
+  /*
+   * A vehicle photograph is not paperwork. It moved to the media library, and
+   * the two halves of that move are tested here: it can no longer be uploaded
+   * as a document, and the rows that were uploaded before it moved still read
+   * correctly.
+   */
+  it('no longer offers the vehicle photograph as a truck document', () => {
+    const truckDocs = documentTypesFor('TRUCK').map((definition) => definition.code);
+    expect(truckDocs).not.toContain('TRUCK_PHOTO');
+    // The upload schema validates against this list, so absence here is what
+    // actually refuses a new one.
+    expect(DOCUMENT_TYPE_CODES).not.toContain('TRUCK_PHOTO');
+  });
+
+  it('still resolves a retired type so existing rows keep their label', () => {
+    expect(documentTypeDefinition('TRUCK_PHOTO')?.label).toBe('Vehicle photograph');
+    expect(isRetiredDocumentType('TRUCK_PHOTO')).toBe(true);
+    expect(isRetiredDocumentType('REGISTRATION_CERTIFICATE')).toBe(false);
+    expect(documentTypeDefinition('NOT_A_DOCUMENT')).toBeUndefined();
   });
 });
 

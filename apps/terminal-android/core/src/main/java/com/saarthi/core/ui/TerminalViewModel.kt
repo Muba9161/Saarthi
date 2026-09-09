@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.saarthi.core.SaarthiApp
 import com.saarthi.core.data.TerminalRepository
 import com.saarthi.core.domain.AssistantState
+import com.saarthi.core.domain.DrivingHours
 import com.saarthi.core.domain.TerminalState
 import com.saarthi.core.domain.VoiceClassifier
 import com.saarthi.core.domain.RouteFollower
@@ -15,6 +16,11 @@ import com.saarthi.core.update.UpdateManager
 import com.saarthi.core.network.ChecklistPreparationDto
 import com.saarthi.core.network.ChecklistResultDto
 import com.saarthi.core.network.IssueDto
+import com.saarthi.core.network.DriverNotificationsDto
+import com.saarthi.core.network.DriverPaperDto
+import com.saarthi.core.network.DriverTripDto
+import com.saarthi.core.network.FastagDto
+import com.saarthi.core.network.FuelPriceDto
 import com.saarthi.core.network.NearbyPlaceDto
 import com.saarthi.core.network.PlaceMatchDto
 import com.saarthi.core.network.RouteDto
@@ -88,6 +94,23 @@ class TerminalViewModel(application: Application) : AndroidViewModel(application
         val offline: Boolean
             get() = connection == TerminalRepository.Connection.OFFLINE
 
+        /**
+         * Whether Saarthi has actually reached the fleet.
+         *
+         * Not simply "not offline". The connection begins UNKNOWN and stays
+         * there until a call succeeds or fails, so a screen that treats
+         * anything-but-offline as live told a driver it was reporting before it
+         * had ever spoken to a server — and went on saying so indefinitely when
+         * the API could not be resolved at all. A badge that says "Live" while
+         * a truck reports to nobody is worse than no badge.
+         */
+        val live: Boolean
+            get() = connection == TerminalRepository.Connection.ONLINE
+
+        /** Neither confirmed nor failed yet: the honest middle state. */
+        val connecting: Boolean
+            get() = connection == TerminalRepository.Connection.UNKNOWN
+
         val revoked: Boolean
             get() = connection == TerminalRepository.Connection.UNAUTHENTICATED ||
                 state == TerminalState.REVOKED
@@ -134,6 +157,185 @@ class TerminalViewModel(application: Application) : AndroidViewModel(application
     // -----------------------------------------------------------------------
     // Services and issues
     // -----------------------------------------------------------------------
+
+    // -----------------------------------------------------------------------
+    // Hours at the wheel
+    // -----------------------------------------------------------------------
+
+    private val _hours = MutableStateFlow(DrivingHours.State())
+
+    /**
+     * How long this driver has been driving, and whether they should stop.
+     *
+     * Fed from the telemetry stream rather than a timer, so it stays correct
+     * across the things that happen to a phone in a cab — a tunnel, a battery
+     * saver, the app being killed. See [DrivingHours] for what each interval
+     * counts as and, more importantly, what it refuses to guess at.
+     */
+    val hours: StateFlow<DrivingHours.State> = _hours.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            app.telemetry.snapshot.collect { snapshot ->
+                _hours.value = DrivingHours.advance(
+                    state = _hours.value,
+                    speedKph = snapshot.value(Metric.SPEED),
+                    nowMs = System.currentTimeMillis(),
+                )
+            }
+        }
+    }
+
+    /** Start the tally again. Called when a driver signs on, not per trip. */
+    fun resetHours() {
+        _hours.value = DrivingHours.reset()
+    }
+
+    // -----------------------------------------------------------------------
+    // What a driver needs that only a browser could reach
+    // -----------------------------------------------------------------------
+
+    private val _papers = MutableStateFlow<List<DriverPaperDto>>(emptyList())
+
+    /** Every paper a checkpoint might ask for, soonest to expire first. */
+    val papers: StateFlow<List<DriverPaperDto>> = _papers.asStateFlow()
+
+    private val _papersProblem = MutableStateFlow<String?>(null)
+
+    /**
+     * Why the papers could not be fetched or cached, if they could not.
+     *
+     * Surfaced rather than only logged. A driver looking at a row marked "not on
+     * this phone" with no explanation has no idea whether to wait, move to
+     * better signal, or telephone the office — and on some handsets the app's
+     * own log never reaches `logcat` at all, so a silent failure is invisible to
+     * everyone including us.
+     */
+    val papersProblem: StateFlow<String?> = _papersProblem.asStateFlow()
+
+    private val _fastag = MutableStateFlow<FastagDto?>(null)
+    val fastag: StateFlow<FastagDto?> = _fastag.asStateFlow()
+
+    private val _fuelPrice = MutableStateFlow<FuelPriceDto?>(null)
+    val fuelPrice: StateFlow<FuelPriceDto?> = _fuelPrice.asStateFlow()
+
+    private val _trips = MutableStateFlow<List<DriverTripDto>>(emptyList())
+    val trips: StateFlow<List<DriverTripDto>> = _trips.asStateFlow()
+
+    private val _notifications = MutableStateFlow(DriverNotificationsDto())
+    val notifications: StateFlow<DriverNotificationsDto> = _notifications.asStateFlow()
+
+    /**
+     * Load the papers, and cache each one on the way past.
+     *
+     * The fetch of the *list* needs a signal; showing a paper afterwards must
+     * not. So the list is refreshed opportunistically and every document in it
+     * pulled down in the background — which is what makes the wallet work at a
+     * border post where nothing else does.
+     *
+     * Papers the fleet has withdrawn are dropped from the cache in the same
+     * pass, because a superseded certificate that can still be produced from a
+     * phone is worse than none.
+     */
+    fun loadPapers() {
+        viewModelScope.launch {
+            _papersProblem.value = null
+
+            repository.papers().onSuccess { list ->
+                _papers.value = list
+
+                val cache = app.papers
+                if (cache == null) {
+                    // The fitted tablet. Nothing to cache to, and nothing wrong.
+                    return@onSuccess
+                }
+
+                cache.retainOnly(list.map { it.id }.toSet())
+
+                var failures = 0
+                var lastProblem: String? = null
+                for (paper in list) {
+                    cache.ensure(paper.id, paper.mimeType).onFailure { problem ->
+                        failures += 1
+                        lastProblem = problem.message
+                        DebugLog.warn(
+                            "papers",
+                            "Could not cache ${paper.documentType}: ${problem.message}",
+                        )
+                    }
+                }
+
+                if (failures > 0) {
+                    _papersProblem.value =
+                        "$failures of ${list.size} could not be saved to this phone. " +
+                            (lastProblem ?: "Saarthi could not say why.")
+                }
+            }.onFailure { problem ->
+                DebugLog.warn("papers", "Could not list papers: ${problem.message}")
+                _papersProblem.value = problem.message
+                    ?: "Saarthi could not reach your fleet for the paper list."
+            }
+        }
+    }
+
+    fun loadFastag() {
+        viewModelScope.launch { repository.fastag().onSuccess { _fastag.value = it } }
+    }
+
+    fun loadFuelPrice() {
+        viewModelScope.launch { repository.fuelPrice().onSuccess { _fuelPrice.value = it } }
+    }
+
+    /**
+     * Save a fuel slip.
+     *
+     * `onDone(null)` for success and the message otherwise, rather than a state
+     * flow: the screen has to clear its fields on success and keep them on
+     * failure, and a driver who mistyped a figure must not lose the photograph
+     * they have already taken.
+     */
+    fun saveFuelSlip(
+        jpeg: ByteArray,
+        litres: Double,
+        totalCost: Double,
+        odometerKm: Double?,
+        stationName: String?,
+        onDone: (String?) -> Unit,
+    ) {
+        viewModelScope.launch {
+            _busy.value = true
+            repository.saveFuelSlip(jpeg, litres, totalCost, odometerKm, stationName)
+                .onSuccess { onDone(null) }
+                .onFailure { problem ->
+                    onDone(problem.message ?: "Saarthi could not save that slip.")
+                }
+            _busy.value = false
+        }
+    }
+
+    fun loadTrips() {
+        viewModelScope.launch { repository.trips().onSuccess { _trips.value = it } }
+    }
+
+    fun loadNotifications() {
+        viewModelScope.launch { repository.notifications().onSuccess { _notifications.value = it } }
+    }
+
+    /**
+     * Mark them read, and say so locally straight away.
+     *
+     * The badge is cleared before the server confirms. A driver who opened the
+     * list has read it whatever the network thinks, and a count that lingers
+     * because a lorry is in a tunnel teaches them the badge means nothing.
+     */
+    fun markNotificationsRead() {
+        val current = _notifications.value
+        if (current.unread == 0) return
+        _notifications.value = current.copy(unread = 0)
+        viewModelScope.launch {
+            repository.markNotificationsRead().onSuccess { loadNotifications() }
+        }
+    }
 
     private val _places = MutableStateFlow<List<NearbyPlaceDto>>(emptyList())
     val places: StateFlow<List<NearbyPlaceDto>> = _places.asStateFlow()
@@ -507,6 +709,36 @@ class TerminalViewModel(application: Application) : AndroidViewModel(application
      * again a moment later would spend two of a fleet's routing requests on one
      * decision.
      */
+    /**
+     * Route to a bare coordinate somebody sent the driver.
+     *
+     * The same path a nearby result takes — `route` then [previewRoute] — so a
+     * shared pin is drawn, framed and started by exactly the machinery a fuel
+     * station is, and pressing Start opens a trip the same way.
+     *
+     * Separate from [navigateTo] rather than folded into it because a shared
+     * location is not a place from the nearby provider: it has no category, no
+     * opening hours and no source, and inventing a `NearbyPlaceDto` to carry two
+     * numbers would put fabricated fields into the one code path that decides
+     * where a lorry drives.
+     */
+    fun navigateToPoint(
+        latitude: Double,
+        longitude: Double,
+        label: String?,
+        onDone: (Boolean) -> Unit = {},
+    ) {
+        viewModelScope.launch {
+            _busy.value = true
+            val name = label?.takeIf { it.isNotBlank() }
+                ?: "Shared location"
+            val result = repository.route(latitude, longitude, name)
+            result.onSuccess { route -> previewRoute(route, service = null) }
+            _busy.value = false
+            onDone(result.isSuccess)
+        }
+    }
+
     fun navigateTo(place: NearbyPlaceDto, onDone: (Boolean) -> Unit = {}) {
         viewModelScope.launch {
             _busy.value = true

@@ -91,7 +91,33 @@ class DriverApi(
         val password: String,
         val firstName: String,
         val lastName: String,
-        val phone: String? = null,
+        /**
+         * Required, not optional.
+         *
+         * `registerSchema` takes a bare `phoneSchema` for every account type,
+         * so a driver who left it blank was rejected by the server after
+         * filling the whole form in. It is also the number a fleet rings when a
+         * vehicle stops reporting, which is reason enough on its own.
+         */
+        val phone: String,
+        /**
+         * The commercial driving licence number.
+         *
+         * `registerSchema.superRefine` requires it specifically for DRIVER, and
+         * asking for it here is honest about what the account is for.
+         */
+        val licenseNumber: String,
+        /*
+         * Both of these are fixed, and both are required by the server.
+         *
+         * This app registers drivers and nothing else, so the role is not a
+         * question to put to somebody who has just installed it. Terms are
+         * accepted by the sentence above the button on the sign-in screen —
+         * `z.literal(true)` means the server will not take anything else, and
+         * `encodeDefaults = true` above is what puts them both on the wire.
+         */
+        val role: String = "DRIVER",
+        val acceptedTerms: Boolean = true,
     )
 
     @Serializable

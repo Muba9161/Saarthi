@@ -384,28 +384,32 @@ internal fun promptForBiometric(context: Context, viewModel: DriverViewModel) {
 }
 
 /**
- * Ask Android to verify the driver so a key may be used to *seal*.
+ * Ask Android to confirm the driver before biometrics is switched on.
  *
- * The mirror of the unlock prompt. `onResult` gets the authorised cipher, or
- * null when the driver dismissed it — a cancellation is a decision, not an
- * error, and it must not leave the toggle looking broken.
+ * No `CryptoObject`, and that is the change. Sealing now uses the public half
+ * of a key pair, which the platform never gates, so this prompt is no longer
+ * load-bearing cryptography — it is consent. It still earns its place: a switch
+ * that says "fingerprint unlock is on" should not be believable until the phone
+ * has actually recognised a fingerprint once.
+ *
+ * `onResult(false)` for a cancellation. A driver who backs out has made a
+ * decision, not hit an error, and the toggle must not be left looking broken.
  */
 internal fun promptToEnrolBiometric(
     context: Context,
-    cipher: javax.crypto.Cipher,
-    onResult: (javax.crypto.Cipher?) -> Unit,
+    onResult: (Boolean) -> Unit,
 ) {
-    val activity = context as? FragmentActivity ?: return onResult(null)
+    val activity = context as? FragmentActivity ?: return onResult(false)
 
     val prompt = BiometricPrompt(
         activity,
         androidx.core.content.ContextCompat.getMainExecutor(context),
         object : BiometricPrompt.AuthenticationCallback() {
             override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
-                onResult(result.cryptoObject?.cipher)
+                onResult(true)
             }
 
-            override fun onAuthenticationError(code: Int, message: CharSequence) = onResult(null)
+            override fun onAuthenticationError(code: Int, message: CharSequence) = onResult(false)
         },
     )
 
@@ -415,6 +419,5 @@ internal fun promptToEnrolBiometric(
             .setSubtitle("Confirm it is you, and Saarthi will remember this phone")
             .setNegativeButtonText("Cancel")
             .build(),
-        BiometricPrompt.CryptoObject(cipher),
     )
 }

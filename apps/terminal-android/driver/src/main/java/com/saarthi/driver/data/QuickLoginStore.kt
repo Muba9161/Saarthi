@@ -11,8 +11,15 @@ import com.saarthi.core.util.DebugLog
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import java.security.KeyFactory
+import java.security.KeyPairGenerator
 import java.security.KeyStore
+import java.security.PrivateKey
 import java.security.SecureRandom
+import java.security.spec.MGF1ParameterSpec
+import java.security.spec.X509EncodedKeySpec
+import javax.crypto.spec.OAEPParameterSpec
+import javax.crypto.spec.PSource
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
@@ -129,49 +136,79 @@ class QuickLoginStore(context: Context) {
     }
 
     /**
-     * The cipher a prompt must authorise before the token can be *sealed*.
+     * Whether this handset can hold a biometric-protected credential at all.
      *
-     * Turning biometrics on needs a prompt just as much as unlocking does, and
-     * missing that was a real bug: the first version encrypted the moment the
-     * driver flipped the switch, with no prompt in between. A key declared
-     * `setUserAuthenticationRequired` refuses the operation until the platform
-     * has seen a fingerprint, so enabling could never succeed — on any handset,
-     * however many fingerprints were enrolled. It failed with "this phone would
-     * not set that up", which pointed the blame in exactly the wrong direction.
-     *
-     * `init` is what succeeds without authentication; `doFinal` is what does
-     * not. So the cipher is prepared here, authorised by the prompt, and used in
-     * [sealWithBiometricCipher].
+     * Cheap to ask and worth asking before the prompt: a phone with no secure
+     * hardware, or one whose key the platform has already invalidated, should
+     * say so rather than showing a fingerprint dialog that cannot lead anywhere.
      */
-    fun biometricEnrolCipher(): Cipher? = try {
-        Cipher.getInstance(TRANSFORMATION).apply {
-            init(Cipher.ENCRYPT_MODE, keyFor(BIOMETRIC_KEY_ALIAS, requireUserAuth = true))
-        }
-    } catch (error: Exception) {
-        DebugLog.warn(TAG, "Biometric key unavailable: ${error.javaClass.simpleName}")
-        // A key left over from a previous enrolment is now useless. Clearing it
-        // means the next attempt generates a fresh one rather than failing for
-        // ever on a key the platform has already invalidated.
-        deleteKey(BIOMETRIC_KEY_ALIAS)
-        null
-    }
+    fun biometricsUsable(): Boolean = biometricPublicKey() != null
 
     /**
-     * Seal the credential with a cipher the prompt has just authorised.
+     * Seal the credential so that only a fingerprint can open it again.
      *
-     * Nothing about the driver's fingerprint or face reaches this app — only
-     * the fact that Android accepted one.
+     * No prompt, and no `Cipher` handed in — and that is the whole point of the
+     * key pair. **Encryption uses the public half, which the platform never
+     * gates**; only the private half carries `setUserAuthenticationRequired`.
+     *
+     * This is not a convenience. The refresh token *rotates on every use* — the
+     * server issues a new one and kills the old, deliberately, so a stolen token
+     * is single-use. With the old symmetric key the app could not write a new
+     * value without another fingerprint, so it never did: the sealed copy was
+     * whatever the token had been at enrolment, and the first unlock rotated it
+     * into uselessness. Every unlock after that replayed a dead token and the
+     * driver was told their session had expired. Being able to re-seal silently
+     * is what makes a rotating credential and a biometric lock coexist.
      */
-    fun sealWithBiometricCipher(cipher: Cipher, refreshToken: String): Boolean = try {
-        val body = cipher.doFinal(refreshToken.toByteArray(Charsets.UTF_8))
-        preferences.edit()
-            .putString(KEY_BIOMETRIC_TOKEN, "${encode(cipher.iv)}$SEPARATOR${encode(body)}")
-            .apply()
-        _enabled.value = readEnabled()
-        true
+    fun sealWithBiometric(refreshToken: String): Boolean = try {
+        val key = biometricPublicKey()
+        if (key == null) {
+            false
+        } else {
+            val cipher = Cipher.getInstance(RSA_TRANSFORMATION).apply {
+                init(Cipher.ENCRYPT_MODE, key, oaep())
+            }
+            val body = cipher.doFinal(refreshToken.toByteArray(Charsets.UTF_8))
+            preferences.edit().putString(KEY_BIOMETRIC_TOKEN, encode(body)).apply()
+            _enabled.value = readEnabled()
+            true
+        }
     } catch (error: Exception) {
         DebugLog.warn(TAG, "Could not seal with biometrics: ${error.javaClass.simpleName}")
         false
+    }
+
+    /**
+     * Write a freshly-rotated credential into whichever slots are turned on.
+     *
+     * Called after every successful refresh while Quick Login holds custody.
+     * Silent by design: the PIN key was always declared without a user-auth
+     * requirement, and the biometric key's public half needs none, so neither
+     * slot interrupts a driver mid-shift to stay current.
+     *
+     * A slot that fails to re-seal is turned off rather than left holding a
+     * token known to be dead — an unlock that cannot possibly work is worse than
+     * a switch that is visibly off.
+     */
+    fun reseal(refreshToken: String) {
+        if (preferences.getString(KEY_PIN_TOKEN, null) != null) {
+            val sealed = runCatching {
+                seal(keyFor(PIN_KEY_ALIAS, requireUserAuth = false), refreshToken)
+            }.getOrNull()
+            if (sealed != null) {
+                preferences.edit().putString(KEY_PIN_TOKEN, sealed).apply()
+            } else {
+                DebugLog.warn(TAG, "Could not re-seal the PIN credential; turning it off")
+                disablePin()
+            }
+        }
+
+        if (preferences.getString(KEY_BIOMETRIC_TOKEN, null) != null) {
+            if (!sealWithBiometric(refreshToken)) {
+                DebugLog.warn(TAG, "Could not re-seal the biometric credential; turning it off")
+                disableBiometrics()
+            }
+        }
     }
 
     /** Why the last biometric attempt failed, for a message worth reading. */
@@ -244,15 +281,11 @@ class QuickLoginStore(context: Context) {
      * silently degrading, per section 10.
      */
     fun biometricCipher(): Cipher? {
-        val sealed = preferences.getString(KEY_BIOMETRIC_TOKEN, null) ?: return null
+        if (preferences.getString(KEY_BIOMETRIC_TOKEN, null) == null) return null
         return try {
-            val iv = decode(sealed.substringBefore(SEPARATOR))
-            Cipher.getInstance(TRANSFORMATION).apply {
-                init(
-                    Cipher.DECRYPT_MODE,
-                    keyFor(BIOMETRIC_KEY_ALIAS, requireUserAuth = true),
-                    GCMParameterSpec(GCM_TAG_BITS, iv),
-                )
+            val key = biometricPrivateKey() ?: return null
+            Cipher.getInstance(RSA_TRANSFORMATION).apply {
+                init(Cipher.DECRYPT_MODE, key, oaep())
             }
         } catch (error: Exception) {
             DebugLog.warn(TAG, "Biometric key unusable: ${error.javaClass.simpleName}")
@@ -261,30 +294,35 @@ class QuickLoginStore(context: Context) {
         }
     }
 
-    /** Read the token using a cipher a biometric prompt has just authorised. */
     fun unlockWithBiometricCipher(cipher: Cipher): Result<String> {
         val sealed = preferences.getString(KEY_BIOMETRIC_TOKEN, null)
             ?: return Result.failure(
-                QuickLoginException(Failure.Unavailable("Biometric unlock is not set up.")),
+                QuickLoginException(Failure.Unavailable("Nothing is sealed on this phone.")),
             )
 
         return try {
-            val body = decode(sealed.substringAfter(SEPARATOR))
-            Result.success(String(cipher.doFinal(body), Charsets.UTF_8))
+            val token = String(cipher.doFinal(decode(sealed)), Charsets.UTF_8)
+            Result.success(token)
         } catch (error: Exception) {
-            DebugLog.warn(TAG, "Biometric credential unreadable: ${error.javaClass.simpleName}")
+            /*
+             * A failure here is the key, not the finger.
+             *
+             * Android has already accepted the fingerprint by the time this
+             * runs — the prompt would not have handed back an authorised cipher
+             * otherwise. So anything that goes wrong now is the sealed value
+             * being unreadable, and the honest response is to turn the slot off
+             * and let the driver sign in rather than to blame their finger.
+             */
+            DebugLog.warn(TAG, "Sealed credential unreadable: ${error.javaClass.simpleName}")
+            lastBiometricProblem = "That did not open. Please sign in with your password."
             disableBiometrics()
             Result.failure(
                 QuickLoginException(
-                    Failure.Unavailable("Biometric unlock is no longer available. Please sign in."),
+                    Failure.Unavailable("The sealed credential could not be opened."),
                 ),
             )
         }
     }
-
-    // -----------------------------------------------------------------------
-    // Turning it off
-    // -----------------------------------------------------------------------
 
     /** Forget the PIN, keeping biometrics if the driver has them. */
     fun disablePin() {
@@ -351,10 +389,42 @@ class QuickLoginStore(context: Context) {
         }
     }
 
-    private fun readEnabled() = Enabled(
-        pin = preferences.getString(KEY_PIN_TOKEN, null) != null,
-        biometrics = preferences.getString(KEY_BIOMETRIC_TOKEN, null) != null,
-    )
+    private fun readEnabled(): Enabled {
+        /*
+         * Retire a credential sealed by the previous scheme.
+         *
+         * The old biometric slot was a symmetric key and stored `iv:ciphertext`;
+         * the new one is a key pair and stores ciphertext alone. A separator is
+         * therefore a reliable marker of the old format, and the old format
+         * cannot be read by the new key — nor is it worth trying, because that
+         * copy is a token the server rotated away long ago.
+         *
+         * Cleared rather than left in place so the switch reads as off and the
+         * driver is invited to turn it back on, instead of a fingerprint prompt
+         * that could only ever fail.
+         */
+        var biometric = preferences.getString(KEY_BIOMETRIC_TOKEN, null)
+        if (biometric != null && biometric.contains(SEPARATOR)) {
+            DebugLog.debug(TAG, "Retiring a biometric credential sealed by the old scheme")
+            /*
+             * Cleared here rather than through `disableBiometrics`.
+             *
+             * This function runs from the constructor, to give `_enabled` its
+             * first value — so anything that assigns `_enabled` from inside it
+             * dereferences a field that does not exist yet. That is exactly what
+             * calling `disableBiometrics` did, and it crashed the app on launch
+             * for every driver who had the old scheme enabled.
+             */
+            preferences.edit().remove(KEY_BIOMETRIC_TOKEN).apply()
+            deleteKey(BIOMETRIC_KEY_ALIAS)
+            biometric = null
+        }
+
+        return Enabled(
+            pin = preferences.getString(KEY_PIN_TOKEN, null) != null,
+            biometrics = biometric != null,
+        )
+    }
 
     /**
      * A key that lives in the Keystore and cannot be taken out of it.
@@ -409,6 +479,102 @@ class QuickLoginStore(context: Context) {
         }.generateKey()
     }
 
+    /**
+     * The half that seals, which the platform never gates.
+     *
+     * Re-created through a `KeyFactory` from the certificate's encoding rather
+     * than used as it comes out of the Keystore. A public key still attached to
+     * a Keystore entry drags the entry's authentication requirement along with
+     * it on several manufacturers' builds, and encryption then fails with
+     * "user not authenticated" — the exact failure the key pair exists to avoid.
+     * The encoded form is just bytes, and bytes have no policy.
+     */
+    private fun biometricPublicKey(): java.security.PublicKey? = try {
+        val entry = biometricEntry()
+        entry?.let {
+            val raw = it.certificate.publicKey
+            KeyFactory.getInstance(raw.algorithm)
+                .generatePublic(X509EncodedKeySpec(raw.encoded))
+        }
+    } catch (error: Exception) {
+        DebugLog.warn(TAG, "Biometric key unavailable: ${error.javaClass.simpleName}")
+        null
+    }
+
+    /** The half that opens, and the only half a fingerprint is needed for. */
+    private fun biometricPrivateKey(): PrivateKey? =
+        runCatching { biometricEntry()?.privateKey }.getOrNull()
+
+    /**
+     * The biometric key pair, generated on first use.
+     *
+     * RSA rather than AES, and that choice is the fix. A symmetric key declared
+     * `setUserAuthenticationRequired` gates *every* operation, so the app could
+     * not write a rotated token without another prompt. A key pair separates the
+     * two halves: sealing is unauthenticated, opening is not.
+     */
+    private fun biometricEntry(): KeyStore.PrivateKeyEntry? {
+        val keystore = KeyStore.getInstance(KEYSTORE).apply { load(null) }
+        val existing = runCatching { keystore.getEntry(BIOMETRIC_KEY_ALIAS, null) }.getOrNull()
+        (existing as? KeyStore.PrivateKeyEntry)?.let { return it }
+
+        // An alias left over from the symmetric scheme. Generating over the top
+        // of it works on most builds and not on all, so it goes first.
+        if (existing != null || keystore.containsAlias(BIOMETRIC_KEY_ALIAS)) {
+            deleteKey(BIOMETRIC_KEY_ALIAS)
+        }
+
+        val spec = KeyGenParameterSpec.Builder(
+            BIOMETRIC_KEY_ALIAS,
+            KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT,
+        )
+            .setDigests(KeyProperties.DIGEST_SHA256)
+            .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_RSA_OAEP)
+            .setKeySize(2048)
+            .setUserAuthenticationRequired(true)
+            .apply {
+                /*
+                 * Say *which* authentication, on the versions that ask.
+                 *
+                 * A timeout of 0 means every single use of the private half
+                 * needs a fresh authentication, and `AUTH_BIOMETRIC_STRONG`
+                 * means a fingerprint or face — never the device PIN. Without
+                 * this the key falls back to legacy behaviour that varies by
+                 * manufacturer.
+                 */
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    setUserAuthenticationParameters(0, KeyProperties.AUTH_BIOMETRIC_STRONG)
+                }
+
+                // A new or removed fingerprint destroys this key, so a stranger
+                // who enrols their own finger cannot inherit the session.
+                setInvalidatedByBiometricEnrollment(true)
+            }
+            .build()
+
+        KeyPairGenerator.getInstance(KeyProperties.KEY_ALGORITHM_RSA, KEYSTORE).apply {
+            initialize(spec)
+        }.generateKeyPair()
+
+        return KeyStore.getInstance(KEYSTORE).apply { load(null) }
+            .getEntry(BIOMETRIC_KEY_ALIAS, null) as? KeyStore.PrivateKeyEntry
+    }
+
+    /**
+     * OAEP, spelled out.
+     *
+     * Android's Keystore reads the digest from the transformation string but
+     * defaults MGF1 to SHA-1 regardless, so an encrypt and a decrypt that look
+     * identical disagree about the padding and the unseal fails. Naming both
+     * explicitly is the long-standing workaround.
+     */
+    private fun oaep() = OAEPParameterSpec(
+        "SHA-256",
+        "MGF1",
+        MGF1ParameterSpec.SHA256,
+        PSource.PSpecified.DEFAULT,
+    )
+
     private fun deleteKey(alias: String) {
         runCatching {
             KeyStore.getInstance(KEYSTORE).apply { load(null) }.deleteEntry(alias)
@@ -462,6 +628,7 @@ class QuickLoginStore(context: Context) {
         const val FILE = "saarthi-driver-quick-login"
         const val KEYSTORE = "AndroidKeyStore"
         const val TRANSFORMATION = "AES/GCM/NoPadding"
+        const val RSA_TRANSFORMATION = "RSA/ECB/OAEPPadding"
         const val PBKDF2 = "PBKDF2WithHmacSHA256"
         const val PBKDF2_ROUNDS = 120_000
         const val GCM_TAG_BITS = 128

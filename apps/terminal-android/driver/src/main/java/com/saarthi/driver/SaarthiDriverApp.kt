@@ -15,7 +15,10 @@ import com.saarthi.core.network.RealtimeClient
 import com.saarthi.core.telemetry.TelemetryHub
 import com.saarthi.core.util.DebugLog
 import com.saarthi.driver.data.DriverAccountStore
+import com.saarthi.core.data.OfflineMaps
+import com.saarthi.core.data.PaperCache
 import com.saarthi.driver.data.QuickLoginStore
+import com.saarthi.driver.data.SharedDestinationInbox
 import com.saarthi.driver.network.DriverApi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -79,8 +82,49 @@ class SaarthiDriverApp : Application(), SaarthiApp {
      */
     val quickLogin: QuickLoginStore by lazy { QuickLoginStore(this) }
 
+    /**
+     * Somewhere a driver was sent, waiting to be acted on.
+     *
+     * Held on the application rather than in the activity because a share can
+     * land while the driver is still signing in or waiting for their fleet to
+     * approve them — and a destination dropped because the app was not ready is
+     * a destination the driver has to go and find in another app.
+     */
+    val sharedDestinations = SharedDestinationInbox()
+
+    /**
+     * The driver's papers, held on this phone for a checkpoint with no signal.
+     *
+     * Present here and null on the tablet, which is the whole distinction: a
+     * document wallet is something a person carries and produces on demand, and
+     * a tablet bolted to a lorry is shared between drivers. A licence cached on
+     * one would belong to whoever drove last.
+     */
+    override val papers: PaperCache by lazy { PaperCache(this, repository.api) }
+
+    /**
+     * The map kept for where there is no signal.
+     *
+     * On the application rather than a screen: a download runs for minutes and
+     * must survive the driver moving between the cockpit and the dashboard.
+     */
+    val offlineMaps: OfflineMaps by lazy { OfflineMaps(this) }
+
     override fun onCreate() {
         super.onCreate()
+
+        /*
+         * Where a rotated refresh token goes while Quick Login holds it.
+         *
+         * The server rotates the refresh token on every single use, so this
+         * fires constantly — and until it existed, each rotation was written
+         * back into readable preferences while the Keystore kept the copy from
+         * enrolment. That copy was dead the moment it was first used, so the
+         * next fingerprint unlock replayed it and the driver was told their
+         * session had expired. Re-sealing keeps the sealed copy current and
+         * keeps it the only copy.
+         */
+        account.custodian = { rotated -> quickLogin.reseal(rotated) }
 
         /*
          * The shared code's view of which app it is inside.

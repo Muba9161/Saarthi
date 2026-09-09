@@ -168,14 +168,6 @@ export const DOCUMENT_TYPES: DocumentTypeDefinition[] = [
     requiresExpiry: true,
     description: 'Proof of road tax payment.',
   },
-  {
-    code: 'TRUCK_PHOTO',
-    label: 'Vehicle photograph',
-    ownerType: DocumentOwnerType.TRUCK,
-    mandatory: false,
-    requiresExpiry: false,
-    description: 'Photograph of the vehicle for identification.',
-  },
 
   // --- Organization (owner / supplier / customer business) ---
   {
@@ -271,14 +263,58 @@ export const DOCUMENT_TYPES: DocumentTypeDefinition[] = [
   },
 ];
 
+/**
+ * Types that are no longer offered, kept only so rows already in the database
+ * still resolve to a label.
+ *
+ * `TRUCK_PHOTO` is the one entry. A photograph of a vehicle is not paperwork:
+ * it carries no number, no expiry and nothing an authority or a reviewer could
+ * confirm, so filing it here put every vehicle picture into a verification
+ * queue it could never meaningfully leave, and showed it as a file name with a
+ * download button rather than as the picture it is. Vehicle photographs now
+ * live in the media library under the `VEHICLE_EXTERIOR` purpose, where they
+ * are previewed, replaced and deleted without a review step.
+ *
+ * Retired rather than deleted outright: documents uploaded before the move are
+ * still read, labelled and downloaded exactly as they were. What changes is
+ * that the type can no longer be chosen for a new upload — it is absent from
+ * `DOCUMENT_TYPES`, so it is absent from the picker and from
+ * `DOCUMENT_TYPE_CODES`, which is what the upload schema validates against.
+ */
+export const RETIRED_DOCUMENT_TYPES: DocumentTypeDefinition[] = [
+  {
+    code: 'TRUCK_PHOTO',
+    label: 'Vehicle photograph',
+    ownerType: DocumentOwnerType.TRUCK,
+    mandatory: false,
+    requiresExpiry: false,
+    description: 'Kept with the vehicle’s photos rather than its documents.',
+  },
+];
+
 export const DOCUMENT_TYPE_CODES = DOCUMENT_TYPES.map((definition) => definition.code);
 
 export function documentTypesFor(ownerType: DocumentOwnerType): DocumentTypeDefinition[] {
   return DOCUMENT_TYPES.filter((definition) => definition.ownerType === ownerType);
 }
 
+/**
+ * The definition for a code, including retired ones.
+ *
+ * Retired types are searched second and only as a fallback, so a stored
+ * document keeps its label and its owner rule while nothing that builds a
+ * choice — the upload picker, the mandatory list — can reach them.
+ */
 export function documentTypeDefinition(code: string): DocumentTypeDefinition | undefined {
-  return DOCUMENT_TYPES.find((definition) => definition.code === code);
+  return (
+    DOCUMENT_TYPES.find((definition) => definition.code === code) ??
+    RETIRED_DOCUMENT_TYPES.find((definition) => definition.code === code)
+  );
+}
+
+/** `true` when the code exists only for records uploaded before it was retired. */
+export function isRetiredDocumentType(code: string): boolean {
+  return RETIRED_DOCUMENT_TYPES.some((definition) => definition.code === code);
 }
 
 export function mandatoryDocumentTypes(ownerType: DocumentOwnerType): DocumentTypeDefinition[] {

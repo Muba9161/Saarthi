@@ -132,15 +132,14 @@ fun QuickLoginSettings(viewModel: DriverViewModel) {
                      * a fingerprint. Doing it in the other order is what made
                      * this silently impossible before.
                      */
-                    val cipher = viewModel.biometricEnrolCipher()
-                    if (cipher == null) {
+                    if (!viewModel.biometricsUsable()) {
                         notice = "This phone would not create a secure key. Your PIN still works."
                     } else {
-                        promptToEnrolBiometric(context, cipher) { authorised ->
-                            if (authorised == null) {
+                        promptToEnrolBiometric(context) { confirmed ->
+                            if (!confirmed) {
                                 notice = "Fingerprint setup was cancelled."
                             } else {
-                                viewModel.completeBiometricSetup(authorised) { ok ->
+                                viewModel.completeBiometricSetup { ok ->
                                     notice = if (ok) {
                                         "Fingerprint unlock is on."
                                     } else {

@@ -108,6 +108,17 @@ class DriverAccountStore(context: Context) {
      * token readable again is exactly the trade they asked for: silent restore
      * on every launch, and no PIN.
      */
+    /**
+     * Where a rotated credential goes while Quick Login holds custody.
+     *
+     * Set once by the application object. Without it [store] wrote every
+     * rotation straight back into readable preferences — which both undid Quick
+     * Login's only guarantee and left the sealed copy stale, so the *next*
+     * unlock replayed a token the server had already killed and the driver was
+     * told their session had expired.
+     */
+    var custodian: ((String) -> Unit)? = null
+
     fun reclaimRefreshToken(token: String) {
         preferences.edit()
             .putString(KEY_REFRESH, token)
@@ -141,8 +152,22 @@ class DriverAccountStore(context: Context) {
             putString(KEY_USER_ID, account.userId)
             putString(KEY_NAME, account.name)
             putString(KEY_EMAIL, account.email)
-            if (refreshToken != null) putString(KEY_REFRESH, refreshToken)
+            /*
+             * Never write the credential back into the clear while Quick Login
+             * has it.
+             *
+             * The server rotates the refresh token on every use, so this runs
+             * far more often than a sign-in — and each time it used to drop a
+             * fresh, readable copy beside the sealed one. The custodian re-seals
+             * instead, which keeps the only copy behind the Keystore and keeps
+             * it current.
+             */
+            if (refreshToken != null && !heldByQuickLogin) {
+                putString(KEY_REFRESH, refreshToken)
+            }
         }.apply()
+
+        if (refreshToken != null && heldByQuickLogin) custodian?.invoke(refreshToken)
 
         _account.value = account
     }

@@ -357,6 +357,62 @@ export type UpdateTerminalIssueInput = z.infer<typeof updateTerminalIssueSchema>
 // Services and assistance (terminal → Saarthi)
 // ---------------------------------------------------------------------------
 
+/**
+ * Where the vehicle is, for a price published by locality.
+ *
+ * The position is sent rather than read from the last telemetry frame, for the
+ * same reason the nearby search sends it: a driver asking what diesel costs is
+ * asking about the district they are standing in, and the last uploaded frame
+ * may be a minute and half a kilometre old.
+ */
+export const terminalFuelPriceSchema = z.object({
+  latitude: latitudeSchema,
+  longitude: longitudeSchema,
+});
+export type TerminalFuelPriceQuery = z.infer<typeof terminalFuelPriceSchema>;
+
+/**
+ * Which notifications the driver has now seen.
+ *
+ * An empty list means "all of them" rather than "none of them". A driver who
+ * opens the list has read what is on screen, and the commonest action by far is
+ * "mark the lot" — making that the default of an omitted field means the app
+ * never has to enumerate ids it already displayed.
+ */
+export const terminalMarkNotificationsSchema = z.object({
+  ids: z.array(z.string().uuid()).max(200).default([]),
+});
+export type TerminalMarkNotificationsInput = z.infer<typeof terminalMarkNotificationsSchema>;
+
+/**
+ * A fuel slip, as a driver types it at a pump.
+ *
+ * Two figures, both printed largest on every till roll. The price per litre is
+ * *not* asked for: it is on the slip but it is also exactly `total ÷ litres`,
+ * and a third number to type beside a running engine is a third chance to
+ * mistype one.
+ *
+ * Coerced, because these arrive as multipart form fields, which are strings
+ * whatever the sender intended.
+ */
+export const terminalFuelSlipSchema = z.object({
+  litres: z.coerce
+    .number()
+    .positive('How many litres went in?')
+    // A tanker trailer holds a few hundred; anything past this is a typo, and a
+    // typo here becomes a fuel-economy figure the fleet acts on.
+    .max(2_000, 'That is more fuel than a vehicle holds. Check the figure.'),
+  totalCost: z.coerce
+    .number()
+    .positive('What did it come to?')
+    .max(1_000_000, 'That is more than a tank costs. Check the figure.'),
+  odometerKm: z.coerce.number().min(0).max(10_000_000).optional(),
+  stationName: optionalTrimmedString(120),
+  latitude: latitudeSchema.optional(),
+  longitude: longitudeSchema.optional(),
+});
+export type TerminalFuelSlipInput = z.infer<typeof terminalFuelSlipSchema>;
+
 export const terminalNearbySchema = z.object({
   /**
    * A terminal service key such as FUEL or MECHANIC.

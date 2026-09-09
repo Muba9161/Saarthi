@@ -342,22 +342,28 @@ class DriverViewModel(application: Application) : AndroidViewModel(application) 
      * Null when the device has no usable key — no enrolled biometric, no secure
      * lock screen, or a key the platform has already invalidated.
      */
-    fun biometricEnrolCipher(): Cipher? = quickLogin.biometricEnrolCipher()
+    fun biometricsUsable(): Boolean = quickLogin.biometricsUsable()
 
     /**
-     * Finish turning biometrics on, with a cipher the prompt just authorised.
+     * Finish turning biometrics on, once the prompt has confirmed the driver.
+     *
+     * No cipher is handed in any more. Sealing uses the public half of a key
+     * pair, which the platform never gates — the prompt above it is there to
+     * prove the driver can actually authenticate before the switch claims they
+     * can, not because encryption needs it. See `QuickLoginStore.sealWithBiometric`
+     * for why that separation is what makes a rotating credential workable.
      *
      * Surrendering the token from the account store is what makes the
      * protection real: afterwards the only copies are sealed.
      */
-    fun completeBiometricSetup(cipher: Cipher, onResult: (Boolean) -> Unit) {
+    fun completeBiometricSetup(onResult: (Boolean) -> Unit) {
         viewModelScope.launch {
             val token = app.account.refreshToken ?: unsealedToken
             if (token == null) {
                 onResult(false)
                 return@launch
             }
-            val sealed = quickLogin.sealWithBiometricCipher(cipher, token)
+            val sealed = quickLogin.sealWithBiometric(token)
             if (sealed) {
                 unsealedToken = token
                 app.account.surrenderRefreshToken()

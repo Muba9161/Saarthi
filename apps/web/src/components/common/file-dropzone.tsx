@@ -305,6 +305,180 @@ export function FilePreviewCard({
 }
 
 /**
+ * A framed image field — the picture itself is the control.
+ *
+ * The panel at the top of this file is right for a document and wrong for a
+ * photograph. A document is identified by its name and its size, so a file row
+ * says everything there is to say about it. A photograph is identified by
+ * looking at it, and a row that reads `IMG_20240817_114203.jpg · 3.2 MB` is a
+ * picture nobody can check before they save it — which is how the wrong shot of
+ * the wrong lorry gets attached and stays attached.
+ *
+ * So the frame is the drop target *and* the preview: empty it invites a file,
+ * filled it shows the image at the size and crop it will actually be seen in,
+ * with the name along the bottom and a cross to take it back off. Clicking a
+ * filled frame replaces the image rather than doing nothing, because "change
+ * this picture" is the only thing anybody wants from a picture that is already
+ * there.
+ *
+ * Like `ImageCircleField` it holds no file of its own: on an add form the
+ * upload cannot start until the record it belongs to exists, so the caller owns
+ * the file and decides when it goes up.
+ */
+export function ImageDropField({
+  value,
+  onChange,
+  existing,
+  label,
+  hint,
+  accept = 'image/*',
+  maxSizeMb,
+  disabled = false,
+  busy = false,
+  busyLabel = 'Uploading…',
+  onReject,
+  icon: Icon = ImagePlus,
+  aspect = 'aspect-[4/3]',
+  className,
+}: {
+  value: File | null;
+  /** Called with the chosen file, or `null` when it is taken back off. */
+  onChange: (file: File | null) => void;
+  /**
+   * Drawn in the frame when nothing has been picked — the image already on the
+   * record. A node rather than a URL because stored media is fetched with the
+   * session token: callers pass `<MediaImage>`, which knows how.
+   */
+  existing?: React.ReactNode;
+  /** Names the control for screen readers, and captions it when empty. */
+  label: string;
+  hint?: React.ReactNode;
+  accept?: string;
+  maxSizeMb?: number;
+  disabled?: boolean;
+  /** Shows a spinner over the frame and blocks picking while an upload runs. */
+  busy?: boolean;
+  busyLabel?: string;
+  onReject?: (reason: string) => void;
+  icon?: React.ComponentType<{ className?: string }>;
+  /** The shape the image will be seen in. A Tailwind aspect utility. */
+  aspect?: string;
+  className?: string;
+}) {
+  const inputRef = React.useRef<HTMLInputElement>(null);
+  // A freshly chosen file always wins over what is already on the record.
+  const preview = useObjectUrl(value);
+  const locked = disabled || busy;
+  const filled = Boolean(preview || existing);
+
+  const { dragging, dropHandlers, accepted } = useFileDrop({
+    accept,
+    ...(maxSizeMb !== undefined ? { maxSizeMb } : {}),
+    ...(onReject !== undefined ? { onReject } : {}),
+    maxFiles: 1,
+    locked,
+    onFiles: (files) => onChange(files[0] ?? null),
+  });
+
+  return (
+    <div className={cn('space-y-1.5', className)}>
+      <div className="relative">
+        <button
+          type="button"
+          disabled={locked}
+          onClick={() => inputRef.current?.click()}
+          {...dropHandlers}
+          aria-busy={busy || undefined}
+          aria-label={filled ? `Replace ${label.toLowerCase()}` : `Add ${label.toLowerCase()}`}
+          className={cn(
+            'group relative flex w-full items-center justify-center overflow-hidden rounded-xl',
+            'border-2 border-dashed text-center transition-all duration-200 ease-smooth',
+            aspect,
+            dragging
+              ? 'border-primary bg-primary/[0.07] text-primary shadow-glow'
+              : 'border-border-strong/70 bg-white/40 text-muted-foreground dark:bg-white/[0.03]',
+            filled && !dragging && 'border-solid border-border/70 bg-muted',
+            !locked &&
+              !dragging &&
+              'hover:border-primary/60 hover:text-primary focus-visible:border-primary/60',
+            locked && 'cursor-not-allowed opacity-60',
+          )}
+        >
+          {preview ? (
+            <img src={preview} alt="" className="size-full object-cover" />
+          ) : existing ? (
+            existing
+          ) : (
+            <span className="flex flex-col items-center gap-2 px-4">
+              <Icon
+                className={cn('size-7 transition-transform duration-200', dragging && 'scale-110')}
+              />
+              <span className="block text-sm font-medium">
+                {dragging
+                  ? 'Drop to upload'
+                  : `Drag ${label.toLowerCase()} here, or click to browse`}
+              </span>
+              {hint ? <span className="block text-xs leading-snug opacity-80">{hint}</span> : null}
+            </span>
+          )}
+
+          {/*
+            Over a filled frame only, and only on hover: on a touch screen a tap
+            opens the picker anyway, so nothing is hidden behind the hover.
+          */}
+          {filled && !busy ? (
+            <span className="absolute inset-0 hidden flex-col items-center justify-center gap-1 bg-background/70 text-foreground backdrop-blur-[1px] group-hover:flex">
+              <Icon className="size-5" />
+              <span className="text-xs font-semibold uppercase tracking-wide">Replace</span>
+            </span>
+          ) : null}
+
+          {/* The file name, over the picture rather than under the frame, so a
+              row of frames stays a row of equal rectangles. */}
+          {value && !busy ? (
+            <span className="absolute inset-x-0 bottom-0 truncate bg-gradient-to-t from-black/70 to-transparent px-2.5 pb-1.5 pt-6 text-left text-xs font-medium text-white group-hover:opacity-0">
+              {value.name} · {readableSize(value.size)}
+            </span>
+          ) : null}
+
+          {busy ? (
+            <span className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-background/70 backdrop-blur-[1px]">
+              <Loader2 className="size-5 animate-spin text-primary" aria-hidden />
+              <span className="text-xs font-medium">{busyLabel}</span>
+            </span>
+          ) : null}
+        </button>
+
+        {value && !busy ? (
+          <RemoveButton
+            onClick={() => onChange(null)}
+            disabled={disabled}
+            label={`Remove ${label.toLowerCase()}`}
+          />
+        ) : null}
+      </div>
+
+      {/* Once the frame is filled the picture is the caption; repeating the
+          rules underneath it is noise. */}
+      {filled && hint ? <p className="text-xs leading-snug text-muted-foreground">{hint}</p> : null}
+
+      <input
+        ref={inputRef}
+        type="file"
+        accept={accept}
+        hidden
+        onChange={(event) => {
+          const usable = accepted(Array.from(event.target.files ?? []));
+          if (usable.length > 0) onChange(usable[0] ?? null);
+          // Let the same file be re-picked after it was removed.
+          event.target.value = '';
+        }}
+      />
+    </div>
+  );
+}
+
+/**
  * A round image field — a profile photo, or a business logo.
  *
  * The panel above is right for a document and wrong for a face: an image

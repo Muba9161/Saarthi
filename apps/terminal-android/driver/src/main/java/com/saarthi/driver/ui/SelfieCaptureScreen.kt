@@ -230,8 +230,9 @@ fun SelfieCaptureScreen(
                     capturing = capturing,
                     onCapture = { capture ->
                         capturing = true
-                        takePhoto(
+                        capturePhoto(
                             capture = capture,
+                            tag = "selfie",
                             onResult = { bytes, bitmap ->
                                 capturing = false
                                 captured = bytes
@@ -353,47 +354,3 @@ private fun cameraPermitted(context: Context): Boolean =
     ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
         PackageManager.PERMISSION_GRANTED
 
-/**
- * Take one photograph, in memory.
- *
- * Never written to storage. The photo is a person's face at a place and time,
- * and a copy left in the phone's gallery would outlive every purpose it was
- * taken for — which is neither what the driver expects nor what the fleet needs.
- */
-private fun takePhoto(
-    capture: ImageCapture,
-    onResult: (ByteArray, ImageBitmap) -> Unit,
-    onFailure: () -> Unit,
-) {
-    capture.takePicture(
-        Executors.newSingleThreadExecutor(),
-        object : ImageCapture.OnImageCapturedCallback() {
-            override fun onCaptureSuccess(image: ImageProxy) {
-                try {
-                    // `ImageCapture` gives JPEG by default, so the first plane
-                    // is already the encoded file rather than raw planes to
-                    // convert.
-                    val buffer = image.planes[0].buffer
-                    val bytes = ByteArray(buffer.remaining())
-                    buffer.get(bytes)
-
-                    val bitmap = android.graphics.BitmapFactory
-                        .decodeByteArray(bytes, 0, bytes.size)
-                        ?.asImageBitmap()
-
-                    if (bitmap == null) onFailure() else onResult(bytes, bitmap)
-                } catch (error: Exception) {
-                    DebugLog.warn("selfie", "Could not read the photo: ${error.message}")
-                    onFailure()
-                } finally {
-                    image.close()
-                }
-            }
-
-            override fun onError(exception: ImageCaptureException) {
-                DebugLog.warn("selfie", "Capture failed: ${exception.message}")
-                onFailure()
-            }
-        },
-    )
-}

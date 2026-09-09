@@ -3,9 +3,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { ImagePlus, Loader2 } from 'lucide-react';
 import type { MediaOwnerType, MediaPurpose } from '@saarthi/shared';
-import { absoluteApiUrl, api, errorMessage, getAccessToken } from '@/lib/api-client';
+import { api, errorMessage } from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
 import { FileDropzone, RemoveButton } from '@/components/common/file-dropzone';
+import { MediaImage } from '@/features/media/media-image';
 import { cn } from '@/lib/utils';
 
 /**
@@ -15,9 +16,14 @@ import { cn } from '@/lib/utils';
  * the same component serves a vehicle's gallery, a listing's exterior shots and
  * an odometer photo without knowing anything about any of them.
  *
- * Images are fetched with the session token rather than referenced by URL,
- * because media inherits its owner's visibility — a private vehicle photo must
- * not be readable by pasting its address into a browser.
+ * Thumbnails go through `MediaImage` rather than a plain `<img src>`, because
+ * media inherits its owner's visibility and the API authorises on the
+ * `Authorization` header — a bare `src` arrives anonymous and a private vehicle
+ * photo comes back refused. This component used to carry its own copy of that
+ * fetch, and the copy is exactly what rotted: it passed the API's own
+ * `/api/v1/...` path back through `absoluteApiUrl`, which prefixes `/api/v1`
+ * again, so every thumbnail requested a URL that does not exist and every tile
+ * rendered as a grey box with nothing in the console to say why.
  *
  * Chosen files appear in the grid immediately, from a local object URL, while
  * the real upload runs behind them. Uploads are sequential and a set of eight
@@ -43,50 +49,6 @@ interface PendingPhoto {
 
 const ACCEPTED_IMAGES = 'image/jpeg,image/png,image/webp,image/heic';
 const MAX_PHOTO_MB = 10;
-
-/** Renders an authenticated image as an object URL. */
-function AuthenticatedImage({ asset }: { asset: MediaAsset }) {
-  const [source, setSource] = React.useState<string | null>(null);
-
-  React.useEffect(() => {
-    let revoked = false;
-    let objectUrl: string | null = null;
-
-    void (async () => {
-      try {
-        const response = await fetch(absoluteApiUrl(asset.thumbnailUrl ?? asset.url), {
-          credentials: 'include',
-          headers: { authorization: `Bearer ${getAccessToken() ?? ''}` },
-        });
-        if (!response.ok) return;
-        const blob = await response.blob();
-        if (revoked) return;
-        objectUrl = URL.createObjectURL(blob);
-        setSource(objectUrl);
-      } catch {
-        // A thumbnail that will not load is not worth an error message.
-      }
-    })();
-
-    return () => {
-      revoked = true;
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
-    };
-  }, [asset.id, asset.url, asset.thumbnailUrl]);
-
-  if (!source) {
-    return <div className="size-full animate-pulse bg-muted" aria-hidden />;
-  }
-
-  return (
-    <img
-      src={source}
-      alt={asset.altText ?? asset.fileName}
-      className="size-full object-cover"
-      loading="lazy"
-    />
-  );
-}
 
 export interface PhotoUploaderProps {
   ownerType: MediaOwnerType;
@@ -196,6 +158,7 @@ export function PhotoUploader({
   const remaining = Math.max(0, max - shown);
   const short = requiredCount !== undefined ? Math.max(0, requiredCount - assets.length) : 0;
   const busy = upload.isPending || remove.isPending;
+  const canAdd = !disabled && remaining > 0;
 
   const accept = (files: File[]): void => {
     const usable = files.slice(0, remaining);
@@ -212,6 +175,26 @@ export function PhotoUploader({
     upload.mutate(usable);
   };
 
+  /**
+   * Everything the picker needs except its words.
+   *
+   * The empty frame and the add tile are the same control shown at two sizes;
+   * splitting the shared half out is what stops the accept list, the size cap
+   * and the remaining count drifting apart between them.
+   */
+  const dropzoneProps = {
+    accept: ACCEPTED_IMAGES,
+    multiple: max > 1,
+    maxFiles: remaining,
+    maxSizeMb: MAX_PHOTO_MB,
+    busy: upload.isPending,
+    busyLabel: `Uploading ${pending.length} photo${pending.length === 1 ? '' : 's'}…`,
+    disabled: busy,
+    onFiles: accept,
+    onReject: (reason: string) => toast.error(reason),
+    icon: ImagePlus,
+  } as const;
+
   return (
     <section className="space-y-2.5">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -226,14 +209,33 @@ export function PhotoUploader({
         </p>
       </div>
 
+      {/*
+        Photographs and the way to add one, in the same grid.
+
+        The picker used to be a separate strip under the grid, which put the
+        thing being added somewhere other than where it would appear. Here the
+        empty frame is simply the next tile: it is the same size and the same
+        shape as the picture that will replace it, so a set of four photos and a
+        place to put the fifth read as one row rather than two controls.
+      */}
       {shown > 0 ? (
-        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
           {assets.map((asset) => (
             <div
               key={asset.id}
-              className="group relative aspect-[4/3] overflow-hidden rounded-lg border border-border bg-muted"
+              className="group relative aspect-[4/3] overflow-hidden rounded-xl border border-border bg-muted"
             >
-              <AuthenticatedImage asset={asset} />
+              <MediaImage
+                source={asset.id}
+                alt={asset.altText ?? asset.fileName}
+                variant="thumbnail"
+                className="size-full object-cover"
+              />
+              {/* The name, over the picture, so two shots of the same panel can
+                  be told apart without opening either. */}
+              <span className="pointer-events-none absolute inset-x-0 bottom-0 truncate bg-gradient-to-t from-black/70 to-transparent px-2 pb-1 pt-5 text-2xs font-medium text-white opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+                {asset.fileName}
+              </span>
               {!disabled ? (
                 <RemoveButton
                   onClick={() => remove.mutate(asset.id)}
@@ -247,7 +249,7 @@ export function PhotoUploader({
           {pending.map((photo) => (
             <div
               key={photo.key}
-              className="relative aspect-[4/3] overflow-hidden rounded-lg border border-primary/40 bg-muted"
+              className="relative aspect-[4/3] overflow-hidden rounded-xl border border-primary/40 bg-muted"
             >
               <img src={photo.previewUrl} alt="" className="size-full object-cover opacity-60" />
               <span className="absolute inset-0 flex items-center justify-center bg-background/40 backdrop-blur-[1px]">
@@ -256,30 +258,34 @@ export function PhotoUploader({
               </span>
             </div>
           ))}
-        </div>
-      ) : null}
 
-      {!disabled && remaining > 0 ? (
+          {canAdd ? (
+            <FileDropzone
+              {...dropzoneProps}
+              /*
+                Reachable only when more are allowed than are already attached,
+                which for a single-photo uploader is never — so it always reads
+                as an addition rather than a replacement. No hint: the count in
+                the header above says how many are left, and a second line does
+                not fit a tile this size.
+              */
+              title="Add photos"
+              className="aspect-[4/3] gap-1.5 px-2 py-0"
+            />
+          ) : null}
+        </div>
+      ) : canAdd ? (
+        /* Nothing attached yet, so the frame gets the full width and states the
+           rules — the one moment where there is room to say them. */
         <FileDropzone
-          accept={ACCEPTED_IMAGES}
-          multiple={max > 1}
-          maxFiles={remaining}
-          maxSizeMb={MAX_PHOTO_MB}
-          busy={upload.isPending}
-          busyLabel={`Uploading ${pending.length} photo${pending.length === 1 ? '' : 's'}…`}
-          disabled={busy}
-          onFiles={accept}
-          onReject={(reason) => toast.error(reason)}
-          icon={ImagePlus}
-          compact={shown > 0}
+          {...dropzoneProps}
           title={
             max > 1
-              ? shown > 0
-                ? `Add more photos — ${remaining} left`
-                : 'Drag photos here, or click to browse'
+              ? 'Drag photos here, or click to browse'
               : 'Drag a photo here, or click to browse'
           }
           hint={`JPEG, PNG, WebP or HEIC · up to ${MAX_PHOTO_MB} MB each`}
+          className="min-h-40"
         />
       ) : null}
 

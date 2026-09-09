@@ -9,6 +9,7 @@ import {
   driverCheckForDocumentType,
   identityFormatMessage,
   identityKindForDocumentType,
+  isRetiredDocumentType,
   isValidIdentityNumber,
   normalizeIdentityNumber,
   type DocumentOwnerType,
@@ -476,6 +477,15 @@ function DocumentRow({
   const definition = identityKindForDocumentType(document.documentType);
   const verifiable = definition !== undefined;
   const verified = check?.outcome === 'VERIFIED';
+  /**
+   * A type that is no longer offered — today, only the vehicle photograph.
+   *
+   * It keeps its row, its preview and its download, because the file is still
+   * the file. What it loses is the validity badge: a photograph was never going
+   * to be verified, and leaving it marked "pending verification" for the life
+   * of the vehicle is a queue entry that describes nothing and clears never.
+   */
+  const retired = isRetiredDocumentType(document.documentType);
 
   // A number that is present but malformed is worth saying so before the
   // operator presses Verify and waits for a round trip to tell them.
@@ -507,6 +517,12 @@ function DocumentRow({
             : 'No expiry'}
           {document.currentVersion > 1 ? ` · v${document.currentVersion}` : ''}
         </p>
+        {retired ? (
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Vehicle photographs are kept under Photos now, where they are previewed rather than
+            downloaded. This one is left here untouched.
+          </p>
+        ) : null}
         {document.rejectionReason ? (
           <p className="mt-0.5 text-xs text-destructive">{document.rejectionReason}</p>
         ) : check && !verified && check.reason ? (
@@ -524,7 +540,13 @@ function DocumentRow({
         ) : null}
       </div>
 
-      <StatusBadge status={document.validity} size="sm" />
+      {retired ? (
+        <Badge variant="outline" size="sm">
+          Not verified
+        </Badge>
+      ) : (
+        <StatusBadge status={document.validity} size="sm" />
+      )}
 
       {/* In front of the utilities: the row's action, not another icon. */}
       {verifiable && !verified && canVerify ? (

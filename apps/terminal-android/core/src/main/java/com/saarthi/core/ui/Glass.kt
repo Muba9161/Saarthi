@@ -104,6 +104,22 @@ fun GlassPanel(
     val tint = if (dark) Color(0xFF141B2E) else Color.White
     val edge = if (dark) Color.White.copy(alpha = 0.10f) else Color.White.copy(alpha = 0.55f)
 
+    /*
+     * Ink, stated rather than inherited.
+     *
+     * The `Surface` below is deliberately transparent so the fill can be painted
+     * through the blur — but Material derives a Surface's content colour with
+     * `contentColorFor(color)`, and transparent matches no role, so it hands
+     * down `Color.Unspecified`. Every unstyled `Text` inside then fell back to
+     * its style default, which is black: on the driver app's near-black glass
+     * the registration, the clock and the battery were black on black and
+     * simply could not be read.
+     *
+     * Derived from the same flag as the tint, so the ink and the pane it sits on
+     * can never disagree.
+     */
+    val ink = if (dark) Color(0xFFF2F4F8) else Color(0xFF10131A)
+
     val blurred = haze != null && Modifier.canBlur()
 
     Surface(
@@ -112,6 +128,7 @@ fun GlassPanel(
         // Transparent: the fill is painted below, either through the blur or as
         // a denser tint standing in for it.
         color = Color.Transparent,
+        contentColor = ink,
         border = BorderStroke(1.dp, if (blurred) edge else MaterialTheme.colorScheme.outline),
         shadowElevation = 8.dp,
     ) {

@@ -15,6 +15,11 @@ import com.saarthi.core.network.FrameSimulated
 import com.saarthi.core.network.FrameVehicle
 import com.saarthi.core.network.HeartbeatRequest
 import com.saarthi.core.network.IssueDto
+import com.saarthi.core.network.DriverNotificationsDto
+import com.saarthi.core.network.DriverPaperDto
+import com.saarthi.core.network.DriverTripDto
+import com.saarthi.core.network.FastagDto
+import com.saarthi.core.network.FuelPriceDto
 import com.saarthi.core.network.NearbyResponse
 import com.saarthi.core.network.PairRequest
 import com.saarthi.core.network.ReportIssueRequest
@@ -416,6 +421,55 @@ class TerminalRepository(
         api.endSession(EndSessionRequest(reason))
         refresh()
     }
+
+    // -----------------------------------------------------------------------
+    // What a driver needs that only a browser could reach
+    // -----------------------------------------------------------------------
+
+    suspend fun papers(): Result<List<DriverPaperDto>> = runCatchingApi { api.papers() }
+
+    suspend fun fastag(): Result<FastagDto?> = runCatchingApi { api.fastag() }
+
+    /**
+     * Today's pump price where the vehicle is.
+     *
+     * Refuses rather than guesses without a position. A rate priced for the
+     * wrong district is a number a driver may budget a tank against.
+     */
+    suspend fun fuelPrice(): Result<FuelPriceDto?> = runCatchingApi {
+        val position = telemetry.snapshot.value.position
+            ?: return@runCatchingApi null
+        api.fuelPrice(position.latitude, position.longitude)
+    }
+
+    suspend fun trips(): Result<List<DriverTripDto>> = runCatchingApi { api.trips() }
+
+    /** A fuel slip and its photograph, in one request. */
+    suspend fun saveFuelSlip(
+        jpeg: ByteArray,
+        litres: Double,
+        totalCost: Double,
+        odometerKm: Double?,
+        stationName: String?,
+    ): Result<String> = runCatchingApi {
+        val position = telemetry.snapshot.value.position
+        api.uploadFuelSlip(
+            jpeg = jpeg,
+            litres = litres,
+            totalCost = totalCost,
+            odometerKm = odometerKm,
+            stationName = stationName,
+            // Where the pump was, so the office can see it without asking.
+            latitude = position?.latitude,
+            longitude = position?.longitude,
+        )
+    }
+
+    suspend fun notifications(): Result<DriverNotificationsDto> =
+        runCatchingApi { api.notifications() }
+
+    suspend fun markNotificationsRead(ids: List<String> = emptyList()): Result<Int> =
+        runCatchingApi { api.markNotificationsRead(ids) }
 
     // -----------------------------------------------------------------------
     // Services, issues and the assistant

@@ -85,10 +85,38 @@ function refineCapacities<T extends z.ZodTypeAny>(schema: T): T {
 export const createVehicleSchema = refineCapacities(z.object(baseVehicleFields));
 export type CreateVehicleInput = z.infer<typeof createVehicleSchema>;
 
+/**
+ * An edit to a vehicle that already exists.
+ *
+ * Every field is optional — a patch says only what changed — and the details
+ * that a vehicle is allowed not to have are additionally nullable. That
+ * distinction is the difference between "leave the colour alone" (omitted) and
+ * "this vehicle has no recorded colour" (null), and without it an edit form
+ * can overwrite a detail but never clear one. `updateVehicle` already stores
+ * `input.colour ?? null` for each of these; only the contract was missing the
+ * null it was written to accept.
+ *
+ * `registrationNumber`, `vehicleType`, `fuelType`, `odometerKm` and
+ * `shareLocation` stay non-nullable: a vehicle without a plate or a type is
+ * not a vehicle, and the last three have defaults rather than an absent state.
+ * The two capacities stay non-nullable for a different reason — whether a
+ * vehicle has one at all is decided by its type's capabilities, and
+ * `updateVehicle` clears them itself when the type changes, so a null here
+ * would only be read as "leave it alone".
+ */
+const clearableVehicleFields = {
+  manufacturer: baseVehicleFields.manufacturer.nullable(),
+  model: baseVehicleFields.model.nullable(),
+  year: baseVehicleFields.year.nullable(),
+  colour: baseVehicleFields.colour.nullable(),
+  fuelEfficiency: baseVehicleFields.fuelEfficiency.nullable(),
+  notes: baseVehicleFields.notes.nullable(),
+};
+
 export const updateVehicleSchema = z
   .object(baseVehicleFields)
   .partial()
-  .extend({ status: z.nativeEnum(TruckStatus).optional() });
+  .extend({ status: z.nativeEnum(TruckStatus).optional(), ...clearableVehicleFields });
 export type UpdateVehicleInput = z.infer<typeof updateVehicleSchema>;
 
 export const vehicleListQuerySchema = paginationSchema.extend({

@@ -12,6 +12,12 @@ import { cn } from '@/lib/utils';
  * only animates toward it. Numbers count up so a change reads as movement
  * rather than a silent swap.
  *
+ * `bare` drops the card around the figure so a row of metrics can share one
+ * tile instead of arriving as four floating panels. Nothing else changes —
+ * same figure, same series, same tones — because a board that reads as one
+ * picture and a board that reads as a pile of boxes should not need two
+ * different metric components to disagree about rounding.
+ *
  * The right-hand slot prefers a chart to an icon. An icon repeats what the
  * label already says; a fortnight of the same figure says whether the number
  * is climbing, and that is the question an operator actually opens the board
@@ -31,6 +37,7 @@ export function StatCard({
   onClick,
   className,
   live,
+  bare = false,
 }: {
   label: string;
   /** Rendered directly when `numericValue` is not supplied. */
@@ -55,6 +62,12 @@ export function StatCard({
   className?: string;
   /** Shows a pulsing dot — the figure is updating in realtime. */
   live?: boolean;
+  /**
+   * Render the figure without its own card, for a cell inside a shared tile.
+   *
+   * Defaults to `false`, so every existing call site keeps the panel it has.
+   */
+  bare?: boolean;
 }) {
   const valueTones = {
     default: 'text-foreground',
@@ -86,67 +99,97 @@ export function StatCard({
 
   const Wrapper = onClick ? 'button' : 'div';
 
+  const body = (
+    <Wrapper
+      {...(onClick ? { type: 'button' as const, onClick } : {})}
+      className="flex h-full w-full items-center justify-between gap-3 text-left sm:gap-4"
+    >
+      <div className="min-w-0 flex-1 space-y-2">
+        <p className="section-label flex items-center gap-1.5">
+          {label}
+          {live ? <span className="live-dot" aria-label="Updating live" /> : null}
+        </p>
+
+        <p
+          className={cn(
+            'tabular font-semibold leading-none tracking-[-0.03em]',
+            bare ? 'text-2xl sm:text-[1.6rem]' : 'text-[1.75rem] sm:text-[2rem]',
+            'break-words',
+            valueTones[tone],
+          )}
+        >
+          {numericValue !== undefined ? (
+            <AnimatedNumber value={numericValue} {...(format ? { format } : {})} />
+          ) : (
+            value
+          )}
+        </p>
+
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+          {trend !== undefined ? (
+            <span
+              className={cn(
+                'inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 font-medium',
+                isGood === null
+                  ? 'bg-muted text-muted-foreground'
+                  : isGood
+                    ? 'bg-success/10 text-success'
+                    : 'bg-destructive/10 text-destructive',
+              )}
+            >
+              <TrendIcon className="size-3" />
+              {Math.abs(trend.value).toFixed(1)}%
+            </span>
+          ) : null}
+          {trend?.label ? <span>{trend.label}</span> : null}
+          {/*
+            A cell gives the text column about 110px once the sparkline has its
+            84px, and "100% on time this month" truncated at that width reads
+            "100% on ti…". A card has room for the line, so only the cell wraps.
+          */}
+          {hint ? <span className={bare ? 'line-clamp-2 min-w-0' : 'truncate'}>{hint}</span> : null}
+        </div>
+      </div>
+
+      {chart && hasPlottableData(chart) ? (
+        <span className="shrink-0 self-center">
+          <MiniChart spec={chart} tone={tone} />
+        </span>
+      ) : Icon ? (
+        <span className={cn('shrink-0 rounded-2xl p-3 ring-1', iconTones[tone])}>
+          <Icon className="size-5" />
+        </span>
+      ) : null}
+    </Wrapper>
+  );
+
+  /*
+   * A cell in a shared tile. It carries the card colour itself so the grid it
+   * sits in can draw the hairlines between cells; the hover comes from the
+   * background rather than from a lift, because a cell that rose out of a
+   * panel would tear the panel it belongs to.
+   */
+  if (bare) {
+    return (
+      <div
+        className={cn(
+          'flex h-full min-w-0 bg-card p-4 transition-colors sm:p-5',
+          onClick && 'cursor-pointer hover:bg-muted/50',
+          className,
+        )}
+      >
+        {body}
+      </div>
+    );
+  }
+
   return (
     <HoverLift disabled={!onClick} className={cn('h-full', className)}>
       <Card
         variant="glass"
         className={cn('h-full rounded-2xl p-5 sm:p-6', onClick && 'cursor-pointer')}
       >
-        <Wrapper
-          {...(onClick ? { type: 'button' as const, onClick } : {})}
-          className="flex h-full w-full items-center justify-between gap-3 text-left sm:gap-4"
-        >
-          <div className="min-w-0 flex-1 space-y-2">
-            <p className="section-label flex items-center gap-1.5">
-              {label}
-              {live ? <span className="live-dot" aria-label="Updating live" /> : null}
-            </p>
-
-            <p
-              className={cn(
-                'tabular text-[1.75rem] font-semibold leading-none tracking-[-0.03em] sm:text-[2rem]',
-                'break-words',
-                valueTones[tone],
-              )}
-            >
-              {numericValue !== undefined ? (
-                <AnimatedNumber value={numericValue} {...(format ? { format } : {})} />
-              ) : (
-                value
-              )}
-            </p>
-
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
-              {trend !== undefined ? (
-                <span
-                  className={cn(
-                    'inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 font-medium',
-                    isGood === null
-                      ? 'bg-muted text-muted-foreground'
-                      : isGood
-                        ? 'bg-success/10 text-success'
-                        : 'bg-destructive/10 text-destructive',
-                  )}
-                >
-                  <TrendIcon className="size-3" />
-                  {Math.abs(trend.value).toFixed(1)}%
-                </span>
-              ) : null}
-              {trend?.label ? <span>{trend.label}</span> : null}
-              {hint ? <span className="truncate">{hint}</span> : null}
-            </div>
-          </div>
-
-          {chart && hasPlottableData(chart) ? (
-            <span className="shrink-0 self-center">
-              <MiniChart spec={chart} tone={tone} />
-            </span>
-          ) : Icon ? (
-            <span className={cn('shrink-0 rounded-2xl p-3 ring-1', iconTones[tone])}>
-              <Icon className="size-5" />
-            </span>
-          ) : null}
-        </Wrapper>
+        {body}
       </Card>
     </HoverLift>
   );

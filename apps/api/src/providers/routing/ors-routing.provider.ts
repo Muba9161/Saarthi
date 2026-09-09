@@ -3,6 +3,7 @@ import { config } from '../../config/env';
 import { logger } from '../../lib/logger';
 import {
   RoutingError,
+  type Locality,
   type PlaceMatch,
   type RoadDistance,
   type Route,
@@ -77,6 +78,8 @@ interface RawGeocodeResponse {
       label?: string;
       street?: string;
       locality?: string;
+      /** The district. The coarsest thing worth naming on an empty highway. */
+      county?: string;
       region?: string;
       /** Kilometres from `focus.point`, when ORS chose to compute one. */
       distance?: number;
@@ -209,6 +212,44 @@ export class OrsRoutingProvider implements RoutingProvider {
    * without it a search for a common name returns half of it from other
    * continents — results a driver has to read past every time.
    */
+  /**
+   * Which town this position is in.
+   *
+   * `/geocode/reverse` on the same Pelias instance the search uses, so it costs
+   * no new provider, no new key and no new failure mode to reason about.
+   *
+   * `size=1` because there is exactly one answer wanted. Pelias returns the
+   * finest-grained match first — a building, then a street, then a locality —
+   * and every one of those layers carries the `locality` and `region` fields
+   * this reads, so taking the first is taking the most confident.
+   */
+  async reverseGeocode(at: LatLng): Promise<Locality | null> {
+    const params = new URLSearchParams({
+      api_key: this.apiKey,
+      'point.lat': at.latitude.toFixed(6),
+      'point.lon': at.longitude.toFixed(6),
+      'boundary.country': 'IND',
+      size: '1',
+    });
+
+    const raw = await this.get<RawGeocodeResponse>(`/geocode/reverse?${params.toString()}`);
+    const properties = (raw.features ?? [])[0]?.properties;
+    if (!properties) return null;
+
+    /*
+     * `locality` first, then the coarser layers.
+     *
+     * A fuel rate is published for a city, and Pelias calls that `locality`.
+     * Out on a highway there may be no locality at all, in which case the
+     * district (`county`) is the nearest true thing — and naming the district is
+     * honest where inventing a city would not be.
+     */
+    const city = properties.locality ?? properties.county ?? properties.region ?? null;
+    if (!city) return null;
+
+    return { city, state: properties.region ?? null };
+  }
+
   async searchPlaces(query: string, near: LatLng, limit: number): Promise<PlaceMatch[]> {
     const trimmed = query.trim();
     if (trimmed.length < 2) return [];

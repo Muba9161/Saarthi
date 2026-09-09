@@ -631,26 +631,49 @@ async function pairWithinTransaction(
     });
 
     /*
-     * A session that was waiting for a device now has one.
+     * A session that was waiting for a device now has one — and one whose
+     * device has been replaced follows the driver to the new phone.
      *
      * The driver app's order is the reverse of the fitted tablet's: a phone
      * asks to drive, the fleet approves, and only then does the phone pair. The
      * session it opened has carried a null terminal since the request, and this
      * is the moment that becomes false.
      *
-     * Scoped to this vehicle and to sessions with no device, so it can neither
-     * steal another truck's session nor overwrite a tablet that is already
-     * bound. A fitted-tablet pairing matches nothing here, because its sessions
-     * always had a device from the start.
+     * The second case is a re-pair. A driver who reinstalls the app, clears its
+     * data, changes handset, or has their slot released gets a *new* device
+     * credential, while their approved session still names the old one. Terminal
+     * state is read by `terminalDeviceId`, so the new phone was told
+     * `AWAITING_DRIVER` while the fleet held a live approval — a dashboard whose
+     * only advice was "open the live view", with no route to the safety check
+     * and therefore none to starting the shift. Re-scanning did not help,
+     * because the session it needed was already spoken for.
+     *
+     * Scoped to this vehicle, and beyond the null case only to the session of
+     * the driver who issued this very pairing. That keeps both guarantees the
+     * narrower rule gave: another truck's session is out of scope, and so is
+     * another driver's on this one. A fitted tablet installed by the office
+     * matches nothing, because a pairing token minted by an administrator has a
+     * creator who is not the driver.
      */
-    await tx.terminalSession.updateMany({
-      where: {
-        vehicleId: vehicle.id,
-        terminalDeviceId: null,
-        status: { in: ACTIVE_TERMINAL_SESSION_STATUSES },
-      },
-      data: { terminalDeviceId: deviceId },
+    const adopting = {
+      vehicleId: vehicle.id,
+      status: { in: ACTIVE_TERMINAL_SESSION_STATUSES },
+      OR: [{ terminalDeviceId: null }, { driverUserId: pairing.createdById }],
+    };
+
+    // Read before the write, so the devices losing a session can have their
+    // cached terminal state dropped. Without it an old handset would go on being
+    // told it holds an approval for up to the cache's lifetime.
+    const surrendering = await tx.terminalSession.findMany({
+      where: { ...adopting, NOT: { terminalDeviceId: null } },
+      select: { terminalDeviceId: true },
     });
+
+    await tx.terminalSession.updateMany({ where: adopting, data: { terminalDeviceId: deviceId } });
+
+    const displaced = surrendering
+      .map((session) => session.terminalDeviceId)
+      .filter((id): id is string => id !== null && id !== deviceId);
 
     // Consumed inside the same transaction as the assignment it created, so the
     // token cannot be spent twice even under a lost cache.
@@ -670,8 +693,22 @@ async function pairWithinTransaction(
       },
     });
 
-    return { deviceId, vehicle };
+    return { deviceId, vehicle, displaced };
   });
+
+  /*
+   * The handset that just lost the session must stop being told it has one.
+   *
+   * Terminal state is cached per device, so without this an old phone still
+   * running would keep reading an approval that has moved on — and could act on
+   * it. Best-effort: a cache that cannot be reached expires on its own, and the
+   * pairing itself is already committed.
+   */
+  await Promise.all(
+    [outcome.deviceId, ...outcome.displaced].map((id) =>
+      cache.delete(cacheKeys.terminalState(id)).catch(() => undefined),
+    ),
+  );
 
   await registerClientCameras(outcome.deviceId, outcome.vehicle.organizationId);
 

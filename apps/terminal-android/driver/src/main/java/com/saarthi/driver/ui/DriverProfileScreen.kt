@@ -20,6 +20,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import com.saarthi.driver.R
 import com.saarthi.core.domain.TerminalState
 import com.saarthi.core.ui.TerminalViewModel
 import com.saarthi.driver.data.DriverAccountStore
@@ -168,6 +170,19 @@ fun DriverProfileScreen(
         Spacer(Modifier.height(FleetSpace.section))
 
         /*
+         * Language, on the driver's own screen.
+         *
+         * Their choice, not the fleet's — a lorry is driven by whoever is in it,
+         * and the person who has to read the app is the person who should pick
+         * the language it speaks.
+         */
+        FleetEnter(index = 4) {
+            LanguageCard()
+        }
+
+        Spacer(Modifier.height(FleetSpace.section))
+
+        /*
          * Signing out is last, and outlined rather than filled.
          *
          * It ends the shift's credentials and clears Quick Login on this phone.
@@ -228,13 +243,38 @@ private fun DetailRow(
  * in. Anything before the driver is authorised reads as "signed on", because
  * from where they are standing that is the whole of the difference.
  */
-private fun TerminalState.driverWord(): String = when (this) {
-    TerminalState.TRIP_ACTIVE -> "In transit"
-    TerminalState.TRIP_COMPLETED -> "Trip finished"
-    TerminalState.READY -> "Ready to drive"
-    TerminalState.CHECKLIST_REQUIRED -> "Checks due"
-    TerminalState.PENDING_APPROVAL -> "Awaiting approval"
-    TerminalState.REJECTED -> "Not approved"
-    TerminalState.REVOKED -> "Suspended"
-    else -> "Signed on"
-}
+/**
+ * The shift stage, in a driver's words rather than the server's.
+ *
+ * `internal` rather than file-private because the dashboard says the same thing
+ * about the same state, and two copies of this mapping would drift the first
+ * time a status was added.
+ */
+@Composable
+internal fun TerminalState.driverWord(): String = stringResource(
+    when (this) {
+        TerminalState.TRIP_ACTIVE -> R.string.state_in_transit
+        TerminalState.TRIP_COMPLETED -> R.string.state_trip_finished
+        TerminalState.READY -> R.string.state_ready
+        TerminalState.CHECKLIST_REQUIRED -> R.string.state_checks_due
+        TerminalState.PENDING_APPROVAL -> R.string.state_awaiting_approval
+        TerminalState.REJECTED -> R.string.state_not_approved
+        TerminalState.REVOKED -> R.string.state_suspended
+
+        /*
+         * Not signed on, and said so.
+         *
+         * These four fell into the "Signed on" fallback below, so a phone with no
+         * session on the vehicle reported the one thing that was certainly untrue
+         * — on the status pill, in the profile, and on the dashboard's next-step
+         * card at the same time.
+         */
+        TerminalState.UNPAIRED,
+        TerminalState.PAIRING,
+        TerminalState.VEHICLE_PAIRED,
+        TerminalState.AWAITING_DRIVER,
+        -> R.string.state_not_signed_on
+
+        else -> R.string.state_signed_on
+    },
+)

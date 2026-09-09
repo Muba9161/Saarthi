@@ -110,9 +110,30 @@ export interface RoutingProvider {
    * the one in this city rather than the better-known one four states away.
    */
   searchPlaces(query: string, near: LatLng, limit: number): Promise<PlaceMatch[]>;
+
+  /**
+   * Which town a position is in.
+   *
+   * The inverse of [searchPlaces], and needed for the things that are priced or
+   * regulated by locality rather than by coordinate — a diesel rate is
+   * published per city, and a vehicle reports a position.
+   *
+   * Returns null rather than throwing when the geocoder cannot name the place.
+   * Open country between two districts is a legitimate answer, and a screen
+   * that says "we do not know which city this is" is better than one that
+   * guesses and prices fuel from the wrong state.
+   */
+  reverseGeocode(at: LatLng): Promise<Locality | null>;
 }
 
 /** One result from [RoutingProvider.searchPlaces]. */
+/** Where a position is, in the terms a price or a rule is published in. */
+export interface Locality {
+  city: string;
+  /** The state, where the geocoder knows it. Disambiguates same-named towns. */
+  state: string | null;
+}
+
 export interface PlaceMatch {
   /** What to show. The geocoder's own label, which includes locality. */
   name: string;

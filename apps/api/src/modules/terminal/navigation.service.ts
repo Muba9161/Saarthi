@@ -1,5 +1,6 @@
 import {
   DistanceBasis,
+  FuelType,
   VehicleCapability,
   VehicleType,
   distanceKm,
@@ -118,6 +119,44 @@ function toResult(
  * this would be a list in the wrong order with the right numbers on it, which
  * is arguably worse than the wrong numbers.
  */
+/**
+ * What "fuel" means for the vehicle actually asking.
+ *
+ * The terminal's `FUEL` key has always mapped to both petrol pumps and charging
+ * points, for every vehicle — so an electric van was shown a list of diesel
+ * pumps it cannot use, and a forty-tonne truck was shown car chargers. Both are
+ * the same fault: the category was chosen by the button, not by the vehicle.
+ *
+ * Only the refuelling key is narrowed. A mechanic, a weighbridge or a hospital
+ * means the same thing whatever the vehicle burns, and narrowing those would be
+ * inventing a rule nobody asked for.
+ *
+ * Hybrids keep both on purpose — that is exactly what a hybrid is, and a driver
+ * of one is the only driver for whom either answer may be the right one.
+ * Unknown fuel keeps both too: showing a driver too much is recoverable, and
+ * hiding the only station they can use is not.
+ */
+export function refuellingCategoriesFor(
+  service: string | null,
+  fuelType: FuelType | null | undefined,
+  requested: readonly string[],
+): readonly string[] {
+  if (service !== 'FUEL') return requested;
+
+  switch (fuelType) {
+    case FuelType.ELECTRIC:
+      return ['CHARGING'];
+    case FuelType.DIESEL:
+    case FuelType.PETROL:
+    case FuelType.CNG:
+    case FuelType.LNG:
+      return ['FUEL'];
+    default:
+      // HYBRID, and anything the fleet has not recorded.
+      return requested;
+  }
+}
+
 export async function findServices(input: {
   organizationId: string;
   vehicleId: string;
@@ -130,14 +169,16 @@ export async function findServices(input: {
 }): Promise<TerminalServicesResponse> {
   const vehicle = await prisma.truck.findUnique({
     where: { id: input.vehicleId },
-    select: { vehicleType: true },
+    select: { vehicleType: true, fuelType: true },
   });
+
+  const categories = refuellingCategoriesFor(input.service, vehicle?.fuelType, input.categories);
 
   const places = await searchNearbyPlaces({
     latitude: input.latitude,
     longitude: input.longitude,
     radiusKm: input.radiusKm,
-    category: [...input.categories] as never,
+    category: [...categories] as never,
     limit: input.limit,
     openNow: undefined,
   });

@@ -563,8 +563,12 @@ private fun drawVehicle(
         style.addLayer(
             CircleLayer(VEHICLE_HALO_LAYER, VEHICLE_SOURCE).withProperties(
                 PropertyFactory.circleRadius(26f),
-                PropertyFactory.circleColor("#2B41B8"),
-                PropertyFactory.circleOpacity(0.14f),
+                // Ember, matching the marker it sits under. It was a navy blue
+                // left over from the old blue plan-view icons, and against the
+                // new one it read as a separate bruise on the map rather than as
+                // the marker's own glow.
+                PropertyFactory.circleColor("#F26522"),
+                PropertyFactory.circleOpacity(0.16f),
             ),
         )
         style.addLayer(

@@ -237,7 +237,16 @@ export const MEDIA_PURPOSE_CATALOGUE: MediaPurposeDefinition[] = [
     aspectRatio: null,
     maxDimension: 2000,
     defaultVisibility: MediaVisibility.ORGANIZATION,
-    ownerTypes: [],
+    /*
+     * A fuel slip is an attachment, not an odometer photo.
+     *
+     * `FUEL_RECORD` was reachable only through `ODOMETER`, which is a
+     * genuinely different thing — a dash reading that substantiates
+     * kilometres. A till roll from a pump is the evidence for the litres and
+     * the amount, and filing it under the odometer would make both harder to
+     * find and misdescribe what it is.
+     */
+    ownerTypes: [MediaOwnerType.FUEL_RECORD],
     allowsDocuments: true,
   },
   {

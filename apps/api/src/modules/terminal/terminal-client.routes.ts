@@ -1,6 +1,10 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
+import { z } from 'zod';
 import {
   DocumentOwnerType,
+  MediaOwnerType,
+  MediaPurpose,
+  MediaVisibility,
   documentListQuerySchema,
   endTerminalSessionSchema,
   finishAdHocTripSchema,
@@ -11,6 +15,9 @@ import {
   startAdHocTripSchema,
   submitChecklistSchema,
   terminalAskSchema,
+  terminalFuelPriceSchema,
+  terminalFuelSlipSchema,
+  terminalMarkNotificationsSchema,
   terminalNearbySchema,
   terminalPlaceSearchSchema,
   terminalRouteSchema,
@@ -28,6 +35,8 @@ import {
 import { truckPassport } from '../analytics/analytics.service';
 import { vehicleServiceTimeline } from '../maintenance/service-history.service';
 import { listDocuments } from '../documents/document.service';
+import { markAllAsRead, markAsRead } from '../notifications/notification.service';
+import { uploadMedia } from '../media/media.service';
 import { latestReadingForVehicle } from '../telemetry/telemetry.service';
 import { prisma } from '../../database/prisma';
 import { storageProvider } from '../../providers/storage';
@@ -56,6 +65,15 @@ import {
 } from './adhoc-trip.service';
 import { applyOdometer } from '../vehicles/odometer.service';
 import { issuesForVehicle, reportIssue } from './issue.service';
+import {
+  driverDocumentForDownload,
+  driverDocuments,
+  driverNotifications,
+  driverTrips,
+  fastagForVehicle,
+  fuelPriceNear,
+  recordFuelSlip,
+} from './driver-extras.service';
 import { ask } from './assistant.service';
 
 /**
@@ -78,6 +96,65 @@ import { ask } from './assistant.service';
  */
 
 /** Rate-limit configuration for a terminal route, keyed on the device. */
+/**
+ * A path id, validated before it reaches a query.
+ *
+ * Its own tiny schema rather than the shared `idParamSchema`, which this module
+ * does not otherwise import — and a uuid check here is what keeps a malformed
+ * path out of the database layer entirely.
+ */
+const documentIdParamSchema = z.object({ id: z.string().uuid() });
+
+/**
+ * How much history a driver is shown.
+ *
+ * Enough to cover the last few weeks of work, which is the window a driver
+ * actually argues about, and small enough to send over a patchy connection in
+ * one response. Not paginated on purpose: a cab is the wrong place for
+ * "load more", and a driver scrolling for a trip from March is a driver who
+ * should be asking the office.
+ */
+const TRIP_HISTORY_LIMIT = 40;
+
+/** One screenful and a bit. Older notices have been superseded by events. */
+const NOTIFICATION_LIMIT = 50;
+
+/**
+ * One file and some fields, from a terminal.
+ *
+ * A reader of its own rather than the fleet routes' selfie reader: that one
+ * accepts a second file for a caller-supplied thumbnail, and nothing a terminal
+ * uploads needs one. Accepting exactly one file is the protection, not a
+ * limitation.
+ */
+async function readTerminalUpload(request: FastifyRequest): Promise<{
+  fields: Record<string, string>;
+  file: { buffer: Buffer; fileName: string; declaredMimeType: string } | null;
+}> {
+  const fields: Record<string, string> = {};
+  let file: { buffer: Buffer; fileName: string; declaredMimeType: string } | null = null;
+
+  for await (const part of request.parts({ limits: { files: 1 } })) {
+    if (part.type === 'file') {
+      const buffer = await part.toBuffer();
+      if (part.file.truncated) {
+        throw errors.payloadTooLarge(
+          'That photograph is too large. Take it again at a lower resolution.',
+        );
+      }
+      file = {
+        buffer,
+        fileName: part.filename ?? 'photo.jpg',
+        declaredMimeType: part.mimetype ?? 'application/octet-stream',
+      };
+    } else if (typeof part.value === 'string') {
+      fields[part.fieldname] = part.value;
+    }
+  }
+
+  return { fields, file };
+}
+
 function terminalLimit(max: number, timeWindow = '1 minute') {
   return {
     rateLimit: {
@@ -372,6 +449,209 @@ export async function terminalClientRoutes(app: FastifyInstance): Promise<void> 
       }),
     );
     return ok(reply, documents);
+  });
+
+  // -------------------------------------------------------------------------
+  // What a driver needs that only a browser could reach
+  //
+  // Every route below projects a service that already existed and was visible
+  // only to a fleet manager on a desktop. A driver at a barrier with a blocked
+  // FASTag, or at a state border without an insurance certificate, is stopped —
+  // and Saarthi knew, and had no way to tell them.
+  // -------------------------------------------------------------------------
+
+  /**
+   * Every paper a checkpoint might ask for, vehicle and driver together.
+   *
+   * One list, because that is how they are asked for: an officer wants the RC,
+   * the insurance, the permit, the PUC *and* the licence, and a driver holding a
+   * phone should not have to know which of Saarthi's tables each lives in.
+   */
+  app.get('/papers', { config: terminalLimit(20) }, async (request, reply) => {
+    const terminal = requireTerminal(await authenticateDeviceRequest(request));
+    const session = await authorizedSessionForTerminal(terminal.device.id);
+
+    return ok(
+      reply,
+      await driverDocuments(terminal.organizationId, terminal.vehicleId, session.driverId ?? null),
+    );
+  });
+
+  /**
+   * One document's bytes, so the app can hold it for a checkpoint.
+   *
+   * Cached by the app on purpose. A document that needs a signal to show is a
+   * document that fails exactly where it is demanded — a border post, a mine
+   * gate, a bypass at two in the morning.
+   */
+  app.get('/papers/:id/download', { config: terminalLimit(30) }, async (request, reply) => {
+    const terminal = requireTerminal(await authenticateDeviceRequest(request));
+    const session = await authorizedSessionForTerminal(terminal.device.id);
+    const { id } = parseParams(documentIdParamSchema, request.params);
+
+    const document = await driverDocumentForDownload(
+      terminal.organizationId,
+      terminal.vehicleId,
+      session.driverId ?? null,
+      id,
+    );
+    // Not-found rather than forbidden for a document in another fleet: a
+    // document id is not a capability, and distinguishing the two answers would
+    // confirm that somebody else's paperwork exists.
+    if (!document) throw errors.notFound('Document');
+
+    const download = await storageProvider.download(document.storageKey);
+
+    reply
+      .header('content-type', document.mimeType ?? 'application/octet-stream')
+      .header('content-length', download.size)
+      .header('content-disposition', `inline; filename="${document.fileName}"`)
+      // Private: somebody's licence and address. It must not sit in a shared
+      // cache between one driver signing off and the next signing on.
+      .header('cache-control', 'private, max-age=300')
+      .header('x-content-type-options', 'nosniff');
+
+    return reply.send(download.stream);
+  });
+
+  /**
+   * The vehicle's FASTag balance.
+   *
+   * One number and one warning, and the reason it is worth a route of its own:
+   * a tag that is empty an hour before a plaza is trivial to top up and
+   * impossible to argue with once the barrier is down.
+   */
+  app.get('/fastag', { config: terminalLimit(20) }, async (request, reply) => {
+    const terminal = requireTerminal(await authenticateDeviceRequest(request));
+    await authorizedSessionForTerminal(terminal.device.id);
+
+    return ok(reply, await fastagForVehicle(terminal.organizationId, terminal.vehicleId));
+  });
+
+  /**
+   * Today's pump price where the vehicle is.
+   *
+   * The position comes from the terminal rather than from the last telemetry
+   * frame, for the same reason the nearby search does: a driver asking what
+   * diesel costs is asking about the district they are standing in.
+   */
+  app.get('/fuel-price', { config: terminalLimit(20) }, async (request, reply) => {
+    const terminal = requireTerminal(await authenticateDeviceRequest(request));
+    await authorizedSessionForTerminal(terminal.device.id);
+    const query = parseQuery(terminalFuelPriceSchema, request.query);
+
+    return ok(
+      reply,
+      await fuelPriceNear({ latitude: query.latitude, longitude: query.longitude }),
+    );
+  });
+
+  /**
+   * What this driver has actually run.
+   *
+   * The question drivers ask most and the one the app could not answer — there
+   * was no driver-scoped trip endpoint at all, which is why the dashboard showed
+   * no history rather than an invented one.
+   */
+  app.get('/trips', { config: terminalLimit(20) }, async (request, reply) => {
+    const terminal = requireTerminal(await authenticateDeviceRequest(request));
+    const session = await authorizedSessionForTerminal(terminal.device.id);
+    if (!session.driverId) return ok(reply, []);
+
+    return ok(reply, await driverTrips(session.driverId, TRIP_HISTORY_LIMIT));
+  });
+
+  /**
+   * What the server has already been telling this driver.
+   *
+   * `notify()` has been writing these all along — an approval, a revocation, a
+   * document about to lapse — and the app has never read one, so the only way a
+   * driver learned they were approved was the cockpit polling every five
+   * seconds.
+   */
+  app.get('/notifications', { config: terminalLimit(30) }, async (request, reply) => {
+    const terminal = requireTerminal(await authenticateDeviceRequest(request));
+    const session = await authorizedSessionForTerminal(terminal.device.id);
+    if (!session.driverUserId) return ok(reply, { items: [], unread: 0 });
+
+    return ok(
+      reply,
+      await driverNotifications(session.driverUserId, NOTIFICATION_LIMIT),
+    );
+  });
+
+  /**
+   * A fuel slip, recorded at the pump.
+   *
+   * Drivers carry paper. A till roll goes in a shirt pocket, survives a week of
+   * diesel and sunlight, and reaches the office as an argument about whether it
+   * was forty litres or forty-five — because filling in a form beside a running
+   * engine is worse than keeping the receipt.
+   *
+   * So this takes the two numbers printed largest on every slip and the
+   * photograph as the evidence for the rest, in **one** request. Deliberately
+   * one: a record without its photo, or a photo with no record, is a
+   * reconciliation problem somebody has to unpick by hand, and a driver at a
+   * pump on a patchy connection is exactly who would create it.
+   */
+  app.post('/fuel', { config: terminalLimit(12) }, async (request, reply) => {
+    const terminal = requireTerminal(await authenticateDeviceRequest(request));
+    const session = await authorizedSessionForTerminal(terminal.device.id);
+    const auth = await driverAuthForSession(session);
+
+    const { fields, file } = await readTerminalUpload(request);
+    const input = parseBody(terminalFuelSlipSchema, {
+      litres: fields.litres,
+      totalCost: fields.totalCost,
+      odometerKm: fields.odometerKm,
+      stationName: fields.stationName,
+      latitude: fields.latitude,
+      longitude: fields.longitude,
+    });
+
+    if (!file) {
+      throw errors.validation(
+        'Saarthi needs a photograph of the slip. It is the evidence for the figures.',
+      );
+    }
+
+    const record = await recordFuelSlip({
+      organizationId: terminal.organizationId,
+      vehicleId: terminal.vehicleId,
+      driverId: session.driverId ?? null,
+      litres: input.litres,
+      totalCost: input.totalCost,
+      odometerKm: input.odometerKm ?? null,
+      stationName: input.stationName ?? null,
+      latitude: input.latitude ?? null,
+      longitude: input.longitude ?? null,
+    });
+
+    await uploadMedia(
+      auth,
+      {
+        ownerType: MediaOwnerType.FUEL_RECORD,
+        ownerId: record.id,
+        purpose: MediaPurpose.ATTACHMENT,
+        visibility: MediaVisibility.ORGANIZATION,
+      },
+      { file },
+    );
+
+    return created(reply, { id: record.id });
+  });
+
+  app.post('/notifications/read', { config: terminalLimit(30) }, async (request, reply) => {
+    const terminal = requireTerminal(await authenticateDeviceRequest(request));
+    const session = await authorizedSessionForTerminal(terminal.device.id);
+    if (!session.driverUserId) return ok(reply, { read: 0 });
+
+    const input = parseBody(terminalMarkNotificationsSchema, request.body ?? {});
+    const read = input.ids.length > 0
+      ? await markAsRead(session.driverUserId, [...input.ids])
+      : await markAllAsRead(session.driverUserId);
+
+    return ok(reply, { read });
   });
 
   /** The signed-on driver's own information (specification section 25). */

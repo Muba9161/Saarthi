@@ -7,12 +7,14 @@ import { cn } from '@/lib/utils';
  *
  * Three sources, tried in order of how specific they are to this vehicle:
  *
- *  1. `photoId` — the vehicle's own photograph, when a caller has one. No list
- *     endpoint returns one yet: a vehicle photograph exists in Saarthi only as
- *     a `TRUCK_PHOTO` document, which is a request per vehicle and something a
- *     forty-card grid cannot afford. The parameter is here so that when a list
- *     response grows the field, wiring it up is a prop and not a redesign.
- *  2. The cut-out artwork for its class, from `/vehicles/` — five side
+ *  1. `photoId` — the vehicle's own photograph, when a caller has one. It is a
+ *     media asset under the `VEHICLE_EXTERIOR` purpose, uploaded from the
+ *     vehicle's Photos tab. No list endpoint returns one yet — reading it per
+ *     card is a request per vehicle and something a forty-card grid cannot
+ *     afford — so the parameter is here for the callers that already hold an
+ *     id, and so that when a list response grows the field, wiring it up is a
+ *     prop and not a redesign.
+ *  2. The cut-out artwork for its class, from `/vehicles/` — six side
  *     profiles covering the ten types, so it is coarse in places. See the note
  *     on PHOTO_BY_SILHOUETTE.
  *  3. The drawing below, if that artwork cannot be loaded at all.
@@ -274,22 +276,23 @@ export function VehicleSilhouette({
    and on a near-black one, and the shared canvas is what stops a rickshaw and
    a tipper arriving at different visual weights in the same grid.
 
-   Five drawings for nine classes, so some sharing remains: a tanker, a trailer
-   and a van all show the goods truck. That is a gap in the artwork rather than
-   in the mapping — add a file and point its class at it. The type label under
-   the plate is what disambiguates in the meantime. */
+   Six drawings for ten classes, so some sharing remains: a tanker, a trailer,
+   a van and a pickup all show the goods truck. That is a gap in the artwork
+   rather than in the mapping — add a file and point its class at it, which is
+   all the bus took. The type label under the plate is what disambiguates in
+   the meantime. */
 const PHOTO_BY_SILHOUETTE: Record<Silhouette, string> = {
   truck: '/vehicles/truck.webp',
   tipper: '/vehicles/tipper.webp',
   suv: '/vehicles/suv.webp',
   car: '/vehicles/sedan.webp',
+  bus: '/vehicles/bus.webp',
   rickshaw: '/vehicles/autorickshaw.webp',
   // No artwork of their own yet — nearest class by body shape.
   trailer: '/vehicles/truck.webp',
   tanker: '/vehicles/truck.webp',
   van: '/vehicles/truck.webp',
   pickup: '/vehicles/truck.webp',
-  bus: '/vehicles/truck.webp',
 };
 
 /**

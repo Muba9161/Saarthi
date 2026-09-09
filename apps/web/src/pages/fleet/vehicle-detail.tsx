@@ -3,15 +3,10 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Activity,
-  ArrowLeft,
-  BadgeCheck,
-  Bus,
   Car,
-  Cpu,
+  MoreHorizontal,
   Route as RouteIcon,
   ShieldAlert,
-  TriangleAlert,
-  Truck,
   UserPlus,
   UserMinus,
   Users,
@@ -24,7 +19,6 @@ import {
   OrganizationType,
   Permission,
   VehicleCapability,
-  VehicleType,
   formatCompactCurrency,
   formatCurrency,
   formatDistanceKm,
@@ -40,14 +34,18 @@ import type { VehicleSummary } from '@/lib/mobility-types';
 import { useAuth } from '@/features/auth/auth-context';
 import { SectionHeader } from '@/components/common/page-header';
 import { VerifyButton } from '@/features/verification/verify-button';
-import { StatCard } from '@/components/common/stat-card';
-import { VEHICLE_ART_ASPECT, VehicleArt } from '@/components/common/vehicle-art';
-import { cn } from '@/lib/utils';
+import { BentoGrid, BentoMetric, BentoMetrics } from '@/components/common/bento';
 import { toSeriesPoints } from '@/components/common/mini-chart';
 import { StatusBadge } from '@/components/common/status-badge';
 import { EmptyState, ErrorState, LoadingState } from '@/components/common/states';
 import { DocumentPanel } from '@/features/documents/document-panel';
 import { RcLookupPanel } from '@/features/vehicles/rc-lookup-panel';
+import { EditVehicleDialog } from '@/features/vehicles/vehicle-dialog';
+import { VehicleHero } from '@/features/vehicles/detail/vehicle-hero';
+import { VehicleAiCard } from '@/features/vehicles/detail/vehicle-ai-card';
+import { VehicleInsights } from '@/features/vehicles/detail/vehicle-insights';
+import { VehiclePhotosPanel } from '@/features/vehicles/detail/vehicle-photos';
+import { SpecSheet, type SpecGroup } from '@/features/vehicles/detail/spec-sheet';
 import { SellVehiclePanel } from '@/features/resale/sell-vehicle-panel';
 import { LoanPanel } from '@/features/loans/loan-panel';
 import { ServiceTimelinePanel } from '@/features/service/service-timeline';
@@ -55,7 +53,6 @@ import { CameraGrid } from '@/features/cameras/camera-grid';
 import { VehicleHardware } from '@/features/devices/vehicle-hardware';
 import { VehicleFastagPanel } from '@/features/toll/fastag-panel';
 import { SubjectQrPanel } from '@/features/qr/subject-qr-panel';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -67,6 +64,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
   Select,
   SelectContent,
@@ -100,13 +104,6 @@ import {
  * that knows only a vehicle id still lands on the right presentation.
  */
 
-/** The icon that matches what the vehicle actually is. */
-function vehicleIcon(type: VehicleType): React.ComponentType<{ className?: string }> {
-  if (type === VehicleType.BUS || type === VehicleType.TEMPO) return Bus;
-  if (type === VehicleType.TRUCK || type === VehicleType.PICKUP) return Truck;
-  return Car;
-}
-
 export function VehicleDetailPage() {
   const { id = '' } = useParams();
   const navigate = useNavigate();
@@ -114,6 +111,19 @@ export function VehicleDetailPage() {
   const { can, hasFeature, session } = useAuth();
   const queryClient = useQueryClient();
   const [assignOpen, setAssignOpen] = React.useState(false);
+  /*
+   * The open tab, held here rather than left to Radix's own default.
+   *
+   * The header's overflow menu offers the sections that are not primary
+   * actions — the QR sticker, the paperwork, the fitted hardware — and a menu
+   * item can only open one of those if something above the tab list owns which
+   * tab is showing. Kept in state rather than in the URL so that existing
+   * links to this page, and the browser's back button, behave exactly as they
+   * did before.
+   */
+  const [tab, setTab] = React.useState('overview');
+  /** The tab strip, so opening a section from the header scrolls to it. */
+  const tabsRef = React.useRef<HTMLDivElement | null>(null);
 
   // The generalized endpoint serves both routes: it returns the same row as
   // `/trucks/:id` plus the type, capabilities, hardware and alert roll-up the
@@ -192,7 +202,6 @@ export function VehicleDetailPage() {
   const vehicle = vehicleQuery.data;
   const lifetime = passport.data?.lifetime;
   const definition = vehicleTypeDefinition(vehicle.vehicleType);
-  const TypeIcon = vehicleIcon(vehicle.vehicleType);
 
   const carriesFreight = vehicle.capabilities.includes(VehicleCapability.CARGO_CAPACITY);
   const carriesPassengers = vehicle.capabilities.includes(VehicleCapability.PASSENGER_CAPACITY);
@@ -228,130 +237,143 @@ export function VehicleDetailPage() {
   // Offered on the strength of a fitted device rather than the type's declared
   // capability: if a unit is reporting, its readings are worth reading.
   const canSeeTelemetry = Boolean(vehicle.device) && can(Permission.TELEMETRY_READ);
+  // The same pair the Copilot screen checks. When either is missing the
+  // assistant card renders nothing, and the hero takes the full width.
+  const canUseAi = can(Permission.AI_USE) && hasFeature(Feature.AI_COPILOT);
 
-  const makeAndModel = [vehicle.manufacturer, vehicle.model, vehicle.year]
-    .filter(Boolean)
-    .join(' · ');
-  // The type always leads, so a car is never described by a truck body type.
-  const description =
-    [
-      vehicle.typeLabel,
-      makeAndModel,
-      // Body type only means something for a goods vehicle.
-      carriesFreight ? humanizeEnum(vehicle.truckType) : null,
-      vehicle.colour,
-    ]
-      .filter(Boolean)
-      .join(' · ') || definition.description;
+  /**
+   * The sections reachable from the header's overflow menu.
+   *
+   * Every one is an existing tab behind its existing gate — the menu is a
+   * second way in, never a second permission check. Building the list here
+   * keeps it impossible for the menu to offer a tab the strip below does not
+   * render.
+   */
+  const moreSections: { value: string; label: string }[] = [
+    { value: 'photos', label: 'Photos' },
+    { value: 'documents', label: 'Documents' },
+    ...(canSeeQr ? [{ value: 'qr', label: 'QR code' }] : []),
+    ...(canLookupRegistration ? [{ value: 'registration', label: 'Registration' }] : []),
+    { value: 'maintenance', label: 'Maintenance' },
+    ...(canSeeFinance ? [{ value: 'finance', label: 'Loan & finance' }] : []),
+    ...(canSeeToll ? [{ value: 'fastag', label: 'FASTag' }] : []),
+    ...(canSeeHardware ? [{ value: 'hardware', label: 'Hardware' }] : []),
+    ...(canSeeCameras ? [{ value: 'cameras', label: 'Cameras' }] : []),
+    { value: 'drivers', label: 'Driver history' },
+    ...(canSell ? [{ value: 'sell', label: 'Sell this vehicle' }] : []),
+  ];
 
-  /** Capability-driven specification — never a field the type cannot have. */
-  const specification: [string, React.ReactNode][] = [
-    ['Vehicle type', vehicle.typeLabel],
-    ...(carriesFreight
-      ? ([['Body type', humanizeEnum(vehicle.truckType)]] as [string, React.ReactNode][])
-      : []),
-    ['Make & model', [vehicle.manufacturer, vehicle.model].filter(Boolean).join(' ') || '—'],
-    ['Year', vehicle.year ?? '—'],
-    ['Colour', vehicle.colour ?? '—'],
-    ['Fuel', humanizeEnum(vehicle.fuelType)],
-    ...(carriesFreight
-      ? ([
-          ['Payload capacity', vehicle.capacityTons !== null ? `${vehicle.capacityTons} t` : '—'],
-        ] as [string, React.ReactNode][])
-      : []),
-    ...(carriesPassengers
-      ? ([
-          [
-            'Passenger seats',
-            vehicle.passengerCapacity !== null ? formatNumber(vehicle.passengerCapacity) : '—',
-          ],
-          [
-            'Air conditioning',
-            vehicle.airConditioned === null ? '—' : vehicle.airConditioned ? 'Yes' : 'No',
-          ],
-        ] as [string, React.ReactNode][])
-      : []),
-    [
-      'Rated consumption',
-      vehicle.fuelEfficiency !== null ? `${vehicle.fuelEfficiency} L/100 km` : '—',
-    ],
-    ['Odometer', `${formatNumber(Math.round(vehicle.odometerKm))} km`],
-    ['Location sharing', vehicle.shareLocation ? 'On' : 'Off'],
-    ['On platform since', new Date(vehicle.createdAt).toLocaleDateString('en-IN')],
+  /** Open a section and bring it into view — a menu that silently changed a
+      tab three screens down would read as having done nothing. */
+  const openSection = (value: string): void => {
+    setTab(value);
+    requestAnimationFrame(() => {
+      tabsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  };
+
+  /**
+   * Capability-driven specification — never a field the type cannot have.
+   *
+   * Grouped rather than listed. Twelve equally-weighted pairs in one rectangle
+   * had to be scanned; under three headings, "what is it", "what can it carry"
+   * and "what is on record" are three questions a reader can go straight to.
+   */
+  const specGroups: SpecGroup[] = [
+    {
+      title: 'Identity',
+      rows: [
+        { label: 'Vehicle type', value: vehicle.typeLabel },
+        // Body type only means something for a goods vehicle.
+        ...(carriesFreight
+          ? [{ label: 'Body type', value: humanizeEnum(vehicle.truckType) }]
+          : []),
+        { label: 'Make', value: vehicle.manufacturer ?? '—' },
+        { label: 'Model', value: vehicle.model ?? '—' },
+        { label: 'Year', value: vehicle.year ?? '—' },
+        { label: 'Colour', value: vehicle.colour ?? '—' },
+      ],
+    },
+    {
+      title: 'Capacity & fuel',
+      rows: [
+        ...(carriesFreight
+          ? [
+              {
+                label: 'Payload capacity',
+                value: vehicle.capacityTons !== null ? `${vehicle.capacityTons} t` : '—',
+              },
+            ]
+          : []),
+        ...(carriesPassengers
+          ? [
+              {
+                label: 'Passenger seats',
+                value:
+                  vehicle.passengerCapacity !== null
+                    ? formatNumber(vehicle.passengerCapacity)
+                    : '—',
+              },
+              {
+                label: 'Air conditioning',
+                value:
+                  vehicle.airConditioned === null
+                    ? '—'
+                    : vehicle.airConditioned
+                      ? 'Yes'
+                      : 'No',
+              },
+            ]
+          : []),
+        { label: 'Fuel', value: humanizeEnum(vehicle.fuelType) },
+        {
+          label: 'Rated consumption',
+          value:
+            vehicle.fuelEfficiency !== null ? `${vehicle.fuelEfficiency} L/100 km` : '—',
+        },
+      ],
+    },
+    {
+      title: 'On record',
+      rows: [
+        { label: 'Odometer', value: `${formatNumber(Math.round(vehicle.odometerKm))} km` },
+        { label: 'Location sharing', value: vehicle.shareLocation ? 'On' : 'Off' },
+        {
+          label: 'On platform since',
+          value: new Date(vehicle.createdAt).toLocaleDateString('en-IN'),
+        },
+      ],
+    },
   ];
 
   return (
     <div className="space-y-6">
       {/*
-        The identity band.
+        The identity band, with the assistant beside it.
 
-        Laid out as the reference vehicle page is: the plate and everything
-        that identifies this one vehicle on the left, the vehicle itself given
-        real size on the right, and the actions directly under the name they
-        act on. The picture is the largest thing on the screen on purpose —
-        it is how someone confirms they opened the right record before they
-        press Assign driver.
+        Laid out as the reference vehicle page is: the plate and everything that
+        identifies this one vehicle on the left, the vehicle itself given real
+        size beside it, and the actions directly under the name they act on.
+
+        On a wide screen the assistant takes the third column. Without the AI
+        entitlement it renders nothing at all and the hero spans the full width,
+        so there is never an empty column where a panel should be.
       */}
-      <Card variant="glass" className="overflow-hidden rounded-3xl">
-        <div className="grid gap-6 p-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:items-center lg:gap-8 lg:p-8">
-          <div className="min-w-0 space-y-5">
-            <Button
-              variant="ghost"
-              size="sm"
-              shape="pill"
-              className="-ml-2 text-muted-foreground"
-              onClick={() => navigate(backTo)}
-            >
-              <ArrowLeft className="size-4" />
-              {backLabel}
-            </Button>
-
-            <div className="space-y-3">
-              <p className="section-label inline-flex items-center gap-1.5">
-                <TypeIcon className="size-3.5" />
-                {vehicle.typeLabel}
-              </p>
-
-              <h1 className="text-3xl font-semibold tracking-[-0.03em] sm:text-4xl">
-                {formatRegistrationNumber(vehicle.registrationNumber)}
-              </h1>
-
-              <div className="flex flex-wrap items-center gap-2">
-                <StatusBadge status={vehicle.status} />
-                {vehicle.verificationStatus === 'VERIFIED' ? (
-                  <span className="inline-flex items-center gap-1 text-xs font-medium text-success">
-                    <BadgeCheck className="size-4" />
-                    Verified
-                  </span>
-                ) : (
-                  <StatusBadge status={vehicle.verificationStatus} size="sm" />
-                )}
-              </div>
-
-              <p className="text-sm text-muted-foreground">{description}</p>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              <VerifyButton
-                subjectType="truck"
-                subjectId={vehicle.id}
-                subjectLabel={formatRegistrationNumber(vehicle.registrationNumber)}
-                verified={vehicle.verificationStatus === 'VERIFIED'}
-                invalidateKeys={[
-                  ['vehicle', vehicle.id],
-                  ['truck', vehicle.id],
-                  ['vehicles'],
-                  ['trucks'],
-                ]}
-              />
-              {canSeeTelemetry ? (
-                <Button variant="outline" asChild>
-                  <Link to={`/fleet/vehicles/${vehicle.id}/telemetry`}>
-                    <Activity className="size-4" />
-                    Telemetry
-                  </Link>
-                </Button>
-              ) : null}
+      <div className={canUseAi ? 'grid gap-4 xl:grid-cols-3' : 'grid gap-4'}>
+        <VehicleHero
+          vehicle={vehicle}
+          backTo={backTo}
+          backLabel={backLabel}
+          carriesFreight={carriesFreight}
+          className={canUseAi ? 'xl:col-span-2' : ''}
+          actions={
+            <>
+              {/*
+                Assigning a driver is the one action here that changes what the
+                vehicle can do next, so it is the only primary button. Verify
+                and Telemetry are outlines, and Verify hides itself once the
+                registry has confirmed the plate.
+              */}
               {can(Permission.TRUCKS_ASSIGN) ? (
                 vehicle.currentDriver ? (
                   <Button
@@ -369,99 +391,159 @@ export function VehicleDetailPage() {
                   </Button>
                 )
               ) : null}
-            </div>
-          </div>
 
-          <VehicleArt
-            type={vehicle.vehicleType}
-            registrationNumber={vehicle.registrationNumber}
-            className={cn('w-full rounded-2xl', VEHICLE_ART_ASPECT)}
-            padding="p-4 sm:p-6"
-          />
-        </div>
-      </Card>
+              <VerifyButton
+                subjectType="truck"
+                subjectId={vehicle.id}
+                subjectLabel={formatRegistrationNumber(vehicle.registrationNumber)}
+                verified={vehicle.verificationStatus === 'VERIFIED'}
+                invalidateKeys={[
+                  ['vehicle', vehicle.id],
+                  ['truck', vehicle.id],
+                  ['vehicles'],
+                  ['trucks'],
+                ]}
+              />
 
-      {/*
-        Capacity is reported per capability. A taxi has no payload and a truck
-        has no seat count, and showing either as a plausible-looking 0 would be
-        worse than not showing it at all.
-      */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {carriesFreight ? (
-          <StatCard
-            label="Payload"
-            value={vehicle.capacityTons !== null ? `${vehicle.capacityTons} t` : '—'}
-            icon={Weight}
-            hint={humanizeEnum(vehicle.truckType)}
-          />
-        ) : null}
+              {canSeeTelemetry ? (
+                <Button variant="outline" asChild>
+                  <Link to={`/fleet/vehicles/${vehicle.id}/telemetry`}>
+                    <Activity className="size-4" />
+                    Telemetry
+                  </Link>
+                </Button>
+              ) : null}
 
-        {carriesPassengers ? (
-          <StatCard
-            label="Seats"
-            value={
-              vehicle.passengerCapacity !== null ? formatNumber(vehicle.passengerCapacity) : '—'
-            }
-            icon={Users}
-            hint={
-              vehicle.airConditioned === null
-                ? undefined
-                : vehicle.airConditioned
-                  ? 'Air conditioned'
-                  : 'Non air-conditioned'
-            }
-          />
-        ) : null}
+              {/*
+                Renders nothing without `vehicles.update` — the same dialog the
+                fleet grid uses, opened on this vehicle.
+              */}
+              <EditVehicleDialog
+                vehicle={vehicle}
+                label="Edit details"
+                variant="outline"
+                size="default"
+              />
 
-        <StatCard
-          label="Odometer"
-          value={`${formatNumber(Math.round(vehicle.odometerKm))} km`}
-          chart={{ kind: 'area', points: toSeriesPoints(odometerCurve), format: formatDistanceKm }}
-          hint={
-            lifetime ? `${formatDistanceKm(lifetime.totalDistanceKm)} on Saarthi trips` : undefined
+              {moreSections.length > 0 ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="icon" aria-label="More sections">
+                      <MoreHorizontal className="size-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-52">
+                    <DropdownMenuLabel>Go to</DropdownMenuLabel>
+                    {moreSections.map((section) => (
+                      <DropdownMenuItem
+                        key={section.value}
+                        onSelect={() => openSection(section.value)}
+                      >
+                        {section.label}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : null}
+            </>
           }
         />
-        <StatCard
-          label="Lifetime revenue"
-          value={lifetime ? formatCompactCurrency(lifetime.revenue) : '—'}
-          chart={{
-            // Where the revenue went, not where it came from. The three
-            // segments are the lifetime figures themselves — profit is what is
-            // left after fuel and workshop — so the bar is the money the tile
-            // above it names, split the way the owner has to think about it.
-            kind: 'split',
-            segments: [
-              { label: 'Profit', value: Math.max(0, lifetime?.profit ?? 0), tone: 'success' },
-              { label: 'Fuel', value: lifetime?.fuelCost ?? 0, tone: 'warning' },
-              { label: 'Workshop', value: lifetime?.maintenanceCost ?? 0, tone: 'destructive' },
-            ],
-          }}
-          tone={lifetime && lifetime.profit > 0 ? 'success' : 'default'}
-          hint={lifetime ? `Profit ${formatCompactCurrency(lifetime.profit)}` : undefined}
-        />
-        <StatCard
-          label="Running cost"
-          value={lifetime?.costPerKm ? `${formatCurrency(lifetime.costPerKm)}/km` : '—'}
-          chart={{ kind: 'bars', points: toSeriesPoints(fuelSpend), format: formatCurrency }}
-          hint={
-            lifetime?.fuelEfficiencyL100Km
-              ? `${lifetime.fuelEfficiencyL100Km} L/100 km`
-              : 'No fuel records yet'
-          }
-        />
+
+        <VehicleAiCard vehicle={vehicle} canSeeFinance={canSeeFinance} />
       </div>
 
       {/*
-        Who and what is attached to this vehicle right now.
+        The figures, as one panel divided by hairlines rather than five cards
+        floating apart.
 
-        Separate tiles rather than one wrapped row: each of these is a link to
-        somewhere else, and in a single row they ran together into a strip of
-        text where only some words were clickable. As tiles the target of each
-        is the whole card, which is what the reference layout does with the
-        small panels under its hero.
+        `BentoMetrics` is the dashboard strip the boards already use, so a
+        figure reads identically here and there — same animation, same series,
+        same tones — and a ragged final row leaves a clean empty cell instead
+        of a stripe of border colour.
+
+        Capacity is still reported per capability. A taxi has no payload and a
+        truck has no seat count, and showing either as a plausible-looking 0
+        would be worse than not showing it at all, so the strip is four cells
+        wide for most vehicles and five for a van that does both.
       */}
-      {vehicle.currentDriver || vehicle.device || vehicle.openTelemetryAlerts > 0 ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <BentoGrid>
+        <BentoMetrics columns={4}>
+          {carriesFreight ? (
+            <BentoMetric
+              label="Payload"
+              value={vehicle.capacityTons !== null ? `${vehicle.capacityTons} t` : '—'}
+              icon={Weight}
+              hint={humanizeEnum(vehicle.truckType)}
+            />
+          ) : null}
+
+          {carriesPassengers ? (
+            <BentoMetric
+              label="Seats"
+              value={
+                vehicle.passengerCapacity !== null ? formatNumber(vehicle.passengerCapacity) : '—'
+              }
+              icon={Users}
+              hint={
+                vehicle.airConditioned === null
+                  ? undefined
+                  : vehicle.airConditioned
+                    ? 'Air conditioned'
+                    : 'Non air-conditioned'
+              }
+            />
+          ) : null}
+
+          <BentoMetric
+            label="Odometer"
+            value={`${formatNumber(Math.round(vehicle.odometerKm))} km`}
+            chart={{ kind: 'area', points: toSeriesPoints(odometerCurve), format: formatDistanceKm }}
+            hint={
+              lifetime ? `${formatDistanceKm(lifetime.totalDistanceKm)} on Saarthi trips` : undefined
+            }
+          />
+          <BentoMetric
+            label="Lifetime revenue"
+            value={lifetime ? formatCompactCurrency(lifetime.revenue) : '—'}
+            chart={{
+              // Where the revenue went, not where it came from. The three
+              // segments are the lifetime figures themselves — profit is what is
+              // left after fuel and workshop — so the bar is the money the tile
+              // above it names, split the way the owner has to think about it.
+              kind: 'split',
+              segments: [
+                { label: 'Profit', value: Math.max(0, lifetime?.profit ?? 0), tone: 'success' },
+                { label: 'Fuel', value: lifetime?.fuelCost ?? 0, tone: 'warning' },
+                { label: 'Workshop', value: lifetime?.maintenanceCost ?? 0, tone: 'destructive' },
+              ],
+            }}
+            tone={lifetime && lifetime.profit > 0 ? 'success' : 'default'}
+            hint={lifetime ? `Profit ${formatCompactCurrency(lifetime.profit)}` : undefined}
+          />
+          <BentoMetric
+            label="Running cost"
+            value={lifetime?.costPerKm ? `${formatCurrency(lifetime.costPerKm)}/km` : '—'}
+            chart={{ kind: 'bars', points: toSeriesPoints(fuelSpend), format: formatCurrency }}
+            hint={
+              lifetime?.fuelEfficiencyL100Km
+                ? `${lifetime.fuelEfficiencyL100Km} L/100 km`
+                : 'No fuel records yet'
+            }
+          />
+        </BentoMetrics>
+      </BentoGrid>
+
+      {/*
+        Who is on this vehicle, and whether it is out.
+
+        Trimmed to the two tiles that are links. The hardware and alert tiles
+        that used to sit here said less than the Operational card below now
+        does — which adds when the unit was last seen and how the paperwork
+        stands — and stating the same two facts twice on one screen was clutter
+        rather than emphasis.
+      */}
+      {vehicle.currentDriver || vehicle.currentTripId ? (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {vehicle.currentDriver ? (
             <Card variant="glass" interactive className="rounded-2xl">
               <Link
@@ -478,46 +560,6 @@ export function VehicleDetailPage() {
                   </span>
                 </span>
               </Link>
-            </Card>
-          ) : null}
-
-          {vehicle.device ? (
-            <Card variant="glass" className="rounded-2xl">
-              <div className="flex items-center gap-3 p-5">
-                <span className="shrink-0 rounded-2xl bg-info/10 p-3 text-info ring-1 ring-info/15">
-                  <Cpu className="size-5" />
-                </span>
-                <span className="min-w-0">
-                  <span className="section-label block">Hardware</span>
-                  <span className="mt-0.5 flex items-center gap-1.5">
-                    <span className="truncate text-sm font-semibold">
-                      {vehicle.device.deviceIdentifier}
-                    </span>
-                    <Badge
-                      variant={vehicle.device.status === 'ACTIVE' ? 'success' : 'warning'}
-                      size="sm"
-                    >
-                      {humanizeEnum(vehicle.device.status)}
-                    </Badge>
-                  </span>
-                </span>
-              </div>
-            </Card>
-          ) : null}
-
-          {vehicle.openTelemetryAlerts > 0 ? (
-            <Card variant="glass" className="rounded-2xl">
-              <div className="flex items-center gap-3 p-5">
-                <span className="shrink-0 rounded-2xl bg-warning/12 p-3 text-warning ring-1 ring-warning/20">
-                  <TriangleAlert className="size-5" />
-                </span>
-                <span className="min-w-0">
-                  <span className="section-label block">Open alerts</span>
-                  <span className="tabular mt-0.5 block text-sm font-semibold text-warning">
-                    {formatNumber(vehicle.openTelemetryAlerts)}
-                  </span>
-                </span>
-              </div>
             </Card>
           ) : null}
 
@@ -539,9 +581,24 @@ export function VehicleDetailPage() {
         </div>
       ) : null}
 
-      <Tabs defaultValue="overview">
+      {/*
+        Location, usage and operational condition — assembled from the vehicle
+        row and the passport this page has already fetched, so the three cards
+        cost no further request and contain no figure the API does not report.
+      */}
+      <VehicleInsights
+        vehicle={vehicle}
+        passport={passport.data}
+        isLoading={passport.isLoading}
+      />
+
+      {/* Anchored, so the overflow menu can scroll a section into view. */}
+      <div ref={tabsRef} className="scroll-mt-24" aria-hidden />
+
+      <Tabs value={tab} onValueChange={setTab}>
         <TabsList variant="merged">
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="photos">Photos</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
           {canSeeQr ? <TabsTrigger value="qr">QR code</TabsTrigger> : null}
           {canLookupRegistration ? (
@@ -559,92 +616,118 @@ export function VehicleDetailPage() {
 
         <TabsContent value="overview" className="space-y-4">
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <Card>
-              <CardHeader className="pb-3">
-                <SectionHeader title="Vehicle details" description={definition.description} />
+            <Card className="rounded-2xl">
+              <CardHeader className="pb-2">
+                <SectionHeader title="Specification" description={definition.description} />
               </CardHeader>
-              <CardContent className="grid grid-cols-2 gap-4 pt-0 text-sm">
-                {specification.map(([label, value]) => (
-                  <div key={label}>
-                    <p className="text-xs text-muted-foreground">{label}</p>
-                    <p className="tabular font-medium">{value}</p>
-                  </div>
-                ))}
+              <CardContent className="pt-0">
+                <SpecSheet groups={specGroups} />
               </CardContent>
             </Card>
 
-            {passport.isLoading ? (
-              <LoadingState />
-            ) : passport.data ? (
-              <>
-                <Card>
-                  <CardHeader className="pb-3">
-                    <SectionHeader
-                      title="Lifetime record"
-                      description="Every figure from stored data."
-                    />
-                  </CardHeader>
-                  <CardContent className="grid grid-cols-2 gap-4 pt-0 text-sm">
-                    {[
-                      ['Completed trips', formatNumber(passport.data.lifetime.completedTrips)],
-                      ['Orders carried', formatNumber(passport.data.lifetime.totalOrders)],
-                      ['Distance', formatDistanceKm(passport.data.lifetime.totalDistanceKm)],
-                      [
-                        'Services completed',
-                        formatNumber(passport.data.lifetime.servicesCompleted),
-                      ],
-                      ['Fuel cost', formatCompactCurrency(passport.data.lifetime.fuelCost)],
-                      [
-                        'Maintenance cost',
-                        formatCompactCurrency(passport.data.lifetime.maintenanceCost),
-                      ],
-                      ['Incidents', formatNumber(passport.data.lifetime.incidents)],
-                      [
-                        'On platform since',
-                        new Date(passport.data.truck.createdAt).toLocaleDateString('en-IN'),
-                      ],
-                    ].map(([label, value]) => (
-                      <div key={label}>
-                        <p className="text-xs text-muted-foreground">{label}</p>
-                        <p className="tabular font-medium">{value}</p>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
+            {/*
+              Cost and earnings — the money view.
 
-                <Card>
-                  <CardHeader className="pb-3">
-                    <SectionHeader title="Recent activity" />
-                  </CardHeader>
-                  <CardContent className="space-y-2 pt-0">
-                    {passport.data.events.length === 0 ? (
-                      <p className="py-4 text-center text-sm text-muted-foreground">
-                        No recorded events yet.
-                      </p>
-                    ) : (
-                      passport.data.events.slice(0, 10).map((event) => (
-                        <div key={event.id} className="flex gap-3 text-sm">
-                          <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-border" />
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate">
-                              {event.description ?? humanizeEnum(event.type)}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {relativeTimeFrom(event.createdAt)}
-                            </p>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </CardContent>
-                </Card>
-              </>
-            ) : null}
+              This card used to be "Lifetime record" and repeated the distance,
+              trip, order and service counts that the Usage panel above now
+              shows. Stating the same four figures twice on one screen made the
+              page longer without making it say more, so what is left here is
+              the part Usage does not cover.
+            */}
+            <Card className="rounded-2xl">
+              <CardHeader className="pb-2">
+                <SectionHeader
+                  title="Cost & earnings"
+                  description="Every figure from stored records."
+                />
+              </CardHeader>
+              <CardContent className="pt-0">
+                {passport.isLoading ? (
+                  <LoadingState />
+                ) : lifetime ? (
+                  <SpecSheet
+                    groups={[
+                      {
+                        title: 'Lifetime',
+                        rows: [
+                          { label: 'Revenue', value: formatCurrency(lifetime.revenue) },
+                          { label: 'Fuel', value: formatCurrency(lifetime.fuelCost) },
+                          { label: 'Workshop', value: formatCurrency(lifetime.maintenanceCost) },
+                          {
+                            label: 'Profit',
+                            value: formatCurrency(lifetime.profit),
+                            // Coloured only when it is actually a loss: a green
+                            // figure on every vehicle stops meaning anything.
+                            ...(lifetime.profit < 0 ? { tone: 'destructive' as const } : {}),
+                          },
+                        ],
+                      },
+                      {
+                        title: 'Per kilometre',
+                        rows: [
+                          {
+                            label: 'Running cost',
+                            value: lifetime.costPerKm
+                              ? `${formatCurrency(lifetime.costPerKm)}/km`
+                              : '—',
+                          },
+                          {
+                            label: 'Fuel efficiency',
+                            value: lifetime.fuelEfficiencyL100Km
+                              ? `${lifetime.fuelEfficiencyL100Km} L/100 km`
+                              : 'No fuel records yet',
+                          },
+                        ],
+                      },
+                    ]}
+                  />
+                ) : (
+                  <p className="py-4 text-sm text-muted-foreground">
+                    No costs or earnings recorded for this vehicle yet.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
           </div>
 
+          {/*
+            The activity trail.
+
+            A connecting rule down the left rather than loose dots: these are
+            events in sequence, and a reader should be able to see that without
+            being told.
+          */}
+          <Card className="rounded-2xl">
+            <CardHeader className="pb-2">
+              <SectionHeader title="Recent activity" />
+            </CardHeader>
+            <CardContent className="pt-0">
+              {passport.isLoading ? (
+                <LoadingState />
+              ) : (passport.data?.events ?? []).length === 0 ? (
+                <p className="py-4 text-sm text-muted-foreground">No recorded events yet.</p>
+              ) : (
+                <ol className="relative space-y-4 border-l border-border/70 pl-5">
+                  {(passport.data?.events ?? []).slice(0, 10).map((event) => (
+                    <li key={event.id} className="relative">
+                      <span
+                        className="absolute -left-[1.4rem] top-1.5 size-2 rounded-full bg-border ring-4 ring-card"
+                        aria-hidden
+                      />
+                      <p className="text-sm">{event.description ?? humanizeEnum(event.type)}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {relativeTimeFrom(event.createdAt)}
+                      </p>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </CardContent>
+          </Card>
+
           {vehicle.notes ? (
-            <Card>
-              <CardHeader className="pb-3">
+            <Card className="rounded-2xl">
+              <CardHeader className="pb-2">
                 <SectionHeader title="Notes" />
               </CardHeader>
               <CardContent className="pt-0 text-sm text-muted-foreground">
@@ -652,6 +735,18 @@ export function VehicleDetailPage() {
               </CardContent>
             </Card>
           ) : null}
+        </TabsContent>
+
+        {/*
+          Photographs, in front of the paperwork rather than inside it.
+
+          They were a `TRUCK_PHOTO` document until this tab existed, which put
+          every picture of a vehicle into a verification queue and then showed it
+          as a file name. Nothing here is verified, and every photo is shown as a
+          photo.
+        */}
+        <TabsContent value="photos">
+          <VehiclePhotosPanel vehicleId={id} registrationNumber={vehicle.registrationNumber} />
         </TabsContent>
 
         {/*

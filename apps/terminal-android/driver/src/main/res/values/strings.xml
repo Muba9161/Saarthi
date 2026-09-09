@@ -1,4 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  The English original.
+
+  Every string a driver reads should live here rather than in Kotlin, and the
+  reason is not tidiness: Saarthi's platform supports twenty-six Indian
+  languages, the web app is fully localised, and registration already asks a
+  driver which language they read. The Android app spoke English regardless —
+  so a fleet owner could run Saarthi in Maithili and the driver, the person
+  least likely to read English and the one using it every day, could not.
+
+  Extraction is under way rather than finished. The screens below are done; the
+  cockpit, scanner, approval and profile screens still hold their strings in
+  Kotlin and are listed in the handover. A half-translated screen is worse than
+  an untranslated one, so `Language.available` offers only the languages whose
+  files are actually complete.
+-->
 <resources>
     <string name="app_name">Saarthi Driver</string>
     <string name="app_name_short">Saarthi</string>
@@ -8,4 +24,132 @@
 
     <!-- Overrides the shared default: a driver's own phone, not a fitted unit. -->
     <string name="service_title">Saarthi</string>
+
+    <!-- Signing in ======================================================= -->
+    <string name="sign_in_title">Your shift starts here</string>
+    <string name="sign_in_blurb">Sign in once and Saarthi will remember you. No password in a yard at five in the morning.</string>
+    <string name="sign_in_create_title">Create your account</string>
+    <string name="sign_in_create_blurb">You will only do this once. Your fleet connects you to a vehicle after you scan it.</string>
+    <string name="sign_in_action">Sign in</string>
+    <string name="sign_in_working">Signing you in…</string>
+    <string name="sign_in_create_action">Create account</string>
+    <string name="sign_in_create_working">Creating your account…</string>
+    <string name="sign_in_new_prompt">New to Saarthi? </string>
+    <string name="sign_in_new_action">Create an account</string>
+    <string name="sign_in_have_prompt">Already have an account? </string>
+    <string name="field_email">Email</string>
+    <string name="field_password">Password</string>
+    <string name="field_first_name">First name</string>
+    <string name="field_last_name">Last name</string>
+    <string name="field_mobile">Mobile number</string>
+    <string name="field_mobile_hint">10 digits</string>
+    <string name="field_licence">Driving licence number</string>
+    <string name="field_licence_hint">As printed on your licence</string>
+    <string name="field_optional">Optional</string>
+    <string name="terms_notice">By creating an account you accept the Saarthi terms of service and privacy policy.</string>
+    <string name="password_rule">%1$d characters or more. %2$d so far.</string>
+    <string name="mobile_rule">An Indian mobile number, starting 6 to 9.</string>
+
+    <!-- The dashboard ==================================================== -->
+    <string name="greeting">Hi, %1$s</string>
+    <string name="status_live">Live</string>
+    <string name="status_offline">Offline</string>
+    <string name="reporting_live">Live to your fleet</string>
+    <string name="reporting_saved">Saved on this phone</string>
+    <string name="label_reporting">Reporting</string>
+    <string name="tile_live_view">Live view</string>
+    <string name="tile_live_view_sub">Map and engine</string>
+    <string name="tile_nearby">Nearby</string>
+    <string name="tile_nearby_sub">Fuel and repairs</string>
+    <string name="tile_vehicle">Vehicle</string>
+    <string name="tile_vehicle_signed_on">Signed on</string>
+    <string name="tile_vehicle_not_signed_on">Not signed on</string>
+    <string name="tile_emergency">Emergency</string>
+    <string name="tile_emergency_sub">Raise an SOS</string>
+    <string name="tile_papers">Papers</string>
+    <string name="tile_papers_none">None uploaded</string>
+    <string name="tile_papers_none_saved">%1$d, none saved yet</string>
+    <string name="tile_papers_partial">%1$d of %2$d saved</string>
+    <string name="tile_papers_all">%1$d saved for offline</string>
+    <string name="tile_notices">Notices</string>
+    <string name="tile_notices_new">%1$d new</string>
+    <string name="tile_notices_none">Nothing new</string>
+    <string name="tile_trips">Your trips</string>
+    <string name="tile_trips_sub">What you have run</string>
+    <string name="tile_hours">Hours</string>
+    <string name="label_fastag">FASTag</string>
+    <string name="fastag_low">Low — top up</string>
+    <string name="fastag_unknown">Balance unknown</string>
+    <string name="label_diesel_today">Diesel today</string>
+    <string name="diesel_none">No rate published for %1$s</string>
+    <string name="ready_title">Ready to go</string>
+    <string name="ready_blurb">Your safety check is done. Slide when you are moving off.</string>
+    <string name="slide_start_trip">Slide to start your trip</string>
+    <string name="slide_open_live">Slide to open the live view</string>
+    <string name="trip_under_way">Trip under way</string>
+    <string name="trip_under_way_blurb">Saarthi is reporting for this vehicle. Open the live view for the map and engine readings.</string>
+    <string name="before_you_drive">Before you drive</string>
+    <string name="before_you_drive_blurb">A short safety check on the vehicle. Your fleet needs it on record before the trip can start.</string>
+    <string name="start_safety_check">Start your safety check</string>
+    <string name="next_step">Next step</string>
+    <string name="next_step_blurb">Open the live view to carry on.</string>
+    <string name="next_step_awaiting">Your fleet is looking at your request. This screen will change on its own once they decide.</string>
+    <string name="next_step_reconnect">This phone is not connected to a vehicle. Open your profile, sign out, then scan the vehicle again.</string>
+
+    <!-- Hours at the wheel =============================================== -->
+    <string name="hours_break_soon">You have been driving %1$s. A break is due soon — start looking for somewhere to stop.</string>
+    <string name="hours_break_due">You have been driving %1$s without a proper break. Please stop for half an hour.</string>
+    <string name="hours_shift_soon">%1$s driven today. Your shift should end soon — think about where you will park.</string>
+    <string name="hours_shift_due">%1$s driven today. That is a full day at the wheel. Please stop for the night.</string>
+
+    <!-- Papers =========================================================== -->
+    <string name="papers_title">Your papers</string>
+    <string name="papers_blurb">Kept on this phone, so a check post with no signal is not a problem.</string>
+    <string name="papers_empty_title">Nothing here yet</string>
+    <string name="papers_empty_blurb">Your fleet has not uploaded any papers for this vehicle or for you. Ask the office to add the RC, insurance, permit and PUC — they will appear here and stay available offline.</string>
+    <string name="papers_expiring_one">One paper needs attention. Tell the office before it lapses.</string>
+    <string name="papers_expiring_many">%1$d papers need attention. Tell the office before they lapse.</string>
+    <string name="papers_owner_yours">Yours</string>
+    <string name="papers_owner_vehicle">Vehicle</string>
+    <string name="papers_no_expiry">No expiry recorded</string>
+    <string name="papers_expired">Expired %1$d day(s) ago</string>
+    <string name="papers_expires_today">Expires today</string>
+    <string name="papers_days_left">%1$d day(s) left</string>
+    <string name="papers_not_here">That one is not on this phone yet. Open it once where there is a signal and it will stay.</string>
+    <string name="papers_no_reader">No app on this phone can open that. Install a PDF reader.</string>
+    <string name="papers_open_failed">Saarthi could not open that file.</string>
+
+    <!-- Language ========================================================= -->
+    <string name="language_title">Language</string>
+    <string name="language_blurb">Saarthi will speak to you in this language. Your fleet is not affected.</string>
+    <string name="language_phone_default">Phone default</string>
+
+    <!-- Shared =========================================================== -->
+    <string name="action_back">Back</string>
+    <string name="action_done">Done</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_try_again">Try again</string>
+    <string name="label_current_tracking">Current tracking</string>
+    <string name="label_status">Status</string>
+    <string name="state_in_transit">In transit</string>
+    <string name="state_trip_finished">Trip finished</string>
+    <string name="state_ready">Ready to drive</string>
+    <string name="state_checks_due">Checks due</string>
+    <string name="state_awaiting_approval">Awaiting approval</string>
+    <string name="state_not_approved">Not approved</string>
+    <string name="state_suspended">Suspended</string>
+    <string name="state_signed_on">Signed on</string>
+    <string name="state_not_signed_on">Not signed on to a vehicle</string>
+    <string name="label_diesel">Diesel today</string>
+    <string name="label_petrol">Petrol today</string>
+    <string name="label_cng">CNG today</string>
+    <string name="label_pump_prices">Pump prices today</string>
+    <string name="unit_per_litre">a litre</string>
+    <string name="unit_per_kg">a kg</string>
+    <string name="fuel_diesel">Diesel</string>
+    <string name="fuel_petrol">Petrol</string>
+    <string name="fuel_cng">CNG</string>
+    <string name="rate_none_here">No rate published for %1$s</string>
+    <string name="status_connecting">Connecting…</string>
+    <string name="reporting_connecting">Reaching your fleet…</string>
 </resources>

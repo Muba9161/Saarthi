@@ -26,28 +26,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.saarthi.core.R
+import com.saarthi.core.R as CoreR
 import com.saarthi.core.ui.LocalReducedMotion
-import kotlin.math.sin
+import com.saarthi.driver.R
 
 /**
  * The face of the app.
@@ -65,216 +56,28 @@ import kotlin.math.sin
  */
 
 /**
- * A lorry, in side profile, on a lit road.
- *
- * Deliberately generic: a cab and a box trailer, no maker's grille and no
- * livery. It reads as "haulage" at a glance and as nobody's vehicle in
- * particular on a second look, which is the correct amount of specificity for
- * a screen shown to drivers from every fleet on the platform.
- */
-@Composable
-fun TruckIllustration(
-    modifier: Modifier = Modifier,
-    rolling: Boolean = true,
-) {
-    val reducedMotion = LocalReducedMotion.current
-    val sweep by rememberSweep(1_200)
-    val breath by rememberBreath(3_000, restingAt = 0.5f)
-
-    // A very small vertical bob. Enough to suggest a running engine, far short
-    // of anything that would read as the screen being unstable.
-    val bob = if (reducedMotion || !rolling) 0f else sin(breath * Math.PI).toFloat() * 2f
-
-    Canvas(
-        modifier.semantics {
-            contentDescription = "An illustration of an articulated lorry on a road"
-        },
-    ) {
-        val w = size.width
-        val h = size.height
-
-        val road = h * 0.78f
-        val wheelR = h * 0.075f
-        val wheelCy = road - wheelR
-        val bodyBottom = wheelCy - h * 0.01f
-        val trailerTop = h * 0.30f
-        val cabTop = h * 0.24f
-
-        // --- Ground and horizon ------------------------------------------
-        //
-        // A warm bloom on the horizon behind the vehicle. It is what stops the
-        // illustration reading as a sticker pasted onto a black rectangle.
-        drawCircle(
-            brush = Brush.radialGradient(
-                colors = listOf(Ember.copy(alpha = 0.20f), Color.Transparent),
-                center = Offset(w * 0.62f, road),
-                radius = w * 0.55f,
-            ),
-            radius = w * 0.55f,
-            center = Offset(w * 0.62f, road),
-        )
-
-        drawLine(
-            color = Hairline,
-            start = Offset(0f, road),
-            end = Offset(w, road),
-            strokeWidth = 2f,
-        )
-
-        // Lane markings, travelling backwards under the vehicle.
-        val dash = w * 0.06f
-        val gap = w * 0.05f
-        val shift = if (reducedMotion || !rolling) 0f else sweep * (dash + gap)
-        drawLine(
-            color = Slate.copy(alpha = 0.5f),
-            start = Offset(-dash + shift, road + h * 0.045f),
-            end = Offset(w + dash + shift, road + h * 0.045f),
-            strokeWidth = 3f,
-            cap = StrokeCap.Round,
-            pathEffect = PathEffect.dashPathEffect(floatArrayOf(dash, gap), 0f),
-        )
-
-        /*
-         * No speed lines behind the tail.
-         *
-         * They were tried, and there is not enough canvas to the left of the
-         * trailer to hold them: they ran off the edge and read as rendering
-         * artefacts rather than as motion. The lane markings travelling under
-         * the wheels already say the vehicle is moving, and they say it inside
-         * the frame.
-         */
-
-        // Everything from here up moves together with the bob.
-        translate(0f, bob) {
-
-            // --- Trailer --------------------------------------------------
-            drawRoundRect(
-                brush = Brush.verticalGradient(
-                    listOf(Color(0xFF2A2E35), Color(0xFF191C21)),
-                ),
-                topLeft = Offset(w * 0.06f, trailerTop),
-                size = Size(w * 0.50f, bodyBottom - trailerTop),
-                cornerRadius = CornerRadius(w * 0.012f),
-            )
-            drawRoundRect(
-                color = Hairline,
-                topLeft = Offset(w * 0.06f, trailerTop),
-                size = Size(w * 0.50f, bodyBottom - trailerTop),
-                cornerRadius = CornerRadius(w * 0.012f),
-                style = Stroke(width = 2f),
-            )
-
-            // Ribs. A blank box reads as a shipping container; the ribs are
-            // what make it a curtain-sided trailer.
-            for (i in 1..5) {
-                val x = w * (0.06f + 0.50f * (i / 6f))
-                drawLine(
-                    color = Color.Black.copy(alpha = 0.35f),
-                    start = Offset(x, trailerTop + h * 0.02f),
-                    end = Offset(x, bodyBottom - h * 0.02f),
-                    strokeWidth = 2f,
-                )
-            }
-
-            // The stripe. The one place the brand colour touches the vehicle.
-            drawRoundRect(
-                brush = EmberSweep,
-                topLeft = Offset(w * 0.06f, trailerTop + (bodyBottom - trailerTop) * 0.62f),
-                size = Size(w * 0.50f, h * 0.035f),
-                cornerRadius = CornerRadius(w * 0.004f),
-            )
-
-            // --- Cab ------------------------------------------------------
-            val cab = Path().apply {
-                moveTo(w * 0.575f, bodyBottom)
-                lineTo(w * 0.575f, cabTop)
-                lineTo(w * 0.86f, cabTop)
-                cubicTo(
-                    w * 0.905f, cabTop,
-                    w * 0.93f, cabTop + h * 0.05f,
-                    w * 0.93f, cabTop + h * 0.10f,
-                )
-                lineTo(w * 0.93f, bodyBottom - h * 0.02f)
-                cubicTo(
-                    w * 0.93f, bodyBottom,
-                    w * 0.92f, bodyBottom,
-                    w * 0.90f, bodyBottom,
-                )
-                close()
-            }
-            drawPath(cab, brush = Brush.verticalGradient(listOf(EmberBright, Ember, EmberDeep)))
-            drawPath(cab, color = Color.Black.copy(alpha = 0.25f), style = Stroke(width = 2f))
-
-            // Windscreen and side glass, as one dark slab with a highlight.
-            val glass = Path().apply {
-                moveTo(w * 0.60f, cabTop + h * 0.03f)
-                lineTo(w * 0.855f, cabTop + h * 0.03f)
-                cubicTo(
-                    w * 0.895f, cabTop + h * 0.035f,
-                    w * 0.905f, cabTop + h * 0.07f,
-                    w * 0.905f, cabTop + h * 0.115f,
-                )
-                lineTo(w * 0.60f, cabTop + h * 0.115f)
-                close()
-            }
-            drawPath(
-                glass,
-                brush = Brush.verticalGradient(listOf(Color(0xFF3E4A5C), Color(0xFF1B2029))),
-            )
-            drawLine(
-                color = Color.White.copy(alpha = 0.22f),
-                start = Offset(w * 0.62f, cabTop + h * 0.05f),
-                end = Offset(w * 0.78f, cabTop + h * 0.05f),
-                strokeWidth = 3f,
-                cap = StrokeCap.Round,
-            )
-
-            // The gap between cab and trailer, so the two do not read as one box.
-            drawRect(
-                color = Color(0xFF101216),
-                topLeft = Offset(w * 0.556f, trailerTop + h * 0.04f),
-                size = Size(w * 0.02f, bodyBottom - trailerTop - h * 0.04f),
-            )
-
-            // Skirt and headlight.
-            drawRoundRect(
-                color = Color(0xFF15171B),
-                topLeft = Offset(w * 0.575f, bodyBottom - h * 0.035f),
-                size = Size(w * 0.355f, h * 0.035f),
-                cornerRadius = CornerRadius(w * 0.006f),
-            )
-            drawCircle(
-                brush = Brush.radialGradient(
-                    colors = listOf(Color(0xFFFFF3D6), Color.Transparent),
-                    center = Offset(w * 0.925f, bodyBottom - h * 0.055f),
-                    radius = w * 0.05f,
-                ),
-                radius = w * 0.05f,
-                center = Offset(w * 0.925f, bodyBottom - h * 0.055f),
-            )
-
-            // --- Wheels ---------------------------------------------------
-            for (cx in listOf(w * 0.15f, w * 0.27f, w * 0.66f, w * 0.86f)) {
-                drawCircle(Color(0xFF0D0E11), radius = wheelR, center = Offset(cx, wheelCy))
-                drawCircle(
-                    Color(0xFF2C3037),
-                    radius = wheelR,
-                    center = Offset(cx, wheelCy),
-                    style = Stroke(width = 3f),
-                )
-                drawCircle(Color(0xFF383D45), radius = wheelR * 0.42f, center = Offset(cx, wheelCy))
-            }
-        }
-    }
-}
-
-/**
  * The hero panel on the first screen.
  *
- * A tall rounded block with the illustration in it, an ember wash behind and a
- * fade into the page at the bottom so the panel does not end on a hard edge
- * where the text begins. It is the only element in the app allowed to be purely
- * atmospheric.
+ * A photograph of an artic under a warm key light, cropped to a tall rounded
+ * block that fades into the page where the text begins. It is the only element
+ * in the app allowed to be purely atmospheric.
+ *
+ * This replaced a lorry drawn in [Canvas]. The drawn one was defensible on
+ * paper — it weighed nothing, themed with the palette and was nobody's vehicle
+ * in particular — and it looked exactly like what it was. The screen that
+ * decides whether a driver believes this is real software is the wrong place to
+ * be seen economising, and a megabyte and a half on a sixty-eight megabyte APK
+ * is not a saving worth a bad first impression.
+ *
+ * Two things about the asset are load-bearing:
+ *
+ *  * **It lives in `drawable-nodpi`.** Plain `drawable/` is the mdpi bucket, so
+ *    on a 3x handset Android would decode it at three times its stored size —
+ *    a 5016x2823 bitmap, about 57 MB of heap, on phones that do not have it to
+ *    spare. `nodpi` decodes it as authored.
+ *  * **Its ground is already near-black**, within a shade of [Obsidian], so the
+ *    scrim below has almost nothing to hide and the panel dissolves into the
+ *    page rather than ending at a seam.
  */
 @Composable
 fun BrandHero(
@@ -299,19 +102,89 @@ fun BrandHero(
                 ),
             ),
     ) {
-        TruckIllustration(Modifier.fillMaxSize().padding(horizontal = FleetSpace.base))
+        /*
+         * A very slow push in.
+         *
+         * Six per cent over four seconds, once, on entry — under the threshold
+         * where the eye reads it as movement, above the one where the screen
+         * reads as a still. It settles and stops rather than looping, because a
+         * hero that never stops breathing is a hero that keeps asking to be
+         * looked at while somebody is trying to type a password underneath it.
+         */
+        val reducedMotion = LocalReducedMotion.current
+        var entered by remember { mutableStateOf(reducedMotion) }
+        LaunchedEffect(Unit) { entered = true }
+        val push by animateFloatAsState(
+            targetValue = if (entered) 1f else 0f,
+            animationSpec = FleetMotion.enter(stillOr(4_000)),
+            label = "hero",
+        )
+
+        Image(
+            painter = painterResource(R.drawable.splash_truck),
+            contentDescription = "An articulated lorry under a warm light",
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer {
+                    scaleX = 1.06f - push * 0.06f
+                    scaleY = 1.06f - push * 0.06f
+                },
+        )
 
         // A last wash into the page colour, so the panel dissolves rather than
-        // stopping.
+        // stopping. The image's own floor is already dark, so this only has to
+        // carry the final quarter.
         Box(
             Modifier
                 .fillMaxSize()
                 .background(
                     Brush.verticalGradient(
-                        0.72f to Color.Transparent,
+                        0.55f to Color.Transparent,
                         1f to Obsidian,
                     ),
                 ),
+        )
+    }
+}
+
+/**
+ * The company's actual logo, name and tagline together.
+ *
+ * The real lockup rather than the app's own arrangement of the parts. The splash
+ * used to draw the mark on a chip and then set "SAARTHI" and "DRIVER" in the
+ * app's own typeface underneath — a wordmark assembled here rather than the one
+ * the company actually uses, with the tagline missing entirely.
+ *
+ * On a white card, and that is not decoration. The logotype is navy and the
+ * tagline is navy on a transparent ground; dropped straight onto Obsidian the
+ * name and the tagline both disappear and only the saffron and green survive.
+ * The white card is how the web app solves the identical problem, and inventing
+ * a knockout variant of somebody's logo would be worse than reusing the
+ * treatment that exists.
+ */
+@Composable
+fun BrandLockup(
+    modifier: Modifier = Modifier,
+    size: androidx.compose.ui.unit.Dp = 200.dp,
+) {
+    Box(
+        modifier
+            .size(size)
+            .clip(RoundedCornerShape(size * 0.16f))
+            .background(Color.White),
+        contentAlignment = Alignment.Center,
+    ) {
+        Image(
+            painter = painterResource(R.drawable.brand_lockup),
+            // The whole identity, so a screen reader says the company's name
+            // rather than "image".
+            contentDescription = "VorldX Saarthi — manage, track, move, together",
+            modifier = Modifier
+                .fillMaxSize()
+                // The artwork carries its own margin; a second one would leave
+                // the logo swimming in white.
+                .padding(size * 0.04f),
         )
     }
 }
@@ -338,7 +211,7 @@ fun BrandMark(
         contentAlignment = Alignment.Center,
     ) {
         Image(
-            painter = painterResource(R.drawable.saarthi_mark),
+            painter = painterResource(CoreR.drawable.saarthi_mark),
             contentDescription = "Saarthi",
             modifier = Modifier.fillMaxSize().padding(size * 0.16f),
         )
@@ -422,15 +295,16 @@ fun FleetSplash(modifier: Modifier = Modifier) {
                 scaleY = 0.94f + progress * 0.06f
             },
         ) {
-            BrandMark(size = 88.dp)
-            BrandWordmark()
-            Spacer(Modifier.height(FleetSpace.tight))
-            Text(
-                "Manage. Track. Move. Together.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = Ash,
-                textAlign = TextAlign.Center,
-            )
+            /*
+             * One image, not three components.
+             *
+             * The tagline used to be typed out underneath in the app's own
+             * face — "Manage. Track. Move. Together." — while the real logo
+             * carries it already, spaced and coloured as the brand sets it.
+             * Two versions of a tagline on one screen is one too many, and the
+             * one that should survive is the company's.
+             */
+            BrandLockup(size = 220.dp)
         }
     }
 }

@@ -49,6 +49,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.res.stringResource
+import com.saarthi.driver.R
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.saarthi.core.ui.LocalReducedMotion
@@ -414,22 +416,42 @@ fun CurrentTrackingCard(
             active = live,
         )
 
-        // A scrim under the type only. The route stays legible above it, and
-        // the text below never has to compete with a line crossing behind it.
+        /*
+         * A scrim under the type, weighted towards the type.
+         *
+         * Two separate faults put the route's brightest stretch straight through
+         * the registration, and on a real handset the vehicle marker landed on
+         * the final digit.
+         *
+         * The first was `Modifier.fillMaxSize()`. This card sits in a scrolling
+         * column, so it is measured with an unbounded height, and `fillMaxSize`
+         * against an infinite constraint resolves to wrap-content - which for an
+         * empty Box is nothing at all. The scrim was never painting.
+         * `matchParentSize` is the Box-scoped modifier that takes the parent's
+         * *resolved* size without joining in the measurement, which is what was
+         * meant all along.
+         *
+         * The second was starting fully transparent, so even once it painted it
+         * would not have covered the type. The route is decoration; the
+         * registration is the one thing on this card a driver checks against the
+         * truck in front of them, so it wins - with enough of the line surviving
+         * at the top to keep the card feeling like a map rather than a panel.
+         */
         Box(
             Modifier
-                .fillMaxSize()
+                .matchParentSize()
                 .background(
                     Brush.verticalGradient(
-                        0f to Color.Transparent,
-                        0.45f to Onyx.copy(alpha = 0.85f),
+                        0f to Onyx.copy(alpha = 0.30f),
+                        0.30f to Onyx.copy(alpha = 0.90f),
+                        0.55f to Onyx.copy(alpha = 0.97f),
                         1f to Onyx,
                     ),
                 ),
         )
 
         Column(Modifier.padding(FleetSpace.roomy)) {
-            FieldLabel("Current tracking")
+            FieldLabel(stringResource(R.string.label_current_tracking))
             Spacer(Modifier.height(FleetSpace.tight))
             TrackingCode(code, size = 30.sp)
 
@@ -445,7 +467,7 @@ fun CurrentTrackingCard(
                     PlaceLine(place = detailValue, tint = Chalk)
                 }
                 Column(horizontalAlignment = Alignment.End) {
-                    FieldLabel("Status")
+                    FieldLabel(stringResource(R.string.label_status))
                     Spacer(Modifier.height(FleetSpace.hair))
                     StatusPill(statusLabel, tint = statusTint, live = live)
                 }

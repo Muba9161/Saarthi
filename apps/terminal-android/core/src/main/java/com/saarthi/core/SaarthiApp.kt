@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Context
 import com.saarthi.core.data.EventOutbox
 import com.saarthi.core.data.TerminalIdentityStore
+import com.saarthi.core.data.PaperCache
 import com.saarthi.core.data.TerminalRepository
 import com.saarthi.core.data.TerminalSettings
 import com.saarthi.core.network.RealtimeClient
@@ -51,6 +52,16 @@ interface SaarthiApp {
 
     /** The live channel, for approvals and commands that cannot wait for a poll. */
     val realtime: RealtimeClient
+
+    /**
+     * Where the driver's papers are held for a checkpoint with no signal.
+     *
+     * Null on the fitted tablet, and that is the honest default rather than an
+     * oversight: a document wallet is a thing a person carries and produces on
+     * demand, and the tablet is bolted to the vehicle and shared between
+     * drivers. A licence cached on it would belong to whoever drove last.
+     */
+    val papers: PaperCache? get() = null
 
     /**
      * The screen the reporting notification opens.

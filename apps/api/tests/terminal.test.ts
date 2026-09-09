@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import {
+  DeviceAssignmentStatus,
   DeviceType,
   OrganizationType,
   QrSubjectType,
@@ -834,6 +835,186 @@ describe('Saarthi Terminal', () => {
    * problem: the vehicle can never take a replacement, and the tablet in the
    * cab may be broken, stolen, or in another truck.
    */
+  // -------------------------------------------------------------------------
+  // Changing phones
+  // -------------------------------------------------------------------------
+
+  /**
+   * A driver's approval must follow them onto a new device.
+   *
+   * The driver app pairs *after* approval — the phone asks to drive, the fleet
+   * decides, and only then does the phone become the vehicle's terminal. So the
+   * session is bound to a device by the pairing itself, and terminal state is
+   * read back by that binding.
+   *
+   * That left a hole on the second pairing. A driver who reinstalls the app,
+   * clears its data, changes handset, or has their slot released gets a *new*
+   * device credential, while the approval still names the old one — so the new
+   * phone was told `AWAITING_DRIVER` while the fleet was looking at a live
+   * approval for it. The dashboard's only advice was to open the live view,
+   * which needs the session that had just been orphaned, and re-scanning did not
+   * help because the session it needed was already spoken for. There was no
+   * route to the safety check and therefore none to starting the shift.
+   *
+   * The cases below are the rule and its two limits: the driver's own session
+   * moves, and nobody else's does.
+   */
+  describe('a driver changing phones', () => {
+    /** Approve this driver onto the vehicle, from a phone of their own. */
+    async function approvedOnAPhone(): Promise<{
+      phone: EnrolledTerminal;
+      sessionId: string;
+    }> {
+      const phone = await pairTerminal(owner, vehicle.id);
+      const sessionId = await openSubmittedRequest(phone, driver, vehicle.id);
+      await request({
+        method: 'POST',
+        url: `/api/v1/terminal/assignments/${sessionId}/approve`,
+        user: owner,
+        payload: {},
+      });
+      return { phone, sessionId };
+    }
+
+    /**
+     * Pair a fresh device the way the driver app does after approval.
+     *
+     * Through the driver's own endpoint rather than the fleet's, because that
+     * is the path a phone actually takes and the one whose adoption rule is
+     * under test. The vehicle's slot is released first, exactly as it is when a
+     * handset is replaced.
+     */
+    async function repairAsDriver(
+      sessionId: string,
+      as: TestUser = driver,
+    ): Promise<EnrolledTerminal> {
+      await prisma.deviceAssignment.updateMany({
+        where: { vehicleId: vehicle.id, status: DeviceAssignmentStatus.ACTIVE },
+        data: { status: DeviceAssignmentStatus.ENDED, unassignedAt: new Date() },
+      });
+
+      const issued = await request<{ pairingCode: string }>({
+        method: 'POST',
+        url: `/api/v1/terminal/assignments/${sessionId}/vehicle-pairing`,
+        user: as,
+        payload: {},
+      });
+      expect(issued.status).toBe(201);
+
+      const replacement = await enrolTerminal();
+      const paired = await request<{ token: { accessToken: string } }>({
+        method: 'POST',
+        url: '/api/v1/device-gateway/terminal/pair',
+        headers: terminalAuth(replacement.token),
+        payload: { pairingCode: issued.body.data.pairingCode },
+      });
+      expect(paired.status).toBe(201);
+
+      return { ...replacement, token: paired.body.data.token.accessToken };
+    }
+
+    it('carries the approval onto the replacement phone', async () => {
+      const { sessionId } = await approvedOnAPhone();
+      const replacement = await repairAsDriver(sessionId);
+
+      const state = await request<{ state: string }>({
+        method: 'GET',
+        url: '/api/v1/device-gateway/terminal/state',
+        headers: terminalAuth(replacement.token),
+      });
+
+      /*
+       * The assertion that would have caught the fault. `AWAITING_DRIVER` is
+       * what the new phone used to be told, and it is the one answer that
+       * strands a driver: no session, so no safety check, so no trip.
+       */
+      expect(state.body.data.state).not.toBe('AWAITING_DRIVER');
+      expect(state.body.data.state).toBe('CHECKLIST_REQUIRED');
+    });
+
+    it('leaves the old phone with nothing', async () => {
+      const { phone, sessionId } = await approvedOnAPhone();
+      await repairAsDriver(sessionId);
+
+      /*
+       * Both halves matter. The session must not still name the old handset,
+       * and the old handset must not go on reading an approval out of a cache
+       * after the session has moved on.
+       */
+      const session = await prisma.terminalSession.findUniqueOrThrow({
+        where: { id: sessionId },
+        select: { terminalDeviceId: true },
+      });
+      const abandoned = await prisma.hardwareDevice.findFirstOrThrow({
+        where: { deviceIdentifier: phone.deviceIdentifier },
+      });
+      expect(session.terminalDeviceId).not.toBe(abandoned.id);
+
+      /*
+       * Not a specific state, but the property that matters: the old handset is
+       * carrying nobody. It reads `UNPAIRED` here because replacing a phone also
+       * frees the vehicle's slot, and `AWAITING_DRIVER` if the slot were still
+       * its own. Either is correct; an authorised state is not.
+       */
+      const state = await request<{ state: string; session: unknown }>({
+        method: 'GET',
+        url: '/api/v1/device-gateway/terminal/state',
+        headers: terminalAuth(phone.token),
+      });
+      expect(['UNPAIRED', 'AWAITING_DRIVER']).toContain(state.body.data.state);
+      expect(state.body.data.session).toBeNull();
+    });
+
+    it("never takes another driver's session on the same vehicle", async () => {
+      /*
+       * The expensive one to get wrong. Two drivers share a truck across a
+       * shift change; if pairing adopted every session on the vehicle, the
+       * second driver's phone would inherit the first driver's approval — and
+       * the fleet would see one person's authorisation attached to another
+       * person's device.
+       */
+      const { phone: first, sessionId: firstSession } = await approvedOnAPhone();
+      const firstDevice = await prisma.hardwareDevice.findFirstOrThrow({
+        where: { deviceIdentifier: first.deviceIdentifier },
+      });
+
+      const second = await createUser({
+        role: RoleName.DRIVER,
+        organizationId: fleet.id,
+        driver: true,
+      });
+      const secondDriver = await prisma.driver.findFirstOrThrow({
+        where: { userId: second.id },
+      });
+
+      /*
+       * A second session, opened directly. The request endpoint refuses a
+       * vehicle that already has somebody signed on — correctly — and what is
+       * under test here is the pairing's adoption rule, not that refusal.
+       */
+      const other = await prisma.terminalSession.create({
+        data: {
+          organizationId: fleet.id,
+          terminalDeviceId: firstDevice.id,
+          vehicleId: vehicle.id,
+          driverId: secondDriver.id,
+          driverUserId: second.id,
+          status: TerminalSessionStatus.APPROVED,
+          submittedAt: new Date(),
+          decidedAt: new Date(),
+        },
+      });
+
+      await repairAsDriver(firstSession);
+
+      const untouched = await prisma.terminalSession.findUniqueOrThrow({
+        where: { id: other.id },
+        select: { terminalDeviceId: true },
+      });
+      expect(untouched.terminalDeviceId).toBe(firstDevice.id);
+    });
+  });
+
   describe('disconnecting', () => {
     it('lets the fleet remove a terminal and connect another one', async () => {
       const terminal = await pairTerminal(owner, vehicle.id);

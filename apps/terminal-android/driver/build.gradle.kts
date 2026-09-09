@@ -31,8 +31,18 @@ fun setting(name: String): String? =
 val productionApiUrl = "https://api.vorldxsaarthi.com"
 val saarthiApiUrlOverride: String? = setting("saarthiApiUrl")
 val saarthiApiUrl: String = saarthiApiUrlOverride ?: "http://10.0.2.2:4000"
+/**
+ * The dark basemap, not the tablet's bright one.
+ *
+ * The fitted terminal is a lit instrument panel bolted to a dashboard and
+ * `liberty` suits it. A driver's phone is dark-first — see `FleetTheme` — and a
+ * cream-coloured map in the middle of a near-black app was the one thing on the
+ * cockpit that still looked borrowed. Same provider and the same terms as
+ * before, so this adds no vendor: OpenFreeMap's `dark` style paints its
+ * background at rgb(12,12,12), within a shade of the app's own Obsidian.
+ */
 val saarthiMapStyleUrl: String =
-    setting("saarthiMapStyleUrl") ?: "https://tiles.openfreemap.org/styles/liberty"
+    setting("saarthiMapStyleUrl") ?: "https://tiles.openfreemap.org/styles/dark"
 
 /**
  * Signed by the same key as the terminal.
@@ -42,8 +52,8 @@ val saarthiMapStyleUrl: String =
  */
 val releaseStoreFile: String? = setting("releaseStoreFile")
 
-val appVersionCode = 5
-val appVersionName = "1.1.0"
+val appVersionCode = 8
+val appVersionName = "1.3.1"
 
 android {
     namespace = "com.saarthi.driver"

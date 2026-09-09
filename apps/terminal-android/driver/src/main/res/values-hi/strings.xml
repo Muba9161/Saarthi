@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  हिन्दी — the first translation, and the one that matters most.
+
+  Written for a lorry driver rather than for an office: plain Hindi with the
+  English words drivers actually use kept as they are — FASTag, PUC, RC, SOS —
+  because translating a term nobody says would be less clear, not more.
+
+  Kept deliberately informal in the second person (आप), which is how a driver is
+  addressed respectfully in a cab, and short: these are read at a glance beside a
+  running engine.
+-->
+<resources>
+    <string name="service_channel_name">ट्रिप रिपोर्टिंग</string>
+    <string name="service_channel_description">जब आप किसी गाड़ी पर साइन-ऑन हैं, सारथी उसकी रिपोर्ट भेजता रहता है।</string>
+
+    <!-- Signing in ======================================================= -->
+    <string name="sign_in_title">आपकी ड्यूटी यहाँ से शुरू</string>
+    <string name="sign_in_blurb">एक बार साइन इन करें, सारथी आपको याद रख लेगा। सुबह पाँच बजे यार्ड में पासवर्ड नहीं डालना पड़ेगा।</string>
+    <string name="sign_in_create_title">अपना खाता बनाएँ</string>
+    <string name="sign_in_create_blurb">यह एक ही बार करना है। गाड़ी स्कैन करने के बाद आपका फ़्लीट आपको उससे जोड़ देगा।</string>
+    <string name="sign_in_action">साइन इन करें</string>
+    <string name="sign_in_working">साइन इन हो रहा है…</string>
+    <string name="sign_in_create_action">खाता बनाएँ</string>
+    <string name="sign_in_create_working">खाता बन रहा है…</string>
+    <string name="sign_in_new_prompt">सारथी पर नए हैं? </string>
+    <string name="sign_in_new_action">खाता बनाएँ</string>
+    <string name="sign_in_have_prompt">पहले से खाता है? </string>
+    <string name="field_email">ईमेल</string>
+    <string name="field_password">पासवर्ड</string>
+    <string name="field_first_name">पहला नाम</string>
+    <string name="field_last_name">आख़िरी नाम</string>
+    <string name="field_mobile">मोबाइल नंबर</string>
+    <string name="field_mobile_hint">10 अंक</string>
+    <string name="field_licence">ड्राइविंग लाइसेंस नंबर</string>
+    <string name="field_licence_hint">जैसा लाइसेंस पर लिखा है</string>
+    <string name="field_optional">ज़रूरी नहीं</string>
+    <string name="terms_notice">खाता बनाने पर आप सारथी की सेवा शर्तें और निजता नीति स्वीकार करते हैं।</string>
+    <string name="password_rule">%1$d या ज़्यादा अक्षर। अभी %2$d हैं।</string>
+    <string name="mobile_rule">भारतीय मोबाइल नंबर, 6 से 9 से शुरू।</string>
+
+    <!-- The dashboard ==================================================== -->
+    <string name="greeting">नमस्ते, %1$s</string>
+    <string name="status_live">लाइव</string>
+    <string name="status_offline">ऑफ़लाइन</string>
+    <string name="reporting_live">फ़्लीट को लाइव जा रहा है</string>
+    <string name="reporting_saved">इस फ़ोन में सेव है</string>
+    <string name="label_reporting">रिपोर्टिंग</string>
+    <string name="tile_live_view">लाइव व्यू</string>
+    <string name="tile_live_view_sub">नक़्शा और इंजन</string>
+    <string name="tile_nearby">आसपास</string>
+    <string name="tile_nearby_sub">फ़्यूल और मरम्मत</string>
+    <string name="tile_vehicle">गाड़ी</string>
+    <string name="tile_vehicle_signed_on">साइन-ऑन है</string>
+    <string name="tile_vehicle_not_signed_on">साइन-ऑन नहीं है</string>
+    <string name="tile_emergency">आपातकाल</string>
+    <string name="tile_emergency_sub">SOS भेजें</string>
+    <string name="tile_papers">काग़ज़ात</string>
+    <string name="tile_papers_none">कोई अपलोड नहीं</string>
+    <string name="tile_papers_none_saved">%1$d, अभी कोई सेव नहीं</string>
+    <string name="tile_papers_partial">%2$d में से %1$d सेव</string>
+    <string name="tile_papers_all">%1$d ऑफ़लाइन के लिए सेव</string>
+    <string name="tile_notices">सूचनाएँ</string>
+    <string name="tile_notices_new">%1$d नई</string>
+    <string name="tile_notices_none">कुछ नया नहीं</string>
+    <string name="tile_trips">आपकी ट्रिप</string>
+    <string name="tile_trips_sub">आपने क्या चलाया</string>
+    <string name="tile_hours">घंटे</string>
+    <string name="label_fastag">FASTag</string>
+    <string name="fastag_low">कम है — रिचार्ज करें</string>
+    <string name="fastag_unknown">बैलेंस पता नहीं</string>
+    <string name="label_diesel_today">आज का डीज़ल</string>
+    <string name="diesel_none">%1$s के लिए रेट उपलब्ध नहीं</string>
+    <string name="ready_title">चलने के लिए तैयार</string>
+    <string name="ready_blurb">आपकी सेफ़्टी जाँच पूरी है। निकलते समय स्लाइड करें।</string>
+    <string name="slide_start_trip">ट्रिप शुरू करने के लिए स्लाइड करें</string>
+    <string name="slide_open_live">लाइव व्यू खोलने के लिए स्लाइड करें</string>
+    <string name="trip_under_way">ट्रिप चल रही है</string>
+    <string name="trip_under_way_blurb">सारथी इस गाड़ी की रिपोर्ट भेज रहा है। नक़्शा और इंजन देखने के लिए लाइव व्यू खोलें।</string>
+    <string name="before_you_drive">चलने से पहले</string>
+    <string name="before_you_drive_blurb">गाड़ी की छोटी सेफ़्टी जाँच। ट्रिप शुरू होने से पहले आपके फ़्लीट को इसका रिकॉर्ड चाहिए।</string>
+    <string name="start_safety_check">सेफ़्टी जाँच शुरू करें</string>
+    <string name="next_step">अगला कदम</string>
+    <string name="next_step_blurb">आगे बढ़ने के लिए लाइव व्यू खोलें।</string>
+    <string name="next_step_awaiting">आपका फ़्लीट आपकी रिक्वेस्ट देख रहा है। फ़ैसला होते ही यह स्क्रीन ख़ुद बदल जाएगी।</string>
+    <string name="next_step_reconnect">यह फ़ोन किसी गाड़ी से जुड़ा नहीं है। प्रोफ़ाइल खोलें, साइन आउट करें, फिर गाड़ी दोबारा स्कैन करें।</string>
+
+    <!-- Hours at the wheel =============================================== -->
+    <string name="hours_break_soon">आप %1$s से गाड़ी चला रहे हैं। जल्दी ब्रेक लेना है — रुकने की जगह देखना शुरू करें।</string>
+    <string name="hours_break_due">आप %1$s से बिना ब्रेक चला रहे हैं। कृपया आधे घंटे रुकें।</string>
+    <string name="hours_shift_soon">आज %1$s चला है। ड्यूटी जल्दी ख़त्म करनी है — सोचें कि गाड़ी कहाँ खड़ी करेंगे।</string>
+    <string name="hours_shift_due">आज %1$s चला है। यह पूरे दिन की ड्राइविंग है। कृपया रात के लिए रुक जाएँ।</string>
+
+    <!-- Papers =========================================================== -->
+    <string name="papers_title">आपके काग़ज़ात</string>
+    <string name="papers_blurb">इस फ़ोन में रखे हैं, इसलिए बिना नेटवर्क वाले चेक पोस्ट पर भी दिक्कत नहीं।</string>
+    <string name="papers_empty_title">अभी कुछ नहीं है</string>
+    <string name="papers_empty_blurb">आपके फ़्लीट ने इस गाड़ी या आपके लिए कोई काग़ज़ अपलोड नहीं किया। ऑफ़िस से RC, बीमा, परमिट और PUC डालने को कहें — वे यहाँ आ जाएँगे और ऑफ़लाइन भी दिखेंगे।</string>
+    <string name="papers_expiring_one">एक काग़ज़ पर ध्यान दें। ख़त्म होने से पहले ऑफ़िस को बताएँ।</string>
+    <string name="papers_expiring_many">%1$d काग़ज़ों पर ध्यान दें। ख़त्म होने से पहले ऑफ़िस को बताएँ।</string>
+    <string name="papers_owner_yours">आपका</string>
+    <string name="papers_owner_vehicle">गाड़ी का</string>
+    <string name="papers_no_expiry">कोई तारीख़ दर्ज नहीं</string>
+    <string name="papers_expired">%1$d दिन पहले ख़त्म हुआ</string>
+    <string name="papers_expires_today">आज ख़त्म हो रहा है</string>
+    <string name="papers_days_left">%1$d दिन बचे</string>
+    <string name="papers_not_here">यह अभी इस फ़ोन में नहीं है। नेटवर्क में एक बार खोल लें, फिर रुका रहेगा।</string>
+    <string name="papers_no_reader">इस फ़ोन में कोई ऐप इसे नहीं खोल सकता। PDF रीडर इंस्टॉल करें।</string>
+    <string name="papers_open_failed">सारथी वह फ़ाइल नहीं खोल सका।</string>
+
+    <!-- Language ========================================================= -->
+    <string name="language_title">भाषा</string>
+    <string name="language_blurb">सारथी आपसे इसी भाषा में बात करेगा। आपके फ़्लीट पर कोई असर नहीं।</string>
+    <string name="language_phone_default">फ़ोन की भाषा</string>
+
+    <!-- Shared =========================================================== -->
+    <string name="action_back">वापस</string>
+    <string name="action_done">पूरा हुआ</string>
+    <string name="action_cancel">रद्द करें</string>
+    <string name="action_try_again">दोबारा कोशिश करें</string>
+    <string name="label_current_tracking">अभी ट्रैकिंग</string>
+    <string name="label_status">स्थिति</string>
+    <string name="state_in_transit">रास्ते में</string>
+    <string name="state_trip_finished">ट्रिप पूरी</string>
+    <string name="state_ready">चलने के लिए तैयार</string>
+    <string name="state_checks_due">जाँच बाक़ी</string>
+    <string name="state_awaiting_approval">मंज़ूरी का इंतज़ार</string>
+    <string name="state_not_approved">मंज़ूरी नहीं मिली</string>
+    <string name="state_suspended">रोक दिया गया</string>
+    <string name="state_signed_on">साइन-ऑन है</string>
+    <string name="state_not_signed_on">किसी गाड़ी पर साइन-ऑन नहीं</string>
+    <string name="label_diesel">आज का डीज़ल</string>
+    <string name="label_petrol">आज का पेट्रोल</string>
+    <string name="label_cng">आज का CNG</string>
+    <string name="label_pump_prices">आज के पंप रेट</string>
+    <string name="unit_per_litre">प्रति लीटर</string>
+    <string name="unit_per_kg">प्रति किलो</string>
+    <string name="fuel_diesel">डीज़ल</string>
+    <string name="fuel_petrol">पेट्रोल</string>
+    <string name="fuel_cng">CNG</string>
+    <string name="rate_none_here">%1$s के लिए रेट उपलब्ध नहीं</string>
+    <string name="status_connecting">जुड़ रहा है…</string>
+    <string name="reporting_connecting">फ़्लीट से जुड़ रहा है…</string>
+</resources>

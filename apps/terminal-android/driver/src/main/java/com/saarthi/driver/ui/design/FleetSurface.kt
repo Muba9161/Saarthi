@@ -207,7 +207,17 @@ fun FleetTile(
                 subtitle,
                 style = MaterialTheme.typography.bodySmall,
                 color = Ash,
-                maxLines = 1,
+                /*
+                 * Two lines, because one truncated them.
+                 *
+                 * Four of these sit two-abreast, so each gets under half the
+                 * screen minus a 44dp chip. On a 720px-wide handset that turned
+                 * "Map and engine" into "Map and en..." and a registration into
+                 * "UP32RU69..." - which is the one string on the tile a driver
+                 * actually needs to read. The tile is already `sizeIn`, not a
+                 * fixed height, so it grows rather than clipping.
+                 */
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
         }

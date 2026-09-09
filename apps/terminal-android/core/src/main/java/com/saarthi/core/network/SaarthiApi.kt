@@ -14,6 +14,7 @@ import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
+import okhttp3.MultipartBody
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
@@ -288,6 +289,130 @@ class SaarthiApi(
         }
     }
 
+    /**
+     * A fuel slip and its photograph, in one request.
+     *
+     * Deliberately one: a record without its photo, or a photo with no record,
+     * is a reconciliation problem somebody unpicks by hand — and a driver at a
+     * pump on a patchy connection is exactly who would create it.
+     */
+    suspend fun uploadFuelSlip(
+        jpeg: ByteArray,
+        litres: Double,
+        totalCost: Double,
+        odometerKm: Double?,
+        stationName: String?,
+        latitude: Double?,
+        longitude: Double?,
+    ): String = withContext(Dispatchers.IO) {
+        val body = MultipartBody.Builder()
+            .setType(MultipartBody.FORM)
+            .addFormDataPart("file", "slip.jpg", jpeg.toRequestBody(JPEG_MEDIA))
+            .addFormDataPart("litres", litres.toString())
+            .addFormDataPart("totalCost", totalCost.toString())
+            .apply {
+                // Omitted rather than sent empty: the schema treats these as
+                // optional, and "" is not a number.
+                odometerKm?.let { addFormDataPart("odometerKm", it.toString()) }
+                stationName?.takeIf { it.isNotBlank() }
+                    ?.let { addFormDataPart("stationName", it) }
+                latitude?.let { addFormDataPart("latitude", it.toString()) }
+                longitude?.let { addFormDataPart("longitude", it.toString()) }
+            }
+            .build()
+
+        val request = Request.Builder()
+            .url("$baseUrl/api/v1/device-gateway/terminal/fuel")
+            .post(body)
+            .header("Authorization", "Bearer ${bearer()}")
+            .header("X-Saarthi-Client", "terminal/$appVersion")
+            .build()
+
+        val response = try {
+            client.newCall(request).execute()
+        } catch (error: IOException) {
+            throw Failure.Offline(error)
+        }
+
+        response.use { raw ->
+            val text = raw.body?.string().orEmpty()
+            if (raw.code == 401) throw Failure.Unauthenticated
+            if (!raw.isSuccessful) {
+                // The server's own wording where it gave one: "that is more fuel
+                // than a vehicle holds" tells a driver what to change, where a
+                // generic refusal does not.
+                val error = runCatching {
+                    json.decodeFromString(
+                        ApiEnvelope.serializer(String.serializer()),
+                        text,
+                    ).error
+                }.getOrNull()
+                throw Failure.Refused(
+                    status = raw.code,
+                    code = error?.code ?: "FUEL_REFUSED",
+                    message = error?.message ?: "Saarthi could not save that slip.",
+                )
+            }
+            json.decodeFromString(ApiEnvelope.serializer(FuelSlipResponse.serializer()), text)
+                .data?.id
+                ?: throw Failure.Refused(200, "FUEL_EMPTY", "Saarthi did not confirm the slip.")
+        }
+    }
+
+    /**
+     * Stream any authenticated path straight to a file.
+     *
+     * Straight to disk, never through a `String`. A scanned permit can be a
+     * dozen megabytes, and buffering one in memory on a cheap phone is how a
+     * download succeeds and the app dies a moment later — the same reasoning as
+     * [downloadUpdate], which is why this sits beside it rather than growing a
+     * second transport of its own.
+     */
+    suspend fun downloadTo(path: String, target: File): Long = withContext(Dispatchers.IO) {
+        val request = Request.Builder()
+            .url("$baseUrl$path")
+            .get()
+            .header("Authorization", "Bearer ${bearer()}")
+            .header("X-Saarthi-Client", "terminal/$appVersion")
+            .build()
+
+        val response = try {
+            client.newCall(request).execute()
+        } catch (error: IOException) {
+            throw Failure.Offline(error)
+        }
+
+        response.use { raw ->
+            if (raw.code == 401) throw Failure.Unauthenticated
+            if (!raw.isSuccessful) {
+                // The status code travels in the message. On handsets that
+                // suppress an app's logcat — several do — this string is the
+                // only diagnosis anybody will ever get.
+                throw Failure.Refused(
+                    raw.code,
+                    "DOWNLOAD_FAILED",
+                    "Saarthi could not fetch that (${raw.code}).",
+                )
+            }
+            val body = raw.body
+                ?: throw Failure.Refused(502, "DOWNLOAD_EMPTY", "Saarthi received nothing.")
+
+            var written = 0L
+            body.byteStream().use { input ->
+                target.outputStream().use { output ->
+                    val buffer = ByteArray(DOWNLOAD_BUFFER)
+                    while (true) {
+                        val read = input.read(buffer)
+                        if (read == -1) break
+                        output.write(buffer, 0, read)
+                        written += read
+                    }
+                }
+            }
+            written
+        }
+    }
+
     suspend fun pair(request: PairRequest): PairResponse = post(
         "/api/v1/device-gateway/terminal/pair",
         request,
@@ -477,6 +602,61 @@ class SaarthiApi(
     )
 
     // -----------------------------------------------------------------------
+    // What a driver needs that only a browser could reach
+    // -----------------------------------------------------------------------
+
+    /** Every paper a checkpoint might ask for, vehicle and driver together. */
+    suspend fun papers(): List<DriverPaperDto> =
+        get(
+            "/api/v1/device-gateway/terminal/papers",
+            ListSerializer(DriverPaperDto.serializer()),
+        )
+
+    /**
+     * Where one document's bytes live.
+     *
+     * A path rather than a fetch: the caller streams it straight to a file so a
+     * twelve-megabyte scan of a permit never has to sit in memory on a phone,
+     * and so it can be held for the checkpoint where the signal will not be.
+     */
+    fun paperPath(documentId: String): String =
+        "/api/v1/device-gateway/terminal/papers/$documentId/download"
+
+    /** The vehicle's FASTag. Null when the fleet has not registered one. */
+    suspend fun fastag(): FastagDto? =
+        getNullable("/api/v1/device-gateway/terminal/fastag", FastagDto.serializer())
+
+    /** Today's pump price where the vehicle is. Null when nobody publishes it. */
+    suspend fun fuelPrice(latitude: Double, longitude: Double): FuelPriceDto? =
+        getNullable(
+            "/api/v1/device-gateway/terminal/fuel-price" +
+                "?latitude=$latitude&longitude=$longitude",
+            FuelPriceDto.serializer(),
+        )
+
+    /** What this driver has actually run. */
+    suspend fun trips(): List<DriverTripDto> =
+        get(
+            "/api/v1/device-gateway/terminal/trips",
+            ListSerializer(DriverTripDto.serializer()),
+        )
+
+    suspend fun notifications(): DriverNotificationsDto =
+        get(
+            "/api/v1/device-gateway/terminal/notifications",
+            DriverNotificationsDto.serializer(),
+        )
+
+    /** Empty [ids] marks the lot, which is what opening the list means. */
+    suspend fun markNotificationsRead(ids: List<String> = emptyList()): Int =
+        post(
+            "/api/v1/device-gateway/terminal/notifications/read",
+            MarkNotificationsRequest(ids),
+            MarkNotificationsRequest.serializer(),
+            MarkNotificationsResponse.serializer(),
+        ).read
+
+    // -----------------------------------------------------------------------
     // Transport
     // -----------------------------------------------------------------------
 
@@ -616,6 +796,7 @@ class SaarthiApi(
 
     private companion object {
         val JSON_MEDIA = "application/json; charset=utf-8".toMediaType()
+        val JPEG_MEDIA = "image/jpeg".toMediaType()
 
         /**
          * How much of the download to hold at once.

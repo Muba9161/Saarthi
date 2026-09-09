@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The system splash, from Android 12 onwards.
+
+  Android draws this itself before the process is ready, so it cannot be a
+  Compose screen and it cannot be skipped. Left unconfigured it paints the icon
+  on the platform's own background — which on a light-themed phone is white, and
+  a white flash followed by a near-black app reads as a fault rather than as a
+  load.
+
+  Set to the same Obsidian the app itself uses, so the first frame the driver
+  sees and every frame after it are the same colour. The icon is the launcher
+  foreground, whose geometry is corrected in `ic_launcher_foreground.xml`; the
+  full logo with the name and the tagline follows a moment later in `FleetSplash`.
+-->
+<resources>
+    <style name="Theme.SaarthiDriver" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/driver_splash_background</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+
+        <item name="android:windowSplashScreenBackground">@color/driver_splash_background</item>
+    </style>
+</resources>

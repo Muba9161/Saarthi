@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { ImageOff } from 'lucide-react';
+import { MediaVariant, mediaFilePath } from '@saarthi/shared';
 import { absoluteApiUrl, getAccessToken } from '@/lib/api-client';
 import { cn } from '@/lib/utils';
 
@@ -62,19 +63,30 @@ export function MediaImage({
     void (async () => {
       try {
         /*
-         * A bare id becomes a media path; a path is used as given. Views hand
-         * back `/api/v1/media/<id>/file`, while a list row often carries only
-         * the id, and making every caller normalise that was how one of them
-         * eventually would not.
+         * A bare id becomes a media path; a path is used as given, minus the
+         * `/api/v1` that `absoluteApiUrl` is about to add back. Views hand back
+         * `/api/v1/media/<id>/file?variant=original`, while a list row often
+         * carries only the id, and making every caller normalise that was how
+         * one of them eventually would not.
          */
         const path = source.includes('/')
           ? source.replace(/^\/api\/v1/, '')
-          : `/media/${source}/file`;
-        const url = absoluteApiUrl(
-          variant === 'thumbnail'
-            ? `${path}${path.includes('?') ? '&' : '?'}variant=thumbnail`
-            : path,
-        );
+          : mediaFilePath(source);
+
+        /*
+         * The rendition, set rather than appended.
+         *
+         * A path from the API already carries `variant=original`, so appending
+         * a second one left the server picking between two contradictory values
+         * for the same parameter. And the name has to be the one the API knows:
+         * `MediaVariant.THUMB` is `thumb`, so asking for `thumbnail` quietly
+         * fell through to the full-size original on every thumbnail in the app.
+         */
+        const [base = path, search = ''] = path.split('?');
+        const params = new URLSearchParams(search);
+        if (variant === 'thumbnail') params.set('variant', MediaVariant.THUMB);
+        const query = params.toString();
+        const url = absoluteApiUrl(query ? `${base}?${query}` : base);
 
         const response = await fetch(url, {
           // Both: the header carries the access token, and the cookie carries

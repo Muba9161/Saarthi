@@ -109,6 +109,22 @@ class TerminalSettings(context: Context) {
         set(value) = preferences.edit().putBoolean(KEY_DARK_THEME, value).apply()
 
     /**
+     * The language Saarthi speaks to this driver in, as a BCP 47 tag.
+     *
+     * Empty means "whatever the phone is set to", which is the right default:
+     * a driver who has already told their handset they read Hindi should not
+     * have to tell Saarthi as well.
+     *
+     * Stored here rather than only on the server profile because it has to be
+     * readable before anybody signs in. The sign-in screen is the first thing a
+     * driver sees and the most important thing to get right — a driver who
+     * cannot read it never reaches the account that records their preference.
+     */
+    var languageTag: String
+        get() = preferences.getString(KEY_LANGUAGE, "") ?: ""
+        set(value) = preferences.edit().putString(KEY_LANGUAGE, value).apply()
+
+    /**
      * Whether the wake phrase is listened for.
      *
      * **Off.** Android's `SpeechRecognizer` gives up after a few seconds of
@@ -178,6 +194,7 @@ class TerminalSettings(context: Context) {
         const val KEY_SCENARIO = "simulation_scenario"
         const val KEY_SIMULATION = "simulation_enabled"
         const val KEY_OBD_ADDRESS = "obd_address"
+        const val KEY_LANGUAGE = "saarthi.language"
         const val KEY_DARK_THEME = "dark_theme"
         const val KEY_REDUCED_MOTION = "reduced_motion"
         const val KEY_WAKE_WORD = "wake_word"

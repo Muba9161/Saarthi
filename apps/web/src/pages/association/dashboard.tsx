@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { AlertTriangle, ShieldCheck, Users } from 'lucide-react';
+import { AlertTriangle, MapPin, ShieldCheck, Users } from 'lucide-react';
 import { Permission, RealtimeEvent, humanizeEnum } from '@saarthi/shared';
 import { api } from '@/lib/api-client';
 import type {
@@ -13,13 +13,18 @@ import type { Paginated } from '@/lib/api-types';
 import { useAuth } from '@/features/auth/auth-context';
 import { useRealtimeEvent } from '@/hooks/use-realtime';
 import { PageHeader, SectionHeader } from '@/components/common/page-header';
-import { StatCard } from '@/components/common/stat-card';
 import { toSeriesPoints } from '@/components/common/mini-chart';
 import { DataView } from '@/components/common/data-view';
 import { type Column } from '@/components/common/data-table';
-import { BentoGrid, BentoTile } from '@/components/common/bento';
+import {
+  BentoGrid,
+  BentoHero,
+  BentoMetric,
+  BentoMetrics,
+  BentoPanel,
+  BentoTile,
+} from '@/components/common/bento';
 import { EmptyState, UnauthorizedState } from '@/components/common/states';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -31,6 +36,21 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
  * screen shows the alert queue, its urgency and its outcomes, and nothing about
  * the fleets, customers, cargo or finances behind those alerts. The API enforces
  * that; this screen simply has nothing else to show.
+ *
+ * ## The arrangement
+ *
+ * Four tiles on the same bento the rest of the product uses. The two standing
+ * banners this board used to carry — verification pending, alerts past their
+ * window — are now the hero's status and its footer, because a banner that is
+ * present every morning stops being read by the second week, and because the
+ * desk's own state is the first thing the person opening it needs.
+ *
+ *   desk status (4)  ·  this desk (8)
+ *   the figures (12)
+ *   emergency queue (12)
+ *
+ * The queue is the one tile that brings its own surface — a data table already
+ * draws a panel, and a second one around it gives every alert two edges.
  */
 
 const SEVERITY_TONE = {
@@ -101,6 +121,7 @@ export function AssociationDashboardPage() {
 
   const profile = association.data;
   const stats = overview.data;
+  const unverified = profile !== undefined && profile.verificationStatus !== 'VERIFIED';
 
   /** A count as a share of everything still open in the coverage area. */
   const openShare = (count: number | undefined): number =>
@@ -187,7 +208,7 @@ export function AssociationDashboardPage() {
   ];
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         eyebrow="Saarthi Safety"
         title={profile?.name ?? 'Association desk'}
@@ -200,34 +221,146 @@ export function AssociationDashboardPage() {
               }`
             : 'District emergency coordination.'
         }
-        actions={
-          profile ? (
-            <Badge variant={profile.acceptingAlerts ? 'success' : 'warning'}>
-              {profile.acceptingAlerts ? 'Accepting alerts' : 'Alerts paused'}
-            </Badge>
-          ) : null
-        }
       />
 
-      {profile && profile.verificationStatus !== 'VERIFIED' ? (
-        <Card className="border-warning/40 bg-warning/5">
-          <CardContent className="flex items-start gap-3 py-4">
-            <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-warning" />
-            <div className="space-y-1 text-sm">
-              <p className="font-medium">Verification pending</p>
-              <p className="text-muted-foreground">
-                Saarthi routes emergencies only to verified associations. Until this account is
-                verified, no alerts will arrive here — which is deliberate: driver locations and
-                contact details are not shared with unverified bodies.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      ) : null}
-
       <BentoGrid>
-        <BentoTile span={3} plain>
-          <StatCard
+        {/* ---------------------------------------------------- row 1 --- */}
+
+        {/*
+          The desk's own state, which used to be a badge in the page header and
+          two standing banners below it. Whether this desk is reachable at all
+          is the first question, so it is the first tile.
+        */}
+        <BentoHero
+          span={4}
+          eyebrow="Desk status"
+          title={
+            unverified
+              ? 'Verification pending'
+              : profile?.acceptingAlerts === false
+                ? 'Alerts paused'
+                : 'Accepting alerts'
+          }
+          description={
+            unverified
+              ? 'Saarthi routes emergencies only to verified associations. Until this account is verified no alerts arrive here — deliberately: driver locations and contact numbers are not shared with unverified bodies.'
+              : profile?.acceptingAlerts === false
+                ? 'Nothing is being routed to this desk. Emergencies in your area are going to the next association instead.'
+                : 'Emergencies inside your coverage area reach this desk the moment they are raised, and everyone signed in is notified.'
+          }
+          action={
+            <>
+              {unverified ? (
+                <Button asChild>
+                  <Link to="/verification">
+                    <ShieldCheck className="size-4" />
+                    Complete verification
+                  </Link>
+                </Button>
+              ) : null}
+              {can(Permission.NEARBY_READ) ? (
+                <Button variant={unverified ? 'outline' : 'default'} asChild>
+                  <Link to="/nearby">
+                    <MapPin className="size-4" />
+                    Nearby services
+                  </Link>
+                </Button>
+              ) : null}
+            </>
+          }
+          footer={
+            stats && stats.overdue > 0 ? (
+              <div className="flex items-start gap-2.5 rounded-xl bg-destructive/8 p-3 ring-1 ring-destructive/25">
+                <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive" />
+                <div className="min-w-0 text-xs">
+                  <p className="font-medium text-destructive">
+                    {stats.overdue} alert{stats.overdue === 1 ? '' : 's'} past the response window
+                  </p>
+                  <p className="mt-0.5 text-muted-foreground">
+                    A driver is waiting at the roadside. Acknowledge the alert to take the case and
+                    see their contact number.
+                  </p>
+                </div>
+              </div>
+            ) : null
+          }
+        />
+
+        {/*
+          The record and the reach, in one column. They answer the same
+          question from two sides — how well this desk responds, and to what —
+          and neither was ever worth a panel of its own.
+        */}
+        {profile ? (
+          <BentoPanel
+            span={8}
+            title="This desk"
+            description="Measured from alert arrival to acknowledgement by a named member."
+            bodyClassName="space-y-5"
+          >
+            {profile.stats.alertsReceived > 0 ? (
+              <dl className="grid grid-cols-2 gap-x-6 gap-y-3 xl:grid-cols-4">
+                <div>
+                  <dt className="section-label">Received</dt>
+                  <dd className="tabular text-lg font-semibold">{profile.stats.alertsReceived}</dd>
+                </div>
+                <div>
+                  <dt className="section-label">Acknowledged</dt>
+                  <dd className="tabular text-lg font-semibold">
+                    {profile.stats.alertsAcknowledged}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="section-label">Resolved</dt>
+                  <dd className="tabular text-lg font-semibold">{profile.stats.alertsResolved}</dd>
+                </div>
+                <div>
+                  <dt className="section-label">Median response</dt>
+                  <dd className="tabular text-lg font-semibold">
+                    {profile.stats.avgResponseMinutes === null
+                      ? '—'
+                      : `${profile.stats.avgResponseMinutes} min`}
+                  </dd>
+                </div>
+              </dl>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                No alert has reached this desk yet, so there is no response record to show.
+              </p>
+            )}
+
+            <div className="space-y-2 border-t border-border/70 pt-4">
+              <p className="section-label">Coverage</p>
+              <p className="text-xs text-muted-foreground">
+                Alerts are matched geographically. An incident outside every area below never
+                reaches this desk.
+              </p>
+              <div className="flex flex-wrap gap-2 pt-0.5">
+                {profile.coverageAreas.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No coverage area is registered.</p>
+                ) : (
+                  profile.coverageAreas.map((area) => (
+                    <Badge key={area.id} variant="secondary" className="gap-1.5">
+                      <Users className="h-3 w-3" />
+                      {area.district}
+                      <span className="text-muted-foreground">· {area.radiusKm} km</span>
+                    </Badge>
+                  ))
+                )}
+              </div>
+            </div>
+          </BentoPanel>
+        ) : null}
+
+        {/* ---------------------------------------------------- row 2 --- */}
+
+        {/*
+          The figures across the full width. A metric cell carries a label, a
+          figure and an 84px chart, so it wants around 240px — which two
+          thirds of the board does not give it at a laptop width.
+        */}
+        <BentoMetrics span={12} columns={4}>
+          <BentoMetric
             label="Open alerts"
             numericValue={stats?.open ?? 0}
             format={(value) => String(Math.round(value))}
@@ -239,9 +372,7 @@ export function AssociationDashboardPage() {
             tone={stats && stats.open > 0 ? 'warning' : 'default'}
             live
           />
-        </BentoTile>
-        <BentoTile span={3} plain>
-          <StatCard
+          <BentoMetric
             label="Critical"
             numericValue={stats?.critical ?? 0}
             format={(value) => String(Math.round(value))}
@@ -253,9 +384,7 @@ export function AssociationDashboardPage() {
             tone={stats && stats.critical > 0 ? 'destructive' : 'default'}
             hint="Accident, security or medical"
           />
-        </BentoTile>
-        <BentoTile span={3} plain>
-          <StatCard
+          <BentoMetric
             label="Awaiting acknowledgement"
             numericValue={stats?.unacknowledged ?? 0}
             format={(value) => String(Math.round(value))}
@@ -271,13 +400,11 @@ export function AssociationDashboardPage() {
               ],
             }}
             tone={stats && stats.overdue > 0 ? 'destructive' : 'default'}
-            hint={
-              stats && stats.overdue > 0 ? `${stats.overdue} past the response window` : undefined
-            }
+            {...(stats && stats.overdue > 0
+              ? { hint: `${stats.overdue} past the response window` }
+              : {})}
           />
-        </BentoTile>
-        <BentoTile span={3} plain>
-          <StatCard
+          <BentoMetric
             label="Resolved today"
             numericValue={stats?.resolvedToday ?? 0}
             format={(value) => String(Math.round(value))}
@@ -288,64 +415,19 @@ export function AssociationDashboardPage() {
             }}
             tone="success"
           />
-        </BentoTile>
+        </BentoMetrics>
 
-        {stats && stats.overdue > 0 ? (
-          <Card className="border-destructive/40 bg-destructive/5 lg:col-span-12">
-            <CardContent className="flex items-start gap-3 py-4">
-              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
-              <div className="space-y-1 text-sm">
-                <p className="font-medium">
-                  {stats.overdue} alert{stats.overdue === 1 ? '' : 's'} past the response window
-                </p>
-                <p className="text-muted-foreground">
-                  A driver is waiting at the roadside. Acknowledge the alert to take the case and
-                  see their contact number.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        ) : null}
+        {/* ---------------------------------------------------- row 3 --- */}
 
-        {profile && profile.stats.alertsReceived > 0 ? (
-          <BentoTile span={4}>
-            <CardHeader className="pb-3">
-              <SectionHeader
-                title="Response record"
-                description="Measured from alert arrival to acknowledgement by a named member of this association."
-              />
-            </CardHeader>
-            <CardContent className="grid grid-cols-2 gap-4 pt-0 sm:grid-cols-4">
-              <div>
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">Received</p>
-                <p className="text-lg font-semibold">{profile.stats.alertsReceived}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                  Acknowledged
-                </p>
-                <p className="text-lg font-semibold">{profile.stats.alertsAcknowledged}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">Resolved</p>
-                <p className="text-lg font-semibold">{profile.stats.alertsResolved}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                  Median response
-                </p>
-                <p className="text-lg font-semibold">
-                  {profile.stats.avgResponseMinutes === null
-                    ? '—'
-                    : `${profile.stats.avgResponseMinutes} min`}
-                </p>
-              </div>
-            </CardContent>
-          </BentoTile>
-        ) : null}
-
-        <BentoTile span={8} className="gap-3 p-5">
-          <div className="flex items-center justify-between gap-3">
+        {/*
+          The queue is the one tile that brings its own surface: a data table
+          already draws a panel, and wrapping it in a second one gives the row
+          of alerts two edges and two shadows. The heading sits on the canvas
+          above it instead, which is what the rest of the product does wherever
+          a table is the whole of a section.
+        */}
+        <BentoTile span={12} plain className="space-y-3">
+          <div className="flex flex-wrap items-start justify-between gap-3 px-1">
             <SectionHeader
               title="Emergency queue"
               description="Ordered by severity, then by how long the driver has been waiting."
@@ -385,26 +467,6 @@ export function AssociationDashboardPage() {
             />
           )}
         </BentoTile>
-
-        {profile ? (
-          <BentoTile span={12}>
-            <CardHeader className="pb-3">
-              <SectionHeader
-                title="Coverage"
-                description="Alerts are matched geographically. An incident outside every area below never reaches this desk."
-              />
-            </CardHeader>
-            <CardContent className="flex flex-wrap gap-2 pt-0">
-              {profile.coverageAreas.map((area) => (
-                <Badge key={area.id} variant="secondary" className="gap-1.5">
-                  <Users className="h-3 w-3" />
-                  {area.district}
-                  <span className="text-muted-foreground">· {area.radiusKm} km</span>
-                </Badge>
-              ))}
-            </CardContent>
-          </BentoTile>
-        ) : null}
       </BentoGrid>
     </div>
   );

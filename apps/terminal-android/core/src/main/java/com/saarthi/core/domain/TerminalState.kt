@@ -49,6 +49,31 @@ enum class TerminalState {
     /** Whether this state is waiting on somebody other than the driver. */
     val waitingOnFleet: Boolean get() = this == PENDING_APPROVAL
 
+    /**
+     * Whether the driver still owes a safety check.
+     *
+     * Two states mean it: [APPROVED] is the platform's word for "authorised by a
+     * named person, check still outstanding", and [CHECKLIST_REQUIRED] is that
+     * same situation a moment later. Treating only the second as the check being
+     * due left an approved driver on a dashboard with no route to it, and so no
+     * route to starting a shift.
+     */
+    val checklistOutstanding: Boolean get() = this == APPROVED || this == CHECKLIST_REQUIRED
+
+    /**
+     * Whether this phone is actually signed on to a vehicle.
+     *
+     * False for every state before a driver is recognised at one. Worth stating
+     * because the dashboard's fallback used to call all of them "Signed on",
+     * which told a driver whose terminal had no session that everything was
+     * fine.
+     */
+    val signedOnToVehicle: Boolean
+        get() = this != UNPAIRED &&
+            this != PAIRING &&
+            this != VEHICLE_PAIRED &&
+            this != AWAITING_DRIVER
+
     companion object {
         /**
          * Parse a state name from the server.

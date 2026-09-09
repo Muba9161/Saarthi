@@ -21,7 +21,7 @@ import { EmptyState, UnauthorizedState } from '@/components/common/states';
 import { StatusBadge } from '@/components/common/status-badge';
 import { VehicleCard } from '@/components/common/vehicle-card';
 import { DeleteAction } from '@/components/common/delete-action';
-import { AddVehicleDialog } from '@/features/vehicles/add-vehicle-dialog';
+import { AddVehicleDialog, EditVehicleDialog } from '@/features/vehicles/vehicle-dialog';
 import { QrWelcomeDialog } from '@/features/qr/qr-welcome-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -99,6 +99,9 @@ export function VehiclesPage() {
   });
 
   if (!can(Permission.VEHICLES_READ)) return <UnauthorizedState />;
+
+  // Declared before the columns because the row actions read it.
+  const isTravelOperator = session?.organization?.type === OrganizationType.MOBILITY_PROVIDER;
 
   const columns: Column<VehicleSummary>[] = [
     {
@@ -234,6 +237,10 @@ export function VehiclesPage() {
           <Button asChild variant="ghost" size="sm">
             <Link to={`/fleet/vehicles/${row.id}`}>Open</Link>
           </Button>
+          <EditVehicleDialog
+            vehicle={row}
+            {...(isTravelOperator ? { allowedTypes: PASSENGER_VEHICLE_TYPES } : {})}
+          />
           <DeleteAction
             endpoint={`/fleet/vehicles/${row.id}`}
             itemLabel={row.registrationNumber}
@@ -249,7 +256,6 @@ export function VehiclesPage() {
   ];
 
   const hasFilters = Boolean(search || capability || vehicleType || status);
-  const isTravelOperator = session?.organization?.type === OrganizationType.MOBILITY_PROVIDER;
 
   return (
     <div className="space-y-6">
@@ -433,15 +439,21 @@ export function VehiclesPage() {
               footer={
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-xs text-muted-foreground">{row.typeLabel}</span>
-                  <DeleteAction
-                    endpoint={`/fleet/vehicles/${row.id}`}
-                    itemLabel={row.registrationNumber}
-                    entityName="vehicle"
-                    permission={Permission.VEHICLES_DELETE}
-                    invalidateKeys={[['vehicles']]}
-                    disabled={row.currentTripId !== null}
-                    disabledReason="On an active trip — end the trip first"
-                  />
+                  <div className="flex items-center gap-0.5">
+                    <EditVehicleDialog
+                      vehicle={row}
+                      {...(isTravelOperator ? { allowedTypes: PASSENGER_VEHICLE_TYPES } : {})}
+                    />
+                    <DeleteAction
+                      endpoint={`/fleet/vehicles/${row.id}`}
+                      itemLabel={row.registrationNumber}
+                      entityName="vehicle"
+                      permission={Permission.VEHICLES_DELETE}
+                      invalidateKeys={[['vehicles']]}
+                      disabled={row.currentTripId !== null}
+                      disabledReason="On an active trip — end the trip first"
+                    />
+                  </div>
                 </div>
               }
             />

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  What the paper provider is allowed to hand out.
+
+  Exactly one directory, and it is the one the document cache writes to. A
+  provider scoped to the whole of `files/` would let any app that received one
+  intent read every other file the app holds — the outbox, the identity store —
+  and the point of caching papers privately would be lost on the way out.
+-->
+<paths>
+    <files-path name="papers" path="papers/" />
+</paths>

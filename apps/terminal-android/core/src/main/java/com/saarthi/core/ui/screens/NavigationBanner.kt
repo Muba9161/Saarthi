@@ -103,6 +103,18 @@ fun NavigationBanner(
         modifier = modifier,
         shape = RoundedCornerShape(20.dp),
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+        /*
+         * Ink, stated rather than inherited.
+         *
+         * Material derives a Surface's content colour with `contentColorFor`,
+         * which matches the fill against the scheme's roles — and an alpha'd
+         * copy of `surface` matches none of them, so it handed down
+         * `Color.Unspecified` and the turn instruction fell back to its style
+         * default, black. On the driver app's near-black glass the next
+         * manoeuvre was black on black: unreadable, on the one panel a driver
+         * reads at speed.
+         */
+        contentColor = MaterialTheme.colorScheme.onSurface,
         shadowElevation = 10.dp,
     ) {
         Column(Modifier.padding(Gutter)) {
@@ -139,7 +151,21 @@ fun NavigationBanner(
                             next != null -> formatDistance(navigation.stepMetres)
                             else -> "On route"
                         },
-                        style = MaterialTheme.typography.displaySmall,
+                        /*
+                         * Big for a distance, smaller for a word.
+                         *
+                         * A distance is short — "450 m", "1.2 km" — and is the
+                         * thing a driver takes from a glance, so it gets the
+                         * largest type. The word states are longer and matter
+                         * less, and at the same size "On route" truncated to
+                         * "On" on an ordinary phone, between a 64dp manoeuvre
+                         * icon and two buttons.
+                         */
+                        style = if (next != null) {
+                            MaterialTheme.typography.displaySmall
+                        } else {
+                            MaterialTheme.typography.headlineSmall
+                        },
                         fontWeight = FontWeight.SemiBold,
                         color = if (navigation.arrived) SaarthiSuccess else Color.Unspecified,
                         maxLines = 1,
@@ -153,7 +179,11 @@ fun NavigationBanner(
                         },
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
+                        // Two lines on a phone, where a 64dp manoeuvre icon and
+                        // two buttons leave this column narrow enough to clip a
+                        // road name to a single word. A tablet never reaches the
+                        // second line, so nothing moves there.
+                        maxLines = 2,
                     )
                 }
 
@@ -275,6 +305,10 @@ fun TripSummaryBar(
         modifier = modifier,
         shape = RoundedCornerShape(18.dp),
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+        // Ink stated rather than inherited: `contentColorFor` matches an
+        // alpha'd copy of `surface` against no role and hands down
+        // `Color.Unspecified`, which every unstyled Text below reads as black.
+        contentColor = MaterialTheme.colorScheme.onSurface,
         shadowElevation = 8.dp,
     ) {
         Row(
@@ -361,6 +395,10 @@ fun RoutePreviewCard(
         modifier = modifier,
         shape = RoundedCornerShape(20.dp),
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+        // Ink stated rather than inherited: `contentColorFor` matches an
+        // alpha'd copy of `surface` against no role and hands down
+        // `Color.Unspecified`, which every unstyled Text below reads as black.
+        contentColor = MaterialTheme.colorScheme.onSurface,
         shadowElevation = 12.dp,
     ) {
         Column(Modifier.padding(Gutter)) {

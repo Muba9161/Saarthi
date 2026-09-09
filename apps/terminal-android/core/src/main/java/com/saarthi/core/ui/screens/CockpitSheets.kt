@@ -170,6 +170,7 @@ fun ServicesSheet(
     val query by viewModel.searchQuery.collectAsState()
     val searchRunning by viewModel.searching.collectAsState()
     val searchFailure by viewModel.searchFailure.collectAsState()
+    val hasPosition = viewModel.uiState.collectAsState().value.telemetry.position != null
     var selected by remember { mutableStateOf("FUEL") }
 
     // Only re-fetch the category list when the category changes. A search runs
@@ -408,8 +409,25 @@ fun ServicesSheet(
         }
 
         if (places.isEmpty()) {
+            /*
+             * Say which kind of empty this is.
+             *
+             * One message covered two very different situations and named the
+             * wrong one for the commoner. "Saarthi needs a recent position" is
+             * true only when there is no position; the usual case is that there
+             * *is* one and there is genuinely nothing of that kind around —
+             * which, now that refuelling follows the vehicle, is what an
+             * electric van in open country will often be told. Blaming the
+             * position sends a driver hunting a fault that is not there.
+             */
             Text(
-                "Nothing found nearby. Saarthi needs a recent position for this vehicle to search around it.",
+                if (hasPosition) {
+                    "Nothing of this kind within reach. Try another category, " +
+                        "or search for somewhere by name."
+                } else {
+                    "Saarthi does not know where this vehicle is yet, so it " +
+                        "cannot search around it."
+                },
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
