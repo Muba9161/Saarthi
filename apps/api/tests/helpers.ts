@@ -217,6 +217,24 @@ export async function resetDatabase(): Promise<void> {
     'audit_logs',
     'password_reset_tokens',
     'sessions',
+    /*
+     * Sales, referrals and commission.
+     *
+     * Listed explicitly and in dependency order, like the expansion tables
+     * above. It matters more here than elsewhere: the attribution table carries
+     * a partial unique index on live rows per organization, so a single
+     * attribution surviving from one test file would make the *next* file's
+     * registration silently uncredited — a failure that reads as an attribution
+     * bug rather than as leaked state.
+     */
+    'tracker_handovers',
+    'commissions',
+    'commission_rules',
+    'sales_lead_events',
+    'sales_leads',
+    'referral_attributions',
+    'salesman_profiles',
+    'vehicle_trackers',
     'vehicle_subscription_topups',
     'subscriptions',
     'memberships',

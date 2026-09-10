@@ -30,7 +30,8 @@
     "db:reset": "npm run db:reset -w @saarthi/api",
     "db:studio": "npm run db:studio -w @saarthi/api",
     "setup": "npm install && npm run db:generate && npm run db:migrate && npm run db:seed",
-    "check:video": "node tools/check-video-path.mjs"
+    "check:video": "node tools/check-video-path.mjs",
+    "images:marketing": "node tools/prepare-marketing-images.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",

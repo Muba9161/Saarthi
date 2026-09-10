@@ -134,6 +134,22 @@ const config: Config = {
           'linear-gradient(to right, hsl(var(--border)/0.5) 1px, transparent 1px), linear-gradient(to bottom, hsl(var(--border)/0.5) 1px, transparent 1px)',
         'brand-gradient':
           'linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary)/0.88) 55%, hsl(var(--accent)/0.7) 145%)',
+        /*
+         * The logo's own sweep, as a fill.
+         *
+         * Sampled from `vorldx-mark.png` — the navy of the V and the road, and
+         * the saffron of the X. Held as fixed hex rather than tokens because
+         * the artwork is fixed: `--primary` is a desaturated indigo that was
+         * chosen to sit quietly behind operational data, and the logo is not
+         * that colour.
+         *
+         * Separate from `brand-gradient` on purpose. That one fills every
+         * `variant="gradient"` button in the product, where a full navy-to-
+         * saffron ramp across 40px reads as a novelty; this is for the large
+         * brand surfaces where the ramp has room to be seen — the progress
+         * rail, the selected pills, and the marketing wordmarks.
+         */
+        'logo-gradient': 'linear-gradient(100deg, #062a66 0%, #2360be 32%, #e8590f 85%, #ff8c2e 100%)',
         // The soft pool of light a vehicle image is staged on.
         'stage-glow':
           'radial-gradient(120% 80% at 50% 118%, hsl(var(--primary)/0.10) 0%, transparent 72%)',

@@ -67,6 +67,24 @@ process.env.NEARBY_PLACE_CACHE_TTL = '0';
 process.env.AUTH_RATE_LIMIT_MAX = '10000';
 process.env.RATE_LIMIT_MAX = '100000';
 process.env.QR_RESOLVE_RATE_LIMIT_MAX = '10000';
+// The public referral routes are limited the same way, and for the same
+// reason: the throttle exists to stop one device minting attributions in bulk,
+// not to throttle a test harness. The real guarantee — one live attribution per
+// organization — is a database constraint the tests exercise directly.
+process.env.SALES_REFERRAL_RATE_LIMIT_MAX = '10000';
+
+/*
+ * GODWeb is deliberately left unconfigured.
+ *
+ * There is no test double for it, and that is the point: a stub that answered
+ * "yes" would be a stub that authorised money. With nothing configured, the
+ * provider factory returns null, the verify endpoint answers 503, and the tests
+ * exercise the real behaviour of an environment whose GODWeb integration does
+ * not exist yet — which is every environment, today. Fixtures that need a
+ * verified salesperson write the profile row directly.
+ */
+delete process.env.GODWEB_BASE_URL;
+delete process.env.GODWEB_API_KEY;
 
 // Device credentials are their own population with their own signing key, so
 // the tests exercise the same split production enforces rather than falling

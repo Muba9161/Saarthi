@@ -30,6 +30,8 @@ const ROLE_DESCRIPTIONS: Record<RoleName, string> = {
     'Works an association emergency queue and coordinates roadside assistance.',
   [RoleName.MOBILITY_PROVIDER]:
     'Taxi, travel and tour operator selling passenger journeys and packages.',
+  [RoleName.SALESMAN]:
+    'Saarthi salesperson: works leads, runs demos, shares a referral link and hands over trackers. GODWeb owns the identity.',
 };
 
 export async function seedRoles(prisma: PrismaClient): Promise<void> {

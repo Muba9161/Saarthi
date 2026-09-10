@@ -59,6 +59,14 @@ function HomeRedirect() {
 
   if (isDriver) return <Navigate to="/driver" replace />;
   if (isPlatformAdmin && !session?.organization) return <Navigate to="/admin" replace />;
+  /*
+   * A salesperson's home is their pipeline.
+   *
+   * Below the admin check so operations staff who also carry a GODID still
+   * land on the platform overview, and above the fleet dashboard because a
+   * salesperson has no fleet — that screen would be empty for them.
+   */
+  if (session?.user.roles.includes('SALESMAN')) return <Navigate to="/sales" replace />;
   // An association has no fleet dashboard to land on — its home is the queue.
   if (session?.organization?.type === 'TRUCK_ASSOCIATION') {
     return <Navigate to="/association" replace />;
@@ -92,6 +100,24 @@ export const router = createBrowserRouter([
   {
     path: '/q/:token',
     element: lazyPage(() => import('@/pages/qr/public-scan')),
+    errorElement: <RouteError />,
+  },
+  /*
+   * The referral landing page.
+   *
+   * Registered here, outside `RequireAuth`, for the same reason `/q/:token` is:
+   * a referral link is shared on WhatsApp and opened by somebody who has no
+   * Saarthi account and has not decided to make one. Sending them to /login
+   * would waste the salesperson's link.
+   *
+   * Nothing is trusted to the client. The page asks the API who the code
+   * belongs to and gets back a display name and whether it is real; the
+   * attribution itself is decided by the backend at registration, from the code
+   * it re-resolves — so a hand-edited URL credits nobody.
+   */
+  {
+    path: '/r/:code',
+    element: lazyPage(() => import('@/pages/sales/referral-landing')),
     errorElement: <RouteError />,
   },
   {
@@ -342,6 +368,31 @@ export const router = createBrowserRouter([
             element: lazyPage(() => import('@/pages/settings/subscription')),
           },
 
+          // Sales — one section of this application, not a portal of its own.
+          { path: '/sales', element: lazyPage(() => import('@/pages/sales/dashboard')) },
+          { path: '/sales/leads', element: lazyPage(() => import('@/pages/sales/leads')) },
+          {
+            path: '/sales/leads/:id',
+            element: lazyPage(() => import('@/pages/sales/lead-detail')),
+          },
+          {
+            path: '/sales/customers',
+            element: lazyPage(() => import('@/pages/sales/customers')),
+          },
+          { path: '/sales/demo', element: lazyPage(() => import('@/pages/sales/demo')) },
+          {
+            path: '/sales/referrals',
+            element: lazyPage(() => import('@/pages/sales/referrals')),
+          },
+          {
+            path: '/sales/trackers',
+            element: lazyPage(() => import('@/pages/sales/trackers')),
+          },
+          {
+            path: '/sales/commission',
+            element: lazyPage(() => import('@/pages/sales/commission')),
+          },
+
           // Platform administration
           { path: '/admin', element: lazyPage(() => import('@/pages/admin/overview')) },
           {
@@ -358,6 +409,14 @@ export const router = createBrowserRouter([
             element: lazyPage(() => import('@/pages/admin/terminal-releases')),
           },
           { path: '/admin/audit', element: lazyPage(() => import('@/pages/admin/audit')) },
+          {
+            path: '/admin/salesmen',
+            element: lazyPage(() => import('@/pages/admin/salesmen')),
+          },
+          {
+            path: '/admin/commission',
+            element: lazyPage(() => import('@/pages/admin/commission')),
+          },
 
           { path: '*', element: <NotFoundPage /> },
         ],

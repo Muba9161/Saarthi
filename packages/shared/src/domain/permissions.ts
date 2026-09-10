@@ -280,6 +280,35 @@ export const Permission = {
   ROUTE_INTEL_MANAGE: 'routeintel.manage',
   ROUTE_INTEL_VERIFY: 'routeintel.verify',
 
+  /*
+   * Selling Saarthi.
+   *
+   * A separate group from everything above, and the separation is the point: a
+   * salesperson works prospects and their own pipeline, and none of these
+   * grants reaches a customer's fleet, drivers, trips or telemetry. The two
+   * commission entries are also deliberately lopsided — a salesperson reads
+   * their own figures, and only platform administration may approve or pay
+   * them, because commission is money and the person earning it must not be
+   * the person authorising it.
+   */
+  SALES_READ: 'sales.read',
+  SALES_WRITE: 'sales.write',
+  LEADS_READ: 'leads.read',
+  LEADS_WRITE: 'leads.write',
+  REFERRALS_READ: 'referrals.read',
+  REFERRALS_CREATE: 'referrals.create',
+  COMMISSION_READ: 'commission.read',
+  /** Approve, pay, reverse and reject. Never held by a salesperson. */
+  COMMISSION_MANAGE: 'commission.manage',
+  TRACKER_HANDOVER_READ: 'tracker_handover.read',
+  TRACKER_HANDOVER_WRITE: 'tracker_handover.write',
+  /** Allocate stock to a salesperson. Platform operations, not field sales. */
+  TRACKER_INVENTORY_MANAGE: 'tracker_inventory.manage',
+  /** The safe, clearly-labelled product walkthrough. */
+  DEMO_USE: 'demo.use',
+  /** Administer salesman profiles and GODID verification. */
+  SALESMAN_MANAGE: 'salesman.manage',
+
   // Platform administration
   ADMIN_USERS: 'admin.users',
   ADMIN_ORGANIZATIONS: 'admin.organizations',
@@ -745,6 +774,37 @@ const ROLE_PERMISSIONS: Record<RoleName, Permission[]> = {
     Permission.QR_READ,
     Permission.ROUTE_INTEL_READ,
     Permission.ROUTE_INTEL_REPORT,
+  ],
+
+  /**
+   * Saarthi salesperson.
+   *
+   * Read this list for what it does *not* contain. There is no TRUCKS_READ, no
+   * DRIVERS_READ, no TRACKING_READ and no TELEMETRY_READ: a salesperson who
+   * closed a deal last quarter has no business watching that customer's
+   * vehicles move. What they see of a customer is assembled by the sales
+   * service from their own attributions and is deliberately thin — a name, a
+   * vehicle count, a subscription state, how many vehicles are live.
+   *
+   * COMMISSION_READ without COMMISSION_MANAGE is the other deliberate gap: the
+   * figures are computed server-side from real payments, and the person they
+   * are owed to can look at them and nothing more.
+   */
+  [RoleName.SALESMAN]: [
+    Permission.SALES_READ,
+    Permission.SALES_WRITE,
+    Permission.LEADS_READ,
+    Permission.LEADS_WRITE,
+    Permission.REFERRALS_READ,
+    Permission.REFERRALS_CREATE,
+    Permission.COMMISSION_READ,
+    Permission.TRACKER_HANDOVER_READ,
+    Permission.TRACKER_HANDOVER_WRITE,
+    Permission.DEMO_USE,
+    Permission.NOTIFICATIONS_READ,
+    // Their own profile and the internal directory, like every other member
+    // of staff. Nothing tenant-scoped travels with either.
+    Permission.PROFILE_DIRECTORY,
   ],
 };
 

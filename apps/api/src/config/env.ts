@@ -451,6 +451,78 @@ const envSchema = z.object({
 
   DEMO_MODE: booleanish(true),
   SIMULATOR_TICK_MS: z.coerce.number().int().min(200).max(10_000).default(1000),
+
+  // --- GODWeb salesman identity (read-only) ---------------------------------
+  //
+  // GODWeb owns who a salesperson is. Saarthi validates a GODID against it and
+  // does nothing else: it never creates a GODWeb account, never writes to it
+  // and never reads its database directly.
+  //
+  // With no base URL and key configured, GODID verification is *unavailable*
+  // rather than assumed. Salesman profiles stay PENDING_VERIFICATION, no
+  // referral link is issued for them and no commission accrues — see
+  // `providers/godweb/index.ts`. That is the deliberate answer to the spec's
+  // instruction to document the dependency rather than invent a GODWeb-side
+  // system: a platform administrator may still vouch for a GODID by hand, and
+  // that decision is recorded with their name on it.
+  GODWEB_BASE_URL: blankAsUnset(z.string().url()),
+  GODWEB_API_KEY: blankAsUnset(z.string().min(8)),
+  /**
+   * Path of the read-only validation endpoint, relative to the base URL.
+   *
+   * Configurable because the exact route is GODWeb's to decide and is not
+   * settled at the time of writing. `{godId}` is substituted.
+   */
+  GODWEB_VALIDATE_PATH: z.string().default('/api/salespersons/{godId}'),
+  GODWEB_TIMEOUT_MS: z.coerce.number().int().min(1_000).max(60_000).default(10_000),
+  /**
+   * Seconds a successful validation may be reused before GODWeb is called
+   * again. A salesperson's identity does not change hourly, and re-validating
+   * on every referral click would put GODWeb in the path of a public URL.
+   */
+  GODWEB_CACHE_TTL: z.coerce.number().int().min(0).max(30 * 86_400).default(3_600),
+
+  // --- Sales, referrals & commission ----------------------------------------
+  /**
+   * How long a captured referral keeps its claim on a customer who has not
+   * registered yet.
+   *
+   * This is a commercial decision, not a technical one, and the specification
+   * is explicit that it must not be silently invented. So: it is configuration,
+   * it is documented in `.env.example`, and it is returned to the client on
+   * every referral response and rendered on the salesman's referral screen —
+   * nobody has to guess the number, and changing it is one line of `.env`.
+   *
+   * 90 days is the default because it is the commonest figure in Indian SaaS
+   * channel agreements, not because Saarthi has decided on it. Confirm it with
+   * the business before launch.
+   */
+  SALES_ATTRIBUTION_WINDOW_DAYS: z.coerce.number().int().min(1).max(730).default(90),
+  /**
+   * Referral captures allowed from one IP per window.
+   *
+   * The link is public, so this is the throttle that stops one device minting
+   * attributions in bulk. It is generous — a shared office NAT is a real
+   * thing — and the partial unique index on live attributions is what actually
+   * prevents the fraud; this only keeps the table from growing.
+   */
+  SALES_REFERRAL_RATE_LIMIT_MAX: z.coerce.number().int().min(1).default(30),
+  SALES_REFERRAL_RATE_LIMIT_WINDOW: z.string().default('1 minute'),
+  /**
+   * Minutes of silence after which a tracker that has never reported is
+   * treated as "not yet connected" rather than "connected and quiet".
+   *
+   * Used only by the first-vehicle readiness report, and only to phrase the
+   * answer: a unit fitted two minutes ago that has not spoken is PENDING, not
+   * a failure, and telling a salesperson to check a cable that is fine wastes
+   * their visit.
+   */
+  SALES_ONBOARDING_TELEMETRY_GRACE_MINUTES: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(1_440)
+    .default(15),
 });
 
 export type RawEnv = z.infer<typeof envSchema>;
@@ -771,6 +843,23 @@ export const config = {
   demo: {
     enabled: raw.DEMO_MODE,
     simulatorTickMs: raw.SIMULATOR_TICK_MS,
+  },
+
+  godweb: {
+    baseUrl: raw.GODWEB_BASE_URL?.replace(/\/$/, ''),
+    apiKey: raw.GODWEB_API_KEY,
+    validatePath: raw.GODWEB_VALIDATE_PATH,
+    timeoutMs: raw.GODWEB_TIMEOUT_MS,
+    cacheTtlSeconds: raw.GODWEB_CACHE_TTL,
+    /** True only when this environment can actually ask GODWeb anything. */
+    configured: Boolean(raw.GODWEB_BASE_URL && raw.GODWEB_API_KEY),
+  },
+
+  sales: {
+    attributionWindowDays: raw.SALES_ATTRIBUTION_WINDOW_DAYS,
+    referralRateLimitMax: raw.SALES_REFERRAL_RATE_LIMIT_MAX,
+    referralRateLimitWindow: raw.SALES_REFERRAL_RATE_LIMIT_WINDOW,
+    onboardingTelemetryGraceMinutes: raw.SALES_ONBOARDING_TELEMETRY_GRACE_MINUTES,
   },
 } as const;
 

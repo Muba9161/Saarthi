@@ -53,6 +53,7 @@ import { deviceGatewayRoutes } from '../modules/telemetry/gateway.routes';
 import { aiRoutes } from '../modules/ai/ai.routes';
 import { loanRoutes, vehicleLoanRoutes } from '../modules/loans/loan.routes';
 import { subscriptionRoutes } from '../modules/subscriptions/subscription.routes';
+import { publicReferralRoutes, salesRoutes } from '../modules/sales/sales.routes';
 import { viewPreferenceRoutes } from '../modules/preferences/view-preference.routes';
 import {
   cameraRoutes,
@@ -134,6 +135,15 @@ export async function registerApiRoutes(app: FastifyInstance): Promise<void> {
   await app.register(analyticsRoutes, { prefix: '/analytics' });
   await app.register(notificationRoutes, { prefix: '/notifications' });
   await app.register(subscriptionRoutes, { prefix: '/subscriptions' });
+  // Selling Saarthi: leads, referrals, commission and tracker handover. One
+  // module inside this application — there is no separate sales portal, no
+  // salesman site and no salesman app.
+  await app.register(salesRoutes, { prefix: '/sales' });
+  // The referral landing target. Registered without the session guard, exactly
+  // like `/qr/resolve/:token` above and for the same reason: a referral link is
+  // opened by somebody who does not have a Saarthi account yet. It reveals only
+  // a display name and whether the code is real.
+  await app.register(publicReferralRoutes, { prefix: '/referrals/public' });
   // A person's own settings about their own screens — authentication is the
   // only guard, because the queries are scoped to their user id.
   await app.register(viewPreferenceRoutes, { prefix: '/me/view-preferences' });

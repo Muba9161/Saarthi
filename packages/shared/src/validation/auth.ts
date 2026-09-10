@@ -169,6 +169,20 @@ export const registerSchema = z
      * accepted later from the driver's home screen; see `joinFleetSchema`.
      */
     fleetInviteCode: optionalTrimmedString(32),
+    /**
+     * The salesperson to credit this account to, as a GODID.
+     *
+     * Carried through registration rather than collected afterwards, because
+     * the moment a customer has an account is the only moment the referral they
+     * arrived through is still on the page. It is optional and untrusted: the
+     * API re-resolves the code against a verified salesman profile and ignores
+     * anything it cannot stand behind, so a made-up value costs the registrant
+     * nothing and earns nobody a commission.
+     *
+     * A code that arrives here never overwrites an existing valid attribution —
+     * see `captureRegistrationReferral` on the API side.
+     */
+    referralCode: optionalTrimmedString(32),
     /** Required for DRIVER — the commercial driving licence number. */
     licenseNumber: optionalTrimmedString(40),
     licenseExpiryDate: z.coerce.date().optional(),

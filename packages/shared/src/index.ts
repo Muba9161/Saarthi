@@ -36,6 +36,7 @@ export * from './domain/city-access';
 export * from './domain/route-intelligence';
 export * from './domain/terminal';
 export * from './domain/requirements';
+export * from './domain/sales';
 
 // API contracts
 export * from './api/envelope';
@@ -74,6 +75,7 @@ export * from './validation/return-loads';
 export * from './validation/relay';
 export * from './validation/route-intelligence';
 export * from './validation/terminal';
+export * from './validation/sales';
 
 // Utilities
 export * from './utils/format';

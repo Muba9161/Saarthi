@@ -18,6 +18,7 @@ import {
   RequirementBidStatus,
   RequirementStatus,
   ReturnLoadStatus,
+  SalesLeadStatus,
   SosStatus,
   TripStatus,
   TruckStatus,
@@ -627,3 +628,132 @@ export const OPEN_RETURN_LOAD_STATUSES: ReturnLoadStatus[] = [
   ReturnLoadStatus.OPEN,
   ReturnLoadStatus.MATCHED,
 ];
+
+// ---------------------------------------------------------------------------
+// Sales leads
+// ---------------------------------------------------------------------------
+
+/**
+ * The pipeline a salesperson works.
+ *
+ * Two things are worth reading carefully.
+ *
+ * The first is that every state can fall out to LOST, CANCELLED or
+ * DISQUALIFIED, right up to ONBOARDING. A prospect who signed up, paid and
+ * then cancelled inside the refund window is a real outcome, and a pipeline
+ * that cannot express it is one people work around by inventing statuses in
+ * the notes field.
+ *
+ * The second is that the transitions *into* SUBSCRIBED and beyond exist here
+ * but are not offered to the salesperson — see `SALES_LEAD_DERIVED_STATUSES`
+ * below. The table describes what is possible; the API decides who may ask.
+ */
+const SALES_LEAD_TRANSITIONS: Record<SalesLeadStatus, readonly SalesLeadStatus[]> = {
+  [SalesLeadStatus.NEW]: [
+    SalesLeadStatus.CONTACTED,
+    SalesLeadStatus.DEMO_SCHEDULED,
+    SalesLeadStatus.LOST,
+    SalesLeadStatus.DISQUALIFIED,
+  ],
+  [SalesLeadStatus.CONTACTED]: [
+    SalesLeadStatus.DEMO_SCHEDULED,
+    SalesLeadStatus.INTERESTED,
+    SalesLeadStatus.LOST,
+    SalesLeadStatus.DISQUALIFIED,
+  ],
+  [SalesLeadStatus.DEMO_SCHEDULED]: [
+    SalesLeadStatus.DEMO_COMPLETED,
+    // A demo that nobody turned up for goes back a step rather than dying.
+    SalesLeadStatus.CONTACTED,
+    SalesLeadStatus.LOST,
+    SalesLeadStatus.DISQUALIFIED,
+  ],
+  [SalesLeadStatus.DEMO_COMPLETED]: [
+    SalesLeadStatus.INTERESTED,
+    SalesLeadStatus.SIGNUP_PENDING,
+    SalesLeadStatus.LOST,
+    SalesLeadStatus.DISQUALIFIED,
+  ],
+  [SalesLeadStatus.INTERESTED]: [
+    SalesLeadStatus.SIGNUP_PENDING,
+    SalesLeadStatus.DEMO_SCHEDULED,
+    SalesLeadStatus.LOST,
+    SalesLeadStatus.DISQUALIFIED,
+  ],
+  [SalesLeadStatus.SIGNUP_PENDING]: [
+    SalesLeadStatus.PAYMENT_PENDING,
+    SalesLeadStatus.SUBSCRIBED,
+    SalesLeadStatus.INTERESTED,
+    SalesLeadStatus.LOST,
+  ],
+  [SalesLeadStatus.PAYMENT_PENDING]: [
+    SalesLeadStatus.SUBSCRIBED,
+    SalesLeadStatus.SIGNUP_PENDING,
+    SalesLeadStatus.LOST,
+  ],
+  [SalesLeadStatus.SUBSCRIBED]: [
+    SalesLeadStatus.TRACKER_PENDING,
+    // Digital sales with no tracker on the order skip straight to onboarding.
+    SalesLeadStatus.ONBOARDING,
+    SalesLeadStatus.ACTIVATED,
+    SalesLeadStatus.CANCELLED,
+  ],
+  [SalesLeadStatus.TRACKER_PENDING]: [
+    SalesLeadStatus.ONBOARDING,
+    SalesLeadStatus.ACTIVATED,
+    SalesLeadStatus.CANCELLED,
+  ],
+  [SalesLeadStatus.ONBOARDING]: [SalesLeadStatus.ACTIVATED, SalesLeadStatus.CANCELLED],
+  [SalesLeadStatus.ACTIVATED]: [],
+  [SalesLeadStatus.LOST]: [
+    // A prospect who said no in March and rings back in July is the same
+    // business, and re-opening the lead keeps the history with it.
+    SalesLeadStatus.CONTACTED,
+  ],
+  [SalesLeadStatus.CANCELLED]: [SalesLeadStatus.CONTACTED],
+  [SalesLeadStatus.DISQUALIFIED]: [],
+};
+
+export const salesLeadStateMachine = buildValidator('Lead', SALES_LEAD_TRANSITIONS);
+
+/**
+ * Statuses the system sets, never the salesperson.
+ *
+ * Each one is a claim about something outside the CRM — a subscription, a
+ * handover row, live telemetry — and a pipeline where the person paid on
+ * conversions can type "ACTIVATED" is a pipeline that measures optimism. The
+ * lead service refuses these from a salesman caller and sets them itself when
+ * the underlying record actually says so.
+ */
+export const SALES_LEAD_DERIVED_STATUSES: readonly SalesLeadStatus[] = Object.freeze([
+  SalesLeadStatus.SUBSCRIBED,
+  SalesLeadStatus.TRACKER_PENDING,
+  SalesLeadStatus.ONBOARDING,
+  SalesLeadStatus.ACTIVATED,
+]);
+
+/** Leads still worth a phone call. */
+export const OPEN_SALES_LEAD_STATUSES: readonly SalesLeadStatus[] = Object.freeze([
+  SalesLeadStatus.NEW,
+  SalesLeadStatus.CONTACTED,
+  SalesLeadStatus.DEMO_SCHEDULED,
+  SalesLeadStatus.DEMO_COMPLETED,
+  SalesLeadStatus.INTERESTED,
+  SalesLeadStatus.SIGNUP_PENDING,
+  SalesLeadStatus.PAYMENT_PENDING,
+]);
+
+/** Leads that became a paying customer, whatever happened afterwards. */
+export const CONVERTED_SALES_LEAD_STATUSES: readonly SalesLeadStatus[] = Object.freeze([
+  SalesLeadStatus.SUBSCRIBED,
+  SalesLeadStatus.TRACKER_PENDING,
+  SalesLeadStatus.ONBOARDING,
+  SalesLeadStatus.ACTIVATED,
+]);
+
+/** Nothing more will happen to these. */
+export const CLOSED_SALES_LEAD_STATUSES: readonly SalesLeadStatus[] = Object.freeze([
+  SalesLeadStatus.LOST,
+  SalesLeadStatus.CANCELLED,
+  SalesLeadStatus.DISQUALIFIED,
+]);

@@ -64,6 +64,7 @@ import {
   markRegistrationTutorialSeen,
 } from '@/features/auth/registration-tutorial';
 import { LanguageGrid, useLocale } from '@/features/i18n';
+import { forgetReferralCode, resolveReferralCode } from '@/features/sales/referral-code';
 import { useAuth } from '@/features/auth/auth-context';
 import { ApiError } from '@/lib/api-client';
 import { uploadImageOrWarn } from '@/features/media/upload-image';
@@ -468,6 +469,18 @@ export function RegisterPage() {
 
   const linkedPlan = linked.plan;
 
+  /**
+   * The referral this registration arrived through.
+   *
+   * Resolved once, from the query string first and the remembered value
+   * second — see `resolveReferralCode`. Held outside the form's own state so a
+   * step change cannot drop it.
+   */
+  const referralCode = React.useMemo(
+    () => resolveReferralCode(window.location.search),
+    [],
+  );
+
   const [intent, setIntent] = React.useState<AccountIntent | null>(linkedPlan);
 
   const form = useForm<RegisterInput>({
@@ -491,6 +504,18 @@ export function RegisterPage() {
       // Whatever the browser or a previous visit already settled on, so the
       // first step opens on the answer rather than on a blank.
       preferredLanguage: locale,
+      /*
+       * The salesperson to credit this signup to, if the visitor arrived
+       * through a referral link or QR.
+       *
+       * Read from `?ref=` and, failing that, from what the referral landing
+       * page remembered — somebody may open the link on Tuesday and finish
+       * signing up on Thursday. Never shown as a field: it is not a question
+       * the registrant should have to answer, and it is not trusted either.
+       * The API re-resolves it against a verified salesman profile and ignores
+       * anything it cannot stand behind, so an invented code credits nobody.
+       */
+      referralCode: referralCode ?? undefined,
       acceptedTerms: false as unknown as true,
     },
   });
@@ -622,6 +647,9 @@ export function RegisterPage() {
     setFormError(null);
     try {
       const session = await register(values as unknown as Record<string, unknown>);
+      // Whatever the API decided about the referral, this browser is done with
+      // it: the account now exists and its attribution is settled server-side.
+      forgetReferralCode();
       if (image) await uploadImage(session, image);
       navigate('/', { replace: true });
     } catch (error) {

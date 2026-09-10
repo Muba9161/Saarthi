@@ -567,6 +567,79 @@
     @apply bg-gradient-to-br from-primary to-accent bg-clip-text text-transparent;
   }
 
+  /*
+   * The logo's own sweep, sampled from the artwork.
+   *
+   * `vorldx-mark.png` is a navy V carrying the road, and an X whose strokes run
+   * saffron into green. The dominant inks in the file are #002050..#004080 for
+   * the navy and #f04000..#ff6010 for the saffron, and this runs between them.
+   *
+   * A mid blue sits at 32%: navy straight into saffron passes through a muddy
+   * plum at the midpoint, and the extra stop is what keeps the ramp clean
+   * across a word this wide. The logo's green is deliberately left out — at the
+   * tail of a gradient it lands on one glyph and reads as a rendering fault
+   * rather than as the third colour of a flag.
+   *
+   * Restated for the dark theme rather than reused: navy at 12% lightness is a
+   * hole in a near-black page, so both ends lift while the hues stay put.
+   */
+  .brand-logo-gradient {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(
+      100deg,
+      #062a66 0%,
+      #2360be 32%,
+      #e8590f 72%,
+      #ff8c2e 100%
+    );
+  }
+  .dark .brand-logo-gradient {
+    background-image: linear-gradient(
+      100deg,
+      #5b8ae0 0%,
+      #86abf2 30%,
+      #ff7a2e 70%,
+      #ffa95e 100%
+    );
+  }
+
+  /*
+   * The same ramp, pinned to its lifted values whatever the theme is.
+   *
+   * The hero and the closing band are fixed near-black stages that do not move
+   * when the visitor flips the theme, so type on them cannot use the
+   * theme-aware class above: in the light theme that would resolve to the
+   * navy end of the ramp and put #062a66 on a near-black ground.
+   */
+  .brand-logo-gradient-on-dark {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(
+      100deg,
+      #5b8ae0 0%,
+      #86abf2 30%,
+      #ff7a2e 70%,
+      #ffa95e 100%
+    );
+  }
+
+  /*
+   * A stack that can actually render all 23 catalogues.
+   *
+   * Inter carries Latin and nothing else here — Devanagari, Bengali, Tamil,
+   * Telugu, Gurmukhi, Odia, Meitei and Ol Chiki all fall through it. Naming the
+   * platform Indic faces explicitly is what stops the browser reaching for its
+   * last-resort font and drawing a row of tofu. No webfont is loaded for this:
+   * 23 scripts is several megabytes, for one line of decoration.
+   */
+  .font-multilingual {
+    font-family:
+      'Inter var', Inter, 'Nirmala UI', 'Noto Sans', 'Noto Sans Devanagari',
+      'Noto Sans Bengali', 'Noto Sans Tamil', 'Noto Sans Telugu', 'Noto Sans Gurmukhi',
+      'Noto Sans Gujarati', 'Noto Sans Kannada', 'Noto Sans Malayalam', 'Noto Sans Oriya',
+      'Noto Nastaliq Urdu', 'Noto Sans Meetei Mayek', 'Noto Sans Ol Chiki', system-ui,
+      sans-serif;
+  }
+
   /* --- Step wizard -------------------------------------------------------
      A long form broken into named steps. Everything here is scoped to the
      wizard so the dense operational screens keep their solid, high-contrast

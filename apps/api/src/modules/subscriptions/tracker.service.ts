@@ -1,4 +1,5 @@
 import {
+  CommissionTrigger,
   NotificationPriority,
   NotificationType,
   OPERATOR_OWNER_ROLES,
@@ -19,6 +20,7 @@ import { withLock } from '../../infra/lock';
 import { paymentProvider } from '../../providers/payments';
 import { AuditAction, recordAudit } from '../audit/audit.service';
 import { notifyOrganization } from '../notifications/notification.service';
+import { qualifyPayment } from '../sales/qualification';
 import { countActiveTrackers, invalidateEntitlements, resolveBaseLimits } from './entitlements.service';
 import type { AuthContext } from '../../auth/context';
 
@@ -319,6 +321,21 @@ export async function purchaseTracker(
       priority: NotificationPriority.NORMAL,
       actionUrl: '/devices',
       roles: OPERATOR_OWNER_ROLES,
+    });
+
+    /*
+     * Commission, if a salesperson brought this customer.
+     *
+     * After the charge succeeded, never before, and on the pre-tax subtotal
+     * rather than the charged total — GST is not Saarthi's revenue. Cannot
+     * throw, so a commission problem can never undo a purchase the customer
+     * has already paid for.
+     */
+    await qualifyPayment({
+      organizationId,
+      baseAmount: charge.subtotal,
+      paymentReference: payment.providerReference,
+      trigger: CommissionTrigger.TRACKER,
     });
 
     return toView(row);

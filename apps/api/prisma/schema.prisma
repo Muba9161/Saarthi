@@ -32,6 +32,9 @@ enum RoleName {
   ASSOCIATION_ADMIN
   ASSOCIATION_RESPONDER
   MOBILITY_PROVIDER
+  /// Saarthi salesperson. Sells Saarthi; does not operate a fleet. Identity is
+  /// owned by GODWeb and mirrored into `salesman_profiles`.
+  SALESMAN
 }
 
 enum UserStatus {
@@ -99,6 +102,11 @@ model User {
 
   uploadedTerminalReleases  TerminalRelease[] @relation("TerminalReleaseUploader")
   publishedTerminalReleases TerminalRelease[] @relation("TerminalReleasePublisher")
+
+  /// Set only for a Saarthi salesperson. Optional in both directions: a
+  /// profile may be created from a GODID before the person has a login, and
+  /// almost no user has one of these.
+  salesmanProfile SalesmanProfile? @relation("SalesmanUser")
 
   @@index([status])
   @@index([createdAt])
@@ -168,6 +176,13 @@ model Organization {
   associationProfile AssociationProfile?
   providerProfile    ServiceProviderProfile?
   profile            OrganizationProfile?
+
+  /// How this customer came to Saarthi, and what it earned whoever brought
+  /// them. Present only for a tenant that arrived through a salesperson.
+  salesLeads            SalesLead[]
+  referralAttributions  ReferralAttribution[]
+  commissions           Commission[]
+  trackerHandovers      TrackerHandover[]
 
   @@index([type])
   @@index([verificationStatus])
@@ -404,6 +419,15 @@ enum NotificationType {
   TERMINAL_DRIVER_REQUEST_EXPIRED
   TERMINAL_CHECKLIST_FAILED
   TERMINAL_ISSUE_REPORTED
+
+  // Sales, referrals & commission
+  SALES_LEAD_FOLLOW_UP_DUE
+  SALES_REFERRAL_CONVERTED
+  SALES_COMMISSION_PENDING
+  SALES_COMMISSION_APPROVED
+  SALES_COMMISSION_PAID
+  SALES_TRACKER_ASSIGNED
+  SALESMAN_VERIFIED
 }
 
 // ===========================================================================
@@ -5926,6 +5950,10 @@ model VehicleTracker {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
+  /// The custody chain, when this unit was carried to the customer by a
+  /// salesperson rather than couriered. Absent for a digital sale.
+  handover TrackerHandover?
+
   @@index([organizationId, status])
   @@index([truckId])
   @@map("vehicle_trackers")
@@ -6692,4 +6720,517 @@ model TerminalRelease {
   @@index([applicationId, status, versionCode])
   @@index([uploadedById])
   @@map("terminal_releases")
+}
+
+// ===========================================================================
+// Enums — sales, referrals & commission
+// ===========================================================================
+
+enum SalesmanStatus {
+  PENDING_VERIFICATION
+  ACTIVE
+  SUSPENDED
+  REJECTED
+}
+
+enum SalesmanVerificationMethod {
+  GODWEB
+  PLATFORM_ADMIN
+}
+
+enum SalesLeadSource {
+  FIELD_VISIT
+  REFERRAL_LINK
+  REFERRAL_QR
+  INBOUND_CALL
+  EVENT
+  EXISTING_CUSTOMER
+  OTHER
+}
+
+enum SalesLeadStatus {
+  NEW
+  CONTACTED
+  DEMO_SCHEDULED
+  DEMO_COMPLETED
+  INTERESTED
+  SIGNUP_PENDING
+  PAYMENT_PENDING
+  SUBSCRIBED
+  TRACKER_PENDING
+  ONBOARDING
+  ACTIVATED
+  LOST
+  CANCELLED
+  DISQUALIFIED
+}
+
+enum SalesLeadEventType {
+  CREATED
+  STATUS_CHANGED
+  NOTE_ADDED
+  FOLLOW_UP_SET
+  DEMO_RECORDED
+  CUSTOMER_LINKED
+  TRACKER_HANDED_OVER
+  ONBOARDING_COMPLETED
+}
+
+enum ReferralSource {
+  PHYSICAL
+  REFERRAL_LINK
+  REFERRAL_QR
+  ASSISTED_SIGNUP
+  MANUAL_GODID
+}
+
+enum ReferralStatus {
+  CAPTURED
+  ATTRIBUTED
+  CONVERTED
+  EXPIRED
+  REVOKED
+}
+
+enum CommissionType {
+  PERCENTAGE
+  FIXED
+}
+
+enum CommissionStatus {
+  PENDING
+  APPROVED
+  PAYABLE
+  PAID
+  REVERSED
+  REJECTED
+}
+
+enum CommissionTrigger {
+  SUBSCRIPTION
+  TRACKER
+  VEHICLE_TOPUP
+}
+
+enum TrackerHandoverStatus {
+  ASSIGNED_TO_SALESMAN
+  HANDED_TO_CUSTOMER
+  INSTALLED
+  RETURNED
+  LOST
+}
+
+// ===========================================================================
+// Sales, referrals & commission
+// ===========================================================================
+
+/// A Saarthi salesperson.
+///
+/// A *mirror* of a GODWeb identity, not a second account system. `godId` is the
+/// identity GODWeb owns; everything else on this row is Saarthi's own record of
+/// what that person does here. Saarthi never creates a GODWeb account, never
+/// reads its database and never treats a GODID as verified without an answer
+/// from the approved read-only integration.
+///
+/// `userId` is nullable and unique. Nullable because a profile can be set up
+/// from a GODID before the person has logged into Saarthi at all — which is the
+/// ordinary sequence when a sales manager onboards a team. Unique because two
+/// salespeople sharing one login would make every attribution ambiguous.
+model SalesmanProfile {
+  id     String @id @default(uuid()) @db.Uuid
+  /// The GODWeb identity. Stored normalised (upper case, no spaces) and unique,
+  /// because it is also the referral code.
+  godId  String @unique
+  userId String? @unique @db.Uuid
+
+  /// The sales organization's own identifier for this person, where they have
+  /// one. Kept because commission statements are reconciled against it.
+  externalSalespersonId String?
+
+  /// Contact details as last confirmed. GODWeb is the authority; these are its
+  /// answer cached for display, or what an administrator entered while the
+  /// integration was unavailable.
+  name      String?
+  phone     String?
+  email     String?
+  territory String?
+
+  status SalesmanStatus @default(PENDING_VERIFICATION)
+
+  /// How and when this GODID was last confirmed, and by whom.
+  ///
+  /// `verifiedByUserId` is only set for PLATFORM_ADMIN verification. It exists
+  /// so an administrator's decision to trust a GODID that GODWeb could not be
+  /// asked about has a name attached to it forever.
+  verificationMethod SalesmanVerificationMethod?
+  verifiedAt         DateTime?
+  verifiedByUserId   String?                     @db.Uuid
+  /// What the administrator said they checked, for the manual path.
+  verificationNote   String?
+  /// Provider reference from the last GODWeb call, for support.
+  godwebReference    String?
+  /// Last time verification was attempted, successful or not.
+  lastCheckedAt      DateTime?
+
+  /// Why a profile was suspended or rejected. Shown to administrators only.
+  standingReason String?
+
+  note      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user         User?                @relation("SalesmanUser", fields: [userId], references: [id], onDelete: SetNull)
+  leads        SalesLead[]
+  attributions ReferralAttribution[]
+  commissions  Commission[]
+  handovers    TrackerHandover[]
+
+  @@index([status])
+  @@index([externalSalespersonId])
+  @@map("salesman_profiles")
+}
+
+/// A prospect a salesperson is working.
+///
+/// Deliberately not a `Customer`. A `Customer` is a marketplace participant
+/// hanging off an organization that already exists; a lead is a phone number
+/// and a conversation, and most of them never become either. When one does,
+/// `organizationId` links the two and the lead keeps the history of how the
+/// sale was made.
+///
+/// This is pre-account personal data belonging to somebody who has agreed to
+/// nothing, so it is scoped hard: a salesperson sees their own leads, platform
+/// administration sees all, and nobody else can reach the table at all.
+model SalesLead {
+  id         String @id @default(uuid()) @db.Uuid
+  salesmanId String @db.Uuid
+
+  contactName  String
+  businessName String?
+  phone        String
+  email        String?
+  city         String?
+  state        String?
+
+  /// The prospect's own estimate, which is frequently wrong and is treated as
+  /// an estimate everywhere it is displayed.
+  fleetSize    Int?
+  vehicleTypes VehicleType[]
+
+  interestedPlan PlanTier?
+  source         SalesLeadSource @default(FIELD_VISIT)
+  status         SalesLeadStatus @default(NEW)
+
+  notes          String?
+  nextFollowUpAt DateTime?
+
+  /// Set when this lead became a Saarthi tenant. From here on the lead's
+  /// status is derived from that organization's real state.
+  organizationId String? @db.Uuid
+  /// The attribution that credited the sale, once there is one.
+  attributionId  String? @unique @db.Uuid
+
+  /// Recorded when the salesperson finishes the first-vehicle demonstration —
+  /// and only after the API has re-read the device and telemetry state that
+  /// justifies it. See `onboarding.service.ts`.
+  demoCompletedAt       DateTime?
+  onboardingCompletedAt DateTime?
+  /// The one vehicle the salesperson set up in front of the owner.
+  firstVehicleId        String?   @db.Uuid
+
+  closedAt   DateTime?
+  closeReason String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  salesman     SalesmanProfile      @relation(fields: [salesmanId], references: [id], onDelete: Cascade)
+  organization Organization?        @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  attribution  ReferralAttribution? @relation("LeadAttribution", fields: [attributionId], references: [id], onDelete: SetNull)
+  events       SalesLeadEvent[]
+  handovers    TrackerHandover[]
+
+  /// One salesperson cannot hold the same prospect twice. Two salespeople may
+  /// both be talking to the same yard, which is a real situation and is
+  /// resolved by attribution when one of them closes it, not by this index.
+  @@unique([salesmanId, phone])
+  @@index([salesmanId, status])
+  @@index([status, nextFollowUpAt])
+  @@index([organizationId])
+  @@map("sales_leads")
+}
+
+/// Everything that happened to a lead, in order.
+///
+/// Append-only. The notes field on the lead holds the current picture; this
+/// holds how it got there, which is what a sales manager asks about and what a
+/// disputed commission is settled with.
+model SalesLeadEvent {
+  id     String             @id @default(uuid()) @db.Uuid
+  leadId String             @db.Uuid
+  type   SalesLeadEventType
+
+  fromStatus SalesLeadStatus?
+  toStatus   SalesLeadStatus?
+  note       String?
+  metadata   Json?
+
+  actorUserId String?  @db.Uuid
+  createdAt   DateTime @default(now())
+
+  lead SalesLead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId, createdAt])
+  @@map("sales_lead_events")
+}
+
+/// Who brought a customer to Saarthi.
+///
+/// The authoritative answer, and the reason it is a table rather than a column
+/// on `organizations`: attribution has a lifecycle of its own. It begins as a
+/// click with no customer attached, may expire unused, may be revoked, and has
+/// to survive the customer changing plan, cancelling and coming back.
+///
+/// **First valid attribution wins.** That rule is enforced by the partial
+/// unique index in the migration — at most one live attribution per
+/// organization — rather than by service code, so a race between two
+/// simultaneous registrations cannot produce two.
+model ReferralAttribution {
+  id         String @id @default(uuid()) @db.Uuid
+  salesmanId String @db.Uuid
+  /// Denormalised from the salesman profile at capture time.
+  ///
+  /// Kept because commission statements are reconciled by GODID and by the
+  /// sales organization's own id, and both have to still read correctly years
+  /// later even if the profile is edited or the person leaves.
+  godId      String
+  salespersonExternalId String?
+
+  source ReferralSource
+  status ReferralStatus @default(CAPTURED)
+
+  /// Null until somebody registers under this referral.
+  organizationId String? @db.Uuid
+  /// The user who registered, for support.
+  customerUserId String? @db.Uuid
+
+  capturedAt DateTime  @default(now())
+  /// End of the attribution window, computed at capture from
+  /// `SALES_ATTRIBUTION_WINDOW_DAYS`. Stored rather than recomputed so a later
+  /// configuration change cannot retroactively take a salesperson's credit
+  /// away — or hand it back.
+  expiresAt  DateTime
+  attributedAt DateTime?
+  convertedAt  DateTime?
+
+  /// Why an administrator withdrew it, and who.
+  revokedAt        DateTime?
+  revokedByUserId  String?   @db.Uuid
+  revokeReason     String?
+
+  /// Truncated capture context, for fraud review. No full user agent and no
+  /// precise location — this is enough to spot one device minting a hundred
+  /// referrals, and no more.
+  captureIpHash String?
+  captureNote   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  salesman     SalesmanProfile @relation(fields: [salesmanId], references: [id], onDelete: Cascade)
+  organization Organization?   @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  lead         SalesLead?      @relation("LeadAttribution")
+  commissions  Commission[]
+
+  @@index([salesmanId, status])
+  @@index([godId])
+  @@index([organizationId, status])
+  @@index([status, expiresAt])
+  @@map("referral_attributions")
+}
+
+/// The commercial terms a commission is calculated from.
+///
+/// This table ships **empty**, on purpose. Commission rates are an agreement
+/// between Saarthi and its salespeople; a default rate committed to source
+/// control is one somebody would eventually be paid on, and nobody could say
+/// who agreed it. Until an administrator creates a rule, qualifying sales still
+/// produce commission rows — with a null amount and a note saying no rule
+/// matched — so no sale is lost and no figure is invented.
+model CommissionRule {
+  id   String @id @default(uuid()) @db.Uuid
+  name String
+
+  /// Null means "any plan".
+  planTier PlanTier?
+  trigger  CommissionTrigger @default(SUBSCRIPTION)
+
+  commissionType CommissionType
+  /// Percentage points, for a PERCENTAGE rule.
+  commissionRate Decimal? @db.Decimal(6, 3)
+  /// Rupees per qualifying sale, for a FIXED rule.
+  fixedAmount    Decimal? @db.Decimal(12, 2)
+
+  /// Cooling-off period. A sale refunded inside it reverses the commission
+  /// rather than paying it.
+  qualificationDays Int
+
+  effectiveFrom DateTime?
+  effectiveTo   DateTime?
+  active        Boolean   @default(true)
+
+  note            String?
+  createdByUserId String?  @db.Uuid
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  commissions Commission[]
+
+  @@index([active, trigger, planTier])
+  @@map("commission_rules")
+}
+
+/// Money owed to a salesperson for one qualifying sale.
+///
+/// Three properties of this table are load-bearing.
+///
+/// **It is generated from a payment, never from a subscription record.** The
+/// `paymentReference` is the evidence, and the unique index on
+/// `(trigger, paymentReference)` in the migration is what makes a repeated
+/// subscription event — a retried webhook, a renewal replayed, a support agent
+/// clicking twice — produce one commission instead of several.
+///
+/// **The amount is nullable.** Null means "qualified, but no rule covered it".
+/// It is not zero, it is not payable, and it is visible to an administrator as
+/// something to fix. Rewriting it as zero would silently settle a debt.
+///
+/// **No client can write to it.** There is no endpoint that accepts an amount,
+/// the salesperson's role holds `commission.read` and not `commission.manage`,
+/// and every figure is computed by `commission.service.ts` from a real payment
+/// and an administrator-authored rule.
+model Commission {
+  id            String  @id @default(uuid()) @db.Uuid
+  salesmanId    String  @db.Uuid
+  attributionId String? @db.Uuid
+  ruleId        String? @db.Uuid
+
+  /// Denormalised for the same reason as on the attribution: a commission
+  /// statement has to read correctly long after profiles have been edited.
+  godId                 String
+  salespersonExternalId String?
+
+  /// The customer this was earned on.
+  organizationId String  @db.Uuid
+  planTier       PlanTier?
+
+  trigger CommissionTrigger @default(SUBSCRIPTION)
+  status  CommissionStatus  @default(PENDING)
+
+  /// What the customer actually paid, exclusive of anything not commissionable.
+  baseAmount Decimal @db.Decimal(12, 2)
+  currency   String  @default("INR")
+
+  /// The rate applied, when the rule was a percentage one.
+  commissionRate Decimal? @db.Decimal(6, 3)
+  /// Null until a rule covers this sale. Never defaulted to zero.
+  commissionAmount Decimal? @db.Decimal(12, 2)
+
+  /// The successful payment that qualified this. The idempotency key.
+  paymentReference String
+  paymentId        String? @db.Uuid
+  subscriptionId   String? @db.Uuid
+
+  /// When the qualification period ends and the amount may be approved.
+  eligibleAt DateTime
+  approvedAt DateTime?
+  approvedByUserId String? @db.Uuid
+  paidAt     DateTime?
+  paidByUserId String? @db.Uuid
+  /// Reference of the payout, not of the customer's payment.
+  payoutReference String?
+
+  reversedAt DateTime?
+  /// Why it was reversed or rejected. Required by the API for both.
+  decisionReason String?
+
+  /// Set when no rule matched, so an administrator can see what to create.
+  unmatchedReason String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  salesman     SalesmanProfile      @relation(fields: [salesmanId], references: [id], onDelete: Restrict)
+  attribution  ReferralAttribution? @relation(fields: [attributionId], references: [id], onDelete: SetNull)
+  rule         CommissionRule?      @relation(fields: [ruleId], references: [id], onDelete: SetNull)
+  organization Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  /// One commission per qualifying payment, per kind of sale.
+  ///
+  /// Declared here as well as in the migration so the Prisma client can target
+  /// it: generation uses `upsert` on this key, which turns a retried payment
+  /// webhook into a no-op instead of a race the service has to detect.
+  ///
+  /// `trigger` is part of the key because one payment can legitimately carry a
+  /// subscription and a tracker — two commissions under two rules, and still
+  /// at most one of each.
+  @@unique([trigger, paymentReference])
+  @@index([salesmanId, status])
+  @@index([status, eligibleAt])
+  @@index([organizationId])
+  @@index([godId])
+  @@map("commissions")
+}
+
+/// Custody of one Saarthi tracker between the warehouse and a vehicle.
+///
+/// **Not a second device registry.** `trackerId` points at the `VehicleTracker`
+/// the customer's payment created, and the physical unit is the
+/// `HardwareDevice` the existing device module already owns. This table records
+/// only who is holding it and when it changed hands — the questions the
+/// existing tables genuinely cannot answer.
+///
+/// `INSTALLED` is never typed in. It is set from the same device-assignment and
+/// telemetry state the onboarding checklist reads, so a handover cannot be
+/// marked complete by the person whose pipeline benefits.
+model TrackerHandover {
+  id         String @id @default(uuid()) @db.Uuid
+  /// The paid-for tracker entitlement. One handover chain per tracker.
+  trackerId  String @unique @db.Uuid
+  salesmanId String @db.Uuid
+  leadId     String? @db.Uuid
+  /// The customer, once there is one. Null while the unit is still stock.
+  organizationId String? @db.Uuid
+
+  status TrackerHandoverStatus @default(ASSIGNED_TO_SALESMAN)
+
+  /// Serial of the physical unit. Copied onto the `VehicleTracker` when the
+  /// handover is recorded, so the customer's own subscription screen shows it.
+  serialNumber String?
+
+  assignedAt       DateTime  @default(now())
+  assignedByUserId String?   @db.Uuid
+  handedOverAt     DateTime?
+  /// Who signed for it at the customer's end. Required at handover.
+  acknowledgedBy   String?
+  installedAt      DateTime?
+  /// The vehicle it ended up on, read from the device assignment.
+  vehicleId        String?   @db.Uuid
+
+  returnedAt DateTime?
+  /// Why it came back or was written off.
+  closeReason String?
+
+  note      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  salesman     SalesmanProfile @relation(fields: [salesmanId], references: [id], onDelete: Restrict)
+  lead         SalesLead?      @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  tracker      VehicleTracker  @relation(fields: [trackerId], references: [id], onDelete: Cascade)
+  organization Organization?   @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+
+  @@index([salesmanId, status])
+  @@index([organizationId])
+  @@index([status])
+  @@map("tracker_handovers")
 }

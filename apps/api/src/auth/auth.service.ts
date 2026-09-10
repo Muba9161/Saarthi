@@ -32,6 +32,11 @@ import { createDefaultSubscription } from '../modules/subscriptions/entitlements
 import { provisionSignupOrder } from '../modules/subscriptions/signup-order.service';
 import { provisionDriverCodeOnRegistration } from '../modules/qr/qr.service';
 import { resolveJoinableFleet } from '../modules/organizations/fleet-invite.service';
+import {
+  attributeRegistration,
+  liveAttributionFor,
+} from '../modules/sales/referral.service';
+import { linkLeadToOrganization } from '../modules/sales/lead.service';
 import { AuditAction, recordAudit } from '../modules/audit/audit.service';
 
 /**
@@ -376,6 +381,30 @@ export async function register(input: RegisterInput, meta: RequestMeta) {
     );
   }
 
+  /*
+   * The salesperson who brought this customer, if there was one.
+   *
+   * Outside the registration transaction and after everything that makes the
+   * account real, because **a referral problem must never cost somebody their
+   * account**. `captureRegistrationReferral` swallows its own failures for the
+   * same reason `provisionDriverCodeOnRegistration` does: a mistyped GODID, an
+   * unverified salesperson or a customer another colleague already signed up
+   * are all outcomes an operator can correct afterwards, and none of them is
+   * worth losing a registration over.
+   *
+   * Only for an organization this registration created. A driver joining an
+   * employer's fleet is not a new customer and must not be credited as one.
+   */
+  if (result.createdOrganization && input.referralCode) {
+    await captureRegistrationReferral({
+      code: input.referralCode,
+      organizationId: result.organizationId,
+      userId: result.user.id,
+      phone: input.phone,
+      email: input.email,
+    });
+  }
+
   const issued = await issueSession(
     result.user.id,
     result.organizationId,
@@ -396,6 +425,67 @@ export async function register(input: RegisterInput, meta: RequestMeta) {
   });
 
   return toAuthResult(issued, result.user.id, result.organizationId);
+}
+
+/**
+ * Credit a new registration to the salesperson whose referral it arrived
+ * through.
+ *
+ * Never throws. Every failure is logged and swallowed, because by the time this
+ * runs the user, the organization and the subscription are committed and the
+ * customer is signing in — see the call site.
+ *
+ * It does two things, in this order:
+ *
+ *   1. Attribute the customer, which refuses if a colleague already has a live
+ *      attribution on them. "First valid attribution wins" is enforced by a
+ *      partial unique index, not by this code, so a simultaneous registration
+ *      cannot slip past it.
+ *   2. Link the salesperson's own lead to the new organization, matched on the
+ *      phone number or email they captured, so their pipeline connects to the
+ *      real customer rather than sitting at SIGNUP_PENDING forever.
+ *
+ * Note what it does *not* do: create a commission. That waits for a successful
+ * payment — see `qualifyCommissionForPayment`.
+ */
+async function captureRegistrationReferral(input: {
+  code: string;
+  organizationId: string;
+  userId: string;
+  phone: string;
+  email: string;
+}): Promise<void> {
+  try {
+    const outcome = await attributeRegistration({
+      code: input.code,
+      organizationId: input.organizationId,
+      customerUserId: input.userId,
+    });
+
+    if (!outcome.attributed) {
+      logger.info(
+        { organizationId: input.organizationId, reason: outcome.reason },
+        'Registration referral was not credited',
+      );
+      return;
+    }
+
+    const attribution = await liveAttributionFor(input.organizationId);
+    if (attribution) {
+      await linkLeadToOrganization({
+        salesmanId: attribution.salesmanId,
+        organizationId: input.organizationId,
+        attributionId: attribution.id,
+        phone: input.phone,
+        email: input.email,
+      });
+    }
+  } catch (error) {
+    logger.error(
+      { err: error, organizationId: input.organizationId },
+      'Registration referral could not be recorded',
+    );
+  }
 }
 
 // ---------------------------------------------------------------------------

@@ -35,6 +35,8 @@ import { runDailyBriefSweep } from '../modules/ai/daily-brief.service';
 import { runFastagBalanceSweep } from '../modules/toll/fastag.service';
 import { runTerminalApprovalSweep } from '../modules/terminal/approval-sweep.service';
 import { runRequirementExpirySweep } from '../modules/requirements/expiry.service';
+import { notifyDueFollowUps } from '../modules/sales/lead.service';
+import { expireStaleCaptures } from '../modules/sales/referral.service';
 
 /**
  * Scheduled background work.
@@ -390,6 +392,41 @@ export function registerBackgroundJobs(): void {
     initialDelayMs: 75_000,
     handler: async () => {
       await runRequirementExpirySweep();
+    },
+  });
+
+  /*
+   * The follow-ups a salesperson owes today.
+   *
+   * Hourly rather than daily, because a follow-up set for 3pm is set for 3pm.
+   * The service caps delivery at one reminder per lead per day, so a lead that
+   * stays overdue for a week produces seven notifications and not a hundred and
+   * sixty-eight — which is the difference between a salesperson who reads
+   * Saarthi notifications and one who has turned them off.
+   */
+  queue.registerRepeating({
+    name: 'sales:follow-up-reminders',
+    everyMs: HOUR,
+    initialDelayMs: 240_000,
+    handler: async () => {
+      await notifyDueFollowUps();
+    },
+  });
+
+  /*
+   * Referral captures whose attribution window has closed.
+   *
+   * Only the ones that never found a customer. An attribution with a real
+   * customer behind it stopped caring about its expiry the moment they
+   * registered, and expiring those would silently un-credit sales that were
+   * genuinely made — see `expireStaleCaptures`.
+   */
+  queue.registerRepeating({
+    name: 'sales:referral-expiry',
+    everyMs: 12 * HOUR,
+    initialDelayMs: 260_000,
+    handler: async () => {
+      await expireStaleCaptures();
     },
   });
 

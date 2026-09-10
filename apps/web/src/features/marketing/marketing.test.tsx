@@ -5,6 +5,7 @@ import type { UserEvent } from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import {
   FEATURE_CATALOGUE,
+  LANGUAGE_CATALOGUE,
   PLAN_CATALOGUE,
   PLAN_TIERS,
   PlanTier,
@@ -16,6 +17,7 @@ import { FeatureExplorer } from './feature-explorer';
 import { FEATURE_GROUPS, FEATURE_GROUP_OF, ROLE_SHOWCASE } from './feature-catalogue';
 import { RoleShowcaseSection } from './role-showcase';
 import { WordsReveal } from './motion-extras';
+import { SAARTHI_IN_SCRIPT } from './knockout-band';
 
 /**
  * The public site's one hard promise: it lists everything.
@@ -235,5 +237,37 @@ describe('animated headings', () => {
 
     expect(spaces).toHaveLength(3);
     expect(heading).toHaveTextContent('one two three four');
+  });
+});
+
+describe('brand band', () => {
+  /*
+   * The same promise the explorer makes, for the name.
+   *
+   * The band writes "Saarthi" out in each catalogue's own script. Nothing at
+   * runtime notices a missing one — the rotation falls back to the Latin
+   * spelling — so without this, adding a 24th language would quietly show
+   * English to its speakers on the one part of the page whose entire point is
+   * that it does not.
+   */
+  it('writes the name in every language the product offers', () => {
+    for (const language of LANGUAGE_CATALOGUE) {
+      expect(
+        SAARTHI_IN_SCRIPT[language.code],
+        `${language.code} (${language.english}) has no rendering of "Saarthi"`,
+      ).toBeTruthy();
+    }
+  });
+
+  it('renders each one in its own script, not transliterated to Latin', () => {
+    // English aside, a rendering still in ASCII means the entry was stubbed
+    // with the Latin spelling and never actually translated.
+    for (const language of LANGUAGE_CATALOGUE) {
+      if (language.code === 'en-IN') continue;
+      expect(
+        /^[\x20-\x7E]+$/.test(SAARTHI_IN_SCRIPT[language.code] ?? ''),
+        `${language.code} (${language.english}) is still the Latin spelling`,
+      ).toBe(false);
+    }
   });
 });

@@ -1,7 +1,9 @@
 import type { ComponentType } from 'react';
 import {
   Activity,
+  BadgeCheck,
   UserRoundCog,
+  Wallet,
   QrCode,
   CalendarDays,
   Siren,
@@ -542,6 +544,69 @@ export const DRIVER_NAVIGATION: NavSection[] = [
   },
 ];
 
+/**
+ * Selling Saarthi.
+ *
+ * A section of the same application, not a portal of its own. Read it for what
+ * it does not contain: no live map, no trucks, no drivers, no telemetry. A
+ * salesperson's navigation is their pipeline and their earnings, and the
+ * customer entry leads to a deliberately thin summary — see the API's
+ * `dashboard.service`. The permissions on each row are the same ones the API
+ * enforces, so nothing here can be reached by guessing a URL.
+ */
+export const SALES_NAVIGATION: NavSection[] = [
+  {
+    title: 'Sales',
+    items: [
+      {
+        label: 'Dashboard',
+        to: '/sales',
+        icon: LayoutDashboard,
+        permissions: [Permission.SALES_READ],
+        end: true,
+      },
+      {
+        label: 'Leads',
+        to: '/sales/leads',
+        icon: ClipboardList,
+        permissions: [Permission.LEADS_READ],
+      },
+      {
+        label: 'My customers',
+        to: '/sales/customers',
+        icon: Building2,
+        permissions: [Permission.SALES_READ],
+      },
+      {
+        // Above Referrals on purpose: a salesperson runs the demo in front of
+        // somebody, and shares a link afterwards.
+        label: 'Demo',
+        to: '/sales/demo',
+        icon: MonitorSmartphone,
+        permissions: [Permission.DEMO_USE],
+      },
+      {
+        label: 'Referrals',
+        to: '/sales/referrals',
+        icon: QrCode,
+        permissions: [Permission.REFERRALS_READ],
+      },
+      {
+        label: 'Tracker handover',
+        to: '/sales/trackers',
+        icon: PackageCheck,
+        permissions: [Permission.TRACKER_HANDOVER_READ],
+      },
+      {
+        label: 'Commission',
+        to: '/sales/commission',
+        icon: Wallet,
+        permissions: [Permission.COMMISSION_READ],
+      },
+    ],
+  },
+];
+
 export const ADMIN_NAVIGATION: NavSection[] = [
   {
     title: 'Platform',
@@ -591,6 +656,23 @@ export const ADMIN_NAVIGATION: NavSection[] = [
         to: '/admin/audit',
         icon: ScrollText,
         permissions: [Permission.ADMIN_AUDIT],
+      },
+      {
+        // Salesman profiles and GODID verification. Under Platform rather than
+        // in the Sales section, because a salesperson administers nobody.
+        label: 'Salespeople',
+        to: '/admin/salesmen',
+        icon: BadgeCheck,
+        permissions: [Permission.SALESMAN_MANAGE],
+      },
+      {
+        // Commission rules and approvals. Beneath Salespeople, and held by
+        // `commission.manage` — which the SALESMAN role deliberately lacks, so
+        // the person a commission is owed to cannot authorise it.
+        label: 'Commission',
+        to: '/admin/commission',
+        icon: Wallet,
+        permissions: [Permission.COMMISSION_MANAGE],
       },
     ],
   },

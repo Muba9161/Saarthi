@@ -1,4 +1,5 @@
 import {
+  CommissionTrigger,
   NotificationPriority,
   NotificationType,
   OPERATOR_OWNER_ROLES,
@@ -15,6 +16,7 @@ import { cacheKeys } from '../../infra/cache-keys';
 import { paymentProvider } from '../../providers/payments';
 import { AuditAction, recordAudit } from '../audit/audit.service';
 import { notifyOrganization } from '../notifications/notification.service';
+import { qualifyPayment } from '../sales/qualification';
 import { invalidateEntitlements } from './entitlements.service';
 
 /**
@@ -276,6 +278,40 @@ export async function provisionSignupOrder(input: {
       priority: NotificationPriority.NORMAL,
       actionUrl: '/settings/subscription',
       roles: OPERATOR_OWNER_ROLES,
+    });
+  }
+
+  /*
+   * Commission on what the customer actually paid at signup.
+   *
+   * Split by trigger rather than recorded as one lump, because the two are
+   * commercially different sales and may carry different rates: `trackers` is
+   * hardware, `vehicleTopUps` is recurring capacity. The unique index is on
+   * `(trigger, paymentReference)`, so one payment legitimately producing two
+   * commissions is expected — and each is still capped at one.
+   *
+   * Both use the pre-tax subtotal (GST is not Saarthi's revenue), and neither
+   * can throw. Note also what is *not* qualified here: the plan itself, which
+   * is on trial at signup and has taken no payment — see
+   * `qualifySubscriptionPayment`.
+   */
+  if (trackers > 0 && payment.providerReference) {
+    await qualifyPayment({
+      organizationId: input.organizationId,
+      baseAmount: VEHICLE_TRACKER.priceOneTime * trackers,
+      paymentReference: payment.providerReference,
+      trigger: CommissionTrigger.TRACKER,
+      planTier: input.tier,
+    });
+  }
+
+  if (vehicleTopUps > 0 && payment.providerReference) {
+    await qualifyPayment({
+      organizationId: input.organizationId,
+      baseAmount: VEHICLE_TOPUP.priceMonthly * vehicleTopUps,
+      paymentReference: payment.providerReference,
+      trigger: CommissionTrigger.VEHICLE_TOPUP,
+      planTier: input.tier,
     });
   }
 

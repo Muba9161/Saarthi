@@ -67,13 +67,73 @@ function useActiveSection(ids: readonly string[]): string | null {
   return active;
 }
 
+/** The header's own height, in px. Must track `h-[4.5rem]` below. */
+const HEADER_HEIGHT = 72;
+
+/**
+ * Whether the header is currently sitting on top of a dark band.
+ *
+ * This replaced `!scrolled`, which was wrong in a way that only showed up
+ * once the photography landed. The header goes transparent-to-glass at 16px
+ * of scroll, but the hero is nine hundred pixels tall — so for the rest of
+ * that first screen the chrome was rendering in light-theme ink on a
+ * light-tinted glass bar, over a near-black photograph. Readable by luck,
+ * murky in practice, and completely wrong on the other dark bands further
+ * down.
+ *
+ * Every fixed-dark band carries `data-stage`, and this asks the far simpler
+ * question: does any of them overlap the strip the header occupies? Measured
+ * from layout rather than from a scroll offset, so it stays correct when a
+ * band changes height, when the viewport resizes, and on the dark bands in
+ * the middle and at the foot of the page.
+ */
+function useOverStage(): boolean {
+  const [over, setOver] = React.useState(true);
+
+  React.useEffect(() => {
+    const check = (): void => {
+      const stages = document.querySelectorAll<HTMLElement>('[data-stage]');
+      let covering = false;
+      for (const stage of stages) {
+        const rect = stage.getBoundingClientRect();
+        if (rect.top < HEADER_HEIGHT && rect.bottom > 0) {
+          covering = true;
+          break;
+        }
+      }
+      setOver(covering);
+    };
+
+    check();
+    /*
+     * Re-checked once after paint and again on load, because the answer
+     * depends on where the bands actually are. This runs on mount, before
+     * the hero photograph has decoded — and every band below the fold moves
+     * when it does. Without these, a visitor who never scrolls keeps whatever
+     * answer the first frame happened to give.
+     */
+    const frame = requestAnimationFrame(check);
+    window.addEventListener('scroll', check, { passive: true });
+    window.addEventListener('resize', check);
+    window.addEventListener('load', check);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener('scroll', check);
+      window.removeEventListener('resize', check);
+      window.removeEventListener('load', check);
+    };
+  }, []);
+
+  return over;
+}
+
 function ScrollProgress() {
   const { scrollYProgress } = useScroll();
   const scaleX = useSpring(scrollYProgress, { stiffness: 120, damping: 24, restDelta: 0.001 });
 
   return (
     <motion.div
-      className="absolute inset-x-0 bottom-0 h-px origin-left bg-brand-gradient"
+      className="absolute inset-x-0 bottom-0 h-px origin-left bg-logo-gradient"
       style={{ scaleX }}
       aria-hidden
     />
@@ -112,6 +172,7 @@ export function MarketingNav() {
   const ids = React.useMemo(() => NAV_SECTIONS.map((section) => section.id), []);
   const active = useActiveSection(ids);
   const [scrolled, setScrolled] = React.useState(false);
+  const { resolvedTheme } = useTheme();
 
   // Transparent over the hero, glass once the page moves: the first screen
   // should be the product, not the chrome around it.
@@ -122,24 +183,77 @@ export function MarketingNav() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
+  /*
+   * Two independent questions, and conflating them was the bug.
+   *
+   * `scrolled` decides whether the header has a ground at all — transparent
+   * on arrival, glass once the page moves. `overStage` decides what colour
+   * that ground and its ink should be, and depends on what is *behind* the
+   * header rather than on how far the page has travelled.
+   */
+  const overStage = useOverStage();
+
   return (
     <header
       className={cn(
         'sticky top-0 z-50 transition-colors duration-500',
-        scrolled
-          ? 'border-b border-border/60 bg-background/70 backdrop-blur-xl backdrop-saturate-150'
-          : 'border-b border-transparent',
+        /*
+         * No `border-b` anywhere, and that is a layout constraint rather than
+         * a style choice.
+         *
+         * The hero slides under this header with `-mt-[4.5rem]`, matching the
+         * 4.5rem row below. A bottom border — even the transparent one that
+         * used to hold the height steady between states — made the header's
+         * border box 73px against a 72px pull, and the page's canvas showed
+         * through the leftover pixel as a hairline across the very top of the
+         * screen. The divider is drawn as an absolutely positioned rule
+         * instead, which is outside the box model and cannot reintroduce it.
+         */
+        scrolled &&
+          (overStage
+            ? 'backdrop-blur-xl'
+            : 'bg-background/70 backdrop-blur-xl backdrop-saturate-150'),
       )}
+      /*
+       * The stage tint is an inline colour, not `bg-[hsl(...)]/75`.
+       *
+       * An opacity modifier on an arbitrary colour is the one Tailwind form
+       * that can quietly produce nothing, and a header with no ground over a
+       * photograph is unreadable rather than merely wrong. Nothing else on
+       * this page is worth that risk.
+       */
+      style={scrolled && overStage ? { backgroundColor: 'hsl(240 6% 7% / 0.75)' } : undefined}
     >
-      {scrolled ? <ScrollProgress /> : null}
+      {scrolled ? (
+        <>
+          {/* The divider the border used to draw, without its 1px of height. */}
+          <span
+            className={cn(
+              'pointer-events-none absolute inset-x-0 bottom-0 h-px',
+              overStage ? 'bg-white/10' : 'bg-border/60',
+            )}
+            aria-hidden
+          />
+          <ScrollProgress />
+        </>
+      ) : null}
 
       <div className="mx-auto flex h-[4.5rem] max-w-7xl items-center gap-4 px-5 sm:px-8">
         <Link
           to="/"
           className="flex shrink-0 items-center gap-2.5 transition-opacity duration-200 hover:opacity-80"
         >
-          <SaarthiLogo className="h-8" decorative />
-          <span className="text-base font-semibold tracking-tight sm:text-lg">VorldX Saarthi</span>
+          {/* The mark is navy on transparency, so it needs its white chip on
+              the stage — and in the dark theme once the glass ground is up. */}
+          <SaarthiLogo className="h-8" decorative onDark={overStage || resolvedTheme === 'dark'} />
+          <span
+            className={cn(
+              'text-base font-semibold tracking-tight sm:text-lg',
+              overStage && 'text-white',
+            )}
+          >
+            VorldX Saarthi
+          </span>
         </Link>
 
         <nav className="ml-6 hidden items-center lg:flex" aria-label="Sections">
@@ -151,15 +265,22 @@ export function MarketingNav() {
               className={cn(
                 'relative rounded-full px-3.5 py-2 text-sm transition-colors duration-200',
                 active === section.id
-                  ? 'text-foreground'
-                  : 'text-muted-foreground hover:text-foreground',
+                  ? overStage
+                    ? 'text-white'
+                    : 'text-foreground'
+                  : overStage
+                    ? 'text-white/65 hover:text-white'
+                    : 'text-muted-foreground hover:text-foreground',
               )}
             >
               <span className="relative z-[1]">{section.label}</span>
               {active === section.id ? (
                 <motion.span
                   layoutId="marketing-nav-pill"
-                  className="absolute inset-0 rounded-full bg-secondary"
+                  className={cn(
+                    'absolute inset-0 rounded-full',
+                    overStage ? 'bg-white/10' : 'bg-secondary',
+                  )}
                   transition={{ type: 'spring', stiffness: 380, damping: 32 }}
                 />
               ) : null}
@@ -168,8 +289,21 @@ export function MarketingNav() {
         </nav>
 
         <div className="ml-auto flex items-center gap-1.5">
-          <ThemeToggle className="hidden sm:inline-flex" />
-          <Button variant="ghost" size="sm" asChild className="hidden sm:inline-flex">
+          <ThemeToggle
+            className={cn(
+              'hidden sm:inline-flex',
+              overStage && 'text-white hover:bg-white/10 hover:text-white',
+            )}
+          />
+          <Button
+            variant="ghost"
+            size="sm"
+            asChild
+            className={cn(
+              'hidden sm:inline-flex',
+              overStage && 'text-white hover:bg-white/10 hover:text-white',
+            )}
+          >
             <Link to="/login">Sign in</Link>
           </Button>
           <Button variant="gradient" size="sm" asChild className="group rounded-full">
@@ -181,7 +315,15 @@ export function MarketingNav() {
 
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="lg:hidden" aria-label="Open menu">
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn(
+                  'lg:hidden',
+                  overStage && 'text-white hover:bg-white/10 hover:text-white',
+                )}
+                aria-label="Open menu"
+              >
                 <Menu className="size-5" />
               </Button>
             </SheetTrigger>
@@ -239,6 +381,7 @@ export function Section({
   children,
   width = 'default',
   tone = 'canvas',
+  stage = false,
 }: {
   id?: string;
   className?: string;
@@ -246,12 +389,31 @@ export function Section({
   width?: 'narrow' | 'default' | 'wide';
   /** Alternating grounds are what separate the bands, in place of borders. */
   tone?: 'canvas' | 'raised' | 'dark';
+  /**
+   * Marks the band as dark enough that the header must go light over it.
+   *
+   * Read by `useOverStage` rather than inferred from `tone`, because the two
+   * are not the same question: `tone="dark"` is a theme token, while the
+   * photographic bands are hard-coded near-black and are not a tone at all.
+   */
+  stage?: boolean;
 }) {
   return (
     <section
       id={id}
+      data-stage={stage ? '' : undefined}
       className={cn(
-        'scroll-mt-24 px-5 py-24 sm:px-8 sm:py-32',
+        /*
+         * Down from py-24/py-32, then again to py-16/py-20.
+         *
+         * The old figures were set when the bands were pure text and needed
+         * air to separate. Two adjacent sections each contributed their own
+         * padding, so a boundary was 256px of nothing at desktop width — the
+         * page read as sparse rather than calm, and the gap was the loudest
+         * thing between two sections. Alternating grounds already do the
+         * separating; this only has to keep a band off its own edges.
+         */
+        'scroll-mt-24 px-5 py-16 sm:px-8 sm:py-20',
         tone === 'raised' && 'bg-secondary/30',
         tone === 'dark' && 'bg-sidebar text-sidebar-foreground',
         className,
@@ -338,13 +500,16 @@ export function SectionHeading({
 
 export function MarketingFooter() {
   const year = new Date().getFullYear();
+  const { resolvedTheme } = useTheme();
 
   return (
     <footer className="border-t border-border/60 px-5 py-14 sm:px-8">
       <div className="mx-auto grid max-w-6xl gap-10 sm:grid-cols-2 lg:grid-cols-4">
         <div className="lg:col-span-2">
           <div className="flex items-center gap-2.5">
-            <SaarthiLogo className="h-7" decorative />
+            {/* Navy on transparency — without the chip the V is simply gone in
+                the dark theme. */}
+            <SaarthiLogo className="h-7" decorative onDark={resolvedTheme === 'dark'} />
             <p className="text-sm font-semibold">VorldX Saarthi</p>
           </div>
           <p className="mt-4 max-w-sm text-sm leading-relaxed text-muted-foreground">

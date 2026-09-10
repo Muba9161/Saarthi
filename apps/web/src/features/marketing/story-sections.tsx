@@ -16,6 +16,14 @@ import { Button } from '@/components/ui/button';
 import { motion, useReducedMotion } from '@/components/motion';
 import { Section, SectionHeading } from './marketing-chrome';
 import { Reveal, RevealGroup, RevealItem, Spotlight, useSpotlight } from './motion-extras';
+import {
+  Backdrop,
+  EdgeVehicle,
+  MARKETING_IMAGE,
+  PlateImage,
+  STAGE,
+  STEP_IMAGES,
+} from './imagery';
 import { cn } from '@/lib/utils';
 
 const EASE = [0.16, 1, 0.3, 1] as const;
@@ -99,7 +107,13 @@ function PillarCard({ pillar }: { pillar: (typeof PILLARS)[number] }) {
 
 export function Pillars() {
   return (
-    <Section id="platform">
+    // `relative isolate overflow-hidden` is what makes the emerging truck
+    // work: the section is its own stacking context so the vehicle can sit
+    // behind the cards, and its overflow is what cuts the vehicle off at the
+    // page edge instead of the artwork ending in mid-air.
+    <Section id="platform" className="relative isolate overflow-hidden">
+      <EdgeVehicle src={MARKETING_IMAGE.edgeTruck} side="left" />
+
       <SectionHeading
         eyebrow="Why one system"
         title="Everything a haul touches, writing to one record"
@@ -150,10 +164,13 @@ const STEPS = [
 function StepBlock({
   step,
   index,
+  image,
   onEnter,
 }: {
   step: (typeof STEPS)[number];
   index: number;
+  /** The frame for this step, when one has been shot for it. */
+  image?: string;
   onEnter: (index: number) => void;
 }) {
   const reduced = useReducedMotion();
@@ -195,6 +212,19 @@ function StepBlock({
           <p className="mt-4 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">
             {step.body}
           </p>
+
+          {/*
+           * The frame is decorative — `alt=""` — because the paragraph above
+           * it already says everything the picture says. Announcing it twice
+           * is worse for a screen reader than not announcing it at all.
+           *
+           * It renders nothing if the file is absent, and the outlined numeral
+           * behind the text carries the block on its own in that case, which
+           * is how this section looked before the photography existed.
+           */}
+          {image ? (
+            <PlateImage src={image} alt="" aspect="aspect-video" className="mt-8 max-w-xl" />
+          ) : null}
         </div>
       </motion.div>
     </li>
@@ -267,7 +297,13 @@ export function HowItWorks() {
 
         <ol className="space-y-20 sm:space-y-28">
           {STEPS.map((step, index) => (
-            <StepBlock key={step.step} step={step} index={index} onEnter={onEnter} />
+            <StepBlock
+              key={step.step}
+              step={step}
+              index={index}
+              image={STEP_IMAGES[index]}
+              onEnter={onEnter}
+            />
           ))}
         </ol>
       </div>
@@ -284,7 +320,7 @@ function SosRings() {
   const reduced = useReducedMotion();
 
   return (
-    <div className="relative mx-auto aspect-square w-full max-w-sm" aria-hidden>
+    <div className="absolute inset-0 m-auto aspect-square w-[86%]" aria-hidden>
       {[0, 1, 2, 3].map((ring) => (
         <motion.span
           key={ring}
@@ -303,6 +339,35 @@ function SosRings() {
 }
 
 /**
+ * The SOS broadcast, over the thing it is broadcasting from.
+ *
+ * The rings alone were an abstraction of a signal; sitting them on a truck
+ * stopped in fog on an unlit shoulder is the situation the feature exists for,
+ * and it is the one image on the page that has to make somebody feel
+ * something rather than understand something.
+ *
+ * The photograph is the layer that may be missing, and it is the layer
+ * underneath — so with no file the rings are exactly what they were before,
+ * centred in the same box, and the band is unharmed.
+ */
+function SafetyFigure() {
+  return (
+    <div className="relative mx-auto aspect-[4/5] w-full max-w-sm">
+      <PlateImage
+        src={MARKETING_IMAGE.safety}
+        alt=""
+        aspect="aspect-[4/5]"
+        className="absolute inset-0 ring-white/[0.08]"
+        // Darkened here rather than in the file, so the same frame could be
+        // reused somewhere brighter without a second export.
+        imageClassName="opacity-80"
+      />
+      <SosRings />
+    </div>
+  );
+}
+
+/**
  * Safety, given its own band.
  *
  * It is the one part of the platform that is never gated, and the one claim
@@ -312,7 +377,12 @@ function SosRings() {
  */
 export function SafetyBand() {
   return (
-    <Section tone="dark" width="wide">
+    <Section
+      tone="dark"
+      width="wide"
+      stage
+      className="relative isolate overflow-hidden"
+    >
       <div className="grid items-center gap-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)]">
         <div>
           <SectionHeading
@@ -359,7 +429,7 @@ export function SafetyBand() {
         </div>
 
         <Reveal direction="left" amount={0.2}>
-          <SosRings />
+          <SafetyFigure />
         </Reveal>
       </div>
     </Section>
@@ -370,48 +440,72 @@ export function SafetyBand() {
  * Closing
  * ---------------------------------------------------------------------- */
 
+/**
+ * The closing band.
+ *
+ * Bookends the hero: the same fixed near-black stage, the same left-aligned
+ * column, the same pair of buttons. A visitor who has scrolled the whole page
+ * arrives back at the frame they started in, which is what makes the page feel
+ * like it ends rather than merely stops.
+ *
+ * It was a rounded card on the canvas before the photography. Full-bleed now,
+ * because a card inside a band is a frame inside a frame, and the picture only
+ * carries this if it gets the whole width.
+ */
 export function FinalCta() {
   return (
-    <Section width="narrow" className="pb-28 pt-8 sm:pb-36">
-      <Reveal>
-        <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-card/50 px-6 py-14 text-center backdrop-blur-sm sm:px-14 sm:py-20">
-          <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden>
-            <div className="absolute -left-24 -top-24 size-80 rounded-full bg-primary/20 blur-[110px]" />
-            <div className="absolute -bottom-24 -right-20 size-80 rounded-full bg-accent/20 blur-[110px]" />
+    <section
+      data-stage
+      className={cn('relative isolate overflow-hidden px-5 py-32 sm:px-8 sm:py-40', STAGE)}
+    >
+      <div className="pointer-events-none absolute inset-0 -z-20" aria-hidden>
+        <div className="absolute -left-24 top-0 size-96 rounded-full bg-primary/25 blur-[130px]" />
+        <div className="absolute -bottom-24 right-0 size-96 rounded-full bg-accent/20 blur-[130px]" />
+      </div>
+
+      <Backdrop src={MARKETING_IMAGE.cta} objectPosition="68% 55%" />
+
+      <div className="relative mx-auto max-w-6xl">
+        <Reveal>
+          <div className="max-w-2xl">
+            <h2 className="text-balance text-3xl font-semibold tracking-[-0.03em] text-white sm:text-5xl">
+              Put your whole operation
+              <br className="hidden sm:block" /> on one screen
+            </h2>
+            <p className="mt-5 max-w-lg text-pretty text-sm text-white/70 sm:text-base">
+              Set up in minutes, in your own language. Add a truck, add a driver, post a load - and
+              watch the first trip move across the map.
+            </p>
+
+            <div className="mt-10 flex flex-col gap-3 sm:flex-row">
+              <Button
+                size="xl"
+                variant="gradient"
+                asChild
+                className="group w-full rounded-full sm:w-auto"
+              >
+                <Link to="/register">
+                  Create your account
+                  <ArrowRight className="size-4 transition-transform duration-200 group-hover:translate-x-0.5" />
+                </Link>
+              </Button>
+              <Button
+                size="xl"
+                variant="outline"
+                asChild
+                className="w-full rounded-full bg-white/10 text-white shadow-none ring-white/25 backdrop-blur hover:bg-white/20 hover:ring-white/40 sm:w-auto"
+              >
+                <Link to="/login">Explore the demo fleet</Link>
+              </Button>
+            </div>
+
+            <p className="mt-6 text-xs text-white/50">
+              The demo is a fully seeded fleet - eight trucks, live tracking and a working SOS
+              network.
+            </p>
           </div>
-
-          <h2 className="text-balance text-3xl font-semibold tracking-[-0.03em] sm:text-5xl">
-            Put your whole operation
-            <br className="hidden sm:block" /> on one screen
-          </h2>
-          <p className="mx-auto mt-5 max-w-lg text-pretty text-sm text-muted-foreground sm:text-base">
-            Set up in minutes, in your own language. Add a truck, add a driver, post a load - and
-            watch the first trip move across the map.
-          </p>
-
-          <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Button
-              size="xl"
-              variant="gradient"
-              asChild
-              className="group w-full rounded-full sm:w-auto"
-            >
-              <Link to="/register">
-                Create your account
-                <ArrowRight className="size-4 transition-transform duration-200 group-hover:translate-x-0.5" />
-              </Link>
-            </Button>
-            <Button size="xl" variant="outline" asChild className="w-full rounded-full sm:w-auto">
-              <Link to="/login">Explore the demo fleet</Link>
-            </Button>
-          </div>
-
-          <p className="mt-6 text-xs text-muted-foreground">
-            The demo is a fully seeded fleet - eight trucks, live tracking and a working SOS
-            network.
-          </p>
-        </div>
-      </Reveal>
-    </Section>
+        </Reveal>
+      </div>
+    </section>
   );
 }

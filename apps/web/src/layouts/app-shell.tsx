@@ -40,6 +40,7 @@ import {
   DRIVER_NAVIGATION,
   FLEET_NAVIGATION,
   MOBILITY_NAVIGATION,
+  SALES_NAVIGATION,
   SUPPLIER_NAVIGATION,
   type NavItem,
   type NavSection,
@@ -86,8 +87,21 @@ function navigationFor(
   organizationType: OrganizationType | undefined,
   isDriver: boolean,
   isPlatformAdmin: boolean,
+  isSalesman: boolean,
 ): NavSection[] {
   if (isDriver) return DRIVER_NAVIGATION;
+
+  /*
+   * A salesperson, before the organization-type switch is consulted.
+   *
+   * Deliberately ahead of it: a salesperson has no tenant of their own, so
+   * whatever organization they happen to be seated in says nothing useful
+   * about what they do here. Ordered after the driver check for the same
+   * reason it is — the driver app is a different product surface — and before
+   * the admin merge below, so a platform admin who also holds SALESMAN sees
+   * both sections rather than losing one.
+   */
+  if (isSalesman && !isPlatformAdmin) return SALES_NAVIGATION;
 
   const base = (() => {
     switch (organizationType) {
@@ -106,7 +120,13 @@ function navigationFor(
     }
   })();
 
-  return isPlatformAdmin ? [...base, ...ADMIN_NAVIGATION] : base;
+  if (!isPlatformAdmin) return base;
+  // A platform admin who also holds SALESMAN gets both, because they genuinely
+  // do both — operations staff carrying a GODID is the ordinary arrangement in
+  // a small sales team.
+  return isSalesman
+    ? [...base, ...SALES_NAVIGATION, ...ADMIN_NAVIGATION]
+    : [...base, ...ADMIN_NAVIGATION];
 }
 
 function useNavBadges(): NavBadges {
@@ -166,8 +186,15 @@ function useNavBadges(): NavBadges {
 function useVisibleNavigation(): NavSection[] {
   const { session, can, hasFeature, isDriver, isPlatformAdmin } = useAuth();
 
+  const isSalesman = session?.user.roles.includes('SALESMAN' as RoleName) ?? false;
+
   return React.useMemo(() => {
-    const sections = navigationFor(session?.organization?.type, isDriver, isPlatformAdmin);
+    const sections = navigationFor(
+      session?.organization?.type,
+      isDriver,
+      isPlatformAdmin,
+      isSalesman,
+    );
 
     return sections
       .map((section) => ({
@@ -187,7 +214,7 @@ function useVisibleNavigation(): NavSection[] {
         }),
       }))
       .filter((section) => section.items.length > 0);
-  }, [session, can, hasFeature, isDriver, isPlatformAdmin]);
+  }, [session, can, hasFeature, isDriver, isPlatformAdmin, isSalesman]);
 }
 
 /**

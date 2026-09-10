@@ -248,6 +248,7 @@ saarthi/
 - [`docs/PRODUCTION.md`](docs/PRODUCTION.md) — the production migration path
 - [`docs/SPEC_V3_IMPLEMENTATION_REPORT.md`](docs/SPEC_V3_IMPLEMENTATION_REPORT.md) — what spec v3.0 changed, and what it deliberately did not
 - [`docs/SAARTHI_TERMINAL_IMPLEMENTATION_MAP.md`](docs/SAARTHI_TERMINAL_IMPLEMENTATION_MAP.md) — what Saarthi Terminal reuses, extends and adds
+- [`docs/SAARTHI_SALES_IMPLEMENTATION_REPORT.md`](docs/SAARTHI_SALES_IMPLEMENTATION_REPORT.md) — the salesman, referral and commission layer: what it reuses, where the anti-fraud rules live, and the three decisions still outstanding
 - [`apps/terminal-android/README.md`](apps/terminal-android/README.md) — building, pairing and the kiosk deployment strategy
 
 ---

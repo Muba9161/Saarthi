@@ -362,6 +362,64 @@ export const AuditAction = {
   TERMINAL_RELEASE_UPLOADED: 'terminal.release_uploaded',
   TERMINAL_RELEASE_PUBLISHED: 'terminal.release_published',
   TERMINAL_RELEASE_ARCHIVED: 'terminal.release_archived',
+
+  /*
+   * Sales, referrals and commission.
+   *
+   * Every entry in this block is here because somebody will eventually dispute
+   * it. A commission is money owed to a named person, and an attribution
+   * decides which of two colleagues is owed it — so the trail records not only
+   * that a decision was made but who made it and on what basis.
+   *
+   * `SALESMAN_VERIFIED_MANUALLY` is the sharpest of them: it is a platform
+   * administrator personally vouching for a GODID that GODWeb could not be
+   * asked about, and the entry carries the evidence they cited.
+   */
+  SALESMAN_CREATED: 'salesman.created',
+  SALESMAN_UPDATED: 'salesman.updated',
+  SALESMAN_VERIFIED: 'salesman.verified',
+  SALESMAN_VERIFIED_MANUALLY: 'salesman.verified_manually',
+  SALESMAN_VERIFICATION_FAILED: 'salesman.verification_failed',
+  SALESMAN_STANDING_CHANGED: 'salesman.standing_changed',
+
+  SALES_LEAD_CREATED: 'sales.lead_created',
+  SALES_LEAD_UPDATED: 'sales.lead_updated',
+  SALES_LEAD_STATUS_CHANGED: 'sales.lead_status_changed',
+  SALES_ASSISTED_SIGNUP_STARTED: 'sales.assisted_signup_started',
+  SALES_DEMO_RECORDED: 'sales.demo_recorded',
+
+  REFERRAL_CAPTURED: 'referral.captured',
+  REFERRAL_GODID_VALIDATED: 'referral.godid_validated',
+  REFERRAL_CUSTOMER_ATTRIBUTED: 'referral.customer_attributed',
+  /// A second GODID arrived for a customer that already had a live attribution.
+  REFERRAL_ATTRIBUTION_REFUSED: 'referral.attribution_refused',
+  REFERRAL_CONVERTED: 'referral.converted',
+  REFERRAL_ATTRIBUTION_REVOKED: 'referral.attribution_revoked',
+  REFERRAL_ATTRIBUTION_EXPIRED: 'referral.attribution_expired',
+
+  COMMISSION_RULE_CREATED: 'commission.rule_created',
+  COMMISSION_RULE_UPDATED: 'commission.rule_updated',
+  COMMISSION_GENERATED: 'commission.generated',
+  COMMISSION_RECALCULATED: 'commission.recalculated',
+  COMMISSION_APPROVED: 'commission.approved',
+  COMMISSION_PAYABLE: 'commission.payable',
+  COMMISSION_PAID: 'commission.paid',
+  COMMISSION_REVERSED: 'commission.reversed',
+  COMMISSION_REJECTED: 'commission.rejected',
+
+  TRACKER_ASSIGNED_TO_SALESMAN: 'sales.tracker_assigned',
+  TRACKER_HANDED_TO_CUSTOMER: 'sales.tracker_handed_over',
+  TRACKER_HANDOVER_CLOSED: 'sales.tracker_handover_closed',
+  /**
+   * The first vehicle came alive with the owner watching.
+   *
+   * Also the onboarding-completion record — there is deliberately no second
+   * action for that. The two are one event: the completion is only ever
+   * recorded *because* the six checks passed, and the entry carries their
+   * outcomes, so a separate `onboarding_completed` would be a row that adds
+   * nothing and could disagree with this one.
+   */
+  FIRST_VEHICLE_DEMONSTRATED: 'sales.first_vehicle_demonstrated',
 } as const;
 
 export type AuditAction = (typeof AuditAction)[keyof typeof AuditAction];

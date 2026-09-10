@@ -1,4 +1,5 @@
 import {
+  CommissionTrigger,
   NotificationPriority,
   NotificationType,
   OPERATOR_OWNER_ROLES,
@@ -20,6 +21,7 @@ import { withLock } from '../../infra/lock';
 import { paymentProvider } from '../../providers/payments';
 import { AuditAction, recordAudit } from '../audit/audit.service';
 import { notifyOrganization } from '../notifications/notification.service';
+import { qualifyPayment } from '../sales/qualification';
 import { invalidateEntitlements, resolveBaseLimits } from './entitlements.service';
 import type { AuthContext } from '../../auth/context';
 
@@ -268,6 +270,18 @@ export async function purchaseTopUp(
       priority: NotificationPriority.NORMAL,
       actionUrl: '/settings/subscription',
       roles: OPERATOR_OWNER_ROLES,
+    });
+
+    /*
+     * Commission, if a salesperson brought this customer. On the pre-tax
+     * subtotal, after the charge succeeded, and unable to throw — see
+     * `qualifyPayment`.
+     */
+    await qualifyPayment({
+      organizationId,
+      baseAmount: charge.subtotal,
+      paymentReference: payment.providerReference,
+      trigger: CommissionTrigger.VEHICLE_TOPUP,
     });
 
     return toView(row);

@@ -99,6 +99,54 @@ const STATUS_VARIANTS: Record<string, Variant> = {
   OUT_OF_STOCK: 'warning',
   TRIALING: 'info',
   PAST_DUE: 'warning',
+
+  // Sales leads. NEW, CANCELLED, PENDING and ACTIVE are shared with the
+  // statuses above and deliberately not restated.
+  CONTACTED: 'info',
+  DEMO_SCHEDULED: 'info',
+  DEMO_COMPLETED: 'accent',
+  INTERESTED: 'accent',
+  SIGNUP_PENDING: 'warning',
+  PAYMENT_PENDING: 'warning',
+  SUBSCRIBED: 'success',
+  TRACKER_PENDING: 'warning',
+  ONBOARDING: 'info',
+  ACTIVATED: 'success',
+  LOST: 'muted',
+  DISQUALIFIED: 'muted',
+
+  // Referral attribution
+  CAPTURED: 'muted',
+  ATTRIBUTED: 'info',
+  CONVERTED: 'success',
+  REVOKED: 'destructive',
+
+  /*
+   * Commission.
+   *
+   * PAYABLE is `accent` rather than `success`: the money is not with the
+   * salesperson yet, and colouring it as done is how somebody concludes they
+   * have been paid when a payout run has merely picked the row up. PAID is the
+   * only green one. REVERSED is destructive because it takes earnings back.
+   */
+  PAYABLE: 'accent',
+  PAID: 'success',
+  REVERSED: 'destructive',
+
+  /*
+   * Tracker custody.
+   *
+   * `LOST` is deliberately absent. It is a value of both `SalesLeadStatus` and
+   * `TrackerHandoverStatus`, and the two want opposite colours — a lost
+   * prospect is an ordinary outcome, a written-off tracker is not. This map is
+   * keyed by the bare string, so it cannot serve both; the lead meaning wins
+   * above because it is far the commoner, and the tracker screen states a
+   * written-off unit in its own words rather than through a badge.
+   */
+  ASSIGNED_TO_SALESMAN: 'info',
+  HANDED_TO_CUSTOMER: 'accent',
+  INSTALLED: 'success',
+  RETURNED: 'muted',
 };
 
 export function StatusBadge({

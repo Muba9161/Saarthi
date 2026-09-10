@@ -4,6 +4,7 @@ import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion, useReducedMotion } from '@/components/motion';
 import { Section, SectionHeading } from './marketing-chrome';
+import { EdgeVehicle, MARKETING_IMAGE } from './imagery';
 import { ROLE_SHOWCASE, type RoleShowcase } from './feature-catalogue';
 import { cn } from '@/lib/utils';
 
@@ -99,7 +100,12 @@ export function RoleShowcaseSection() {
   const active = ROLE_SHOWCASE.find((role) => role.id === activeId) ?? ROLE_SHOWCASE[0];
 
   return (
-    <Section id="roles" width="wide" tone="raised">
+    // The passenger half of the platform, arriving from the other side. This
+    // band is where the seven account types are named — travel operators among
+    // them — so it is the right place for a vehicle that is not a truck.
+    <Section id="roles" width="wide" tone="raised" className="relative isolate overflow-hidden">
+      <EdgeVehicle src={MARKETING_IMAGE.edgeSuv} side="right" />
+
       <SectionHeading
         eyebrow="Who it is for"
         title="One platform, seven points of view"

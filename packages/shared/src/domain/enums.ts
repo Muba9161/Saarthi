@@ -37,6 +37,17 @@ export const RoleName = asEnum({
    * provider profile, packages and bookings — which a freight fleet does not.
    */
   MOBILITY_PROVIDER: 'MOBILITY_PROVIDER',
+  /**
+   * Saarthi salesperson. Sells Saarthi itself rather than operating a fleet.
+   *
+   * GODWeb owns the identity, which is mirrored into a `SalesmanProfile`; this
+   * role only says what the person may do *inside* Saarthi — work leads, run a
+   * demo, share a referral, record a tracker handover and read their own
+   * commission. Deliberately not a tenant role: a salesperson is scoped by
+   * their own salesman profile rather than by an organization, so holding it
+   * grants sight of no customer's operational data.
+   */
+  SALESMAN: 'SALESMAN',
 });
 export type RoleName = EnumValue<typeof RoleName>;
 export const ROLE_NAMES = Object.values(RoleName) as RoleName[];
@@ -781,6 +792,15 @@ export const NotificationType = asEnum({
   TERMINAL_DRIVER_REQUEST_EXPIRED: 'TERMINAL_DRIVER_REQUEST_EXPIRED',
   TERMINAL_CHECKLIST_FAILED: 'TERMINAL_CHECKLIST_FAILED',
   TERMINAL_ISSUE_REPORTED: 'TERMINAL_ISSUE_REPORTED',
+
+  // Sales, referrals & commission
+  SALES_LEAD_FOLLOW_UP_DUE: 'SALES_LEAD_FOLLOW_UP_DUE',
+  SALES_REFERRAL_CONVERTED: 'SALES_REFERRAL_CONVERTED',
+  SALES_COMMISSION_PENDING: 'SALES_COMMISSION_PENDING',
+  SALES_COMMISSION_APPROVED: 'SALES_COMMISSION_APPROVED',
+  SALES_COMMISSION_PAID: 'SALES_COMMISSION_PAID',
+  SALES_TRACKER_ASSIGNED: 'SALES_TRACKER_ASSIGNED',
+  SALESMAN_VERIFIED: 'SALESMAN_VERIFIED',
 });
 export type NotificationType = EnumValue<typeof NotificationType>;
 
@@ -2275,3 +2295,196 @@ export const TerminalIssueStatus = asEnum({
   DISMISSED: 'DISMISSED',
 });
 export type TerminalIssueStatus = EnumValue<typeof TerminalIssueStatus>;
+
+// ---------------------------------------------------------------------------
+// Sales, referrals & commission
+// ---------------------------------------------------------------------------
+
+/**
+ * A Saarthi salesperson's standing.
+ *
+ * GODWeb owns the identity; this records what Saarthi has been able to confirm
+ * about it. `PENDING_VERIFICATION` is the state every profile starts in, and
+ * the one it stays in while no approved GODWeb integration is reachable — no
+ * referral link is issued and no commission accrues until it leaves that
+ * state, because a GODID nobody checked is a claim rather than an identity.
+ */
+export const SalesmanStatus = asEnum({
+  PENDING_VERIFICATION: 'PENDING_VERIFICATION',
+  ACTIVE: 'ACTIVE',
+  SUSPENDED: 'SUSPENDED',
+  /** GODWeb did not recognise the GODID, or disowned it later. */
+  REJECTED: 'REJECTED',
+});
+export type SalesmanStatus = EnumValue<typeof SalesmanStatus>;
+
+/** How a salesman profile came to be trusted. */
+export const SalesmanVerificationMethod = asEnum({
+  /** Confirmed by the read-only GODWeb integration. The normal path. */
+  GODWEB: 'GODWEB',
+  /**
+   * Vouched for by a Saarthi platform administrator.
+   *
+   * The fallback for an environment where the GODWeb validation API is not
+   * available yet. It is not a way of skipping verification: the administrator
+   * is named on the profile and in the audit trail, so the decision has an
+   * owner and can be withdrawn.
+   */
+  PLATFORM_ADMIN: 'PLATFORM_ADMIN',
+});
+export type SalesmanVerificationMethod = EnumValue<typeof SalesmanVerificationMethod>;
+
+/**
+ * Where a lead came from.
+ *
+ * Kept apart from `ReferralSource` on purpose: this is how the salesperson met
+ * the prospect, that is how Saarthi came to credit the sale. The two agree in
+ * the common case and diverge in the interesting one — a prospect met at a
+ * depot who later signs up through a colleague's link.
+ */
+export const SalesLeadSource = asEnum({
+  FIELD_VISIT: 'FIELD_VISIT',
+  REFERRAL_LINK: 'REFERRAL_LINK',
+  REFERRAL_QR: 'REFERRAL_QR',
+  INBOUND_CALL: 'INBOUND_CALL',
+  EVENT: 'EVENT',
+  EXISTING_CUSTOMER: 'EXISTING_CUSTOMER',
+  OTHER: 'OTHER',
+});
+export type SalesLeadSource = EnumValue<typeof SalesLeadSource>;
+export const SALES_LEAD_SOURCES = Object.values(SalesLeadSource) as SalesLeadSource[];
+
+/**
+ * The lead lifecycle.
+ *
+ * Everything from `SUBSCRIBED` onwards is not the salesperson's opinion. Those
+ * states are set by the system from the subscription, the tracker handover and
+ * the vehicle's own telemetry, so a lead cannot be marked live by somebody who
+ * wishes it were — see `SALES_LEAD_DERIVED_STATUSES` in `domain/sales.ts`.
+ */
+export const SalesLeadStatus = asEnum({
+  NEW: 'NEW',
+  CONTACTED: 'CONTACTED',
+  DEMO_SCHEDULED: 'DEMO_SCHEDULED',
+  DEMO_COMPLETED: 'DEMO_COMPLETED',
+  INTERESTED: 'INTERESTED',
+  SIGNUP_PENDING: 'SIGNUP_PENDING',
+  PAYMENT_PENDING: 'PAYMENT_PENDING',
+  SUBSCRIBED: 'SUBSCRIBED',
+  TRACKER_PENDING: 'TRACKER_PENDING',
+  ONBOARDING: 'ONBOARDING',
+  ACTIVATED: 'ACTIVATED',
+  LOST: 'LOST',
+  CANCELLED: 'CANCELLED',
+  DISQUALIFIED: 'DISQUALIFIED',
+});
+export type SalesLeadStatus = EnumValue<typeof SalesLeadStatus>;
+export const SALES_LEAD_STATUSES = Object.values(SalesLeadStatus) as SalesLeadStatus[];
+
+export const SalesLeadEventType = asEnum({
+  CREATED: 'CREATED',
+  STATUS_CHANGED: 'STATUS_CHANGED',
+  NOTE_ADDED: 'NOTE_ADDED',
+  FOLLOW_UP_SET: 'FOLLOW_UP_SET',
+  DEMO_RECORDED: 'DEMO_RECORDED',
+  CUSTOMER_LINKED: 'CUSTOMER_LINKED',
+  TRACKER_HANDED_OVER: 'TRACKER_HANDED_OVER',
+  ONBOARDING_COMPLETED: 'ONBOARDING_COMPLETED',
+});
+export type SalesLeadEventType = EnumValue<typeof SalesLeadEventType>;
+
+/** How Saarthi came to credit a customer to a salesperson. */
+export const ReferralSource = asEnum({
+  /** A salesperson standing in front of the customer. */
+  PHYSICAL: 'PHYSICAL',
+  REFERRAL_LINK: 'REFERRAL_LINK',
+  REFERRAL_QR: 'REFERRAL_QR',
+  ASSISTED_SIGNUP: 'ASSISTED_SIGNUP',
+  /** A GODID typed in by hand. Revalidated before it is ever trusted. */
+  MANUAL_GODID: 'MANUAL_GODID',
+});
+export type ReferralSource = EnumValue<typeof ReferralSource>;
+export const REFERRAL_SOURCES = Object.values(ReferralSource) as ReferralSource[];
+
+/**
+ * The attribution lifecycle.
+ *
+ * `CAPTURED` is a click; `ATTRIBUTED` is a customer. Only an attribution that
+ * reached `CONVERTED` — a real subscription behind a real successful payment —
+ * can produce a commission, which is why the two are separate rows.
+ */
+export const ReferralStatus = asEnum({
+  /** The link or QR was followed; no account yet. */
+  CAPTURED: 'CAPTURED',
+  /** A customer registered under it. */
+  ATTRIBUTED: 'ATTRIBUTED',
+  /** A qualifying paid subscription exists. */
+  CONVERTED: 'CONVERTED',
+  /** The attribution window closed with no registration. */
+  EXPIRED: 'EXPIRED',
+  /** Withdrawn by a platform administrator, with a reason. */
+  REVOKED: 'REVOKED',
+});
+export type ReferralStatus = EnumValue<typeof ReferralStatus>;
+
+/** How a commission rule turns a qualifying payment into an amount. */
+export const CommissionType = asEnum({
+  /** A percentage of the qualifying payment. */
+  PERCENTAGE: 'PERCENTAGE',
+  /** A flat amount per qualifying sale, whatever it was worth. */
+  FIXED: 'FIXED',
+});
+export type CommissionType = EnumValue<typeof CommissionType>;
+
+/**
+ * The commission lifecycle.
+ *
+ * `PENDING` means the sale qualified but the amount is not settled — either it
+ * is still inside its qualification period, or no active rule covered it. A
+ * null amount is not the same as zero, and is never paid.
+ */
+export const CommissionStatus = asEnum({
+  PENDING: 'PENDING',
+  APPROVED: 'APPROVED',
+  PAYABLE: 'PAYABLE',
+  PAID: 'PAID',
+  /** Refunded, charged back or cancelled inside the qualification period. */
+  REVERSED: 'REVERSED',
+  /** Reviewed and refused, with a reason. */
+  REJECTED: 'REJECTED',
+});
+export type CommissionStatus = EnumValue<typeof CommissionStatus>;
+export const COMMISSION_STATUSES = Object.values(CommissionStatus) as CommissionStatus[];
+
+/** What a commission was earned on. */
+export const CommissionTrigger = asEnum({
+  SUBSCRIPTION: 'SUBSCRIPTION',
+  TRACKER: 'TRACKER',
+  VEHICLE_TOPUP: 'VEHICLE_TOPUP',
+});
+export type CommissionTrigger = EnumValue<typeof CommissionTrigger>;
+
+/**
+ * Custody of a Saarthi tracker on its way to a vehicle.
+ *
+ * A custody chain, not a second device registry: every row points at the
+ * `VehicleTracker` the customer actually paid for, and `INSTALLED` is read back
+ * from existing device and telemetry state rather than typed in by the person
+ * whose commission depends on it.
+ */
+export const TrackerHandoverStatus = asEnum({
+  /** Allocated to a salesperson out of Saarthi stock. */
+  ASSIGNED_TO_SALESMAN: 'ASSIGNED_TO_SALESMAN',
+  /** Physically given to the customer, with an acknowledgement recorded. */
+  HANDED_TO_CUSTOMER: 'HANDED_TO_CUSTOMER',
+  /** Fitted and reporting — confirmed against real device state. */
+  INSTALLED: 'INSTALLED',
+  /** Came back unused. */
+  RETURNED: 'RETURNED',
+  /** Written off. */
+  LOST: 'LOST',
+});
+export type TrackerHandoverStatus = EnumValue<typeof TrackerHandoverStatus>;
+export const TRACKER_HANDOVER_STATUSES = Object.values(
+  TrackerHandoverStatus,
+) as TrackerHandoverStatus[];

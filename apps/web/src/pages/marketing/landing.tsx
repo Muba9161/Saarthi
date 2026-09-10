@@ -3,6 +3,7 @@ import { FeatureExplorer } from '@/features/marketing/feature-explorer';
 import { RoleShowcaseSection } from '@/features/marketing/role-showcase';
 import { FinalCta, HowItWorks, Pillars, SafetyBand } from '@/features/marketing/story-sections';
 import { MarketingFooter, MarketingNav } from '@/features/marketing/marketing-chrome';
+import { KnockoutBand } from '@/features/marketing/knockout-band';
 import { Pricing } from '@/features/marketing/pricing';
 
 /**
@@ -15,11 +16,21 @@ import { Pricing } from '@/features/marketing/pricing';
  * job move through it (how it works), what happens when something goes wrong
  * (safety), and what does it cost (pricing).
  *
- * Two things hold the design together. The bands alternate ground — canvas,
+ * Three things hold the design together. The bands alternate ground — canvas,
  * raised, dark — so sections separate by tone rather than by yet another
  * border, and every band shares one vertical rhythm from `Section`. That
  * uniformity is what the previous version lacked, and most of why it read as
  * cluttered.
+ *
+ * The third is the photography, and where it is *not*. Four bands — the hero,
+ * the brand knockout, safety and the closing call — are fixed near-black
+ * stages that hold one image each and do not move when the theme does; see
+ * `@/features/marketing/imagery`. Everything between them stays entirely
+ * token-driven. Interleaving the two is the point: the picture bands are the
+ * places a reader is allowed to stop, and they only feel like arrivals
+ * because the working sections between them are quiet. Every one of them also
+ * renders correctly with its image absent, so the layout does not depend on
+ * the shoot being finished.
  *
  * The exhaustive parts — the explorer and the pricing matrix — are generated
  * from `FEATURE_CATALOGUE` and `PLAN_FEATURES` in `@saarthi/shared`, the same
@@ -42,6 +53,7 @@ export function LandingPage() {
         <ProofStats />
         <Pillars />
         <FeatureExplorer />
+        <KnockoutBand />
         <RoleShowcaseSection />
         <HowItWorks />
         <SafetyBand />

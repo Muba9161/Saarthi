@@ -86,7 +86,7 @@ export function SplashSurface({
           initial={{ opacity: 0, y: 16, scale: 0.96 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.46, ease: EASE, delay: 0.08 }}
-          className="gradient-text text-balance text-4xl font-semibold leading-tight tracking-tight sm:text-5xl"
+          className="brand-logo-gradient text-balance text-4xl font-semibold leading-tight tracking-tight sm:text-5xl"
         >
           {greeting}
         </motion.p>

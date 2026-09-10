@@ -155,7 +155,7 @@ function BillingControl({
                 {selected ? (
                   <motion.span
                     layoutId="billing-pill"
-                    className="absolute inset-0 rounded-full bg-brand-gradient"
+                    className="absolute inset-0 rounded-full bg-logo-gradient"
                     transition={{ type: 'spring', stiffness: 400, damping: 34 }}
                   />
                 ) : null}
