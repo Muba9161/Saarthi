@@ -49,7 +49,7 @@ describe('Mobility expansion', () => {
 
   beforeEach(async () => {
     await resetDatabase();
-    fleet = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.INTELLIGENCE);
+    fleet = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.BUSINESS, { trackers: 25 });
     owner = await createUser({ role: RoleName.FLEET_OWNER, organizationId: fleet.id });
     driver = await createUser({
       role: RoleName.DRIVER,
@@ -539,12 +539,12 @@ describe('Mobility expansion', () => {
     let vehicleId: string;
 
     beforeEach(async () => {
-      providerOrg = await createOrganization(OrganizationType.MOBILITY_PROVIDER, PlanTier.BASIC);
+      providerOrg = await createOrganization(OrganizationType.MOBILITY_PROVIDER, PlanTier.BUSINESS, { trackers: 25 });
       provider = await createUser({
         role: RoleName.FLEET_OWNER,
         organizationId: providerOrg.id,
       });
-      customerOrg = await createOrganization(OrganizationType.CUSTOMER, PlanTier.BASIC);
+      customerOrg = await createOrganization(OrganizationType.CUSTOMER, PlanTier.BUSINESS, { trackers: 25 });
       customer = await createUser({ role: RoleName.CUSTOMER, organizationId: customerOrg.id });
 
       await request({
@@ -907,7 +907,7 @@ describe('Mobility expansion', () => {
 
     it('hides a booking from an unrelated organization', async () => {
       const booking = await book();
-      const otherOrg = await createOrganization(OrganizationType.CUSTOMER, PlanTier.BASIC);
+      const otherOrg = await createOrganization(OrganizationType.CUSTOMER, PlanTier.BUSINESS, { trackers: 25 });
       const other = await createUser({ role: RoleName.CUSTOMER, organizationId: otherOrg.id });
 
       const response = await request({
@@ -1432,7 +1432,7 @@ describe('Mobility expansion', () => {
 
     it('hides another tenant devices', async () => {
       const { device } = await registerDevice();
-      const otherOrg = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.PRO);
+      const otherOrg = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.BUSINESS, { trackers: 25 });
       const otherOwner = await createUser({
         role: RoleName.FLEET_OWNER,
         organizationId: otherOrg.id,

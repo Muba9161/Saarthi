@@ -79,7 +79,7 @@ describe('Video gateway authorisation', () => {
     const { config } = await import('../src/config/env');
     vi.spyOn(config.video, 'gatewaySecret', 'get').mockReturnValue(SECRET);
 
-    fleet = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.INTELLIGENCE);
+    fleet = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.BUSINESS, { trackers: 25 });
 
     const truck = await prisma.truck.create({
       data: {

@@ -176,7 +176,7 @@ export function AssociationDashboardPage() {
       numeric: true,
       hideOnMobile: true,
       cell: (row) => (
-        <span className="text-sm">{row.distanceKm === null ? '—' : `${row.distanceKm} km`}</span>
+        <span className="text-sm">{row.distanceKm === null ? '-' : `${row.distanceKm} km`}</span>
       ),
     },
     {
@@ -194,7 +194,7 @@ export function AssociationDashboardPage() {
       header: 'Responders',
       numeric: true,
       hideOnMobile: true,
-      cell: (row) => <span className="text-sm">{row.responderCount || '—'}</span>,
+      cell: (row) => <span className="text-sm">{row.responderCount || '-'}</span>,
     },
     {
       key: 'action',
@@ -243,7 +243,7 @@ export function AssociationDashboardPage() {
           }
           description={
             unverified
-              ? 'Saarthi routes emergencies only to verified associations. Until this account is verified no alerts arrive here — deliberately: driver locations and contact numbers are not shared with unverified bodies.'
+              ? 'Saarthi routes emergencies only to verified associations. Until this account is verified no alerts arrive here - deliberately: driver locations and contact numbers are not shared with unverified bodies.'
               : profile?.acceptingAlerts === false
                 ? 'Nothing is being routed to this desk. Emergencies in your area are going to the next association instead.'
                 : 'Emergencies inside your coverage area reach this desk the moment they are raised, and everyone signed in is notified.'
@@ -318,7 +318,7 @@ export function AssociationDashboardPage() {
                   <dt className="section-label">Median response</dt>
                   <dd className="tabular text-lg font-semibold">
                     {profile.stats.avgResponseMinutes === null
-                      ? '—'
+                      ? '-'
                       : `${profile.stats.avgResponseMinutes} min`}
                   </dd>
                 </div>

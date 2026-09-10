@@ -253,7 +253,7 @@ export function DevicesPage() {
             {row.openAlerts}
           </Badge>
         ) : (
-          <span className="text-sm text-muted-foreground">—</span>
+          <span className="text-sm text-muted-foreground">-</span>
         ),
     },
     {

@@ -138,6 +138,23 @@ const envSchema = z.object({
   RESALE_LISTING_TTL_DAYS: z.coerce.number().int().min(1).max(365).default(60),
   RESALE_OFFER_TTL_DAYS: z.coerce.number().int().min(1).max(90).default(7),
 
+  // --- Subscription enforcement ---------------------------------------------
+  //
+  // The development escape hatch for plan gating.
+  //
+  // With this off, every organization resolves as though it held every
+  // capability with no capacity limits, so a feature can be built and driven
+  // end-to-end without first seeding a plan, taking out a subscription or
+  // buying a tracker. Nothing is bypassed silently: the resolved entitlement
+  // is marked `enforced: false`, which the API reports and the UI shows as a
+  // development banner.
+  //
+  // It is refused in production below, because an unenforced deployment is one
+  // where every paying customer is on the top plan for free.
+  SUBSCRIPTION_ENFORCEMENT: booleanish(true),
+  /// Days of trial granted to a newly registered organization. 0 = no trial.
+  SUBSCRIPTION_TRIAL_DAYS: z.coerce.number().int().min(0).max(365).default(14),
+
   // --- QR identity ----------------------------------------------------------
   QR_RESOLVE_RATE_LIMIT_MAX: z.coerce.number().int().min(1).default(20),
   QR_RESOLVE_RATE_LIMIT_WINDOW: z.string().default('1 minute'),
@@ -470,6 +487,14 @@ if (isProduction) {
   if (raw.DEMO_MODE) {
     throw new Error('DEMO_MODE must be false in production — simulation endpoints would be exposed.');
   }
+  // An unenforced deployment gives every capability away for nothing. That is
+  // the correct behaviour on a developer's machine and an outage of the
+  // business model anywhere else.
+  if (!raw.SUBSCRIPTION_ENFORCEMENT) {
+    throw new Error(
+      'SUBSCRIPTION_ENFORCEMENT must be true in production — every plan limit and paid feature would be given away.',
+    );
+  }
   // Devices and people are separate credential populations with separate threat
   // models. Signing both with one key means a compromise of either forges both.
   if (!raw.DEVICE_JWT_SECRET) {
@@ -545,6 +570,17 @@ export const config = {
   inventory: {
     reservationTtlHours: raw.STOCK_RESERVATION_TTL_HOURS,
     lowStockDigestHour: raw.STOCK_LOW_DIGEST_HOUR,
+  },
+
+  subscription: {
+    /**
+     * Whether plan entitlements and capacity limits are enforced.
+     *
+     * False only in development — see the note in the env schema, and the
+     * production guard that refuses to start without it.
+     */
+    enforced: raw.SUBSCRIPTION_ENFORCEMENT,
+    trialDays: raw.SUBSCRIPTION_TRIAL_DAYS,
   },
 
   resale: {

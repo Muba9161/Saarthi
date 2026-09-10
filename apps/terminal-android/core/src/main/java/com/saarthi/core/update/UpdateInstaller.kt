@@ -187,7 +187,7 @@ class UpdateInstaller(private val context: Context) {
                 "This update is not compatible with this tablet."
 
             PackageInstaller.STATUS_FAILURE_CONFLICT ->
-                "The update could not replace the installed app. Call the office — the " +
+                "The update could not replace the installed app. Call the office - the " +
                     "terminal may need reinstalling by hand. ($message)"
 
             PackageInstaller.STATUS_FAILURE_ABORTED ->

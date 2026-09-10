@@ -273,7 +273,7 @@ export function AuthLayout() {
               </h2>
               <p className="max-w-md text-sm leading-relaxed text-sidebar-muted">
                 {t(
-                  'Saarthi connects fleet owners, drivers, suppliers and customers on one platform — from posting a load to watching it arrive.',
+                  'Saarthi connects fleet owners, drivers, suppliers and customers on one platform - from posting a load to watching it arrive.',
                 )}
               </p>
             </StaggerItem>
@@ -291,7 +291,7 @@ export function AuthLayout() {
 
           <div className="shrink-0 border-t border-white/[0.08] pt-5">
             <p className="text-2xs leading-relaxed text-sidebar-muted">
-              {t('Local development build — simulated GPS, mock payments, local document storage.')}
+              {t('Local development build - simulated GPS, mock payments, local document storage.')}
             </p>
           </div>
         </div>

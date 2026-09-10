@@ -49,7 +49,7 @@ object DebugLog {
     fun info(tag: String, message: String) = record("I", tag, message)
     fun warn(tag: String, message: String) = record("W", tag, message)
     fun error(tag: String, message: String, cause: Throwable? = null) {
-        record("E", tag, if (cause == null) message else "$message — ${cause.message}")
+        record("E", tag, if (cause == null) message else "$message - ${cause.message}")
     }
 
     /**

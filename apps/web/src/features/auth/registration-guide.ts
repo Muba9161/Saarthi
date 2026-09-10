@@ -109,7 +109,7 @@ const NAME_QUESTION: GuidedQuestion = {
   icon: UserRound,
   label: 'Your name',
   question: 'What is your name?',
-  help: 'Your own name, not your business name — that is asked separately. It is how Saarthi addresses you and how the people you deal with know who they are talking to.',
+  help: 'Your own name, not your business name - that is asked separately. It is how Saarthi addresses you and how the people you deal with know who they are talking to.',
   rule: 'First name 2 to 60 characters, surname 1 to 60.',
 };
 
@@ -121,7 +121,7 @@ const EMAIL_QUESTION: GuidedQuestion = {
   question: 'What is your email address?',
   help: 'This becomes your sign-in ID, and it is where a password reset would be sent. Use an address you can open today.',
   example: 'you@company.com',
-  tip: 'One email address makes one account. If yours is already registered you will be told so at the end — sign in instead of starting over.',
+  tip: 'One email address makes one account. If yours is already registered you will be told so at the end - sign in instead of starting over.',
 };
 
 const PHONE_QUESTION: GuidedQuestion = {
@@ -130,7 +130,7 @@ const PHONE_QUESTION: GuidedQuestion = {
   icon: Smartphone,
   label: 'Mobile',
   question: 'What is your mobile number?',
-  help: 'An Indian mobile number. Type the ten digits — Saarthi puts the +91 on for you if you leave it off.',
+  help: 'An Indian mobile number. Type the ten digits - Saarthi puts the +91 on for you if you leave it off.',
   rule: 'Ten digits, starting with 6, 7, 8 or 9.',
   example: '9876543210',
 };
@@ -153,7 +153,7 @@ const PHOTO_QUESTION: GuidedQuestion = {
   icon: ImagePlus,
   label: 'Photo',
   question: 'Add a profile photo?',
-  help: 'A picture of you, shown on your profile and beside your messages. Entirely optional — skip it and add one later from your profile.',
+  help: 'A picture of you, shown on your profile and beside your messages. Entirely optional - skip it and add one later from your profile.',
   rule: 'JPEG, PNG, WebP or HEIC, up to 5 MB.',
   optional: true,
 };
@@ -165,7 +165,7 @@ const LOGO_QUESTION: GuidedQuestion = {
   icon: ImagePlus,
   label: 'Logo',
   question: 'Add your company logo?',
-  help: 'It goes on your listings, orders and invoices — so use the mark your customers recognise, not a photograph of yourself. Optional, and addable later from settings.',
+  help: 'It goes on your listings, orders and invoices - so use the mark your customers recognise, not a photograph of yourself. Optional, and addable later from settings.',
   rule: 'JPEG, PNG, WebP or HEIC, up to 5 MB.',
   optional: true,
 };
@@ -202,7 +202,7 @@ export const ACCOUNT_GUIDES: readonly AccountGuide[] = [
     title: 'Fleet owner',
     tagline: 'I own trucks and want to manage my fleet and win loads.',
     chooseIf: [
-      'You own or operate trucks — one, or a hundred.',
+      'You own or operate trucks - one, or a hundred.',
       'You want to see where your vehicles are and what each trip earned.',
       'You want to bid on the loads customers post.',
     ],
@@ -221,7 +221,7 @@ export const ACCOUNT_GUIDES: readonly AccountGuide[] = [
       },
       {
         label: 'Your company logo',
-        detail: 'Any image up to 5 MB. Skippable — it can be added later from settings.',
+        detail: 'Any image up to 5 MB. Skippable - it can be added later from settings.',
         required: false,
       },
     ],
@@ -240,7 +240,7 @@ export const ACCOUNT_GUIDES: readonly AccountGuide[] = [
         question: 'What is your transport business called?',
         help: 'The name your customers know you by. It appears on your bids, trip sheets and invoices.',
         example: 'Sharma Transport Company',
-        tip: 'Registering a business you already run? Use its legal name — matching it now saves reconciling paperwork later.',
+        tip: 'Registering a business you already run? Use its legal name - matching it now saves reconciling paperwork later.',
       }),
       LOGO_QUESTION,
       PASSWORD_QUESTION,
@@ -295,7 +295,7 @@ export const ACCOUNT_GUIDES: readonly AccountGuide[] = [
         icon: Building2,
         label: 'Company',
         question: 'Are you buying for a company?',
-        help: 'Name it if your orders should carry a company name. Buying for yourself? Skip this — Saarthi names the account after you and nothing at all is withheld from an individual customer.',
+        help: 'Name it if your orders should carry a company name. Buying for yourself? Skip this - Saarthi names the account after you and nothing at all is withheld from an individual customer.',
         rule: 'Up to 160 characters.',
         example: 'Kumar Constructions',
         optional: true,
@@ -310,7 +310,7 @@ export const ACCOUNT_GUIDES: readonly AccountGuide[] = [
     title: 'Supplier',
     tagline: 'I sell materials and arrange dispatch from my yard.',
     chooseIf: [
-      'You sell cement, steel, sand, aggregate — anything by the load.',
+      'You sell cement, steel, sand, aggregate - anything by the load.',
       'You want buyers to find your catalogue and order from it.',
       'You dispatch from a yard and need the delivery tracked.',
     ],
@@ -366,7 +366,7 @@ export const ACCOUNT_GUIDES: readonly AccountGuide[] = [
       'Your drivers should sign on to a travel business, not to a freight fleet.',
     ],
     creates:
-      'A travel business, with you as its administrator — the only account type that can publish tour packages.',
+      'A travel business, with you as its administrator - the only account type that can publish tour packages.',
     minutes: 4,
     prepare: [
       {
@@ -400,7 +400,7 @@ export const ACCOUNT_GUIDES: readonly AccountGuide[] = [
         question: 'What is your travel business called?',
         help: 'The name passengers book with. It appears on every package and confirmation.',
         example: 'Sharma Travels & Tours',
-        tip: 'Your drivers join this business with an invite code you generate afterwards — the same way a freight fleet invites its own.',
+        tip: 'Your drivers join this business with an invite code you generate afterwards - the same way a freight fleet invites its own.',
       }),
       LOGO_QUESTION,
       PASSWORD_QUESTION,
@@ -418,7 +418,7 @@ export const ACCOUNT_GUIDES: readonly AccountGuide[] = [
       'You need the emergency queue that dispatches help to a stranded driver.',
     ],
     creates:
-      'An association, with you as its administrator — the only account type that runs an emergency queue.',
+      'An association, with you as its administrator - the only account type that runs an emergency queue.',
     minutes: 4,
     prepare: [
       {
@@ -452,7 +452,7 @@ export const ACCOUNT_GUIDES: readonly AccountGuide[] = [
         question: 'What is your association called?',
         help: 'The registered name members know. Naming the district makes it findable for a driver looking for help nearby.',
         example: 'Jaipur District Truck Association',
-        tip: 'Register the association itself, not your own transport business — if you run both, those are two separate accounts.',
+        tip: 'Register the association itself, not your own transport business - if you run both, those are two separate accounts.',
       }),
       LOGO_QUESTION,
       PASSWORD_QUESTION,
@@ -476,7 +476,7 @@ export const ACCOUNT_GUIDES: readonly AccountGuide[] = [
       {
         label: 'Your fleet invite code',
         detail:
-          'Six characters after SR-, generated by your truck owner in their own Saarthi account. Not needed to finish — without it you register on your own and join your fleet later.',
+          'Six characters after SR-, generated by your truck owner in their own Saarthi account. Not needed to finish - without it you register on your own and join your fleet later.',
         required: false,
       },
       {
@@ -524,7 +524,7 @@ export const ACCOUNT_GUIDES: readonly AccountGuide[] = [
         icon: IdCard,
         label: 'Licence',
         question: 'What is your driving licence number?',
-        help: 'Exactly as printed on your licence, including the dashes. Read it off the licence rather than from memory — it is checked against your documents later.',
+        help: 'Exactly as printed on your licence, including the dashes. Read it off the licence rather than from memory - it is checked against your documents later.',
         rule: 'Up to 40 characters.',
         example: 'DL-1420-20100000000',
       },

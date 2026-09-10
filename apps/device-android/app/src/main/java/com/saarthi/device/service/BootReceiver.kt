@@ -32,7 +32,7 @@ class BootReceiver : BroadcastReceiver() {
         // before the reboot should stay stopped.
         if (!settings.autoStart || !settings.wasRunning) return
 
-        DebugLog.add("BOOT — RESUMING TRACKING")
+        DebugLog.add("BOOT - RESUMING TRACKING")
         TelemetryService.start(context)
     }
 }

@@ -99,7 +99,7 @@ fun AdminGate(
 
             Text(
                 if (settingUp) {
-                    "Choose a four-digit PIN for this terminal. It keeps diagnostics out of a driver's way — it is not a password, and nothing behind it can authorise anything on its own."
+                    "Choose a four-digit PIN for this terminal. It keeps diagnostics out of a driver's way - it is not a password, and nothing behind it can authorise anything on its own."
                 } else {
                     "Enter the PIN set when this terminal was fitted."
                 },

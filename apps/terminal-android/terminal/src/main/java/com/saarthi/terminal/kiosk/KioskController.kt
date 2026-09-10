@@ -167,7 +167,7 @@ class KioskController(private val context: Context) {
 
     /** A one-line description for the admin screen. */
     fun describe(): String = when {
-        isDeviceOwner -> "Device owner — kiosk mode available"
+        isDeviceOwner -> "Device owner - kiosk mode available"
         else -> "Not a device owner. Provision this tablet with an EMM or `dpm set-device-owner` to enable kiosk mode."
     }
 }

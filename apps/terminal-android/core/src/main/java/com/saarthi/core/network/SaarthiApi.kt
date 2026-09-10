@@ -771,7 +771,7 @@ class SaarthiApi(
                 // gone stale failed every request in complete silence — the
                 // button was pressed, nothing happened, and the log showed only
                 // the unrelated traffic around it.
-                DebugLog.warn("api", "401 $method $path — credentials rejected")
+                DebugLog.warn("api", "401 $method $path - credentials rejected")
                 throw Failure.Unauthenticated
             }
 
@@ -784,7 +784,7 @@ class SaarthiApi(
 
             // The path and the status. Never the body, which on some endpoints
             // carries the very credential this method just used.
-            DebugLog.warn("api", "${raw.code} $method $path — ${error?.code ?: "no code"}")
+            DebugLog.warn("api", "${raw.code} $method $path - ${error?.code ?: "no code"}")
 
             throw Failure.Refused(
                 status = raw.code,

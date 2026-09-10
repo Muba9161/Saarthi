@@ -59,9 +59,9 @@ class TelemetrySimulator {
                 OFF -> "No simulated engine data. Only GPS, motion and device health."
                 NORMAL -> "A healthy vehicle at working temperature."
                 HIGH_RPM -> "Sustained high engine speed, for idling and load rules."
-                OVERHEATING -> "Coolant above the safe range — raises the temperature alert."
+                OVERHEATING -> "Coolant above the safe range - raises the temperature alert."
                 LOW_FUEL -> "Tank near empty, for the fuel-drop path."
-                LOW_BATTERY -> "Charging-system fault — raises the low-voltage alert."
+                LOW_BATTERY -> "Charging-system fault - raises the low-voltage alert."
                 ENGINE_WARNING -> "A stored trouble code, for the diagnostic-fault path."
                 CUSTOM -> "Values you set yourself."
             }

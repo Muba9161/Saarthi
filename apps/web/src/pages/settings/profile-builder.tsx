@@ -689,7 +689,7 @@ export function ProfileBuilderPage() {
       <PageHeader
         eyebrow="Account"
         title="Your profile"
-        description="A complete profile is what moves an account toward verification — and what other Saarthi businesses see before they work with you."
+        description="A complete profile is what moves an account toward verification - and what other Saarthi businesses see before they work with you."
         actions={
           <Badge variant={completion.percent === 100 ? 'success' : 'secondary'}>
             {completion.percent}% complete
@@ -700,7 +700,7 @@ export function ProfileBuilderPage() {
       <FormWizard
         steps={steps}
         title="Your profile"
-        description="Each section saves on its own — you can stop and come back."
+        description="Each section saves on its own - you can stop and come back."
         aside={progressAside}
         allowJumpAhead
         // Nothing is submitted here — each section has already saved itself —
@@ -718,7 +718,7 @@ export function ProfileBuilderPage() {
       <Card>
         <CardContent className="py-3 text-xs text-muted-foreground">
           VorldX Saarthi has no public profile pages. What you enter here is visible to signed-in
-          Saarthi businesses you deal with, and to platform staff reviewing your verification —
+          Saarthi businesses you deal with, and to platform staff reviewing your verification -
           never to the open internet.
         </CardContent>
       </Card>

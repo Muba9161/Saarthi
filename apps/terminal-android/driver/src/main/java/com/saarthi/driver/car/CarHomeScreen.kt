@@ -3,7 +3,6 @@ package com.saarthi.driver.car
 import androidx.car.app.CarContext
 import androidx.car.app.Screen
 import androidx.car.app.model.Action
-import androidx.car.app.model.CarColor
 import androidx.car.app.model.CarIcon
 import androidx.car.app.model.ItemList
 import androidx.car.app.model.ListTemplate
@@ -71,8 +70,17 @@ class CarHomeScreen(carContext: CarContext) : Screen(carContext) {
 
             CarSummary.Availability.NoVehicle ->
                 return signedOut(
-                    "Choose your vehicle on your phone — scan its code or enter its " +
-                        "number. Saarthi will follow here once your fleet has approved you.",
+                    /*
+                     * Short because the car screen makes it short.
+                     *
+                     * The host gives a template message a fixed budget and cuts
+                     * what will not fit — no wrap, no scroll. At 129 characters
+                     * this ended mid-word on the head unit ("Saarthi will follow
+                     * her…"), so the half a driver needed, that the fleet has to
+                     * approve them first, was the half that never arrived.
+                     */
+                    "Scan the vehicle's code or type its number on your phone. " +
+                        "Saarthi follows once approved.",
                 )
 
             is CarSummary.Availability.Ready -> availability.registrationNumber
@@ -131,7 +139,28 @@ class CarHomeScreen(carContext: CarContext) : Screen(carContext) {
                     .addAction(
                         Action.Builder()
                             .setTitle("SOS")
-                            .setBackgroundColor(CarColor.RED)
+                            /*
+                             * No colour here, however much this one deserves it.
+                             *
+                             * An action strip forbids a background colour — the
+                             * host reserves colour for the primary action of a
+                             * template it controls — and it does not decline
+                             * quietly: `ActionsConstraints.validateOrThrow` threw
+                             * from inside `onGetTemplate`, which is a callback
+                             * from the car host on the main thread, so the whole
+                             * app died with "Saarthi Driver keeps stopping".
+                             *
+                             * Worth being precise about why this hid for so long:
+                             * the states before a driver is on a vehicle return a
+                             * MessageTemplate, and only the signed-on screen is a
+                             * ListTemplate with this strip. So Android Auto looked
+                             * perfectly healthy right up to the moment a driver
+                             * actually had a vehicle — the one moment it matters.
+                             *
+                             * The red is kept where it is allowed and where it
+                             * counts: `CarSosScreen`, the confirmation this opens,
+                             * is a MessageTemplate whose action may be coloured.
+                             */
                             .setOnClickListener { screenManager.push(CarSosScreen(carContext)) }
                             .build(),
                     )

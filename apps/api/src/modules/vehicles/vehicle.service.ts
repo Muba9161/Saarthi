@@ -1,21 +1,22 @@
 import {
-  FREIGHT_VEHICLE_TYPES,
-  PASSENGER_VEHICLE_TYPES,
-  TRAVEL_VEHICLE_TYPES,
-  TruckStatus,
-  VehicleCapability,
-  VehicleType,
-  VerificationStatus,
   buildPaginationMeta,
+  type CreateVehicleInput,
+  FREIGHT_VEHICLE_TYPES,
+  type Paginated,
+  PASSENGER_VEHICLE_TYPES,
   resolveDocumentValidity,
   resolveTruckType,
-  validateVehicleCapacities,
-  vehicleCapabilities,
-  vehicleTypeDefinition,
-  type CreateVehicleInput,
-  type Paginated,
+  TRAVEL_VEHICLE_TYPES,
+  TruckStatus,
   type UpdateVehicleInput,
+  validateVehicleCapacities,
+  VEHICLE_TOPUP,
+  vehicleCapabilities,
+  VehicleCapability,
   type VehicleListQuery,
+  VehicleType,
+  vehicleTypeDefinition,
+  VerificationStatus,
 } from '@saarthi/shared';
 import { type Prisma, prisma } from '../../database/prisma';
 import { errors } from '../../lib/errors';
@@ -366,7 +367,7 @@ async function assertVehicleLimit(auth: AuthContext, organizationId: string): Pr
     throw errors.planLimitReached(
       'maxTrucks',
       `Your ${auth.subscription?.planName ?? 'current'} plan covers ${max} vehicle${max === 1 ? '' : 's'}. ` +
-        'Add a +1 vehicle top-up for this one vehicle, or upgrade the plan if the fleet is growing.',
+        `Add a +1 vehicle top-up for ${VEHICLE_TOPUP.priceMonthly} rupees a month to put this one on the road.`,
     );
   }
 }

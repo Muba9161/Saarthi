@@ -117,7 +117,7 @@ export function TelemetryAlertsPage() {
       hideOnMobile: true,
       cell: (row) => (
         <span className="text-sm text-muted-foreground">
-          {row.driverName ?? '—'}
+          {row.driverName ?? '-'}
           {row.scoreEventId ? (
             <Badge variant="outline" size="sm" className="ml-1.5">
               scored
@@ -132,7 +132,7 @@ export function TelemetryAlertsPage() {
       numeric: true,
       cell: (row) =>
         row.observedValue === null ? (
-          <span className="text-sm text-muted-foreground">—</span>
+          <span className="text-sm text-muted-foreground">-</span>
         ) : (
           <div>
             <p className="text-sm font-medium tabular-nums">
@@ -192,7 +192,7 @@ export function TelemetryAlertsPage() {
           <CardHeader className="pb-3">
             <SectionHeader
               title="Maintenance recommendations"
-              description="Threshold rules over recent alerts — not predictions. VorldX Saarthi will not claim to predict a failure until it has the fleet history to do so honestly."
+              description="Threshold rules over recent alerts - not predictions. VorldX Saarthi will not claim to predict a failure until it has the fleet history to do so honestly."
             />
           </CardHeader>
           <CardContent className="grid grid-cols-1 gap-3 pt-0 sm:grid-cols-2">
@@ -275,7 +275,7 @@ export function TelemetryAlertsPage() {
           <Activity className="mt-0.5 h-3.5 w-3.5 shrink-0" />
           <p>
             A rule fires only when the vehicle actually reports the metric it needs. A vehicle whose
-            device cannot read coolant temperature will never raise a temperature alert — it is not
+            device cannot read coolant temperature will never raise a temperature alert - it is not
             treated as running cool.
           </p>
         </CardContent>

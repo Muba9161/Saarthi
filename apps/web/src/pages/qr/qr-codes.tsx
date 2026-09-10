@@ -60,7 +60,7 @@ export function QrCodesPage() {
       <PageHeader
         eyebrow="Saarthi Connect"
         title="QR codes"
-        description="Scannable identity for vehicles and drivers — a roadside check, a gate entry or a handover, without a phone call."
+        description="Scannable identity for vehicles and drivers - a roadside check, a gate entry or a handover, without a phone call."
         actions={
           // Privacy is the one control that belongs at this level: it decides
           // what every code in the fleet reveals, not what one of them does.
@@ -89,7 +89,7 @@ export function QrCodesPage() {
             <CardHeader className="pb-2">
               <SectionHeader
                 title="How disclosure works"
-                description="A code carries no data itself — it carries a token. What a scanner sees depends on who they are: a stranger sees far less than the vehicle's own fleet, and every scan is logged."
+                description="A code carries no data itself - it carries a token. What a scanner sees depends on who they are: a stranger sees far less than the vehicle's own fleet, and every scan is logged."
               />
             </CardHeader>
           </Card>

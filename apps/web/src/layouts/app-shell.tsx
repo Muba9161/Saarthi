@@ -475,7 +475,7 @@ function PlanFooter() {
         {session?.demoMode ? (
           <p className="mt-1.5 flex items-center gap-1.5 text-2xs text-accent">
             <Radio className="size-3" />
-            Demo mode — simulated GPS
+            Demo mode - simulated GPS
           </p>
         ) : null}
       </div>
@@ -789,7 +789,7 @@ function CriticalAlerts() {
 
   useRealtimeEvent(RealtimeEvent.SOS_RESPONDER_REQUEST, (message) => {
     toast.warning('A driver nearby needs help', {
-      description: `${message.payload.distanceKm.toFixed(1)} km away — ${message.payload.incidentType.toLowerCase()}.`,
+      description: `${message.payload.distanceKm.toFixed(1)} km away - ${message.payload.incidentType.toLowerCase()}.`,
       duration: 60_000,
       action: {
         label: 'Respond',

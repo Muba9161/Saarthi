@@ -57,7 +57,7 @@ const PILLARS = [
   {
     icon: LifeBuoy,
     title: 'Safety that is never billed',
-    body: 'One tap reaches nearby trucks in expanding rings — on every plan, in trial, and after a payment fails.',
+    body: 'One tap reaches nearby trucks in expanding rings - on every plan, in trial, and after a payment fails.',
     span: '',
   },
   {
@@ -103,7 +103,7 @@ export function Pillars() {
       <SectionHeading
         eyebrow="Why one system"
         title="Everything a haul touches, writing to one record"
-        body="Not a tracker with features bolted on. Each part of Saarthi reads and writes the same operational history — the only reason the numbers on one screen agree with the numbers on another."
+        body="Not a tracker with features bolted on. Each part of Saarthi reads and writes the same operational history - the only reason the numbers on one screen agree with the numbers on another."
       />
 
       <RevealGroup
@@ -128,7 +128,7 @@ const STEPS = [
   {
     step: '01',
     title: 'Post what needs moving',
-    body: 'A customer names the material, quantity, pickup and delivery. Saarthi ranks the transport that can actually do it — by capacity, by location, and by whether the paperwork is current.',
+    body: 'A customer names the material, quantity, pickup and delivery. Saarthi ranks the transport that can actually do it - by capacity, by location, and by whether the paperwork is current.',
   },
   {
     step: '02',
@@ -143,7 +143,7 @@ const STEPS = [
   {
     step: '04',
     title: 'Watch it arrive',
-    body: 'Live position, live ETA, deviation and delay alerts, proof of delivery — and a driver score that moves on what actually happened, with the record that caused it attached.',
+    body: 'Live position, live ETA, deviation and delay alerts, proof of delivery - and a driver score that moves on what actually happened, with the record that caused it attached.',
   },
 ] as const;
 
@@ -222,7 +222,7 @@ export function HowItWorks() {
             align="start"
             eyebrow="How it works"
             title="From “I need 20 tons of sand” to delivered"
-            body="Four moves, one record — which is why a delay on the road reaches the customer's view, the driver's score and the month's analytics without anybody entering it twice."
+            body="Four moves, one record - which is why a delay on the road reaches the customer's view, the driver's score and the month's analytics without anybody entering it twice."
           />
 
           {/* Progress rail. Decorative on mobile, so it is simply not there. */}
@@ -320,7 +320,7 @@ export function SafetyBand() {
             onDark
             eyebrow="Never gated by a plan"
             title="A safety network, not a button"
-            body="One tap reaches nearby Saarthi trucks in expanding rings until somebody answers, and the district association desk sees the same alert. It works on every plan, during a trial, and after a payment has lapsed — because a driver on a dark highway is not a billing event."
+            body="One tap reaches nearby Saarthi trucks in expanding rings until somebody answers, and the district association desk sees the same alert. It works on every plan, during a trial, and after a payment has lapsed - because a driver on a dark highway is not a billing event."
           />
 
           <RevealGroup as="ul" className="mt-12 grid gap-8 sm:grid-cols-3" stagger={0.1}>
@@ -352,7 +352,7 @@ export function SafetyBand() {
           <Reveal delay={0.2}>
             <p className="mt-12 max-w-2xl border-l-2 border-accent/40 pl-4 text-xs leading-relaxed text-sidebar-muted">
               Saarthi&rsquo;s network connects nearby drivers who may be able to help. It does not
-              replace official emergency services — always call 112 first in a life-threatening
+              replace official emergency services - always call 112 first in a life-threatening
               situation.
             </p>
           </Reveal>
@@ -385,7 +385,7 @@ export function FinalCta() {
             <br className="hidden sm:block" /> on one screen
           </h2>
           <p className="mx-auto mt-5 max-w-lg text-pretty text-sm text-muted-foreground sm:text-base">
-            Set up in minutes, in your own language. Add a truck, add a driver, post a load — and
+            Set up in minutes, in your own language. Add a truck, add a driver, post a load - and
             watch the first trip move across the map.
           </p>
 
@@ -407,7 +407,7 @@ export function FinalCta() {
           </div>
 
           <p className="mt-6 text-xs text-muted-foreground">
-            The demo is a fully seeded fleet — eight trucks, live tracking and a working SOS
+            The demo is a fully seeded fleet - eight trucks, live tracking and a working SOS
             network.
           </p>
         </div>

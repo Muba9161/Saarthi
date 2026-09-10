@@ -92,7 +92,7 @@ export function ProviderPackagesPage() {
         <EmptyState
           icon={Plane}
           title="Set up your provider profile first"
-          description="Tell customers who you are, which services you offer and the cities you work from. Your vehicles, drivers and account stay exactly as they are — this only adds what you sell."
+          description="Tell customers who you are, which services you offer and the cities you work from. Your vehicles, drivers and account stay exactly as they are - this only adds what you sell."
           action={
             can(Permission.PROVIDER_MANAGE) ? (
               <ProviderProfileDialog

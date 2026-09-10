@@ -80,7 +80,7 @@ export function VerificationPage() {
       hideOnMobile: true,
       cell: (row) => (
         <span className="line-clamp-2 text-sm text-muted-foreground">
-          {row.rejectionReason ?? row.reviewerNotes ?? '—'}
+          {row.rejectionReason ?? row.reviewerNotes ?? '-'}
         </span>
       ),
     },
@@ -108,7 +108,7 @@ export function VerificationPage() {
                   Verify
                 </Button>
               ) : (
-                <span className="text-xs text-muted-foreground">—</span>
+                <span className="text-xs text-muted-foreground">-</span>
               ),
           } satisfies Column<VerificationCaseSummary>,
         ]

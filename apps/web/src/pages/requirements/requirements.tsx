@@ -206,7 +206,7 @@ export function RequirementsPage() {
         {...(query.data?.pagination ? { pagination: query.data.pagination } : {})}
         onPageChange={setPage}
         emptyTitle="Nothing posted yet"
-        emptyDescription="Tell Saarthi what you need — material, transport, a cab or a tour — and the businesses that can serve it will bid for your work."
+        emptyDescription="Tell Saarthi what you need - material, transport, a cab or a tour - and the businesses that can serve it will bid for your work."
         emptyAction={
           can(Permission.REQUIREMENTS_CREATE) ? (
             <Button onClick={() => navigate('/requirements/new')}>

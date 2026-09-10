@@ -125,7 +125,7 @@ export function VehicleAiCard({
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold">AI assistant</p>
           <p className="text-xs text-muted-foreground">
-            Ask about this {vehicle.typeLabel.toLowerCase()} — answered from your own records.
+            Ask about this {vehicle.typeLabel.toLowerCase()} - answered from your own records.
           </p>
         </div>
       </div>

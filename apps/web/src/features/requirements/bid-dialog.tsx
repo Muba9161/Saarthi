@@ -239,7 +239,7 @@ export function BidDialog({
 
               <WizardField
                 label="Driver"
-                hint="Optional — the vehicle's assigned driver is used if you leave this blank."
+                hint="Optional - the vehicle's assigned driver is used if you leave this blank."
               >
                 <Input
                   value={driverId}
@@ -288,7 +288,7 @@ export function BidDialog({
                   <span className="block text-sm font-medium">My price includes delivery</span>
                   <span className="block text-xs leading-snug text-muted-foreground">
                     Turn this on and the customer can settle the whole requirement with your bid
-                    alone — no separate transport award is needed.
+                    alone - no separate transport award is needed.
                   </span>
                 </label>
               </div>

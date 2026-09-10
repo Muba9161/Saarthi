@@ -71,7 +71,7 @@ export function MaintenancePage() {
       header: 'Provider',
       hideOnMobile: true,
       cell: (row) => (
-        <span className="text-sm text-muted-foreground">{row.serviceProvider ?? '—'}</span>
+        <span className="text-sm text-muted-foreground">{row.serviceProvider ?? '-'}</span>
       ),
     },
     {
@@ -80,7 +80,7 @@ export function MaintenancePage() {
       hideOnMobile: true,
       cell: (row) => (
         <span className="text-sm">
-          {row.scheduledAt ? new Date(row.scheduledAt).toLocaleDateString('en-IN') : '—'}
+          {row.scheduledAt ? new Date(row.scheduledAt).toLocaleDateString('en-IN') : '-'}
         </span>
       ),
     },
@@ -101,7 +101,7 @@ export function MaintenancePage() {
           <CardHeader className="pb-3">
             <SectionHeader
               title="Vehicles needing attention"
-              description="Risk is calculated from mileage, service intervals and recent repairs — not predicted."
+              description="Risk is calculated from mileage, service intervals and recent repairs - not predicted."
             />
           </CardHeader>
           <CardContent className="grid grid-cols-1 gap-3 pt-0 sm:grid-cols-2">

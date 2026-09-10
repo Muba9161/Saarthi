@@ -363,7 +363,7 @@ private fun DetailRow(label: String, value: String?) {
         Text(
             // An em dash rather than a blank. "Not recorded" and "empty string"
             // look identical otherwise, and one of them is a data problem.
-            value ?: "—",
+            value ?: "-",
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Medium,
         )

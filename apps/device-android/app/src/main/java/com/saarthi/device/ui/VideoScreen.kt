@@ -164,7 +164,7 @@ fun VideoScreen(
         // separate choices, and getting them out of step looks like a broken
         // gateway rather than a mismatch.
         Text(
-            "Streaming channel $channel — open the same channel on the dashboard to watch.",
+            "Streaming channel $channel - open the same channel on the dashboard to watch.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -190,7 +190,7 @@ fun VideoScreen(
                     SimulatedBadge()
                     Spacer(Modifier.size(8.dp))
                     Text(
-                        "The camera is running, but this environment has no gateway — nothing is receiving the stream.",
+                        "The camera is running, but this environment has no gateway - nothing is receiving the stream.",
                         style = MaterialTheme.typography.bodySmall,
                     )
                 }

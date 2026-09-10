@@ -193,7 +193,7 @@ fun Gauge(
 
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    text = value?.let { "%.${decimals}f".format(it) } ?: "—",
+                    text = value?.let { "%.${decimals}f".format(it) } ?: "-",
                     // The figure follows the ring it sits inside. Left at the
                     // headline size it overflowed a shrunken dial, and a number
                     // touching the arc either side of it reads as damage.

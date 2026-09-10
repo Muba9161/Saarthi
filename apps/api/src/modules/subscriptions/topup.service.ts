@@ -7,6 +7,7 @@ import {
   VEHICLE_TOPUP,
   canAddVehicleTopUp,
   describeVehicleCapacity,
+  withGst,
   type PurchaseTopUpInput,
   type VehicleCapacity,
 } from '@saarthi/shared';
@@ -117,7 +118,7 @@ export async function vehicleCapacity(
     countActiveTopUps(organizationId),
   ]);
 
-  const tier = base?.tier ?? PlanTier.BASIC;
+  const tier = base?.tier ?? PlanTier.PERSONAL;
 
   return {
     ...describeVehicleCapacity({
@@ -172,9 +173,17 @@ export async function purchaseTopUp(
 
     const reference = `TOPUP-${organizationId.slice(0, 8)}-${Date.now().toString(36).toUpperCase()}`;
 
+    /*
+     * The catalogue price is exclusive of GST — see `GST_RATE` — so the charge
+     * is the taxed figure. `priceMonthly` on the row stays the pre-tax price,
+     * because that is what the plan costs and what an invoice itemises; the
+     * tax is a separate line on the bill rather than a change to the price.
+     */
+    const charge = withGst(VEHICLE_TOPUP.priceMonthly);
+
     const payment = await paymentProvider.createIntent({
       reference,
-      amount: VEHICLE_TOPUP.priceMonthly,
+      amount: charge.total,
       currency: 'INR',
       description: `${VEHICLE_TOPUP.name} — ${organization.name}`,
       customerName: `${auth.user.firstName} ${auth.user.lastName}`.trim(),
@@ -183,6 +192,8 @@ export async function purchaseTopUp(
       metadata: {
         organizationId,
         kind: 'vehicle_topup',
+        subtotal: charge.subtotal.toFixed(2),
+        gst: charge.gst.toFixed(2),
         ...(input.simulateFailure ? { simulateFailure: 'true' } : {}),
       },
     });
@@ -242,7 +253,12 @@ export async function purchaseTopUp(
       entityId: row.id,
       actorUserId: auth.user.id,
       organizationId,
-      after: { price: VEHICLE_TOPUP.priceMonthly, reference: payment.providerReference },
+      after: {
+        price: charge.subtotal,
+        gst: charge.gst,
+        charged: charge.total,
+        reference: payment.providerReference,
+      },
     });
 
     await notifyOrganization(organizationId, {

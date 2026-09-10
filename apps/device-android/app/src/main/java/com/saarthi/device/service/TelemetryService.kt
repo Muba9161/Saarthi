@@ -335,7 +335,7 @@ class TelemetryService : LifecycleService() {
             ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
             != PackageManager.PERMISSION_GRANTED
         ) {
-            DebugLog.add("LOCATION PERMISSION MISSING — SERVICE IDLE")
+            DebugLog.add("LOCATION PERMISSION MISSING - SERVICE IDLE")
             return
         }
 
@@ -430,7 +430,7 @@ class TelemetryService : LifecycleService() {
                 return
             }
             lastStationaryReportAt = now
-            DebugLog.add("STATIONARY — holding position, speed 0")
+            DebugLog.add("STATIONARY - holding position, speed 0")
         } else {
             lastStationaryReportAt = 0L
         }

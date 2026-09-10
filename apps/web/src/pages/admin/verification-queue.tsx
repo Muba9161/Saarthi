@@ -271,7 +271,7 @@ function ReviewPanel({
                       rows={3}
                       value={reason}
                       onChange={(event) => setReason(event.target.value)}
-                      placeholder="Be specific — the applicant sees this and acts on it."
+                      placeholder="Be specific - the applicant sees this and acts on it."
                     />
                   </div>
                 ) : null}
@@ -360,7 +360,7 @@ export function AdminVerificationQueuePage() {
       hideOnMobile: true,
       cell: (row) => (
         <span className="truncate text-sm text-muted-foreground">
-          {row.organizationName ?? '—'}
+          {row.organizationName ?? '-'}
         </span>
       ),
     },
@@ -377,7 +377,7 @@ export function AdminVerificationQueuePage() {
       header: 'Waiting',
       cell: (row) => (
         <span className="text-sm text-muted-foreground">
-          {row.submittedAt ? relativeTimeFrom(row.submittedAt) : '—'}
+          {row.submittedAt ? relativeTimeFrom(row.submittedAt) : '-'}
         </span>
       ),
     },

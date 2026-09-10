@@ -288,10 +288,10 @@ export function VehicleDetailPage() {
         ...(carriesFreight
           ? [{ label: 'Body type', value: humanizeEnum(vehicle.truckType) }]
           : []),
-        { label: 'Make', value: vehicle.manufacturer ?? '—' },
-        { label: 'Model', value: vehicle.model ?? '—' },
-        { label: 'Year', value: vehicle.year ?? '—' },
-        { label: 'Colour', value: vehicle.colour ?? '—' },
+        { label: 'Make', value: vehicle.manufacturer ?? '-' },
+        { label: 'Model', value: vehicle.model ?? '-' },
+        { label: 'Year', value: vehicle.year ?? '-' },
+        { label: 'Colour', value: vehicle.colour ?? '-' },
       ],
     },
     {
@@ -301,7 +301,7 @@ export function VehicleDetailPage() {
           ? [
               {
                 label: 'Payload capacity',
-                value: vehicle.capacityTons !== null ? `${vehicle.capacityTons} t` : '—',
+                value: vehicle.capacityTons !== null ? `${vehicle.capacityTons} t` : '-',
               },
             ]
           : []),
@@ -312,13 +312,13 @@ export function VehicleDetailPage() {
                 value:
                   vehicle.passengerCapacity !== null
                     ? formatNumber(vehicle.passengerCapacity)
-                    : '—',
+                    : '-',
               },
               {
                 label: 'Air conditioning',
                 value:
                   vehicle.airConditioned === null
-                    ? '—'
+                    ? '-'
                     : vehicle.airConditioned
                       ? 'Yes'
                       : 'No',
@@ -329,7 +329,7 @@ export function VehicleDetailPage() {
         {
           label: 'Rated consumption',
           value:
-            vehicle.fuelEfficiency !== null ? `${vehicle.fuelEfficiency} L/100 km` : '—',
+            vehicle.fuelEfficiency !== null ? `${vehicle.fuelEfficiency} L/100 km` : '-',
         },
       ],
     },
@@ -471,7 +471,7 @@ export function VehicleDetailPage() {
           {carriesFreight ? (
             <BentoMetric
               label="Payload"
-              value={vehicle.capacityTons !== null ? `${vehicle.capacityTons} t` : '—'}
+              value={vehicle.capacityTons !== null ? `${vehicle.capacityTons} t` : '-'}
               icon={Weight}
               hint={humanizeEnum(vehicle.truckType)}
             />
@@ -481,7 +481,7 @@ export function VehicleDetailPage() {
             <BentoMetric
               label="Seats"
               value={
-                vehicle.passengerCapacity !== null ? formatNumber(vehicle.passengerCapacity) : '—'
+                vehicle.passengerCapacity !== null ? formatNumber(vehicle.passengerCapacity) : '-'
               }
               icon={Users}
               hint={
@@ -504,7 +504,7 @@ export function VehicleDetailPage() {
           />
           <BentoMetric
             label="Lifetime revenue"
-            value={lifetime ? formatCompactCurrency(lifetime.revenue) : '—'}
+            value={lifetime ? formatCompactCurrency(lifetime.revenue) : '-'}
             chart={{
               // Where the revenue went, not where it came from. The three
               // segments are the lifetime figures themselves — profit is what is
@@ -522,7 +522,7 @@ export function VehicleDetailPage() {
           />
           <BentoMetric
             label="Running cost"
-            value={lifetime?.costPerKm ? `${formatCurrency(lifetime.costPerKm)}/km` : '—'}
+            value={lifetime?.costPerKm ? `${formatCurrency(lifetime.costPerKm)}/km` : '-'}
             chart={{ kind: 'bars', points: toSeriesPoints(fuelSpend), format: formatCurrency }}
             hint={
               lifetime?.fuelEfficiencyL100Km
@@ -669,7 +669,7 @@ export function VehicleDetailPage() {
                             label: 'Running cost',
                             value: lifetime.costPerKm
                               ? `${formatCurrency(lifetime.costPerKm)}/km`
-                              : '—',
+                              : '-',
                           },
                           {
                             label: 'Fuel efficiency',
@@ -873,7 +873,7 @@ export function VehicleDetailPage() {
                           <StatusBadge status={entry.status} size="sm" />
                         </TableCell>
                         <TableCell className="hidden text-sm text-muted-foreground md:table-cell">
-                          {entry.serviceProvider ?? '—'}
+                          {entry.serviceProvider ?? '-'}
                         </TableCell>
                         <TableCell className="tabular text-right">
                           {formatCurrency(entry.cost)}
@@ -881,7 +881,7 @@ export function VehicleDetailPage() {
                         <TableCell className="hidden text-right text-sm text-muted-foreground md:table-cell">
                           {entry.completedAt
                             ? new Date(entry.completedAt).toLocaleDateString('en-IN')
-                            : '—'}
+                            : '-'}
                         </TableCell>
                       </TableRow>
                     );

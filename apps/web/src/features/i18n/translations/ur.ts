@@ -136,7 +136,7 @@ export const ur: Catalogue = {
   'How Saarthi speaks to you.': 'Saarthi آپ سے کس زبان میں بات کرے۔',
   'Which language should Saarthi use?': 'Saarthi کون سی زبان استعمال کرے؟',
   'You can change this later from your profile.': 'اسے بعد میں اپنی پروفائل سے بدل سکتے ہیں۔',
-  'Not translated yet — shows in English': 'ابھی ترجمہ نہیں ہوا — انگریزی میں دکھے گا',
+  'Not translated yet - shows in English': 'ابھی ترجمہ نہیں ہوا - انگریزی میں دکھے گا',
 
   'Step {current} of {total}': 'مرحلہ {current} / {total}',
 
@@ -187,11 +187,11 @@ export const ur: Catalogue = {
   'I drive for a fleet that already uses Saarthi.':
     'میں ایسے بیڑے کے لیے گاڑی چلاتا ہوں جو پہلے سے Saarthi استعمال کرتا ہے۔',
   'The operating system for your trucking business.': 'آپ کے ٹرکنگ کاروبار کا آپریٹنگ سسٹم۔',
-  'Saarthi connects fleet owners, drivers, suppliers and customers on one platform — from posting a load to watching it arrive.':
-    'Saarthi بیڑا مالکان، ڈرائیوروں، سپلائرز اور گاہکوں کو ایک ہی پلیٹ فارم پر جوڑتا ہے — لوڈ ڈالنے سے لے کر اس کے پہنچنے تک۔',
+  'Saarthi connects fleet owners, drivers, suppliers and customers on one platform - from posting a load to watching it arrive.':
+    'Saarthi بیڑا مالکان، ڈرائیوروں، سپلائرز اور گاہکوں کو ایک ہی پلیٹ فارم پر جوڑتا ہے - لوڈ ڈالنے سے لے کر اس کے پہنچنے تک۔',
   'One fleet command centre': 'ایک ہی فلیٹ کمانڈ سینٹر',
   'Trucks, drivers, documents, orders and trips in a single operational view.':
-    'ٹرک، ڈرائیور، دستاویزات، آرڈر اور ٹرپ — سب ایک ہی کاروباری منظر میں۔',
+    'ٹرک، ڈرائیور، دستاویزات، آرڈر اور ٹرپ - سب ایک ہی کاروباری منظر میں۔',
   'Live tracking that actually moves': 'واقعی چلنے والی لائیو ٹریکنگ',
   'Realtime positions, ETAs and route deviation alerts as they happen.':
     'حقیقی وقت کی جگہ، پہنچنے کا وقت اور راستہ بدلنے کی اطلاعات، جیسے ہی ہوں۔',
@@ -201,8 +201,8 @@ export const ur: Catalogue = {
   'AI grounded in your data': 'آپ ہی کے ڈیٹا پر مبنی AI',
   'Answers built only from records your role is allowed to see.':
     'جوابات صرف ان ریکارڈز سے بنتے ہیں جنہیں دیکھنے کی آپ کے کردار کو اجازت ہے۔',
-  'Local development build — simulated GPS, mock payments, local document storage.':
-    'لوکل ڈیولپمنٹ بلڈ — مصنوعی GPS، فرضی ادائیگیاں، مقامی دستاویزی ذخیرہ۔',
+  'Local development build - simulated GPS, mock payments, local document storage.':
+    'لوکل ڈیولپمنٹ بلڈ - مصنوعی GPS، فرضی ادائیگیاں، مقامی دستاویزی ذخیرہ۔',
   'Back to vorldxsaarthi.com': 'vorldxsaarthi.com پر واپس',
   'Loading Saarthi…': 'Saarthi لوڈ ہو رہا ہے…',
   'Try it instantly': 'ابھی آزمائیں',
@@ -284,8 +284,8 @@ export const ur: Catalogue = {
   'Open live map': 'لائیو نقشہ کھولیں',
   'Documents needing attention': 'توجہ طلب دستاویزات',
   'Ask the Fleet Copilot': 'فلیٹ کوپائلٹ سے پوچھیں',
-  '“What needs my attention today?” — answered from your own records.':
-    '“آج مجھے کس پر توجہ دینی چاہیے؟” — آپ ہی کے ریکارڈ سے جواب۔',
+  '“What needs my attention today?” - answered from your own records.':
+    '“آج مجھے کس پر توجہ دینی چاہیے؟” - آپ ہی کے ریکارڈ سے جواب۔',
   Open: 'کھولیں',
 
   // --- Password field and strength meter -----------------------------------

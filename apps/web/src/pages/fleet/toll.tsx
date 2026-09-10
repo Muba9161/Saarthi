@@ -141,7 +141,7 @@ export function TollPage(): React.ReactElement {
       header: 'Amount',
       numeric: true,
       cell: (row) => (
-        <span className="tabular-nums">{row.amount > 0 ? formatCurrency(row.amount) : '—'}</span>
+        <span className="tabular-nums">{row.amount > 0 ? formatCurrency(row.amount) : '-'}</span>
       ),
     },
   ];
@@ -171,7 +171,7 @@ export function TollPage(): React.ReactElement {
           value={
             spend?.averagePerCrossing !== null && spend?.averagePerCrossing !== undefined
               ? formatCurrency(spend.averagePerCrossing)
-              : '—'
+              : '-'
           }
           chart={{
             kind: 'area',

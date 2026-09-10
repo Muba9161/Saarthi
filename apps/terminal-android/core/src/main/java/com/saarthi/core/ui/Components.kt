@@ -131,7 +131,7 @@ fun Readout(
     Column(modifier) {
         Row(verticalAlignment = Alignment.Bottom) {
             Text(
-                text = value ?: "—",
+                text = value ?: "-",
                 /*
                  * A missing large value drops to the small size.
                  *

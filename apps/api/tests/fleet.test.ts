@@ -44,8 +44,8 @@ describe('Fleet management', () => {
 
   beforeEach(async () => {
     await resetDatabase();
-    fleetA = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.INTELLIGENCE);
-    fleetB = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.INTELLIGENCE);
+    fleetA = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.BUSINESS);
+    fleetB = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.BUSINESS);
     ownerA = await createUser({ role: RoleName.FLEET_OWNER, organizationId: fleetA.id });
     managerA = await createUser({ role: RoleName.FLEET_MANAGER, organizationId: fleetA.id });
     ownerB = await createUser({ role: RoleName.FLEET_OWNER, organizationId: fleetB.id });
@@ -319,7 +319,7 @@ describe('Fleet management', () => {
 
   describe('subscription limits', () => {
     it('stops a Basic plan fleet at its vehicle capacity', async () => {
-      const smallFleet = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.BASIC);
+      const smallFleet = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.PERSONAL);
       const smallOwner = await createUser({
         role: RoleName.FLEET_OWNER,
         organizationId: smallFleet.id,
@@ -327,7 +327,7 @@ describe('Fleet management', () => {
 
       // Derived from the catalogue rather than hard-coded: the plan lineup is
       // sold by fleet size and those numbers move, but the rule does not.
-      const capacity = PLAN_LIMITS[PlanTier.BASIC].maxTrucks ?? 0;
+      const capacity = PLAN_LIMITS[PlanTier.PERSONAL].maxTrucks ?? 0;
 
       for (let index = 0; index < capacity; index += 1) {
         const response = await request({
@@ -351,7 +351,7 @@ describe('Fleet management', () => {
     });
 
     it('gates driver scoring behind the subscription plan', async () => {
-      const basicFleet = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.BASIC);
+      const basicFleet = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.PERSONAL);
       const basicOwner = await createUser({
         role: RoleName.FLEET_OWNER,
         organizationId: basicFleet.id,

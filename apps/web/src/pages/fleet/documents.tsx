@@ -45,7 +45,7 @@ export function DocumentsPage() {
       </div>
     ) },
     { key: 'owner', header: 'Belongs to', hideOnMobile: true, cell: (row) => <span className="text-sm">{humanizeEnum(row.ownerType)}</span> },
-    { key: 'number', header: 'Number', hideOnMobile: true, cell: (row) => <span className="text-sm text-muted-foreground">{row.documentNumber ?? '—'}</span> },
+    { key: 'number', header: 'Number', hideOnMobile: true, cell: (row) => <span className="text-sm text-muted-foreground">{row.documentNumber ?? '-'}</span> },
     { key: 'expiry', header: 'Expiry', cell: (row) => (
       <div className="text-sm">
         <p>{row.expiryDate ? new Date(row.expiryDate).toLocaleDateString('en-IN') : 'No expiry'}</p>

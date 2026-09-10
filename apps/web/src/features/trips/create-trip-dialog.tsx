@@ -417,7 +417,7 @@ export function CreateTripDialog({ trigger }: { trigger?: React.ReactNode }) {
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium">
                     About {estimate.fuelUnits} {estimate.unit === 'kg' ? 'kg' : 'L'} of{' '}
-                    {humanizeEnum(vehicle?.fuelType ?? '').toLowerCase()} —{' '}
+                    {humanizeEnum(vehicle?.fuelType ?? '').toLowerCase()} -{' '}
                     {formatCurrency(estimate.fuelCost)} of fuel
                   </p>
                   <p className="text-xs text-muted-foreground">
@@ -454,7 +454,7 @@ export function CreateTripDialog({ trigger }: { trigger?: React.ReactNode }) {
               {belowFuel ? (
                 <p className="flex items-start gap-1.5 border-t border-border/60 pt-2.5 text-xs text-destructive">
                   <TriangleAlert className="mt-0.5 size-3.5 shrink-0" />
-                  That is below the {formatCurrency(estimate.fuelCost)} of fuel this trip burns —
+                  That is below the {formatCurrency(estimate.fuelCost)} of fuel this trip burns -
                   the run loses money before the driver is paid.
                 </p>
               ) : null}
@@ -499,7 +499,7 @@ export function CreateTripDialog({ trigger }: { trigger?: React.ReactNode }) {
         <DialogHeader className={WIZARD_DIALOG_HEADER}>
           <DialogTitle>Dispatch a trip</DialogTitle>
           <DialogDescription>
-            For work that did not come through Saarthi — a load agreed on the phone still needs a
+            For work that did not come through Saarthi - a load agreed on the phone still needs a
             vehicle, a driver and tracking.
           </DialogDescription>
         </DialogHeader>

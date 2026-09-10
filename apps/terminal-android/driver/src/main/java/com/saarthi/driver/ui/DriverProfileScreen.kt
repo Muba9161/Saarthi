@@ -130,7 +130,7 @@ fun DriverProfileScreen(
 
         FleetEnter(index = 2) {
             FleetCard(Modifier.fillMaxWidth()) {
-                DetailRow(Icons.Rounded.Mail, "Email", account.email.ifBlank { "—" })
+                DetailRow(Icons.Rounded.Mail, "Email", account.email.ifBlank { "-" })
                 if (registration == null) {
                     Spacer(Modifier.height(FleetSpace.snug))
                     FleetRule()

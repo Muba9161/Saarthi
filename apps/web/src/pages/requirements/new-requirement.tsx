@@ -340,7 +340,7 @@ export function NewRequirementPage() {
         found.bidsCloseAt = 'Bidding has to close before the job starts.';
 
       if (isTravel && contactPhone.trim().length === 0)
-        found.contactPhone = 'The operator needs somebody to call — add a phone number.';
+        found.contactPhone = 'The operator needs somebody to call - add a phone number.';
     }
 
     return found;
@@ -955,7 +955,7 @@ export function NewRequirementPage() {
             title={isTour ? 'Ending point' : 'Destination'}
             description={
               isTour
-                ? 'Optional — leave it blank if the tour ends where it started.'
+                ? 'Optional - leave it blank if the tour ends where it started.'
                 : isTravel
                   ? 'Where you are going.'
                   : 'Where it has to arrive.'

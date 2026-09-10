@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { OrganizationType, TruckType } from '@saarthi/shared';
+import { OrganizationType, PlanTier, TruckType } from '@saarthi/shared';
 import { prisma } from '../src/database/prisma';
 import { summariseTripFuel } from '../src/modules/trips/trip-fuel.service';
 import { createOrganization, resetDatabase, unique, type TestOrganization } from './helpers';
@@ -43,7 +43,7 @@ describe('trip fuel', () => {
 
   beforeEach(async () => {
     await resetDatabase();
-    fleet = await createOrganization(OrganizationType.FLEET_OWNER);
+    fleet = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.BUSINESS, { trackers: 25 });
     const truck = await prisma.truck.create({
       data: {
         organizationId: fleet.id,

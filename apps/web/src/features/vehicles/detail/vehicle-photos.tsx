@@ -65,8 +65,8 @@ export function VehiclePhotosPanel({
           title="Photos"
           description={
             registrationNumber
-              ? `Pictures of ${registrationNumber}. Never sent for verification — an upload is done the moment it lands.`
-              : 'Pictures of this vehicle. Never sent for verification — an upload is done the moment it lands.'
+              ? `Pictures of ${registrationNumber}. Never sent for verification - an upload is done the moment it lands.`
+              : 'Pictures of this vehicle. Never sent for verification - an upload is done the moment it lands.'
           }
         />
       </CardHeader>

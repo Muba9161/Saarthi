@@ -165,7 +165,7 @@ function LoanCard({ loan }: { loan: LoanSummary }): React.ReactElement {
           <Figure label="EMI" value={formatCurrency(loan.emiAmount)} hint={humanizeEnum(loan.frequency)} />
           <Figure
             label="Next due"
-            value={loan.nextDueDate ? formatDueDate(loan.nextDueDate) : '—'}
+            value={loan.nextDueDate ? formatDueDate(loan.nextDueDate) : '-'}
             hint={loan.nextDueAmount !== null ? formatCurrency(loan.nextDueAmount) : undefined}
           />
           <Figure label="Outstanding" value={formatCurrency(loan.totalOutstanding)} hint="Principal + interest" />

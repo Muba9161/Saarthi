@@ -83,7 +83,7 @@ fun FleetMetric(
         Row(verticalAlignment = Alignment.Bottom) {
             Text(
                 // An em dash, not a zero. See the file note.
-                value ?: "—",
+                value ?: "-",
                 style = MaterialTheme.typography.headlineMedium,
                 color = if (value == null) Slate else tint,
                 maxLines = 1,
@@ -144,7 +144,7 @@ fun FleetReadout(
         Spacer(Modifier.height(FleetSpace.hair))
         Row(verticalAlignment = Alignment.Bottom) {
             Text(
-                value ?: "—",
+                value ?: "-",
                 style = MaterialTheme.typography.titleLarge,
                 color = if (value == null) Slate else Chalk,
                 maxLines = 1,
@@ -208,7 +208,7 @@ fun FleetSpeedBadge(
     ) {
         Row(verticalAlignment = Alignment.Top) {
             Text(
-                speedKph?.let { "%.0f".format(it) } ?: "—",
+                speedKph?.let { "%.0f".format(it) } ?: "-",
                 style = MaterialTheme.typography.displaySmall,
                 // Ninety is where a loaded truck stops being comfortable and
                 // where most Indian state limits sit for goods vehicles.

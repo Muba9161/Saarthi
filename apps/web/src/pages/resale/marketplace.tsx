@@ -435,7 +435,7 @@ export function ResaleMarketplacePage() {
 
       <p className="flex items-start gap-2 text-xs text-muted-foreground">
         <ShieldAlert className="mt-0.5 size-3.5 shrink-0" />
-        Saarthi publishes what its own records show. Inspect any vehicle before buying — a listing
+        Saarthi publishes what its own records show. Inspect any vehicle before buying - a listing
         is a starting point for a conversation, not a warranty.
       </p>
     </div>

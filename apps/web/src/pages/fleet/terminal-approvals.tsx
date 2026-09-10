@@ -364,7 +364,7 @@ function DecisionDialog({
 
                   <div className="space-y-1.5">
                     <Label htmlFor="reject-reason">
-                      Reason for rejection — the driver reads this
+                      Reason for rejection - the driver reads this
                     </Label>
                     <Textarea
                       id="reject-reason"
@@ -393,7 +393,7 @@ function DecisionDialog({
                   <p className="text-2xs text-muted-foreground">
                     Approving assigns {session.driver?.name ?? 'this driver'} to{' '}
                     {session.registrationNumber} and lets them start the pre-trip safety check.
-                    Nothing approves on its own — an unanswered request escalates after{' '}
+                    Nothing approves on its own - an unanswered request escalates after{' '}
                     {TERMINAL_APPROVAL_SLA.escalateAfterMinutes} minutes and then lapses.
                   </p>
                 </div>
@@ -408,7 +408,7 @@ function DecisionDialog({
                   <ul className="space-y-1 pt-2 text-xs text-muted-foreground">
                     {session.events.map((event) => (
                       <li key={event.id}>
-                        {new Date(event.createdAt).toLocaleTimeString()} —{' '}
+                        {new Date(event.createdAt).toLocaleTimeString()} -{' '}
                         {event.description ?? humanizeEnum(event.eventType)}
                       </li>
                     ))}

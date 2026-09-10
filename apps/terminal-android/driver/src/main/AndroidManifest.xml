@@ -15,6 +15,33 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!--
+      Drawing a map on the car screen.
+
+      The ordinary runtime permissions all come from :core; this one is different
+      and belongs here, because it is not about the phone at all. The car app
+      library gates its map templates behind it, and the gate is not polite: a
+      PlaceListMapTemplate built without it throws SecurityException from inside
+      the host callback and takes the whole app down with it.
+
+      Only the driver build declares it, for the same reason only the driver
+      build declares the car service. A fitted tablet is the vehicle screen; it
+      has no head unit to project onto.
+    -->
+    <uses-permission android:name="androidx.car.app.MAP_TEMPLATES" />
+
+    <!--
+      Guiding the driver on the car screen.
+
+      NAVIGATION_TEMPLATES unlocks the route preview and the turn-by-turn
+      template; ACCESS_SURFACE lets Saarthi draw behind them, which is where the
+      route line and the live speed, engine and fuel readings go. Both are gated
+      the same unforgiving way MAP_TEMPLATES is — a template built without its
+      permission throws from inside the host callback and takes the app down.
+    -->
+    <uses-permission android:name="androidx.car.app.NAVIGATION_TEMPLATES" />
+    <uses-permission android:name="androidx.car.app.ACCESS_SURFACE" />
+
     <application
         android:name=".SaarthiDriverApp"
         android:allowBackup="false"
@@ -40,6 +67,23 @@
         <meta-data
             android:name="com.google.android.gms.car.application"
             android:resource="@xml/automotive_app_desc" />
+
+        <!--
+          The car API level Saarthi needs from the host.
+
+          Required by the car app library, and its absence is not a warning: the
+          host reads this before it will start the service, so without it
+          Android Auto refuses the connection and the car screens are simply
+          never reachable, however complete the code behind them is.
+
+          One, and honestly so. The car screens are built from ListTemplate,
+          PaneTemplate and MessageTemplate, all of which exist at level 1, so
+          declaring anything higher would turn away head units that can render
+          every screen this app has.
+        -->
+        <meta-data
+            android:name="androidx.car.app.minCarApiLevel"
+            android:value="1" />
 
         <service
             android:name=".car.SaarthiCarAppService"

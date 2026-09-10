@@ -103,7 +103,7 @@ export function RoleShowcaseSection() {
       <SectionHeading
         eyebrow="Who it is for"
         title="One platform, seven points of view"
-        body="A haul touches a fleet owner, a driver, a supplier and a customer — and often an association and a platform reviewer too. Each opens their own screens over the same record, so nobody re-enters what somebody else already typed."
+        body="A haul touches a fleet owner, a driver, a supplier and a customer - and often an association and a platform reviewer too. Each opens their own screens over the same record, so nobody re-enters what somebody else already typed."
       />
 
       <div className="mt-14 grid gap-8 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-14">
@@ -157,7 +157,7 @@ export function RoleShowcaseSection() {
 
       <div className="mt-16 flex flex-col items-center gap-4 text-center">
         <p className="max-w-lg text-sm text-muted-foreground">
-          Registration asks which of these you are, because it decides what Saarthi builds for you —
+          Registration asks which of these you are, because it decides what Saarthi builds for you -
           a fleet, a yard, a customer account, or a driver profile inside an existing fleet.
         </p>
         <Button variant="outline" asChild className="group rounded-full">

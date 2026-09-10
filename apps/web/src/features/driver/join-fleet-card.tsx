@@ -74,7 +74,7 @@ export function JoinFleetCard() {
           <div className="min-w-0 space-y-1">
             <p className="font-medium">Join your fleet</p>
             <p className="text-sm text-muted-foreground">
-              Your account is ready, but no fleet has you yet — so there are no trips to show.
+              Your account is ready, but no fleet has you yet - so there are no trips to show.
               Ask your truck owner for their Saarthi invite code and enter it here.
             </p>
             <p className="text-xs text-muted-foreground">

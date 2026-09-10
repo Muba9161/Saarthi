@@ -181,7 +181,7 @@ export function SimulatorPage() {
           <AlertTitle>Simulation is disabled</AlertTitle>
           <AlertDescription>
             This environment has <code>DEMO_MODE</code> turned off, so simulated GPS cannot be
-            produced. That is deliberate — the API refuses to start in production with demo mode on.
+            produced. That is deliberate - the API refuses to start in production with demo mode on.
           </AlertDescription>
         </Alert>
       </div>

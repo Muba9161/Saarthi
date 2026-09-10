@@ -1,13 +1,14 @@
 import {
   ASSIGNABLE_TRUCK_STATUSES,
-  TruckStatus,
-  VerificationStatus,
   buildPaginationMeta,
-  resolveDocumentValidity,
   type CreateTruckInput,
   type Paginated,
+  resolveDocumentValidity,
   type TruckListQuery,
+  TruckStatus,
   type UpdateTruckInput,
+  VEHICLE_TOPUP,
+  VerificationStatus,
 } from '@saarthi/shared';
 import { type Prisma, prisma } from '../../database/prisma';
 import { errors } from '../../lib/errors';
@@ -219,7 +220,7 @@ async function assertTruckLimit(auth: AuthContext, organizationId: string): Prom
     throw errors.planLimitReached(
       'maxTrucks',
       `Your ${auth.subscription?.planName ?? 'current'} plan covers ${max} vehicle${max === 1 ? '' : 's'}. ` +
-        'Add a +1 vehicle top-up for this one truck, or upgrade the plan if the fleet is growing.',
+        `Add a +1 vehicle top-up for ${VEHICLE_TOPUP.priceMonthly} rupees a month to put this one on the road.`,
     );
   }
 }

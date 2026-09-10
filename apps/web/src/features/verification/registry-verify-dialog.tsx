@@ -140,10 +140,10 @@ export function RegistryVerifyDialog({
           <DialogDescription>
             {vehicle
               ? `Checking the registration number Saarthi holds for ${subjectLabel} against the ` +
-                'vehicle register. Nothing is sent to you for approval — the RTO answers, and ' +
+                'vehicle register. Nothing is sent to you for approval - the RTO answers, and ' +
                 'that answer decides it.'
               : `Checking the licence number Saarthi holds for ${subjectLabel} against the ` +
-                'driving licence register. Nothing is sent for approval — the register answers, ' +
+                'driving licence register. Nothing is sent for approval - the register answers, ' +
                 'and that answer decides it.'}
           </DialogDescription>
         </DialogHeader>
@@ -164,7 +164,7 @@ export function RegistryVerifyDialog({
               <AlertDescription className="text-xs leading-relaxed">
                 The licensing authority verifies a licence number against the holder&rsquo;s date
                 of birth, and Saarthi does not hold one for this driver. Enter the date printed on
-                the licence — it is saved to the profile once the check succeeds, so this is asked
+                the licence - it is saved to the profile once the check succeeds, so this is asked
                 only once.
               </AlertDescription>
             </Alert>
@@ -198,7 +198,7 @@ export function RegistryVerifyDialog({
                   very different facts to an operator waiting on a dispatch. */}
               <p className="text-muted-foreground">
                 Nothing was recorded against this{' '}
-                {vehicle ? 'vehicle' : 'driver'} — the registry gave no answer either way.
+                {vehicle ? 'vehicle' : 'driver'} - the registry gave no answer either way.
               </p>
             </AlertDescription>
           </Alert>
@@ -236,7 +236,7 @@ export function RegistryVerifyDialog({
                   variant="outline"
                   loading={demoPending}
                   onClick={onDemoVerify}
-                  title="Demo mode only — no registry was contacted"
+                  title="Demo mode only - no registry was contacted"
                 >
                   <BadgeCheck className="size-4" />
                   Verify in demo mode
@@ -291,7 +291,7 @@ function RegistryResult({ result }: { result: RegistryVerificationResult }) {
         <FindingList
           heading={
             result.verified
-              ? 'Worth knowing — none of this stopped the check'
+              ? 'Worth knowing - none of this stopped the check'
               : 'Also on the record'
           }
           findings={advisory}

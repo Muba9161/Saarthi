@@ -1,10 +1,12 @@
 import {
+  ALL_FEATURES,
   Feature,
   PLAN_LIMITS,
   effectiveVehicleLimit,
   PlanTier,
   SubscriptionStatus,
   featuresForTier,
+  trackerFeatures,
   type PlanLimits,
 } from '@saarthi/shared';
 import { config } from '../../config/env';
@@ -17,6 +19,14 @@ import type { AuthSubscription } from '../../auth/context';
  * The plan→feature mapping is stored in PostgreSQL (`plan_features`) so it can
  * be tuned without a deploy; the shared catalogue is only the seed source and
  * the fallback when a row is missing.
+ *
+ * Two things are folded in on top of the plan, because every capacity and
+ * feature check in the system reads the resolved entitlement and none of them
+ * should have to remember to do it themselves:
+ *
+ *   • active `+1 vehicle` top-ups, which raise `limits.maxTrucks`
+ *   • active trackers, which grant the telemetry capabilities no plan sells
+ *     and set `limits.maxDevices` to the number of units actually bought
  *
  * A short in-process cache keeps the hot path off the database on every
  * request while still reacting to plan changes within seconds.
@@ -52,6 +62,7 @@ function limitsFromJson(raw: unknown, tier: PlanTier): PlanLimits {
     trackingHistoryDays: (num('trackingHistoryDays') ?? fallback.trackingHistoryDays) as number,
     aiRequestsPerDay: (num('aiRequestsPerDay') ?? fallback.aiRequestsPerDay) as number,
     maxDevices: num('maxDevices'),
+    maxTrackers: num('maxTrackers'),
     telemetryRetentionDays: (num('telemetryRetentionDays') ??
       fallback.telemetryRetentionDays) as number,
   };
@@ -63,9 +74,53 @@ const ACTIVE_STATUSES: SubscriptionStatus[] = [
   SubscriptionStatus.PAST_DUE,
 ];
 
+/**
+ * Everything, unlimited — the development entitlement.
+ *
+ * Returned in place of a real lookup when `SUBSCRIPTION_ENFORCEMENT` is off, so
+ * a feature can be built and driven end-to-end without first seeding a plan or
+ * buying a tracker. `enforced: false` travels with it, so the API and the UI
+ * can say plainly that gating is off rather than implying the tenant paid for
+ * all of this.
+ */
+function unenforcedEntitlement(): AuthSubscription {
+  return {
+    planTier: PlanTier.BUSINESS,
+    planName: 'Development (enforcement off)',
+    baseVehicleLimit: null,
+    vehicleTopUps: 0,
+    activeTrackers: 0,
+    features: [...ALL_FEATURES],
+    limits: {
+      maxTrucks: null,
+      maxVehicleTopUps: Number.MAX_SAFE_INTEGER,
+      maxDrivers: null,
+      maxMembers: null,
+      trackingHistoryDays: 3650,
+      aiRequestsPerDay: Number.MAX_SAFE_INTEGER,
+      maxDevices: null,
+      maxTrackers: null,
+      telemetryRetentionDays: 3650,
+    },
+    active: true,
+    enforced: false,
+  };
+}
+
+/** Trackers that are paid for and not retired. */
+export async function countActiveTrackers(organizationId: string): Promise<number> {
+  return prisma.vehicleTracker.count({
+    where: { organizationId, status: 'ACTIVE' },
+  });
+}
+
 export async function resolveSubscription(
   organizationId: string,
 ): Promise<AuthSubscription | null> {
+  // Checked before the cache so flipping the flag takes effect on the next
+  // request rather than fifteen seconds later.
+  if (!config.subscription.enforced) return unenforcedEntitlement();
+
   const cached = cache.get(organizationId);
   if (cached && cached.expiresAt > Date.now()) return cached.value;
 
@@ -94,28 +149,32 @@ export async function resolveSubscription(
       .filter(Boolean);
 
     // Aggregate limits across the plan's feature rows, falling back to the tier.
-    const limitRow = subscription.plan.planFeatures.find((pf) => pf.limits !== null);
+    const limitRow = subscription.plan.planFeatures.find((planFeature) => planFeature.limits !== null);
 
     const limits = limitsFromJson(limitRow?.limits, tier);
 
     /*
-     * Vehicle capacity resolves to base + active top-ups.
+     * Vehicle capacity resolves to base + active top-ups, and device capacity
+     * to the trackers actually bought.
      *
-     * Folding it in here rather than at each call site is the point: every
-     * capacity check in the system reads `limits.maxTrucks`, so a tenant who
-     * has paid for a `+1` gets it everywhere at once, and no future check can
-     * forget to add it. Top-ups are counted only while active and unexpired.
+     * Folding both in here rather than at each call site is the point: every
+     * capacity check in the system reads the resolved `limits`, so a tenant who
+     * has paid for a `+1` or a tracker gets it everywhere at once, and no
+     * future check can forget to add it. Top-ups are counted only while active
+     * and unexpired; a tracker has no expiry, because it was bought outright.
      */
-    const activeTopUps =
+    const [activeTopUps, activeTrackers] = await Promise.all([
       limits.maxTrucks === null
-        ? 0
-        : await prisma.vehicleSubscriptionTopUp.count({
+        ? Promise.resolve(0)
+        : prisma.vehicleSubscriptionTopUp.count({
             where: {
               organizationId,
               status: 'ACTIVE',
               OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
             },
-          });
+          }),
+      countActiveTrackers(organizationId),
+    ]);
 
     /*
      * Deferred features are removed from the resolved entitlement rather than
@@ -132,25 +191,47 @@ export async function resolveSubscription(
               feature !== Feature.RESALE_MARKETPLACE && feature !== Feature.RESALE_PUBLISH,
           );
 
+    /*
+     * The tracker capabilities are added on top of the plan, never by it.
+     *
+     * They read hardware wired into a vehicle, so a tenant with no tracker has
+     * nothing for them to report — see `TRACKER_ONLY_FEATURES` in the shared
+     * catalogue. Adding them here means a Personal customer who fits one
+     * tracker gets the same engine data a fleet does, which is the whole point
+     * of charging for the device rather than for the tier.
+     *
+     * Granted only while the plan itself is active: an expired subscription
+     * falls back to the Personal feature set, and reading live telemetry is not
+     * part of that read-only fallback.
+     */
+    const planFeatures = active
+      ? dbFeatures.length > 0
+        ? dbFeatures
+        : featuresForTier(tier)
+      : featuresForTier(PlanTier.PERSONAL);
+
+    const granted =
+      active && activeTrackers > 0 ? [...planFeatures, ...trackerFeatures()] : planFeatures;
+
     value = {
       planTier: tier,
       planName: subscription.plan.name,
       baseVehicleLimit: limits.maxTrucks,
       vehicleTopUps: activeTopUps,
+      activeTrackers,
       // Active plans grant their features; an expired/cancelled plan falls back
-      // to the Basic feature set so the tenant keeps read access to its data.
-      features: withoutDeferred(
-        active
-          ? dbFeatures.length > 0
-            ? dbFeatures
-            : featuresForTier(tier)
-          : featuresForTier(PlanTier.BASIC),
-      ),
+      // to the Personal feature set so the tenant keeps read access to its data.
+      features: withoutDeferred([...new Set(granted)]),
       limits: {
         ...limits,
         maxTrucks: effectiveVehicleLimit(limits.maxTrucks, activeTopUps),
+        // One device per tracker bought. Not a plan constant: the tracker *is*
+        // the device, so anything else would either sell capacity for hardware
+        // that does not exist or refuse hardware that does.
+        maxDevices: activeTrackers,
       },
       active,
+      enforced: true,
     };
   }
 
@@ -166,23 +247,36 @@ export function subscriptionHasFeature(
   return subscription.features.includes(feature);
 }
 
-/** Assign the default plan to a brand-new organization. */
+/**
+ * Assign a plan to a brand-new organization.
+ *
+ * Business is the default because it is what every commercial registration
+ * takes; a Personal registration passes `PERSONAL` explicitly. The trial length
+ * comes from configuration rather than a constant so a launch promotion does
+ * not need a deploy.
+ */
 export async function createDefaultSubscription(
   organizationId: string,
-  tier: PlanTier = PlanTier.PRO,
-  trialDays = 30,
+  tier: PlanTier = PlanTier.BUSINESS,
+  options: { billing?: 'monthly' | 'yearly'; trialDays?: number } = {},
 ): Promise<void> {
   const plan = await prisma.subscriptionPlan.findUnique({ where: { tier } });
   if (!plan) return;
+
+  const trialDays = options.trialDays ?? config.subscription.trialDays;
+  const billingPeriod = options.billing === 'yearly' ? 'YEARLY' : 'MONTHLY';
 
   await prisma.subscription.upsert({
     where: { organizationId },
     create: {
       organizationId,
       planId: plan.id,
-      status: SubscriptionStatus.TRIALING,
+      billingPeriod,
+      // A zero-day trial is a real configuration — a launch with no free
+      // period — and must not become an already-expired subscription.
+      status: trialDays > 0 ? SubscriptionStatus.TRIALING : SubscriptionStatus.ACTIVE,
       startsAt: new Date(),
-      endsAt: new Date(Date.now() + trialDays * 86_400_000),
+      endsAt: trialDays > 0 ? new Date(Date.now() + trialDays * 86_400_000) : null,
     },
     update: {},
   });
@@ -194,7 +288,7 @@ export async function createDefaultSubscription(
  * The plan's own limits, before top-ups.
  *
  * Capacity screens need the base and the top-up count as separate figures —
- * "5 vehicles + 2 top-ups" explains a bill in a way "7 vehicles" does not.
+ * "1 vehicle + 2 top-ups" explains a bill in a way "3 vehicles" does not.
  * `resolveSubscription` deliberately returns only the combined number, because
  * every enforcement check wants that one and nothing else.
  */

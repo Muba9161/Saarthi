@@ -1,6 +1,9 @@
 import { randomInt } from 'node:crypto';
 import {
+  ACTIVE_TERMINAL_SESSION_STATUSES,
   AUTHORIZED_TERMINAL_SESSION_STATUSES,
+  DeviceAssignmentStatus,
+  DeviceRole,
   DeviceType,
   TERMINAL_PAIRING_CODE_PREFIX,
   TerminalSessionStatus,
@@ -347,6 +350,8 @@ export async function vehiclePairingForApprovedDriver(
     );
   }
 
+  await releaseAbandonedDriverPhone(session.vehicleId, session.driverUserId);
+
   return createTerminalPairing(
     auth,
     session.vehicleId,
@@ -361,6 +366,85 @@ export async function vehiclePairingForApprovedDriver(
     // The one caller that sets this. A phone holds the vehicle only for the
     // shift it was approved for.
     true,
+  );
+}
+
+/**
+ * Free the vehicle from a driver's phone that is never coming back.
+ *
+ * A vehicle may have only one telemetry source, and a driver's phone takes that
+ * slot when it pairs. The slot is handed back at sign-off — but a driver who
+ * reinstalls the app, clears its data, loses the handset or replaces it never
+ * signs off, so the assignment stays ACTIVE against a device that no longer
+ * exists. The next approval then cannot pair at all: the request is refused with
+ * "already reports its position from …", the phone never becomes the terminal,
+ * and the driver is left on a dashboard with no cockpit and no way to start a
+ * shift. Re-scanning does not help, because the obstacle is not the scan.
+ *
+ * So the stale pairing is released here, and the rules are narrow:
+ *
+ *  * **Only a phone.** `releaseOnSignOff` marks an assignment created by the
+ *    driver app for one shift. A fitted tablet is bolted into a cab and shared
+ *    between drivers; releasing one would strand the vehicle for everybody who
+ *    comes after, which is the same rule sign-off already protects.
+ *  * **Only when nobody is on it.** If another driver holds a live session on
+ *    that device they are mid-shift, and taking the vehicle from underneath them
+ *    is worse than refusing this pairing. The caller's existing conflict stands
+ *    in that case.
+ *  * **Only this vehicle.**
+ *
+ * Best-effort by nature: if it releases nothing, `createTerminalPairing` refuses
+ * exactly as it did before.
+ */
+async function releaseAbandonedDriverPhone(
+  vehicleId: string,
+  driverUserId: string,
+): Promise<void> {
+  const holders = await prisma.deviceAssignment.findMany({
+    where: {
+      vehicleId,
+      status: DeviceAssignmentStatus.ACTIVE,
+      // Never a fitted tablet.
+      releaseOnSignOff: true,
+      device: { role: DeviceRole.TELEMETRY },
+    },
+    select: { id: true, deviceId: true },
+  });
+  if (holders.length === 0) return;
+
+  const deviceIds = holders.map((holder) => holder.deviceId);
+
+  /*
+   * Somebody else's live shift on one of these devices. Read across all the
+   * candidates at once rather than per device, so this stays one query however
+   * many an odd history has left behind.
+   */
+  const inUse = await prisma.terminalSession.findMany({
+    where: {
+      terminalDeviceId: { in: deviceIds },
+      status: { in: ACTIVE_TERMINAL_SESSION_STATUSES },
+      driverUserId: { not: driverUserId },
+    },
+    select: { terminalDeviceId: true },
+  });
+  const busy = new Set(inUse.map((session) => session.terminalDeviceId));
+
+  const abandoned = holders.filter((holder) => !busy.has(holder.deviceId));
+  if (abandoned.length === 0) return;
+
+  const released = await prisma.deviceAssignment.updateMany({
+    where: { id: { in: abandoned.map((holder) => holder.id) } },
+    data: {
+      status: DeviceAssignmentStatus.ENDED,
+      unassignedAt: new Date(),
+      unassignedById: driverUserId,
+      removalReason: 'Replaced by the same driver signing on from another phone.',
+    },
+  });
+
+  pairingLogger.info(
+    { vehicleId, released: released.count, deviceIds: abandoned.map((h) => h.deviceId) },
+    'Released an abandoned driver phone so the vehicle could be paired again',
   );
 }
 

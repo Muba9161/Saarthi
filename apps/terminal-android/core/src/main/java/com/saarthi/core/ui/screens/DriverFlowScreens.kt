@@ -192,7 +192,7 @@ fun ApprovalWaitingScreen(viewModel: TerminalViewModel) {
         ) {
             Text(
                 "If nobody answers within 15 minutes this is escalated to your fleet owner. " +
-                    "It is never approved automatically — somebody has to decide.",
+                    "It is never approved automatically - somebody has to decide.",
                 Modifier.padding(14.dp),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface,

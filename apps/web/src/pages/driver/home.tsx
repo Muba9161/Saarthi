@@ -452,7 +452,7 @@ export function DriverHomePage() {
             {session?.driver ? (
               <BentoMetric
                 label="Safety score"
-                value={session.driver.overallScore ?? '—'}
+                value={session.driver.overallScore ?? '-'}
                 icon={ShieldCheck}
                 tone={scoreTone}
                 hint={<StatusBadge status={session.driver.verificationStatus} size="sm" />}

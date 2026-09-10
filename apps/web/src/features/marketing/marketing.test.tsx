@@ -101,7 +101,7 @@ describe('feature explorer', () => {
     const user = userEvent.setup();
     renderWithProviders(<FeatureExplorer />);
 
-    // "Copilot" lives in Intelligence, which is not the area on screen first.
+    // "Copilot" sits in the AI area, which is not the one on screen first.
     await user.type(screen.getByLabelText('Search capabilities'), 'Copilot');
 
     expect(screen.getByRole('heading', { name: 'AI Fleet Copilot', level: 4 })).toBeInTheDocument();
@@ -133,16 +133,16 @@ describe('feature explorer', () => {
     const user = userEvent.setup();
     renderWithProviders(<FeatureExplorer />);
 
-    await user.click(screen.getByRole('radio', { name: 'Basic' }));
+    await user.click(screen.getByRole('radio', { name: 'Personal' }));
     const found = await walkAreas(user);
 
     for (const definition of FEATURE_CATALOGUE) {
-      const included = tierHasFeature(PlanTier.BASIC, definition.key);
+      const included = tierHasFeature(PlanTier.PERSONAL, definition.key);
       expect(
         found.has(definition.name),
         included
-          ? `${definition.name} is in Basic but could not be reached`
-          : `${definition.name} is not in Basic but was still listed`,
+          ? `${definition.name} is in Personal but could not be reached`
+          : `${definition.name} is not in Personal but was still listed`,
       ).toBe(included);
     }
   });

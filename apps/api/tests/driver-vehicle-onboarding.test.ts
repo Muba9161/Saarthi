@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import {
   DeviceAssignmentStatus,
   OrganizationType,
+  PlanTier,
   TerminalSessionStatus,
   TruckType,
 } from '@saarthi/shared';
@@ -75,8 +76,8 @@ describe('driver vehicle onboarding', () => {
       where: { registrationNumber: { in: [REGISTRATION, OTHER_FLEET_REGISTRATION] } },
     });
 
-    fleet = await createOrganization(OrganizationType.FLEET_OWNER);
-    otherFleet = await createOrganization(OrganizationType.FLEET_OWNER);
+    fleet = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.BUSINESS, { trackers: 25 });
+    otherFleet = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.BUSINESS, { trackers: 25 });
 
     const truck = await prisma.truck.create({
       data: {
@@ -153,7 +154,18 @@ describe('driver vehicle onboarding', () => {
       select: { scannedQrCodeId: true },
     });
     expect(session.scannedQrCodeId).toBeNull();
-    expect(await prisma.qrScan.count()).toBe(0);
+
+    /*
+     * This driver's scans, not every scan in the database.
+     *
+     * An unscoped count made the assertion true only when this file ran alone:
+     * a neighbouring suite that signs a driver on by QR writes rows of its own,
+     * and this test then failed for something it does not test. Scoped to the
+     * fixture, in keeping with the rest of the file.
+     */
+    expect(
+      await prisma.qrScan.count({ where: { scannedByUserId: driverAuth.user.id } }),
+    ).toBe(0);
   });
 
   it("will not find another fleet's vehicle, and does not say it exists", async () => {

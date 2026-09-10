@@ -178,7 +178,7 @@ export function CreatePackageDialog() {
     mutationFn: (payload: Record<string, unknown>) => api.post('/travel/me/packages', payload),
     onSuccess: () => {
       toast.success('Package created', {
-        description: 'It is saved as a draft — publish it when you are ready.',
+        description: 'It is saved as a draft - publish it when you are ready.',
       });
       // Every travel query is keyed under 'travel' — the list, the provider
       // profile and its published count all move when a package is added.
@@ -256,7 +256,7 @@ export function CreatePackageDialog() {
               value={form.title}
               aria-invalid={Boolean(errors.title) || undefined}
               onChange={(event) => set('title', event.target.value)}
-              placeholder="Char Dham Yatra — 10 days by Tempo Traveller"
+              placeholder="Char Dham Yatra - 10 days by Tempo Traveller"
             />
           </WizardField>
 

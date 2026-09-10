@@ -26,7 +26,7 @@ export function AdminUsersPage() {
   const columns: Column<any>[] = [
     { key: 'user', header: 'User', cell: (row) => (<div className="min-w-0"><p className="truncate font-medium">{row.firstName} {row.lastName}</p><p className="truncate text-xs text-muted-foreground">{row.email}</p></div>) },
     { key: 'roles', header: 'Roles', hideOnMobile: true, cell: (row) => <span className="text-sm">{row.roles.map(humanizeEnum).join(', ')}</span> },
-    { key: 'orgs', header: 'Organizations', hideOnMobile: true, cell: (row) => <span className="truncate text-sm text-muted-foreground">{row.organizations.map((entry: any) => entry.name).join(', ') || '—'}</span> },
+    { key: 'orgs', header: 'Organizations', hideOnMobile: true, cell: (row) => <span className="truncate text-sm text-muted-foreground">{row.organizations.map((entry: any) => entry.name).join(', ') || '-'}</span> },
     { key: 'status', header: 'Status', cell: (row) => <StatusBadge status={row.status} /> },
     { key: 'seen', header: 'Last seen', hideOnMobile: true, cell: (row) => <span className="text-sm text-muted-foreground">{row.lastLoginAt ? relativeTimeFrom(row.lastLoginAt) : 'Never'}</span> },
   ];

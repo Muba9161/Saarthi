@@ -27,7 +27,7 @@ export function MarketplaceRequirementsPage() {
   const columns: Column<any>[] = [
     { key: 'material', header: 'Load', cell: (row) => (<div className="min-w-0"><p className="truncate font-medium">{row.materialName}</p><p className="tabular text-xs text-muted-foreground">{formatNumber(row.quantity)} {humanizeEnum(row.unit).toLowerCase()} · needs {row.requiredCapacityTons}T</p></div>) },
     { key: 'route', header: 'Route', hideOnMobile: true, cell: (row) => (<div className="min-w-0 max-w-64"><p className="truncate text-sm">{row.originAddress.split(',')[0]}</p><p className="truncate text-xs text-muted-foreground">→ {row.destinationAddress.split(',')[0]}</p></div>) },
-    { key: 'distance', header: 'From you', numeric: true, cell: (row) => <span className="text-sm">{row.distanceToPickupKm !== null ? `${row.distanceToPickupKm} km` : '—'}</span> },
+    { key: 'distance', header: 'From you', numeric: true, cell: (row) => <span className="text-sm">{row.distanceToPickupKm !== null ? `${row.distanceToPickupKm} km` : '-'}</span> },
     { key: 'budget', header: 'Budget', numeric: true, hideOnMobile: true, cell: (row) => formatCurrency(row.budget) },
     { key: 'quoted', header: '', cell: (row) => (row.hasQuoted ? <StatusBadge status="QUOTED" size="sm" /> : null) },
   ];

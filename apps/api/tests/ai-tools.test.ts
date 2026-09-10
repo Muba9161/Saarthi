@@ -43,8 +43,8 @@ describe('AI tool registry', () => {
 
   beforeEach(async () => {
     await resetDatabase();
-    fleet = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.INTELLIGENCE);
-    otherFleet = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.INTELLIGENCE);
+    fleet = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.BUSINESS);
+    otherFleet = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.BUSINESS);
     owner = await createUser({ role: RoleName.FLEET_OWNER, organizationId: fleet.id });
     manager = await createUser({ role: RoleName.FLEET_MANAGER, organizationId: fleet.id });
     otherOwner = await createUser({ role: RoleName.FLEET_OWNER, organizationId: otherFleet.id });
@@ -369,7 +369,7 @@ describe('AI tool registry', () => {
     });
 
     it('is reachable without an AI plan, because rules produced it', async () => {
-      const basicFleet = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.BASIC);
+      const basicFleet = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.PERSONAL);
       const basicOwner = await createUser({
         role: RoleName.FLEET_OWNER,
         organizationId: basicFleet.id,

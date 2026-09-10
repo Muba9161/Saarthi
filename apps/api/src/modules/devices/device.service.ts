@@ -1,9 +1,12 @@
 import { randomBytes } from 'node:crypto';
 import {
   ASSIGNABLE_DEVICE_STATUSES,
+  type AssignDeviceInput,
+  buildPaginationMeta,
   DEVICE_OFFLINE_AFTER_MS,
   DeviceAssignmentStatus,
   DeviceEventType,
+  type DeviceListQuery,
   DeviceProvider,
   DeviceRole,
   DeviceStatus,
@@ -11,18 +14,16 @@ import {
   NotificationType,
   OPERATOR_MANAGEMENT_ROLES,
   OPERATOR_OPERATIONS_ROLES,
-  VehicleCapability,
-  VehicleType,
-  buildPaginationMeta,
-  resolveDeviceRole,
-  roleIsExclusivePerVehicle,
-  vehicleSupports,
-  type AssignDeviceInput,
-  type DeviceListQuery,
   type Paginated,
   type RegisterDeviceInput,
+  resolveDeviceRole,
+  roleIsExclusivePerVehicle,
   type TelemetryMetric,
   type UpdateDeviceInput,
+  VEHICLE_TRACKER,
+  VehicleCapability,
+  vehicleSupports,
+  VehicleType,
 } from '@saarthi/shared';
 import { type Prisma, prisma } from '../../database/prisma';
 import { errors } from '../../lib/errors';
@@ -219,6 +220,14 @@ function generateSecret(): string {
   return randomBytes(24).toString('base64url');
 }
 
+/**
+ * One registered device per tracker bought.
+ *
+ * The allowance is not a plan figure any more: `limits.maxDevices` resolves to
+ * the number of active trackers, because the tracker *is* the device. So the
+ * answer to "why can I not add another" is never "upgrade" — it is "buy the
+ * tracker for that vehicle", which is a one-time charge on either plan.
+ */
 async function assertDeviceLimit(auth: AuthContext, organizationId: string): Promise<void> {
   const max = auth.subscription?.limits.maxDevices;
   if (max === null || max === undefined) return;
@@ -226,7 +235,8 @@ async function assertDeviceLimit(auth: AuthContext, organizationId: string): Pro
   if (max === 0) {
     throw errors.planLimitReached(
       'maxDevices',
-      `Connected hardware is not included in the ${auth.subscription?.planName ?? 'current'} plan. Upgrade to Saarthi Pro to add telematics devices.`,
+      `Add a Saarthi tracker before registering hardware — a one-time ${VEHICLE_TRACKER.priceOneTime} rupees per vehicle. ` +
+        'Until then the driver app is the only source of location and its figures are estimates.',
     );
   }
 
@@ -236,7 +246,8 @@ async function assertDeviceLimit(auth: AuthContext, organizationId: string): Pro
   if (existing >= max) {
     throw errors.planLimitReached(
       'maxDevices',
-      `Your ${auth.subscription?.planName ?? 'current'} plan allows ${max} devices. Upgrade to add more.`,
+      `You hold ${max} tracker${max === 1 ? '' : 's'} and ${existing} ${existing === 1 ? 'is' : 'are'} already registered. ` +
+        'Buy a tracker for the next vehicle to register another device.',
     );
   }
 }

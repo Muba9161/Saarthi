@@ -116,7 +116,7 @@ class SharedDestinationTest {
 
     @Test
     fun `finds the link inside a shared message`() {
-        val message = "Location: https://maps.app.goo.gl/xY7abc — reach by 6pm"
+        val message = "Location: https://maps.app.goo.gl/xY7abc - reach by 6pm"
         assertEquals("https://maps.app.goo.gl/xY7abc", SharedDestination.firstUrl(message))
     }
 

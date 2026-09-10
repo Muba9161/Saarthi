@@ -113,7 +113,7 @@ class SaarthiTerminalApp : Application(), SaarthiApp {
             // is unavailable, so the device secret is not hardware-protected.
             DebugLog.warn(
                 "app",
-                "Keystore unavailable — credentials are stored without hardware backing",
+                "Keystore unavailable - credentials are stored without hardware backing",
             )
         }
     }

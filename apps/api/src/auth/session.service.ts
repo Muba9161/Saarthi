@@ -244,14 +244,21 @@ export async function buildSessionPayload(
         }
       : organizationId
         ? {
-            // Organization without a subscription row still gets Basic access.
-            planTier: PlanTier.BASIC,
-            planName: 'Saarthi Basic',
+            /*
+             * An organization with no subscription row still gets Personal.
+             *
+             * Reachable for a driver seated in a placeholder organization of
+             * their own, which never had a plan taken out on it. Personal is
+             * the right floor: their licence, documents and SOS all work, and
+             * nothing commercial is given away.
+             */
+            planTier: PlanTier.PERSONAL,
+            planName: 'Saarthi Personal',
             status: SubscriptionStatus.ACTIVE,
             startsAt: new Date().toISOString(),
             endsAt: null,
-            features: featuresForTier(PlanTier.BASIC),
-            limits: PLAN_LIMITS[PlanTier.BASIC],
+            features: featuresForTier(PlanTier.PERSONAL),
+            limits: PLAN_LIMITS[PlanTier.PERSONAL],
           }
         : null,
     driver: user.driverProfile

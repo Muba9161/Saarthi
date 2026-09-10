@@ -225,7 +225,7 @@ async function requestJson<T>(
   if (response.status === 429) {
     throw new DirectionsError(
       'RATE_LIMITED',
-      'Daily routing quota reached — it resets 24 hours after your first request.',
+      'Daily routing quota reached - it resets 24 hours after your first request.',
     );
   }
   if (response.status === 400 || response.status === 404) {

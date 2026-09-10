@@ -402,7 +402,7 @@ fun SettingsScreen(
         Text("Settings", style = MaterialTheme.typography.titleLarge)
 
         SectionCard(title = "This device") {
-            StatusRow("Device ID", state.deviceIdentifier ?: "—", Health.IDLE)
+            StatusRow("Device ID", state.deviceIdentifier ?: "-", Health.IDLE)
             StatusRow("Vehicle", state.vehicleRegistration ?: "Not paired", Health.IDLE)
             StatusRow("Backend", apiBaseUrl, Health.IDLE)
             StatusRow("Environment", state.config?.environment ?: "unknown", Health.IDLE)

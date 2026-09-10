@@ -131,7 +131,7 @@ export function VehiclesPage() {
             ? `${row.capacityTons} t`
             : row.passengerCapacity !== null
               ? `${row.passengerCapacity} seats`
-              : '—'}
+              : '-'}
         </span>
       ),
     },
@@ -157,7 +157,7 @@ export function VehiclesPage() {
             </Badge>
           </div>
         ) : (
-          <span className="text-sm text-muted-foreground">—</span>
+          <span className="text-sm text-muted-foreground">-</span>
         ),
     },
     {
@@ -207,7 +207,7 @@ export function VehiclesPage() {
             {row.openTelemetryAlerts}
           </Badge>
         ) : (
-          <span className="text-sm text-muted-foreground">—</span>
+          <span className="text-sm text-muted-foreground">-</span>
         ),
     },
     {
@@ -248,7 +248,7 @@ export function VehiclesPage() {
             permission={Permission.VEHICLES_DELETE}
             invalidateKeys={[['vehicles']]}
             disabled={row.currentTripId !== null}
-            disabledReason="On an active trip — end the trip first"
+            disabledReason="On an active trip - end the trip first"
           />
         </div>
       ),
@@ -426,7 +426,7 @@ export function VehiclesPage() {
                       ? formatNumber(row.passengerCapacity)
                       : row.capacityTons !== null
                         ? `${row.capacityTons}T`
-                        : '—',
+                        : '-',
                 },
                 { label: 'Odometer', value: `${formatNumber(Math.round(row.odometerKm))} km` },
                 {
@@ -451,7 +451,7 @@ export function VehiclesPage() {
                       permission={Permission.VEHICLES_DELETE}
                       invalidateKeys={[['vehicles']]}
                       disabled={row.currentTripId !== null}
-                      disabledReason="On an active trip — end the trip first"
+                      disabledReason="On an active trip - end the trip first"
                     />
                   </div>
                 </div>

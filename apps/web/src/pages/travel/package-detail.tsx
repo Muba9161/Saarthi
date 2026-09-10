@@ -333,7 +333,7 @@ export function TravelPackageDetailPage() {
           </WizardField>
 
           <p className="text-2xs text-muted-foreground">
-            Paying reserves the trip. The provider confirms a vehicle and driver next — if they
+            Paying reserves the trip. The provider confirms a vehicle and driver next - if they
             cannot, you are refunded in full.
           </p>
         </>
@@ -350,7 +350,7 @@ export function TravelPackageDetailPage() {
       }
       // Only the per-kilometre packages need one; the rest run their own route.
       if (data.pricingModel === PricingModel.PER_KM && !isLocatable(dropoff)) {
-        found.dropoff = 'Search for your destination — this fare is charged by the kilometre.';
+        found.dropoff = 'Search for your destination - this fare is charged by the kilometre.';
       }
     }
 
@@ -639,7 +639,7 @@ export function TravelPackageDetailPage() {
               <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
               <p>
                 Once the trip starts you can follow the vehicle live from your booking. Saarthi shows
-                location, driver and ETA — never the vehicle&rsquo;s engine data.
+                location, driver and ETA - never the vehicle&rsquo;s engine data.
               </p>
             </CardContent>
           </Card>

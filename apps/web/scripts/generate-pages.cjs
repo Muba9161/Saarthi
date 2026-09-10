@@ -79,7 +79,7 @@ export function SosIncidentDetailPage() {
           <AlertTitle>Peer assistance, not an emergency service</AlertTitle>
           <AlertDescription>
             Saarthi alerts nearby drivers who may be able to help. For medical or police emergencies, call the official
-            emergency numbers directly — 112 in India.
+            emergency numbers directly - 112 in India.
           </AlertDescription>
         </Alert>
       ) : null}
@@ -386,7 +386,7 @@ export function DriverScorePage() {
 
   return (
     <div className="space-y-5">
-      <PageHeader title="My score" description="Every point is explained — nothing is hidden from you." />
+      <PageHeader title="My score" description="Every point is explained - nothing is hidden from you." />
       {score.isLoading ? <LoadingState /> : score.data ? <ScoreBreakdown score={score.data} driverId={driverId} /> : null}
     </div>
   );

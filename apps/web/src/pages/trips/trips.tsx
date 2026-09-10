@@ -94,7 +94,7 @@ export function TripsPage() {
             ) : null}
           </p>
           <p className="truncate text-xs text-muted-foreground">
-            {trip.truck?.registrationNumber ?? '—'}
+            {trip.truck?.registrationNumber ?? '-'}
             {trip.driver ? ` · ${trip.driver.name}` : ''}
           </p>
         </div>
@@ -133,14 +133,14 @@ export function TripsPage() {
       cell: (trip) =>
         trip.status === TripStatus.COMPLETED ? (
           <span className="text-sm text-muted-foreground">
-            {trip.actualArrivalAt ? relativeTimeFrom(trip.actualArrivalAt) : '—'}
+            {trip.actualArrivalAt ? relativeTimeFrom(trip.actualArrivalAt) : '-'}
           </span>
         ) : trip.delayMinutes > 0 ? (
           <span className="text-sm text-warning">+{trip.delayMinutes} min late</span>
         ) : trip.etaAt ? (
           <span className="text-sm">{relativeTimeFrom(trip.etaAt)}</span>
         ) : (
-          <span className="text-sm text-muted-foreground">—</span>
+          <span className="text-sm text-muted-foreground">-</span>
         ),
     },
     {

@@ -50,7 +50,7 @@ export function SubjectQrPanel({
         description={
           description ??
           (subjectType === QrSubjectType.VEHICLE
-            ? 'This vehicle’s scannable identity. Print it for the cab door or the windscreen — a gate check or a roadside stop becomes a scan instead of a phone call.'
+            ? 'This vehicle’s scannable identity. Print it for the cab door or the windscreen - a gate check or a roadside stop becomes a scan instead of a phone call.'
             : 'This driver’s scannable badge. What a scanner sees depends on who they are, and every scan is logged.')
         }
       />

@@ -109,7 +109,7 @@ export function LanguageGrid({
               </span>
               {!translated ? (
                 <span className="mt-0.5 text-2xs leading-snug text-warning" dir="ltr">
-                  {t('Not translated yet — shows in English')}
+                  {t('Not translated yet - shows in English')}
                 </span>
               ) : null}
             </button>

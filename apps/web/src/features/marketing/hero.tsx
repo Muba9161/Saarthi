@@ -192,7 +192,7 @@ export function Hero() {
 
         <Reveal delay={0.2}>
           <p className="mx-auto mt-7 max-w-2xl text-pretty text-base leading-relaxed text-muted-foreground sm:text-lg">
-            Fleet owners, drivers, suppliers and customers on one record — from posting a load to
+            Fleet owners, drivers, suppliers and customers on one record - from posting a load to
             watching it arrive. No phone calls, no WhatsApp groups, no paper register.
           </p>
         </Reveal>
@@ -206,7 +206,7 @@ export function Hero() {
               className="group w-full rounded-full sm:w-auto"
             >
               <Link to="/register">
-                Start free — no card needed
+                Start free - no card needed
                 <ArrowRight className="size-4 transition-transform duration-200 group-hover:translate-x-0.5" />
               </Link>
             </Button>

@@ -367,7 +367,7 @@ private fun arrivalClock(minutesRemaining: Int): String = runCatching {
     DateTimeFormatter.ofPattern("HH:mm")
         .withZone(ZoneId.systemDefault())
         .format(Instant.now().plusSeconds(minutesRemaining * 60L))
-}.getOrDefault("—")
+}.getOrDefault("-")
 
 /**
  * The route, before the driver commits to it.

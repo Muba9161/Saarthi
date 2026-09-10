@@ -1198,7 +1198,7 @@ export function FleetMap({
           <TriangleAlert className="mx-auto mb-2 size-6 text-warning" />
           <p className="text-sm font-medium">{initError}</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            The basemap is served by OpenFreeMap and needs no API key — this is usually a network
+            The basemap is served by OpenFreeMap and needs no API key - this is usually a network
             or WebGL problem rather than a configuration one.
           </p>
         </div>

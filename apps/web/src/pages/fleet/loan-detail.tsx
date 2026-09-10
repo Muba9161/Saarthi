@@ -271,7 +271,7 @@ export function LoanDetailPage(): React.ReactElement {
         />
         <StatCard
           label="Next due"
-          value={record.nextDueDate ? formatDueDate(record.nextDueDate) : '—'}
+          value={record.nextDueDate ? formatDueDate(record.nextDueDate) : '-'}
           chart={{
             kind: 'bars',
             points: toSeriesPoints(upcomingInstallments),
@@ -373,7 +373,7 @@ export function LoanDetailPage(): React.ReactElement {
                         <TableCell className="hidden text-right tabular-nums text-muted-foreground lg:table-cell">
                           {installment.closingBalance !== null
                             ? formatCurrency(installment.closingBalance)
-                            : '—'}
+                            : '-'}
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-col gap-1">
@@ -448,7 +448,7 @@ export function LoanDetailPage(): React.ReactElement {
                           </TableCell>
                           <TableCell>{humanizeEnum(payment.method)}</TableCell>
                           <TableCell className="hidden text-muted-foreground md:table-cell">
-                            {payment.reference ?? '—'}
+                            {payment.reference ?? '-'}
                           </TableCell>
                           <TableCell className="text-right tabular-nums">
                             {formatCurrency(payment.amount)}
@@ -472,16 +472,16 @@ export function LoanDetailPage(): React.ReactElement {
           <Card>
             <CardContent className="grid grid-cols-1 gap-x-8 gap-y-3 pt-6 sm:grid-cols-2">
               <Term label="Lender" value={record.lenderName} />
-              <Term label="Branch" value={record.lenderBranch ?? '—'} />
+              <Term label="Branch" value={record.lenderBranch ?? '-'} />
               <Term
                 label="Loan number"
                 value={<MaskedValue value={record.loanNumber} masked={record.loanNumberMasked} />}
               />
-              <Term label="Borrower" value={record.borrowerName ?? '—'} />
+              <Term label="Borrower" value={record.borrowerName ?? '-'} />
               <Term label="Sanctioned" value={formatCurrency(record.principal)} />
               <Term
                 label="Disbursed"
-                value={record.disbursedAmount !== null ? formatCurrency(record.disbursedAmount) : '—'}
+                value={record.disbursedAmount !== null ? formatCurrency(record.disbursedAmount) : '-'}
               />
               <Term
                 label="Interest"
@@ -492,7 +492,7 @@ export function LoanDetailPage(): React.ReactElement {
                 value={`${record.tenureMonths} months · ${humanizeEnum(record.frequency)}`}
               />
               <Term label="Started" value={formatDueDate(record.startDate)} />
-              <Term label="Ends" value={record.endDate ? formatDueDate(record.endDate) : '—'} />
+              <Term label="Ends" value={record.endDate ? formatDueDate(record.endDate) : '-'} />
               <Term
                 label="EMI"
                 value={
@@ -512,7 +512,7 @@ export function LoanDetailPage(): React.ReactElement {
               />
               <Term
                 label="Auto-debit"
-                value={record.autoDebitDay ? `Day ${record.autoDebitDay} of each month` : '—'}
+                value={record.autoDebitDay ? `Day ${record.autoDebitDay} of each month` : '-'}
               />
               <Term
                 label="Mandate"
@@ -647,7 +647,7 @@ function RecordPaymentDialog({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>
-            Record payment{installment ? ` — installment #${installment.number}` : ''}
+            Record payment{installment ? ` - installment #${installment.number}` : ''}
           </DialogTitle>
           <DialogDescription>
             This records a payment you made elsewhere. VorldX Saarthi does not debit your account.
@@ -679,7 +679,7 @@ function RecordPaymentDialog({
               />
               {partial ? (
                 <p className="text-2xs text-warning">
-                  Less than the full amount — this will be recorded as a part payment and the
+                  Less than the full amount - this will be recorded as a part payment and the
                   installment stays open.
                 </p>
               ) : null}

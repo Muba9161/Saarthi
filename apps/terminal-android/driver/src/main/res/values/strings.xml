@@ -78,7 +78,7 @@
     <string name="tile_trips_sub">What you have run</string>
     <string name="tile_hours">Hours</string>
     <string name="label_fastag">FASTag</string>
-    <string name="fastag_low">Low — top up</string>
+    <string name="fastag_low">Low - top up</string>
     <string name="fastag_unknown">Balance unknown</string>
     <string name="label_diesel_today">Diesel today</string>
     <string name="diesel_none">No rate published for %1$s</string>
@@ -97,16 +97,16 @@
     <string name="next_step_reconnect">This phone is not connected to a vehicle. Open your profile, sign out, then scan the vehicle again.</string>
 
     <!-- Hours at the wheel =============================================== -->
-    <string name="hours_break_soon">You have been driving %1$s. A break is due soon — start looking for somewhere to stop.</string>
+    <string name="hours_break_soon">You have been driving %1$s. A break is due soon - start looking for somewhere to stop.</string>
     <string name="hours_break_due">You have been driving %1$s without a proper break. Please stop for half an hour.</string>
-    <string name="hours_shift_soon">%1$s driven today. Your shift should end soon — think about where you will park.</string>
+    <string name="hours_shift_soon">%1$s driven today. Your shift should end soon - think about where you will park.</string>
     <string name="hours_shift_due">%1$s driven today. That is a full day at the wheel. Please stop for the night.</string>
 
     <!-- Papers =========================================================== -->
     <string name="papers_title">Your papers</string>
     <string name="papers_blurb">Kept on this phone, so a check post with no signal is not a problem.</string>
     <string name="papers_empty_title">Nothing here yet</string>
-    <string name="papers_empty_blurb">Your fleet has not uploaded any papers for this vehicle or for you. Ask the office to add the RC, insurance, permit and PUC — they will appear here and stay available offline.</string>
+    <string name="papers_empty_blurb">Your fleet has not uploaded any papers for this vehicle or for you. Ask the office to add the RC, insurance, permit and PUC - they will appear here and stay available offline.</string>
     <string name="papers_expiring_one">One paper needs attention. Tell the office before it lapses.</string>
     <string name="papers_expiring_many">%1$d papers need attention. Tell the office before they lapse.</string>
     <string name="papers_owner_yours">Yours</string>

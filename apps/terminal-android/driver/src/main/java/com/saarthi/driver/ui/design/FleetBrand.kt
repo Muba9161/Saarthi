@@ -179,7 +179,7 @@ fun BrandLockup(
             painter = painterResource(R.drawable.brand_lockup),
             // The whole identity, so a screen reader says the company's name
             // rather than "image".
-            contentDescription = "VorldX Saarthi — manage, track, move, together",
+            contentDescription = "VorldX Saarthi - manage, track, move, together",
             modifier = Modifier
                 .fillMaxSize()
                 // The artwork carries its own margin; a second one would leave

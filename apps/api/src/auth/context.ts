@@ -48,7 +48,23 @@ export interface AuthSubscription {
   baseVehicleLimit: number | null;
   /** Active `+1 vehicle` top-ups folded into `limits.maxTrucks`. */
   vehicleTopUps: number;
+  /**
+   * Trackers bought and not retired.
+   *
+   * Also the resolved `limits.maxDevices`, because the tracker is the device.
+   * Kept as its own figure so a screen can say "2 trackers" rather than
+   * explaining a device allowance nobody chose.
+   */
+  activeTrackers: number;
   active: boolean;
+  /**
+   * Whether plan gating was applied at all.
+   *
+   * False only when `SUBSCRIPTION_ENFORCEMENT` is off in development, where
+   * everything is granted. Carried through so the API and the UI can say that
+   * plainly instead of implying the tenant is on a plan they never bought.
+   */
+  enforced: boolean;
 }
 
 export interface AuthContext {

@@ -28,9 +28,53 @@ val localProperties = Properties().apply {
 fun setting(name: String): String? =
     (project.findProperty(name) as String?) ?: localProperties.getProperty(name)
 
-val productionApiUrl = "https://api.vorldxsaarthi.com"
+/**
+ * The same lookup, except a release will not read a developer's machine.
+ *
+ * `local.properties` is where somebody keeps the tunnel they happen to be
+ * testing against today, and it is not checked in — so a release that honoured
+ * it would be built from settings nobody else can see or review. Not
+ * hypothetical: this checkout carries a `saarthiApiUrl` pointing at a personal
+ * dev tunnel on a web port, and any release cut here would have shipped aimed
+ * at it while looking perfectly normal.
+ *
+ * An explicit `-PsaarthiApiUrl=...` still works, because a flag typed on the
+ * command line is a decision somebody made on purpose.
+ */
+fun releaseSetting(name: String): String? = project.findProperty(name) as String?
+
+/*
+ * Where Saarthi actually lives.
+ *
+ * The apex, not an `api.` subdomain. This said `api.vorldxsaarthi.com` for as
+ * long as the constant has existed and that host has never resolved — so every
+ * release build shipped pointing at nothing, and a driver who installed one
+ * could open the app and do nothing else. The API is served from the same
+ * origin as the web app, with the routes under /api/v1 which the client
+ * appends itself.
+ *
+ * Verified against the running server rather than assumed: /health returns the
+ * API JSON, and /api/v1/auth/login answers 400 for an empty body rather than
+ * 404 for a missing route.
+ */
+val productionApiUrl = "https://vorldxsaarthi.com"
 val saarthiApiUrlOverride: String? = setting("saarthiApiUrl")
-val saarthiApiUrl: String = saarthiApiUrlOverride ?: "http://10.0.2.2:4000"
+/*
+ * Where a debug build looks, and why it is not the emulator's address.
+ *
+ * This was `10.0.2.2`, which is the emulator's alias for the host machine and
+ * means nothing on a real handset — so a debug build installed on a phone
+ * reached nothing at all. `localhost` reaches the developer's own API through
+ * `adb reverse tcp:4000 tcp:4000`, which works on a physical device and on an
+ * emulator alike.
+ *
+ * The split is deliberate: a debug build follows the tunnel to whatever the
+ * developer is running, and a release build follows the domain. Neither has to
+ * be remembered at the command line, because getting it wrong is silent —
+ * `productionApiUrl` pointed at a host that never resolved for as long as it
+ * existed, and nothing in the build said so.
+ */
+val saarthiApiUrl: String = saarthiApiUrlOverride ?: "http://localhost:4000"
 /**
  * The dark basemap, not the tablet's bright one.
  *
@@ -52,8 +96,8 @@ val saarthiMapStyleUrl: String =
  */
 val releaseStoreFile: String? = setting("releaseStoreFile")
 
-val appVersionCode = 8
-val appVersionName = "1.3.1"
+val appVersionCode = 11
+val appVersionName = "1.3.4"
 
 android {
     namespace = "com.saarthi.driver"
@@ -112,7 +156,7 @@ android {
             buildConfigField(
                 "String",
                 "SAARTHI_API_URL",
-                "\"${saarthiApiUrlOverride ?: productionApiUrl}\"",
+                "\"${releaseSetting("saarthiApiUrl") ?: productionApiUrl}\"",
             )
         }
     }
@@ -165,6 +209,16 @@ dependencies {
      * same cab, and Android Auto is for a phone the driver brought with them.
      */
     implementation(libs.car.app)
+
+    /*
+     * Awaiting a Play Services Task from a coroutine.
+     *
+     * :core keeps this to itself, and the car screens need it too: the nearby
+     * map asks the fused provider for a last known fix when the reporting
+     * service has not started, which is exactly the case when Android Auto is
+     * what woke this process.
+     */
+    implementation(libs.kotlinx.coroutines.play.services)
 
     /*
      * The system biometric prompt.

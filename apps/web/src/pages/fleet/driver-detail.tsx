@@ -102,7 +102,7 @@ export function DriverDetailPage() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           label="Driver score"
-          value={person.overallScore ?? '—'}
+          value={person.overallScore ?? '-'}
           chart={
             // Every recalculation this driver has had, where there is more
             // than one. A driver scored only once has no line to draw, so the

@@ -193,7 +193,7 @@ export function DeviceDetailPage() {
       {rotated ? (
         <Card className="border-warning/40 bg-warning/5">
           <CardContent className="space-y-2 py-4">
-            <p className="text-sm font-medium">New secret — copy it now</p>
+            <p className="text-sm font-medium">New secret - copy it now</p>
             <div className="flex items-center gap-2">
               <KeyRound className="h-4 w-4 shrink-0 text-warning" />
               <code className="min-w-0 flex-1 truncate rounded bg-background px-2 py-1.5 font-mono text-sm">
@@ -208,7 +208,7 @@ export function DeviceDetailPage() {
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
-              The previous secret stopped working the moment this was issued — reflash the unit
+              The previous secret stopped working the moment this was issued - reflash the unit
               before it next reports.
             </p>
             <Button variant="ghost" size="sm" onClick={() => setRotated(null)}>
@@ -231,19 +231,19 @@ export function DeviceDetailPage() {
               </div>
               <div>
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">IMEI</p>
-                <p className="font-mono font-medium">{data.imeiMasked ?? '—'}</p>
+                <p className="font-mono font-medium">{data.imeiMasked ?? '-'}</p>
               </div>
               <div>
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">Firmware</p>
-                <p className="font-medium">{data.firmwareVersion ?? '—'}</p>
+                <p className="font-medium">{data.firmwareVersion ?? '-'}</p>
               </div>
               <div>
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">SIM</p>
-                <p className="font-mono font-medium">{data.simMasked ?? '—'}</p>
+                <p className="font-mono font-medium">{data.simMasked ?? '-'}</p>
               </div>
               <div>
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">Operator</p>
-                <p className="font-medium">{data.simOperator ?? '—'}</p>
+                <p className="font-medium">{data.simOperator ?? '-'}</p>
               </div>
               <div>
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">Readings</p>
@@ -263,7 +263,7 @@ export function DeviceDetailPage() {
             <CardHeader className="pb-3">
               <SectionHeader
                 title="What it reports"
-                description="Observed is what VorldX Saarthi has actually received from this unit on this vehicle — which is not always everything the datasheet claims."
+                description="Observed is what VorldX Saarthi has actually received from this unit on this vehicle - which is not always everything the datasheet claims."
               />
             </CardHeader>
             <CardContent className="space-y-3 pt-0">
@@ -273,7 +273,7 @@ export function DeviceDetailPage() {
                 </p>
                 {data.observedMetrics.length === 0 ? (
                   <p className="text-sm text-muted-foreground">
-                    Nothing yet — this device has not reported.
+                    Nothing yet - this device has not reported.
                   </p>
                 ) : (
                   <div className="flex flex-wrap gap-1">
@@ -411,7 +411,7 @@ export function DeviceDetailPage() {
               ) : canAssign ? (
                 <>
                   <p className="text-sm text-muted-foreground">
-                    This unit is a spare. Fit it to a vehicle to start receiving telemetry — a
+                    This unit is a spare. Fit it to a vehicle to start receiving telemetry - a
                     device with no vehicle has nothing to attribute its readings to, so the gateway
                     rejects them.
                   </p>
@@ -453,7 +453,7 @@ export function DeviceDetailPage() {
               <CardHeader className="pb-3">
                 <SectionHeader
                   title="Simulate"
-                  description="Drives this device through the real gateway, adapter and rule engine — the same path physical hardware takes."
+                  description="Drives this device through the real gateway, adapter and rule engine - the same path physical hardware takes."
                 />
               </CardHeader>
               <CardContent className="space-y-3 pt-0">

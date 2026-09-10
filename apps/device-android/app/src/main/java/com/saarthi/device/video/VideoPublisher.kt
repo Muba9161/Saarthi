@@ -313,7 +313,7 @@ class VideoPublisher private constructor(context: Context) {
                 connectionState = "NO GATEWAY",
                 error = null,
             )
-            DebugLog.add("CAMERA PREVIEW ONLY — ticket is simulated, no gateway configured")
+            DebugLog.add("CAMERA PREVIEW ONLY - ticket is simulated, no gateway configured")
             return Result.success(Unit)
         }
 
@@ -463,7 +463,7 @@ class VideoPublisher private constructor(context: Context) {
                 sessionId = ticket.sessionId,
                 error = null,
             )
-            DebugLog.add("CAMERA OFFER ACCEPTED session ${ticket.sessionId.take(8)} — awaiting media")
+            DebugLog.add("CAMERA OFFER ACCEPTED session ${ticket.sessionId.take(8)} - awaiting media")
 
             // Wait for frames to have somewhere to go before calling this a
             // success. A failure here is a real failure and must reach the

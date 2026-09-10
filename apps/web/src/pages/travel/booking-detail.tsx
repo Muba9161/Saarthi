@@ -286,7 +286,7 @@ export function TravelBookingDetailPage() {
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div>
                     <p className="text-xs uppercase tracking-wide text-muted-foreground">Pickup</p>
-                    <p className="text-sm font-medium">{data.pickupAddress ?? '—'}</p>
+                    <p className="text-sm font-medium">{data.pickupAddress ?? '-'}</p>
                   </div>
                   <div>
                     <p className="text-xs uppercase tracking-wide text-muted-foreground">
@@ -306,7 +306,7 @@ export function TravelBookingDetailPage() {
               <CardHeader className="pb-3">
                 <SectionHeader
                   title="Live tracking"
-                  description="Location, driver and ETA only — engine data is never shared with passengers."
+                  description="Location, driver and ETA only - engine data is never shared with passengers."
                 />
               </CardHeader>
               <CardContent className="space-y-3 pt-0">
@@ -345,7 +345,7 @@ export function TravelBookingDetailPage() {
                         <p className="text-xs uppercase tracking-wide text-muted-foreground">
                           Driver
                         </p>
-                        <p className="font-medium">{tracking.data.driverName ?? '—'}</p>
+                        <p className="font-medium">{tracking.data.driverName ?? '-'}</p>
                       </div>
                       <div>
                         <p className="text-xs uppercase tracking-wide text-muted-foreground">ETA</p>
@@ -355,7 +355,7 @@ export function TravelBookingDetailPage() {
                                 hour: '2-digit',
                                 minute: '2-digit',
                               })
-                            : '—'}
+                            : '-'}
                         </p>
                       </div>
                     </div>
@@ -403,7 +403,7 @@ export function TravelBookingDetailPage() {
               </div>
               <div className="col-span-2 sm:col-span-3">
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">Pickup</p>
-                <p className="font-medium">{data.pickupAddress ?? '—'}</p>
+                <p className="font-medium">{data.pickupAddress ?? '-'}</p>
               </div>
               <div className="col-span-2 sm:col-span-3">
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">
@@ -492,7 +492,7 @@ export function TravelBookingDetailPage() {
                     Pay {formatCurrency(data.totalAmount)}
                   </Button>
                   <p className="text-2xs text-muted-foreground">
-                    This environment uses a mock gateway — no real money moves, and the reference is
+                    This environment uses a mock gateway - no real money moves, and the reference is
                     prefixed MOCK so it can never be mistaken for a real settlement.
                   </p>
                 </>
@@ -620,7 +620,7 @@ export function TravelBookingDetailPage() {
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground">
-                    Optional now — the trip can be created and the driver added later.
+                    Optional now - the trip can be created and the driver added later.
                   </p>
                 </div>
 
@@ -779,7 +779,7 @@ export function TravelBookingDetailPage() {
               <CardContent className="flex items-start gap-2 py-3 text-xs text-muted-foreground">
                 <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                 <p>
-                  This booking runs on Saarthi trip {data.tripId.slice(0, 8)} — the same trip engine
+                  This booking runs on Saarthi trip {data.tripId.slice(0, 8)} - the same trip engine
                   the freight side uses, which is why live tracking works here at all.
                 </p>
               </CardContent>

@@ -128,7 +128,7 @@ afterAll(async () => {
 beforeEach(async () => {
   await resetDatabase();
 
-  fleet = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.INTELLIGENCE);
+  fleet = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.BUSINESS);
   owner = await createUser({ role: RoleName.FLEET_OWNER, organizationId: fleet.id });
   driver = await createUser({
     role: RoleName.DRIVER,
@@ -136,10 +136,10 @@ beforeEach(async () => {
     driver: true,
   });
 
-  otherFleet = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.INTELLIGENCE);
+  otherFleet = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.BUSINESS);
   otherOwner = await createUser({ role: RoleName.FLEET_OWNER, organizationId: otherFleet.id });
 
-  customerOrg = await createOrganization(OrganizationType.CUSTOMER, PlanTier.BASIC);
+  customerOrg = await createOrganization(OrganizationType.CUSTOMER, PlanTier.BUSINESS);
   customerUser = await createUser({ role: RoleName.CUSTOMER, organizationId: customerOrg.id });
 });
 
@@ -1193,7 +1193,7 @@ describe('Return loads', () => {
 
   it('gates the whole surface behind the plan feature', async () => {
     // Basic does not include RETURN_LOADS.
-    const basicFleet = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.BASIC);
+    const basicFleet = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.PERSONAL);
     const basicOwner = await createUser({
       role: RoleName.FLEET_OWNER,
       organizationId: basicFleet.id,

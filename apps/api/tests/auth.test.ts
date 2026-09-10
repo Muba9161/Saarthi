@@ -3,6 +3,7 @@ import {
   MediaOwnerType,
   MediaPurpose,
   OrganizationType,
+  PlanTier,
   RoleName,
   type SessionPayload,
 } from '@saarthi/shared';
@@ -44,6 +45,7 @@ describe('Authentication', () => {
           phone: uniquePhone(),
           password: TEST_PASSWORD,
           role: RoleName.FLEET_OWNER,
+          planTier: PlanTier.BUSINESS,
           organizationName: 'Sharma Haulage',
           acceptedTerms: true,
         },
@@ -73,6 +75,7 @@ describe('Authentication', () => {
           phone: uniquePhone(),
           password: TEST_PASSWORD,
           role: RoleName.CUSTOMER,
+          planTier: PlanTier.BUSINESS,
           // No organizationName: somebody booking a cab or ordering a load of
           // sand for their own house has no company to name.
           acceptedTerms: true,
@@ -98,6 +101,7 @@ describe('Authentication', () => {
           phone: uniquePhone(),
           password: TEST_PASSWORD,
           role: RoleName.FLEET_OWNER,
+          planTier: PlanTier.BUSINESS,
           acceptedTerms: true,
         },
       });
@@ -120,6 +124,7 @@ describe('Authentication', () => {
           phone: uniquePhone(),
           password: TEST_PASSWORD,
           role: RoleName.CUSTOMER,
+          planTier: PlanTier.BUSINESS,
           acceptedTerms: true,
         },
       });
@@ -170,6 +175,7 @@ describe('Authentication', () => {
           phone: uniquePhone(),
           password: TEST_PASSWORD,
           role: RoleName.FLEET_OWNER,
+          planTier: PlanTier.BUSINESS,
           organizationName: 'Singh Roadlines',
           acceptedTerms: true,
         },
@@ -224,6 +230,7 @@ describe('Authentication', () => {
           phone: uniquePhone(),
           password: TEST_PASSWORD,
           role: RoleName.CUSTOMER,
+          planTier: PlanTier.BUSINESS,
           organizationName: 'Test Buyer',
           acceptedTerms: true,
         },
@@ -244,6 +251,7 @@ describe('Authentication', () => {
           phone: uniquePhone(),
           password: 'short',
           role: RoleName.CUSTOMER,
+          planTier: PlanTier.BUSINESS,
           organizationName: 'Test Buyer',
           acceptedTerms: true,
         },
@@ -262,6 +270,7 @@ describe('Authentication', () => {
         phone: uniquePhone(),
         password: TEST_PASSWORD,
         role: RoleName.CUSTOMER,
+        planTier: PlanTier.BUSINESS,
         organizationName: 'Test Buyer',
         acceptedTerms: true,
       };
@@ -288,6 +297,7 @@ describe('Authentication', () => {
           phone: uniquePhone(),
           password: TEST_PASSWORD,
           role: RoleName.FLEET_OWNER,
+          planTier: PlanTier.BUSINESS,
           acceptedTerms: true,
         },
       });

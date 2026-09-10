@@ -151,7 +151,7 @@ function LocationCard({ vehicle }: { vehicle: VehicleSummary }) {
             />
             <Figure
               label="Speed"
-              value={fix.speedKph !== null ? `${Math.round(fix.speedKph)} km/h` : '—'}
+              value={fix.speedKph !== null ? `${Math.round(fix.speedKph)} km/h` : '-'}
               hint={fix.heading !== null ? `Heading ${compassDirection(fix.heading)}` : undefined}
             />
           </div>
@@ -215,16 +215,16 @@ function UsageCard({
           />
           <Figure
             label="Distance on trips"
-            value={lifetime ? formatDistanceKm(lifetime.totalDistanceKm) : '—'}
+            value={lifetime ? formatDistanceKm(lifetime.totalDistanceKm) : '-'}
             hint={lifetime ? `${formatNumber(lifetime.completedTrips)} completed` : undefined}
           />
           <Figure
             label="Orders carried"
-            value={lifetime ? formatNumber(lifetime.totalOrders) : '—'}
+            value={lifetime ? formatNumber(lifetime.totalOrders) : '-'}
           />
           <Figure
             label="Services done"
-            value={lifetime ? formatNumber(lifetime.servicesCompleted) : '—'}
+            value={lifetime ? formatNumber(lifetime.servicesCompleted) : '-'}
             hint={
               lifetime && lifetime.incidents > 0
                 ? `${formatNumber(lifetime.incidents)} incidents`

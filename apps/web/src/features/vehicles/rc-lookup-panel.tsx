@@ -216,7 +216,7 @@ export function RcLookupPanel({ registrationNumber: fixedPlate }: RcLookupPanelP
               </>
             ) : (
               <>
-                Lookups are limited to vehicles in your own fleet — add the vehicle first, then pull
+                Lookups are limited to vehicles in your own fleet - add the vehicle first, then pull
                 its RC record. Spaces and hyphens are fine:{' '}
                 <span className="font-mono">up32 ab 1234</span> and{' '}
                 <span className="font-mono">UP-32-AB-1234</span> both resolve to the same vehicle.

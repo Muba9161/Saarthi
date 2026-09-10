@@ -47,7 +47,7 @@ export function LocaleSplash() {
     if (switchNonce === 0) return undefined;
 
     const language = languageByCode(locale);
-    setAnnouncement(`${language.greeting} — ${language.english}`);
+    setAnnouncement(`${language.greeting} - ${language.english}`);
 
     // Reduced motion gets the announcement and nothing else: a full-screen
     // takeover is exactly the kind of movement that setting asks us to skip.

@@ -118,7 +118,7 @@ export function DriverAppCard() {
           <div className="min-w-0 space-y-1">
             <p className="font-medium">Saarthi on your phone</p>
             <p className="text-sm text-muted-foreground">
-              Sign on to a vehicle, complete your safety check and run trips from the cab —
+              Sign on to a vehicle, complete your safety check and run trips from the cab -
               without opening this dashboard.
             </p>
             <p className="text-xs text-muted-foreground">
@@ -132,7 +132,7 @@ export function DriverAppCard() {
               driver who was not told assumes the download went wrong.
             */}
             <p className="text-xs text-muted-foreground">
-              Your phone will ask you to allow the install — that is normal for a fleet app.
+              Your phone will ask you to allow the install - that is normal for a fleet app.
             </p>
           </div>
         </div>

@@ -106,7 +106,7 @@ describe('Saarthi Device ingestion', () => {
 
   beforeEach(async () => {
     await resetDatabase();
-    fleet = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.INTELLIGENCE);
+    fleet = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.BUSINESS, { trackers: 25 });
     owner = await createUser({ role: RoleName.FLEET_OWNER, organizationId: fleet.id });
 
     const truck = await prisma.truck.create({

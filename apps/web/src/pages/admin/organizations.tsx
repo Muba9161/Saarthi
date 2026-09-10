@@ -24,7 +24,7 @@ export function AdminOrganizationsPage() {
   
 
   const columns: Column<any>[] = [
-    { key: 'org', header: 'Organization', cell: (row) => (<div className="min-w-0"><p className="truncate font-medium">{row.name}</p><p className="truncate text-xs text-muted-foreground">{[row.city, row.state].filter(Boolean).join(', ') || '—'}</p></div>) },
+    { key: 'org', header: 'Organization', cell: (row) => (<div className="min-w-0"><p className="truncate font-medium">{row.name}</p><p className="truncate text-xs text-muted-foreground">{[row.city, row.state].filter(Boolean).join(', ') || '-'}</p></div>) },
     { key: 'type', header: 'Type', cell: (row) => <StatusBadge status={row.type} /> },
     { key: 'verification', header: 'Verification', cell: (row) => <StatusBadge status={row.verificationStatus} size="sm" /> },
     { key: 'members', header: 'Members', numeric: true, hideOnMobile: true, cell: (row) => row.memberCount },

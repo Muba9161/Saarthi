@@ -326,6 +326,11 @@ export const AuditAction = {
 
   SUBSCRIPTION_TOPUP_PURCHASED: 'subscription.topup_purchased',
   SUBSCRIPTION_TOPUP_CANCELLED: 'subscription.topup_cancelled',
+  SUBSCRIPTION_PLAN_CHANGED: 'subscription.plan_changed',
+  SUBSCRIPTION_SIGNUP_ORDER: 'subscription.signup_order',
+  SUBSCRIPTION_TRACKER_PURCHASED: 'subscription.tracker_purchased',
+  SUBSCRIPTION_TRACKER_ASSIGNED: 'subscription.tracker_assigned',
+  SUBSCRIPTION_TRACKER_RETIRED: 'subscription.tracker_retired',
 
   LOAN_CREATED: 'loan.created',
   LOAN_UPDATED: 'loan.updated',

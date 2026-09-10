@@ -1486,7 +1486,7 @@ private fun SpeedPill(speedKph: Double?, simulated: Boolean) {
             verticalAlignment = Alignment.Bottom,
         ) {
             Text(
-                speedKph?.toInt()?.toString() ?: "—",
+                speedKph?.toInt()?.toString() ?: "-",
                 style = MaterialTheme.typography.displaySmall,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
@@ -1694,7 +1694,7 @@ private fun UpdateCard(
                     )
                     Spacer(Modifier.height(6.dp))
                     Text(
-                        "Downloading — ${(state.fraction * 100).toInt()}%",
+                        "Downloading - ${(state.fraction * 100).toInt()}%",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -1728,7 +1728,7 @@ private fun UpdateCard(
                 LinearProgressIndicator(Modifier.fillMaxWidth())
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    "Installing — confirm on screen when Android asks.",
+                    "Installing - confirm on screen when Android asks.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

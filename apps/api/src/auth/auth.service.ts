@@ -1,17 +1,18 @@
 import {
-  MembershipStatus,
-  OrganizationType,
-  PlanTier,
-  ROLE_TO_ORGANIZATION_TYPE,
-  RoleName,
-  UserStatus,
-  VerificationStatus,
   type AuthResult,
   type ChangePasswordInput,
   type LoginInput,
+  MembershipStatus,
+  OrganizationType,
+  PlanTier,
   type RegisterInput,
+  registrationRole,
+  ROLE_TO_ORGANIZATION_TYPE,
+  RoleName,
   type SessionPayload,
   type UpdateProfileInput,
+  UserStatus,
+  VerificationStatus,
 } from '@saarthi/shared';
 import { type Prisma, prisma } from '../database/prisma';
 import { errors } from '../lib/errors';
@@ -28,6 +29,7 @@ import {
 } from './tokens';
 import { buildSessionPayload, loadUser, resolveActiveMembership } from './session.service';
 import { createDefaultSubscription } from '../modules/subscriptions/entitlements.service';
+import { provisionSignupOrder } from '../modules/subscriptions/signup-order.service';
 import { provisionDriverCodeOnRegistration } from '../modules/qr/qr.service';
 import { resolveJoinableFleet } from '../modules/organizations/fleet-invite.service';
 import { AuditAction, recordAudit } from '../modules/audit/audit.service';
@@ -122,6 +124,15 @@ async function uniqueInviteCode(tx: Prisma.TransactionClient): Promise<string> {
 export async function register(input: RegisterInput, meta: RequestMeta) {
   const passwordHash = await passwordHasher.hash(input.password);
 
+  /*
+   * The account type this registration creates.
+   *
+   * A Personal registrant is never asked, because they are not a business —
+   * they own vehicles. `registrationRole` is the one place that rule lives, so
+   * the form, the schema and this function cannot disagree about it.
+   */
+  const registrantRole = registrationRole(input);
+
   const result = await prisma.$transaction(async (tx) => {
     const existingEmail = await tx.user.findUnique({ where: { email: input.email } });
     if (existingEmail) {
@@ -136,7 +147,7 @@ export async function register(input: RegisterInput, meta: RequestMeta) {
       });
     }
 
-    const role = await tx.role.findUnique({ where: { name: input.role } });
+    const role = await tx.role.findUnique({ where: { name: registrantRole } });
     if (!role) throw errors.internal('Role catalogue is not seeded. Run `npm run db:seed`.');
 
     const user = await tx.user.create({
@@ -153,11 +164,19 @@ export async function register(input: RegisterInput, meta: RequestMeta) {
 
     let organizationId: string;
     let createdOrganization = false;
-    // Set only on the driver branch; carried out of the transaction so the
-    // driver's QR badge can be issued once the rows are actually committed.
+    /*
+     * Carried out of the transaction for the payment descriptor: a customer
+     * reading their bank statement should see the name they registered, not an
+     * organization id.
+     */
+    const personalOrganizationName = `${input.firstName} ${input.lastName}`.trim();
+    let organizationName = personalOrganizationName;
+    // Set by the driver branch below, or by the Personal "I drive too" toggle.
+    // Carried out of the transaction so the QR badge is issued once the rows
+    // are actually committed.
     let driverId: string | null = null;
 
-    if (input.role === RoleName.DRIVER) {
+    if (registrantRole === RoleName.DRIVER) {
       const code = (input.fleetInviteCode ?? '').trim().toUpperCase();
 
       if (code) {
@@ -178,7 +197,7 @@ export async function register(input: RegisterInput, meta: RequestMeta) {
          */
         const personal = await tx.organization.create({
           data: {
-            name: `${input.firstName} ${input.lastName}`.trim(),
+            name: personalOrganizationName,
             type: OrganizationType.FLEET_OWNER,
             email: input.email,
             phone: input.phone,
@@ -209,7 +228,7 @@ export async function register(input: RegisterInput, meta: RequestMeta) {
       });
       driverId = driver.id;
     } else {
-      const organizationType = ROLE_TO_ORGANIZATION_TYPE[input.role] ?? OrganizationType.CUSTOMER;
+      const organizationType = ROLE_TO_ORGANIZATION_TYPE[registrantRole] ?? OrganizationType.CUSTOMER;
       const organization = await tx.organization.create({
         data: {
           // A customer may register as an individual — see
@@ -227,6 +246,7 @@ export async function register(input: RegisterInput, meta: RequestMeta) {
       });
       organizationId = organization.id;
       createdOrganization = true;
+      organizationName = organization.name;
 
       // Marketplace participants get their domain profile immediately so the
       // supplier/customer dashboards have something to hang data off.
@@ -241,11 +261,38 @@ export async function register(input: RegisterInput, meta: RequestMeta) {
       data: {
         userId: user.id,
         organizationId,
-        role: input.role,
+        role: registrantRole,
         status: MembershipStatus.ACTIVE,
         isPrimary: true,
       },
     });
+
+    /*
+     * A Personal customer who drives one of their own vehicles.
+     *
+     * The case: somebody buys Personal for three cars, two driven by the
+     * drivers he employs and one by himself. Without a driver profile of his
+     * own he is not assignable to a vehicle, and the only way round it was to
+     * invent a second account for himself — which then owns his trips, his
+     * duty hours and his score under a different identity.
+     *
+     * So the profile is created against his own user, inside his own
+     * organization, and he is assignable exactly like anybody else he employs.
+     * His membership role stays FLEET_OWNER: he owns the vehicles and can also
+     * drive them, which is the ordinary arrangement rather than a special case.
+     */
+    if (input.driveMyself && input.licenseNumber) {
+      const self = await tx.driver.create({
+        data: {
+          userId: user.id,
+          organizationId,
+          licenseNumber: input.licenseNumber,
+          licenseExpiryDate: input.licenseExpiryDate ?? null,
+          verificationStatus: VerificationStatus.PENDING,
+        },
+      });
+      driverId = self.id;
+    }
 
     // The language chosen on the first step of registration. Written here
     // rather than left for the profile screen, so the very first authenticated
@@ -256,17 +303,64 @@ export async function register(input: RegisterInput, meta: RequestMeta) {
       data: { userId: user.id, preferences: { locale: input.preferredLanguage } },
     });
 
-    return { user, organizationId, createdOrganization, driverId };
+    return { user, organizationId, createdOrganization, driverId, organizationName };
   });
 
-  // Fleets, suppliers and customers start on a Pro trial so every feature can
-  // be demonstrated; downgrades are handled by the subscription module.
+  /*
+   * The subscription the registrant chose.
+   *
+   * Only for an organization this registration created. A driver joining an
+   * employer's fleet with an invite code must not be given a subscription of
+   * their own — they are covered by their employer's — and a driver seated in a
+   * placeholder organization has nothing to bill.
+   *
+   * The trial length is configuration rather than a constant, so a launch
+   * promotion is an env change and not a deploy.
+   */
   if (result.createdOrganization) {
-    await createDefaultSubscription(result.organizationId, PlanTier.PRO);
+    const tier = input.planTier ?? PlanTier.BUSINESS;
+
+    await createDefaultSubscription(result.organizationId, tier, {
+      billing: input.planBilling,
+    });
+
+    /*
+     * The fleet size and trackers the registrant priced on the pricing card.
+     *
+     * After the subscription rather than inside it, because the top-ups hang
+     * off a subscription that has to exist first. Deliberately not awaited
+     * inside the registration transaction either: this talks to a payment
+     * gateway, and a gateway timeout must not roll back somebody's account.
+     *
+     * It never throws — a declined charge leaves the tenant on the base plan
+     * with a notification and a row to point at. See `provisionSignupOrder`.
+     */
+    if (input.planVehicles > 1 || input.planTrackers > 0) {
+      await provisionSignupOrder({
+        organizationId: result.organizationId,
+        userId: result.user.id,
+        organizationName: result.organizationName,
+        customer: {
+          name: `${input.firstName} ${input.lastName}`.trim(),
+          email: input.email,
+          phone: input.phone,
+        },
+        tier,
+        order: {
+          vehicles: input.planVehicles,
+          trackers: input.planTrackers,
+          billing: input.planBilling,
+        },
+      });
+    }
   }
 
   /*
    * A driver's badge is issued with the account, not on request.
+   *
+   * Reached by both driver registrations and a Personal owner who ticked
+   * "I drive too": either way there is now a driver profile, and a profile
+   * without a badge is a driver who cannot be identified at a gate.
    *
    * After the transaction on purpose: the subscription lookup and the QR row
    * are not part of what makes a registration valid, and a driver must never
@@ -285,7 +379,7 @@ export async function register(input: RegisterInput, meta: RequestMeta) {
   const issued = await issueSession(
     result.user.id,
     result.organizationId,
-    [input.role],
+    [registrantRole],
     meta,
   );
 
@@ -295,7 +389,7 @@ export async function register(input: RegisterInput, meta: RequestMeta) {
     entityId: result.user.id,
     actorUserId: result.user.id,
     organizationId: result.organizationId,
-    after: { email: input.email, role: input.role },
+    after: { email: input.email, role: registrantRole, plan: input.planTier ?? null },
     ipAddress: meta.ipAddress,
     userAgent: meta.userAgent,
     requestId: meta.requestId ?? null,

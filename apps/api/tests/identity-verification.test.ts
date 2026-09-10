@@ -55,8 +55,8 @@ describe('Identity verification', () => {
 
   beforeEach(async () => {
     await resetDatabase();
-    fleetA = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.INTELLIGENCE);
-    fleetB = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.INTELLIGENCE);
+    fleetA = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.BUSINESS);
+    fleetB = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.BUSINESS);
     ownerA = await createUser({ role: RoleName.FLEET_OWNER, organizationId: fleetA.id });
     ownerB = await createUser({ role: RoleName.FLEET_OWNER, organizationId: fleetB.id });
     driverUserA = await createUser({

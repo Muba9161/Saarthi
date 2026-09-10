@@ -3,6 +3,7 @@ import {
   DeviceAssignmentStatus,
   DeviceType,
   OrganizationType,
+  PlanTier,
   QrSubjectType,
   RoleName,
   TerminalSessionStatus,
@@ -112,8 +113,8 @@ describe('Saarthi Terminal', () => {
   beforeEach(async () => {
     await resetDatabase();
 
-    fleet = await createOrganization(OrganizationType.FLEET_OWNER);
-    otherFleet = await createOrganization(OrganizationType.FLEET_OWNER);
+    fleet = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.BUSINESS, { trackers: 25 });
+    otherFleet = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.BUSINESS, { trackers: 25 });
 
     owner = await createUser({ role: RoleName.FLEET_OWNER, organizationId: fleet.id });
     driver = await createUser({
@@ -912,6 +913,134 @@ describe('Saarthi Terminal', () => {
 
       return { ...replacement, token: paired.body.data.token.accessToken };
     }
+
+    /**
+     * Mark the vehicle's current holder as a driver's phone.
+     *
+     * `pairTerminal` has to go through the fleet's own endpoint, because a
+     * driver cannot issue a pairing before they have an approved session to
+     * issue it against — so the fixture's assignment carries the fitted-tablet
+     * flag. A pairing the driver app made carries `releaseOnSignOff = true`,
+     * and that flag is the whole distinction under test here.
+     */
+    async function asADriverPhone(): Promise<void> {
+      await prisma.deviceAssignment.updateMany({
+        where: { vehicleId: vehicle.id, status: DeviceAssignmentStatus.ACTIVE },
+        data: { releaseOnSignOff: true },
+      });
+    }
+
+    /**
+     * Ask for a pairing code without freeing the vehicle first.
+     *
+     * The reinstall as it actually happens: the previous install still holds an
+     * ACTIVE assignment, because the slot is handed back at sign-off and a
+     * driver who wipes the app never signs off.
+     */
+    async function pairingCodeWithoutFreeingTheSlot(
+      sessionId: string,
+    ): Promise<{ status: number; code?: string; message?: string }> {
+      const issued = await request<{ pairingCode: string }>({
+        method: 'POST',
+        url: `/api/v1/terminal/assignments/${sessionId}/vehicle-pairing`,
+        user: driver,
+        payload: {},
+      });
+      return {
+        status: issued.status,
+        code: issued.body.data?.pairingCode,
+        message: (issued.body as { error?: { message?: string } }).error?.message,
+      };
+    }
+
+    it('frees a vehicle still held by the same driver’s previous install', async () => {
+      /*
+       * The fault a driver actually hits. A vehicle may have one telemetry
+       * source; the driver's phone takes that slot when it pairs and gives it
+       * back at sign-off. Reinstalling the app skips the sign-off, so the slot
+       * stayed held by a handset that no longer exists and the next approval
+       * could not pair at all - "already reports its position from ...". The
+       * phone never became the terminal, so there was no cockpit, no safety
+       * check and no way to start a shift, and re-scanning did not help because
+       * the obstacle was never the scan.
+       */
+      const { sessionId } = await approvedOnAPhone();
+      await asADriverPhone();
+
+      const issued = await pairingCodeWithoutFreeingTheSlot(sessionId);
+
+      expect(issued.status).toBe(201);
+      expect(issued.code).toBeTruthy();
+    });
+
+    it('never frees a fitted tablet to make room', async () => {
+      /*
+       * The expensive one. A tablet is bolted into a cab and shared between
+       * drivers; releasing it would strand the vehicle for everybody after this
+       * driver, and no fitter is standing by to pair it back. `releaseOnSignOff`
+       * is what tells the two apart, and it is the same distinction sign-off
+       * already respects.
+       */
+      const { sessionId } = await approvedOnAPhone();
+      await prisma.deviceAssignment.updateMany({
+        where: { vehicleId: vehicle.id, status: DeviceAssignmentStatus.ACTIVE },
+        data: { releaseOnSignOff: false },
+      });
+
+      const issued = await pairingCodeWithoutFreeingTheSlot(sessionId);
+
+      expect(issued.status).toBe(409);
+      expect(issued.message).toContain('already reports its position');
+
+      const held = await prisma.deviceAssignment.findFirstOrThrow({
+        where: { vehicleId: vehicle.id, status: DeviceAssignmentStatus.ACTIVE },
+      });
+      expect(held.status).toBe(DeviceAssignmentStatus.ACTIVE);
+    });
+
+    it('never takes the vehicle from another driver mid-shift', async () => {
+      /*
+       * Two phones, two drivers, one truck. If the slot were freed on sight, a
+       * second driver's approval would silently stop the first driver's phone
+       * reporting while they were still on the road.
+       */
+      const { phone, sessionId } = await approvedOnAPhone();
+      const holder = await prisma.hardwareDevice.findFirstOrThrow({
+        where: { deviceIdentifier: phone.deviceIdentifier },
+      });
+      // Otherwise this would pass as a fitted tablet and prove nothing about
+      // the rule it is here to check.
+      await asADriverPhone();
+
+      const other = await createUser({
+        role: RoleName.DRIVER,
+        organizationId: fleet.id,
+        driver: true,
+      });
+      const otherDriver = await prisma.driver.findFirstOrThrow({
+        where: { userId: other.id },
+      });
+      await prisma.terminalSession.create({
+        data: {
+          organizationId: fleet.id,
+          terminalDeviceId: holder.id,
+          vehicleId: vehicle.id,
+          driverId: otherDriver.id,
+          driverUserId: other.id,
+          status: TerminalSessionStatus.TRIP_ACTIVE,
+          submittedAt: new Date(),
+          decidedAt: new Date(),
+        },
+      });
+
+      const issued = await pairingCodeWithoutFreeingTheSlot(sessionId);
+
+      expect(issued.status).toBe(409);
+      const held = await prisma.deviceAssignment.findFirstOrThrow({
+        where: { vehicleId: vehicle.id, deviceId: holder.id },
+      });
+      expect(held.status).toBe(DeviceAssignmentStatus.ACTIVE);
+    });
 
     it('carries the approval onto the replacement phone', async () => {
       const { sessionId } = await approvedOnAPhone();

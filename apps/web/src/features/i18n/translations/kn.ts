@@ -136,7 +136,7 @@ export const kn: Catalogue = {
   'How Saarthi speaks to you.': 'Saarthi ನಿಮ್ಮೊಂದಿಗೆ ಯಾವ ಭಾಷೆಯಲ್ಲಿ ಮಾತನಾಡಬೇಕು.',
   'Which language should Saarthi use?': 'Saarthi ಯಾವ ಭಾಷೆ ಬಳಸಬೇಕು?',
   'You can change this later from your profile.': 'ಇದನ್ನು ನಂತರ ನಿಮ್ಮ ಪ್ರೊಫೈಲ್‌ನಿಂದ ಬದಲಾಯಿಸಬಹುದು.',
-  'Not translated yet — shows in English': 'ಇನ್ನೂ ಅನುವಾದವಾಗಿಲ್ಲ — ಇಂಗ್ಲಿಷ್‌ನಲ್ಲಿ ಕಾಣಿಸುತ್ತದೆ',
+  'Not translated yet - shows in English': 'ಇನ್ನೂ ಅನುವಾದವಾಗಿಲ್ಲ - ಇಂಗ್ಲಿಷ್‌ನಲ್ಲಿ ಕಾಣಿಸುತ್ತದೆ',
 
   'Step {current} of {total}': 'ಹಂತ {current} / {total}',
 
@@ -188,11 +188,11 @@ export const kn: Catalogue = {
     'ಈಗಾಗಲೇ Saarthi ಬಳಸುವ ವಾಹನ ಸಮೂಹಕ್ಕಾಗಿ ನಾನು ಚಾಲನೆ ಮಾಡುತ್ತೇನೆ.',
   'The operating system for your trucking business.':
     'ನಿಮ್ಮ ಟ್ರಕಿಂಗ್ ವ್ಯವಹಾರದ ಕಾರ್ಯಾಚರಣಾ ವ್ಯವಸ್ಥೆ.',
-  'Saarthi connects fleet owners, drivers, suppliers and customers on one platform — from posting a load to watching it arrive.':
-    'Saarthi ವಾಹನ ಮಾಲೀಕರು, ಚಾಲಕರು, ಪೂರೈಕೆದಾರರು ಮತ್ತು ಗ್ರಾಹಕರನ್ನು ಒಂದೇ ವೇದಿಕೆಯಲ್ಲಿ ಜೋಡಿಸುತ್ತದೆ — ಲೋಡ್ ಹಾಕುವುದರಿಂದ ಅದು ತಲುಪುವವರೆಗೆ.',
+  'Saarthi connects fleet owners, drivers, suppliers and customers on one platform - from posting a load to watching it arrive.':
+    'Saarthi ವಾಹನ ಮಾಲೀಕರು, ಚಾಲಕರು, ಪೂರೈಕೆದಾರರು ಮತ್ತು ಗ್ರಾಹಕರನ್ನು ಒಂದೇ ವೇದಿಕೆಯಲ್ಲಿ ಜೋಡಿಸುತ್ತದೆ - ಲೋಡ್ ಹಾಕುವುದರಿಂದ ಅದು ತಲುಪುವವರೆಗೆ.',
   'One fleet command centre': 'ಒಂದೇ ಫ್ಲೀಟ್ ಕಮಾಂಡ್ ಸೆಂಟರ್',
   'Trucks, drivers, documents, orders and trips in a single operational view.':
-    'ಟ್ರಕ್, ಚಾಲಕರು, ದಾಖಲೆಗಳು, ಆರ್ಡರ್ ಮತ್ತು ಪ್ರಯಾಣ — ಎಲ್ಲವೂ ಒಂದೇ ಕಾರ್ಯ ನೋಟದಲ್ಲಿ.',
+    'ಟ್ರಕ್, ಚಾಲಕರು, ದಾಖಲೆಗಳು, ಆರ್ಡರ್ ಮತ್ತು ಪ್ರಯಾಣ - ಎಲ್ಲವೂ ಒಂದೇ ಕಾರ್ಯ ನೋಟದಲ್ಲಿ.',
   'Live tracking that actually moves': 'ನಿಜವಾಗಿಯೂ ಚಲಿಸುವ ಲೈವ್ ಟ್ರ್ಯಾಕಿಂಗ್',
   'Realtime positions, ETAs and route deviation alerts as they happen.':
     'ನೈಜ-ಸಮಯದ ಸ್ಥಳ, ತಲುಪುವ ಸಮಯ ಮತ್ತು ಮಾರ್ಗ ಬದಲಾವಣೆಯ ಎಚ್ಚರಿಕೆಗಳು, ಸಂಭವಿಸಿದ ಕೂಡಲೇ.',
@@ -202,8 +202,8 @@ export const kn: Catalogue = {
   'AI grounded in your data': 'ನಿಮ್ಮದೇ ಡೇಟಾ ಆಧಾರಿತ AI',
   'Answers built only from records your role is allowed to see.':
     'ನಿಮ್ಮ ಪಾತ್ರಕ್ಕೆ ನೋಡಲು ಅನುಮತಿ ಇರುವ ದಾಖಲೆಗಳಿಂದ ಮಾತ್ರ ಉತ್ತರಗಳು ರೂಪುಗೊಳ್ಳುತ್ತವೆ.',
-  'Local development build — simulated GPS, mock payments, local document storage.':
-    'ಲೋಕಲ್ ಡೆವಲಪ್‌ಮೆಂಟ್ ಬಿಲ್ಡ್ — ಕೃತಕ GPS, ನಕಲಿ ಪಾವತಿ, ಸ್ಥಳೀಯ ದಾಖಲೆ ಸಂಗ್ರಹ.',
+  'Local development build - simulated GPS, mock payments, local document storage.':
+    'ಲೋಕಲ್ ಡೆವಲಪ್‌ಮೆಂಟ್ ಬಿಲ್ಡ್ - ಕೃತಕ GPS, ನಕಲಿ ಪಾವತಿ, ಸ್ಥಳೀಯ ದಾಖಲೆ ಸಂಗ್ರಹ.',
   'Back to vorldxsaarthi.com': 'vorldxsaarthi.com ಗೆ ಹಿಂತಿರುಗಿ',
   'Loading Saarthi…': 'Saarthi ಲೋಡ್ ಆಗುತ್ತಿದೆ…',
   'Try it instantly': 'ಈಗಲೇ ಪ್ರಯತ್ನಿಸಿ',
@@ -285,8 +285,8 @@ export const kn: Catalogue = {
   'Open live map': 'ಲೈವ್ ನಕ್ಷೆ ತೆರೆಯಿರಿ',
   'Documents needing attention': 'ಗಮನ ಬೇಕಿರುವ ದಾಖಲೆಗಳು',
   'Ask the Fleet Copilot': 'ಫ್ಲೀಟ್ ಕೋಪೈಲಟ್‌ಗೆ ಕೇಳಿ',
-  '“What needs my attention today?” — answered from your own records.':
-    '“ಇಂದು ನಾನು ಯಾವುದರ ಮೇಲೆ ಗಮನ ಹರಿಸಬೇಕು?” — ನಿಮ್ಮದೇ ದಾಖಲೆಗಳಿಂದ ಉತ್ತರ.',
+  '“What needs my attention today?” - answered from your own records.':
+    '“ಇಂದು ನಾನು ಯಾವುದರ ಮೇಲೆ ಗಮನ ಹರಿಸಬೇಕು?” - ನಿಮ್ಮದೇ ದಾಖಲೆಗಳಿಂದ ಉತ್ತರ.',
   Open: 'ತೆರೆಯಿರಿ',
 
   // --- Password field and strength meter -----------------------------------

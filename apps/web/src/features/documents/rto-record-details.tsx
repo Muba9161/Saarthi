@@ -40,7 +40,7 @@ export function RtoDetail({
   label: string;
   value: string | number | null | undefined;
 }) {
-  const display = value === null || value === undefined || value === '' ? '—' : String(value);
+  const display = value === null || value === undefined || value === '' ? '-' : String(value);
   return (
     <div className="min-w-0 space-y-0.5">
       <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</p>

@@ -1,7 +1,15 @@
 import { z } from 'zod';
-import { PLAN_CATALOGUE, Permission, VEHICLE_TOPUP } from '@saarthi/shared';
+import {
+  PLAN_CATALOGUE,
+  Permission,
+  VEHICLE_TOPUP,
+  VEHICLE_TRACKER,
+  quoteSubscription,
+  type PlanTier,
+} from '@saarthi/shared';
 import { prisma } from '../../../database/prisma';
 import { listTopUps, vehicleCapacity } from '../../subscriptions/topup.service';
+import { trackerCoverage } from '../../subscriptions/tracker.service';
 import { ResultBasis, type AiTool, type ToolResult } from './tool.types';
 
 /**
@@ -10,8 +18,9 @@ import { ResultBasis, type AiTool, type ToolResult } from './tool.types';
  * "Can I add another vehicle?" is a question the assistant should answer from
  * the tenant's actual entitlement state, never from the plan names it happens
  * to know. The distinction matters because the answer decides whether someone
- * buys a top-up they do not need, or is told to upgrade when a ₹399 top-up
- * would have done.
+ * buys a top-up they do not need, or is told to upgrade when a top-up for the
+ * price of one vehicle would have done. Both plans cover one vehicle, so an
+ * upgrade is never the answer to "I need room for another" — a top-up is.
  */
 
 function result<T>(
@@ -111,17 +120,107 @@ export const SUBSCRIPTION_TOOLS: AiTool[] = [
           availablePlans: PLAN_CATALOGUE.map((plan) => ({
             tier: plan.tier,
             name: plan.name,
-            vehicles: plan.limits.maxTrucks,
+            // One on both plans. Said explicitly so the assistant does not
+            // present an upgrade as the way to get more vehicles.
+            vehiclesIncluded: plan.limits.maxTrucks,
             priceMonthly: plan.priceMonthly,
+            priceYearly: plan.priceYearly,
             maxTopUps: plan.limits.maxVehicleTopUps,
+            maxTrackers: plan.limits.maxTrackers,
           })),
           topUp: {
             name: VEHICLE_TOPUP.name,
             priceMonthly: VEHICLE_TOPUP.priceMonthly,
+            priceYearly: VEHICLE_TOPUP.priceYearly,
             description: VEHICLE_TOPUP.description,
+          },
+          tracker: {
+            name: VEHICLE_TRACKER.name,
+            priceOneTime: VEHICLE_TRACKER.priceOneTime,
+            recurring: false,
+            description: VEHICLE_TRACKER.description,
           },
         },
         { basis: ResultBasis.SOURCE_DATA },
+      );
+    },
+  },
+
+  {
+    name: 'get_tracker_coverage',
+    description:
+      'How many vehicles have a Saarthi tracker fitted and how many are running on driver-app data only. Use this before quoting an odometer, fuel figure or trip distance, so the answer can say whether it was measured or estimated.',
+    input: z.object({}),
+    permissions: [Permission.SUBSCRIPTION_READ],
+    category: 'subscription',
+    cacheTtlSeconds: 30,
+    handler: async ({ organizationId }) => {
+      const coverage = await trackerCoverage(organizationId);
+
+      return result(
+        {
+          ...coverage,
+          trackerPriceOneTime: VEHICLE_TRACKER.priceOneTime,
+          trackerRecurring: false,
+        },
+        {
+          basis: ResultBasis.SOURCE_DATA,
+          caveats:
+            coverage.uncovered > 0
+              ? [
+                  `${coverage.uncovered} vehicle(s) have no tracker. For those, distance, fuel and trip times are worked out from the driver's phone and carry an error — and a phone that was left behind or ran flat reports nothing at all.`,
+                  `A tracker is a one-time ${VEHICLE_TRACKER.priceOneTime} rupees per vehicle with no monthly charge.`,
+                ]
+              : [],
+        },
+      );
+    },
+  },
+
+  {
+    name: 'quote_fleet_cost',
+    description:
+      'What a given number of vehicles costs per month on each plan, including the per-vehicle top-ups. Use this to answer "what would ten vehicles cost".',
+    input: z.object({
+      vehicles: z.coerce.number().int().min(1).max(500),
+      billing: z.enum(['monthly', 'yearly']).default('monthly'),
+    }),
+    permissions: [Permission.SUBSCRIPTION_READ],
+    category: 'subscription',
+    cacheTtlSeconds: 3600,
+    handler: async (_context, input) => {
+      const { vehicles, billing } = input as { vehicles: number; billing: 'monthly' | 'yearly' };
+
+      return result(
+        {
+          vehicles,
+          billing,
+          quotes: PLAN_CATALOGUE.map((plan) => {
+            const ceiling =
+              plan.limits.maxTrucks === null
+                ? null
+                : plan.limits.maxTrucks + plan.limits.maxVehicleTopUps;
+            const quote = quoteSubscription({ tier: plan.tier, vehicles, billing });
+            return {
+              tier: plan.tier as PlanTier,
+              name: plan.name,
+              monthlySubtotal: Math.round(quote.monthly.subtotal),
+              monthlyGst: Math.round(quote.monthly.gst),
+              monthlyTotal: Math.round(quote.monthly.total),
+              // A quote for a fleet the plan cannot hold is a quote nobody can
+              // act on, so it is marked rather than silently offered.
+              available: ceiling === null || vehicles <= ceiling,
+              vehicleCeiling: ceiling,
+            };
+          }),
+        },
+        {
+          basis: ResultBasis.RULE_RESULT,
+          caveats: [
+            'Plan and top-up prices are quoted before GST; the monthly total shown includes GST at 18%.',
+            `Trackers are optional and charged once, at ${VEHICLE_TRACKER.priceOneTime} rupees plus GST per vehicle, so they are not part of the monthly figure.`,
+          ],
+        },
       );
     },
   },
@@ -151,13 +250,17 @@ export const SUBSCRIPTION_TOOLS: AiTool[] = [
         {
           vehicles: { used: vehicles, limit: limits?.maxTrucks ?? null },
           drivers: { used: drivers, limit: limits?.maxDrivers ?? null },
+          // The device allowance is the number of trackers bought, not a plan
+          // figure — see `assertDeviceLimit`.
           devices: { used: devices, limit: limits?.maxDevices ?? null },
+          trackersHeld: limits?.maxDevices ?? 0,
           aiRequestsToday: { used: aiToday, limit: limits?.aiRequestsPerDay ?? 0 },
         },
         {
           basis: ResultBasis.RULE_RESULT,
           caveats: [
             'The vehicle limit shown already includes any active +1 top-ups.',
+            'The device limit is the number of trackers this organization has bought. Registering another device needs another tracker, not a plan change.',
           ],
         },
       );

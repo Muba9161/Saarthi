@@ -67,7 +67,7 @@
     <string name="tile_trips_sub">आपने क्या चलाया</string>
     <string name="tile_hours">घंटे</string>
     <string name="label_fastag">FASTag</string>
-    <string name="fastag_low">कम है — रिचार्ज करें</string>
+    <string name="fastag_low">कम है - रिचार्ज करें</string>
     <string name="fastag_unknown">बैलेंस पता नहीं</string>
     <string name="label_diesel_today">आज का डीज़ल</string>
     <string name="diesel_none">%1$s के लिए रेट उपलब्ध नहीं</string>
@@ -86,16 +86,16 @@
     <string name="next_step_reconnect">यह फ़ोन किसी गाड़ी से जुड़ा नहीं है। प्रोफ़ाइल खोलें, साइन आउट करें, फिर गाड़ी दोबारा स्कैन करें।</string>
 
     <!-- Hours at the wheel =============================================== -->
-    <string name="hours_break_soon">आप %1$s से गाड़ी चला रहे हैं। जल्दी ब्रेक लेना है — रुकने की जगह देखना शुरू करें।</string>
+    <string name="hours_break_soon">आप %1$s से गाड़ी चला रहे हैं। जल्दी ब्रेक लेना है - रुकने की जगह देखना शुरू करें।</string>
     <string name="hours_break_due">आप %1$s से बिना ब्रेक चला रहे हैं। कृपया आधे घंटे रुकें।</string>
-    <string name="hours_shift_soon">आज %1$s चला है। ड्यूटी जल्दी ख़त्म करनी है — सोचें कि गाड़ी कहाँ खड़ी करेंगे।</string>
+    <string name="hours_shift_soon">आज %1$s चला है। ड्यूटी जल्दी ख़त्म करनी है - सोचें कि गाड़ी कहाँ खड़ी करेंगे।</string>
     <string name="hours_shift_due">आज %1$s चला है। यह पूरे दिन की ड्राइविंग है। कृपया रात के लिए रुक जाएँ।</string>
 
     <!-- Papers =========================================================== -->
     <string name="papers_title">आपके काग़ज़ात</string>
     <string name="papers_blurb">इस फ़ोन में रखे हैं, इसलिए बिना नेटवर्क वाले चेक पोस्ट पर भी दिक्कत नहीं।</string>
     <string name="papers_empty_title">अभी कुछ नहीं है</string>
-    <string name="papers_empty_blurb">आपके फ़्लीट ने इस गाड़ी या आपके लिए कोई काग़ज़ अपलोड नहीं किया। ऑफ़िस से RC, बीमा, परमिट और PUC डालने को कहें — वे यहाँ आ जाएँगे और ऑफ़लाइन भी दिखेंगे।</string>
+    <string name="papers_empty_blurb">आपके फ़्लीट ने इस गाड़ी या आपके लिए कोई काग़ज़ अपलोड नहीं किया। ऑफ़िस से RC, बीमा, परमिट और PUC डालने को कहें - वे यहाँ आ जाएँगे और ऑफ़लाइन भी दिखेंगे।</string>
     <string name="papers_expiring_one">एक काग़ज़ पर ध्यान दें। ख़त्म होने से पहले ऑफ़िस को बताएँ।</string>
     <string name="papers_expiring_many">%1$d काग़ज़ों पर ध्यान दें। ख़त्म होने से पहले ऑफ़िस को बताएँ।</string>
     <string name="papers_owner_yours">आपका</string>

@@ -121,7 +121,7 @@ export function CameraGrid({
           <CardHeader className="pb-2">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <SectionHeader
-                title={`${POSITION_LABELS[active.camera.position] ?? 'Camera'} — live`}
+                title={`${POSITION_LABELS[active.camera.position] ?? 'Camera'} - live`}
                 description={`Channel ${active.camera.channel} · ${active.camera.deviceIdentifier}`}
               />
               <div className="flex items-center gap-2">
@@ -152,7 +152,7 @@ export function CameraGrid({
                   <p className="mt-2 text-sm font-medium">Simulated stream</p>
                   <p className="mt-1 text-xs text-muted-foreground">
                     This environment has no video gateway. A real ticket was issued and the
-                    session was recorded, so the whole path is exercised — but there is no
+                    session was recorded, so the whole path is exercised - but there is no
                     footage behind it.
                   </p>
                 </div>
@@ -194,7 +194,7 @@ export function CameraGrid({
       <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
         Video never passes through Saarthi. Opening a view issues a short-lived credential and the
-        stream runs from the recorder to your browser — what VorldX Saarthi keeps is the record that it
+        stream runs from the recorder to your browser - what VorldX Saarthi keeps is the record that it
         happened.
       </p>
     </div>

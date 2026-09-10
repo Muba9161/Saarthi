@@ -92,7 +92,7 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
   {
     id: 'compliance',
     label: 'Money & compliance',
-    summary: 'Documents, EMIs, toll and identity — the paperwork that stops trucks.',
+    summary: 'Documents, EMIs, toll and identity - the paperwork that stops trucks.',
     icon: Banknote,
   },
   {
@@ -204,7 +204,7 @@ export const GROUPED_FEATURES: { group: FeatureGroup; features: FeatureDefinitio
  */
 export const FEATURE_NOTES: Partial<Record<Feature, string>> = {
   [Feature.SOS_NETWORK]:
-    'Raising an SOS is never blocked by a plan or a lapsed payment — the responder network is what the platform is for.',
+    'Raising an SOS is never blocked by a plan or a lapsed payment - the responder network is what the platform is for.',
   [Feature.FINANCE_LOANS]:
     'In this market the single-truck owner with an EMI is the typical customer, so the reminder that saves their truck is not an upsell.',
   [Feature.TOLL_FASTAG]:
@@ -244,7 +244,7 @@ export const ROLE_SHOWCASE: RoleShowcase[] = [
     label: 'Fleet owner',
     quote: 'I know what is happening across my whole operation.',
     blurb:
-      'Trucks, drivers, documents, orders, trips, fuel, EMIs and toll in one command centre — with analytics that come from the same records rather than a monthly spreadsheet.',
+      'Trucks, drivers, documents, orders, trips, fuel, EMIs and toll in one command centre - with analytics that come from the same records rather than a monthly spreadsheet.',
     icon: Truck,
     navigation: FLEET_NAVIGATION,
   },

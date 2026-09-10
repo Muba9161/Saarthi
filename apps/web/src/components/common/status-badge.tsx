@@ -120,7 +120,7 @@ export function StatusBadge({
    */
   dot?: boolean;
 }) {
-  if (!status) return <span className="text-muted-foreground">—</span>;
+  if (!status) return <span className="text-muted-foreground">-</span>;
 
   const variant = STATUS_VARIANTS[status] ?? 'secondary';
   const pulses = status === 'TRIGGERED' || status === 'BROADCASTING' || status === 'EMERGENCY';
@@ -163,7 +163,7 @@ export function StatusDot({ status, className }: { status: string; className?: s
 
 export function ScoreBadge({ score }: { score: number | null | undefined }) {
   if (score === null || score === undefined) {
-    return <span className="text-muted-foreground">—</span>;
+    return <span className="text-muted-foreground">-</span>;
   }
   const variant: Variant =
     score >= 90 ? 'success' : score >= 75 ? 'info' : score >= 60 ? 'warning' : 'destructive';

@@ -68,7 +68,7 @@ export function BusinessDocumentsPage() {
       <PageHeader
         eyebrow="Account"
         title="Business documents"
-        description="Registration, tax and bank documents for your business — and the GST check that confirms who you are to everyone you trade with."
+        description="Registration, tax and bank documents for your business - and the GST check that confirms who you are to everyone you trade with."
         actions={
           <Badge variant={organization.verificationStatus === 'VERIFIED' ? 'success' : 'warning'}>
             {humanizeEnum(organization.verificationStatus)}

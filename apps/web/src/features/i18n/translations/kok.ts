@@ -137,7 +137,7 @@ export const kok: Catalogue = {
   'Which language should Saarthi use?': 'Saarthi खंयची भास वापरपाक जाय?',
   'You can change this later from your profile.':
     'हें उपरांत तुमच्या प्रोफायला वयल्यान बदलूं येता.',
-  'Not translated yet — shows in English': 'अजून भाशांतर ना — इंग्लीशांत दिसतलें',
+  'Not translated yet - shows in English': 'अजून भाशांतर ना - इंग्लीशांत दिसतलें',
 
   'Step {current} of {total}': 'पावल {current} / {total}',
 
@@ -188,11 +188,11 @@ export const kok: Catalogue = {
   'I drive for a fleet that already uses Saarthi.':
     'हांव अश्या वाहनसमूहा खातीर गाडी चलयतां जो पयलीच Saarthi वापरता.',
   'The operating system for your trucking business.': 'तुमच्या ट्रकिंग वेवसायाची ऑपरेटिंग सिस्टीम.',
-  'Saarthi connects fleet owners, drivers, suppliers and customers on one platform — from posting a load to watching it arrive.':
-    'Saarthi वाहनसमूह मालक, चालक, पुरवणदार आनी गिरायकांक एकाच मंचा चेर जोडता — लोड घालपा थावन तो पावता मेरेन.',
+  'Saarthi connects fleet owners, drivers, suppliers and customers on one platform - from posting a load to watching it arrive.':
+    'Saarthi वाहनसमूह मालक, चालक, पुरवणदार आनी गिरायकांक एकाच मंचा चेर जोडता - लोड घालपा थावन तो पावता मेरेन.',
   'One fleet command centre': 'एकूच फ्लीट कमांड सेंटर',
   'Trucks, drivers, documents, orders and trips in a single operational view.':
-    'ट्रक, चालक, दस्तावेज, ऑर्डर आनी प्रवास — सगळें एकाच कामाच्या नदरेंत.',
+    'ट्रक, चालक, दस्तावेज, ऑर्डर आनी प्रवास - सगळें एकाच कामाच्या नदरेंत.',
   'Live tracking that actually moves': 'खरेंच हालपी लायव्ह ट्रॅकिंग',
   'Realtime positions, ETAs and route deviation alerts as they happen.':
     'रियल-टायम सुवात, पावपाचो वेळ आनी वाट बदल्ल्याच्यो सुचोवण्यो, घडटकच.',
@@ -202,8 +202,8 @@ export const kok: Catalogue = {
   'AI grounded in your data': 'तुमच्याच डेटा चेर आदारीत AI',
   'Answers built only from records your role is allowed to see.':
     'जाप फकत त्या नोंदी वयल्यान तयार जाता जियो पळोवपाची तुमच्या भुमिकेक परवानगी आसा.',
-  'Local development build — simulated GPS, mock payments, local document storage.':
-    'लोकल डेव्हलपमेंट बिल्ड — नकली GPS, नकली पेमेंट, थळावी दस्तावेज सांठवण.',
+  'Local development build - simulated GPS, mock payments, local document storage.':
+    'लोकल डेव्हलपमेंट बिल्ड - नकली GPS, नकली पेमेंट, थळावी दस्तावेज सांठवण.',
   'Back to vorldxsaarthi.com': 'vorldxsaarthi.com चेर परत',
   'Loading Saarthi…': 'Saarthi लोड जाता…',
   'Try it instantly': 'तेच घडये वापरून पळयात',
@@ -285,8 +285,8 @@ export const kok: Catalogue = {
   'Open live map': 'लायव्ह नकाशो उगडात',
   'Documents needing attention': 'लक्ष जाय आशिल्ले दस्तावेज',
   'Ask the Fleet Copilot': 'फ्लीट कोपायलटाक विचारात',
-  '“What needs my attention today?” — answered from your own records.':
-    '“आयज हांवें कसल्या कडेन लक्ष दिवचें?” — तुमच्याच नोंदी थावन जाप.',
+  '“What needs my attention today?” - answered from your own records.':
+    '“आयज हांवें कसल्या कडेन लक्ष दिवचें?” - तुमच्याच नोंदी थावन जाप.',
   Open: 'उगडात',
 
   // --- Password field and strength meter -----------------------------------

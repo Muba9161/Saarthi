@@ -115,7 +115,7 @@ export function SourceBadge({
           </Badge>
         </TooltipTrigger>
         <TooltipContent className="max-w-xs">
-          Your records and the lender statement disagree. Neither has been treated as correct —
+          Your records and the lender statement disagree. Neither has been treated as correct -
           review the differences before relying on either figure.
         </TooltipContent>
       </Tooltip>
@@ -180,7 +180,7 @@ export function MaskedValue({
         <span className="cursor-help tabular-nums">{value}</span>
       </TooltipTrigger>
       <TooltipContent className="max-w-xs">
-        Partly hidden at your access level — this is not the full reference.
+        Partly hidden at your access level - this is not the full reference.
       </TooltipContent>
     </Tooltip>
   );

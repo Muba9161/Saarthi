@@ -316,12 +316,12 @@ class DeviceRepository(context: Context) {
                     // the device is unpaired, suspended or revoked. Holding them
                     // forever would fill the buffer with events that can never
                     // be delivered, and retrying would flatten the battery.
-                    DebugLog.add("UPLOAD REFUSED (${error.code}) — DISCARDING ${batch.size}")
+                    DebugLog.add("UPLOAD REFUSED (${error.code}) - DISCARDING ${batch.size}")
                     buffer.acknowledge(batch.map { it.rowId })
                     recordError(error)
                     return total
                 }
-                DebugLog.add("UPLOAD FAILED (${error.code}) — KEEPING ${batch.size}")
+                DebugLog.add("UPLOAD FAILED (${error.code}) - KEEPING ${batch.size}")
                 recordError(error)
                 return null
             }
@@ -357,7 +357,7 @@ class DeviceRepository(context: Context) {
 
     suspend fun raiseSos(request: SosRequest): Result<SosResponse> = runCatching {
         val response = api.raiseSos(request)
-        DebugLog.add("SOS RAISED — ${response.reference}")
+        DebugLog.add("SOS RAISED - ${response.reference}")
         response
     }.onFailure { recordError(it) }
 

@@ -120,7 +120,7 @@ fun AwaitingApprovalScreen(
 
                 FleetEnter(index = 1) {
                     Text(
-                        "Your fleet is reviewing it. Keep the app open — it will move " +
+                        "Your fleet is reviewing it. Keep the app open - it will move " +
                             "on by itself as soon as somebody decides.",
                         style = MaterialTheme.typography.bodyLarge,
                         color = Ash,

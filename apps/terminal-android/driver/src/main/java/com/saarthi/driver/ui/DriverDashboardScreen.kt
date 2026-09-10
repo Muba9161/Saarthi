@@ -261,7 +261,7 @@ fun DriverDashboardScreen(
                                 Text(
                                     // A balance the bank has not reported is not
                                     // zero, and must never be drawn as one.
-                                    tag.balanceRupees?.let { "₹%,.0f".format(it) } ?: "—",
+                                    tag.balanceRupees?.let { "₹%,.0f".format(it) } ?: "-",
                                     style = MaterialTheme.typography.titleLarge,
                                     color = when {
                                         tag.balanceRupees == null -> Slate
@@ -333,7 +333,7 @@ fun DriverDashboardScreen(
 
                                 if (rates.isEmpty()) {
                                     Text(
-                                        "—",
+                                        "-",
                                         style = MaterialTheme.typography.titleLarge,
                                         color = Slate,
                                     )

@@ -198,7 +198,7 @@ export function remainingGeometry(route: NavigationRoute, travelledMeters: numbe
 
 /** Formats a distance the way a navigation banner does: metres, then km. */
 export function formatManeuverDistance(meters: number): string {
-  if (!Number.isFinite(meters) || meters < 0) return '—';
+  if (!Number.isFinite(meters) || meters < 0) return '-';
   if (meters < 50) return 'Now';
   if (meters < 1000) return `${Math.round(meters / 10) * 10} m`;
   if (meters < 10_000) return `${(meters / 1000).toFixed(1)} km`;

@@ -170,7 +170,7 @@ export function WhepPlayer({ ticket, onEnded, className }: WhepPlayerProps): Rea
         if (!response.ok) {
           throw new Error(
             response.status === 401 || response.status === 403
-              ? 'Saarthi refused this viewing session. It may have expired — close and reopen the camera.'
+              ? 'Saarthi refused this viewing session. It may have expired - close and reopen the camera.'
               : `The video gateway returned ${response.status}.`,
           );
         }

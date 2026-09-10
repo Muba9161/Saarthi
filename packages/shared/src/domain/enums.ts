@@ -788,11 +788,25 @@ export type NotificationType = EnumValue<typeof NotificationType>;
 // Subscriptions
 // ---------------------------------------------------------------------------
 
+/**
+ * The two subscriptions Saarthi sells.
+ *
+ * `PERSONAL` is somebody running their own vehicles — the archetype is an
+ * owner with two or three cars, one of which he drives himself. He is never
+ * asked what kind of business he is, because he is not one.
+ *
+ * `BUSINESS` is every commercial account: a freight fleet, a supplier, a
+ * customer buying transport, a travel operator, a district association. The
+ * account type is still chosen at registration for these, because several
+ * surfaces belong to exactly one kind of business.
+ *
+ * Vehicle capacity is deliberately identical (one) on both. Fleet size is
+ * bought per vehicle through `VEHICLE_TOPUP`, so an operator pays for the
+ * vehicles they actually run rather than for the next size band up.
+ */
 export const PlanTier = asEnum({
-  BASIC: 'BASIC',
-  PRO: 'PRO',
-  INTELLIGENCE: 'INTELLIGENCE',
-  ENTERPRISE: 'ENTERPRISE',
+  PERSONAL: 'PERSONAL',
+  BUSINESS: 'BUSINESS',
 });
 export type PlanTier = EnumValue<typeof PlanTier>;
 export const PLAN_TIERS = Object.values(PlanTier) as PlanTier[];

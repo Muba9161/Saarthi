@@ -138,7 +138,7 @@ export const ml: Catalogue = {
   'Which language should Saarthi use?': 'Saarthi ഏത് ഭാഷ ഉപയോഗിക്കണം?',
   'You can change this later from your profile.':
     'ഇത് പിന്നീട് നിങ്ങളുടെ പ്രൊഫൈലിൽ നിന്ന് മാറ്റാം.',
-  'Not translated yet — shows in English': 'ഇതുവരെ വിവർത്തനം ചെയ്തിട്ടില്ല — ഇംഗ്ലീഷിൽ കാണിക്കും',
+  'Not translated yet - shows in English': 'ഇതുവരെ വിവർത്തനം ചെയ്തിട്ടില്ല - ഇംഗ്ലീഷിൽ കാണിക്കും',
 
   'Step {current} of {total}': 'ഘട്ടം {current} / {total}',
 
@@ -191,22 +191,22 @@ export const ml: Catalogue = {
     'ഇതിനകം Saarthi ഉപയോഗിക്കുന്ന വാഹനനിരയ്ക്കായി ഞാൻ വണ്ടിയോടിക്കുന്നു.',
   'The operating system for your trucking business.':
     'നിങ്ങളുടെ ട്രക്കിംഗ് ബിസിനസിന്റെ ഓപ്പറേറ്റിംഗ് സിസ്റ്റം.',
-  'Saarthi connects fleet owners, drivers, suppliers and customers on one platform — from posting a load to watching it arrive.':
-    'Saarthi വാഹന ഉടമകളെയും ഡ്രൈവർമാരെയും വിതരണക്കാരെയും ഉപഭോക്താക്കളെയും ഒരേ പ്ലാറ്റ്‌ഫോമിൽ ബന്ധിപ്പിക്കുന്നു — ലോഡ് ഇടുന്നത് മുതൽ അത് എത്തുന്നത് കാണുന്നത് വരെ.',
+  'Saarthi connects fleet owners, drivers, suppliers and customers on one platform - from posting a load to watching it arrive.':
+    'Saarthi വാഹന ഉടമകളെയും ഡ്രൈവർമാരെയും വിതരണക്കാരെയും ഉപഭോക്താക്കളെയും ഒരേ പ്ലാറ്റ്‌ഫോമിൽ ബന്ധിപ്പിക്കുന്നു - ലോഡ് ഇടുന്നത് മുതൽ അത് എത്തുന്നത് കാണുന്നത് വരെ.',
   'One fleet command centre': 'ഒരൊറ്റ ഫ്ലീറ്റ് കമാൻഡ് സെന്റർ',
   'Trucks, drivers, documents, orders and trips in a single operational view.':
-    'ട്രക്കുകൾ, ഡ്രൈവർമാർ, രേഖകൾ, ഓർഡറുകൾ, യാത്രകൾ — എല്ലാം ഒരൊറ്റ പ്രവർത്തന കാഴ്ചയിൽ.',
+    'ട്രക്കുകൾ, ഡ്രൈവർമാർ, രേഖകൾ, ഓർഡറുകൾ, യാത്രകൾ - എല്ലാം ഒരൊറ്റ പ്രവർത്തന കാഴ്ചയിൽ.',
   'Live tracking that actually moves': 'ശരിക്കും നീങ്ങുന്ന ലൈവ് ട്രാക്കിംഗ്',
   'Realtime positions, ETAs and route deviation alerts as they happen.':
-    'തത്സമയ സ്ഥാനം, എത്തുന്ന സമയം, വഴി മാറിയതിന്റെ മുന്നറിയിപ്പ് — സംഭവിക്കുമ്പോൾ തന്നെ.',
+    'തത്സമയ സ്ഥാനം, എത്തുന്ന സമയം, വഴി മാറിയതിന്റെ മുന്നറിയിപ്പ് - സംഭവിക്കുമ്പോൾ തന്നെ.',
   'Driver safety network': 'ഡ്രൈവർ സുരക്ഷാ ശൃംഖല',
   'One-tap SOS reaches nearby Saarthi trucks in expanding rings.':
     'ഒരു ടാപ്പിന്റെ SOS അടുത്തുള്ള Saarthi ട്രക്കുകളിൽ വികസിക്കുന്ന വളയങ്ങളിലൂടെ എത്തുന്നു.',
   'AI grounded in your data': 'നിങ്ങളുടെ സ്വന്തം ഡാറ്റയെ അടിസ്ഥാനമാക്കിയ AI',
   'Answers built only from records your role is allowed to see.':
     'നിങ്ങളുടെ റോളിന് കാണാൻ അനുമതിയുള്ള രേഖകളിൽ നിന്ന് മാത്രമാണ് ഉത്തരങ്ങൾ ഉണ്ടാകുന്നത്.',
-  'Local development build — simulated GPS, mock payments, local document storage.':
-    'ലോക്കൽ ഡെവലപ്‌മെന്റ് ബിൽഡ് — കൃത്രിമ GPS, വ്യാജ പേയ്‌മെന്റ്, പ്രാദേശിക രേഖാ സംഭരണം.',
+  'Local development build - simulated GPS, mock payments, local document storage.':
+    'ലോക്കൽ ഡെവലപ്‌മെന്റ് ബിൽഡ് - കൃത്രിമ GPS, വ്യാജ പേയ്‌മെന്റ്, പ്രാദേശിക രേഖാ സംഭരണം.',
   'Back to vorldxsaarthi.com': 'vorldxsaarthi.com-ലേക്ക് മടങ്ങുക',
   'Loading Saarthi…': 'Saarthi ലോഡ് ചെയ്യുന്നു…',
   'Try it instantly': 'ഉടനെ പരീക്ഷിക്കൂ',
@@ -288,8 +288,8 @@ export const ml: Catalogue = {
   'Open live map': 'ലൈവ് മാപ്പ് തുറക്കുക',
   'Documents needing attention': 'ശ്രദ്ധ വേണ്ട രേഖകൾ',
   'Ask the Fleet Copilot': 'ഫ്ലീറ്റ് കോപൈലറ്റിനോട് ചോദിക്കുക',
-  '“What needs my attention today?” — answered from your own records.':
-    '“ഇന്ന് ഞാൻ എന്തിൽ ശ്രദ്ധിക്കണം?” — നിങ്ങളുടെ സ്വന്തം രേഖകളിൽ നിന്നുതന്നെ ഉത്തരം.',
+  '“What needs my attention today?” - answered from your own records.':
+    '“ഇന്ന് ഞാൻ എന്തിൽ ശ്രദ്ധിക്കണം?” - നിങ്ങളുടെ സ്വന്തം രേഖകളിൽ നിന്നുതന്നെ ഉത്തരം.',
   Open: 'തുറക്കുക',
 
   // --- Password field and strength meter -----------------------------------

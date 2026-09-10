@@ -42,7 +42,7 @@ import {
 function encouragement(subjectType: QrSubjectType, isFirst: boolean): string {
   if (isFirst) {
     return subjectType === QrSubjectType.VEHICLE
-      ? 'Your first vehicle is on the road with Saarthi. Everything else — documents, service, trips — hangs off this one record.'
+      ? 'Your first vehicle is on the road with Saarthi. Everything else - documents, service, trips - hangs off this one record.'
       : 'Your first driver is set up. Their score, documents and trip history start building from here.';
   }
   return subjectType === QrSubjectType.VEHICLE
@@ -128,7 +128,7 @@ export function QrWelcomeDialog({
             {headline ?? `${subjectLabel} is in your fleet`}
           </DialogTitle>
           <DialogDescription>
-            Saarthi issued this {noun}’s QR code automatically — there is nothing to generate.
+            Saarthi issued this {noun}’s QR code automatically - there is nothing to generate.
           </DialogDescription>
         </DialogHeader>
 

@@ -218,7 +218,7 @@ export function PetrolStationListHeader({
 
       <p className="text-[11px] text-muted-foreground">
         {stale
-          ? 'The fuel directory is unreachable — showing the last data Saarthi stored for this area.'
+          ? 'The fuel directory is unreachable - showing the last data Saarthi stored for this area.'
           : showRate
             ? 'Fuel types as listed by the station directory. It reports no tank level or stock.'
             : rateLoading

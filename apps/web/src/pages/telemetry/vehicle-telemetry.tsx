@@ -16,6 +16,8 @@ import {
   Permission,
   RealtimeEvent,
   TelemetryMetric,
+  VEHICLE_TRACKER,
+  formatCurrency,
   humanizeEnum,
 } from '@saarthi/shared';
 import { api } from '@/lib/api-client';
@@ -251,8 +253,14 @@ export function VehicleTelemetryPage() {
           <TabsContent value="live" className="space-y-4">
             {!hasFeature(Feature.TELEMETRY_LIVE) ? (
               <Card>
+                {/* Not an upgrade prompt: no plan sells this at any price,
+                    because it reads a device wired into the vehicle. Telling a
+                    Business customer to upgrade would be advice they could not
+                    act on. */}
                 <CardContent className="py-4 text-sm text-muted-foreground">
-                  Live telemetry is available on the VorldX Saarthi Pro plan and above.
+                  Live telemetry reads the vehicle itself, so it needs a Saarthi tracker fitted -
+                  a one-time {formatCurrency(VEHICLE_TRACKER.priceOneTime)} per vehicle. Until then
+                  the driver app is the only source, and its figures are estimates.
                 </CardContent>
               </Card>
             ) : reading === null ? (
@@ -456,7 +464,7 @@ export function VehicleTelemetryPage() {
                       <strong>{capabilities.data?.observedMetrics.length ?? 0}</strong> of the{' '}
                       {capabilities.data?.supportedMetrics.length ?? 0} metrics the device is capable
                       of. What a device can do and what a given vehicle exposes are different
-                      questions — Saarthi shows only the second.
+                      questions - Saarthi shows only the second.
                     </p>
                   </CardContent>
                 </Card>
@@ -530,7 +538,8 @@ export function VehicleTelemetryPage() {
             {!hasFeature(Feature.TELEMETRY_HISTORY) ? (
               <Card>
                 <CardContent className="py-4 text-sm text-muted-foreground">
-                  Telemetry history is available on the VorldX Saarthi Pro plan and above.
+                  Telemetry history needs a Saarthi tracker on this vehicle - a one-time{' '}
+                  {formatCurrency(VEHICLE_TRACKER.priceOneTime)}, with no monthly charge.
                 </CardContent>
               </Card>
             ) : (history.data?.items.length ?? 0) === 0 ? (
@@ -573,18 +582,18 @@ export function VehicleTelemetryPage() {
                               })}
                             </td>
                             <td className="py-1.5 pr-3 text-right tabular-nums">
-                              {row.speedKph === null ? '—' : `${Math.round(row.speedKph)}`}
+                              {row.speedKph === null ? '-' : `${Math.round(row.speedKph)}`}
                             </td>
                             <td className="py-1.5 pr-3 text-right tabular-nums">
-                              {row.rpm === null ? '—' : Math.round(row.rpm)}
+                              {row.rpm === null ? '-' : Math.round(row.rpm)}
                             </td>
                             <td className="py-1.5 pr-3 text-right tabular-nums">
                               {row.coolantTemperature === null
-                                ? '—'
+                                ? '-'
                                 : `${Math.round(row.coolantTemperature)}°`}
                             </td>
                             <td className="py-1.5 text-right tabular-nums">
-                              {row.fuelLevel === null ? '—' : `${Math.round(row.fuelLevel)}%`}
+                              {row.fuelLevel === null ? '-' : `${Math.round(row.fuelLevel)}%`}
                             </td>
                           </tr>
                         ))}

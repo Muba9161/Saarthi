@@ -348,7 +348,7 @@ export function MarketingFooter() {
             <p className="text-sm font-semibold">VorldX Saarthi</p>
           </div>
           <p className="mt-4 max-w-sm text-sm leading-relaxed text-muted-foreground">
-            One system for everyone in a haul — fleet owners, drivers, suppliers, customers, travel
+            One system for everyone in a haul - fleet owners, drivers, suppliers, customers, travel
             operators, and the associations that answer when something goes wrong.
           </p>
         </div>
@@ -395,7 +395,7 @@ export function MarketingFooter() {
       <div className="mx-auto mt-12 max-w-6xl border-t border-border/60 pt-6">
         <p className="max-w-3xl text-2xs leading-relaxed text-muted-foreground">
           Saarthi&rsquo;s emergency network connects nearby drivers who may be able to help. It does
-          not replace official emergency services — always call 112 first in a life-threatening
+          not replace official emergency services - always call 112 first in a life-threatening
           situation.
         </p>
         <p className="mt-3 text-2xs text-muted-foreground">© {year} VorldX Saarthi</p>

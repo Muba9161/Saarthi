@@ -99,7 +99,7 @@ export function VerifyButton({
       refresh();
       setOpen(false);
       toast.success('Verified', {
-        description: 'Demo mode — no registry was contacted and no documents were reviewed.',
+        description: 'Demo mode - no registry was contacted and no documents were reviewed.',
       });
     },
     onError: (error) => toast.error('Could not verify', { description: errorMessage(error) }),
@@ -135,7 +135,7 @@ export function VerifyButton({
         className={className}
         loading={demoVerify.isPending}
         onClick={() => demoVerify.mutate()}
-        title="Demo mode only — an organization is verified through its GSTIN on the Identity tab"
+        title="Demo mode only - an organization is verified through its GSTIN on the Identity tab"
       >
         <BadgeCheck className="size-4" />
         Verify (demo)

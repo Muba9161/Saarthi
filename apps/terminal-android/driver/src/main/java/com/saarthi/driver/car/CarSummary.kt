@@ -56,9 +56,9 @@ object CarSummary {
 
         TerminalState.APPROVED,
         TerminalState.CHECKLIST_REQUIRED,
-        -> "Safety check due — complete it on your phone"
+        -> "Safety check due - complete it on your phone"
 
-        TerminalState.DRIVER_IDENTIFIED -> "Arrival photo needed — take it on your phone"
+        TerminalState.DRIVER_IDENTIFIED -> "Arrival photo needed - take it on your phone"
         TerminalState.REJECTED -> "Not approved"
         else -> driverName
     }

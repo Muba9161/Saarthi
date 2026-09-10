@@ -114,7 +114,7 @@ export function IdentityVerifyDialog({
       if (summary.outcome === 'VERIFIED') {
         toast.success(`${definition?.label ?? 'Document'} verified`, {
           description: summary.holderName
-            ? `Confirmed against the issuing authority — ${summary.holderName}.`
+            ? `Confirmed against the issuing authority - ${summary.holderName}.`
             : 'Confirmed against the issuing authority.',
         });
         onVerified?.(summary);

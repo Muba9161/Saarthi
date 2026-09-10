@@ -16,6 +16,16 @@ const baseUrl = process.env.DATABASE_URL ?? 'postgresql://postgres:postgres@127.
 process.env.NODE_ENV = 'test';
 process.env.DATABASE_URL = baseUrl.replace(/\/saarthi(\?|$)/, '/saarthi_test$1');
 process.env.LOG_LEVEL = 'silent';
+/*
+ * Plan gating is on in tests, whatever the developer's `.env` says.
+ *
+ * This is not a convenience override like the ones below — it is load-bearing.
+ * A developer working with `SUBSCRIPTION_ENFORCEMENT=false` grants every
+ * organization every capability, which would turn every "a Personal plan
+ * cannot reach this" assertion into a test that passes for the wrong reason and
+ * then keeps passing after the gate is broken.
+ */
+process.env.SUBSCRIPTION_ENFORCEMENT = 'true';
 process.env.DEMO_MODE = 'true';
 process.env.CACHE_DRIVER = 'memory';
 process.env.QUEUE_DRIVER = 'memory';

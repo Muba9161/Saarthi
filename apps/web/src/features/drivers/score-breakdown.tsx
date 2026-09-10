@@ -116,7 +116,7 @@ export function ScoreBreakdown({ score, driverId }: { score: DriverScoreDetail; 
           <CardContent className="pt-0">
             {trendData.length < 2 ? (
               <p className="py-16 text-center text-sm text-muted-foreground">
-                Not enough history yet — the trend appears after a few score events.
+                Not enough history yet - the trend appears after a few score events.
               </p>
             ) : (
               <ResponsiveContainer width="100%" height={240}>

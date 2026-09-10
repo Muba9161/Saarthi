@@ -158,7 +158,7 @@ export const en = {
   'How Saarthi speaks to you.': 'How Saarthi speaks to you.',
   'Which language should Saarthi use?': 'Which language should Saarthi use?',
   'You can change this later from your profile.': 'You can change this later from your profile.',
-  'Not translated yet — shows in English': 'Not translated yet — shows in English',
+  'Not translated yet - shows in English': 'Not translated yet - shows in English',
 
   // --- Wizard chrome --------------------------------------------------------
   'Step {current} of {total}': 'Step {current} of {total}',
@@ -216,8 +216,8 @@ export const en = {
   // --- The panel beside the sign-in and registration forms ------------------
   'The operating system for your trucking business.':
     'The operating system for your trucking business.',
-  'Saarthi connects fleet owners, drivers, suppliers and customers on one platform — from posting a load to watching it arrive.':
-    'Saarthi connects fleet owners, drivers, suppliers and customers on one platform — from posting a load to watching it arrive.',
+  'Saarthi connects fleet owners, drivers, suppliers and customers on one platform - from posting a load to watching it arrive.':
+    'Saarthi connects fleet owners, drivers, suppliers and customers on one platform - from posting a load to watching it arrive.',
   'One fleet command centre': 'One fleet command centre',
   'Trucks, drivers, documents, orders and trips in a single operational view.':
     'Trucks, drivers, documents, orders and trips in a single operational view.',
@@ -230,8 +230,8 @@ export const en = {
   'AI grounded in your data': 'AI grounded in your data',
   'Answers built only from records your role is allowed to see.':
     'Answers built only from records your role is allowed to see.',
-  'Local development build — simulated GPS, mock payments, local document storage.':
-    'Local development build — simulated GPS, mock payments, local document storage.',
+  'Local development build - simulated GPS, mock payments, local document storage.':
+    'Local development build - simulated GPS, mock payments, local document storage.',
   'Back to vorldxsaarthi.com': 'Back to vorldxsaarthi.com',
   'Loading Saarthi…': 'Loading Saarthi…',
 
@@ -347,8 +347,8 @@ export const en = {
   'Open live map': 'Open live map',
   'Documents needing attention': 'Documents needing attention',
   'Ask the Fleet Copilot': 'Ask the Fleet Copilot',
-  '“What needs my attention today?” — answered from your own records.':
-    '“What needs my attention today?” — answered from your own records.',
+  '“What needs my attention today?” - answered from your own records.':
+    '“What needs my attention today?” - answered from your own records.',
   Open: 'Open',
 } as const;
 

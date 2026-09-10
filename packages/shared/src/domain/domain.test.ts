@@ -3,6 +3,7 @@ import {
   DocumentValidity,
   DocumentVerificationStatus,
   OrderStatus,
+  PLAN_TIERS,
   PlanTier,
   RoleName,
   ScoreCategory,
@@ -42,7 +43,23 @@ import {
   mandatoryDocumentTypes,
   resolveDocumentValidity,
 } from './documents';
-import { Feature, featuresForTier, minimumTierFor, tierHasFeature } from './entitlements';
+import {
+  Feature,
+  GST_RATE,
+  PLAN_CATALOGUE,
+  PLAN_LIMITS,
+  canAddVehicleTopUp,
+  canAddVehicleTracker,
+  effectiveVehicleLimit,
+  featuresForTier,
+  isTrackerFeature,
+  minimumTierFor,
+  monthlyCostFor,
+  monthsFreeOnYearly,
+  quoteSubscription,
+  tierHasFeature,
+  trackerFeatures,
+} from './entitlements';
 import { Permission, hasPermission, permissionsForRole, permissionsForRoles } from './permissions';
 import { evaluateAchievements, emptyAchievementMetrics } from './achievements';
 
@@ -386,32 +403,241 @@ describe('document expiry', () => {
 });
 
 describe('entitlements', () => {
-  it('grants progressively more features up the tiers', () => {
-    const basic = featuresForTier(PlanTier.BASIC);
-    const pro = featuresForTier(PlanTier.PRO);
-    const intelligence = featuresForTier(PlanTier.INTELLIGENCE);
+  it('gives Business everything Personal has, and more', () => {
+    const personal = featuresForTier(PlanTier.PERSONAL);
+    const business = featuresForTier(PlanTier.BUSINESS);
 
-    expect(pro.length).toBeGreaterThan(basic.length);
-    expect(intelligence.length).toBeGreaterThan(pro.length);
-    // Every Basic feature survives into Pro.
-    for (const feature of basic) expect(pro).toContain(feature);
+    expect(business.length).toBeGreaterThan(personal.length);
+    // Nothing a Personal customer relies on disappears when they upgrade.
+    for (const feature of personal) expect(business).toContain(feature);
   });
 
-  it('gates premium features correctly', () => {
-    expect(tierHasFeature(PlanTier.BASIC, Feature.MAPS_2D)).toBe(true);
-    expect(tierHasFeature(PlanTier.BASIC, Feature.MAPS_3D)).toBe(false);
-    expect(tierHasFeature(PlanTier.BASIC, Feature.AI_COPILOT)).toBe(false);
-    expect(tierHasFeature(PlanTier.PRO, Feature.DRIVER_SCORING)).toBe(true);
-    expect(tierHasFeature(PlanTier.PRO, Feature.AI_COPILOT)).toBe(false);
-    expect(tierHasFeature(PlanTier.INTELLIGENCE, Feature.AI_COPILOT)).toBe(true);
-    expect(tierHasFeature(PlanTier.ENTERPRISE, Feature.API_ACCESS)).toBe(true);
+  it('keeps the commercial surface out of Personal', () => {
+    expect(tierHasFeature(PlanTier.PERSONAL, Feature.MAPS_2D)).toBe(true);
+    expect(tierHasFeature(PlanTier.PERSONAL, Feature.FINANCE_LOANS)).toBe(true);
+    expect(tierHasFeature(PlanTier.PERSONAL, Feature.ORDERS_MARKETPLACE)).toBe(false);
+    expect(tierHasFeature(PlanTier.PERSONAL, Feature.AI_COPILOT)).toBe(false);
+    expect(tierHasFeature(PlanTier.PERSONAL, Feature.RETURN_LOADS)).toBe(false);
+    expect(tierHasFeature(PlanTier.PERSONAL, Feature.DRIVER_SCORING)).toBe(false);
+
+    expect(tierHasFeature(PlanTier.BUSINESS, Feature.ORDERS_MARKETPLACE)).toBe(true);
+    expect(tierHasFeature(PlanTier.BUSINESS, Feature.AI_COPILOT)).toBe(true);
+    expect(tierHasFeature(PlanTier.BUSINESS, Feature.API_ACCESS)).toBe(true);
+  });
+
+  it('never gates safety behind the price', () => {
+    // A plan that withholds an SOS, a hazard warning or a no-entry rule is a
+    // plan that lets a paying customer drive into trouble. Asserted rather
+    // than left to the catalogue, because it is a product promise.
+    for (const feature of [
+      Feature.SOS_NETWORK,
+      Feature.ROUTE_INTELLIGENCE_ALERTS,
+      Feature.CITY_ACCESS_INTELLIGENCE,
+      Feature.NEARBY_SERVICES,
+    ]) {
+      expect(tierHasFeature(PlanTier.PERSONAL, feature)).toBe(true);
+    }
+  });
+
+  it('sells the telemetry capabilities with hardware rather than with a plan', () => {
+    // These read a device wired into the vehicle. No plan can grant them,
+    // because without a tracker there is nothing for them to report.
+    for (const feature of trackerFeatures()) {
+      expect(isTrackerFeature(feature)).toBe(true);
+      expect(tierHasFeature(PlanTier.PERSONAL, feature)).toBe(false);
+      expect(tierHasFeature(PlanTier.BUSINESS, feature)).toBe(false);
+      // `null` is what tells a caller to say "fit a tracker" instead of
+      // "upgrade" — advice a Business customer could not act on.
+      expect(minimumTierFor(feature)).toBeNull();
+    }
   });
 
   it('reports the cheapest tier that unlocks a feature', () => {
-    expect(minimumTierFor(Feature.MAPS_2D)).toBe(PlanTier.BASIC);
-    expect(minimumTierFor(Feature.DRIVER_SCORING)).toBe(PlanTier.PRO);
-    expect(minimumTierFor(Feature.AI_COPILOT)).toBe(PlanTier.INTELLIGENCE);
-    expect(minimumTierFor(Feature.SSO)).toBe(PlanTier.ENTERPRISE);
+    expect(minimumTierFor(Feature.MAPS_2D)).toBe(PlanTier.PERSONAL);
+    expect(minimumTierFor(Feature.SOS_NETWORK)).toBe(PlanTier.PERSONAL);
+    expect(minimumTierFor(Feature.DRIVER_SCORING)).toBe(PlanTier.BUSINESS);
+    expect(minimumTierFor(Feature.AI_COPILOT)).toBe(PlanTier.BUSINESS);
+    expect(minimumTierFor(Feature.SSO)).toBe(PlanTier.BUSINESS);
+  });
+
+  it('starts both plans at one vehicle, and sells the rest per vehicle', () => {
+    for (const tier of PLAN_TIERS) {
+      expect(PLAN_LIMITS[tier].maxTrucks).toBe(1);
+    }
+    expect(effectiveVehicleLimit(1, 2)).toBe(3);
+    // An unlimited base stays unlimited rather than becoming a number.
+    expect(effectiveVehicleLimit(null, 2)).toBeNull();
+  });
+
+  it('holds the top-up ceiling on Personal but not on Business', () => {
+    expect(canAddVehicleTopUp(PlanTier.PERSONAL, 3)).toBe(true);
+    expect(canAddVehicleTopUp(PlanTier.PERSONAL, PLAN_LIMITS[PlanTier.PERSONAL].maxVehicleTopUps)).toBe(
+      false,
+    );
+    expect(canAddVehicleTopUp(PlanTier.BUSINESS, 40)).toBe(true);
+  });
+
+  it('refuses a tracker with no vehicle to fit it to', () => {
+    expect(
+      canAddVehicleTracker({ tier: PlanTier.BUSINESS, activeTrackers: 0, vehicleCount: 0 }),
+    ).toBe(true); // one vehicle is assumed as the floor; the service checks the real count
+    expect(
+      canAddVehicleTracker({ tier: PlanTier.BUSINESS, activeTrackers: 3, vehicleCount: 3 }),
+    ).toBe(false);
+    expect(
+      canAddVehicleTracker({ tier: PlanTier.BUSINESS, activeTrackers: 2, vehicleCount: 3 }),
+    ).toBe(true);
+    // Personal's own ceiling binds before the vehicle count does.
+    expect(
+      canAddVehicleTracker({ tier: PlanTier.PERSONAL, activeTrackers: 5, vehicleCount: 20 }),
+    ).toBe(false);
+  });
+
+  it('prices a fleet as the plan plus one top-up per extra vehicle', () => {
+    const personal = PLAN_CATALOGUE.find((plan) => plan.tier === PlanTier.PERSONAL);
+    expect(personal?.priceMonthly).toBe(99);
+
+    // One vehicle is the plan alone.
+    expect(monthlyCostFor({ tier: PlanTier.PERSONAL, vehicles: 1 })).toBe(99);
+    // Three vehicles is the plan plus two top-ups.
+    expect(monthlyCostFor({ tier: PlanTier.PERSONAL, vehicles: 3 })).toBe(99 + 2 * 75);
+    expect(monthlyCostFor({ tier: PlanTier.BUSINESS, vehicles: 10 })).toBe(199 + 9 * 75);
+    // Zero and one cost the same: there is no such thing as a plan with no
+    // vehicle allowance, so the floor must not price below the plan.
+    expect(monthlyCostFor({ tier: PlanTier.BUSINESS, vehicles: 0 })).toBe(199);
+  });
+
+  it('itemises a configuration, keeping hardware out of what renews', () => {
+    // Three vehicles and two trackers on Personal: the plan, two top-ups and
+    // two one-time tracker charges.
+    const quote = quoteSubscription({ tier: PlanTier.PERSONAL, vehicles: 3, trackers: 2 });
+
+    expect(quote.vehicleTopUps).toBe(2);
+    expect(quote.monthly.subtotal).toBe(99 + 2 * 75);
+    expect(quote.oneTime.subtotal).toBe(2 * 499);
+    // The first invoice is both halves together...
+    expect(quote.dueNow.subtotal).toBe(99 + 2 * 75 + 2 * 499);
+    // ...but only the recurring half comes back next month. A tracker folded
+    // into the renewal figure would overstate the bill by a thousand rupees a
+    // month, which is the kind of wrong a customer notices once and never
+    // forgives.
+    expect(quote.renews.subtotal).toBe(99 + 2 * 75);
+
+    const once = quote.lines.filter((line) => line.cadence === 'once');
+    expect(once).toHaveLength(1);
+    expect(once[0]?.amount).toBe(2 * 499);
+  });
+
+  it('adds GST at 18% and totals what will actually be charged', () => {
+    const quote = quoteSubscription({ tier: PlanTier.PERSONAL, vehicles: 3, trackers: 2 });
+
+    expect(quote.gstRate).toBe(0.18);
+    expect(GST_RATE).toBe(0.18);
+
+    const subtotal = 99 + 2 * 75 + 2 * 499;
+    expect(quote.dueNow.subtotal).toBe(subtotal);
+    expect(quote.dueNow.gst).toBeCloseTo(subtotal * 0.18, 2);
+    expect(quote.dueNow.total).toBeCloseTo(subtotal * 1.18, 2);
+
+    // Every bucket carries its own tax, so no surface has to work one out.
+    for (const totals of [quote.recurring, quote.monthly, quote.oneTime, quote.addOns, quote.dueNow, quote.renews]) {
+      expect(totals.gst).toBeCloseTo(totals.subtotal * 0.18, 2);
+      expect(totals.total).toBeCloseTo(totals.subtotal + totals.gst, 2);
+    }
+  });
+
+  it('charges the add-ons without the plan, exactly', () => {
+    /*
+     * What signup takes: the top-ups and trackers, not the plan, which is on
+     * trial. Asserted against its own arithmetic rather than against
+     * `dueNow - plan`, because that subtraction is the bug this field exists
+     * to prevent — it would be a rupee out whenever rounding fell badly.
+     */
+    const quote = quoteSubscription({ tier: PlanTier.BUSINESS, vehicles: 4, trackers: 2 });
+
+    const addOnSubtotal = 3 * 75 + 2 * 499;
+    expect(quote.addOns.subtotal).toBe(addOnSubtotal);
+    expect(quote.addOns.total).toBeCloseTo(addOnSubtotal * 1.18, 2);
+    // And it really is the invoice minus the plan, to the paisa.
+    expect(quote.addOns.subtotal).toBeCloseTo(quote.dueNow.subtotal - 199, 2);
+  });
+
+  it('rounds money to paise rather than leaving a float in a charge', () => {
+    // 99 × 0.18 = 17.82 exactly; a float would offer 17.819999999999999.
+    const quote = quoteSubscription({ tier: PlanTier.PERSONAL, vehicles: 1 });
+    expect(quote.dueNow.gst).toBe(17.82);
+    expect(quote.dueNow.total).toBe(116.82);
+
+    // Every figure that could reach a payment intent is at most two decimals.
+    for (const totals of [quote.recurring, quote.monthly, quote.oneTime, quote.addOns, quote.dueNow]) {
+      for (const amount of [totals.subtotal, totals.gst, totals.total]) {
+        expect(Math.round(amount * 100)).toBe(amount * 100);
+      }
+    }
+  });
+
+  it('prices a yearly commitment as ten months, on the plan and every vehicle', () => {
+    const quote = quoteSubscription({
+      tier: PlanTier.BUSINESS,
+      vehicles: 4,
+      trackers: 1,
+      billing: 'yearly',
+    });
+
+    expect(quote.recurring.subtotal).toBe(1990 + 3 * 750);
+    expect(quote.monthly.subtotal).toBeCloseTo((1990 + 3 * 750) / 12, 2);
+    // Charged once means once, whichever period the plan is billed on.
+    expect(quote.oneTime.subtotal).toBe(499);
+  });
+
+  it('flags a configuration the plan cannot hold', () => {
+    const ceiling =
+      (PLAN_LIMITS[PlanTier.PERSONAL].maxTrucks ?? 0) +
+      PLAN_LIMITS[PlanTier.PERSONAL].maxVehicleTopUps;
+
+    expect(quoteSubscription({ tier: PlanTier.PERSONAL, vehicles: ceiling }).overVehicleCeiling).toBe(
+      false,
+    );
+    expect(
+      quoteSubscription({ tier: PlanTier.PERSONAL, vehicles: ceiling + 1 }).overVehicleCeiling,
+    ).toBe(true);
+
+    // More trackers than vehicles is hardware with nothing to fit it to.
+    expect(
+      quoteSubscription({ tier: PlanTier.BUSINESS, vehicles: 2, trackers: 3 }).overTrackerCeiling,
+    ).toBe(true);
+    expect(
+      quoteSubscription({ tier: PlanTier.BUSINESS, vehicles: 3, trackers: 3 }).overTrackerCeiling,
+    ).toBe(false);
+  });
+
+  it('never prices below the plan, whatever it is asked for', () => {
+    // Zero and one vehicle cost the same: there is no such thing as a plan with
+    // no vehicle allowance, so the floor must not undercut the plan itself.
+    for (const vehicles of [0, -3, 1]) {
+      const quote = quoteSubscription({ tier: PlanTier.PERSONAL, vehicles });
+      expect(quote.vehicles).toBe(1);
+      expect(quote.vehicleTopUps).toBe(0);
+      expect(quote.monthly.subtotal).toBe(99);
+    }
+  });
+
+  it('agrees with monthlyCostFor, which quotes the pre-tax figure', () => {
+    for (const tier of PLAN_TIERS) {
+      for (const vehicles of [1, 2, 5]) {
+        for (const billing of ['monthly', 'yearly'] as const) {
+          expect(quoteSubscription({ tier, vehicles, billing }).monthly.subtotal).toBeCloseTo(
+            monthlyCostFor({ tier, vehicles, billing }),
+            2,
+          );
+        }
+      }
+    }
+  });
+
+  it('advertises a yearly discount only when every price agrees on it', () => {
+    // Two months free, from the real figures rather than from copy.
+    expect(monthsFreeOnYearly()).toBe(2);
   });
 });
 

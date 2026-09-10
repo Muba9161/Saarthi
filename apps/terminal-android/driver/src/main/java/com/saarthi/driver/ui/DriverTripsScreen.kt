@@ -95,7 +95,7 @@ fun DriverTripsScreen(
                     Text(
                         "Trips appear here once you have started and finished one with " +
                             "Saarthi. Anything driven before you began using the app will " +
-                            "not be here — Saarthi will not invent a record it does not have.",
+                            "not be here - Saarthi will not invent a record it does not have.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = Ash,
                     )
@@ -196,7 +196,7 @@ private fun TripRow(trip: DriverTripDto) {
             Column {
                 FieldLabel(if (trip.distanceIsPlanned) "Distance, planned" else "Distance")
                 Text(
-                    trip.distanceKm?.let { "%,.0f km".format(it) } ?: "—",
+                    trip.distanceKm?.let { "%,.0f km".format(it) } ?: "-",
                     style = MaterialTheme.typography.titleSmall,
                     color = if (trip.distanceKm == null) Slate else Chalk,
                 )
@@ -204,7 +204,7 @@ private fun TripRow(trip: DriverTripDto) {
             Column {
                 FieldLabel("Started")
                 Text(
-                    trip.startedAt?.let { shortDate(it) } ?: "—",
+                    trip.startedAt?.let { shortDate(it) } ?: "-",
                     style = MaterialTheme.typography.titleSmall,
                     color = if (trip.startedAt == null) Slate else Chalk,
                 )

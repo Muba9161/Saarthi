@@ -699,7 +699,7 @@ export function VehicleDialog({
           </DialogTitle>
           <DialogDescription>
             {isEdit
-              ? 'Correct this vehicle’s details. Open any step directly — only what you change is saved.'
+              ? 'Correct this vehicle’s details. Open any step directly - only what you change is saved.'
               : 'Register a vehicle to your organization. You can pull its RC record and upload photos once it is added.'}
           </DialogDescription>
         </DialogHeader>

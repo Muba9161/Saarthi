@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import {
   ORGANIZATION_NAME_REQUIRED_ROLES,
+  RoleName,
   languageByCode,
   type RegisterInput,
   type RegistrableRole,
@@ -384,7 +385,16 @@ export function RegistrationTutorial({
   const [ready, setReady] = React.useState<ReadonlySet<string>>(() => new Set());
 
   const values = form.watch();
-  const role = values.role;
+  /*
+   * The account type the guided route narrates.
+   *
+   * `role` is unanswered until the account-type screen, because the form no
+   * longer pre-fills it — a Personal registration is never asked it at all.
+   * The walkthrough is per role and has to show something before that screen,
+   * so it opens on the fleet owner's script, which is the commonest arrival
+   * and the one the account-type screen itself defaults to explaining.
+   */
+  const role: RegistrableRole = values.role ?? RoleName.FLEET_OWNER;
   const guide = guideForRole(role);
   const wantsLogo = ORGANIZATION_NAME_REQUIRED_ROLES.includes(role);
   const scrollRef = React.useRef<HTMLDivElement>(null);
@@ -535,10 +545,10 @@ export function RegistrationTutorial({
       case 'image':
         return image?.name ?? t('Not added');
       case 'organization':
-        return values.organizationName || t('Left blank — the account will carry your own name');
+        return values.organizationName || t('Left blank - the account will carry your own name');
       case 'fleet-code':
         return (
-          values.fleetInviteCode || t('Skipped — you can join your fleet from your home screen')
+          values.fleetInviteCode || t('Skipped - you can join your fleet from your home screen')
         );
       case 'licence':
         return values.licenseNumber ?? '';
@@ -578,7 +588,7 @@ export function RegistrationTutorial({
               </DialogTitle>
               <DialogDescription className="text-xs leading-relaxed sm:text-sm">
                 {t(
-                  'One question at a time. Everything you enter is saved into the form behind — nothing is submitted until the last screen.',
+                  'One question at a time. Everything you enter is saved into the form behind - nothing is submitted until the last screen.',
                 )}
               </DialogDescription>
 
@@ -736,7 +746,7 @@ function LanguageScreen({
       icon={Languages}
       question="Which language should Saarthi use?"
       help="Everything from here on is a question, and a question is only useful in a language you read comfortably. Pick yours and the rest of this changes to it straight away."
-      tip="A language marked as not translated still works — those screens stay in English until their translation lands. You can change this later from your profile."
+      tip="A language marked as not translated still works - those screens stay in English until their translation lands. You can change this later from your profile."
     >
       <FormField
         control={form.control}
@@ -777,7 +787,7 @@ function AccountTypeScreen({
     <QuestionFrame
       icon={Users}
       question="Which of these is you?"
-      help="This is the decision everything else hangs off. It sets up a different account for each answer, and it cannot be changed from the app afterwards — so pick the one that describes the business you actually run."
+      help="This is the decision everything else hangs off. It sets up a different account for each answer, and it cannot be changed from the app afterwards - so pick the one that describes the business you actually run."
     >
       <div
         role="radiogroup"
@@ -893,7 +903,7 @@ function ReadyScreen({
     <QuestionFrame
       icon={ListChecks}
       question="Do you have these to hand?"
-      help="Tick off what you have. This is only a check — nothing here is saved, and you can carry on either way. It exists so you find out now rather than four questions in."
+      help="Tick off what you have. This is only a check - nothing here is saved, and you can carry on either way. It exists so you find out now rather than four questions in."
       optional
     >
       <ul className="space-y-2">

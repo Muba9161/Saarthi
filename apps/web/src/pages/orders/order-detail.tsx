@@ -84,7 +84,7 @@ export function OrderDetailPage() {
             <CardContent className="grid grid-cols-2 gap-4 pt-0 text-sm">
               <div><p className="text-xs text-muted-foreground">Pickup</p><p className="font-medium">{data.originAddress}</p></div>
               <div><p className="text-xs text-muted-foreground">Delivery</p><p className="font-medium">{data.destinationAddress}</p></div>
-              <div><p className="text-xs text-muted-foreground">Distance</p><p className="tabular font-medium">{data.distanceKm ?? '—'} km</p></div>
+              <div><p className="text-xs text-muted-foreground">Distance</p><p className="tabular font-medium">{data.distanceKm ?? '-'} km</p></div>
               <div><p className="text-xs text-muted-foreground">Capacity needed</p><p className="tabular font-medium">{data.requiredCapacityTons}T</p></div>
               <div><p className="text-xs text-muted-foreground">Material value</p><p className="tabular font-medium">{formatCurrency(data.materialPrice)}</p></div>
               <div><p className="text-xs text-muted-foreground">Transport</p><p className="tabular font-medium">{formatCurrency(data.transportPrice)}</p></div>

@@ -149,7 +149,7 @@ export function FastagCard({
               <p className="mt-0.5 text-xs text-muted-foreground">
                 {capabilities?.supportsBalance
                   ? 'Check with the network, or enter the balance from your issuer app.'
-                  : 'Your FASTag provider serves tag status but not the rupee balance — that sits with the issuing bank. Enter what your issuer app shows and Saarthi will track it from there.'}
+                  : 'Your FASTag provider serves tag status but not the rupee balance - that sits with the issuing bank. Enter what your issuer app shows and Saarthi will track it from there.'}
               </p>
             </>
           ) : (
@@ -281,7 +281,7 @@ function BalanceDialog({
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Update balance — {tag.registrationNumber}</DialogTitle>
+          <DialogTitle>Update balance - {tag.registrationNumber}</DialogTitle>
           <DialogDescription>
             Enter what your issuer app or SMS shows. Saarthi tracks it from there and warns you
             before the tag runs out.
@@ -308,7 +308,7 @@ function BalanceDialog({
               onChange={(event) => setObservedAt(event.target.value)}
             />
             <p className="text-2xs text-muted-foreground">
-              Leave blank for now. If you are entering a reading from a few days ago, say so — a
+              Leave blank for now. If you are entering a reading from a few days ago, say so - a
               tag spends by itself, and Saarthi treats an old reading as out of date rather than
               current.
             </p>
@@ -370,10 +370,10 @@ function RechargeDialog({
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Record recharge — {tag.registrationNumber}</DialogTitle>
+          <DialogTitle>Record recharge - {tag.registrationNumber}</DialogTitle>
           <DialogDescription>
             Topping up happens at {tag.issuerBank}. This records the top-up you made so your
-            balance and toll spend stay in step — it does not move money.
+            balance and toll spend stay in step - it does not move money.
           </DialogDescription>
         </DialogHeader>
 
@@ -512,7 +512,7 @@ export function VehicleFastagPanel({
                 {discover.isPending ? 'Checking with NETC…' : 'Find tag from registration'}
               </Button>
               <p className="mx-auto mt-2 max-w-md text-2xs text-muted-foreground">
-                Looks this vehicle up on the NETC network. It returns the tag and its status —
+                Looks this vehicle up on the NETC network. It returns the tag and its status -
                 the rupee balance stays with your issuing bank.
               </p>
             </>

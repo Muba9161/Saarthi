@@ -137,8 +137,8 @@ export const ta: Catalogue = {
   'How Saarthi speaks to you.': 'Saarthi உங்களிடம் எந்த மொழியில் பேசும்.',
   'Which language should Saarthi use?': 'Saarthi எந்த மொழியைப் பயன்படுத்த வேண்டும்?',
   'You can change this later from your profile.': 'இதைப் பின்னர் உங்கள் சுயவிவரத்தில் மாற்றலாம்.',
-  'Not translated yet — shows in English':
-    'இன்னும் மொழிபெயர்க்கப்படவில்லை — ஆங்கிலத்தில் காட்டப்படும்',
+  'Not translated yet - shows in English':
+    'இன்னும் மொழிபெயர்க்கப்படவில்லை - ஆங்கிலத்தில் காட்டப்படும்',
 
   'Step {current} of {total}': 'படி {current} / {total}',
 
@@ -189,22 +189,22 @@ export const ta: Catalogue = {
   'I drive for a fleet that already uses Saarthi.':
     'ஏற்கனவே Saarthi-ஐப் பயன்படுத்தும் வாகனத் தொகுப்புக்காக நான் ஓட்டுகிறேன்.',
   'The operating system for your trucking business.': 'உங்கள் லாரி வணிகத்தின் இயக்க அமைப்பு.',
-  'Saarthi connects fleet owners, drivers, suppliers and customers on one platform — from posting a load to watching it arrive.':
-    'Saarthi வாகன உரிமையாளர்கள், ஓட்டுநர்கள், சப்ளையர்கள், வாடிக்கையாளர்களை ஒரே தளத்தில் இணைக்கிறது — சரக்கு இடுவதிலிருந்து அது வந்து சேரும் வரை.',
+  'Saarthi connects fleet owners, drivers, suppliers and customers on one platform - from posting a load to watching it arrive.':
+    'Saarthi வாகன உரிமையாளர்கள், ஓட்டுநர்கள், சப்ளையர்கள், வாடிக்கையாளர்களை ஒரே தளத்தில் இணைக்கிறது - சரக்கு இடுவதிலிருந்து அது வந்து சேரும் வரை.',
   'One fleet command centre': 'ஒரே கட்டுப்பாட்டு மையம்',
   'Trucks, drivers, documents, orders and trips in a single operational view.':
-    'லாரிகள், ஓட்டுநர்கள், ஆவணங்கள், ஆர்டர்கள், பயணங்கள் — அனைத்தும் ஒரே செயல்பாட்டுக் காட்சியில்.',
+    'லாரிகள், ஓட்டுநர்கள், ஆவணங்கள், ஆர்டர்கள், பயணங்கள் - அனைத்தும் ஒரே செயல்பாட்டுக் காட்சியில்.',
   'Live tracking that actually moves': 'உண்மையிலேயே நகரும் நேரடிக் கண்காணிப்பு',
   'Realtime positions, ETAs and route deviation alerts as they happen.':
-    'நிகழ்நேர இருப்பிடம், வரும் நேரம், வழி மாறியதற்கான எச்சரிக்கை — நிகழும்போதே.',
+    'நிகழ்நேர இருப்பிடம், வரும் நேரம், வழி மாறியதற்கான எச்சரிக்கை - நிகழும்போதே.',
   'Driver safety network': 'ஓட்டுநர் பாதுகாப்பு வலையமைப்பு',
   'One-tap SOS reaches nearby Saarthi trucks in expanding rings.':
     'ஒரு தட்டு SOS அருகிலுள்ள Saarthi லாரிகளை விரியும் வட்டங்களில் சென்றடைகிறது.',
   'AI grounded in your data': 'உங்கள் தரவின் அடிப்படையிலான AI',
   'Answers built only from records your role is allowed to see.':
     'உங்கள் பணிக்குப் பார்க்க அனுமதிக்கப்பட்ட பதிவுகளிலிருந்து மட்டுமே பதில்கள் உருவாகின்றன.',
-  'Local development build — simulated GPS, mock payments, local document storage.':
-    'உள்ளூர் மேம்பாட்டுப் பதிப்பு — போலி GPS, போலிப் பணப்பரிமாற்றம், உள்ளூர் ஆவணச் சேமிப்பு.',
+  'Local development build - simulated GPS, mock payments, local document storage.':
+    'உள்ளூர் மேம்பாட்டுப் பதிப்பு - போலி GPS, போலிப் பணப்பரிமாற்றம், உள்ளூர் ஆவணச் சேமிப்பு.',
   'Back to vorldxsaarthi.com': 'vorldxsaarthi.com-க்குத் திரும்பு',
   'Loading Saarthi…': 'Saarthi ஏற்றப்படுகிறது…',
   'Try it instantly': 'உடனே முயற்சி செய்யுங்கள்',
@@ -286,8 +286,8 @@ export const ta: Catalogue = {
   'Open live map': 'நேரடி வரைபடத்தைத் திற',
   'Documents needing attention': 'கவனம் தேவைப்படும் ஆவணங்கள்',
   'Ask the Fleet Copilot': 'ஃப்ளீட் கோபைலட்டிடம் கேளுங்கள்',
-  '“What needs my attention today?” — answered from your own records.':
-    '“இன்று நான் எதில் கவனம் செலுத்த வேண்டும்?” — உங்கள் சொந்தப் பதிவுகளிலிருந்தே பதில்.',
+  '“What needs my attention today?” - answered from your own records.':
+    '“இன்று நான் எதில் கவனம் செலுத்த வேண்டும்?” - உங்கள் சொந்தப் பதிவுகளிலிருந்தே பதில்.',
   Open: 'திற',
 
   // --- Password field and strength meter -----------------------------------

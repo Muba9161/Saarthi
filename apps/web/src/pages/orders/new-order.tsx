@@ -209,12 +209,12 @@ export function NewOrderPage() {
             hint={
               selected
                 ? `${selected.supplierName} · ${formatNumber(selected.availableQuantity)} available · minimum ${selected.minimumOrderQty}`
-                : 'Optional — leave it blank to move goods you already own.'
+                : 'Optional - leave it blank to move goods you already own.'
             }
           >
             <Select value={materialId} onValueChange={setMaterialId}>
               <SelectTrigger>
-                <SelectValue placeholder="Optional — or move goods you already own" />
+                <SelectValue placeholder="Optional - or move goods you already own" />
               </SelectTrigger>
               <SelectContent>
                 {(materials.data?.items ?? []).map((material) => (

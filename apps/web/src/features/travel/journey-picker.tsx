@@ -325,7 +325,7 @@ export function JourneyPicker({
           labels?.dropoffHint ??
           (dropoffRequired
             ? 'This trip is charged by the kilometre, so the fare depends on this.'
-            : 'Optional — leave it blank to follow the package route.')
+            : 'Optional - leave it blank to follow the package route.')
         }
       />
 

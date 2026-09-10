@@ -452,7 +452,7 @@ export function MiniGauge({
         width={40}
         height={40}
         role="img"
-        aria-label={ariaLabel ?? `${Math.round(clamped)} percent${caption ? ` — ${caption}` : ''}`}
+        aria-label={ariaLabel ?? `${Math.round(clamped)} percent${caption ? ` - ${caption}` : ''}`}
         className="block size-11"
       >
         <circle cx={20} cy={20} r={radius} fill="none" stroke="hsl(var(--muted))" strokeWidth={4} />

@@ -252,7 +252,7 @@ fun AdminScreen(
                 Text(
                     // Said plainly, because "OBD: not connected" otherwise reads
                     // as a fault an installer will spend an hour chasing.
-                    "The OBD adapter is not fitted yet. Engine readings come from the simulator in debug builds and are absent in release builds — never from this vehicle's ECU.",
+                    "The OBD adapter is not fitted yet. Engine readings come from the simulator in debug builds and are absent in release builds - never from this vehicle's ECU.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -326,7 +326,7 @@ fun AdminScreen(
                     Spacer(Modifier.height(8.dp))
                     Text(
                         "No OBD adapter is paired with this device. Pair it in Android's " +
-                            "Bluetooth settings first — the PIN is usually 1234 or 0000 — " +
+                            "Bluetooth settings first - the PIN is usually 1234 or 0000 - " +
                             "then rescan here.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -479,7 +479,7 @@ fun AdminScreen(
                     // leaving a driver repeating "Hey Saarthi" at a terminal
                     // that stopped listening twenty minutes ago.
                     value = if (viewModel.settings.wakeWordEnabled) {
-                        "On — say “Hey Saarthi”"
+                        "On - say “Hey Saarthi”"
                     } else {
                         "Off"
                     },
@@ -589,7 +589,7 @@ private fun DiagnosticRow(label: String, value: String?) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Text(
-            value ?: "—",
+            value ?: "-",
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Medium,
             fontFamily = FontFamily.Monospace,

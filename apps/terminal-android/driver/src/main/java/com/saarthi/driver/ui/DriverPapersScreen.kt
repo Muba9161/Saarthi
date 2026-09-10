@@ -123,7 +123,7 @@ fun DriverPapersScreen(
                     Spacer(Modifier.height(FleetSpace.tight))
                     Text(
                         "Your fleet has not uploaded any papers for this vehicle or for " +
-                            "you. Ask the office to add the RC, insurance, permit and PUC — " +
+                            "you. Ask the office to add the RC, insurance, permit and PUC - " +
                             "they will appear here and stay available offline.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = Ash,

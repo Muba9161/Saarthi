@@ -261,7 +261,7 @@ class VoiceAssistant(
 
         val voice = engine.voice?.locale?.toLanguageTag() ?: "unknown voice"
         val level = if (volume < 0) "volume unknown" else "media volume $volume of $max"
-        val muted = if (volume == 0) " — the device is muted" else ""
+        val muted = if (volume == 0) " - the device is muted" else ""
 
         return "$voice, $level$muted"
     }

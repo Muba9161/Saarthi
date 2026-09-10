@@ -262,7 +262,7 @@ export function InlineNumberVerify({
           <ShieldX className="size-4" />
           <AlertTitle>The check could not run</AlertTitle>
           <AlertDescription className="text-xs leading-relaxed">
-            {errorMessage(verify.error)} Nothing was recorded — you can still upload the document
+            {errorMessage(verify.error)} Nothing was recorded - you can still upload the document
             and verify it from its row later.
           </AlertDescription>
         </Alert>

@@ -136,7 +136,7 @@ export const bn: Catalogue = {
   'How Saarthi speaks to you.': 'Saarthi আপনার সঙ্গে কোন ভাষায় কথা বলবে।',
   'Which language should Saarthi use?': 'Saarthi কোন ভাষা ব্যবহার করবে?',
   'You can change this later from your profile.': 'পরে আপনার প্রোফাইল থেকে এটি বদলাতে পারবেন।',
-  'Not translated yet — shows in English': 'এখনও অনুবাদ হয়নি — ইংরেজিতে দেখাবে',
+  'Not translated yet - shows in English': 'এখনও অনুবাদ হয়নি - ইংরেজিতে দেখাবে',
 
   'Step {current} of {total}': 'ধাপ {current} / {total}',
 
@@ -187,11 +187,11 @@ export const bn: Catalogue = {
   'I drive for a fleet that already uses Saarthi.':
     'আমি এমন একটি বহরের জন্য গাড়ি চালাই যারা আগে থেকেই Saarthi ব্যবহার করে।',
   'The operating system for your trucking business.': 'আপনার ট্রাকিং ব্যবসার অপারেটিং সিস্টেম।',
-  'Saarthi connects fleet owners, drivers, suppliers and customers on one platform — from posting a load to watching it arrive.':
-    'Saarthi বহর মালিক, চালক, সরবরাহকারী ও গ্রাহককে একই প্ল্যাটফর্মে যুক্ত করে — লোড দেওয়া থেকে তা পৌঁছানো দেখা পর্যন্ত।',
+  'Saarthi connects fleet owners, drivers, suppliers and customers on one platform - from posting a load to watching it arrive.':
+    'Saarthi বহর মালিক, চালক, সরবরাহকারী ও গ্রাহককে একই প্ল্যাটফর্মে যুক্ত করে - লোড দেওয়া থেকে তা পৌঁছানো দেখা পর্যন্ত।',
   'One fleet command centre': 'একটিই ফ্লিট কমান্ড সেন্টার',
   'Trucks, drivers, documents, orders and trips in a single operational view.':
-    'ট্রাক, চালক, নথিপত্র, অর্ডার ও ট্রিপ — সবই একটি পরিচালন দৃশ্যে।',
+    'ট্রাক, চালক, নথিপত্র, অর্ডার ও ট্রিপ - সবই একটি পরিচালন দৃশ্যে।',
   'Live tracking that actually moves': 'সত্যিই চলে এমন লাইভ ট্র্যাকিং',
   'Realtime positions, ETAs and route deviation alerts as they happen.':
     'রিয়েল-টাইম অবস্থান, পৌঁছানোর সময় ও পথ বদলের সতর্কতা, ঘটামাত্রই।',
@@ -201,8 +201,8 @@ export const bn: Catalogue = {
   'AI grounded in your data': 'আপনার নিজের ডেটার উপর ভিত্তি করে AI',
   'Answers built only from records your role is allowed to see.':
     'উত্তর কেবল সেই নথি থেকে তৈরি হয় যা দেখার অনুমতি আপনার ভূমিকার আছে।',
-  'Local development build — simulated GPS, mock payments, local document storage.':
-    'লোকাল ডেভেলপমেন্ট বিল্ড — কৃত্রিম GPS, নকল পেমেন্ট, স্থানীয় নথি সংরক্ষণ।',
+  'Local development build - simulated GPS, mock payments, local document storage.':
+    'লোকাল ডেভেলপমেন্ট বিল্ড - কৃত্রিম GPS, নকল পেমেন্ট, স্থানীয় নথি সংরক্ষণ।',
   'Back to vorldxsaarthi.com': 'vorldxsaarthi.com-এ ফিরে যান',
   'Loading Saarthi…': 'Saarthi লোড হচ্ছে…',
   'Try it instantly': 'এখনই দেখে নিন',
@@ -284,8 +284,8 @@ export const bn: Catalogue = {
   'Open live map': 'লাইভ ম্যাপ খুলুন',
   'Documents needing attention': 'নজর প্রয়োজন এমন নথি',
   'Ask the Fleet Copilot': 'ফ্লিট কোপাইলটকে জিজ্ঞাসা করুন',
-  '“What needs my attention today?” — answered from your own records.':
-    '“আজ আমার কীসে নজর দেওয়া দরকার?” — আপনার নিজের নথি থেকেই উত্তর।',
+  '“What needs my attention today?” - answered from your own records.':
+    '“আজ আমার কীসে নজর দেওয়া দরকার?” - আপনার নিজের নথি থেকেই উত্তর।',
   Open: 'খুলুন',
 
   // --- Password field and strength meter -----------------------------------

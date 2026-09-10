@@ -420,23 +420,23 @@ export function AssociationAlertDetailPage() {
               <div>
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">Type</p>
                 <p className="font-medium">
-                  {data.vehicleType ? humanizeEnum(data.vehicleType) : '—'}
+                  {data.vehicleType ? humanizeEnum(data.vehicleType) : '-'}
                 </p>
               </div>
               <div>
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">Fleet</p>
-                <p className="font-medium">{data.fleetName ?? '—'}</p>
+                <p className="font-medium">{data.fleetName ?? '-'}</p>
               </div>
               <div>
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">District</p>
-                <p className="font-medium">{data.district ?? '—'}</p>
+                <p className="font-medium">{data.district ?? '-'}</p>
               </div>
               <div>
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">
                   From coverage centre
                 </p>
                 <p className="font-medium">
-                  {data.distanceKm === null ? '—' : `${data.distanceKm} km`}
+                  {data.distanceKm === null ? '-' : `${data.distanceKm} km`}
                 </p>
               </div>
               <div>
@@ -649,7 +649,7 @@ export function AssociationAlertDetailPage() {
 
                 {acknowledged ? (
                   <div className="space-y-2 border-t border-border pt-4">
-                    <Label htmlFor="alert-outcome">Resolve — what was done?</Label>
+                    <Label htmlFor="alert-outcome">Resolve - what was done?</Label>
                     <Textarea
                       id="alert-outcome"
                       rows={2}

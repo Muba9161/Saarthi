@@ -155,8 +155,8 @@ export function CopilotPage() {
                             <li key={`${call.tool}-${callIndex}`} className="text-2xs text-muted-foreground">
                               <span className="font-mono">{call.tool}</span>
                               {call.error
-                                ? ` — ${call.error}`
-                                : ` — ${call.recordCount} record${call.recordCount === 1 ? '' : 's'}` +
+                                ? ` - ${call.error}`
+                                : ` - ${call.recordCount} record${call.recordCount === 1 ? '' : 's'}` +
                                   (call.basis ? `, ${call.basis.toLowerCase().replace('_', ' ')}` : '') +
                                   (call.cached ? ', cached' : '')}
                             </li>

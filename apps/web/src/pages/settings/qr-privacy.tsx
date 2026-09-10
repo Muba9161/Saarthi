@@ -139,7 +139,7 @@ export function QrPrivacyPage(): React.ReactElement {
     <div className="mx-auto max-w-4xl space-y-5">
       <PageHeader
         title="QR privacy"
-        description="What a Saarthi QR code discloses, and to whom. Every rule here is enforced when the code is scanned — not in the app that displays the result."
+        description="What a Saarthi QR code discloses, and to whom. Every rule here is enforced when the code is scanned - not in the app that displays the result."
         actions={
           canManage ? (
             <Button onClick={() => save.mutate()} disabled={!dirty || save.isPending}>
@@ -325,7 +325,7 @@ export function QrPrivacyPage(): React.ReactElement {
               not expose it to someone the relationship never granted it to.
             </p>
             <p>
-              Every scan is logged with who scanned, when, and what they were shown — see the scan
+              Every scan is logged with who scanned, when, and what they were shown - see the scan
               history on each code.
             </p>
           </div>

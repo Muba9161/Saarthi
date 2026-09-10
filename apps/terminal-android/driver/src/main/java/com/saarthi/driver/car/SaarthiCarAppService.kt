@@ -6,7 +6,10 @@ import androidx.car.app.Screen
 import androidx.car.app.Session
 import androidx.car.app.SessionInfo
 import androidx.car.app.validation.HostValidator
+import androidx.lifecycle.lifecycleScope
 import com.saarthi.driver.BuildConfig
+import com.saarthi.driver.SaarthiDriverApp
+import kotlinx.coroutines.launch
 
 /**
  * Saarthi on the car's screen.
@@ -63,5 +66,25 @@ class SaarthiCarAppService : CarAppService() {
  * anything being pushed to it.
  */
 class SaarthiCarSession : Session() {
-    override fun onCreateScreen(intent: Intent): Screen = CarHomeScreen(carContext)
+
+    /*
+     * Ask the server once, on the way in.
+     *
+     * The car screen reads the state the phone holds, and the comment above is
+     * true only while the phone app is running. It often is not: Android kills
+     * a backgrounded process freely, and a driver may plug in and open Saarthi
+     * on the head unit without ever touching their handset that morning. In
+     * that case the binding itself starts the process, the repository has
+     * fetched nothing yet, and every car screen truthfully reports what it can
+     * see — no vehicle — to a driver who is signed on and mid-shift.
+     *
+     * One refresh here closes that. It is not a second source of state: the
+     * same call the phone makes, filling the same repository, after which the
+     * screens follow it as they always did.
+     */
+    override fun onCreateScreen(intent: Intent): Screen {
+        val app = carContext.applicationContext as SaarthiDriverApp
+        lifecycleScope.launch { app.repository.refresh() }
+        return CarHomeScreen(carContext)
+    }
 }

@@ -45,7 +45,7 @@ describe('toSeriesPoints', () => {
 });
 
 describe('hasPlottableData', () => {
-  it('plots an all-zero series — a quiet fortnight is real history', () => {
+  it('plots an all-zero series - a quiet fortnight is real history', () => {
     expect(hasPlottableData({ kind: 'bars', points: [{ label: 'a', value: 0 }] })).toBe(true);
     expect(hasPlottableData({ kind: 'gauge', percent: 0 })).toBe(true);
   });

@@ -41,8 +41,8 @@ describe('Vehicle cameras', () => {
 
   beforeEach(async () => {
     await resetDatabase();
-    fleet = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.INTELLIGENCE);
-    otherFleet = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.INTELLIGENCE);
+    fleet = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.BUSINESS, { trackers: 25 });
+    otherFleet = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.BUSINESS, { trackers: 25 });
     owner = await createUser({ role: RoleName.FLEET_OWNER, organizationId: fleet.id });
     otherOwner = await createUser({ role: RoleName.FLEET_OWNER, organizationId: otherFleet.id });
     admin = await createUser({ role: RoleName.PLATFORM_ADMIN, organizationId: null });

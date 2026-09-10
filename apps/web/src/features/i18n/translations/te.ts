@@ -138,7 +138,7 @@ export const te: Catalogue = {
   'How Saarthi speaks to you.': 'Saarthi మీతో ఏ భాషలో మాట్లాడాలి.',
   'Which language should Saarthi use?': 'Saarthi ఏ భాషను ఉపయోగించాలి?',
   'You can change this later from your profile.': 'దీన్ని తర్వాత మీ ప్రొఫైల్ నుండి మార్చవచ్చు.',
-  'Not translated yet — shows in English': 'ఇంకా అనువదించలేదు — ఇంగ్లీషులో కనిపిస్తుంది',
+  'Not translated yet - shows in English': 'ఇంకా అనువదించలేదు - ఇంగ్లీషులో కనిపిస్తుంది',
 
   'Step {current} of {total}': 'దశ {current} / {total}',
 
@@ -190,22 +190,22 @@ export const te: Catalogue = {
     'ఇప్పటికే Saarthi ఉపయోగించే వాహన సముదాయం కోసం నేను నడుపుతాను.',
   'The operating system for your trucking business.':
     'మీ ట్రకింగ్ వ్యాపారం యొక్క ఆపరేటింగ్ సిస్టమ్.',
-  'Saarthi connects fleet owners, drivers, suppliers and customers on one platform — from posting a load to watching it arrive.':
-    'Saarthi వాహన యజమానులు, డ్రైవర్లు, సరఫరాదారులు, కస్టమర్లను ఒకే వేదికపై కలుపుతుంది — లోడ్ పెట్టడం నుండి అది చేరుకోవడం చూసే వరకు.',
+  'Saarthi connects fleet owners, drivers, suppliers and customers on one platform - from posting a load to watching it arrive.':
+    'Saarthi వాహన యజమానులు, డ్రైవర్లు, సరఫరాదారులు, కస్టమర్లను ఒకే వేదికపై కలుపుతుంది - లోడ్ పెట్టడం నుండి అది చేరుకోవడం చూసే వరకు.',
   'One fleet command centre': 'ఒకే ఫ్లీట్ కమాండ్ సెంటర్',
   'Trucks, drivers, documents, orders and trips in a single operational view.':
-    'ట్రక్కులు, డ్రైవర్లు, పత్రాలు, ఆర్డర్లు, ట్రిప్‌లు — అన్నీ ఒకే కార్యాచరణ దృశ్యంలో.',
+    'ట్రక్కులు, డ్రైవర్లు, పత్రాలు, ఆర్డర్లు, ట్రిప్‌లు - అన్నీ ఒకే కార్యాచరణ దృశ్యంలో.',
   'Live tracking that actually moves': 'నిజంగా కదిలే లైవ్ ట్రాకింగ్',
   'Realtime positions, ETAs and route deviation alerts as they happen.':
-    'రియల్-టైమ్ స్థానం, చేరుకునే సమయం, మార్గం మారిన హెచ్చరికలు — జరిగిన వెంటనే.',
+    'రియల్-టైమ్ స్థానం, చేరుకునే సమయం, మార్గం మారిన హెచ్చరికలు - జరిగిన వెంటనే.',
   'Driver safety network': 'డ్రైవర్ భద్రతా నెట్‌వర్క్',
   'One-tap SOS reaches nearby Saarthi trucks in expanding rings.':
     'ఒక ట్యాప్ SOS సమీపంలోని Saarthi ట్రక్కులకు విస్తరిస్తున్న వలయాలలో చేరుతుంది.',
   'AI grounded in your data': 'మీ స్వంత డేటాపై ఆధారపడిన AI',
   'Answers built only from records your role is allowed to see.':
     'మీ పాత్రకు చూడటానికి అనుమతి ఉన్న రికార్డుల నుండి మాత్రమే సమాధానాలు తయారవుతాయి.',
-  'Local development build — simulated GPS, mock payments, local document storage.':
-    'లోకల్ డెవలప్‌మెంట్ బిల్డ్ — కృత్రిమ GPS, నకిలీ చెల్లింపులు, స్థానిక పత్ర నిల్వ.',
+  'Local development build - simulated GPS, mock payments, local document storage.':
+    'లోకల్ డెవలప్‌మెంట్ బిల్డ్ - కృత్రిమ GPS, నకిలీ చెల్లింపులు, స్థానిక పత్ర నిల్వ.',
   'Back to vorldxsaarthi.com': 'vorldxsaarthi.com కు తిరిగి',
   'Loading Saarthi…': 'Saarthi లోడ్ అవుతోంది…',
   'Try it instantly': 'వెంటనే ప్రయత్నించండి',
@@ -287,8 +287,8 @@ export const te: Catalogue = {
   'Open live map': 'లైవ్ మ్యాప్ తెరవండి',
   'Documents needing attention': 'శ్రద్ధ అవసరమైన పత్రాలు',
   'Ask the Fleet Copilot': 'ఫ్లీట్ కోపైలట్‌ను అడగండి',
-  '“What needs my attention today?” — answered from your own records.':
-    '“ఈ రోజు నేను దేనిపై దృష్టి పెట్టాలి?” — మీ సొంత రికార్డుల నుండే సమాధానం.',
+  '“What needs my attention today?” - answered from your own records.':
+    '“ఈ రోజు నేను దేనిపై దృష్టి పెట్టాలి?” - మీ సొంత రికార్డుల నుండే సమాధానం.',
   Open: 'తెరవండి',
 
   // --- Password field and strength meter -----------------------------------

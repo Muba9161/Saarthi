@@ -215,7 +215,7 @@ class DeviceViewModel(application: Application) : AndroidViewModel(application) 
             _busy.value = false
             result
                 .onSuccess {
-                    _message.value = "Emergency raised — ${it.reference}. Saarthi is alerting your fleet."
+                    _message.value = "Emergency raised - ${it.reference}. Saarthi is alerting your fleet."
                     onDone(it.reference)
                 }
                 .onFailure {

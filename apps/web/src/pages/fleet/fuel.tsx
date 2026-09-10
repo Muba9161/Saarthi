@@ -54,11 +54,11 @@ export function FuelPage() {
 
   const columns: Column<FuelRow>[] = [
     { key: 'truck', header: 'Truck', cell: (row) => <span className="font-medium">{row.registrationNumber}</span> },
-    { key: 'station', header: 'Station', hideOnMobile: true, cell: (row) => <span className="text-sm text-muted-foreground">{row.stationName ?? '—'}</span> },
+    { key: 'station', header: 'Station', hideOnMobile: true, cell: (row) => <span className="text-sm text-muted-foreground">{row.stationName ?? '-'}</span> },
     { key: 'litres', header: 'Litres', numeric: true, cell: (row) => formatNumber(row.quantityLitres, 1) },
     { key: 'rate', header: 'Rate', numeric: true, hideOnMobile: true, cell: (row) => formatCurrency(row.pricePerUnit) },
     { key: 'cost', header: 'Cost', numeric: true, cell: (row) => <span className="font-medium">{formatCurrency(row.totalCost)}</span> },
-    { key: 'odometer', header: 'Odometer', numeric: true, hideOnMobile: true, cell: (row) => (row.odometerKm ? `${formatNumber(row.odometerKm)} km` : '—') },
+    { key: 'odometer', header: 'Odometer', numeric: true, hideOnMobile: true, cell: (row) => (row.odometerKm ? `${formatNumber(row.odometerKm)} km` : '-') },
     { key: 'when', header: 'Recorded', hideOnMobile: true, cell: (row) => new Date(row.recordedAt).toLocaleDateString('en-IN') },
   ];
 

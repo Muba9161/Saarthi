@@ -485,7 +485,7 @@ function PairingDialog({
                   It points at{' '}
                   <code className="rounded bg-muted px-1">{code.qrPayload.api}</code>, which on a
                   phone means the phone itself. The code carries whichever address this dashboard
-                  was opened on — reopen it on your machine&rsquo;s network address or tunnel URL,
+                  was opened on - reopen it on your machine&rsquo;s network address or tunnel URL,
                   then generate a new code.
                 </p>
               </div>
@@ -702,7 +702,7 @@ export function VehicleHardware({
                 </Link>
                 <span className="text-xs text-muted-foreground">
                   {new Date(row.assignedAt).toLocaleDateString()} –{' '}
-                  {row.unassignedAt ? new Date(row.unassignedAt).toLocaleDateString() : '—'}
+                  {row.unassignedAt ? new Date(row.unassignedAt).toLocaleDateString() : '-'}
                 </span>
               </div>
             ))}

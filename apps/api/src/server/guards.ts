@@ -2,8 +2,10 @@ import type { FastifyReply, FastifyRequest, preHandlerHookHandler } from 'fastif
 import {
   type OrganizationType,
   type RoleName,
+  VEHICLE_TRACKER,
   hasAnyPermission,
   hasPermission,
+  isTrackerFeature,
   minimumTierFor,
   type Feature,
   type Permission,
@@ -118,28 +120,52 @@ export function requireOrganization(): preHandlerHookHandler {
 }
 
 /**
- * Subscription entitlement gate. Platform admins bypass it so support can
- * always inspect a tenant; every other caller must hold the feature.
+ * Why a caller cannot reach a gated capability.
+ *
+ * Split out because the two answers lead somewhere different. "Upgrade your
+ * plan" is a billing screen; "fit a tracker" is a hardware purchase, and
+ * telling a Business customer already on the top plan to upgrade would be
+ * advice they cannot act on — the telemetry capabilities are not for sale on
+ * any plan (see `TRACKER_ONLY_FEATURES` in the shared catalogue).
+ */
+function featureDenialMessage(feature: Feature): string {
+  if (isTrackerFeature(feature)) {
+    return (
+      'This reads the vehicle itself, so it needs a Saarthi tracker fitted. ' +
+      `A tracker is a one-time ${VEHICLE_TRACKER.priceOneTime} rupees per vehicle — until one is fitted, ` +
+      'the driver app is the only source and its figures are estimates.'
+    );
+  }
+
+  const tier = minimumTierFor(feature);
+  if (!tier) return 'Your current subscription does not include this capability.';
+
+  const label = `${tier.charAt(0)}${tier.slice(1).toLowerCase()}`;
+  return `This is part of Saarthi ${label}. Change plan to unlock it.`;
+}
+
+/**
+ * Subscription entitlement gate.
+ *
+ * Platform admins bypass it so support can always inspect a tenant. So does
+ * every caller when `SUBSCRIPTION_ENFORCEMENT` is off, which is development
+ * only — the config refuses to start a production server without it.
  */
 export function requireFeature(feature: Feature): preHandlerHookHandler {
   return async function featureGuard(request: FastifyRequest, _reply: FastifyReply) {
     const auth = requireAuth(request);
     if (auth.isPlatformAdmin) return;
+    if (!config.subscription.enforced) return;
 
     if (!auth.subscription || !auth.subscription.features.includes(feature)) {
-      const tier = minimumTierFor(feature);
-      throw errors.featureNotAvailable(
-        feature,
-        tier
-          ? `This feature is available on the Saarthi ${tier.charAt(0)}${tier.slice(1).toLowerCase()} plan and above. Upgrade to unlock it.`
-          : 'Your current subscription plan does not include this feature.',
-      );
+      throw errors.featureNotAvailable(feature, featureDenialMessage(feature));
     }
   };
 }
 
 export function hasFeature(auth: AuthContext, feature: Feature): boolean {
   if (auth.isPlatformAdmin) return true;
+  if (!config.subscription.enforced) return true;
   return auth.subscription?.features.includes(feature) ?? false;
 }
 

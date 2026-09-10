@@ -64,16 +64,16 @@ describe('Requirements and bidding', () => {
   beforeEach(async () => {
     await resetDatabase();
 
-    customerOrg = await createOrganization(OrganizationType.CUSTOMER, PlanTier.PRO);
+    customerOrg = await createOrganization(OrganizationType.CUSTOMER, PlanTier.BUSINESS);
     customer = await createUser({ role: RoleName.CUSTOMER, organizationId: customerOrg.id });
 
-    fleetOrg = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.PRO);
+    fleetOrg = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.BUSINESS);
     fleetOwner = await createUser({ role: RoleName.FLEET_OWNER, organizationId: fleetOrg.id });
 
-    supplierOrg = await createOrganization(OrganizationType.SUPPLIER, PlanTier.PRO);
+    supplierOrg = await createOrganization(OrganizationType.SUPPLIER, PlanTier.BUSINESS);
     supplier = await createUser({ role: RoleName.SUPPLIER, organizationId: supplierOrg.id });
 
-    mobilityOrg = await createOrganization(OrganizationType.MOBILITY_PROVIDER, PlanTier.PRO);
+    mobilityOrg = await createOrganization(OrganizationType.MOBILITY_PROVIDER, PlanTier.BUSINESS);
     mobilityOwner = await createUser({
       role: RoleName.MOBILITY_PROVIDER,
       organizationId: mobilityOrg.id,
@@ -485,7 +485,7 @@ describe('Requirements and bidding', () => {
 
     it('refuses a transport bid naming a vehicle from another fleet', async () => {
       const requirementId = await postFreightRequirement();
-      const otherFleet = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.PRO);
+      const otherFleet = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.BUSINESS);
       const foreignTruck = await prisma.truck.create({
         data: {
           organizationId: otherFleet.id,
@@ -572,7 +572,7 @@ describe('Requirements and bidding', () => {
         payload: { scope: RequirementBidScope.TRANSPORT, price: 41000, vehicleId: truckId },
       });
 
-      const rivalOrg = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.PRO);
+      const rivalOrg = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.BUSINESS);
       const rival = await createUser({ role: RoleName.FLEET_OWNER, organizationId: rivalOrg.id });
       const rivalTruck = await prisma.truck.create({
         data: {
@@ -810,7 +810,7 @@ describe('Requirements and bidding', () => {
     it('rejects every rival for the awarded scope, and no others', async () => {
       const requirementId = await postMaterialRequirement(true);
 
-      const rivalOrg = await createOrganization(OrganizationType.SUPPLIER, PlanTier.PRO);
+      const rivalOrg = await createOrganization(OrganizationType.SUPPLIER, PlanTier.BUSINESS);
       const rival = await createUser({ role: RoleName.SUPPLIER, organizationId: rivalOrg.id });
 
       const { body: winning } = await request<{ id: string }>({

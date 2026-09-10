@@ -72,7 +72,7 @@ export function SosIncidentDetailPage() {
           <AlertTitle>Peer assistance, not an emergency service</AlertTitle>
           <AlertDescription>
             Saarthi alerts nearby drivers who may be able to help. For medical or police emergencies, call the official
-            emergency numbers directly — 112 in India.
+            emergency numbers directly - 112 in India.
           </AlertDescription>
         </Alert>
       ) : null}

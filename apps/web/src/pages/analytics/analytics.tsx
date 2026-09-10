@@ -164,7 +164,7 @@ export function AnalyticsPage() {
       key: 'ontime',
       header: 'On time',
       numeric: true,
-      cell: (row) => (row.onTimePercent === null ? '—' : `${row.onTimePercent}%`),
+      cell: (row) => (row.onTimePercent === null ? '-' : `${row.onTimePercent}%`),
     },
     {
       key: 'distance',
@@ -185,7 +185,7 @@ export function AnalyticsPage() {
       header: 'Rating',
       numeric: true,
       hideOnMobile: true,
-      cell: (row) => (row.averageRating ? `★ ${row.averageRating}` : '—'),
+      cell: (row) => (row.averageRating ? `★ ${row.averageRating}` : '-'),
     },
   ];
 
@@ -204,7 +204,7 @@ export function AnalyticsPage() {
       numeric: true,
       hideOnMobile: true,
       cell: (row) =>
-        row.averageDurationMin ? `${Math.round(row.averageDurationMin / 60)} h` : '—',
+        row.averageDurationMin ? `${Math.round(row.averageDurationMin / 60)} h` : '-',
     },
     {
       key: 'revenue',
@@ -216,7 +216,7 @@ export function AnalyticsPage() {
       key: 'ontime',
       header: 'On time',
       numeric: true,
-      cell: (row) => (row.onTimePercent === null ? '—' : `${row.onTimePercent}%`),
+      cell: (row) => (row.onTimePercent === null ? '-' : `${row.onTimePercent}%`),
     },
   ];
 
@@ -225,7 +225,7 @@ export function AnalyticsPage() {
       <PageHeader
         eyebrow="Intelligence"
         title="Analytics"
-        description="Calculated from your operational records — never estimated for display."
+        description="Calculated from your operational records - never estimated for display."
       />
 
       <Stagger className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">

@@ -141,7 +141,7 @@ export const sa: Catalogue = {
   'How Saarthi speaks to you.': 'Saarthi कया भाषया भवता सह वदतु।',
   'Which language should Saarthi use?': 'Saarthi कां भाषां प्रयुङ्क्ताम्?',
   'You can change this later from your profile.': 'एतत् पश्चात् स्वविवरणात् परिवर्तयितुं शक्नोति।',
-  'Not translated yet — shows in English': 'अद्यापि अनूदितं नास्ति — आङ्ग्लभाषायां दृश्यते',
+  'Not translated yet - shows in English': 'अद्यापि अनूदितं नास्ति - आङ्ग्लभाषायां दृश्यते',
 
   'Step {current} of {total}': 'सोपानम् {current} / {total}',
 
@@ -192,11 +192,11 @@ export const sa: Catalogue = {
   'I drive for a fleet that already uses Saarthi.':
     'अहं तस्य यानसमूहस्य कृते यानं चालयामि यः पूर्वमेव Saarthi प्रयुङ्क्ते।',
   'The operating system for your trucking business.': 'भवतः भारवहनव्यवसायस्य संचालनतन्त्रम्।',
-  'Saarthi connects fleet owners, drivers, suppliers and customers on one platform — from posting a load to watching it arrive.':
-    'Saarthi यानसमूहस्वामिनः चालकान् आपूर्तिकर्तॄन् ग्राहकांश्च एकस्मिन् मञ्चे संयोजयति — भारस्थापनतः तस्य आगमनदर्शनपर्यन्तम्।',
+  'Saarthi connects fleet owners, drivers, suppliers and customers on one platform - from posting a load to watching it arrive.':
+    'Saarthi यानसमूहस्वामिनः चालकान् आपूर्तिकर्तॄन् ग्राहकांश्च एकस्मिन् मञ्चे संयोजयति - भारस्थापनतः तस्य आगमनदर्शनपर्यन्तम्।',
   'One fleet command centre': 'एकं यानसमूह-नियन्त्रणकेन्द्रम्',
   'Trucks, drivers, documents, orders and trips in a single operational view.':
-    'भारयानानि चालकाः पत्राणि आदेशाः यात्राश्च — सर्वं एकस्मिन् कार्यदृश्ये।',
+    'भारयानानि चालकाः पत्राणि आदेशाः यात्राश्च - सर्वं एकस्मिन् कार्यदृश्ये।',
   'Live tracking that actually moves': 'वस्तुतः चलत् सजीवानुसरणम्',
   'Realtime positions, ETAs and route deviation alerts as they happen.':
     'तत्कालस्थानानि आगमनकालाः मार्गपरिवर्तनसूचनाश्च, यथा घटन्ते तथा।',
@@ -206,8 +206,8 @@ export const sa: Catalogue = {
   'AI grounded in your data': 'भवतः दत्तांशाधारितं AI',
   'Answers built only from records your role is allowed to see.':
     'उत्तराणि केवलं तेभ्यः अभिलेखेभ्यः रच्यन्ते येषां दर्शने भवतः भूमिकायाः अनुमतिः अस्ति।',
-  'Local development build — simulated GPS, mock payments, local document storage.':
-    'स्थानीयविकासनिर्माणम् — अनुकृतं GPS, कृत्रिमाः भुक्तयः, स्थानीयपत्रसञ्चयः।',
+  'Local development build - simulated GPS, mock payments, local document storage.':
+    'स्थानीयविकासनिर्माणम् - अनुकृतं GPS, कृत्रिमाः भुक्तयः, स्थानीयपत्रसञ्चयः।',
   'Back to vorldxsaarthi.com': 'vorldxsaarthi.com प्रति प्रत्यागमनम्',
   'Loading Saarthi…': 'Saarthi आपूर्यते…',
   'Try it instantly': 'तत्क्षणमेव प्रयततु',
@@ -289,8 +289,8 @@ export const sa: Catalogue = {
   'Open live map': 'सजीवमानचित्रम् उद्घाटयतु',
   'Documents needing attention': 'ध्यानापेक्षीणि पत्राणि',
   'Ask the Fleet Copilot': 'यानसमूह-सहचालकं पृच्छतु',
-  '“What needs my attention today?” — answered from your own records.':
-    '“अद्य मया कस्मिन् ध्यानं देयम्?” — भवतः स्वकीयेभ्यः अभिलेखेभ्यः एव उत्तरम्।',
+  '“What needs my attention today?” - answered from your own records.':
+    '“अद्य मया कस्मिन् ध्यानं देयम्?” - भवतः स्वकीयेभ्यः अभिलेखेभ्यः एव उत्तरम्।',
   Open: 'उद्घाटयतु',
 
   // --- Password field and strength meter -----------------------------------

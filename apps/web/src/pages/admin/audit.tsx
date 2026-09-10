@@ -26,8 +26,8 @@ export function AdminAuditPage() {
   const columns: Column<any>[] = [
     { key: 'action', header: 'Action', cell: (row) => (<div className="min-w-0"><p className="truncate font-medium">{row.action}</p><p className="truncate text-xs text-muted-foreground">{row.entityType}{row.entityId ? ` · ${String(row.entityId).slice(0, 8)}` : ''}</p></div>) },
     { key: 'actor', header: 'Actor', hideOnMobile: true, cell: (row) => (<div className="min-w-0 text-sm"><p className="truncate">{row.actor?.name ?? 'System'}</p><p className="truncate text-xs text-muted-foreground">{row.actor?.email ?? ''}</p></div>) },
-    { key: 'org', header: 'Organization', hideOnMobile: true, cell: (row) => <span className="truncate text-sm text-muted-foreground">{row.organization?.name ?? '—'}</span> },
-    { key: 'ip', header: 'IP', hideOnMobile: true, cell: (row) => <code className="text-xs text-muted-foreground">{row.ipAddress ?? '—'}</code> },
+    { key: 'org', header: 'Organization', hideOnMobile: true, cell: (row) => <span className="truncate text-sm text-muted-foreground">{row.organization?.name ?? '-'}</span> },
+    { key: 'ip', header: 'IP', hideOnMobile: true, cell: (row) => <code className="text-xs text-muted-foreground">{row.ipAddress ?? '-'}</code> },
     { key: 'when', header: 'When', cell: (row) => <span className="text-sm text-muted-foreground">{relativeTimeFrom(row.createdAt)}</span> },
   ];
 

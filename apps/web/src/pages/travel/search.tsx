@@ -263,7 +263,7 @@ export function TravelSearchPage() {
           title={hasFilters ? 'No trips match those filters' : 'No trips published yet'}
           description={
             hasFilters
-              ? 'Try a wider search — fewer passengers, or any trip type.'
+              ? 'Try a wider search - fewer passengers, or any trip type.'
               : 'Travel providers publish packages here. Check back shortly.'
           }
           action={

@@ -59,9 +59,9 @@ describe('Operations end-to-end', () => {
   beforeEach(async () => {
     await resetDatabase();
 
-    fleet = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.INTELLIGENCE);
-    supplierOrg = await createOrganization(OrganizationType.SUPPLIER, PlanTier.PRO);
-    customerOrg = await createOrganization(OrganizationType.CUSTOMER, PlanTier.PRO);
+    fleet = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.BUSINESS);
+    supplierOrg = await createOrganization(OrganizationType.SUPPLIER, PlanTier.BUSINESS);
+    customerOrg = await createOrganization(OrganizationType.CUSTOMER, PlanTier.BUSINESS);
 
     owner = await createUser({ role: RoleName.FLEET_OWNER, organizationId: fleet.id });
     await createUser({ role: RoleName.SUPPLIER, organizationId: supplierOrg.id });
@@ -342,7 +342,7 @@ describe('Operations end-to-end', () => {
 
     it('rejects the losing quotes when one is accepted', async () => {
       const orderId = await createOrder();
-      const secondFleet = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.PRO);
+      const secondFleet = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.BUSINESS);
       const secondOwner = await createUser({
         role: RoleName.FLEET_OWNER,
         organizationId: secondFleet.id,
@@ -537,7 +537,7 @@ describe('Operations end-to-end', () => {
 
     it('does not let another fleet driver touch the trip', async () => {
       const { tripId } = await arrangeTrip();
-      const otherFleet = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.PRO);
+      const otherFleet = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.BUSINESS);
       const outsider = await createUser({
         role: RoleName.DRIVER,
         organizationId: otherFleet.id,
@@ -846,7 +846,7 @@ describe('Operations end-to-end', () => {
         payload: { type: 'MEDICAL', latitude: ORIGIN.latitude, longitude: ORIGIN.longitude },
       });
 
-      const outsiderOrg = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.PRO);
+      const outsiderOrg = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.BUSINESS);
       const outsider = await createUser({
         role: RoleName.FLEET_OWNER,
         organizationId: outsiderOrg.id,
@@ -914,7 +914,7 @@ describe('Operations end-to-end', () => {
     });
 
     it('is unavailable on a plan that does not include it', async () => {
-      const basicFleet = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.BASIC);
+      const basicFleet = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.PERSONAL);
       const basicOwner = await createUser({
         role: RoleName.FLEET_OWNER,
         organizationId: basicFleet.id,
@@ -977,7 +977,7 @@ describe('Operations end-to-end', () => {
     });
 
     it('masks another fleet truck details in nearby discovery', async () => {
-      const otherFleet = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.PRO);
+      const otherFleet = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.BUSINESS);
       const otherDriver = await createUser({
         role: RoleName.DRIVER,
         organizationId: otherFleet.id,

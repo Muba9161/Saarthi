@@ -285,7 +285,7 @@ fun FuelSlipScreen(
             if (jpeg == null) {
                 Spacer(Modifier.height(FleetSpace.tight))
                 Text(
-                    "Photograph the slip first — it is the evidence for the figures.",
+                    "Photograph the slip first - it is the evidence for the figures.",
                     style = MaterialTheme.typography.bodySmall,
                     color = Slate,
                 )

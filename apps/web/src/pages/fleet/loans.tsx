@@ -181,7 +181,7 @@ export function FleetLoansPage(): React.ReactElement {
       header: 'Next due',
       hideOnMobile: true,
       cell: (row) => (
-        <span className="text-sm">{row.nextDueDate ? formatDueDate(row.nextDueDate) : '—'}</span>
+        <span className="text-sm">{row.nextDueDate ? formatDueDate(row.nextDueDate) : '-'}</span>
       ),
     },
     {

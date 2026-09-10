@@ -102,7 +102,7 @@ export function TerminalPairingPanel({
             <MonitorSmartphone className="size-5 shrink-0" />
             <span>
               No terminal is connected to {registrationNumber}. Use{' '}
-              <span className="font-medium text-foreground">Connect a terminal</span> above —
+              <span className="font-medium text-foreground">Connect a terminal</span> above -
               drivers cannot sign on to this vehicle until one is.
             </span>
           </CardContent>

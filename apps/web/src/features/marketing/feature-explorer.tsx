@@ -25,20 +25,15 @@ import { cn } from '@/lib/utils';
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
-/** Short names for the badge — the catalogue's own are "Saarthi Pro" etc. */
+/** Short names for the badge — the catalogue's own are "Saarthi Personal" etc. */
 const TIER_LABEL: Record<PlanTier, string> = {
-  [PlanTier.BASIC]: 'Basic',
-  [PlanTier.PRO]: 'Pro',
-  [PlanTier.INTELLIGENCE]: 'Intelligence',
-  [PlanTier.ENTERPRISE]: 'Enterprise',
+  [PlanTier.PERSONAL]: 'Personal',
+  [PlanTier.BUSINESS]: 'Business',
 };
 
-/** Warmth rises with the tier, so the entry plan reads as the generous one. */
-const TIER_BADGE: Record<PlanTier, 'success' | 'info' | 'default' | 'accent'> = {
-  [PlanTier.BASIC]: 'success',
-  [PlanTier.PRO]: 'info',
-  [PlanTier.INTELLIGENCE]: 'default',
-  [PlanTier.ENTERPRISE]: 'accent',
+const TIER_BADGE: Record<PlanTier, 'success' | 'info'> = {
+  [PlanTier.PERSONAL]: 'success',
+  [PlanTier.BUSINESS]: 'info',
 };
 
 type TierFilter = PlanTier | 'any';
@@ -215,7 +210,7 @@ export function FeatureExplorer() {
   const totalShown = counts.reduce((sum, entry) => sum + entry.count, 0);
 
   /*
-   * Derived, not stored: filtering to Basic can empty the area the reader was
+   * Derived, not stored: filtering to Personal can empty the area the reader was
    * looking at. Falling through to the first area that still has something in
    * it keeps the panel from going blank while the rail says there are matches
    * elsewhere.
@@ -250,7 +245,7 @@ export function FeatureExplorer() {
       <SectionHeading
         eyebrow="The whole catalogue"
         title="Every capability, and which plan it is in"
-        body="This is the entitlement catalogue the running product gates itself on — so nothing shipped is missing here, and nothing here has quietly been removed."
+        body="This is the entitlement catalogue the running product gates itself on - so nothing shipped is missing here, and nothing here has quietly been removed."
       />
 
       {/* --- Controls ---------------------------------------------------- */}
@@ -367,8 +362,8 @@ export function FeatureExplorer() {
               <SearchX className="size-6 text-muted-foreground" aria-hidden />
               <p className="text-sm font-medium">Nothing matches that</p>
               <p className="max-w-xs text-xs text-muted-foreground">
-                Try a broader search, or clear the plan filter — several capabilities only appear in
-                the higher tiers.
+                Try a broader search, or clear the plan filter - the commercial capabilities are
+                on Business, and the telemetry ones need a tracker.
               </p>
               <Button variant="outline" size="sm" onClick={reset} className="mt-1 rounded-full">
                 Clear filters

@@ -474,7 +474,7 @@ export function TrucksPage() {
             invalidateKeys={[['trucks']]}
             /* The API refuses this outright, so say why before it is pressed. */
             disabled={truck.currentTripId !== null}
-            disabledReason="On an active trip — end the trip first"
+            disabledReason="On an active trip - end the trip first"
           />
         </div>
       ),
@@ -570,7 +570,7 @@ export function TrucksPage() {
                   permission={Permission.TRUCKS_DELETE}
                   invalidateKeys={[['trucks']]}
                   disabled={truck.currentTripId !== null}
-                  disabledReason="On an active trip — end the trip first"
+                  disabledReason="On an active trip - end the trip first"
                 />
               </div>
             }

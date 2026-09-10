@@ -120,7 +120,7 @@ export function AdminTerminalReleasesPage() {
       key: 'mandatory',
       header: 'Required',
       hideOnMobile: true,
-      cell: (row) => (row.mandatory ? 'Yes' : '—'),
+      cell: (row) => (row.mandatory ? 'Yes' : '-'),
     },
     {
       key: 'fleet',
@@ -184,7 +184,7 @@ export function AdminTerminalReleasesPage() {
         <CardHeader>
           <CardTitle>Upload a build</CardTitle>
           <CardDescription>
-            The version, package and Android floor are read out of the APK itself — there is
+            The version, package and Android floor are read out of the APK itself - there is
             nothing to type. It arrives as a draft and reaches no vehicle until you publish it.
           </CardDescription>
         </CardHeader>
@@ -228,7 +228,7 @@ export function AdminTerminalReleasesPage() {
                 Required update
               </Label>
               <p className="text-xs text-muted-foreground">
-                Blocks the cockpit until installed. For a security or data-integrity fix only —
+                Blocks the cockpit until installed. For a security or data-integrity fix only -
                 a driver who cannot start a trip cannot earn.
               </p>
             </div>

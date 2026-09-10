@@ -486,6 +486,30 @@ class TerminalRepository(
     }
 
     /**
+     * The same search, from a point the caller already has.
+     *
+     * The overload above reads the telemetry snapshot, which is the right
+     * source while the reporting service is running and empty before it is.
+     * That gap is real rather than theoretical: Android Auto can start this
+     * process by binding the car service, and a driver who plugs in and opens
+     * Saarthi on the head unit before touching their phone would be told
+     * Saarthi does not know where they are — while the handset in their pocket
+     * has known for hours.
+     *
+     * So a caller holding a position of its own may pass it. Deliberately not
+     * a default parameter on the method above: reading the snapshot and being
+     * handed a fix are different acts, and a caller should have to say which
+     * one it means.
+     */
+    suspend fun nearby(
+        service: String?,
+        latitude: Double,
+        longitude: Double,
+    ): Result<NearbyResponse> = runCatchingApi {
+        api.nearby(service, latitude, longitude)
+    }
+
+    /**
      * Route to a place the driver picked.
      *
      * The origin is this terminal's *current* position rather than the last

@@ -24,7 +24,7 @@ export function DriverScorePage() {
 
   return (
     <div className="space-y-5">
-      <PageHeader title="My score" description="Every point is explained — nothing is hidden from you." />
+      <PageHeader title="My score" description="Every point is explained - nothing is hidden from you." />
       {score.isLoading ? <LoadingState /> : score.data ? <ScoreBreakdown score={score.data} driverId={driverId} /> : null}
     </div>
   );

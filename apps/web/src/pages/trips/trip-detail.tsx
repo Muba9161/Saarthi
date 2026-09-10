@@ -255,7 +255,7 @@ export function TripDetailPage() {
         />
         <StatCard
           label={delay > 0 ? 'Running late' : 'ETA'}
-          value={delay > 0 ? `+${formatDurationMinutes(delay)}` : eta ? relativeTimeFrom(eta) : '—'}
+          value={delay > 0 ? `+${formatDurationMinutes(delay)}` : eta ? relativeTimeFrom(eta) : '-'}
           chart={{
             // How much of this journey's clock is plan, and how much is slip.
             kind: 'split',
@@ -310,12 +310,12 @@ export function TripDetailPage() {
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <StatCard
             label="Top speed"
-            value={data.topSpeedKph !== null ? formatSpeedKph(data.topSpeedKph) : '—'}
+            value={data.topSpeedKph !== null ? formatSpeedKph(data.topSpeedKph) : '-'}
             chart={{ kind: 'bars', points: speedComparison, format: formatSpeedKph }}
           />
           <StatCard
             label="Average speed"
-            value={data.averageSpeedKph !== null ? formatSpeedKph(data.averageSpeedKph) : '—'}
+            value={data.averageSpeedKph !== null ? formatSpeedKph(data.averageSpeedKph) : '-'}
             chart={{
               kind: 'gauge',
               percent:
@@ -347,7 +347,7 @@ export function TripDetailPage() {
                 ? formatDistanceKm(data.endOdometerKm)
                 : data.startOdometerKm !== null
                   ? formatDistanceKm(data.startOdometerKm)
-                  : '—'
+                  : '-'
             }
             chart={{
               // Planned against driven. The reading itself has no shape worth

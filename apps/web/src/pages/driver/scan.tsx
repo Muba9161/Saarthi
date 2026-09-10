@@ -132,7 +132,7 @@ export function DriverScanPage(): React.ReactElement {
         <CardContent className="space-y-2 p-4">
           <p className="text-sm font-medium">Camera not working?</p>
           <p className="text-xs text-muted-foreground">
-            Paste the scan link — the address the sticker opens. It is too long to type from
+            Paste the scan link - the address the sticker opens. It is too long to type from
             memory, so ask your manager to send it to you.
           </p>
           <form

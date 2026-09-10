@@ -59,7 +59,7 @@ class SimulatedTelemetryProvider(
         ),
         LOW_FUEL(
             "Low fuel",
-            "Tank near empty — exercises the fuel warning and the nearest-pump flow.",
+            "Tank near empty - exercises the fuel warning and the nearest-pump flow.",
             750.0, 1_700.0, 86.0, 7.0, 27.2, 38.0,
         ),
         HIGH_COOLANT(

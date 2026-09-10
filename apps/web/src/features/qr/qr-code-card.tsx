@@ -485,7 +485,7 @@ export function QrCodeCard({ code, onChanged }: { code: QrCodeView; onChanged: (
                       <DialogTitle>Rotate this code</DialogTitle>
                       <DialogDescription>
                         A new token is issued and the old one stops working immediately. Anything
-                        already printed will no longer scan — reprint the badge afterwards.
+                        already printed will no longer scan - reprint the badge afterwards.
                       </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-1.5">
@@ -553,7 +553,7 @@ export function QrCodeCard({ code, onChanged }: { code: QrCodeView; onChanged: (
                 <p className="text-sm text-muted-foreground">Loading scans…</p>
               ) : (scans.data?.items.length ?? 0) === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  No scans recorded. Every scan is logged — that is how a guessing attempt becomes
+                  No scans recorded. Every scan is logged - that is how a guessing attempt becomes
                   visible.
                 </p>
               ) : (

@@ -9,8 +9,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -57,12 +59,30 @@ fun TerminalPage(
         .background(ground)
         .systemBarsPadding()
 
-    Column(
-        if (scrollable) {
-            base.verticalScroll(rememberScrollState()).padding(Gutter)
-        } else {
-            base.padding(Gutter)
-        },
-        content = content,
-    )
+    /*
+     * The page says what colour its text is.
+     *
+     * The ground above is painted with `Modifier.background`, and a modifier is
+     * not a `Surface` — it fills pixels without telling anything inside it what
+     * to write on them. So `LocalContentColor` stayed at Compose's default of
+     * black, and every `Text` on a terminal screen that did not name a colour
+     * of its own was drawn in black on a near-black gradient. The checklist
+     * heading was the visible one: "Pre-trip safety check" was there all along
+     * and simply could not be read, while the line under it — which does set
+     * `onSurfaceVariant` — looked fine and made the screen appear to work.
+     *
+     * Set once here rather than colour by colour at each call site, because the
+     * next unstyled `Text` anybody adds should be legible without them having
+     * to know this.
+     */
+    CompositionLocalProvider(LocalContentColor provides scheme.onBackground) {
+        Column(
+            if (scrollable) {
+                base.verticalScroll(rememberScrollState()).padding(Gutter)
+            } else {
+                base.padding(Gutter)
+            },
+            content = content,
+        )
+    }
 }

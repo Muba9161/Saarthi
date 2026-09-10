@@ -258,7 +258,7 @@ fun ServicesSheet(
 
                 Text(
                     if (query.trim().length < 2) {
-                        "Keep typing — a couple of letters is enough to start."
+                        "Keep typing - a couple of letters is enough to start."
                     } else {
                         "Nothing found for “$query”. Try a landmark, or the name as it " +
                             "appears on a signboard."
@@ -449,7 +449,7 @@ fun ServicesSheet(
                 // Required by the ODbL wherever OpenStreetMap data is shown, and
                 // the same credit the web app carries.
                 Text(
-                    "Places from OpenStreetMap contributors. Details may be out of date — call ahead if you are relying on one.",
+                    "Places from OpenStreetMap contributors. Details may be out of date - call ahead if you are relying on one.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -839,7 +839,7 @@ private fun PassportRow(label: String, value: String?) {
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Text(value ?: "—", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+        Text(value ?: "-", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
     }
 }
 
@@ -995,7 +995,7 @@ fun AdapterSheet(viewModel: TerminalViewModel, onClose: () -> Unit) {
 
         Text(
             "Plug the adapter into the vehicle's OBD port and pair it in your phone's " +
-                "Bluetooth settings. Then choose it here — once only.",
+                "Bluetooth settings. Then choose it here - once only.",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

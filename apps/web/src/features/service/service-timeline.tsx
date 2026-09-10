@@ -63,7 +63,7 @@ export function ServiceTimelinePanel({ vehicleId }: ServiceTimelinePanelProps): 
             <EmptyState
               icon={Wrench}
               title="Nothing on record yet"
-              description="File a service with its invoice and this becomes the vehicle's history — what a buyer, an insurer or the next workshop will ask you for."
+              description="File a service with its invoice and this becomes the vehicle's history - what a buyer, an insurer or the next workshop will ask you for."
             />
           </CardContent>
         </Card>
@@ -156,7 +156,7 @@ function HealthCard({ timeline }: { timeline: ServiceTimeline }): React.ReactEle
           <Figure label="Labour" value={formatCurrency(spend.labour)} />
           <Figure
             label="Cost per km"
-            value={spend.costPerKm !== null ? formatCurrency(spend.costPerKm) : '—'}
+            value={spend.costPerKm !== null ? formatCurrency(spend.costPerKm) : '-'}
             hint={
               spend.costPerKm === null ? 'Needs two odometer readings' : 'Across recorded history'
             }
@@ -173,7 +173,7 @@ function HealthCard({ timeline }: { timeline: ServiceTimeline }): React.ReactEle
             {formatCurrency(costTrend.recentCost)} in the last {costTrend.windowDays} days versus{' '}
             {formatCurrency(costTrend.previousCost)} in the {costTrend.windowDays} before
             {costTrend.changePercent !== null
-              ? ` — ${costTrend.changePercent > 0 ? '+' : ''}${costTrend.changePercent}%`
+              ? ` - ${costTrend.changePercent > 0 ? '+' : ''}${costTrend.changePercent}%`
               : ''}
             .
           </p>
@@ -196,7 +196,7 @@ function RepeatedComponentsCard({ timeline }: { timeline: ServiceTimeline }): Re
       <CardHeader className="pb-2">
         <SectionHeader
           title="Replaced more than once"
-          description="Consumables such as oil and filters are excluded — these are components that came back."
+          description="Consumables such as oil and filters are excluded - these are components that came back."
         />
       </CardHeader>
       <CardContent className="space-y-2">
@@ -263,7 +263,7 @@ function ServiceEntry({ record }: { record: ServiceRecordView }): React.ReactEle
             </p>
           </div>
           <p className="text-sm font-semibold tabular-nums">
-            {record.totalCost !== null ? formatCurrency(record.totalCost) : '—'}
+            {record.totalCost !== null ? formatCurrency(record.totalCost) : '-'}
           </p>
         </div>
 
@@ -280,7 +280,7 @@ function ServiceEntry({ record }: { record: ServiceRecordView }): React.ReactEle
                 {part.quantity > 1 ? `${part.quantity} × ` : ''}
                 {part.name}
                 {part.partNumber ? ` (${part.partNumber})` : ''}
-                {part.unitCost !== null ? ` — ${formatCurrency(part.unitCost)}` : ''}
+                {part.unitCost !== null ? ` - ${formatCurrency(part.unitCost)}` : ''}
                 {part.warrantyMonths ? ` · ${part.warrantyMonths}-month warranty` : ''}
               </li>
             ))}
@@ -351,7 +351,7 @@ function ProvenanceBadge({ record }: { record: ServiceRecordView }): React.React
           </Badge>
         </TooltipTrigger>
         <TooltipContent className="max-w-xs">
-          An external record disagrees with this one. Both have been kept — check the invoice and
+          An external record disagrees with this one. Both have been kept - check the invoice and
           confirm which is right.
         </TooltipContent>
       </Tooltip>

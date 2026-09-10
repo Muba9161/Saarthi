@@ -33,7 +33,7 @@ describe('View preferences', () => {
 
   beforeEach(async () => {
     await resetDatabase();
-    fleet = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.INTELLIGENCE);
+    fleet = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.BUSINESS);
     owner = await createUser({ role: RoleName.FLEET_OWNER, organizationId: fleet.id });
     colleague = await createUser({ role: RoleName.FLEET_MANAGER, organizationId: fleet.id });
   });

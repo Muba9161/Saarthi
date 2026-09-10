@@ -281,7 +281,7 @@ export function DocumentPanel({
           </AlertTitle>
           <AlertDescription>
             Use the <span className="font-medium">Verify</span> button on the row. The number is
-            checked against the issuing authority and takes a few seconds — no reviewer needed.
+            checked against the issuing authority and takes a few seconds - no reviewer needed.
           </AlertDescription>
         </Alert>
       ) : null}
@@ -404,7 +404,7 @@ function DriverChecklistCard({
       )}
       <AlertTitle>
         {checklist.complete
-          ? 'Fully verified — all four checks confirmed'
+          ? 'Fully verified - all four checks confirmed'
           : `Driver verification: ${checklist.verifiedCount} of ${checklist.totalCount} checks confirmed`}
       </AlertTitle>
       <AlertDescription className="space-y-2">
@@ -440,7 +440,7 @@ function DriverChecklistCard({
                   <p className="text-xs leading-relaxed text-muted-foreground">
                     {canVerify
                       ? item.hint
-                      : `${item.hint} Your role cannot run this check — ask an owner or fleet manager.`}
+                      : `${item.hint} Your role cannot run this check - ask an owner or fleet manager.`}
                   </p>
                 ) : null}
               </div>
@@ -744,7 +744,7 @@ function UploadDialog({
               <p className={showNumberError ? 'text-xs text-destructive' : 'text-xs text-muted-foreground'}>
                 {showNumberError
                   ? identityFormatMessage(identityKind.kind)
-                  : `${identityKind.formatHint} Required — it is what gets verified.`}
+                  : `${identityKind.formatHint} Required - it is what gets verified.`}
               </p>
             ) : null}
 
@@ -813,8 +813,8 @@ function UploadDialog({
               <ShieldCheck className="size-4" />
               <AlertTitle>One of the four checks a driver must pass</AlertTitle>
               <AlertDescription className="text-xs leading-relaxed">
-                {driverCheck.label} is one of four — with the driving licence, Aadhaar, PAN and
-                Voter ID — that each have to be confirmed by their own authority before
+                {driverCheck.label} is one of four - with the driving licence, Aadhaar, PAN and
+                Voter ID - that each have to be confirmed by their own authority before
                 {ownerLabel ? ` ${ownerLabel}` : ' this driver'} counts as verified. Verify it above
                 now, or from the row afterwards.
               </AlertDescription>

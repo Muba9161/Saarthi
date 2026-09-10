@@ -742,7 +742,7 @@ export function DashboardPage() {
                 points: toSeriesPoints(trends.driverCount),
                 format: (value) => formatNumber(value),
               }}
-              hint={`${data.drivers.verified} verified · avg score ${data.drivers.averageScore ?? '—'}`}
+              hint={`${data.drivers.verified} verified · avg score ${data.drivers.averageScore ?? '-'}`}
               onClick={() => navigate('/fleet/drivers')}
             />
             <BentoMetric

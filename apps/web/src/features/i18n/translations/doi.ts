@@ -136,7 +136,7 @@ export const doi: Catalogue = {
   'How Saarthi speaks to you.': 'Saarthi तुंदे कन्नै कुतै भाशा च गल्ल करै।',
   'Which language should Saarthi use?': 'Saarthi कुतै भाशा बरतै?',
   'You can change this later from your profile.': 'इसी बाद च अपनी प्रोफाइल थमां बदली सकदे ओ।',
-  'Not translated yet — shows in English': 'हल्ले अनुवाद नेईं — अंग्रेजी च दिक्खग',
+  'Not translated yet - shows in English': 'हल्ले अनुवाद नेईं - अंग्रेजी च दिक्खग',
 
   'Step {current} of {total}': 'चरण {current} / {total}',
 
@@ -187,11 +187,11 @@ export const doi: Catalogue = {
   'I drive for a fleet that already uses Saarthi.':
     'मैं ऐसे बेड़े आस्तै गड्डी चलांदा आं जेह्ड़ा पैहलें थमां Saarthi बरतदा ऐ।',
   'The operating system for your trucking business.': 'तुंदे ट्रकिंग कारोबार दा ऑपरेटिंग सिस्टम।',
-  'Saarthi connects fleet owners, drivers, suppliers and customers on one platform — from posting a load to watching it arrive.':
-    'Saarthi बेड़ा मालकें, चालकें, आपूर्तिकर्तां ते ग्राहकें गी इक्कै प्लेटफॉर्म पर जोड़दा ऐ — लोड पाने थमां लेइयै उसदे पुज्जने तकर।',
+  'Saarthi connects fleet owners, drivers, suppliers and customers on one platform - from posting a load to watching it arrive.':
+    'Saarthi बेड़ा मालकें, चालकें, आपूर्तिकर्तां ते ग्राहकें गी इक्कै प्लेटफॉर्म पर जोड़दा ऐ - लोड पाने थमां लेइयै उसदे पुज्जने तकर।',
   'One fleet command centre': 'इक्कै फ्लीट कमांड सेंटर',
   'Trucks, drivers, documents, orders and trips in a single operational view.':
-    'ट्रक, चालक, कागजात, ऑर्डर ते सफर — सब इक्कै कम्मै दे नजारे च।',
+    'ट्रक, चालक, कागजात, ऑर्डर ते सफर - सब इक्कै कम्मै दे नजारे च।',
   'Live tracking that actually moves': 'सच्चें हिलने आह्ली लाइव ट्रैकिंग',
   'Realtime positions, ETAs and route deviation alerts as they happen.':
     'रियल-टाइम थाह्र, पुज्जने दा वेला ते रस्ता बदलने दियां चेतावनियां, जिय्यां ई होवन।',
@@ -201,8 +201,8 @@ export const doi: Catalogue = {
   'AI grounded in your data': 'तुंदे अपने डेटा पर आधारत AI',
   'Answers built only from records your role is allowed to see.':
     'जवाब सिर्फ उऐ रिकार्ड थमां बनदे न जिंदे गी दिक्खने दी तुंदी भूमिका गी इजाजत ऐ।',
-  'Local development build — simulated GPS, mock payments, local document storage.':
-    'लोकल डेवलपमेंट बिल्ड — नकली GPS, नकली भुगतान, स्थानीय कागजात भंडारण।',
+  'Local development build - simulated GPS, mock payments, local document storage.':
+    'लोकल डेवलपमेंट बिल्ड - नकली GPS, नकली भुगतान, स्थानीय कागजात भंडारण।',
   'Back to vorldxsaarthi.com': 'vorldxsaarthi.com पर वापस',
   'Loading Saarthi…': 'Saarthi लोड होआ करदा ऐ…',
   'Try it instantly': 'फौरन अजमाओ',
@@ -284,8 +284,8 @@ export const doi: Catalogue = {
   'Open live map': 'लाइव नक्शा खोलो',
   'Documents needing attention': 'ध्यान लोड़चदे कागजात',
   'Ask the Fleet Copilot': 'फ्लीट कोपायलट थमां पुच्छो',
-  '“What needs my attention today?” — answered from your own records.':
-    '“अज्ज मिगी कुस पासै ध्यान देना चाहिदा?” — तुंदे अपने रिकार्डें थमां जवाब।',
+  '“What needs my attention today?” - answered from your own records.':
+    '“अज्ज मिगी कुस पासै ध्यान देना चाहिदा?” - तुंदे अपने रिकार्डें थमां जवाब।',
   Open: 'खोलो',
 
   // --- Password field and strength meter -----------------------------------

@@ -266,11 +266,17 @@ model AuditLog {
 // Enums — subscriptions & notifications
 // ===========================================================================
 
+/// The two subscriptions Saarthi sells. See `PlanTier` in @saarthi/shared for
+/// what each one covers and why capacity is identical on both.
 enum PlanTier {
-  BASIC
-  PRO
-  INTELLIGENCE
-  ENTERPRISE
+  PERSONAL
+  BUSINESS
+}
+
+/// Whether a subscription is billed each month or once a year.
+enum BillingPeriod {
+  MONTHLY
+  YEARLY
 }
 
 enum SubscriptionStatus {
@@ -455,6 +461,10 @@ model Subscription {
   organizationId String             @db.Uuid
   planId         String             @db.Uuid
   status         SubscriptionStatus @default(TRIALING)
+  /// Which price the customer agreed to. Stored because a plan holds both a
+  /// monthly and a yearly figure, and knowing only the plan loses half of what
+  /// was actually agreed.
+  billingPeriod  BillingPeriod      @default(MONTHLY)
   startsAt       DateTime           @default(now())
   endsAt         DateTime?
   cancelledAt    DateTime?
@@ -5868,6 +5878,59 @@ model VehicleSubscriptionTopUp {
   @@map("vehicle_subscription_topups")
 }
 
+enum TrackerStatus {
+  /// Paid for and granting its entitlement.
+  ACTIVE
+  /// Retired by the operator. Keeps its row for the purchase history.
+  RETIRED
+  /// The charge was declined, so nothing was granted.
+  PAYMENT_FAILED
+  /// Refunded. Distinct from RETIRED because the money went back.
+  REFUNDED
+}
+
+/// One Saarthi tracker, bought once for one vehicle.
+///
+/// A row per unit rather than a count, for the same reason as
+/// `VehicleSubscriptionTopUp`: each has its own payment reference, its own
+/// vehicle and its own retirement, and an operator replacing one failed
+/// tracker must not disturb the other nine.
+///
+/// There is no billing window on this model, and that absence is the point.
+/// The tracker is charged once because what was bought is a device and its
+/// fitting, not a service — so unlike a top-up there is nothing here to
+/// expire, and no sweep that can quietly switch a customer's hardware off.
+model VehicleTracker {
+  id             String        @id @default(uuid()) @db.Uuid
+  organizationId String        @db.Uuid
+  status         TrackerStatus @default(ACTIVE)
+
+  /// The vehicle it is fitted to. Null while it is on the shelf — bought ahead
+  /// of the vehicle arriving, or taken off a vehicle that was sold.
+  truckId String? @db.Uuid
+
+  /// What was actually charged, kept per row so a later price change does not
+  /// rewrite what this customer paid.
+  pricePaid Decimal @db.Decimal(10, 2)
+
+  purchasedAt DateTime  @default(now())
+  retiredAt   DateTime?
+
+  /// Reference from the payment provider (mock locally).
+  paymentReference String?
+  purchasedById    String?  @db.Uuid
+  /// Serial of the physical unit, once it is known. A tracker may be paid for
+  /// before it is picked from stock.
+  serialNumber     String?
+  note             String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([organizationId, status])
+  @@index([truckId])
+  @@map("vehicle_trackers")
+}
+
 enum ViewMode {
   TABLE
   CARDS
@@ -6307,11 +6370,11 @@ model TerminalSession {
   /// it, so between request and approval there is genuinely no device, and
   /// saying so is better than binding one that has not been authorised yet.
   terminalDeviceId String? @db.Uuid
-  vehicleId        String @db.Uuid
-  driverId         String @db.Uuid
+  vehicleId        String  @db.Uuid
+  driverId         String  @db.Uuid
   /// Denormalised from the driver, so the approval queue renders without a
   /// second join and a later driver archive does not blank the history.
-  driverUserId     String @db.Uuid
+  driverUserId     String  @db.Uuid
 
   status TerminalSessionStatus @default(DRIVER_IDENTIFIED)
 

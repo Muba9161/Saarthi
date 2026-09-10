@@ -3,6 +3,8 @@ import {
   MembershipStatus,
   OrganizationType,
   PlanTier,
+  VEHICLE_TOPUP,
+  VEHICLE_TRACKER,
   type RoleName,
   SubscriptionStatus,
   VerificationStatus,
@@ -248,9 +250,41 @@ export interface TestOrganization {
   inviteCode: string;
 }
 
+/**
+ * How much vehicle capacity a test tenant starts with, on top of the one
+ * vehicle its plan covers.
+ *
+ * Both plans cover exactly one vehicle; fleet size is bought per vehicle. A
+ * Business tenant in a test therefore needs the top-ups a real business
+ * customer would have bought, or a test about trip dispatch fails on a
+ * capacity error while trying to create its second truck.
+ *
+ * Personal gets none, deliberately. That is the plan the capacity tests are
+ * written against, and quietly handing it room would make
+ * `PLAN_LIMIT_REACHED` unreachable — a gate that cannot be tripped is a gate
+ * nobody will notice breaking.
+ */
+const DEFAULT_TOPUPS: Record<PlanTier, number> = {
+  [PlanTier.PERSONAL]: 0,
+  [PlanTier.BUSINESS]: 60,
+};
+
+/**
+ * A tenant to test against.
+ *
+ * `trackers` is what a test asks for when it needs connected hardware. The
+ * telemetry capabilities are not on any plan — they are granted by owning a
+ * tracker, and the device allowance is the tracker count — so a device test has
+ * to buy them the way a customer would. Passing a number here is the test
+ * equivalent of that purchase.
+ *
+ * `vehicleTopUps` overrides `DEFAULT_TOPUPS` for a test that wants to pin the
+ * capacity exactly, which the subscription suite does.
+ */
 export async function createOrganization(
   type: OrganizationType = OrganizationType.FLEET_OWNER,
-  tier: PlanTier = PlanTier.INTELLIGENCE,
+  tier: PlanTier = PlanTier.BUSINESS,
+  options: { trackers?: number; vehicleTopUps?: number } = {},
 ): Promise<TestOrganization> {
   const organization = await prisma.organization.create({
     data: {
@@ -286,6 +320,30 @@ export async function createOrganization(
   if (type === OrganizationType.CUSTOMER) {
     await prisma.customer.create({
       data: { organizationId: organization.id, verificationStatus: VerificationStatus.VERIFIED },
+    });
+  }
+
+  const topUps = options.vehicleTopUps ?? DEFAULT_TOPUPS[tier] ?? 0;
+  if (topUps > 0) {
+    await prisma.vehicleSubscriptionTopUp.createMany({
+      data: Array.from({ length: topUps }, () => ({
+        organizationId: organization.id,
+        status: 'ACTIVE' as const,
+        priceMonthly: VEHICLE_TOPUP.priceMonthly,
+        // No expiry: a test must not start failing because its fixture lapsed
+        // partway through a long suite.
+        expiresAt: null,
+      })),
+    });
+  }
+
+  if (options.trackers && options.trackers > 0) {
+    await prisma.vehicleTracker.createMany({
+      data: Array.from({ length: options.trackers }, () => ({
+        organizationId: organization.id,
+        status: 'ACTIVE' as const,
+        pricePaid: VEHICLE_TRACKER.priceOneTime,
+      })),
     });
   }
 

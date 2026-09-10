@@ -136,7 +136,7 @@ const STEP_RULES: Record<string, (form: LoanFormState) => FieldErrors> = {
     if (form.annualRatePercent.trim() === '' || !Number.isFinite(rate) || rate < 0)
       errors.annualRatePercent = 'Enter the annual interest rate.';
     if (form.disbursedAmount && Number(form.disbursedAmount) > principal)
-      errors.disbursedAmount = 'More was disbursed than sanctioned — check the figures.';
+      errors.disbursedAmount = 'More was disbursed than sanctioned - check the figures.';
     return errors;
   },
   schedule: (form) => {
@@ -265,7 +265,7 @@ export function AddLoanDialog({
     <div className="glass-inset space-y-1 p-3">
       <p className="section-label">Calculated EMI</p>
       <p className="text-lg font-semibold tabular-nums">
-        {computedEmi !== null ? formatCurrency(computedEmi) : '—'}
+        {computedEmi !== null ? formatCurrency(computedEmi) : '-'}
       </p>
       {preview.data ? (
         <p className="text-2xs leading-relaxed text-muted-foreground">
@@ -524,7 +524,7 @@ export function AddLoanDialog({
           {emiDiffers ? (
             <p className="-mt-2 text-xs text-warning">
               That is {formatCurrency(Math.abs((lenderEmi ?? 0) - (computedEmi ?? 0)))} away from the
-              calculated figure — worth re-checking the rate and tenure against your sanction
+              calculated figure - worth re-checking the rate and tenure against your sanction
               letter.
             </p>
           ) : null}

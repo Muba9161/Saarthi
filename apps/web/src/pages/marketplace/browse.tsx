@@ -28,7 +28,7 @@ export function BrowseMaterialsPage() {
     { key: 'supplier', header: 'Supplier', hideOnMobile: true, cell: (row) => (<div className="min-w-0"><p className="truncate text-sm">{row.supplierName}</p>{row.supplierVerified ? <p className="text-xs text-success">Verified</p> : null}</div>) },
     { key: 'price', header: 'Price', numeric: true, cell: (row) => (<div><p className="font-medium">{formatCurrency(row.pricePerUnit)}</p><p className="text-xs text-muted-foreground">per {humanizeEnum(row.unit).toLowerCase()}</p></div>) },
     { key: 'available', header: 'Available', numeric: true, hideOnMobile: true, cell: (row) => <span className="text-sm">{formatNumber(row.availableQuantity)}</span> },
-    { key: 'pickup', header: 'Pickup', hideOnMobile: true, cell: (row) => <span className="truncate text-sm text-muted-foreground">{row.pickupAddress ?? '—'}</span> },
+    { key: 'pickup', header: 'Pickup', hideOnMobile: true, cell: (row) => <span className="truncate text-sm text-muted-foreground">{row.pickupAddress ?? '-'}</span> },
   ];
 
   return (
