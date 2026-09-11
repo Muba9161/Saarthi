@@ -487,6 +487,48 @@ describe('profile audience resolution', () => {
   it('gives a fleet owner the fleet blueprint', () => {
     expect(resolveProfileAudience({ roles: [RoleName.FLEET_OWNER] })).toBe(ProfileAudience.FLEET);
   });
+
+  /*
+   * A Personal subscriber is seated as the owner of an organization carrying
+   * their own name, so role and type both say "fleet owner" — the same answers
+   * a one-truck haulier gives. Only the seat flag separates them, and getting
+   * it wrong is what asked somebody with two cars for a company logo, a
+   * registration number and a GSTIN as *required* fields.
+   */
+  it('gives a personal seat the personal blueprint rather than the fleet one', () => {
+    expect(
+      resolveProfileAudience({
+        roles: [RoleName.FLEET_OWNER],
+        membershipRole: RoleName.FLEET_OWNER,
+        organizationType: OrganizationType.FLEET_OWNER,
+        isPersonalSeat: true,
+      }),
+    ).toBe(ProfileAudience.PERSONAL);
+  });
+
+  it('keeps a driver on their own blueprint even when they hold a seat', () => {
+    // An unattached driver also sits in a seat, and their licence is the whole
+    // point of their profile — so the driver check has to win.
+    expect(
+      resolveProfileAudience({
+        roles: [RoleName.DRIVER],
+        membershipRole: RoleName.DRIVER,
+        organizationType: OrganizationType.FLEET_OWNER,
+        isPersonalSeat: true,
+      }),
+    ).toBe(ProfileAudience.DRIVER);
+  });
+
+  it('asks a personal profile for nothing about a business', () => {
+    const keys = profileBlueprint(ProfileAudience.PERSONAL).map((section) => section.key);
+    expect(keys).not.toContain('business');
+    expect(keys).not.toContain('businessContact');
+    expect(keys).not.toContain('businessAddress');
+    expect(keys).not.toContain('serviceAreas');
+    // And it is still a profile somebody can complete: the person, how to
+    // reach them and where they are.
+    expect(keys).toEqual(['photo', 'identity', 'contact', 'address', 'preferences', 'visibility']);
+  });
 });
 
 // ---------------------------------------------------------------------------

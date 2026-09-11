@@ -19,6 +19,19 @@ import { LANGUAGE_OPTIONS } from './languages';
 export const ProfileAudience = {
   DRIVER: 'DRIVER',
   FLEET: 'FLEET',
+  /**
+   * One person and the vehicles they own, rather than a business.
+   *
+   * The Personal plan is sold to somebody with a car, a tempo or a few of
+   * each. Until this existed they fell through to FLEET and were handed the
+   * fleet blueprint — a required company logo, a required business name and a
+   * required registration number, plus a GSTIN, a business address and service
+   * areas. None of it applies to a person, none of it could be filled in
+   * truthfully, and because completion is scored against the blueprint the
+   * account was left permanently short of the bar the same screen describes as
+   * what "moves an account toward verification".
+   */
+  PERSONAL: 'PERSONAL',
   SUPPLIER: 'SUPPLIER',
   CUSTOMER: 'CUSTOMER',
   ASSOCIATION: 'ASSOCIATION',
@@ -761,6 +774,22 @@ export const PROFILE_BLUEPRINTS: Record<ProfileAudience, ProfileSection[]> = {
     PREFERENCES_SECTION,
     VISIBILITY_SECTION,
   ],
+  /*
+   * The driver blueprint without the licence — a person, their contact details
+   * and where they live. No business section of any kind: there is no business
+   * behind the account, so there is nothing to describe to counterparties and
+   * nothing to register. Somebody who also drives their own vehicle records
+   * their licence on their driver record, which is where a fleet's drivers
+   * keep theirs too.
+   */
+  [ProfileAudience.PERSONAL]: [
+    PHOTO_SECTION,
+    IDENTITY_SECTION,
+    CONTACT_SECTION,
+    ADDRESS_SECTION,
+    PREFERENCES_SECTION,
+    VISIBILITY_SECTION,
+  ],
   [ProfileAudience.SUPPLIER]: [
     PHOTO_SECTION,
     IDENTITY_SECTION,
@@ -823,6 +852,13 @@ export function resolveProfileAudience(input: {
   roles: readonly RoleName[];
   membershipRole?: RoleName | null;
   organizationType?: OrganizationType | null;
+  /**
+   * Whether the organization is one person's seat rather than a business.
+   *
+   * Optional so every existing caller keeps its answer unchanged. Omitted, the
+   * resolution is exactly what it always was.
+   */
+  isPersonalSeat?: boolean | null;
 }): ProfileAudience {
   const roles = new Set<RoleName>([
     ...input.roles,
@@ -830,6 +866,20 @@ export function resolveProfileAudience(input: {
   ]);
 
   if (roles.has(RoleName.DRIVER)) return ProfileAudience.DRIVER;
+
+  /*
+   * A seat is not a business, so nothing about it should be asked as one.
+   *
+   * Checked ahead of the organization-type switch below because the type says
+   * FLEET_OWNER either way: a Personal account holder is seated as the owner
+   * of an organization carrying their own name, which is exactly what a
+   * one-truck haulier is too. `isPersonalSeat` is the only thing that tells
+   * them apart, and it is set at registration from the plan the person chose.
+   *
+   * After the DRIVER check, and deliberately: an unattached driver also holds
+   * a seat, and their licence is the point of their profile.
+   */
+  if (input.isPersonalSeat) return ProfileAudience.PERSONAL;
   if (roles.has(RoleName.ASSOCIATION_ADMIN) || roles.has(RoleName.ASSOCIATION_RESPONDER)) {
     return ProfileAudience.ASSOCIATION;
   }

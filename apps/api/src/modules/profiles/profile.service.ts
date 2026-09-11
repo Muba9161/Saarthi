@@ -219,6 +219,9 @@ function resolveAudience(auth: AuthContext): ProfileAudience {
     roles: auth.user.roles,
     membershipRole: auth.organization?.membershipRole ?? null,
     organizationType: auth.organization?.type ?? null,
+    // A Personal account is seated in a FLEET_OWNER organization named after
+    // the person, so the type alone cannot tell it from a one-truck haulier.
+    isPersonalSeat: auth.organization?.isPersonalSeat ?? null,
   });
 }
 

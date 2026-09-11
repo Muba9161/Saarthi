@@ -63,6 +63,16 @@ export interface NavItem {
    * bank details — out of a driver's menu.
    */
   requiresBusiness?: boolean;
+  /**
+   * The mirror of `requiresBusiness` — only for an account that is one
+   * person's seat.
+   *
+   * It exists so one menu can carry both wordings of the same destination
+   * rather than a second navigation array that would drift from this one: a
+   * freight operator reads "Trucks", and somebody running their own two cars
+   * reads "Vehicles", which is the screen that actually fits what they own.
+   */
+  personalOnly?: boolean;
   /** Show a live count badge from this key of the nav-badge payload. */
   badgeKey?: 'sos' | 'verification' | 'notifications' | 'expiringDocuments';
   /** Match child routes too. */
@@ -131,11 +141,34 @@ export const FLEET_NAVIGATION: NavSection[] = [
     // "Documents & costs" below, so this section stays short enough to scan.
     title: 'Fleet',
     items: [
-      // No generalized "Vehicles" entry here: for a freight fleet every vehicle
-      // is a truck, and two links to the same table under different names only
-      // makes the operator wonder which one is authoritative. The passenger
-      // view lives in MOBILITY_NAVIGATION, where it is the only view.
-      { label: 'Trucks', to: '/fleet/trucks', icon: Truck, permissions: [Permission.TRUCKS_READ] },
+      /*
+       * The same roster under the name that fits the account.
+       *
+       * For a freight fleet every vehicle is a truck, and two links to the same
+       * table under different names only makes the operator wonder which one is
+       * authoritative — so a business sees "Trucks" and nothing else.
+       *
+       * A Personal account is not a freight fleet. It is sold to somebody who
+       * owns a car, a tempo or a few of each, and sending them to a goods-vehicle
+       * screen headed "Trucks" described a business they never said they ran.
+       * `/fleet/vehicles` is the whole-fleet view of these same rows — the view
+       * a travel operator already gets — so this is one destination worded two
+       * ways, not two tables.
+       */
+      {
+        label: 'Trucks',
+        to: '/fleet/trucks',
+        icon: Truck,
+        permissions: [Permission.TRUCKS_READ],
+        requiresBusiness: true,
+      },
+      {
+        label: 'Vehicles',
+        to: '/fleet/vehicles',
+        icon: Car,
+        permissions: [Permission.VEHICLES_READ],
+        personalOnly: true,
+      },
       {
         label: 'Drivers',
         to: '/fleet/drivers',

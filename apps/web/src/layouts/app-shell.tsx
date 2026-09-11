@@ -212,6 +212,8 @@ function useNavItemVisible(): (item: NavItem) => boolean {
         const organization = session?.organization;
         if (!organization || organization.isPersonalSeat) return false;
       }
+      // And its mirror: an entry worded for one person is not for a business.
+      if (item.personalOnly && !session?.organization?.isPersonalSeat) return false;
       // Simulator controls only exist while the server has demo mode on.
       if (item.to === '/simulator' && !session?.demoMode) return false;
       return true;

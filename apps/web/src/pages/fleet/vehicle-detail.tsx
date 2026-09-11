@@ -210,8 +210,13 @@ export function VehicleDetailPage() {
   // the fleet map, a trip and a driver's profile all link to it knowing only an
   // id — so the list offered is the one that actually holds this vehicle: a
   // travel operator has no Trucks screen, and a taxi does not belong on it.
+  // A Personal account is the same case for a different reason: it runs its own
+  // vehicles rather than a freight fleet, so Vehicles is the only list it is
+  // offered and "All trucks" would send it somewhere its menu does not go.
   const belongsOnTrucksList =
-    carriesFreight && session?.organization?.type !== OrganizationType.MOBILITY_PROVIDER;
+    carriesFreight &&
+    session?.organization?.type !== OrganizationType.MOBILITY_PROVIDER &&
+    !session?.organization?.isPersonalSeat;
   const backToTrucks = location.pathname.startsWith('/fleet/vehicles')
     ? false
     : belongsOnTrucksList;

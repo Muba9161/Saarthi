@@ -90,6 +90,62 @@ describe('Authentication', () => {
       expect(body.data.session.subscription).not.toBeNull();
     });
 
+    /*
+     * A Personal subscription is a person, not a company.
+     *
+     * They are seated as the owner of an organization carrying their own name,
+     * because every membership, vehicle, document and driver row hangs off one
+     * — which is exactly the shape a one-truck haulier has, so nothing could
+     * tell them apart. The consequence was a man with two cars being offered
+     * the business documents screen and a profile whose *required* fields were
+     * a company logo, a registration number and a GSTIN.
+     */
+    it('marks a Personal registration as a seat rather than a business', async () => {
+      const email = `${unique('personal')}@test.local`;
+      const { status, body } = await request<{ session: SessionPayload }>({
+        method: 'POST',
+        url: '/api/v1/auth/register',
+        payload: {
+          firstName: 'Imran',
+          lastName: 'Qureshi',
+          email,
+          phone: uniquePhone(),
+          password: TEST_PASSWORD,
+          // No role and no organization name: a Personal registrant is asked
+          // for neither. See `registrationRole` and `isPersonalRegistration`.
+          planTier: PlanTier.PERSONAL,
+          acceptedTerms: true,
+        },
+      });
+
+      expect(status).toBe(201);
+      expect(body.data.session.organization?.name).toBe('Imran Qureshi');
+      expect(body.data.session.organization?.type).toBe(OrganizationType.FLEET_OWNER);
+      expect(body.data.session.organization?.isPersonalSeat).toBe(true);
+      expect(body.data.session.subscription?.planTier).toBe(PlanTier.PERSONAL);
+    });
+
+    it('leaves a Business registration a business', async () => {
+      const { status, body } = await request<{ session: SessionPayload }>({
+        method: 'POST',
+        url: '/api/v1/auth/register',
+        payload: {
+          firstName: 'Rajesh',
+          lastName: 'Sharma',
+          email: `${unique('businessseat')}@test.local`,
+          phone: uniquePhone(),
+          password: TEST_PASSWORD,
+          role: RoleName.FLEET_OWNER,
+          planTier: PlanTier.BUSINESS,
+          organizationName: 'Sharma Haulage',
+          acceptedTerms: true,
+        },
+      });
+
+      expect(status).toBe(201);
+      expect(body.data.session.organization?.isPersonalSeat).toBe(false);
+    });
+
     it('still requires a business name from a fleet owner', async () => {
       const { status, body } = await request({
         method: 'POST',

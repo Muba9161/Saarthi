@@ -123,6 +123,18 @@ export function DashboardPage() {
   // permissions (it is an operating fleet), so the commercial half of this
   // board is chosen by what the organization *is*, not by what it may do.
   const isMobility = session?.organization?.type === OrganizationType.MOBILITY_PROVIDER;
+  /*
+   * Which vehicle screen this account reads, and which word it reads it under.
+   *
+   * `/fleet/trucks` is the goods-vehicle view and `/fleet/vehicles` the
+   * whole-fleet view of the same rows, so this is a wording and destination
+   * question rather than a data one. A travel operator has no Trucks screen at
+   * all; a Personal account has one but should not be sent to it — somebody
+   * who signed up for their own car was never running a freight fleet, and the
+   * sidebar now offers them Vehicles, so every link out of this board has to
+   * agree with it or it becomes the dead end this check exists to avoid.
+   */
+  const usesVehicleScreen = isMobility || Boolean(session?.organization?.isPersonalSeat);
 
   useChannels(organizationId ? [RealtimeChannel.fleet(organizationId)] : []);
 
@@ -242,7 +254,7 @@ export function DashboardPage() {
           api.get<Paginated<TruckSummary>>('/trucks', { search: term, pageSize: 4 }).then((page) =>
             page.items.map((truck) => ({
               key: `truck-${truck.id}`,
-              to: isMobility ? `/fleet/vehicles/${truck.id}` : `/fleet/trucks/${truck.id}`,
+              to: usesVehicleScreen ? `/fleet/vehicles/${truck.id}` : `/fleet/trucks/${truck.id}`,
               icon: Truck,
               tone: 'info' as const,
               title: truck.registrationNumber,
@@ -674,7 +686,7 @@ export function DashboardPage() {
         ) : data ? (
           <BentoMetrics span={12} columns={4}>
             <BentoMetric
-              label={isMobility ? t('Vehicles') : t('Fleet')}
+              label={usesVehicleScreen ? t('Vehicles') : t('Fleet')}
               numericValue={data.fleet.totalTrucks}
               format={(value) => formatNumber(value)}
               chart={{
@@ -683,9 +695,10 @@ export function DashboardPage() {
                 format: (value) => formatNumber(value),
               }}
               hint={`${data.fleet.onTrip} on trip · ${data.fleet.available} available`}
-              // A travel operator has no Trucks screen, so sending it there
-              // would be a dead end inside its own command centre.
-              onClick={() => navigate(isMobility ? '/fleet/vehicles' : '/fleet/trucks')}
+              // A travel operator has no Trucks screen and a Personal account is
+              // not offered one, so sending either there would be a dead end
+              // inside its own command centre.
+              onClick={() => navigate(usesVehicleScreen ? '/fleet/vehicles' : '/fleet/trucks')}
             />
             <BentoMetric
               label={t('Utilisation')}
@@ -920,14 +933,14 @@ export function DashboardPage() {
               <SectionHeader
                 title={
                   <span className="flex items-center gap-2">
-                    {isMobility ? t('Live vehicle positions') : t('Live fleet positions')}
+                    {usesVehicleScreen ? t('Live vehicle positions') : t('Live fleet positions')}
                     {mapTrucks.length > 0 ? <span className="live-dot" aria-hidden /> : null}
                   </span>
                 }
                 description={
                   positions.isLoading
                     ? t('Loading positions…')
-                    : `${mapTrucks.length} ${isMobility ? 'vehicle' : 'truck'}${
+                    : `${mapTrucks.length} ${usesVehicleScreen ? 'vehicle' : 'truck'}${
                         mapTrucks.length === 1 ? '' : 's'
                       } reporting${session.demoMode ? ' · simulated GPS' : ''}`
                 }
@@ -948,7 +961,9 @@ export function DashboardPage() {
                 height="clamp(320px, 44vh, 470px)"
                 className="rounded-none border-0 border-t"
                 onSelectTruck={(truckId) =>
-                  navigate(isMobility ? `/fleet/vehicles/${truckId}` : `/fleet/trucks/${truckId}`)
+                  navigate(
+                    usesVehicleScreen ? `/fleet/vehicles/${truckId}` : `/fleet/trucks/${truckId}`,
+                  )
                 }
               />
             </div>

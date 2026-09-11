@@ -90,6 +90,27 @@ export function planAsksAccountType(tier: PlanTier | undefined): boolean {
   return tier === PlanTier.BUSINESS;
 }
 
+/**
+ * Whether a registration creates a person's own account rather than a business.
+ *
+ * The Personal plan is sold to a person who owns vehicles, not to a company:
+ * they are never asked what kind of business they are, never asked for a
+ * business name, and have no registration certificate, GSTIN or bank mandate
+ * to file. The plan is therefore the whole test — a Personal registrant is
+ * still seated as the owner of an organization carrying their own name (see
+ * `PERSONAL_PLAN_ROLE`), so the role says nothing useful here and checking it
+ * would answer "fleet owner" for a man with two cars.
+ *
+ * Named and exported for the same reason `registrationRole` is: the schema,
+ * the registration form and the API all have to agree about it, and the one
+ * place the API reads it is where the organization is created — a Personal
+ * account's organization is marked `isPersonalSeat`, which is what keeps the
+ * business-only surfaces out of it.
+ */
+export function isPersonalRegistration(input: { planTier?: PlanTier | undefined }): boolean {
+  return input.planTier === PlanTier.PERSONAL;
+}
+
 export const registerSchema = z
   .object({
     firstName: trimmedString(2, 60),
@@ -191,7 +212,7 @@ export const registerSchema = z
     }),
   })
   .superRefine((value, ctx) => {
-    const personal = value.planTier === PlanTier.PERSONAL;
+    const personal = isPersonalRegistration(value);
     const role = registrationRole(value);
 
     // A Business registration must say what kind of business it is: the choice

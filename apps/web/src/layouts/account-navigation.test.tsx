@@ -118,3 +118,43 @@ describe('business destinations and personal seats', () => {
     unmount();
   });
 });
+
+/**
+ * The same distinction, one level up: what the fleet menu is called.
+ *
+ * A Personal subscription is seated in a FLEET_OWNER organization named after
+ * the person, so the organization type alone puts them on the freight menu —
+ * headed "Trucks", beside a business documents entry wanting a GSTIN. Neither
+ * describes somebody who signed up for their own two cars. `/fleet/vehicles`
+ * is the whole-fleet view of the very same rows, so this is one destination
+ * worded for the account reading it rather than a second table.
+ */
+describe('the fleet roster a personal seat is offered', () => {
+  it('sends a personal seat to Vehicles and not to Trucks', () => {
+    auth.session.organization.isPersonalSeat = true;
+    auth.isDriver = false;
+
+    const { container, unmount } = renderSidebar();
+    const targets = destinations(container);
+    expect(targets).toContain('/fleet/vehicles');
+    expect(targets).not.toContain('/fleet/trucks');
+    // And the business paperwork goes with it: a person has no registration
+    // certificate, GSTIN or bank mandate to file.
+    expect(targets).not.toContain('/settings/business-documents');
+    unmount();
+  });
+
+  it('leaves a real fleet on Trucks', () => {
+    auth.session.organization.isPersonalSeat = false;
+    auth.isDriver = false;
+
+    const { container, unmount } = renderSidebar();
+    const targets = destinations(container);
+    expect(targets).toContain('/fleet/trucks');
+    // Unchanged for a freight operator: two links to the same table under
+    // different names only asks which one is authoritative.
+    expect(targets).not.toContain('/fleet/vehicles');
+    expect(targets).toContain('/settings/business-documents');
+    unmount();
+  });
+});

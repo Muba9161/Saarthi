@@ -1,6 +1,7 @@
 import {
   type AuthResult,
   type ChangePasswordInput,
+  isPersonalRegistration,
   type LoginInput,
   MembershipStatus,
   OrganizationType,
@@ -138,6 +139,20 @@ export async function register(input: RegisterInput, meta: RequestMeta) {
    */
   const registrantRole = registrationRole(input);
 
+  /*
+   * Whether this is a person rather than a business.
+   *
+   * A Personal registrant is still seated as the owner of an organization
+   * carrying their own name, because every membership, vehicle, document and
+   * driver row hangs off one. It is a seat, not a company — and until this was
+   * recorded, nothing downstream could tell the difference: the only question
+   * anything could ask was "is there an organization?", and the answer is
+   * always yes. That is why somebody who signed up for their own two cars was
+   * offered the business documents screen and asked for a registration
+   * certificate, a GSTIN and a bank mandate they will never have.
+   */
+  const personalRegistration = isPersonalRegistration(input);
+
   const result = await prisma.$transaction(async (tx) => {
     const existingEmail = await tx.user.findUnique({ where: { email: input.email } });
     if (existingEmail) {
@@ -252,6 +267,12 @@ export async function register(input: RegisterInput, meta: RequestMeta) {
           email: input.email,
           phone: input.phone,
           inviteCode: await uniqueInviteCode(tx),
+          // A Personal account is one person's seat, exactly as an unattached
+          // driver's is — see `personalRegistration` above. Business-only
+          // destinations read this flag, so setting it here is what keeps
+          // GST, the registration certificate and the bank mandate out of an
+          // account that was never asked to be a business.
+          isPersonalSeat: personalRegistration,
           verificationStatus: VerificationStatus.PENDING,
         },
       });

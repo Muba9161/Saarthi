@@ -102,6 +102,17 @@ export function VehiclesPage() {
 
   // Declared before the columns because the row actions read it.
   const isTravelOperator = session?.organization?.type === OrganizationType.MOBILITY_PROVIDER;
+  /*
+   * Somebody running their own vehicles rather than a business.
+   *
+   * This is their only vehicle screen — a Personal account is not offered the
+   * Trucks view, because it was never a freight fleet — so the copy must not
+   * point at one, and the Add dialog should open on a car rather than on a
+   * lorry. The type list is *not* narrowed the way a travel operator's is: a
+   * person may perfectly well own a tempo, and the plan sells vehicles rather
+   * than a category of them.
+   */
+  const isPersonalSeat = Boolean(session?.organization?.isPersonalSeat);
 
   const columns: Column<VehicleSummary>[] = [
     {
@@ -264,7 +275,9 @@ export function VehiclesPage() {
         description={
           isTravelOperator
             ? 'Every vehicle you run, with live status and document health.'
-            : 'Trucks, taxis, buses and vans across the whole organization.'
+            : isPersonalSeat
+              ? 'Every vehicle you own, with live status and document health.'
+              : 'Trucks, taxis, buses and vans across the whole organization.'
         }
         actions={
           canLookUpPlate || canAddVehicle ? (
@@ -280,7 +293,9 @@ export function VehiclesPage() {
                 // for them — so the type list is narrowed rather than hidden.
                 <AddVehicleDialog
                   {...(isTravelOperator ? { allowedTypes: PASSENGER_VEHICLE_TYPES } : {})}
-                  defaultType={isTravelOperator ? VehicleType.CAR : VehicleType.TRUCK}
+                  defaultType={
+                    isTravelOperator || isPersonalSeat ? VehicleType.CAR : VehicleType.TRUCK
+                  }
                   onAdded={setAdded}
                 />
               ) : null}
@@ -377,13 +392,17 @@ export function VehiclesPage() {
           description={
             isTravelOperator
               ? 'Add your first car, taxi or bus to start offering journeys and packages.'
-              : 'Add a vehicle here, or a goods vehicle from Fleet → Trucks.'
+              : isPersonalSeat
+                ? 'Add your first vehicle to keep its papers, costs and position in one place.'
+                : 'Add a vehicle here, or a goods vehicle from Fleet → Trucks.'
           }
           action={
             can(Permission.VEHICLES_CREATE) ? (
               <AddVehicleDialog
                 {...(isTravelOperator ? { allowedTypes: PASSENGER_VEHICLE_TYPES } : {})}
-                defaultType={isTravelOperator ? VehicleType.CAR : VehicleType.TRUCK}
+                defaultType={
+                  isTravelOperator || isPersonalSeat ? VehicleType.CAR : VehicleType.TRUCK
+                }
               />
             ) : undefined
           }
