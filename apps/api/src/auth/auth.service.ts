@@ -249,7 +249,14 @@ export async function register(input: RegisterInput, meta: RequestMeta) {
           organizationId,
           licenseNumber: input.licenseNumber!,
           licenseExpiryDate: input.licenseExpiryDate ?? null,
-          verificationStatus: VerificationStatus.PENDING,
+          // Same rule as Fleet → Add driver in driver.service.ts: with checks
+          // enforced a new driver starts PENDING until an authority confirms
+          // their licence and identity. Hardcoding PENDING here meant a driver
+          // who signed up themselves ignored the setting entirely, so the two
+          // ways of arriving at the same record disagreed.
+          verificationStatus: config.verification.driverChecksEnforced
+            ? VerificationStatus.PENDING
+            : VerificationStatus.VERIFIED,
         },
       });
       driverId = driver.id;
@@ -320,7 +327,11 @@ export async function register(input: RegisterInput, meta: RequestMeta) {
           organizationId,
           licenseNumber: input.licenseNumber,
           licenseExpiryDate: input.licenseExpiryDate ?? null,
-          verificationStatus: VerificationStatus.PENDING,
+          // As above: an owner who drives their own vehicle is a driver record
+          // like any other, and must follow the same enforcement setting.
+          verificationStatus: config.verification.driverChecksEnforced
+            ? VerificationStatus.PENDING
+            : VerificationStatus.VERIFIED,
         },
       });
       driverId = self.id;

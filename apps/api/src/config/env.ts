@@ -314,6 +314,15 @@ const envSchema = z.object({
   // Refused in production below. A deployment that skips these is one where the
   // platform's verified badge is asserting something no authority confirmed.
   DRIVER_VERIFICATION_ENFORCEMENT: booleanish(true),
+  /**
+   * Permits DRIVER_VERIFICATION_ENFORCEMENT=false to boot in production.
+   *
+   * Separate from the flag it unlocks so that a typo, a copied .env or a
+   * half-finished edit cannot switch driver verification off by itself — that
+   * still refuses to start. Only setting both, on purpose, gets you a
+   * production deployment that vouches for drivers nobody has checked.
+   */
+  ALLOW_UNVERIFIED_DRIVERS: booleanish(false),
 
   AI_PROVIDER: z.enum(['development', 'anthropic', 'gemini']).default('development'),
   AI_API_KEY: z.string().optional(),
@@ -590,9 +599,22 @@ if (isProduction) {
   // A driver marked verified without an authority having confirmed anything is
   // the platform vouching for somebody it has not checked. Fine on a laptop,
   // never on a deployment a customer trusts.
-  if (!raw.DRIVER_VERIFICATION_ENFORCEMENT) {
+  //
+  // The bypass below exists for a pre-launch deployment being demonstrated
+  // before any real licensing integration is live, where every "driver" is a
+  // test account. It is deliberately awkward: a second variable, named for
+  // what it actually does rather than for the flag it unlocks, so that turning
+  // it on cannot be mistaken for routine configuration and `grep` finds every
+  // environment where it is set. An accidental DRIVER_VERIFICATION_ENFORCEMENT
+  // =false still refuses to boot, which is the case this guard was written for.
+  //
+  // While it is on, every driver created by any route is marked VERIFIED with
+  // no authority having confirmed a licence, an Aadhaar, a PAN or a Voter ID,
+  // and the platform presents that badge to customers as though it had. Turn it
+  // off before real drivers exist.
+  if (!raw.DRIVER_VERIFICATION_ENFORCEMENT && !raw.ALLOW_UNVERIFIED_DRIVERS) {
     throw new Error(
-      'DRIVER_VERIFICATION_ENFORCEMENT must be true in production — drivers would be marked verified without any authority confirming their licence or identity.',
+      'DRIVER_VERIFICATION_ENFORCEMENT must be true in production — drivers would be marked verified without any authority confirming their licence or identity. Set ALLOW_UNVERIFIED_DRIVERS=true as well if this is a pre-launch test deployment and you accept that.',
     );
   }
   // Devices and people are separate credential populations with separate threat
@@ -791,6 +813,16 @@ export const config = {
      * production guard that refuses to start without it.
      */
     driverChecksEnforced: raw.DRIVER_VERIFICATION_ENFORCEMENT,
+    /**
+     * True when a *production* deployment is deliberately running with driver
+     * checks off, via ALLOW_UNVERIFIED_DRIVERS.
+     *
+     * Surfaced rather than left implicit so the condition can be said out loud
+     * at boot. A deployment vouching for unchecked drivers should be obvious in
+     * the logs of every restart, not a thing somebody has to infer from two
+     * environment variables.
+     */
+    unverifiedDriversAllowed: isProduction && !raw.DRIVER_VERIFICATION_ENFORCEMENT,
   },
 
   ai: {

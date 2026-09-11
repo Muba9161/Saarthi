@@ -40,6 +40,18 @@ async function start(): Promise<void> {
 
   await app.listen({ host: config.server.host, port: config.server.port });
 
+  // Said on every restart, not once at install: a deployment that vouches for
+  // drivers no authority has checked should never be a quiet fact somebody has
+  // to go looking for.
+  if (config.verification.unverifiedDriversAllowed) {
+    logger.warn(
+      { allowUnverifiedDrivers: true },
+      'Driver verification is OFF in production (ALLOW_UNVERIFIED_DRIVERS=true). ' +
+        'Every driver is marked verified with no licence, Aadhaar, PAN or Voter ID confirmed. ' +
+        'Intended for pre-launch testing only — turn this off before real drivers exist.',
+    );
+  }
+
   logger.info(
     {
       url: config.server.apiUrl,
@@ -48,6 +60,7 @@ async function start(): Promise<void> {
       storage: config.storage.provider,
       gps: config.providers.gps,
       ai: config.ai.provider,
+      driverChecks: config.verification.driverChecksEnforced ? 'enforced' : 'OFF',
     },
     `Saarthi API listening on http://localhost:${config.server.port}`,
   );
