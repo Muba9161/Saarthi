@@ -436,6 +436,19 @@ class SaarthiApi(
         ChecklistResultDto.serializer(),
     )
 
+    /**
+     * The trip the fleet dispatched this vehicle on, if any.
+     *
+     * Null is an ordinary answer, not a failure: a vehicle between jobs has no
+     * dispatch, and a cab that treated that as an error would show a red banner
+     * for most of a working week.
+     */
+    suspend fun currentTrip(): TerminalTripDto? =
+        getNullable(
+            "/api/v1/device-gateway/terminal/trip/current",
+            TerminalTripDto.serializer(),
+        )
+
     suspend fun startTrip(request: TripEventRequest): TerminalSessionDto = post(
         "/api/v1/device-gateway/terminal/trip/start",
         request,

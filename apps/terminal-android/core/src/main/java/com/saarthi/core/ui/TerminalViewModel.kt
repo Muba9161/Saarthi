@@ -28,6 +28,7 @@ import com.saarthi.core.network.RouteStepDto
 import com.saarthi.core.network.ServiceRunDto
 import com.saarthi.core.network.SubmitChecklistRequest
 import com.saarthi.core.network.TerminalStateDto
+import com.saarthi.core.network.TerminalTripDto
 import com.saarthi.core.telemetry.BluetoothObdTelemetryProvider
 import com.saarthi.core.telemetry.Metric
 import com.saarthi.core.telemetry.SimulatedTelemetryProvider
@@ -395,6 +396,20 @@ class TerminalViewModel(application: Application) : AndroidViewModel(application
     val telemetryHub get() = app.telemetry
     val realtime get() = app.realtime
 
+    private val _dispatch = MutableStateFlow<TerminalTripDto?>(null)
+
+    /**
+     * The trip the fleet gave this vehicle, or null between jobs.
+     *
+     * Held here rather than folded into [uiState] because the two answer
+     * different questions and fail independently. `uiState` is the driver
+     * lifecycle — who is signed on, whether they are approved, whether the
+     * safety check passed — and it must keep rendering when the dispatch call
+     * times out. A driver locked out of the cockpit because the trip endpoint
+     * was slow would be a worse bug than the one this feature fixes.
+     */
+    val dispatch: StateFlow<TerminalTripDto?> = _dispatch.asStateFlow()
+
     // -----------------------------------------------------------------------
     // Lifecycle
     // -----------------------------------------------------------------------
@@ -407,6 +422,7 @@ class TerminalViewModel(application: Application) : AndroidViewModel(application
         observeRealtime()
         observeFixes()
         adoptOpenServiceRun()
+        watchDispatch()
     }
 
     /**
@@ -666,11 +682,96 @@ class TerminalViewModel(application: Application) : AndroidViewModel(application
     }
 
     // -----------------------------------------------------------------------
+    // Dispatched work
+    // -----------------------------------------------------------------------
+
+    // `_dispatch` itself is declared above `init`, because `init` starts the
+    // poll that writes to it and Kotlin initialises properties in source order.
+
+    fun loadDispatch() {
+        viewModelScope.launch { repository.dispatchedTrip().onSuccess { _dispatch.value = it } }
+    }
+
+    /**
+     * Keep the dispatch current without being told to.
+     *
+     * A slow poll, for the same reason the state loop in `TerminalService` is
+     * one: the device socket carries approvals and commands, and a job assigned
+     * while a vehicle was in a tunnel would otherwise never reach it at all.
+     * The interval is deliberately unhurried — a dispatcher assigning work does
+     * not expect it on the tablet inside a second, and a driver with a phone on
+     * a bracket is paying for the data.
+     */
+    private fun watchDispatch() {
+        viewModelScope.launch {
+            while (true) {
+                repository.dispatchedTrip().onSuccess { trip ->
+                    val previous = _dispatch.value
+                    _dispatch.value = trip
+                    if (trip != null && previous?.id != trip.id) {
+                        DebugLog.info("dispatch", "Trip ${trip.reference} assigned to this vehicle")
+                    }
+                }
+                delay(DISPATCH_POLL_MS)
+            }
+        }
+    }
+
+    /**
+     * Navigate to the dispatched destination.
+     *
+     * Deliberately the same two steps a searched place and a nearby result take
+     * — `route` then `previewRoute` — rather than a path of its own. The driver
+     * sees the line, the distance and the time, and presses Start when they mean
+     * it. A dispatch is a job the fleet assigned, not permission for the tablet
+     * to take over the map the moment a controller clicked Save.
+     *
+     * No service run is opened behind it: `pendingService` stays null, and the
+     * server refuses to open one against a vehicle already on a dispatched trip
+     * in any case. The journey is being recorded against the real trip.
+     */
+    fun navigateToDispatch(onDone: (Boolean) -> Unit = {}) {
+        val trip = _dispatch.value ?: run {
+            onDone(false)
+            return
+        }
+
+        viewModelScope.launch {
+            _busy.value = true
+            val result = repository.route(
+                trip.destinationLatitude,
+                trip.destinationLongitude,
+                trip.destinationAddress.ifBlank { trip.reference },
+            )
+            result.onSuccess { route -> previewRoute(route, service = null) }
+            _busy.value = false
+            onDone(result.isSuccess)
+        }
+    }
+
+    // -----------------------------------------------------------------------
     // Trip
     // -----------------------------------------------------------------------
 
-    fun startTrip() = viewModelScope.launch { repository.startTrip() }
-    fun completeTrip() = viewModelScope.launch { repository.completeTrip() }
+    /*
+     * Both of these now move the fleet's trip as well as the driver's session.
+     *
+     * The server does the moving — see `dispatch.service.ts` — because the trip
+     * state machine is not something a tablet should be reasoning about. What
+     * happens here is the consequence: the dispatch is re-read, so the card in
+     * the card stops offering Start the moment the vehicle is under way rather
+     * than at the next poll.
+     */
+    fun startTrip() = viewModelScope.launch {
+        repository.startTrip()
+        repository.dispatchedTrip().onSuccess { _dispatch.value = it }
+    }
+
+    fun completeTrip() = viewModelScope.launch {
+        repository.completeTrip()
+        repository.dispatchedTrip().onSuccess { _dispatch.value = it }
+    }
+
     fun endSession() = viewModelScope.launch { repository.endSession("Driver signed off.") }
 
     // -----------------------------------------------------------------------
@@ -1470,5 +1571,15 @@ class TerminalViewModel(application: Application) : AndroidViewModel(application
          * them nothing at all.
          */
         const val ARRIVAL_BANNER_MS = 12_000L
+
+        /**
+         * How often to ask whether the fleet has dispatched this vehicle.
+         *
+         * Slow on purpose. Dispatch is not an approval — nobody is standing
+         * beside a vehicle watching the screen for it — and a poll fast enough to
+         * feel instant would be a request a minute, for every vehicle, all day,
+         * against a journey that takes hours.
+         */
+        const val DISPATCH_POLL_MS = 60_000L
     }
 }

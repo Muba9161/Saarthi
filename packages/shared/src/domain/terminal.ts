@@ -44,6 +44,7 @@ import {
   TerminalChecklistItemKind as ItemKind,
   TerminalSessionStatus as SessionStatus,
 } from './enums';
+import type { LatLng } from './geo';
 
 // ---------------------------------------------------------------------------
 // Terminal state machine (specification section 8)
@@ -1138,6 +1139,99 @@ export interface NextManeuver {
 // ---------------------------------------------------------------------------
 // Ad-hoc service runs (a trip nobody dispatched)
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Dispatched work — the trip the fleet gave this vehicle
+// ---------------------------------------------------------------------------
+
+/**
+ * One stop on a dispatched trip, as the terminal needs it.
+ *
+ * The addresses and coordinates and nothing else. A terminal showing a driver
+ * where to go does not need the stop's audit trail, and a trip with fifteen
+ * drops would otherwise put fifteen records of internal bookkeeping on a 2G
+ * connection in a yard.
+ */
+export interface TerminalTripStopView {
+  id: string;
+  /** ORIGIN | PICKUP | DROP | DESTINATION | REST | FUEL — see `TripStopType`. */
+  type: string;
+  name: string;
+  address: string | null;
+  latitude: number;
+  longitude: number;
+  sequence: number;
+  /** PENDING | ARRIVED | DEPARTED | SKIPPED — see `TripStopStatus`. */
+  status: string;
+  plannedArrival: string | null;
+}
+
+/**
+ * The trip this vehicle has been dispatched on, for the terminal to act on.
+ *
+ * The gap this closes is the one a fleet notices first: a dispatcher assigned a
+ * trip from the web, `createTrip` wrote it against the vehicle, and the vehicle
+ * had no way of hearing about it. `TerminalStateView` carries the vehicle, the
+ * session, the driver and the health of the tablet — and no work. So the driver
+ * was told where to go by telephone, and the trip sat at ASSIGNED and nought
+ * per cent for ever because nothing on the vehicle could move it on.
+ *
+ * Two rules shape what is here:
+ *
+ *  1. **Never an ad-hoc run.** A service run to a petrol pump occupies
+ *     `currentTripId` exactly as a dispatch does, and presenting one as work
+ *     the fleet assigned would have the terminal ask a driver to navigate to
+ *     the pump they are standing at. The `adHoc` flag is the filter.
+ *  2. **The plan, not a route.** `plannedRoute` is what the dispatcher drew, so
+ *     the terminal can show the shape of the journey before committing a
+ *     routing request. Turn-by-turn still comes from `/route` against the
+ *     vehicle's actual position, because a plan drawn yesterday from a depot is
+ *     not a route from where the vehicle is parked this morning.
+ */
+export interface TerminalTripView {
+  id: string;
+  reference: string;
+  /** ASSIGNED | LOADING | STARTED | IN_TRANSIT | … — see `TripStatus`. */
+  status: string;
+  originAddress: string;
+  originLatitude: number;
+  originLongitude: number;
+  destinationAddress: string;
+  destinationLatitude: number;
+  destinationLongitude: number;
+  /** The dispatcher's polyline. Empty when the trip was drawn point to point. */
+  plannedRoute: LatLng[];
+  plannedDistanceKm: number | null;
+  /** What the tracking pipeline has observed so far. Never a plan. */
+  actualDistanceKm: number;
+  progressPercent: number;
+  plannedStartAt: string | null;
+  plannedArrivalAt: string | null;
+  etaAt: string | null;
+  delayMinutes: number;
+  stops: TerminalTripStopView[];
+  notes: string | null;
+  /** The customer order behind it, when the trip came from one. */
+  orderReference: string | null;
+  /**
+   * True once the vehicle has set off.
+   *
+   * The terminal shows "Start" or "Complete" off this rather than parsing the
+   * status string, so a status added to the trip machine later cannot silently
+   * turn the button in a moving vehicle back into Start.
+   */
+  underway: boolean;
+  /**
+   * True when this trip names the driver currently signed on.
+   *
+   * A dispatch belongs to the *vehicle* — `createTrip` writes `currentTripId`
+   * against the vehicle and the tracking pipeline attributes every position to
+   * it — so the work is shown to whoever is driving. But a driver who took a
+   * vehicle over mid-shift is entitled to know the paperwork still names
+   * somebody else, which is a thing to display, not a reason to hide the job.
+   */
+  assignedToSignedInDriver: boolean;
+}
 
 /**
  * A journey the vehicle made on its own account.

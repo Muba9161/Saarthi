@@ -475,6 +475,64 @@ data class TripEventRequest(
 @Serializable
 data class EndSessionRequest(val reason: String? = null)
 
+/**
+ * One stop on the dispatched trip.
+ *
+ * Mirrors `TerminalTripStopView`. Everything is defaulted because a terminal
+ * running an older build than the server must degrade to a missing field, never
+ * to a parse failure that blanks the whole dispatch card in a moving vehicle.
+ */
+@Serializable
+data class TerminalTripStopDto(
+    val id: String,
+    val type: String = "",
+    val name: String = "",
+    val address: String? = null,
+    val latitude: Double = 0.0,
+    val longitude: Double = 0.0,
+    val sequence: Int = 0,
+    val status: String = "PENDING",
+    val plannedArrival: String? = null,
+)
+
+/**
+ * The work the fleet gave this vehicle.
+ *
+ * Mirrors `TerminalTripView`. The dispatcher's own polyline travels with it so
+ * the terminal can draw the shape of the journey before spending a routing
+ * request; turn-by-turn still comes from `/route` against where the vehicle
+ * actually is, because a plan drawn from a depot yesterday is not a route from
+ * this morning's lay-by.
+ */
+@Serializable
+data class TerminalTripDto(
+    val id: String,
+    val reference: String = "",
+    val status: String = "",
+    val originAddress: String = "",
+    val originLatitude: Double = 0.0,
+    val originLongitude: Double = 0.0,
+    val destinationAddress: String = "",
+    val destinationLatitude: Double = 0.0,
+    val destinationLongitude: Double = 0.0,
+    val plannedRoute: List<RoutePointDto> = emptyList(),
+    val plannedDistanceKm: Double? = null,
+    /** What tracking has observed. Never the plan — see [plannedDistanceKm]. */
+    val actualDistanceKm: Double = 0.0,
+    val progressPercent: Int = 0,
+    val plannedStartAt: String? = null,
+    val plannedArrivalAt: String? = null,
+    val etaAt: String? = null,
+    val delayMinutes: Int = 0,
+    val stops: List<TerminalTripStopDto> = emptyList(),
+    val notes: String? = null,
+    val orderReference: String? = null,
+    /** True once the vehicle has set off: Complete is shown, not Start. */
+    val underway: Boolean = false,
+    /** False when the paperwork names a colleague. Shown, never used to hide. */
+    val assignedToSignedInDriver: Boolean = true,
+)
+
 @Serializable
 data class ReportIssueRequest(
     val category: String,

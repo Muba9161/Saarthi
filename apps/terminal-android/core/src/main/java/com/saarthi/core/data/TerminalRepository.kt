@@ -39,6 +39,7 @@ import com.saarthi.core.network.SubmitChecklistRequest
 import com.saarthi.core.network.TelemetryBatch
 import com.saarthi.core.network.TelemetryFrame
 import com.saarthi.core.network.TerminalStateDto
+import com.saarthi.core.network.TerminalTripDto
 import com.saarthi.core.network.TripEventRequest
 import com.saarthi.core.telemetry.Metric
 import com.saarthi.core.telemetry.MetricSource
@@ -392,6 +393,16 @@ class TerminalRepository(
             refresh()
             result
         }
+
+    /**
+     * The work the fleet gave this vehicle, or null when there is none.
+     *
+     * Read rather than pushed. The device socket carries approvals and commands
+     * and nothing that would keep this current, and a dispatch that arrived only
+     * over a socket would be a job a driver never saw because their vehicle was
+     * in a tunnel when it was assigned.
+     */
+    suspend fun dispatchedTrip(): Result<TerminalTripDto?> = runCatchingApi { api.currentTrip() }
 
     suspend fun startTrip(): Result<Unit> = runCatchingApi {
         val position = telemetry.snapshot.value.position

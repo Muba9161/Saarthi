@@ -57,6 +57,11 @@ import {
   startTrip,
 } from './session.service';
 import { prepareChecklist, submitChecklist } from './checklist.service';
+import {
+  completeDispatchedTrip,
+  dispatchedTripForSession,
+  startDispatchedTrip,
+} from './dispatch.service';
 import { findServices, routeTo, searchPlaces } from './navigation.service';
 import {
   finishAdHocTrip,
@@ -271,18 +276,62 @@ export async function terminalClientRoutes(app: FastifyInstance): Promise<void> 
   // Trip lifecycle
   // -------------------------------------------------------------------------
 
+  /**
+   * The work the fleet gave this vehicle.
+   *
+   * The half of dispatch that never existed. `createTrip` has always written
+   * the trip against the vehicle, and the tracking pipeline has always
+   * attributed that vehicle's positions to it — but nothing told the terminal,
+   * so the driver was sent by telephone and the trip sat at ASSIGNED for ever.
+   *
+   * Null when there is no dispatch, which is the ordinary state of a vehicle
+   * between jobs and not a fault worth a status code.
+   */
+  app.get('/trip/current', { config: terminalLimit(30) }, async (request, reply) => {
+    const terminal = requireTerminal(await authenticateDeviceRequest(request));
+    const session = await authorizedSessionForTerminal(terminal.device.id);
+
+    return ok(reply, await dispatchedTripForSession(session));
+  });
+
   app.post('/trip/start', { config: terminalLimit(20) }, async (request, reply) => {
     const terminal = requireTerminal(await authenticateDeviceRequest(request));
     const session = await authorizedSessionForTerminal(terminal.device.id);
     const input = parseBody(terminalTripEventSchema, request.body ?? {});
-    return ok(reply, await startTrip(session.id, input));
+
+    // The driver's own auth is resolved before anything moves, because
+    // `driverAuthForSession` reads the status this call is about to change.
+    const auth = await driverAuthForSession(session);
+
+    // The session first: it enforces the safety check, and a driver who has not
+    // completed one must not be able to move the fleet's trip by pressing Start.
+    const view = await startTrip(session.id, input);
+    await startDispatchedTrip(session, auth, {
+      latitude: input.latitude,
+      longitude: input.longitude,
+    });
+
+    return ok(reply, view);
   });
 
   app.post('/trip/complete', { config: terminalLimit(20) }, async (request, reply) => {
     const terminal = requireTerminal(await authenticateDeviceRequest(request));
     const session = await authorizedSessionForTerminal(terminal.device.id);
     const input = parseBody(terminalTripEventSchema, request.body ?? {});
-    return ok(reply, await completeTrip(session.id, input));
+    const auth = await driverAuthForSession(session);
+
+    // Session first again, and here the order is load-bearing rather than
+    // merely tidy: `completeTrip` refuses unless a trip is actually under way
+    // on this terminal, and `transitionTrip` returns the session to READY on
+    // its own when a dispatcher closes the same trip from the web. Doing the
+    // trip first would have the session service refuse a driver's own Complete.
+    const view = await completeTrip(session.id, input);
+    await completeDispatchedTrip(session, auth, {
+      latitude: input.latitude,
+      longitude: input.longitude,
+    });
+
+    return ok(reply, view);
   });
 
   // -------------------------------------------------------------------------

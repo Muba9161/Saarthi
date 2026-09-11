@@ -129,6 +129,7 @@ fun DriverCockpitScreen(
     val navigation by viewModel.navigation.collectAsState()
     val sosArmed by viewModel.sosArmed.collectAsState()
     val sosReference by viewModel.sosReference.collectAsState()
+    val dispatch by viewModel.dispatch.collectAsState()
 
     val telemetry = state.telemetry
     val moving = state.moving
@@ -161,6 +162,8 @@ fun DriverCockpitScreen(
             frameRouteRequest += 1
         }
     }
+
+    LaunchedEffect(Unit) { viewModel.loadDispatch() }
 
     val openAssistant: () -> Unit = {
         // Voice where the microphone is available, the typed sheet where it is
@@ -322,6 +325,20 @@ fun DriverCockpitScreen(
                         },
                         tint = if (state.offline) CautionAmber else LiveGreen,
                     )
+                }
+            }
+
+            // --- The job the fleet gave this vehicle --------------------------
+            //
+            // Directly under the map, because the two answer one question
+            // between them: where am I taking this, and which way. Below the
+            // readings it would be a job a driver had to scroll to find.
+            AnimatedVisibility(visible = dispatch != null) {
+                Column {
+                    Spacer(Modifier.height(FleetSpace.section))
+                    FleetEnter(index = 2) {
+                        DispatchCard(cockpit = viewModel)
+                    }
                 }
             }
 

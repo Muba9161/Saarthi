@@ -189,14 +189,22 @@ class QuickLoginStore(context: Context) {
      * A slot that fails to re-seal is turned off rather than left holding a
      * token known to be dead — an unlock that cannot possibly work is worse than
      * a switch that is visibly off.
+     *
+     * Returns whether a sealed copy of this token now exists. False means every
+     * slot is empty and the caller still holds the only copy — which the account
+     * store needs to know, because until it did it handed rotations to a
+     * custodian that dropped them and kept nothing readable in their place.
      */
-    fun reseal(refreshToken: String) {
+    fun reseal(refreshToken: String): Boolean {
+        var held = false
+
         if (preferences.getString(KEY_PIN_TOKEN, null) != null) {
             val sealed = runCatching {
                 seal(keyFor(PIN_KEY_ALIAS, requireUserAuth = false), refreshToken)
             }.getOrNull()
             if (sealed != null) {
                 preferences.edit().putString(KEY_PIN_TOKEN, sealed).apply()
+                held = true
             } else {
                 DebugLog.warn(TAG, "Could not re-seal the PIN credential; turning it off")
                 disablePin()
@@ -204,11 +212,15 @@ class QuickLoginStore(context: Context) {
         }
 
         if (preferences.getString(KEY_BIOMETRIC_TOKEN, null) != null) {
-            if (!sealWithBiometric(refreshToken)) {
+            if (sealWithBiometric(refreshToken)) {
+                held = true
+            } else {
                 DebugLog.warn(TAG, "Could not re-seal the biometric credential; turning it off")
                 disableBiometrics()
             }
         }
+
+        return held
     }
 
     /** Why the last biometric attempt failed, for a message worth reading. */

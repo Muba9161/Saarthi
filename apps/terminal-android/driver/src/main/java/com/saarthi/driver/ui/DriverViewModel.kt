@@ -276,6 +276,22 @@ class DriverViewModel(application: Application) : AndroidViewModel(application) 
     private var unsealedToken: String? = null
 
     /**
+     * The refresh token this process can still lay hands on, wherever it is.
+     *
+     * Three homes, in the order they are likely to have it: readable storage
+     * while Quick Login is off, the copy kept from an unlock, and the copy the
+     * account store kept from the last sign-in or rotation.
+     *
+     * The third is not a belt-and-braces addition. A driver who signed in with
+     * a password while Quick Login held custody has never unlocked anything in
+     * this process, so the first two are both null — and every switch on the
+     * Quick Login card was failing for them with nothing to seal and nothing to
+     * hand back.
+     */
+    private fun currentRefreshToken(): String? =
+        app.account.refreshToken ?: unsealedToken ?: app.account.liveRefreshToken
+
+    /**
      * Unlock with a PIN.
      *
      * The PIN is checked on the device and never leaves it. What it produces is
@@ -322,7 +338,7 @@ class DriverViewModel(application: Application) : AndroidViewModel(application) 
      */
     fun enableQuickLoginPin(pin: String, onResult: (Boolean) -> Unit) {
         viewModelScope.launch {
-            val token = app.account.refreshToken ?: unsealedToken
+            val token = currentRefreshToken()
             if (token == null) {
                 onResult(false)
                 return@launch
@@ -358,7 +374,7 @@ class DriverViewModel(application: Application) : AndroidViewModel(application) 
      */
     fun completeBiometricSetup(onResult: (Boolean) -> Unit) {
         viewModelScope.launch {
-            val token = app.account.refreshToken ?: unsealedToken
+            val token = currentRefreshToken()
             if (token == null) {
                 onResult(false)
                 return@launch
@@ -380,7 +396,23 @@ class DriverViewModel(application: Application) : AndroidViewModel(application) 
      * every launch, and no PIN.
      */
     fun disableQuickLogin() {
-        unsealedToken?.let(app.account::reclaimRefreshToken)
+        /*
+         * Custody comes back whether or not the token does.
+         *
+         * `clear()` destroys the sealed copies, so this is the last moment the
+         * credential can be put back where the app can read it. When it cannot
+         * — a lockout already discarded it, or the platform invalidated the
+         * key — the flag must still come down: left standing it tells the
+         * account store that every future sign-in belongs to a Quick Login that
+         * is no longer holding anything, and the driver is signed out fifteen
+         * minutes later with both switches refusing to turn back on.
+         */
+        val token = currentRefreshToken()
+        if (token != null) {
+            app.account.reclaimRefreshToken(token)
+        } else {
+            app.account.releaseCustody()
+        }
         quickLogin.clear()
     }
 

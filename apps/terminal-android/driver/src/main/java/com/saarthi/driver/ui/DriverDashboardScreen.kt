@@ -93,6 +93,7 @@ fun DriverDashboardScreen(
         .papers.cached.collectAsState()
     val notices by cockpit.notifications.collectAsState()
     val hours by cockpit.hours.collectAsState()
+    val dispatch by cockpit.dispatch.collectAsState()
     val registration = state.registration
     val firstName = account.name.substringBefore(' ').ifBlank { "driver" }
 
@@ -114,6 +115,9 @@ fun DriverDashboardScreen(
         if (PumpPrice.worthFetching(fuelType)) cockpit.loadFuelPrice()
         cockpit.loadPapers()
         cockpit.loadNotifications()
+        // The one thing on this screen that *does* change minute to minute: a
+        // controller can assign work while the driver is looking at it.
+        cockpit.loadDispatch()
     }
 
     FleetScreen {
@@ -236,6 +240,22 @@ fun DriverDashboardScreen(
             }
 
             Spacer(Modifier.height(FleetSpace.snug))
+        }
+
+        /*
+         * The work, above everything that is merely useful.
+         *
+         * A driver opening the app wants one answer before any other: have I
+         * been given a job, and where is it. Until this card existed the answer
+         * lived only on a dispatcher's screen and reached the driver by telephone.
+         */
+        if (dispatch != null) {
+            FleetEnter(index = 1) {
+                Column {
+                    DispatchCard(cockpit = cockpit)
+                    Spacer(Modifier.height(FleetSpace.snug))
+                }
+            }
         }
 
         /*
