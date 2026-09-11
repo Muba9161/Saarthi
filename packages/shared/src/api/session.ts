@@ -23,6 +23,16 @@ export interface SessionOrganization {
   verificationStatus: VerificationStatus;
   membershipRole: RoleName;
   membershipStatus: MembershipStatus;
+  /**
+   * True when this organization is one person's seat rather than a business.
+   *
+   * A driver who signs up without an employer's invite code is given a
+   * single-member organization named after them, because every membership,
+   * document and QR badge has to hang off one. Anything asking "does this
+   * account act for a business?" must read this rather than merely checking
+   * that an organization exists — one always does.
+   */
+  isPersonalSeat: boolean;
 }
 
 export interface SessionSubscription {

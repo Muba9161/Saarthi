@@ -295,6 +295,26 @@ const envSchema = z.object({
   NOTIFICATION_PROVIDER: z.enum(['local', 'production']).default('local'),
   VERIFICATION_PROVIDER: z.enum(['manual', 'external']).default('manual'),
 
+  // --- Driver verification enforcement ---------------------------------------
+  //
+  // The development escape hatch for the four driver identity checks.
+  //
+  // Normally a driver counts as verified only once the licensing authority has
+  // confirmed their licence and Aadhaar, PAN and Voter ID have each been
+  // confirmed by their own source — and until then they cannot be assigned to
+  // a truck, put on a trip, or offered on the marketplace. That is correct for
+  // real drivers and a wall in front of anyone trying to exercise those flows
+  // on a development machine, where no real licence number exists to check.
+  //
+  // With this off, drivers are created already verified and the checklist stops
+  // overriding their status, so every downstream gate passes on its own merits
+  // rather than by being individually bypassed. Nothing else changes: the
+  // checks still exist, still run, and still record what they found.
+  //
+  // Refused in production below. A deployment that skips these is one where the
+  // platform's verified badge is asserting something no authority confirmed.
+  DRIVER_VERIFICATION_ENFORCEMENT: booleanish(true),
+
   AI_PROVIDER: z.enum(['development', 'anthropic', 'gemini']).default('development'),
   AI_API_KEY: z.string().optional(),
   AI_MODEL: z.string().default('claude-sonnet-5'),
@@ -567,6 +587,14 @@ if (isProduction) {
       'SUBSCRIPTION_ENFORCEMENT must be true in production — every plan limit and paid feature would be given away.',
     );
   }
+  // A driver marked verified without an authority having confirmed anything is
+  // the platform vouching for somebody it has not checked. Fine on a laptop,
+  // never on a deployment a customer trusts.
+  if (!raw.DRIVER_VERIFICATION_ENFORCEMENT) {
+    throw new Error(
+      'DRIVER_VERIFICATION_ENFORCEMENT must be true in production — drivers would be marked verified without any authority confirming their licence or identity.',
+    );
+  }
   // Devices and people are separate credential populations with separate threat
   // models. Signing both with one key means a compromise of either forges both.
   if (!raw.DEVICE_JWT_SECRET) {
@@ -753,6 +781,16 @@ export const config = {
     payment: raw.PAYMENT_PROVIDER,
     notification: raw.NOTIFICATION_PROVIDER,
     verification: raw.VERIFICATION_PROVIDER,
+  },
+
+  verification: {
+    /**
+     * Whether a driver must pass all four identity checks to count as verified.
+     *
+     * False only in development — see the note in the env schema, and the
+     * production guard that refuses to start without it.
+     */
+    driverChecksEnforced: raw.DRIVER_VERIFICATION_ENFORCEMENT,
   },
 
   ai: {

@@ -174,6 +174,8 @@ export const te: Catalogue = {
     'కనీసం 10 అక్షరాలు, వాటిలో పెద్ద అక్షరం, చిన్న అక్షరం మరియు ఒక అంకె ఉండాలి.',
   'I agree to the VorldX Saarthi terms of service and privacy policy.':
     'నేను VorldX Saarthi సేవా నిబంధనలు మరియు గోప్యతా విధానానికి అంగీకరిస్తున్నాను.',
+  'Terms of Service': 'సేవా నిబంధనలు',
+  'Privacy Policy': 'గోప్యతా విధానం',
   'Association name': 'సంఘం పేరు',
   'Travel business name': 'ట్రావెల్ వ్యాపార పేరు',
   'I own trucks and want to manage my fleet and win loads.':

@@ -173,6 +173,8 @@ export const as: Catalogue = {
     "কমেও ১০টা আখৰ, য'ত ডাঙৰ আখৰ, সৰু আখৰ আৰু এটা সংখ্যা থাকিব লাগে।",
   'I agree to the VorldX Saarthi terms of service and privacy policy.':
     'মই VorldX Saarthi-ৰ সেৱাৰ চৰ্ত আৰু গোপনীয়তা নীতিত সন্মত।',
+  'Terms of Service': 'সেৱাৰ চৰ্তাৱলী',
+  'Privacy Policy': 'গোপনীয়তা নীতি',
   'Association name': 'সন্থাৰ নাম',
   'Travel business name': 'ট্ৰেভেল ব্যৱসায়ৰ নাম',
   'I own trucks and want to manage my fleet and win loads.':

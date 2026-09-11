@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { App } from './App';
+import { preloadStoredCatalogue } from './features/i18n';
 import './styles/globals.css';
 
 const container = document.getElementById('root');
@@ -29,10 +30,26 @@ function dismissBootSplash(): void {
   });
 }
 
-ReactDOM.createRoot(container).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
-);
+/*
+ * Mount once the chosen language is in hand.
+ *
+ * Translation catalogues are fetched per language rather than bundled
+ * together, so for anyone not using English there is a moment where the app
+ * could render in English and then re-render translated. The boot splash is
+ * already on screen, so the wait is invisible and the flash never happens.
+ * `preloadStoredCatalogue` gives up after a short timeout, so a stalled
+ * connection starts the app in English instead of holding the splash.
+ */
+const root = ReactDOM.createRoot(container);
 
-dismissBootSplash();
+function mount(): void {
+  root.render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>,
+  );
+
+  dismissBootSplash();
+}
+
+void preloadStoredCatalogue().then(mount, mount);

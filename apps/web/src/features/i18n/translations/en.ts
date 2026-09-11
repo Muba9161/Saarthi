@@ -196,6 +196,8 @@ export const en = {
     'At least 10 characters, with upper case, lower case and a number.',
   'I agree to the VorldX Saarthi terms of service and privacy policy.':
     'I agree to the VorldX Saarthi terms of service and privacy policy.',
+  'Terms of Service': 'Terms of Service',
+  'Privacy Policy': 'Privacy Policy',
   'Association name': 'Association name',
   'Travel business name': 'Travel business name',
 

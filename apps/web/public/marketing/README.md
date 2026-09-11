@@ -16,10 +16,14 @@ canvas — and every vehicle card in the product depends on it.
 | --- | --- |
 | `hero-highway.webp` | 16:9 |
 | `hero-highway-portrait.webp` | 3:4 |
-| `knockout-landscape.webp` | 16:9 |
+| `coverage-india.webp` | 16:9 |
+| `coverage-india-portrait.webp` | 3:4 |
+| `brand-yard.webp` | 16:9 |
 | `safety-night.webp` | 4:5 |
 | `cta-dusk.webp` | 2:1 |
 | `fleet-lineup.webp` | 3:1, alpha |
+| `edge-truck.webp` | 4:3, alpha |
+| `edge-suv.webp` | 4:3, alpha |
 | `step-01-post.webp` | 16:9 |
 | `step-02-quote.webp` | 16:9 |
 | `step-03-assign.webp` | 16:9 |

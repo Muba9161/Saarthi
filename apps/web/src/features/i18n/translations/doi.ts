@@ -172,6 +172,8 @@ export const doi: Catalogue = {
     'घट्ट थमां घट्ट 10 अक्षर, जिंदे च बड्डे अक्षर, छोटे अक्षर ते इक अंक होवै।',
   'I agree to the VorldX Saarthi terms of service and privacy policy.':
     'मैं VorldX Saarthi दियां सेवा शर्तां ते गोपनीयता नीति कन्नै सहमत आं।',
+  'Terms of Service': 'सेवा दीयां शरतां',
+  'Privacy Policy': 'निजता नीति',
   'Association name': 'एसोसिएशन दा नां',
   'Travel business name': 'ट्रैवल कारोबार दा नां',
   'I own trucks and want to manage my fleet and win loads.':

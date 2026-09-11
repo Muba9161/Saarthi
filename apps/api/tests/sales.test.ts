@@ -553,6 +553,68 @@ describe('commission generation', () => {
     await expect(prisma.commission.count()).resolves.toBe(0);
   });
 
+  /**
+   * The whole digital channel, through the endpoint a customer actually hits.
+   *
+   * `auth.register` both provisions the signup order — which charges for the
+   * trackers priced on the signup card and qualifies that payment — and
+   * records the referral. While the referral was recorded *second*, no
+   * attribution existed when `qualifyPayment` ran, so it credited nobody: a
+   * referred signup earned its salesperson nothing on the hardware they had
+   * just sold, with no error raised anywhere to say so.
+   *
+   * Every other referral test in this file calls `attributeRegistration`
+   * directly, which is precisely how that survived them all. This one goes in
+   * through `POST /auth/register`, so the ordering inside registration is part
+   * of what is under test.
+   */
+  it('credits the signup trackers of a referred registration', async () => {
+    const salesman = await createVerifiedSalesman();
+    await createPercentageRule(10);
+
+    const { status, body } = await request<{
+      session: { organization: { id: string } | null };
+    }>({
+      method: 'POST',
+      url: '/api/v1/auth/register',
+      payload: {
+        firstName: 'Anil',
+        lastName: 'Shah',
+        email: `${unique('referred').toLowerCase()}@saarthi.test`,
+        phone: uniquePhone(),
+        password: 'Monsoon2026road',
+        role: RoleName.FLEET_OWNER,
+        organizationName: unique('Shah Transport '),
+        acceptedTerms: true,
+        planTier: PlanTier.BUSINESS,
+        // Two of each: a tracker is fitted to a vehicle, so the order is
+        // refused if it carries more trackers than vehicles.
+        planVehicles: 2,
+        planTrackers: 2,
+        referralCode: salesman.godId,
+      },
+    });
+
+    expect(status).toBe(201);
+    const organizationId = body.data.session.organization?.id as string;
+
+    const attribution = await prisma.referralAttribution.findFirstOrThrow({
+      where: { organizationId },
+    });
+    expect(attribution.godId).toBe(salesman.godId);
+
+    // The hardware the customer paid for at signup, credited to the person who
+    // sold it. Priced off the row's own base amount rather than the tracker
+    // price, so a price change does not fail this test for the wrong reason.
+    const commission = await prisma.commission.findFirstOrThrow({
+      where: { organizationId, trigger: CommissionTrigger.TRACKER },
+    });
+    expect(commission.salesmanId).toBe(salesman.profileId);
+    expect(commission.godId).toBe(salesman.godId);
+    expect(commission.commissionAmount).not.toBeNull();
+    expect(Number(commission.commissionAmount)).toBeCloseTo(Number(commission.baseAmount) * 0.1, 2);
+  });
+
   it('holds a sale with a null amount when no rule covers it', async () => {
     const { salesman, organizationId } = await attributedCustomer();
 

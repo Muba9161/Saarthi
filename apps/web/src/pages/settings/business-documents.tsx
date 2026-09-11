@@ -33,7 +33,22 @@ export function BusinessDocumentsPage() {
 
   if (!can(Permission.DOCUMENTS_READ)) return <UnauthorizedState />;
 
-  if (!organization) {
+  /*
+   * No business behind this account.
+   *
+   * Two cases, one answer. There may be no organization at all; or there may
+   * be one that is only a seat — a driver who signed up without an employer's
+   * code is given a single-member organization named after them so their
+   * membership, documents and QR badge have somewhere to hang.
+   *
+   * The seat case is why this guard used to let drivers through: it asked
+   * whether an organization existed, and a driver always has one, so the
+   * screen went on to ask them for a registration certificate and a GSTIN
+   * against their own name. The menu entry is gated the same way, so reaching
+   * this is now a typed URL rather than a link — but it must still answer
+   * honestly rather than present a business form to somebody who is not one.
+   */
+  if (!organization || organization.isPersonalSeat) {
     return (
       <div className="mx-auto max-w-3xl space-y-5">
         <PageHeader
@@ -43,8 +58,12 @@ export function BusinessDocumentsPage() {
         />
         <EmptyState
           icon={Building2}
-          title="No organization on this account"
-          description="This account is not acting for a business, so it has no business documents to keep."
+          title="No business on this account"
+          description={
+            organization
+              ? 'This account is for you as an individual, not a business, so there are no business documents to keep. Your own documents — licence, Aadhaar, PAN — live on your profile.'
+              : 'This account is not acting for a business, so it has no business documents to keep.'
+          }
         />
       </div>
     );

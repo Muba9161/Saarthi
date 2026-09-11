@@ -3,7 +3,7 @@ import { render, screen, act, waitForElementToBeRemoved } from '@testing-library
 import { LANGUAGE_CATALOGUE, SUPPORTED_LOCALES, resolveLocale } from '@saarthi/shared';
 import { LocaleProvider, useLocale } from './locale-context';
 import { LocaleSplash } from './locale-splash';
-import { CATALOGUES, en } from './translations';
+import { CATALOGUES, en } from './translations/all';
 
 /**
  * Translation lookup.

@@ -41,9 +41,9 @@ four of the nine frames, and `fleet-lineup` carries the whole range explicitly.
 
 **Photographic bands are dark in both themes.** The site is token-driven and
 flips light/dark; a photograph is one fixed exposure. Rather than shipping two
-of every image, the three photographic bands (hero, safety, closing call) are
-fixed near-black stages that look identical in either theme, and every other
-band stays token-driven exactly as it is.
+of every image, the five photographic bands (hero, coverage, brand, safety,
+closing call) are fixed near-black stages that look identical in either theme,
+and every other band stays token-driven exactly as it is.
 
 So every prompt below is lit for near-black. Nothing here should come back
 bright.
@@ -90,6 +90,8 @@ because generated brand marks are a legal problem.
 | --- | --- | --- | --- | --- | --- |
 | 1 | `hero-highway` | 16:9 | 2560x1440 | Hero, desktop | Truck + SUV |
 | 2 | `hero-highway-portrait` | 3:4 | 1350x1800 | Hero, mobile | Truck + SUV |
+| 2a | `coverage-india` | 16:9 | 2560x1440 | Coverage, desktop | Truck |
+| 2b | `coverage-india-portrait` | 3:4 | 1350x1800 | Coverage, mobile | Truck |
 | 3 | `safety-night` | 4:5 | 1400x1750 | Safety band | Truck |
 | 4 | `cta-dusk` | 2:1 | 2400x1200 | Closing band | Mixed |
 | 5 | `fleet-lineup` | 4:1, alpha | 2800x700 | Proof stats | All six |
@@ -157,6 +159,82 @@ off-frame on a phone.
 > watermark, no people, no bright sky, no daylight.
 >
 > `--ar 3:4`
+
+### 2a / 2b. `coverage-india`, `coverage-india-portrait` — 16:9 and 3:4
+
+The reach band, between the counted facts and the pillars. A relief India lit
+by the same two sources as everything else here, with one truck on an elevated
+ribbon crossing it.
+
+**No pins, no arcs, no city names, no numerals.** Every claim is live DOM over
+the top — the site writes itself in 23 scripts, and a label baked into a WebP
+is English forever. Nothing is registered to the map either: this is a
+full-bleed `Backdrop`, cropped differently at every viewport, so a pin placed
+against it slides off the coast on the next screen size.
+
+> Cinematic wide advertising render of a three-dimensional relief map of India
+> as a dark matte sculptural landmass floating just above a near-black void,
+> seen from a high three-quarter angle. A continuous elevated highway ribbon
+> sweeps out of the misted horizon, curves across the landmass and runs toward
+> camera; a single unbranded Indian-market flat-front cabover haulage truck
+> with a covered open body travels along the ribbon in the near foreground,
+> three-quarter front, small in scale against the map. The landmass and the
+> ribbon sit together in the RIGHT HALF of the frame; the LEFT HALF is empty
+> haze and dark sky, almost featureless, held for headline text. Near-black
+> scene, RGB 24 24 27. The landmass reads as dark slate with a cold navy-blue
+> #2360BE rim light along its coastline and northern ridges, and the same cold
+> rim along the top edge of the truck cab. Warm saffron #FF8C2E glow tracing
+> the highway ribbon's edges, in the truck's marker lamps and headlights, and
+> one warm burst low on the horizon where the ribbon reaches the vanishing
+> point. Volumetric haze pooling over the terrain, soft falloff to pure black
+> at every frame edge. Clean uninterrupted surface: no borders drawn, no state
+> divisions, no cities marked, no pins, no dotted lines. Photoreal 3D product
+> render, 50mm, f/4, high dynamic range, fine film grain, deep blacks with
+> detail retained.
+>
+> Negative: no text, no lettering, no numerals, no labels, no city names, no
+> map pins, no markers, no dotted route lines, no compass, no flags, no
+> political borders, no logos, no badges, no number plate, no watermark, no
+> people, no bright sky, no daylight, no oversaturated colour, no white
+> background.
+>
+> `--ar 16:9`
+
+The portrait cut is generated separately — a centre-crop of the landscape frame
+puts half the country off a phone screen.
+
+> Cinematic vertical advertising render of a three-dimensional relief map of
+> India as a dark matte sculptural landmass floating above a near-black void,
+> seen from a high three-quarter angle, occupying the BOTTOM TWO-THIRDS of the
+> tall frame. An elevated highway ribbon curves down across the landmass with a
+> single unbranded Indian-market flat-front cabover truck travelling along it,
+> three-quarter front, small in scale. The UPPER THIRD is empty misted
+> darkness, almost featureless, reserved for headline text. Near-black scene,
+> RGB 24 24 27, cold navy-blue #2360BE rim light along the coastline and the
+> cab roof, warm saffron #FF8C2E glow along the ribbon edges and in the truck's
+> lamps. Volumetric haze, soft falloff to pure black at every edge, clean
+> unmarked map surface. Photoreal 3D product render, 50mm, f/4, high dynamic
+> range, fine film grain.
+>
+> Negative: no text, no lettering, no numerals, no labels, no city names, no
+> map pins, no markers, no dotted lines, no political borders, no flags, no
+> logos, no badges, no number plate, no watermark, no people, no bright sky, no
+> daylight, no white background.
+>
+> `--ar 3:4`
+
+**Check before accepting:** the left half of the landscape cut and the upper
+third of the portrait cut must be dark and empty enough to read white text
+over, and the map surface must come back clean — any pin or line the model
+draws will fight the copy laid over it.
+
+> **Decide before this goes to customers.** Generative models do not draw
+> India's boundary correctly, and in India a published map showing it wrongly
+> is a legal exposure rather than a cosmetic one. The frames in the repo read
+> as sculpted terrain rather than as a surveyed map, which is the safer of the
+> two readings, but a boundary claim is not a thing to leave to a model. If
+> this band is ever used in print or in an ad, replace the silhouette with a
+> correct outline from an official source.
 
 ### 3. `safety-night` — 4:5
 

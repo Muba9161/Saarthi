@@ -173,6 +173,8 @@ export const pa: Catalogue = {
     'ਘੱਟੋ-ਘੱਟ ੧੦ ਅੱਖਰ, ਜਿਨ੍ਹਾਂ ਵਿੱਚ ਵੱਡੇ ਅੱਖਰ, ਛੋਟੇ ਅੱਖਰ ਅਤੇ ਇੱਕ ਅੰਕ ਹੋਵੇ।',
   'I agree to the VorldX Saarthi terms of service and privacy policy.':
     'ਮੈਂ VorldX Saarthi ਦੀਆਂ ਸੇਵਾ ਸ਼ਰਤਾਂ ਅਤੇ ਗੋਪਨੀਯਤਾ ਨੀਤੀ ਨਾਲ ਸਹਿਮਤ ਹਾਂ।',
+  'Terms of Service': 'ਸੇਵਾ ਦੀਆਂ ਸ਼ਰਤਾਂ',
+  'Privacy Policy': 'ਪਰਦੇਦਾਰੀ ਨੀਤੀ',
   'Association name': 'ਐਸੋਸੀਏਸ਼ਨ ਦਾ ਨਾਮ',
   'Travel business name': 'ਟਰੈਵਲ ਕਾਰੋਬਾਰ ਦਾ ਨਾਮ',
   'I own trucks and want to manage my fleet and win loads.':

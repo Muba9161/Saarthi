@@ -26,6 +26,18 @@ process.env.LOG_LEVEL = 'silent';
  * then keeps passing after the gate is broken.
  */
 process.env.SUBSCRIPTION_ENFORCEMENT = 'true';
+/*
+ * Driver identity checks are enforced in tests, whatever the developer's
+ * `.env` says — load-bearing for the same reason as the line above.
+ *
+ * A developer testing with `DRIVER_VERIFICATION_ENFORCEMENT=false` gets every
+ * driver created already verified and the checklist stops moving their status.
+ * Every "an unverified driver cannot be assigned a truck" and "a reviewer
+ * cannot approve past an outstanding check" assertion would then pass because
+ * the rule was switched off, not because it holds — and would keep passing
+ * after somebody broke it.
+ */
+process.env.DRIVER_VERIFICATION_ENFORCEMENT = 'true';
 process.env.DEMO_MODE = 'true';
 process.env.CACHE_DRIVER = 'memory';
 process.env.QUEUE_DRIVER = 'memory';

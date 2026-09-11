@@ -172,6 +172,8 @@ export const kn: Catalogue = {
     'ಕನಿಷ್ಠ 10 ಅಕ್ಷರಗಳು, ಅದರಲ್ಲಿ ದೊಡ್ಡಕ್ಷರ, ಸಣ್ಣಕ್ಷರ ಮತ್ತು ಒಂದು ಅಂಕಿ ಇರಬೇಕು.',
   'I agree to the VorldX Saarthi terms of service and privacy policy.':
     'ನಾನು VorldX Saarthi ಸೇವಾ ನಿಯಮಗಳು ಮತ್ತು ಗೌಪ್ಯತಾ ನೀತಿಗೆ ಒಪ್ಪುತ್ತೇನೆ.',
+  'Terms of Service': 'ಸೇವಾ ನಿಯಮಗಳು',
+  'Privacy Policy': 'ಗೌಪ್ಯತಾ ನೀತಿ',
   'Association name': 'ಸಂಘದ ಹೆಸರು',
   'Travel business name': 'ಟ್ರಾವೆಲ್ ವ್ಯವಹಾರದ ಹೆಸರು',
   'I own trucks and want to manage my fleet and win loads.':

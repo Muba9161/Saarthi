@@ -120,6 +120,29 @@ export const router = createBrowserRouter([
     element: lazyPage(() => import('@/pages/sales/referral-landing')),
     errorElement: <RouteError />,
   },
+  /*
+   * The legal documents.
+   *
+   * Public, and outside `RequireAuth` deliberately. A person deciding whether
+   * to register has to be able to read what they are agreeing to before they
+   * have an account, the consent checkbox in the registration wizard links
+   * straight here, and a regulator or a customer's lawyer arrives with the URL
+   * and nothing else. Putting either behind a sign-in wall would defeat all
+   * three.
+   *
+   * They carry the public site's own chrome rather than the app shell, so
+   * arriving from the marketing footer stays on the same site.
+   */
+  {
+    path: '/terms',
+    element: lazyPage(() => import('@/pages/legal/terms')),
+    errorElement: <RouteError />,
+  },
+  {
+    path: '/privacy',
+    element: lazyPage(() => import('@/pages/legal/privacy')),
+    errorElement: <RouteError />,
+  },
   {
     element: <AuthLayout />,
     errorElement: <RouteError />,

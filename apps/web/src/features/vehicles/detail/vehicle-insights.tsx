@@ -40,6 +40,9 @@ const FleetMap = React.lazy(async () => {
   return { default: module.FleetMap };
 });
 
+/** Height of the map preview. See the note at its call site for why it is fixed. */
+const MAP_PREVIEW_HEIGHT = '176px';
+
 /** A card heading with an optional link out, used by all three panels. */
 function InsightHeader({
   icon: Icon,
@@ -116,8 +119,17 @@ function LocationCard({ vehicle }: { vehicle: VehicleSummary }) {
 
       {fix ? (
         <>
-          <div className="mt-4 h-40 w-full overflow-hidden border-y border-border/70 bg-muted">
-            <React.Suspense fallback={<Skeleton className="size-full rounded-none" />}>
+          {/*
+            The map owns its own height, in pixels.
+
+            Not `h-40` here with `height="100%"` on the map: `FleetMap` puts the
+            height on its inner canvas container while its wrapper is left at
+            `auto`, so a percentage resolves against an auto-height parent and
+            collapses the canvas to nothing. A fixed height on the map itself is
+            the only value that box can actually resolve.
+          */}
+          <div className="mt-4 w-full overflow-hidden border-y border-border/70">
+            <React.Suspense fallback={<Skeleton className="h-44 w-full rounded-none" />}>
               <FleetMap
                 trucks={[
                   {
@@ -138,7 +150,10 @@ function LocationCard({ vehicle }: { vehicle: VehicleSummary }) {
                 showControls={false}
                 showSearch={false}
                 interactive={false}
-                height="100%"
+                height={MAP_PREVIEW_HEIGHT}
+                // The band above already draws the edges; the map's own rounded
+                // border would sit inside them as a second frame.
+                className="rounded-none border-0"
               />
             </React.Suspense>
           </div>

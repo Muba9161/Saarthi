@@ -324,7 +324,22 @@ export async function createDriver(
         city: input.city ?? null,
         state: input.state ?? null,
         postalCode: input.postalCode ?? null,
-        verificationStatus: VerificationStatus.PENDING,
+        /*
+         * PENDING until the four identity checks confirm otherwise — except
+         * on a development machine with enforcement switched off, where there
+         * is no real licence or Aadhaar number to check and a driver stuck at
+         * PENDING cannot be assigned a truck, given a trip, or offered on the
+         * marketplace. Creating them verified there means every downstream
+         * gate passes on its own terms instead of each one needing a bypass.
+         *
+         * The four `*VerifiedAt` timestamps stay null. Each records the moment
+         * an authority confirmed a number, and inventing those would put a
+         * false confirmation in the audit trail to save a status field — the
+         * checklist honestly reports 0 of 4 outstanding instead.
+         */
+        verificationStatus: config.verification.driverChecksEnforced
+          ? VerificationStatus.PENDING
+          : VerificationStatus.VERIFIED,
         availability: DriverAvailability.AVAILABLE,
       },
     });
@@ -889,6 +904,20 @@ export async function joinFleet(
       });
       return currentOrganizationId;
     }
+
+    /*
+     * It survived, so it was never a seat — or has stopped being one.
+     *
+     * Something is still in there after the driver left: other members, other
+     * drivers, trucks. Leaving `isPersonalSeat` set on an organization like
+     * that would keep hiding its business documents from the people now
+     * running it, which is the same failure as showing them to a driver, in
+     * the other direction.
+     */
+    await tx.organization.updateMany({
+      where: { id: currentOrganizationId, isPersonalSeat: true },
+      data: { isPersonalSeat: false },
+    });
     return null;
   });
 

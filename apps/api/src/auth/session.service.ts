@@ -62,6 +62,7 @@ export async function loadUser(userId: string) {
             name: string;
             type: OrganizationType;
             verificationStatus: VerificationStatus;
+            isPersonalSeat: boolean;
           };
         }[];
         driverProfile: {
@@ -108,6 +109,7 @@ function toSessionOrganization(membership: LoadedUser['memberships'][number]): S
     verificationStatus: membership.organization.verificationStatus,
     membershipRole: membership.role,
     membershipStatus: membership.status,
+    isPersonalSeat: membership.organization.isPersonalSeat,
   };
 }
 
@@ -185,6 +187,7 @@ export async function buildAuthContext(
           name: membership.organization.name,
           type: membership.organization.type,
           membershipRole: membership.role,
+          isPersonalSeat: membership.organization.isPersonalSeat,
         }
       : null,
     permissions: resolvePermissions(user, membership),

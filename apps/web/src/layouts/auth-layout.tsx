@@ -13,6 +13,7 @@ import {
   useReducedMotion,
 } from '@/components/motion';
 import { LanguageMenu, useT } from '@/features/i18n';
+import { LEGAL_LINKS } from '@/features/legal/legal-links';
 import { useTheme } from '@/features/theme/theme-context';
 import { cn } from '@/lib/utils';
 
@@ -361,10 +362,22 @@ export function AuthLayout() {
           </AnimatePresence>
         </div>
 
-        <footer className="relative px-5 pb-6 text-center sm:px-8">
+        {/* The legal documents belong on this screen and not only in the
+            marketing footer: registration is where somebody agrees to them,
+            and the checkbox that asks is two steps further down the form. */}
+        <footer className="relative flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 px-5 pb-6 text-center sm:px-8">
           <p className="text-2xs text-muted-foreground">
             © {new Date().getFullYear()} VorldX Saarthi
           </p>
+          {LEGAL_LINKS.map((link) => (
+            <Link
+              key={link.to}
+              to={link.to}
+              className="text-2xs text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
+            >
+              {t(link.label)}
+            </Link>
+          ))}
         </footer>
       </main>
     </div>

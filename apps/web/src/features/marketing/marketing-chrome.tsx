@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { ArrowRight, Menu, Moon, Sun } from 'lucide-react';
 // `useScroll`/`useSpring` are not in the curated product motion vocabulary —
 // nothing behind the sign-in wall needs a scroll-linked value. Imported here
@@ -10,6 +10,7 @@ import { Sheet, SheetClose, SheetContent, SheetTrigger } from '@/components/ui/s
 import { SaarthiLogo } from '@/components/common/logo';
 import { AnimatePresence, motion } from '@/components/motion';
 import { useTheme } from '@/features/theme/theme-context';
+import { LEGAL_LINKS } from '@/features/legal/legal-links';
 import { Reveal, WordsReveal } from './motion-extras';
 import { cn } from '@/lib/utils';
 
@@ -40,7 +41,7 @@ export const NAV_SECTIONS = [
  * occupying the upper half of the viewport, which is the one a reader would
  * say they are looking at.
  */
-function useActiveSection(ids: readonly string[]): string | null {
+export function useActiveSection(ids: readonly string[]): string | null {
   const [active, setActive] = React.useState<string | null>(null);
 
   React.useEffect(() => {
@@ -168,11 +169,49 @@ function ThemeToggle({ className }: { className?: string }) {
   );
 }
 
+/**
+ * A link to one of the landing page's bands.
+ *
+ * On the landing page it stays a bare fragment, which is what lets the browser
+ * do the scrolling natively against each band's `scroll-mt`. The same header is
+ * now rendered on the Terms and Privacy pages, where `#pricing` names nothing
+ * on screen and a bare fragment would simply do nothing; from there it becomes
+ * a route change to `/#pricing`, and the landing page finds the band on
+ * arrival — see `useHashTarget` in `pages/marketing/landing`.
+ */
+function SectionLink({
+  id,
+  onLanding,
+  className,
+  children,
+  ...rest
+}: {
+  id: string;
+  onLanding: boolean;
+  className?: string;
+  children: React.ReactNode;
+} & Pick<React.AnchorHTMLAttributes<HTMLAnchorElement>, 'aria-current'>) {
+  if (onLanding) {
+    return (
+      <a href={`#${id}`} className={className} {...rest}>
+        {children}
+      </a>
+    );
+  }
+  return (
+    <Link to={`/#${id}`} className={className} {...rest}>
+      {children}
+    </Link>
+  );
+}
+
 export function MarketingNav() {
   const ids = React.useMemo(() => NAV_SECTIONS.map((section) => section.id), []);
   const active = useActiveSection(ids);
   const [scrolled, setScrolled] = React.useState(false);
   const { resolvedTheme } = useTheme();
+  const { pathname } = useLocation();
+  const onLanding = pathname === '/';
 
   // Transparent over the hero, glass once the page moves: the first screen
   // should be the product, not the chrome around it.
@@ -258,9 +297,10 @@ export function MarketingNav() {
 
         <nav className="ml-6 hidden items-center lg:flex" aria-label="Sections">
           {NAV_SECTIONS.map((section) => (
-            <a
+            <SectionLink
               key={section.id}
-              href={`#${section.id}`}
+              id={section.id}
+              onLanding={onLanding}
               aria-current={active === section.id ? 'true' : undefined}
               className={cn(
                 'relative rounded-full px-3.5 py-2 text-sm transition-colors duration-200',
@@ -284,7 +324,7 @@ export function MarketingNav() {
                   transition={{ type: 'spring', stiffness: 380, damping: 32 }}
                 />
               ) : null}
-            </a>
+            </SectionLink>
           ))}
         </nav>
 
@@ -337,12 +377,13 @@ export function MarketingNav() {
               <nav className="flex flex-col gap-0.5 p-3" aria-label="Sections">
                 {NAV_SECTIONS.map((section) => (
                   <SheetClose asChild key={section.id}>
-                    <a
-                      href={`#${section.id}`}
+                    <SectionLink
+                      id={section.id}
+                      onLanding={onLanding}
                       className="rounded-lg px-3 py-2.5 text-sm transition-colors hover:bg-secondary"
                     >
                       {section.label}
-                    </a>
+                    </SectionLink>
                   </SheetClose>
                 ))}
               </nav>
@@ -501,10 +542,12 @@ export function SectionHeading({
 export function MarketingFooter() {
   const year = new Date().getFullYear();
   const { resolvedTheme } = useTheme();
+  const { pathname } = useLocation();
+  const onLanding = pathname === '/';
 
   return (
     <footer className="border-t border-border/60 px-5 py-14 sm:px-8">
-      <div className="mx-auto grid max-w-6xl gap-10 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mx-auto grid max-w-6xl gap-10 sm:grid-cols-2 lg:grid-cols-5">
         <div className="lg:col-span-2">
           <div className="flex items-center gap-2.5">
             {/* Navy on transparency — without the chip the V is simply gone in
@@ -525,9 +568,13 @@ export function MarketingFooter() {
           <ul className="mt-4 space-y-2.5 text-sm text-muted-foreground">
             {NAV_SECTIONS.map((section) => (
               <li key={section.id}>
-                <a href={`#${section.id}`} className="transition-colors hover:text-foreground">
+                <SectionLink
+                  id={section.id}
+                  onLanding={onLanding}
+                  className="transition-colors hover:text-foreground"
+                >
                   {section.label}
-                </a>
+                </SectionLink>
               </li>
             ))}
           </ul>
@@ -551,6 +598,26 @@ export function MarketingFooter() {
             <li>
               <Link to="/login" className="transition-colors hover:text-foreground">
                 Explore the demo fleet
+              </Link>
+            </li>
+          </ul>
+        </div>
+
+        <div>
+          <p className="text-2xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+            Legal
+          </p>
+          <ul className="mt-4 space-y-2.5 text-sm text-muted-foreground">
+            {LEGAL_LINKS.map((link) => (
+              <li key={link.to}>
+                <Link to={link.to} className="transition-colors hover:text-foreground">
+                  {link.label}
+                </Link>
+              </li>
+            ))}
+            <li>
+              <Link to="/privacy#grievance" className="transition-colors hover:text-foreground">
+                Grievance redressal
               </Link>
             </li>
           </ul>

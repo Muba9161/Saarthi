@@ -172,6 +172,8 @@ export const ur: Catalogue = {
     'کم از کم ۱۰ حروف، جن میں بڑے حروف، چھوٹے حروف اور ایک ہندسہ ہو۔',
   'I agree to the VorldX Saarthi terms of service and privacy policy.':
     'میں VorldX Saarthi کی سروس شرائط اور رازداری پالیسی سے متفق ہوں۔',
+  'Terms of Service': 'سروس کی شرائط',
+  'Privacy Policy': 'رازداری کی پالیسی',
   'Association name': 'ایسوسی ایشن کا نام',
   'Travel business name': 'ٹریول کاروبار کا نام',
   'I own trucks and want to manage my fleet and win loads.':

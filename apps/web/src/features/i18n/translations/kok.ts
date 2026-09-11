@@ -173,6 +173,8 @@ export const kok: Catalogue = {
     'उणीं १० अक्षरां, तातूंत व्हडलीं अक्षरां, ल्हान अक्षरां आनी एक आंकडो आसचो.',
   'I agree to the VorldX Saarthi terms of service and privacy policy.':
     'हांव VorldX Saarthi च्या सेवा अटी आनी गुपीतपण धोरणाक संमत आसां.',
+  'Terms of Service': 'सेवेच्यो अटी',
+  'Privacy Policy': 'गुप्तताय धोरण',
   'Association name': 'संघटनेचें नांव',
   'Travel business name': 'ट्रॅव्हल वेवसायाचें नांव',
   'I own trucks and want to manage my fleet and win loads.':

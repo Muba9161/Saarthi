@@ -54,6 +54,8 @@ const OUT_DIR = path.join(ROOT, 'apps', 'web', 'public', 'marketing');
 const MANIFEST = [
   { name: 'hero-highway', width: 2560, height: 1440, budgetKb: 260 },
   { name: 'hero-highway-portrait', width: 1350, height: 1800, budgetKb: 200 },
+  { name: 'coverage-india', width: 2560, height: 1440, budgetKb: 240 },
+  { name: 'coverage-india-portrait', width: 1350, height: 1800, budgetKb: 200 },
   { name: 'safety-night', width: 1400, height: 1750, budgetKb: 140 },
   { name: 'cta-dusk', width: 2400, height: 1200, budgetKb: 200 },
   { name: 'brand-yard', width: 2400, height: 1350, budgetKb: 200 },

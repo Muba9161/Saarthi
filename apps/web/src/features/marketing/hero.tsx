@@ -267,7 +267,7 @@ export function Hero() {
               <span className="block">The operating system</span>
             </Reveal>
             <Reveal duration={0.7} delay={0.1}>
-              <span className="brand-logo-gradient-on-dark block pb-1">for your trucking business</span>
+              <span className="brand-logo-gradient-on-dark block">for your trucking business</span>
             </Reveal>
           </h1>
 

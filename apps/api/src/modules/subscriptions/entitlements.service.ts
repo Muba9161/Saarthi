@@ -75,6 +75,33 @@ const ACTIVE_STATUSES: SubscriptionStatus[] = [
 ];
 
 /**
+ * Remove features that exist in the catalogue but are not launched yet.
+ *
+ * Deferred features are stripped from the resolved entitlement rather than
+ * from the plan catalogue. One switch then closes every door at once: the
+ * feature guard on each route, the navigation item, and the buttons — all of
+ * which already ask the same question. Nothing is deleted, so turning the flag
+ * back on restores the surface exactly as it was.
+ *
+ * At module scope, and not inside `resolveEntitlement`, because the
+ * development entitlement below must apply it too. While it did not, a
+ * developer with `SUBSCRIPTION_ENFORCEMENT=false` was handed ALL_FEATURES raw
+ * and `RESALE_ENABLED=false` did nothing whatsoever — the two switches
+ * cancelled each other, and the one that looked more specific lost.
+ *
+ * "Not enforcing billing" and "this surface is not built yet" are different
+ * questions. Only the first is a plan concern; the second holds regardless of
+ * who is paying for what.
+ */
+function withoutDeferred(list: Feature[]): Feature[] {
+  return config.resale.enabled
+    ? list
+    : list.filter(
+        (feature) => feature !== Feature.RESALE_MARKETPLACE && feature !== Feature.RESALE_PUBLISH,
+      );
+}
+
+/**
  * Everything, unlimited — the development entitlement.
  *
  * Returned in place of a real lookup when `SUBSCRIPTION_ENFORCEMENT` is off, so
@@ -90,7 +117,10 @@ function unenforcedEntitlement(): AuthSubscription {
     baseVehicleLimit: null,
     vehicleTopUps: 0,
     activeTrackers: 0,
-    features: [...ALL_FEATURES],
+    // Everything the product actually ships — see `withoutDeferred`. Handing
+    // out ALL_FEATURES raw here is what kept the resale marketplace reachable
+    // on a machine that had switched it off.
+    features: withoutDeferred([...ALL_FEATURES]),
     limits: {
       maxTrucks: null,
       maxVehicleTopUps: Number.MAX_SAFE_INTEGER,
@@ -175,21 +205,6 @@ export async function resolveSubscription(
           }),
       countActiveTrackers(organizationId),
     ]);
-
-    /*
-     * Deferred features are removed from the resolved entitlement rather than
-     * from the plan catalogue. One switch then closes every door at once: the
-     * feature guard on each route, the navigation item, and the buttons — all
-     * of which already ask the same question. Nothing is deleted, so turning
-     * the flag back on restores the surface exactly as it was.
-     */
-    const withoutDeferred = (list: Feature[]): Feature[] =>
-      config.resale.enabled
-        ? list
-        : list.filter(
-            (feature) =>
-              feature !== Feature.RESALE_MARKETPLACE && feature !== Feature.RESALE_PUBLISH,
-          );
 
     /*
      * The tracker capabilities are added on top of the plan, never by it.

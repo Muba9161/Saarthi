@@ -5,6 +5,7 @@
   "description": "Shared domain types, enums, validation schemas and pure business rules for Saarthi",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "sideEffects": false,
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",

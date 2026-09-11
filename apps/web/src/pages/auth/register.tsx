@@ -8,6 +8,7 @@ import {
   Building2,
   Car,
   Check,
+  ExternalLink,
   HandshakeIcon,
   IdCard,
   KeyRound,
@@ -64,6 +65,7 @@ import {
   markRegistrationTutorialSeen,
 } from '@/features/auth/registration-tutorial';
 import { LanguageGrid, useLocale } from '@/features/i18n';
+import { LEGAL_LINKS } from '@/features/legal/legal-links';
 import { forgetReferralCode, resolveReferralCode } from '@/features/sales/referral-code';
 import { useAuth } from '@/features/auth/auth-context';
 import { ApiError } from '@/lib/api-client';
@@ -1371,9 +1373,34 @@ export function RegisterPage() {
                       className="mt-0.5"
                     />
                   </FormControl>
-                  <FormLabel className="cursor-pointer text-sm font-normal leading-snug text-muted-foreground">
-                    {t('I agree to the VorldX Saarthi terms of service and privacy policy.')}
-                  </FormLabel>
+                  {/* The documents, beside the sentence that agrees to them.
+                      Consent to something the person cannot read is not
+                      consent, and this is the last step before the account is
+                      created.
+
+                      They open in a new tab on purpose: this is a wizard
+                      holding several steps of unsaved answers, and navigating
+                      away from it to read a legal document would discard
+                      them. */}
+                  <div className="min-w-0 space-y-1.5">
+                    <FormLabel className="cursor-pointer text-sm font-normal leading-snug text-muted-foreground">
+                      {t('I agree to the VorldX Saarthi terms of service and privacy policy.')}
+                    </FormLabel>
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                      {LEGAL_LINKS.map((link) => (
+                        <Link
+                          key={link.to}
+                          to={link.to}
+                          target="_blank"
+                          rel="noreferrer noopener"
+                          className="inline-flex items-center gap-1 text-2xs font-medium text-primary underline-offset-4 hover:underline"
+                        >
+                          {t(link.label)}
+                          <ExternalLink className="size-3" aria-hidden />
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
                 </div>
                 <FormMessage />
               </FormItem>

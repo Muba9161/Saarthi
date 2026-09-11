@@ -210,9 +210,34 @@ export function WordsReveal({
       {words.map((word, index) => (
         // Index in the key because a headline can legitimately repeat a word.
         <React.Fragment key={`${word}-${index}`}>
-          <span className="inline-block overflow-hidden align-bottom">
+          {/*
+            The clip box is a fifth of an em taller than the line box, and the
+            wrapper gives that back as negative margin.
+
+            `overflow-hidden` clips to the content box, whose height is the
+            line-height - and every headline on this page is set tighter than
+            the font's own vertical extent. Inter's ascent and descent total
+            1.211em, so at `leading-[1.12]` the half-leading is *negative* and
+            the descender of a y, g, p or comma hangs ~0.05em below the box
+            that is doing the clipping. At the hero's `leading-[1.02]` it is
+            twice that. Every heading using this component was quietly having
+            its descenders shaved off; the tops were always safe, because a cap
+            or an ascender is well short of the full ascent.
+
+            The padding goes on the *inner* span rather than the wrapper so the
+            hidden state still hides. `y: '100%'` is a percentage of the moving
+            element's own height: grow that element and the travel grows with
+            it, and the word stays fully below the clip line at rest. Padding
+            the wrapper instead would have left a sliver of the letter tops
+            showing before the reveal started.
+
+            The wrapper's negative bottom margin cancels the extra height
+            against its own `align-bottom`, so the line box is exactly the size
+            it was and nothing on the page moves.
+          */}
+          <span className="-mb-[0.2em] inline-block overflow-hidden align-bottom">
             <motion.span
-              className="inline-block"
+              className="inline-block pb-[0.2em]"
               variants={{
                 hidden: { y: '100%', opacity: 0 },
                 visible: { y: '0%', opacity: 1, transition: { duration: 0.6, ease: EASE } },

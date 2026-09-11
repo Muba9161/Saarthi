@@ -172,6 +172,8 @@ export const hi: Catalogue = {
     'कम से कम 10 अक्षर, जिनमें बड़े अक्षर, छोटे अक्षर और एक अंक हो।',
   'I agree to the VorldX Saarthi terms of service and privacy policy.':
     'मैं VorldX Saarthi की सेवा शर्तों और गोपनीयता नीति से सहमत हूँ।',
+  'Terms of Service': 'सेवा की शर्तें',
+  'Privacy Policy': 'गोपनीयता नीति',
   'Association name': 'एसोसिएशन का नाम',
   'Travel business name': 'ट्रैवल व्यवसाय का नाम',
   'I own trucks and want to manage my fleet and win loads.':

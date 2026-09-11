@@ -46,6 +46,27 @@ export const MARKETING_IMAGE = {
   /** 3:4. The same scene reframed — truck low, sky above for the headline. */
   heroPortrait: `${BASE}/hero-highway-portrait.webp`,
   /**
+   * 16:9. The country, and one truck on it.
+   *
+   * A relief India lit by the same two sources as every other frame here — a
+   * cold navy rim along the coast, the highway ribbon warm saffron. The map
+   * and the truck are held in the RIGHT HALF; the left half is empty haze,
+   * because the band's copy lives there.
+   *
+   * Deliberately carries **no pins, no arcs, no labels and no numerals**. Every
+   * claim the band makes is live DOM on top, for the same reason the rest of
+   * the page is: the site writes itself in 23 scripts, and a figure baked into
+   * a WebP is an English figure forever that no catalogue can keep honest.
+   *
+   * Nothing is registered to the map either. This is a full-bleed `Backdrop`,
+   * so it is cropped differently at every viewport width, and a pin positioned
+   * against it would slide off Gujarat on a laptop. Anything that has to point
+   * at a place belongs in a framed image with a known box, not here.
+   */
+  coverage: `${BASE}/coverage-india.webp`,
+  /** 3:4. The same scene reframed — map low, empty sky above for the headline. */
+  coveragePortrait: `${BASE}/coverage-india-portrait.webp`,
+  /**
    * 16:9. The ground under the brand band.
    *
    * Not seen through the letterforms — that was the original plan, and the

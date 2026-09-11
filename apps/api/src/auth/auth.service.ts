@@ -207,6 +207,12 @@ export async function register(input: RegisterInput, meta: RequestMeta) {
             email: input.email,
             phone: input.phone,
             inviteCode: await uniqueInviteCode(tx),
+            // Recorded, not just described above. Without this the only
+            // question anything downstream could ask was "is there an
+            // organization?", and the answer is always yes — which is how a
+            // driver ended up being asked for a GST number and a business
+            // registration certificate on the business documents screen.
+            isPersonalSeat: true,
             verificationStatus: VerificationStatus.PENDING,
           },
         });
@@ -330,6 +336,46 @@ export async function register(input: RegisterInput, meta: RequestMeta) {
     });
 
     /*
+     * The salesperson who brought this customer, if there was one.
+     *
+     * **Before `provisionSignupOrder` below**, and that ordering is
+     * load-bearing rather than tidy. That call charges for the trackers and
+     * vehicle top-ups priced on the signup card and, on success, calls
+     * `qualifyPayment` — which credits whoever holds a live attribution *at
+     * that moment*. Run afterwards it found nobody, so every digital referral
+     * signup silently earned its salesperson nothing on the add-ons they had
+     * just sold.
+     *
+     * After `createDefaultSubscription` for the opposite reason: linking the
+     * salesperson's lead recomputes its stage from the customer's
+     * subscription, so the subscription has to exist first. The trackers do
+     * not need to — `qualifyPayment` recomputes every lead for the
+     * organization once the charge lands, from the tracker state as it is by
+     * then (see `advanceSalesRecords`).
+     *
+     * Still outside the registration transaction, so **a referral problem can
+     * never cost somebody their account**: the user, the organization and the
+     * membership are committed by here, and `captureRegistrationReferral`
+     * swallows its own failures for the same reason
+     * `provisionDriverCodeOnRegistration` does. A mistyped GODID, an
+     * unverified salesperson or a customer another colleague already signed up
+     * are all outcomes an operator can correct afterwards, and none of them is
+     * worth losing a registration over.
+     *
+     * Only reached for an organization this registration created, so a driver
+     * joining an employer's fleet is never credited as a new customer.
+     */
+    if (input.referralCode) {
+      await captureRegistrationReferral({
+        code: input.referralCode,
+        organizationId: result.organizationId,
+        userId: result.user.id,
+        phone: input.phone,
+        email: input.email,
+      });
+    }
+
+    /*
      * The fleet size and trackers the registrant priced on the pricing card.
      *
      * After the subscription rather than inside it, because the top-ups hang
@@ -379,30 +425,6 @@ export async function register(input: RegisterInput, meta: RequestMeta) {
       result.organizationId,
       result.user.id,
     );
-  }
-
-  /*
-   * The salesperson who brought this customer, if there was one.
-   *
-   * Outside the registration transaction and after everything that makes the
-   * account real, because **a referral problem must never cost somebody their
-   * account**. `captureRegistrationReferral` swallows its own failures for the
-   * same reason `provisionDriverCodeOnRegistration` does: a mistyped GODID, an
-   * unverified salesperson or a customer another colleague already signed up
-   * are all outcomes an operator can correct afterwards, and none of them is
-   * worth losing a registration over.
-   *
-   * Only for an organization this registration created. A driver joining an
-   * employer's fleet is not a new customer and must not be credited as one.
-   */
-  if (result.createdOrganization && input.referralCode) {
-    await captureRegistrationReferral({
-      code: input.referralCode,
-      organizationId: result.organizationId,
-      userId: result.user.id,
-      phone: input.phone,
-      email: input.email,
-    });
   }
 
   const issued = await issueSession(

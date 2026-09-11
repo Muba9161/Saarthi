@@ -52,6 +52,17 @@ export interface NavItem {
   permissions?: Permission[];
   feature?: Feature;
   roles?: RoleName[];
+  /**
+   * Only for an account that acts for an actual business.
+   *
+   * Not the same question as "has an organization", which is always yes: a
+   * driver signing up without an employer's code is given a single-member one
+   * named after them so their membership, documents and QR badge have
+   * somewhere to hang. That seat is marked `isPersonalSeat`, and this flag is
+   * what keeps business-only destinations — registration certificates, GST,
+   * bank details — out of a driver's menu.
+   */
+  requiresBusiness?: boolean;
   /** Show a live count badge from this key of the nav-badge payload. */
   badgeKey?: 'sos' | 'verification' | 'notifications' | 'expiringDocuments';
   /** Match child routes too. */
@@ -687,14 +698,25 @@ export const ACCOUNT_NAVIGATION: NavItem[] = [
   // destination: everything it held is either a profile section already, or
   // was moved onto this screen as a step of its own.
   { label: 'My profile', to: '/settings/profile', icon: UserRoundCog },
-  // Business documents and the GST check. Shown to anyone who can read
-  // documents; the page itself says so plainly when the account is not acting
-  // for an organization, rather than being hidden and leaving people hunting.
+  /*
+   * Business documents and the GST check.
+   *
+   * `DOCUMENTS_READ` alone was never the right gate. A driver holds it — on
+   * purpose, so they can read their own licence, Aadhaar and PAN — so this
+   * asked "do you have documents?" when it meant "are you a business?", and
+   * drivers were offered a screen wanting a registration certificate and a
+   * GSTIN they will never have. The page's own "not acting for a business"
+   * empty state could not save them either: it checked whether an
+   * organization existed, and a driver always has one.
+   *
+   * `requiresBusiness` asks the question that was actually meant.
+   */
   {
     label: 'Business documents',
     to: '/settings/business-documents',
     icon: Building2,
     permissions: [Permission.DOCUMENTS_READ],
+    requiresBusiness: true,
   },
   { label: 'Verification', to: '/verification', icon: ShieldCheck },
 ];

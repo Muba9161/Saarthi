@@ -174,6 +174,8 @@ export const ta: Catalogue = {
     'குறைந்தது 10 எழுத்துகள், அதில் பெரிய எழுத்து, சிறிய எழுத்து மற்றும் ஓர் எண் இருக்க வேண்டும்.',
   'I agree to the VorldX Saarthi terms of service and privacy policy.':
     'VorldX Saarthi-இன் சேவை விதிமுறைகளையும் தனியுரிமைக் கொள்கையையும் ஏற்கிறேன்.',
+  'Terms of Service': 'சேவை விதிமுறைகள்',
+  'Privacy Policy': 'தனியுரிமைக் கொள்கை',
   'Association name': 'சங்கத்தின் பெயர்',
   'Travel business name': 'பயண வணிகப் பெயர்',
   'I own trucks and want to manage my fleet and win loads.':

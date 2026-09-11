@@ -14,6 +14,7 @@ import {
   type SubmitVerificationInput,
   type VerificationListQuery,
 } from '@saarthi/shared';
+import { config } from '../../config/env';
 import { type Prisma, prisma } from '../../database/prisma';
 import { errors } from '../../lib/errors';
 import { skipTake } from '../../lib/http';
@@ -154,6 +155,9 @@ async function driverStatusFor(
   requested: VerificationStatus,
 ): Promise<VerificationStatus> {
   if (requested !== VerificationStatus.VERIFIED) return requested;
+  // With enforcement off there is no authority to consult on a development
+  // machine, so a reviewer's decision is the only signal there is — take it.
+  if (!config.verification.driverChecksEnforced) return VerificationStatus.VERIFIED;
   const checklist = await getDriverChecklist(driverId);
   if (!checklist || checklist.complete) return VerificationStatus.VERIFIED;
   return VerificationStatus.PENDING;
@@ -674,9 +678,23 @@ export async function syncDriverVerificationStatus(
   if (!driver) return null;
 
   const checklist = driverVerificationChecklist(driver);
+
+  /*
+   * Completing the set always promotes, enforcement or not — four confirmed
+   * checks are four confirmed checks.
+   *
+   * The *downgrade* is what enforcement controls. In production it is the
+   * whole point of this function: a driver carrying VERIFIED with a check
+   * outstanding is a badge claiming something no authority confirmed. On a
+   * development machine it is what makes the app unusable — with no real
+   * licence to confirm, the first check run on any driver pulls them back to
+   * PENDING and out of every truck, trip and marketplace screen. So that arm,
+   * and only that arm, is what switches off.
+   */
   const desired = checklist.complete
     ? VerificationStatus.VERIFIED
-    : driver.verificationStatus === VerificationStatus.VERIFIED
+    : config.verification.driverChecksEnforced &&
+        driver.verificationStatus === VerificationStatus.VERIFIED
       ? VerificationStatus.PENDING
       : driver.verificationStatus;
 

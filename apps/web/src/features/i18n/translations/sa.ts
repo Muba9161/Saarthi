@@ -177,6 +177,8 @@ export const sa: Catalogue = {
     'न्यूनातिन्यूनं दश अक्षराणि, तेषु बृहदक्षरं लघ्वक्षरं अङ्कश्च स्यात्।',
   'I agree to the VorldX Saarthi terms of service and privacy policy.':
     'अहं VorldX Saarthi इत्यस्य सेवानियमान् गोपनीयतानीतिं च स्वीकरोमि।',
+  'Terms of Service': 'सेवायाः नियमाः',
+  'Privacy Policy': 'गोपनीयता-नीतिः',
   'Association name': 'सङ्घनाम',
   'Travel business name': 'यात्राव्यवसायनाम',
   'I own trucks and want to manage my fleet and win loads.':

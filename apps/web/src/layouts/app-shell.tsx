@@ -182,9 +182,54 @@ function useNavBadges(): NavBadges {
   };
 }
 
+/**
+ * Whether one navigation entry belongs in this user's menu.
+ *
+ * Extracted so the account block at the foot of the sidebar runs through the
+ * same rules as the sections above it. It did not: `ACCOUNT_NAVIGATION` was
+ * rendered straight from the array, so the `permissions` its entries declared
+ * were never evaluated and every account saw all four regardless.
+ */
+function useNavItemVisible(): (item: NavItem) => boolean {
+  const { session, can, hasFeature } = useAuth();
+
+  return React.useCallback(
+    (item: NavItem) => {
+      if (item.permissions && !can(...item.permissions)) return false;
+      if (item.feature && !hasFeature(item.feature)) return false;
+      if (
+        item.roles &&
+        !item.roles.some((role) => session?.user.roles.includes(role as RoleName))
+      ) {
+        return false;
+      }
+      /*
+       * A personal seat is an organization, but not a business. Asking
+       * `session.organization !== null` here would let every driver through,
+       * because registration gives them one named after themselves.
+       */
+      if (item.requiresBusiness) {
+        const organization = session?.organization;
+        if (!organization || organization.isPersonalSeat) return false;
+      }
+      // Simulator controls only exist while the server has demo mode on.
+      if (item.to === '/simulator' && !session?.demoMode) return false;
+      return true;
+    },
+    [session, can, hasFeature],
+  );
+}
+
+/** The account block at the foot of the sidebar, filtered like everything else. */
+function useVisibleAccountNavigation(): NavItem[] {
+  const isVisible = useNavItemVisible();
+  return React.useMemo(() => ACCOUNT_NAVIGATION.filter(isVisible), [isVisible]);
+}
+
 /** Navigation the signed-in user can actually reach. */
 function useVisibleNavigation(): NavSection[] {
-  const { session, can, hasFeature, isDriver, isPlatformAdmin } = useAuth();
+  const { session, isDriver, isPlatformAdmin } = useAuth();
+  const isVisible = useNavItemVisible();
 
   const isSalesman = session?.user.roles.includes('SALESMAN' as RoleName) ?? false;
 
@@ -197,24 +242,9 @@ function useVisibleNavigation(): NavSection[] {
     );
 
     return sections
-      .map((section) => ({
-        ...section,
-        items: section.items.filter((item) => {
-          if (item.permissions && !can(...item.permissions)) return false;
-          if (item.feature && !hasFeature(item.feature)) return false;
-          if (
-            item.roles &&
-            !item.roles.some((role) => session?.user.roles.includes(role as RoleName))
-          ) {
-            return false;
-          }
-          // Simulator controls only exist while the server has demo mode on.
-          if (item.to === '/simulator' && !session?.demoMode) return false;
-          return true;
-        }),
-      }))
+      .map((section) => ({ ...section, items: section.items.filter(isVisible) }))
       .filter((section) => section.items.length > 0);
-  }, [session, can, hasFeature, isDriver, isPlatformAdmin, isSalesman]);
+  }, [session, isVisible, isDriver, isPlatformAdmin, isSalesman]);
 }
 
 /**
@@ -233,9 +263,10 @@ function useVisibleNavigation(): NavSection[] {
 function useActiveNavPath(): string | null {
   const { pathname } = useLocation();
   const sections = useVisibleNavigation();
+  const accountItems = useVisibleAccountNavigation();
 
   return React.useMemo(() => {
-    const candidates = [...sections.flatMap((section) => section.items), ...ACCOUNT_NAVIGATION];
+    const candidates = [...sections.flatMap((section) => section.items), ...accountItems];
 
     let best: string | null = null;
     for (const { to, end, alsoMatches } of candidates) {
@@ -249,7 +280,7 @@ function useActiveNavPath(): string | null {
       if (matches && (best === null || to.length > best.length)) best = to;
     }
     return best;
-  }, [pathname, sections]);
+  }, [pathname, sections, accountItems]);
 }
 
 function NavLinkItem({
@@ -386,6 +417,7 @@ export function SidebarContent({
   const { session } = useAuth();
   const badges = useNavBadges();
   const sections = useVisibleNavigation();
+  const accountItems = useVisibleAccountNavigation();
   const activePath = useActiveNavPath();
   const t = useT();
 
@@ -455,7 +487,7 @@ export function SidebarContent({
         <Separator className="bg-sidebar-border" />
 
         <div className="space-y-1">
-          {ACCOUNT_NAVIGATION.map((item) => (
+          {accountItems.map((item) => (
             <NavLinkItem
               key={item.to}
               item={item}

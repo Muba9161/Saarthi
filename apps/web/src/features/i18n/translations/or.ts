@@ -172,6 +172,8 @@ export const or: Catalogue = {
     'ଅନ୍ତତଃ ୧୦ଟି ଅକ୍ଷର, ଯେଉଁଥିରେ ବଡ଼ ଅକ୍ଷର, ଛୋଟ ଅକ୍ଷର ଓ ଗୋଟିଏ ଅଙ୍କ ଥିବ।',
   'I agree to the VorldX Saarthi terms of service and privacy policy.':
     'ମୁଁ VorldX Saarthi ର ସେବା ସର୍ତ୍ତ ଓ ଗୋପନୀୟତା ନୀତିରେ ସହମତ।',
+  'Terms of Service': 'ସେବା ସର୍ତ୍ତାବଳୀ',
+  'Privacy Policy': 'ଗୋପନୀୟତା ନୀତି',
   'Association name': 'ସଂଘର ନାମ',
   'Travel business name': 'ଟ୍ରାଭେଲ ବ୍ୟବସାୟର ନାମ',
   'I own trucks and want to manage my fleet and win loads.':

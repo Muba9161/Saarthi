@@ -172,6 +172,8 @@ export const mai: Catalogue = {
     'कम सँ कम 10 अक्षर, जाहि मे पैघ अक्षर, छोट अक्षर आ एकटा अंक हो।',
   'I agree to the VorldX Saarthi terms of service and privacy policy.':
     'हम VorldX Saarthi क सेवा शर्त आ गोपनीयता नीति सँ सहमत छी।',
+  'Terms of Service': 'सेवाक शर्त',
+  'Privacy Policy': 'गोपनीयता नीति',
   'Association name': 'संघक नाम',
   'Travel business name': 'ट्रैवल व्यवसायक नाम',
   'I own trucks and want to manage my fleet and win loads.':

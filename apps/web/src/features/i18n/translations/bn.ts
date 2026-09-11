@@ -172,6 +172,8 @@ export const bn: Catalogue = {
     'অন্তত ১০টি অক্ষর, যাতে বড় হাতের, ছোট হাতের অক্ষর ও একটি সংখ্যা থাকে।',
   'I agree to the VorldX Saarthi terms of service and privacy policy.':
     'আমি VorldX Saarthi-র পরিষেবার শর্ত ও গোপনীয়তা নীতিতে সম্মত।',
+  'Terms of Service': 'পরিষেবার শর্তাবলী',
+  'Privacy Policy': 'গোপনীয়তা নীতি',
   'Association name': 'সমিতির নাম',
   'Travel business name': 'ট্রাভেল ব্যবসার নাম',
   'I own trucks and want to manage my fleet and win loads.':

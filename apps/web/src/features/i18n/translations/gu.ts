@@ -172,6 +172,8 @@ export const gu: Catalogue = {
     'ઓછામાં ઓછા ૧૦ અક્ષર, જેમાં મોટા અક્ષર, નાના અક્ષર અને એક આંકડો હોય.',
   'I agree to the VorldX Saarthi terms of service and privacy policy.':
     'હું VorldX Saarthi ની સેવા શરતો અને ગોપનીયતા નીતિ સાથે સંમત છું.',
+  'Terms of Service': 'સેવાની શરતો',
+  'Privacy Policy': 'ગોપનીયતા નીતિ',
   'Association name': 'એસોસિએશનનું નામ',
   'Travel business name': 'ટ્રાવેલ વ્યવસાયનું નામ',
   'I own trucks and want to manage my fleet and win loads.':

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { DEFAULT_LOCALE, languageByCode, resolveLocale } from '@saarthi/shared';
-import { CATALOGUES, en } from './translations';
+import { catalogueFor, en, loadCatalogue } from './translations';
 
 /**
  * The language Saarthi speaks.
@@ -46,6 +46,29 @@ function readStoredLocale(): string {
   }
 }
 
+/**
+ * Fetch the stored language's catalogue before the app first renders.
+ *
+ * Catalogues load on demand, which opens a window where a Hindi user's first
+ * paint would be in English and then visibly re-render. The boot splash is
+ * already covering the screen at this point, so waiting here costs nothing a
+ * user can see and removes the flash entirely.
+ *
+ * The timeout is what keeps that trade honest: on a stalled connection the
+ * app starts in English — every string still renders, because English is the
+ * fallback — and switches over when the catalogue arrives. Waiting
+ * indefinitely behind a splash would be worse than being briefly untranslated.
+ */
+export function preloadStoredCatalogue(timeoutMs = 1500): Promise<void> {
+  const locale = readStoredLocale();
+  return Promise.race([
+    loadCatalogue(locale),
+    new Promise<void>((resolve) => {
+      window.setTimeout(resolve, timeoutMs);
+    }),
+  ]);
+}
+
 /** Substitute `{name}` placeholders. Unmatched names are left alone. */
 function interpolate(text: string, values?: Interpolations): string {
   if (!values) return text;
@@ -71,6 +94,29 @@ export function LocaleProvider({
   const [locale, setLocaleState] = React.useState<string>(readStoredLocale);
   const [saving, setSaving] = React.useState(false);
   const [switchNonce, setSwitchNonce] = React.useState(0);
+
+  /*
+   * Catalogues arrive asynchronously, so `t` has to be recomputed once one
+   * lands. Counting arrivals rather than holding the catalogue in state keeps
+   * the lookup reading from one place — the module-level registry — instead of
+   * having a second copy that can disagree with it.
+   *
+   * A locale whose catalogue is already held (English, or one visited earlier
+   * this session) resolves on the spot and never renders untranslated.
+   */
+  const [cataloguesReady, setCataloguesReady] = React.useState(0);
+
+  React.useEffect(() => {
+    if (catalogueFor(locale)) return;
+
+    let cancelled = false;
+    void loadCatalogue(locale).then(() => {
+      if (!cancelled) setCataloguesReady((count) => count + 1);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [locale]);
 
   /*
    * Adopt the account's language when a session appears, but only once per
@@ -129,14 +175,19 @@ export function LocaleProvider({
 
   const t = React.useCallback(
     (source: string, values?: Interpolations) => {
-      const catalogue = CATALOGUES[locale];
+      // Read only to tie this callback to catalogue arrivals. The lookup goes
+      // to the module registry, and a closure cannot observe that filling in
+      // on its own — without this dependency `t` would keep serving English
+      // from the render that ran before the catalogue landed.
+      void cataloguesReady;
+      const catalogue = catalogueFor(locale);
       const translated =
         (catalogue as Record<string, string | undefined> | undefined)?.[source] ??
         (en as Record<string, string | undefined>)[source] ??
         source;
       return interpolate(translated, values);
     },
-    [locale],
+    [locale, cataloguesReady],
   );
 
   const value = React.useMemo<LocaleContextValue>(

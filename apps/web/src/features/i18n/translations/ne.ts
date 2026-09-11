@@ -173,6 +173,8 @@ export const ne: Catalogue = {
     'कम्तीमा 10 अक्षर, जसमा ठूला अक्षर, साना अक्षर र एउटा अंक होस्।',
   'I agree to the VorldX Saarthi terms of service and privacy policy.':
     'म VorldX Saarthi का सेवा सर्त र गोपनीयता नीतिमा सहमत छु।',
+  'Terms of Service': 'सेवाका सर्तहरू',
+  'Privacy Policy': 'गोपनीयता नीति',
   'Association name': 'संघको नाम',
   'Travel business name': 'ट्राभल व्यवसायको नाम',
   'I own trucks and want to manage my fleet and win loads.':

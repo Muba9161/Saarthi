@@ -210,20 +210,138 @@
     font-feature-settings: 'tnum' 1;
   }
 
+  /*
+   * The scrollbar, as a designed object rather than an OS artefact.
+   *
+   * It carries the brand ramp - the navy of the V into the saffron of the X,
+   * the same two ends as `.brand-logo-gradient` - but reads it from
+   * `--primary` and `--accent` rather than the literal hexes, so it follows
+   * the visitor's theme instead of needing a second copy for dark mode.
+   *
+   * Held at half strength at rest and taken to full on hover and drag. A
+   * scrollbar is chrome, not content: it should be recognisably ours at a
+   * glance and then get out of the way of the page it is measuring.
+   *
+   * Declared unprefixed-first for Firefox on `html` above, then here for
+   * WebKit and Blink. Note that defining any `::-webkit-scrollbar` rule opts
+   * macOS out of overlay scrollbars for the whole app, which is why the width
+   * stays close to the value it replaced: this gutter is now permanent, and
+   * widening it would reflow every page on a Mac.
+   */
   ::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
+    width: 11px;
+    height: 11px;
   }
-  ::-webkit-scrollbar-track {
+
+  /* Transparent rather than tinted. A groove running the full height of the
+     window is a hard vertical line beside every page; the thumb on its own is
+     enough to say where you are. */
+  ::-webkit-scrollbar-track,
+  ::-webkit-scrollbar-corner {
     background: transparent;
   }
-  ::-webkit-scrollbar-thumb {
-    @apply rounded-full bg-border-strong/60;
-    background-clip: padding-box;
-    border: 2px solid transparent;
+
+  /*
+   * The stepper arrows, gone.
+   *
+   * Styling `::-webkit-scrollbar` at all makes Blink draw its own increment
+   * and decrement buttons at both ends - little grey triangles that no amount
+   * of work on the thumb will make look deliberate, and the single loudest
+   * tell that a scrollbar is the platform's rather than the product's. They
+   * have to be dismissed explicitly; there is no property that opts out.
+   */
+  ::-webkit-scrollbar-button {
+    display: none;
+    width: 0;
+    height: 0;
   }
-  ::-webkit-scrollbar-thumb:hover {
-    @apply bg-muted-foreground/50;
+
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full;
+    /*
+     * The border is the gutter.
+     *
+     * Clipping the paint to the padding box turns a 3px transparent border
+     * into breathing room on both flanks, so the thumb floats in the scroll
+     * channel instead of filling it edge to edge. That gap is the single
+     * detail that stops it reading as the operating system's own bar.
+     */
+    border: 3px solid transparent;
+    background-clip: padding-box;
+    transition: background-image 160ms ease;
+  }
+
+  /* Split by axis so the ramp runs along the thumb's long side. A vertical
+     gradient on an 11px-tall horizontal thumb is not a gradient, it is a
+     muddy blend of both ends. */
+  ::-webkit-scrollbar-thumb:vertical {
+    background-image: linear-gradient(
+      to bottom,
+      hsl(var(--primary) / 0.45),
+      hsl(var(--accent) / 0.45)
+    );
+  }
+  ::-webkit-scrollbar-thumb:horizontal {
+    background-image: linear-gradient(
+      to right,
+      hsl(var(--primary) / 0.45),
+      hsl(var(--accent) / 0.45)
+    );
+  }
+
+  ::-webkit-scrollbar-thumb:vertical:hover {
+    background-image: linear-gradient(
+      to bottom,
+      hsl(var(--primary) / 0.75),
+      hsl(var(--accent) / 0.75)
+    );
+  }
+  ::-webkit-scrollbar-thumb:horizontal:hover {
+    background-image: linear-gradient(
+      to right,
+      hsl(var(--primary) / 0.75),
+      hsl(var(--accent) / 0.75)
+    );
+  }
+
+  ::-webkit-scrollbar-thumb:vertical:active {
+    background-image: linear-gradient(to bottom, hsl(var(--primary)), hsl(var(--accent)));
+  }
+  ::-webkit-scrollbar-thumb:horizontal:active {
+    background-image: linear-gradient(to right, hsl(var(--primary)), hsl(var(--accent)));
+  }
+
+  /*
+   * The same scrollbar for engines that have no `::-webkit-scrollbar`.
+   *
+   * `scrollbar-width` and `scrollbar-color` are the standard properties and
+   * the only ones Firefox has ever had - but they are **not** a progressive
+   * enhancement to sit alongside the block above. Where an engine supports
+   * both, the standard properties win outright and the pseudo-elements are
+   * dropped on the floor: declaring `scrollbar-width: thin` at the root is
+   * enough to throw away every rule above and hand Chrome back the platform's
+   * own thin scrollbar, arrows and all. That is not a theory, it is what this
+   * file did until it was measured.
+   *
+   * So they are gated on the absence of the pseudo-element rather than
+   * declared unconditionally. Firefox takes this branch and gets a thin bar
+   * with a brand-tinted thumb on a transparent track - the closest the
+   * standard properties can get, since they take two flat colours and no
+   * gradient. Blink and WebKit skip it and keep the pill above.
+   *
+   * `scrollbar-color` inherits, so the root brands every scroller at once.
+   * `scrollbar-width` does not, which is why it needs the universal selector -
+   * and `.scrollbar-none` still outranks it, both on specificity and because
+   * Tailwind emits the utilities layer after this one.
+   */
+  @supports not selector(::-webkit-scrollbar) {
+    * {
+      scrollbar-width: thin;
+    }
+
+    html {
+      scrollbar-color: hsl(var(--primary) / 0.55) transparent;
+    }
   }
 
   :focus-visible {
@@ -583,6 +701,29 @@
    * Restated for the dark theme rather than reused: navy at 12% lightness is a
    * hole in a near-black page, so both ends lift while the hues stay put.
    */
+  /*
+   * Room under the baseline for the descenders to be painted into.
+   *
+   * `background-clip: text` paints the gradient only where the glyphs are, but
+   * the area it has to paint *from* is the padding box - so a descender that
+   * hangs below that box is not clipped, it is simply never painted, and a y,
+   * g or p comes out transparent from the baseline down. Every headline using
+   * these classes is set tighter than Inter's own 1.211em of ascent plus
+   * descent, so the overhang is guaranteed: 0.1em at `leading-[1.02]` in the
+   * hero, 0.18em at the knockout's `leading-[0.85]`.
+   *
+   * The negative margin gives the height straight back, so the line box is the
+   * size it always was and nothing below moves. Held here rather than as a
+   * `pb-*` at each call site - which is what the hero carried, at a fixed 4px
+   * that was right at one step of a 44px-to-72px type ramp and short at the
+   * rest - so a new gradient headline cannot be written without it.
+   */
+  .brand-logo-gradient,
+  .brand-logo-gradient-on-dark {
+    padding-bottom: 0.18em;
+    margin-bottom: -0.18em;
+  }
+
   .brand-logo-gradient {
     @apply bg-clip-text text-transparent;
     background-image: linear-gradient(

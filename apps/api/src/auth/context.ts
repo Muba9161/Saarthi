@@ -29,6 +29,8 @@ export interface AuthOrganization {
   name: string;
   type: OrganizationType;
   membershipRole: RoleName;
+  /** One person's seat rather than a business — see `SessionOrganization`. */
+  isPersonalSeat: boolean;
 }
 
 export interface AuthSubscription {

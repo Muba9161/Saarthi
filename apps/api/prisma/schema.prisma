@@ -164,6 +164,21 @@ model Organization {
   longitude          Float?
   /// Short human-friendly code drivers use to join this fleet.
   inviteCode         String             @unique
+  /// True when this organization exists only to hold one person's account,
+  /// not because there is a business behind it.
+  ///
+  /// A driver who signs up without an employer's invite code still needs an
+  /// organization — every membership, driver row, document and QR badge hangs
+  /// off one — so registration creates a single-member `FLEET_OWNER` carrying
+  /// their own name. It is a seat, not a business, and nothing recorded that:
+  /// every consumer asking "does this account act for a business?" could only
+  /// check whether an organization existed, and one always does. That is why a
+  /// driver was shown the business documents screen, being asked for a GST
+  /// number and a registration certificate they will never have.
+  ///
+  /// Cleared, not deleted, if such an account ever becomes a real business.
+  /// `joinFleet` archives the seat outright when the driver joins a real fleet.
+  isPersonalSeat     Boolean            @default(false)
   verificationStatus VerificationStatus @default(PENDING)
   logoUrl            String?
   description        String?

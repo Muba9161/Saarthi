@@ -175,6 +175,8 @@ export const ml: Catalogue = {
     'കുറഞ്ഞത് 10 അക്ഷരങ്ങൾ, അതിൽ വലിയ അക്ഷരം, ചെറിയ അക്ഷരം, ഒരു അക്കം എന്നിവ വേണം.',
   'I agree to the VorldX Saarthi terms of service and privacy policy.':
     'VorldX Saarthi-യുടെ സേവന നിബന്ധനകളും സ്വകാര്യതാ നയവും ഞാൻ അംഗീകരിക്കുന്നു.',
+  'Terms of Service': 'സേവന നിബന്ധനകൾ',
+  'Privacy Policy': 'സ്വകാര്യതാ നയം',
   'Association name': 'അസോസിയേഷന്റെ പേര്',
   'Travel business name': 'ട്രാവൽ ബിസിനസ് പേര്',
   'I own trucks and want to manage my fleet and win loads.':
