@@ -1,7 +1,13 @@
 package com.saarthi.core.data
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
+import android.os.SystemClock
+import androidx.core.content.ContextCompat
+import com.google.android.gms.location.LocationServices
 import com.saarthi.core.CoreConfig
+import com.saarthi.core.telemetry.Position
 import com.saarthi.core.domain.TerminalState
 import com.saarthi.core.network.AskRequest
 import com.saarthi.core.network.AskResponse
@@ -54,6 +60,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.tasks.await
 import java.time.Instant
 import java.util.UUID
 
@@ -486,8 +493,58 @@ class TerminalRepository(
     // Services, issues and the assistant
     // -----------------------------------------------------------------------
 
+
+    /**
+     * Where this vehicle is, for a call that cannot proceed without knowing.
+     *
+     * The telemetry snapshot first, because while the reporting service runs
+     * that is the vehicle's own fix, carrying its source and accuracy.
+     *
+     * Android's last known fix second, and only when it is fresh. The snapshot
+     * is empty more often than it looks: the service starts with the shift, so
+     * a driver who opens the app before signing on to anything — or whose
+     * process was started by Android Auto binding the car screen — has no
+     * position at all, while the handset in their hand has known for hours.
+     * That gap is what made "Show me the way" answer "Saarthi could not work
+     * out a route yet" on a phone that knew perfectly well where it was.
+     *
+     * Bounded by age deliberately. A route planned from where the lorry was an
+     * hour ago is not a lesser answer, it is a wrong one, and the refusal is
+     * better than a confident line to nowhere.
+     */
+    private suspend fun wherePossible(): Position? {
+        telemetry.snapshot.value.position?.let { return it }
+
+        return runCatching {
+            if (
+                ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                return null
+            }
+
+            val fix = LocationServices.getFusedLocationProviderClient(context)
+                .lastLocation
+                .await()
+                ?: return null
+
+            val age = SystemClock.elapsedRealtimeNanos() - fix.elapsedRealtimeNanos
+            if (age > MAX_BORROWED_FIX_NANOS) {
+                null
+            } else {
+                Position(
+                    latitude = fix.latitude,
+                    longitude = fix.longitude,
+                    accuracyMetres = fix.accuracy.toDouble(),
+                )
+            }
+        }.getOrNull()
+    }
+
     suspend fun nearby(service: String?): Result<NearbyResponse> = runCatchingApi {
-        val position = telemetry.snapshot.value.position
+        val position = wherePossible()
             ?: throw SaarthiApi.Failure.Refused(
                 409,
                 "NO_POSITION",
@@ -557,7 +614,7 @@ class TerminalRepository(
         destinationName: String,
         avoidTolls: Boolean = false,
     ): Result<RouteDto> = runCatchingApi {
-        val position = telemetry.snapshot.value.position
+        val position = wherePossible()
             ?: throw SaarthiApi.Failure.Refused(
                 409,
                 "NO_POSITION",
@@ -877,6 +934,14 @@ class TerminalRepository(
     }
 
     private companion object {
+        /**
+         * How stale a borrowed fix may be: ten minutes.
+         *
+         * Long enough to cover a driver who has just opened the app, short
+         * enough that the vehicle has not plausibly left the area.
+         */
+        const val MAX_BORROWED_FIX_NANOS = 10L * 60L * 1_000_000_000L
+
         /** Above this the vehicle counts as moving, and the UI simplifies. */
         const val MOVING_KPH = 5.0
 

@@ -419,7 +419,7 @@ class DriverApi(
         val request = builder.build()
 
         try {
-            execute(request)
+            execute(request, authenticated)
         } catch (error: Failure.SignedOut) {
             if (!authenticated || !retryAfterRefresh) throw error
             // Exactly one retry. A loop that refreshes on every 401 turns a
@@ -430,7 +430,7 @@ class DriverApi(
         }
     }
 
-    private fun execute(request: Request): String {
+    private fun execute(request: Request, authenticated: Boolean = true): String {
         val response = try {
             client.newCall(request).execute()
         } catch (error: IOException) {
@@ -440,11 +440,32 @@ class DriverApi(
         response.use { raw ->
             val payload = raw.body?.string().orEmpty()
             if (raw.isSuccessful) return payload
-            if (raw.code == 401) throw Failure.SignedOut
 
             val parsed = runCatching {
                 json.decodeFromString(Envelope.serializer(NoData.serializer()), payload).error
             }.getOrNull()
+
+            /*
+             * A 401 means two different things, and they must not read alike.
+             *
+             * On a request that carried a token it means the session is over —
+             * expired, or revoked by the fleet — and the app should quietly go
+             * back to sign-in. On sign-in itself there is no session to lose:
+             * it means the email or the password is wrong, and the server says
+             * so in the body.
+             *
+             * Both used to become `SignedOut`, so a driver who mistyped their
+             * password on the sign-in screen was told "Please sign in again" —
+             * on the sign-in screen, with no hint that anything was wrong with
+             * what they typed. The server's own sentence is the useful one.
+             */
+            if (raw.code == 401) {
+                if (authenticated) throw Failure.SignedOut
+                throw Failure.Refused(
+                    raw.code,
+                    parsed?.message ?: "The email address or password is incorrect.",
+                )
+            }
 
             // The path and the status, never the body: a sign-in payload
             // carries the password this method just sent.
