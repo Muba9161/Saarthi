@@ -88,6 +88,26 @@ model User {
   avatarUrl    String?
   status       UserStatus @default(ACTIVE)
   lastLoginAt  DateTime?
+
+  /// Last four digits of this person's own verified Aadhaar, and when it was
+  /// confirmed. The full number is never stored here — see
+  /// `identity_verifications`, where it is encrypted and swept on a retention
+  /// schedule.
+  ///
+  /// Deliberately separate from the identical pair on `drivers`. Those record
+  /// a *driver* clearing one of the four checks that decide whether they may be
+  /// assigned a vehicle; these record an *account holder* proving who they are,
+  /// which a Personal subscription asks for and which has nothing to do with
+  /// driving. One person may hold both, and neither stands in for the other.
+  ///
+  /// Held on the row rather than read from `identity_verifications` for the
+  /// same reason the driver and organization equivalents are: the retention
+  /// sweep deletes the check, its provider payload and the encrypted number
+  /// after IDENTITY_RETENTION_DAYS. The fact that verification once succeeded
+  /// has to outlive that, or an account would silently become unverified.
+  aadhaarLast4      String?
+  aadhaarVerifiedAt DateTime?
+
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
@@ -296,9 +316,11 @@ model AuditLog {
 // Enums — subscriptions & notifications
 // ===========================================================================
 
-/// The two subscriptions Saarthi sells. See `PlanTier` in @saarthi/shared for
-/// what each one covers and why capacity is identical on both.
+/// The three plans Saarthi offers. See `PlanTier` in @saarthi/shared for what
+/// each one covers, and for why Free runs no vehicles at all rather than being
+/// a smaller fleet plan.
 enum PlanTier {
+  FREE
   PERSONAL
   BUSINESS
 }

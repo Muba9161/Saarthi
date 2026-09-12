@@ -64,6 +64,16 @@ export const ErrorCode = {
   TENANT_MISMATCH: 'TENANT_MISMATCH',
   FEATURE_NOT_AVAILABLE: 'FEATURE_NOT_AVAILABLE',
   PLAN_LIMIT_REACHED: 'PLAN_LIMIT_REACHED',
+  /**
+   * The caller must verify their own identity before this action.
+   *
+   * Distinct from FORBIDDEN and from PLAN_LIMIT_REACHED because the remedy is
+   * different and the client has to say so: this is not a permission the
+   * account lacks and not capacity it has to buy, it is a check the account
+   * holder can complete themselves in a few minutes. The client routes it to
+   * the verification screen rather than to billing or to a support message.
+   */
+  IDENTITY_VERIFICATION_REQUIRED: 'IDENTITY_VERIFICATION_REQUIRED',
   NOT_FOUND: 'NOT_FOUND',
   CONFLICT: 'CONFLICT',
   DUPLICATE_RESOURCE: 'DUPLICATE_RESOURCE',

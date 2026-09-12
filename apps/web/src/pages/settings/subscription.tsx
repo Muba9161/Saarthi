@@ -107,6 +107,7 @@ interface TrackerCoverage {
 }
 
 const TIER_LABEL: Record<PlanTier, string> = {
+  [PlanTier.FREE]: 'Free',
   [PlanTier.PERSONAL]: 'Personal',
   [PlanTier.BUSINESS]: 'Business',
 };
@@ -623,9 +624,9 @@ export function SubscriptionPage(): React.ReactElement {
       ) : null}
 
       {/* ---------------------------------------------------------------- */}
-      {/* The two plans                                                    */}
+      {/* The three plans                                                  */}
       {/* ---------------------------------------------------------------- */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
         {PLAN_CATALOGUE.map((definition) => {
           const isCurrent = definition.tier === currentTier;
           const vehicles = plan.data?.usage.vehicles ?? 1;
@@ -634,6 +635,18 @@ export function SubscriptionPage(): React.ReactElement {
             vehicles,
             billing: plan.data?.billingPeriod === 'YEARLY' ? 'yearly' : 'monthly',
           });
+
+          /**
+           * A plan that covers no vehicles, which is Free and only Free.
+           *
+           * Every per-vehicle line on this card would be wrong on it rather
+           * than merely uninteresting: "1 vehicle included, then ₹75 each"
+           * describes a charge that cannot be incurred, and quoting "₹0/month
+           * for your 6 vehicles" invites the reader to believe Saarthi will
+           * keep running six vehicles for nothing.
+           */
+          const vehicleless =
+            definition.limits.maxTrucks === 0 && definition.limits.maxVehicleTopUps === 0;
 
           return (
             <Card
@@ -650,17 +663,26 @@ export function SubscriptionPage(): React.ReactElement {
                   ) : null}
                 </div>
                 <p className="text-2xl font-semibold tabular-nums">
-                  {formatCurrency(definition.priceMonthly)}
-                  <span className="text-sm font-normal text-muted-foreground">
-                    /month + GST
-                  </span>
+                  {vehicleless ? (
+                    'Free'
+                  ) : (
+                    <>
+                      {formatCurrency(definition.priceMonthly)}
+                      <span className="text-sm font-normal text-muted-foreground">
+                        /month + GST
+                      </span>
+                    </>
+                  )}
                 </p>
                 {/* What it would cost this tenant, not just the headline. The
                     number that decides a switch is the one for their own fleet,
                     with the tax they will actually be charged. */}
                 <p className="text-xs text-muted-foreground">
-                  {formatCurrency(yourQuote.monthly.total)}/month for your {vehicles} vehicle
-                  {vehicles === 1 ? '' : 's'}, GST included
+                  {vehicleless
+                    ? 'For an account that does not run a vehicle'
+                    : `${formatCurrency(yourQuote.monthly.total)}/month for your ${vehicles} vehicle${
+                        vehicles === 1 ? '' : 's'
+                      }, GST included`}
                 </p>
               </CardHeader>
               <CardContent className="space-y-1.5 pt-0">
@@ -687,18 +709,25 @@ export function SubscriptionPage(): React.ReactElement {
 
                 <div className="mt-3 space-y-0.5 border-t border-border pt-2 text-xs text-muted-foreground">
                   <p>
-                    1 vehicle included, then {formatCurrency(VEHICLE_TOPUP.priceMonthly)} each
+                    {vehicleless
+                      ? 'No vehicle, no tracker, no telemetry'
+                      : `1 vehicle included, then ${formatCurrency(VEHICLE_TOPUP.priceMonthly)} each`}
                   </p>
                   <p>
                     {definition.limits.maxMembers === null
                       ? 'Unlimited team members'
                       : `${definition.limits.maxMembers} login${definition.limits.maxMembers === 1 ? '' : 's'}`}
-                    {' · '}
-                    {definition.limits.maxDrivers === null
-                      ? 'unlimited drivers'
-                      : `up to ${definition.limits.maxDrivers} drivers`}
+                    {vehicleless
+                      ? ''
+                      : ` · ${
+                          definition.limits.maxDrivers === null
+                            ? 'unlimited drivers'
+                            : `up to ${definition.limits.maxDrivers} drivers`
+                        }`}
                   </p>
-                  <p>{definition.limits.trackingHistoryDays} days of tracking history</p>
+                  {vehicleless ? null : (
+                    <p>{definition.limits.trackingHistoryDays} days of tracking history</p>
+                  )}
                 </div>
 
                 {canManage && !isCurrent ? (

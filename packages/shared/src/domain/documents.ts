@@ -227,6 +227,29 @@ export const DOCUMENT_TYPES: DocumentTypeDefinition[] = [
     requiresExpiry: false,
     description: 'Government-issued identity proof for the account holder.',
   },
+  {
+    /*
+     * The account holder's own Aadhaar.
+     *
+     * Distinct from `DRIVER_AADHAAR`, which hangs off a driver profile and
+     * counts towards the four checks that decide whether somebody may be
+     * assigned a vehicle. This one hangs off the person's user record and
+     * answers a different question: who holds this account.
+     *
+     * Not mandatory here, because `USER_IDENTITY_PROOF` above already requires
+     * one identity document and an account holder may reasonably prove
+     * themselves with a different one. What Aadhaar adds is that it can be
+     * checked rather than only filed — see `verifiableAs`.
+     */
+    code: 'USER_AADHAAR',
+    label: 'Aadhaar card',
+    ownerType: DocumentOwnerType.USER,
+    mandatory: false,
+    requiresExpiry: false,
+    verifiableAs: IdentityDocumentKind.AADHAAR,
+    description:
+      'Your Aadhaar card. The number is checked against its UIDAI checksum; only the last four digits are retained.',
+  },
 
   // --- Order / Trip ---
   {

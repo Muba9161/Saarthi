@@ -2,7 +2,10 @@ import {
   ALL_FEATURES,
   Feature,
   PLAN_LIMITS,
+  accountFeatures,
+  accountRunsVehicles,
   effectiveVehicleLimit,
+  OrganizationType,
   PlanTier,
   SubscriptionStatus,
   featuresForTier,
@@ -27,6 +30,15 @@ import type { AuthSubscription } from '../../auth/context';
  *   • active `+1 vehicle` top-ups, which raise `limits.maxTrucks`
  *   • active trackers, which grant the telemetry capabilities no plan sells
  *     and set `limits.maxDevices` to the number of units actually bought
+ *
+ * And one thing is folded *out*: whatever this kind of business cannot use.
+ * A freight fleet, a travel operator and a materials supplier all buy the same
+ * Business plan, and exactly one of them owns a vehicle — so resolving on the
+ * plan alone handed a supplier live telemetry, backhaul matching and a driver
+ * roster it has no drivers for. `accountFeatures` in the shared catalogue is
+ * where that subtraction is defined; applying it here means every gated route,
+ * every navigation item and every upgrade prompt gets the same answer without
+ * any of them having to ask a second question.
  *
  * A short in-process cache keeps the hot path off the database on every
  * request while still reacting to plan changes within seconds.
@@ -154,16 +166,28 @@ export async function resolveSubscription(
   const cached = cache.get(organizationId);
   if (cached && cached.expiresAt > Date.now()) return cached.value;
 
-  const subscription = await prisma.subscription.findUnique({
-    where: { organizationId },
-    include: {
-      plan: {
-        include: {
-          planFeatures: { include: { feature: true } },
+  const [subscription, organization] = await Promise.all([
+    prisma.subscription.findUnique({
+      where: { organizationId },
+      include: {
+        plan: {
+          include: {
+            planFeatures: { include: { feature: true } },
+          },
         },
       },
-    },
-  });
+    }),
+    // The kind of business, which decides what the plan's features are
+    // narrowed to. Read in the same round trip rather than lazily: every
+    // request resolves this, and a second query per request to answer one
+    // enum would be paid on the hot path.
+    prisma.organization.findUnique({
+      where: { id: organizationId },
+      select: { type: true },
+    }),
+  ]);
+
+  const organizationType = (organization?.type as OrganizationType | undefined) ?? null;
 
   let value: AuthSubscription | null = null;
 
@@ -174,6 +198,8 @@ export async function resolveSubscription(
       !expired && ACTIVE_STATUSES.includes(subscription.status as SubscriptionStatus);
 
     const tier = subscription.plan.tier as PlanTier;
+    /** Whether this account enters the vehicle/tracker ecosystem at all. */
+    const runsVehicles = accountRunsVehicles({ tier, organizationType });
     const dbFeatures = subscription.plan.planFeatures
       .map((planFeature) => planFeature.feature.key as Feature)
       .filter(Boolean);
@@ -207,6 +233,27 @@ export async function resolveSubscription(
     ]);
 
     /*
+     * An expired or cancelled plan falls back to a read-only floor rather than
+     * to nothing, so a tenant never loses sight of their own data over a
+     * lapsed card.
+     *
+     * Which floor depends on whether there are vehicles to read about. Personal
+     * is the right fallback for an operator; for a supplier or a customer it
+     * offered maintenance records and trip replay for vehicles that do not
+     * exist, so Free — the plan built for an account with none — is the honest
+     * one. The account-shape filter below would strip most of the difference
+     * anyway; choosing the right floor here means the two agree instead of one
+     * undoing the other.
+     */
+    const lapsedFloor = runsVehicles ? PlanTier.PERSONAL : PlanTier.FREE;
+
+    const planFeatures = active
+      ? dbFeatures.length > 0
+        ? dbFeatures
+        : featuresForTier(tier)
+      : featuresForTier(lapsedFloor);
+
+    /*
      * The tracker capabilities are added on top of the plan, never by it.
      *
      * They read hardware wired into a vehicle, so a tenant with no tracker has
@@ -216,17 +263,25 @@ export async function resolveSubscription(
      * of charging for the device rather than for the tier.
      *
      * Granted only while the plan itself is active: an expired subscription
-     * falls back to the Personal feature set, and reading live telemetry is not
-     * part of that read-only fallback.
+     * falls back to the read-only floor above, and reading live telemetry is
+     * not part of that.
      */
-    const planFeatures = active
-      ? dbFeatures.length > 0
-        ? dbFeatures
-        : featuresForTier(tier)
-      : featuresForTier(PlanTier.PERSONAL);
-
-    const granted =
+    const withTracker =
       active && activeTrackers > 0 ? [...planFeatures, ...trackerFeatures()] : planFeatures;
+
+    /*
+     * The plan, narrowed to what this kind of business can actually use.
+     *
+     * Applied last so it wins over everything above it, including the tracker
+     * grant: a tracker bought against a supplier account — which should never
+     * happen, and is now refused at both registration and purchase — would
+     * otherwise hand it the telemetry surface anyway.
+     */
+    const granted = accountFeatures({
+      tier,
+      organizationType,
+      planFeatures: withTracker,
+    });
 
     value = {
       planTier: tier,
@@ -239,11 +294,25 @@ export async function resolveSubscription(
       features: withoutDeferred([...new Set(granted)]),
       limits: {
         ...limits,
-        maxTrucks: effectiveVehicleLimit(limits.maxTrucks, activeTopUps),
+        /*
+         * Vehicle capacity, or none at all.
+         *
+         * An account that does not run vehicles resolves to zero however
+         * generous its plan is — a supplier on Business is on the same plan as
+         * a fleet, and the plan is not the thing that decides this. Written
+         * here rather than left to each capacity check, because "can I add a
+         * vehicle?" is asked in a dozen places and every one of them reads
+         * this number.
+         */
+        maxTrucks: runsVehicles
+          ? effectiveVehicleLimit(limits.maxTrucks, activeTopUps)
+          : 0,
         // One device per tracker bought. Not a plan constant: the tracker *is*
         // the device, so anything else would either sell capacity for hardware
         // that does not exist or refuse hardware that does.
-        maxDevices: activeTrackers,
+        maxDevices: runsVehicles ? activeTrackers : 0,
+        maxVehicleTopUps: runsVehicles ? limits.maxVehicleTopUps : 0,
+        maxTrackers: runsVehicles ? limits.maxTrackers : 0,
       },
       active,
       enforced: true,
@@ -278,7 +347,16 @@ export async function createDefaultSubscription(
   const plan = await prisma.subscriptionPlan.findUnique({ where: { tier } });
   if (!plan) return;
 
-  const trialDays = options.trialDays ?? config.subscription.trialDays;
+  /*
+   * Free is not on trial, because there is nothing for the trial to end.
+   *
+   * A trial is a paid plan somebody has not started paying for yet, and it
+   * expires — which for Free would mean an account that costs nothing lapsing
+   * after fourteen days and falling back to a read-only floor. So it is
+   * created ACTIVE with no end date, and the trial applies to the two plans
+   * that are actually sold.
+   */
+  const trialDays = tier === PlanTier.FREE ? 0 : options.trialDays ?? config.subscription.trialDays;
   const billingPeriod = options.billing === 'yearly' ? 'YEARLY' : 'MONTHLY';
 
   await prisma.subscription.upsert({

@@ -386,6 +386,34 @@ const envSchema = z.object({
   IDENTITY_VERIFY_BUDGET: z.coerce.number().int().min(0).default(0),
   IDENTITY_RATE_LIMIT_MAX: z.coerce.number().int().min(1).default(10),
   IDENTITY_RATE_LIMIT_WINDOW: z.string().default('1 minute'),
+  /**
+   * When the Personal Aadhaar requirement came into force.
+   *
+   * A Personal subscription is sold to a person, so before they put a vehicle
+   * on the road they confirm who they are. The rule is enforced where a vehicle
+   * or a tracker is *added* and nowhere else, so an account that already runs
+   * vehicles keeps running them, keeps its telemetry and is never locked out of
+   * its own fleet by a rule introduced after it signed up.
+   *
+   * This date decides who is told what. An organization created before it is
+   * an existing customer: their fleet is untouched and they are asked to verify
+   * only when they come to add the next vehicle. One created on or after it is
+   * new, and verifies before the first.
+   *
+   * Left blank the rule applies to every Personal account with no
+   * grandfathering — which is the correct behaviour for a fresh deployment that
+   * has no existing customers to protect. Set it to the date this shipped to
+   * production to draw the line where the customers actually are.
+   *
+   * Not a switch for turning the requirement off: the gate is on the add path,
+   * so nothing anybody already runs depends on it.
+   */
+  PERSONAL_AADHAAR_REQUIRED_FROM: blankAsUnset(
+    z
+      .string()
+      .refine((value) => !Number.isNaN(Date.parse(value)), 'Must be an ISO-8601 date.')
+      .transform((value) => new Date(value)),
+  ),
 
   // --- Petrol stations (SSR Innovation Lab) ---------------------------------
   SSR_PETROL_API_BASE_URL: z.string().url().default('https://api.ssrinnovationlab.com'),
@@ -873,6 +901,13 @@ export const config = {
     callBudget: raw.IDENTITY_VERIFY_BUDGET,
     rateLimitMax: raw.IDENTITY_RATE_LIMIT_MAX,
     rateLimitWindow: raw.IDENTITY_RATE_LIMIT_WINDOW,
+    /**
+     * The cutover for the Personal Aadhaar requirement — see the env schema.
+     *
+     * `undefined` means no grandfathering: every Personal account is treated as
+     * new. The requirement itself is not optional either way.
+     */
+    personalAadhaarRequiredFrom: raw.PERSONAL_AADHAAR_REQUIRED_FROM,
   },
 
   petrolStations: {

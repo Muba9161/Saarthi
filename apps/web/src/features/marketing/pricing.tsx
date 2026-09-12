@@ -57,12 +57,14 @@ import { cn } from '@/lib/utils';
 const EASE = [0.16, 1, 0.3, 1] as const;
 
 const TIER_LABEL: Record<PlanTier, string> = {
+  [PlanTier.FREE]: 'Free',
   [PlanTier.PERSONAL]: 'Personal',
   [PlanTier.BUSINESS]: 'Business',
 };
 
 /** Who each plan is for, in the words that let a reader recognise themselves. */
 const TIER_AUDIENCE: Record<PlanTier, string> = {
+  [PlanTier.FREE]: 'You are not running a vehicle',
   [PlanTier.PERSONAL]: 'You own the vehicles',
   [PlanTier.BUSINESS]: 'You run a transport business',
 };
@@ -95,6 +97,13 @@ const TRIAL = Number.isFinite(TRIAL_DAYS) && TRIAL_DAYS > 0 ? TRIAL_DAYS : 0;
  * limits would have said neither.
  */
 const TIER_HIGHLIGHTS: Record<PlanTier, readonly string[]> = {
+  [PlanTier.FREE]: [
+    'Fuel, food, workshops and help, wherever you are',
+    'Say what you need and compare the offers that come back',
+    'Follow your order or delivery on the map, live',
+    'Book a cab, a bus or a tour package',
+    'No vehicle, no tracker and no card',
+  ],
   [PlanTier.PERSONAL]: [
     'Live location, trip history and replay',
     'Documents, service records and EMI reminders',
@@ -286,6 +295,18 @@ function PlanCard({
 
   const quote = quoteSubscription({ tier: plan.tier, vehicles, trackers, billing });
 
+  /**
+   * A plan that covers no vehicles, which is Free and only Free.
+   *
+   * The card was written when every plan was priced per vehicle, so it read
+   * the fleet-size control, the tracker stepper and the renewal line straight
+   * off the quote. On a free plan all three are wrong rather than merely
+   * uninteresting: a vehicle stepper implies a vehicle is expected, a tracker
+   * stepper offers hardware that cannot be fitted, and "renews at ₹0 a month"
+   * describes a charge nobody is making. So the card drops them instead.
+   */
+  const vehicleless = plan.limits.maxTrucks === 0 && plan.limits.maxVehicleTopUps === 0;
+
   const trackerCeiling =
     plan.limits.maxTrackers === null
       ? vehicles
@@ -327,27 +348,47 @@ function PlanCard({
               transition={{ duration: 0.2, ease: EASE }}
               className="text-4xl font-semibold tracking-[-0.03em] tabular-nums sm:text-5xl"
             >
-              {formatCurrency(Math.round(quote.monthly.subtotal))}
-              <span className="text-base font-normal text-muted-foreground">/mo</span>
+              {vehicleless ? (
+                'Free'
+              ) : (
+                <>
+                  {formatCurrency(Math.round(quote.monthly.subtotal))}
+                  <span className="text-base font-normal text-muted-foreground">/mo</span>
+                </>
+              )}
             </motion.p>
           </AnimatePresence>
           {/* The headline stays exclusive of GST — those are the figures
               quoted everywhere else and the ones a business reclaims as input
               credit — but it says so, because an unlabelled price reads as the
-              amount that will be charged. The tax is added in full below. */}
+              amount that will be charged. The tax is added in full below.
+
+              There is no tax on nothing, and no vehicle count on a plan that
+              covers none, so the free card says what it is instead. */}
           <p className="mt-1.5 text-2xs text-muted-foreground">
-            + {Math.round(quote.gstRate * 100)}% GST · for {vehicles} vehicle
-            {vehicles === 1 ? '' : 's'} ·{' '}
-            {billing === 'yearly'
-              ? `${formatCurrency(quote.recurring.subtotal)} billed yearly`
-              : 'billed monthly'}
+            {vehicleless ? (
+              'No card, no vehicle, no tracker'
+            ) : (
+              <>
+                + {Math.round(quote.gstRate * 100)}% GST · for {vehicles} vehicle
+                {vehicles === 1 ? '' : 's'} ·{' '}
+                {billing === 'yearly'
+                  ? `${formatCurrency(quote.recurring.subtotal)} billed yearly`
+                  : 'billed monthly'}
+              </>
+            )}
           </p>
         </div>
       </div>
 
-      {/* The configuration, on the card and not in a band underneath it. Both
-          cards share this state, so changing the fleet size on one moves the
-          other too — which is the only way the two prices stay comparable. */}
+      {/* The configuration, on the card and not in a band underneath it. The
+          priced cards share this state, so changing the fleet size on one moves
+          the other too — which is the only way the two prices stay comparable.
+
+          Absent from the free card, because a vehicle stepper on a plan that
+          covers no vehicles is not a control, it is a promise the plan cannot
+          keep. */}
+      {vehicleless ? null : (
       <div className="relative mt-6 divide-y divide-border/50 border-y border-border/50">
         <CountField
           label="Vehicles"
@@ -370,10 +411,18 @@ function PlanCard({
           onChange={onTrackers}
         />
       </div>
+      )}
 
       {/* Itemised, because a total a customer cannot reconstruct is a total
           they do not trust — and because the hardware must be visibly separate
-          from what renews. */}
+          from what renews. A free plan has nothing to itemise: an invoice
+          totalling zero invites the reader to look for the catch. */}
+      {vehicleless ? (
+        <p className="relative mt-4 text-2xs leading-relaxed text-muted-foreground">
+          Nothing to pay, and nothing to cancel. Move to a paid plan whenever you
+          actually start running a vehicle.
+        </p>
+      ) : (
       <dl className="relative mt-4 space-y-1.5">
         {quote.lines.map((line) => (
           <div key={line.label} className="flex items-baseline justify-between gap-3 text-xs">
@@ -419,6 +468,7 @@ function PlanCard({
             : `Renews at ${formatCurrency(quote.renews.total)} a ${billing === 'yearly' ? 'year' : 'month'}, including GST.`}
         </p>
       </dl>
+      )}
 
       {quote.overVehicleCeiling ? (
         <p className="relative mt-4 rounded-lg border border-warning/40 bg-warning/5 p-2.5 text-2xs leading-relaxed">
@@ -455,15 +505,27 @@ function PlanCard({
           ) : (
             /* The whole configuration travels to signup, so the summary there
                and what gets provisioned are the same thing the reader priced. */
+            /* The whole configuration travels to signup, so the summary there
+               and what gets provisioned are the same thing the reader priced.
+               A free plan carries none of it: there is no fleet size and no
+               tracker order to hand on, and passing them would put a vehicle
+               question in front of somebody who has just chosen the plan for
+               people without one. */
             <Link
-              to={`/register?plan=${plan.tier.toLowerCase()}&billing=${billing}&vehicles=${vehicles}&trackers=${Math.min(trackers, trackerCeiling)}`}
+              to={
+                vehicleless
+                  ? `/register?plan=${plan.tier.toLowerCase()}`
+                  : `/register?plan=${plan.tier.toLowerCase()}&billing=${billing}&vehicles=${vehicles}&trackers=${Math.min(trackers, trackerCeiling)}`
+              }
             >
-              Subscribe to {TIER_LABEL[plan.tier]}
+              {vehicleless ? 'Start for free' : `Subscribe to ${TIER_LABEL[plan.tier]}`}
             </Link>
           )}
         </Button>
         <p className="text-center text-2xs text-muted-foreground">
-          GST included above. Cancel or change plan whenever you like.
+          {vehicleless
+            ? 'No payment details asked for.'
+            : 'GST included above. Cancel or change plan whenever you like.'}
         </p>
       </div>
     </div>
@@ -825,16 +887,19 @@ export function Pricing() {
     <Section id="pricing" width="wide">
       <SectionHeading
         eyebrow="Pricing"
-        title="Two plans. Priced by the vehicle."
-        body="Ninety-nine rupees a month if the vehicles are yours, one ninety-nine if you run a transport business - and seventy-five for every vehicle after the first. Everyone on your team is included, and safety is never gated."
+        title="Three plans. Priced by the vehicle."
+        body="Free if you are not running one. Ninety-nine rupees a month if the vehicles are yours, one ninety-nine if you run a transport business - and seventy-five for every vehicle after the first. Everyone on your team is included, and safety is never gated."
       />
 
       <Reveal delay={0.1}>
         <BillingControl billing={billing} onBilling={setBilling} monthsFree={monthsFree} />
       </Reveal>
 
+      {/* Three abreast on a wide screen, one column on a phone. The middle
+          breakpoint stays at two so a pair of cards never becomes a pair plus
+          an orphan. */}
       <RevealGroup
-        className="mx-auto mt-8 grid max-w-4xl grid-cols-1 gap-4 md:grid-cols-2"
+        className="mx-auto mt-8 grid max-w-5xl grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3"
         stagger={0.08}
       >
         {PLAN_CATALOGUE.map((plan) => (

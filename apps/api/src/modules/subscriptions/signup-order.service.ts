@@ -67,6 +67,36 @@ export interface SignupOrderResult {
  * hangs off already exists. Safe to call with an empty order, which is the
  * common case — a single-vehicle customer with no hardware.
  */
+/**
+ * Tell a new Personal customer why their trackers are not on the account yet.
+ *
+ * Fire-and-forget, and deliberately so: this runs moments after registration,
+ * outside the transaction that created the account, and a notification that
+ * cannot be written must never be the reason somebody's signup fails. It is
+ * logged and stepped over for the same reason the referral capture beside it
+ * is.
+ *
+ * The wording has one job — to make clear that nothing was lost and nothing was
+ * charged. Somebody who configured two trackers, saw a total, and then found no
+ * hardware on the account would otherwise reasonably assume they had paid for
+ * it.
+ */
+function notifyTrackersHeld(organizationId: string): void {
+  void notifyOrganization(organizationId, {
+    type: NotificationType.SUBSCRIPTION_UPDATED,
+    title: 'Verify your Aadhaar to get your trackers',
+    body:
+      'Saarthi Personal asks for your own Aadhaar before hardware goes on the account, so your ' +
+      'trackers are waiting rather than bought - you have not been charged for them. Verify on ' +
+      'your profile, then order them from the subscription screen.',
+    priority: NotificationPriority.HIGH,
+    actionUrl: '/settings/profile',
+    roles: OPERATOR_OWNER_ROLES,
+  }).catch((error: unknown) => {
+    orderLogger.warn({ organizationId, error }, 'Could not notify about held trackers');
+  });
+}
+
 export async function provisionSignupOrder(input: {
   organizationId: string;
   userId: string;
@@ -94,9 +124,39 @@ export async function provisionSignupOrder(input: {
     limits.maxTrackers === null
       ? input.order.vehicles
       : Math.min(limits.maxTrackers, input.order.vehicles);
-  const trackers = Math.max(0, Math.min(input.order.trackers, trackerCeiling));
+
+  /*
+   * On Personal, hardware waits until the account holder is verified.
+   *
+   * A Personal subscription asks the person for their own Aadhaar before a
+   * vehicle or a tracker goes on the account, and this is the one path that
+   * would otherwise slip past that rule: the trackers priced on the pricing
+   * card are provisioned here, seconds after registration, when nobody has had
+   * the chance to verify anything yet.
+   *
+   * Held rather than refused, and that distinction is the whole point. The
+   * registration still succeeds, the vehicle top-ups are still provisioned, and
+   * — critically — the customer is not charged for hardware they cannot yet
+   * fit. They verify on their profile, which takes a minute, and buy the
+   * trackers from the subscription screen where `purchaseTracker` applies the
+   * same rule. That is a better outcome than a charge followed by a refund, and
+   * a far better one than a tracker sitting unusable against their name.
+   *
+   * The clamp is deliberately unconditional for Personal rather than a lookup
+   * of the verification state: at this moment in registration the account is
+   * always seconds old, so the answer is always the same, and asking would only
+   * add a query that can have one result.
+   */
+  const trackersHeldForVerification =
+    input.tier === PlanTier.PERSONAL && input.order.trackers > 0;
+
+  const trackers = trackersHeldForVerification
+    ? 0
+    : Math.max(0, Math.min(input.order.trackers, trackerCeiling));
 
   if (vehicleTopUps === 0 && trackers === 0) {
+    if (trackersHeldForVerification) notifyTrackersHeld(input.organizationId);
+
     return {
       vehicleTopUps: 0,
       trackers: 0,

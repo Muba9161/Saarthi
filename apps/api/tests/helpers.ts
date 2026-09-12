@@ -248,6 +248,19 @@ export async function resetDatabase(): Promise<void> {
   );
 }
 
+/**
+ * The error half of an API envelope, as a test reads it.
+ *
+ * `details` is part of the contract rather than an extra — it is where a
+ * refusal says *which* limit, feature or check was in the way, and a test that
+ * cannot see it can only assert that something went wrong.
+ */
+export interface ApiErrorBody {
+  code: string;
+  message: string;
+  details?: Record<string, unknown>;
+}
+
 export const TEST_PASSWORD = 'TestPass123!';
 
 let uniqueCounter = 0;
@@ -283,6 +296,9 @@ export interface TestOrganization {
  * nobody will notice breaking.
  */
 const DEFAULT_TOPUPS: Record<PlanTier, number> = {
+  // Free covers no vehicles at all, so there is nothing to top up. A test that
+  // wanted vehicle capacity would not be creating a Free tenant.
+  [PlanTier.FREE]: 0,
   [PlanTier.PERSONAL]: 0,
   [PlanTier.BUSINESS]: 60,
 };
@@ -452,7 +468,10 @@ export async function request<T = unknown>(options: {
   user?: TestUser;
   payload?: unknown;
   headers?: Record<string, string>;
-}): Promise<{ status: number; body: { success: boolean; data: T; error?: { code: string; message: string } } }> {
+}): Promise<{
+  status: number;
+  body: { success: boolean; data: T; error?: ApiErrorBody };
+}> {
   const instance = await getApp();
   const response = await instance.inject({
     method: options.method,
@@ -469,7 +488,7 @@ export async function request<T = unknown>(options: {
     body: response.json() as {
       success: boolean;
       data: T;
-      error?: { code: string; message: string };
+      error?: ApiErrorBody;
     },
   };
 }

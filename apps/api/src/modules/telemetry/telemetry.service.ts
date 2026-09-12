@@ -4,7 +4,9 @@ import {
   MaintenanceType,
   OPERATOR_MANAGEMENT_ROLES,
   PLAN_LIMITS,
+  Permission,
   PlanTier,
+  RoleName,
   NotificationPriority,
   NotificationType,
   TELEMETRY_ALERT_RULES,
@@ -130,7 +132,55 @@ function toReadingSummary(reading: ReadingRecord): TelemetryReadingSummary {
   };
 }
 
-/** Authorise a vehicle read: fleet member, its driver, or platform staff. */
+/**
+ * A caller who is a driver and nothing more.
+ *
+ * The distinction matters because "is there a driver profile on this account?"
+ * is the wrong question: an owner running his own three cars who ticked
+ * "I drive one myself" has a driver profile too, and he owns the fleet. What
+ * separates them is what they may do with the vehicles — an employed driver
+ * cannot alter one — so that is what is tested.
+ *
+ * The same idiom as `isDriverOnly` in `qr.service.ts`, deliberately: the two
+ * answer the same question about the same person and must not drift apart. A
+ * dispatcher is unaffected, holding no DRIVER role at all.
+ */
+function isDriverOnly(auth: AuthContext): boolean {
+  return (
+    auth.user.roles.includes(RoleName.DRIVER) &&
+    !auth.permissions.includes(Permission.TRUCKS_UPDATE)
+  );
+}
+
+/**
+ * Vehicles a driver-only caller may read telemetry for: the ones they drive.
+ *
+ * Current assignment or live custody, and nothing else. A driver is given
+ * trip-related data about the vehicle in their hands, not the operating record
+ * of every lorry their employer owns.
+ */
+function driverVehicleScope(driverId: string): Prisma.TruckWhereInput {
+  return {
+    OR: [{ currentDriverId: driverId }, { assignments: { some: { driverId, status: 'ACTIVE' } } }],
+  };
+}
+
+/**
+ * Authorise a vehicle read: fleet member, its driver, or platform staff.
+ *
+ * The membership check is not enough on its own, and that was the bug. An
+ * employed driver *is* a member of their employer's organization — that is how
+ * they were hired — so `auth.organizationId === vehicle.organizationId` was
+ * true for every vehicle in the fleet, and a driver could read the full
+ * telemetry history of vehicles they had never sat in: engine hours, fuel
+ * draw, where each one had been and when.
+ *
+ * A driver is entitled to the data about the vehicle they are driving, because
+ * it is what their own score is computed from. They are not entitled to their
+ * employer's operating record. So a driver-only caller is narrowed to the
+ * vehicles actually in their hands, and everybody else keeps the tenant check
+ * they had.
+ */
 async function assertVehicleAccess(auth: AuthContext, vehicleId: string): Promise<void> {
   const vehicle = await prisma.truck.findUnique({
     where: { id: vehicleId },
@@ -139,9 +189,25 @@ async function assertVehicleAccess(auth: AuthContext, vehicleId: string): Promis
   if (!vehicle) throw errors.notFound('Vehicle');
 
   if (auth.isPlatformAdmin) return;
+
+  if (isDriverOnly(auth)) {
+    // A driver may see the telemetry of the vehicle they are driving — it is
+    // how they understand their own score — and of no other.
+    if (!auth.driverId) throw errors.notFound('Vehicle');
+    if (vehicle.currentDriverId === auth.driverId) return;
+
+    const assigned = await prisma.truckAssignment.findFirst({
+      where: { truckId: vehicleId, driverId: auth.driverId, status: 'ACTIVE' },
+      select: { id: true },
+    });
+    if (assigned) return;
+
+    // Reported as "not found" rather than 403, exactly as `assertTenantAccess`
+    // does, so the difference cannot be used to enumerate a fleet.
+    throw errors.notFound('Vehicle');
+  }
+
   if (auth.organizationId === vehicle.organizationId) return;
-  // A driver may see the telemetry of the vehicle they are driving — it is how
-  // they understand their own score.
   if (auth.driverId && vehicle.currentDriverId === auth.driverId) return;
 
   throw errors.notFound('Vehicle');
@@ -206,6 +272,16 @@ export async function telemetryHistory(
 
   const where: Prisma.TelemetryReadingWhereInput = {
     ...tenantScope(auth),
+    /*
+     * A driver's history is their own vehicles' history.
+     *
+     * `assertVehicleAccess` above already refuses a vehicle they do not drive,
+     * but this route also accepts a `deviceId` on its own — and a device id
+     * names a unit fitted to a vehicle, not a person. Without this filter a
+     * driver could read a colleague's vehicle by naming its tracker instead of
+     * the vehicle, which is the same disclosure by another route.
+     */
+    ...(isDriverOnly(auth) ? { vehicle: driverVehicleScope(auth.driverId ?? '__none__') } : {}),
     ...(query.vehicleId ? { vehicleId: query.vehicleId } : {}),
     ...(query.deviceId ? { deviceId: query.deviceId } : {}),
     recordedAt: { gte: from, ...(query.to ? { lte: query.to } : {}) },
@@ -334,8 +410,17 @@ export async function listAlerts(
 ): Promise<Paginated<TelemetryAlertSummary>> {
   const where: Prisma.TelemetryAlertWhereInput = {
     ...tenantScope(auth),
-    // A driver sees only their own events, never the whole fleet's.
-    ...(auth.driverId && !auth.organizationId ? { driverId: auth.driverId } : {}),
+    /*
+     * A driver sees only their own events, never the whole fleet's.
+     *
+     * The test used to be "has a driver profile and no organization", which
+     * described a driver who had signed up before an employer had a code for
+     * them and nobody else. The moment they joined a fleet they acquired an
+     * organization, the filter switched itself off, and they were reading
+     * every harsh-braking and over-speeding event their employer's other
+     * drivers had generated.
+     */
+    ...(isDriverOnly(auth) ? { driverId: auth.driverId ?? '__none__' } : {}),
     ...(query.vehicleId ? { vehicleId: query.vehicleId } : {}),
     ...(query.deviceId ? { deviceId: query.deviceId } : {}),
     ...(query.driverId ? { driverId: query.driverId } : {}),

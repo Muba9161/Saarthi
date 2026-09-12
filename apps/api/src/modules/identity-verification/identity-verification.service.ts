@@ -176,9 +176,40 @@ async function resolveSubject(
       return { organizationId: organization.id, label: organization.name };
     }
 
+    /*
+     * A person verifying themselves.
+     *
+     * Their own record and nobody else's — not a colleague's, not an employee's,
+     * and not another member of the same organization's. A fleet may verify the
+     * drivers it employs because it answers for who is driving its vehicles; an
+     * account holder's own Aadhaar is theirs, and the tenant check that makes
+     * the driver case legitimate does not transfer to it.
+     *
+     * Platform admins are exempt, as they are on the other two branches, so
+     * support can act on an account's behalf.
+     */
+    case VerificationSubjectType.USER: {
+      if (!auth.isPlatformAdmin && subjectId !== auth.user.id) {
+        // 404 rather than 403, as above: another person's account must not be
+        // distinguishable from one that does not exist.
+        throw errors.notFound('User');
+      }
+
+      const user = await prisma.user.findUnique({
+        where: { id: subjectId },
+        select: { firstName: true, lastName: true },
+      });
+      if (!user) throw errors.notFound('User');
+
+      return {
+        organizationId: auth.organizationId,
+        label: `${user.firstName} ${user.lastName}`.trim(),
+      };
+    }
+
     default:
       throw errors.validation(
-        'Identity verification applies to a driver or an organization only.',
+        'Identity verification applies to a person, a driver or an organization only.',
       );
   }
 }
@@ -275,6 +306,7 @@ function toSummary(
  */
 async function applyToSubject(
   kind: IdentityDocumentKind,
+  subjectType: VerificationSubjectType,
   subjectId: string,
   normalizedNumber: string,
   record: IdentityRecord | null,
@@ -282,6 +314,32 @@ async function applyToSubject(
 ): Promise<void> {
   switch (kind) {
     case IdentityDocumentKind.AADHAAR:
+      /*
+       * Aadhaar is the one kind with two possible subjects, so it is the one
+       * that has to ask whose it is.
+       *
+       * Getting this wrong would not have been a mis-filed row: `subjectId` is
+       * a user id on the USER branch, and updating `drivers` by it would throw
+       * after the provider had already been called and charged, leaving a
+       * written check with nothing recorded against the person.
+       *
+       * The two are separate facts and are kept separately. A driver clearing
+       * Aadhaar is one of the four checks that decide whether they may be
+       * assigned a vehicle; an account holder clearing it is proving who holds
+       * the account. Somebody who owns vehicles and drives one of them has both
+       * rows, and satisfies each on its own terms.
+       */
+      if (subjectType === VerificationSubjectType.USER) {
+        await prisma.user.update({
+          where: { id: subjectId },
+          data: {
+            aadhaarLast4: identityLastFour(normalizedNumber) || null,
+            aadhaarVerifiedAt: verifiedAt,
+          },
+        });
+        break;
+      }
+
       await prisma.driver.update({
         where: { id: subjectId },
         data: {
@@ -409,12 +467,20 @@ export async function getSubjectIdentityChecks(
     where: { subjectType, subjectId },
   });
 
+  /*
+   * Which checks this subject is asked for.
+   *
+   * Resolved against the subject rather than the kind alone. Aadhaar belongs to
+   * two subjects — a driver's and an account holder's own — so asking for it by
+   * kind returns whichever entry is listed first, and a USER subject would have
+   * been told it has no applicable checks at all.
+   */
   const applicable = [
     IdentityDocumentKind.AADHAAR,
     IdentityDocumentKind.PAN,
     IdentityDocumentKind.VOTER_ID,
     IdentityDocumentKind.GST,
-  ].filter((kind) => identityKindDefinition(kind)?.subjectType === subjectType);
+  ].filter((kind) => identityKindDefinition(kind, subjectType) !== undefined);
 
   return {
     subjectType,
@@ -422,7 +488,7 @@ export async function getSubjectIdentityChecks(
     onlineVerificationAvailable: identityProviderConfigured,
     checks: applicable.map((kind) => {
       const row = rows.find((entry) => entry.kind === kind) ?? null;
-      const definition = identityKindDefinition(kind);
+      const definition = identityKindDefinition(kind, subjectType);
       return {
         kind,
         label: definition?.label ?? kind,
@@ -835,7 +901,14 @@ export async function verifyIdentity(
   });
 
   if (verified) {
-    await applyToSubject(input.kind, input.subjectId, normalizedNumber, result.record, now);
+    await applyToSubject(
+      input.kind,
+      input.subjectType,
+      input.subjectId,
+      normalizedNumber,
+      result.record,
+      now,
+    );
   }
 
   if (documentId) {
@@ -918,7 +991,10 @@ async function resolveLinkedDocument(
 ): Promise<string | null> {
   if (!input.documentId) return null;
 
-  const definition = identityKindDefinition(input.kind);
+  // Per subject, because the document code differs: a driver's Aadhaar scan is
+  // DRIVER_AADHAAR and an account holder's is USER_AADHAAR. Matching on the
+  // kind alone would have refused the right document with the wrong reason.
+  const definition = identityKindDefinition(input.kind, input.subjectType);
   const document = await prisma.document.findFirst({
     where: { id: input.documentId, ownerId: input.subjectId, deletedAt: null },
     select: { id: true, documentType: true, organizationId: true },
@@ -975,7 +1051,11 @@ function notifyIdentityOutcome(
     actionUrl:
       input.subjectType === VerificationSubjectType.DRIVER
         ? `/fleet/drivers/${input.subjectId}`
-        : '/settings/organization',
+        : input.subjectType === VerificationSubjectType.USER
+          ? // Their own account, not their organization's — the person reading
+            // this is the subject of the check.
+            '/settings/profile'
+          : '/settings/organization',
   });
 }
 

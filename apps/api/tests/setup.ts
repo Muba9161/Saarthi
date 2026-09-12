@@ -38,6 +38,15 @@ process.env.SUBSCRIPTION_ENFORCEMENT = 'true';
  * after somebody broke it.
  */
 process.env.DRIVER_VERIFICATION_ENFORCEMENT = 'true';
+/*
+ * The Personal Aadhaar cutover, pinned so the tests can put an organization on
+ * either side of it.
+ *
+ * A real date rather than blank, because blank means "no existing customers to
+ * protect" and would make every account new — which is exactly the case the
+ * grandfathering tests exist to distinguish from.
+ */
+process.env.PERSONAL_AADHAAR_REQUIRED_FROM = '2026-01-01T00:00:00.000Z';
 process.env.DEMO_MODE = 'true';
 process.env.CACHE_DRIVER = 'memory';
 process.env.QUEUE_DRIVER = 'memory';

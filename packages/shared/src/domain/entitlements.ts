@@ -7,7 +7,7 @@
  * definition so it stays configurable at runtime without a code change.
  */
 
-import { PlanTier } from './enums';
+import { OrganizationType, PlanTier } from './enums';
 
 export const Feature = {
   MAPS_2D: 'maps.2d',
@@ -354,6 +354,49 @@ const TRACKER_ONLY_FEATURES: Feature[] = [
  * association queue, backhaul matching, AI and the analytics a dispatcher
  * needs. Somebody with three cars is not bidding on loads.
  */
+/**
+ * What a Free account includes.
+ *
+ * Free is not a cut-down fleet plan. It is the plan for somebody who does not
+ * operate a vehicle at all: they look up what is nearby, say what they need,
+ * compare the offers that come back, and follow the delivery or journey
+ * somebody else is running. Everything here answers one of those.
+ *
+ * Read it for what it does *not* contain, because that is the rule this list
+ * exists to enforce. There is no FLEET_BASIC, no MAINTENANCE_BASIC, no
+ * TOLL_FASTAG, no FINANCE_LOANS and — above all — none of the tracker
+ * capabilities, which are not merely withheld but meaningless: a Free account
+ * has no vehicle for a tracker to be fitted to. That is why a Free user must
+ * never be shown "Add vehicle" or "Connect tracker", and why
+ * `accountRunsVehicles` answers false for this tier.
+ *
+ * `TRACKING_LIVE` is here and is not a contradiction. What a Free user tracks
+ * is the order they placed — the carrier's vehicle on a map, which is exactly
+ * what "Active Order Tracking" means — not a fleet of their own.
+ */
+const FREE_FEATURES: Feature[] = [
+  Feature.MAPS_2D,
+  // Nearby services and the location surface — the reason most Free accounts
+  // exist at all.
+  Feature.NEARBY_SERVICES,
+  // Active order tracking: following the delivery somebody else is driving.
+  Feature.TRACKING_LIVE,
+  Feature.TRIPS_BASIC,
+  // Posting a requirement and comparing the quotes that answer it.
+  Feature.ORDERS_MARKETPLACE,
+  // Booking a cab or a tour. Selling them is TRAVEL_SERVICES, which is
+  // Business — see the note on the feature itself.
+  Feature.TRAVEL_BOOKINGS,
+  // A buyer's own paperwork: an invoice, a delivery note, a photograph of what
+  // arrived. Nothing business-only lives here.
+  Feature.DOCUMENTS_BASIC,
+  Feature.MEDIA_LIBRARY,
+  // Browsing the used-vehicle market grows the network, so it is not an
+  // upsell. Publishing a listing (RESALE_PUBLISH) still is.
+  Feature.RESALE_MARKETPLACE,
+  Feature.ALERTS_BASIC,
+];
+
 const PERSONAL_FEATURES: Feature[] = [
   Feature.MAPS_2D,
   Feature.TRACKING_LIVE,
@@ -398,6 +441,7 @@ const BUSINESS_FEATURES: Feature[] = ALL_FEATURES.filter(
 );
 
 export const PLAN_FEATURES: Record<PlanTier, Feature[]> = {
+  [PlanTier.FREE]: FREE_FEATURES,
   [PlanTier.PERSONAL]: PERSONAL_FEATURES,
   [PlanTier.BUSINESS]: BUSINESS_FEATURES,
 };
@@ -452,6 +496,33 @@ export interface PlanLimits {
  * change to these very figures — can never strand an operator's fleet.
  */
 export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
+  /*
+   * Free covers no vehicles, and that is a description rather than a limit to
+   * upsell against. A Free account is somebody who does not operate a vehicle:
+   * there is nothing to add, nothing to fit a tracker to, and no telemetry for
+   * either to produce. Every figure below follows from that one fact.
+   *
+   * `maxVehicleTopUps: 0` is what stops the capacity screens offering a `+1`
+   * to an account that has no zero-th vehicle, and `quoteSubscription` reads
+   * the same zero to price Free at nothing rather than as a plan plus a
+   * top-up.
+   */
+  [PlanTier.FREE]: {
+    maxTrucks: 0,
+    maxVehicleTopUps: 0,
+    // A Free account employs nobody. Drivers belong to whoever runs the
+    // vehicle they are driving.
+    maxDrivers: 0,
+    maxMembers: 1,
+    // Nothing of this account's own is tracked, so there is no history of it
+    // to retain. Following somebody else's delivery reads that carrier's trail
+    // under the carrier's own plan.
+    trackingHistoryDays: 0,
+    aiRequestsPerDay: 0,
+    maxDevices: 0,
+    maxTrackers: 0,
+    telemetryRetentionDays: 0,
+  },
   [PlanTier.PERSONAL]: {
     maxTrucks: 1,
     // Four, so the archetype — an owner with three cars — fits with room to
@@ -497,6 +568,19 @@ export interface PlanDefinition {
 
 export const PLAN_CATALOGUE: PlanDefinition[] = [
   {
+    tier: PlanTier.FREE,
+    name: 'Saarthi Free',
+    description:
+      'For everything you need Saarthi for without running a vehicle. Find what is nearby, say what you need, compare the offers and follow your order to the door.',
+    // Zero rather than null. `null` means negotiated pricing on this
+    // catalogue, and a Free plan that renders as "custom pricing" is exactly
+    // the wrong answer.
+    priceMonthly: 0,
+    priceYearly: 0,
+    features: FREE_FEATURES,
+    limits: PLAN_LIMITS[PlanTier.FREE],
+  },
+  {
     tier: PlanTier.PERSONAL,
     name: 'Saarthi Personal',
     description:
@@ -526,8 +610,12 @@ export function tierHasFeature(tier: PlanTier, feature: Feature): boolean {
   return featuresForTier(tier).includes(feature);
 }
 
-/** The tiers in sell order — Personal first, Business as the step up. */
-export const PLAN_TIER_ORDER: PlanTier[] = [PlanTier.PERSONAL, PlanTier.BUSINESS];
+/** The tiers in sell order — Free, then Personal, then Business. */
+export const PLAN_TIER_ORDER: PlanTier[] = [
+  PlanTier.FREE,
+  PlanTier.PERSONAL,
+  PlanTier.BUSINESS,
+];
 
 /**
  * Lowest tier that grants the feature — used for upgrade prompts.
@@ -549,6 +637,192 @@ export function isTrackerFeature(feature: Feature): boolean {
 /** The capabilities a tenant gains once at least one tracker is active. */
 export function trackerFeatures(): Feature[] {
   return [...TRACKER_ONLY_FEATURES];
+}
+
+// ---------------------------------------------------------------------------
+// What kind of account this is, and what that rules out
+//
+// A plan says what somebody bought. It does not say what they *do*, and on
+// Business those are different questions: a freight fleet, a travel operator
+// and a building-materials supplier all buy the same plan, and exactly one of
+// them owns a vehicle. Gating on the plan alone is what put backhaul in front
+// of a taxi operator and a tracker order in front of a supplier.
+//
+// So the resolved entitlement is the plan's features minus what this kind of
+// business cannot use. Subtractive on purpose: a capability added to Business
+// tomorrow reaches every business type unless it is named here, which is the
+// safe direction for a list somebody has to remember to update.
+// ---------------------------------------------------------------------------
+
+/**
+ * Capabilities that only mean anything to an account that operates a vehicle.
+ *
+ * Not a paywall - a description. A supplier has no odometer to read, no EMI on
+ * a truck, no FASTag, no driver to score and no service due. Granting these to
+ * them would put screens in the product that can only ever be empty, and the
+ * permission layer refuses them anyway; this makes the entitlement say the
+ * same thing the guards already do.
+ */
+const VEHICLE_OPERATOR_FEATURES: Feature[] = [
+  Feature.FLEET_BASIC,
+  Feature.FLEET_ANALYTICS,
+  Feature.MAINTENANCE_BASIC,
+  Feature.MAINTENANCE_PREDICTIVE,
+  Feature.DRIVER_SCORING,
+  Feature.DRIVER_ACHIEVEMENTS,
+  Feature.TRACKING_HISTORY,
+  Feature.TRACKING_REPLAY,
+  Feature.TOLL_FASTAG,
+  Feature.TOLL_FASTAG_SYNC,
+  Feature.FINANCE_LOANS,
+  Feature.FINANCE_LOAN_SYNC,
+  Feature.NEARBY_TRUCKS,
+  // Driver-facing on-route warnings. The hazard *map* is not here: a dispatcher
+  // planning a delivery has a use for it whether or not they own the lorry.
+  Feature.ROUTE_INTELLIGENCE_ALERTS,
+  // Listed as well as being tracker-only, so that a tracker bought in error
+  // against a supplier account grants nothing.
+  ...TRACKER_ONLY_FEATURES,
+];
+
+/**
+ * Heavy-freight capabilities, which belong to a fleet owner and nobody else.
+ *
+ * Backhaul is the return leg of a load, and the last-mile relay hands a
+ * consignment to a smaller goods vehicle at a transfer hub. Both are
+ * tonnes-and-loads concepts. A taxi operator has no empty return leg to sell
+ * and no consignment to hand over, and showing them either is the bug this
+ * list closes.
+ */
+const FREIGHT_ONLY_FEATURES: Feature[] = [Feature.RETURN_LOADS, Feature.LAST_MILE_RELAY];
+
+/**
+ * Publishing passenger travel - the mobility provider's own commercial surface.
+ *
+ * Excluded from everybody else to match `requireOrganizationType` on the
+ * travel routes, which already refuses a freight fleet that tries to publish a
+ * package. An entitlement that promised what the guard refuses would only
+ * produce a menu entry leading to a 403.
+ *
+ * Booking a cab or a tour (`TRAVEL_BOOKINGS`) is deliberately *not* here:
+ * anybody may be a passenger.
+ */
+const MOBILITY_ONLY_FEATURES: Feature[] = [Feature.TRAVEL_SERVICES];
+
+/**
+ * What each kind of business cannot use, whatever its plan grants.
+ *
+ * A type absent from this map loses nothing. `ENTERPRISE` is deliberately
+ * absent for that reason - it is a fleet with a bigger contract, not a
+ * different shape of business.
+ */
+const ORGANIZATION_TYPE_EXCLUSIONS: Partial<Record<OrganizationType, Feature[]>> = {
+  // Runs vehicles, moves freight. Sells no passenger journeys.
+  [OrganizationType.FLEET_OWNER]: [...MOBILITY_ONLY_FEATURES],
+  // Runs vehicles, sells journeys. No backhaul, no load relay, no tonnage.
+  [OrganizationType.MOBILITY_PROVIDER]: [...FREIGHT_ONLY_FEATURES],
+  // Sells material. Owns no vehicle, employs no driver, fits no tracker.
+  [OrganizationType.SUPPLIER]: [
+    ...VEHICLE_OPERATOR_FEATURES,
+    ...FREIGHT_ONLY_FEATURES,
+    ...MOBILITY_ONLY_FEATURES,
+  ],
+  // Buys transport, material and travel. Operates none of it.
+  [OrganizationType.CUSTOMER]: [
+    ...VEHICLE_OPERATOR_FEATURES,
+    ...FREIGHT_ONLY_FEATURES,
+    ...MOBILITY_ONLY_FEATURES,
+  ],
+  // Coordinates roadside help for its members. It has an emergency queue and
+  // its own profile; the members own the vehicles.
+  [OrganizationType.TRUCK_ASSOCIATION]: [
+    ...VEHICLE_OPERATOR_FEATURES,
+    ...FREIGHT_ONLY_FEATURES,
+    ...MOBILITY_ONLY_FEATURES,
+  ],
+};
+
+/** What this kind of business cannot use, whatever its plan grants. */
+export function featuresExcludedForOrganizationType(
+  organizationType: OrganizationType | null | undefined,
+): Feature[] {
+  if (!organizationType) return [];
+  return ORGANIZATION_TYPE_EXCLUSIONS[organizationType] ?? [];
+}
+
+/**
+ * The features an account actually holds: its plan, narrowed to its shape.
+ *
+ * This is the single answer every surface should ask for. `featuresForTier`
+ * remains the plan catalogue's own view and is still what gets seeded into
+ * `plan_features`; this is that list once the kind of business is known.
+ */
+export function accountFeatures(input: {
+  tier: PlanTier;
+  organizationType?: OrganizationType | null;
+  /** Defaults to the tier's catalogue features. Pass the resolved plan rows. */
+  planFeatures?: Feature[];
+}): Feature[] {
+  const granted = input.planFeatures ?? featuresForTier(input.tier);
+  const excluded = featuresExcludedForOrganizationType(input.organizationType);
+  if (excluded.length === 0) return [...granted];
+  return granted.filter((feature) => !excluded.includes(feature));
+}
+
+/**
+ * Organization types that operate vehicles of their own.
+ *
+ * `ENTERPRISE` is here because it is a fleet. `CUSTOMER`, `SUPPLIER` and
+ * `TRUCK_ASSOCIATION` are not, and that absence is the whole point: it is what
+ * keeps Add vehicle, Connect tracker and the OBD flow out of an account that
+ * has nothing to connect them to.
+ */
+export const VEHICLE_OPERATING_ORGANIZATION_TYPES: readonly OrganizationType[] = [
+  OrganizationType.FLEET_OWNER,
+  OrganizationType.MOBILITY_PROVIDER,
+  OrganizationType.ENTERPRISE,
+];
+
+/**
+ * Does this account enter the vehicle and tracker ecosystem at all?
+ *
+ * The one place that question is answered, because it is asked in at least
+ * four: whether registration prices vehicles and trackers, whether the API
+ * provisions them, whether capacity screens offer a `+1`, and whether the
+ * onboarding path goes anywhere near the Driver App and OBD flow.
+ *
+ * Free is always false - a Free account does not run a vehicle, which is the
+ * plan's defining characteristic rather than a restriction on it. Personal is
+ * always true. Business depends entirely on the kind of business, so the type
+ * must be supplied; an unknown type answers false, because a registration form
+ * that has not yet been told what kind of business this is must not start by
+ * asking how many trucks it has.
+ */
+export function accountRunsVehicles(input: {
+  tier: PlanTier | null | undefined;
+  organizationType?: OrganizationType | null;
+}): boolean {
+  if (input.tier === PlanTier.FREE) return false;
+  if (input.tier === PlanTier.PERSONAL) return true;
+  if (input.tier !== PlanTier.BUSINESS) return false;
+  if (!input.organizationType) return false;
+  return VEHICLE_OPERATING_ORGANIZATION_TYPES.includes(input.organizationType);
+}
+
+/**
+ * Whether a Saarthi tracker can be sold to this account.
+ *
+ * The same question as `accountRunsVehicles`, deliberately - spec section 14 is
+ * explicit that the tracker requirement follows the account type and not the
+ * price of the plan. A tracker is fitted to a vehicle, so an account with no
+ * vehicle has nowhere to fit one, and offering it hardware is selling
+ * something that cannot be installed.
+ */
+export function accountUsesTracker(input: {
+  tier: PlanTier | null | undefined;
+  organizationType?: OrganizationType | null;
+}): boolean {
+  return accountRunsVehicles(input);
 }
 
 // ---------------------------------------------------------------------------
@@ -694,6 +968,12 @@ export function monthlyCostFor(input: {
     : (plan.priceMonthly ?? 0);
   const topUpPerMonth = yearly ? VEHICLE_TOPUP.priceYearly / 12 : VEHICLE_TOPUP.priceMonthly;
 
+  // As in `quoteSubscription`: a plan that covers no vehicles and permits no
+  // top-ups charges for none, rather than billing a `+1` for the first one.
+  if ((plan.limits.maxTrucks ?? 1) === 0 && plan.limits.maxVehicleTopUps === 0) {
+    return planPerMonth;
+  }
+
   const extraVehicles = Math.max(0, Math.max(1, input.vehicles) - (plan.limits.maxTrucks ?? 1));
   return planPerMonth + extraVehicles * topUpPerMonth;
 }
@@ -824,9 +1104,22 @@ export function quoteSubscription(input: {
   const yearly = billing === 'yearly';
 
   const included = plan.limits.maxTrucks ?? 1;
-  const vehicles = Math.max(1, Math.floor(input.vehicles));
-  const vehicleTopUps = Math.max(0, vehicles - included);
-  const trackers = Math.max(0, Math.floor(input.trackers ?? 0));
+
+  /*
+   * A plan that covers no vehicles and permits no top-ups prices none.
+   *
+   * Free is such a plan. Without this the arithmetic below would read "0
+   * included, 1 asked for" and bill a `+1 vehicle` top-up against an account
+   * whose whole definition is that it runs no vehicle - quoting 75 rupees a
+   * month for a plan the page calls free.
+   */
+  const vehicleless = included === 0 && plan.limits.maxVehicleTopUps === 0;
+
+  const vehicles = vehicleless ? 0 : Math.max(1, Math.floor(input.vehicles));
+  const vehicleTopUps = vehicleless ? 0 : Math.max(0, vehicles - included);
+  // A tracker is fitted to a vehicle, so a plan with no vehicles takes none
+  // however many the caller asked for.
+  const trackers = vehicleless ? 0 : Math.max(0, Math.floor(input.trackers ?? 0));
 
   const planPrice = (yearly ? plan.priceYearly : plan.priceMonthly) ?? 0;
   const topUpPrice = yearly ? VEHICLE_TOPUP.priceYearly : VEHICLE_TOPUP.priceMonthly;
@@ -835,7 +1128,9 @@ export function quoteSubscription(input: {
   const lines: SubscriptionQuoteLine[] = [
     {
       label: plan.name,
-      detail: `${included} vehicle included · per ${period}`,
+      detail: vehicleless
+        ? 'No vehicle needed'
+        : `${included} vehicle included · per ${period}`,
       amount: planPrice,
       cadence: 'recurring',
     },
@@ -884,7 +1179,7 @@ export function quoteSubscription(input: {
     dueNow: withGst(recurringSubtotal + oneTimeSubtotal),
     renews: withGst(recurringSubtotal),
 
-    overVehicleCeiling: vehicleCeiling !== null && vehicles > vehicleCeiling,
+    overVehicleCeiling: !vehicleless && vehicleCeiling !== null && vehicles > vehicleCeiling,
     vehicleCeiling,
     // A tracker per vehicle is the most that can be fitted, and the plan may
     // cap it lower still.

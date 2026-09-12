@@ -4,8 +4,10 @@ import {
   NotificationType,
   OPERATOR_OWNER_ROLES,
   PLAN_LIMITS,
+  OrganizationType,
   PlanTier,
   VEHICLE_TRACKER,
+  accountRunsVehicles,
   canAddVehicleTracker,
   withGst,
   type AssignTrackerInput,
@@ -21,6 +23,7 @@ import { paymentProvider } from '../../providers/payments';
 import { AuditAction, recordAudit } from '../audit/audit.service';
 import { notifyOrganization } from '../notifications/notification.service';
 import { qualifyPayment } from '../sales/qualification';
+import { assertPersonalIdentityVerified } from '../identity-verification/personal-onboarding.guard';
 import { countActiveTrackers, invalidateEntitlements, resolveBaseLimits } from './entitlements.service';
 import type { AuthContext } from '../../auth/context';
 
@@ -186,6 +189,39 @@ export async function purchaseTracker(
       countActiveTrackers(organizationId),
       prisma.truck.count({ where: { organizationId, archivedAt: null } }),
     ]);
+
+    const tenant = await prisma.organization.findUniqueOrThrow({
+      where: { id: organizationId },
+      select: { type: true },
+    });
+
+    /*
+     * An account that runs no vehicles is not sold capacity for them.
+     *
+     * The tracker requirement follows the *account type*, not the price of the
+     * plan: a supplier buys the same Business subscription a freight fleet
+     * does and owns nothing to fit hardware to. Checked against the
+     * organization rather than the tier for exactly that reason - the tier
+     * cannot tell the two apart.
+     *
+     * Unreachable through the UI today, since neither a supplier nor a
+     * customer holds SUBSCRIPTION_MANAGE. It is here because the next thing
+     * this function does is take money.
+     */
+    if (!accountRunsVehicles({ tier, organizationType: tenant.type as OrganizationType })) {
+      throw errors.businessRule(
+        'A tracker is fitted to a vehicle. This account does not run one, so there is nothing to fit it to.',
+      );
+    }
+
+    /*
+     * And, on Personal, the account holder has to have confirmed who they are.
+     *
+     * Inside the lock and before the charge, because the next thing this
+     * function does is take money for hardware. A refusal here costs the
+     * customer nothing and is fixed in a minute; a refund is neither.
+     */
+    await assertPersonalIdentityVerified(auth, organizationId, 'tracker');
 
     if (vehicleCount === 0) {
       throw errors.businessRule(
@@ -370,6 +406,20 @@ export async function assignTracker(
   if (!row || row.organizationId !== organizationId) throw errors.notFound('Tracker');
   if (row.status !== ACTIVE_STATUS) {
     throw errors.conflict('This tracker is not active.');
+  }
+
+  /*
+   * Fitting a tracker to a vehicle is the moment it starts reading one, so a
+   * Personal account holder has to be verified by here.
+   *
+   * Gated as well as the purchase, and not instead of it, because the two are
+   * separate events: a tracker bought with the subscription at signup arrives
+   * unassigned, and this is where it would otherwise come alive. Taking it
+   * *off* a vehicle is deliberately not gated — nobody should have to verify
+   * anything to stop sending data.
+   */
+  if (input.truckId) {
+    await assertPersonalIdentityVerified(auth, organizationId, 'tracker');
   }
 
   if (input.truckId) {

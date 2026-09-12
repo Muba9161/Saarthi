@@ -9,6 +9,7 @@ import {
   ScoreCategory,
   SosStatus,
   TripStatus,
+  OrganizationType,
 } from './enums';
 import {
   DEFAULT_SCORING_CONFIG,
@@ -48,6 +49,9 @@ import {
   GST_RATE,
   PLAN_CATALOGUE,
   PLAN_LIMITS,
+  accountFeatures,
+  accountRunsVehicles,
+  accountUsesTracker,
   canAddVehicleTopUp,
   canAddVehicleTracker,
   effectiveVehicleLimit,
@@ -453,20 +457,87 @@ describe('entitlements', () => {
   });
 
   it('reports the cheapest tier that unlocks a feature', () => {
-    expect(minimumTierFor(Feature.MAPS_2D)).toBe(PlanTier.PERSONAL);
+    // Free is now the cheapest answer for the consumer surface, which is the
+    // point of it: nearby services and following your own order cost nothing.
+    expect(minimumTierFor(Feature.MAPS_2D)).toBe(PlanTier.FREE);
+    expect(minimumTierFor(Feature.NEARBY_SERVICES)).toBe(PlanTier.FREE);
+    expect(minimumTierFor(Feature.TRAVEL_BOOKINGS)).toBe(PlanTier.FREE);
+    // Still Personal: the SOS network is for somebody out on the road with a
+    // vehicle, and Free is the plan for people who are not.
     expect(minimumTierFor(Feature.SOS_NETWORK)).toBe(PlanTier.PERSONAL);
     expect(minimumTierFor(Feature.DRIVER_SCORING)).toBe(PlanTier.BUSINESS);
     expect(minimumTierFor(Feature.AI_COPILOT)).toBe(PlanTier.BUSINESS);
     expect(minimumTierFor(Feature.SSO)).toBe(PlanTier.BUSINESS);
   });
 
-  it('starts both plans at one vehicle, and sells the rest per vehicle', () => {
-    for (const tier of PLAN_TIERS) {
+  it('starts both paid plans at one vehicle, and sells the rest per vehicle', () => {
+    for (const tier of PLAN_TIERS.filter((candidate) => candidate !== PlanTier.FREE)) {
       expect(PLAN_LIMITS[tier].maxTrucks).toBe(1);
     }
     expect(effectiveVehicleLimit(1, 2)).toBe(3);
     // An unlimited base stays unlimited rather than becoming a number.
     expect(effectiveVehicleLimit(null, 2)).toBeNull();
+  });
+
+  it('covers no vehicles at all on Free, and sells none against it', () => {
+    // Not a smaller allowance — none. A Free account does not operate a
+    // vehicle, so there is nothing to cover, nothing to top up and nowhere to
+    // fit a tracker.
+    const free = PLAN_LIMITS[PlanTier.FREE];
+    expect(free.maxTrucks).toBe(0);
+    expect(free.maxVehicleTopUps).toBe(0);
+    expect(free.maxTrackers).toBe(0);
+    expect(free.maxDevices).toBe(0);
+    expect(free.telemetryRetentionDays).toBe(0);
+
+    expect(canAddVehicleTopUp(PlanTier.FREE, 0)).toBe(false);
+    expect(canAddVehicleTracker({ tier: PlanTier.FREE, activeTrackers: 0, vehicleCount: 0 })).toBe(
+      false,
+    );
+  });
+
+  it('prices Free at nothing rather than at a plan plus a top-up', () => {
+    // The arithmetic trap this guards: `included` is zero on Free, so a naive
+    // "vehicles minus included" would bill a +1 top-up for the first vehicle
+    // and quote 75 rupees a month for a plan the page calls free.
+    const quote = quoteSubscription({ tier: PlanTier.FREE, vehicles: 9, trackers: 4 });
+
+    expect(quote.vehicles).toBe(0);
+    expect(quote.vehicleTopUps).toBe(0);
+    expect(quote.trackers).toBe(0);
+    expect(quote.dueNow.total).toBe(0);
+    expect(quote.renews.total).toBe(0);
+    // Asking for nine vehicles on a plan that covers none is not an error to
+    // warn about; the vehicles simply are not part of this plan.
+    expect(quote.overVehicleCeiling).toBe(false);
+
+    expect(monthlyCostFor({ tier: PlanTier.FREE, vehicles: 9 })).toBe(0);
+  });
+
+  it('withholds the vehicle and telemetry surface from Free', () => {
+    // Read as a list of absences on purpose: this is the rule that stops a
+    // Free account being walked into vehicle onboarding.
+    for (const feature of [
+      Feature.FLEET_BASIC,
+      Feature.MAINTENANCE_BASIC,
+      Feature.TOLL_FASTAG,
+      Feature.FINANCE_LOANS,
+      Feature.TELEMETRY_LIVE,
+      Feature.HARDWARE_CONNECTIVITY,
+      Feature.RETURN_LOADS,
+    ]) {
+      expect(tierHasFeature(PlanTier.FREE, feature)).toBe(false);
+    }
+
+    // And what it is actually for.
+    for (const feature of [
+      Feature.NEARBY_SERVICES,
+      Feature.TRACKING_LIVE,
+      Feature.ORDERS_MARKETPLACE,
+      Feature.TRAVEL_BOOKINGS,
+    ]) {
+      expect(tierHasFeature(PlanTier.FREE, feature)).toBe(true);
+    }
   });
 
   it('holds the top-up ceiling on Personal but not on Business', () => {
@@ -730,5 +801,149 @@ describe('achievements', () => {
     }).find((entry) => entry.code === 'DOCUMENT_PERFECT');
     expect(evaluation?.earned).toBe(false);
     expect(evaluation?.progress).toBe(0);
+  });
+});
+
+/**
+ * The account-shape rules.
+ *
+ * These decide two things that a plan on its own cannot: whether an account
+ * enters the vehicle and tracker ecosystem, and which of its plan's features
+ * this kind of business can actually use. Every one of the workflow bugs this
+ * suite is named after came from asking the plan and stopping there.
+ */
+describe('account shape', () => {
+  it('keeps a Free account out of the vehicle and tracker ecosystem', () => {
+    // Bug 1: a Free user being asked for a vehicle.
+    expect(accountRunsVehicles({ tier: PlanTier.FREE })).toBe(false);
+    expect(
+      accountRunsVehicles({
+        tier: PlanTier.FREE,
+        // Even if something upstream guessed a type, the plan settles it.
+        organizationType: OrganizationType.FLEET_OWNER,
+      }),
+    ).toBe(false);
+    expect(accountUsesTracker({ tier: PlanTier.FREE })).toBe(false);
+  });
+
+  it('puts a Personal account in it, business type or none', () => {
+    expect(accountRunsVehicles({ tier: PlanTier.PERSONAL })).toBe(true);
+    expect(accountUsesTracker({ tier: PlanTier.PERSONAL })).toBe(true);
+  });
+
+  it('decides Business on the kind of business, not on the plan', () => {
+    // The two that operate vehicles.
+    for (const type of [OrganizationType.FLEET_OWNER, OrganizationType.MOBILITY_PROVIDER]) {
+      expect(accountRunsVehicles({ tier: PlanTier.BUSINESS, organizationType: type })).toBe(true);
+    }
+
+    // Bug 2: a supplier being asked for a tracker. They buy the same Business
+    // plan a fleet does and own nothing to fit one to.
+    for (const type of [
+      OrganizationType.SUPPLIER,
+      OrganizationType.CUSTOMER,
+      OrganizationType.TRUCK_ASSOCIATION,
+    ]) {
+      expect(accountRunsVehicles({ tier: PlanTier.BUSINESS, organizationType: type })).toBe(false);
+      expect(accountUsesTracker({ tier: PlanTier.BUSINESS, organizationType: type })).toBe(false);
+    }
+  });
+
+  it('answers false for a Business registration that has not chosen a type yet', () => {
+    // The registration form reads this before the account-type step. Answering
+    // "true" here is what priced every business registrant for trucks before
+    // any of them had said what kind of business they were.
+    expect(accountRunsVehicles({ tier: PlanTier.BUSINESS })).toBe(false);
+    expect(accountRunsVehicles({ tier: PlanTier.BUSINESS, organizationType: null })).toBe(false);
+  });
+
+  it('withholds the fleet, telemetry and freight surface from a supplier', () => {
+    // Bug 3: a supplier being shown fleet-owner features.
+    const supplier = accountFeatures({
+      tier: PlanTier.BUSINESS,
+      organizationType: OrganizationType.SUPPLIER,
+    });
+
+    for (const feature of [
+      Feature.FLEET_BASIC,
+      Feature.DRIVER_SCORING,
+      Feature.MAINTENANCE_PREDICTIVE,
+      Feature.TELEMETRY_LIVE,
+      Feature.HARDWARE_CONNECTIVITY,
+      Feature.RETURN_LOADS,
+      Feature.TOLL_FASTAG,
+      Feature.TRAVEL_SERVICES,
+    ]) {
+      expect(supplier).not.toContain(feature);
+    }
+
+    // And keeps everything a supplier's own business runs on.
+    for (const feature of [
+      Feature.INVENTORY_MANAGEMENT,
+      Feature.ORDERS_MARKETPLACE,
+      Feature.DOCUMENTS_BASIC,
+      Feature.MEDIA_LIBRARY,
+    ]) {
+      expect(supplier).toContain(feature);
+    }
+  });
+
+  it('keeps freight-only concepts away from a mobility provider', () => {
+    // Bug 4: a mobility provider being shown truck features. Backhaul is the
+    // return leg of a load and the relay hands a consignment to a pickup;
+    // a taxi operator has neither.
+    const mobility = accountFeatures({
+      tier: PlanTier.BUSINESS,
+      organizationType: OrganizationType.MOBILITY_PROVIDER,
+    });
+
+    expect(mobility).not.toContain(Feature.RETURN_LOADS);
+    expect(mobility).not.toContain(Feature.LAST_MILE_RELAY);
+
+    // What it does sell, and the operating surface it shares with a fleet.
+    expect(mobility).toContain(Feature.TRAVEL_SERVICES);
+    expect(mobility).toContain(Feature.TRAVEL_BOOKINGS);
+    expect(mobility).toContain(Feature.FLEET_BASIC);
+    expect(mobility).toContain(Feature.DRIVER_SCORING);
+  });
+
+  it('leaves the fleet owner every freight capability', () => {
+    // Bug 5: a fleet owner missing truck features. This is the type that must
+    // lose nothing operational — only the passenger surface it cannot sell.
+    const fleet = accountFeatures({
+      tier: PlanTier.BUSINESS,
+      organizationType: OrganizationType.FLEET_OWNER,
+    });
+
+    for (const feature of [
+      Feature.FLEET_BASIC,
+      Feature.FLEET_ANALYTICS,
+      Feature.RETURN_LOADS,
+      Feature.LAST_MILE_RELAY,
+      Feature.DRIVER_SCORING,
+      Feature.ORDERS_MARKETPLACE,
+      Feature.MAINTENANCE_PREDICTIVE,
+      Feature.TOLL_FASTAG,
+      Feature.AI_COPILOT,
+    ]) {
+      expect(fleet).toContain(feature);
+    }
+
+    // Publishing tour packages is the mobility provider's, and the travel
+    // routes already refuse a freight fleet that tries.
+    expect(fleet).not.toContain(Feature.TRAVEL_SERVICES);
+  });
+
+  it('never adds a feature the plan did not grant', () => {
+    // The narrowing is subtractive by design: a capability added to Business
+    // tomorrow reaches every business type unless it is named as an exclusion,
+    // which is the safe direction for a list somebody must remember to update.
+    for (const type of Object.values(OrganizationType)) {
+      const narrowed = accountFeatures({ tier: PlanTier.BUSINESS, organizationType: type });
+      const granted = featuresForTier(PlanTier.BUSINESS);
+      for (const feature of narrowed) {
+        expect(granted).toContain(feature);
+      }
+    }
   });
 });

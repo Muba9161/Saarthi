@@ -125,6 +125,228 @@ describe('Authentication', () => {
       expect(body.data.session.subscription?.planTier).toBe(PlanTier.PERSONAL);
     });
 
+    /*
+     * The Free plan: an account for somebody who is not running a vehicle.
+     *
+     * Saarthi sold two subscriptions and both assumed one, so the largest group
+     * of people who open the app — the ones looking for the nearest workshop,
+     * ordering a load of sand, or following the van bringing it — had no
+     * account type of their own. They were registered as paying Business
+     * customers and then asked how many trucks they run.
+     */
+    it('creates a Free account without asking for a business or a vehicle', async () => {
+      const { status, body } = await request<{ session: SessionPayload }>({
+        method: 'POST',
+        url: '/api/v1/auth/register',
+        payload: {
+          firstName: 'Sunita',
+          lastName: 'Rao',
+          email: `${unique('free')}@test.local`,
+          phone: uniquePhone(),
+          password: TEST_PASSWORD,
+          // No role and no organization name — a Free registrant is asked for
+          // neither, exactly as a Personal one is not.
+          planTier: PlanTier.FREE,
+          acceptedTerms: true,
+        },
+      });
+
+      expect(status).toBe(201);
+
+      const session = body.data.session;
+      expect(session.organization?.name).toBe('Sunita Rao');
+      expect(session.organization?.type).toBe(OrganizationType.CUSTOMER);
+      // A seat rather than a business, which is what keeps the GSTIN, the
+      // registration certificate and the bank mandate off their screens.
+      expect(session.organization?.isPersonalSeat).toBe(true);
+      expect(session.subscription?.planTier).toBe(PlanTier.FREE);
+    });
+
+    it('gives a Free account no vehicle capacity and no telemetry', async () => {
+      const { body } = await request<{ session: SessionPayload }>({
+        method: 'POST',
+        url: '/api/v1/auth/register',
+        payload: {
+          firstName: 'Anil',
+          lastName: 'Verma',
+          email: `${unique('freecap')}@test.local`,
+          phone: uniquePhone(),
+          password: TEST_PASSWORD,
+          planTier: PlanTier.FREE,
+          acceptedTerms: true,
+        },
+      });
+
+      const subscription = body.data.session.subscription;
+      // Zero, not one. There is no vehicle to cover and nowhere to fit a
+      // tracker, so "Add vehicle" and "Connect tracker" have nothing to offer.
+      expect(subscription?.limits.maxTrucks).toBe(0);
+      expect(subscription?.limits.maxTrackers).toBe(0);
+      expect(subscription?.limits.maxDevices).toBe(0);
+
+      expect(subscription?.features).not.toContain('telemetry.live');
+      expect(subscription?.features).not.toContain('hardware.connectivity');
+      expect(subscription?.features).not.toContain('fleet.basic');
+
+      // And what the plan is actually for.
+      expect(subscription?.features).toContain('nearby.services');
+      expect(subscription?.features).toContain('tracking.live');
+    });
+
+    it('refuses to sell a Free account vehicles or trackers', async () => {
+      // The form no longer asks, but the form is not the boundary: these
+      // fields arrive over HTTP and a client that skips the wizard must not be
+      // able to buy what the plan cannot hold.
+      const { status } = await request({
+        method: 'POST',
+        url: '/api/v1/auth/register',
+        payload: {
+          firstName: 'Meena',
+          lastName: 'Iyer',
+          email: `${unique('freebuy')}@test.local`,
+          phone: uniquePhone(),
+          password: TEST_PASSWORD,
+          planTier: PlanTier.FREE,
+          planVehicles: 9,
+          planTrackers: 4,
+          acceptedTerms: true,
+        },
+      });
+
+      expect(status).toBe(400);
+    });
+
+    /*
+     * A supplier is a paid Business account that owns no vehicle.
+     *
+     * Registration used to price vehicles and trackers before it had asked what
+     * kind of business this was, so a supplier could arrive carrying an order
+     * for four trucks and four trackers and be charged for all of it — hardware
+     * that can never be fitted, because a supplier sells material out of a yard.
+     */
+    it('refuses to sell a supplier a tracker', async () => {
+      const { status } = await request({
+        method: 'POST',
+        url: '/api/v1/auth/register',
+        payload: {
+          firstName: 'Kumar',
+          lastName: 'Patel',
+          email: `${unique('supplierbuy')}@test.local`,
+          phone: uniquePhone(),
+          password: TEST_PASSWORD,
+          role: RoleName.SUPPLIER,
+          planTier: PlanTier.BUSINESS,
+          organizationName: 'Kumar Building Materials',
+          planVehicles: 4,
+          planTrackers: 4,
+          acceptedTerms: true,
+        },
+      });
+
+      expect(status).toBe(400);
+    });
+
+    it('withholds the fleet and telemetry surface from a supplier on Business', async () => {
+      const { body } = await request<{ session: SessionPayload }>({
+        method: 'POST',
+        url: '/api/v1/auth/register',
+        payload: {
+          firstName: 'Kumar',
+          lastName: 'Patel',
+          email: `${unique('supplierplan')}@test.local`,
+          phone: uniquePhone(),
+          password: TEST_PASSWORD,
+          role: RoleName.SUPPLIER,
+          planTier: PlanTier.BUSINESS,
+          organizationName: 'Kumar Building Materials',
+          acceptedTerms: true,
+        },
+      });
+
+      const subscription = body.data.session.subscription;
+      // The same Business plan a freight fleet buys, resolved against a
+      // business that owns no vehicle.
+      expect(subscription?.planTier).toBe(PlanTier.BUSINESS);
+
+      for (const feature of [
+        'fleet.basic',
+        'driver.scoring',
+        'telemetry.live',
+        'hardware.connectivity',
+        'returnloads.matching',
+        'toll.fastag',
+      ]) {
+        expect(subscription?.features).not.toContain(feature);
+      }
+
+      // And keeps what a supplier's own business runs on.
+      expect(subscription?.features).toContain('inventory.management');
+      expect(subscription?.features).toContain('orders.marketplace');
+
+      expect(subscription?.limits.maxTrucks).toBe(0);
+      expect(subscription?.limits.maxTrackers).toBe(0);
+    });
+
+    it('keeps backhaul and the load relay away from a mobility provider', async () => {
+      const { body } = await request<{ session: SessionPayload }>({
+        method: 'POST',
+        url: '/api/v1/auth/register',
+        payload: {
+          firstName: 'Farah',
+          lastName: 'Sheikh',
+          email: `${unique('mobilityplan')}@test.local`,
+          phone: uniquePhone(),
+          password: TEST_PASSWORD,
+          role: RoleName.MOBILITY_PROVIDER,
+          planTier: PlanTier.BUSINESS,
+          organizationName: 'Sheikh Travels & Tours',
+          acceptedTerms: true,
+        },
+      });
+
+      const subscription = body.data.session.subscription;
+      // Backhaul is the return leg of a load and the relay hands a consignment
+      // to a pickup. A taxi operator has neither.
+      expect(subscription?.features).not.toContain('returnloads.matching');
+      expect(subscription?.features).not.toContain('relay.lastmile');
+
+      // It does run vehicles, so the operating surface stays, and selling
+      // journeys is its own.
+      expect(subscription?.features).toContain('fleet.basic');
+      expect(subscription?.features).toContain('travel.services');
+      expect(subscription?.limits.maxTrucks).toBe(1);
+    });
+
+    it('leaves a fleet owner every freight capability', async () => {
+      const { body } = await request<{ session: SessionPayload }>({
+        method: 'POST',
+        url: '/api/v1/auth/register',
+        payload: {
+          firstName: 'Rajesh',
+          lastName: 'Sharma',
+          email: `${unique('fleetplan')}@test.local`,
+          phone: uniquePhone(),
+          password: TEST_PASSWORD,
+          role: RoleName.FLEET_OWNER,
+          planTier: PlanTier.BUSINESS,
+          organizationName: 'Sharma Haulage',
+          acceptedTerms: true,
+        },
+      });
+
+      const subscription = body.data.session.subscription;
+      for (const feature of [
+        'fleet.basic',
+        'fleet.analytics',
+        'returnloads.matching',
+        'relay.lastmile',
+        'driver.scoring',
+        'toll.fastag',
+      ]) {
+        expect(subscription?.features).toContain(feature);
+      }
+    });
+
     it('leaves a Business registration a business', async () => {
       const { status, body } = await request<{ session: SessionPayload }>({
         method: 'POST',

@@ -76,8 +76,15 @@ const SUBJECT_FOR_OWNER: Partial<Record<DocumentOwnerType, VerificationSubjectTy
   USER: 'USER' as VerificationSubjectType,
 };
 
-/** Owners whose documents can carry an instant identity check. */
-const IDENTITY_SUBJECTS = new Set<string>(['DRIVER', 'ORGANIZATION']);
+/**
+ * Owners whose documents can carry an instant identity check.
+ *
+ * `USER` joined the other two when a Personal account holder gained an Aadhaar
+ * check of their own. It is a different check from the driver's, against a
+ * different subject, recorded in a different place — see `IDENTITY_KINDS` — and
+ * clearing it says nothing about whether the person may drive.
+ */
+const IDENTITY_SUBJECTS = new Set<string>(['DRIVER', 'ORGANIZATION', 'USER']);
 
 interface Readiness {
   ready: boolean;
@@ -204,7 +211,7 @@ export function DocumentPanel({
 
     setVerifyTarget({
       kind: definition.kind,
-      subjectType: String(subjectType) as 'DRIVER' | 'ORGANIZATION',
+      subjectType: String(subjectType) as 'DRIVER' | 'ORGANIZATION' | 'USER',
       subjectId: ownerId,
       documentId: document.id,
       initialNumber: document.documentNumber ?? undefined,

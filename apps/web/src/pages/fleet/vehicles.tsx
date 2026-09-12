@@ -6,6 +6,7 @@ import {
   Feature,
   OrganizationType,
   Permission,
+  PlanTier,
   TruckStatus,
   VehicleType,
   formatNumber,
@@ -13,7 +14,7 @@ import {
 } from '@saarthi/shared';
 import { api } from '@/lib/api-client';
 import type { VehicleSummary, VehicleTypeOption } from '@/lib/mobility-types';
-import type { Paginated } from '@/lib/api-types';
+import type { IdentitySubjectView, Paginated } from '@/lib/api-types';
 import { useAuth } from '@/features/auth/auth-context';
 import { PageHeader, FilterBar } from '@/components/common/page-header';
 import { DataView, type Column } from '@/components/common/data-view';
@@ -23,6 +24,7 @@ import { VehicleCard } from '@/components/common/vehicle-card';
 import { DeleteAction } from '@/components/common/delete-action';
 import { AddVehicleDialog, EditVehicleDialog } from '@/features/vehicles/vehicle-dialog';
 import { QrWelcomeDialog } from '@/features/qr/qr-welcome-dialog';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -113,6 +115,35 @@ export function VehiclesPage() {
    * than a category of them.
    */
   const isPersonalSeat = Boolean(session?.organization?.isPersonalSeat);
+
+  /*
+   * The Personal plan asks the account holder for their own Aadhaar before a
+   * vehicle goes on the account.
+   *
+   * Read from the identity endpoint that already exists rather than from a new
+   * flag on the session: this is the same record the profile screen writes and
+   * the API enforces against, so the banner cannot drift out of step with the
+   * refusal.
+   *
+   * The server is the gate — `assertPersonalIdentityVerified` refuses the
+   * create call whatever this renders. Asking here only means somebody is told
+   * before they fill in a registration number rather than after.
+   */
+  const isPersonalPlan = session?.subscription?.planTier === PlanTier.PERSONAL;
+
+  const identity = useQuery({
+    queryKey: ['identity', 'subject', 'USER', session?.user.id],
+    queryFn: () => api.get<IdentitySubjectView>(`/identity/subject/user/${session?.user.id}`),
+    enabled: Boolean(isPersonalPlan && session?.user.id && canAddVehicle),
+  });
+
+  const aadhaarVerified =
+    identity.data?.checks.find((entry) => entry.kind === 'AADHAAR')?.verification?.outcome ===
+    'VERIFIED';
+
+  // Only once the answer is actually known, so the banner does not flash up at
+  // somebody who verified months ago.
+  const needsAadhaar = Boolean(isPersonalPlan && canAddVehicle && identity.data && !aadhaarVerified);
 
   const columns: Column<VehicleSummary>[] = [
     {
@@ -303,6 +334,32 @@ export function VehiclesPage() {
           ) : null
         }
       />
+
+      {/*
+        Said before the form rather than after it.
+
+        The wording is careful about one thing: an owner who already runs
+        vehicles is not being suspended. Everything on the account carries on —
+        the tracking, the history, the trips — and this is a condition on the
+        *next* vehicle only. A banner that read as a lockout would send somebody
+        to support over a check they could finish themselves in a minute.
+      */}
+      {needsAadhaar ? (
+        <Alert variant="warning">
+          <BadgeCheck className="size-4" />
+          <AlertTitle>Verify your Aadhaar to add a vehicle</AlertTitle>
+          <AlertDescription className="space-y-2">
+            <p>
+              Saarthi Personal is an account for you as an individual, so we ask for your own
+              Aadhaar - not business papers. Anything already on your account carries on exactly as
+              it is.
+            </p>
+            <Button asChild size="sm" variant="outline">
+              <Link to="/settings/profile">Verify now</Link>
+            </Button>
+          </AlertDescription>
+        </Alert>
+      ) : null}
 
       <FilterBar>
         <div className="min-w-[200px] flex-1 space-y-1.5">

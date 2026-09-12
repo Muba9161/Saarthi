@@ -329,7 +329,7 @@ describe('Subscription vehicle capacity', () => {
   // -------------------------------------------------------------------------
 
   describe('plan catalogue', () => {
-    it('sells two plans, both starting at one vehicle', async () => {
+    it('sells three plans, and both paid ones start at one vehicle', async () => {
       const { body } = await request<{
         plans: { tier: string; limits: { maxTrucks: number | null } }[];
         topUp: { priceMonthly: number };
@@ -337,18 +337,25 @@ describe('Subscription vehicle capacity', () => {
       }>({ method: 'GET', url: '/api/v1/subscriptions/plans', user: owner });
 
       expect(body.data.plans.map((plan) => plan.tier)).toEqual([
+        PlanTier.FREE,
         PlanTier.PERSONAL,
         PlanTier.BUSINESS,
       ]);
 
       /*
-       * Both plans cover exactly one vehicle, and that is the whole pricing
-       * model rather than an accident of the catalogue: fleet size is bought
-       * per vehicle, so an upgrade is never the answer to "I need room for
-       * another". A plan that bundled five would make this test's own top-up
-       * cases unreachable on the entry plan.
+       * Free covers no vehicle, and the two paid plans cover exactly one.
+       *
+       * That is the whole pricing model rather than an accident of the
+       * catalogue: fleet size is bought per vehicle, so an upgrade is never the
+       * answer to "I need room for another". A plan that bundled five would
+       * make this test's own top-up cases unreachable on the entry plan.
+       *
+       * The zero is a different kind of number from the ones beside it. It is
+       * not a smaller allowance but the absence of one — a Free account does
+       * not operate a vehicle, so there is nothing for a plan to cover and
+       * nowhere to fit a tracker.
        */
-      expect(body.data.plans.map((plan) => plan.limits.maxTrucks)).toEqual([1, 1]);
+      expect(body.data.plans.map((plan) => plan.limits.maxTrucks)).toEqual([0, 1, 1]);
 
       expect(body.data.topUp.priceMonthly).toBe(VEHICLE_TOPUP.priceMonthly);
       // Charged once, so the tracker has no monthly figure to report at all.
@@ -479,10 +486,52 @@ describe('Subscription vehicle capacity', () => {
           where: { organizationId, status: 'ACTIVE' },
         }),
       ).toBe(PLAN_LIMITS[PlanTier.PERSONAL].maxVehicleTopUps);
+    });
+
+    it('holds a Personal customer’s trackers until their Aadhaar is verified', async () => {
+      /*
+       * A Personal subscription asks the person for their own Aadhaar before
+       * hardware goes on the account, and signup is the one path that would
+       * otherwise slip past it: these trackers are provisioned seconds after
+       * registration, when nobody has had the chance to verify anything.
+       *
+       * Held rather than refused. The registration succeeds, the vehicle
+       * capacity is provisioned as normal, and the customer is not charged for
+       * hardware they cannot yet fit — which is a better outcome than a charge
+       * followed by a refund.
+       */
+      const user = await registerWithOrder({
+        planTier: PlanTier.PERSONAL,
+        planVehicles: 3,
+        planTrackers: 2,
+      });
+      const organizationId = user.organizationId as string;
+
+      expect(await prisma.vehicleTracker.count({ where: { organizationId } })).toBe(0);
+
+      // The capacity they priced still arrives — only the hardware waits.
+      expect(
+        await prisma.vehicleSubscriptionTopUp.count({
+          where: { organizationId, status: 'ACTIVE' },
+        }),
+      ).toBe(2);
+    });
+
+    it('provisions a Business customer’s trackers at signup as before', async () => {
+      // The Personal rule is about a person verifying themselves, so it must
+      // not have leaked into the plan every business buys. This is the same
+      // assertion as the first case in this block, kept as its own test so a
+      // regression names the tier it broke.
+      const user = await registerWithOrder({
+        planTier: PlanTier.BUSINESS,
+        planVehicles: 2,
+        planTrackers: 2,
+      });
+      const organizationId = user.organizationId as string;
 
       expect(
         await prisma.vehicleTracker.count({ where: { organizationId, status: 'ACTIVE' } }),
-      ).toBe(PLAN_LIMITS[PlanTier.PERSONAL].maxTrackers ?? 0);
+      ).toBe(2);
     });
 
     it('charges the GST-inclusive total, not the catalogue price', async () => {

@@ -40,7 +40,15 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export interface IdentityVerifyTarget {
   kind: IdentityDocumentKind;
-  subjectType: 'DRIVER' | 'ORGANIZATION';
+  /**
+   * Whose document this is.
+   *
+   * `USER` is an account holder verifying their own Aadhaar — a Personal
+   * customer proving who they are. It is not a driver check and does not count
+   * as one: the four checks that decide whether somebody may be assigned a
+   * vehicle are computed from DRIVER rows alone.
+   */
+  subjectType: 'DRIVER' | 'ORGANIZATION' | 'USER';
   subjectId: string;
   /** The uploaded document this check backs, when started from a row. */
   documentId?: string | undefined;
@@ -64,7 +72,10 @@ export function IdentityVerifyDialog({
   onVerified?: (summary: IdentityVerificationSummary) => void;
 }) {
   const queryClient = useQueryClient();
-  const definition = target ? identityKindDefinition(target.kind) : undefined;
+  // Per subject: Aadhaar has an entry for a driver's and one for an account
+  // holder's own, and while the number rules are identical the document code
+  // and the description are not.
+  const definition = target ? identityKindDefinition(target.kind, target.subjectType) : undefined;
 
   const [number, setNumber] = React.useState('');
   const [holderName, setHolderName] = React.useState('');
@@ -110,6 +121,9 @@ export function IdentityVerifyDialog({
       void queryClient.invalidateQueries({ queryKey: ['driver'] });
       void queryClient.invalidateQueries({ queryKey: ['drivers'] });
       void queryClient.invalidateQueries({ queryKey: ['organization'] });
+      // And the account holder's own profile, where their Aadhaar now shows as
+      // confirmed.
+      void queryClient.invalidateQueries({ queryKey: ['profile'] });
 
       if (summary.outcome === 'VERIFIED') {
         toast.success(`${definition?.label ?? 'Document'} verified`, {

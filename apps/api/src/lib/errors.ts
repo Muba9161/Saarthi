@@ -65,6 +65,19 @@ export const errors = {
   planLimitReached: (limit: string, message: string) =>
     new AppError(403, ErrorCode.PLAN_LIMIT_REACHED, message, { details: { limit } }),
 
+  /**
+   * The account holder has to verify their own identity before this action.
+   *
+   * `details.subjectType` and `details.kind` say which check, so the client can
+   * open the right one rather than dropping the reader on a verification screen
+   * to work it out. `details.grandfathered` distinguishes an existing account
+   * — whose vehicles and telemetry keep working untouched — from a new one.
+   */
+  identityVerificationRequired: (
+    message: string,
+    details: { subjectType: string; kind: string; grandfathered: boolean },
+  ) => new AppError(403, ErrorCode.IDENTITY_VERIFICATION_REQUIRED, message, { details }),
+
   notFound: (resource = 'Record', message?: string) =>
     new AppError(404, ErrorCode.NOT_FOUND, message ?? `${resource} could not be found.`, {
       details: { resource },

@@ -1,0 +1,23 @@
+-- The Free plan.
+--
+-- Saarthi sold two subscriptions, and both of them assumed a vehicle. That
+-- left no account type for the largest group of people who open the app: the
+-- ones who are not operating anything. Somebody looking for the nearest
+-- workshop, ordering a load of sand for a house they are building, or
+-- following the delivery van that is bringing it, was signed up as a paying
+-- Business customer and then asked how many trucks they run.
+--
+-- `FREE` is that missing plan. It covers no vehicles, sells no tracker and has
+-- no telemetry — not as a paywall but as a description, since there is no
+-- vehicle for any of the three to describe. See `PlanTier` and `FREE_FEATURES`
+-- in @saarthi/shared for what it does include.
+--
+-- Purely additive. No existing row changes: every current subscription stays
+-- on the tier it is on, and the new `subscription_plans` row is written by
+-- `npm run db:seed` from the shared catalogue, exactly as the other two are.
+--
+-- Added *before* the existing values so the enum's own ordering matches the
+-- order the plans are offered in — Free, Personal, Business — which is what
+-- `sortOrder` on `subscription_plans` and `PLAN_TIER_ORDER` in the shared
+-- catalogue both use.
+ALTER TYPE "PlanTier" ADD VALUE IF NOT EXISTS 'FREE' BEFORE 'PERSONAL';

@@ -4,8 +4,10 @@ import {
   NotificationType,
   OPERATOR_OWNER_ROLES,
   PLAN_LIMITS,
+  OrganizationType,
   PlanTier,
   VEHICLE_TOPUP,
+  accountRunsVehicles,
   canAddVehicleTopUp,
   describeVehicleCapacity,
   withGst,
@@ -159,6 +161,30 @@ export async function purchaseTopUp(
 
     const tier = subscription.plan.tier as PlanTier;
     const activeTopUps = await countActiveTopUps(organizationId);
+
+    const tenant = await prisma.organization.findUniqueOrThrow({
+      where: { id: organizationId },
+      select: { type: true },
+    });
+
+    /*
+     * An account that runs no vehicles is not sold capacity for them.
+     *
+     * The tracker requirement follows the *account type*, not the price of the
+     * plan: a supplier buys the same Business subscription a freight fleet
+     * does and owns nothing to fit hardware to. Checked against the
+     * organization rather than the tier for exactly that reason - the tier
+     * cannot tell the two apart.
+     *
+     * Unreachable through the UI today, since neither a supplier nor a
+     * customer holds SUBSCRIPTION_MANAGE. It is here because the next thing
+     * this function does is take money.
+     */
+    if (!accountRunsVehicles({ tier, organizationType: tenant.type as OrganizationType })) {
+      throw errors.businessRule(
+        'This account does not run vehicles, so there is no vehicle capacity to add to it.',
+      );
+    }
 
     if (!canAddVehicleTopUp(tier, activeTopUps)) {
       throw errors.planLimitReached(

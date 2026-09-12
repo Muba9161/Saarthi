@@ -1,7 +1,8 @@
 import {
+  accountRunsVehicles,
   type AuthResult,
   type ChangePasswordInput,
-  isPersonalRegistration,
+  isIndividualSeatRegistration,
   type LoginInput,
   MembershipStatus,
   OrganizationType,
@@ -150,8 +151,14 @@ export async function register(input: RegisterInput, meta: RequestMeta) {
    * always yes. That is why somebody who signed up for their own two cars was
    * offered the business documents screen and asked for a registration
    * certificate, a GSTIN and a bank mandate they will never have.
+   *
+   * A Free registrant is the same case and now resolves the same way, unless
+   * they named a company: somebody ordering a load of sand for a house they
+   * are building is an individual, and a purchasing office at a construction
+   * firm is not, and the business name is the only thing that tells them
+   * apart. See `isIndividualSeatRegistration`.
    */
-  const personalRegistration = isPersonalRegistration(input);
+  const personalRegistration = isIndividualSeatRegistration(input);
 
   const result = await prisma.$transaction(async (tx) => {
     const existingEmail = await tx.user.findUnique({ where: { email: input.email } });
@@ -417,8 +424,22 @@ export async function register(input: RegisterInput, meta: RequestMeta) {
      *
      * It never throws — a declined charge leaves the tenant on the base plan
      * with a notification and a row to point at. See `provisionSignupOrder`.
+     *
+     * Guarded by `accountRunsVehicles`, and that guard is the point rather
+     * than a tidy-up. Registration used to price vehicles and trackers before
+     * it had asked what kind of business this was, so a supplier or a customer
+     * — neither of whom owns a vehicle — could arrive here carrying an order
+     * for nine trucks and three trackers and be charged for all of it. The
+     * schema now refuses that at the door; this refuses it again for any caller
+     * that did not come through the schema, because the second half of this
+     * block takes somebody's money.
      */
-    if (input.planVehicles > 1 || input.planTrackers > 0) {
+    const runsVehicles = accountRunsVehicles({
+      tier,
+      organizationType: ROLE_TO_ORGANIZATION_TYPE[registrantRole] ?? null,
+    });
+
+    if (runsVehicles && (input.planVehicles > 1 || input.planTrackers > 0)) {
       await provisionSignupOrder({
         organizationId: result.organizationId,
         userId: result.user.id,

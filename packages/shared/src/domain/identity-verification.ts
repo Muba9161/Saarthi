@@ -374,6 +374,43 @@ export const IDENTITY_KINDS: readonly IdentityKindDefinition[] = Object.freeze([
       'Aadhaar number of the driver. Only the last four digits are kept on the driver record.',
   },
   {
+    /*
+     * The account holder's own Aadhaar — a Personal customer verifying
+     * themselves, not a fleet verifying somebody it employs.
+     *
+     * A second entry rather than a widened first one, and the distinction is
+     * the point rather than bookkeeping. Driver verification and account-holder
+     * verification are different concepts with different requirements: a driver
+     * must satisfy Aadhaar, PAN, Voter ID *and* a driving licence before they
+     * may be assigned a vehicle, and that set is what `syncDriverVerificationStatus`
+     * computes. A Personal account holder is asked for Aadhaar alone, because
+     * they are proving who they are rather than that they may drive.
+     *
+     * Somebody can be both. An owner who ticks "I drive one of my vehicles
+     * myself" gets a driver profile alongside their user record, and that
+     * profile then carries the driver checks in full — on its own subject, with
+     * its own rows. The two never stand in for one another: confirming a
+     * Personal holder's Aadhaar does not make them a verified driver, and
+     * verifying them as a driver does not silently verify the account.
+     *
+     * The number rules, the masking and the honest limits on what an Aadhaar
+     * check can prove are shared, because those are properties of Aadhaar and
+     * not of whose it is. See `AADHAAR_ONLINE_LIMITATION`.
+     */
+    kind: IdentityDocumentKind.AADHAAR,
+    label: 'Aadhaar',
+    shortLabel: 'Aadhaar',
+    subjectType: VerificationSubjectType.USER,
+    ownerType: DocumentOwnerType.USER,
+    documentType: 'USER_AADHAAR',
+    placeholder: '1234 5678 9012',
+    formatHint: '12 digits, as printed on the card.',
+    secondFactor: 'LINKED_PAN',
+    hasOnlineSource: true,
+    description:
+      'Your own Aadhaar number. Only the last four digits are kept on your account.',
+  },
+  {
     kind: IdentityDocumentKind.PAN,
     label: 'PAN card',
     shortLabel: 'PAN',
@@ -418,10 +455,30 @@ export const IDENTITY_KINDS: readonly IdentityKindDefinition[] = Object.freeze([
   },
 ]);
 
+/**
+ * The definition for one kind, optionally for one subject.
+ *
+ * `subjectType` became necessary when Aadhaar stopped belonging to exactly one
+ * subject: a driver's and an account holder's are the same document with the
+ * same rules but different owners, different document codes and different
+ * places to record the result.
+ *
+ * It is optional so that every existing one-argument call keeps the behaviour
+ * it has — the first entry for the kind, which is still the driver's. Those
+ * callers want the label, the placeholder, the format hint and the second
+ * factor, and all four are properties of Aadhaar rather than of whose it is.
+ * The callers that must not guess — the ones resolving a document code, or
+ * deciding which checks a subject is asked for — pass the subject.
+ */
 export function identityKindDefinition(
   kind: IdentityDocumentKind,
+  subjectType?: VerificationSubjectType,
 ): IdentityKindDefinition | undefined {
-  return IDENTITY_KINDS.find((definition) => definition.kind === kind);
+  return IDENTITY_KINDS.find(
+    (definition) =>
+      definition.kind === kind &&
+      (subjectType === undefined || definition.subjectType === subjectType),
+  );
 }
 
 /** The identity check a document type unlocks, if any. Drives the Verify button. */

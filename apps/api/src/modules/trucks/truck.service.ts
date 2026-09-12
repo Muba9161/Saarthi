@@ -12,6 +12,7 @@ import {
 } from '@saarthi/shared';
 import { type Prisma, prisma } from '../../database/prisma';
 import { errors } from '../../lib/errors';
+import { assertPersonalIdentityVerified } from '../identity-verification/personal-onboarding.guard';
 import { skipTake } from '../../lib/http';
 import { assertTenantAccess } from '../../server/guards';
 import { scheduleFastagDiscovery } from '../toll/fastag.service';
@@ -230,6 +231,20 @@ export async function createTruck(
   organizationId: string,
   input: CreateTruckInput,
 ): Promise<TruckSummary> {
+  /*
+   * A Personal account holder confirms who they are before a vehicle goes on
+   * the account.
+   *
+   * Here rather than on the route, because this function is the authoritative
+   * way a vehicle joins an account and the route is only one caller of it.
+   * Before the capacity check on purpose: being told to buy a top-up and then
+   * refused for a different reason would be two obstacles reported one at a
+   * time, and the second one costs money.
+   *
+   * No other account type reaches this — see `assertPersonalIdentityVerified`.
+   */
+  await assertPersonalIdentityVerified(auth, organizationId, 'vehicle');
+
   await assertTruckLimit(auth, organizationId);
 
   const existing = await prisma.truck.findUnique({

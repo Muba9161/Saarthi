@@ -13,6 +13,7 @@ import {
   IdCard,
   KeyRound,
   Languages,
+  MapPin,
   Minus,
   Package,
   Plane,
@@ -36,6 +37,7 @@ import {
   formatCurrency,
   quoteSubscription,
   registerSchema,
+  registrationRunsVehicles,
   type RegisterInput,
   type SessionPayload,
 } from '@saarthi/shared';
@@ -132,15 +134,26 @@ const ACCOUNT_TYPES = [
 /**
  * The first question, and the one that decides the shape of the rest.
  *
- * Three answers rather than a plan grid, because the three are not the same
- * kind of thing: two are subscriptions and one is somebody joining an employer
- * who already pays. Asking "which plan?" would have forced a driver to price
- * a product they are not buying.
+ * Four answers rather than a plan grid, because they are not the same kind of
+ * thing: three are plans and one is somebody joining an employer who already
+ * pays. Asking "which plan?" would have forced a driver to price a product
+ * they are not buying.
  *
- * Choosing Personal ends the questions about *what kind of business you are* —
- * a person with three cars is not a business, and being asked to declare
- * themselves a fleet owner, a supplier or a customer was the single most
- * confusing moment on this form. Only Business goes on to `ACCOUNT_TYPES`.
+ * Choosing Personal or Free ends the questions about *what kind of business
+ * you are* — a person with three cars is not a business, and neither is
+ * somebody ordering a load of sand for a house they are building. Being asked
+ * to declare themselves a fleet owner, a supplier or an association was the
+ * single most confusing moment on this form. Only Business goes on to
+ * `ACCOUNT_TYPES`.
+ *
+ * Free is the answer that was missing, and its absence is what made this form
+ * wrong rather than merely long. Somebody who wants Saarthi to find the nearest
+ * workshop, post what they need and follow the delivery that answers it does
+ * not operate a vehicle — and with only two paid plans on offer, both of which
+ * assume one, they were signed up as a paying business and then asked how many
+ * trucks they run. Free asks neither question, because it runs no vehicle:
+ * `registrationRunsVehicles` answers false for it, and every vehicle- and
+ * tracker-shaped question below reads that one answer.
  */
 const ACCOUNT_INTENTS = [
   {
@@ -151,6 +164,15 @@ const ACCOUNT_INTENTS = [
     title: 'The vehicles are mine',
     description:
       'A car, a tempo or a few of each. Track them, keep their papers, watch the EMI and the toll.',
+  },
+  {
+    id: 'free' as const,
+    planTier: PlanTier.FREE,
+    role: RoleName.CUSTOMER,
+    icon: MapPin,
+    title: 'I am not running a vehicle',
+    description:
+      'Find what is nearby, say what you need, compare the offers and follow your order to the door.',
   },
   {
     id: 'business' as const,
@@ -173,14 +195,29 @@ const ACCOUNT_INTENTS = [
 
 type AccountIntent = (typeof ACCOUNT_INTENTS)[number]['id'];
 
-/** The price line under each answer, from the catalogue rather than from copy. */
+/** The plan each answer takes out, or `null` for the one that takes none. */
+const INTENT_TIER: Record<AccountIntent, PlanTier | null> = {
+  personal: PlanTier.PERSONAL,
+  free: PlanTier.FREE,
+  business: PlanTier.BUSINESS,
+  driver: null,
+};
+
+/**
+ * The price line under each answer, from the catalogue rather than from copy.
+ *
+ * Free returns `null` and is rendered as "No charge" alongside the driver, who
+ * also pays nothing. A zero rendered as "₹0/month" reads like a trial about to
+ * end rather than a plan that is free.
+ */
 function intentPrice(id: AccountIntent): string | null {
-  if (id === 'driver') return null;
-  const tier = id === 'personal' ? PlanTier.PERSONAL : PlanTier.BUSINESS;
+  const tier = INTENT_TIER[id];
+  if (!tier) return null;
   const plan = PLAN_CATALOGUE.find((candidate) => candidate.tier === tier);
-  return plan?.priceMonthly === null || plan?.priceMonthly === undefined
+  const price = plan?.priceMonthly;
+  return price === null || price === undefined || price === 0
     ? null
-    : `${formatCurrency(plan.priceMonthly)}/month`;
+    : `${formatCurrency(price)}/month`;
 }
 
 /** What the organization is called depends on what kind of business it is. */
@@ -451,7 +488,13 @@ export function RegisterPage() {
   const linked = React.useMemo(() => {
     const requestedPlan = searchParams.get('plan')?.toLowerCase();
     const plan: AccountIntent | null =
-      requestedPlan === 'personal' ? 'personal' : requestedPlan === 'business' ? 'business' : null;
+      requestedPlan === 'personal'
+        ? 'personal'
+        : requestedPlan === 'free'
+          ? 'free'
+          : requestedPlan === 'business'
+            ? 'business'
+            : null;
 
     const count = (key: string, min: number, max: number, fallback: number): number => {
       const parsed = Number.parseInt(searchParams.get(key) ?? '', 10);
@@ -470,6 +513,33 @@ export function RegisterPage() {
   }, [searchParams]);
 
   const linkedPlan = linked.plan;
+
+  /**
+   * The order the form actually opens with.
+   *
+   * A hand-typed or stale link can name a plan and a fleet size that do not go
+   * together — `?plan=free&vehicles=9&trackers=4` is the obvious one, and it is
+   * exactly what a bookmarked pricing-card link becomes after somebody switches
+   * plan. Honouring it verbatim would open the form already holding an order
+   * the schema will reject, and reject it on the last step against a field the
+   * reader can no longer see.
+   *
+   * So the same rule that gates the summary gates the defaults: an account that
+   * runs vehicles opens with what it was sent, and one that does not opens with
+   * none. `chooseIntent` and the account-type step re-apply it whenever the
+   * answer changes, through `syncOrderToAccount`.
+   */
+  const linkedOrder = React.useMemo(() => {
+    const intentDefinition = ACCOUNT_INTENTS.find((candidate) => candidate.id === linkedPlan);
+    const runs = registrationRunsVehicles({
+      role: intentDefinition?.role ?? undefined,
+      planTier: (linkedPlan && INTENT_TIER[linkedPlan]) ?? undefined,
+    });
+
+    return runs
+      ? { vehicles: linked.vehicles, trackers: linked.trackers }
+      : { vehicles: 1, trackers: 0 };
+  }, [linkedPlan, linked.vehicles, linked.trackers]);
 
   /**
    * The referral this registration arrived through.
@@ -496,11 +566,15 @@ export function RegisterPage() {
       // Left unset until the first step is answered: the account type is what
       // that step decides, and a pre-filled fleet owner would have quietly
       // stood in for an answer nobody gave.
-      role: linkedPlan === 'personal' ? RoleName.FLEET_OWNER : undefined,
-      planTier: linkedPlan === 'personal' ? PlanTier.PERSONAL : linkedPlan === 'business' ? PlanTier.BUSINESS : undefined,
+      // Only for the two answers that imply a role. Business leaves it unset
+      // because the kind of business is the very next question, and a
+      // pre-filled fleet owner would have quietly stood in for an answer
+      // nobody gave.
+      role: ACCOUNT_INTENTS.find((candidate) => candidate.id === linkedPlan)?.role ?? undefined,
+      planTier: (linkedPlan && INTENT_TIER[linkedPlan]) ?? undefined,
       planBilling: linked.billing,
-      planVehicles: linked.vehicles,
-      planTrackers: linked.trackers,
+      planVehicles: linkedOrder.vehicles,
+      planTrackers: linkedOrder.trackers,
       driveMyself: false,
       organizationName: '',
       // Whatever the browser or a previous visit already settled on, so the
@@ -532,6 +606,22 @@ export function RegisterPage() {
   const isPersonal = planTier === PlanTier.PERSONAL;
   const isBusiness = planTier === PlanTier.BUSINESS;
   const isDriver = role === RoleName.DRIVER;
+
+  /**
+   * Whether this account enters the vehicle and tracker ecosystem at all.
+   *
+   * The one question the order summary below hangs off, answered by the same
+   * shared rule the schema and the API use, so the form cannot offer what the
+   * API would refuse.
+   *
+   * It is false for Free, false for a supplier, a customer and an association,
+   * and false for a Business registration that has not yet said what kind of
+   * business it is. That last case is why the summary moved: this step used to
+   * ask "how many vehicles? how many trackers?" *before* the account-type step
+   * had been reached, so every business registrant was priced for trucks —
+   * including the ones who sell cement out of a yard and own none.
+   */
+  const runsVehicles = registrationRunsVehicles({ role, planTier });
   // A customer may be one person with no company at all — the API names the
   // organization after them when this is left blank.
   const isCustomer = role === RoleName.CUSTOMER;
@@ -545,6 +635,28 @@ export function RegisterPage() {
    * belongs on their profile is their face.
    */
   const wantsLogo = !isPersonal && Boolean(role) && ORGANIZATION_NAME_REQUIRED_ROLES.includes(role as never);
+
+  /**
+   * Put the vehicle and tracker order back in step with the account.
+   *
+   * Called whenever the plan or the kind of business changes, because both
+   * decide whether there is an order at all. An account that runs vehicles gets
+   * back whatever the pricing card sent it here with; one that does not is
+   * reset to the schema's own defaults — one vehicle, no trackers — which is
+   * what "nothing ordered" looks like on the wire.
+   */
+  const syncOrderToAccount = (
+    tier: PlanTier | null | undefined,
+    nextRole: RoleName | undefined,
+  ): void => {
+    const runs = registrationRunsVehicles({
+      role: nextRole as RegisterInput['role'],
+      planTier: tier ?? undefined,
+    });
+
+    form.setValue('planVehicles', runs ? linked.vehicles : 1, { shouldValidate: false });
+    form.setValue('planTrackers', runs ? linked.trackers : 0, { shouldValidate: false });
+  };
 
   /**
    * Answering the first question sets the plan and, for the two answers that
@@ -567,6 +679,17 @@ export function RegisterPage() {
     if (definition.planTier !== PlanTier.PERSONAL) {
       form.setValue('driveMyself', false, { shouldValidate: false });
     }
+
+    /*
+     * The order, reset to what this answer can actually hold.
+     *
+     * Somebody who priced nine vehicles on the pricing card and then chose Free
+     * would otherwise carry the nine into a plan that covers none — and the
+     * schema would reject the registration at the last step, on a field they
+     * can no longer see. So the order is restored for an answer that runs
+     * vehicles and cleared for one that does not.
+     */
+    syncOrderToAccount(definition.planTier, definition.role ?? undefined);
   };
 
   // Switching account type changes what the image *means*. Carrying a company
@@ -734,9 +857,10 @@ export function RegisterPage() {
             <FormItem>
               <FormLabel required>{t('Which of these is you?')}</FormLabel>
               <FormDescription>
-                {t('Both plans cover one vehicle. Extra vehicles are {price} a month each.', {
-                  price: formatCurrency(VEHICLE_TOPUP.priceMonthly),
-                })}
+                {t(
+                  'Free covers no vehicle and costs nothing. The paid plans cover one, and extra vehicles are {price} a month each.',
+                  { price: formatCurrency(VEHICLE_TOPUP.priceMonthly) },
+                )}
               </FormDescription>
 
               <div
@@ -810,9 +934,11 @@ export function RegisterPage() {
               </div>
 
               {/* Only shown once there is a plan to bill. A driver has nothing
-                  to choose a billing period for. */}
+                  to choose a billing period for, and neither has a Free
+                  account - offering it monthly or yearly would imply a charge
+                  arriving one way or the other. */}
               <AnimatePresence initial={false}>
-                {planTier ? (
+                {planTier && planTier !== PlanTier.FREE ? (
                   <motion.div
                     key="billing"
                     initial={{ opacity: 0, height: 0 }}
@@ -856,13 +982,32 @@ export function RegisterPage() {
                 ) : null}
               </AnimatePresence>
 
-              {/* The order, priced and adjustable.
-                  Shown here because this is where the money is decided: a
-                  reader who arrived from the pricing card sees the same total
-                  they clicked on, and one who came straight to /register can
-                  still say how many vehicles they run without going back. */}
+              {/*
+                The order, priced and adjustable - for an account that runs
+                vehicles.
+
+                Shown here because this is where the money is decided: a reader
+                who arrived from the pricing card sees the same total they
+                clicked on, and one who came straight to /register can still say
+                how many vehicles they run without going back.
+
+                Gated on `runsVehicles` rather than on there being a plan, and
+                that is the fix rather than a refinement. This step comes before
+                the account-type step, so "is there a plan?" was true for every
+                business registrant before any of them had said what kind of
+                business they were - and a supplier, who owns no vehicle and has
+                nowhere to fit a tracker, was asked for both and charged for
+                them. A Business registrant now meets this question on the
+                account-type step instead, once the answer is known, and only if
+                the answer runs vehicles. A Free registrant never meets it.
+
+                `isPersonal` as well, so the order is asked once and on one
+                screen: a Business registrant who steps back to this question
+                after choosing their account type would otherwise be shown a
+                second copy of the summary they have already filled in.
+              */}
               <AnimatePresence initial={false}>
-                {planTier ? (
+                {isPersonal && runsVehicles ? (
                   <motion.div
                     key="order"
                     initial={{ opacity: 0, height: 0 }}
@@ -872,7 +1017,7 @@ export function RegisterPage() {
                     className="overflow-hidden"
                   >
                     <OrderSummary
-                      tier={planTier}
+                      tier={PlanTier.PERSONAL}
                       billing={billing}
                       vehicles={planVehicles}
                       trackers={planTrackers}
@@ -888,6 +1033,31 @@ export function RegisterPage() {
                         form.setValue('planTrackers', next, { shouldValidate: false })
                       }
                     />
+                  </motion.div>
+                ) : null}
+              </AnimatePresence>
+
+              {/* What Free actually is, said where the price would otherwise
+                  be. A plan with no total needs to account for itself, or the
+                  blank space reads as a step that failed to load. */}
+              <AnimatePresence initial={false}>
+                {planTier === PlanTier.FREE ? (
+                  <motion.div
+                    key="free-note"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
+                    className="overflow-hidden"
+                  >
+                    <div className="glass-inset mt-3 p-3.5">
+                      <p className="text-sm font-medium">{t('Nothing to pay')}</p>
+                      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                        {t(
+                          'Nearby services, the places around you, and tracking the orders you place. No vehicle, no tracker and no card - move to a paid plan whenever you actually need one.',
+                        )}
+                      </p>
+                    </div>
                   </motion.div>
                 ) : null}
               </AnimatePresence>
@@ -913,7 +1083,11 @@ export function RegisterPage() {
       title: t('Account type'),
       description: t('What kind of business.'),
       icon: Users,
-      fields: ['role'],
+      // The order fields belong to this step for a business, because this is
+      // the step that decides whether there is an order at all. Listing them
+      // here is what makes the wizard validate them on the screen that asked
+      // them rather than three screens later.
+      fields: ['role', 'planVehicles', 'planTrackers'],
       content: (
         <FormField
           control={form.control}
@@ -939,7 +1113,14 @@ export function RegisterPage() {
                       type="button"
                       role="radio"
                       aria-checked={selected}
-                      onClick={() => field.onChange(type.role)}
+                      onClick={() => {
+                        field.onChange(type.role);
+                        // A supplier and a fleet owner buy the same plan and
+                        // own very different things. Re-syncing here is what
+                        // keeps a fleet's nine vehicles off a supplier's order
+                        // when somebody changes their mind on this screen.
+                        syncOrderToAccount(PlanTier.BUSINESS, type.role);
+                      }}
                       initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{
@@ -996,6 +1177,79 @@ export function RegisterPage() {
                   );
                 })}
               </div>
+
+              {/*
+                How many vehicles, and how many trackers - asked here, and only
+                of the businesses that have any.
+
+                This moved off the plan step deliberately. A fleet owner and a
+                travel operator run vehicles; a supplier sells material out of a
+                yard, a customer buys transport rather than providing it, and an
+                association coordinates its members' vehicles rather than owning
+                any. Asked before this answer existed, the question was put to
+                all five - and the two who said "nine vehicles, three trackers"
+                by accident were charged for hardware that can never be fitted.
+
+                `runsVehicles` is the shared rule, so this shows exactly when
+                the schema would accept an order and the API would provision
+                one.
+              */}
+              <AnimatePresence initial={false}>
+                {runsVehicles ? (
+                  <motion.div
+                    key="business-order"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
+                    className="overflow-hidden"
+                  >
+                    <OrderSummary
+                      tier={PlanTier.BUSINESS}
+                      billing={billing}
+                      vehicles={planVehicles}
+                      trackers={planTrackers}
+                      onVehicles={(next) => {
+                        form.setValue('planVehicles', next, { shouldValidate: false });
+                        // Trackers are fitted to vehicles, so shrinking the
+                        // fleet has to release the surplus hardware.
+                        if (planTrackers > next) {
+                          form.setValue('planTrackers', next, { shouldValidate: false });
+                        }
+                      }}
+                      onTrackers={(next) =>
+                        form.setValue('planTrackers', next, { shouldValidate: false })
+                      }
+                    />
+                  </motion.div>
+                ) : null}
+              </AnimatePresence>
+
+              {/* And for the businesses that run none, the reason they are not
+                  being asked - so the absence reads as an answer rather than as
+                  a step that failed to render. */}
+              <AnimatePresence initial={false}>
+                {role && !runsVehicles ? (
+                  <motion.div
+                    key="no-vehicle-note"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
+                    className="overflow-hidden"
+                  >
+                    <div className="glass-inset mt-3 p-3.5">
+                      <p className="text-sm font-medium">{t('No vehicles to set up')}</p>
+                      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                        {t(
+                          'This account does not run vehicles, so Saarthi will not ask you for trucks, trackers or drivers. If that changes, you can switch to a plan that covers them without starting again.',
+                        )}
+                      </p>
+                    </div>
+                  </motion.div>
+                ) : null}
+              </AnimatePresence>
+
               <FormMessage />
             </FormItem>
           )}

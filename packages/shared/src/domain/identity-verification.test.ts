@@ -6,7 +6,9 @@ import {
   gstinCheckCharacter,
   gstStateFromGstin,
   hasValidVerhoeffChecksum,
+  identityKindDefinition,
   identityKindForDocumentType,
+  identityKindsForSubject,
   identityLastFour,
   isIndividualPan,
   isValidAadhaar,
@@ -19,6 +21,7 @@ import {
   normalizeIdentityNumber,
   panFromGstin,
   panHolderType,
+  VerificationSubjectType,
   verifiableDocumentTypes,
 } from '../index';
 
@@ -236,11 +239,17 @@ describe('document catalogue wiring', () => {
       IdentityDocumentKind.VOTER_ID,
     );
     expect(identityKindForDocumentType('GST_CERTIFICATE')?.kind).toBe(IdentityDocumentKind.GST);
+    // The account holder's own Aadhaar, which is a different document code and
+    // a different subject from the driver's.
+    expect(identityKindForDocumentType('USER_AADHAAR')?.kind).toBe(IdentityDocumentKind.AADHAAR);
+    expect(identityKindForDocumentType('USER_AADHAAR')?.subjectType).toBe(
+      VerificationSubjectType.USER,
+    );
     // A driving licence is verified through its own module, not this one.
     expect(identityKindForDocumentType('DRIVING_LICENCE')).toBeUndefined();
   });
 
-  it('marks exactly the four verifiable types', () => {
+  it('marks exactly the five verifiable types', () => {
     expect(verifiableDocumentTypes(DocumentOwnerType.DRIVER).map((entry) => entry.code)).toEqual([
       'DRIVER_AADHAAR',
       'DRIVER_PAN',
@@ -249,7 +258,12 @@ describe('document catalogue wiring', () => {
     expect(
       verifiableDocumentTypes(DocumentOwnerType.ORGANIZATION).map((entry) => entry.code),
     ).toEqual(['GST_CERTIFICATE']);
-    expect(verifiableDocumentTypes()).toHaveLength(4);
+    // The account holder's own. Listed separately from the driver's on purpose
+    // — see the identity-subject suite below.
+    expect(verifiableDocumentTypes(DocumentOwnerType.USER).map((entry) => entry.code)).toEqual([
+      'USER_AADHAAR',
+    ]);
+    expect(verifiableDocumentTypes()).toHaveLength(5);
   });
 
   it('leaves the mandatory set alone, so existing subjects stay verifiable', () => {
@@ -271,5 +285,95 @@ describe('document catalogue wiring', () => {
     for (const definition of verifiableDocumentTypes()) {
       expect(documentTypeDefinition(definition.code)?.requiresExpiry).toBe(false);
     }
+  });
+});
+
+/**
+ * Account-holder identity against driver verification.
+ *
+ * These are two different concepts that happen to involve the same card, and
+ * the whole point of the catalogue carrying two Aadhaar entries is that neither
+ * can stand in for the other. A Personal customer proves who holds the account;
+ * a driver proves they may be handed a vehicle, which takes Aadhaar, PAN,
+ * Voter ID and a licence. One person may be both, with a row of each.
+ */
+describe('identity subjects', () => {
+  it('offers a person their Aadhaar and nothing else', () => {
+    const forUser = identityKindsForSubject(VerificationSubjectType.USER);
+
+    expect(forUser.map((entry) => entry.kind)).toEqual([IdentityDocumentKind.AADHAAR]);
+    // Not PAN and not Voter ID: those are part of clearing somebody to drive,
+    // and an account holder who never drives is not asked for them.
+    expect(forUser[0]?.documentType).toBe('USER_AADHAAR');
+    expect(forUser[0]?.ownerType).toBe(DocumentOwnerType.USER);
+  });
+
+  it('leaves the driver’s four checks exactly as they were', () => {
+    const forDriver = identityKindsForSubject(VerificationSubjectType.DRIVER);
+
+    expect(forDriver.map((entry) => entry.kind)).toEqual([
+      IdentityDocumentKind.AADHAAR,
+      IdentityDocumentKind.PAN,
+      IdentityDocumentKind.VOTER_ID,
+    ]);
+    // And the driver's Aadhaar still hangs off the driver, with the document
+    // code the driver flow has always used.
+    expect(forDriver[0]?.documentType).toBe('DRIVER_AADHAAR');
+    expect(forDriver[0]?.ownerType).toBe(DocumentOwnerType.DRIVER);
+  });
+
+  it('keeps the organization subject to its GSTIN', () => {
+    expect(
+      identityKindsForSubject(VerificationSubjectType.ORGANIZATION).map((entry) => entry.kind),
+    ).toEqual([IdentityDocumentKind.GST]);
+  });
+
+  it('resolves Aadhaar per subject, and keeps the driver’s as the default', () => {
+    // The unqualified lookup still answers the driver's, which is what every
+    // existing one-argument caller depends on.
+    expect(identityKindDefinition(IdentityDocumentKind.AADHAAR)?.documentType).toBe(
+      'DRIVER_AADHAAR',
+    );
+
+    expect(
+      identityKindDefinition(IdentityDocumentKind.AADHAAR, VerificationSubjectType.USER)
+        ?.documentType,
+    ).toBe('USER_AADHAAR');
+    expect(
+      identityKindDefinition(IdentityDocumentKind.AADHAAR, VerificationSubjectType.DRIVER)
+        ?.documentType,
+    ).toBe('DRIVER_AADHAAR');
+
+    // A kind a subject is not asked for has no definition for it, which is what
+    // stops a person being offered a PAN check they are not asked to pass.
+    expect(
+      identityKindDefinition(IdentityDocumentKind.PAN, VerificationSubjectType.USER),
+    ).toBeUndefined();
+    expect(
+      identityKindDefinition(IdentityDocumentKind.GST, VerificationSubjectType.USER),
+    ).toBeUndefined();
+  });
+
+  it('shares the number rules, because it is the same card', () => {
+    const driver = identityKindDefinition(
+      IdentityDocumentKind.AADHAAR,
+      VerificationSubjectType.DRIVER,
+    );
+    const user = identityKindDefinition(
+      IdentityDocumentKind.AADHAAR,
+      VerificationSubjectType.USER,
+    );
+
+    // What is shared is everything about Aadhaar itself: the format, the
+    // checksum, and the honest limit on what can be confirmed online.
+    expect(user?.placeholder).toBe(driver?.placeholder);
+    expect(user?.formatHint).toBe(driver?.formatHint);
+    expect(user?.secondFactor).toBe(driver?.secondFactor);
+    expect(user?.hasOnlineSource).toBe(driver?.hasOnlineSource);
+
+    // What differs is whose it is and where the answer is recorded.
+    expect(user?.subjectType).not.toBe(driver?.subjectType);
+    expect(user?.ownerType).not.toBe(driver?.ownerType);
+    expect(user?.documentType).not.toBe(driver?.documentType);
   });
 });

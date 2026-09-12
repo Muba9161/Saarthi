@@ -347,6 +347,20 @@ export const CUSTOMER_NAVIGATION: NavSection[] = [
         permissions: [Permission.TRACKING_READ],
       },
       {
+        // Fuel, food, workshops and help around them.
+        //
+        // Missing until now, which left the Free plan advertising nearby
+        // services with no way to reach them: Free registers as a customer, and
+        // this menu had no entry for the one screen that plan is mostly opened
+        // for. The permission and the plan feature both gate it, so a customer
+        // on a plan that does not include it still will not see it.
+        label: 'Nearby services',
+        to: '/nearby',
+        icon: Activity,
+        permissions: [Permission.NEARBY_READ],
+        feature: Feature.NEARBY_SERVICES,
+      },
+      {
         label: 'Find travel',
         to: '/travel',
         icon: Plane,

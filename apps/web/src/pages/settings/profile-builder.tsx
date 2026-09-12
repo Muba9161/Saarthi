@@ -14,11 +14,12 @@ import {
   MapPin,
   PackageCheck,
   Phone,
+  ShieldCheck,
   Sparkles,
   User,
   Warehouse,
 } from 'lucide-react';
-import { MediaOwnerType, humanizeEnum } from '@saarthi/shared';
+import { MediaOwnerType, PlanTier, humanizeEnum } from '@saarthi/shared';
 import type { ProfileCompletion, ProfileField, ProfileSection } from '@saarthi/shared';
 import { ApiError, api } from '@/lib/api-client';
 import { PageHeader } from '@/components/common/page-header';
@@ -26,6 +27,7 @@ import { ErrorState, LoadingState } from '@/components/common/states';
 import { FormWizard, type WizardStep } from '@/components/common/form-wizard';
 import { useAuth } from '@/features/auth/auth-context';
 import { PhotoUploader } from '@/features/media/photo-uploader';
+import { DocumentPanel } from '@/features/documents/document-panel';
 import { useLocale } from '@/features/i18n';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -588,6 +590,56 @@ export function ProfileBuilderPage() {
       </>
     ),
   }));
+
+  /*
+   * Proving who holds the account — for a Personal subscription, which is the
+   * plan that asks it.
+   *
+   * A Personal account is sold to a person rather than to a business, so what
+   * it asks for is that person's own Aadhaar: not the registration
+   * certificate, GSTIN and bank mandate a business files, and not the four
+   * documents a driver clears. Those two surfaces exist and are unchanged —
+   * business documents live on their own screen behind `requiresBusiness`, and
+   * a driver's live on the driver record.
+   *
+   * This is deliberately a step here rather than a screen of its own. The
+   * question "who are you" is the same question the rest of this wizard asks,
+   * and a Personal customer has no organization screen to hang it off.
+   *
+   * Not shown on Business, where the account is verified as a business, and not
+   * to a driver, who has no subscription of their own and reaches their
+   * documents from their own home screen.
+   */
+  const isPersonalPlan = session?.subscription?.planTier === PlanTier.PERSONAL;
+
+  if (isPersonalPlan && session?.user.id) {
+    steps.push({
+      id: 'identity',
+      title: 'Your identity',
+      description: 'Aadhaar verification.',
+      icon: ShieldCheck,
+      content: (
+        <>
+          <p className="text-sm text-muted-foreground">
+            Your Saarthi Personal account is yours as an individual, so what we need is your own
+            Aadhaar - not business papers. Upload the card and verify the number here. Only the last
+            four digits are kept on your account.
+          </p>
+          {/*
+            If you also drive one of your own vehicles, your driving licence and
+            the rest of a driver's documents are asked for separately on your
+            driver record. Verifying here does not stand in for those, and they
+            do not stand in for this.
+          */}
+          <DocumentPanel
+            ownerType="USER"
+            ownerId={session.user.id}
+            ownerLabel={session.user.fullName}
+          />
+        </>
+      ),
+    });
+  }
 
   // Security is not part of the blueprint — see `SecurityStep`. It goes last
   // because it is the one step that is not about completing the profile.

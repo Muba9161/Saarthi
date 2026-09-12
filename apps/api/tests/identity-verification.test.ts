@@ -79,23 +79,35 @@ describe('Identity verification', () => {
       }>({ method: 'GET', url: '/api/v1/identity/kinds', user: ownerA });
 
       expect(response.status).toBe(200);
+      // Aadhaar appears twice, and that is the catalogue being accurate rather
+      // than duplicated: a driver's Aadhaar and an account holder's own are the
+      // same card asked for in two different capacities, with different owners
+      // and different places to record the answer.
       expect(response.body.data.kinds.map((entry) => entry.kind).sort()).toEqual([
+        'AADHAAR',
         'AADHAAR',
         'GST',
         'PAN',
         'VOTER_ID',
       ]);
 
-      // Each kind names the document type it verifies, which is what puts the
-      // Verify button on the right row.
-      const byKind = Object.fromEntries(
-        response.body.data.kinds.map((entry) => [entry.kind, entry]),
+      // Each entry names the document type it verifies, which is what puts the
+      // Verify button on the right row. Keyed by kind *and* subject, because
+      // kind alone no longer identifies one entry.
+      const byKindAndSubject = Object.fromEntries(
+        response.body.data.kinds.map((entry) => [`${entry.kind}:${entry.subjectType}`, entry]),
       );
-      expect(byKind.AADHAAR?.documentType).toBe('DRIVER_AADHAAR');
-      expect(byKind.PAN?.documentType).toBe('DRIVER_PAN');
-      expect(byKind.VOTER_ID?.documentType).toBe('DRIVER_VOTER_ID');
-      expect(byKind.GST?.documentType).toBe('GST_CERTIFICATE');
-      expect(byKind.GST?.subjectType).toBe('ORGANIZATION');
+      expect(byKindAndSubject['AADHAAR:DRIVER']?.documentType).toBe('DRIVER_AADHAAR');
+      expect(byKindAndSubject['AADHAAR:USER']?.documentType).toBe('USER_AADHAAR');
+      expect(byKindAndSubject['PAN:DRIVER']?.documentType).toBe('DRIVER_PAN');
+      expect(byKindAndSubject['VOTER_ID:DRIVER']?.documentType).toBe('DRIVER_VOTER_ID');
+      expect(byKindAndSubject['GST:ORGANIZATION']?.documentType).toBe('GST_CERTIFICATE');
+
+      // PAN and Voter ID are asked of a driver and of nobody else: they are
+      // part of clearing somebody to take a vehicle out, not of proving who
+      // holds an account.
+      expect(byKindAndSubject['PAN:USER']).toBeUndefined();
+      expect(byKindAndSubject['VOTER_ID:USER']).toBeUndefined();
     });
   });
 
@@ -348,6 +360,190 @@ describe('Identity verification', () => {
       });
 
       expect(response.status).toBe(400);
+    });
+  });
+
+  /**
+   * The account holder's own Aadhaar — a Personal customer proving who they
+   * are, which is a different question from whether anybody may drive.
+   *
+   * The separation is the whole point of this block. A Personal subscription is
+   * sold to a person, so it asks them for Aadhaar; a driver is asked for
+   * Aadhaar, PAN, Voter ID and a licence before being handed a vehicle. One
+   * person may be both — an owner who drives one of his own cars — and each
+   * requirement is then satisfied on its own subject, on its own row. Neither
+   * stands in for the other, and this is where that is pinned down.
+   */
+  describe('the account holder’s own identity', () => {
+    it('offers a person their own Aadhaar and nothing else', async () => {
+      const response = await request<{ checks: { kind: string; documentType: string }[] }>({
+        method: 'GET',
+        url: `/api/v1/identity/subject/user/${ownerA.id}`,
+        user: ownerA,
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.body.data.checks.map((entry) => entry.kind)).toEqual(['AADHAAR']);
+      // Their own document code, not the driver's.
+      expect(response.body.data.checks[0]?.documentType).toBe('USER_AADHAAR');
+    });
+
+    it('refuses one person the identity checks of another', async () => {
+      // A fleet may verify the drivers it employs, because it answers for who
+      // is driving its vehicles. That does not extend to another person's own
+      // account — not even a colleague in the same organization.
+      const response = await request({
+        method: 'GET',
+        url: `/api/v1/identity/subject/user/${ownerB.id}`,
+        user: ownerA,
+      });
+
+      // 404 rather than 403: another person's account must not be
+      // distinguishable from one that does not exist.
+      expect(response.status).toBe(404);
+    });
+
+    it('refuses to verify a number against somebody else', async () => {
+      const response = await request({
+        method: 'POST',
+        url: '/api/v1/identity/verify',
+        user: ownerA,
+        payload: {
+          kind: 'AADHAAR',
+          subjectType: 'USER',
+          subjectId: ownerB.id,
+          number: VALID_AADHAAR,
+        },
+      });
+
+      expect(response.status).toBe(404);
+      expect(await prisma.identityVerification.count()).toBe(0);
+    });
+
+    it('records a checksum-valid Aadhaar against the person, never the driver', async () => {
+      // The failure this guards is specific and would have been expensive: the
+      // routine that writes a confirmed check used to switch on the document
+      // kind alone, so an Aadhaar on a USER subject would have updated `drivers`
+      // by a *user* id — throwing after the provider had been called.
+      const response = await request<{ outcome: string; maskedNumber: string }>({
+        method: 'POST',
+        url: '/api/v1/identity/verify',
+        user: ownerA,
+        payload: {
+          kind: 'AADHAAR',
+          subjectType: 'USER',
+          subjectId: ownerA.id,
+          number: VALID_AADHAAR,
+        },
+      });
+
+      expect(response.status).toBe(200);
+      // No provider key here, so the checksum stands alone — exactly as it does
+      // for a driver. See the driver case above.
+      expect(response.body.data.outcome).toBe('UNCONFIRMED');
+      expect(response.body.data.maskedNumber).toBe('XXXX XXXX 0124');
+
+      // The row is written against the person.
+      const stored = await prisma.identityVerification.findFirstOrThrow({
+        where: { subjectType: 'USER', subjectId: ownerA.id, kind: 'AADHAAR' },
+      });
+      expect(stored.outcome).toBe('UNCONFIRMED');
+
+      // And an unconfirmed check marks nobody verified.
+      const user = await prisma.user.findUniqueOrThrow({ where: { id: ownerA.id } });
+      expect(user.aadhaarVerifiedAt).toBeNull();
+      expect(user.aadhaarLast4).toBeNull();
+    });
+
+    it('keeps a person’s Aadhaar and their driver Aadhaar as separate facts', async () => {
+      // The case: somebody on Personal who also drives one of his own vehicles.
+      // He is one person with two obligations, and clearing one must not clear
+      // the other.
+      const driverId = await driverIdFor(driverUserA);
+
+      for (const subject of [
+        { subjectType: 'USER', subjectId: driverUserA.id },
+        { subjectType: 'DRIVER', subjectId: driverId },
+      ]) {
+        const response = await request({
+          method: 'POST',
+          url: '/api/v1/identity/verify',
+          user: driverUserA,
+          payload: { kind: 'AADHAAR', number: VALID_AADHAAR, ...subject },
+        });
+        expect(response.status, `${subject.subjectType} check should be accepted`).toBe(200);
+      }
+
+      // Two rows, not one overwriting the other: the table is keyed on
+      // (subjectType, subjectId, kind), so the same card can be held against
+      // the person and against their driver profile at once.
+      const rows = await prisma.identityVerification.findMany({ where: { kind: 'AADHAAR' } });
+      expect(rows).toHaveLength(2);
+      expect(rows.map((row) => row.subjectType).sort()).toEqual(['DRIVER', 'USER']);
+    });
+
+    it('leaves the driver checklist untouched by an account-holder check', async () => {
+      // Verifying the person must not move the four checks that decide whether
+      // a driver may be assigned a vehicle. Those are computed from DRIVER rows
+      // alone, and this proves the account-holder path never reaches them.
+      const driverId = await driverIdFor(driverUserA);
+
+      const response = await request<{ driverChecklist: unknown }>({
+        method: 'POST',
+        url: '/api/v1/identity/verify',
+        user: driverUserA,
+        payload: {
+          kind: 'AADHAAR',
+          subjectType: 'USER',
+          subjectId: driverUserA.id,
+          number: VALID_AADHAAR,
+        },
+      });
+
+      expect(response.status).toBe(200);
+      // No checklist is reported, because this was not a driver check.
+      expect(response.body.data.driverChecklist).toBeNull();
+
+      const driver = await prisma.driver.findUniqueOrThrow({ where: { id: driverId } });
+      expect(driver.aadhaarVerifiedAt).toBeNull();
+      expect(driver.aadhaarLast4).toBeNull();
+    });
+
+    it('refuses a driver’s Aadhaar document as backing for a person’s check', async () => {
+      // The document codes differ — DRIVER_AADHAAR against USER_AADHAAR — so a
+      // scan filed on the driver record cannot be used to mark the account
+      // holder's check verified, or the other way round.
+      const driverId = await driverIdFor(driverUserA);
+
+      const document = await prisma.document.create({
+        data: {
+          ownerType: 'USER',
+          ownerId: driverUserA.id,
+          organizationId: fleetA.id,
+          documentType: 'USER_IDENTITY_PROOF',
+          storageKey: unique('key'),
+          fileName: 'proof.pdf',
+          mimeType: 'application/pdf',
+          fileSize: 1024,
+          uploadedById: driverUserA.id,
+        },
+      });
+
+      const response = await request({
+        method: 'POST',
+        url: '/api/v1/identity/verify',
+        user: driverUserA,
+        payload: {
+          kind: 'AADHAAR',
+          subjectType: 'USER',
+          subjectId: driverUserA.id,
+          number: VALID_AADHAAR,
+          documentId: document.id,
+        },
+      });
+
+      expect(response.status).toBe(400);
+      expect(driverId).toBeTruthy();
     });
   });
 

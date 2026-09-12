@@ -27,11 +27,16 @@ const EASE = [0.16, 1, 0.3, 1] as const;
 
 /** Short names for the badge — the catalogue's own are "Saarthi Personal" etc. */
 const TIER_LABEL: Record<PlanTier, string> = {
+  [PlanTier.FREE]: 'Free',
   [PlanTier.PERSONAL]: 'Personal',
   [PlanTier.BUSINESS]: 'Business',
 };
 
 const TIER_BADGE: Record<PlanTier, 'success' | 'info'> = {
+  // Free shares Personal's tone rather than getting one of its own: the badge
+  // separates "included without paying more" from "the commercial half", and
+  // Free sits squarely on the first side of that line.
+  [PlanTier.FREE]: 'success',
   [PlanTier.PERSONAL]: 'success',
   [PlanTier.BUSINESS]: 'info',
 };

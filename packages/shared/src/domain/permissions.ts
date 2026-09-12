@@ -664,6 +664,20 @@ const ROLE_PERMISSIONS: Record<RoleName, Permission[]> = {
     Permission.TRACKING_READ,
     Permission.NOTIFICATIONS_READ,
     Permission.SUBSCRIPTION_READ,
+    /*
+     * Fuel, food, workshops and emergency points around them.
+     *
+     * Granted because nearby services are one of the three things the Free
+     * plan exists for - alongside location and order tracking - and Free
+     * registers as a CUSTOMER. Without this the plan advertised nearby
+     * services and the API refused them: the feature was in the entitlement
+     * and the permission was not, which is a 403 on the account's main screen.
+     *
+     * It discloses nothing about anybody: these are public places, and the
+     * privacy-aware fleet discovery next to it (NEARBY_TRUCKS) is a different
+     * capability that a customer does not hold.
+     */
+    Permission.NEARBY_READ,
     Permission.TRAVEL_BROWSE,
     Permission.TRAVEL_PACKAGES_READ,
     Permission.BOOKINGS_READ,

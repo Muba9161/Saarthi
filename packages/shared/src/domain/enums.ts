@@ -809,7 +809,14 @@ export type NotificationType = EnumValue<typeof NotificationType>;
 // ---------------------------------------------------------------------------
 
 /**
- * The two subscriptions Saarthi sells.
+ * The three plans Saarthi offers.
+ *
+ * `FREE` is somebody who uses Saarthi without operating a vehicle at all: they
+ * look up what is nearby, post what they need, and follow an order somebody
+ * else is delivering. It costs nothing, and — the part that matters most here —
+ * it never enters the vehicle/tracker ecosystem. A Free account is not asked
+ * how many vehicles it runs, is not sold a tracker, and has no telemetry,
+ * because there is no vehicle for any of that to describe.
  *
  * `PERSONAL` is somebody running their own vehicles — the archetype is an
  * owner with two or three cars, one of which he drives himself. He is never
@@ -818,13 +825,17 @@ export type NotificationType = EnumValue<typeof NotificationType>;
  * `BUSINESS` is every commercial account: a freight fleet, a supplier, a
  * customer buying transport, a travel operator, a district association. The
  * account type is still chosen at registration for these, because several
- * surfaces belong to exactly one kind of business.
+ * surfaces belong to exactly one kind of business — and, since a supplier runs
+ * no vehicles, whether the account touches the vehicle ecosystem at all is
+ * decided by that type rather than by the plan. See `accountRunsVehicles`.
  *
- * Vehicle capacity is deliberately identical (one) on both. Fleet size is
- * bought per vehicle through `VEHICLE_TOPUP`, so an operator pays for the
- * vehicles they actually run rather than for the next size band up.
+ * Vehicle capacity is deliberately identical (one) on Personal and Business.
+ * Fleet size is bought per vehicle through `VEHICLE_TOPUP`, so an operator pays
+ * for the vehicles they actually run rather than for the next size band up.
+ * Free covers none, which is not a paywall but a description.
  */
 export const PlanTier = asEnum({
+  FREE: 'FREE',
   PERSONAL: 'PERSONAL',
   BUSINESS: 'BUSINESS',
 });

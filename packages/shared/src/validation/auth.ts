@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { accountRunsVehicles } from '../domain/entitlements';
 import { OrganizationType, PlanTier, RoleName } from '../domain/enums';
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '../domain/languages';
 import {
@@ -85,9 +86,71 @@ export const DRIVER_JOINABLE_ORGANIZATION_TYPES: readonly OrganizationType[] = [
  */
 export const PERSONAL_PLAN_ROLE = RoleName.FLEET_OWNER;
 
-/** Whether this plan asks the registrant what kind of business they are. */
+/**
+ * The role a Free subscription registers as.
+ *
+ * A Free account is somebody using Saarthi without operating a vehicle: they
+ * look up what is nearby, post what they need and follow an order somebody
+ * else is delivering. That is exactly what CUSTOMER already means here, and
+ * reusing it rather than inventing a seventh role is what lets the Free plan
+ * arrive without a second copy of the buying surface - the customer
+ * navigation, the requirements board, order tracking and the travel booking
+ * flow are all already built against this role.
+ *
+ * The plan and the role stay separate questions, which is section 11 of the
+ * workflow specification: a customer may be Free, Personal or Business. This
+ * only says which role a *Free* registration creates.
+ */
+export const FREE_PLAN_ROLE = RoleName.CUSTOMER;
+
+/**
+ * Whether this plan asks the registrant what kind of business they are.
+ *
+ * Only Business does. Personal is a person with vehicles and Free is a person
+ * with none, and asking either of them to declare themselves a fleet owner, a
+ * supplier or an association was the single most confusing moment on the form.
+ */
 export function planAsksAccountType(tier: PlanTier | undefined): boolean {
   return tier === PlanTier.BUSINESS;
+}
+
+/**
+ * Whether this registration creates one person's seat rather than a business.
+ *
+ * Personal always is. Free is too unless the registrant named a company -
+ * somebody ordering material for a site they are building is an individual,
+ * and a purchasing office at a construction firm is not, and the company name
+ * is the only thing that distinguishes them.
+ *
+ * What hangs off this is `Organization.isPersonalSeat`, which is what keeps
+ * the GSTIN, the registration certificate and the bank mandate out of an
+ * account that was never asked to be a business.
+ */
+export function isIndividualSeatRegistration(input: {
+  planTier?: PlanTier | undefined;
+  organizationName?: string | undefined;
+}): boolean {
+  if (input.planTier === PlanTier.PERSONAL) return true;
+  if (input.planTier === PlanTier.FREE) return !input.organizationName?.trim();
+  return false;
+}
+
+/**
+ * Whether this registration should be asked about vehicles and trackers.
+ *
+ * Delegates to `accountRunsVehicles`, so the form, the schema and the API
+ * cannot disagree about it. A Free registrant is never asked; a Business
+ * registrant is asked only once they have said what kind of business they are,
+ * and only if that kind runs vehicles.
+ */
+export function registrationRunsVehicles(input: {
+  role?: RegistrableRole | undefined;
+  planTier?: PlanTier | undefined;
+}): boolean {
+  return accountRunsVehicles({
+    tier: input.planTier,
+    organizationType: registrationOrganizationType(input),
+  });
 }
 
 /**
@@ -214,15 +277,18 @@ export const registerSchema = z
   .superRefine((value, ctx) => {
     const personal = isPersonalRegistration(value);
     const role = registrationRole(value);
+    const runsVehicles = registrationRunsVehicles(value);
 
     // A Business registration must say what kind of business it is: the choice
     // decides which organization is created, and several surfaces belong to
-    // exactly one kind. A Personal registration is never asked.
-    if (!personal && !value.role) {
+    // exactly one kind. Personal and Free are never asked - a person with
+    // three cars is not a business, and neither is somebody ordering a load of
+    // sand for their own house.
+    if (planAsksAccountType(value.planTier) && !value.role) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['role'],
-        message: 'Choose the kind of account you need.',
+        message: 'Choose the kind of business you run.',
       });
     }
 
@@ -257,6 +323,41 @@ export const registerSchema = z
         path: ['planTrackers'],
         message: 'You cannot order more trackers than vehicles — one tracker covers one vehicle.',
       });
+    }
+
+    /*
+     * An account that runs no vehicle is never sold one, and never sold a
+     * tracker for it.
+     *
+     * This is the rule behind two of the workflow bugs this schema exists to
+     * stop: a Free account being asked how many vehicles it has, and a supplier
+     * being sold a tracker. Neither has anywhere to fit hardware - a supplier
+     * sells material out of a yard and a Free user is not operating anything -
+     * so the order is refused here rather than charged and refunded.
+     *
+     * Checked on the values rather than only hidden in the form, because the
+     * form is not the boundary: these fields arrive over HTTP and a client that
+     * skips the wizard must not be able to buy what the account cannot hold.
+     *
+     * Both fields default rather than being optional, so the test is against
+     * the defaults - one vehicle, no trackers - and not against absence.
+     */
+    if (!runsVehicles && role !== RoleName.DRIVER) {
+      if (value.planVehicles > 1) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['planVehicles'],
+          message: 'This account does not run vehicles, so there are none to add to it.',
+        });
+      }
+      if (value.planTrackers > 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['planTrackers'],
+          message:
+            'A tracker is fitted to a vehicle. This account does not run one, so there is nothing to fit it to.',
+        });
+      }
     }
 
     // Only a Personal account holder drives their own vehicle. On a Business
@@ -309,10 +410,30 @@ export function registrationRole(input: {
 }): RegistrableRole {
   if (input.role) return input.role;
   if (input.planTier === PlanTier.PERSONAL) return PERSONAL_PLAN_ROLE;
-  // Unreachable through the schema, which requires a role for every other
-  // plan. Business is the safe fallback for a caller that bypassed validation:
-  // it creates a commercial organization, which is the conservative answer.
+  if (input.planTier === PlanTier.FREE) return FREE_PLAN_ROLE;
+  // Unreachable through the schema, which requires a role for Business.
+  // FLEET_OWNER is the safe fallback for a caller that bypassed validation: it
+  // creates a commercial organization, which is the conservative answer.
   return RoleName.FLEET_OWNER;
+}
+
+/**
+ * The kind of organization a registration creates.
+ *
+ * Resolved through the role, which is itself resolved from the plan for the two
+ * plans that do not ask - so this one function answers the question for every
+ * registration regardless of how it arrived. Returns `null` for a driver, who
+ * joins somebody else's organization or is seated in a placeholder, and for a
+ * Business registration that has not yet said what kind of business it is.
+ */
+export function registrationOrganizationType(input: {
+  role?: RegistrableRole | undefined;
+  planTier?: PlanTier | undefined;
+}): OrganizationType | null {
+  // Business must choose, and until it has there is no type to report. Saying
+  // FLEET_OWNER here would be how a supplier ends up priced for trucks.
+  if (input.planTier === PlanTier.BUSINESS && !input.role) return null;
+  return ROLE_TO_ORGANIZATION_TYPE[registrationRole(input)] ?? null;
 }
 
 export const loginSchema = z.object({

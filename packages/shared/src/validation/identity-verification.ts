@@ -53,10 +53,18 @@ const verifyBaseSchema = z.object({
  * `linkedPan` is optional and is what turns this from a checksum into a real
  * online verification — see `AADHAAR_ONLINE_LIMITATION`. Without it the answer
  * is honestly reported as unconfirmed rather than dressed up as verified.
+ *
+ * The only kind with two possible subjects, because it is the only document
+ * two different people are asked for in two different capacities: a driver
+ * being cleared to take a vehicle out, and an account holder proving who they
+ * are. The number rules are identical — it is the same card — but the subjects
+ * are not, and neither are the consequences. A confirmed Aadhaar on a USER
+ * subject says nothing about whether that person may drive; the driver checks
+ * are computed from DRIVER rows alone and are untouched by this.
  */
 export const verifyAadhaarSchema = verifyBaseSchema.extend({
   kind: z.literal(IdentityDocumentKind.AADHAAR),
-  subjectType: z.literal(VerificationSubjectType.DRIVER),
+  subjectType: z.enum([VerificationSubjectType.DRIVER, VerificationSubjectType.USER]),
   number: aadhaarNumberSchema,
   linkedPan: panNumberSchema.optional().or(z.literal('').transform(() => undefined)),
 });

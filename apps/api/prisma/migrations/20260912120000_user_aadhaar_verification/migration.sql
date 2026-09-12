@@ -1,0 +1,31 @@
+-- The account holder's own Aadhaar.
+--
+-- A Personal subscription is sold to a person rather than to a business, and
+-- what it asks of them is Aadhaar — not the registration certificate, GSTIN and
+-- bank mandate a business files, and not the four-document set a driver clears
+-- before being allowed to take a vehicle out.
+--
+-- Until now Aadhaar could only be recorded against a `drivers` row, so the only
+-- way for an account holder to verify themselves was to be made a driver. That
+-- would have been wrong twice over: it would have bound a person who does not
+-- drive to a driver profile, and it would have let an account-holder check
+-- stand in for a driver clearance that requires three more documents and a
+-- licence.
+--
+-- So these two columns sit on `users`, exactly mirroring the pair on `drivers`
+-- rather than replacing or reusing them. Somebody who both owns the vehicles
+-- and drives one of them has a row of each, and each is satisfied on its own
+-- terms. Nothing about driver verification changes.
+--
+-- Why the verified state lives here rather than only in
+-- `identity_verifications`: that table is swept on a retention schedule
+-- (IDENTITY_RETENTION_DAYS), which deletes the check, its provider payload and
+-- the encrypted number. The driver and organization rows already keep the
+-- outcome so it survives the sweep; without the same on `users`, a Personal
+-- account would quietly revert to unverified two years after passing.
+--
+-- Purely additive. Both columns are nullable with no default and no backfill:
+-- every existing account is simply "not yet verified", which is the truth.
+ALTER TABLE "users"
+  ADD COLUMN "aadhaarLast4" TEXT,
+  ADD COLUMN "aadhaarVerifiedAt" TIMESTAMP(3);
