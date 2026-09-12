@@ -300,10 +300,36 @@ class QuickLoginStore(context: Context) {
                 init(Cipher.DECRYPT_MODE, key, oaep())
             }
         } catch (error: Exception) {
+            /*
+             * Say so, rather than returning an unexplained null.
+             *
+             * This is the state a driver actually hits: the key is gone or
+             * refuses to initialise — most often because the phone's fingerprint
+             * enrolment changed, which `setInvalidatedByBiometricEnrollment`
+             * deliberately destroys the key for. The slot is switched off here,
+             * correctly. What was missing was telling anybody: the caller got
+             * `null`, showed no prompt and no message, and left the driver
+             * looking at a fingerprint button that did nothing.
+             */
             DebugLog.warn(TAG, "Biometric key unusable: ${error.javaClass.simpleName}")
+            lastBiometricProblem =
+                "Fingerprint unlock is no longer set up on this phone. " +
+                    "Sign in with your password and you can turn it on again."
             disableBiometrics()
             null
         }
+    }
+
+    /**
+     * Take the last biometric problem, once.
+     *
+     * Cleared on read so a message explains the attempt that produced it and
+     * does not resurface later attached to something else.
+     */
+    fun takeBiometricProblem(): String? {
+        val problem = lastBiometricProblem
+        lastBiometricProblem = null
+        return problem
     }
 
     fun unlockWithBiometricCipher(cipher: Cipher): Result<String> {
@@ -416,6 +442,27 @@ class QuickLoginStore(context: Context) {
          * that could only ever fail.
          */
         var biometric = preferences.getString(KEY_BIOMETRIC_TOKEN, null)
+
+        /*
+         * Retire anything sealed by a key that cannot open it.
+         *
+         * The v1 key pair asked for a padding the Keystore would not perform
+         * with the digests it had been given, so it sealed happily and refused
+         * every decrypt. Its presence is the marker: if that alias still exists,
+         * whatever is sealed came from it and is unreadable.
+         *
+         * Cleared here rather than through `disableBiometrics` for the same
+         * reason as below — this runs from the constructor, before `_enabled`
+         * exists.
+         */
+        if (biometric != null && keyExists(BIOMETRIC_KEY_ALIAS_V1)) {
+            DebugLog.debug(TAG, "Retiring a biometric credential sealed by the v1 key")
+            preferences.edit().remove(KEY_BIOMETRIC_TOKEN).apply()
+            deleteKey(BIOMETRIC_KEY_ALIAS_V1)
+            biometric = null
+        }
+        if (keyExists(BIOMETRIC_KEY_ALIAS_V1)) deleteKey(BIOMETRIC_KEY_ALIAS_V1)
+
         if (biometric != null && biometric.contains(SEPARATOR)) {
             DebugLog.debug(TAG, "Retiring a biometric credential sealed by the old scheme")
             /*
@@ -540,7 +587,29 @@ class QuickLoginStore(context: Context) {
             BIOMETRIC_KEY_ALIAS,
             KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT,
         )
-            .setDigests(KeyProperties.DIGEST_SHA256)
+            /*
+             * Both digests, and the second one is the fix.
+             *
+             * OAEP uses two: the message digest, and the one inside MGF1. This
+             * key authorised SHA-256 alone, while the padding below asked for
+             * MGF1-SHA256 — and the Keystore permits only MGF1-SHA1 unless the
+             * MGF1 digest is authorised outright.
+             *
+             * The failure that produced was silent and one-sided. Sealing uses
+             * the *public* half, which is ordinary software RSA and honours any
+             * padding it is handed, so turning fingerprint unlock on appeared to
+             * work and wrote a sealed token. Opening it uses the private half
+             * inside the Keystore, where the restriction is real: `Cipher.init`
+             * was refused before a prompt could even be raised. A driver
+             * enabled the fingerprint, reopened the app, and got no prompt at
+             * all.
+             *
+             * SHA-1 here is the MGF1 digest, not the message digest. MGF1's
+             * security does not rest on collision resistance, so SHA-1 in that
+             * position is not the weakness it would be elsewhere — and it is the
+             * combination Android Keystore has always accepted.
+             */
+            .setDigests(KeyProperties.DIGEST_SHA256, KeyProperties.DIGEST_SHA1)
             .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_RSA_OAEP)
             .setKeySize(2048)
             .setUserAuthenticationRequired(true)
@@ -573,19 +642,34 @@ class QuickLoginStore(context: Context) {
     }
 
     /**
-     * OAEP, spelled out.
+     * OAEP, spelled out — and spelled the way the Keystore will accept.
      *
-     * Android's Keystore reads the digest from the transformation string but
-     * defaults MGF1 to SHA-1 regardless, so an encrypt and a decrypt that look
-     * identical disagree about the padding and the unseal fails. Naming both
-     * explicitly is the long-standing workaround.
+     * Android's Keystore reads the message digest from the transformation
+     * string but assumes MGF1-SHA1 regardless, so the two sides must be named
+     * explicitly or an encrypt and a decrypt that look identical disagree about
+     * the padding.
+     *
+     * MGF1 is SHA-1 rather than SHA-256, and that is not a compromise made for
+     * convenience. A hardware key will only perform a padding it was authorised
+     * for, and MGF1-SHA256 requires authorising the MGF1 digest separately —
+     * something only later platform versions can even express. Asking for it on
+     * a key that cannot do it is how this failed: refused at `Cipher.init`,
+     * before any fingerprint prompt could appear.
+     *
+     * The message digest stays SHA-256. MGF1 is a mask generator, not a
+     * commitment, so SHA-1 in that position carries none of the weakness it
+     * would as a message digest.
      */
     private fun oaep() = OAEPParameterSpec(
         "SHA-256",
         "MGF1",
-        MGF1ParameterSpec.SHA256,
+        MGF1ParameterSpec.SHA1,
         PSource.PSpecified.DEFAULT,
     )
+
+    private fun keyExists(alias: String): Boolean = runCatching {
+        KeyStore.getInstance(KEYSTORE).apply { load(null) }.containsAlias(alias)
+    }.getOrDefault(false)
 
     private fun deleteKey(alias: String) {
         runCatching {
@@ -648,7 +732,20 @@ class QuickLoginStore(context: Context) {
         const val SEPARATOR = ":"
 
         const val PIN_KEY_ALIAS = "saarthi.driver.quicklogin.pin"
-        const val BIOMETRIC_KEY_ALIAS = "saarthi.driver.quicklogin.biometric"
+        /**
+         * Bumped, because the keys before it could seal and never open.
+         *
+         * A key already in the Keystore carries the digests it was created
+         * with, so correcting the padding above does nothing for a driver who
+         * had already switched fingerprint unlock on. A new alias abandons
+         * those keys; `readEnabled` clears the tokens they sealed, so the slot
+         * reads off and the driver is invited to turn it back on rather than
+         * meeting a prompt that cannot work.
+         */
+        const val BIOMETRIC_KEY_ALIAS = "saarthi.driver.quicklogin.biometric.v2"
+
+        /** The alias that could seal and never open. Deleted on sight. */
+        const val BIOMETRIC_KEY_ALIAS_V1 = "saarthi.driver.quicklogin.biometric"
 
         const val KEY_PIN_VERIFIER = "pin_verifier"
         const val KEY_PIN_SALT = "pin_salt"

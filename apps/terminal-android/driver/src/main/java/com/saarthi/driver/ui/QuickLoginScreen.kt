@@ -90,6 +90,29 @@ fun QuickLoginScreen(
     var pin by remember { mutableStateOf("") }
     var biometricTried by remember { mutableStateOf(false) }
 
+    /*
+     * The live state, not the snapshot this screen was opened with.
+     *
+     * `Stage.Locked` carries the methods as they were when the stage was set.
+     * If an unlock attempt then discovers the biometric key is gone and turns
+     * the slot off, that snapshot still says it is on — so the screen kept
+     * offering a fingerprint button that could no longer do anything. Reading
+     * the store's own flow means the offer disappears the moment it stops being
+     * true, and the driver is left looking at the PIN pad instead of at a
+     * control that ignores them.
+     */
+    val live by viewModel.quickLoginMethods.collectAsState()
+    /*
+     * Once the store has spoken, believe it — including when it says nothing is
+     * enabled any more. An earlier version fell back to the snapshot whenever
+     * the live value was empty, which is precisely the case this exists for:
+     * the last method had just been switched off, and the screen went on
+     * offering it.
+     */
+    var heard by remember { mutableStateOf(false) }
+    LaunchedEffect(live) { heard = true }
+    val methods = if (heard) live else methods
+
     val biometricUsable = methods.biometrics && biometricsAvailable(context)
 
     /*
@@ -353,8 +376,24 @@ internal fun biometricsAvailable(context: Context): Boolean =
  * skipping one.
  */
 internal fun promptForBiometric(context: Context, viewModel: DriverViewModel) {
-    val activity = context as? FragmentActivity ?: return
-    val cipher = viewModel.biometricCipher() ?: return
+    val activity = context as? FragmentActivity ?: run {
+        viewModel.reportBiometricUnavailable()
+        return
+    }
+
+    /*
+     * A null cipher is not nothing happening.
+     *
+     * Both of these used to be a bare `return`, and that is the whole of the
+     * "the fingerprint prompt never comes and it is stuck" report: the key had
+     * been invalidated, no dialog could be raised, and the app said nothing at
+     * all. Whatever the cause, the driver must be told and pointed at the PIN
+     * or their password.
+     */
+    val cipher = viewModel.biometricCipher() ?: run {
+        viewModel.reportBiometricUnavailable()
+        return
+    }
 
     val prompt = BiometricPrompt(
         activity,

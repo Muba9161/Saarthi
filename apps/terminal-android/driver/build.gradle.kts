@@ -96,8 +96,12 @@ val saarthiMapStyleUrl: String =
  */
 val releaseStoreFile: String? = setting("releaseStoreFile")
 
-val appVersionCode = 11
-val appVersionName = "1.3.4"
+// Raise the code on every build that leaves this machine. Two builds sharing a
+// code are indistinguishable to Android and to the release pipeline: a phone
+// that installed the first is never offered the second, and the upload endpoint
+// refuses the duplicate rather than replacing it silently.
+val appVersionCode = 12
+val appVersionName = "1.4.0"
 
 android {
     namespace = "com.saarthi.driver"

@@ -330,6 +330,23 @@ class DriverViewModel(application: Application) : AndroidViewModel(application) 
     fun biometricCipher(): Cipher? = quickLogin.biometricCipher()
 
     /**
+     * No prompt could be raised, and the driver is owed an explanation.
+     *
+     * Called when [biometricCipher] comes back null. Before this the caller
+     * simply returned: no fingerprint dialog appeared, no message was shown,
+     * and the screen went on offering a button that could not work — which is
+     * indistinguishable, from the cab, from the app having frozen.
+     *
+     * The store has already switched the slot off by this point, so the live
+     * `quickLoginMethods` will drop the offer on the next recomposition. All
+     * that is left is to say why.
+     */
+    fun reportBiometricUnavailable() {
+        _error.value = quickLogin.takeBiometricProblem()
+            ?: "Fingerprint unlock is not available just now. Use your PIN or password."
+    }
+
+    /**
      * Turn the PIN on, taking custody of the credential.
      *
      * Surrendering the token from the account store is what makes the
