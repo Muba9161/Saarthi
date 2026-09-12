@@ -27,6 +27,7 @@ import { cn } from '@/lib/utils';
 
 export const NAV_SECTIONS = [
   { id: 'platform', label: 'Platform' },
+  { id: 'command', label: 'The loop' },
   { id: 'features', label: 'Features' },
   { id: 'roles', label: 'Who it is for' },
   { id: 'how', label: 'How it works' },

@@ -184,6 +184,23 @@ export default defineConfig(({ mode, command }) => {
             if (/\/node_modules\/(framer-motion|motion-dom|motion-utils)\//.test(normalized)) {
               return 'motion';
             }
+
+            /*
+             * The public site's scroll engine, and only the public site's.
+             *
+             * GSAP and Lenis are reached from `features/marketing/*` alone, so
+             * Rollup would keep them inside the lazy landing chunk without
+             * this rule — which is correct for *what* loads it and wrong for
+             * *when*. The landing chunk changes whenever a word of sales copy
+             * does, and a returning visitor would then re-download the
+             * animation engine along with it. Named here, the engine survives
+             * a copy edit in cache, exactly like `motion` above.
+             *
+             * Nothing behind the sign-in wall imports either package, so this
+             * chunk is never on the app's critical path.
+             */
+            if (/\/node_modules\/(gsap|lenis)\//.test(normalized)) return 'scroll';
+
             return undefined;
           },
         },

@@ -22,6 +22,42 @@ import { cn } from '@/lib/utils';
 const EASE = [0.16, 1, 0.3, 1] as const;
 
 /* -------------------------------------------------------------------------
+ * Environment
+ * ---------------------------------------------------------------------- */
+
+/**
+ * Whether a media query currently matches.
+ *
+ * Used on this page to decide *structure*, not styling — which layout a
+ * section renders, whether a scroll scene is built at all — so it cannot be a
+ * Tailwind breakpoint. CSS can hide a thing; it cannot stop a ScrollTrigger
+ * being created against a 320vh container that has no business existing on a
+ * phone.
+ *
+ * Starts `false` deliberately, so the first render is always the simpler
+ * layout and the richer one is an upgrade. The other way round, every visitor
+ * would build the desktop scene for one frame and immediately tear it down,
+ * which is both wasted work and a visible flash on the devices least able to
+ * absorb either.
+ */
+export function useMediaQuery(query: string): boolean {
+  const [matches, setMatches] = React.useState(false);
+
+  React.useEffect(() => {
+    if (typeof window.matchMedia !== 'function') return undefined;
+
+    const media = window.matchMedia(query);
+    const sync = (): void => setMatches(media.matches);
+
+    sync();
+    media.addEventListener('change', sync);
+    return () => media.removeEventListener('change', sync);
+  }, [query]);
+
+  return matches;
+}
+
+/* -------------------------------------------------------------------------
  * Scroll reveal
  * ---------------------------------------------------------------------- */
 
