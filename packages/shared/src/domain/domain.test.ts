@@ -422,7 +422,14 @@ describe('entitlements', () => {
     expect(tierHasFeature(PlanTier.PERSONAL, Feature.ORDERS_MARKETPLACE)).toBe(false);
     expect(tierHasFeature(PlanTier.PERSONAL, Feature.AI_COPILOT)).toBe(false);
     expect(tierHasFeature(PlanTier.PERSONAL, Feature.RETURN_LOADS)).toBe(false);
-    expect(tierHasFeature(PlanTier.PERSONAL, Feature.DRIVER_SCORING)).toBe(false);
+    // The commercial surface is the marketplace, AI and backhaul — not a
+    // person's own driving record. Personal is the plan whose registration
+    // form offers "I drive one of my vehicles myself", so withholding the
+    // score told that customer his own safety record was not part of his plan.
+    expect(tierHasFeature(PlanTier.PERSONAL, Feature.DRIVER_SCORING)).toBe(true);
+    // What sits on top of it stays Business: a fleet-wide roll-up of how
+    // everybody drives is analysis, not a personal record.
+    expect(tierHasFeature(PlanTier.PERSONAL, Feature.FLEET_ANALYTICS)).toBe(false);
 
     expect(tierHasFeature(PlanTier.BUSINESS, Feature.ORDERS_MARKETPLACE)).toBe(true);
     expect(tierHasFeature(PlanTier.BUSINESS, Feature.AI_COPILOT)).toBe(true);
@@ -465,7 +472,8 @@ describe('entitlements', () => {
     // Still Personal: the SOS network is for somebody out on the road with a
     // vehicle, and Free is the plan for people who are not.
     expect(minimumTierFor(Feature.SOS_NETWORK)).toBe(PlanTier.PERSONAL);
-    expect(minimumTierFor(Feature.DRIVER_SCORING)).toBe(PlanTier.BUSINESS);
+    expect(minimumTierFor(Feature.DRIVER_SCORING)).toBe(PlanTier.PERSONAL);
+    expect(minimumTierFor(Feature.FLEET_ANALYTICS)).toBe(PlanTier.BUSINESS);
     expect(minimumTierFor(Feature.AI_COPILOT)).toBe(PlanTier.BUSINESS);
     expect(minimumTierFor(Feature.SSO)).toBe(PlanTier.BUSINESS);
   });

@@ -218,7 +218,7 @@ export function ResaleMarketplacePage() {
     return (
       <div className="space-y-5">
         <PageHeader title="Vehicle marketplace" />
-        <FeatureLockedState feature="Vehicle resale marketplace" requiredPlan="Pro" />
+        <FeatureLockedState feature="Vehicle resale marketplace" featureKey={Feature.RESALE_MARKETPLACE} />
       </div>
     );
   }

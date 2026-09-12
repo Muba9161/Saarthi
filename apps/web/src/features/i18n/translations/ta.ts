@@ -11,6 +11,7 @@ export const ta: Catalogue = {
   Intelligence: 'நுண்ணறிவு',
   Demo: 'டெமோ',
   Driving: 'ஓட்டுதல்',
+  'My driving': 'எனது ஓட்டுதல்',
   Safety: 'பாதுகாப்பு',
   Platform: 'தளம்',
   Administration: 'நிர்வாகம்',

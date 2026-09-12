@@ -119,7 +119,7 @@ export function FleetLoansPage(): React.ReactElement {
     return (
       <div className="space-y-5">
         <PageHeader title="Loans & EMI" />
-        <FeatureLockedState feature="Loan & EMI tracking" requiredPlan="Basic" />
+        <FeatureLockedState feature="Loan & EMI tracking" featureKey={Feature.FINANCE_LOANS} />
       </div>
     );
   }

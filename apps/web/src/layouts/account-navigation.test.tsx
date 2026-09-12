@@ -45,6 +45,7 @@ const auth = {
     demoMode: true,
   },
   isDriver: true,
+  hasDriverProfile: true,
 };
 
 vi.mock('@/features/auth/auth-context', () => ({
@@ -60,6 +61,7 @@ vi.mock('@/features/auth/auth-context', () => ({
     hasRole: (...roles: string[]) => roles.includes('DRIVER'),
     isPlatformAdmin: false,
     isDriver: auth.isDriver,
+    hasDriverProfile: auth.hasDriverProfile,
   }),
   useSession: () => auth.session,
 }));
@@ -89,6 +91,7 @@ describe('business destinations and personal seats', () => {
   it('keeps business documents away from a driver on a personal seat', () => {
     auth.session.organization.isPersonalSeat = true;
     auth.isDriver = true;
+    auth.hasDriverProfile = true;
 
     const { container, unmount } = renderSidebar();
     expect(destinations(container)).not.toContain('/settings/business-documents');
@@ -98,6 +101,7 @@ describe('business destinations and personal seats', () => {
   it('still gives that driver the rest of their account menu', () => {
     auth.session.organization.isPersonalSeat = true;
     auth.isDriver = true;
+    auth.hasDriverProfile = true;
 
     const { container, unmount } = renderSidebar();
     const targets = destinations(container);
@@ -112,6 +116,7 @@ describe('business destinations and personal seats', () => {
   it('offers business documents once the organization is a real business', () => {
     auth.session.organization.isPersonalSeat = false;
     auth.isDriver = true;
+    auth.hasDriverProfile = true;
 
     const { container, unmount } = renderSidebar();
     expect(destinations(container)).toContain('/settings/business-documents');
@@ -133,6 +138,7 @@ describe('the fleet roster a personal seat is offered', () => {
   it('sends a personal seat to Vehicles and not to Trucks', () => {
     auth.session.organization.isPersonalSeat = true;
     auth.isDriver = false;
+    auth.hasDriverProfile = false;
 
     const { container, unmount } = renderSidebar();
     const targets = destinations(container);
@@ -147,6 +153,7 @@ describe('the fleet roster a personal seat is offered', () => {
   it('leaves a real fleet on Trucks', () => {
     auth.session.organization.isPersonalSeat = false;
     auth.isDriver = false;
+    auth.hasDriverProfile = false;
 
     const { container, unmount } = renderSidebar();
     const targets = destinations(container);
@@ -155,6 +162,76 @@ describe('the fleet roster a personal seat is offered', () => {
     // different names only asks which one is authoritative.
     expect(targets).not.toContain('/fleet/vehicles');
     expect(targets).toContain('/settings/business-documents');
+    unmount();
+  });
+});
+
+/**
+ * The owner who also drives.
+ *
+ * The case: a Personal customer with a car of his own who ticked "I drive one
+ * of my vehicles myself" during registration. That creates a driver profile
+ * against his own user — the feature working as intended — and for a while it
+ * cost him the entire product.
+ *
+ * `isDriver` asked only whether a driver profile existed, so from his first
+ * sign-in the app treated him as somebody's employee: redirected to the driver
+ * app, handed the driver menu, and left with no Vehicles, no Drivers and no
+ * Subscription. He had bought a plan to put his own cars on the road and been
+ * given no way to add one.
+ *
+ * Both halves are pinned here, because fixing either one alone breaks the
+ * other: he keeps the account he owns, *and* he keeps the driving screens he
+ * needs because he drives.
+ */
+describe('a personal owner who also drives', () => {
+  function asOwnerDriver(): void {
+    auth.session.organization.isPersonalSeat = true;
+    auth.session.organization.type = OrganizationType.FLEET_OWNER;
+    // Has a driver profile, but is not an employed driver — his membership
+    // role is FLEET_OWNER, because he owns the vehicles and also drives them.
+    auth.isDriver = false;
+    auth.hasDriverProfile = true;
+  }
+
+  it('keeps the account he owns, including how to add a vehicle and a driver', () => {
+    asOwnerDriver();
+
+    const { container, unmount } = renderSidebar();
+    const targets = destinations(container);
+
+    // The two the bug report named: there was no way to add either.
+    expect(targets).toContain('/fleet/vehicles');
+    expect(targets).toContain('/fleet/drivers');
+    unmount();
+  });
+
+  it('still gives him his own driving screens', () => {
+    asOwnerDriver();
+
+    const { container, unmount } = renderSidebar();
+    const targets = destinations(container);
+
+    // Not taken away by the fix: he drives, so his own trip and his own score
+    // are his.
+    expect(targets).toContain('/driver');
+    expect(targets).toContain('/driver/score');
+    unmount();
+  });
+
+  it('gives an employed driver the driver app and nothing else', () => {
+    // The other side of the same line. Someone whose membership role is DRIVER
+    // is an employee, and the fleet roster is not theirs.
+    auth.session.organization.isPersonalSeat = true;
+    auth.isDriver = true;
+    auth.hasDriverProfile = true;
+
+    const { container, unmount } = renderSidebar();
+    const targets = destinations(container);
+
+    expect(targets).toContain('/driver');
+    expect(targets).not.toContain('/fleet/vehicles');
+    expect(targets).not.toContain('/fleet/drivers');
     unmount();
   });
 });

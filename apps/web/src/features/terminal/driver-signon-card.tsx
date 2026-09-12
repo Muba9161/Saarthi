@@ -156,7 +156,12 @@ export function DriverSignOnCard({
   qrToken?: string;
   registrationNumber: string;
 }): React.ReactElement | null {
-  const { isDriver, can, status: authStatus } = useAuth();
+  /*
+   * `hasDriverProfile`, not `isDriver`: signing on to a vehicle at a terminal is
+   * something the person behind the wheel does, and on a Personal account that
+   * is often the owner himself.
+   */
+  const { hasDriverProfile, can, status: authStatus } = useAuth();
   const queryClient = useQueryClient();
   const fileInput = React.useRef<HTMLInputElement | null>(null);
   const [position, setPosition] = React.useState<GeolocationPosition | null>(null);
@@ -165,18 +170,18 @@ export function DriverSignOnCard({
   // "position not available" rather than failing, because a driver in an
   // underground bay has no fix and still has to start work.
   React.useEffect(() => {
-    if (!isDriver || !navigator.geolocation) return;
+    if (!hasDriverProfile || !navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(
       (fix) => setPosition(fix),
       () => setPosition(null),
       { enableHighAccuracy: true, timeout: 8_000, maximumAge: 30_000 },
     );
-  }, [isDriver]);
+  }, [hasDriverProfile]);
 
   const mine = useQuery({
     queryKey: ['terminal', 'my-session'],
     queryFn: () => api.get<TerminalSessionView | null>('/terminal/assignments/mine'),
-    enabled: authStatus === 'authenticated' && isDriver && can(Permission.TERMINAL_READ),
+    enabled: authStatus === 'authenticated' && hasDriverProfile && can(Permission.TERMINAL_READ),
     refetchInterval: 20_000,
   });
 
@@ -249,7 +254,7 @@ export function DriverSignOnCard({
 
   // Not a driver, not signed in, or no terminal grant — this card is not for
   // them, and the scan result below is complete without it.
-  if (authStatus !== 'authenticated' || !isDriver || !can(Permission.TERMINAL_DRIVE)) {
+  if (authStatus !== 'authenticated' || !hasDriverProfile || !can(Permission.TERMINAL_DRIVE)) {
     return null;
   }
 

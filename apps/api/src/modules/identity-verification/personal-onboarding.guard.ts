@@ -1,4 +1,10 @@
-import { IdentityDocumentKind, PlanTier, VerificationSubjectType } from '@saarthi/shared';
+import {
+  IdentityDocumentKind,
+  OPERATOR_OWNER_ROLES,
+  PlanTier,
+  type RoleName,
+  VerificationSubjectType,
+} from '@saarthi/shared';
 import { prisma } from '../../database/prisma';
 import { errors } from '../../lib/errors';
 import { config } from '../../config/env';
@@ -94,17 +100,42 @@ export async function personalIdentityStanding(
     select: {
       createdAt: true,
       memberships: {
-        where: { status: 'ACTIVE', isPrimary: true },
-        select: { user: { select: { id: true, aadhaarVerifiedAt: true } } },
-        take: 1,
+        where: { status: 'ACTIVE' },
+        select: {
+          role: true,
+          isPrimary: true,
+          user: { select: { id: true, aadhaarVerifiedAt: true } },
+        },
+        // Oldest first, so "who opened this account" has a stable answer.
+        orderBy: { createdAt: 'asc' },
       },
     },
   });
 
-  // No organization, or one with no primary member, is not a state this rule
+  /*
+   * Who the account holder is.
+   *
+   * Asked in that order — an owner-role member, then a primary member, then
+   * simply the first — because each fallback is weaker than the one above it
+   * and the first is what the rule actually means: a Personal subscription is
+   * sold to the person who owns the vehicles.
+   *
+   * Not just "the primary membership", which is what this asked first and got
+   * wrong. A Personal plan seats one person, so in production the two answers
+   * are the same; but nothing in the schema enforces that, and a second member
+   * flagged primary made the check read a colleague's Aadhaar instead of the
+   * owner's — refusing the owner for somebody else's unfinished paperwork.
+   */
+  const members = organization?.memberships ?? [];
+  const holderMembership =
+    members.find((m) => OPERATOR_OWNER_ROLES.includes(m.role as RoleName)) ??
+    members.find((m) => m.isPrimary) ??
+    members[0];
+  const holder = holderMembership?.user;
+
+  // No organization, or one with no members at all, is not a state this rule
   // can say anything useful about — and refusing on it would block an account
   // for a reason its owner cannot act on.
-  const holder = organization?.memberships[0]?.user;
   if (!organization || !holder) return notRequired;
 
   const cutover = config.identity.personalAadhaarRequiredFrom;

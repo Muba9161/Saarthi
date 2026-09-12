@@ -11,6 +11,7 @@ export const ne: Catalogue = {
   Intelligence: 'इन्टेलिजेन्स',
   Demo: 'डेमो',
   Driving: 'ड्राइभिङ',
+  'My driving': 'मेरो ड्राइभिङ',
   Safety: 'सुरक्षा',
   Platform: 'प्लेटफर्म',
   Administration: 'प्रशासन',

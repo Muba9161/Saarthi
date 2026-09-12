@@ -40,7 +40,7 @@ export function SubjectQrPanel({
   });
 
   if (!hasFeature(Feature.QR_IDENTITY)) {
-    return <FeatureLockedState feature="QR identity codes" requiredPlan="Pro" />;
+    return <FeatureLockedState feature="QR identity codes" featureKey={Feature.QR_IDENTITY} />;
   }
 
   return (

@@ -142,7 +142,7 @@ export async function startSimulation(
 
   const truck = await prisma.truck.findUnique({ where: { id: input.truckId } });
   if (!truck || (!auth.isPlatformAdmin && truck.organizationId !== organizationId)) {
-    throw errors.notFound('Truck');
+    throw errors.notFound('Vehicle');
   }
 
   const trip = input.tripId

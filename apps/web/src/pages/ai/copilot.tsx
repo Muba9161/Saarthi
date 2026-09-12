@@ -85,7 +85,7 @@ export function CopilotPage() {
 
   if (!can(Permission.AI_USE)) return <UnauthorizedState />;
   if (!hasFeature(Feature.AI_COPILOT)) {
-    return (<div className="space-y-5"><PageHeader title="AI Fleet Copilot" /><FeatureLockedState feature="AI Fleet Copilot" requiredPlan="Intelligence" /></div>);
+    return (<div className="space-y-5"><PageHeader title="AI Fleet Copilot" /><FeatureLockedState feature="AI Fleet Copilot" featureKey={Feature.AI_COPILOT} /></div>);
   }
 
   return (

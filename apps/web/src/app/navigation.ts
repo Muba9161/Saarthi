@@ -612,6 +612,46 @@ export const DRIVER_NAVIGATION: NavSection[] = [
  * `dashboard.service`. The permissions on each row are the same ones the API
  * enforces, so nothing here can be reached by guessing a URL.
  */
+/**
+ * The driving screens for somebody who drives but is not an employed driver.
+ *
+ * The case this exists for: a Personal customer with three cars, two driven by
+ * the people he employs and one by himself. He is the account holder — he buys
+ * the plan, adds the vehicles, hires the drivers and pays the bill — and he is
+ * also, on Tuesdays, the man behind the wheel.
+ *
+ * Before this, having a driver profile handed him `DRIVER_NAVIGATION` and
+ * nothing else: the app decided he was an employee of his own company. He lost
+ * Vehicles, Drivers, Tracking and Subscription, and had no way to add the very
+ * vehicles the plan was sold to him for. Fixing that by simply not treating him
+ * as a driver would have taken the opposite half away — his own trip, his own
+ * score, his own SOS — which he needs precisely because he drives.
+ *
+ * So this is appended to whatever his account already shows, rather than
+ * replacing it. It is deliberately shorter than `DRIVER_NAVIGATION`: the
+ * entries an owner already has under his own menu are not repeated here.
+ * Documents, Nearby and Trip history all exist on the fleet side against the
+ * whole account, and offering a second, narrower copy of each would only raise
+ * the question of which one to open.
+ */
+export const OWNER_DRIVER_NAVIGATION: NavSection[] = [
+  {
+    title: 'My driving',
+    items: [
+      // His own assignment, not the fleet's dispatch board.
+      { label: 'My trip', to: '/driver', icon: Gauge, end: true },
+      {
+        label: 'Scan a vehicle',
+        to: '/driver/scan',
+        icon: ScanLine,
+        permissions: [Permission.TERMINAL_DRIVE],
+      },
+      { label: 'My score', to: '/driver/score', icon: ShieldCheck },
+      { label: 'My QR badge', to: '/qr', icon: QrCode },
+    ],
+  },
+];
+
 export const SALES_NAVIGATION: NavSection[] = [
   {
     title: 'Sales',

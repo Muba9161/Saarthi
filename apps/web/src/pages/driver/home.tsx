@@ -304,7 +304,7 @@ export function DriverHomePage() {
                 <div className="min-w-0">
                   <p className="text-lg font-semibold">{current.reference}</p>
                   <p className="text-sm text-muted-foreground">
-                    {current.truck?.registrationNumber ?? 'No truck assigned'}
+                    {current.truck?.registrationNumber ?? 'No vehicle assigned'}
                   </p>
                 </div>
                 <StatusBadge status={current.status} />

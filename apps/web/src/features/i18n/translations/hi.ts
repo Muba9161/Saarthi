@@ -11,6 +11,7 @@ export const hi: Catalogue = {
   Intelligence: 'इंटेलिजेंस',
   Demo: 'डेमो',
   Driving: 'ड्राइविंग',
+  'My driving': 'मेरी ड्राइविंग',
   Safety: 'सुरक्षा',
   Platform: 'प्लेटफ़ॉर्म',
   Administration: 'प्रशासन',

@@ -161,7 +161,7 @@ export function DriverDetailPage() {
 
         <TabsContent value="performance">
           {!hasFeature(Feature.DRIVER_SCORING) ? (
-            <FeatureLockedState feature="Driver scoring" requiredPlan="Pro" />
+            <FeatureLockedState feature="Driver scoring" featureKey={Feature.DRIVER_SCORING} />
           ) : score.isLoading ? (
             <LoadingState />
           ) : score.data ? (
@@ -171,7 +171,7 @@ export function DriverDetailPage() {
 
         <TabsContent value="achievements">
           {!hasFeature(Feature.DRIVER_ACHIEVEMENTS) ? (
-            <FeatureLockedState feature="Driver achievements" requiredPlan="Pro" />
+            <FeatureLockedState feature="Driver achievements" featureKey={Feature.DRIVER_ACHIEVEMENTS} />
           ) : (
             <Card>
               <CardHeader className="pb-3">

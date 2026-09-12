@@ -46,11 +46,26 @@ describe('Subscription vehicle capacity', () => {
 
   beforeEach(async () => {
     await resetDatabase();
-    // Basic is the one-vehicle plan, which makes the capacity edge reachable
-    // in a test without creating twenty trucks.
+    // Personal is the one-vehicle plan, which makes the capacity edge reachable
+    // in a test without creating twenty vehicles.
     fleet = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.PERSONAL);
     owner = await createUser({ role: RoleName.FLEET_OWNER, organizationId: fleet.id });
     manager = await createUser({ role: RoleName.FLEET_MANAGER, organizationId: fleet.id });
+
+    /*
+     * Clear the Personal account-holder Aadhaar check.
+     *
+     * Every case in this file is about capacity — how many vehicles a plan
+     * covers, what a top-up adds, what a lapse takes away. A Personal account
+     * now meets an earlier and unrelated gate before any of that: its holder
+     * confirms their own identity before a vehicle goes on the account. Left
+     * unverified, every add below would fail on identity and the capacity rules
+     * would silently go untested.
+     */
+    await prisma.user.update({
+      where: { id: owner.id },
+      data: { aadhaarVerifiedAt: new Date() },
+    });
   });
 
   const truckPayload = (registration: string) => ({

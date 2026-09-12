@@ -318,11 +318,25 @@ describe('Fleet management', () => {
   });
 
   describe('subscription limits', () => {
-    it('stops a Basic plan fleet at its vehicle capacity', async () => {
+    it('stops a Personal plan fleet at its vehicle capacity', async () => {
       const smallFleet = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.PERSONAL);
       const smallOwner = await createUser({
         role: RoleName.FLEET_OWNER,
         organizationId: smallFleet.id,
+      });
+
+      /*
+       * Clear the Personal account-holder check first.
+       *
+       * This test is about capacity, and a Personal account now meets a second,
+       * earlier gate: its holder confirms their own Aadhaar before any vehicle
+       * goes on the account. Leaving it unverified would make every request
+       * below fail for the wrong reason and the capacity rule would go
+       * untested — a green PLAN_LIMIT_REACHED that was never reached.
+       */
+      await prisma.user.update({
+        where: { id: smallOwner.id },
+        data: { aadhaarVerifiedAt: new Date() },
       });
 
       // Derived from the catalogue rather than hard-coded: the plan lineup is
@@ -350,33 +364,69 @@ describe('Fleet management', () => {
       expect(overCapacity.body.error?.code).toBe('PLAN_LIMIT_REACHED');
     });
 
-    it('gates driver scoring behind the subscription plan', async () => {
-      const basicFleet = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.PERSONAL);
-      const basicOwner = await createUser({
+    it('includes driver scoring on Personal, where the owner often drives', async () => {
+      /*
+       * Scoring used to be Business-only, and that was wrong on the one plan
+       * whose registration form offers "I drive one of my vehicles myself": a
+       * customer who bought Personal for his own car, ticked that box and
+       * opened My score was told his own safety record was not part of his
+       * plan. It is his record. It is also how he knows whether the person he
+       * employs to drive his car drives it safely, which the plan covers up to
+       * six of.
+       */
+      const personalFleet = await createOrganization(
+        OrganizationType.FLEET_OWNER,
+        PlanTier.PERSONAL,
+      );
+      const personalOwner = await createUser({
         role: RoleName.FLEET_OWNER,
-        organizationId: basicFleet.id,
+        organizationId: personalFleet.id,
       });
-      const basicDriver = await createUser({
+      const personalDriver = await createUser({
         role: RoleName.DRIVER,
-        organizationId: basicFleet.id,
+        organizationId: personalFleet.id,
         driver: true,
       });
 
-      const denied = await request({
+      const allowedOnPersonal = await request({
         method: 'GET',
-        url: `/api/v1/drivers/${basicDriver.driverId}/score`,
-        user: basicOwner,
+        url: `/api/v1/drivers/${personalDriver.driverId}/score`,
+        user: personalOwner,
       });
-      expect(denied.status).toBe(403);
-      expect(denied.body.error?.code).toBe('FEATURE_NOT_AVAILABLE');
+      expect(allowedOnPersonal.status).toBe(200);
 
-      // The same call succeeds on a plan that includes scoring.
+      // And on Business, which has always had it.
       const allowed = await request({
         method: 'GET',
         url: `/api/v1/drivers/${driverUser.driverId}/score`,
         user: ownerA,
       });
       expect(allowed.status).toBe(200);
+    });
+
+    it('still keeps fleet-wide analytics out of Personal', async () => {
+      /*
+       * The gate moved rather than disappeared. One person's driving record is
+       * theirs; a roll-up of how everybody drives, what the fleet costs and
+       * what it earns is analysis, and that is what Business is for. Asserted
+       * here so that granting the score cannot quietly take the rest with it.
+       */
+      const personalFleet = await createOrganization(
+        OrganizationType.FLEET_OWNER,
+        PlanTier.PERSONAL,
+      );
+      const personalOwner = await createUser({
+        role: RoleName.FLEET_OWNER,
+        organizationId: personalFleet.id,
+      });
+
+      const denied = await request({
+        method: 'GET',
+        url: '/api/v1/analytics/performance',
+        user: personalOwner,
+      });
+      expect(denied.status).toBe(403);
+      expect(denied.body.error?.code).toBe('FEATURE_NOT_AVAILABLE');
     });
   });
 

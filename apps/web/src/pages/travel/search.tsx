@@ -168,7 +168,7 @@ export function TravelSearchPage() {
     return (
       <div className="space-y-5">
         <PageHeader title="Travel" />
-        <FeatureLockedState feature="Travel booking" requiredPlan="Basic" />
+        <FeatureLockedState feature="Travel booking" featureKey={Feature.TRAVEL_BOOKINGS} />
       </div>
     );
   }

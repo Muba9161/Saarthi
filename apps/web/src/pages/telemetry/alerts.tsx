@@ -69,7 +69,7 @@ export function TelemetryAlertsPage() {
     return (
       <div className="space-y-5">
         <PageHeader title="Telemetry alerts" />
-        <FeatureLockedState feature="Hardware telemetry" requiredPlan="Pro" />
+        <FeatureLockedState feature="Hardware telemetry" featureKey={Feature.TELEMETRY_LIVE} />
       </div>
     );
   }

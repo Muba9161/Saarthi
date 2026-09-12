@@ -16,6 +16,7 @@ export const sa: Catalogue = {
   Intelligence: 'प्रज्ञा',
   Demo: 'निदर्शनम्',
   Driving: 'चालनम्',
+  'My driving': 'मम चालनम्',
   Safety: 'सुरक्षा',
   Platform: 'मञ्चः',
   Administration: 'प्रशासनम्',

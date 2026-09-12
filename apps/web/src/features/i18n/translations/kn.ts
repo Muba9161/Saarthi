@@ -11,6 +11,7 @@ export const kn: Catalogue = {
   Intelligence: 'ಇಂಟೆಲಿಜೆನ್ಸ್',
   Demo: 'ಡೆಮೊ',
   Driving: 'ಚಾಲನೆ',
+  'My driving': 'ನನ್ನ ಚಾಲನೆ',
   Safety: 'ಸುರಕ್ಷತೆ',
   Platform: 'ಪ್ಲಾಟ್‌ಫಾರ್ಮ್',
   Administration: 'ಆಡಳಿತ',

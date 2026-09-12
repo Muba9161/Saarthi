@@ -444,7 +444,10 @@ export function VehiclesPage() {
 
       {vehicles.data && vehicles.data.items.length === 0 && !hasFilters ? (
         <EmptyState
-          icon={Truck}
+          // The picture follows the copy: this page already words itself for a
+          // travel operator and for somebody running their own car, and a lorry
+          // drawn above "Add your first vehicle" undid that in one glance.
+          icon={isTravelOperator || isPersonalSeat ? Car : Truck}
           title="No vehicles yet"
           description={
             isTravelOperator

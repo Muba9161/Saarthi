@@ -88,7 +88,7 @@ export function AnalyticsPage() {
     return (
       <div className="space-y-5">
         <PageHeader eyebrow="Intelligence" title="Analytics" />
-        <FeatureLockedState feature="Fleet analytics" requiredPlan="Pro" />
+        <FeatureLockedState feature="Fleet analytics" featureKey={Feature.FLEET_ANALYTICS} />
       </div>
     );
   }
@@ -461,7 +461,7 @@ export function AnalyticsPage() {
 
         <TabsContent value="routes">
           {!hasFeature(Feature.REPORTS_ADVANCED) ? (
-            <FeatureLockedState feature="Route analytics" requiredPlan="Pro" />
+            <FeatureLockedState feature="Route analytics" featureKey={Feature.REPORTS_ADVANCED} />
           ) : (
             <DataTable
               columns={routeColumns}

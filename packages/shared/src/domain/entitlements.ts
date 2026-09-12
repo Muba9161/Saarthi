@@ -405,6 +405,22 @@ const PERSONAL_FEATURES: Feature[] = [
   Feature.FLEET_BASIC,
   Feature.TRIPS_BASIC,
   Feature.DOCUMENTS_BASIC,
+  /*
+   * How safely the vehicle is being driven, and by whom.
+   *
+   * On this plan that is very often the buyer himself — Personal is the plan
+   * with "I drive one of my vehicles myself" on its registration form — and
+   * charging somebody to see their own driving score is not a business Saarthi
+   * should be in. It was withheld until now, so a man who bought Personal for
+   * his own car, ticked that box and opened My score was told his own safety
+   * record was not part of his plan.
+   *
+   * It is equally the answer to the question that actually keeps a small owner
+   * awake: the plan covers up to six drivers, and knowing how the person
+   * driving your car drives it is the same class of fact as knowing where it
+   * is. The deep analytics that sit on top of this stay Business.
+   */
+  Feature.DRIVER_SCORING,
   Feature.MAINTENANCE_BASIC,
   Feature.REPORTS_BASIC,
   Feature.ALERTS_BASIC,

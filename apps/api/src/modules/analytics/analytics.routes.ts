@@ -103,7 +103,7 @@ export async function analyticsRoutes(app: FastifyInstance): Promise<void> {
       const organizationId = requireOrganizationId(request);
       const { id } = parseParams(idParamSchema, request.params);
       const passport = await analyticsService.truckPassport(organizationId, id);
-      if (!passport) throw errors.notFound('Truck');
+      if (!passport) throw errors.notFound('Vehicle');
       return ok(reply, passport);
     },
   );

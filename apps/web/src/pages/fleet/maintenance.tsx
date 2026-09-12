@@ -34,7 +34,7 @@ export function MaintenancePage() {
     return (
       <div className="space-y-5">
         <PageHeader title="Maintenance" />
-        <FeatureLockedState feature="Maintenance tracking" requiredPlan="Pro" />
+        <FeatureLockedState feature="Maintenance tracking" featureKey={Feature.MAINTENANCE_BASIC} />
       </div>
     );
   }

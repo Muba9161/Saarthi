@@ -11,6 +11,7 @@ export const as: Catalogue = {
   Intelligence: 'ইণ্টেলিজেন্স',
   Demo: 'ডেমো',
   Driving: 'ড্ৰাইভিং',
+  'My driving': 'মোৰ ড্ৰাইভিং',
   Safety: 'সুৰক্ষা',
   Platform: 'প্লেটফৰ্ম',
   Administration: 'প্ৰশাসন',

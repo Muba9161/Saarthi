@@ -50,7 +50,7 @@ export function QrCodesPage() {
     return (
       <div className="space-y-5">
         <PageHeader title="QR codes" />
-        <FeatureLockedState feature="QR identity codes" requiredPlan="Pro" />
+        <FeatureLockedState feature="QR identity codes" featureKey={Feature.QR_IDENTITY} />
       </div>
     );
   }

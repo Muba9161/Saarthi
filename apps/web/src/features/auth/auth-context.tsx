@@ -4,7 +4,9 @@ import {
   hasPermission as hasPermissionOf,
   type Feature,
   type Permission,
-  type RoleName,
+  // A value import, not a type-only one: the membership-role comparison below
+  // needs `RoleName.DRIVER` at runtime. The const object carries both.
+  RoleName,
   type SessionPayload,
 } from '@saarthi/shared';
 import { api, setAccessToken, setUnauthenticatedHandler, ApiError } from '@/lib/api-client';
@@ -38,7 +40,36 @@ interface AuthContextValue {
   hasFeature: (feature: Feature) => boolean;
   hasRole: (...roles: RoleName[]) => boolean;
   isPlatformAdmin: boolean;
+  /**
+   * An employed driver, and nothing else.
+   *
+   * NOT the same as "has a driver profile", and the difference is the whole
+   * reason both flags exist. A Personal customer who ticked "I drive one of my
+   * vehicles myself" has a driver profile against his own user — that is the
+   * feature working — but he is the owner: he buys the plan, adds the vehicles,
+   * hires the drivers and pays the bill.
+   *
+   * While this asked only whether a driver profile existed, that man was
+   * redirected to the driver app the moment he signed in and handed the driver
+   * menu: My trip, My score, My QR badge. No Vehicles, no Drivers, no
+   * Subscription. He had paid for a Personal plan and been given the screens of
+   * somebody else's employee, with no way to add the very vehicles the plan was
+   * sold to him for.
+   *
+   * The discriminator is the membership role, which registration already sets
+   * correctly: an owner who drives stays FLEET_OWNER, an employed driver is
+   * DRIVER. The API draws the same line the same way — see `isDriverOnly` in
+   * `telemetry.service.ts`.
+   */
   isDriver: boolean;
+  /**
+   * This person can be assigned to a vehicle and driven.
+   *
+   * True for an employed driver and for an owner who drives his own car. What
+   * it gates is the driving surface — SOS, terminal sign-on, their own trip and
+   * score — none of which depends on who signs the cheque.
+   */
+  hasDriverProfile: boolean;
 }
 
 const AuthContext = React.createContext<AuthContextValue | null>(null);
@@ -192,7 +223,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           (role) => roles.includes(role) || session?.organization?.membershipRole === role,
         ),
       isPlatformAdmin,
-      isDriver: session?.driver !== null && session?.driver !== undefined,
+      /*
+       * Both derived from the same profile, differing only in whether the
+       * person is *also* the account holder. See the interface above.
+       */
+      isDriver:
+        session?.driver != null && session?.organization?.membershipRole === RoleName.DRIVER,
+      hasDriverProfile: session?.driver != null,
     };
   }, [session, status, login, register, logout, refreshSession, switchOrganization, joinFleet]);
 

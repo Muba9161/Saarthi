@@ -76,7 +76,7 @@ export function ProviderPackagesPage() {
     return (
       <div className="space-y-5">
         <PageHeader title="Travel packages" />
-        <FeatureLockedState feature="Travel and tours" requiredPlan="Basic" />
+        <FeatureLockedState feature="Travel and tours" featureKey={Feature.TRAVEL_SERVICES} />
       </div>
     );
   }

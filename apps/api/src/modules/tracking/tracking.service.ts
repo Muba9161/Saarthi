@@ -162,15 +162,15 @@ export async function ingestLocation(
     },
   });
 
-  if (!truck) throw errors.notFound('Truck');
-  if (truck.archivedAt) throw errors.businessRule('This truck is archived and cannot report a position.');
+  if (!truck) throw errors.notFound('Vehicle');
+  if (truck.archivedAt) throw errors.businessRule('This vehicle is archived and cannot report a position.');
 
   // A driver may only post positions for the truck they are driving.
   if (options.auth && !options.auth.isPlatformAdmin) {
     const auth = options.auth;
     const isFleet = auth.organizationId === truck.organizationId;
     const isAssignedDriver = auth.driverId !== null && truck.currentDriverId === auth.driverId;
-    if (!isFleet && !isAssignedDriver) throw errors.notFound('Truck');
+    if (!isFleet && !isAssignedDriver) throw errors.notFound('Vehicle');
   }
 
   const recordedAt = input.timestamp ?? new Date();
@@ -771,7 +771,7 @@ export async function trackingHistory(
     where: { id: truckId },
     select: { organizationId: true, currentDriverId: true },
   });
-  if (!truck) throw errors.notFound('Truck');
+  if (!truck) throw errors.notFound('Vehicle');
 
   if (!auth.isPlatformAdmin) {
     const isFleet = auth.organizationId === truck.organizationId;
@@ -792,7 +792,7 @@ export async function trackingHistory(
             select: { id: true },
           })
         : null;
-      if (!permitted) throw errors.notFound('Truck');
+      if (!permitted) throw errors.notFound('Vehicle');
     }
   }
 

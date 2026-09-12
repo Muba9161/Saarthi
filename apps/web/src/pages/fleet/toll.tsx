@@ -78,7 +78,7 @@ export function TollPage(): React.ReactElement {
     return (
       <div className="space-y-5">
         <PageHeader title="Toll & FASTag" />
-        <FeatureLockedState feature="FASTag & toll tracking" requiredPlan="Basic" />
+        <FeatureLockedState feature="FASTag & toll tracking" featureKey={Feature.TOLL_FASTAG} />
       </div>
     );
   }

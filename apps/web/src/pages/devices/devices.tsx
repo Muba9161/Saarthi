@@ -166,7 +166,7 @@ export function DevicesPage() {
     return (
       <div className="space-y-5">
         <PageHeader title="Devices" />
-        <FeatureLockedState feature="Hardware connectivity" requiredPlan="Pro" />
+        <FeatureLockedState feature="Hardware connectivity" featureKey={Feature.HARDWARE_CONNECTIVITY} />
       </div>
     );
   }

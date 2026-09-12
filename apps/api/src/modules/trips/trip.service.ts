@@ -389,8 +389,8 @@ export async function createTrip(
   input: CreateTripInput,
 ): Promise<TripSummary> {
   const truck = await prisma.truck.findUnique({ where: { id: input.truckId } });
-  if (!truck || truck.organizationId !== organizationId) throw errors.notFound('Truck');
-  if (truck.archivedAt) throw errors.businessRule('This truck is archived.');
+  if (!truck || truck.organizationId !== organizationId) throw errors.notFound('Vehicle');
+  if (truck.archivedAt) throw errors.businessRule('This vehicle is archived.');
   if (!ASSIGNABLE_TRUCK_STATUSES.includes(truck.status as TruckStatus)) {
     throw errors.businessRule(
       `${truck.registrationNumber} is ${truck.status.toLowerCase().replace(/_/g, ' ')} and cannot start a new trip.`,
@@ -413,13 +413,13 @@ export async function createTrip(
       'Closed automatically: the vehicle was dispatched on a new trip.',
     );
     if (!released) {
-      throw errors.conflict('This truck is already on an active trip.');
+      throw errors.conflict('This vehicle is already on an active trip.');
     }
   }
 
   const driverId = input.driverId ?? truck.currentDriverId;
   if (!driverId) {
-    throw errors.businessRule('Assign a driver to this truck before creating a trip.');
+    throw errors.businessRule('Assign a driver to this vehicle before creating a trip.');
   }
 
   const driver = await prisma.driver.findUnique({ where: { id: driverId } });
@@ -504,7 +504,7 @@ export async function createTrip(
         events: {
           create: [
             { type: 'CREATED', description: 'Trip created.' },
-            { type: 'ASSIGNED', description: 'Truck and driver assigned.' },
+            { type: 'ASSIGNED', description: 'Vehicle and driver assigned.' },
           ],
         },
       },
@@ -585,8 +585,8 @@ export async function updateTrip(
     }
 
     const truck = await prisma.truck.findUnique({ where: { id: input.truckId! } });
-    if (!truck || truck.organizationId !== trip.organizationId) throw errors.notFound('Truck');
-    if (truck.archivedAt) throw errors.businessRule('This truck is archived.');
+    if (!truck || truck.organizationId !== trip.organizationId) throw errors.notFound('Vehicle');
+    if (truck.archivedAt) throw errors.businessRule('This vehicle is archived.');
     if (!ASSIGNABLE_TRUCK_STATUSES.includes(truck.status as TruckStatus)) {
       throw errors.businessRule(
         `${truck.registrationNumber} is ${truck.status.toLowerCase().replace(/_/g, ' ')} and cannot take this trip.`,
@@ -599,7 +599,7 @@ export async function updateTrip(
         input.truckId!,
         'Closed automatically: the vehicle was dispatched on a new trip.',
       );
-      if (!released) throw errors.conflict('This truck is already on an active trip.');
+      if (!released) throw errors.conflict('This vehicle is already on an active trip.');
     }
   }
 

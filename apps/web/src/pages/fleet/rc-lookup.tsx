@@ -20,7 +20,7 @@ export function RcLookupPage() {
     return (
       <div className="space-y-5">
         <PageHeader title="Vehicle registration" />
-        <FeatureLockedState feature="Vehicle registration lookup" requiredPlan="Basic" />
+        <FeatureLockedState feature="Vehicle registration lookup" featureKey={Feature.DOCUMENTS_BASIC} />
       </div>
     );
   }

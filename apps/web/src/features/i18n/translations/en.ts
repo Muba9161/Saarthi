@@ -26,6 +26,8 @@ export const en = {
   Intelligence: 'Intelligence',
   Demo: 'Demo',
   Driving: 'Driving',
+  // The section an owner who drives his own vehicle sees beside his account.
+  'My driving': 'My driving',
   Safety: 'Safety',
   Platform: 'Platform',
   Administration: 'Administration',

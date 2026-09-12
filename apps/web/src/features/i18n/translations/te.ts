@@ -11,6 +11,7 @@ export const te: Catalogue = {
   Intelligence: 'ఇంటెలిజెన్స్',
   Demo: 'డెమో',
   Driving: 'డ్రైవింగ్',
+  'My driving': 'నా డ్రైవింగ్',
   Safety: 'భద్రత',
   Platform: 'ప్లాట్‌ఫారమ్',
   Administration: 'పరిపాలన',

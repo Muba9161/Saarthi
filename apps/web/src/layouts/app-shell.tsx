@@ -34,6 +34,7 @@ import { LanguageMenu, useT } from '@/features/i18n';
 import { useRealtime, useRealtimeEvent } from '@/hooks/use-realtime';
 import {
   ACCOUNT_NAVIGATION,
+  OWNER_DRIVER_NAVIGATION,
   ADMIN_NAVIGATION,
   ASSOCIATION_NAVIGATION,
   CUSTOMER_NAVIGATION,
@@ -88,7 +89,14 @@ function navigationFor(
   isDriver: boolean,
   isPlatformAdmin: boolean,
   isSalesman: boolean,
+  /**
+   * The caller can be assigned to a vehicle, whether or not driving is all they
+   * do. True for an employed driver and for a Personal owner who drives one of
+   * his own cars.
+   */
+  hasDriverProfile = false,
 ): NavSection[] {
+  // An employed driver, whose whole product this is.
   if (isDriver) return DRIVER_NAVIGATION;
 
   /*
@@ -120,13 +128,29 @@ function navigationFor(
     }
   })();
 
-  if (!isPlatformAdmin) return base;
+  /*
+   * An owner who also drives gets his own driving screens, beside the account
+   * he owns rather than instead of it.
+   *
+   * This is the other half of the fix in `auth-context`. Sending him to the
+   * driver app took his fleet away; simply not sending him there would have
+   * taken his trip, his score and his QR badge away instead — and he has all
+   * three, because he drives. So the driving section is appended to whatever
+   * his account already shows.
+   *
+   * Guarded on `!isDriver` only for clarity: an employed driver returned above
+   * and never reaches this.
+   */
+  const withDriving =
+    hasDriverProfile && !isDriver ? [...base, ...OWNER_DRIVER_NAVIGATION] : base;
+
+  if (!isPlatformAdmin) return withDriving;
   // A platform admin who also holds SALESMAN gets both, because they genuinely
   // do both — operations staff carrying a GODID is the ordinary arrangement in
   // a small sales team.
   return isSalesman
-    ? [...base, ...SALES_NAVIGATION, ...ADMIN_NAVIGATION]
-    : [...base, ...ADMIN_NAVIGATION];
+    ? [...withDriving, ...SALES_NAVIGATION, ...ADMIN_NAVIGATION]
+    : [...withDriving, ...ADMIN_NAVIGATION];
 }
 
 function useNavBadges(): NavBadges {
@@ -230,7 +254,7 @@ function useVisibleAccountNavigation(): NavItem[] {
 
 /** Navigation the signed-in user can actually reach. */
 function useVisibleNavigation(): NavSection[] {
-  const { session, isDriver, isPlatformAdmin } = useAuth();
+  const { session, isDriver, hasDriverProfile, isPlatformAdmin } = useAuth();
   const isVisible = useNavItemVisible();
 
   const isSalesman = session?.user.roles.includes('SALESMAN' as RoleName) ?? false;
@@ -241,12 +265,13 @@ function useVisibleNavigation(): NavSection[] {
       isDriver,
       isPlatformAdmin,
       isSalesman,
+      hasDriverProfile,
     );
 
     return sections
       .map((section) => ({ ...section, items: section.items.filter(isVisible) }))
       .filter((section) => section.items.length > 0);
-  }, [session, isVisible, isDriver, isPlatformAdmin, isSalesman]);
+  }, [session, isVisible, isDriver, hasDriverProfile, isPlatformAdmin, isSalesman]);
 }
 
 /**
@@ -643,7 +668,7 @@ function ConnectionIndicator() {
 }
 
 function TopBar({ onOpenNav }: { onOpenNav: () => void }) {
-  const { session, logout, isDriver, can, hasFeature } = useAuth();
+  const { session, logout, hasDriverProfile, can, hasFeature } = useAuth();
   const { resolvedTheme, setTheme } = useTheme();
   const navigate = useNavigate();
   const badges = useNavBadges();
@@ -685,7 +710,10 @@ function TopBar({ onOpenNav }: { onOpenNav: () => void }) {
           </Button>
         ) : null}
 
-        {isDriver ? (
+        {/* Whoever is behind the wheel, including an owner driving his own car.
+            An SOS button that appears only for employees would be missing from
+            the screen of the one person most likely to be alone on the road. */}
+        {hasDriverProfile ? (
           <Button
             variant="destructive"
             size="sm"

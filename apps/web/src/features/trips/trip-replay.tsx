@@ -99,7 +99,7 @@ export function TripReplay({ tripId }: { tripId: string }) {
   }, [playing, speed, total]);
 
   if (!hasFeature(Feature.TRACKING_REPLAY)) {
-    return <FeatureLockedState feature="Trip replay" requiredPlan="Pro" />;
+    return <FeatureLockedState feature="Trip replay" featureKey={Feature.TRACKING_REPLAY} />;
   }
   if (replay.isLoading) return <LoadingState label="Loading replay…" />;
   if (replay.error) return <ErrorState error={replay.error} onRetry={() => void replay.refetch()} />;

@@ -90,7 +90,7 @@ export function LiveMapPage() {
     return (
       <div className="space-y-6">
         <PageHeader title="Live map" />
-        <FeatureLockedState feature="Live tracking" requiredPlan="Basic" />
+        <FeatureLockedState feature="Live tracking" featureKey={Feature.TRACKING_LIVE} />
       </div>
     );
   }

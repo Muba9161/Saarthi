@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { AlertTriangle, Inbox, Loader2, Lock, SearchX, ShieldAlert, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { isTrackerFeature, minimumTierFor, type Feature } from '@saarthi/shared';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ApiError, errorMessage } from '@/lib/api-client';
@@ -158,15 +159,38 @@ export function UnauthorizedState({ message }: { message?: string }) {
 }
 
 /** Shown where a feature exists but the tenant's plan does not include it. */
+/**
+ * A capability the current plan does not include.
+ *
+ * The plan name is derived from the feature rather than written at the call
+ * site, and that is a correctness fix rather than a tidy-up. Twenty screens
+ * each carried a hand-typed plan name, and when the four sold tiers collapsed
+ * to Personal and Business those strings stayed behind: customers were being
+ * told to upgrade to Basic, Pro and Intelligence, none of which Saarthi has
+ * sold since. A name that is computed cannot go stale that way.
+ *
+ * `minimumTierFor` also answers `null` for the tracker-only capabilities, which
+ * no plan grants at any price. Telling a Business customer on the top plan to
+ * upgrade would be advice they cannot act on, so that case says what to do
+ * instead — fit a tracker — and points at the hardware rather than at billing.
+ */
 export function FeatureLockedState({
   feature,
-  requiredPlan,
+  featureKey,
   description,
 }: {
+  /** The human name, for the heading. */
   feature: string;
-  requiredPlan?: string | null;
+  /** The catalogue key, which decides the plan named and where the button goes. */
+  featureKey?: Feature;
   description?: string;
 }) {
+  const requiredTier = featureKey ? minimumTierFor(featureKey) : null;
+  const needsTracker = featureKey ? isTrackerFeature(featureKey) : false;
+
+  const requiredPlan = requiredTier
+    ? `${requiredTier.charAt(0)}${requiredTier.slice(1).toLowerCase()}`
+    : null;
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -181,13 +205,18 @@ export function FeatureLockedState({
         <h3 className="text-sm font-semibold">{feature} is not part of your plan</h3>
         <p className="mx-auto max-w-md text-sm text-muted-foreground">
           {description ??
-            (requiredPlan
-              ? `Upgrade to Saarthi ${requiredPlan} to unlock this.`
-              : 'Upgrade your subscription to unlock this feature.')}
+            (needsTracker
+              ? 'This reads the vehicle itself, so it needs a Saarthi tracker fitted. No plan includes it, because without the hardware there is nothing to report.'
+              : requiredPlan
+                ? `Saarthi ${requiredPlan} includes this. Change plan to unlock it.`
+                : 'Your current subscription does not include this capability.')}
         </p>
       </div>
       <Button size="sm" variant="gradient" asChild>
-        <Link to="/settings/subscription">View plans</Link>
+        {/* A tracker is bought from the subscription screen too, but the label
+            has to match the thing being bought — "View plans" against hardware
+            sends somebody looking for a tier that does not exist. */}
+        <Link to="/settings/subscription">{needsTracker ? 'Get a tracker' : 'View plans'}</Link>
       </Button>
     </motion.div>
   );

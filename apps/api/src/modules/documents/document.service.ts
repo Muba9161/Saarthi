@@ -124,11 +124,11 @@ export async function resolveOwner(
 
     case DocumentOwnerType.TRUCK: {
       const truck = await prisma.truck.findUnique({ where: { id: ownerId } });
-      if (!truck) throw errors.notFound('Truck');
+      if (!truck) throw errors.notFound('Vehicle');
       if (!auth.isPlatformAdmin && truck.organizationId !== auth.organizationId) {
         // A driver assigned to the truck may still upload its documents.
         if (!auth.driverId || truck.currentDriverId !== auth.driverId) {
-          throw errors.notFound('Truck');
+          throw errors.notFound('Vehicle');
         }
       }
       return { organizationId: truck.organizationId, label: truck.registrationNumber };

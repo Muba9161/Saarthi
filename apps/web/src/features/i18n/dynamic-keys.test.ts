@@ -7,6 +7,7 @@ import {
   DRIVER_NAVIGATION,
   FLEET_NAVIGATION,
   MOBILITY_NAVIGATION,
+  OWNER_DRIVER_NAVIGATION,
   SUPPLIER_NAVIGATION,
   type NavSection,
 } from '@/app/navigation';
@@ -33,6 +34,7 @@ const MENUS: Record<string, NavSection[]> = {
   ASSOCIATION_NAVIGATION,
   MOBILITY_NAVIGATION,
   DRIVER_NAVIGATION,
+  OWNER_DRIVER_NAVIGATION,
   ADMIN_NAVIGATION,
 };
 
@@ -74,7 +76,7 @@ describe('navigation copy', () => {
     // association, mobility and admin menus are just as reachable and were
     // never checked. Guard the count so a new menu cannot be added without
     // being registered here.
-    expect(Object.keys(MENUS)).toHaveLength(7);
+    expect(Object.keys(MENUS)).toHaveLength(8);
 
     for (const [menu, sections] of Object.entries(MENUS)) {
       expect(sections.length, `${menu} is empty`).toBeGreaterThan(0);

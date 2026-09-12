@@ -198,7 +198,7 @@ export async function listTrucks(
 
 export async function getTruck(auth: AuthContext, truckId: string): Promise<TruckSummary> {
   const truck = await prisma.truck.findUnique({ where: { id: truckId }, include: truckInclude });
-  if (!truck) throw errors.notFound('Truck');
+  if (!truck) throw errors.notFound('Vehicle');
   assertTenantAccess(auth, truck.organizationId, 'Truck');
 
   const health = await documentHealthFor([truck.id]);
@@ -304,7 +304,7 @@ export async function updateTruck(
   input: UpdateTruckInput,
 ): Promise<TruckSummary> {
   const existing = await prisma.truck.findUnique({ where: { id: truckId } });
-  if (!existing) throw errors.notFound('Truck');
+  if (!existing) throw errors.notFound('Vehicle');
   assertTenantAccess(auth, existing.organizationId, 'Truck');
 
   if (input.registrationNumber && input.registrationNumber !== existing.registrationNumber) {
@@ -387,12 +387,12 @@ export async function setTruckStatus(
   reason?: string,
 ): Promise<TruckSummary> {
   const existing = await prisma.truck.findUnique({ where: { id: truckId } });
-  if (!existing) throw errors.notFound('Truck');
+  if (!existing) throw errors.notFound('Vehicle');
   assertTenantAccess(auth, existing.organizationId, 'Truck');
 
   if (existing.currentTripId && status !== TruckStatus.EMERGENCY) {
     throw errors.businessRule(
-      'This truck is on an active trip. Complete or cancel the trip before changing its status manually.',
+      'This vehicle is on an active trip. Complete or cancel the trip before changing its status manually.',
     );
   }
 
@@ -427,11 +427,11 @@ export async function setTruckStatus(
 
 export async function archiveTruck(auth: AuthContext, truckId: string): Promise<void> {
   const truck = await prisma.truck.findUnique({ where: { id: truckId } });
-  if (!truck) throw errors.notFound('Truck');
+  if (!truck) throw errors.notFound('Vehicle');
   assertTenantAccess(auth, truck.organizationId, 'Truck');
 
   if (truck.currentTripId) {
-    throw errors.businessRule('This truck is on an active trip and cannot be archived yet.');
+    throw errors.businessRule('This vehicle is on an active trip and cannot be archived yet.');
   }
 
   await prisma.$transaction([
@@ -458,7 +458,7 @@ export async function archiveTruck(auth: AuthContext, truckId: string): Promise<
 
 export async function restoreTruck(auth: AuthContext, truckId: string): Promise<TruckSummary> {
   const truck = await prisma.truck.findUnique({ where: { id: truckId } });
-  if (!truck) throw errors.notFound('Truck');
+  if (!truck) throw errors.notFound('Vehicle');
   assertTenantAccess(auth, truck.organizationId, 'Truck');
   await assertTruckLimit(auth, truck.organizationId);
 
@@ -488,12 +488,12 @@ export async function assignDriver(
     }),
   ]);
 
-  if (!truck) throw errors.notFound('Truck');
+  if (!truck) throw errors.notFound('Vehicle');
   assertTenantAccess(auth, truck.organizationId, 'Truck');
   if (!driver) throw errors.notFound('Driver');
   assertTenantAccess(auth, driver.organizationId, 'Driver');
 
-  if (truck.archivedAt) throw errors.businessRule('This truck is archived.');
+  if (truck.archivedAt) throw errors.businessRule('This vehicle is archived.');
   if (driver.archivedAt) throw errors.businessRule('This driver is archived.');
   if (!ASSIGNABLE_TRUCK_STATUSES.includes(truck.status as TruckStatus)) {
     throw errors.businessRule(
@@ -502,11 +502,11 @@ export async function assignDriver(
   }
   if (driver.verificationStatus !== VerificationStatus.VERIFIED) {
     throw errors.businessRule(
-      'This driver has not completed verification yet. Verify the driver before assigning a truck.',
+      'This driver has not completed verification yet. Verify the driver before assigning a vehicle.',
     );
   }
   if (driver.currentTruckId && driver.currentTruckId !== truckId) {
-    throw errors.conflict('This driver is already assigned to another truck.');
+    throw errors.conflict('This driver is already assigned to another vehicle.');
   }
 
   const driverName = `${driver.user.firstName} ${driver.user.lastName}`.trim();
@@ -549,14 +549,14 @@ export async function assignDriver(
 
 export async function unassignDriver(auth: AuthContext, truckId: string): Promise<TruckSummary> {
   const truck = await prisma.truck.findUnique({ where: { id: truckId } });
-  if (!truck) throw errors.notFound('Truck');
+  if (!truck) throw errors.notFound('Vehicle');
   assertTenantAccess(auth, truck.organizationId, 'Truck');
 
   if (truck.currentTripId) {
     throw errors.businessRule('Complete or cancel the active trip before unassigning the driver.');
   }
   if (!truck.currentDriverId) {
-    throw errors.businessRule('This truck does not have a driver assigned.');
+    throw errors.businessRule('This vehicle does not have a driver assigned.');
   }
 
   await prisma.$transaction([
@@ -585,7 +585,7 @@ export async function unassignDriver(auth: AuthContext, truckId: string): Promis
 
 export async function truckAssignmentHistory(auth: AuthContext, truckId: string) {
   const truck = await prisma.truck.findUnique({ where: { id: truckId } });
-  if (!truck) throw errors.notFound('Truck');
+  if (!truck) throw errors.notFound('Vehicle');
   assertTenantAccess(auth, truck.organizationId, 'Truck');
 
   const assignments = await prisma.truckAssignment.findMany({
@@ -607,7 +607,7 @@ export async function truckAssignmentHistory(auth: AuthContext, truckId: string)
 
 export async function truckEvents(auth: AuthContext, truckId: string, limit = 50) {
   const truck = await prisma.truck.findUnique({ where: { id: truckId } });
-  if (!truck) throw errors.notFound('Truck');
+  if (!truck) throw errors.notFound('Vehicle');
   assertTenantAccess(auth, truck.organizationId, 'Truck');
 
   const events = await prisma.truckEvent.findMany({

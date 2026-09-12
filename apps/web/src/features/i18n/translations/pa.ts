@@ -11,6 +11,7 @@ export const pa: Catalogue = {
   Intelligence: 'ਇੰਟੈਲੀਜੈਂਸ',
   Demo: 'ਡੈਮੋ',
   Driving: 'ਡਰਾਈਵਿੰਗ',
+  'My driving': 'ਮੇਰੀ ਡਰਾਈਵਿੰਗ',
   Safety: 'ਸੁਰੱਖਿਆ',
   Platform: 'ਪਲੇਟਫਾਰਮ',
   Administration: 'ਪ੍ਰਸ਼ਾਸਨ',

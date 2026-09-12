@@ -80,7 +80,7 @@ async function resolveSubject(
     }
     case VerificationSubjectType.TRUCK: {
       const truck = await prisma.truck.findUnique({ where: { id: subjectId } });
-      if (!truck) throw errors.notFound('Truck');
+      if (!truck) throw errors.notFound('Vehicle');
       enforceTenant(truck.organizationId, 'Truck');
       return {
         organizationId: truck.organizationId,

@@ -19,7 +19,7 @@ export function DriverScorePage() {
 
   if (!driverId) return <EmptyState title="No driver profile" description="This account is not linked to a driver profile." />;
   if (!hasFeature(Feature.DRIVER_SCORING)) {
-    return (<div className="space-y-5"><PageHeader title="My score" /><FeatureLockedState feature="Driver scoring" requiredPlan="Pro" /></div>);
+    return (<div className="space-y-5"><PageHeader title="My score" /><FeatureLockedState feature="Driver scoring" featureKey={Feature.DRIVER_SCORING} /></div>);
   }
 
   return (

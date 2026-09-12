@@ -713,8 +713,8 @@ export async function createQuote(
 
   if (input.truckId) {
     const truck = await prisma.truck.findUnique({ where: { id: input.truckId } });
-    if (!truck || truck.organizationId !== organizationId) throw errors.notFound('Truck');
-    if (truck.archivedAt) throw errors.businessRule('This truck is archived.');
+    if (!truck || truck.organizationId !== organizationId) throw errors.notFound('Vehicle');
+    if (truck.archivedAt) throw errors.businessRule('This vehicle is archived.');
     if (truck.verificationStatus !== VerificationStatus.VERIFIED) {
       throw errors.businessRule(
         'Only verified trucks can be offered on the marketplace. Complete verification first.',
@@ -864,11 +864,11 @@ export async function acceptQuote(
     throw errors.businessRule('This quote has expired. Ask the fleet to re-quote.');
   }
   if (!quote.truckId) {
-    throw errors.businessRule('This quote does not name a truck and cannot be accepted.');
+    throw errors.businessRule('This quote does not name a vehicle and cannot be accepted.');
   }
 
   const truck = await prisma.truck.findUnique({ where: { id: quote.truckId } });
-  if (!truck) throw errors.notFound('Truck');
+  if (!truck) throw errors.notFound('Vehicle');
   if (!ASSIGNABLE_TRUCK_STATUSES.includes(truck.status as TruckStatus)) {
     throw errors.businessRule(
       `${truck.registrationNumber} is no longer available. Ask the fleet to quote another vehicle.`,

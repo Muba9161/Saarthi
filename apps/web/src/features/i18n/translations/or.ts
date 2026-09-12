@@ -11,6 +11,7 @@ export const or: Catalogue = {
   Intelligence: 'ଇଣ୍ଟେଲିଜେନ୍ସ',
   Demo: 'ଡେମୋ',
   Driving: 'ଡ୍ରାଇଭିଂ',
+  'My driving': 'ମୋର ଡ୍ରାଇଭିଂ',
   Safety: 'ସୁରକ୍ଷା',
   Platform: 'ପ୍ଲାଟଫର୍ମ',
   Administration: 'ପ୍ରଶାସନ',

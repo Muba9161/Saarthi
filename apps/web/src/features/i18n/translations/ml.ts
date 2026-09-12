@@ -11,6 +11,7 @@ export const ml: Catalogue = {
   Intelligence: 'ഇന്റലിജൻസ്',
   Demo: 'ഡെമോ',
   Driving: 'ഡ്രൈവിംഗ്',
+  'My driving': 'എന്റെ ഡ്രൈവിംഗ്',
   Safety: 'സുരക്ഷ',
   Platform: 'പ്ലാറ്റ്‌ഫോം',
   Administration: 'ഭരണനിർവഹണം',

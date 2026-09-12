@@ -11,6 +11,7 @@ export const ur: Catalogue = {
   Intelligence: 'انٹیلیجنس',
   Demo: 'ڈیمو',
   Driving: 'ڈرائیونگ',
+  'My driving': 'میری ڈرائیونگ',
   Safety: 'حفاظت',
   Platform: 'پلیٹ فارم',
   Administration: 'انتظامیہ',

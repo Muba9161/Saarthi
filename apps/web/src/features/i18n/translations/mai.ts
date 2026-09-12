@@ -11,6 +11,7 @@ export const mai: Catalogue = {
   Intelligence: 'इंटेलिजेंस',
   Demo: 'डेमो',
   Driving: 'ड्राइविंग',
+  'My driving': 'हमर ड्राइविंग',
   Safety: 'सुरक्षा',
   Platform: 'प्लेटफॉर्म',
   Administration: 'प्रशासन',

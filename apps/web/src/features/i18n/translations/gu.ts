@@ -11,6 +11,7 @@ export const gu: Catalogue = {
   Intelligence: 'ઇન્ટેલિજન્સ',
   Demo: 'ડેમો',
   Driving: 'ડ્રાઇવિંગ',
+  'My driving': 'મારું ડ્રાઇવિંગ',
   Safety: 'સલામતી',
   Platform: 'પ્લેટફોર્મ',
   Administration: 'વહીવટ',

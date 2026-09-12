@@ -11,6 +11,7 @@ export const kok: Catalogue = {
   Intelligence: 'इंटेलिजन्स',
   Demo: 'डेमो',
   Driving: 'ड्रायव्हिंग',
+  'My driving': 'म्हजें ड्रायव्हिंग',
   Safety: 'सुरक्षा',
   Platform: 'प्लॅटफॉर्म',
   Administration: 'प्रशासन',

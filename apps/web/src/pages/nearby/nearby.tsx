@@ -212,7 +212,7 @@ export function NearbyPage() {
     return (
       <div className="space-y-5">
         <PageHeader title="Nearby services" />
-        <FeatureLockedState feature="Nearby services" requiredPlan="Pro" />
+        <FeatureLockedState feature="Nearby services" featureKey={Feature.NEARBY_SERVICES} />
       </div>
     );
   }

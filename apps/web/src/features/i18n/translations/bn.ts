@@ -11,6 +11,7 @@ export const bn: Catalogue = {
   Intelligence: 'ইন্টেলিজেন্স',
   Demo: 'ডেমো',
   Driving: 'ড্রাইভিং',
+  'My driving': 'আমার ড্রাইভিং',
   Safety: 'নিরাপত্তা',
   Platform: 'প্ল্যাটফর্ম',
   Administration: 'প্রশাসন',

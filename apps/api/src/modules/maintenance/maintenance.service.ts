@@ -129,7 +129,7 @@ export async function createMaintenance(
   input: CreateMaintenanceInput,
 ): Promise<MaintenanceSummary> {
   const truck = await prisma.truck.findUnique({ where: { id: input.truckId } });
-  if (!truck) throw errors.notFound('Truck');
+  if (!truck) throw errors.notFound('Vehicle');
   assertTenantAccess(auth, truck.organizationId, 'Truck');
 
   const record = await prisma.maintenanceRecord.create({
@@ -210,7 +210,7 @@ export async function updateMaintenance(
 
 export async function truckMaintenanceHistory(auth: AuthContext, truckId: string) {
   const truck = await prisma.truck.findUnique({ where: { id: truckId } });
-  if (!truck) throw errors.notFound('Truck');
+  if (!truck) throw errors.notFound('Vehicle');
   assertTenantAccess(auth, truck.organizationId, 'Truck');
 
   const records = await prisma.maintenanceRecord.findMany({
@@ -232,7 +232,7 @@ export async function recordFuel(
   input: CreateFuelRecordInput,
 ) {
   const truck = await prisma.truck.findUnique({ where: { id: input.truckId } });
-  if (!truck) throw errors.notFound('Truck');
+  if (!truck) throw errors.notFound('Vehicle');
   assertTenantAccess(auth, truck.organizationId, 'Truck');
 
   const totalCost = Number((input.quantityLitres * input.pricePerUnit).toFixed(2));
