@@ -4,6 +4,7 @@ import { OrganizationType, PlanTier, RoleName } from '../domain/enums';
 import {
   FREE_PLAN_ROLE,
   PERSONAL_PLAN_ROLE,
+  SUPPLIER_PLAN_ROLE,
   isIndividualSeatRegistration,
   planAsksAccountType,
   registerSchema,
@@ -46,10 +47,58 @@ describe('registration plans', () => {
     // Personal and Free never pick an account type, so theirs is implied.
     expect(registrationRole({ planTier: PlanTier.PERSONAL })).toBe(PERSONAL_PLAN_ROLE);
     expect(registrationRole({ planTier: PlanTier.FREE })).toBe(FREE_PLAN_ROLE);
+    expect(registrationRole({ planTier: PlanTier.SUPPLIER })).toBe(SUPPLIER_PLAN_ROLE);
     // Business picks, and what it picked wins.
-    expect(registrationRole({ planTier: PlanTier.BUSINESS, role: RoleName.SUPPLIER })).toBe(
-      RoleName.SUPPLIER,
+    expect(
+      registrationRole({ planTier: PlanTier.BUSINESS, role: RoleName.MOBILITY_PROVIDER }),
+    ).toBe(RoleName.MOBILITY_PROVIDER);
+  });
+
+  it('pairs the Supplier plan with the supplier account type, both ways', () => {
+    const supplier = registerSchema.safeParse(
+      registration({ planTier: PlanTier.SUPPLIER, organizationName: 'Kumar Building Materials' }),
     );
+    expect(supplier.success).toBe(true);
+    expect(registrationOrganizationType({ planTier: PlanTier.SUPPLIER })).toBe(
+      OrganizationType.SUPPLIER,
+    );
+
+    // A supplier is not sold the Business plan...
+    const onBusiness = registerSchema.safeParse(
+      registration({
+        planTier: PlanTier.BUSINESS,
+        role: RoleName.SUPPLIER,
+        organizationName: 'Kumar Building Materials',
+      }),
+    );
+    expect(issuePaths(onBusiness)).toContain('role');
+
+    // ...and nobody else is sold the Supplier plan.
+    const fleetOnSupplier = registerSchema.safeParse(
+      registration({
+        planTier: PlanTier.SUPPLIER,
+        role: RoleName.FLEET_OWNER,
+        organizationName: 'Kumar Roadways',
+      }),
+    );
+    expect(issuePaths(fleetOnSupplier)).toContain('role');
+  });
+
+  it('offers each plan only the account types it is sold to', () => {
+    const accepts = (planTier: PlanTier, role: RoleName) =>
+      !issuePaths(
+        registerSchema.safeParse(
+          registration({ planTier, role, organizationName: 'Sharma Transport Company' }),
+        ),
+      ).includes('role');
+
+    expect(accepts(PlanTier.BUSINESS, RoleName.FLEET_OWNER)).toBe(true);
+    expect(accepts(PlanTier.BUSINESS, RoleName.MOBILITY_PROVIDER)).toBe(true);
+    // A customer is on Free, not on Business.
+    expect(accepts(PlanTier.BUSINESS, RoleName.CUSTOMER)).toBe(false);
+    expect(accepts(PlanTier.FREE, RoleName.CUSTOMER)).toBe(true);
+    expect(accepts(PlanTier.FREE, RoleName.FLEET_OWNER)).toBe(false);
+    expect(accepts(PlanTier.PERSONAL, RoleName.MOBILITY_PROVIDER)).toBe(false);
   });
 
   it('asks only Business what kind of business it is', () => {
@@ -121,12 +170,10 @@ describe('registration plans', () => {
   });
 
   it('refuses to sell a supplier a tracker', () => {
-    // Bug 2. A supplier is a paid Business account that owns no vehicle, so
-    // the plan cannot be what decides this.
+    // Bug 2. A supplier is a paid account that owns no vehicle.
     const result = registerSchema.safeParse(
       registration({
-        planTier: PlanTier.BUSINESS,
-        role: RoleName.SUPPLIER,
+        planTier: PlanTier.SUPPLIER,
         organizationName: 'Kumar Building Materials',
         planVehicles: 4,
         planTrackers: 4,

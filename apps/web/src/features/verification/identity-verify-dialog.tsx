@@ -1,10 +1,12 @@
 import * as React from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { BadgeCheck, Info, ShieldCheck, ShieldX } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   AADHAAR_ONLINE_LIMITATION,
   IdentityDocumentKind,
+  VerificationStepState,
+  checkTypeForIdentityKind,
   identityFormatMessage,
   identityKindDefinition,
   isValidIdentityNumber,
@@ -12,7 +14,8 @@ import {
   normalizeIdentityNumber,
   type IdentityVerificationSummary,
 } from '@saarthi/shared';
-import { api, errorMessage } from '@/lib/api-client';
+import { errorMessage } from '@/lib/api-client';
+import { ConfettiBurst } from '@/components/common/confetti-burst';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -25,6 +28,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { payLabel, usePayAndVerify, usePriceFor, type PayAndVerifyOutcome } from './use-pay-and-verify';
+import { OutcomeAlert } from './verification-step-panel';
 
 /**
  * Verify one identity number against its government source.
@@ -36,6 +41,10 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
  *
  * The number is validated locally before the request is sent, so a typo costs
  * nothing and is reported as a typo rather than as "no record found".
+ *
+ * The check itself goes through Pay & Verify: the verification fee is paid
+ * through Saarthi's checkout first, and the answer shown is the one the server
+ * persisted.
  */
 
 export interface IdentityVerifyTarget {
@@ -71,7 +80,8 @@ export function IdentityVerifyDialog({
   onOpenChange: (open: boolean) => void;
   onVerified?: (summary: IdentityVerificationSummary) => void;
 }) {
-  const queryClient = useQueryClient();
+  const { run } = usePayAndVerify();
+  const price = usePriceFor(target ? checkTypeForIdentityKind(target.kind) : null);
   // Per subject: Aadhaar has an entry for a driver's and one for an account
   // holder's own, and while the number rules are identical the document code
   // and the description are not.
@@ -80,7 +90,7 @@ export function IdentityVerifyDialog({
   const [number, setNumber] = React.useState('');
   const [holderName, setHolderName] = React.useState('');
   const [linkedPan, setLinkedPan] = React.useState('');
-  const [result, setResult] = React.useState<IdentityVerificationSummary | null>(null);
+  const [result, setResult] = React.useState<PayAndVerifyOutcome | null>(null);
 
   // Re-seed whenever a different row opens the dialog, so the Verify button on
   // the PAN row never arrives carrying the Aadhaar number typed a moment ago.
@@ -108,22 +118,17 @@ export function IdentityVerifyDialog({
       if (target.kind === IdentityDocumentKind.AADHAAR && linkedPan.trim()) {
         body.linkedPan = normalizeIdentityNumber(linkedPan);
       }
-      return api.post<IdentityVerificationSummary>('/identity/verify', body);
+      // Every surface the answer changes is refreshed by the hook.
+      return run(body);
     },
-    onSuccess: (summary) => {
-      setResult(summary);
-
-      // Both the document list and the identity view change, and so does the
-      // subject itself — a verified PAN lands on the driver record.
-      void queryClient.invalidateQueries({ queryKey: ['documents'] });
-      void queryClient.invalidateQueries({ queryKey: ['identity'] });
-      void queryClient.invalidateQueries({ queryKey: ['verification'] });
-      void queryClient.invalidateQueries({ queryKey: ['driver'] });
-      void queryClient.invalidateQueries({ queryKey: ['drivers'] });
-      void queryClient.invalidateQueries({ queryKey: ['organization'] });
-      // And the account holder's own profile, where their Aadhaar now shows as
-      // confirmed.
-      void queryClient.invalidateQueries({ queryKey: ['profile'] });
+    onSuccess: (outcome) => {
+      setResult(outcome);
+      const summary = outcome.detail as IdentityVerificationSummary | null;
+      if (!summary) {
+        if (outcome.state !== VerificationStepState.VERIFIED) return;
+        toast.success(`${definition?.label ?? 'Document'} verified`);
+        return;
+      }
 
       if (summary.outcome === 'VERIFIED') {
         toast.success(`${definition?.label ?? 'Document'} verified`, {
@@ -159,7 +164,7 @@ export function IdentityVerifyDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="overflow-hidden">
         <DialogHeader>
           <DialogTitle>Verify {definition.label}</DialogTitle>
           <DialogDescription>
@@ -168,7 +173,17 @@ export function IdentityVerifyDialog({
         </DialogHeader>
 
         {result ? (
-          <IdentityResult summary={result} label={definition.label} />
+          <>
+            {/* Only for a VERIFIED the server just persisted — never a cached one. */}
+            {result.state === VerificationStepState.VERIFIED && result.mode !== 'ALREADY_VERIFIED' ? (
+              <ConfettiBurst />
+            ) : null}
+            {result.detail ? (
+              <IdentityResult summary={result.detail as IdentityVerificationSummary} label={definition.label} />
+            ) : (
+              <OutcomeAlert state={result.state} message={result.message} label={definition.label} />
+            )}
+          </>
         ) : (
           <div className="space-y-4">
             <div className="space-y-1.5">
@@ -249,7 +264,7 @@ export function IdentityVerifyDialog({
         <DialogFooter>
           {result ? (
             <>
-              {result.outcome !== 'VERIFIED' ? (
+              {result.state !== VerificationStepState.VERIFIED ? (
                 <Button variant="outline" onClick={() => setResult(null)}>
                   Try again
                 </Button>
@@ -269,7 +284,7 @@ export function IdentityVerifyDialog({
                 onClick={() => verify.mutate()}
               >
                 <ShieldCheck className="size-4" />
-                Verify now
+                {payLabel(price)}
               </Button>
             </>
           )}

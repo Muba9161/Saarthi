@@ -10,12 +10,20 @@ import {
   Star,
   UserRound,
 } from 'lucide-react';
-import { Permission, RealtimeEvent, formatCurrency, humanizeEnum } from '@saarthi/shared';
+import {
+  Permission,
+  RealtimeEvent,
+  formatCurrency,
+  humanizeEnum,
+  type CheckoutSession,
+} from '@saarthi/shared';
 import { ApiError, api } from '@/lib/api-client';
 import type { BookingDetail, BookingTracking, VehicleSummary } from '@/lib/mobility-types';
 import type { DriverSummary, Paginated } from '@/lib/api-types';
 import { useAuth } from '@/features/auth/auth-context';
 import { useRealtimeEvent } from '@/hooks/use-realtime';
+import { useCheckout, useCheckoutReturn } from '@/features/payments/use-checkout';
+import { BookingFinancePanel } from '@/features/marketplace-finance/booking-finance-panel';
 import { FleetMap, type MapMarkerPoint, type NavigationRoute } from '@/features/maps';
 import { RouteSummary } from '@/features/travel/journey-picker';
 import { PageHeader, SectionHeader } from '@/components/common/page-header';
@@ -105,9 +113,9 @@ export function TravelBookingDetailPage() {
     if (message.payload.bookingId === id) void booking.refetch();
   });
 
-  function invalidate() {
+  const invalidate = React.useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: ['travel'] });
-  }
+  }, [queryClient]);
 
   function onError(error: unknown) {
     setActionError(
@@ -115,11 +123,18 @@ export function TravelBookingDetailPage() {
     );
   }
 
+  const checkout = useCheckout(invalidate);
+  // Back from a hosted checkout that redirected rather than closed.
+  useCheckoutReturn({ onPayment: invalidate });
+
   const pay = useMutation({
-    mutationFn: () => api.post(`/travel/bookings/${id}/pay`, { method: 'MOCK' }),
-    onSuccess: () => {
+    mutationFn: () =>
+      api.post<{ checkout: CheckoutSession | null }>(`/travel/bookings/${id}/pay`, {
+        method: 'MOCK',
+      }),
+    onSuccess: (result) => {
       setActionError(null);
-      invalidate();
+      void checkout.run(result.checkout, 'Payment received - the provider will confirm shortly.');
     },
     onError,
   });
@@ -461,10 +476,13 @@ export function TravelBookingDetailPage() {
                 <span className="text-muted-foreground">{data.priceBreakdown ?? 'Subtotal'}</span>
                 <span>{formatCurrency(data.subtotal)}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Booking fee</span>
-                <span>{formatCurrency(data.platformFee)}</span>
-              </div>
+              {/* Only bookings made before the fee was retired carry one. */}
+              {data.platformFee > 0 ? (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Booking fee</span>
+                  <span>{formatCurrency(data.platformFee)}</span>
+                </div>
+              ) : null}
               <Separator />
               <div className="flex justify-between font-semibold">
                 <span>Total</span>
@@ -485,20 +503,27 @@ export function TravelBookingDetailPage() {
                 <>
                   <Button
                     className="w-full gap-1.5"
-                    loading={pay.isPending}
+                    loading={pay.isPending || checkout.busy}
                     onClick={() => pay.mutate()}
                   >
                     <CreditCard className="h-4 w-4" />
                     Pay {formatCurrency(data.totalAmount)}
                   </Button>
                   <p className="text-2xs text-muted-foreground">
-                    This environment uses a mock gateway - no real money moves, and the reference is
-                    prefixed MOCK so it can never be mistaken for a real settlement.
+                    You pay on the secure payment page - Saarthi never sees your card or UPI
+                    details. The booking moves on once the payment is confirmed.
                   </p>
                 </>
               ) : null}
             </CardContent>
           </Card>
+
+          {isProvider && data.status === 'COMPLETED' && can(Permission.MARKETPLACE_FINANCE_READ) ? (
+            <BookingFinancePanel
+              bookingId={data.id}
+              canRecord={can(Permission.PAYOUT_ACCOUNT_MANAGE)}
+            />
+          ) : null}
 
           <Card>
             <CardHeader className="pb-3">
@@ -746,8 +771,7 @@ export function TravelBookingDetailPage() {
                 </Button>
                 {isCustomer ? (
                   <p className="text-2xs text-muted-foreground">
-                    The refund follows the provider&rsquo;s published cancellation policy. The
-                    booking fee is not refundable on a customer cancellation.
+                    The refund follows the provider&rsquo;s published cancellation policy.
                   </p>
                 ) : null}
               </CardContent>

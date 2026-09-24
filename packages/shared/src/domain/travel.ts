@@ -61,22 +61,8 @@ export interface PriceQuote {
   breakdown: string;
 }
 
-/**
- * Saarthi takes a booking fee on travel rather than folding travel into the
- * fleet subscription — a taxi operator with three cars should not need a fleet
- * plan to sell a tour.
- */
-export const TRAVEL_PLATFORM_FEE_PERCENT = 5;
-export const TRAVEL_PLATFORM_FEE_MIN = 49;
-export const TRAVEL_PLATFORM_FEE_MAX = 2_500;
-
 function round2(value: number): number {
   return Math.round(value * 100) / 100;
-}
-
-export function platformFeeFor(subtotal: number): number {
-  const raw = (subtotal * TRAVEL_PLATFORM_FEE_PERCENT) / 100;
-  return round2(Math.min(TRAVEL_PLATFORM_FEE_MAX, Math.max(TRAVEL_PLATFORM_FEE_MIN, raw)));
 }
 
 /**
@@ -114,8 +100,13 @@ export function quotePackage(input: PackagePricingInput, passengers: number): Pr
   }
 
   subtotal = round2(subtotal);
-  const platformFee = platformFeeFor(subtotal);
-  return { subtotal, platformFee, total: round2(subtotal + platformFee), breakdown };
+  /*
+   * No customer-side fee. Saarthi earns 2% of the provider's profit once the
+   * trip is completed and its costs are recorded — see `profitCommission` in
+   * marketplace-finance. `platformFee` stays zero for bookings made since, and
+   * keeps its value on bookings made under the old 5% fee.
+   */
+  return { subtotal, platformFee: 0, total: subtotal, breakdown };
 }
 
 // ---------------------------------------------------------------------------

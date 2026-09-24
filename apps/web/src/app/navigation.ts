@@ -11,10 +11,15 @@ import {
   Plane,
   Cpu,
   Car,
+  CreditCard,
+  Gift,
+  KeyRound,
+  Lock,
+  Scale,
   BarChart3,
-  Bell,
   Bot,
   Building2,
+  Landmark,
   FileCheck2,
   FileText,
   Gauge,
@@ -35,7 +40,12 @@ import {
   Users,
   Wrench,
 } from 'lucide-react';
-import { Feature, Permission, type RoleName } from '@saarthi/shared';
+import {
+  Feature,
+  Permission,
+  REFERRAL_PROGRAM_EXCLUDED_ROLES,
+  type RoleName,
+} from '@saarthi/shared';
 
 /**
  * Navigation model.
@@ -52,6 +62,8 @@ export interface NavItem {
   permissions?: Permission[];
   feature?: Feature;
   roles?: RoleName[];
+  /** Hidden from anyone holding one of these roles. */
+  excludeRoles?: readonly RoleName[];
   /**
    * Only for an account that acts for an actual business.
    *
@@ -111,11 +123,19 @@ export const FLEET_NAVIGATION: NavSection[] = [
         icon: Route,
         permissions: [Permission.TRIPS_READ],
       },
+      /*
+       * Orders and the bid board are the freight marketplace, and a Personal
+       * account is not in it: it runs its own vehicles, receives no marketplace
+       * payments and has no payout account. It holds the grants only because it
+       * is seated as a fleet owner, so `requiresBusiness` keeps both out of its
+       * menu — the API refuses the provider side the same way.
+       */
       {
         label: 'Orders',
         to: '/orders',
         icon: ShoppingCart,
         permissions: [Permission.ORDERS_READ],
+        requiresBusiness: true,
       },
       {
         // Customer demand across every category this fleet can serve.
@@ -131,6 +151,7 @@ export const FLEET_NAVIGATION: NavSection[] = [
         to: '/requirements/board',
         icon: Gavel,
         permissions: [Permission.REQUIREMENTS_BID],
+        requiresBusiness: true,
       },
     ],
   },
@@ -776,34 +797,107 @@ export const ADMIN_NAVIGATION: NavSection[] = [
   },
 ];
 
-export const ACCOUNT_NAVIGATION: NavItem[] = [
-  { label: 'Notifications', to: '/notifications', icon: Bell, badgeKey: 'notifications' },
-  // Every account type on every plan can complete its own profile, so this
-  // carries no permission or feature requirement.
-  //
-  // This is also where account settings live. There is no separate Settings
-  // destination: everything it held is either a profile section already, or
-  // was moved onto this screen as a step of its own.
-  { label: 'My profile', to: '/settings/profile', icon: UserRoundCog },
-  /*
-   * Business documents and the GST check.
-   *
-   * `DOCUMENTS_READ` alone was never the right gate. A driver holds it — on
-   * purpose, so they can read their own licence, Aadhaar and PAN — so this
-   * asked "do you have documents?" when it meant "are you a business?", and
-   * drivers were offered a screen wanting a registration certificate and a
-   * GSTIN they will never have. The page's own "not acting for a business"
-   * empty state could not save them either: it checked whether an
-   * organization existed, and a driver always has one.
-   *
-   * `requiresBusiness` asks the question that was actually meant.
-   */
+/**
+ * The account menu — everything about the person and their relationship with
+ * Saarthi, as opposed to the work they do in it.
+ *
+ * Rendered in the header's profile menu, at every breakpoint, and nowhere else.
+ * It used to be a second list at the foot of the sidebar as well, which put
+ * account housekeeping in the same column as the operational workflows and
+ * repeated the header's own notification bell. Operational resources — vehicles,
+ * drivers, documents, trips — stay in the sidebar; this is not a place to park
+ * features to shorten it.
+ *
+ * Filtered by exactly the same rules as the sidebar (`useNavItemVisible`).
+ */
+export const ACCOUNT_NAVIGATION: NavSection[] = [
   {
-    label: 'Business documents',
-    to: '/settings/business-documents',
-    icon: Building2,
-    permissions: [Permission.DOCUMENTS_READ],
-    requiresBusiness: true,
+    title: 'Account',
+    items: [
+      // Every account type on every plan can complete its own profile, so this
+      // carries no permission or feature requirement.
+      //
+      // This is also where account settings live. There is no separate Settings
+      // destination: everything it held is either a profile section already, or
+      // was moved onto this screen as a step of its own.
+      { label: 'My profile', to: '/settings/profile', icon: UserRoundCog },
+      { label: 'Verification', to: '/verification', icon: ShieldCheck },
+      /*
+       * Plan, capacity, trackers and payments. The screen existed with no menu
+       * entry at all — reachable only from an upgrade prompt — so somebody
+       * wanting to see what they pay had no way to find it. SUBSCRIPTION_READ is
+       * held by the account holders who have a plan of their own, and by no
+       * employed driver or salesperson.
+       */
+      {
+        label: 'Billing & subscription',
+        to: '/settings/subscription',
+        icon: CreditCard,
+        permissions: [Permission.SUBSCRIPTION_READ],
+      },
+      /*
+       * Refer & Earn. Eligibility is a business rule of the program, not a plan
+       * feature: a Free customer can refer as well as a Business one. A
+       * salesperson refers through their GODID link on the Sales screens
+       * instead, so the two programs never appear side by side.
+       */
+      {
+        label: 'Refer & earn',
+        to: '/referrals',
+        icon: Gift,
+        excludeRoles: REFERRAL_PROGRAM_EXCLUDED_ROLES,
+      },
+    ],
   },
-  { label: 'Verification', to: '/verification', icon: ShieldCheck },
+  {
+    title: 'Business',
+    items: [
+      /*
+       * Business documents and the GST check.
+       *
+       * `DOCUMENTS_READ` alone was never the right gate. A driver holds it — on
+       * purpose, so they can read their own licence, Aadhaar and PAN — so this
+       * asked "do you have documents?" when it meant "are you a business?", and
+       * drivers were offered a screen wanting a registration certificate and a
+       * GSTIN they will never have. The page's own "not acting for a business"
+       * empty state could not save them either: it checked whether an
+       * organization existed, and a driver always has one.
+       *
+       * `requiresBusiness` asks the question that was actually meant.
+       */
+      {
+        label: 'Business documents',
+        to: '/settings/business-documents',
+        icon: Building2,
+        permissions: [Permission.DOCUMENTS_READ],
+        requiresBusiness: true,
+      },
+      /*
+       * The bank account marketplace payments reach, and Saarthi's 2% of profit
+       * on each order. Only the businesses that receive marketplace money —
+       * fleet, mobility provider, supplier — hold the permission.
+       */
+      {
+        label: 'Payouts & commission',
+        to: '/settings/payouts',
+        icon: Landmark,
+        permissions: [Permission.PAYOUT_ACCOUNT_MANAGE],
+        requiresBusiness: true,
+      },
+    ],
+  },
+  {
+    title: 'Security',
+    items: [
+      // The password step of the profile screen, opened directly.
+      { label: 'Change password', to: '/settings/profile?step=security', icon: KeyRound },
+    ],
+  },
+  {
+    title: 'Legal',
+    items: [
+      { label: 'Terms of Service', to: '/terms', icon: Scale },
+      { label: 'Privacy Policy', to: '/privacy', icon: Lock },
+    ],
+  },
 ];

@@ -271,14 +271,16 @@ export interface DemoScriptResponse {
   }[];
   prohibitions: string[];
   pricing: {
-    plans: { tier: string; name: string; priceMonthly: number | null; priceYearly: number | null }[];
-    trackerOneTime: number;
+    /** GST included. */
+    plans: { tier: string; name: string; priceMonthly: number | null }[];
+    /** Base prices, before GST. */
+    trackers: { name: string; priceOneTime: number; price: number }[];
+    /** GST included. */
     vehicleTopUpMonthly: number;
     example: {
       vehicles: number;
       trackers: number;
       tier: string;
-      billing: string;
       monthlyTotal: number;
       oneOffTotal: number;
     };

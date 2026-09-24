@@ -72,13 +72,14 @@ export function JoinFleetCard() {
             <Ticket className="size-5" />
           </div>
           <div className="min-w-0 space-y-1">
-            <p className="font-medium">Join your fleet</p>
+            <p className="font-medium">Join a fleet</p>
             <p className="text-sm text-muted-foreground">
-              Your account is ready, but no fleet has you yet - so there are no trips to show.
-              Ask your truck owner for their Saarthi invite code and enter it here.
+              You are available for work. When a fleet owner takes you on, enter their Saarthi
+              joining code here and you will work under their fleet.
             </p>
             <p className="text-xs text-muted-foreground">
-              Your licence, documents and the SOS button work without one.
+              Your trips, scores and documents stay with you from fleet to fleet. Your licence,
+              documents and the SOS button work without a fleet.
             </p>
           </div>
         </div>

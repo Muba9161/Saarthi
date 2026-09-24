@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
@@ -19,7 +19,13 @@ import {
   User,
   Warehouse,
 } from 'lucide-react';
-import { MediaOwnerType, PlanTier, humanizeEnum } from '@saarthi/shared';
+import {
+  MediaOwnerType,
+  ProfileAudience,
+  humanizeEnum,
+  resolveProfileAudience,
+  verificationRequirementsFor,
+} from '@saarthi/shared';
 import type { ProfileCompletion, ProfileField, ProfileSection } from '@saarthi/shared';
 import { ApiError, api } from '@/lib/api-client';
 import { PageHeader } from '@/components/common/page-header';
@@ -27,7 +33,7 @@ import { ErrorState, LoadingState } from '@/components/common/states';
 import { FormWizard, type WizardStep } from '@/components/common/form-wizard';
 import { useAuth } from '@/features/auth/auth-context';
 import { PhotoUploader } from '@/features/media/photo-uploader';
-import { DocumentPanel } from '@/features/documents/document-panel';
+import { VerificationWizard } from '@/features/verification/verification-wizard';
 import { useLocale } from '@/features/i18n';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -520,6 +526,9 @@ function SecurityStep() {
 export function ProfileBuilderPage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  // `?step=security` and the like — the account menu links to one section.
+  const [searchParams] = useSearchParams();
+  const initialStepId = searchParams.get('step') ?? undefined;
   const { session, refreshSession } = useAuth();
   const { setLocale } = useLocale();
   /** Keyed by section key, then by `sectionKey.fieldKey`. */
@@ -592,51 +601,41 @@ export function ProfileBuilderPage() {
   }));
 
   /*
-   * Proving who holds the account — for a Personal subscription, which is the
-   * plan that asks it.
+   * Proving who holds the account, one number at a time.
    *
-   * A Personal account is sold to a person rather than to a business, so what
-   * it asks for is that person's own Aadhaar: not the registration
-   * certificate, GSTIN and bank mandate a business files, and not the four
-   * documents a driver clears. Those two surfaces exist and are unchanged —
-   * business documents live on their own screen behind `requiresBusiness`, and
-   * a driver's live on the driver record.
+   * The steps come from the account type — Aadhaar and PAN for a Personal
+   * holder; the owner's Aadhaar, the company PAN and GST for a business — and
+   * each asks for its number and checks it with the issuing authority. Nothing
+   * is uploaded: a number an authority confirms says more than a scan of it.
    *
-   * This is deliberately a step here rather than a screen of its own. The
-   * question "who are you" is the same question the rest of this wizard asks,
-   * and a Personal customer has no organization screen to hang it off.
-   *
-   * Not shown on Business, where the account is verified as a business, and not
-   * to a driver, who has no subscription of their own and reaches their
-   * documents from their own home screen.
+   * Not shown to an account type with nothing to verify, and not to a driver,
+   * whose checks live on their own documents screen.
    */
-  const isPersonalPlan = session?.subscription?.planTier === PlanTier.PERSONAL;
+  const audience = resolveProfileAudience({
+    roles: session?.user.roles ?? [],
+    membershipRole: session?.organization?.membershipRole ?? null,
+    organizationType: session?.organization?.type ?? null,
+    isPersonalSeat: session?.organization?.isPersonalSeat ?? null,
+  });
 
-  if (isPersonalPlan && session?.user.id) {
+  if (audience !== ProfileAudience.DRIVER && verificationRequirementsFor(audience).length > 0) {
     steps.push({
       id: 'identity',
       title: 'Your identity',
-      description: 'Aadhaar verification.',
+      description: 'Verify your numbers.',
       icon: ShieldCheck,
       content: (
-        <>
-          <p className="text-sm text-muted-foreground">
-            Your Saarthi Personal account is yours as an individual, so what we need is your own
-            Aadhaar - not business papers. Upload the card and verify the number here. Only the last
-            four digits are kept on your account.
-          </p>
-          {/*
-            If you also drive one of your own vehicles, your driving licence and
-            the rest of a driver's documents are asked for separately on your
-            driver record. Verifying here does not stand in for those, and they
-            do not stand in for this.
-          */}
-          <DocumentPanel
-            ownerType="USER"
-            ownerId={session.user.id}
-            ownerLabel={session.user.fullName}
-          />
-        </>
+        // The profile wizard is one <form>, so Enter in a number field would
+        // submit it and move to the next section mid-entry.
+        <div
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' && event.target instanceof HTMLInputElement) {
+              event.preventDefault();
+            }
+          }}
+        >
+          <VerificationWizard embedded />
+        </div>
       ),
     });
   }
@@ -750,6 +749,11 @@ export function ProfileBuilderPage() {
       />
 
       <FormWizard
+        // Keyed on the requested step so following a section link while already
+        // on this page opens that section. Drafts live on this page, not in the
+        // wizard, so nothing unsaved is lost by it.
+        key={initialStepId ?? 'start'}
+        {...(initialStepId ? { initialStepId } : {})}
         steps={steps}
         title="Your profile"
         description="Each section saves on its own - you can stop and come back."

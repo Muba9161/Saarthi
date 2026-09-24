@@ -75,7 +75,7 @@ describe('Authentication', () => {
           phone: uniquePhone(),
           password: TEST_PASSWORD,
           role: RoleName.CUSTOMER,
-          planTier: PlanTier.BUSINESS,
+          planTier: PlanTier.FREE,
           // No organizationName: somebody booking a cab or ordering a load of
           // sand for their own house has no company to name.
           acceptedTerms: true,
@@ -235,7 +235,7 @@ describe('Authentication', () => {
           phone: uniquePhone(),
           password: TEST_PASSWORD,
           role: RoleName.SUPPLIER,
-          planTier: PlanTier.BUSINESS,
+          planTier: PlanTier.SUPPLIER,
           organizationName: 'Kumar Building Materials',
           planVehicles: 4,
           planTrackers: 4,
@@ -246,7 +246,7 @@ describe('Authentication', () => {
       expect(status).toBe(400);
     });
 
-    it('withholds the fleet and telemetry surface from a supplier on Business', async () => {
+    it('withholds the fleet and telemetry surface from a supplier', async () => {
       const { body } = await request<{ session: SessionPayload }>({
         method: 'POST',
         url: '/api/v1/auth/register',
@@ -257,16 +257,16 @@ describe('Authentication', () => {
           phone: uniquePhone(),
           password: TEST_PASSWORD,
           role: RoleName.SUPPLIER,
-          planTier: PlanTier.BUSINESS,
+          planTier: PlanTier.SUPPLIER,
           organizationName: 'Kumar Building Materials',
           acceptedTerms: true,
         },
       });
 
       const subscription = body.data.session.subscription;
-      // The same Business plan a freight fleet buys, resolved against a
-      // business that owns no vehicle.
-      expect(subscription?.planTier).toBe(PlanTier.BUSINESS);
+      // The Supplier plan: every paid capability, narrowed to a business that
+      // owns no vehicle.
+      expect(subscription?.planTier).toBe(PlanTier.SUPPLIER);
 
       for (const feature of [
         'fleet.basic',
@@ -402,7 +402,7 @@ describe('Authentication', () => {
           phone: uniquePhone(),
           password: TEST_PASSWORD,
           role: RoleName.CUSTOMER,
-          planTier: PlanTier.BUSINESS,
+          planTier: PlanTier.FREE,
           acceptedTerms: true,
         },
       });
@@ -508,7 +508,7 @@ describe('Authentication', () => {
           phone: uniquePhone(),
           password: TEST_PASSWORD,
           role: RoleName.CUSTOMER,
-          planTier: PlanTier.BUSINESS,
+          planTier: PlanTier.FREE,
           organizationName: 'Test Buyer',
           acceptedTerms: true,
         },
@@ -529,7 +529,7 @@ describe('Authentication', () => {
           phone: uniquePhone(),
           password: 'short',
           role: RoleName.CUSTOMER,
-          planTier: PlanTier.BUSINESS,
+          planTier: PlanTier.FREE,
           organizationName: 'Test Buyer',
           acceptedTerms: true,
         },
@@ -548,7 +548,7 @@ describe('Authentication', () => {
         phone: uniquePhone(),
         password: TEST_PASSWORD,
         role: RoleName.CUSTOMER,
-        planTier: PlanTier.BUSINESS,
+        planTier: PlanTier.FREE,
         organizationName: 'Test Buyer',
         acceptedTerms: true,
       };
@@ -586,6 +586,8 @@ describe('Authentication', () => {
 
     it('registers a driver into an existing fleet using its invite code', async () => {
       const fleet = await createOrganization(OrganizationType.FLEET_OWNER);
+      // A fleet somebody runs — an owner-less organization employs nobody.
+      await createUser({ role: RoleName.FLEET_OWNER, organizationId: fleet.id });
 
       const { status, body } = await request<{ session: SessionPayload }>({
         method: 'POST',

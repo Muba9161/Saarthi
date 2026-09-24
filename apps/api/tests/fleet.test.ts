@@ -343,21 +343,29 @@ describe('Fleet management', () => {
       // sold by fleet size and those numbers move, but the rule does not.
       const capacity = PLAN_LIMITS[PlanTier.PERSONAL].maxTrucks ?? 0;
 
+      // Personal runs normal vehicles, never trucks.
+      const car = (registrationNumber: string) => ({
+        registrationNumber,
+        vehicleType: 'CAR',
+        passengerCapacity: 4,
+        fuelType: 'PETROL',
+      });
+
       for (let index = 0; index < capacity; index += 1) {
         const response = await request({
           method: 'POST',
-          url: '/api/v1/trucks',
+          url: '/api/v1/fleet/vehicles',
           user: smallOwner,
-          payload: truckPayload({ registrationNumber: `MH12AA10${index}0` }),
+          payload: car(`MH12AA10${index}0`),
         });
         expect(response.status).toBe(201);
       }
 
       const overCapacity = await request({
         method: 'POST',
-        url: '/api/v1/trucks',
+        url: '/api/v1/fleet/vehicles',
         user: smallOwner,
-        payload: truckPayload({ registrationNumber: 'MH12AA9999' }),
+        payload: car('MH12AA9999'),
       });
 
       expect(overCapacity.status).toBe(403);
@@ -404,12 +412,11 @@ describe('Fleet management', () => {
       expect(allowed.status).toBe(200);
     });
 
-    it('still keeps fleet-wide analytics out of Personal', async () => {
+    it('gives Personal the same analytics as Business — a plan is not a feature ladder', async () => {
       /*
-       * The gate moved rather than disappeared. One person's driving record is
-       * theirs; a roll-up of how everybody drives, what the fleet costs and
-       * what it earns is analysis, and that is what Business is for. Asserted
-       * here so that granting the score cannot quietly take the rest with it.
+       * A cheaper plan does not withhold capability. What differs between
+       * Personal and Business is commercial — price and quantities — so the
+       * fleet analytics a Business owner reads are open to a Personal one too.
        */
       const personalFleet = await createOrganization(
         OrganizationType.FLEET_OWNER,
@@ -420,13 +427,12 @@ describe('Fleet management', () => {
         organizationId: personalFleet.id,
       });
 
-      const denied = await request({
+      const allowed = await request({
         method: 'GET',
         url: '/api/v1/analytics/performance',
         user: personalOwner,
       });
-      expect(denied.status).toBe(403);
-      expect(denied.body.error?.code).toBe('FEATURE_NOT_AVAILABLE');
+      expect(allowed.status).toBe(200);
     });
   });
 

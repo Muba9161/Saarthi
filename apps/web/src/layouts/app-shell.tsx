@@ -5,16 +5,21 @@ import {
   Bell,
   Store,
   Building2,
+  Car,
   ChevronsUpDown,
+  IdCard,
   LifeBuoy,
-  LogOut,
   Menu,
   Moon,
   PanelLeftClose,
   PanelLeftOpen,
   Radio,
+  ShieldCheck,
+  ShoppingBag,
   Sun,
-  User as UserIcon,
+  Truck,
+  UserRound,
+  Users,
   Wifi,
   WifiOff,
 } from 'lucide-react';
@@ -22,7 +27,9 @@ import {
   Feature,
   OrganizationType,
   Permission,
+  ProfileAudience,
   RealtimeEvent,
+  resolveProfileAudience,
   type RoleName,
 } from '@saarthi/shared';
 import { toast } from 'sonner';
@@ -33,7 +40,6 @@ import { useTheme } from '@/features/theme/theme-context';
 import { LanguageMenu, useT } from '@/features/i18n';
 import { useRealtime, useRealtimeEvent } from '@/hooks/use-realtime';
 import {
-  ACCOUNT_NAVIGATION,
   OWNER_DRIVER_NAVIGATION,
   ADMIN_NAVIGATION,
   ASSOCIATION_NAVIGATION,
@@ -48,8 +54,6 @@ import {
 } from '@/app/navigation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { MediaImage } from '@/features/media/media-image';
 import { Separator } from '@/components/ui/separator';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -61,9 +65,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { AccountMenu } from './account-menu';
+import { filterSections, useNavItemVisible } from './use-nav-visibility';
 import { LoadingState } from '@/components/common/states';
 import { SaarthiLogo } from '@/components/common/logo';
 import { AnimatePresence, PageTransition, motion } from '@/components/motion';
+import { FleetWelcomeDialog } from '@/features/fleet/fleet-welcome-dialog';
+import { ArchivedAccountScreen } from '@/features/subscriptions/archived-account-screen';
+import { BillingBanner } from '@/features/subscriptions/billing-banner';
 
 /**
  * The signed-in shell.
@@ -206,52 +215,6 @@ function useNavBadges(): NavBadges {
   };
 }
 
-/**
- * Whether one navigation entry belongs in this user's menu.
- *
- * Extracted so the account block at the foot of the sidebar runs through the
- * same rules as the sections above it. It did not: `ACCOUNT_NAVIGATION` was
- * rendered straight from the array, so the `permissions` its entries declared
- * were never evaluated and every account saw all four regardless.
- */
-function useNavItemVisible(): (item: NavItem) => boolean {
-  const { session, can, hasFeature } = useAuth();
-
-  return React.useCallback(
-    (item: NavItem) => {
-      if (item.permissions && !can(...item.permissions)) return false;
-      if (item.feature && !hasFeature(item.feature)) return false;
-      if (
-        item.roles &&
-        !item.roles.some((role) => session?.user.roles.includes(role as RoleName))
-      ) {
-        return false;
-      }
-      /*
-       * A personal seat is an organization, but not a business. Asking
-       * `session.organization !== null` here would let every driver through,
-       * because registration gives them one named after themselves.
-       */
-      if (item.requiresBusiness) {
-        const organization = session?.organization;
-        if (!organization || organization.isPersonalSeat) return false;
-      }
-      // And its mirror: an entry worded for one person is not for a business.
-      if (item.personalOnly && !session?.organization?.isPersonalSeat) return false;
-      // Simulator controls only exist while the server has demo mode on.
-      if (item.to === '/simulator' && !session?.demoMode) return false;
-      return true;
-    },
-    [session, can, hasFeature],
-  );
-}
-
-/** The account block at the foot of the sidebar, filtered like everything else. */
-function useVisibleAccountNavigation(): NavItem[] {
-  const isVisible = useNavItemVisible();
-  return React.useMemo(() => ACCOUNT_NAVIGATION.filter(isVisible), [isVisible]);
-}
-
 /** Navigation the signed-in user can actually reach. */
 function useVisibleNavigation(): NavSection[] {
   const { session, isDriver, hasDriverProfile, isPlatformAdmin } = useAuth();
@@ -268,9 +231,7 @@ function useVisibleNavigation(): NavSection[] {
       hasDriverProfile,
     );
 
-    return sections
-      .map((section) => ({ ...section, items: section.items.filter(isVisible) }))
-      .filter((section) => section.items.length > 0);
+    return filterSections(sections, isVisible);
   }, [session, isVisible, isDriver, hasDriverProfile, isPlatformAdmin, isSalesman]);
 }
 
@@ -290,10 +251,9 @@ function useVisibleNavigation(): NavSection[] {
 function useActiveNavPath(): string | null {
   const { pathname } = useLocation();
   const sections = useVisibleNavigation();
-  const accountItems = useVisibleAccountNavigation();
 
   return React.useMemo(() => {
-    const candidates = [...sections.flatMap((section) => section.items), ...accountItems];
+    const candidates = sections.flatMap((section) => section.items);
 
     let best: string | null = null;
     for (const { to, end, alsoMatches } of candidates) {
@@ -307,7 +267,7 @@ function useActiveNavPath(): string | null {
       if (matches && (best === null || to.length > best.length)) best = to;
     }
     return best;
-  }, [pathname, sections, accountItems]);
+  }, [pathname, sections]);
 }
 
 function NavLinkItem({
@@ -444,7 +404,6 @@ export function SidebarContent({
   const { session } = useAuth();
   const badges = useNavBadges();
   const sections = useVisibleNavigation();
-  const accountItems = useVisibleAccountNavigation();
   const activePath = useActiveNavPath();
   const t = useT();
 
@@ -510,21 +469,8 @@ export function SidebarContent({
             ))}
           </div>
         ))}
-
-        <Separator className="bg-sidebar-border" />
-
-        <div className="space-y-1">
-          {accountItems.map((item) => (
-            <NavLinkItem
-              key={item.to}
-              item={item}
-              badges={badges}
-              isActive={activePath === item.to}
-              {...(collapsed ? { collapsed } : {})}
-              {...(onNavigate ? { onNavigate } : {})}
-            />
-          ))}
-        </div>
+        {/* No account block here: account destinations live in the profile
+            menu in the top bar, which is visible at every breakpoint. */}
       </nav>
 
       {collapsed && onToggleCollapse ? (
@@ -569,6 +515,21 @@ function PlanFooter() {
   );
 }
 
+/**
+ * The icon beside the account name, by what the account is rather than a
+ * building for everybody: a Personal holder is a person, not a company.
+ */
+const ACCOUNT_ICON: Record<ProfileAudience, React.ComponentType<{ className?: string }>> = {
+  [ProfileAudience.PERSONAL]: UserRound,
+  [ProfileAudience.DRIVER]: IdCard,
+  [ProfileAudience.FLEET]: Truck,
+  [ProfileAudience.MOBILITY]: Car,
+  [ProfileAudience.SUPPLIER]: Store,
+  [ProfileAudience.CUSTOMER]: ShoppingBag,
+  [ProfileAudience.ASSOCIATION]: Users,
+  [ProfileAudience.PLATFORM]: ShieldCheck,
+};
+
 function OrganizationSwitcher() {
   const { session, switchOrganization } = useAuth();
   const queryClient = useQueryClient();
@@ -578,10 +539,20 @@ function OrganizationSwitcher() {
 
   if (!session?.organization) return null;
 
+  const AccountIcon =
+    ACCOUNT_ICON[
+      resolveProfileAudience({
+        roles: session.user.roles,
+        membershipRole: session.organization.membershipRole,
+        organizationType: session.organization.type,
+        isPersonalSeat: session.organization.isPersonalSeat,
+      })
+    ] ?? Building2;
+
   if (organizations.length <= 1) {
     return (
       <div className="hidden min-w-0 items-center gap-2 sm:flex">
-        <Building2 className="size-4 shrink-0 text-muted-foreground" />
+        <AccountIcon className="size-4 shrink-0 text-muted-foreground" />
         <span className="truncate text-sm font-medium">{session.organization.name}</span>
       </div>
     );
@@ -611,7 +582,7 @@ function OrganizationSwitcher() {
           className="min-w-0 max-w-40 gap-2 sm:max-w-56"
           disabled={switching}
         >
-          <Building2 className="size-4 shrink-0" />
+          <AccountIcon className="size-4 shrink-0" />
           <span className="truncate">{session.organization.name}</span>
           <ChevronsUpDown className="size-3.5 shrink-0 opacity-60" />
         </Button>
@@ -668,12 +639,11 @@ function ConnectionIndicator() {
 }
 
 function TopBar({ onOpenNav }: { onOpenNav: () => void }) {
-  const { session, logout, hasDriverProfile, can, hasFeature } = useAuth();
+  const { hasDriverProfile, can, hasFeature } = useAuth();
   const { resolvedTheme, setTheme } = useTheme();
   const navigate = useNavigate();
   const badges = useNavBadges();
   const t = useT();
-  const user = session?.user;
 
   return (
     <header className="glass sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 rounded-none px-4 shadow-none ring-0 sm:px-6">
@@ -763,49 +733,7 @@ function TopBar({ onOpenNav }: { onOpenNav: () => void }) {
           </AnimatePresence>
         </Button>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="rounded-full"
-              aria-label={t('Account menu')}
-            >
-              {/* The photograph is media like any other: fetched with the
-                  session token rather than referenced by address, so it cannot
-                  be an `<img src>`. No `variant` is asked for here — the URL
-                  mirrored onto the user already names the rendition it wants. */}
-              <Avatar className="size-8 ring-1 ring-border">
-                <MediaImage
-                  source={user?.avatarUrl}
-                  alt={user?.fullName ?? t('Your profile photo')}
-                  className="aspect-square size-full object-cover"
-                  fallback={
-                    <AvatarFallback>
-                      <UserIcon className="size-4" aria-hidden />
-                    </AvatarFallback>
-                  }
-                />
-              </Avatar>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-60">
-            <div className="px-2 py-1.5">
-              <p className="truncate text-sm font-medium">{user?.fullName}</p>
-              <p className="truncate text-xs text-muted-foreground">{user?.email}</p>
-            </div>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={() => navigate('/settings/profile')}>
-              <UserIcon className="size-4" />
-              {t('Profile & settings')}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem destructive onSelect={() => void logout()}>
-              <LogOut className="size-4" />
-              {t('Sign out')}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <AccountMenu />
       </div>
     </header>
   );
@@ -897,7 +825,9 @@ function CriticalAlerts() {
 }
 
 export function AppShell() {
-  const { status } = useAuth();
+  const { status, session } = useAuth();
+  // Archived for non-payment: every screen gives way to the renewal screen.
+  const archived = session?.organization?.billingArchivedAt ? session.organization : null;
   const [navOpen, setNavOpen] = React.useState(false);
   const [collapsed, setCollapsed] = React.useState(
     () => window.localStorage.getItem(SIDEBAR_STORAGE_KEY) === 'true',
@@ -940,16 +870,23 @@ export function AppShell() {
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar onOpenNav={() => setNavOpen(true)} />
         <CriticalAlerts />
+        {archived ? null : <BillingBanner />}
 
         <main className="flex-1 overflow-y-auto pb-20 lg:pb-0">
           <div className="mx-auto w-full max-w-[1600px] p-4 sm:p-6 lg:p-8">
-            <PageTransition key={location.pathname}>
-              <Outlet />
-            </PageTransition>
+            {archived ? (
+              <ArchivedAccountScreen dataPurgeAt={archived.dataPurgeAt ?? null} />
+            ) : (
+              <PageTransition key={location.pathname}>
+                <Outlet />
+              </PageTransition>
+            )}
           </div>
         </main>
 
         <MobileTabBar />
+        {/* Once, straight after an owner registers: their joining code. */}
+        <FleetWelcomeDialog />
       </div>
     </div>
   );

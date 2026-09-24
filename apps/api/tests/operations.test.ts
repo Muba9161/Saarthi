@@ -914,7 +914,9 @@ describe('Operations end-to-end', () => {
     });
 
     it('is unavailable on a plan that does not include it', async () => {
-      const basicFleet = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.PERSONAL);
+      // Free is the only plan without the copilot — every paid plan has it. An
+      // owner role, so the refusal is the plan's and not a missing permission.
+      const basicFleet = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.FREE);
       const basicOwner = await createUser({
         role: RoleName.FLEET_OWNER,
         organizationId: basicFleet.id,

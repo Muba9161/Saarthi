@@ -1,16 +1,16 @@
 import {
-  CommissionTrigger,
   NotificationPriority,
   NotificationType,
   OPERATOR_OWNER_ROLES,
   PLAN_LIMITS,
+  PaymentPurpose,
   OrganizationType,
   PlanTier,
   VEHICLE_TOPUP,
   accountRunsVehicles,
   canAddVehicleTopUp,
   describeVehicleCapacity,
-  withGst,
+  inclusiveOfGst,
   type PurchaseTopUpInput,
   type VehicleCapacity,
 } from '@saarthi/shared';
@@ -20,10 +20,13 @@ import { logger } from '../../lib/logger';
 import { cache } from '../../infra/cache';
 import { cacheKeys } from '../../infra/cache-keys';
 import { withLock } from '../../infra/lock';
-import { paymentProvider } from '../../providers/payments';
+import {
+  completeSettledPayment,
+  openPayment,
+  type CheckoutSession,
+} from '../payments/payment-settlement.service';
 import { AuditAction, recordAudit } from '../audit/audit.service';
 import { notifyOrganization } from '../notifications/notification.service';
-import { qualifyPayment } from '../sales/qualification';
 import { invalidateEntitlements, resolveBaseLimits } from './entitlements.service';
 import type { AuthContext } from '../../auth/context';
 
@@ -147,7 +150,7 @@ export async function purchaseTopUp(
   auth: AuthContext,
   organizationId: string,
   input: PurchaseTopUpInput,
-): Promise<{ topUp: TopUpView; capacity: VehicleCapacity }> {
+): Promise<{ topUp: TopUpView; capacity: VehicleCapacity; checkout: CheckoutSession | null }> {
   const result = await withLock(`subscription:topup:${organizationId}`, 30_000, async () => {
     const subscription = await prisma.subscription.findUnique({
       where: { organizationId },
@@ -170,11 +173,9 @@ export async function purchaseTopUp(
     /*
      * An account that runs no vehicles is not sold capacity for them.
      *
-     * The tracker requirement follows the *account type*, not the price of the
-     * plan: a supplier buys the same Business subscription a freight fleet
-     * does and owns nothing to fit hardware to. Checked against the
-     * organization rather than the tier for exactly that reason - the tier
-     * cannot tell the two apart.
+     * This follows the *account type*, not the price of the plan: a Business
+     * account that is not a vehicle operator owns nothing to fit hardware to,
+     * and the tier alone cannot tell it apart from a fleet.
      *
      * Unreachable through the UI today, since neither a supplier nor a
      * customer holds SUBSCRIPTION_MANAGE. It is here because the next thing
@@ -202,23 +203,26 @@ export async function purchaseTopUp(
     const reference = `TOPUP-${organizationId.slice(0, 8)}-${Date.now().toString(36).toUpperCase()}`;
 
     /*
-     * The catalogue price is exclusive of GST — see `GST_RATE` — so the charge
-     * is the taxed figure. `priceMonthly` on the row stays the pre-tax price,
-     * because that is what the plan costs and what an invoice itemises; the
-     * tax is a separate line on the bill rather than a change to the price.
+     * The top-up is sold GST-inclusive, so the charge is exactly the price the
+     * customer was shown. The taxable value and GST inside it are split out
+     * for the payment metadata, the audit and the commission base.
      */
-    const charge = withGst(VEHICLE_TOPUP.priceMonthly);
+    const charge = inclusiveOfGst(VEHICLE_TOPUP.priceMonthly);
 
-    const payment = await paymentProvider.createIntent({
+    const { paymentId, intent } = await openPayment({
       reference,
+      purpose: PaymentPurpose.SUBSCRIPTION,
+      organizationId,
+      userId: auth.user.id,
       amount: charge.total,
-      currency: 'INR',
       description: `${VEHICLE_TOPUP.name} — ${organization.name}`,
-      customerName: `${auth.user.firstName} ${auth.user.lastName}`.trim(),
-      customerEmail: auth.user.email,
-      customerPhone: auth.user.phone,
+      customer: {
+        name: `${auth.user.firstName} ${auth.user.lastName}`.trim(),
+        email: auth.user.email,
+        phone: auth.user.phone,
+      },
+      returnPath: '/settings/subscription',
       metadata: {
-        organizationId,
         kind: 'vehicle_topup',
         subtotal: charge.subtotal.toFixed(2),
         gst: charge.gst.toFixed(2),
@@ -226,7 +230,7 @@ export async function purchaseTopUp(
       },
     });
 
-    if (payment.status === 'FAILED') {
+    if (intent.status === 'FAILED') {
       // The failed attempt is recorded rather than discarded: "my payment did
       // not go through" is a support conversation that needs a row to point at.
       const failed = await prisma.vehicleSubscriptionTopUp.create({
@@ -234,83 +238,50 @@ export async function purchaseTopUp(
           organizationId,
           status: 'PAYMENT_FAILED',
           priceMonthly: VEHICLE_TOPUP.priceMonthly,
-          paymentReference: payment.providerReference,
+          paymentReference: intent.providerReference,
           purchasedById: auth.user.id,
-          note: payment.failureMessage ?? 'Payment declined.',
+          note: intent.failureMessage ?? 'Payment declined.',
         },
       });
 
       await notifyOrganization(organizationId, {
         type: NotificationType.PAYMENT_FAILED,
         title: 'Vehicle top-up payment failed',
-        body: payment.failureMessage ?? 'The payment was declined. No capacity was added.',
+        body: intent.failureMessage ?? 'The payment was declined. No capacity was added.',
         priority: NotificationPriority.HIGH,
         actionUrl: '/settings/subscription',
         roles: OPERATOR_OWNER_ROLES,
       });
 
       throw errors.businessRule(
-        payment.failureMessage ?? 'The payment was declined, so no capacity was added.',
-        { topUpId: failed.id, providerReference: payment.providerReference },
+        intent.failureMessage ?? 'The payment was declined, so no capacity was added.',
+        { topUpId: failed.id, providerReference: intent.providerReference },
       );
     }
 
+    // Written pending, granting nothing, until the payment settles — at once on
+    // the mock gateway, after checkout on a hosted one. `activatePaidAddOns`
+    // then puts it live and handles the audit, notification and commission.
     const row = await prisma.vehicleSubscriptionTopUp.create({
       data: {
         organizationId,
-        status: ACTIVE_STATUS,
+        status: 'PENDING_PAYMENT',
         priceMonthly: VEHICLE_TOPUP.priceMonthly,
-        paymentReference: payment.providerReference,
+        paymentReference: intent.providerReference,
         purchasedById: auth.user.id,
         ...(input.note ? { note: input.note } : {}),
-        // Monthly window; the renewal sweep extends it while it stays active.
-        expiresAt: new Date(Date.now() + 30 * 86_400_000),
       },
     });
 
-    await invalidateCapacity(organizationId);
+    if (intent.status === 'SUCCEEDED') await completeSettledPayment(paymentId);
 
     topUpLogger.info(
-      { organizationId, topUpId: row.id, activeTopUps: activeTopUps + 1 },
-      'Vehicle top-up purchased',
+      { organizationId, topUpId: row.id, status: intent.status },
+      'Vehicle top-up ordered',
     );
 
-    await recordAudit({
-      action: AuditAction.SUBSCRIPTION_TOPUP_PURCHASED,
-      entityType: 'VehicleSubscriptionTopUp',
-      entityId: row.id,
-      actorUserId: auth.user.id,
-      organizationId,
-      after: {
-        price: charge.subtotal,
-        gst: charge.gst,
-        charged: charge.total,
-        reference: payment.providerReference,
-      },
-    });
-
-    await notifyOrganization(organizationId, {
-      type: NotificationType.SUBSCRIPTION_UPDATED,
-      title: 'Vehicle capacity increased',
-      body: `A +1 vehicle top-up is active. You can now add one more vehicle.`,
-      priority: NotificationPriority.NORMAL,
-      actionUrl: '/settings/subscription',
-      roles: OPERATOR_OWNER_ROLES,
-    });
-
-    /*
-     * Commission, if a salesperson brought this customer. On the pre-tax
-     * subtotal, after the charge succeeded, and unable to throw — see
-     * `qualifyPayment`.
-     */
-    await qualifyPayment({
-      organizationId,
-      baseAmount: charge.subtotal,
-      paymentReference: payment.providerReference,
-      trigger: CommissionTrigger.VEHICLE_TOPUP,
-    });
-
-    return toView(row);
+    const fresh = await prisma.vehicleSubscriptionTopUp.findUniqueOrThrow({ where: { id: row.id } });
+    return { view: toView(fresh), checkout: intent.checkout };
   });
 
   if (!result) {
@@ -324,7 +295,7 @@ export async function purchaseTopUp(
   // Recomputed from storage so the response cannot disagree with what the next
   // request will resolve.
   const capacity = await vehicleCapacity(organizationId);
-  return { topUp: result, capacity };
+  return { topUp: result.view, capacity, checkout: result.checkout };
 }
 
 export async function cancelTopUp(

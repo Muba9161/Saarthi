@@ -143,10 +143,9 @@ export function SalesDemoPage(): React.ReactElement {
                   <p className="text-sm text-muted-foreground">
                     {plan.priceMonthly === null
                       ? 'Custom pricing'
-                      : `${formatCurrency(plan.priceMonthly)} per month`}
-                    {plan.priceYearly !== null
-                      ? ` · ${formatCurrency(plan.priceYearly)} per year`
-                      : ''}
+                      : plan.priceMonthly === 0
+                        ? 'Free'
+                        : `${formatCurrency(plan.priceMonthly)} per month`}
                   </p>
                 </div>
               ))}
@@ -156,10 +155,12 @@ export function SalesDemoPage(): React.ReactElement {
 
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-0.5">
-                <p className="section-label">Saarthi tracker</p>
-                <p className="text-sm">
-                  {formatCurrency(script.pricing.trackerOneTime)} once, per vehicle
-                </p>
+                <p className="section-label">Saarthi trackers</p>
+                {script.pricing.trackers.map((tracker) => (
+                  <p key={tracker.name} className="text-sm">
+                    {tracker.name}: {formatCurrency(tracker.price)}, once per vehicle
+                  </p>
+                ))}
                 <p className="text-xs text-muted-foreground">
                   Saarthi provides the tracker. A customer cannot fit their own.
                 </p>
@@ -184,7 +185,7 @@ export function SalesDemoPage(): React.ReactElement {
                 {script.pricing.example.trackers} trackers:{' '}
                 <strong>{formatCurrency(script.pricing.example.monthlyTotal)} a month</strong>, plus{' '}
                 <strong>{formatCurrency(script.pricing.example.oneOffTotal)} once</strong> for the
-                hardware. GST included.
+                hardware, GST included.
               </p>
             </div>
           </CardContent>

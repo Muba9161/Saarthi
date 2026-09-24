@@ -1,9 +1,12 @@
 import * as React from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { BadgeCheck, Info, Loader2, ShieldCheck, ShieldX, TriangleAlert } from 'lucide-react';
 import {
   AADHAAR_ONLINE_LIMITATION,
   IdentityDocumentKind,
+  VerificationCheckType,
+  VerificationStepState,
+  checkTypeForIdentityKind,
   driverCheckForDocumentType,
   identityFormatMessage,
   identityKindDefinition,
@@ -13,12 +16,14 @@ import {
   type DriverVerificationChecklist,
   type IdentityVerificationSummary,
 } from '@saarthi/shared';
-import { ApiError, api, errorMessage } from '@/lib/api-client';
+import { ApiError, errorMessage } from '@/lib/api-client';
 import type { RegistryVerificationResult } from '@/lib/api-types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { payLabel, usePayAndVerify, usePriceFor, type PayAndVerifyOutcome } from './use-pay-and-verify';
+import { OutcomeAlert } from './verification-step-panel';
 
 /**
  * Verify the number that has just been typed, without leaving the form.
@@ -44,6 +49,9 @@ import { Label } from '@/components/ui/label';
  *  * **A driving licence** is verified against a date of birth. That normally
  *    comes off the driver's profile, so nothing is asked. The field appears
  *    only when the server says it has none.
+ *
+ * Every check is paid for through Pay & Verify first — the fee goes through
+ * Saarthi's checkout, and only then is the authority asked.
  */
 
 /** What the caller needs back: did this number end up confirmed? */
@@ -67,9 +75,10 @@ export interface InlineNumberVerifyProps {
   onOutcome?: (outcome: InlineVerifyOutcome) => void;
 }
 
-type Result =
-  | { kind: 'IDENTITY'; summary: IdentityVerificationSummary }
-  | { kind: 'REGISTRY'; result: RegistryVerificationResult };
+interface Result {
+  kind: 'IDENTITY' | 'REGISTRY';
+  outcome: PayAndVerifyOutcome;
+}
 
 export function InlineNumberVerify({
   documentType,
@@ -80,7 +89,7 @@ export function InlineNumberVerify({
   documentId,
   onOutcome,
 }: InlineNumberVerifyProps) {
-  const queryClient = useQueryClient();
+  const { run } = usePayAndVerify();
   const check = driverCheckForDocumentType(documentType);
 
   const [linkedPan, setLinkedPan] = React.useState('');
@@ -97,6 +106,13 @@ export function InlineNumberVerify({
   const definition = identityKind ? identityKindDefinition(identityKind) : undefined;
   const isAadhaar = identityKind === IdentityDocumentKind.AADHAAR;
   const isLicence = check?.key === 'DRIVING_LICENCE';
+  const price = usePriceFor(
+    isLicence
+      ? VerificationCheckType.DRIVING_LICENCE
+      : identityKind
+        ? checkTypeForIdentityKind(identityKind)
+        : null,
+  );
 
   const normalized = identityKind ? normalizeIdentityNumber(number) : number.trim().toUpperCase();
   const numberUsable = identityKind
@@ -109,15 +125,14 @@ export function InlineNumberVerify({
   const verify = useMutation({
     mutationFn: async (): Promise<Result> => {
       if (isLicence) {
-        const body: Record<string, unknown> = { licenceNumber: normalized };
-        if (dateOfBirth) body.dateOfBirth = dateOfBirth;
-        return {
-          kind: 'REGISTRY',
-          result: await api.post<RegistryVerificationResult>(
-            `/verification/subject/driver/${subjectId}/registry-verify`,
-            body,
-          ),
+        const body: Record<string, unknown> = {
+          kind: VerificationCheckType.DRIVING_LICENCE,
+          subjectType: 'DRIVER',
+          subjectId,
+          licenceNumber: normalized,
         };
+        if (dateOfBirth) body.dateOfBirth = dateOfBirth;
+        return { kind: 'REGISTRY', outcome: await run(body) };
       }
 
       if (!identityKind) throw new Error('This document type cannot be verified online.');
@@ -133,32 +148,17 @@ export function InlineNumberVerify({
       }
       if (isAadhaar && linkedPanNormalized) body.linkedPan = linkedPanNormalized;
 
-      return {
-        kind: 'IDENTITY',
-        summary: await api.post<IdentityVerificationSummary>('/identity/verify', body),
-      };
+      return { kind: 'IDENTITY', outcome: await run(body) };
     },
     onSuccess: (next) => {
+      // Every surface the answer changes is refreshed by the hook.
       setResult(next);
-
-      // The row, the subject and the driver's own record all change on a
-      // confirmed number, so every surface reading them is refreshed.
-      for (const key of [
-        ['documents'],
-        ['identity'],
-        ['verification'],
-        ['driver'],
-        ['drivers'],
-        ['organization'],
-      ]) {
-        void queryClient.invalidateQueries({ queryKey: key });
-      }
-
-      onOutcome?.(
-        next.kind === 'IDENTITY'
-          ? { verified: next.summary.outcome === 'VERIFIED' }
-          : { verified: next.result.verified, driverChecklist: next.result.driverChecklist },
-      );
+      const registry =
+        next.kind === 'REGISTRY' ? (next.outcome.detail as RegistryVerificationResult | null) : null;
+      onOutcome?.({
+        verified: next.outcome.state === VerificationStepState.VERIFIED,
+        ...(registry ? { driverChecklist: registry.driverChecklist } : {}),
+      });
     },
   });
 
@@ -202,7 +202,7 @@ export function InlineNumberVerify({
           onClick={() => verify.mutate()}
         >
           <ShieldCheck className="size-4" />
-          Verify
+          {payLabel(price)}
         </Button>
       </div>
 
@@ -284,8 +284,14 @@ export function InlineNumberVerify({
 
 /** The answer, in place, with the reason when it is not a clean yes. */
 function InlineResult({ result }: { result: Result }) {
+  const { outcome } = result;
+  // A check that waited on a hosted checkout has no module answer to show.
+  if (!outcome.detail) {
+    return <OutcomeAlert state={outcome.state} message={outcome.message} label="Number" />;
+  }
+
   if (result.kind === 'IDENTITY') {
-    const { summary } = result;
+    const summary = outcome.detail as IdentityVerificationSummary;
     const verified = summary.outcome === 'VERIFIED';
     const unconfirmed = summary.outcome === 'UNCONFIRMED';
 
@@ -304,7 +310,7 @@ function InlineResult({ result }: { result: Result }) {
     );
   }
 
-  const { result: registry } = result;
+  const registry = outcome.detail as RegistryVerificationResult;
   const blocking = registry.findings.filter((finding) => finding.severity === 'BLOCKING');
 
   return (

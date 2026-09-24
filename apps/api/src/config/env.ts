@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import dotenv from 'dotenv';
 import { z } from 'zod';
+import { DEFAULT_TRIAL_DAYS } from '@saarthi/shared';
 
 /**
  * Environment loading + validation.
@@ -153,7 +154,7 @@ const envSchema = z.object({
   // where every paying customer is on the top plan for free.
   SUBSCRIPTION_ENFORCEMENT: booleanish(true),
   /// Days of trial granted to a newly registered organization. 0 = no trial.
-  SUBSCRIPTION_TRIAL_DAYS: z.coerce.number().int().min(0).max(365).default(14),
+  SUBSCRIPTION_TRIAL_DAYS: z.coerce.number().int().min(0).max(365).default(DEFAULT_TRIAL_DAYS),
 
   // --- QR identity ----------------------------------------------------------
   QR_RESOLVE_RATE_LIMIT_MAX: z.coerce.number().int().min(1).default(20),
@@ -291,7 +292,37 @@ const envSchema = z.object({
   HAZARD_VIEWPORT_MAX_FEATURES: z.coerce.number().int().min(50).max(5000).default(500),
 
   GPS_PROVIDER: z.enum(['mock', 'production']).default('mock'),
-  PAYMENT_PROVIDER: z.enum(['mock', 'production']).default('mock'),
+  /**
+   * Who takes the money: `mock` settles instantly in-process; `cashfree` uses
+   * Cashfree hosted checkout for one-time payments (travel bookings, extra
+   * vehicles, trackers) and Cashfree Subscriptions for the plan's autopay.
+   */
+  PAYMENT_PROVIDER: z.enum(['mock', 'cashfree']).default('mock'),
+
+  // --- Cashfree ------------------------------------------------------------------
+  CASHFREE_ENV: z.enum(['sandbox', 'production']).default('sandbox'),
+  CASHFREE_APP_ID: blankAsUnset(z.string().min(1)),
+  CASHFREE_SECRET_KEY: blankAsUnset(z.string().min(1)),
+  CASHFREE_API_VERSION: z.string().min(1).default('2026-01-01'),
+  /** The web app origin Cashfree sends the payer back to. Defaults to FRONTEND_URL. */
+  CASHFREE_RETURN_URL: blankAsUnset(z.string().url()),
+  /** Public HTTPS webhook URL. Cashfree refuses plain HTTP, so it is omitted locally. */
+  CASHFREE_WEBHOOK_URL: blankAsUnset(z.string().url()),
+  /**
+   * Cashfree Secure ID keys, for penny validation of bank accounts. Separate
+   * from the PG keys above — generated under Secure ID > Developers > API Keys.
+   */
+  CASHFREE_VERIFICATION_CLIENT_ID: blankAsUnset(z.string().min(1)),
+  CASHFREE_VERIFICATION_CLIENT_SECRET: blankAsUnset(z.string().min(1)),
+  /** Business type sent in an Easy Split vendor's KYC. */
+  CASHFREE_VENDOR_BUSINESS_TYPE: z.string().min(1).default('Logistics'),
+  /**
+   * Cashfree Payouts keys, for wallet cash-outs to a bank account. A separate
+   * product from the PG above, with its own keys, a pre-funded payout balance
+   * and IP whitelisting. Cash-out stays closed until both are set.
+   */
+  CASHFREE_PAYOUT_CLIENT_ID: blankAsUnset(z.string().min(1)),
+  CASHFREE_PAYOUT_CLIENT_SECRET: blankAsUnset(z.string().min(1)),
   NOTIFICATION_PROVIDER: z.enum(['local', 'production']).default('local'),
   VERIFICATION_PROVIDER: z.enum(['manual', 'external']).default('manual'),
 
@@ -386,6 +417,11 @@ const envSchema = z.object({
   IDENTITY_VERIFY_BUDGET: z.coerce.number().int().min(0).default(0),
   IDENTITY_RATE_LIMIT_MAX: z.coerce.number().int().min(1).default(10),
   IDENTITY_RATE_LIMIT_WINDOW: z.string().default('1 minute'),
+  // Verification fees. Provider costs are recorded in the provider's own
+  // currency (Way2API bills in USD); the customer pays in INR. The gross spread
+  // shown to platform admins is computed only when this rate is set — it is
+  // never assumed.
+  VERIFICATION_USD_INR_RATE: blankAsUnset(z.coerce.number().positive()),
   /**
    * When the Personal Aadhaar requirement came into force.
    *
@@ -580,6 +616,22 @@ const envSchema = z.object({
     .min(1)
     .max(1_440)
     .default(15),
+
+  // --- Refer & Earn ----------------------------------------------------------
+  /**
+   * Rupees credited to the referrer's wallet for every referral whose new
+   * account starts on a paid plan. Credited at signup — the new account does
+   * not have to pay first — and approved by nobody.
+   */
+  REFERRAL_REWARD_AMOUNT: z.coerce.number().min(0).max(100_000).default(100),
+  /**
+   * Days a reward is held before it can be cashed out, and released only if the
+   * referred account is still on its trial or plan by then. The protection
+   * against a ring of fake signups turning straight into bank transfers.
+   */
+  REFERRAL_REWARD_HOLD_DAYS: z.coerce.number().int().min(0).max(90).default(7),
+  /** The smallest wallet balance that can be cashed out, in rupees. */
+  WALLET_MIN_CASHOUT: z.coerce.number().min(1).max(100_000).default(100),
 });
 
 export type RawEnv = z.infer<typeof envSchema>;
@@ -602,6 +654,17 @@ const raw = parseEnv();
 
 const isProduction = raw.NODE_ENV === 'production';
 
+const payoutsConfigured = Boolean(
+  raw.CASHFREE_PAYOUT_CLIENT_ID && raw.CASHFREE_PAYOUT_CLIENT_SECRET,
+);
+
+// Billing through Cashfree cannot start without the credentials it charges with.
+if (raw.PAYMENT_PROVIDER === 'cashfree' && (!raw.CASHFREE_APP_ID || !raw.CASHFREE_SECRET_KEY)) {
+  throw new Error(
+    'PAYMENT_PROVIDER=cashfree requires CASHFREE_APP_ID and CASHFREE_SECRET_KEY — paste the keys from the Cashfree dashboard into .env.',
+  );
+}
+
 if (isProduction) {
   const weak = ['change-me', 'secret', 'password'];
   for (const [key, value] of Object.entries({
@@ -622,6 +685,16 @@ if (isProduction) {
   if (!raw.SUBSCRIPTION_ENFORCEMENT) {
     throw new Error(
       'SUBSCRIPTION_ENFORCEMENT must be true in production — every plan limit and paid feature would be given away.',
+    );
+  }
+  // Test keys take no real money: a production deployment billing through the
+  // sandbox would give every subscription away.
+  if (
+    (raw.PAYMENT_PROVIDER === 'cashfree' || payoutsConfigured) &&
+    raw.CASHFREE_ENV !== 'production'
+  ) {
+    throw new Error(
+      'CASHFREE_ENV must be production when NODE_ENV=production — sandbox keys take no real payment.',
     );
   }
   // A driver marked verified without an authority having confirmed anything is
@@ -826,6 +899,38 @@ export const config = {
     viewportMaxFeatures: raw.HAZARD_VIEWPORT_MAX_FEATURES,
   },
 
+  cashfree: {
+    environment: raw.CASHFREE_ENV,
+    appId: raw.CASHFREE_APP_ID ?? '',
+    secretKey: raw.CASHFREE_SECRET_KEY ?? '',
+    apiVersion: raw.CASHFREE_API_VERSION,
+    baseUrl:
+      raw.CASHFREE_ENV === 'production'
+        ? 'https://api.cashfree.com/pg'
+        : 'https://sandbox.cashfree.com/pg',
+    /** The web app origin a payer is sent back to; each flow adds its own path. */
+    returnBaseUrl: (raw.CASHFREE_RETURN_URL ?? raw.FRONTEND_URL).replace(/\/$/, ''),
+    webhookUrl: raw.CASHFREE_WEBHOOK_URL ?? null,
+    verification: {
+      baseUrl:
+        raw.CASHFREE_ENV === 'production'
+          ? 'https://api.cashfree.com/verification'
+          : 'https://sandbox.cashfree.com/verification',
+      clientId: raw.CASHFREE_VERIFICATION_CLIENT_ID ?? '',
+      clientSecret: raw.CASHFREE_VERIFICATION_CLIENT_SECRET ?? '',
+    },
+    vendorBusinessType: raw.CASHFREE_VENDOR_BUSINESS_TYPE,
+    payouts: {
+      baseUrl:
+        raw.CASHFREE_ENV === 'production'
+          ? 'https://api.cashfree.com/payout'
+          : 'https://sandbox.cashfree.com/payout',
+      clientId: raw.CASHFREE_PAYOUT_CLIENT_ID ?? '',
+      clientSecret: raw.CASHFREE_PAYOUT_CLIENT_SECRET ?? '',
+      apiVersion: '2024-01-01',
+    },
+  },
+
   providers: {
     gps: raw.GPS_PROVIDER,
     payment: raw.PAYMENT_PROVIDER,
@@ -910,6 +1015,11 @@ export const config = {
     personalAadhaarRequiredFrom: raw.PERSONAL_AADHAAR_REQUIRED_FROM,
   },
 
+  verificationFees: {
+    /** USD→INR rate for the admin gross-spread figure. Unset means "not computed". */
+    usdInrRate: raw.VERIFICATION_USD_INR_RATE ?? null,
+  },
+
   petrolStations: {
     baseUrl: raw.SSR_PETROL_API_BASE_URL.replace(/\/$/, ''),
     apiKey: raw.SSR_PETROL_API_KEY || undefined,
@@ -965,6 +1075,17 @@ export const config = {
     referralRateLimitMax: raw.SALES_REFERRAL_RATE_LIMIT_MAX,
     referralRateLimitWindow: raw.SALES_REFERRAL_RATE_LIMIT_WINDOW,
     onboardingTelemetryGraceMinutes: raw.SALES_ONBOARDING_TELEMETRY_GRACE_MINUTES,
+  },
+
+  referralProgram: {
+    rewardAmount: raw.REFERRAL_REWARD_AMOUNT,
+    rewardHoldDays: raw.REFERRAL_REWARD_HOLD_DAYS,
+  },
+
+  wallet: {
+    minCashout: raw.WALLET_MIN_CASHOUT,
+    /** Cash-out needs Cashfree Payouts. Without its keys, rewards still accrue. */
+    cashoutEnabled: payoutsConfigured,
   },
 } as const;
 

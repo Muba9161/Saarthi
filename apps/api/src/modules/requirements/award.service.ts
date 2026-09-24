@@ -21,6 +21,7 @@ import { notifyOrganization } from '../notifications/notification.service';
 import type { AuthContext } from '../../auth/context';
 import { createOrderFromRequirement } from '../orders/order.service';
 import { createBookingFromRequirement } from '../travel/booking.service';
+import { createOrderFinance } from '../marketplace-finance/order-finance.service';
 import {
   decorateRequirements,
   requirementInclude,
@@ -99,6 +100,23 @@ export async function awardBid(
         rejectionReason: 'The customer awarded this work to another bidder.',
       },
     });
+
+    // A fleet delivering the material itself covers the material half too, so
+    // the supplier offers for it are closed as well.
+    if (bid.sourceMaterialId) {
+      await tx.requirementBid.updateMany({
+        where: {
+          requirementId: requirement.id,
+          scope: RequirementBidScope.MATERIAL,
+          status: { in: LIVE_BID_STATUSES as never },
+        },
+        data: {
+          status: RequirementBidStatus.REJECTED,
+          rejectedAt: new Date(),
+          rejectionReason: 'The customer chose a fleet that supplies and delivers the material.',
+        },
+      });
+    }
 
     await tx.requirement.update({
       where: { id: requirement.id },
@@ -272,6 +290,12 @@ async function settle(
     ? await prisma.requirementBid.findUnique({ where: { id: requirement.awardedTransportBidId } })
     : null;
 
+  // A fleet's delivered bid supplies the material and carries it: nothing else
+  // is owed.
+  if (transportBid?.sourceMaterialId) {
+    return settleFreight(auth, requirement, null, transportBid, note);
+  }
+
   // Transport is still owed when the customer asked for delivery and the
   // supplier did not price it in.
   const transportOutstanding =
@@ -343,13 +367,22 @@ async function settleFreight(
   const materialName =
     requirement.materialName ?? requirement.goodsDescription ?? requirement.title;
 
+  // A delivered bid names the supplier listing the fleet buys from.
+  const sourcedListing = transportBid?.sourceMaterialId
+    ? await prisma.material.findUnique({
+        where: { id: transportBid.sourceMaterialId },
+        select: { id: true, organizationId: true },
+      })
+    : null;
+
   const { order, tripId } = await createOrderFromRequirement(auth, {
     requirementId: requirement.id,
     customerId: requirement.customerId,
     customerOrganizationId: requirement.customerOrganizationId,
 
-    materialId: materialBid?.materialId ?? requirement.materialId,
-    supplierOrganizationId: materialBid?.bidderOrganizationId ?? null,
+    materialId: sourcedListing?.id ?? materialBid?.materialId ?? requirement.materialId,
+    supplierOrganizationId:
+      sourcedListing?.organizationId ?? materialBid?.bidderOrganizationId ?? null,
     materialName,
     quantity: requirement.quantity ?? 1,
     unit: (requirement.unit as MaterialUnit | null) ?? MaterialUnit.TON,
@@ -381,6 +414,24 @@ async function settleFreight(
         }
       : null,
   });
+
+  /*
+   * The fleet's delivered bid is the authoritative selling price, and the order
+   * gets its payment plan: 30% now, the rest after delivery. Figures come from
+   * the stored bid, never from the request that awarded it.
+   */
+  if (transportBid?.sourceMaterialId && sourcedListing) {
+    await createOrderFinance(prisma, {
+      orderId: order.id,
+      sellerOrganizationId: transportBid.bidderOrganizationId,
+      supplierOrganizationId: sourcedListing.organizationId,
+      customerOrganizationId: requirement.customerOrganizationId,
+      agreedAmount: Number(transportBid.price),
+      orderedQuantity: requirement.quantity ?? 1,
+      procurementReference:
+        transportBid.procurementReference !== null ? Number(transportBid.procurementReference) : null,
+    });
+  }
 
   await moveTo(requirement, RequirementStatus.AWARDED, {
     order: { connect: { id: order.id } },

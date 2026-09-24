@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { render } from '@testing-library/react';
+import { render, renderHook } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { OrganizationType } from '@saarthi/shared';
@@ -7,13 +7,15 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { LocaleProvider } from '@/features/i18n/locale-context';
 
 /**
- * The account block at the foot of the sidebar.
+ * Account navigation — now the profile menu in the top bar.
  *
  * It used to be rendered straight from `ACCOUNT_NAVIGATION`, bypassing the
  * filter every other menu entry goes through — so the permissions those
  * entries declared were never evaluated and every account saw all four. The
  * visible symptom was a driver being offered "Business documents" and asked
  * for a GST number and a registration certificate against their own name.
+ * The menu runs through `useNavItemVisible` like the sidebar, and these tests
+ * read what that filter leaves.
  *
  * The gate that fixes it cannot be "does this account have an organization?",
  * because a driver always does: signing up without an employer's invite code
@@ -46,6 +48,8 @@ const auth = {
   },
   isDriver: true,
   hasDriverProfile: true,
+  /** Permissions this case does not hold. Everything else is granted. */
+  withheld: [] as string[],
 };
 
 vi.mock('@/features/auth/auth-context', () => ({
@@ -55,7 +59,8 @@ vi.mock('@/features/auth/auth-context', () => ({
     // Deliberately permissive: a driver really does hold DOCUMENTS_READ, for
     // their own licence and PAN. If the gate were a permission check this
     // would let it through, which is exactly the bug.
-    can: () => true,
+    can: (...permissions: string[]) =>
+      permissions.some((permission) => !auth.withheld.includes(permission)),
     canAll: () => true,
     hasFeature: () => true,
     hasRole: (...roles: string[]) => roles.includes('DRIVER'),
@@ -67,6 +72,15 @@ vi.mock('@/features/auth/auth-context', () => ({
 }));
 
 const { SidebarContent } = await import('./app-shell');
+const { useVisibleAccountNavigation } = await import('./use-nav-visibility');
+
+/** Every destination the profile menu offers this account. */
+function accountDestinations(): string[] {
+  const { result, unmount } = renderHook(() => useVisibleAccountNavigation());
+  const targets = result.current.flatMap((section) => section.items.map((item) => item.to));
+  unmount();
+  return targets;
+}
 
 function destinations(container: HTMLElement): string[] {
   return [...container.querySelectorAll('nav a[href]')].map((a) => a.getAttribute('href')!);
@@ -93,9 +107,7 @@ describe('business destinations and personal seats', () => {
     auth.isDriver = true;
     auth.hasDriverProfile = true;
 
-    const { container, unmount } = renderSidebar();
-    expect(destinations(container)).not.toContain('/settings/business-documents');
-    unmount();
+    expect(accountDestinations()).not.toContain('/settings/business-documents');
   });
 
   it('still gives that driver the rest of their account menu', () => {
@@ -103,14 +115,12 @@ describe('business destinations and personal seats', () => {
     auth.isDriver = true;
     auth.hasDriverProfile = true;
 
-    const { container, unmount } = renderSidebar();
-    const targets = destinations(container);
-    // Filtering the block must not empty it — these three carry no business
+    const targets = accountDestinations();
+    // Filtering the menu must not empty it — these carry no business
     // requirement and a driver needs all of them.
-    expect(targets).toContain('/notifications');
     expect(targets).toContain('/settings/profile');
     expect(targets).toContain('/verification');
-    unmount();
+    expect(targets).toContain('/referrals');
   });
 
   it('offers business documents once the organization is a real business', () => {
@@ -118,9 +128,60 @@ describe('business destinations and personal seats', () => {
     auth.isDriver = true;
     auth.hasDriverProfile = true;
 
+    expect(accountDestinations()).toContain('/settings/business-documents');
+  });
+});
+
+/**
+ * Where account navigation lives.
+ *
+ * One home, the profile menu. The sidebar is for operational workflows, and
+ * repeating the account list at its foot made two menus to keep in step and
+ * put a second notifications entry beside the header's bell.
+ */
+describe('the account menu and the sidebar', () => {
+  it('keeps account destinations out of the sidebar', () => {
+    auth.session.organization.isPersonalSeat = false;
+    auth.isDriver = false;
+    auth.hasDriverProfile = false;
+
     const { container, unmount } = renderSidebar();
-    expect(destinations(container)).toContain('/settings/business-documents');
+    const targets = destinations(container);
+    for (const target of accountDestinations()) {
+      expect(targets, target).not.toContain(target);
+    }
+    expect(targets).not.toContain('/notifications');
     unmount();
+  });
+
+  it('gives billing its own entry to anyone who can read the subscription', () => {
+    auth.session.organization.isPersonalSeat = true;
+    auth.isDriver = false;
+    auth.withheld = [];
+
+    expect(accountDestinations()).toContain('/settings/subscription');
+  });
+
+  it('does not offer billing to somebody with no subscription of their own', () => {
+    auth.isDriver = true;
+    auth.withheld = ['subscription.read'];
+
+    try {
+      expect(accountDestinations()).not.toContain('/settings/subscription');
+    } finally {
+      auth.withheld = [];
+    }
+  });
+
+  it('keeps a salesperson on their GODID channel rather than Refer & earn', () => {
+    const previous = auth.session.user.roles;
+    auth.session.user.roles = ['SALESMAN'];
+
+    try {
+      expect(accountDestinations()).not.toContain('/referrals');
+    } finally {
+      auth.session.user.roles = previous;
+    }
   });
 });
 
@@ -146,7 +207,21 @@ describe('the fleet roster a personal seat is offered', () => {
     expect(targets).not.toContain('/fleet/trucks');
     // And the business paperwork goes with it: a person has no registration
     // certificate, GSTIN or bank mandate to file.
-    expect(targets).not.toContain('/settings/business-documents');
+    expect(accountDestinations()).not.toContain('/settings/business-documents');
+    unmount();
+  });
+
+  it('keeps the freight marketplace out of a personal seat', () => {
+    auth.session.organization.isPersonalSeat = true;
+    auth.isDriver = false;
+    auth.hasDriverProfile = false;
+
+    const { container, unmount } = renderSidebar();
+    const targets = destinations(container);
+    // Seated as a fleet owner, so it holds the grants for both — but it runs
+    // its own vehicles and never takes marketplace work.
+    expect(targets).not.toContain('/orders');
+    expect(targets).not.toContain('/requirements/board');
     unmount();
   });
 
@@ -161,7 +236,9 @@ describe('the fleet roster a personal seat is offered', () => {
     // Unchanged for a freight operator: two links to the same table under
     // different names only asks which one is authoritative.
     expect(targets).not.toContain('/fleet/vehicles');
-    expect(targets).toContain('/settings/business-documents');
+    expect(targets).toContain('/orders');
+    expect(targets).toContain('/requirements/board');
+    expect(accountDestinations()).toContain('/settings/business-documents');
     unmount();
   });
 });

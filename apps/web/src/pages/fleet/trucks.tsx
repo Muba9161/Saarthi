@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { AlertTriangle, BadgeCheck, Gauge, IdCard, Plus, Search, Truck } from 'lucide-react';
+import { AlertTriangle, BadgeCheck, Cpu, Gauge, IdCard, Plus, Search, Truck } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   Feature,
@@ -11,17 +11,28 @@ import {
   Permission,
   TruckStatus,
   TruckType,
+  VehicleType,
   createTruckSchema,
   formatNumber,
   formatRegistrationNumber,
   humanizeEnum,
   type CreateTruckInput,
+  type VehicleRcPrefill,
 } from '@saarthi/shared';
 import { api, errorMessage } from '@/lib/api-client';
 import type { Paginated, TruckSummary } from '@/lib/api-types';
 import { useAuth } from '@/features/auth/auth-context';
 import { PageHeader } from '@/components/common/page-header';
 import { QrWelcomeDialog } from '@/features/qr/qr-welcome-dialog';
+import {
+  VehicleConnectionStep,
+  useVehicleOnboarding,
+} from '@/features/vehicles/vehicle-onboarding';
+import {
+  RcPrefillPanel,
+  RcPrefilledNotice,
+  useRcPrefill,
+} from '@/features/vehicles/rc-prefill-panel';
 import { DataView } from '@/components/common/data-view';
 import { type Column } from '@/components/common/data-table';
 import { VehicleCard } from '@/components/common/vehicle-card';
@@ -87,26 +98,68 @@ function AddTruckDialog({
   onAdded: (truck: TruckSummary) => void;
 }) {
   const queryClient = useQueryClient();
+  // The truck's paid slot when the plan is full, and its tracker.
+  const onboarding = useVehicleOnboarding(open);
+  // Start from the RC number and let Saarthi fill in the rest.
+  const rc = useRcPrefill(open);
+  const [rcTypeWarning, setRcTypeWarning] = React.useState<string | null>(null);
+
+  const blank: CreateTruckInput = {
+    registrationNumber: '',
+    truckType: TruckType.OPEN_BODY,
+    manufacturer: '',
+    model: '',
+    capacityTons: 20,
+    fuelType: FuelType.DIESEL,
+    odometerKm: 0,
+    shareLocation: true,
+  };
 
   const form = useForm<CreateTruckInput>({
     resolver: zodResolver(createTruckSchema),
-    defaultValues: {
-      registrationNumber: '',
-      truckType: TruckType.OPEN_BODY,
-      manufacturer: '',
-      model: '',
-      capacityTons: 20,
-      fuelType: FuelType.DIESEL,
-      odometerKm: 0,
-      shareLocation: true,
-    },
+    defaultValues: blank,
   });
 
+  /** The form, filled in from the RC — anything the RC does not say keeps its default. */
+  const applyRc = (prefill: VehicleRcPrefill): void => {
+    const { draft } = prefill;
+    form.reset({
+      ...blank,
+      registrationNumber: prefill.registrationNumber,
+      truckType: draft.truckType ?? blank.truckType,
+      manufacturer: draft.manufacturer ?? '',
+      model: draft.model ?? '',
+      ...(draft.year !== null ? { year: draft.year } : {}),
+      capacityTons: draft.capacityTons ?? blank.capacityTons,
+      fuelType: draft.fuelType ?? blank.fuelType,
+    });
+    const goods =
+      draft.vehicleType === VehicleType.TRUCK || draft.vehicleType === VehicleType.PICKUP;
+    setRcTypeWarning(
+      draft.vehicleType && !goods
+        ? `The RC says this is a ${humanizeEnum(draft.vehicleType).toLowerCase()}, not a goods vehicle. Check the number - only trucks are added here.`
+        : null,
+    );
+    rc.begin(prefill);
+  };
+
   const mutation = useMutation({
-    mutationFn: (input: CreateTruckInput) => api.post<TruckSummary>('/trucks', input),
+    mutationFn: async (input: CreateTruckInput) => {
+      // Added from its RC: the API verifies it against that record on save.
+      const rcLookupId = rc.lookupIdFor(input.registrationNumber);
+      const truck = await api.post<TruckSummary>('/trucks', {
+        ...input,
+        ...(rcLookupId ? { rcLookupId } : {}),
+      });
+      // The tracker paid for with the truck, fitted to it now that it exists.
+      await onboarding.finishConnection(truck.id);
+      return truck;
+    },
     onSuccess: (truck) => {
       void queryClient.invalidateQueries({ queryKey: ['trucks'] });
       void queryClient.invalidateQueries({ queryKey: ['analytics'] });
+      // Capacity, trackers and billing all move with the fleet.
+      void queryClient.invalidateQueries({ queryKey: ['subscription'] });
       form.reset();
       onOpenChange(false);
       // No toast: the dialog that replaces it says the same thing and stays
@@ -291,6 +344,13 @@ function AddTruckDialog({
         </>
       ),
     },
+    {
+      id: 'connect',
+      title: 'Connect',
+      description: 'Driver App or a tracker.',
+      icon: Cpu,
+      content: <VehicleConnectionStep onboarding={onboarding} />,
+    },
   ];
 
   const erroredStepIds = steps
@@ -303,33 +363,72 @@ function AddTruckDialog({
         <DialogHeader className={WIZARD_DIALOG_HEADER}>
           <DialogTitle>Add a truck</DialogTitle>
           <DialogDescription>
-            The vehicle starts unverified. Upload its RC, insurance, fitness, permit and PUC to
-            submit it for verification.
+            {rc.asking
+              ? 'Start with the RC number - Saarthi fills in the rest from the RTO record.'
+              : rc.prefill
+                ? 'Review the details and save - the truck is verified against its RC when saved.'
+                : 'The vehicle starts unverified. Upload its RC, insurance, fitness, permit and PUC to submit it for verification.'}
           </DialogDescription>
         </DialogHeader>
 
-        <Form {...form}>
-          <FormWizard
-            steps={steps}
-            className={WIZARD_IN_DIALOG}
-            panelClassName={WIZARD_DIALOG_PANEL}
-            resetKey={open}
-            onValidateStep={(step) =>
-              step.fields?.length
-                ? form.trigger(step.fields as (keyof CreateTruckInput)[], { shouldFocus: true })
-                : true
-            }
-            onSubmit={form.handleSubmit((values) => mutation.mutate(values))}
-            submitting={mutation.isPending}
-            submitLabel="Add truck"
-            erroredStepIds={erroredStepIds}
-            footerStart={
-              <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
-                Cancel
-              </Button>
-            }
-          />
-        </Form>
+        {rc.asking ? (
+          <div className="px-4 pb-5 sm:px-6">
+            <RcPrefillPanel
+              onPrefilled={applyRc}
+              onManual={(plate) => {
+                form.reset({ ...blank, registrationNumber: plate });
+                setRcTypeWarning(null);
+                rc.manual();
+              }}
+            />
+          </div>
+        ) : (
+          <>
+            {rc.prefill ? (
+              <RcPrefilledNotice
+                registrationNumber={rc.prefill.registrationNumber}
+                typeWarning={rcTypeWarning}
+                onRestart={() => {
+                  setRcTypeWarning(null);
+                  rc.restart();
+                }}
+              />
+            ) : null}
+
+            <Form {...form}>
+              <FormWizard
+                steps={steps}
+                className={WIZARD_IN_DIALOG}
+                panelClassName={WIZARD_DIALOG_PANEL}
+                resetKey={open}
+                onValidateStep={(step) =>
+                  step.fields?.length
+                    ? form.trigger(step.fields as (keyof CreateTruckInput)[], { shouldFocus: true })
+                    : true
+                }
+                onSubmit={form.handleSubmit(async (values) => {
+                  // Slot and tracker are paid in one payment first; nothing is added unless it is.
+                  const addable = await onboarding.payForVehicle({
+                    registrationNumber: values.registrationNumber,
+                    vehicleType: VehicleType.TRUCK,
+                    fuelType: values.fuelType,
+                    odometerKm: values.odometerKm,
+                    capacityTons: values.capacityTons,
+                  });
+                  if (addable) mutation.mutate(values);
+                })}
+                submitting={mutation.isPending || onboarding.paying}
+                submitLabel={onboarding.submitLabel.replace('vehicle', 'truck')}
+                erroredStepIds={erroredStepIds}
+                footerStart={
+                  <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
+                    Cancel
+                  </Button>
+                }
+              />
+            </Form>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );

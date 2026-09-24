@@ -12,9 +12,13 @@ import { StatusBadge } from '@/components/common/status-badge';
 import { UnauthorizedState } from '@/components/common/states';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { VerificationWizard } from '@/features/verification/verification-wizard';
+import { VerificationHistory } from '@/features/verification/verification-history';
 
 /**
- * Your organization's own verification submissions.
+ * The verification centre: this account's own verification steps (the
+ * wizard), what has been paid for (history), and — below them — the
+ * organization's review submissions.
  *
  * In demo mode each pending case can be self-approved. A self-served install
  * has no platform reviewer, and an unverified driver cannot be assigned to a
@@ -120,8 +124,19 @@ export function VerificationPage() {
       <PageHeader
         eyebrow="Compliance"
         title="Verification"
-        description="The status of every verification submission for your organization."
+        description="Verify your account one step at a time, and follow every submission for your organization."
       />
+
+      <VerificationWizard />
+
+      <section className="space-y-3" aria-labelledby="verification-history-title">
+        <h2 id="verification-history-title" className="text-base font-semibold tracking-tight">
+          Verification history
+        </h2>
+        <VerificationHistory />
+      </section>
+
+      <h2 className="text-base font-semibold tracking-tight">Review submissions</h2>
 
       {canSelfApprove && pending.length > 0 ? (
         <Alert variant="info">

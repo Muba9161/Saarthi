@@ -64,6 +64,8 @@ export interface FormWizardProps {
   footerStart?: React.ReactNode;
   /** Changing this sends the wizard back to the first step. */
   resetKey?: unknown;
+  /** Open on this step instead of the first — for a link to one section. */
+  initialStepId?: string;
   /**
    * Lets any step be opened from the rail without clearing the ones before it.
    *
@@ -96,6 +98,7 @@ export function FormWizard({
   aside,
   footerStart,
   resetKey,
+  initialStepId,
   allowJumpAhead = false,
   variant = 'rail',
   className,
@@ -111,7 +114,9 @@ export function FormWizard({
   const nextText = nextLabel ?? t('Continue');
   const backText = backLabel ?? t('Back');
 
-  const [index, setIndex] = React.useState(0);
+  const [index, setIndex] = React.useState(() =>
+    Math.max(0, steps.findIndex((candidate) => candidate.id === initialStepId)),
+  );
   const [direction, setDirection] = React.useState(1);
   const [checking, setChecking] = React.useState(false);
   /** Steps cleared at least once — these stay reachable by clicking the rail. */

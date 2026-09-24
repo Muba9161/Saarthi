@@ -89,6 +89,10 @@ export const ErrorCode = {
   PROVIDER_RATE_LIMITED: 'PROVIDER_RATE_LIMITED',
   PROVIDER_NOT_CONFIGURED: 'PROVIDER_NOT_CONFIGURED',
   PROVIDER_BUDGET_EXHAUSTED: 'PROVIDER_BUDGET_EXHAUSTED',
+  /** A billable check was attempted without its verification fee being paid. */
+  PAYMENT_REQUIRED: 'PAYMENT_REQUIRED',
+  /** The organization was archived for non-payment; only renewal is open. */
+  ACCOUNT_ARCHIVED: 'ACCOUNT_ARCHIVED',
   VEHICLE_NOT_FOUND: 'VEHICLE_NOT_FOUND',
   LICENCE_NOT_FOUND: 'LICENCE_NOT_FOUND',
   PDF_UNAVAILABLE: 'PDF_UNAVAILABLE',

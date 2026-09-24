@@ -20,7 +20,7 @@ import {
   roleIsExclusivePerVehicle,
   type TelemetryMetric,
   type UpdateDeviceInput,
-  VEHICLE_TRACKER,
+  describeTrackerPrices,
   VehicleCapability,
   vehicleSupports,
   VehicleType,
@@ -235,7 +235,7 @@ async function assertDeviceLimit(auth: AuthContext, organizationId: string): Pro
   if (max === 0) {
     throw errors.planLimitReached(
       'maxDevices',
-      `Add a Saarthi tracker before registering hardware — a one-time ${VEHICLE_TRACKER.priceOneTime} rupees per vehicle. ` +
+      `Add a Saarthi tracker before registering hardware — a one-time ${describeTrackerPrices()} per vehicle. ` +
         'Until then the driver app is the only source of location and its figures are estimates.',
     );
   }

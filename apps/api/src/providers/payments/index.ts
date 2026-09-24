@@ -1,23 +1,20 @@
 import { config } from '../../config/env';
 import { logger } from '../../lib/logger';
+import { CashfreePaymentProvider } from './cashfree-payment.provider';
 import { MockPaymentProvider } from './mock-payment.provider';
 import type { PaymentProvider } from './payment.provider';
 
 /**
  * Payment provider factory.
  *
- * `PAYMENT_PROVIDER=production` refuses to start rather than quietly falling
- * back to the mock. Every other provider in Saarthi degrades gracefully, but
- * money must not: a production deployment that silently "settled" payments
- * through a mock gateway would take bookings nobody had paid for.
+ * `PAYMENT_PROVIDER=cashfree` needs `CASHFREE_APP_ID` and `CASHFREE_SECRET_KEY`;
+ * the config refuses to start without them rather than quietly falling back to
+ * the mock, because money must not degrade silently.
  */
 function createPaymentProvider(): PaymentProvider {
   switch (config.providers.payment) {
-    case 'production':
-      throw new Error(
-        'PAYMENT_PROVIDER=production requires a real gateway implementation. ' +
-          'Add one under src/providers/payments and select it here before deploying.',
-      );
+    case 'cashfree':
+      return new CashfreePaymentProvider();
     case 'mock':
     default:
       return new MockPaymentProvider();
@@ -26,6 +23,13 @@ function createPaymentProvider(): PaymentProvider {
 
 export const paymentProvider: PaymentProvider = createPaymentProvider();
 
-logger.info({ provider: paymentProvider.name }, 'Payment provider ready');
+logger.info(
+  {
+    provider: paymentProvider.name,
+    ...(paymentProvider.name === 'cashfree' ? { environment: config.cashfree.environment } : {}),
+  },
+  'Payment provider ready',
+);
 
 export * from './payment.provider';
+export { verifyCashfreeSignature } from './cashfree-payment.provider';

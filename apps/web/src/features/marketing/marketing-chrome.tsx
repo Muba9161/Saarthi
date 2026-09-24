@@ -28,10 +28,10 @@ import { cn } from '@/lib/utils';
 export const NAV_SECTIONS = [
   { id: 'platform', label: 'Platform' },
   { id: 'command', label: 'The loop' },
-  { id: 'features', label: 'Features' },
   { id: 'roles', label: 'Who it is for' },
   { id: 'how', label: 'How it works' },
   { id: 'pricing', label: 'Pricing' },
+  { id: 'trackers', label: 'Trackers' },
 ] as const;
 
 /**
@@ -286,9 +286,16 @@ export function MarketingNav() {
           {/* The mark is navy on transparency, so it needs its white chip on
               the stage — and in the dark theme once the glass ground is up. */}
           <SaarthiLogo className="h-8" decorative onDark={overStage || resolvedTheme === 'dark'} />
+          {/*
+           * The wordmark gives way below 380px rather than the menu button.
+           * Mark, wordmark, the CTA and the menu need ~334px, and on a 320 or
+           * 360 phone the row pushed the menu - the only route to the section
+           * links there - past the screen edge. The mark still carries the
+           * brand, and the label keeps the home link named for screen readers.
+           */}
           <span
             className={cn(
-              'text-base font-semibold tracking-tight sm:text-lg',
+              'sr-only text-base font-semibold tracking-tight min-[380px]:not-sr-only sm:text-lg',
               overStage && 'text-white',
             )}
           >

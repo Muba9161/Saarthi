@@ -107,9 +107,13 @@ model User {
   /// has to outlive that, or an account would silently become unverified.
   aadhaarLast4      String?
   aadhaarVerifiedAt DateTime?
+  /// The account holder's own verified PAN (Personal verification). Separate
+  /// from `drivers.panNumber` for the same reason as the Aadhaar pair above.
+  panNumber         String?
+  panVerifiedAt     DateTime?
 
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   roles           UserRole[]
   memberships     Membership[]
@@ -127,6 +131,17 @@ model User {
   /// profile may be created from a GODID before the person has a login, and
   /// almost no user has one of these.
   salesmanProfile SalesmanProfile? @relation("SalesmanUser")
+
+  /// Refer & Earn. The code this person shares, the referrals it brought, and
+  /// — for somebody who registered through one — the referral that brought
+  /// them. Separate from the salesman/GODID channel above.
+  referralProgramCode ReferralProgramCode?
+  referralsMade       UserReferral[]       @relation("UserReferralReferrer")
+  referredBy          UserReferral?        @relation("UserReferralReferred")
+  /// The Saarthi wallet those referrals pay into, and where it cashes out to.
+  walletEntries       WalletEntry[]
+  walletBankAccount   WalletBankAccount?
+  walletCashouts      WalletCashout[]
 
   @@index([status])
   @@index([createdAt])
@@ -174,6 +189,9 @@ model Organization {
   /// `Active`, `Cancelled`, `Suspended`… as last reported by the GST portal.
   gstStatus          String?
   gstVerifiedAt      DateTime?
+  /// Verified business PAN. Set only by a successful PAN check.
+  panNumber          String?
+  panVerifiedAt      DateTime?
   email              String?
   phone              String?
   addressLine        String?
@@ -203,6 +221,15 @@ model Organization {
   logoUrl            String?
   description        String?
   archivedAt         DateTime?
+  /// Unpaid-account retention (see `account-retention.service`). A paid plan
+  /// whose period ends unpaid gets three days' grace; then it is archived —
+  /// locked until renewed — and `dataPurgeAt` is set 90 days out. Renewing
+  /// clears both. `dataPurgedAt` records that the business's own data was
+  /// permanently deleted; the organization row itself stays, because payments
+  /// and invoices still reference it.
+  billingArchivedAt  DateTime?
+  dataPurgeAt        DateTime?
+  dataPurgedAt       DateTime?
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
 
@@ -214,15 +241,19 @@ model Organization {
 
   /// How this customer came to Saarthi, and what it earned whoever brought
   /// them. Present only for a tenant that arrived through a salesperson.
-  salesLeads            SalesLead[]
-  referralAttributions  ReferralAttribution[]
-  commissions           Commission[]
-  trackerHandovers      TrackerHandover[]
+  salesLeads           SalesLead[]
+  referralAttributions ReferralAttribution[]
+  commissions          Commission[]
+  payoutAccount        PayoutAccount?
+  trackerHandovers     TrackerHandover[]
+  /// The Refer & Earn referral this tenant registered under, if any.
+  userReferral         UserReferral?
 
   @@index([type])
   @@index([verificationStatus])
   @@index([createdAt])
   @@index([gstin])
+  @@index([dataPurgeAt])
   @@map("organizations")
 }
 
@@ -316,16 +347,17 @@ model AuditLog {
 // Enums — subscriptions & notifications
 // ===========================================================================
 
-/// The three plans Saarthi offers. See `PlanTier` in @saarthi/shared for what
-/// each one covers, and for why Free runs no vehicles at all rather than being
-/// a smaller fleet plan.
+/// The commercial plans Saarthi sells. See `PlanTier` in @saarthi/shared: a
+/// plan is the billing layer only, never the account's operational identity.
 enum PlanTier {
   FREE
   PERSONAL
+  SUPPLIER
   BUSINESS
 }
 
-/// Whether a subscription is billed each month or once a year.
+/// Billing cadence. New subscriptions are monthly only; YEARLY is kept for
+/// historical rows.
 enum BillingPeriod {
   MONTHLY
   YEARLY
@@ -465,6 +497,7 @@ enum NotificationType {
   SALES_COMMISSION_PAID
   SALES_TRACKER_ASSIGNED
   SALESMAN_VERIFIED
+  DRIVER_APP_INVITE
 }
 
 // ===========================================================================
@@ -476,8 +509,9 @@ model SubscriptionPlan {
   tier         PlanTier @unique
   name         String
   description  String
-  /// Monthly price in INR. Null means custom/negotiated pricing.
+  /// Monthly price in INR, GST included. Null means custom/negotiated pricing.
   priceMonthly Decimal? @db.Decimal(12, 2)
+  /// Unused since billing became monthly only; kept for historical rows.
   priceYearly  Decimal? @db.Decimal(12, 2)
   active       Boolean  @default(true)
   sortOrder    Int      @default(0)
@@ -518,21 +552,27 @@ model PlanFeature {
 }
 
 model Subscription {
-  id             String             @id @default(uuid()) @db.Uuid
-  organizationId String             @db.Uuid
-  planId         String             @db.Uuid
-  status         SubscriptionStatus @default(TRIALING)
+  id              String             @id @default(uuid()) @db.Uuid
+  organizationId  String             @db.Uuid
+  planId          String             @db.Uuid
+  status          SubscriptionStatus @default(TRIALING)
   /// Which price the customer agreed to. Stored because a plan holds both a
   /// monthly and a yearly figure, and knowing only the plan loses half of what
   /// was actually agreed.
-  billingPeriod  BillingPeriod      @default(MONTHLY)
-  startsAt       DateTime           @default(now())
-  endsAt         DateTime?
-  cancelledAt    DateTime?
-  /// Populated by the payment provider abstraction (mock locally).
-  externalRef    String?
-  createdAt      DateTime           @default(now())
-  updatedAt      DateTime           @updatedAt
+  billingPeriod   BillingPeriod      @default(MONTHLY)
+  startsAt        DateTime           @default(now())
+  endsAt          DateTime?
+  cancelledAt     DateTime?
+  /// The recurring-billing (autopay) mandate at the payment provider — the
+  /// Cashfree subscription id, or a MOCK- reference locally. Null until the
+  /// owner sets up autopay.
+  externalRef     String?
+  /// Which provider holds the mandate: `mock` or `cashfree`.
+  autopayProvider String?
+  /// The provider's own status for the mandate, as last reported.
+  autopayStatus   String?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
 
   plan SubscriptionPlan @relation(fields: [planId], references: [id])
 
@@ -1702,6 +1742,10 @@ model Order {
   /// Set when the order was produced by awarding a requirement bid rather
   /// than by posting a freight order directly.
   requirement       Requirement?       @relation("RequirementOrder")
+  /// The money of a fleet-sourced order — the 30/70 customer payments, the
+  /// supplier procurement and the profit Saarthi's commission is taken on.
+  finance           OrderFinance?
+  payments          Payment[]
 
   @@index([customerOrganizationId, status, createdAt])
   @@index([supplierOrganizationId, status])
@@ -1933,10 +1977,15 @@ model RequirementBid {
   distanceToPickupKm Float?
 
   // --- Material ------------------------------------------------------------
-  materialId        String? @db.Uuid
-  includesDelivery  Boolean @default(false)
-  availableQuantity Float?
-  leadTimeDays      Int?
+  materialId           String?  @db.Uuid
+  /// A delivered bid: the supplier listing the fleet will buy the material from.
+  sourceMaterialId     String?  @db.Uuid
+  /// The listing price x quantity when the bid was placed — the fleet's
+  /// procurement reference, visible to the fleet only.
+  procurementReference Decimal? @db.Decimal(12, 2)
+  includesDelivery     Boolean  @default(false)
+  availableQuantity    Float?
+  leadTimeDays         Int?
 
   // --- Travel --------------------------------------------------------------
   offeredVehicleType VehicleType?
@@ -2777,6 +2826,8 @@ enum PaymentPurpose {
   VEHICLE_PURCHASE
   /// Paying a last-mile partner for a city relay leg.
   RELAY_DELIVERY
+  /// The customer's fee for one billable verification check.
+  VERIFICATION_FEE
 }
 
 enum PaymentMethod {
@@ -2786,6 +2837,7 @@ enum PaymentMethod {
   NETBANKING
   WALLET
   CASH
+  ONLINE
 }
 
 // ===========================================================================
@@ -3403,6 +3455,10 @@ model TravelBooking {
   cancellationReason String?
   refundAmount       Decimal?     @db.Decimal(12, 2)
   refundedAt         DateTime?
+  /// The provider's recorded costs for this booking — the basis of its profit.
+  providerCost       Decimal?     @db.Decimal(12, 2)
+  costBreakdown      Json?
+  costsFinalizedAt   DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -3505,9 +3561,11 @@ model Payment {
   updatedAt   DateTime  @updatedAt
 
   booking TravelBooking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  order   Order?         @relation(fields: [orderId], references: [id], onDelete: SetNull)
 
   @@index([organizationId, createdAt])
   @@index([bookingId])
+  @@index([orderId])
   @@index([status, createdAt])
   @@map("payments")
 }
@@ -5905,6 +5963,8 @@ enum TopUpStatus {
   CANCELLED
   EXPIRED
   PAYMENT_FAILED
+  /// Ordered through a hosted checkout that has not settled yet. Grants nothing.
+  PENDING_PAYMENT
 }
 
 /// A `+1 vehicle` top-up on an organization's subscription.
@@ -5939,6 +5999,12 @@ model VehicleSubscriptionTopUp {
   @@map("vehicle_subscription_topups")
 }
 
+/// The tracker hardware on sale. See `TRACKER_PRODUCTS` in @saarthi/shared.
+enum TrackerProduct {
+  OBD_BLUETOOTH
+  CONNECTED_4G
+}
+
 enum TrackerStatus {
   /// Paid for and granting its entitlement.
   ACTIVE
@@ -5948,6 +6014,8 @@ enum TrackerStatus {
   PAYMENT_FAILED
   /// Refunded. Distinct from RETIRED because the money went back.
   REFUNDED
+  /// Ordered through a hosted checkout that has not settled yet. Grants nothing.
+  PENDING_PAYMENT
 }
 
 /// One Saarthi tracker, bought once for one vehicle.
@@ -5962,9 +6030,10 @@ enum TrackerStatus {
 /// fitting, not a service — so unlike a top-up there is nothing here to
 /// expire, and no sweep that can quietly switch a customer's hardware off.
 model VehicleTracker {
-  id             String        @id @default(uuid()) @db.Uuid
-  organizationId String        @db.Uuid
-  status         TrackerStatus @default(ACTIVE)
+  id             String         @id @default(uuid()) @db.Uuid
+  organizationId String         @db.Uuid
+  status         TrackerStatus  @default(ACTIVE)
+  product        TrackerProduct @default(OBD_BLUETOOTH)
 
   /// The vehicle it is fitted to. Null while it is on the shelf — bought ahead
   /// of the vehicle arriving, or taken off a vehicle that was sold.
@@ -6874,10 +6943,10 @@ enum TrackerHandoverStatus {
 /// ordinary sequence when a sales manager onboards a team. Unique because two
 /// salespeople sharing one login would make every attribution ambiguous.
 model SalesmanProfile {
-  id     String @id @default(uuid()) @db.Uuid
+  id     String  @id @default(uuid()) @db.Uuid
   /// The GODWeb identity. Stored normalised (upper case, no spaces) and unique,
   /// because it is also the referral code.
-  godId  String @unique
+  godId  String  @unique
   userId String? @unique @db.Uuid
 
   /// The sales organization's own identifier for this person, where they have
@@ -6916,7 +6985,7 @@ model SalesmanProfile {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user         User?                @relation("SalesmanUser", fields: [userId], references: [id], onDelete: SetNull)
+  user         User?                 @relation("SalesmanUser", fields: [userId], references: [id], onDelete: SetNull)
   leads        SalesLead[]
   attributions ReferralAttribution[]
   commissions  Commission[]
@@ -6975,7 +7044,7 @@ model SalesLead {
   /// The one vehicle the salesperson set up in front of the owner.
   firstVehicleId        String?   @db.Uuid
 
-  closedAt   DateTime?
+  closedAt    DateTime?
   closeReason String?
 
   createdAt DateTime @default(now())
@@ -7033,14 +7102,14 @@ model SalesLeadEvent {
 /// organization — rather than by service code, so a race between two
 /// simultaneous registrations cannot produce two.
 model ReferralAttribution {
-  id         String @id @default(uuid()) @db.Uuid
-  salesmanId String @db.Uuid
+  id                    String  @id @default(uuid()) @db.Uuid
+  salesmanId            String  @db.Uuid
   /// Denormalised from the salesman profile at capture time.
   ///
   /// Kept because commission statements are reconciled by GODID and by the
   /// sales organization's own id, and both have to still read correctly years
   /// later even if the profile is edited or the person leaves.
-  godId      String
+  godId                 String
   salespersonExternalId String?
 
   source ReferralSource
@@ -7051,19 +7120,19 @@ model ReferralAttribution {
   /// The user who registered, for support.
   customerUserId String? @db.Uuid
 
-  capturedAt DateTime  @default(now())
+  capturedAt   DateTime  @default(now())
   /// End of the attribution window, computed at capture from
   /// `SALES_ATTRIBUTION_WINDOW_DAYS`. Stored rather than recomputed so a later
   /// configuration change cannot retroactively take a salesperson's credit
   /// away — or hand it back.
-  expiresAt  DateTime
+  expiresAt    DateTime
   attributedAt DateTime?
   convertedAt  DateTime?
 
   /// Why an administrator withdrew it, and who.
-  revokedAt        DateTime?
-  revokedByUserId  String?   @db.Uuid
-  revokeReason     String?
+  revokedAt       DateTime?
+  revokedByUserId String?   @db.Uuid
+  revokeReason    String?
 
   /// Truncated capture context, for fraud review. No full user agent and no
   /// precise location — this is enough to spot one device minting a hundred
@@ -7104,9 +7173,9 @@ model CommissionRule {
 
   commissionType CommissionType
   /// Percentage points, for a PERCENTAGE rule.
-  commissionRate Decimal? @db.Decimal(6, 3)
+  commissionRate Decimal?       @db.Decimal(6, 3)
   /// Rupees per qualifying sale, for a FIXED rule.
-  fixedAmount    Decimal? @db.Decimal(12, 2)
+  fixedAmount    Decimal?       @db.Decimal(12, 2)
 
   /// Cooling-off period. A sale refunded inside it reverses the commission
   /// rather than paying it.
@@ -7157,7 +7226,7 @@ model Commission {
   salespersonExternalId String?
 
   /// The customer this was earned on.
-  organizationId String  @db.Uuid
+  organizationId String    @db.Uuid
   planTier       PlanTier?
 
   trigger CommissionTrigger @default(SUBSCRIPTION)
@@ -7168,7 +7237,7 @@ model Commission {
   currency   String  @default("INR")
 
   /// The rate applied, when the rule was a percentage one.
-  commissionRate Decimal? @db.Decimal(6, 3)
+  commissionRate   Decimal? @db.Decimal(6, 3)
   /// Null until a rule covers this sale. Never defaulted to zero.
   commissionAmount Decimal? @db.Decimal(12, 2)
 
@@ -7178,15 +7247,15 @@ model Commission {
   subscriptionId   String? @db.Uuid
 
   /// When the qualification period ends and the amount may be approved.
-  eligibleAt DateTime
-  approvedAt DateTime?
-  approvedByUserId String? @db.Uuid
-  paidAt     DateTime?
-  paidByUserId String? @db.Uuid
+  eligibleAt       DateTime
+  approvedAt       DateTime?
+  approvedByUserId String?   @db.Uuid
+  paidAt           DateTime?
+  paidByUserId     String?   @db.Uuid
   /// Reference of the payout, not of the customer's payment.
-  payoutReference String?
+  payoutReference  String?
 
-  reversedAt DateTime?
+  reversedAt     DateTime?
   /// Why it was reversed or rejected. Required by the API for both.
   decisionReason String?
 
@@ -7230,11 +7299,11 @@ model Commission {
 /// telemetry state the onboarding checklist reads, so a handover cannot be
 /// marked complete by the person whose pipeline benefits.
 model TrackerHandover {
-  id         String @id @default(uuid()) @db.Uuid
+  id             String  @id @default(uuid()) @db.Uuid
   /// The paid-for tracker entitlement. One handover chain per tracker.
-  trackerId  String @unique @db.Uuid
-  salesmanId String @db.Uuid
-  leadId     String? @db.Uuid
+  trackerId      String  @unique @db.Uuid
+  salesmanId     String  @db.Uuid
+  leadId         String? @db.Uuid
   /// The customer, once there is one. Null while the unit is still stock.
   organizationId String? @db.Uuid
 
@@ -7253,7 +7322,7 @@ model TrackerHandover {
   /// The vehicle it ended up on, read from the device assignment.
   vehicleId        String?   @db.Uuid
 
-  returnedAt DateTime?
+  returnedAt  DateTime?
   /// Why it came back or was written off.
   closeReason String?
 
@@ -7270,4 +7339,488 @@ model TrackerHandover {
   @@index([organizationId])
   @@index([status])
   @@map("tracker_handovers")
+}
+
+// ---------------------------------------------------------------------------
+// Refer & Earn — the generic referral program
+// ---------------------------------------------------------------------------
+//
+// One Saarthi user bringing another. Kept entirely apart from the
+// salesman/GODID tables above: different codes, different statuses, and no
+// commission row. The reward rule is not decided yet, so a qualified referral
+// records the payment it qualified on and nothing more.
+
+enum UserReferralStatus {
+  SIGNED_UP
+  QUALIFIED
+}
+
+/// The code one person shares. Issued the first time they open the Referral
+/// Center, so an account that never refers anybody never holds one.
+model ReferralProgramCode {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @unique @db.Uuid
+  code      String   @unique
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("referral_program_codes")
+}
+
+/// One person who registered with somebody's code.
+///
+/// `organizationId` is unique, which is what makes "first referral wins" true
+/// under concurrency rather than merely checked: a second insert for the same
+/// tenant fails at the database.
+model UserReferral {
+  id             String             @id @default(uuid()) @db.Uuid
+  referrerUserId String             @db.Uuid
+  referredUserId String             @unique @db.Uuid
+  organizationId String             @unique @db.Uuid
+  /// The code as it was quoted, for support.
+  code           String
+  status         UserReferralStatus @default(SIGNED_UP)
+  signedUpAt     DateTime           @default(now())
+
+  /// The first successful subscription payment. Stored so a reward rule
+  /// agreed later can be applied to referrals that qualified before it.
+  qualifiedAt                DateTime?
+  qualifyingPaymentReference String?
+  /// Pre-GST, in rupees — the same base the sales commission uses.
+  qualifyingAmount           Decimal?  @db.Decimal(12, 2)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  referrer     User         @relation("UserReferralReferrer", fields: [referrerUserId], references: [id], onDelete: Cascade)
+  referred     User         @relation("UserReferralReferred", fields: [referredUserId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  /// The reward it credited. Absent for a signup that earned nothing.
+  walletEntry  WalletEntry?
+
+  @@index([referrerUserId, status])
+  @@map("user_referrals")
+}
+
+// ---------------------------------------------------------------------------
+// Saarthi wallet — Refer & Earn rewards and cash-out
+// ---------------------------------------------------------------------------
+//
+// A ledger, not a balance column: the balance is the sum of AVAILABLE entries,
+// so every rupee in it has a row that says where it came from. Nothing here is
+// approved by a person — rewards release on their own after the hold, and a
+// cash-out goes straight to the payout provider.
+
+enum WalletEntryType {
+  REFERRAL_REWARD
+  CASHOUT
+  CASHOUT_REVERSAL
+}
+
+enum WalletEntryStatus {
+  HELD
+  AVAILABLE
+  VOID
+}
+
+enum WalletCashoutStatus {
+  PROCESSING
+  PAID
+  FAILED
+}
+
+model WalletEntry {
+  id          String            @id @default(uuid()) @db.Uuid
+  userId      String            @db.Uuid
+  type        WalletEntryType
+  status      WalletEntryStatus
+  /// Signed rupees: credits positive, cash-outs negative.
+  amount      Decimal           @db.Decimal(12, 2)
+  /// Idempotency. One reward per referral, one debit and at most one reversal
+  /// per cash-out — a retried call cannot credit or debit twice.
+  entryKey    String            @unique
+  /// When a HELD reward is checked for release.
+  availableAt DateTime
+
+  userReferralId String? @unique @db.Uuid
+  cashoutId      String? @db.Uuid
+  /// Why a reward was voided, for the holder and for support.
+  note           String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userReferral UserReferral?  @relation(fields: [userReferralId], references: [id], onDelete: SetNull)
+  cashout      WalletCashout? @relation(fields: [cashoutId], references: [id], onDelete: SetNull)
+
+  @@index([userId, status])
+  @@index([status, availableAt])
+  @@map("wallet_entries")
+}
+
+/// The one bank account a person's wallet cashes out to. Penny-validated
+/// before it can be used; the full account number is never stored.
+model WalletBankAccount {
+  id                    String            @id @default(uuid()) @db.Uuid
+  userId                String            @unique @db.Uuid
+  accountHolderName     String
+  accountLast4          String
+  ifsc                  String
+  bankName              String?
+  nameAtBank            String?
+  /// Keyed hash of account number and IFSC. Unique, so one bank account can
+  /// receive only one person's rewards — the cheapest check against a ring of
+  /// fake referrers cashing out to the same place.
+  accountFingerprint    String            @unique
+  status                BankAccountStatus @default(PENDING_VERIFICATION)
+  verificationReference String?
+  failureReason         String?
+  verifiedAt            DateTime?
+  /// The payout provider's beneficiary record transfers are sent to.
+  beneficiaryId         String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("wallet_bank_accounts")
+}
+
+model WalletCashout {
+  id                String              @id @default(uuid()) @db.Uuid
+  userId            String              @db.Uuid
+  amount            Decimal             @db.Decimal(12, 2)
+  status            WalletCashoutStatus @default(PROCESSING)
+  /// Saarthi's own reference, used as the provider's transfer id.
+  transferId        String              @unique
+  providerReference String?
+  failureReason     String?
+  /// Copied at request time, so the history still reads correctly after the
+  /// holder changes their bank account.
+  accountLast4      String
+  requestedAt       DateTime            @default(now())
+  completedAt       DateTime?
+  updatedAt         DateTime            @updatedAt
+
+  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entries WalletEntry[]
+
+  @@index([userId, requestedAt])
+  @@index([status, requestedAt])
+  @@map("wallet_cashouts")
+}
+
+/// A payment-provider webhook, recorded once.
+///
+/// `eventKey` is unique, so a webhook the provider retries, or delivers twice,
+/// is recognised and acknowledged without being applied a second time.
+model PaymentWebhookEvent {
+  id          String    @id @default(uuid()) @db.Uuid
+  provider    String
+  eventKey    String    @unique
+  eventType   String
+  payload     Json
+  receivedAt  DateTime  @default(now())
+  processedAt DateTime?
+  error       String?
+
+  @@index([provider, eventType])
+  @@map("payment_webhook_events")
+}
+
+// ===========================================================================
+// Marketplace finance
+// ===========================================================================
+
+enum BankAccountStatus {
+  NOT_CONNECTED
+  PENDING_VERIFICATION
+  VERIFIED
+  FAILED
+  BLOCKED
+}
+
+/// The bank account a provider or supplier receives marketplace payments in.
+///
+/// Verified by penny validation before it can be used. The full account number
+/// is never stored — it goes to the verification and payment providers once,
+/// and Saarthi keeps only its last four digits.
+model PayoutAccount {
+  id                    String            @id @default(uuid()) @db.Uuid
+  organizationId        String            @unique @db.Uuid
+  accountHolderName     String
+  accountLast4          String
+  ifsc                  String
+  bankName              String?
+  /// The name the bank returned during penny validation.
+  nameAtBank            String?
+  status                BankAccountStatus @default(PENDING_VERIFICATION)
+  verificationReference String?
+  failureReason         String?
+  verifiedAt            DateTime?
+  /// The payment provider's vendor record that routes payments here.
+  vendorId              String?
+  vendorStatus          String?
+  connectedById         String?           @db.Uuid
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@map("payout_accounts")
+}
+
+enum OrderFinanceStage {
+  PAYMENT_30_REQUIRED
+  PAYMENT_30_PAID
+  PROCUREMENT_PAID
+  PAYMENT_70_REQUIRED
+  PAYMENT_70_PAID
+  FINALIZED
+  CANCELLED
+}
+
+/// The money of a fleet-sourced freight order.
+///
+/// `agreedAmount` is the accepted bid — the authoritative selling price.
+/// `procurementAmount` is what the fleet actually paid its supplier through
+/// Saarthi. Their difference, once delivery settles the final amount, is the
+/// profit Saarthi's 2% commission is taken on.
+model OrderFinance {
+  id                     String            @id @default(uuid()) @db.Uuid
+  orderId                String            @unique @db.Uuid
+  sellerOrganizationId   String            @db.Uuid
+  supplierOrganizationId String?           @db.Uuid
+  customerOrganizationId String            @db.Uuid
+  agreedAmount           Decimal           @db.Decimal(12, 2)
+  confirmationAmount     Decimal           @db.Decimal(12, 2)
+  orderedQuantity        Float
+  deliveredQuantity      Float?
+  /// The customer's amount for what was actually delivered.
+  finalAmount            Decimal?          @db.Decimal(12, 2)
+  procurementReference   Decimal?          @db.Decimal(12, 2)
+  procurementAmount      Decimal?          @db.Decimal(12, 2)
+  stage                  OrderFinanceStage @default(PAYMENT_30_REQUIRED)
+  deliveryConfirmedAt    DateTime?
+  deliveryNote           String?
+  finalizedAt            DateTime?
+  createdAt              DateTime          @default(now())
+  updatedAt              DateTime          @updatedAt
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([sellerOrganizationId, stage])
+  @@index([customerOrganizationId, stage])
+  @@index([supplierOrganizationId])
+  @@map("order_finances")
+}
+
+enum MarketplaceCommissionStatus {
+  /// Calculated from the finalized profit; retained from the provider's settlement.
+  CALCULATED
+  /// Retained — the provider's settlement went out net of it.
+  SETTLED
+  /// Undone by a refund or cancellation. The row stays for the record.
+  REVERSED
+}
+
+/// Saarthi's 2% of a provider's profit on one order or booking.
+///
+/// Immutable once calculated: the rule version, rate and every input are kept,
+/// so a later rate change never rewrites what an old order paid.
+model MarketplaceCommission {
+  id                     String                      @id @default(uuid()) @db.Uuid
+  /// Always MARKETPLACE_PROFIT — distinct from referral and salesperson commission.
+  source                 String                      @default("MARKETPLACE_PROFIT")
+  /// FREIGHT_ORDER or TRAVEL_BOOKING.
+  kind                   String
+  orderId                String?                     @unique @db.Uuid
+  bookingId              String?                     @unique @db.Uuid
+  providerOrganizationId String                      @db.Uuid
+  revenueAmount          Decimal                     @db.Decimal(12, 2)
+  costAmount             Decimal                     @db.Decimal(12, 2)
+  profitBasis            Decimal                     @db.Decimal(12, 2)
+  rate                   Decimal                     @db.Decimal(6, 4)
+  amount                 Decimal                     @db.Decimal(12, 2)
+  ruleVersion            String
+  status                 MarketplaceCommissionStatus @default(CALCULATED)
+  calculatedAt           DateTime                    @default(now())
+  settledAt              DateTime?
+  reversedAt             DateTime?
+  reversalReason         String?
+
+  @@index([providerOrganizationId, calculatedAt])
+  @@map("marketplace_commissions")
+}
+
+enum MarketplaceLedgerType {
+  CUSTOMER_PAYMENT
+  PROCUREMENT_PAYMENT
+  COMMISSION
+  PROVIDER_SETTLEMENT
+  REFUND
+  ADJUSTMENT
+}
+
+/// One money movement in the marketplace, written once.
+///
+/// `entryKey` is unique, so a retried webhook or a repeated call can never
+/// record the same movement twice.
+model MarketplaceLedgerEntry {
+  id                         String                @id @default(uuid()) @db.Uuid
+  entryKey                   String                @unique
+  type                       MarketplaceLedgerType
+  orderId                    String?               @db.Uuid
+  bookingId                  String?               @db.Uuid
+  /// Whose money this is — the payer for a payment, the recipient for a settlement.
+  organizationId             String                @db.Uuid
+  counterpartyOrganizationId String?               @db.Uuid
+  amount                     Decimal               @db.Decimal(12, 2)
+  /// CONFIRMATION_30, FINAL_70, PROCUREMENT, FULL, …
+  stage                      String?
+  paymentReference           String?
+  note                       String?
+  createdAt                  DateTime              @default(now())
+
+  @@index([orderId, createdAt])
+  @@index([bookingId, createdAt])
+  @@index([organizationId, createdAt])
+  @@map("marketplace_ledger_entries")
+}
+
+enum MarketplaceSettlementStatus {
+  /// Owed, not yet sent — waiting for the recipient's verified bank account.
+  PENDING
+  REQUESTED
+  SETTLED
+  FAILED
+}
+
+/// Money routed from a customer payment to the provider or supplier it belongs to.
+model MarketplaceSettlement {
+  id                      String                      @id @default(uuid()) @db.Uuid
+  settlementKey           String                      @unique
+  paymentReference        String
+  orderId                 String?                     @db.Uuid
+  bookingId               String?                     @db.Uuid
+  recipientOrganizationId String                      @db.Uuid
+  vendorId                String?
+  amount                  Decimal                     @db.Decimal(12, 2)
+  status                  MarketplaceSettlementStatus @default(PENDING)
+  providerReference       String?
+  failureReason           String?
+  attempts                Int                         @default(0)
+  requestedAt             DateTime?
+  settledAt               DateTime?
+  createdAt               DateTime                    @default(now())
+  updatedAt               DateTime                    @updatedAt
+
+  @@index([status, updatedAt])
+  @@index([recipientOrganizationId, createdAt])
+  @@map("marketplace_settlements")
+}
+
+// ===========================================================================
+// Verification fees
+// ===========================================================================
+
+enum VerificationCheckType {
+  AADHAAR
+  PAN
+  VOTER_ID
+  GST
+  DRIVING_LICENCE
+  VEHICLE_RC
+}
+
+enum VerificationChargeStatus {
+  PAYMENT_PROCESSING
+  PAYMENT_FAILED
+  PAID
+  VERIFYING
+  VERIFIED
+  FAILED
+  RETRY_REQUIRED
+}
+
+/// What one billable check costs the customer, and what it costs Saarthi.
+///
+/// Versioned rather than edited in place: a charge snapshots the version it was
+/// sold at, so changing a price never rewrites what somebody already paid. One
+/// active row per check type is the price in force.
+model VerificationPrice {
+  id                   String                @id @default(uuid()) @db.Uuid
+  checkType            VerificationCheckType
+  /// WAY2API or CASHFREE — the source this check is routed to.
+  provider             String
+  /// What the provider charges Saarthi per call. Null while unknown.
+  providerCost         Decimal?              @db.Decimal(12, 4)
+  providerCostCurrency String                @default("USD")
+  /// The final amount the customer pays, tax included.
+  customerPrice        Decimal               @db.Decimal(12, 2)
+  currency             String                @default("INR")
+  /// INCLUSIVE — `customerPrice` already includes any tax.
+  taxTreatment         String                @default("INCLUSIVE")
+  pricingVersion       String
+  active               Boolean               @default(true)
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+
+  @@unique([checkType, pricingVersion])
+  @@index([checkType, active])
+  @@map("verification_prices")
+}
+
+/// One paid verification attempt.
+///
+/// The link between a `payments` row (the customer paid Saarthi) and the check
+/// it paid for (the source confirmed a record). The two are separate facts: a
+/// payment succeeding moves this to PAID, and only the provider's persisted
+/// answer moves it to VERIFIED or FAILED.
+model VerificationCharge {
+  id                   String                   @id @default(uuid()) @db.Uuid
+  checkType            VerificationCheckType
+  subjectType          VerificationSubjectType
+  subjectId            String                   @db.Uuid
+  /// The payer — the tenant the subject belongs to.
+  organizationId       String                   @db.Uuid
+  requestedById        String                   @db.Uuid
+  status               VerificationChargeStatus @default(PAYMENT_PROCESSING)
+  /// The `payments` row, one per charge.
+  paymentReference     String                   @unique
+  /// Price snapshot, as sold.
+  customerPrice        Decimal                  @db.Decimal(12, 2)
+  currency             String                   @default("INR")
+  provider             String
+  providerCost         Decimal?                 @db.Decimal(12, 4)
+  providerCostCurrency String                   @default("USD")
+  pricingVersion       String
+  /// Display form of what is being checked. Safe to return.
+  maskedNumber         String?
+  /// HMAC of the normalised number, so a free retry is tied to the same check.
+  numberHash           String?
+  /// AES-256-GCM ciphertext of the request, so a webhook can run the check
+  /// after checkout. Null once the check has run, or when no key is set.
+  encryptedRequest     String?
+  /// Whether the provider charged Saarthi for the call. Null until known.
+  providerBilled       Boolean?
+  providerReference    String?
+  /// The identity check or verification case this attempt produced.
+  resultId             String?                  @db.Uuid
+  reason               String?
+  /// A RETRY_REQUIRED attempt later reused by a free retry.
+  consumedAt           DateTime?
+  paidAt               DateTime?
+  completedAt          DateTime?
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
+
+  @@index([subjectType, subjectId, checkType, createdAt])
+  @@index([organizationId, createdAt])
+  @@index([status, updatedAt])
+  @@map("verification_charges")
 }

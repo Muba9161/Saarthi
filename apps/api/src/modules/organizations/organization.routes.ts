@@ -11,6 +11,7 @@ import { ok, parseBody } from '../../lib/http';
 import { requireAuth, requireOrganizationId, requirePermission } from '../../server/guards';
 import { AuditAction, auditFromRequest } from '../audit/audit.service';
 import { resolveSubscription } from '../subscriptions/entitlements.service';
+import { allocateInviteCode } from './fleet-invite.service';
 
 /**
  * Organization profile, members and subscription state for the active tenant.
@@ -29,8 +30,13 @@ export async function organizationRoutes(app: FastifyInstance): Promise<void> {
       prisma.driver.count({ where: { organizationId, archivedAt: null } }),
     ]);
 
+    // The joining code lets a driver into this fleet, so only somebody who
+    // manages its members sees it — see `/current/invite-code`.
+    const { inviteCode, ...profile } = organization;
+    const auth = requireAuth(request);
     return ok(reply, {
-      ...organization,
+      ...profile,
+      ...(auth.permissions.includes(Permission.ORG_MEMBERS_MANAGE) ? { inviteCode } : {}),
       counts: { members: memberCount, trucks: truckCount, drivers: driverCount },
     });
   });
@@ -161,6 +167,26 @@ export async function organizationRoutes(app: FastifyInstance): Promise<void> {
       });
       if (!organization) throw errors.notFound('Organization');
       return ok(reply, { inviteCode: organization.inviteCode });
+    },
+  );
+
+  /**
+   * Issue a new joining code. The old one stops working at once — for a code
+   * that was shared too widely. Drivers already in the fleet are unaffected.
+   */
+  app.post(
+    '/current/invite-code/regenerate',
+    { preHandler: requirePermission(Permission.ORG_MEMBERS_MANAGE) },
+    async (request, reply) => {
+      const organizationId = requireOrganizationId(request);
+      const inviteCode = await allocateInviteCode();
+      await prisma.organization.update({ where: { id: organizationId }, data: { inviteCode } });
+      await auditFromRequest(request, {
+        action: AuditAction.ORGANIZATION_INVITE_CODE_REGENERATED,
+        entityType: 'Organization',
+        entityId: organizationId,
+      });
+      return ok(reply, { inviteCode });
     },
   );
 

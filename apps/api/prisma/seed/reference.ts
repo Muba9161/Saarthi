@@ -68,7 +68,7 @@ export async function seedPlansAndFeatures(prisma: PrismaClient): Promise<void> 
         name: plan.name,
         description: plan.description,
         priceMonthly: plan.priceMonthly,
-        priceYearly: plan.priceYearly,
+        priceYearly: null,
         sortOrder: index,
         active: true,
       },
@@ -76,7 +76,7 @@ export async function seedPlansAndFeatures(prisma: PrismaClient): Promise<void> 
         name: plan.name,
         description: plan.description,
         priceMonthly: plan.priceMonthly,
-        priceYearly: plan.priceYearly,
+        priceYearly: null,
         sortOrder: index,
       },
     });

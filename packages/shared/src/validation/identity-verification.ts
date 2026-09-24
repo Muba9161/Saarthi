@@ -76,10 +76,18 @@ export type VerifyAadhaarInput = z.infer<typeof verifyAadhaarSchema>;
  * `holderName` is optional: the department confirms the PAN either way, but
  * supplying the name turns "this PAN exists" into "this PAN belongs to the
  * person you are onboarding", which is the question a fleet actually has.
+ *
+ * Three subjects, each recorded in its own place: a driver's PAN (one of the
+ * driver checks), an account holder's own PAN (Personal) and a business PAN
+ * (Business and Supplier).
  */
 export const verifyPanSchema = verifyBaseSchema.extend({
   kind: z.literal(IdentityDocumentKind.PAN),
-  subjectType: z.literal(VerificationSubjectType.DRIVER),
+  subjectType: z.enum([
+    VerificationSubjectType.DRIVER,
+    VerificationSubjectType.USER,
+    VerificationSubjectType.ORGANIZATION,
+  ]),
   number: panNumberSchema,
   holderName: optionalTrimmedString(120),
 });

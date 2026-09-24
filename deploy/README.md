@@ -91,7 +91,10 @@ These are properties of the application, not of the server setup:
    `NODE_ENV=production` the reset token is no longer returned in the API
    response either. Until a mail provider is implemented, a forgotten password
    needs an operator with database access.
-2. **No payment gateway.** `PAYMENT_PROVIDER=mock`; no gateway has been chosen.
+2. **Payment gateway.** Cashfree: set `PAYMENT_PROVIDER=cashfree`, `CASHFREE_ENV=production`,
+   the live `CASHFREE_APP_ID` / `CASHFREE_SECRET_KEY`, and `CASHFREE_WEBHOOK_URL` (HTTPS URL of
+   `/api/v1/webhooks/cashfree`, also registered on the Cashfree dashboard for Payments and
+   Subscriptions, webhook version 2026-01-01).
 3. **No video gateway.** `VIDEO_PROVIDER=none`, so live camera view is off and
    the UI says so. MediaMTX can be added later with the repo's `video` compose
    profile plus WHIP/WHEP proxying.

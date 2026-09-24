@@ -1,13 +1,13 @@
 import * as React from 'react';
 import { useLocation } from 'react-router-dom';
 import { CapabilityMarquee, Hero, ProofStats } from '@/features/marketing/hero';
-import { FeatureExplorer } from '@/features/marketing/feature-explorer';
 import { RoleShowcaseSection } from '@/features/marketing/role-showcase';
 import { FinalCta, HowItWorks, Pillars, SafetyBand } from '@/features/marketing/story-sections';
 import { MarketingFooter, MarketingNav } from '@/features/marketing/marketing-chrome';
 import { CoverageBand } from '@/features/marketing/coverage-band';
 import { KnockoutBand } from '@/features/marketing/knockout-band';
 import { Pricing } from '@/features/marketing/pricing';
+import { TrackersSection } from '@/features/marketing/trackers-section';
 import { CommandCentre } from '@/features/marketing/command-centre';
 import { SmoothScroll, useScrollToSection } from '@/features/marketing/scroll-engine';
 import { PointerHalo } from '@/features/marketing/magnetic';
@@ -18,15 +18,14 @@ import { PointerHalo } from '@/features/marketing/magnetic';
  * Ordered as the questions a visitor actually asks: what is this (hero), how
  * much of it is there (marquee and counted facts), does it work where my loads
  * go (coverage), why is it different from what I already pay for (pillars),
- * what does operating it actually feel like (the command centre), what exactly
- * do I get (the capability explorer), what does it look like for someone like
- * me (roles), how does a job move through it (how it works), what happens when
- * something goes wrong (safety), and what does it cost (pricing).
+ * what does operating it actually feel like (the command centre), what does it
+ * look like for someone like me (roles), how does a job move through it (how
+ * it works), what happens when something goes wrong (safety), what does it
+ * cost (pricing), and what does a tracker add (trackers).
  *
- * The command centre sits where it does for a structural reason as well as a
- * narrative one: `Pillars` and `FeatureExplorer` were the page's longest run
- * of consecutive token-driven bands, and a reader with nothing to look at for
- * that long stops scrolling.
+ * The capability catalogue that once sat after the command centre is gone:
+ * every paid plan carries every capability for its account type, so a list of
+ * which plan holds which feature no longer answered a real question.
  *
  * Four things hold the design together. The bands alternate ground - canvas,
  * raised, dark - so sections separate by tone rather than by yet another
@@ -49,16 +48,14 @@ import { PointerHalo } from '@/features/marketing/magnetic';
  * emphasis left to spend; see `scroll-engine.tsx` for why the two libraries
  * both exist and where the line between them falls.
  *
- * The fourth is that the exhaustive parts - the explorer and the pricing
- * matrix - are generated from `FEATURE_CATALOGUE` and `PLAN_FEATURES` in
- * `@saarthi/shared`, the same data the running product gates itself on. A
- * hand-written feature list on a marketing page always ends up describing a
- * version that no longer exists.
+ * The fourth is that prices and the role screens are generated from shared
+ * data - `PLAN_CATALOGUE`, `TRACKER_PRODUCTS` and the app's own navigation
+ * trees - so the page cannot quote a price or a screen the product does not
+ * have.
  *
  * Composed from `@/features/marketing/*` rather than one file because the
- * sections are independently stateful - the explorer owns a search box, two
- * filters and a rail; pricing owns a billing toggle and a disclosure; roles
- * own a selector; the command centre owns a pinned timeline - and a single
+ * sections are independently stateful - pricing owns a fleet-size control;
+ * roles own a step-through; the command centre owns a pinned timeline - and a single
  * component holding all of it would re-render the whole page on every
  * keystroke.
  */
@@ -111,12 +108,12 @@ function LandingContent() {
         <CoverageBand />
         <Pillars />
         <CommandCentre />
-        <FeatureExplorer />
         <KnockoutBand />
         <RoleShowcaseSection />
         <HowItWorks />
         <SafetyBand />
         <Pricing />
+        <TrackersSection />
         <FinalCta />
       </main>
       <MarketingFooter />

@@ -8,14 +8,17 @@ import {
   TruckStatus,
   type UpdateTruckInput,
   VEHICLE_TOPUP,
+  VehicleType,
   VerificationStatus,
 } from '@saarthi/shared';
 import { type Prisma, prisma } from '../../database/prisma';
 import { errors } from '../../lib/errors';
 import { assertPersonalIdentityVerified } from '../identity-verification/personal-onboarding.guard';
+import { assertVehicleTypeAllowed } from '../vehicles/vehicle-eligibility.guard';
 import { skipTake } from '../../lib/http';
 import { assertTenantAccess } from '../../server/guards';
 import { scheduleFastagDiscovery } from '../toll/fastag.service';
+import { verifyVehicleAddedFromRc } from '../verification/registry-verification.service';
 import type { AuthContext } from '../../auth/context';
 import { broadcastTruckStatus } from '../../realtime/realtime.service';
 
@@ -245,6 +248,10 @@ export async function createTruck(
    */
   await assertPersonalIdentityVerified(auth, organizationId, 'vehicle');
 
+  // This path always creates a truck, so Personal and mobility accounts are
+  // refused here and pointed at the vehicle form instead.
+  await assertVehicleTypeAllowed(organizationId, VehicleType.TRUCK);
+
   await assertTruckLimit(auth, organizationId);
 
   const existing = await prisma.truck.findUnique({
@@ -294,6 +301,13 @@ export async function createTruck(
   // vehicle must not wait on a third party, and only for plans that include
   // the lookup.
   scheduleFastagDiscovery(auth, truck.id);
+
+  // Added from its RC: verified against that record, at no charge.
+  if (input.rcLookupId) {
+    await verifyVehicleAddedFromRc(auth, truck.id, input.rcLookupId);
+    const verified = await prisma.truck.findUniqueOrThrow({ where: { id: truck.id }, include: truckInclude });
+    return toSummary(verified);
+  }
 
   return toSummary(truck);
 }

@@ -40,6 +40,7 @@ import {
   requirementInclude,
   type RequirementRecord,
 } from './requirement.view';
+import { requireUsablePayoutAccount } from '../marketplace-finance/payout-account.service';
 
 /**
  * Requirements — the customer's single front door.
@@ -289,6 +290,9 @@ async function announceTargets(
   const organizations = await prisma.organization.findMany({
     where: {
       type: { in: types as never },
+      // A personal seat is typed FLEET_OWNER but never bids — see
+      // `requireBusiness` on the provider routes.
+      isPersonalSeat: false,
       archivedAt: null,
       id: { not: requirement.customerOrganizationId },
     },
@@ -760,7 +764,7 @@ export async function listBoard(
         },
       })
     : [];
-  const decoratedBids = await decorateBids(myBids);
+  const decoratedBids = await decorateBids(myBids, auth.organizationId);
   const bidByRequirement = new Map(decoratedBids.map((bid) => [bid.requirementId, bid]));
 
   const reference = await resolveBoardOrigin(auth, query);
@@ -945,6 +949,53 @@ export async function placeBid(
     }
   }
 
+  /*
+   * A delivered bid: the fleet buys the material from a supplier listing and
+   * delivers it, and its price is its selling price to the customer. The
+   * procurement reference — the listing price for the quantity asked for — is
+   * worked out here from the listing, never taken from the request, and the
+   * listing must actually have the stock.
+   */
+  let procurementReference: number | null = null;
+  if (input.sourceMaterialId) {
+    if (requirement.kind !== RequirementKind.MATERIAL_SUPPLY) {
+      throw errors.businessRule('Only a material requirement can be bid on with sourced material.');
+    }
+    const listing = await prisma.material.findFirst({
+      where: { id: input.sourceMaterialId, archivedAt: null },
+      select: {
+        name: true,
+        category: true,
+        status: true,
+        pricePerUnit: true,
+        availableQuantity: true,
+        minimumOrderQty: true,
+        unit: true,
+      },
+    });
+    if (!listing || listing.status !== 'ACTIVE') {
+      throw errors.notFound('Material', 'That supplier listing is not available.');
+    }
+    if (requirement.materialCategory && listing.category !== requirement.materialCategory) {
+      throw errors.businessRule(`That listing is ${listing.name}, not the material this requirement asks for.`);
+    }
+    const quantity = requirement.quantity ?? 1;
+    if (listing.availableQuantity < quantity) {
+      throw errors.businessRule(
+        `The supplier has ${listing.availableQuantity} ${listing.unit.toLowerCase()} available; this requirement needs ${quantity}.`,
+      );
+    }
+    if (listing.minimumOrderQty && quantity < listing.minimumOrderQty) {
+      throw errors.businessRule(
+        `The supplier's minimum order is ${listing.minimumOrderQty} ${listing.unit.toLowerCase()}.`,
+      );
+    }
+    procurementReference = Math.round(Number(listing.pricePerUnit) * quantity * 100) / 100;
+    // The customer's 30% is routed straight to this fleet, so it must be able
+    // to receive it before it can offer the job.
+    await requireUsablePayoutAccount(organizationId, 'Your business');
+  }
+
   if (input.scope === RequirementBidScope.MATERIAL && input.materialId) {
     const listing = await prisma.material.findFirst({
       where: { id: input.materialId, organizationId, archivedAt: null },
@@ -990,6 +1041,8 @@ export async function placeBid(
     itinerarySummary: input.itinerarySummary ?? null,
     driverIncluded: input.driverIncluded,
     fuelIncluded: input.fuelIncluded,
+    sourceMaterialId: input.sourceMaterialId ?? null,
+    procurementReference,
   };
 
   const existing = await prisma.requirementBid.findUnique({
@@ -1059,7 +1112,7 @@ export async function placeBid(
     });
   }
 
-  return (await decorateBids([bid]))[0]!;
+  return (await decorateBids([bid], organizationId))[0]!;
 }
 
 export async function withdrawBid(
@@ -1123,7 +1176,7 @@ export async function listOwnBids(
   ]);
 
   return {
-    items: await decorateBids(rows),
+    items: await decorateBids(rows, organizationId),
     pagination: buildPaginationMeta(query.page, query.pageSize, total),
   };
 }
@@ -1156,7 +1209,7 @@ export async function listBids(
     orderBy: [{ status: 'asc' }, { price: 'asc' }],
   });
 
-  return decorateBids(bids);
+  return decorateBids(bids, auth.organizationId);
 }
 
 export async function shortlistBid(

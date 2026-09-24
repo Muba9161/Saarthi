@@ -55,6 +55,8 @@ export const createTruckSchema = z.object({
   odometerKm: z.coerce.number().min(0).max(5_000_000).default(0),
   notes: optionalTrimmedString(2000),
   shareLocation: z.boolean().default(true),
+  /** The RC prefill this truck was added from — see `createVehicleSchema`. */
+  rcLookupId: z.string().uuid().optional(),
 });
 export type CreateTruckInput = z.infer<typeof createTruckSchema>;
 

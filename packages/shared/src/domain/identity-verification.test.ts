@@ -249,7 +249,7 @@ describe('document catalogue wiring', () => {
     expect(identityKindForDocumentType('DRIVING_LICENCE')).toBeUndefined();
   });
 
-  it('marks exactly the five verifiable types', () => {
+  it('marks exactly the seven verifiable types', () => {
     expect(verifiableDocumentTypes(DocumentOwnerType.DRIVER).map((entry) => entry.code)).toEqual([
       'DRIVER_AADHAAR',
       'DRIVER_PAN',
@@ -257,13 +257,14 @@ describe('document catalogue wiring', () => {
     ]);
     expect(
       verifiableDocumentTypes(DocumentOwnerType.ORGANIZATION).map((entry) => entry.code),
-    ).toEqual(['GST_CERTIFICATE']);
+    ).toEqual(['GST_CERTIFICATE', 'ORGANIZATION_PAN']);
     // The account holder's own. Listed separately from the driver's on purpose
     // — see the identity-subject suite below.
     expect(verifiableDocumentTypes(DocumentOwnerType.USER).map((entry) => entry.code)).toEqual([
       'USER_AADHAAR',
+      'USER_PAN',
     ]);
-    expect(verifiableDocumentTypes()).toHaveLength(5);
+    expect(verifiableDocumentTypes()).toHaveLength(7);
   });
 
   it('leaves the mandatory set alone, so existing subjects stay verifiable', () => {
@@ -298,14 +299,18 @@ describe('document catalogue wiring', () => {
  * Voter ID and a licence. One person may be both, with a row of each.
  */
 describe('identity subjects', () => {
-  it('offers a person their Aadhaar and nothing else', () => {
+  it('offers a person their own Aadhaar and PAN, and nothing else', () => {
     const forUser = identityKindsForSubject(VerificationSubjectType.USER);
 
-    expect(forUser.map((entry) => entry.kind)).toEqual([IdentityDocumentKind.AADHAAR]);
-    // Not PAN and not Voter ID: those are part of clearing somebody to drive,
-    // and an account holder who never drives is not asked for them.
-    expect(forUser[0]?.documentType).toBe('USER_AADHAAR');
-    expect(forUser[0]?.ownerType).toBe(DocumentOwnerType.USER);
+    expect(forUser.map((entry) => entry.kind)).toEqual([
+      IdentityDocumentKind.AADHAAR,
+      IdentityDocumentKind.PAN,
+    ]);
+    // Not Voter ID: that is part of clearing somebody to drive, and an account
+    // holder who never drives is not asked for it. Their own document codes,
+    // on their own subject — never the driver's.
+    expect(forUser.map((entry) => entry.documentType)).toEqual(['USER_AADHAAR', 'USER_PAN']);
+    expect(forUser.every((entry) => entry.ownerType === DocumentOwnerType.USER)).toBe(true);
   });
 
   it('leaves the driver’s four checks exactly as they were', () => {
@@ -322,10 +327,10 @@ describe('identity subjects', () => {
     expect(forDriver[0]?.ownerType).toBe(DocumentOwnerType.DRIVER);
   });
 
-  it('keeps the organization subject to its GSTIN', () => {
+  it('asks an organization for its own PAN and its GSTIN', () => {
     expect(
       identityKindsForSubject(VerificationSubjectType.ORGANIZATION).map((entry) => entry.kind),
-    ).toEqual([IdentityDocumentKind.GST]);
+    ).toEqual([IdentityDocumentKind.PAN, IdentityDocumentKind.GST]);
   });
 
   it('resolves Aadhaar per subject, and keeps the driver’s as the default', () => {
@@ -344,10 +349,16 @@ describe('identity subjects', () => {
         ?.documentType,
     ).toBe('DRIVER_AADHAAR');
 
-    // A kind a subject is not asked for has no definition for it, which is what
-    // stops a person being offered a PAN check they are not asked to pass.
+    // PAN resolves per subject too, with the driver's as the default.
+    expect(identityKindDefinition(IdentityDocumentKind.PAN)?.documentType).toBe('DRIVER_PAN');
     expect(
-      identityKindDefinition(IdentityDocumentKind.PAN, VerificationSubjectType.USER),
+      identityKindDefinition(IdentityDocumentKind.PAN, VerificationSubjectType.USER)?.documentType,
+    ).toBe('USER_PAN');
+
+    // A kind a subject is not asked for has no definition for it, which is what
+    // stops a person being offered a check they are not asked to pass.
+    expect(
+      identityKindDefinition(IdentityDocumentKind.VOTER_ID, VerificationSubjectType.USER),
     ).toBeUndefined();
     expect(
       identityKindDefinition(IdentityDocumentKind.GST, VerificationSubjectType.USER),

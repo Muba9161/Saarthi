@@ -1,8 +1,10 @@
 import {
   Permission,
   hasPermission,
+  vehicleDraftFromRc,
   type VehicleLookupInput,
   type VehicleLookupResult,
+  type VehicleRcPrefill,
   type VehicleRcRecord,
 } from '@saarthi/shared';
 import type { Readable } from 'node:stream';
@@ -270,13 +272,63 @@ export async function lookupVehicle(
   auth: AuthContext,
   input: VehicleLookupInput,
 ): Promise<VehicleLookupOutcome> {
+  // Checked before the cache as well as the provider: a plate that left the
+  // fleet must stop returning its owner's details from a warm cache entry.
+  await assertVehicleBelongsToCaller(auth, input.registrationNumber);
+  return fetchLookup(auth, input);
+}
+
+/**
+ * Fill in the add-vehicle form from the RC — the one lookup allowed for a
+ * plate that is not on the account yet.
+ *
+ * `assertVehicleBelongsToCaller` exists so this module is not a people-tracing
+ * tool, and this keeps to that: the answer is a vehicle draft only (make,
+ * model, fuel, capacity, dates), never the owner's name, address or phone or
+ * the engine and chassis numbers. Those appear once the vehicle is saved,
+ * through the ordinary lookup. The record is stored against the account, so
+ * saving the vehicle — and verifying it — reads it back without a second
+ * provider call.
+ *
+ * A plate already on Saarthi is refused before anything is spent:
+ * registration numbers are unique across the platform.
+ */
+export async function prefillVehicleFromRc(
+  auth: AuthContext,
+  registrationNumber: string,
+): Promise<{ prefill: VehicleRcPrefill; outcome: VehicleLookupOutcome }> {
+  if (!auth.organizationId) {
+    throw errors.organizationRequired('Your account is not linked to an organization, so it cannot add vehicles.');
+  }
+
+  const existing = await prisma.truck.findUnique({
+    where: { registrationNumber },
+    select: { organizationId: true },
+  });
+  if (existing) {
+    throw errors.conflict(
+      existing.organizationId === auth.organizationId
+        ? `${registrationNumber} is already on your account.`
+        : `${registrationNumber} is already registered on Saarthi by another account. If it is yours, contact support.`,
+    );
+  }
+
+  const outcome = await fetchLookup(auth, { registrationNumber, refresh: false });
+  return {
+    prefill: {
+      lookupId: outcome.result.lookupId,
+      registrationNumber,
+      draft: vehicleDraftFromRc(outcome.result.vehicle),
+    },
+    outcome,
+  };
+}
+
+/** The lookup itself — cache, budget, provider, stored copy — for a plate already cleared to be looked up. */
+async function fetchLookup(auth: AuthContext, input: VehicleLookupInput): Promise<VehicleLookupOutcome> {
   const registrationNumber = input.registrationNumber;
   const organizationId = auth.organizationId ?? null;
   const ttlSeconds = config.vehicleRc.cacheTtlSeconds;
-
-  // Checked before the cache as well as the provider: a plate that left the
-  // fleet must stop returning its owner's details from a warm cache entry.
-  await assertVehicleBelongsToCaller(auth, registrationNumber);
 
   // --- Cache -------------------------------------------------------------
   if (!input.refresh && ttlSeconds > 0) {

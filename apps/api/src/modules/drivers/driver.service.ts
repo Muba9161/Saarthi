@@ -38,6 +38,7 @@ import { assertTenantAccess } from '../../server/guards';
 import { passwordHasher } from '../../auth/password';
 import { generateOpaqueToken } from '../../auth/tokens';
 import { config } from '../../config/env';
+import { moveDriverRecords } from './driver-fleet-move';
 import { logger } from '../../lib/logger';
 import type { AuthContext } from '../../auth/context';
 import {
@@ -439,35 +440,6 @@ export async function updateDriver(
   return getDriver(auth, driverId);
 }
 
-export async function archiveDriver(auth: AuthContext, driverId: string): Promise<void> {
-  const driver = await prisma.driver.findUnique({ where: { id: driverId } });
-  if (!driver) throw errors.notFound('Driver');
-  assertTenantAccess(auth, driver.organizationId, 'Driver');
-
-  if (driver.availability === DriverAvailability.ON_TRIP) {
-    throw errors.businessRule('This driver is on an active trip and cannot be archived yet.');
-  }
-
-  await prisma.$transaction([
-    prisma.truckAssignment.updateMany({
-      where: { driverId, status: 'ACTIVE' },
-      data: { status: 'ENDED', unassignedAt: new Date() },
-    }),
-    prisma.truck.updateMany({
-      where: { currentDriverId: driverId },
-      data: { currentDriverId: null, status: 'AVAILABLE' },
-    }),
-    prisma.driver.update({
-      where: { id: driverId },
-      data: {
-        archivedAt: new Date(),
-        currentTruckId: null,
-        availability: DriverAvailability.SUSPENDED,
-      },
-    }),
-  ]);
-}
-
 // ---------------------------------------------------------------------------
 // Scoring
 // ---------------------------------------------------------------------------
@@ -785,9 +757,9 @@ export interface JoinFleetResult {
  * is archived behind them.
  *
  * Only an unemployed driver may do this. Somebody already in a real fleet
- * cannot walk themselves out of it — their trips, documents and scores belong
- * to that fleet's records, and leaving is the owner's decision to make with
- * `archiveDriver`, not a code the driver can type.
+ * cannot walk themselves out of it — leaving is the owner's decision, made by
+ * removing them from the fleet (`releaseDriver`), which seats them back on
+ * their own with their history intact.
  */
 export async function joinFleet(
   auth: AuthContext,
@@ -857,6 +829,12 @@ export async function joinFleet(
         // that does not own it.
         currentTruckId: null,
       },
+    });
+    // Their documents and QR badge are theirs, and come with them.
+    await moveDriverRecords(tx, {
+      driverId: driver.id,
+      userId: auth.user.id,
+      toOrganizationId: fleet.id,
     });
 
     /*

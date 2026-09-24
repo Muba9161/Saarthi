@@ -22,6 +22,8 @@ import {
 } from 'lucide-react';
 import {
   ORGANIZATION_NAME_REQUIRED_ROLES,
+  PLAN_ACCOUNT_TYPES,
+  PlanTier,
   RoleName,
   languageByCode,
   type RegisterInput,
@@ -773,6 +775,17 @@ function LanguageScreen({
   );
 }
 
+/**
+ * The account types this walkthrough offers.
+ *
+ * It opens only for a Business registration, so it offers exactly what the
+ * Business plan is sold to — a customer, a supplier and a driver each answer a
+ * different first question on the page itself.
+ */
+const BUSINESS_GUIDES = ACCOUNT_GUIDES.filter((guide) =>
+  PLAN_ACCOUNT_TYPES[PlanTier.BUSINESS].includes(guide.role),
+);
+
 function AccountTypeScreen({
   selected,
   onSelect,
@@ -794,7 +807,7 @@ function AccountTypeScreen({
         aria-label={t('Which of these is you?')}
         className="grid grid-cols-1 gap-2.5 sm:grid-cols-2"
       >
-        {ACCOUNT_GUIDES.map((option, position) => {
+        {BUSINESS_GUIDES.map((option, position) => {
           const active = option.role === selected;
 
           return (

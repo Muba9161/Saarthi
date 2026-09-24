@@ -4,7 +4,8 @@ import {
   OrganizationType,
   PlanTier,
   VEHICLE_TOPUP,
-  VEHICLE_TRACKER,
+  DEFAULT_TRACKER_PRODUCT,
+  trackerProduct,
   type RoleName,
   SubscriptionStatus,
   VerificationStatus,
@@ -168,6 +169,8 @@ export async function resetDatabase(): Promise<void> {
     'device_assignments',
     'hardware_devices',
     'travel_reviews',
+    'verification_charges',
+    'payment_webhook_events',
     'payments',
     'travel_booking_events',
     'travel_bookings',
@@ -301,6 +304,8 @@ const DEFAULT_TOPUPS: Record<PlanTier, number> = {
   [PlanTier.FREE]: 0,
   [PlanTier.PERSONAL]: 0,
   [PlanTier.BUSINESS]: 60,
+  // Supplier runs no vehicles, exactly like Free.
+  [PlanTier.SUPPLIER]: 0,
 };
 
 /**
@@ -376,7 +381,8 @@ export async function createOrganization(
       data: Array.from({ length: options.trackers }, () => ({
         organizationId: organization.id,
         status: 'ACTIVE' as const,
-        pricePaid: VEHICLE_TRACKER.priceOneTime,
+        product: DEFAULT_TRACKER_PRODUCT,
+        pricePaid: trackerProduct(DEFAULT_TRACKER_PRODUCT).priceOneTime,
       })),
     });
   }

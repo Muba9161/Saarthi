@@ -16,13 +16,12 @@ import {
   UserStatus,
   VerificationStatus,
 } from '@saarthi/shared';
-import { type Prisma, prisma } from '../database/prisma';
+import { prisma } from '../database/prisma';
 import { errors } from '../lib/errors';
 import { config } from '../config/env';
 import { logger } from '../lib/logger';
 import { passwordHasher, verifyWithTimingGuard } from './password';
 import {
-  generateInviteCode,
   generateOpaqueToken,
   generateRefreshToken,
   hashToken,
@@ -33,12 +32,13 @@ import { buildSessionPayload, loadUser, resolveActiveMembership } from './sessio
 import { createDefaultSubscription } from '../modules/subscriptions/entitlements.service';
 import { provisionSignupOrder } from '../modules/subscriptions/signup-order.service';
 import { provisionDriverCodeOnRegistration } from '../modules/qr/qr.service';
-import { resolveJoinableFleet } from '../modules/organizations/fleet-invite.service';
+import { allocateInviteCode, resolveJoinableFleet } from '../modules/organizations/fleet-invite.service';
 import {
   attributeRegistration,
   liveAttributionFor,
 } from '../modules/sales/referral.service';
 import { linkLeadToOrganization } from '../modules/sales/lead.service';
+import { recordSignup as recordReferralProgramSignup } from '../modules/referral-program/referral-program.service';
 import { AuditAction, recordAudit } from '../modules/audit/audit.service';
 
 /**
@@ -119,14 +119,6 @@ async function toAuthResult(
 // Registration
 // ---------------------------------------------------------------------------
 
-async function uniqueInviteCode(tx: Prisma.TransactionClient): Promise<string> {
-  for (let attempt = 0; attempt < 8; attempt += 1) {
-    const code = generateInviteCode();
-    const existing = await tx.organization.findUnique({ where: { inviteCode: code } });
-    if (!existing) return code;
-  }
-  throw errors.internal('Could not allocate an organization invite code.');
-}
 
 export async function register(input: RegisterInput, meta: RequestMeta) {
   const passwordHash = await passwordHasher.hash(input.password);
@@ -228,7 +220,7 @@ export async function register(input: RegisterInput, meta: RequestMeta) {
             type: OrganizationType.FLEET_OWNER,
             email: input.email,
             phone: input.phone,
-            inviteCode: await uniqueInviteCode(tx),
+            inviteCode: await allocateInviteCode(tx),
             // Recorded, not just described above. Without this the only
             // question anything downstream could ask was "is there an
             // organization?", and the answer is always yes — which is how a
@@ -280,7 +272,7 @@ export async function register(input: RegisterInput, meta: RequestMeta) {
           registrationNumber: input.registrationNumber ?? null,
           email: input.email,
           phone: input.phone,
-          inviteCode: await uniqueInviteCode(tx),
+          inviteCode: await allocateInviteCode(tx),
           // A Personal account is one person's seat, exactly as an unattached
           // driver's is — see `personalRegistration` above. Business-only
           // destinations read this flag, so setting it here is what keeps
@@ -370,9 +362,7 @@ export async function register(input: RegisterInput, meta: RequestMeta) {
   if (result.createdOrganization) {
     const tier = input.planTier ?? PlanTier.BUSINESS;
 
-    await createDefaultSubscription(result.organizationId, tier, {
-      billing: input.planBilling,
-    });
+    await createDefaultSubscription(result.organizationId, tier);
 
     /*
      * The salesperson who brought this customer, if there was one.
@@ -403,15 +393,28 @@ export async function register(input: RegisterInput, meta: RequestMeta) {
      *
      * Only reached for an organization this registration created, so a driver
      * joining an employer's fleet is never credited as a new customer.
+     *
+     * The one field carries both referral channels. A Refer & Earn code (its
+     * `SAARTHI-` prefix is what identifies it) is recorded by that program and
+     * is never tried as a GODID; anything else goes to the salesman channel.
      */
     if (input.referralCode) {
-      await captureRegistrationReferral({
+      const handledByReferralProgram = await recordReferralProgramSignup({
         code: input.referralCode,
         organizationId: result.organizationId,
-        userId: result.user.id,
-        phone: input.phone,
-        email: input.email,
+        referredUserId: result.user.id,
+        planTier: tier,
       });
+
+      if (!handledByReferralProgram) {
+        await captureRegistrationReferral({
+          code: input.referralCode,
+          organizationId: result.organizationId,
+          userId: result.user.id,
+          phone: input.phone,
+          email: input.email,
+        });
+      }
     }
 
     /*
@@ -440,22 +443,32 @@ export async function register(input: RegisterInput, meta: RequestMeta) {
     });
 
     if (runsVehicles && (input.planVehicles > 1 || input.planTrackers > 0)) {
-      await provisionSignupOrder({
-        organizationId: result.organizationId,
-        userId: result.user.id,
-        organizationName: result.organizationName,
-        customer: {
-          name: `${input.firstName} ${input.lastName}`.trim(),
-          email: input.email,
-          phone: input.phone,
-        },
-        tier,
-        order: {
-          vehicles: input.planVehicles,
-          trackers: input.planTrackers,
-          billing: input.planBilling,
-        },
-      });
+      // The account is already committed at this point. A gateway error on the
+      // add-on order must not turn a created account into a failed signup —
+      // the owner can order the extras again from the activation screen.
+      try {
+        await provisionSignupOrder({
+          organizationId: result.organizationId,
+          userId: result.user.id,
+          organizationName: result.organizationName,
+          customer: {
+            name: `${input.firstName} ${input.lastName}`.trim(),
+            email: input.email,
+            phone: input.phone,
+          },
+          tier,
+          order: {
+            vehicles: input.planVehicles,
+            trackers: input.planTrackers,
+            trackerProduct: input.planTrackerProduct,
+          },
+        });
+      } catch (error) {
+        logger.error(
+          { err: error, organizationId: result.organizationId },
+          'Signup add-on order could not be opened; the account was created without it',
+        );
+      }
     }
   }
 

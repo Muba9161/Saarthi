@@ -5,9 +5,12 @@ import {
   PLAN_LIMITS,
   PlanTier,
   RoleName,
-  TruckType,
+  VehicleType,
   VEHICLE_TOPUP,
-  VEHICLE_TRACKER,
+  DEFAULT_TRACKER_PRODUCT,
+  TRACKER_PRODUCTS,
+  inclusiveOfGst,
+  trackerProduct,
 } from '@saarthi/shared';
 import { prisma } from '../src/database/prisma';
 import { runTopUpExpirySweep } from '../src/modules/subscriptions/topup.service';
@@ -68,17 +71,32 @@ describe('Subscription vehicle capacity', () => {
     });
   });
 
-  const truckPayload = (registration: string) => ({
-    registrationNumber: registration,
-    truckType: TruckType.TIPPER,
-    manufacturer: 'Tata Motors',
-    model: 'Prima',
-    year: 2022,
-    capacityTons: 25,
-  });
+  // Personal runs normal vehicles, never trucks, so capacity is exercised
+  // with cars; a Business fleet owner runs trucks.
+  const vehiclePayload = (registration: string, vehicleType: VehicleType) =>
+    vehicleType === VehicleType.TRUCK
+      ? { registrationNumber: registration, vehicleType, capacityTons: 25, fuelType: 'DIESEL' }
+      : {
+          registrationNumber: registration,
+          vehicleType,
+          manufacturer: 'Maruti Suzuki',
+          model: 'Dzire',
+          year: 2022,
+          passengerCapacity: 4,
+          fuelType: 'PETROL',
+        };
 
-  const addTruck = (user: TestUser, registration: string) =>
-    request({ method: 'POST', url: '/api/v1/trucks', user, payload: truckPayload(registration) });
+  const addVehicle = (
+    user: TestUser,
+    registration: string,
+    vehicleType: VehicleType = VehicleType.CAR,
+  ) =>
+    request({
+      method: 'POST',
+      url: '/api/v1/fleet/vehicles',
+      user,
+      payload: vehiclePayload(registration, vehicleType),
+    });
 
   interface CapacityBody {
     baseLimit: number | null;
@@ -111,7 +129,7 @@ describe('Subscription vehicle capacity', () => {
     });
 
     it('counts vehicles of every type against the same capacity', async () => {
-      await addTruck(owner, 'MH12AA1000');
+      await addVehicle(owner, 'MH12AA1000');
       const { body } = await getCapacity();
       expect(body.data.used).toBe(1);
       expect(body.data.atCapacity).toBe(true);
@@ -136,7 +154,7 @@ describe('Subscription vehicle capacity', () => {
 
   describe('buying capacity', () => {
     it('adds exactly one vehicle of headroom', async () => {
-      await addTruck(owner, 'MH12AA1000');
+      await addVehicle(owner, 'MH12AA1000');
 
       const purchase = await request<{
         topUp: { status: string; paymentReference: string | null };
@@ -155,9 +173,9 @@ describe('Subscription vehicle capacity', () => {
     });
 
     it('lets the fleet add the vehicle the top-up paid for', async () => {
-      await addTruck(owner, 'MH12AA1000');
+      await addVehicle(owner, 'MH12AA1000');
 
-      const blocked = await addTruck(owner, 'MH12AA2000');
+      const blocked = await addVehicle(owner, 'MH12AA2000');
       expect(blocked.status).toBe(403);
       expect(blocked.body.error?.code).toBe('PLAN_LIMIT_REACHED');
       // The message has to point at the cheap fix, not only at an upgrade.
@@ -165,12 +183,12 @@ describe('Subscription vehicle capacity', () => {
 
       await request({ method: 'POST', url: '/api/v1/subscriptions/topups', user: owner, payload: {} });
 
-      const allowed = await addTruck(owner, 'MH12AA2000');
+      const allowed = await addVehicle(owner, 'MH12AA2000');
       expect(allowed.status).toBe(201);
     });
 
     it('records a declined payment without granting capacity', async () => {
-      await addTruck(owner, 'MH12AA1000');
+      await addVehicle(owner, 'MH12AA1000');
 
       const purchase = await request({
         method: 'POST',
@@ -251,14 +269,14 @@ describe('Subscription vehicle capacity', () => {
     });
 
     it('never takes away a vehicle that is already on the road', async () => {
-      await addTruck(owner, 'MH12AA1000');
+      await addVehicle(owner, 'MH12AA1000');
       const purchase = await request<{ topUp: { id: string } }>({
         method: 'POST',
         url: '/api/v1/subscriptions/topups',
         user: owner,
         payload: {},
       });
-      await addTruck(owner, 'MH12AA2000');
+      await addVehicle(owner, 'MH12AA2000');
 
       await request({
         method: 'POST',
@@ -281,7 +299,7 @@ describe('Subscription vehicle capacity', () => {
       expect(trucks.status).toBe(200);
       expect(trucks.body.data.items).toHaveLength(2);
 
-      const third = await addTruck(owner, 'MH12AA3000');
+      const third = await addVehicle(owner, 'MH12AA3000');
       expect(third.status).toBe(403);
     });
 
@@ -344,21 +362,22 @@ describe('Subscription vehicle capacity', () => {
   // -------------------------------------------------------------------------
 
   describe('plan catalogue', () => {
-    it('sells three plans, and both paid ones start at one vehicle', async () => {
+    it('sells four plans, and the vehicle plans start at one vehicle', async () => {
       const { body } = await request<{
         plans: { tier: string; limits: { maxTrucks: number | null } }[];
         topUp: { priceMonthly: number };
-        tracker: { priceOneTime: number };
+        trackers: { priceOneTime: number }[];
       }>({ method: 'GET', url: '/api/v1/subscriptions/plans', user: owner });
 
       expect(body.data.plans.map((plan) => plan.tier)).toEqual([
         PlanTier.FREE,
         PlanTier.PERSONAL,
         PlanTier.BUSINESS,
+        PlanTier.SUPPLIER,
       ]);
 
       /*
-       * Free covers no vehicle, and the two paid plans cover exactly one.
+       * Free and Supplier cover no vehicle; Personal and Business cover exactly one.
        *
        * That is the whole pricing model rather than an accident of the
        * catalogue: fleet size is bought per vehicle, so an upgrade is never the
@@ -370,11 +389,15 @@ describe('Subscription vehicle capacity', () => {
        * not operate a vehicle, so there is nothing for a plan to cover and
        * nowhere to fit a tracker.
        */
-      expect(body.data.plans.map((plan) => plan.limits.maxTrucks)).toEqual([0, 1, 1]);
+      expect(
+        Object.fromEntries(body.data.plans.map((plan) => [plan.tier, plan.limits.maxTrucks])),
+      ).toEqual({ FREE: 0, PERSONAL: 1, BUSINESS: 1, SUPPLIER: 0 });
 
       expect(body.data.topUp.priceMonthly).toBe(VEHICLE_TOPUP.priceMonthly);
-      // Charged once, so the tracker has no monthly figure to report at all.
-      expect(body.data.tracker.priceOneTime).toBe(VEHICLE_TRACKER.priceOneTime);
+      // Charged once, so a tracker has no monthly figure to report at all.
+      expect(body.data.trackers.map((product) => product.priceOneTime)).toEqual(
+        TRACKER_PRODUCTS.map((product) => product.priceOneTime),
+      );
     });
   });
 
@@ -460,12 +483,12 @@ describe('Subscription vehicle capacity', () => {
       });
 
       for (let index = 0; index < 3; index += 1) {
-        const created = await addTruck(user, `MH14OR${1000 + index}`);
+        const created = await addVehicle(user, `MH14OR${1000 + index}`, VehicleType.TRUCK);
         expect(created.status, `vehicle ${index + 1} of the three that were paid for`).toBe(201);
       }
 
       // The fourth is beyond what was bought.
-      const fourth = await addTruck(user, 'MH14OR9999');
+      const fourth = await addVehicle(user, 'MH14OR9999', VehicleType.TRUCK);
       expect(fourth.status).toBe(403);
       expect(fourth.body.error?.code).toBe('PLAN_LIMIT_REACHED');
     });
@@ -549,14 +572,14 @@ describe('Subscription vehicle capacity', () => {
       ).toBe(2);
     });
 
-    it('charges the GST-inclusive total, not the catalogue price', async () => {
+    it('charges the top-up as shown and adds GST to the tracker', async () => {
       /*
        * The money assertion.
        *
-       * Two vehicles and one tracker on Business is one top-up at 75 and one
-       * tracker at 499 — 574 before tax, 677.32 with GST at 18%. Charging 574
-       * would mean Saarthi absorbing the tax on every order, which is the kind
-       * of bug that is invisible on screen and expensive at the year end.
+       * Two vehicles and one tracker on Business is one top-up at ₹99, GST
+       * included, and one ₹599 tracker with 18% GST added — ₹99 + ₹706.82.
+       * Adding GST to the top-up would charge more than the price shown;
+       * leaving it off the tracker would have Saarthi absorb the tax.
        *
        * Asserted through the audit row rather than the mock gateway, because
        * the audit row is what a reconciliation would actually be read against.
@@ -577,14 +600,18 @@ describe('Subscription vehicle capacity', () => {
       const after = entry.afterData as unknown as { subtotal: number; gst: number; charged: number };
 
       // The plan itself is on trial, so only the add-ons are charged.
-      expect(after.subtotal).toBe(VEHICLE_TOPUP.priceMonthly + VEHICLE_TRACKER.priceOneTime);
-      expect(after.gst).toBeCloseTo(after.subtotal * GST_RATE, 2);
-      expect(after.charged).toBeCloseTo(after.subtotal * (1 + GST_RATE), 2);
+      const tracker = trackerProduct(DEFAULT_TRACKER_PRODUCT).priceOneTime;
+      expect(after.charged).toBeCloseTo(VEHICLE_TOPUP.priceMonthly + tracker * (1 + GST_RATE), 2);
+      expect(after.subtotal).toBeCloseTo(
+        inclusiveOfGst(VEHICLE_TOPUP.priceMonthly).subtotal + tracker,
+        2,
+      );
+      expect(after.subtotal + after.gst).toBeCloseTo(after.charged, 2);
       // And it is a definite amount of money, not a float.
       expect(Math.round(after.charged * 100)).toBe(after.charged * 100);
     });
 
-    it('reports the plan cost with GST separated out', async () => {
+    it('reports the monthly cost as the final price, GST inside it', async () => {
       const user = await registerWithOrder({
         planTier: PlanTier.BUSINESS,
         planVehicles: 3,
@@ -599,12 +626,12 @@ describe('Subscription vehicle capacity', () => {
       }>({ method: 'GET', url: '/api/v1/subscriptions/plan', user });
 
       expect(status).toBe(200);
-      // The plan plus two top-ups, before tax.
-      expect(body.data.monthlySubtotal).toBe(199 + 2 * VEHICLE_TOPUP.priceMonthly);
+      // The plan plus two top-ups, at the prices shown.
+      expect(body.data.monthlyTotal).toBe(239 + 2 * VEHICLE_TOPUP.priceMonthly);
       expect(body.data.gstRate).toBe(GST_RATE);
-      expect(body.data.monthlyGst).toBeCloseTo(body.data.monthlySubtotal * GST_RATE, 2);
-      expect(body.data.monthlyTotal).toBeCloseTo(
-        body.data.monthlySubtotal + body.data.monthlyGst,
+      // The GST is recovered from inside the total for the invoice, not added.
+      expect(body.data.monthlySubtotal + body.data.monthlyGst).toBeCloseTo(
+        body.data.monthlyTotal,
         2,
       );
     });
@@ -649,17 +676,17 @@ describe('Subscription vehicle capacity', () => {
     });
     const after = entry.afterData as unknown as { price: number; gst: number; charged: number };
 
-    // The row keeps the pre-tax price — that is what the plan costs and what an
-    // invoice itemises — while the charge is the taxed figure.
-    expect(after.price).toBe(VEHICLE_TOPUP.priceMonthly);
-    expect(after.charged).toBeCloseTo(VEHICLE_TOPUP.priceMonthly * (1 + GST_RATE), 2);
+    // Sold GST-inclusive: the charge is exactly the price shown, and the
+    // taxable value is what sits inside it.
+    expect(after.charged).toBe(VEHICLE_TOPUP.priceMonthly);
+    expect(after.price).toBe(inclusiveOfGst(VEHICLE_TOPUP.priceMonthly).subtotal);
   });
 
   // -------------------------------------------------------------------------
 
   it('keeps unique registration numbers per fleet', async () => {
     const registration = unique('MH12ZZ').toUpperCase().slice(0, 10);
-    const first = await addTruck(owner, registration);
+    const first = await addVehicle(owner, registration);
     expect(first.status).toBe(201);
   });
 });

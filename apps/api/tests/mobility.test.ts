@@ -65,6 +65,13 @@ describe('Mobility expansion', () => {
 
   describe('generalized vehicles', () => {
     it('creates a taxi without demanding a payload capacity', async () => {
+      // A taxi belongs on a tour, travel or mobility account — a fleet owner
+      // runs trucks.
+      const operator = await createOrganization(OrganizationType.MOBILITY_PROVIDER, PlanTier.BUSINESS);
+      const operatorOwner = await createUser({
+        role: RoleName.MOBILITY_PROVIDER,
+        organizationId: operator.id,
+      });
       const response = await request<{
         id: string;
         vehicleType: string;
@@ -74,7 +81,7 @@ describe('Mobility expansion', () => {
       }>({
         method: 'POST',
         url: '/api/v1/fleet/vehicles',
-        user: owner,
+        user: operatorOwner,
         payload: {
           registrationNumber: 'DL1CAB4321',
           vehicleType: VehicleType.TAXI,
@@ -123,10 +130,16 @@ describe('Mobility expansion', () => {
     });
 
     it('filters by capability rather than by hard-coded type', async () => {
+      // An enterprise fleet may run trucks and passenger vehicles side by side.
+      const enterprise = await createOrganization(OrganizationType.ENTERPRISE, PlanTier.BUSINESS);
+      const enterpriseOwner = await createUser({
+        role: RoleName.FLEET_OWNER,
+        organizationId: enterprise.id,
+      });
       await request({
         method: 'POST',
         url: '/api/v1/fleet/vehicles',
-        user: owner,
+        user: enterpriseOwner,
         payload: {
           registrationNumber: 'DL1GA2222',
           vehicleType: VehicleType.TRUCK,
@@ -136,7 +149,7 @@ describe('Mobility expansion', () => {
       await request({
         method: 'POST',
         url: '/api/v1/fleet/vehicles',
-        user: owner,
+        user: enterpriseOwner,
         payload: {
           registrationNumber: 'DL1CAB3333',
           vehicleType: VehicleType.SUV,
@@ -147,16 +160,59 @@ describe('Mobility expansion', () => {
       const freight = await request<{ items: { registrationNumber: string }[] }>({
         method: 'GET',
         url: '/api/v1/fleet/vehicles?capability=FREIGHT',
-        user: owner,
+        user: enterpriseOwner,
       });
       const passenger = await request<{ items: { registrationNumber: string }[] }>({
         method: 'GET',
         url: '/api/v1/fleet/vehicles?capability=PASSENGER',
-        user: owner,
+        user: enterpriseOwner,
       });
 
       expect(freight.body.data.items.map((v) => v.registrationNumber)).toEqual(['DL1GA2222']);
       expect(passenger.body.data.items.map((v) => v.registrationNumber)).toEqual(['DL1CAB3333']);
+    });
+
+    it('keeps each account to the vehicles it may onboard', async () => {
+      const add = (user: TestUser, vehicleType: VehicleType, registrationNumber: string) =>
+        request<unknown>({
+          method: 'POST',
+          url: '/api/v1/fleet/vehicles',
+          user,
+          payload:
+            vehicleType === VehicleType.TRUCK
+              ? { registrationNumber, vehicleType, capacityTons: 9 }
+              : { registrationNumber, vehicleType, passengerCapacity: 4 },
+        });
+
+      // Fleet owner: trucks only.
+      expect((await add(owner, VehicleType.TRUCK, 'DL1EL0001')).status).toBe(201);
+      const car = await add(owner, VehicleType.CAR, 'DL1EL0002');
+      expect(car.status).toBe(422);
+      expect(car.body.error?.message).toMatch(/fleet owner account runs trucks/i);
+
+      // Mobility provider: passenger vehicles, never a truck.
+      const operator = await createOrganization(OrganizationType.MOBILITY_PROVIDER, PlanTier.BUSINESS);
+      const operatorOwner = await createUser({
+        role: RoleName.MOBILITY_PROVIDER,
+        organizationId: operator.id,
+      });
+      expect((await add(operatorOwner, VehicleType.TAXI, 'DL1EL0003')).status).toBe(201);
+      expect((await add(operatorOwner, VehicleType.TRUCK, 'DL1EL0004')).status).toBe(422);
+
+      // Personal: a car, never a truck — and the truck is refused before the
+      // capacity check could offer to sell room for it.
+      const household = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.PERSONAL, {
+        vehicleTopUps: 2,
+      });
+      const person = await createUser({ role: RoleName.FLEET_OWNER, organizationId: household.id });
+      await prisma.user.update({
+        where: { id: person.id },
+        data: { aadhaarLast4: '0124', aadhaarVerifiedAt: new Date() },
+      });
+      expect((await add(person, VehicleType.CAR, 'DL1EL0005')).status).toBe(201);
+      const truck = await add(person, VehicleType.TRUCK, 'DL1EL0006');
+      expect(truck.status).toBe(422);
+      expect(truck.body.error?.message).toMatch(/Personal/);
     });
 
     it('keeps trucks created through the legacy surface visible as vehicles', async () => {
@@ -609,7 +665,7 @@ describe('Mobility expansion', () => {
 
     /** Create a booking starting a fortnight out, so lead-time rules pass. */
     async function book(passengers = 4) {
-      return request<{ id: string; status: string; totalAmount: number; subtotal: number }>({
+      return request<{ id: string; status: string; totalAmount: number; subtotal: number; platformFee: number }>({
         method: 'POST',
         url: '/api/v1/travel/bookings',
         user: customer,
@@ -623,13 +679,15 @@ describe('Mobility expansion', () => {
       });
     }
 
-    it('prices a booking and charges the platform booking fee', async () => {
+    it('prices a booking with no platform fee on the customer', async () => {
       const response = await book();
       expect(response.status).toBe(201);
       expect(response.body.data.status).toBe(BookingStatus.PENDING_PAYMENT);
       expect(response.body.data.subtotal).toBe(18000);
-      // 5% of 18,000 = 900, inside the min/max fee band.
-      expect(response.body.data.totalAmount).toBe(18900);
+      // Saarthi takes 2% of the provider's profit instead, once the trip's
+      // costs are recorded — the customer pays the package price.
+      expect(response.body.data.platformFee).toBe(0);
+      expect(response.body.data.totalAmount).toBe(18000);
     });
 
     it('prices a per-kilometre trip on the journey the passenger asks for', async () => {
@@ -881,8 +939,8 @@ describe('Mobility expansion', () => {
       expect(declined.body.data.status).toBe(BookingStatus.DECLINED);
 
       const record = await prisma.travelBooking.findUniqueOrThrow({ where: { id: bookingId } });
-      // The customer did nothing wrong, so the booking fee comes back too.
-      expect(Number(record.refundAmount)).toBe(18900);
+      // The customer did nothing wrong, so everything they paid comes back.
+      expect(Number(record.refundAmount)).toBe(18000);
     });
 
     it('leaves the booking payable after a declined payment', async () => {

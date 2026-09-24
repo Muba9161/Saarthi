@@ -1,23 +1,20 @@
 import {
-  CommissionTrigger,
   NotificationPriority,
   NotificationType,
   OPERATOR_OWNER_ROLES,
   PLAN_LIMITS,
+  PaymentPurpose,
   PlanTier,
   VEHICLE_TOPUP,
-  VEHICLE_TRACKER,
   quoteSubscription,
+  trackerProduct,
+  type TrackerProduct,
 } from '@saarthi/shared';
 import { prisma } from '../../database/prisma';
 import { logger } from '../../lib/logger';
-import { cache } from '../../infra/cache';
-import { cacheKeys } from '../../infra/cache-keys';
-import { paymentProvider } from '../../providers/payments';
+import { completeSettledPayment, openPayment } from '../payments/payment-settlement.service';
 import { AuditAction, recordAudit } from '../audit/audit.service';
 import { notifyOrganization } from '../notifications/notification.service';
-import { qualifyPayment } from '../sales/qualification';
-import { invalidateEntitlements } from './entitlements.service';
 
 /**
  * What the registrant configured on the pricing card, provisioned.
@@ -47,7 +44,7 @@ const orderLogger = logger.child({ module: 'subscriptions:signup-order' });
 export interface SignupOrder {
   vehicles: number;
   trackers: number;
-  billing: 'monthly' | 'yearly';
+  trackerProduct: TrackerProduct;
 }
 
 export interface SignupOrderResult {
@@ -58,6 +55,8 @@ export interface SignupOrderResult {
   paymentReference: string | null;
   /** Set when the charge failed — the caller reports it, nobody throws. */
   failure: string | null;
+  /** True while a hosted checkout is waiting to be completed. */
+  pending: boolean;
 }
 
 /**
@@ -163,6 +162,7 @@ export async function provisionSignupOrder(input: {
       charged: 0,
       paymentReference: null,
       failure: null,
+      pending: false,
     };
   }
 
@@ -171,14 +171,15 @@ export async function provisionSignupOrder(input: {
     tier: input.tier,
     vehicles: included + vehicleTopUps,
     trackers,
-    billing: input.order.billing,
+    trackerProduct: input.order.trackerProduct,
   });
+  const tracker = trackerProduct(quote.trackerProduct);
 
   /*
    * Only the add-ons are charged here — the plan itself is billed by the
    * subscription, which is on trial at this point — and the charge is the
-   * GST-inclusive figure, because that is the number the customer was shown
-   * next to "total to pay" and the number that has to leave their account.
+   * final figure: top-ups at their GST-inclusive price, trackers with GST
+   * added, which is what the customer was shown next to "total to pay".
    *
    * `quote.addOns` is computed rather than recovered by subtracting the plan
    * from the invoice total: a derived charge is one rounding change away from
@@ -189,23 +190,23 @@ export async function provisionSignupOrder(input: {
   const reference = `SIGNUP-${input.organizationId.slice(0, 8)}-${Date.now().toString(36).toUpperCase()}`;
 
   /*
-   * One intent for the whole order rather than one per unit.
+   * One payment for the whole order rather than one per unit.
    *
    * A customer who ordered three vehicles and two trackers agreed to one
    * figure and should see one charge. Buying them individually would also mean
    * a partial failure halfway through, leaving an account holding two of the
    * three things it paid for.
    */
-  const payment = await paymentProvider.createIntent({
+  const { paymentId, intent } = await openPayment({
     reference,
+    purpose: PaymentPurpose.SUBSCRIPTION,
+    organizationId: input.organizationId,
+    userId: input.userId,
     amount: addOns.total,
-    currency: 'INR',
     description: `Saarthi signup — ${input.organizationName}`,
-    customerName: input.customer.name,
-    customerEmail: input.customer.email,
-    customerPhone: input.customer.phone,
+    customer: input.customer,
+    returnPath: '/settings/subscription',
     metadata: {
-      organizationId: input.organizationId,
       kind: 'signup_order',
       vehicleTopUps: String(vehicleTopUps),
       trackers: String(trackers),
@@ -217,37 +218,14 @@ export async function provisionSignupOrder(input: {
     },
   });
 
-  if (payment.status === 'FAILED') {
+  if (intent.status === 'FAILED') {
     const failure =
-      payment.failureMessage ??
+      intent.failureMessage ??
       'The payment was declined, so the extra vehicles and trackers were not added.';
 
     // Recorded rather than discarded: "I paid for three vehicles at signup" is
     // a support conversation that needs rows to point at.
-    if (trackers > 0) {
-      await prisma.vehicleTracker.createMany({
-        data: Array.from({ length: trackers }, () => ({
-          organizationId: input.organizationId,
-          status: 'PAYMENT_FAILED' as const,
-          pricePaid: VEHICLE_TRACKER.priceOneTime,
-          paymentReference: payment.providerReference,
-          purchasedById: input.userId,
-          note: failure,
-        })),
-      });
-    }
-    if (vehicleTopUps > 0) {
-      await prisma.vehicleSubscriptionTopUp.createMany({
-        data: Array.from({ length: vehicleTopUps }, () => ({
-          organizationId: input.organizationId,
-          status: 'PAYMENT_FAILED' as const,
-          priceMonthly: VEHICLE_TOPUP.priceMonthly,
-          paymentReference: payment.providerReference,
-          purchasedById: input.userId,
-          note: failure,
-        })),
-      });
-    }
+    await createOrderRows('PAYMENT_FAILED', intent.providerReference, failure);
 
     await notifyOrganization(input.organizationId, {
       type: NotificationType.PAYMENT_FAILED,
@@ -267,50 +245,15 @@ export async function provisionSignupOrder(input: {
       vehicleTopUps: 0,
       trackers: 0,
       charged: 0,
-      paymentReference: payment.providerReference,
+      paymentReference: intent.providerReference,
       failure,
+      pending: false,
     };
   }
 
-  const now = new Date();
-
-  if (vehicleTopUps > 0) {
-    await prisma.vehicleSubscriptionTopUp.createMany({
-      data: Array.from({ length: vehicleTopUps }, () => ({
-        organizationId: input.organizationId,
-        status: 'ACTIVE' as const,
-        priceMonthly: VEHICLE_TOPUP.priceMonthly,
-        paymentReference: payment.providerReference,
-        purchasedById: input.userId,
-        startsAt: now,
-        // A monthly window like any other top-up; the renewal sweep extends it
-        // while it stays active. A yearly commitment still renews monthly here,
-        // because the window is about capacity, not about the invoice.
-        expiresAt: new Date(now.getTime() + 30 * 86_400_000),
-        note: 'Ordered at signup.',
-      })),
-    });
-  }
-
-  if (trackers > 0) {
-    await prisma.vehicleTracker.createMany({
-      data: Array.from({ length: trackers }, () => ({
-        organizationId: input.organizationId,
-        status: 'ACTIVE' as const,
-        pricePaid: VEHICLE_TRACKER.priceOneTime,
-        paymentReference: payment.providerReference,
-        purchasedById: input.userId,
-        purchasedAt: now,
-        // Unassigned: there are no vehicles on the account yet. Fitted from the
-        // subscription screen once the fleet is added.
-        truckId: null,
-        note: 'Ordered at signup.',
-      })),
-    });
-  }
-
-  invalidateEntitlements(input.organizationId);
-  await cache.delete(cacheKeys.subscriptionEntitlement(input.organizationId));
+  // Pending until the payment settles — at once on the mock gateway, after
+  // checkout on a hosted one. `activatePaidAddOns` then puts them live.
+  await createOrderRows('PENDING_PAYMENT', intent.providerReference, 'Ordered at signup.');
 
   await recordAudit({
     action: AuditAction.SUBSCRIPTION_SIGNUP_ORDER,
@@ -320,58 +263,26 @@ export async function provisionSignupOrder(input: {
     organizationId: input.organizationId,
     after: {
       tier: input.tier,
-      billing: input.order.billing,
+      trackerProduct: tracker.product,
       vehicleTopUps,
       trackers,
       charged: addOns.total,
       subtotal: addOns.subtotal,
       gst: addOns.gst,
-      reference: payment.providerReference,
+      reference: intent.providerReference,
     },
   });
 
-  if (trackers > 0) {
+  if (intent.status === 'SUCCEEDED') {
+    await completeSettledPayment(paymentId);
+  } else {
     await notifyOrganization(input.organizationId, {
       type: NotificationType.SUBSCRIPTION_UPDATED,
-      title: `${trackers} tracker${trackers === 1 ? '' : 's'} ordered`,
-      body: 'Add your vehicles, then fit each tracker to one from the subscription screen.',
-      priority: NotificationPriority.NORMAL,
+      title: 'Finish paying for your order',
+      body: 'Your account is ready. Complete the payment for your extra vehicles and trackers from the subscription screen to add them.',
+      priority: NotificationPriority.HIGH,
       actionUrl: '/settings/subscription',
       roles: OPERATOR_OWNER_ROLES,
-    });
-  }
-
-  /*
-   * Commission on what the customer actually paid at signup.
-   *
-   * Split by trigger rather than recorded as one lump, because the two are
-   * commercially different sales and may carry different rates: `trackers` is
-   * hardware, `vehicleTopUps` is recurring capacity. The unique index is on
-   * `(trigger, paymentReference)`, so one payment legitimately producing two
-   * commissions is expected — and each is still capped at one.
-   *
-   * Both use the pre-tax subtotal (GST is not Saarthi's revenue), and neither
-   * can throw. Note also what is *not* qualified here: the plan itself, which
-   * is on trial at signup and has taken no payment — see
-   * `qualifySubscriptionPayment`.
-   */
-  if (trackers > 0 && payment.providerReference) {
-    await qualifyPayment({
-      organizationId: input.organizationId,
-      baseAmount: VEHICLE_TRACKER.priceOneTime * trackers,
-      paymentReference: payment.providerReference,
-      trigger: CommissionTrigger.TRACKER,
-      planTier: input.tier,
-    });
-  }
-
-  if (vehicleTopUps > 0 && payment.providerReference) {
-    await qualifyPayment({
-      organizationId: input.organizationId,
-      baseAmount: VEHICLE_TOPUP.priceMonthly * vehicleTopUps,
-      paymentReference: payment.providerReference,
-      trigger: CommissionTrigger.VEHICLE_TOPUP,
-      planTier: input.tier,
     });
   }
 
@@ -382,6 +293,7 @@ export async function provisionSignupOrder(input: {
       vehicleTopUps,
       trackers,
       charged: addOns.total,
+      status: intent.status,
     },
     'Signup order provisioned',
   );
@@ -389,8 +301,45 @@ export async function provisionSignupOrder(input: {
   return {
     vehicleTopUps,
     trackers,
-    charged: addOns.total,
-    paymentReference: payment.providerReference,
+    charged: intent.status === 'SUCCEEDED' ? addOns.total : 0,
+    paymentReference: intent.providerReference,
     failure: null,
+    pending: intent.status === 'PENDING',
   };
+
+  /** The order's rows, in the state the payment left them. */
+  async function createOrderRows(
+    status: 'PAYMENT_FAILED' | 'PENDING_PAYMENT',
+    paymentReference: string,
+    note: string,
+  ): Promise<void> {
+    if (trackers > 0) {
+      await prisma.vehicleTracker.createMany({
+        data: Array.from({ length: trackers }, () => ({
+          organizationId: input.organizationId,
+          status,
+          product: tracker.product,
+          pricePaid: tracker.priceOneTime,
+          paymentReference,
+          purchasedById: input.userId,
+          // Unassigned: there are no vehicles on the account yet. Fitted from
+          // the subscription screen once the fleet is added.
+          truckId: null,
+          note,
+        })),
+      });
+    }
+    if (vehicleTopUps > 0) {
+      await prisma.vehicleSubscriptionTopUp.createMany({
+        data: Array.from({ length: vehicleTopUps }, () => ({
+          organizationId: input.organizationId,
+          status,
+          priceMonthly: VEHICLE_TOPUP.priceMonthly,
+          paymentReference,
+          purchasedById: input.userId,
+          note,
+        })),
+      });
+    }
+  }
 }

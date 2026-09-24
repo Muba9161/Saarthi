@@ -189,10 +189,7 @@ export function TravelPackageDetailPage() {
         <span className="text-muted-foreground">{quote.data.breakdown}</span>
         <span className="tabular-nums">{formatCurrency(quote.data.subtotal)}</span>
       </div>
-      <div className="flex justify-between gap-3">
-        <span className="text-muted-foreground">Saarthi booking fee</span>
-        <span className="tabular-nums">{formatCurrency(quote.data.platformFee)}</span>
-      </div>
+      <p className="text-2xs text-muted-foreground">No booking fee - you pay the provider&rsquo;s price.</p>
       <div className="flex justify-between gap-3 border-t border-white/40 pt-1.5 font-semibold dark:border-white/[0.08]">
         <span>Total</span>
         <span className="tabular-nums">{formatCurrency(quote.data.total)}</span>
@@ -524,7 +521,7 @@ export function TravelPackageDetailPage() {
               <CardHeader className="pb-3">
                 <SectionHeader
                   title="Cancellation"
-                  description="The booking fee is not refundable when the customer cancels. A provider cancellation always refunds in full."
+                  description="A customer cancellation is refunded under this policy. A provider cancellation always refunds in full."
                 />
               </CardHeader>
               <CardContent className="pt-0">

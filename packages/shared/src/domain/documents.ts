@@ -217,6 +217,29 @@ export const DOCUMENT_TYPES: DocumentTypeDefinition[] = [
     requiresExpiry: false,
     description: 'Cancelled cheque or bank statement for settlement.',
   },
+  {
+    code: 'ORGANIZATION_PAN',
+    label: 'Company PAN card',
+    ownerType: DocumentOwnerType.ORGANIZATION,
+    // Asked of Business and Supplier accounts by the verification wizard, not
+    // of every organization, so it is not mandatory in the generic catalogue.
+    mandatory: false,
+    requiresExpiry: false,
+    verifiableAs: IdentityDocumentKind.PAN,
+    description: 'The business PAN card. The number is verified against Income Tax Department records.',
+  },
+  {
+    code: 'SUPPLIER_MATERIAL_LICENCE',
+    label: 'Material licence / permit',
+    ownerType: DocumentOwnerType.ORGANIZATION,
+    // Required of suppliers by the verification wizard. No online source
+    // exists for it, so it is reviewed by a person.
+    mandatory: false,
+    requiresExpiry: false,
+    description:
+      'Government licence or permit for the materials you supply (for example a trade, mining or ' +
+      'dealer licence). Reviewed by the Saarthi team.',
+  },
 
   // --- User ---
   {
@@ -249,6 +272,15 @@ export const DOCUMENT_TYPES: DocumentTypeDefinition[] = [
     verifiableAs: IdentityDocumentKind.AADHAAR,
     description:
       'Your Aadhaar card. The number is checked against its UIDAI checksum; only the last four digits are retained.',
+  },
+  {
+    code: 'USER_PAN',
+    label: 'PAN card',
+    ownerType: DocumentOwnerType.USER,
+    mandatory: false,
+    requiresExpiry: false,
+    verifiableAs: IdentityDocumentKind.PAN,
+    description: 'Your PAN card. The number is verified against Income Tax Department records.',
   },
 
   // --- Order / Trip ---

@@ -1,9 +1,19 @@
 import { randomUUID } from 'node:crypto';
 import { logger } from '../../lib/logger';
 import type {
+  BankVerificationInput,
+  BankVerificationResult,
+  MandateInput,
+  PaymentSplit,
+  SplitSettlementState,
+  VendorInput,
+  VendorState,
+  MandateResult,
+  MandateState,
   PaymentIntentInput,
   PaymentIntentResult,
   PaymentProvider,
+  PaymentStatusResult,
   RefundInput,
   RefundResult,
 } from './payment.provider';
@@ -24,7 +34,7 @@ import type {
  *    a genuine decline through the same code a real decline would take.
  */
 export class MockPaymentProvider implements PaymentProvider {
-  readonly name = 'mock';
+  readonly name = 'mock' as const;
   readonly settlesSynchronously = true;
 
   private readonly log = logger.child({ module: 'payments', provider: 'mock' });
@@ -42,6 +52,7 @@ export class MockPaymentProvider implements PaymentProvider {
       return {
         providerReference,
         status: 'FAILED',
+        checkout: null,
         redirectUrl: null,
         failureCode: 'MOCK_DECLINED',
         failureMessage: 'The mock gateway declined this payment as requested.',
@@ -53,6 +64,7 @@ export class MockPaymentProvider implements PaymentProvider {
       return {
         providerReference,
         status: 'FAILED',
+        checkout: null,
         redirectUrl: null,
         failureCode: 'INVALID_AMOUNT',
         failureMessage: 'A payment must be for more than zero.',
@@ -68,11 +80,76 @@ export class MockPaymentProvider implements PaymentProvider {
     return {
       providerReference,
       status: 'SUCCEEDED',
+      checkout: null,
       redirectUrl: null,
       failureCode: null,
       failureMessage: null,
       processedAt: new Date(),
     };
+  }
+
+  /** Mock intents settle as they are created, so anything asked about is settled. */
+  async fetchIntent(): Promise<PaymentStatusResult> {
+    return { status: 'SUCCEEDED', failureMessage: null, processedAt: new Date() };
+  }
+
+  /** Nothing is ever left open on the mock, so there is nothing to resume. */
+  async resumeCheckout(): Promise<null> {
+    return null;
+  }
+
+  /** Autopay needs no authorisation locally: the mandate is live at once. */
+  async createMandate(input: MandateInput): Promise<MandateResult> {
+    this.log.info(
+      { reference: input.reference, amount: input.monthlyAmount },
+      'Mock autopay mandate created',
+    );
+    return {
+      reference: `MOCK-SUB-${randomUUID().slice(0, 8).toUpperCase()}`,
+      status: 'ACTIVE',
+      providerStatus: 'ACTIVE',
+      checkout: null,
+    };
+  }
+
+  async fetchMandate(): Promise<MandateState> {
+    return { status: 'ACTIVE', providerStatus: 'ACTIVE' };
+  }
+
+  async changeMandateAmount(): Promise<void> {}
+
+  async cancelMandate(): Promise<void> {}
+
+  /**
+   * Penny validation, locally. An account number ending 0000 is refused, so the
+   * failure path is reachable; anything else is valid in the holder's name.
+   */
+  async verifyBankAccount(input: BankVerificationInput): Promise<BankVerificationResult> {
+    const invalid = input.accountNumber.endsWith('0000');
+    return {
+      status: invalid ? 'INVALID' : 'VALID',
+      nameAtBank: invalid ? null : input.name.toUpperCase(),
+      bankName: invalid ? null : 'MOCK BANK',
+      reference: `MOCK-BAV-${randomUUID().slice(0, 8).toUpperCase()}`,
+      reason: invalid ? 'The bank reported that this account does not exist.' : null,
+    };
+  }
+
+  async createVendor(input: VendorInput): Promise<VendorState> {
+    return { vendorId: input.vendorId, active: true, providerStatus: 'ACTIVE' };
+  }
+
+  async fetchVendor(vendorId: string): Promise<VendorState> {
+    return { vendorId, active: true, providerStatus: 'ACTIVE' };
+  }
+
+  async splitAfterPayment(reference: string, splits: PaymentSplit[]): Promise<void> {
+    this.log.info({ reference, splits: splits.length }, 'Mock split applied');
+  }
+
+  /** The mock pays vendors out as soon as they are split to. */
+  async fetchSplitSettlement(_reference: string, vendorIds: string[]): Promise<SplitSettlementState> {
+    return { settledVendorIds: vendorIds };
   }
 
   async refund(input: RefundInput): Promise<RefundResult> {

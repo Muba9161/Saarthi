@@ -13,6 +13,7 @@ import type { RegistryFinding } from '@saarthi/shared';
 import type { RegistryVerificationResult } from '@/lib/api-types';
 import { ApiError, errorMessage } from '@/lib/api-client';
 import { LoadingState } from '@/components/common/states';
+import { ConfettiBurst } from '@/components/common/confetti-burst';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -132,7 +133,7 @@ export function RegistryVerifyDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="overflow-hidden">
         <DialogHeader>
           <DialogTitle>
             {vehicle ? 'Verify with the RTO' : 'Verify with the licensing authority'}
@@ -204,6 +205,8 @@ export function RegistryVerifyDialog({
           </Alert>
         ) : null}
 
+        {/* A paid check that just came back verified — persisted before this reply. */}
+        {!pending && result?.verified && !result.registry.cached ? <ConfettiBurst /> : null}
         {!pending && result ? <RegistryResult result={result} /> : null}
 
         <DialogFooter>

@@ -28,6 +28,12 @@ canvas — and every vehicle card in the product depends on it.
 | `step-02-quote.webp` | 16:9 |
 | `step-03-assign.webp` | 16:9 |
 | `step-04-track.webp` | 16:9 |
+| `role-fleet.webp` | 4:5 |
+| `role-driver.webp` | 4:5 |
+| `role-customer.webp` | 4:5 |
+| `role-supplier.webp` | 4:5 |
+| `role-travel.webp` | 4:5 |
+| `role-association.webp` | 4:5 |
 
 Every band renders correctly with its file absent, so they can land one at a
 time.

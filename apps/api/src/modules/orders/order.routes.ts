@@ -17,12 +17,22 @@ import {
 import { created, noContent, ok, paginated, parseBody, parseParams, parseQuery } from '../../lib/http';
 import {
   requireAuth,
+  requireBusiness,
   requireFeature,
   requireOrganizationId,
   requirePermission,
 } from '../../server/guards';
 import { AuditAction, auditFromRequest } from '../audit/audit.service';
 import * as orderService from './order.service';
+
+/**
+ * The carrier side of the order book. A Personal account holds these grants
+ * because it is seated as a fleet owner, but it runs its own vehicles and never
+ * carries marketplace freight, so it cannot quote for it.
+ */
+const CARRIER_ONLY = requireBusiness(
+  'Quoting for freight is for businesses. A Personal account does not take marketplace work.',
+);
 
 export async function orderRoutes(app: FastifyInstance): Promise<void> {
   app.addHook('preHandler', app.authenticate);
@@ -40,6 +50,7 @@ export async function orderRoutes(app: FastifyInstance): Promise<void> {
     {
       preHandler: [
         requirePermission(Permission.ORDERS_QUOTE),
+        CARRIER_ONLY,
         requireFeature(Feature.ORDERS_MARKETPLACE),
       ],
     },
@@ -127,6 +138,7 @@ export async function orderRoutes(app: FastifyInstance): Promise<void> {
     {
       preHandler: [
         requirePermission(Permission.ORDERS_QUOTE),
+        CARRIER_ONLY,
         requireFeature(Feature.ORDERS_MARKETPLACE),
       ],
     },
@@ -150,7 +162,7 @@ export async function orderRoutes(app: FastifyInstance): Promise<void> {
 
   app.delete(
     '/quotes/:id',
-    { preHandler: requirePermission(Permission.ORDERS_QUOTE) },
+    { preHandler: [requirePermission(Permission.ORDERS_QUOTE), CARRIER_ONLY] },
     async (request, reply) => {
       const auth = requireAuth(request);
       const organizationId = requireOrganizationId(request);

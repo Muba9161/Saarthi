@@ -199,13 +199,13 @@ const SECTIONS: LegalSectionSpec[] = [
             </>,
             <>
               <strong className="font-medium text-foreground">Billing period.</strong> Subscriptions
-              are billed monthly or yearly in advance, as selected. Yearly billing carries the
-              discount shown on the pricing page at the time of purchase.
+              are billed monthly in advance, from the end of any free trial.
             </>,
             <>
-              <strong className="font-medium text-foreground">Taxes.</strong> Prices are exclusive
-              of Goods and Services Tax unless stated otherwise. GST is charged at the applicable
-              rate and shown separately on the invoice. You are responsible for giving us a correct
+              <strong className="font-medium text-foreground">Taxes.</strong> Subscription prices,
+              including extra vehicles, include Goods and Services Tax. Hardware such as trackers is
+              priced exclusive of GST, which is added at the applicable rate. GST is shown
+              separately on the invoice. You are responsible for giving us a correct
               GSTIN if you wish to claim input credit; we cannot reissue an invoice against a GSTIN
               supplied after the fact in every case.
             </>,

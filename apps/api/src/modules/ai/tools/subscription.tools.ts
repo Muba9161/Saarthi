@@ -2,8 +2,9 @@ import { z } from 'zod';
 import {
   PLAN_CATALOGUE,
   Permission,
+  TRACKER_PRODUCTS,
   VEHICLE_TOPUP,
-  VEHICLE_TRACKER,
+  describeTrackerPrices,
   quoteSubscription,
   type PlanTier,
 } from '@saarthi/shared';
@@ -19,8 +20,8 @@ import { ResultBasis, type AiTool, type ToolResult } from './tool.types';
  * the tenant's actual entitlement state, never from the plan names it happens
  * to know. The distinction matters because the answer decides whether someone
  * buys a top-up they do not need, or is told to upgrade when a top-up for the
- * price of one vehicle would have done. Both plans cover one vehicle, so an
- * upgrade is never the answer to "I need room for another" — a top-up is.
+ * price of one vehicle would have done. Every vehicle plan covers one vehicle,
+ * so an upgrade is never the answer to "I need room for another" — a top-up is.
  */
 
 function result<T>(
@@ -120,26 +121,25 @@ export const SUBSCRIPTION_TOOLS: AiTool[] = [
           availablePlans: PLAN_CATALOGUE.map((plan) => ({
             tier: plan.tier,
             name: plan.name,
-            // One on both plans. Said explicitly so the assistant does not
-            // present an upgrade as the way to get more vehicles.
+            // One on every vehicle plan. Said explicitly so the assistant does
+            // not present an upgrade as the way to get more vehicles.
             vehiclesIncluded: plan.limits.maxTrucks,
-            priceMonthly: plan.priceMonthly,
-            priceYearly: plan.priceYearly,
+            priceMonthlyGstIncluded: plan.priceMonthly,
             maxTopUps: plan.limits.maxVehicleTopUps,
             maxTrackers: plan.limits.maxTrackers,
           })),
           topUp: {
             name: VEHICLE_TOPUP.name,
-            priceMonthly: VEHICLE_TOPUP.priceMonthly,
-            priceYearly: VEHICLE_TOPUP.priceYearly,
+            priceMonthlyGstIncluded: VEHICLE_TOPUP.priceMonthly,
             description: VEHICLE_TOPUP.description,
           },
-          tracker: {
-            name: VEHICLE_TRACKER.name,
-            priceOneTime: VEHICLE_TRACKER.priceOneTime,
+          trackers: TRACKER_PRODUCTS.map((product) => ({
+            name: product.name,
+            priceOneTimeBeforeGst: product.priceOneTime,
+            priceFinal: product.price,
             recurring: false,
-            description: VEHICLE_TRACKER.description,
-          },
+            description: product.description,
+          })),
         },
         { basis: ResultBasis.SOURCE_DATA },
       );
@@ -160,7 +160,6 @@ export const SUBSCRIPTION_TOOLS: AiTool[] = [
       return result(
         {
           ...coverage,
-          trackerPriceOneTime: VEHICLE_TRACKER.priceOneTime,
           trackerRecurring: false,
         },
         {
@@ -169,7 +168,7 @@ export const SUBSCRIPTION_TOOLS: AiTool[] = [
             coverage.uncovered > 0
               ? [
                   `${coverage.uncovered} vehicle(s) have no tracker. For those, distance, fuel and trip times are worked out from the driver's phone and carry an error — and a phone that was left behind or ran flat reports nothing at all.`,
-                  `A tracker is a one-time ${VEHICLE_TRACKER.priceOneTime} rupees per vehicle with no monthly charge.`,
+                  `A tracker is a one-time charge per vehicle with no monthly fee: ${describeTrackerPrices()}.`,
                 ]
               : [],
         },
@@ -183,30 +182,26 @@ export const SUBSCRIPTION_TOOLS: AiTool[] = [
       'What a given number of vehicles costs per month on each plan, including the per-vehicle top-ups. Use this to answer "what would ten vehicles cost".',
     input: z.object({
       vehicles: z.coerce.number().int().min(1).max(500),
-      billing: z.enum(['monthly', 'yearly']).default('monthly'),
     }),
     permissions: [Permission.SUBSCRIPTION_READ],
     category: 'subscription',
     cacheTtlSeconds: 3600,
     handler: async (_context, input) => {
-      const { vehicles, billing } = input as { vehicles: number; billing: 'monthly' | 'yearly' };
+      const { vehicles } = input as { vehicles: number };
 
       return result(
         {
           vehicles,
-          billing,
           quotes: PLAN_CATALOGUE.map((plan) => {
             const ceiling =
               plan.limits.maxTrucks === null
                 ? null
                 : plan.limits.maxTrucks + plan.limits.maxVehicleTopUps;
-            const quote = quoteSubscription({ tier: plan.tier, vehicles, billing });
+            const quote = quoteSubscription({ tier: plan.tier, vehicles });
             return {
               tier: plan.tier as PlanTier,
               name: plan.name,
-              monthlySubtotal: Math.round(quote.monthly.subtotal),
-              monthlyGst: Math.round(quote.monthly.gst),
-              monthlyTotal: Math.round(quote.monthly.total),
+              monthlyTotal: quote.monthly.total,
               // A quote for a fleet the plan cannot hold is a quote nobody can
               // act on, so it is marked rather than silently offered.
               available: ceiling === null || vehicles <= ceiling,
@@ -217,8 +212,8 @@ export const SUBSCRIPTION_TOOLS: AiTool[] = [
         {
           basis: ResultBasis.RULE_RESULT,
           caveats: [
-            'Plan and top-up prices are quoted before GST; the monthly total shown includes GST at 18%.',
-            `Trackers are optional and charged once, at ${VEHICLE_TRACKER.priceOneTime} rupees plus GST per vehicle, so they are not part of the monthly figure.`,
+            'Plan and top-up prices are final monthly prices with GST included. Quote them as they are, without a GST breakdown.',
+            `Trackers are charged once per vehicle, plus GST, so they are not part of the monthly figure: ${describeTrackerPrices()}. A fleet owner running trucks needs one for live telemetry.`,
           ],
         },
       );

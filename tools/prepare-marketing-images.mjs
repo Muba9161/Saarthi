@@ -66,6 +66,14 @@ const MANIFEST = [
   { name: 'step-02-quote', width: 1600, height: 900, budgetKb: 140 },
   { name: 'step-03-assign', width: 1600, height: 900, budgetKb: 140 },
   { name: 'step-04-track', width: 1600, height: 900, budgetKb: 140 },
+  // "Who it is for" — one 4:5 portrait per account type, framed beside the
+  // wizard's copy at about 400px wide, so 800x1000 covers a 2x screen.
+  { name: 'role-fleet', width: 800, height: 1000, budgetKb: 110 },
+  { name: 'role-driver', width: 800, height: 1000, budgetKb: 110 },
+  { name: 'role-customer', width: 800, height: 1000, budgetKb: 110 },
+  { name: 'role-supplier', width: 800, height: 1000, budgetKb: 110 },
+  { name: 'role-travel', width: 800, height: 1000, budgetKb: 110 },
+  { name: 'role-association', width: 800, height: 1000, budgetKb: 110 },
 ];
 
 const SOURCE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.webp', '.tif', '.tiff'];

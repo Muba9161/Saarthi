@@ -445,6 +445,56 @@ describe('Requirements and bidding', () => {
     });
   });
 
+  /*
+   * A Personal account is seated as a fleet owner, so its type and role alone
+   * would put it on the freight board. It runs its own vehicles and never takes
+   * marketplace work, so the provider side refuses it outright.
+   */
+  describe('a personal seat is not a bidder', () => {
+    async function createPersonalOwner(): Promise<TestUser> {
+      const personalOrg = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.PERSONAL);
+      await prisma.organization.update({
+        where: { id: personalOrg.id },
+        data: { isPersonalSeat: true },
+      });
+      return createUser({ role: RoleName.FLEET_OWNER, organizationId: personalOrg.id });
+    }
+
+    it('keeps a personal seat off the board and out of its own bid list', async () => {
+      await postFreightRequirement();
+      const personalOwner = await createPersonalOwner();
+
+      const board = await request({
+        method: 'GET',
+        url: '/api/v1/requirements/board?radiusKm=3000',
+        user: personalOwner,
+      });
+      expect(board.status).toBe(403);
+
+      const bids = await request({
+        method: 'GET',
+        url: '/api/v1/requirements/me/bids',
+        user: personalOwner,
+      });
+      expect(bids.status).toBe(403);
+    });
+
+    it('refuses a bid from a personal seat', async () => {
+      const requirementId = await postFreightRequirement();
+      const personalOwner = await createPersonalOwner();
+
+      const { status } = await request({
+        method: 'POST',
+        url: `/api/v1/requirements/${requirementId}/bids`,
+        user: personalOwner,
+        payload: { scope: RequirementBidScope.TRANSPORT, price: 42000 },
+      });
+
+      expect(status).toBe(403);
+      expect(await prisma.requirementBid.count({ where: { requirementId } })).toBe(0);
+    });
+  });
+
   // -------------------------------------------------------------------------
   // Bidding
   // -------------------------------------------------------------------------

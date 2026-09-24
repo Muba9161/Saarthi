@@ -2,11 +2,13 @@ import {
   NotificationPriority,
   NotificationType,
   OPERATOR_OWNER_ROLES,
+  OrganizationType,
   PLAN_CATALOGUE,
   PlanTier,
   SubscriptionStatus,
+  TRACKER_PRODUCTS,
   VEHICLE_TOPUP,
-  VEHICLE_TRACKER,
+  planAllowedForOrganizationType,
   quoteSubscription,
   type SelectPlanInput,
 } from '@saarthi/shared';
@@ -16,20 +18,23 @@ import { logger } from '../../lib/logger';
 import { cache } from '../../infra/cache';
 import { cacheKeys } from '../../infra/cache-keys';
 import { config } from '../../config/env';
+import { paymentProvider } from '../../providers/payments';
 import { AuditAction, recordAudit } from '../audit/audit.service';
 import { notifyOrganization } from '../notifications/notification.service';
 import { countActiveTrackers, invalidateEntitlements } from './entitlements.service';
 import { countActiveTopUps } from './topup.service';
+import { syncAutopayAmount } from './autopay.service';
 import type { AuthContext } from '../../auth/context';
 
 /**
  * Changing plan.
  *
- * There are two plans, so this is a switch rather than a ladder — and the only
- * direction that can hurt is Business → Personal, because Personal caps
- * vehicles, seats and drivers. That check is done up front and refuses with the
- * specific number that is in the way, rather than accepting the change and
- * leaving the tenant over every limit at once.
+ * Plans differ only commercially, so this is a switch rather than a ladder —
+ * and the direction that can hurt is onto a plan with tighter quantities (for
+ * example Business → Personal, which caps vehicles, seats and drivers). That
+ * check is done up front and refuses with the specific number that is in the
+ * way, rather than accepting the change and leaving the tenant over every
+ * limit at once.
  *
  * Nothing is ever deleted by a downgrade. Vehicles, members and drivers already
  * on the fleet keep working exactly as they are; what a tighter plan withholds
@@ -40,6 +45,19 @@ import type { AuthContext } from '../../auth/context';
 
 const planLogger = logger.child({ module: 'subscriptions:plan' });
 
+/**
+ * Where a subscription stands on a plan it has just joined: a paid plan starts
+ * its free trial (or, with no trial configured, waits to be paid for); Free
+ * never ends.
+ */
+function billingStateFor(paid: boolean) {
+  const trialDays = config.subscription.trialDays;
+  if (!paid) return { status: SubscriptionStatus.ACTIVE, endsAt: null };
+  return trialDays > 0
+    ? { status: SubscriptionStatus.TRIALING, endsAt: new Date(Date.now() + trialDays * 86_400_000) }
+    : { status: SubscriptionStatus.EXPIRED, endsAt: new Date() };
+}
+
 export interface PlanSummary {
   tier: PlanTier;
   name: string;
@@ -47,15 +65,15 @@ export interface PlanSummary {
   billingPeriod: string;
   startsAt: string;
   endsAt: string | null;
+  /** GST included. */
   priceMonthly: number | null;
-  priceYearly: number | null;
   /** Vehicles, seats and drivers in use — what a downgrade would be measured against. */
   usage: { vehicles: number; members: number; drivers: number; trackers: number };
-  /** What this tenant pays a month, plan plus top-ups, before GST. */
+  /** Taxable value inside the monthly total — for invoices, not pricing cards. */
   monthlySubtotal: number;
-  /** GST on that, at the rate in the shared catalogue. */
+  /** GST inside the monthly total. */
   monthlyGst: number;
-  /** Subtotal plus GST — what actually leaves the account each month. */
+  /** What this tenant pays a month, plan plus top-ups, GST included. */
   monthlyTotal: number;
   gstRate: number;
   /** False when `SUBSCRIPTION_ENFORCEMENT` is off — development only. */
@@ -86,7 +104,6 @@ export async function currentPlan(organizationId: string): Promise<PlanSummary |
   const billed = quoteSubscription({
     tier,
     vehicles: (subscription.plan.priceMonthly === null ? 0 : 1) + topUps,
-    billing: subscription.billingPeriod === 'YEARLY' ? 'yearly' : 'monthly',
   });
 
   return {
@@ -97,7 +114,6 @@ export async function currentPlan(organizationId: string): Promise<PlanSummary |
     startsAt: subscription.startsAt.toISOString(),
     endsAt: subscription.endsAt?.toISOString() ?? null,
     priceMonthly: subscription.plan.priceMonthly ? Number(subscription.plan.priceMonthly) : null,
-    priceYearly: subscription.plan.priceYearly ? Number(subscription.plan.priceYearly) : null,
     usage,
     // Priced from the top-ups actually held rather than from the vehicle
     // count, so a fleet that is over capacity after a lapse sees the bill it
@@ -115,7 +131,7 @@ export function planCatalogue() {
   return {
     plans: PLAN_CATALOGUE,
     topUp: VEHICLE_TOPUP,
-    tracker: VEHICLE_TRACKER,
+    trackers: TRACKER_PRODUCTS,
   };
 }
 
@@ -166,22 +182,37 @@ export function downgradeBlockers(input: {
 /**
  * Move an organization onto a plan.
  *
- * Idempotent for the tier: choosing the plan you are already on only updates
- * the billing period, and does not restart a trial or re-notify the team.
+ * Changes what is billed, not whether it is paid: a trial keeps running to its
+ * end date, a paid month stays paid, and a lapsed subscription stays lapsed
+ * until it is paid for (`payPlanNow`). Autopay follows the new price.
+ *
+ * Idempotent for the tier: choosing the plan you are already on does not
+ * restart a trial or re-notify the team.
  */
 export async function selectPlan(
   auth: AuthContext,
   organizationId: string,
   input: SelectPlanInput,
 ): Promise<PlanSummary> {
-  const [existing, target] = await Promise.all([
+  const [existing, target, organization] = await Promise.all([
     prisma.subscription.findUnique({ where: { organizationId }, include: { plan: true } }),
     prisma.subscriptionPlan.findUnique({ where: { tier: input.tier } }),
+    prisma.organization.findUnique({ where: { id: organizationId }, select: { type: true } }),
   ]);
 
   if (!target) {
     throw errors.businessRule(
       'That plan is not available. Run `npm run db:seed` if this is a fresh environment.',
+    );
+  }
+
+  // The plan is the bill, the account type is the business — and the Supplier
+  // plan is the one pairing the catalogue fixes, in both directions.
+  if (!planAllowedForOrganizationType(input.tier, organization?.type as OrganizationType)) {
+    throw errors.businessRule(
+      input.tier === PlanTier.SUPPLIER
+        ? 'The Saarthi Supplier plan is for material suppliers.'
+        : 'A supplier account stays on the Saarthi Supplier plan.',
     );
   }
 
@@ -198,34 +229,50 @@ export async function selectPlan(
     );
   }
 
-  const billingPeriod = input.billing === 'yearly' ? 'YEARLY' : 'MONTHLY';
   const previousTier = existing ? (existing.plan.tier as PlanTier) : null;
+  const previousPaid = Number(existing?.plan.priceMonthly ?? 0) > 0;
+  const targetPaid = Number(target.priceMonthly ?? 0) > 0;
 
   await prisma.subscription.upsert({
     where: { organizationId },
     create: {
       organizationId,
       planId: target.id,
-      billingPeriod,
-      status: SubscriptionStatus.ACTIVE,
+      billingPeriod: 'MONTHLY',
       startsAt: new Date(),
-      endsAt: null,
+      ...billingStateFor(targetPaid),
     },
     update: {
       planId: target.id,
-      billingPeriod,
-      // A plan chosen and paid for ends a trial and clears any lapse: the
-      // tenant has just told us what they want and settled it.
-      status: SubscriptionStatus.ACTIVE,
-      endsAt: null,
-      cancelledAt: null,
+      billingPeriod: 'MONTHLY',
+      // Onto a paid plan from Free: the trial starts now. Down to Free: there
+      // is nothing left to bill, so the period no longer ends. Between paid
+      // plans the period carries on exactly as it was.
+      ...(existing && !previousPaid && targetPaid ? billingStateFor(true) : {}),
+      ...(existing && previousPaid && !targetPaid
+        ? { status: SubscriptionStatus.ACTIVE, endsAt: null, cancelledAt: null, autopayStatus: existing.externalRef ? 'CANCELLED' : null }
+        : {}),
     },
   });
+
+  // Autopay has nothing to take on Free.
+  if (
+    existing?.externalRef &&
+    previousPaid &&
+    !targetPaid &&
+    existing.autopayProvider === paymentProvider.name
+  ) {
+    await paymentProvider.cancelMandate(existing.externalRef).catch((error: unknown) => {
+      planLogger.warn({ organizationId, error }, 'Could not cancel autopay on the move to Free');
+    });
+  }
 
   invalidateEntitlements(organizationId);
   await cache.delete(cacheKeys.subscriptionEntitlement(organizationId));
 
   if (previousTier !== input.tier) {
+    await syncAutopayAmount(organizationId);
+
     await recordAudit({
       action: AuditAction.SUBSCRIPTION_PLAN_CHANGED,
       entityType: 'Subscription',
@@ -233,23 +280,20 @@ export async function selectPlan(
       actorUserId: auth.user.id,
       organizationId,
       before: previousTier ? { tier: previousTier } : undefined,
-      after: { tier: input.tier, billingPeriod },
+      after: { tier: input.tier },
     });
 
     await notifyOrganization(organizationId, {
       type: NotificationType.SUBSCRIPTION_UPDATED,
       title: `Now on ${target.name}`,
-      body:
-        input.tier === PlanTier.BUSINESS
-          ? 'The marketplace, dispatch, analytics and AI are available now.'
-          : 'Your plan covers your own vehicles. Nothing already on the fleet was changed.',
+      body: 'Your billing has changed. Nothing already on your account was changed.',
       priority: NotificationPriority.NORMAL,
       actionUrl: '/settings/subscription',
       roles: OPERATOR_OWNER_ROLES,
     });
 
     planLogger.info(
-      { organizationId, from: previousTier, to: input.tier, billingPeriod },
+      { organizationId, from: previousTier, to: input.tier },
       'Subscription plan changed',
     );
   }

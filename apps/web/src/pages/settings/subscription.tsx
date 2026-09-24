@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
   AlertTriangle,
-  Check,
   Cpu,
   Plus,
   Smartphone,
@@ -11,15 +11,17 @@ import {
   X,
 } from 'lucide-react';
 import {
-  FEATURE_CATALOGUE,
-  PLAN_CATALOGUE,
   Permission,
-  PlanTier,
+  type PlanTier,
+  TRACKER_PRODUCTS,
   VEHICLE_TOPUP,
-  VEHICLE_TRACKER,
   formatCurrency,
   humanizeEnum,
-  quoteSubscription,
+  trackerCharge,
+  trackerProduct,
+  type CheckoutSession,
+  type TrackerProduct,
+  type TrackerProductDefinition,
   type VehicleCapacity,
 } from '@saarthi/shared';
 import type { Paginated, TruckSummary } from '@/lib/api-types';
@@ -27,7 +29,7 @@ import { api, errorMessage } from '@/lib/api-client';
 import { useAuth } from '@/features/auth/auth-context';
 import { PageHeader, SectionHeader } from '@/components/common/page-header';
 import { LoadingState } from '@/components/common/states';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -41,15 +43,21 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { useCheckout, useCheckoutReturn } from '@/features/payments/use-checkout';
+import { BillingCard, type BillingStatus } from '@/features/subscriptions/billing-card';
+import { BillingHistory } from '@/features/subscriptions/billing-history';
+import { TrackerShop } from '@/features/subscriptions/tracker-shop';
 
 /**
  * Subscription, capacity and hardware.
  *
  * Saarthi is sold by the vehicle, so the first thing this page answers is "how
- * many vehicles can I still add, and what am I paying" — not "which tier am I
- * on". There are only two plans, and the choice between them is a question an
- * operator asks once, so the plan cards sit below the two things they will
- * come back for: capacity, and how much of the fleet has a tracker on it.
+ * many vehicles can I still add, and what am I paying". It manages the plan
+ * chosen at registration — billing, capacity and trackers — and deliberately
+ * offers no plan switching: the plan is chosen once, when the account is made.
+ *
+ * Every price is shown as the final amount — GST is inside it, trackers
+ * included.
  */
 
 interface CapacityResponse extends VehicleCapacity {
@@ -64,8 +72,8 @@ interface PlanSummary {
   billingPeriod: string;
   startsAt: string;
   endsAt: string | null;
+  /** GST included. */
   priceMonthly: number | null;
-  priceYearly: number | null;
   usage: { vehicles: number; members: number; drivers: number; trackers: number };
   monthlySubtotal: number;
   monthlyGst: number;
@@ -87,6 +95,7 @@ interface TopUpRow {
 interface TrackerRow {
   id: string;
   status: string;
+  product: TrackerProduct;
   truckId: string | null;
   truckRegistration: string | null;
   serialNumber: string | null;
@@ -103,14 +112,8 @@ interface TrackerCoverage {
   remaining: number | null;
   canPurchase: boolean;
   ceiling: number | null;
-  priceOneTime: number;
+  products: TrackerProductDefinition[];
 }
-
-const TIER_LABEL: Record<PlanTier, string> = {
-  [PlanTier.FREE]: 'Free',
-  [PlanTier.PERSONAL]: 'Personal',
-  [PlanTier.BUSINESS]: 'Business',
-};
 
 function inrDate(value: string): string {
   return new Date(value).toLocaleDateString('en-IN');
@@ -122,6 +125,30 @@ export function SubscriptionPage(): React.ReactElement {
 
   const canManage = can(Permission.SUBSCRIPTION_MANAGE);
   const hasOrganization = Boolean(session?.organization);
+
+  /** The tracker the marketing page's Buy button asked for, highlighted in the shop. */
+  const [highlighted, setHighlighted] = React.useState<TrackerProduct | null>(null);
+
+  /*
+   * `?buyTracker=<product>` — the marketing page's Buy button lands here
+   * (through sign-in if needed) and brings that tracker into view. The
+   * parameter is removed once read, so a refresh does not repeat it.
+   */
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedTracker = searchParams.get('buyTracker');
+  React.useEffect(() => {
+    if (!requestedTracker) return;
+    const requested = TRACKER_PRODUCTS.find((product) => product.product === requestedTracker);
+    if (requested && canManage) setHighlighted(requested.product);
+    else if (requested) toast.info('Ask your account owner to buy trackers for this account.');
+    setSearchParams(
+      (current) => {
+        current.delete('buyTracker');
+        return current;
+      },
+      { replace: true },
+    );
+  }, [requestedTracker, canManage, setSearchParams]);
 
   const plan = useQuery({
     queryKey: ['subscription', 'plan'],
@@ -171,18 +198,38 @@ export function SubscriptionPage(): React.ReactElement {
     enabled: hasOrganization && hasUnfitted,
   });
 
-  const refresh = (): void => {
+  const billing = useQuery({
+    queryKey: ['subscription', 'billing'],
+    queryFn: () => api.get<BillingStatus | null>('/subscriptions/billing'),
+    enabled: hasOrganization,
+  });
+
+  const refresh = React.useCallback((): void => {
     void queryClient.invalidateQueries({ queryKey: ['subscription'] });
     void queryClient.invalidateQueries({ queryKey: ['session'] });
-  };
+  }, [queryClient]);
+
+  const checkout = useCheckout(refresh);
+  const confirmAutopay = React.useCallback(async () => {
+    const status = await api.post<BillingStatus | null>('/subscriptions/billing/autopay/refresh');
+    if (status?.autopay?.status === 'ACTIVE') toast.success('Autopay is set up');
+    else toast.info('Autopay is waiting for your bank to confirm');
+    refresh();
+  }, [refresh]);
+  // Back from Cashfree: a payment (`?order_id=`) or an autopay authorisation
+  // (`?subscription_id=`), each confirmed with the API.
+  useCheckoutReturn({ onPayment: refresh, onSubscription: confirmAutopay });
 
   const buyTopUp = useMutation({
-    mutationFn: () => api.post('/subscriptions/topups', {}),
-    onSuccess: () => {
-      toast.success('Capacity added', {
-        description: 'You can add one more vehicle straight away.',
-      });
-      refresh();
+    mutationFn: () =>
+      api.post<{ checkout: CheckoutSession | null }>('/subscriptions/topups', {}),
+    onSuccess: (result) => {
+      if (!result.checkout) {
+        toast.success('Capacity added', {
+          description: 'You can add one more vehicle straight away.',
+        });
+      }
+      void checkout.run(result.checkout, 'Capacity added - you can add one more vehicle.');
     },
     onError: (error) => toast.error('Could not add capacity', { description: errorMessage(error) }),
   });
@@ -199,12 +246,17 @@ export function SubscriptionPage(): React.ReactElement {
   });
 
   const buyTracker = useMutation({
-    mutationFn: () => api.post('/subscriptions/trackers', {}),
-    onSuccess: () => {
-      toast.success('Tracker added', {
-        description: 'Fit it, then pair it from the Devices screen.',
-      });
-      refresh();
+    mutationFn: (order: { product: TrackerProduct; quantity: number }) =>
+      api.post<{ checkout: CheckoutSession | null }>('/subscriptions/trackers', order),
+    onSuccess: (result, order) => {
+      setHighlighted(null);
+      const added = order.quantity > 1 ? `${order.quantity} trackers added` : 'Tracker added';
+      if (!result.checkout) {
+        toast.success(added, {
+          description: 'Fit them to your vehicles below, then pair them from the Devices screen.',
+        });
+      }
+      void checkout.run(result.checkout, `${added} - fit them to your vehicles below.`);
     },
     onError: (error) => toast.error('Could not add a tracker', { description: errorMessage(error) }),
   });
@@ -232,22 +284,20 @@ export function SubscriptionPage(): React.ReactElement {
     onError: (error) => toast.error(errorMessage(error)),
   });
 
-  const changePlan = useMutation({
-    mutationFn: (tier: PlanTier) =>
-      api.post('/subscriptions/plan', { tier, billing: plan.data?.billingPeriod === 'YEARLY' ? 'yearly' : 'monthly' }),
-    onSuccess: (_data, tier) => {
-      toast.success(`Now on Saarthi ${TIER_LABEL[tier]}`);
-      refresh();
-    },
-    onError: (error) => toast.error('Could not change plan', { description: errorMessage(error) }),
-  });
-
-  const currentTier = plan.data?.tier ?? session?.subscription?.planTier;
-  const held = new Set(session?.subscription?.features ?? []);
   const data = capacity.data;
   const activeTopUps = (topUps.data ?? []).filter((row) => row.status === 'ACTIVE');
   const activeTrackers = (trackers.data ?? []).filter((row) => row.status === 'ACTIVE');
   const cover = coverage.data;
+
+  /** Why a tracker cannot be bought right now — the same rule the API enforces. */
+  const trackerBlockedReason =
+    cover && !cover.canPurchase
+      ? cover.vehicles === 0
+        ? 'Add a vehicle first - a tracker is fitted to one. Then come back here to buy it.'
+        : cover.ceiling !== null && cover.activeTrackers >= cover.ceiling
+          ? `Your plan covers up to ${cover.ceiling} trackers. Moving to Business removes the limit.`
+          : 'You already hold a tracker for every vehicle. Add the vehicle first, then buy its tracker.'
+      : null;
 
   const usedPercent =
     data && data.effectiveLimit !== null && data.effectiveLimit > 0
@@ -285,36 +335,23 @@ export function SubscriptionPage(): React.ReactElement {
           <CardHeader className="pb-3">
             <SectionHeader
               title="Your plan"
-              description={`${plan.data.name} · billed ${plan.data.billingPeriod.toLowerCase()}`}
+              description={`${plan.data.name} · billed monthly`}
             />
           </CardHeader>
           <CardContent className="pt-0">
             <div className="flex flex-wrap items-end justify-between gap-4">
               <div>
-                {/* The figure that leaves the account, GST included — this is
-                    a billing screen, and a pre-tax number here would not match
-                    the statement the owner is holding. */}
+                {/* The figure that leaves the account each month. Prices are
+                    final, so there is no tax to add to it. */}
                 <p className="text-3xl font-semibold tabular-nums">
                   {formatCurrency(plan.data.monthlyTotal)}
                   <span className="text-base font-normal text-muted-foreground">/month</span>
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  {formatCurrency(plan.data.monthlySubtotal)}
-                  {' + '}
-                  {formatCurrency(plan.data.monthlyGst)} GST at{' '}
-                  {Math.round(plan.data.gstRate * 100)}%
-                </p>
-                <p className="mt-0.5 text-2xs text-muted-foreground">
-                  {formatCurrency(
-                    plan.data.billingPeriod === 'YEARLY'
-                      ? Math.round((plan.data.priceYearly ?? 0) / 12)
-                      : plan.data.priceMonthly,
-                  )}{' '}
-                  plan
+                  {formatCurrency(plan.data.priceMonthly)} plan
                   {activeTopUps.length > 0
                     ? ` + ${activeTopUps.length} × ${formatCurrency(VEHICLE_TOPUP.priceMonthly)} per vehicle`
-                    : ' - one vehicle included'}
-                  , before tax
+                    : ''}
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
@@ -346,6 +383,16 @@ export function SubscriptionPage(): React.ReactElement {
             </dl>
           </CardContent>
         </Card>
+      ) : null}
+
+      {billing.data ? (
+        <BillingCard
+          billing={billing.data}
+          canManage={canManage}
+          onCheckout={checkout.run}
+          busy={checkout.busy}
+          onChanged={refresh}
+        />
       ) : null}
 
       {/* ---------------------------------------------------------------- */}
@@ -407,7 +454,7 @@ export function SubscriptionPage(): React.ReactElement {
                   <Truck className="size-4 text-muted-foreground" />
                   {VEHICLE_TOPUP.name}
                   <span className="text-muted-foreground">
-                    {formatCurrency(data.topUpPriceMonthly)}/month + GST
+                    {formatCurrency(data.topUpPriceMonthly)}/month
                   </span>
                 </p>
                 <p className="mt-0.5 text-xs text-muted-foreground">
@@ -418,7 +465,7 @@ export function SubscriptionPage(): React.ReactElement {
               {canManage ? (
                 <Button
                   onClick={() => buyTopUp.mutate()}
-                  disabled={!data.canPurchaseTopUp || buyTopUp.isPending}
+                  disabled={!data.canPurchaseTopUp || buyTopUp.isPending || checkout.busy}
                   title={
                     data.canPurchaseTopUp
                       ? undefined
@@ -520,46 +567,27 @@ export function SubscriptionPage(): React.ReactElement {
                   </span>
                 </p>
                 <p className="mt-1 text-2xs text-muted-foreground">
-                  {cover.uncovered > 0
-                    ? 'Distance and fuel are worked out from the phone’s trail, so they carry an error - and a phone left behind reports nothing.'
-                    : 'Every vehicle is measured.'}
+                  {cover.vehicles === 0
+                    ? 'No vehicles on the account yet.'
+                    : cover.uncovered > 0
+                      ? 'Distance and fuel are worked out from the phone’s trail, so they carry an error - and a phone left behind reports nothing.'
+                      : 'Every vehicle is measured.'}
                 </p>
               </div>
             </div>
 
             <Separator />
 
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-sm font-medium">
-                  {VEHICLE_TRACKER.name}{' '}
-                  <span className="text-muted-foreground">
-                    {formatCurrency(cover.priceOneTime)} + GST, once per vehicle
-                  </span>
-                </p>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  No monthly charge and no expiry. Move it to another vehicle whenever you like.
-                  {cover.ceiling !== null ? ` This plan covers up to ${cover.ceiling}.` : ''}
-                </p>
-              </div>
-              {canManage ? (
-                <Button
-                  variant="outline"
-                  onClick={() => buyTracker.mutate()}
-                  disabled={!cover.canPurchase || buyTracker.isPending}
-                  title={
-                    cover.canPurchase
-                      ? undefined
-                      : cover.vehicles === 0
-                        ? 'Add a vehicle first - a tracker is fitted to one.'
-                        : 'You already hold a tracker for every vehicle.'
-                  }
-                >
-                  <Plus className="mr-1 size-4" />
-                  {buyTracker.isPending ? 'Adding…' : 'Add a tracker'}
-                </Button>
-              ) : null}
-            </div>
+            <TrackerShop
+              products={cover.products}
+              canManage={canManage}
+              canPurchase={cover.canPurchase}
+              remaining={cover.remaining ?? 0}
+              blockedReason={trackerBlockedReason}
+              payingProduct={buyTracker.isPending || checkout.busy ? (buyTracker.variables?.product ?? null) : null}
+              highlightedProduct={highlighted}
+              onPay={(product, quantity) => buyTracker.mutate({ product, quantity })}
+            />
 
             {activeTrackers.length > 0 ? (
               <div className="space-y-2">
@@ -600,7 +628,8 @@ export function SubscriptionPage(): React.ReactElement {
                         <p className="truncate text-muted-foreground">Not fitted yet</p>
                       )}
                       <p className="mt-0.5 text-2xs text-muted-foreground">
-                        {formatCurrency(row.pricePaid)} paid {inrDate(row.purchasedAt)}
+                        {trackerProduct(row.product).name} · {formatCurrency(trackerCharge(row.pricePaid).total)}
+                        paid {inrDate(row.purchasedAt)}
                         {row.paymentReference ? ` · ${row.paymentReference}` : ''}
                       </p>
                     </div>
@@ -624,140 +653,19 @@ export function SubscriptionPage(): React.ReactElement {
       ) : null}
 
       {/* ---------------------------------------------------------------- */}
-      {/* The three plans                                                  */}
+      {/* Payment history                                                  */}
       {/* ---------------------------------------------------------------- */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {PLAN_CATALOGUE.map((definition) => {
-          const isCurrent = definition.tier === currentTier;
-          const vehicles = plan.data?.usage.vehicles ?? 1;
-          const yourQuote = quoteSubscription({
-            tier: definition.tier,
-            vehicles,
-            billing: plan.data?.billingPeriod === 'YEARLY' ? 'yearly' : 'monthly',
-          });
-
-          /**
-           * A plan that covers no vehicles, which is Free and only Free.
-           *
-           * Every per-vehicle line on this card would be wrong on it rather
-           * than merely uninteresting: "1 vehicle included, then ₹75 each"
-           * describes a charge that cannot be incurred, and quoting "₹0/month
-           * for your 6 vehicles" invites the reader to believe Saarthi will
-           * keep running six vehicles for nothing.
-           */
-          const vehicleless =
-            definition.limits.maxTrucks === 0 && definition.limits.maxVehicleTopUps === 0;
-
-          return (
-            <Card
-              key={definition.tier}
-              className={cn(isCurrent && 'border-primary ring-1 ring-primary')}
-            >
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between gap-2">
-                  <CardTitle className="text-base">{TIER_LABEL[definition.tier]}</CardTitle>
-                  {isCurrent ? (
-                    <Badge variant="default" size="sm">
-                      Current
-                    </Badge>
-                  ) : null}
-                </div>
-                <p className="text-2xl font-semibold tabular-nums">
-                  {vehicleless ? (
-                    'Free'
-                  ) : (
-                    <>
-                      {formatCurrency(definition.priceMonthly)}
-                      <span className="text-sm font-normal text-muted-foreground">
-                        /month + GST
-                      </span>
-                    </>
-                  )}
-                </p>
-                {/* What it would cost this tenant, not just the headline. The
-                    number that decides a switch is the one for their own fleet,
-                    with the tax they will actually be charged. */}
-                <p className="text-xs text-muted-foreground">
-                  {vehicleless
-                    ? 'For an account that does not run a vehicle'
-                    : `${formatCurrency(yourQuote.monthly.total)}/month for your ${vehicles} vehicle${
-                        vehicles === 1 ? '' : 's'
-                      }, GST included`}
-                </p>
-              </CardHeader>
-              <CardContent className="space-y-1.5 pt-0">
-                {definition.features.slice(0, 7).map((feature) => {
-                  const entry = FEATURE_CATALOGUE.find((candidate) => candidate.key === feature);
-                  return (
-                    <p
-                      key={feature}
-                      className={cn(
-                        'flex items-start gap-1.5 text-xs',
-                        held.has(feature) ? 'text-foreground' : 'text-muted-foreground',
-                      )}
-                    >
-                      <Check className="mt-0.5 size-3 shrink-0" />
-                      {entry?.name ?? humanizeEnum(feature)}
-                    </p>
-                  );
-                })}
-                {definition.features.length > 7 ? (
-                  <p className="text-xs text-muted-foreground">
-                    +{definition.features.length - 7} more
-                  </p>
-                ) : null}
-
-                <div className="mt-3 space-y-0.5 border-t border-border pt-2 text-xs text-muted-foreground">
-                  <p>
-                    {vehicleless
-                      ? 'No vehicle, no tracker, no telemetry'
-                      : `1 vehicle included, then ${formatCurrency(VEHICLE_TOPUP.priceMonthly)} each`}
-                  </p>
-                  <p>
-                    {definition.limits.maxMembers === null
-                      ? 'Unlimited team members'
-                      : `${definition.limits.maxMembers} login${definition.limits.maxMembers === 1 ? '' : 's'}`}
-                    {vehicleless
-                      ? ''
-                      : ` · ${
-                          definition.limits.maxDrivers === null
-                            ? 'unlimited drivers'
-                            : `up to ${definition.limits.maxDrivers} drivers`
-                        }`}
-                  </p>
-                  {vehicleless ? null : (
-                    <p>{definition.limits.trackingHistoryDays} days of tracking history</p>
-                  )}
-                </div>
-
-                {canManage && !isCurrent ? (
-                  <Button
-                    variant="outline"
-                    className="mt-3 w-full"
-                    onClick={() => changePlan.mutate(definition.tier)}
-                    disabled={changePlan.isPending}
-                  >
-                    {changePlan.isPending
-                      ? 'Changing…'
-                      : `Switch to ${TIER_LABEL[definition.tier]}`}
-                  </Button>
-                ) : null}
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+      <BillingHistory enabled={hasOrganization} />
 
       <p className="text-xs text-muted-foreground">
-        Plan and add-on prices are shown before GST; the monthly figure at the top and every charge
-        taken include GST at {Math.round((plan.data?.gstRate ?? 0.18) * 100)}%. Add your GSTIN in
-        organization settings and it appears on each invoice. Nothing is deleted by a plan change or
-        a lapsed top-up - capacity is checked when you add a vehicle, so you can never lose one you
-        already run. Payments run through the payment provider abstraction; locally that is the mock
-        gateway, and every reference it issues is prefixed{' '}
-        <code className="text-2xs">MOCK-</code> so a demo settlement can never be mistaken for a
-        real one.
+        Every price shown is the final amount you pay. Add your GSTIN in organization
+        settings and it appears on each invoice. Nothing is deleted by a lapsed top-up - capacity is checked when you add a vehicle, so you can never lose one you
+        already run. Payments are confirmed with the gateway before anything is added; with the
+        mock gateway every reference is prefixed <code className="text-2xs">MOCK-</code> so a demo
+        settlement can never be mistaken for a real one.
       </p>
+
+
     </div>
   );
 }

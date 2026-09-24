@@ -426,6 +426,40 @@ export const IDENTITY_KINDS: readonly IdentityKindDefinition[] = Object.freeze([
     description: 'Permanent Account Number, verified against Income Tax Department records.',
   },
   {
+    /*
+     * The account holder's own PAN — part of the Personal verification set.
+     * A separate subject from the driver PAN above for the same reason the two
+     * Aadhaar entries are separate: a person's PAN proves who holds the
+     * account, not that they may drive.
+     */
+    kind: IdentityDocumentKind.PAN,
+    label: 'PAN card',
+    shortLabel: 'PAN',
+    subjectType: VerificationSubjectType.USER,
+    ownerType: DocumentOwnerType.USER,
+    documentType: 'USER_PAN',
+    placeholder: 'ABCPE1234F',
+    formatHint: '10 characters — five letters, four digits, one letter.',
+    secondFactor: 'HOLDER_NAME',
+    hasOnlineSource: true,
+    description: 'Your own Permanent Account Number, verified against Income Tax Department records.',
+  },
+  {
+    /** The business's own PAN — Business and Supplier accounts. */
+    kind: IdentityDocumentKind.PAN,
+    label: 'Company PAN',
+    shortLabel: 'Company PAN',
+    subjectType: VerificationSubjectType.ORGANIZATION,
+    ownerType: DocumentOwnerType.ORGANIZATION,
+    documentType: 'ORGANIZATION_PAN',
+    // `C` in the fourth position is the entity-type code for a company.
+    placeholder: 'ABCCE1234F',
+    formatHint: '10 characters — five letters, four digits, one letter.',
+    secondFactor: 'HOLDER_NAME',
+    hasOnlineSource: true,
+    description: 'The business PAN, verified against Income Tax Department records.',
+  },
+  {
     kind: IdentityDocumentKind.VOTER_ID,
     label: 'Voter ID (EPIC)',
     shortLabel: 'Voter ID',

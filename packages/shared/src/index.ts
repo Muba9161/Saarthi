@@ -3,6 +3,9 @@ export * from './domain/enums';
 export * from './domain/languages';
 export * from './domain/permissions';
 export * from './domain/entitlements';
+export * from './domain/pricing';
+export * from './domain/account-retention';
+export * from './domain/vehicle-eligibility';
 export * from './domain/geo';
 export * from './domain/fault-codes';
 export * from './domain/state-machines';
@@ -15,6 +18,7 @@ export * from './domain/travel';
 export * from './domain/telemetry';
 export * from './domain/device-client';
 export * from './domain/vehicle-rc';
+export * from './domain/vehicle-rc-draft';
 export * from './domain/driving-licence';
 export * from './domain/identity-verification';
 export * from './domain/registry-verification';
@@ -37,11 +41,17 @@ export * from './domain/route-intelligence';
 export * from './domain/terminal';
 export * from './domain/requirements';
 export * from './domain/sales';
+export * from './domain/referral-program';
+export * from './domain/wallet';
+export * from './domain/marketplace-finance';
+export * from './domain/verification-center';
+export * from './domain/billing-history';
 
 // API contracts
 export * from './api/envelope';
 export * from './api/session';
 export * from './api/realtime';
+export * from './api/payments';
 
 // Validation
 export * from './validation/common';
@@ -49,6 +59,8 @@ export * from './validation/auth';
 export * from './validation/fleet';
 export * from './validation/documents';
 export * from './validation/marketplace';
+export * from './validation/marketplace-finance';
+export * from './validation/wallet';
 export * from './validation/requirements';
 export * from './validation/operations';
 export * from './validation/fleet-vehicles';
@@ -76,6 +88,7 @@ export * from './validation/relay';
 export * from './validation/route-intelligence';
 export * from './validation/terminal';
 export * from './validation/sales';
+export * from './validation/verification-center';
 
 // Utilities
 export * from './utils/format';

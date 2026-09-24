@@ -801,6 +801,8 @@ export const NotificationType = asEnum({
   SALES_COMMISSION_PAID: 'SALES_COMMISSION_PAID',
   SALES_TRACKER_ASSIGNED: 'SALES_TRACKER_ASSIGNED',
   SALESMAN_VERIFIED: 'SALESMAN_VERIFIED',
+  /** An owner asking a driver to install the Saarthi Driver App. */
+  DRIVER_APP_INVITE: 'DRIVER_APP_INVITE',
 });
 export type NotificationType = EnumValue<typeof NotificationType>;
 
@@ -809,35 +811,35 @@ export type NotificationType = EnumValue<typeof NotificationType>;
 // ---------------------------------------------------------------------------
 
 /**
- * The three plans Saarthi offers.
+ * The commercial plans Saarthi sells.
  *
- * `FREE` is somebody who uses Saarthi without operating a vehicle at all: they
- * look up what is nearby, post what they need, and follow an order somebody
- * else is delivering. It costs nothing, and — the part that matters most here —
- * it never enters the vehicle/tracker ecosystem. A Free account is not asked
- * how many vehicles it runs, is not sold a tracker, and has no telemetry,
- * because there is no vehicle for any of that to describe.
+ * A plan is the billing layer only: what the account pays, what trial applies
+ * and how many vehicles the price includes. It is never the operational
+ * identity — that is `OrganizationType` — and it is never a feature ladder.
+ * What an account can actually do follows from its type, its permissions and
+ * the resources it holds (a vehicle, a tracker), not from how much it pays.
  *
- * `PERSONAL` is somebody running their own vehicles — the archetype is an
- * owner with two or three cars, one of which he drives himself. He is never
- * asked what kind of business he is, because he is not one.
+ * `FREE` is somebody who uses Saarthi without operating a vehicle: a customer
+ * posting what they need, or a driver. It costs nothing and never enters the
+ * vehicle/tracker ecosystem.
  *
- * `BUSINESS` is every commercial account: a freight fleet, a supplier, a
- * customer buying transport, a travel operator, a district association. The
- * account type is still chosen at registration for these, because several
- * surfaces belong to exactly one kind of business — and, since a supplier runs
- * no vehicles, whether the account touches the vehicle ecosystem at all is
- * decided by that type rather than by the plan. See `accountRunsVehicles`.
+ * `PERSONAL` is somebody running their own normal vehicles — never a truck.
  *
- * Vehicle capacity is deliberately identical (one) on Personal and Business.
- * Fleet size is bought per vehicle through `VEHICLE_TOPUP`, so an operator pays
- * for the vehicles they actually run rather than for the next size band up.
- * Free covers none, which is not a paywall but a description.
+ * `BUSINESS` is a commercial vehicle operator: a freight fleet (trucks, with a
+ * tracker) or a tour/travel/mobility provider (non-truck vehicles). Which of
+ * the two applies is decided by the account type, not by this plan.
+ *
+ * `SUPPLIER` is a materials business. It runs no vehicle and no fleet, so the
+ * plan includes none.
+ *
+ * Personal and Business include one vehicle; every vehicle after that is a
+ * `VEHICLE_TOPUP`.
  */
 export const PlanTier = asEnum({
   FREE: 'FREE',
   PERSONAL: 'PERSONAL',
   BUSINESS: 'BUSINESS',
+  SUPPLIER: 'SUPPLIER',
 });
 export type PlanTier = EnumValue<typeof PlanTier>;
 export const PLAN_TIERS = Object.values(PlanTier) as PlanTier[];
@@ -850,6 +852,15 @@ export const SubscriptionStatus = asEnum({
   EXPIRED: 'EXPIRED',
 });
 export type SubscriptionStatus = EnumValue<typeof SubscriptionStatus>;
+
+/** The Saarthi tracker hardware on sale. See `TRACKER_PRODUCTS` for prices. */
+export const TrackerProduct = asEnum({
+  /** Plugs into the OBD port and reports through the driver's phone. */
+  OBD_BLUETOOTH: 'OBD_BLUETOOTH',
+  /** Carries its own SIM and reports on its own. */
+  CONNECTED_4G: 'CONNECTED_4G',
+});
+export type TrackerProduct = EnumValue<typeof TrackerProduct>;
 
 // ---------------------------------------------------------------------------
 // AI
@@ -1099,8 +1110,76 @@ export const PaymentPurpose = asEnum({
   VEHICLE_PURCHASE: 'VEHICLE_PURCHASE',
   /** Paying a last-mile partner for a city relay leg. */
   RELAY_DELIVERY: 'RELAY_DELIVERY',
+  /** The customer's fee for one billable verification check. */
+  VERIFICATION_FEE: 'VERIFICATION_FEE',
 });
 export type PaymentPurpose = EnumValue<typeof PaymentPurpose>;
+
+/**
+ * One billable verification check, whatever source answers it.
+ *
+ * The four identity kinds plus the two registry checks. Priced, paid for and
+ * tracked the same way, so the verification wizard never needs to know which
+ * module or which provider performs a step.
+ */
+export const VerificationCheckType = asEnum({
+  AADHAAR: 'AADHAAR',
+  PAN: 'PAN',
+  VOTER_ID: 'VOTER_ID',
+  GST: 'GST',
+  DRIVING_LICENCE: 'DRIVING_LICENCE',
+  VEHICLE_RC: 'VEHICLE_RC',
+});
+export type VerificationCheckType = EnumValue<typeof VerificationCheckType>;
+
+/** The external source a check is routed to. */
+export const VerificationProviderName = asEnum({
+  WAY2API: 'WAY2API',
+  CASHFREE: 'CASHFREE',
+});
+export type VerificationProviderName = EnumValue<typeof VerificationProviderName>;
+
+/**
+ * Where one paid verification attempt stands.
+ *
+ * Payment and verification are separate facts: PAID says the customer's money
+ * reached Saarthi, VERIFIED says the source confirmed the record. FAILED is a
+ * definite answer the provider billed for — the attempt is consumed.
+ * RETRY_REQUIRED is Saarthi failing to get an answer at all; the fee is kept as
+ * a credit and the next attempt for the same check costs nothing.
+ */
+export const VerificationChargeStatus = asEnum({
+  PAYMENT_PROCESSING: 'PAYMENT_PROCESSING',
+  PAYMENT_FAILED: 'PAYMENT_FAILED',
+  PAID: 'PAID',
+  VERIFYING: 'VERIFYING',
+  VERIFIED: 'VERIFIED',
+  FAILED: 'FAILED',
+  RETRY_REQUIRED: 'RETRY_REQUIRED',
+});
+export type VerificationChargeStatus = EnumValue<typeof VerificationChargeStatus>;
+
+/** A wizard step's state, derived by the server from its records. */
+export const VerificationStepState = asEnum({
+  NOT_STARTED: 'NOT_STARTED',
+  PAYMENT_REQUIRED: 'PAYMENT_REQUIRED',
+  PAYMENT_PROCESSING: 'PAYMENT_PROCESSING',
+  VERIFYING: 'VERIFYING',
+  /** A document waiting for a human reviewer — no online source exists. */
+  UNDER_REVIEW: 'UNDER_REVIEW',
+  VERIFIED: 'VERIFIED',
+  FAILED: 'FAILED',
+  RETRY_REQUIRED: 'RETRY_REQUIRED',
+});
+export type VerificationStepState = EnumValue<typeof VerificationStepState>;
+
+export const VerificationOverallState = asEnum({
+  NOT_REQUIRED: 'NOT_REQUIRED',
+  NOT_STARTED: 'NOT_STARTED',
+  IN_PROGRESS: 'IN_PROGRESS',
+  VERIFIED: 'VERIFIED',
+});
+export type VerificationOverallState = EnumValue<typeof VerificationOverallState>;
 
 export const PaymentMethod = asEnum({
   MOCK: 'MOCK',
@@ -1109,6 +1188,8 @@ export const PaymentMethod = asEnum({
   NETBANKING: 'NETBANKING',
   WALLET: 'WALLET',
   CASH: 'CASH',
+  /** Paid on the gateway's hosted checkout, where the payer picks card, UPI or netbanking. */
+  ONLINE: 'ONLINE',
 });
 export type PaymentMethod = EnumValue<typeof PaymentMethod>;
 
@@ -2437,6 +2518,51 @@ export const ReferralStatus = asEnum({
   REVOKED: 'REVOKED',
 });
 export type ReferralStatus = EnumValue<typeof ReferralStatus>;
+
+/**
+ * The lifecycle of a generic Refer & Earn referral — one Saarthi user bringing
+ * another. Deliberately a different enum from `ReferralStatus`, which belongs
+ * to the salesman/GODID channel: the two programs never share a row.
+ */
+export const UserReferralStatus = asEnum({
+  /** The referred person created their account; nothing paid yet. */
+  SIGNED_UP: 'SIGNED_UP',
+  /** Their organization made its first successful subscription payment. */
+  QUALIFIED: 'QUALIFIED',
+});
+export type UserReferralStatus = EnumValue<typeof UserReferralStatus>;
+
+/**
+ * Where a wallet entry stands.
+ *
+ * A referral reward is credited `HELD` and becomes `AVAILABLE` once its hold
+ * has passed with the referred account still in good standing — or `VOID` if
+ * it is not. Cash-out debits and reversals are `AVAILABLE` from the start.
+ */
+export const WalletEntryStatus = asEnum({
+  HELD: 'HELD',
+  AVAILABLE: 'AVAILABLE',
+  VOID: 'VOID',
+});
+export type WalletEntryStatus = EnumValue<typeof WalletEntryStatus>;
+
+export const WalletEntryType = asEnum({
+  REFERRAL_REWARD: 'REFERRAL_REWARD',
+  CASHOUT: 'CASHOUT',
+  /** A failed cash-out's money, returned to the balance. */
+  CASHOUT_REVERSAL: 'CASHOUT_REVERSAL',
+});
+export type WalletEntryType = EnumValue<typeof WalletEntryType>;
+
+/** A wallet cash-out to the holder's own verified bank account. */
+export const WalletCashoutStatus = asEnum({
+  /** Sent to the payout provider; not yet confirmed either way. */
+  PROCESSING: 'PROCESSING',
+  PAID: 'PAID',
+  /** The transfer failed; the amount is back in the wallet. */
+  FAILED: 'FAILED',
+});
+export type WalletCashoutStatus = EnumValue<typeof WalletCashoutStatus>;
 
 /** How a commission rule turns a qualifying payment into an amount. */
 export const CommissionType = asEnum({

@@ -329,7 +329,7 @@ export const FEATURE_CATALOGUE: FeatureDefinition[] = [
  * fuel draw, harsh-braking events and ignition state are read off hardware
  * wired into the vehicle. Selling them on a plan would be selling data that
  * does not exist until a device is on the vehicle, so they are unlocked by
- * `VEHICLE_TRACKER` instead — on either plan, since a person with one car has
+ * a tracker (`TRACKER_PRODUCTS`) instead — on any plan, since a person with one car has
  * exactly the same right to know what their engine is doing as a fleet does.
  */
 const TRACKER_ONLY_FEATURES: Feature[] = [
@@ -339,21 +339,6 @@ const TRACKER_ONLY_FEATURES: Feature[] = [
   Feature.TELEMETRY_INTELLIGENCE,
 ];
 
-/**
- * What a Personal subscription includes.
- *
- * The test for this list is "does an owner running his own two or three
- * vehicles need it to keep them on the road" — his documents, his EMI, his
- * toll, where the vehicle is, what the last service cost. Safety is in here
- * unconditionally: an SOS, a hazard alert and a no-entry warning are not
- * things to sell somebody at Rs 99, and a plan that withholds them is a plan
- * that lets a paying customer drive into a fine or sit out a breakdown alone.
- *
- * What is absent is the commercial network rather than depth: the marketplace,
- * requirements and bidding, a supplier catalogue, published tour packages, the
- * association queue, backhaul matching, AI and the analytics a dispatcher
- * needs. Somebody with three cars is not bidding on loads.
- */
 /**
  * What a Free account includes.
  *
@@ -397,76 +382,61 @@ const FREE_FEATURES: Feature[] = [
   Feature.ALERTS_BASIC,
 ];
 
-const PERSONAL_FEATURES: Feature[] = [
-  Feature.MAPS_2D,
-  Feature.TRACKING_LIVE,
-  Feature.TRACKING_HISTORY,
-  Feature.TRACKING_REPLAY,
-  Feature.FLEET_BASIC,
-  Feature.TRIPS_BASIC,
-  Feature.DOCUMENTS_BASIC,
-  /*
-   * How safely the vehicle is being driven, and by whom.
-   *
-   * On this plan that is very often the buyer himself — Personal is the plan
-   * with "I drive one of my vehicles myself" on its registration form — and
-   * charging somebody to see their own driving score is not a business Saarthi
-   * should be in. It was withheld until now, so a man who bought Personal for
-   * his own car, ticked that box and opened My score was told his own safety
-   * record was not part of his plan.
-   *
-   * It is equally the answer to the question that actually keeps a small owner
-   * awake: the plan covers up to six drivers, and knowing how the person
-   * driving your car drives it is the same class of fact as knowing where it
-   * is. The deep analytics that sit on top of this stay Business.
-   */
-  Feature.DRIVER_SCORING,
-  Feature.MAINTENANCE_BASIC,
-  Feature.REPORTS_BASIC,
-  Feature.ALERTS_BASIC,
-  Feature.MEDIA_LIBRARY,
-  Feature.QR_IDENTITY,
-  Feature.FINANCE_LOANS,
-  Feature.TOLL_FASTAG,
-  // Safety and compliance — never gated. See the note above.
-  Feature.SOS_NETWORK,
-  Feature.NEARBY_SERVICES,
-  Feature.CITY_ACCESS_INTELLIGENCE,
-  Feature.ROUTE_INTELLIGENCE_ALERTS,
-  // Booking a cab or a tour is something an individual does; selling them is
-  // not. Publishing packages is TRAVEL_SERVICES, which is Business.
-  Feature.TRAVEL_BOOKINGS,
-];
-
 /**
- * What a Business subscription includes: everything the platform does, other
- * than the tracker-only capabilities above.
+ * What every paid plan includes: everything the platform does, other than the
+ * tracker-only capabilities above.
  *
- * Business is one plan rather than a ladder on purpose. Splitting the
- * commercial surface into tiers meant a fleet discovering mid-dispatch that
- * the screen it needed was two upgrades away — and the thing that actually
- * scales with an operator is the number of vehicles, which is already priced
- * per vehicle through `VEHICLE_TOPUP`.
+ * Personal, Business and Supplier share this list on purpose. A plan is the
+ * commercial layer, not a feature ladder, so a cheaper plan never withholds
+ * functionality. What an account can actually use is this list narrowed by its
+ * account type (`accountFeatures`) and by the resources it holds — telemetry
+ * appears only once there is a tracker, and nothing vehicle-shaped reaches an
+ * account that runs no vehicle.
  *
  * Derived rather than listed so a newly added capability is available to
- * paying commercial customers the day it ships, instead of silently sitting
- * behind a list nobody remembered to update.
+ * paying customers the day it ships.
  */
-const BUSINESS_FEATURES: Feature[] = ALL_FEATURES.filter(
+const PAID_PLAN_FEATURES: Feature[] = ALL_FEATURES.filter(
   (feature) => !TRACKER_ONLY_FEATURES.includes(feature),
 );
 
+/**
+ * What a lapsed (expired or cancelled) subscription keeps.
+ *
+ * Not a plan: it is the floor an unpaid account falls to, so a tenant never
+ * loses sight of their own records, and never loses the safety net, over a
+ * lapsed card. Narrowed by account type like any other list, so a supplier's
+ * floor carries nothing vehicle-shaped.
+ */
+export const LAPSED_FEATURES: Feature[] = [
+  ...FREE_FEATURES,
+  Feature.FLEET_BASIC,
+  Feature.TRACKING_HISTORY,
+  Feature.TRACKING_REPLAY,
+  Feature.DRIVER_SCORING,
+  Feature.MAINTENANCE_BASIC,
+  Feature.REPORTS_BASIC,
+  Feature.QR_IDENTITY,
+  Feature.FINANCE_LOANS,
+  Feature.TOLL_FASTAG,
+  Feature.SOS_NETWORK,
+  Feature.CITY_ACCESS_INTELLIGENCE,
+  Feature.ROUTE_INTELLIGENCE_ALERTS,
+];
+
 export const PLAN_FEATURES: Record<PlanTier, Feature[]> = {
   [PlanTier.FREE]: FREE_FEATURES,
-  [PlanTier.PERSONAL]: PERSONAL_FEATURES,
-  [PlanTier.BUSINESS]: BUSINESS_FEATURES,
+  [PlanTier.PERSONAL]: PAID_PLAN_FEATURES,
+  [PlanTier.BUSINESS]: PAID_PLAN_FEATURES,
+  [PlanTier.SUPPLIER]: PAID_PLAN_FEATURES,
 };
 
 export interface PlanLimits {
   /**
    * Vehicles the plan itself covers. `null` means unlimited.
    *
-   * This is the *base* figure, and it is one on both plans. What a tenant may
+   * This is the *base* figure: one on Personal and Business, none on Free and
+   * Supplier. What a tenant may
    * actually run is this plus their active `+1` top-ups — see
    * `effectiveVehicleLimit`, which is what the entitlement service resolves
    * and what every capacity check reads.
@@ -494,7 +464,7 @@ export interface PlanLimits {
    * no device to register — which is the literal truth, not a paywall.
    */
   maxDevices: number | null;
-  /** How many `VEHICLE_TRACKER` add-ons may be held. `null` = unlimited. */
+  /** How many trackers (`TRACKER_PRODUCTS`) may be held. `null` = unlimited. */
   maxTrackers: number | null;
   /** How long normalised telemetry readings are retained. */
   telemetryRetentionDays: number;
@@ -503,7 +473,7 @@ export interface PlanLimits {
 /**
  * Capacity per plan.
  *
- * Both plans start at one vehicle, because that is the honest unit: a plan
+ * Vehicle plans start at one vehicle, because that is the honest unit: a plan
  * bundling five vehicles overcharges the person with two and undercharges the
  * operator with nine. Extra vehicles are bought one at a time.
  *
@@ -549,12 +519,14 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
     maxDrivers: 6,
     // A personal account is one person. Extra seats are what a business needs.
     maxMembers: 1,
-    trackingHistoryDays: 90,
-    aiRequestsPerDay: 0,
+    // Retention and AI match Business: a cheaper plan does not degrade a
+    // capability, only the commercial quantities above.
+    trackingHistoryDays: 365,
+    aiRequestsPerDay: 200,
     // Replaced at resolution time by the number of trackers actually held.
     maxDevices: 0,
     maxTrackers: 5,
-    telemetryRetentionDays: 90,
+    telemetryRetentionDays: 365,
   },
   [PlanTier.BUSINESS]: {
     maxTrucks: 1,
@@ -569,15 +541,34 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
     maxTrackers: null,
     telemetryRetentionDays: 365,
   },
+  /*
+   * A supplier sells material and runs no vehicle, so every vehicle-shaped
+   * figure is zero — a description, exactly as on Free. The team and the AI
+   * are the supplier's own and are not capped.
+   */
+  [PlanTier.SUPPLIER]: {
+    maxTrucks: 0,
+    maxVehicleTopUps: 0,
+    maxDrivers: 0,
+    maxMembers: null,
+    trackingHistoryDays: 365,
+    aiRequestsPerDay: 200,
+    maxDevices: 0,
+    maxTrackers: 0,
+    telemetryRetentionDays: 0,
+  },
 };
 
 export interface PlanDefinition {
   tier: PlanTier;
   name: string;
   description: string;
-  /** Monthly price in INR. `null` = custom pricing. */
+  /**
+   * Monthly price in INR, GST included — the amount the customer pays and the
+   * figure every pricing surface shows. `null` = custom pricing. The GST inside
+   * it is recovered only for invoices; see `inclusiveOfGst`.
+   */
   priceMonthly: number | null;
-  priceYearly: number | null;
   features: Feature[];
   limits: PlanLimits;
 }
@@ -592,7 +583,6 @@ export const PLAN_CATALOGUE: PlanDefinition[] = [
     // catalogue, and a Free plan that renders as "custom pricing" is exactly
     // the wrong answer.
     priceMonthly: 0,
-    priceYearly: 0,
     features: FREE_FEATURES,
     limits: PLAN_LIMITS[PlanTier.FREE],
   },
@@ -600,23 +590,56 @@ export const PLAN_CATALOGUE: PlanDefinition[] = [
     tier: PlanTier.PERSONAL,
     name: 'Saarthi Personal',
     description:
-      'For the vehicles you own. Live location, documents, service history, EMI and toll — with the safety net included rather than sold.',
-    priceMonthly: 99,
-    priceYearly: 990,
-    features: PERSONAL_FEATURES,
+      'For your own car, SUV or other personal vehicle. Drive it yourself or hand it to a driver — a tracker is optional.',
+    priceMonthly: 119,
+    features: PAID_PLAN_FEATURES,
     limits: PLAN_LIMITS[PlanTier.PERSONAL],
   },
   {
     tier: PlanTier.BUSINESS,
     name: 'Saarthi Business',
     description:
-      'The whole platform: marketplace and bidding, trips and dispatch, analytics, AI, travel, the association network and API access.',
-    priceMonthly: 199,
-    priceYearly: 1990,
-    features: BUSINESS_FEATURES,
+      'For fleet owners running trucks and for tour, travel and mobility providers running passenger vehicles.',
+    priceMonthly: 239,
+    features: PAID_PLAN_FEATURES,
     limits: PLAN_LIMITS[PlanTier.BUSINESS],
   },
+  {
+    tier: PlanTier.SUPPLIER,
+    name: 'Saarthi Supplier',
+    description:
+      'For material suppliers. Catalogue, stock, requirements and orders — no vehicle or fleet setup needed.',
+    priceMonthly: 179,
+    features: PAID_PLAN_FEATURES,
+    limits: PLAN_LIMITS[PlanTier.SUPPLIER],
+  },
 ];
+
+/**
+ * Whether a Personal account holder must have verified their own Aadhaar
+ * before adding one more vehicle.
+ *
+ * The vehicles the plan itself includes go on without it, so somebody who has
+ * just signed up can put their car on the road straight away. The check starts
+ * at the first vehicle beyond them — the one a +1 top-up pays for.
+ *
+ * Takes every vehicle the account has *ever* added, archived ones included.
+ * The allowance is spent once: removing the free vehicle does not hand it
+ * back, or adding and removing would skip the check indefinitely.
+ */
+export function personalVehicleNeedsAadhaar(vehiclesEverAdded: number): boolean {
+  const included = PLAN_LIMITS[PlanTier.PERSONAL].maxTrucks;
+  return included !== null && vehiclesEverAdded >= included;
+}
+
+/**
+ * The same rule for trackers: the first one — the included vehicle's — is
+ * bought and fitted without Aadhaar, and the check starts at the next. Counted
+ * over every tracker ever granted, retired or refunded ones included.
+ */
+export function personalTrackerNeedsAadhaar(trackersEverGranted: number): boolean {
+  return personalVehicleNeedsAadhaar(trackersEverGranted);
+}
 
 export function featuresForTier(tier: PlanTier): Feature[] {
   return PLAN_FEATURES[tier] ?? [];
@@ -626,10 +649,11 @@ export function tierHasFeature(tier: PlanTier, feature: Feature): boolean {
   return featuresForTier(tier).includes(feature);
 }
 
-/** The tiers in sell order — Free, then Personal, then Business. */
+/** The tiers in price order — Free, Personal, Supplier, Business. */
 export const PLAN_TIER_ORDER: PlanTier[] = [
   PlanTier.FREE,
   PlanTier.PERSONAL,
+  PlanTier.SUPPLIER,
   PlanTier.BUSINESS,
 ];
 
@@ -807,18 +831,18 @@ export const VEHICLE_OPERATING_ORGANIZATION_TYPES: readonly OrganizationType[] =
  * provisions them, whether capacity screens offer a `+1`, and whether the
  * onboarding path goes anywhere near the Driver App and OBD flow.
  *
- * Free is always false - a Free account does not run a vehicle, which is the
- * plan's defining characteristic rather than a restriction on it. Personal is
- * always true. Business depends entirely on the kind of business, so the type
- * must be supplied; an unknown type answers false, because a registration form
- * that has not yet been told what kind of business this is must not start by
- * asking how many trucks it has.
+ * Free and Supplier are always false - neither runs a vehicle, which is what
+ * those plans are rather than a restriction on them. Personal is always true.
+ * Business depends entirely on the kind of business, so the type must be
+ * supplied; an unknown type answers false, because a registration form that
+ * has not yet been told what kind of business this is must not start by asking
+ * how many trucks it has.
  */
 export function accountRunsVehicles(input: {
   tier: PlanTier | null | undefined;
   organizationType?: OrganizationType | null;
 }): boolean {
-  if (input.tier === PlanTier.FREE) return false;
+  if (input.tier === PlanTier.FREE || input.tier === PlanTier.SUPPLIER) return false;
   if (input.tier === PlanTier.PERSONAL) return true;
   if (input.tier !== PlanTier.BUSINESS) return false;
   if (!input.organizationType) return false;
@@ -841,385 +865,17 @@ export function accountUsesTracker(input: {
   return accountRunsVehicles(input);
 }
 
-// ---------------------------------------------------------------------------
-// Vehicle capacity, top-ups and the tracker add-on
-// ---------------------------------------------------------------------------
-
 /**
- * A `+1 vehicle` top-up.
+ * Whether an account of this type may hold this plan.
  *
- * This is how fleet size is actually sold. Both plans cover one vehicle, and
- * every vehicle after that costs the same flat amount, so an operator with
- * nine trucks pays for nine and an owner with two pays for two. Nobody is ever
- * told that their next vehicle requires a different plan.
+ * The one pairing the catalogue fixes is Supplier, both ways: the Supplier plan
+ * is priced for a materials business, and a materials business is sold only
+ * that plan. Every other combination is allowed — the plan only decides the
+ * bill, and the account type decides the rest.
  */
-export const VEHICLE_TOPUP = {
-  key: 'vehicle_topup',
-  name: '+1 Vehicle',
-  description: 'Adds one vehicle or truck to your plan. Stack as many as you need.',
-  /** Monthly price in INR, per vehicle. */
-  priceMonthly: 75,
-  /** Yearly price in INR, per vehicle — ten months for twelve. */
-  priceYearly: 750,
-} as const;
-
-/**
- * The optional Saarthi tracker: hardware fitted to one vehicle.
- *
- * Charged once, per vehicle, rather than monthly. The reason is what the money
- * buys: a device and its fitting, not a service. Charging rent on a box already
- * screwed to somebody's truck is how an operator ends up with a tracker they
- * have stopped paying for and a dashboard that has gone blank.
- *
- * What it unlocks is `TRACKER_ONLY_FEATURES` — see the note there for why
- * those cannot be sold on a plan. It also raises the device allowance by one,
- * because a tracker *is* the device.
- */
-export const VEHICLE_TRACKER = {
-  key: 'vehicle_tracker',
-  name: 'Saarthi Tracker',
-  description:
-    'A tracker fitted to one vehicle. Reads the vehicle itself rather than a phone, so the odometer, fuel, engine hours and trip history are measured instead of inferred.',
-  /** One-time price in INR, per vehicle. There is no recurring charge. */
-  priceOneTime: 499,
-} as const;
-
-/**
- * What a tenant may actually run: the plan's capacity plus its active top-ups.
- *
- * An unlimited base stays unlimited — adding top-ups to `null` would be a
- * category error, and charging for them would be worse.
- */
-export function effectiveVehicleLimit(
-  baseLimit: number | null,
-  activeTopUps: number,
-): number | null {
-  if (baseLimit === null) return null;
-  return baseLimit + Math.max(0, activeTopUps);
-}
-
-/** Whether another top-up may be bought on this plan. */
-export function canAddVehicleTopUp(tier: PlanTier, activeTopUps: number): boolean {
-  const ceiling = PLAN_LIMITS[tier]?.maxVehicleTopUps ?? 0;
-  return activeTopUps < ceiling;
-}
-
-/**
- * Whether another tracker may be bought.
- *
- * Two ceilings apply, and the tighter one wins. The plan's `maxTrackers` stops
- * a personal account from being used to fit out a fleet; the vehicle count
- * stops anybody buying a fifth tracker for four vehicles, which would be
- * charging for hardware with nothing to fit it to.
- */
-export function canAddVehicleTracker(input: {
-  tier: PlanTier;
-  activeTrackers: number;
-  vehicleCount: number;
-}): boolean {
-  const ceiling = PLAN_LIMITS[input.tier]?.maxTrackers;
-  if (ceiling !== null && ceiling !== undefined && input.activeTrackers >= ceiling) return false;
-  return input.activeTrackers < Math.max(input.vehicleCount, 1);
-}
-
-export interface VehicleCapacity {
-  /** Vehicles the plan covers before top-ups. `null` = unlimited. */
-  baseLimit: number | null;
-  activeTopUps: number;
-  /** `baseLimit + activeTopUps`, or `null` when unlimited. */
-  effectiveLimit: number | null;
-  used: number;
-  /** `null` when unlimited. Never negative — see the note on over-capacity. */
-  remaining: number | null;
-  /**
-   * True when the tenant is already at or above what they may run.
-   *
-   * Reachable without anyone doing anything wrong: a lapsed top-up or a plan
-   * downgrade leaves an operator over capacity with vehicles that keep working.
-   * They simply cannot add another until they upgrade or top up.
-   */
-  atCapacity: boolean;
-  canPurchaseTopUp: boolean;
-  topUpCeiling: number;
-}
-
-export function describeVehicleCapacity(input: {
-  tier: PlanTier;
-  baseLimit: number | null;
-  activeTopUps: number;
-  used: number;
-}): VehicleCapacity {
-  const effectiveLimit = effectiveVehicleLimit(input.baseLimit, input.activeTopUps);
-  return {
-    baseLimit: input.baseLimit,
-    activeTopUps: input.activeTopUps,
-    effectiveLimit,
-    used: input.used,
-    remaining: effectiveLimit === null ? null : Math.max(0, effectiveLimit - input.used),
-    atCapacity: effectiveLimit !== null && input.used >= effectiveLimit,
-    canPurchaseTopUp: canAddVehicleTopUp(input.tier, input.activeTopUps),
-    topUpCeiling: PLAN_LIMITS[input.tier]?.maxVehicleTopUps ?? 0,
-  };
-}
-
-/**
- * What one vehicle costs per month on a given plan, including its top-up.
- *
- * The first vehicle is covered by the plan, so it costs the plan price; every
- * vehicle after that costs a top-up. Written once here because the pricing
- * page, the settings screen and the AI's answer to "what would ten vehicles
- * cost" must not each do this arithmetic slightly differently.
- */
-export function monthlyCostFor(input: {
-  tier: PlanTier;
-  vehicles: number;
-  billing?: 'monthly' | 'yearly';
-}): number {
-  const plan = PLAN_CATALOGUE.find((candidate) => candidate.tier === input.tier);
-  if (!plan) return 0;
-
-  const yearly = input.billing === 'yearly';
-  const planPerMonth = yearly
-    ? (plan.priceYearly ?? 0) / 12
-    : (plan.priceMonthly ?? 0);
-  const topUpPerMonth = yearly ? VEHICLE_TOPUP.priceYearly / 12 : VEHICLE_TOPUP.priceMonthly;
-
-  // As in `quoteSubscription`: a plan that covers no vehicles and permits no
-  // top-ups charges for none, rather than billing a `+1` for the first one.
-  if ((plan.limits.maxTrucks ?? 1) === 0 && plan.limits.maxVehicleTopUps === 0) {
-    return planPerMonth;
-  }
-
-  const extraVehicles = Math.max(0, Math.max(1, input.vehicles) - (plan.limits.maxTrucks ?? 1));
-  return planPerMonth + extraVehicles * topUpPerMonth;
-}
-
-/**
- * GST on a Saarthi invoice.
- *
- * 18% covers both halves of what Saarthi sells: a SaaS subscription and a
- * tracker are each taxed at 18% in India, so one rate keeps the arithmetic
- * honest without pretending to be a tax engine. It lives here, named, because
- * a statutory rate changes by notification and must change in exactly one
- * place when it does.
- *
- * Every price in this catalogue is exclusive of it. That is deliberate: the
- * base figures are the ones quoted in marketing and the ones a business
- * reclaims as input credit, so mixing tax into them would corrupt both.
- */
-export const GST_RATE = 0.18;
-
-/** A charge, before tax, the tax, and what is actually paid. */
-export interface QuoteTotals {
-  /** Before GST. */
-  subtotal: number;
-  /** GST at `GST_RATE` on the subtotal. */
-  gst: number;
-  /** Subtotal plus GST — the figure that leaves the customer's account. */
-  total: number;
-}
-
-/**
- * Apply GST to a subtotal.
- *
- * Rounded to paise rather than left as a float: this figure ends up in a
- * payment intent, and a charge is a definite amount of money rather than the
- * result of repeated binary arithmetic.
- */
-export function withGst(subtotal: number): QuoteTotals {
-  const gst = Math.round(subtotal * GST_RATE * 100) / 100;
-  return {
-    subtotal: Math.round(subtotal * 100) / 100,
-    gst,
-    total: Math.round((subtotal + gst) * 100) / 100,
-  };
-}
-
-export interface SubscriptionQuoteLine {
-  label: string;
-  detail: string;
-  /** Before GST — the catalogue price, which is what an invoice itemises. */
-  amount: number;
-  /** `once` lines are excluded from the recurring total and never renew. */
-  cadence: 'recurring' | 'once';
-}
-
-export interface SubscriptionQuote {
-  tier: PlanTier;
-  planName: string;
-  billing: 'monthly' | 'yearly';
-  vehicles: number;
-  trackers: number;
-  /** Top-ups implied by the vehicle count — one per vehicle past the first. */
-  vehicleTopUps: number;
-  /** Every charge, itemised before tax, in the order a bill would list them. */
-  lines: SubscriptionQuoteLine[];
-  gstRate: number;
-
-  /** The recurring charge for the chosen period — a month, or a year. */
-  recurring: QuoteTotals;
-  /** The same recurring charge expressed per month, whichever period it is. */
-  monthly: QuoteTotals;
-  /** The trackers. Charged once and never renewed. */
-  oneTime: QuoteTotals;
-  /**
-   * Just the add-ons: vehicle top-ups plus trackers, excluding the plan.
-   *
-   * What signup actually charges, because the plan itself is on trial at that
-   * point. Kept as its own figure rather than recovered by subtracting the plan
-   * from `dueNow` — a derived charge is one rounding change away from being
-   * wrong by a rupee, and that rupee is somebody's money.
-   */
-  addOns: QuoteTotals;
-  /**
-   * The whole first invoice: the recurring charge plus the hardware.
-   *
-   * `dueNow.total` is the single number to put next to "total to pay".
-   */
-  dueNow: QuoteTotals;
-  /** What renews after the first invoice, on the chosen period. */
-  renews: QuoteTotals;
-
-  /** True when the plan cannot hold this many vehicles. */
-  overVehicleCeiling: boolean;
-  /** Vehicles the plan can hold at most, top-ups included. `null` = no limit. */
-  vehicleCeiling: number | null;
-  /** True when more trackers were asked for than the plan or fleet allows. */
-  overTrackerCeiling: boolean;
-}
-
-/**
- * The complete cost of a configuration: itemised, taxed and totalled.
- *
- * One function rather than arithmetic repeated per surface, because the same
- * total has to appear on the pricing card, on the signup summary, on the
- * subscription screen and in what the API actually charges — and a customer
- * quoted one number and billed another has been mis-sold, however small the
- * discrepancy.
- *
- * Two separations run through the whole shape and neither is cosmetic:
- *
- *   • **recurring against one-time.** A tracker is hardware bought outright.
- *     Folding its price into a monthly figure would overstate what renews by
- *     the price of the hardware, every month, forever.
- *   • **subtotal against total.** The catalogue is exclusive of GST, because
- *     those are the figures quoted in marketing and reclaimed as input credit.
- *     The tax is added once, at the end, where it is visible.
- */
-export function quoteSubscription(input: {
-  tier: PlanTier;
-  vehicles: number;
-  trackers?: number;
-  billing?: 'monthly' | 'yearly';
-}): SubscriptionQuote {
-  const plan =
-    PLAN_CATALOGUE.find((candidate) => candidate.tier === input.tier) ??
-    (PLAN_CATALOGUE[0] as PlanDefinition);
-
-  const billing = input.billing === 'yearly' ? 'yearly' : 'monthly';
-  const yearly = billing === 'yearly';
-
-  const included = plan.limits.maxTrucks ?? 1;
-
-  /*
-   * A plan that covers no vehicles and permits no top-ups prices none.
-   *
-   * Free is such a plan. Without this the arithmetic below would read "0
-   * included, 1 asked for" and bill a `+1 vehicle` top-up against an account
-   * whose whole definition is that it runs no vehicle - quoting 75 rupees a
-   * month for a plan the page calls free.
-   */
-  const vehicleless = included === 0 && plan.limits.maxVehicleTopUps === 0;
-
-  const vehicles = vehicleless ? 0 : Math.max(1, Math.floor(input.vehicles));
-  const vehicleTopUps = vehicleless ? 0 : Math.max(0, vehicles - included);
-  // A tracker is fitted to a vehicle, so a plan with no vehicles takes none
-  // however many the caller asked for.
-  const trackers = vehicleless ? 0 : Math.max(0, Math.floor(input.trackers ?? 0));
-
-  const planPrice = (yearly ? plan.priceYearly : plan.priceMonthly) ?? 0;
-  const topUpPrice = yearly ? VEHICLE_TOPUP.priceYearly : VEHICLE_TOPUP.priceMonthly;
-  const period = yearly ? 'year' : 'month';
-
-  const lines: SubscriptionQuoteLine[] = [
-    {
-      label: plan.name,
-      detail: vehicleless
-        ? 'No vehicle needed'
-        : `${included} vehicle included · per ${period}`,
-      amount: planPrice,
-      cadence: 'recurring',
-    },
-  ];
-
-  if (vehicleTopUps > 0) {
-    lines.push({
-      label: `${VEHICLE_TOPUP.name} × ${vehicleTopUps}`,
-      detail: `${topUpPrice} per vehicle, per ${period}`,
-      amount: vehicleTopUps * topUpPrice,
-      cadence: 'recurring',
-    });
-  }
-
-  if (trackers > 0) {
-    lines.push({
-      label: `${VEHICLE_TRACKER.name} × ${trackers}`,
-      detail: `${VEHICLE_TRACKER.priceOneTime} per vehicle, charged once`,
-      amount: trackers * VEHICLE_TRACKER.priceOneTime,
-      cadence: 'once',
-    });
-  }
-
-  const topUpSubtotal = vehicleTopUps * topUpPrice;
-  const recurringSubtotal = planPrice + topUpSubtotal;
-  const oneTimeSubtotal = trackers * VEHICLE_TRACKER.priceOneTime;
-
-  const vehicleCeiling =
-    plan.limits.maxTrucks === null ? null : plan.limits.maxTrucks + plan.limits.maxVehicleTopUps;
-  const trackerCeiling = plan.limits.maxTrackers;
-
-  return {
-    tier: plan.tier,
-    planName: plan.name,
-    billing,
-    vehicles,
-    trackers,
-    vehicleTopUps,
-    lines,
-    gstRate: GST_RATE,
-
-    recurring: withGst(recurringSubtotal),
-    monthly: withGst(yearly ? recurringSubtotal / 12 : recurringSubtotal),
-    oneTime: withGst(oneTimeSubtotal),
-    addOns: withGst(topUpSubtotal + oneTimeSubtotal),
-    dueNow: withGst(recurringSubtotal + oneTimeSubtotal),
-    renews: withGst(recurringSubtotal),
-
-    overVehicleCeiling: !vehicleless && vehicleCeiling !== null && vehicles > vehicleCeiling,
-    vehicleCeiling,
-    // A tracker per vehicle is the most that can be fitted, and the plan may
-    // cap it lower still.
-    overTrackerCeiling:
-      trackers > vehicles || (trackerCeiling !== null && trackers > trackerCeiling),
-  };
-}
-
-/**
- * Months of a yearly commitment that are free, from the real figures.
- *
- * Calculated rather than written into copy so the discount a pricing card
- * advertises cannot contradict the catalogue after a price change, and only
- * claimed when the plans and the top-up all agree on the same number.
- */
-export function monthsFreeOnYearly(): number | null {
-  const ratios = [
-    ...PLAN_CATALOGUE.filter(
-      (plan) => plan.priceMonthly !== null && plan.priceYearly !== null && plan.priceMonthly > 0,
-    ).map((plan) => 12 - (plan.priceYearly as number) / (plan.priceMonthly as number)),
-    12 - VEHICLE_TOPUP.priceYearly / VEHICLE_TOPUP.priceMonthly,
-  ];
-  if (ratios.length === 0) return null;
-
-  const first = ratios[0] as number;
-  return ratios.every((ratio) => Math.abs(ratio - first) < 0.01) ? Math.round(first) : null;
+export function planAllowedForOrganizationType(
+  tier: PlanTier,
+  organizationType: OrganizationType | null | undefined,
+): boolean {
+  return (tier === PlanTier.SUPPLIER) === (organizationType === OrganizationType.SUPPLIER);
 }

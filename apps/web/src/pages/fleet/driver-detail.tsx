@@ -7,6 +7,7 @@ import type { DriverScoreDetail, DriverSummary } from '@/lib/api-types';
 import { useAuth } from '@/features/auth/auth-context';
 import { PageHeader, SectionHeader } from '@/components/common/page-header';
 import { VerifyButton } from '@/features/verification/verify-button';
+import { DeleteAction } from '@/components/common/delete-action';
 import { StatCard } from '@/components/common/stat-card';
 import { toSeriesPoints } from '@/components/common/mini-chart';
 import { StatusBadge } from '@/components/common/status-badge';
@@ -20,6 +21,7 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LicenceLookupPanel } from '@/features/drivers/licence-lookup-panel';
 import { SubjectQrPanel } from '@/features/qr/subject-qr-panel';
+import { VerificationWizard } from '@/features/verification/verification-wizard';
 
 interface AchievementRow {
   code: string;
@@ -89,13 +91,28 @@ export function DriverDetailPage() {
         }
         description={`${person.email}${person.phone ? ` · ${person.phone}` : ''}`}
         actions={
-          <VerifyButton
-            subjectType="driver"
-            subjectId={person.id}
-            subjectLabel={person.fullName}
-            verified={person.verificationStatus === 'VERIFIED'}
-            invalidateKeys={[['driver', person.id], ['drivers']]}
-          />
+          <div className="flex items-center gap-2">
+            <VerifyButton
+              subjectType="driver"
+              subjectId={person.id}
+              subjectLabel={person.fullName}
+              verified={person.verificationStatus === 'VERIFIED'}
+              invalidateKeys={[['driver', person.id], ['drivers']]}
+            />
+            <DeleteAction
+              endpoint={`/drivers/${person.id}`}
+              itemLabel={person.fullName}
+              entityName="driver"
+              mode="remove"
+              size="sm"
+              description="will be removed from your fleet. Their account, trips, scores and documents stay with them, and they can join another fleet with its code."
+              permission={Permission.DRIVERS_MANAGE}
+              invalidateKeys={[['drivers']]}
+              disabled={person.availability === 'ON_TRIP'}
+              disabledReason="On a trip — finish or reassign it first"
+              onDeleted={() => navigate('/fleet/drivers')}
+            />
+          </div>
         }
       />
 
@@ -214,7 +231,9 @@ export function DriverDetailPage() {
           )}
         </TabsContent>
 
-        <TabsContent value="documents">
+        <TabsContent value="documents" className="space-y-5">
+          {/* The driver's four checks, one at a time, paid through Pay & Verify. */}
+          <VerificationWizard driverId={id} />
           <DocumentPanel ownerType="DRIVER" ownerId={id} ownerLabel={person.fullName} />
         </TabsContent>
 

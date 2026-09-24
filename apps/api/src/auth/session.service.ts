@@ -1,10 +1,10 @@
 import {
+  LAPSED_FEATURES,
   MembershipStatus,
   PLAN_LIMITS,
   PlanTier,
   RoleName,
   SubscriptionStatus,
-  featuresForTier,
   permissionsForRoles,
   resolveLocale,
   type OrganizationType,
@@ -63,6 +63,8 @@ export async function loadUser(userId: string) {
             type: OrganizationType;
             verificationStatus: VerificationStatus;
             isPersonalSeat: boolean;
+            billingArchivedAt: Date | null;
+            dataPurgeAt: Date | null;
           };
         }[];
         driverProfile: {
@@ -110,6 +112,8 @@ function toSessionOrganization(membership: LoadedUser['memberships'][number]): S
     membershipRole: membership.role,
     membershipStatus: membership.status,
     isPersonalSeat: membership.organization.isPersonalSeat,
+    billingArchivedAt: membership.organization.billingArchivedAt?.toISOString() ?? null,
+    dataPurgeAt: membership.organization.dataPurgeAt?.toISOString() ?? null,
   };
 }
 
@@ -188,6 +192,8 @@ export async function buildAuthContext(
           type: membership.organization.type,
           membershipRole: membership.role,
           isPersonalSeat: membership.organization.isPersonalSeat,
+          billingArchivedAt: membership.organization.billingArchivedAt,
+          dataPurgeAt: membership.organization.dataPurgeAt,
         }
       : null,
     permissions: resolvePermissions(user, membership),
@@ -248,20 +254,20 @@ export async function buildSessionPayload(
       : organizationId
         ? {
             /*
-             * An organization with no subscription row still gets Personal.
+             * An organization with no subscription row is on Free.
              *
              * Reachable for a driver seated in a placeholder organization of
-             * their own, which never had a plan taken out on it. Personal is
-             * the right floor: their licence, documents and SOS all work, and
-             * nothing commercial is given away.
+             * their own, which never had a plan taken out on it — a driver
+             * does not pay. They keep the unpaid floor: their licence,
+             * documents and SOS all work, and nothing commercial is given away.
              */
-            planTier: PlanTier.PERSONAL,
-            planName: 'Saarthi Personal',
+            planTier: PlanTier.FREE,
+            planName: 'Saarthi Free',
             status: SubscriptionStatus.ACTIVE,
             startsAt: new Date().toISOString(),
             endsAt: null,
-            features: featuresForTier(PlanTier.PERSONAL),
-            limits: PLAN_LIMITS[PlanTier.PERSONAL],
+            features: LAPSED_FEATURES,
+            limits: PLAN_LIMITS[PlanTier.FREE],
           }
         : null,
     driver: user.driverProfile

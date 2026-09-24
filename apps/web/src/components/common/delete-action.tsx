@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Trash2 } from 'lucide-react';
+import { Trash2, UserMinus } from 'lucide-react';
 import type { Permission } from '@saarthi/shared';
 import { toast } from 'sonner';
 import { api, errorMessage } from '@/lib/api-client';
@@ -48,6 +48,7 @@ export function DeleteAction({
   permission,
   invalidateKeys,
   mode = 'archive',
+  description,
   onDeleted,
   disabled,
   disabledReason,
@@ -66,9 +67,12 @@ export function DeleteAction({
   invalidateKeys: readonly unknown[][];
   /**
    * `archive` (the default) is a soft delete the record can be restored from;
-   * `delete` is permanent and says so.
+   * `delete` is permanent and says so; `remove` takes a person off this
+   * organization without touching their own account — pass `description`.
    */
-  mode?: 'archive' | 'delete';
+  mode?: 'archive' | 'delete' | 'remove';
+  /** Replaces the default consequence sentence in the confirmation. */
+  description?: string;
   onDeleted?: () => void;
   /** For records the UI already knows cannot go — an in-flight trip. */
   disabled?: boolean;
@@ -80,7 +84,8 @@ export function DeleteAction({
   const queryClient = useQueryClient();
   const [open, setOpen] = React.useState(false);
 
-  const verb = mode === 'archive' ? 'Archive' : 'Delete';
+  const verb = mode === 'archive' ? 'Archive' : mode === 'remove' ? 'Remove' : 'Delete';
+  const pastTense = mode === 'archive' ? 'archived' : mode === 'remove' ? 'removed' : 'deleted';
 
   const remove = useMutation({
     mutationFn: () => api.delete(endpoint),
@@ -88,7 +93,7 @@ export function DeleteAction({
       for (const key of invalidateKeys) {
         void queryClient.invalidateQueries({ queryKey: key });
       }
-      toast.success(`${itemLabel} ${mode === 'archive' ? 'archived' : 'deleted'}`);
+      toast.success(`${itemLabel} ${pastTense}`);
       setOpen(false);
       onDeleted?.();
     },
@@ -125,7 +130,7 @@ export function DeleteAction({
               setOpen(true);
             }}
           >
-            <Trash2 />
+            {mode === 'remove' ? <UserMinus /> : <Trash2 />}
           </Button>
         </TooltipTrigger>
         <TooltipContent>{disabled && disabledReason ? disabledReason : label}</TooltipContent>
@@ -142,9 +147,12 @@ export function DeleteAction({
             </AlertDialogTitle>
             <AlertDialogDescription id="delete-action-description">
               <span className="font-medium text-foreground">{itemLabel}</span>{' '}
-              {mode === 'archive'
-                ? `will be removed from your active ${entityName} list. Its history is kept, and an administrator can restore it.`
-                : 'will be permanently deleted. This cannot be undone.'}
+              {description ??
+                (mode === 'archive'
+                  ? `will be removed from your active ${entityName} list. Its history is kept, and an administrator can restore it.`
+                  : mode === 'remove'
+                    ? `will be removed from your ${entityName} list.`
+                    : 'will be permanently deleted. This cannot be undone.')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -2,26 +2,19 @@ import * as React from 'react';
 import { Link } from 'react-router-dom';
 import {
   Check,
-  ChevronDown,
   CircleDollarSign,
   Minus,
   Plus,
-  Signal,
-  Smartphone,
 } from 'lucide-react';
 import {
-  FEATURE_CATALOGUE,
+  DEFAULT_TRIAL_DAYS,
   GST_RATE,
   PLAN_CATALOGUE,
-  PLAN_TIERS,
+  PLAN_TIER_ORDER,
   PlanTier,
   VEHICLE_TOPUP,
-  VEHICLE_TRACKER,
   formatCurrency,
-  monthsFreeOnYearly,
   quoteSubscription,
-  tierHasFeature,
-  type Feature,
   type PlanDefinition,
 } from '@saarthi/shared';
 import { Badge } from '@/components/ui/badge';
@@ -29,7 +22,6 @@ import { Button } from '@/components/ui/button';
 import { AnimatePresence, motion, useReducedMotion } from '@/components/motion';
 import { Section, SectionHeading } from './marketing-chrome';
 import { Reveal, RevealGroup, RevealItem, Spotlight, useSpotlight } from './motion-extras';
-import { GROUPED_FEATURES } from './feature-catalogue';
 import { cn } from '@/lib/utils';
 
 /**
@@ -46,12 +38,12 @@ import { cn } from '@/lib/utils';
  * count, and a plan two-thirds along that bar was not two-thirds as useful —
  * which is what the bar implied.
  *
- * Below the plans sit the two add-ons, kept visually apart because neither is a
- * plan: one is a recurring per-vehicle charge and one is a single hardware
- * purchase, and conflating them is how a customer ends up surprised by a bill.
- * Then the honest part — what Saarthi can and cannot know without a tracker —
- * because a fleet that acts on an estimated fuel figure believing it measured
- * is worse off than one that was told.
+ * Every price on a card is final: plans and extra vehicles are sold with GST
+ * already inside them, so no tax line is shown against them.
+ *
+ * Trackers are not on the cards at all. They are a one-time hardware purchase,
+ * not part of a plan, so they have their own section (`TrackersSection`) and
+ * the cards stay about what renews each month.
  */
 
 const EASE = [0.16, 1, 0.3, 1] as const;
@@ -59,17 +51,22 @@ const EASE = [0.16, 1, 0.3, 1] as const;
 const TIER_LABEL: Record<PlanTier, string> = {
   [PlanTier.FREE]: 'Free',
   [PlanTier.PERSONAL]: 'Personal',
+  [PlanTier.SUPPLIER]: 'Supplier',
   [PlanTier.BUSINESS]: 'Business',
 };
 
 /** Who each plan is for, in the words that let a reader recognise themselves. */
 const TIER_AUDIENCE: Record<PlanTier, string> = {
   [PlanTier.FREE]: 'You are not running a vehicle',
-  [PlanTier.PERSONAL]: 'You own the vehicles',
-  [PlanTier.BUSINESS]: 'You run a transport business',
+  [PlanTier.PERSONAL]: 'You own a personal vehicle',
+  [PlanTier.SUPPLIER]: 'You supply material',
+  [PlanTier.BUSINESS]: 'You run a fleet or a travel business',
 };
 
-type Billing = 'monthly' | 'yearly';
+/** The plans in the order they are offered — cheapest first. */
+const OFFERED_PLANS = PLAN_TIER_ORDER.map((tier) =>
+  PLAN_CATALOGUE.find((plan) => plan.tier === tier),
+).filter((plan): plan is PlanDefinition => Boolean(plan));
 
 /** The most vehicles the fleet control goes up to before it stops being useful. */
 const MAX_VEHICLES = 30;
@@ -77,24 +74,22 @@ const MAX_VEHICLES = 30;
 /**
  * Days of free trial, mirroring `SUBSCRIPTION_TRIAL_DAYS` on the API.
  *
- * Read from the build config rather than written into the copy, because a card
- * that says "free for 30 days" against a server that grants 14 is a card that
- * mis-sells. Falls back to 0, which makes the page quote the price as due
- * immediately — the safe direction to be wrong in.
+ * Read from the build config rather than written into the copy, so the page
+ * cannot quote a period the server does not honour. Unset, both sides fall
+ * back to the same shared default.
  */
 const TRIAL_DAYS = Number.parseInt(
   (import.meta.env.VITE_SUBSCRIPTION_TRIAL_DAYS as string | undefined) ?? '',
   10,
 );
-const TRIAL = Number.isFinite(TRIAL_DAYS) && TRIAL_DAYS > 0 ? TRIAL_DAYS : 0;
+const TRIAL = Number.isFinite(TRIAL_DAYS) && TRIAL_DAYS >= 0 ? TRIAL_DAYS : DEFAULT_TRIAL_DAYS;
 
 /**
  * The three or four things a reader checks before they read any further.
  *
- * Chosen per plan rather than from a shared list: what makes Personal worth
- * ninety-nine rupees is that nothing about safety is withheld, and what makes
- * Business worth the step up is the commercial surface. A single template of
- * limits would have said neither.
+ * Written around who each plan is for rather than around what it withholds:
+ * every paid plan carries the same capabilities, and what differs is the kind
+ * of account and the vehicles it runs.
  */
 const TIER_HIGHLIGHTS: Record<PlanTier, readonly string[]> = {
   [PlanTier.FREE]: [
@@ -105,89 +100,27 @@ const TIER_HIGHLIGHTS: Record<PlanTier, readonly string[]> = {
     'No vehicle, no tracker and no card',
   ],
   [PlanTier.PERSONAL]: [
-    'Live location, trip history and replay',
-    'Documents, service records and EMI reminders',
-    'FASTag balance and what each route costs in toll',
-    'SOS, hazard alerts and no-entry warnings - never withheld',
-    'Drive one yourself and assign the rest to your drivers',
+    'Your car, SUV or other personal vehicle - not trucks',
+    'Live location, trips, documents, service and EMI',
+    'Drive it yourself or hand it to a driver',
+    'A tracker is optional - add one whenever you like',
+    'Every Saarthi capability, nothing held back',
+  ],
+  [PlanTier.SUPPLIER]: [
+    'Your material catalogue, stock and availability',
+    'Requirements, quotes and supplier orders',
+    'No vehicle, fleet or tracker setup needed',
+    'Your whole team included',
+    'Every Saarthi capability for a supplier',
   ],
   [PlanTier.BUSINESS]: [
-    'Everything in Personal, for your whole team',
-    'Marketplace, requirements and competitive bidding',
-    'Trips, dispatch, driver scoring and analytics',
-    'AI copilot, predictive maintenance and return loads',
-    'Travel packages, association network and API access',
+    'Fleet owners: trucks, with a Saarthi tracker for telemetry',
+    'Tour, travel and mobility: cars, SUVs, buses and more',
+    'Trips, dispatch and the Saarthi Driver App for your drivers',
+    'Marketplace, bidding, analytics and AI',
+    'Your whole team included',
   ],
 };
-
-/**
- * The billing period.
- *
- * The one choice that stays above the cards, because it applies to both
- * identically and to every line on them — the plan and each vehicle top-up all
- * move to the yearly rate together. Fleet size and trackers are per-plan
- * decisions and live on the cards themselves.
- */
-function BillingControl({
-  billing,
-  onBilling,
-  monthsFree,
-}: {
-  billing: Billing;
-  onBilling: (next: Billing) => void;
-  monthsFree: number | null;
-}) {
-  return (
-    <div className="mt-10 flex flex-col items-center gap-3">
-      <div className="flex flex-wrap items-center justify-center gap-3">
-        <div
-          role="radiogroup"
-          aria-label="Billing period"
-          className="inline-flex items-center gap-0.5 rounded-full border border-border/70 bg-card/60 p-1 backdrop-blur"
-        >
-          {(['monthly', 'yearly'] as Billing[]).map((option) => {
-            const selected = billing === option;
-            return (
-              <button
-                key={option}
-                type="button"
-                role="radio"
-                aria-checked={selected}
-                onClick={() => onBilling(option)}
-                className={cn(
-                  'relative rounded-full px-5 py-1.5 text-sm font-medium transition-colors duration-200',
-                  selected
-                    ? 'text-primary-foreground'
-                    : 'text-muted-foreground hover:text-foreground',
-                )}
-              >
-                {selected ? (
-                  <motion.span
-                    layoutId="billing-pill"
-                    className="absolute inset-0 rounded-full bg-logo-gradient"
-                    transition={{ type: 'spring', stiffness: 400, damping: 34 }}
-                  />
-                ) : null}
-                <span className="relative">{option === 'monthly' ? 'Monthly' : 'Yearly'}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        {monthsFree && monthsFree > 0 ? (
-          <Badge variant="success">
-            {monthsFree} month{monthsFree === 1 ? '' : 's'} free on yearly
-          </Badge>
-        ) : null}
-      </div>
-
-      <p className="max-w-lg text-center text-2xs leading-relaxed text-muted-foreground">
-        Set your fleet size and trackers on either card - both update together, so the two totals
-        are always for the same fleet.
-      </p>
-    </div>
-  );
-}
 
 /**
  * A stepper for one line of the configuration.
@@ -276,41 +209,29 @@ function CountField({
 
 function PlanCard({
   plan,
-  billing,
   vehicles,
-  trackers,
   onVehicles,
-  onTrackers,
 }: {
   plan: PlanDefinition;
-  billing: Billing;
   vehicles: number;
-  trackers: number;
   onVehicles: (next: number) => void;
-  onTrackers: (next: number) => void;
 }) {
   const reduced = useReducedMotion();
   const { ref, onPointerMove } = useSpotlight<HTMLDivElement>();
   const featured = plan.tier === PlanTier.BUSINESS;
 
-  const quote = quoteSubscription({ tier: plan.tier, vehicles, trackers, billing });
+  // Trackers are hardware, priced in their own section, so the plan quote
+  // carries only what renews.
+  const quote = quoteSubscription({ tier: plan.tier, vehicles });
 
   /**
-   * A plan that covers no vehicles, which is Free and only Free.
+   * A plan that covers no vehicles — Free and Supplier.
    *
-   * The card was written when every plan was priced per vehicle, so it read
-   * the fleet-size control, the tracker stepper and the renewal line straight
-   * off the quote. On a free plan all three are wrong rather than merely
-   * uninteresting: a vehicle stepper implies a vehicle is expected, a tracker
-   * stepper offers hardware that cannot be fitted, and "renews at ₹0 a month"
-   * describes a charge nobody is making. So the card drops them instead.
+   * A vehicle stepper would imply a vehicle is expected, so the card drops it.
+   * Only Free is also free of charge.
    */
   const vehicleless = plan.limits.maxTrucks === 0 && plan.limits.maxVehicleTopUps === 0;
-
-  const trackerCeiling =
-    plan.limits.maxTrackers === null
-      ? vehicles
-      : Math.min(plan.limits.maxTrackers, vehicles);
+  const free = plan.priceMonthly === 0;
 
   return (
     <div
@@ -341,42 +262,31 @@ function PlanCard({
         <div className="mt-6">
           <AnimatePresence mode="wait" initial={false}>
             <motion.p
-              key={`${billing}-${vehicles}`}
+              key={vehicles}
               initial={reduced ? false : { opacity: 0, y: 8 }}
               animate={reduced ? undefined : { opacity: 1, y: 0 }}
               exit={reduced ? undefined : { opacity: 0, y: -8 }}
               transition={{ duration: 0.2, ease: EASE }}
               className="text-4xl font-semibold tracking-[-0.03em] tabular-nums sm:text-5xl"
             >
-              {vehicleless ? (
+              {free ? (
                 'Free'
               ) : (
                 <>
-                  {formatCurrency(Math.round(quote.monthly.subtotal))}
-                  <span className="text-base font-normal text-muted-foreground">/mo</span>
+                  {formatCurrency(quote.monthly.total)}
+                  <span className="text-base font-normal text-muted-foreground">/month</span>
                 </>
               )}
             </motion.p>
           </AnimatePresence>
-          {/* The headline stays exclusive of GST — those are the figures
-              quoted everywhere else and the ones a business reclaims as input
-              credit — but it says so, because an unlabelled price reads as the
-              amount that will be charged. The tax is added in full below.
-
-              There is no tax on nothing, and no vehicle count on a plan that
-              covers none, so the free card says what it is instead. */}
+          {/* The headline is the final monthly price — what is actually paid —
+              so it carries no tax breakdown. */}
           <p className="mt-1.5 text-2xs text-muted-foreground">
-            {vehicleless ? (
-              'No card, no vehicle, no tracker'
-            ) : (
-              <>
-                + {Math.round(quote.gstRate * 100)}% GST · for {vehicles} vehicle
-                {vehicles === 1 ? '' : 's'} ·{' '}
-                {billing === 'yearly'
-                  ? `${formatCurrency(quote.recurring.subtotal)} billed yearly`
-                  : 'billed monthly'}
-              </>
-            )}
+            {free
+              ? 'No card and no vehicle'
+              : vehicleless
+                ? 'No vehicle or fleet setup · billed monthly'
+                : `For ${vehicles} vehicle${vehicles === 1 ? '' : 's'} · billed monthly`}
           </p>
         </div>
       </div>
@@ -398,56 +308,30 @@ function PlanCard({
           max={MAX_VEHICLES}
           onChange={onVehicles}
         />
-        <CountField
-          label="Trackers"
-          hint={
-            trackerCeiling === 0
-              ? 'One per vehicle, at most'
-              : `${formatCurrency(VEHICLE_TRACKER.priceOneTime)} each, charged once - optional`
-          }
-          value={Math.min(trackers, trackerCeiling)}
-          min={0}
-          max={trackerCeiling}
-          onChange={onTrackers}
-        />
       </div>
       )}
 
       {/* Itemised, because a total a customer cannot reconstruct is a total
-          they do not trust — and because the hardware must be visibly separate
-          from what renews. A free plan has nothing to itemise: an invoice
+          they do not trust. A free plan has nothing to itemise: an invoice
           totalling zero invites the reader to look for the catch. */}
-      {vehicleless ? (
+      {free ? (
         <p className="relative mt-4 text-2xs leading-relaxed text-muted-foreground">
           Nothing to pay, and nothing to cancel. Move to a paid plan whenever you
           actually start running a vehicle.
+        </p>
+      ) : vehicleless ? (
+        <p className="relative mt-4 text-2xs leading-relaxed text-muted-foreground">
+          {TRIAL > 0 ? `Free for ${TRIAL} days, then ` : ''}
+          {formatCurrency(quote.monthly.total)} a month.
         </p>
       ) : (
       <dl className="relative mt-4 space-y-1.5">
         {quote.lines.map((line) => (
           <div key={line.label} className="flex items-baseline justify-between gap-3 text-xs">
-            <dt className="min-w-0 truncate text-muted-foreground">
-              {line.label}
-              {line.cadence === 'once' ? (
-                <span className="ml-1.5 text-2xs uppercase tracking-wide text-accent-foreground/70">
-                  once
-                </span>
-              ) : null}
-            </dt>
+            <dt className="min-w-0 truncate text-muted-foreground">{line.label}</dt>
             <dd className="shrink-0 tabular-nums">{formatCurrency(line.amount)}</dd>
           </div>
         ))}
-
-        <div className="flex items-baseline justify-between gap-3 border-t border-border/50 pt-2 text-xs">
-          <dt className="text-muted-foreground">Subtotal</dt>
-          <dd className="tabular-nums">{formatCurrency(quote.dueNow.subtotal)}</dd>
-        </div>
-        <div className="flex items-baseline justify-between gap-3 text-xs">
-          <dt className="text-muted-foreground">
-            GST {Math.round(quote.gstRate * 100)}%
-          </dt>
-          <dd className="tabular-nums">{formatCurrency(quote.dueNow.gst)}</dd>
-        </div>
 
         {/* The one number a customer is looking for. Given its own weight and
             its own rule, because everything above it is working. */}
@@ -456,16 +340,9 @@ function PlanCard({
           <dd className="tabular-nums">{formatCurrency(quote.dueNow.total)}</dd>
         </div>
 
-        {/* What renews is not what the first invoice says, whenever hardware is
-            on the order. Spelling out both stops the tracker from reading as a
-            monthly charge. */}
         <p className="text-2xs leading-relaxed text-muted-foreground">
-          {TRIAL > 0
-            ? `Free for ${TRIAL} days - nothing is charged today. `
-            : ''}
-          {trackers > 0
-            ? `Then ${formatCurrency(quote.renews.total)} a ${billing === 'yearly' ? 'year' : 'month'} including GST - the trackers are charged once and never again.`
-            : `Renews at ${formatCurrency(quote.renews.total)} a ${billing === 'yearly' ? 'year' : 'month'}, including GST.`}
+          {TRIAL > 0 ? `Free for ${TRIAL} days - nothing is charged today. ` : ''}
+          Then {formatCurrency(quote.monthly.total)} a month.
         </p>
       </dl>
       )}
@@ -503,138 +380,17 @@ function PlanCard({
           {quote.overVehicleCeiling ? (
             <span>Too many vehicles for this plan</span>
           ) : (
-            /* The whole configuration travels to signup, so the summary there
-               and what gets provisioned are the same thing the reader priced. */
-            /* The whole configuration travels to signup, so the summary there
-               and what gets provisioned are the same thing the reader priced.
-               A free plan carries none of it: there is no fleet size and no
-               tracker order to hand on, and passing them would put a vehicle
-               question in front of somebody who has just chosen the plan for
-               people without one. */
-            <Link
-              to={
-                vehicleless
-                  ? `/register?plan=${plan.tier.toLowerCase()}`
-                  : `/register?plan=${plan.tier.toLowerCase()}&billing=${billing}&vehicles=${vehicles}&trackers=${Math.min(trackers, trackerCeiling)}`
-              }
-            >
-              {vehicleless ? 'Start for free' : `Subscribe to ${TIER_LABEL[plan.tier]}`}
+            /* Only the plan travels to signup. The fleet size here is a
+               price calculator: vehicles are added in the app, and an extra
+               vehicle slot is bought when the second one is. */
+            <Link to={`/register?plan=${plan.tier.toLowerCase()}`}>
+              {free ? 'Start for free' : `Subscribe to ${TIER_LABEL[plan.tier]}`}
             </Link>
           )}
         </Button>
         <p className="text-center text-2xs text-muted-foreground">
-          {vehicleless
-            ? 'No payment details asked for.'
-            : 'GST included above. Cancel or change plan whenever you like.'}
+          {free ? 'No payment details asked for.' : 'Cancel or change plan whenever you like.'}
         </p>
-      </div>
-    </div>
-  );
-}
-
-/**
- * Where the numbers come from, with and without a tracker.
- *
- * This is the section a fleet needs most and the one a pricing page usually
- * omits. Saarthi works without hardware — the driver's phone reports location —
- * but a phone can be left on a desk, run flat or lose signal, and everything
- * derived from its trail is then an estimate. Saying so is not a weakness to
- * hide: an operator who knows a figure is estimated treats it as one, and an
- * operator who does not makes a decision on a number that was never measured.
- */
-function DataSources() {
-  const columns = [
-    {
-      icon: Smartphone,
-      eyebrow: 'Included on both plans',
-      title: 'Driver app only',
-      claim: 'Estimated',
-      claimTone: 'warning' as const,
-      gives: [
-        'Live location while the app is running',
-        'Trip start and end as the driver marks them',
-        'Distance from the phone’s own GPS trail',
-        'Fuel and expenses as the driver enters them',
-        'SOS, hazard alerts and duty hours',
-      ],
-      limits: [
-        'A phone left behind, switched off or out of charge reports nothing, and the vehicle looks parked.',
-        'No signal means a gap in the trail, so distance and trip time come out short.',
-        'Odometer, fuel use and idling are worked out from the trail rather than read, so they carry an error.',
-        'Nothing about the engine - ignition, engine hours, coolant, fault codes - is visible at all.',
-      ],
-    },
-    {
-      icon: Signal,
-      eyebrow: `${formatCurrency(VEHICLE_TRACKER.priceOneTime)} once, per vehicle`,
-      title: 'With a Saarthi tracker',
-      claim: 'Measured',
-      claimTone: 'success' as const,
-      gives: [
-        'Location whether or not anyone brings a phone',
-        'Ignition on and off, so trips start themselves',
-        'Real odometer, engine hours and idling time',
-        'Actual fuel draw, and refuel or drain events',
-        'Harsh braking, over-speeding and fault codes',
-      ],
-      limits: [
-        'Needs fitting to the vehicle. Any Saarthi workshop or your own auto-electrician can do it.',
-        'One tracker covers one vehicle. Vehicles without one keep working on driver-app data.',
-        'Telemetry history is kept for 90 days on Personal and 365 on Business.',
-      ],
-    },
-  ];
-
-  return (
-    <div className="mt-4 overflow-hidden rounded-2xl border border-border/60 bg-card/30 backdrop-blur-sm">
-      <div className="grid grid-cols-1 divide-y divide-border/60 md:grid-cols-2 md:divide-x md:divide-y-0">
-        {columns.map((column) => (
-          <div key={column.title} className="p-6 sm:p-7">
-            <div className="flex flex-wrap items-center gap-2.5">
-              <column.icon className="size-4 text-muted-foreground" aria-hidden />
-              <h3 className="text-sm font-semibold">{column.title}</h3>
-              <Badge variant={column.claimTone} size="sm">
-                {column.claim}
-              </Badge>
-            </div>
-            <p className="mt-1 text-2xs uppercase tracking-[0.14em] text-muted-foreground">
-              {column.eyebrow}
-            </p>
-
-            <ul className="mt-5 space-y-2">
-              {column.gives.map((line) => (
-                <li key={line} className="flex items-start gap-2.5 text-sm leading-snug">
-                  <Check
-                    className={cn(
-                      'mt-0.5 size-3.5 shrink-0',
-                      column.claimTone === 'success' ? 'text-success' : 'text-muted-foreground',
-                    )}
-                    strokeWidth={3}
-                    aria-hidden
-                  />
-                  <span>{line}</span>
-                </li>
-              ))}
-            </ul>
-
-            <div className="mt-5 border-t border-border/50 pt-4">
-              <p className="text-2xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                {column.claimTone === 'success' ? 'What it needs' : 'Where it falls short'}
-              </p>
-              <ul className="mt-2.5 space-y-2">
-                {column.limits.map((line) => (
-                  <li
-                    key={line}
-                    className="flex items-start gap-2.5 text-2xs leading-relaxed text-muted-foreground"
-                  >
-                    <Minus className="mt-1 size-3 shrink-0 text-muted-foreground/50" aria-hidden />
-                    <span>{line}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        ))}
       </div>
     </div>
   );
@@ -652,11 +408,11 @@ function Terms() {
   const terms: readonly { q: string; a: string }[] = [
     {
       q: 'What counts as a vehicle?',
-      a: 'Anything you put on Saarthi and track - a car, a tempo, a bus, a tipper or a multi-axle truck. They are all one vehicle, and they all cost the same. Trucks are not charged more than cars.',
+      a: 'Anything you put on Saarthi and track, and every one costs the same. Which vehicles you can add follows your account: Personal is for your own car or personal vehicle, a fleet owner runs trucks, and a tour or travel business runs cars, SUVs, buses and the like.',
     },
     {
       q: 'Can I change plan later?',
-      a: 'Yes, either way, whenever you like. Moving to Business is immediate. Moving down to Personal is allowed as long as what you already run fits inside it - otherwise you are told exactly which limit is in the way rather than being refused.',
+      a: 'Yes, whenever you like. Moving to Business is immediate. Moving down to Personal is allowed as long as what you already run fits inside it - otherwise you are told exactly which limit is in the way. The Supplier plan is for material suppliers only.',
     },
     {
       q: 'What happens if I stop paying for a vehicle?',
@@ -668,22 +424,18 @@ function Terms() {
     },
     {
       q: 'Do I have to buy a tracker?',
-      a: 'No. Both plans work with the driver app alone, and everything to do with safety, documents, EMI and toll works without any hardware. The tracker is for operators who need the engine and fuel figures to be measured rather than estimated.',
+      a: 'Not on Personal or for a travel business - the driver app works on its own, and safety, documents, EMI and toll need no hardware. A fleet owner running trucks needs a tracker for live telemetry, and Saarthi offers one the first time telemetry is opened.',
     },
     {
       q: 'When am I first charged?',
       a:
         TRIAL > 0
-          ? `Not on signup. Every plan starts with ${TRIAL} days free, and the first invoice - the plan, your vehicle top-ups, any trackers you ordered, plus GST - is raised when that ends. Cancel before then and you pay nothing.`
-          : 'On signup. The first invoice covers the plan, your vehicle top-ups, any trackers you ordered, and GST.',
-    },
-    {
-      q: 'What is the yearly discount?',
-      a: 'Paying yearly costs ten months instead of twelve, on the plan and on every vehicle top-up. Nothing else changes.',
+          ? `The plan is not charged on signup - every paid plan starts with ${TRIAL} days free, and is billed monthly after that. Extra vehicles and any trackers you order are charged when you sign up.`
+          : 'On signup. The first charge covers the plan, your extra vehicles and any trackers you ordered.',
     },
     {
       q: 'Is GST included?',
-      a: `Yes, in the total. Plan and top-up prices are quoted excluding GST - those are the figures you would reclaim as input credit - and ${Math.round(GST_RATE * 100)}% is added on the card above, so the "total to pay" is the amount that will actually be charged. Add your GSTIN in settings and it appears on every invoice.`,
+      a: `Yes. Plan and vehicle prices are final - GST is already inside them. Tracker hardware is priced before tax, and ${Math.round(GST_RATE * 100)}% GST is added to it at checkout. Add your GSTIN in settings and it appears on every invoice.`,
     },
     {
       q: 'Can I add myself as a driver?',
@@ -709,142 +461,9 @@ function Terms() {
   );
 }
 
-/**
- * The full plan × capability matrix.
- *
- * Collapsed by default — forty-odd rows is the answer to "what exactly do I
- * get", not the first thing a visitor should scroll past. Generated from
- * `tierHasFeature`, the same function the running app calls to decide whether
- * to show a screen, so a tick here means the capability really is reachable on
- * that plan.
- */
-function ComparisonMatrix() {
-  const reduced = useReducedMotion();
-  const [open, setOpen] = React.useState(false);
-
-  return (
-    <div className="mt-12">
-      <div className="flex justify-center">
-        <Button
-          variant="outline"
-          onClick={() => setOpen((current) => !current)}
-          aria-expanded={open}
-          className="rounded-full"
-        >
-          {open ? 'Hide' : 'Compare'} all {FEATURE_CATALOGUE.length} capabilities
-          <ChevronDown
-            className={cn(
-              'size-4 transition-transform duration-300 ease-smooth',
-              open && 'rotate-180',
-            )}
-            aria-hidden
-          />
-        </Button>
-      </div>
-
-      <AnimatePresence initial={false}>
-        {open ? (
-          <motion.div
-            key="matrix"
-            initial={reduced ? false : { opacity: 0, height: 0 }}
-            animate={reduced ? undefined : { opacity: 1, height: 'auto' }}
-            exit={reduced ? undefined : { opacity: 0, height: 0 }}
-            transition={{ duration: 0.4, ease: EASE }}
-            className="overflow-hidden"
-          >
-            <p className="mt-6 text-center text-2xs text-muted-foreground">
-              A dash in both columns means the capability needs a tracker - see above.
-            </p>
-
-            {/* Scrolls inside its own box, so the page itself never goes
-                sideways on a phone. */}
-            <div className="mt-4 overflow-x-auto rounded-2xl border border-border/60">
-              <table className="w-full min-w-[32rem] border-collapse text-left">
-                <caption className="sr-only">Which Saarthi plan includes which capability</caption>
-                <thead>
-                  <tr className="border-b border-border">
-                    {/* Sticky, so the capability name stays readable while the
-                        plan columns scroll under the thumb. */}
-                    <th
-                      scope="col"
-                      className="sticky left-0 z-[1] bg-card px-5 py-3.5 text-xs font-semibold"
-                    >
-                      Capability
-                    </th>
-                    {PLAN_TIERS.map((tier) => (
-                      <th
-                        key={tier}
-                        scope="col"
-                        className="px-4 py-3.5 text-center text-xs font-semibold"
-                      >
-                        {TIER_LABEL[tier]}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-
-                {GROUPED_FEATURES.map((entry) => (
-                  <tbody key={entry.group.id}>
-                    <tr className="border-b border-border/60 bg-secondary/40">
-                      <th
-                        scope="colgroup"
-                        colSpan={PLAN_TIERS.length + 1}
-                        className="px-5 py-2.5 text-left"
-                      >
-                        <span className="flex items-center gap-2 text-2xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                          <entry.group.icon className="size-3.5" aria-hidden />
-                          {entry.group.label}
-                        </span>
-                      </th>
-                    </tr>
-
-                    {entry.features.map((definition) => (
-                      <tr
-                        key={definition.key}
-                        className="border-b border-border/40 transition-colors last:border-0 hover:bg-secondary/30"
-                      >
-                        <th
-                          scope="row"
-                          className="sticky left-0 z-[1] max-w-[15rem] bg-card px-5 py-3 text-left"
-                        >
-                          <span className="block text-xs font-medium">{definition.name}</span>
-                          <span className="mt-0.5 hidden text-2xs leading-snug text-muted-foreground sm:block">
-                            {definition.description}
-                          </span>
-                        </th>
-                        {PLAN_TIERS.map((tier) => {
-                          const included = tierHasFeature(tier, definition.key as Feature);
-                          return (
-                            <td key={tier} className="px-4 py-3 text-center">
-                              {included ? (
-                                <Check
-                                  className="mx-auto size-4 text-success"
-                                  strokeWidth={3}
-                                  aria-hidden
-                                />
-                              ) : (
-                                <Minus
-                                  className="mx-auto size-3.5 text-muted-foreground/30"
-                                  aria-hidden
-                                />
-                              )}
-                              <span className="sr-only">
-                                {included ? 'Included in' : 'Not in'} {TIER_LABEL[tier]}
-                              </span>
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    ))}
-                  </tbody>
-                ))}
-              </table>
-            </div>
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
-    </div>
-  );
+/** A plan's monthly price, GST included. */
+function priceOf(tier: PlanTier): number {
+  return PLAN_CATALOGUE.find((plan) => plan.tier === tier)?.priceMonthly ?? 0;
 }
 
 /** A heading for the bands below the plan grid. */
@@ -860,79 +479,46 @@ function BandHeading({ eyebrow, title }: { eyebrow: string; title: string }) {
 }
 
 export function Pricing() {
-  const [billing, setBilling] = React.useState<Billing>('monthly');
   /*
-   * One fleet configuration, shared by both cards.
+   * One fleet configuration, shared by every card.
    *
    * Per-card state would let a reader price three vehicles on Personal against
    * ten on Business and think they had compared the plans. Sharing it means the
-   * two totals always answer the same question.
+   * totals always answer the same question.
    */
   const [vehicles, setVehicles] = React.useState(1);
-  const [trackers, setTrackers] = React.useState(0);
-
-  const monthsFree = monthsFreeOnYearly();
-
-  /*
-   * Trackers are fitted to vehicles, so shrinking the fleet has to take the
-   * surplus hardware off the quote — otherwise the price would keep charging
-   * for a tracker with nothing to fit it to.
-   */
-  const setFleetSize = (next: number): void => {
-    setVehicles(next);
-    setTrackers((held) => Math.min(held, next));
-  };
 
   return (
     <Section id="pricing" width="wide">
       <SectionHeading
         eyebrow="Pricing"
-        title="Three plans. Priced by the vehicle."
-        body="Free if you are not running one. Ninety-nine rupees a month if the vehicles are yours, one ninety-nine if you run a transport business - and seventy-five for every vehicle after the first. Everyone on your team is included, and safety is never gated."
+        title="Four plans. Priced by the vehicle."
+        body={`Free if you are not running a vehicle. ${formatCurrency(priceOf(PlanTier.PERSONAL))} a month for your own vehicle, ${formatCurrency(priceOf(PlanTier.BUSINESS))} for a fleet or travel business, ${formatCurrency(priceOf(PlanTier.SUPPLIER))} for a material supplier - and ${formatCurrency(VEHICLE_TOPUP.priceMonthly)} for every vehicle after the first. Every plan carries every capability.`}
       />
 
       <Reveal delay={0.1}>
-        <BillingControl billing={billing} onBilling={setBilling} monthsFree={monthsFree} />
+        <p className="mx-auto mt-10 max-w-lg text-center text-2xs leading-relaxed text-muted-foreground">
+          Set your fleet size on any card - they all update together, so every total is for the
+          same fleet. Trackers are optional hardware, priced in their own section below.
+        </p>
       </Reveal>
 
-      {/* Three abreast on a wide screen, one column on a phone. The middle
-          breakpoint stays at two so a pair of cards never becomes a pair plus
-          an orphan. */}
+      {/* Four abreast on a wide screen, two on a tablet, one on a phone. */}
       <RevealGroup
-        className="mx-auto mt-8 grid max-w-5xl grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3"
+        className="mx-auto mt-8 grid max-w-6xl grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4"
         stagger={0.08}
       >
-        {PLAN_CATALOGUE.map((plan) => (
+        {OFFERED_PLANS.map((plan) => (
           <RevealItem key={plan.tier} className="h-full">
-            <PlanCard
-              plan={plan}
-              billing={billing}
-              vehicles={vehicles}
-              trackers={trackers}
-              onVehicles={setFleetSize}
-              onTrackers={setTrackers}
-            />
+            <PlanCard plan={plan} vehicles={vehicles} onVehicles={setVehicles} />
           </RevealItem>
         ))}
       </RevealGroup>
 
       <Reveal delay={0.05}>
-        <BandHeading eyebrow="Read this before you decide" title="What Saarthi can actually know" />
-        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-          Saarthi works without any hardware - your driver&rsquo;s phone reports the location. But
-          a phone is not the vehicle, and everything worked out from its trail is an estimate. Here
-          is exactly what changes when a tracker is fitted, so you know which numbers you can act
-          on.
-        </p>
-      </Reveal>
-      <DataSources />
-
-      <Reveal delay={0.05}>
         <BandHeading eyebrow="The small print" title="Nothing hidden in it" />
       </Reveal>
       <Terms />
-
-      <ComparisonMatrix />
     </Section>
   );
 }

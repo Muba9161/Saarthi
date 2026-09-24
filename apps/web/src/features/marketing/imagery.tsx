@@ -82,8 +82,6 @@ export const MARKETING_IMAGE = {
   cta: `${BASE}/cta-dusk.webp`,
   /** 4:3 with alpha. Front of a goods truck facing right, cut at the left. */
   edgeTruck: `${BASE}/edge-truck.webp`,
-  /** 4:3 with alpha. Front of an SUV facing left, cut at the right. */
-  edgeSuv: `${BASE}/edge-suv.webp`,
   /**
    * 3:1 with a real alpha channel — it sits on a band that flips theme.
    *
@@ -94,6 +92,20 @@ export const MARKETING_IMAGE = {
    */
   fleetLineup: `${BASE}/fleet-lineup.webp`,
 } as const;
+
+/**
+ * 4:5, one portrait per account type in "Who it is for", keyed by the role's
+ * id in `ROLE_SHOWCASE`. Framed photographs rather than cut-outs, so they sit
+ * in a bordered frame that reads the same in either theme.
+ */
+export const ROLE_PORTRAIT: Record<string, string> = {
+  fleet: `${BASE}/role-fleet.webp`,
+  driver: `${BASE}/role-driver.webp`,
+  customer: `${BASE}/role-customer.webp`,
+  supplier: `${BASE}/role-supplier.webp`,
+  travel: `${BASE}/role-travel.webp`,
+  association: `${BASE}/role-association.webp`,
+};
 
 /** 16:9, one per lifecycle step, in the order `STEPS` declares them. */
 export const STEP_IMAGES = [

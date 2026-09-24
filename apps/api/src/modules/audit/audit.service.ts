@@ -131,6 +131,16 @@ export const AuditAction = {
   DRIVER_UPDATED: 'driver.updated',
   /** A driver attached themselves to a fleet with its invite code. */
   DRIVER_JOINED_FLEET: 'driver.joined_fleet',
+  DRIVER_RELEASED_FROM_FLEET: 'driver.released_from_fleet',
+  ACCOUNT_ARCHIVED_UNPAID: 'organization.archived_unpaid',
+  ACCOUNT_RESTORED: 'organization.restored',
+  ACCOUNT_DATA_PURGED: 'organization.data_purged',
+  PAYOUT_ACCOUNT_CONNECTED: 'finance.payout_account_connected',
+  MARKETPLACE_PAYMENT_SETTLED: 'finance.marketplace_payment_settled',
+  MARKETPLACE_COMMISSION_CALCULATED: 'finance.marketplace_commission_calculated',
+  MARKETPLACE_DELIVERY_CONFIRMED: 'finance.marketplace_delivery_confirmed',
+  MARKETPLACE_REFUND_ISSUED: 'finance.marketplace_refund_issued',
+  ORGANIZATION_INVITE_CODE_REGENERATED: 'organization.invite_code_regenerated',
   DRIVER_SCORE_ADJUSTED: 'driver.score_adjusted',
 
   DOCUMENT_UPLOADED: 'document.uploaded',
@@ -146,6 +156,11 @@ export const AuditAction = {
    * holder details the source returned.
    */
   IDENTITY_VERIFICATION_CHECKED: 'identity.verification_checked',
+  /**
+   * One paid verification attempt reached its outcome. Records the check type,
+   * status, price version and references — never the number checked.
+   */
+  VERIFICATION_CHARGE_COMPLETED: 'verification.charge_completed',
 
   VERIFICATION_SUBMITTED: 'verification.submitted',
   VERIFICATION_APPROVED: 'verification.approved',
@@ -396,6 +411,22 @@ export const AuditAction = {
   REFERRAL_CONVERTED: 'referral.converted',
   REFERRAL_ATTRIBUTION_REVOKED: 'referral.attribution_revoked',
   REFERRAL_ATTRIBUTION_EXPIRED: 'referral.attribution_expired',
+
+  /*
+   * Refer & Earn — the generic program, kept under its own prefix so an audit
+   * query for the salesman channel above never picks these up.
+   */
+  REFERRAL_PROGRAM_CODE_ISSUED: 'referral_program.code_issued',
+  REFERRAL_PROGRAM_SIGNUP: 'referral_program.signup',
+  REFERRAL_PROGRAM_QUALIFIED: 'referral_program.qualified',
+
+  /* Saarthi wallet. Automatic end to end — the trail is what explains a balance. */
+  WALLET_REWARD_CREDITED: 'wallet.reward_credited',
+  WALLET_REWARD_VOIDED: 'wallet.reward_voided',
+  WALLET_BANK_CONNECTED: 'wallet.bank_connected',
+  WALLET_CASHOUT_REQUESTED: 'wallet.cashout_requested',
+  WALLET_CASHOUT_PAID: 'wallet.cashout_paid',
+  WALLET_CASHOUT_FAILED: 'wallet.cashout_failed',
 
   COMMISSION_RULE_CREATED: 'commission.rule_created',
   COMMISSION_RULE_UPDATED: 'commission.rule_updated',

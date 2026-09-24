@@ -24,6 +24,13 @@ export interface SessionOrganization {
   membershipRole: RoleName;
   membershipStatus: MembershipStatus;
   /**
+   * Set while the account is archived for non-payment. The app then shows
+   * only the renewal screen; `dataPurgeAt` is when its data is deleted if it
+   * is not renewed first.
+   */
+  billingArchivedAt?: string | null;
+  dataPurgeAt?: string | null;
+  /**
    * True when this organization is one person's seat rather than a business.
    *
    * A driver who signs up without an employer's invite code is given a

@@ -121,6 +121,17 @@ const STATUS_VARIANTS: Record<string, Variant> = {
   CONVERTED: 'success',
   REVOKED: 'destructive',
 
+  // Refer & Earn. Separate values from the salesman attribution above, so the
+  // two programs can never be read as one.
+  SIGNED_UP: 'info',
+  QUALIFIED: 'success',
+
+  // Wallet. A held reward is not money yet, so it is a warning rather than a
+  // success; PAID and FAILED on a cash-out share the colours above.
+  HELD: 'warning',
+  VOID: 'muted',
+  PROCESSING: 'info',
+
   /*
    * Commission.
    *

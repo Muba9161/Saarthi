@@ -527,6 +527,17 @@ function BidCard({
         </Badge>
       ) : null}
 
+      {bid.deliversMaterial ? (
+        <div className="mt-2 space-y-1">
+          <Badge variant="accent" size="sm">
+            Material + delivery
+          </Badge>
+          <p className="text-xs text-muted-foreground">
+            The fleet supplies the material and delivers it. Pay 30% on award, the rest after delivery.
+          </p>
+        </div>
+      ) : null}
+
       {bid.leadTimeDays !== null ? (
         <p className="mt-1 text-xs text-muted-foreground">
           Ready in {bid.leadTimeDays} day{bid.leadTimeDays === 1 ? '' : 's'}

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -31,9 +31,22 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>;
 
+/**
+ * Where to go after signing in, from `?next=`.
+ *
+ * Only a path on this site is honoured — it must start with one `/` — so the
+ * parameter cannot be used to bounce somebody to another origin.
+ */
+function safeNext(value: string | null): string | null {
+  if (!value || !value.startsWith('/') || value.startsWith('//') || value.startsWith('/\\')) return null;
+  return value;
+}
+
 export function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const next = safeNext(searchParams.get('next'));
   const t = useT();
   const [formError, setFormError] = React.useState<string | null>(null);
 
@@ -46,7 +59,7 @@ export function LoginPage() {
     setFormError(null);
     try {
       await login(values.email, values.password);
-      navigate('/', { replace: true });
+      navigate(next ?? '/', { replace: true });
     } catch (error) {
       const message =
         error instanceof ApiError

@@ -78,6 +78,19 @@ export const errors = {
     details: { subjectType: string; kind: string; grandfathered: boolean },
   ) => new AppError(403, ErrorCode.IDENTITY_VERIFICATION_REQUIRED, message, { details }),
 
+  /** A billable check was attempted without its verification fee being paid. */
+  paymentRequired: (message: string, details?: Record<string, unknown>) =>
+    new AppError(402, ErrorCode.PAYMENT_REQUIRED, message, { details }),
+
+  /** The organization is archived for non-payment — see `account-retention`. */
+  accountArchived: (details?: Record<string, unknown>) =>
+    new AppError(
+      402,
+      ErrorCode.ACCOUNT_ARCHIVED,
+      'This account is archived because its plan was not renewed. Renew it to restore everything.',
+      { details },
+    ),
+
   notFound: (resource = 'Record', message?: string) =>
     new AppError(404, ErrorCode.NOT_FOUND, message ?? `${resource} could not be found.`, {
       details: { resource },

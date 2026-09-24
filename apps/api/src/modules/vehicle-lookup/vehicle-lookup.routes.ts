@@ -5,6 +5,7 @@ import {
   lookupIdParamSchema,
   storedLookupQuerySchema,
   vehicleLookupSchema,
+  vehicleRcPrefillSchema,
 } from '@saarthi/shared';
 import { config } from '../../config/env';
 import { ok, parseBody, parseParams, parseQuery } from '../../lib/http';
@@ -92,6 +93,49 @@ export async function vehicleLookupRoutes(app: FastifyInstance): Promise<void> {
         result,
         budgetRemaining === null ? undefined : { budgetRemaining },
       );
+    },
+  );
+
+  /**
+   * Adding a vehicle by its RC number: the details to fill the form with.
+   *
+   * Free to the customer — Saarthi carries the lookup when a vehicle is being
+   * added — and gated like every other lookup: the same permission, plan
+   * entitlement, rate limit and audit entry.
+   */
+  app.post(
+    '/rc-prefill',
+    {
+      config: {
+        rateLimit: {
+          max: config.vehicleRc.rateLimitMax,
+          timeWindow: config.vehicleRc.rateLimitWindow,
+        },
+      },
+      preHandler: [
+        requirePermission(Permission.VEHICLE_LOOKUP),
+        requireFeature(Feature.FLEET_BASIC),
+      ],
+    },
+    async (request, reply) => {
+      const auth = requireAuth(request);
+      const { registrationNumber } = parseBody(vehicleRcPrefillSchema, request.body);
+      const { prefill, outcome } = await vehicleLookupService.prefillVehicleFromRc(auth, registrationNumber);
+
+      await auditFromRequest(request, {
+        action: AuditAction.VEHICLE_RC_LOOKUP,
+        entityType: 'VehicleLookup',
+        entityId: outcome.audit.lookupId,
+        after: {
+          registrationNumber: outcome.audit.registrationNumber,
+          cached: outcome.audit.cached,
+          pdfStored: outcome.audit.pdfStored,
+          providerReference: outcome.audit.providerReference,
+          purpose: 'add-vehicle-prefill',
+        },
+      });
+
+      return ok(reply, prefill);
     },
   );
 

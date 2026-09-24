@@ -14,29 +14,25 @@ import {
   KeyRound,
   Languages,
   MapPin,
-  Minus,
   Package,
   Plane,
-  Plus,
   ShieldCheck,
-  ShoppingCart,
   Truck,
   UserRound,
-  Users,
 } from 'lucide-react';
 import {
+  DEFAULT_TRACKER_PRODUCT,
+  DEFAULT_TRIAL_DAYS,
   MediaOwnerType,
   MediaPurpose,
   ORGANIZATION_NAME_REQUIRED_ROLES,
   PLAN_CATALOGUE,
-  PLAN_LIMITS,
   PlanTier,
   RoleName,
   VEHICLE_TOPUP,
-  VEHICLE_TRACKER,
   formatCurrency,
-  quoteSubscription,
   registerSchema,
+  registrationRole,
   registrationRunsVehicles,
   type RegisterInput,
   type SessionPayload,
@@ -69,6 +65,7 @@ import {
 import { LanguageGrid, useLocale } from '@/features/i18n';
 import { LEGAL_LINKS } from '@/features/legal/legal-links';
 import { forgetReferralCode, resolveReferralCode } from '@/features/sales/referral-code';
+import { markFleetWelcomePending } from '@/features/fleet/fleet-welcome-dialog';
 import { useAuth } from '@/features/auth/auth-context';
 import { ApiError } from '@/lib/api-client';
 import { uploadImageOrWarn } from '@/features/media/upload-image';
@@ -91,25 +88,16 @@ import { cn } from '@/lib/utils';
  * That is also why the account type is a step of its own rather than one field
  * among eleven: it is the decision the rest of the form depends on, and the
  * fourth step asks entirely different questions once a driver has picked it.
+ *
+ * Only the account types the Business plan is sold to (`PLAN_ACCOUNT_TYPES`):
+ * a customer, a supplier and a driver each have their own first answer.
  */
 const ACCOUNT_TYPES = [
   {
     role: RoleName.FLEET_OWNER,
     icon: Truck,
     title: 'Fleet owner',
-    description: 'I own trucks and want to manage my fleet and win loads.',
-  },
-  {
-    role: RoleName.CUSTOMER,
-    icon: ShoppingCart,
-    title: 'Customer',
-    description: 'I need materials, transport, a cab or a tour, and want offers to compare.',
-  },
-  {
-    role: RoleName.SUPPLIER,
-    icon: Package,
-    title: 'Supplier',
-    description: 'I sell materials and arrange dispatch from my yard.',
+    description: 'I run trucks and want to manage my fleet and win loads.',
   },
   {
     role: RoleName.MOBILITY_PROVIDER,
@@ -123,28 +111,20 @@ const ACCOUNT_TYPES = [
     title: 'Truck association',
     description: 'I represent a district association coordinating roadside help.',
   },
-  {
-    role: RoleName.DRIVER,
-    icon: Building2,
-    title: 'Driver',
-    description: 'I drive for a fleet that already uses Saarthi.',
-  },
 ] as const;
 
 /**
  * The first question, and the one that decides the shape of the rest.
  *
- * Four answers rather than a plan grid, because they are not the same kind of
- * thing: three are plans and one is somebody joining an employer who already
+ * Five answers rather than a plan grid, because they are not the same kind of
+ * thing: four are plans and one is somebody joining an employer who already
  * pays. Asking "which plan?" would have forced a driver to price a product
  * they are not buying.
  *
- * Choosing Personal or Free ends the questions about *what kind of business
- * you are* — a person with three cars is not a business, and neither is
- * somebody ordering a load of sand for a house they are building. Being asked
- * to declare themselves a fleet owner, a supplier or an association was the
- * single most confusing moment on this form. Only Business goes on to
- * `ACCOUNT_TYPES`.
+ * Choosing Personal, Free or Supplier ends the questions about *what kind of
+ * business you are* — a person with a car is not a business, somebody ordering
+ * a load of sand for their house is not one either, and a supplier has just
+ * said what it is. Only Business goes on to `ACCOUNT_TYPES`.
  *
  * Free is the answer that was missing, and its absence is what made this form
  * wrong rather than merely long. Somebody who wants Saarthi to find the nearest
@@ -161,9 +141,9 @@ const ACCOUNT_INTENTS = [
     planTier: PlanTier.PERSONAL,
     role: RoleName.FLEET_OWNER,
     icon: Car,
-    title: 'The vehicles are mine',
+    title: 'The vehicle is mine',
     description:
-      'A car, a tempo or a few of each. Track them, keep their papers, watch the EMI and the toll.',
+      'Your own car, SUV or other personal vehicle - not trucks. Track it, keep its papers, watch the EMI and the toll.',
   },
   {
     id: 'free' as const,
@@ -179,9 +159,18 @@ const ACCOUNT_INTENTS = [
     planTier: PlanTier.BUSINESS,
     role: null,
     icon: Briefcase,
-    title: 'I run a transport business',
+    title: 'I run a fleet or a travel business',
     description:
-      'A fleet, a supply yard, a travel business, an association - or you buy transport. Bid, dispatch and invoice.',
+      'Trucks, or taxis, buses and tours - or an association, or you buy transport. Dispatch, drivers and the marketplace.',
+  },
+  {
+    id: 'supplier' as const,
+    planTier: PlanTier.SUPPLIER,
+    role: RoleName.SUPPLIER,
+    icon: Package,
+    title: 'I supply materials',
+    description:
+      'Sell from your yard: catalogue, stock, requirements and orders. No vehicle or fleet to set up.',
   },
   {
     id: 'driver' as const,
@@ -200,6 +189,7 @@ const INTENT_TIER: Record<AccountIntent, PlanTier | null> = {
   personal: PlanTier.PERSONAL,
   free: PlanTier.FREE,
   business: PlanTier.BUSINESS,
+  supplier: PlanTier.SUPPLIER,
   driver: null,
 };
 
@@ -219,6 +209,10 @@ function intentPrice(id: AccountIntent): string | null {
     ? null
     : `${formatCurrency(price)}/month`;
 }
+
+/** The Supplier plan's monthly price, GST included. */
+const SUPPLIER_PRICE =
+  PLAN_CATALOGUE.find((candidate) => candidate.tier === PlanTier.SUPPLIER)?.priceMonthly ?? 0;
 
 /** What the organization is called depends on what kind of business it is. */
 const ORGANIZATION_LABEL: Partial<Record<RoleName, string>> = {
@@ -245,201 +239,44 @@ const ORGANIZATION_PLACEHOLDER: Partial<Record<RoleName, string>> = {
 /**
  * Days of free trial, mirroring `SUBSCRIPTION_TRIAL_DAYS` on the API.
  *
- * From the build config rather than written into the copy: a summary that says
- * "free for 30 days" against a server that grants 14 is a summary that
- * mis-sells. Falls back to 0, which presents the price as due now — the safe
- * direction to be wrong in.
+ * From the build config rather than written into the copy, so the summary
+ * cannot quote a period the server does not honour. Unset, both sides fall
+ * back to the same shared default.
  */
 const REGISTRATION_TRIAL_DAYS = (() => {
   const parsed = Number.parseInt(
     (import.meta.env.VITE_SUBSCRIPTION_TRIAL_DAYS as string | undefined) ?? '',
     10,
   );
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : DEFAULT_TRIAL_DAYS;
 })();
 
 /**
- * A stepper for one line of the order.
+ * What a paid plan includes, in one line, where the order summary used to be.
  *
- * Typeable as well as steppable: somebody with nine trucks should not press a
- * button nine times, and somebody with three should not have to open a
- * keyboard to say so.
+ * Nothing is bought at signup: the plan's included vehicle is on the account
+ * from the start, extra vehicles are added in the app when the second one is,
+ * and a tracker is bought from the vehicle's telemetry screen.
  */
-function OrderCount({
-  label,
-  hint,
-  value,
-  min,
-  max,
-  onChange,
-}: {
-  label: string;
-  hint: string;
-  value: number;
-  min: number;
-  max: number;
-  onChange: (next: number) => void;
-}) {
-  const clamp = (next: number): number => Math.min(max, Math.max(min, next));
-
-  return (
-    <div className="flex items-center justify-between gap-3 py-2">
-      <div className="min-w-0">
-        <p className="text-sm font-medium">{label}</p>
-        <p className="mt-0.5 text-xs text-muted-foreground">{hint}</p>
-      </div>
-
-      <div className="inline-flex shrink-0 items-center rounded-full border border-border/70 bg-background/60 p-0.5">
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="size-7 rounded-full"
-          onClick={() => onChange(clamp(value - 1))}
-          disabled={value <= min}
-          aria-label={`One fewer - ${label}`}
-        >
-          <Minus className="size-3.5" aria-hidden />
-        </Button>
-
-        <label>
-          <span className="sr-only">{label}</span>
-          <input
-            type="number"
-            min={min}
-            max={max}
-            value={value}
-            onChange={(event) => {
-              const next = Number.parseInt(event.target.value, 10);
-              // A cleared or half-typed field must not blank the total, so
-              // anything unparseable holds the last good number.
-              if (Number.isFinite(next)) onChange(clamp(next));
-            }}
-            className="w-9 border-0 bg-transparent p-0 text-center text-sm font-semibold tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-ring [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-          />
-        </label>
-
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="size-7 rounded-full"
-          onClick={() => onChange(clamp(value + 1))}
-          disabled={value >= max}
-          aria-label={`One more - ${label}`}
-        >
-          <Plus className="size-3.5" aria-hidden />
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-/**
- * What is being subscribed to, itemised.
- *
- * The same `quoteSubscription` the pricing card uses, so the figure somebody
- * clicked Subscribe on is the figure they see here and the figure the API
- * charges. Three surfaces doing the arithmetic separately is how a customer
- * ends up quoted one number and billed another.
- */
-function OrderSummary({
-  tier,
-  billing,
-  vehicles,
-  trackers,
-  onVehicles,
-  onTrackers,
-}: {
-  tier: PlanTier;
-  billing: 'monthly' | 'yearly';
-  vehicles: number;
-  trackers: number;
-  onVehicles: (next: number) => void;
-  onTrackers: (next: number) => void;
-}) {
+function PlanNote({ tier, runsVehicles }: { tier: PlanTier; runsVehicles: boolean }) {
   const { t } = useLocale();
-
-  const quote = quoteSubscription({ tier, vehicles, trackers, billing });
-  const limits = PLAN_LIMITS[tier];
-
-  const vehicleMax =
-    limits.maxTrucks === null ? 500 : limits.maxTrucks + limits.maxVehicleTopUps;
-  const trackerMax =
-    limits.maxTrackers === null ? vehicles : Math.min(limits.maxTrackers, vehicles);
+  const price = PLAN_CATALOGUE.find((plan) => plan.tier === tier)?.priceMonthly ?? 0;
 
   return (
     <div className="glass-inset mt-3 p-3.5">
-      <p className="text-sm font-medium">{t('What you are subscribing to')}</p>
-
-      <div className="mt-1 divide-y divide-border/50">
-        <OrderCount
-          label={t('Vehicles')}
-          hint={t('1 included, then {price} a month each', {
-            price: formatCurrency(VEHICLE_TOPUP.priceMonthly),
-          })}
-          value={vehicles}
-          min={1}
-          max={vehicleMax}
-          onChange={onVehicles}
-        />
-        <OrderCount
-          label={t('Trackers')}
-          hint={t('{price} each, charged once. Optional.', {
-            price: formatCurrency(VEHICLE_TRACKER.priceOneTime),
-          })}
-          value={Math.min(trackers, trackerMax)}
-          min={0}
-          max={trackerMax}
-          onChange={onTrackers}
-        />
-      </div>
-
-      {/* Itemised, because a total somebody cannot reconstruct is a total they
-          do not trust — and because the hardware has to read as separate from
-          what renews. */}
-      <dl className="mt-3 space-y-1 border-t border-border/50 pt-3">
-        {quote.lines.map((line) => (
-          <div key={line.label} className="flex items-baseline justify-between gap-3 text-xs">
-            <dt className="min-w-0 truncate text-muted-foreground">
-              {line.label}
-              {line.cadence === 'once' ? (
-                <span className="ml-1.5 text-2xs uppercase tracking-wide">{t('once')}</span>
-              ) : null}
-            </dt>
-            <dd className="shrink-0 tabular-nums">{formatCurrency(line.amount)}</dd>
-          </div>
-        ))}
-
-        <div className="flex items-baseline justify-between gap-3 border-t border-border/50 pt-2 text-xs">
-          <dt className="text-muted-foreground">{t('Subtotal')}</dt>
-          <dd className="tabular-nums">{formatCurrency(quote.dueNow.subtotal)}</dd>
-        </div>
-        <div className="flex items-baseline justify-between gap-3 text-xs">
-          <dt className="text-muted-foreground">
-            {t('GST {percent}%', { percent: Math.round(quote.gstRate * 100) })}
-          </dt>
-          <dd className="tabular-nums">{formatCurrency(quote.dueNow.gst)}</dd>
-        </div>
-
-        {/* The number somebody checks before they commit. Given its own rule
-            and its own weight, because everything above it is working towards
-            it. */}
-        <div className="flex items-baseline justify-between gap-3 border-t border-border pt-2 text-base font-semibold">
-          <dt>{t('Total to pay')}</dt>
-          <dd className="tabular-nums">{formatCurrency(quote.dueNow.total)}</dd>
-        </div>
-      </dl>
-
-      <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+      <p className="text-sm font-medium">
         {REGISTRATION_TRIAL_DAYS > 0
-          ? t('Free for {days} days - nothing is charged today. Cancel before then and you pay nothing.', {
-              days: REGISTRATION_TRIAL_DAYS,
+          ? t('Free for {days} days - nothing is charged today', { days: REGISTRATION_TRIAL_DAYS })
+          : t('Nothing is charged until you confirm your plan')}
+      </p>
+      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+        {runsVehicles
+          ? t('Then {price} a month, including one vehicle. Add more vehicles and trackers from the app whenever you need them.', {
+              price: formatCurrency(price),
             })
-          : ''}{' '}
-        {trackers > 0
-          ? t('Trackers arrive unfitted - add your vehicles, then assign each one.')
-          : ''}
+          : t('Then {price} a month. No vehicles, trackers or drivers to set up.', {
+              price: formatCurrency(price),
+            })}
       </p>
     </div>
   );
@@ -474,72 +311,20 @@ export function RegisterPage() {
   const { locale, setLocale, t } = useLocale();
 
   /**
-   * What the visitor configured on the pricing card, from the query string.
+   * The plan the visitor chose on the pricing card, from `?plan=`.
    *
-   * Honoured rather than ignored because somebody who has just set their fleet
-   * size, added two trackers and clicked Subscribe has already answered these
-   * questions; asking again reads as though the click did nothing — and worse,
-   * would quietly sign them up for one vehicle after they priced nine.
-   *
-   * Every value is clamped here rather than trusted. The API re-prices the
-   * order from its own catalogue regardless, so a hand-edited link cannot buy
-   * anything cheaply; this only keeps the form from rendering nonsense.
+   * Only the plan: vehicles and trackers are no longer part of signing up.
+   * Somebody adds their vehicles once they are in, buys an extra vehicle slot
+   * when they add the second one, and buys a tracker from the vehicle's
+   * telemetry screen — so nobody is asked to buy anything before they have
+   * seen the product.
    */
-  const linked = React.useMemo(() => {
-    const requestedPlan = searchParams.get('plan')?.toLowerCase();
-    const plan: AccountIntent | null =
-      requestedPlan === 'personal'
-        ? 'personal'
-        : requestedPlan === 'free'
-          ? 'free'
-          : requestedPlan === 'business'
-            ? 'business'
-            : null;
-
-    const count = (key: string, min: number, max: number, fallback: number): number => {
-      const parsed = Number.parseInt(searchParams.get(key) ?? '', 10);
-      return Number.isFinite(parsed) ? Math.min(max, Math.max(min, parsed)) : fallback;
-    };
-
-    const vehicles = count('vehicles', 1, 500, 1);
-
-    return {
-      plan,
-      vehicles,
-      // A tracker is fitted to a vehicle, so the fleet size is its ceiling.
-      trackers: Math.min(count('trackers', 0, 500, 0), vehicles),
-      billing: searchParams.get('billing') === 'yearly' ? ('yearly' as const) : ('monthly' as const),
-    };
+  const linkedPlan = React.useMemo((): AccountIntent | null => {
+    const requested = searchParams.get('plan')?.toLowerCase();
+    return requested === 'personal' || requested === 'free' || requested === 'business' || requested === 'supplier'
+      ? requested
+      : null;
   }, [searchParams]);
-
-  const linkedPlan = linked.plan;
-
-  /**
-   * The order the form actually opens with.
-   *
-   * A hand-typed or stale link can name a plan and a fleet size that do not go
-   * together — `?plan=free&vehicles=9&trackers=4` is the obvious one, and it is
-   * exactly what a bookmarked pricing-card link becomes after somebody switches
-   * plan. Honouring it verbatim would open the form already holding an order
-   * the schema will reject, and reject it on the last step against a field the
-   * reader can no longer see.
-   *
-   * So the same rule that gates the summary gates the defaults: an account that
-   * runs vehicles opens with what it was sent, and one that does not opens with
-   * none. `chooseIntent` and the account-type step re-apply it whenever the
-   * answer changes, through `syncOrderToAccount`.
-   */
-  const linkedOrder = React.useMemo(() => {
-    const intentDefinition = ACCOUNT_INTENTS.find((candidate) => candidate.id === linkedPlan);
-    const runs = registrationRunsVehicles({
-      role: intentDefinition?.role ?? undefined,
-      planTier: (linkedPlan && INTENT_TIER[linkedPlan]) ?? undefined,
-    });
-
-    return runs
-      ? { vehicles: linked.vehicles, trackers: linked.trackers }
-      : { vehicles: 1, trackers: 0 };
-  }, [linkedPlan, linked.vehicles, linked.trackers]);
 
   /**
    * The referral this registration arrived through.
@@ -572,9 +357,10 @@ export function RegisterPage() {
       // nobody gave.
       role: ACCOUNT_INTENTS.find((candidate) => candidate.id === linkedPlan)?.role ?? undefined,
       planTier: (linkedPlan && INTENT_TIER[linkedPlan]) ?? undefined,
-      planBilling: linked.billing,
-      planVehicles: linkedOrder.vehicles,
-      planTrackers: linkedOrder.trackers,
+      // Nothing is ordered at signup: the plan's included vehicle, no trackers.
+      planVehicles: 1,
+      planTrackers: 0,
+      planTrackerProduct: DEFAULT_TRACKER_PRODUCT,
       driveMyself: false,
       organizationName: '',
       // Whatever the browser or a previous visit already settled on, so the
@@ -598,29 +384,13 @@ export function RegisterPage() {
 
   const role = form.watch('role');
   const planTier = form.watch('planTier');
-  const billing = form.watch('planBilling');
-  const planVehicles = form.watch('planVehicles');
-  const planTrackers = form.watch('planTrackers');
   const driveMyself = form.watch('driveMyself');
 
   const isPersonal = planTier === PlanTier.PERSONAL;
   const isBusiness = planTier === PlanTier.BUSINESS;
   const isDriver = role === RoleName.DRIVER;
 
-  /**
-   * Whether this account enters the vehicle and tracker ecosystem at all.
-   *
-   * The one question the order summary below hangs off, answered by the same
-   * shared rule the schema and the API use, so the form cannot offer what the
-   * API would refuse.
-   *
-   * It is false for Free, false for a supplier, a customer and an association,
-   * and false for a Business registration that has not yet said what kind of
-   * business it is. That last case is why the summary moved: this step used to
-   * ask "how many vehicles? how many trackers?" *before* the account-type step
-   * had been reached, so every business registrant was priced for trucks —
-   * including the ones who sell cement out of a yard and own none.
-   */
+  /** Whether this account runs vehicles — decides what the plan note says. */
   const runsVehicles = registrationRunsVehicles({ role, planTier });
   // A customer may be one person with no company at all — the API names the
   // organization after them when this is left blank.
@@ -635,28 +405,6 @@ export function RegisterPage() {
    * belongs on their profile is their face.
    */
   const wantsLogo = !isPersonal && Boolean(role) && ORGANIZATION_NAME_REQUIRED_ROLES.includes(role as never);
-
-  /**
-   * Put the vehicle and tracker order back in step with the account.
-   *
-   * Called whenever the plan or the kind of business changes, because both
-   * decide whether there is an order at all. An account that runs vehicles gets
-   * back whatever the pricing card sent it here with; one that does not is
-   * reset to the schema's own defaults — one vehicle, no trackers — which is
-   * what "nothing ordered" looks like on the wire.
-   */
-  const syncOrderToAccount = (
-    tier: PlanTier | null | undefined,
-    nextRole: RoleName | undefined,
-  ): void => {
-    const runs = registrationRunsVehicles({
-      role: nextRole as RegisterInput['role'],
-      planTier: tier ?? undefined,
-    });
-
-    form.setValue('planVehicles', runs ? linked.vehicles : 1, { shouldValidate: false });
-    form.setValue('planTrackers', runs ? linked.trackers : 0, { shouldValidate: false });
-  };
 
   /**
    * Answering the first question sets the plan and, for the two answers that
@@ -679,17 +427,6 @@ export function RegisterPage() {
     if (definition.planTier !== PlanTier.PERSONAL) {
       form.setValue('driveMyself', false, { shouldValidate: false });
     }
-
-    /*
-     * The order, reset to what this answer can actually hold.
-     *
-     * Somebody who priced nine vehicles on the pricing card and then chose Free
-     * would otherwise carry the nine into a plan that covers none — and the
-     * schema would reject the registration at the last step, on a field they
-     * can no longer see. So the order is restored for an answer that runs
-     * vehicles and cleared for one that does not.
-     */
-    syncOrderToAccount(definition.planTier, definition.role ?? undefined);
   };
 
   // Switching account type changes what the image *means*. Carrying a company
@@ -776,7 +513,17 @@ export function RegisterPage() {
       // it: the account now exists and its attribution is settled server-side.
       forgetReferralCode();
       if (image) await uploadImage(session, image);
-      navigate('/', { replace: true });
+      // An owner who employs drivers is greeted with their joining code.
+      const createdRole = registrationRole(values);
+      if (createdRole === RoleName.FLEET_OWNER || createdRole === RoleName.MOBILITY_PROVIDER) {
+        markFleetWelcomePending();
+      }
+      // A paid plan goes on to activation: pay for any extras ordered here and
+      // approve autopay for when the trial ends — both through Cashfree.
+      const tier = session.subscription?.planTier;
+      const paidPlan =
+        tier === PlanTier.PERSONAL || tier === PlanTier.BUSINESS || tier === PlanTier.SUPPLIER;
+      navigate(paidPlan ? '/activate' : '/', { replace: true });
     } catch (error) {
       if (error instanceof ApiError) {
         // Re-attach server-side field errors to the matching inputs.
@@ -795,569 +542,12 @@ export function RegisterPage() {
     }
   };
 
-  const stepCandidates: (WizardStep | null)[] = [
-    {
-      /*
-       * First, before anything else is asked.
-       *
-       * Every later step is a question, and a question is useless to someone
-       * who cannot read it. Choosing the language applies it immediately —
-       * the rest of this wizard re-renders in it — so the form the person
-       * fills in is one they can actually read.
-       */
-      id: 'language',
-      title: t('Your language'),
-      description: t('How Saarthi speaks to you.'),
-      icon: Languages,
-      fields: ['preferredLanguage'],
-      content: (
-        <FormField
-          control={form.control}
-          name="preferredLanguage"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel required>{t('Which language should Saarthi use?')}</FormLabel>
-              <FormDescription>{t('You can change this later from your profile.')}</FormDescription>
-              <div className="pt-1">
-                <LanguageGrid
-                  value={field.value ?? locale}
-                  onChange={(next) => {
-                    field.onChange(next);
-                    // Apply at once rather than on submit: the remaining steps
-                    // should already be in the language just chosen.
-                    setLocale(next);
-                  }}
-                />
-              </div>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      ),
-    },
-    {
-      /*
-       * The decision the rest of the form depends on.
-       *
-       * Second rather than first only because a question has to be readable
-       * before it can be answered. Everything after this branches on it: a
-       * Personal customer is never asked what kind of business they are, and a
-       * driver is never asked to pay.
-       */
-      id: 'plan',
-      title: t('What brings you here'),
-      description: t('This decides what we set up.'),
-      icon: Briefcase,
-      fields: ['planTier', 'planVehicles', 'planTrackers'],
-      content: (
-        <FormField
-          control={form.control}
-          name="planTier"
-          render={() => (
-            <FormItem>
-              <FormLabel required>{t('Which of these is you?')}</FormLabel>
-              <FormDescription>
-                {t(
-                  'Free covers no vehicle and costs nothing. The paid plans cover one, and extra vehicles are {price} a month each.',
-                  { price: formatCurrency(VEHICLE_TOPUP.priceMonthly) },
-                )}
-              </FormDescription>
-
-              <div
-                role="radiogroup"
-                aria-label={t('Which of these is you?')}
-                className="grid grid-cols-1 gap-2.5 pt-1"
-              >
-                {ACCOUNT_INTENTS.map((option, index) => {
-                  const selected = intent === option.id;
-                  const price = intentPrice(option.id);
-                  return (
-                    <motion.button
-                      key={option.id}
-                      type="button"
-                      role="radio"
-                      aria-checked={selected}
-                      onClick={() => chooseIntent(option.id)}
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3, delay: index * 0.04, ease: [0.16, 1, 0.3, 1] }}
-                      whileTap={{ scale: 0.985 }}
-                      className={cn(
-                        'glass-inset relative flex items-start gap-3 p-3.5 pr-9 text-left',
-                        'transition-[background-color,border-color,box-shadow,transform] duration-200 ease-smooth',
-                        selected
-                          ? 'glass-choice-selected'
-                          : 'hover:-translate-y-0.5 hover:border-white/70 hover:bg-white/60 dark:hover:bg-white/[0.06]',
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          'flex size-9 shrink-0 items-center justify-center rounded-lg transition-colors duration-200',
-                          selected
-                            ? 'bg-primary/15 text-primary'
-                            : 'bg-muted/60 text-muted-foreground dark:bg-white/[0.06]',
-                        )}
-                      >
-                        <option.icon className="size-4" aria-hidden />
-                      </span>
-
-                      <span className="min-w-0 flex-1">
-                        <span className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                          <span className="text-sm font-medium">{t(option.title)}</span>
-                          <span className="text-xs font-medium tabular-nums text-muted-foreground">
-                            {price ?? t('No charge')}
-                          </span>
-                        </span>
-                        <span className="mt-0.5 block text-xs leading-snug text-muted-foreground">
-                          {t(option.description)}
-                        </span>
-                      </span>
-
-                      <AnimatePresence initial={false}>
-                        {selected ? (
-                          <motion.span
-                            key="tick"
-                            initial={{ opacity: 0, scale: 0.5 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.5 }}
-                            transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-                            className="absolute right-3 top-3 flex size-4 items-center justify-center rounded-full bg-primary text-primary-foreground"
-                            aria-hidden
-                          >
-                            <Check className="size-2.5" strokeWidth={4} />
-                          </motion.span>
-                        ) : null}
-                      </AnimatePresence>
-                    </motion.button>
-                  );
-                })}
-              </div>
-
-              {/* Only shown once there is a plan to bill. A driver has nothing
-                  to choose a billing period for, and neither has a Free
-                  account - offering it monthly or yearly would imply a charge
-                  arriving one way or the other. */}
-              <AnimatePresence initial={false}>
-                {planTier && planTier !== PlanTier.FREE ? (
-                  <motion.div
-                    key="billing"
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-                    className="overflow-hidden"
-                  >
-                    <div className="glass-inset mt-3 flex flex-wrap items-center justify-between gap-3 p-3">
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium">{t('How would you like to pay?')}</p>
-                        <p className="mt-0.5 text-xs text-muted-foreground">
-                          {t('Yearly costs ten months instead of twelve.')}
-                        </p>
-                      </div>
-                      <div
-                        role="radiogroup"
-                        aria-label={t('How would you like to pay?')}
-                        className="inline-flex shrink-0 items-center gap-0.5 rounded-full border border-border/70 bg-card/60 p-1"
-                      >
-                        {(['monthly', 'yearly'] as const).map((option) => (
-                          <button
-                            key={option}
-                            type="button"
-                            role="radio"
-                            aria-checked={billing === option}
-                            onClick={() => form.setValue('planBilling', option)}
-                            className={cn(
-                              'rounded-full px-3.5 py-1 text-xs font-medium transition-colors duration-200',
-                              billing === option
-                                ? 'bg-primary text-primary-foreground'
-                                : 'text-muted-foreground hover:text-foreground',
-                            )}
-                          >
-                            {option === 'monthly' ? t('Monthly') : t('Yearly')}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </motion.div>
-                ) : null}
-              </AnimatePresence>
-
-              {/*
-                The order, priced and adjustable - for an account that runs
-                vehicles.
-
-                Shown here because this is where the money is decided: a reader
-                who arrived from the pricing card sees the same total they
-                clicked on, and one who came straight to /register can still say
-                how many vehicles they run without going back.
-
-                Gated on `runsVehicles` rather than on there being a plan, and
-                that is the fix rather than a refinement. This step comes before
-                the account-type step, so "is there a plan?" was true for every
-                business registrant before any of them had said what kind of
-                business they were - and a supplier, who owns no vehicle and has
-                nowhere to fit a tracker, was asked for both and charged for
-                them. A Business registrant now meets this question on the
-                account-type step instead, once the answer is known, and only if
-                the answer runs vehicles. A Free registrant never meets it.
-
-                `isPersonal` as well, so the order is asked once and on one
-                screen: a Business registrant who steps back to this question
-                after choosing their account type would otherwise be shown a
-                second copy of the summary they have already filled in.
-              */}
-              <AnimatePresence initial={false}>
-                {isPersonal && runsVehicles ? (
-                  <motion.div
-                    key="order"
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
-                    className="overflow-hidden"
-                  >
-                    <OrderSummary
-                      tier={PlanTier.PERSONAL}
-                      billing={billing}
-                      vehicles={planVehicles}
-                      trackers={planTrackers}
-                      onVehicles={(next) => {
-                        form.setValue('planVehicles', next, { shouldValidate: false });
-                        // Trackers are fitted to vehicles, so shrinking the
-                        // fleet has to release the surplus hardware.
-                        if (planTrackers > next) {
-                          form.setValue('planTrackers', next, { shouldValidate: false });
-                        }
-                      }}
-                      onTrackers={(next) =>
-                        form.setValue('planTrackers', next, { shouldValidate: false })
-                      }
-                    />
-                  </motion.div>
-                ) : null}
-              </AnimatePresence>
-
-              {/* What Free actually is, said where the price would otherwise
-                  be. A plan with no total needs to account for itself, or the
-                  blank space reads as a step that failed to load. */}
-              <AnimatePresence initial={false}>
-                {planTier === PlanTier.FREE ? (
-                  <motion.div
-                    key="free-note"
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
-                    className="overflow-hidden"
-                  >
-                    <div className="glass-inset mt-3 p-3.5">
-                      <p className="text-sm font-medium">{t('Nothing to pay')}</p>
-                      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                        {t(
-                          'Nearby services, the places around you, and tracking the orders you place. No vehicle, no tracker and no card - move to a paid plan whenever you actually need one.',
-                        )}
-                      </p>
-                    </div>
-                  </motion.div>
-                ) : null}
-              </AnimatePresence>
-
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      ),
-    },
-    /*
-     * Which kind of business — and only for a business.
-     *
-     * A supplier, a travel operator and an association get different halves of
-     * the product, and the API enforces that by organization type, so this
-     * cannot be corrected from the UI afterwards. A Personal customer never
-     * sees it: they are not choosing between kinds of business, and being made
-     * to declare themselves one was the most confusing moment on this form.
-     */
-    isBusiness
-      ? {
-      id: 'account-type',
-      title: t('Account type'),
-      description: t('What kind of business.'),
-      icon: Users,
-      // The order fields belong to this step for a business, because this is
-      // the step that decides whether there is an order at all. Listing them
-      // here is what makes the wizard validate them on the screen that asked
-      // them rather than three screens later.
-      fields: ['role', 'planVehicles', 'planTrackers'],
-      content: (
-        <FormField
-          control={form.control}
-          name="role"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel required>{t('I am a…')}</FormLabel>
-              <FormDescription>
-                {t(
-                  'This decides what Saarthi sets up for you. It cannot be changed later from here.',
-                )}
-              </FormDescription>
-              <div
-                role="radiogroup"
-                aria-label={t('I am a…')}
-                className="grid grid-cols-1 gap-2.5 pt-1 sm:grid-cols-2"
-              >
-                {ACCOUNT_TYPES.map((type, index) => {
-                  const selected = field.value === type.role;
-                  return (
-                    <motion.button
-                      key={type.role}
-                      type="button"
-                      role="radio"
-                      aria-checked={selected}
-                      onClick={() => {
-                        field.onChange(type.role);
-                        // A supplier and a fleet owner buy the same plan and
-                        // own very different things. Re-syncing here is what
-                        // keeps a fleet's nine vehicles off a supplier's order
-                        // when somebody changes their mind on this screen.
-                        syncOrderToAccount(PlanTier.BUSINESS, type.role);
-                      }}
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{
-                        duration: 0.3,
-                        delay: index * 0.035,
-                        ease: [0.16, 1, 0.3, 1],
-                      }}
-                      whileTap={{ scale: 0.985 }}
-                      className={cn(
-                        'glass-inset relative flex items-start gap-3 p-3 pr-8 text-left',
-                        'transition-[background-color,border-color,box-shadow,transform] duration-200 ease-smooth',
-                        selected
-                          ? 'glass-choice-selected'
-                          : 'hover:-translate-y-0.5 hover:border-white/70 hover:bg-white/60 dark:hover:bg-white/[0.06]',
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          'flex size-9 shrink-0 items-center justify-center rounded-lg transition-colors duration-200',
-                          selected
-                            ? 'bg-primary/15 text-primary'
-                            : 'bg-muted/60 text-muted-foreground dark:bg-white/[0.06]',
-                        )}
-                      >
-                        <type.icon className="size-4" aria-hidden />
-                      </span>
-
-                      <span className="min-w-0">
-                        <span className="block text-sm font-medium">{t(type.title)}</span>
-                        <span className="mt-0.5 block text-xs leading-snug text-muted-foreground">
-                          {t(type.description)}
-                        </span>
-                      </span>
-
-                      {/* A tick, not just a tint: the selected card has to be
-                          obvious to someone reading the labels in a script
-                          they know and the colours in bright sunlight. */}
-                      <AnimatePresence initial={false}>
-                        {selected ? (
-                          <motion.span
-                            key="tick"
-                            initial={{ opacity: 0, scale: 0.5 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.5 }}
-                            transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-                            className="absolute right-2.5 top-2.5 flex size-4 items-center justify-center rounded-full bg-primary text-primary-foreground"
-                            aria-hidden
-                          >
-                            <Check className="size-2.5" strokeWidth={4} />
-                          </motion.span>
-                        ) : null}
-                      </AnimatePresence>
-                    </motion.button>
-                  );
-                })}
-              </div>
-
-              {/*
-                How many vehicles, and how many trackers - asked here, and only
-                of the businesses that have any.
-
-                This moved off the plan step deliberately. A fleet owner and a
-                travel operator run vehicles; a supplier sells material out of a
-                yard, a customer buys transport rather than providing it, and an
-                association coordinates its members' vehicles rather than owning
-                any. Asked before this answer existed, the question was put to
-                all five - and the two who said "nine vehicles, three trackers"
-                by accident were charged for hardware that can never be fitted.
-
-                `runsVehicles` is the shared rule, so this shows exactly when
-                the schema would accept an order and the API would provision
-                one.
-              */}
-              <AnimatePresence initial={false}>
-                {runsVehicles ? (
-                  <motion.div
-                    key="business-order"
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
-                    className="overflow-hidden"
-                  >
-                    <OrderSummary
-                      tier={PlanTier.BUSINESS}
-                      billing={billing}
-                      vehicles={planVehicles}
-                      trackers={planTrackers}
-                      onVehicles={(next) => {
-                        form.setValue('planVehicles', next, { shouldValidate: false });
-                        // Trackers are fitted to vehicles, so shrinking the
-                        // fleet has to release the surplus hardware.
-                        if (planTrackers > next) {
-                          form.setValue('planTrackers', next, { shouldValidate: false });
-                        }
-                      }}
-                      onTrackers={(next) =>
-                        form.setValue('planTrackers', next, { shouldValidate: false })
-                      }
-                    />
-                  </motion.div>
-                ) : null}
-              </AnimatePresence>
-
-              {/* And for the businesses that run none, the reason they are not
-                  being asked - so the absence reads as an answer rather than as
-                  a step that failed to render. */}
-              <AnimatePresence initial={false}>
-                {role && !runsVehicles ? (
-                  <motion.div
-                    key="no-vehicle-note"
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
-                    className="overflow-hidden"
-                  >
-                    <div className="glass-inset mt-3 p-3.5">
-                      <p className="text-sm font-medium">{t('No vehicles to set up')}</p>
-                      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                        {t(
-                          'This account does not run vehicles, so Saarthi will not ask you for trucks, trackers or drivers. If that changes, you can switch to a plan that covers them without starting again.',
-                        )}
-                      </p>
-                    </div>
-                  </motion.div>
-                ) : null}
-              </AnimatePresence>
-
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      ),
-        }
-      : null,
-    {
-      id: 'your-details',
-      title: t('Your details'),
-      description: t('Who we should reach.'),
-      icon: UserRound,
-      fields: ['firstName', 'lastName', 'email', 'phone'],
-      content: (
-        <>
-          {/* Not a form field: it is not part of `registerSchema` and does not
-              travel with the registration — see `uploadImage`. */}
-          {!wantsLogo ? (
-            <ImageCircleField
-              value={image}
-              onChange={setImage}
-              label={t('Profile photo')}
-              hint={t('Optional · JPEG, PNG, WebP or HEIC up to {size} MB', {
-                size: IMAGE_MAX_SIZE_MB,
-              })}
-              accept={IMAGE_ACCEPT}
-              maxSizeMb={IMAGE_MAX_SIZE_MB}
-              icon={UserRound}
-              onReject={(reason) => toast.error(reason)}
-              className="pb-1"
-            />
-          ) : null}
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <FormField
-              control={form.control}
-              name="firstName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel required>{t('First name')}</FormLabel>
-                  <FormControl>
-                    <Input {...field} autoComplete="given-name" className="h-10" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="lastName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel required>{t('Last name')}</FormLabel>
-                  <FormControl>
-                    <Input {...field} autoComplete="family-name" className="h-10" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-
-          <FormField
-            control={form.control}
-            name="email"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel required>{t('Email address')}</FormLabel>
-                <FormControl>
-                  <Input
-                    {...field}
-                    type="email"
-                    inputMode="email"
-                    autoComplete="email"
-                    placeholder="you@company.com"
-                    className="h-10"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="phone"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel required>{t('Mobile number')}</FormLabel>
-                <FormControl>
-                  <Input
-                    {...field}
-                    type="tel"
-                    inputMode="tel"
-                    autoComplete="tel"
-                    placeholder="9876543210"
-                    className="h-10"
-                  />
-                </FormControl>
-                <FormDescription>{t('Indian mobile number, with or without +91.')}</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </>
-      ),
-    },
-    isPersonal
+  /**
+   * What only this kind of account is asked: a Personal owner whether they
+   * drive, a driver their licence and joining code, a business its name.
+   * Shown inside "Your details" so every registration is the same four steps.
+   */
+  const typeStep: WizardStep = isPersonal
       ? {
           /*
            * The switch a Personal customer needs and nobody else does.
@@ -1475,7 +665,7 @@ export function RegisterPage() {
                 name="fleetInviteCode"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('Fleet invite code')}</FormLabel>
+                    <FormLabel>{t('Fleet joining code (optional)')}</FormLabel>
                     <FormControl>
                       <Input
                         {...field}
@@ -1488,8 +678,8 @@ export function RegisterPage() {
                         translated in every language, and rewording it to carry
                         the second would have orphaned all eighteen. */}
                     <FormDescription>
-                      {t('Ask your truck owner for this code.')}{' '}
-                      {t('No code yet? Leave it blank and join your fleet later.')}
+                      {t('Have a code from a fleet owner? Enter it to work under their fleet.')}{' '}
+                      {t('Looking for work? Leave it blank - you can enter a code later, whenever a fleet takes you on.')}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -1570,7 +760,457 @@ export function RegisterPage() {
               />
             </>
           ),
-        },
+        };
+
+  const stepCandidates: (WizardStep | null)[] = [
+    {
+      /*
+       * First, before anything else is asked.
+       *
+       * Every later step is a question, and a question is useless to someone
+       * who cannot read it. Choosing the language applies it immediately —
+       * the rest of this wizard re-renders in it — so the form the person
+       * fills in is one they can actually read.
+       */
+      id: 'language',
+      title: t('Your language'),
+      description: t('How Saarthi speaks to you.'),
+      icon: Languages,
+      fields: ['preferredLanguage'],
+      content: (
+        <FormField
+          control={form.control}
+          name="preferredLanguage"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel required>{t('Which language should Saarthi use?')}</FormLabel>
+              <FormDescription>{t('You can change this later from your profile.')}</FormDescription>
+              <div className="pt-1">
+                <LanguageGrid
+                  value={field.value ?? locale}
+                  onChange={(next) => {
+                    field.onChange(next);
+                    // Apply at once rather than on submit: the remaining steps
+                    // should already be in the language just chosen.
+                    setLocale(next);
+                  }}
+                />
+              </div>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      ),
+    },
+    {
+      /*
+       * The decision the rest of the form depends on.
+       *
+       * Second rather than first only because a question has to be readable
+       * before it can be answered. Everything after this branches on it: a
+       * Personal customer is never asked what kind of business they are, and a
+       * driver is never asked to pay.
+       */
+      id: 'plan',
+      title: t('What brings you here'),
+      description: t('This decides what we set up.'),
+      icon: Briefcase,
+      // `role` too: a Business registrant answers the kind of business here.
+      fields: ['planTier', 'role'],
+      content: (
+        <>
+        <FormField
+          control={form.control}
+          name="planTier"
+          render={() => (
+            <FormItem>
+              <FormLabel required>{t('Which of these is you?')}</FormLabel>
+              <FormDescription>
+                {t(
+                  'Free covers no vehicle and costs nothing. Personal and Business include one vehicle, and extra vehicles are {price} a month each.',
+                  { price: formatCurrency(VEHICLE_TOPUP.priceMonthly) },
+                )}
+              </FormDescription>
+
+              <div
+                role="radiogroup"
+                aria-label={t('Which of these is you?')}
+                className="grid grid-cols-1 gap-2.5 pt-1"
+              >
+                {ACCOUNT_INTENTS.map((option, index) => {
+                  const selected = intent === option.id;
+                  const price = intentPrice(option.id);
+                  return (
+                    <motion.button
+                      key={option.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={selected}
+                      onClick={() => chooseIntent(option.id)}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3, delay: index * 0.04, ease: [0.16, 1, 0.3, 1] }}
+                      whileTap={{ scale: 0.985 }}
+                      className={cn(
+                        'glass-inset relative flex items-start gap-3 p-3.5 pr-9 text-left',
+                        'transition-[background-color,border-color,box-shadow,transform] duration-200 ease-smooth',
+                        selected
+                          ? 'glass-choice-selected'
+                          : 'hover:-translate-y-0.5 hover:border-white/70 hover:bg-white/60 dark:hover:bg-white/[0.06]',
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          'flex size-9 shrink-0 items-center justify-center rounded-lg transition-colors duration-200',
+                          selected
+                            ? 'bg-primary/15 text-primary'
+                            : 'bg-muted/60 text-muted-foreground dark:bg-white/[0.06]',
+                        )}
+                      >
+                        <option.icon className="size-4" aria-hidden />
+                      </span>
+
+                      <span className="min-w-0 flex-1">
+                        <span className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                          <span className="text-sm font-medium">{t(option.title)}</span>
+                          <span className="text-xs font-medium tabular-nums text-muted-foreground">
+                            {price ?? t('No charge')}
+                          </span>
+                        </span>
+                        <span className="mt-0.5 block text-xs leading-snug text-muted-foreground">
+                          {t(option.description)}
+                        </span>
+                      </span>
+
+                      <AnimatePresence initial={false}>
+                        {selected ? (
+                          <motion.span
+                            key="tick"
+                            initial={{ opacity: 0, scale: 0.5 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.5 }}
+                            transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+                            className="absolute right-3 top-3 flex size-4 items-center justify-center rounded-full bg-primary text-primary-foreground"
+                            aria-hidden
+                          >
+                            <Check className="size-2.5" strokeWidth={4} />
+                          </motion.span>
+                        ) : null}
+                      </AnimatePresence>
+                    </motion.button>
+                  );
+                })}
+              </div>
+
+              {/* What Personal includes, where the order summary used to be.
+                  Vehicles and trackers are not bought at signup any more. */}
+              <AnimatePresence initial={false}>
+                {isPersonal ? (
+                  <motion.div
+                    key="personal-note"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
+                    className="overflow-hidden"
+                  >
+                    <PlanNote tier={PlanTier.PERSONAL} runsVehicles />
+                  </motion.div>
+                ) : null}
+              </AnimatePresence>
+
+              <AnimatePresence initial={false}>
+                {planTier === PlanTier.SUPPLIER ? (
+                  <motion.div
+                    key="supplier-note"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
+                    className="overflow-hidden"
+                  >
+                    <div className="glass-inset mt-3 p-3.5">
+                      <p className="text-sm font-medium">{t('No vehicles to set up')}</p>
+                      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                        {REGISTRATION_TRIAL_DAYS > 0
+                          ? t('Free for {days} days, then {price} a month. Saarthi will not ask you for trucks, trackers or drivers.', {
+                              days: REGISTRATION_TRIAL_DAYS,
+                              price: formatCurrency(SUPPLIER_PRICE),
+                            })
+                          : t('{price} a month. Saarthi will not ask you for trucks, trackers or drivers.', {
+                              price: formatCurrency(SUPPLIER_PRICE),
+                            })}
+                      </p>
+                    </div>
+                  </motion.div>
+                ) : null}
+              </AnimatePresence>
+
+              {/* What Free actually is, said where the price would otherwise
+                  be. A plan with no total needs to account for itself, or the
+                  blank space reads as a step that failed to load. */}
+              <AnimatePresence initial={false}>
+                {planTier === PlanTier.FREE ? (
+                  <motion.div
+                    key="free-note"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
+                    className="overflow-hidden"
+                  >
+                    <div className="glass-inset mt-3 p-3.5">
+                      <p className="text-sm font-medium">{t('Nothing to pay')}</p>
+                      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                        {t(
+                          'Nearby services, the places around you, and tracking the orders you place. No vehicle, no tracker and no card - move to a paid plan whenever you actually need one.',
+                        )}
+                      </p>
+                    </div>
+                  </motion.div>
+                ) : null}
+              </AnimatePresence>
+
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Which kind of business — asked on this same step, straight under
+            the answer that raised it, rather than on a screen of its own. */}
+        <AnimatePresence initial={false}>
+          {isBusiness ? (
+            <motion.div
+              key="business-kind"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
+              className="overflow-hidden pt-4"
+            >
+        <FormField
+          control={form.control}
+          name="role"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel required>{t('I am a…')}</FormLabel>
+              <FormDescription>
+                {t(
+                  'This decides what Saarthi sets up for you. It cannot be changed later from here.',
+                )}
+              </FormDescription>
+              <div
+                role="radiogroup"
+                aria-label={t('I am a…')}
+                className="grid grid-cols-1 gap-2.5 pt-1 sm:grid-cols-2"
+              >
+                {ACCOUNT_TYPES.map((type, index) => {
+                  const selected = field.value === type.role;
+                  return (
+                    <motion.button
+                      key={type.role}
+                      type="button"
+                      role="radio"
+                      aria-checked={selected}
+                      onClick={() => {
+                        field.onChange(type.role);
+                      }}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{
+                        duration: 0.3,
+                        delay: index * 0.035,
+                        ease: [0.16, 1, 0.3, 1],
+                      }}
+                      whileTap={{ scale: 0.985 }}
+                      className={cn(
+                        'glass-inset relative flex items-start gap-3 p-3 pr-8 text-left',
+                        'transition-[background-color,border-color,box-shadow,transform] duration-200 ease-smooth',
+                        selected
+                          ? 'glass-choice-selected'
+                          : 'hover:-translate-y-0.5 hover:border-white/70 hover:bg-white/60 dark:hover:bg-white/[0.06]',
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          'flex size-9 shrink-0 items-center justify-center rounded-lg transition-colors duration-200',
+                          selected
+                            ? 'bg-primary/15 text-primary'
+                            : 'bg-muted/60 text-muted-foreground dark:bg-white/[0.06]',
+                        )}
+                      >
+                        <type.icon className="size-4" aria-hidden />
+                      </span>
+
+                      <span className="min-w-0">
+                        <span className="block text-sm font-medium">{t(type.title)}</span>
+                        <span className="mt-0.5 block text-xs leading-snug text-muted-foreground">
+                          {t(type.description)}
+                        </span>
+                      </span>
+
+                      {/* A tick, not just a tint: the selected card has to be
+                          obvious to someone reading the labels in a script
+                          they know and the colours in bright sunlight. */}
+                      <AnimatePresence initial={false}>
+                        {selected ? (
+                          <motion.span
+                            key="tick"
+                            initial={{ opacity: 0, scale: 0.5 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.5 }}
+                            transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+                            className="absolute right-2.5 top-2.5 flex size-4 items-center justify-center rounded-full bg-primary text-primary-foreground"
+                            aria-hidden
+                          >
+                            <Check className="size-2.5" strokeWidth={4} />
+                          </motion.span>
+                        ) : null}
+                      </AnimatePresence>
+                    </motion.button>
+                  );
+                })}
+              </div>
+
+              {/* What the plan includes, once the kind of business is known. */}
+              <AnimatePresence initial={false}>
+                {role ? (
+                  <motion.div
+                    key="business-note"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
+                    className="overflow-hidden"
+                  >
+                    <PlanNote tier={PlanTier.BUSINESS} runsVehicles={runsVehicles} />
+                  </motion.div>
+                ) : null}
+              </AnimatePresence>
+
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
+        </>
+      ),
+    },
+    {
+      id: 'your-details',
+      title: t('Your details'),
+      description: t('Who we should reach.'),
+      icon: UserRound,
+      // Plus whatever this kind of account also needs — see `typeStep`.
+      fields: ['firstName', 'lastName', 'email', 'phone', ...(typeStep.fields ?? [])],
+      content: (
+        <>
+          {/* Not a form field: it is not part of `registerSchema` and does not
+              travel with the registration — see `uploadImage`. */}
+          {!wantsLogo ? (
+            <ImageCircleField
+              value={image}
+              onChange={setImage}
+              label={t('Profile photo')}
+              hint={t('Optional · JPEG, PNG, WebP or HEIC up to {size} MB', {
+                size: IMAGE_MAX_SIZE_MB,
+              })}
+              accept={IMAGE_ACCEPT}
+              maxSizeMb={IMAGE_MAX_SIZE_MB}
+              icon={UserRound}
+              onReject={(reason) => toast.error(reason)}
+              className="pb-1"
+            />
+          ) : null}
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <FormField
+              control={form.control}
+              name="firstName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel required>{t('First name')}</FormLabel>
+                  <FormControl>
+                    <Input {...field} autoComplete="given-name" className="h-10" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="lastName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel required>{t('Last name')}</FormLabel>
+                  <FormControl>
+                    <Input {...field} autoComplete="family-name" className="h-10" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel required>{t('Email address')}</FormLabel>
+                <FormControl>
+                  <Input
+                    {...field}
+                    type="email"
+                    inputMode="email"
+                    autoComplete="email"
+                    placeholder="you@company.com"
+                    className="h-10"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="phone"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel required>{t('Mobile number')}</FormLabel>
+                <FormControl>
+                  <Input
+                    {...field}
+                    type="tel"
+                    inputMode="tel"
+                    autoComplete="tel"
+                    placeholder="9876543210"
+                    className="h-10"
+                  />
+                </FormControl>
+                <FormDescription>{t('Indian mobile number, with or without +91.')}</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* The questions only this kind of account is asked, on the same
+              step rather than a screen of their own. */}
+          <section className="space-y-3 border-t border-border/50 pt-4">
+            <div>
+              <p className="text-sm font-medium">{typeStep.title}</p>
+              {typeStep.description ? (
+                <p className="text-xs text-muted-foreground">{typeStep.description}</p>
+              ) : null}
+            </div>
+            {typeStep.content}
+          </section>
+        </>
+      ),
+    },
     {
       id: 'security',
       title: t('Security'),

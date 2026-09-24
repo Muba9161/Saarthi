@@ -19,9 +19,11 @@ import {
   type RegistryFinding,
   type RegistryVerifyInput,
   type VehicleRcRecord,
+  registryVerifySchema,
 } from '@saarthi/shared';
 import { prisma } from '../../database/prisma';
 import { errors, isAppError } from '../../lib/errors';
+import { type ProviderCallGate, refuseUnpaidProviderCall } from '../../lib/provider-call-gate';
 import { logger } from '../../lib/logger';
 import { maskLicence } from '../../providers/driving-licence';
 import { maskRegistration } from '../../providers/vehicle-rc';
@@ -214,6 +216,7 @@ async function verifyTruck(
   auth: AuthContext,
   truckId: string,
   input: RegistryVerifyInput,
+  gate: ProviderCallGate,
 ): Promise<RegistryVerifyOutcome> {
   const truck = await prisma.truck.findUnique({
     where: { id: truckId },
@@ -256,6 +259,9 @@ async function verifyTruck(
       },
     });
   }
+
+  // Outside the try: a refused or preflighted call is not a "not found".
+  await gate();
 
   try {
     const { result } = await vehicleLookupService.lookupVehicle(auth, {
@@ -344,6 +350,7 @@ async function verifyDriver(
   auth: AuthContext,
   driverId: string,
   input: RegistryVerifyInput,
+  gate: ProviderCallGate,
 ): Promise<RegistryVerifyOutcome> {
   const driver = await prisma.driver.findUnique({
     where: { id: driverId },
@@ -436,6 +443,8 @@ async function verifyDriver(
       { fields: { dateOfBirth: ['Enter the date of birth printed on the licence.'] } },
     );
   }
+
+  await gate();
 
   try {
     const { result } = await licenceLookupService.lookupLicence(auth, {
@@ -613,12 +622,19 @@ export async function verifyAgainstRegistry(
   subjectType: VerificationSubjectType,
   subjectId: string,
   input: RegistryVerifyInput,
+  /**
+   * Passed immediately before the billable registry lookup. Defaults to
+   * refusing it — a registry check is paid for through Pay & Verify. See
+   * `provider-call-gate.ts`.
+   */
+  options: { gate?: ProviderCallGate } = {},
 ): Promise<RegistryVerifyOutcome> {
+  const gate = options.gate ?? refuseUnpaidProviderCall;
   switch (subjectType) {
     case VerificationSubjectType.TRUCK:
-      return verifyTruck(auth, subjectId, input);
+      return verifyTruck(auth, subjectId, input, gate);
     case VerificationSubjectType.DRIVER:
-      return verifyDriver(auth, subjectId, input);
+      return verifyDriver(auth, subjectId, input, gate);
     case VerificationSubjectType.ORGANIZATION:
       throw errors.businessRule(
         'An organization is verified through its GSTIN, on the Identity tab of its documents — ' +
@@ -628,5 +644,52 @@ export async function verifyAgainstRegistry(
       throw errors.validation(
         'Only a vehicle or a driver can be verified against a government registry.',
       );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Verified on add
+// ---------------------------------------------------------------------------
+
+/** Adding a vehicle from its RC is free: Saarthi carries the one lookup. */
+const allowOnAdd: ProviderCallGate = async () => undefined;
+
+/**
+ * Verify a vehicle that was just added from its RC prefill.
+ *
+ * The same evaluation as the paid check, run against the record fetched a
+ * moment ago — which is stored against the account, so no second provider
+ * call is made. The lookup must be this account's and this plate's: a stale
+ * or foreign id leaves the vehicle unverified rather than borrowing another
+ * record's answer.
+ *
+ * Never fails the add. A vehicle is saved whether or not this settles; if it
+ * does not, the owner can verify it later as usual.
+ */
+export async function verifyVehicleAddedFromRc(
+  auth: AuthContext,
+  truckId: string,
+  rcLookupId: string,
+): Promise<void> {
+  try {
+    const [truck, lookup] = await Promise.all([
+      prisma.truck.findUnique({ where: { id: truckId }, select: { organizationId: true, registrationNumber: true } }),
+      prisma.vehicleLookup.findUnique({
+        where: { id: rcLookupId },
+        select: { organizationId: true, registrationNumber: true },
+      }),
+    ]);
+    if (
+      !truck ||
+      !lookup ||
+      lookup.organizationId !== truck.organizationId ||
+      lookup.registrationNumber !== truck.registrationNumber
+    ) {
+      serviceLogger.warn({ truckId }, 'RC prefill does not belong to this vehicle; left unverified');
+      return;
+    }
+    await verifyTruck(auth, truckId, registryVerifySchema.parse({}), allowOnAdd);
+  } catch (error) {
+    serviceLogger.warn({ truckId, error }, 'Could not verify a vehicle added from its RC');
   }
 }

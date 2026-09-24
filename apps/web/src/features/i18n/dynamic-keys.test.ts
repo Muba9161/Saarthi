@@ -36,6 +36,9 @@ const MENUS: Record<string, NavSection[]> = {
   DRIVER_NAVIGATION,
   OWNER_DRIVER_NAVIGATION,
   ADMIN_NAVIGATION,
+  // The profile menu in the top bar. Grouped like the others, so its group
+  // headings are checked as well as its labels.
+  ACCOUNT_NAVIGATION,
 };
 
 const defined = new Set(Object.keys(en));
@@ -64,10 +67,6 @@ describe('navigation copy', () => {
       }
     }
 
-    for (const item of ACCOUNT_NAVIGATION) {
-      if (!defined.has(item.label)) missing.push(`ACCOUNT_NAVIGATION: ${item.label}`);
-    }
-
     expect(missing, `navigation labels absent from en.ts:\n  ${missing.join('\n  ')}`).toEqual([]);
   });
 
@@ -76,7 +75,7 @@ describe('navigation copy', () => {
     // association, mobility and admin menus are just as reachable and were
     // never checked. Guard the count so a new menu cannot be added without
     // being registered here.
-    expect(Object.keys(MENUS)).toHaveLength(8);
+    expect(Object.keys(MENUS)).toHaveLength(9);
 
     for (const [menu, sections] of Object.entries(MENUS)) {
       expect(sections.length, `${menu} is empty`).toBeGreaterThan(0);

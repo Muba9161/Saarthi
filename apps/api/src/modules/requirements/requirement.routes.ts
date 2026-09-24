@@ -22,7 +22,12 @@ import {
   parseParams,
   parseQuery,
 } from '../../lib/http';
-import { requireAuth, requireOrganizationId, requirePermission } from '../../server/guards';
+import {
+  requireAuth,
+  requireBusiness,
+  requireOrganizationId,
+  requirePermission,
+} from '../../server/guards';
 import { AuditAction, auditFromRequest } from '../audit/audit.service';
 import * as requirementService from './requirement.service';
 
@@ -40,7 +45,15 @@ import * as requirementService from './requirement.service';
  * is per-requirement rather than per-route — a supplier and a fleet legitimately
  * reach the same material requirement with different scopes — so it lives in
  * the service, where the requirement is actually in hand.
+ *
+ * The provider side does carry one route-level check: `requireBusiness`. A
+ * Personal account is seated as a fleet owner, so its type alone would qualify
+ * it, but it never bids for work.
  */
+const PROVIDER_ONLY = requireBusiness(
+  'Bidding on work is for businesses. A Personal account does not take marketplace work.',
+);
+
 export async function requirementRoutes(app: FastifyInstance): Promise<void> {
   app.addHook('preHandler', app.authenticate);
 
@@ -50,7 +63,12 @@ export async function requirementRoutes(app: FastifyInstance): Promise<void> {
 
   app.get(
     '/board',
-    { preHandler: requirePermission(Permission.REQUIREMENTS_BID, Permission.REQUIREMENTS_READ) },
+    {
+      preHandler: [
+        requirePermission(Permission.REQUIREMENTS_BID, Permission.REQUIREMENTS_READ),
+        PROVIDER_ONLY,
+      ],
+    },
     async (request, reply) => {
       const auth = requireAuth(request);
       const query = parseQuery(requirementBoardQuerySchema, request.query);
@@ -61,7 +79,7 @@ export async function requirementRoutes(app: FastifyInstance): Promise<void> {
 
   app.get(
     '/me/bids',
-    { preHandler: requirePermission(Permission.REQUIREMENTS_BID) },
+    { preHandler: [requirePermission(Permission.REQUIREMENTS_BID), PROVIDER_ONLY] },
     async (request, reply) => {
       const auth = requireAuth(request);
       const organizationId = requireOrganizationId(request);
@@ -184,7 +202,7 @@ export async function requirementRoutes(app: FastifyInstance): Promise<void> {
 
   app.post(
     '/:id/bids',
-    { preHandler: requirePermission(Permission.REQUIREMENTS_BID) },
+    { preHandler: [requirePermission(Permission.REQUIREMENTS_BID), PROVIDER_ONLY] },
     async (request, reply) => {
       const auth = requireAuth(request);
       const organizationId = requireOrganizationId(request);
@@ -205,7 +223,7 @@ export async function requirementRoutes(app: FastifyInstance): Promise<void> {
 
   app.delete(
     '/bids/:id',
-    { preHandler: requirePermission(Permission.REQUIREMENTS_BID) },
+    { preHandler: [requirePermission(Permission.REQUIREMENTS_BID), PROVIDER_ONLY] },
     async (request, reply) => {
       const auth = requireAuth(request);
       const organizationId = requireOrganizationId(request);

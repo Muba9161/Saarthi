@@ -31,6 +31,10 @@ export interface AuthOrganization {
   membershipRole: RoleName;
   /** One person's seat rather than a business — see `SessionOrganization`. */
   isPersonalSeat: boolean;
+  /** Set while the account is archived for non-payment — see `account-retention`. */
+  billingArchivedAt: Date | null;
+  /** When an archived account's own data is deleted, if not renewed first. */
+  dataPurgeAt: Date | null;
 }
 
 export interface AuthSubscription {

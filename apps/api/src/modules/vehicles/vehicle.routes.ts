@@ -71,6 +71,22 @@ export async function vehicleRoutes(app: FastifyInstance): Promise<void> {
     },
   );
 
+  /**
+   * Would this vehicle be accepted, leaving plan capacity aside? Asked by the
+   * add-vehicle form before it takes payment for an extra slot. Writes nothing.
+   */
+  app.post(
+    '/check',
+    { preHandler: requirePermission(Permission.VEHICLES_CREATE) },
+    async (request, reply) => {
+      const auth = requireAuth(request);
+      const organizationId = requireOrganizationId(request);
+      const input = parseBody(createVehicleSchema, request.body);
+      await vehicleService.assertVehicleAddable(auth, organizationId, input, { capacity: false });
+      return ok(reply, { addable: true });
+    },
+  );
+
   app.post(
     '/',
     { preHandler: requirePermission(Permission.VEHICLES_CREATE) },

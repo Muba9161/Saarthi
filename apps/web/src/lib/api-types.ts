@@ -1524,6 +1524,12 @@ export interface RequirementBidSummary {
   includesDelivery: boolean;
   availableQuantity: number | null;
   leadTimeDays: number | null;
+  /** A fleet's delivered bid: it buys the material from a supplier and delivers it. */
+  deliversMaterial: boolean;
+  /** Listing price × quantity — the bidding fleet's own view only. */
+  procurementReference: number | null;
+  /** The supplier listing sourced from — the bidding fleet's own view only. */
+  sourceMaterialId: string | null;
 
   offeredVehicleType: VehicleType | null;
   inclusions: string[];

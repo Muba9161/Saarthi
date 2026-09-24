@@ -51,6 +51,12 @@ export const vehicleLookupSchema = z.object({
 });
 export type VehicleLookupInput = z.infer<typeof vehicleLookupSchema>;
 
+/** Adding a vehicle by its RC number: fetch the record to fill in the form. */
+export const vehicleRcPrefillSchema = z.object({
+  registrationNumber: lookupRegistrationNumberSchema,
+});
+export type VehicleRcPrefillInput = z.infer<typeof vehicleRcPrefillSchema>;
+
 /** Reading back an already-fetched record costs nothing and needs only the plate. */
 export const storedLookupQuerySchema = z.object({
   registrationNumber: lookupRegistrationNumberSchema,

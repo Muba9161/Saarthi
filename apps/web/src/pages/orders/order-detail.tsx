@@ -7,6 +7,7 @@ import { OrderStatus, Permission, RealtimeChannel, RealtimeEvent, formatCurrency
 import { api, errorMessage } from '@/lib/api-client';
 import type { OrderDetail } from '@/lib/api-types';
 import { useAuth } from '@/features/auth/auth-context';
+import { OrderFinancePanel } from '@/features/marketplace-finance/order-finance-panel';
 import { useChannels, useRealtimeEvent } from '@/hooks/use-realtime';
 import { PageHeader, SectionHeader } from '@/components/common/page-header';
 import { StatusBadge, ScoreBadge } from '@/components/common/status-badge';
@@ -91,6 +92,8 @@ export function OrderDetailPage() {
               {data.notes ? <div className="col-span-2"><p className="text-xs text-muted-foreground">Notes</p><p>{data.notes}</p></div> : null}
             </CardContent>
           </Card>
+
+          <OrderFinancePanel orderId={id} orderStatus={data.status} />
 
           <Card>
             <CardHeader className="pb-3">

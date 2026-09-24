@@ -48,6 +48,11 @@ process.env.DRIVER_VERIFICATION_ENFORCEMENT = 'true';
  */
 process.env.PERSONAL_AADHAAR_REQUIRED_FROM = '2026-01-01T00:00:00.000Z';
 process.env.DEMO_MODE = 'true';
+// Tests never reach a real gateway, whatever the local .env says.
+process.env.PAYMENT_PROVIDER = 'mock';
+// Signs test webhooks. Never a real key.
+process.env.CASHFREE_SECRET_KEY = 'test-webhook-secret';
+process.env.SUBSCRIPTION_TRIAL_DAYS = '30';
 process.env.CACHE_DRIVER = 'memory';
 process.env.QUEUE_DRIVER = 'memory';
 process.env.PUBSUB_DRIVER = 'memory';

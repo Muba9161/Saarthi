@@ -1,4 +1,10 @@
-import { PLAN_CATALOGUE, VEHICLE_TOPUP, VEHICLE_TRACKER, quoteSubscription } from '@saarthi/shared';
+import {
+  PLAN_CATALOGUE,
+  PlanTier,
+  TRACKER_PRODUCTS,
+  VEHICLE_TOPUP,
+  quoteSubscription,
+} from '@saarthi/shared';
 import { config } from '../../config/env';
 
 /**
@@ -135,17 +141,18 @@ export interface DemoScript {
     plans: {
       tier: string;
       name: string;
+      /** GST included. */
       priceMonthly: number | null;
-      priceYearly: number | null;
     }[];
-    trackerOneTime: number;
+    /** Tracker hardware, base prices before GST. */
+    trackers: { name: string; priceOneTime: number; price: number }[];
+    /** GST included. */
     vehicleTopUpMonthly: number;
     /** A worked example the salesperson can read out. */
     example: {
       vehicles: number;
       trackers: number;
       tier: string;
-      billing: string;
       monthlyTotal: number;
       oneOffTotal: number;
     };
@@ -164,12 +171,7 @@ export interface DemoScript {
  * eventually misquotes somebody.
  */
 export function demoScript(): DemoScript {
-  const example = quoteSubscription({
-    tier: PLAN_CATALOGUE[1]?.tier ?? PLAN_CATALOGUE[0]!.tier,
-    vehicles: 10,
-    trackers: 10,
-    billing: 'monthly',
-  });
+  const example = quoteSubscription({ tier: PlanTier.BUSINESS, vehicles: 10, trackers: 10 });
 
   return {
     demoModeEnabled: config.demo.enabled,
@@ -180,18 +182,14 @@ export function demoScript(): DemoScript {
         tier: plan.tier,
         name: plan.name,
         priceMonthly: plan.priceMonthly,
-        priceYearly: plan.priceYearly,
       })),
-      trackerOneTime: VEHICLE_TRACKER.priceOneTime,
+      trackers: TRACKER_PRODUCTS.map(({ name, priceOneTime, price }) => ({ name, priceOneTime, price })),
       vehicleTopUpMonthly: VEHICLE_TOPUP.priceMonthly,
       example: {
         vehicles: 10,
         trackers: 10,
-        tier: PLAN_CATALOGUE[1]?.tier ?? PLAN_CATALOGUE[0]!.tier,
-        billing: 'monthly',
-        // `monthly` rather than `recurring`, so the figure is per month
-        // whichever billing period the example uses; `oneTime` is the hardware,
-        // which never renews.
+        tier: example.tier,
+        // `oneTime` is the hardware, which never renews.
         monthlyTotal: example.monthly.total,
         oneOffTotal: example.oneTime.total,
       },

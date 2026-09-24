@@ -18,7 +18,6 @@ import {
   buildPaginationMeta,
   calculateRefund,
   journeyDistanceKm,
-  platformFeeFor,
   quotePackage,
   type TravelServiceKind,
   type BookingListQuery,
@@ -37,6 +36,14 @@ import { errors } from '../../lib/errors';
 import { logger } from '../../lib/logger';
 import { skipTake } from '../../lib/http';
 import { paymentProvider } from '../../providers/payments';
+import {
+  completeSettledPayment,
+  openPayment,
+  registerSettlementHandler,
+  settlePayment,
+  type CheckoutSession,
+  type SettledPayment,
+} from '../payments/payment-settlement.service';
 import { notify, notifyOrganization } from '../notifications/notification.service';
 import { broadcastBooking } from '../../realtime/realtime.service';
 import type { AuthContext } from '../../auth/context';
@@ -573,7 +580,8 @@ export async function createBookingFromRequirement(
 
   // The operator quoted a single all-in figure, so the price is fixed for this
   // party rather than recomputed per head.
-  const platformFee = platformFeeFor(input.agreedPrice);
+  // No customer-side fee — Saarthi earns 2% of the provider's profit instead.
+  const platformFee = 0;
 
   const created = await prisma.$transaction(async (tx) => {
     const pkg = await tx.travelPackage.create({
@@ -678,7 +686,7 @@ export async function payBooking(
   auth: AuthContext,
   bookingId: string,
   input: PayBookingInput,
-): Promise<BookingSummary> {
+): Promise<BookingSummary & { checkout: CheckoutSession | null }> {
   const booking = await loadBooking(auth, bookingId);
 
   if (booking.customerOrganizationId !== auth.organizationId && !auth.isPlatformAdmin) {
@@ -692,38 +700,46 @@ export async function payBooking(
     );
   }
 
-  const amount = Number(booking.totalAmount);
-  const payment = await prisma.payment.create({
-    data: {
-      reference: `PAY-${booking.reference}`,
-      purpose: PaymentPurpose.TRAVEL_BOOKING,
-      status: PaymentStatus.PROCESSING,
-      method: input.method,
-      organizationId: booking.customerOrganizationId,
-      initiatedByUserId: auth.user.id,
-      bookingId: booking.id,
-      amount,
-      currency: booking.currency,
-      provider: paymentProvider.name,
-    },
+  /*
+   * A checkout opened earlier may have been paid since — the payer closed the
+   * tab before returning. Settling it first means paying again cannot charge
+   * twice for one booking.
+   */
+  const open = await prisma.payment.findFirst({
+    where: { bookingId: booking.id, status: PaymentStatus.PROCESSING },
+    orderBy: { createdAt: 'desc' },
   });
+  if (open) {
+    if ((await settlePayment(open.reference)) === PaymentStatus.SUCCEEDED) {
+      const paid = await loadBooking(auth, bookingId);
+      return { ...(await toSummary(paid)), checkout: null };
+    }
+    // Still open at the gateway: reuse it rather than open a second order that
+    // could be paid as well.
+    const resumed = await paymentProvider.resumeCheckout(open.providerReference ?? open.reference);
+    if (resumed) return { ...(await toSummary(booking)), checkout: resumed };
+  }
 
-  await recordEvent(
-    booking.id,
-    BookingEventType.PAYMENT_INITIATED,
-    `Payment of ₹${amount.toLocaleString('en-IN')} initiated.`,
-    auth.user.id,
-    { paymentId: payment.id, method: input.method },
-  );
+  const amount = Number(booking.totalAmount);
+  // One reference per attempt: a declined attempt is kept for the record, and
+  // a gateway order id can never be reused.
+  const reference = `PAY-${booking.reference}-${Date.now().toString(36).toUpperCase()}`;
 
-  const intent = await paymentProvider.createIntent({
-    reference: payment.reference,
+  const { paymentId, intent } = await openPayment({
+    reference,
+    purpose: PaymentPurpose.TRAVEL_BOOKING,
+    organizationId: booking.customerOrganizationId,
+    userId: auth.user.id,
+    bookingId: booking.id,
     amount,
-    currency: booking.currency,
     description: `${booking.package.title} — ${booking.reference}`,
-    customerName: booking.contactName,
-    customerEmail: booking.contactEmail,
-    customerPhone: booking.contactPhone,
+    customer: {
+      name: booking.contactName,
+      email: booking.contactEmail,
+      phone: booking.contactPhone,
+    },
+    returnPath: `/travel/bookings/${booking.id}`,
+    method: input.method,
     metadata: {
       bookingId: booking.id,
       // Only the mock provider honours this; it is how the decline path stays
@@ -732,64 +748,102 @@ export async function payBooking(
     },
   });
 
+  await recordEvent(
+    booking.id,
+    BookingEventType.PAYMENT_INITIATED,
+    `Payment of ₹${amount.toLocaleString('en-IN')} initiated.`,
+    auth.user.id,
+    { paymentId, method: input.method },
+  );
+
   if (intent.status === 'FAILED') {
-    await prisma.payment.update({
-      where: { id: payment.id },
-      data: {
-        status: PaymentStatus.FAILED,
-        providerReference: intent.providerReference,
-        failureCode: intent.failureCode,
-        failureMessage: intent.failureMessage,
-      },
-    });
-    await recordEvent(
-      booking.id,
-      BookingEventType.PAYMENT_FAILED,
-      intent.failureMessage ?? 'The payment was declined.',
+    await bookingPaymentFailed(
+      booking,
       auth.user.id,
+      intent.failureMessage ?? 'The payment was declined.',
     );
-
-    void notify({
-      userId: auth.user.id,
-      organizationId: booking.customerOrganizationId,
-      type: NotificationType.PAYMENT_FAILED,
-      title: 'Payment failed',
-      body: intent.failureMessage ?? 'Your payment could not be completed. Please try again.',
-      priority: NotificationPriority.HIGH,
-      actionUrl: `/travel/bookings/${booking.id}`,
-    });
-
     // The booking stays PENDING_PAYMENT so the customer can retry.
     throw errors.businessRule(
       intent.failureMessage ?? 'The payment was declined. Please try another method.',
-      { paymentId: payment.id, failureCode: intent.failureCode },
+      { paymentId, failureCode: intent.failureCode },
     );
   }
 
-  await prisma.payment.update({
-    where: { id: payment.id },
-    data: {
-      status: intent.status === 'SUCCEEDED' ? PaymentStatus.SUCCEEDED : PaymentStatus.PROCESSING,
-      providerReference: intent.providerReference,
-      processedAt: intent.processedAt,
-    },
-  });
-
-  // A gateway that redirects has not settled yet: the booking only advances
-  // once the money is actually confirmed, whether now or by webhook later.
+  // A hosted checkout has not settled yet: the booking only advances once the
+  // money is confirmed, by webhook or when the payer returns.
   if (intent.status !== 'SUCCEEDED') {
     bookingLogger.info(
-      { bookingId: booking.id, providerReference: intent.providerReference },
+      { bookingId: booking.id, reference },
       'Payment is pending settlement at the gateway',
     );
-    return toSummary(booking);
+    return { ...(await toSummary(booking)), checkout: intent.checkout };
   }
 
+  await completeSettledPayment(paymentId);
+  const updated = await loadBooking(auth, bookingId);
+  return { ...(await toSummary(updated)), checkout: null };
+}
+
+async function bookingPaymentFailed(
+  booking: { id: string; customerOrganizationId: string },
+  userId: string,
+  message: string,
+): Promise<void> {
+  await recordEvent(booking.id, BookingEventType.PAYMENT_FAILED, message, userId);
+  void notify({
+    userId,
+    organizationId: booking.customerOrganizationId,
+    type: NotificationType.PAYMENT_FAILED,
+    title: 'Payment failed',
+    body: `${message} Please try again.`,
+    priority: NotificationPriority.HIGH,
+    actionUrl: `/travel/bookings/${booking.id}`,
+  });
+}
+
+/**
+ * The booking's side of a settled payment: it moves on to the provider for
+ * confirmation. Reached once per payment, whether the gateway settled at once
+ * or confirmed later.
+ */
+async function bookingPaymentSucceeded(payment: SettledPayment): Promise<void> {
+  if (!payment.bookingId) return;
+  const booking = await prisma.travelBooking.findUnique({
+    where: { id: payment.bookingId },
+    include: bookingInclude,
+  });
+  if (!booking) return;
+
+  // Paid after the booking moved on — cancelled while the payer was on the
+  // checkout. Refunded rather than silently kept.
   const check = bookingStateMachine.assertTransition(
     booking.status as BookingStatus,
     BookingStatus.AWAITING_CONFIRMATION,
   );
-  if (!check.allowed) throw errors.invalidTransition(check.reason!);
+  if (!check.allowed) {
+    bookingLogger.warn(
+      { bookingId: booking.id, status: booking.status, reference: payment.reference },
+      'Payment settled for a booking that can no longer take it; refunding',
+    );
+    if (payment.providerReference) {
+      const refund = await paymentProvider.refund({
+        providerReference: payment.providerReference,
+        amount: payment.amount,
+        reason: 'Booking no longer payable',
+      });
+      if (refund.status !== 'FAILED') {
+        await prisma.payment.update({
+          where: { id: payment.id },
+          data: {
+            status: PaymentStatus.REFUNDED,
+            refundedAmount: payment.amount,
+            refundedAt: refund.processedAt ?? new Date(),
+          },
+        });
+      }
+    }
+    return;
+  }
 
   const updated = await prisma.travelBooking.update({
     where: { id: booking.id },
@@ -800,9 +854,9 @@ export async function payBooking(
   await recordEvent(
     booking.id,
     BookingEventType.PAYMENT_SUCCEEDED,
-    `Payment of ₹${amount.toLocaleString('en-IN')} received.`,
-    auth.user.id,
-    { providerReference: intent.providerReference },
+    `Payment of ₹${payment.amount.toLocaleString('en-IN')} received.`,
+    payment.initiatedByUserId,
+    { providerReference: payment.providerReference },
   );
 
   void notifyOrganization(booking.providerOrganizationId, {
@@ -814,7 +868,7 @@ export async function payBooking(
   });
 
   void notify({
-    userId: auth.user.id,
+    userId: payment.initiatedByUserId,
     organizationId: booking.customerOrganizationId,
     type: NotificationType.PAYMENT_SUCCEEDED,
     title: 'Payment received',
@@ -824,8 +878,19 @@ export async function payBooking(
   });
 
   await publish(updated, false);
-  return toSummary(updated);
 }
+
+registerSettlementHandler(PaymentPurpose.TRAVEL_BOOKING, {
+  onSucceeded: bookingPaymentSucceeded,
+  onFailed: async (payment, message) => {
+    if (!payment.bookingId) return;
+    const booking = await prisma.travelBooking.findUnique({
+      where: { id: payment.bookingId },
+      select: { id: true, customerOrganizationId: true },
+    });
+    if (booking) await bookingPaymentFailed(booking, payment.initiatedByUserId, message);
+  },
+});
 
 // ---------------------------------------------------------------------------
 // Provider decisions

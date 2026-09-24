@@ -2,7 +2,7 @@ import type { FastifyReply, FastifyRequest, preHandlerHookHandler } from 'fastif
 import {
   type OrganizationType,
   type RoleName,
-  VEHICLE_TRACKER,
+  describeTrackerPrices,
   hasAnyPermission,
   hasPermission,
   isTrackerFeature,
@@ -120,6 +120,19 @@ export function requireOrganization(): preHandlerHookHandler {
 }
 
 /**
+ * Only an organization that is an actual business — not one person's seat
+ * (a Personal-plan account, or a driver with no employer). The API side of
+ * the menu's `requiresBusiness`.
+ */
+export function requireBusiness(message: string): preHandlerHookHandler {
+  return async function businessGuard(request: FastifyRequest, _reply: FastifyReply) {
+    const auth = requireAuth(request);
+    if (auth.isPlatformAdmin) return;
+    if (!auth.organization || auth.organization.isPersonalSeat) throw errors.forbidden(message);
+  };
+}
+
+/**
  * Why a caller cannot reach a gated capability.
  *
  * Split out because the two answers lead somewhere different. "Upgrade your
@@ -132,7 +145,7 @@ function featureDenialMessage(feature: Feature): string {
   if (isTrackerFeature(feature)) {
     return (
       'This reads the vehicle itself, so it needs a Saarthi tracker fitted. ' +
-      `A tracker is a one-time ${VEHICLE_TRACKER.priceOneTime} rupees per vehicle — until one is fitted, ` +
+      `A tracker is a one-time charge per vehicle (${describeTrackerPrices()}) — until one is fitted, ` +
       'the driver app is the only source and its figures are estimates.'
     );
   }

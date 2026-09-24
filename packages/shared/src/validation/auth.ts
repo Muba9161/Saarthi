@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { accountRunsVehicles } from '../domain/entitlements';
-import { OrganizationType, PlanTier, RoleName } from '../domain/enums';
+import { OrganizationType, PlanTier, RoleName, TrackerProduct } from '../domain/enums';
+import { DEFAULT_TRACKER_PRODUCT } from '../domain/pricing';
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '../domain/languages';
 import {
   emailSchema,
@@ -104,6 +105,34 @@ export const PERSONAL_PLAN_ROLE = RoleName.FLEET_OWNER;
 export const FREE_PLAN_ROLE = RoleName.CUSTOMER;
 
 /**
+ * The role a Supplier subscription registers as.
+ *
+ * The Supplier plan is sold to exactly one kind of account, so choosing it is
+ * the account-type answer — the registrant is not asked twice.
+ */
+export const SUPPLIER_PLAN_ROLE = RoleName.SUPPLIER;
+
+/**
+ * The account types each plan is sold to.
+ *
+ * The plan is the bill and the account type is the business, but they are not
+ * free to combine: Free is a customer, Personal is a person with their own
+ * vehicle, Supplier is a materials business, and Business is a vehicle
+ * operator — a truck fleet or a tour, travel and mobility provider — or a
+ * district truck association. A driver takes out no plan at all.
+ */
+export const PLAN_ACCOUNT_TYPES: Record<PlanTier, readonly RegistrableRole[]> = {
+  [PlanTier.FREE]: [RoleName.CUSTOMER],
+  [PlanTier.PERSONAL]: [RoleName.FLEET_OWNER],
+  [PlanTier.SUPPLIER]: [RoleName.SUPPLIER],
+  [PlanTier.BUSINESS]: [
+    RoleName.FLEET_OWNER,
+    RoleName.MOBILITY_PROVIDER,
+    RoleName.ASSOCIATION_ADMIN,
+  ],
+};
+
+/**
  * Whether this plan asks the registrant what kind of business they are.
  *
  * Only Business does. Personal is a person with vehicles and Free is a person
@@ -198,8 +227,6 @@ export const registerSchema = z
      * their own until they do.
      */
     planTier: z.nativeEnum(PlanTier).optional(),
-    /** Monthly unless the registrant took the yearly discount. */
-    planBilling: z.enum(['monthly', 'yearly']).default('monthly'),
     /**
      * Vehicles the registrant said they run, from the pricing card.
      *
@@ -218,6 +245,8 @@ export const registerSchema = z
      * fitted from the subscription screen once the fleet is added.
      */
     planTrackers: z.coerce.number().int().min(0).max(500).default(0),
+    /** Which tracker the signup order is for — see `TRACKER_PRODUCTS`. */
+    planTrackerProduct: z.nativeEnum(TrackerProduct).default(DEFAULT_TRACKER_PRODUCT),
     /**
      * The registrant drives one of their own vehicles.
      *
@@ -302,6 +331,22 @@ export const registerSchema = z
         code: z.ZodIssueCode.custom,
         path: ['organizationName'],
         message: 'A business or organization name is required for this account type.',
+      });
+    }
+
+    /*
+     * The account type has to be one the plan is sold to — see
+     * `PLAN_ACCOUNT_TYPES`. Refused rather than quietly creating, say, a
+     * supplier priced as a truck fleet.
+     */
+    if (value.planTier && value.role && !PLAN_ACCOUNT_TYPES[value.planTier].includes(value.role)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['role'],
+        message:
+          value.role === RoleName.SUPPLIER
+            ? 'Suppliers register on the Saarthi Supplier plan.'
+            : 'This account type is not offered on the plan you chose.',
       });
     }
 
@@ -411,6 +456,7 @@ export function registrationRole(input: {
   if (input.role) return input.role;
   if (input.planTier === PlanTier.PERSONAL) return PERSONAL_PLAN_ROLE;
   if (input.planTier === PlanTier.FREE) return FREE_PLAN_ROLE;
+  if (input.planTier === PlanTier.SUPPLIER) return SUPPLIER_PLAN_ROLE;
   // Unreachable through the schema, which requires a role for Business.
   // FLEET_OWNER is the safe fallback for a caller that bypassed validation: it
   // creates a commercial organization, which is the conservative answer.

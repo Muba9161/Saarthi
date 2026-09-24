@@ -390,6 +390,21 @@ export const router = createBrowserRouter([
             path: '/settings/subscription',
             element: lazyPage(() => import('@/pages/settings/subscription')),
           },
+          // Straight after registering on a paid plan: pay for extras, approve autopay.
+          {
+            path: '/activate',
+            element: lazyPage(() => import('@/pages/onboarding/activate')),
+          },
+          {
+            path: '/settings/payouts',
+            element: lazyPage(() => import('@/pages/settings/payouts')),
+          },
+          // Refer & Earn — the generic referral program, from the profile menu.
+          // Not under /sales: that is the salesman/GODID channel.
+          {
+            path: '/referrals',
+            element: lazyPage(() => import('@/pages/referrals/referral-center')),
+          },
 
           // Sales — one section of this application, not a portal of its own.
           { path: '/sales', element: lazyPage(() => import('@/pages/sales/dashboard')) },

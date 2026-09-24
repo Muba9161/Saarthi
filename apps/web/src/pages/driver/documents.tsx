@@ -2,6 +2,7 @@ import { useAuth } from '@/features/auth/auth-context';
 import { PageHeader } from '@/components/common/page-header';
 import { EmptyState } from '@/components/common/states';
 import { DocumentPanel } from '@/features/documents/document-panel';
+import { VerificationWizard } from '@/features/verification/verification-wizard';
 
 export function DriverDocumentsPage() {
   const { session } = useAuth();
@@ -14,6 +15,7 @@ export function DriverDocumentsPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-5">
       <PageHeader title="My documents" description="Keep your licence and identity documents current to stay compliant." />
+      <VerificationWizard driverId={driverId} />
       <DocumentPanel ownerType="DRIVER" ownerId={driverId} ownerLabel={session?.user.fullName} />
     </div>
   );

@@ -9,7 +9,13 @@ import {
   RoleName,
   type SessionPayload,
 } from '@saarthi/shared';
-import { api, setAccessToken, setUnauthenticatedHandler, ApiError } from '@/lib/api-client';
+import {
+  api,
+  setAccessToken,
+  setAccountArchivedHandler,
+  setUnauthenticatedHandler,
+  ApiError,
+} from '@/lib/api-client';
 
 /**
  * Session state for the whole client.
@@ -121,6 +127,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let cancelled = false;
 
     setUnauthenticatedHandler(() => clearSession());
+    // Archived mid-session: reload the session so the shell shows renewal.
+    setAccountArchivedHandler(() => {
+      void api
+        .get<SessionPayload>('/auth/me')
+        .then((payload) => {
+          if (!cancelled) setSession(payload);
+        })
+        // A failed reload leaves the refusal on screen; the next request
+        // that is refused tries again.
+        .catch(() => undefined);
+    });
 
     void (async () => {
       try {
@@ -137,6 +154,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
       setUnauthenticatedHandler(null);
+      setAccountArchivedHandler(null);
       if (refreshTimer.current) window.clearTimeout(refreshTimer.current);
     };
   }, [applyAuth, clearSession]);

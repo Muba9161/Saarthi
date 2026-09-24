@@ -141,6 +141,15 @@ export interface RequirementBidSummary {
   includesDelivery: boolean;
   availableQuantity: number | null;
   leadTimeDays: number | null;
+  /** A fleet's delivered bid: it buys the material itself and delivers it. */
+  deliversMaterial: boolean;
+  /**
+   * The supplier listing price x quantity the fleet bid against. Its own
+   * procurement reference — shown to the bidding fleet only.
+   */
+  procurementReference: number | null;
+  /** The supplier listing it sources from — shown to the bidding fleet only. */
+  sourceMaterialId: string | null;
 
   offeredVehicleType: VehicleType | null;
   inclusions: string[];
@@ -281,7 +290,11 @@ export async function decorateRequirements(
 
 type BidRecord = Prisma.RequirementBidGetPayload<Record<string, never>>;
 
-export async function decorateBids(rows: BidRecord[]): Promise<RequirementBidSummary[]> {
+export async function decorateBids(
+  rows: BidRecord[],
+  /** The bidder sees its own procurement reference; nobody else does. */
+  viewerOrganizationId: string | null = null,
+): Promise<RequirementBidSummary[]> {
   if (rows.length === 0) return [];
 
   const organizationIds = [...new Set(rows.map((row) => row.bidderOrganizationId))];
@@ -376,6 +389,12 @@ export async function decorateBids(rows: BidRecord[]): Promise<RequirementBidSum
       includesDelivery: row.includesDelivery,
       availableQuantity: row.availableQuantity,
       leadTimeDays: row.leadTimeDays,
+      deliversMaterial: row.sourceMaterialId !== null,
+      procurementReference:
+        row.procurementReference !== null && row.bidderOrganizationId === viewerOrganizationId
+          ? Number(row.procurementReference)
+          : null,
+      sourceMaterialId: row.bidderOrganizationId === viewerOrganizationId ? row.sourceMaterialId : null,
 
       offeredVehicleType: row.offeredVehicleType as VehicleType | null,
       inclusions: row.inclusions,

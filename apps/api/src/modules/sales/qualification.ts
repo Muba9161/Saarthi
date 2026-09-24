@@ -5,6 +5,7 @@ import { liveAttributionFor } from './referral.service';
 import { syncFromCustomerState } from './lead.service';
 import { markInstalledIfFitted } from './handover.service';
 import { prisma } from '../../database/prisma';
+import { qualifyForPayment as qualifyReferralProgram } from '../referral-program/referral-program.service';
 
 /**
  * The one seam between the money and the commission.
@@ -61,6 +62,21 @@ export async function qualifyPayment(input: QualifyPaymentInput): Promise<void> 
         'Payment carried no provider reference — no commission recorded',
       );
       return;
+    }
+
+    /*
+     * Refer & Earn qualifies on the first subscription payment, and only that:
+     * a tracker or a top-up is not the "qualifying subscription" the program
+     * is defined by. Ahead of the salesman short-circuit below because the two
+     * programs are independent — a customer can arrive through either. It
+     * records the payment and computes nothing; see the program's own module.
+     */
+    if (input.trigger === CommissionTrigger.SUBSCRIPTION) {
+      await qualifyReferralProgram({
+        organizationId: input.organizationId,
+        paymentReference: input.paymentReference,
+        baseAmount: input.baseAmount,
+      });
     }
 
     // Cheap short-circuit for the ordinary case: most customers arrive

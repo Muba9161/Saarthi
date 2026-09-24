@@ -31,12 +31,17 @@ import {
   runOverdueSweep,
 } from '../modules/loans/loan-reminder.service';
 import { runTopUpExpirySweep } from '../modules/subscriptions/topup.service';
+import { runSubscriptionLifecycleSweep } from '../modules/subscriptions/autopay.service';
+import { runAccountPurgeSweep } from '../modules/account-retention/account-purge.service';
+import { runMarketplaceSettlementSweep } from '../modules/marketplace-finance/settlement.service';
+import { runVerificationChargeSweep } from '../modules/verification-center/verification-charge.service';
 import { runDailyBriefSweep } from '../modules/ai/daily-brief.service';
 import { runFastagBalanceSweep } from '../modules/toll/fastag.service';
 import { runTerminalApprovalSweep } from '../modules/terminal/approval-sweep.service';
 import { runRequirementExpirySweep } from '../modules/requirements/expiry.service';
 import { notifyDueFollowUps } from '../modules/sales/lead.service';
 import { expireStaleCaptures } from '../modules/sales/referral.service';
+import { runCashoutSweep } from '../modules/wallet/wallet.service';
 
 /**
  * Scheduled background work.
@@ -340,6 +345,51 @@ export function registerBackgroundJobs(): void {
     },
   });
 
+  // What makes the 30-day trial actually end: warns and then archives unpaid
+  // periods, renews mock autopay, and warns owners three days before a trial
+  // runs out.
+  queue.registerRepeating({
+    name: 'subscription:lifecycle',
+    everyMs: HOUR,
+    initialDelayMs: 230_000,
+    handler: async () => {
+      await runSubscriptionLifecycleSweep();
+    },
+  });
+
+  // Accounts archived for non-payment whose 90 days are up: their own data is
+  // permanently deleted. Hourly is plenty — the deadline is in days.
+  queue.registerRepeating({
+    name: 'account:purge',
+    everyMs: HOUR,
+    initialDelayMs: 235_000,
+    handler: async () => {
+      await runAccountPurgeSweep();
+    },
+  });
+
+  // Marketplace settlements: route what is owed once a bank account can take
+  // it, and reconcile what the payment provider has actually paid out.
+  queue.registerRepeating({
+    name: 'marketplace:settlements',
+    everyMs: 15 * 60_000,
+    initialDelayMs: 240_000,
+    handler: async () => {
+      await runMarketplaceSettlementSweep();
+    },
+  });
+
+  // Paid verifications that stopped moving: a checkout whose webhook never
+  // arrived, a paid check never run, a run interrupted mid-way.
+  queue.registerRepeating({
+    name: 'verification:charges',
+    everyMs: 5 * 60_000,
+    initialDelayMs: 250_000,
+    handler: async () => {
+      await runVerificationChargeSweep();
+    },
+  });
+
   // The morning brief. Produced by rules rather than by a model, and sent only
   // to fleets that actually have something outstanding — a daily "all clear"
   // is how people learn to swipe the brief away without reading it.
@@ -427,6 +477,20 @@ export function registerBackgroundJobs(): void {
     initialDelayMs: 260_000,
     handler: async () => {
       await expireStaleCaptures();
+    },
+  });
+
+  /*
+   * Wallet cash-outs still waiting on Cashfree Payouts. Asks the provider what
+   * happened and settles each one — paid, or failed with the money returned to
+   * the wallet. Does nothing while payouts are not configured.
+   */
+  queue.registerRepeating({
+    name: 'wallet:cashout-sweep',
+    everyMs: 10 * 60_000,
+    initialDelayMs: 280_000,
+    handler: async () => {
+      await runCashoutSweep();
     },
   });
 

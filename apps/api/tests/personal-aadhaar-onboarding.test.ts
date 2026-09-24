@@ -29,8 +29,9 @@ import {
  * the road they confirm who they are. Three things have to hold at once, and
  * each is easy to break by fixing another:
  *
- *   1. A new Personal account cannot add a vehicle or fit a tracker until the
- *      account holder's own Aadhaar is confirmed.
+ *   1. A new Personal account puts the vehicle its plan includes on the road,
+ *      with its first tracker, straight away — but cannot add another vehicle
+ *      or tracker until the account holder's own Aadhaar is confirmed.
  *   2. An account that signed up before the cutover keeps everything it already
  *      runs — the vehicles, their tracking, their history — and meets the rule
  *      only when it comes to add the next one. A rule introduced after somebody
@@ -68,13 +69,14 @@ describe('Personal Aadhaar before vehicle onboarding', () => {
     type?: OrganizationType;
     role?: RoleName;
     createdAt?: Date;
+    trackers?: number;
   }): Promise<{ organization: TestOrganization; owner: TestUser }> {
     const organization = await createOrganization(
       options.type ?? OrganizationType.FLEET_OWNER,
       options.tier,
       // Room to add a second vehicle, so a capacity refusal can never be
       // mistaken for an identity one.
-      { vehicleTopUps: 4 },
+      { vehicleTopUps: 4, trackers: options.trackers ?? 0 },
     );
     const owner = await createUser({
       role: options.role ?? RoleName.FLEET_OWNER,
@@ -116,18 +118,18 @@ describe('Personal Aadhaar before vehicle onboarding', () => {
     return vehicle.id;
   }
 
-  function addVehicle(owner: TestUser) {
+  /** A car — or, for a fleet owner, which runs trucks, a truck. */
+  function addVehicle(owner: TestUser, vehicleType: VehicleType = VehicleType.CAR) {
     return request<unknown>({
       method: 'POST',
       url: '/api/v1/fleet/vehicles',
       user: owner,
       payload: {
         registrationNumber: unique('MH').toUpperCase().slice(0, 12),
-        vehicleType: VehicleType.CAR,
-        // A car is a passenger vehicle, so the capability model requires seats
-        // rather than tonnage — see `validateVehicleCapacities`.
-        passengerCapacity: 4,
-        fuelType: FuelType.PETROL,
+        vehicleType,
+        // Capacity follows the type — see `validateVehicleCapacities`.
+        ...(vehicleType === VehicleType.TRUCK ? { capacityTons: 9 } : { passengerCapacity: 4 }),
+        fuelType: vehicleType === VehicleType.TRUCK ? FuelType.DIESEL : FuelType.PETROL,
         odometerKm: 0,
       },
     });
@@ -138,8 +140,21 @@ describe('Personal Aadhaar before vehicle onboarding', () => {
   // -------------------------------------------------------------------------
 
   describe('a new Personal account', () => {
-    it('cannot add a vehicle until the account holder is verified', async () => {
+    it('adds the vehicle the plan includes without asking for Aadhaar', async () => {
       const { owner } = await account({ tier: PlanTier.PERSONAL, createdAt: AFTER_CUTOVER });
+
+      const response = await addVehicle(owner);
+
+      expect(response.status).toBe(201);
+      expect(await prisma.truck.count()).toBe(1);
+    });
+
+    it('cannot add a second vehicle until the account holder is verified', async () => {
+      const { organization, owner } = await account({
+        tier: PlanTier.PERSONAL,
+        createdAt: AFTER_CUTOVER,
+      });
+      await existingVehicle(organization.id);
 
       const response = await addVehicle(owner);
 
@@ -152,23 +167,110 @@ describe('Personal Aadhaar before vehicle onboarding', () => {
       expect(response.body.error?.details?.grandfathered).toBe(false);
 
       // Nothing was created on the way past.
-      expect(await prisma.truck.count()).toBe(0);
+      expect(await prisma.truck.count()).toBe(1);
     });
 
-    it('adds the vehicle once the account holder is verified', async () => {
+    it('does not hand the free vehicle back when it is removed', async () => {
       const { owner } = await account({ tier: PlanTier.PERSONAL, createdAt: AFTER_CUTOVER });
+
+      const first = await request<{ id: string }>({
+        method: 'POST',
+        url: '/api/v1/fleet/vehicles',
+        user: owner,
+        payload: {
+          registrationNumber: unique('MH').toUpperCase().slice(0, 12),
+          vehicleType: VehicleType.CAR,
+          passengerCapacity: 4,
+          fuelType: FuelType.PETROL,
+          odometerKm: 0,
+        },
+      });
+      expect(first.status).toBe(201);
+
+      const removed = await request({
+        method: 'DELETE',
+        url: `/api/v1/fleet/vehicles/${first.body.data.id}`,
+        user: owner,
+      });
+      expect(removed.status).toBeLessThan(300);
+
+      // Adding and removing must not become a way round the check.
+      const again = await addVehicle(owner);
+      expect(again.status).toBe(403);
+      expect(again.body.error?.code).toBe('IDENTITY_VERIFICATION_REQUIRED');
+    });
+
+    it('adds the second vehicle once the account holder is verified', async () => {
+      const { organization, owner } = await account({
+        tier: PlanTier.PERSONAL,
+        createdAt: AFTER_CUTOVER,
+      });
+      await existingVehicle(organization.id);
       await verifyHolder(owner);
 
       const response = await addVehicle(owner);
 
       expect(response.status).toBe(201);
-      expect(await prisma.truck.count()).toBe(1);
+      expect(await prisma.truck.count()).toBe(2);
     });
 
-    it('cannot buy a tracker until the account holder is verified', async () => {
+    it('buys and fits the first tracker without asking for Aadhaar', async () => {
       const { organization, owner } = await account({
         tier: PlanTier.PERSONAL,
         createdAt: AFTER_CUTOVER,
+      });
+      const vehicleId = await existingVehicle(organization.id);
+
+      const bought = await request<{ id: string }>({
+        method: 'POST',
+        url: '/api/v1/subscriptions/trackers',
+        user: owner,
+        payload: {},
+      });
+      expect(bought.body.error?.code).not.toBe('IDENTITY_VERIFICATION_REQUIRED');
+
+      // Fitting is gated separately, and must not refuse the tracker just
+      // bought because it now counts as active.
+      const tracker = await prisma.vehicleTracker.findFirstOrThrow({
+        where: { organizationId: organization.id },
+      });
+      const fitted = await request({
+        method: 'POST',
+        url: `/api/v1/subscriptions/trackers/${tracker.id}/assign`,
+        user: owner,
+        payload: { truckId: vehicleId },
+      });
+      expect(fitted.status).toBe(200);
+    });
+
+    it('does not hand the free tracker back when it is retired', async () => {
+      const { organization, owner } = await account({
+        tier: PlanTier.PERSONAL,
+        createdAt: AFTER_CUTOVER,
+        trackers: 1,
+      });
+      await existingVehicle(organization.id);
+      await prisma.vehicleTracker.updateMany({
+        where: { organizationId: organization.id },
+        data: { status: 'RETIRED', retiredAt: new Date() },
+      });
+
+      const response = await request({
+        method: 'POST',
+        url: '/api/v1/subscriptions/trackers',
+        user: owner,
+        payload: {},
+      });
+
+      expect(response.status).toBe(403);
+      expect(response.body.error?.code).toBe('IDENTITY_VERIFICATION_REQUIRED');
+    });
+
+    it('cannot buy a second tracker until the account holder is verified', async () => {
+      const { organization, owner } = await account({
+        tier: PlanTier.PERSONAL,
+        createdAt: AFTER_CUTOVER,
+        trackers: 1,
       });
       // A vehicle to fit it to, so the refusal cannot be the "add a vehicle
       // first" one.
@@ -184,7 +286,7 @@ describe('Personal Aadhaar before vehicle onboarding', () => {
       expect(response.status).toBe(403);
       expect(response.body.error?.code).toBe('IDENTITY_VERIFICATION_REQUIRED');
       // Refused before the charge: no hardware bought, nothing to refund.
-      expect(await prisma.vehicleTracker.count()).toBe(0);
+      expect(await prisma.vehicleTracker.count()).toBe(1);
     });
   });
 
@@ -288,7 +390,7 @@ describe('Personal Aadhaar before vehicle onboarding', () => {
         createdAt: AFTER_CUTOVER,
       });
 
-      const response = await addVehicle(owner);
+      const response = await addVehicle(owner, VehicleType.TRUCK);
       expect(response.status).toBe(201);
     });
 
@@ -359,6 +461,8 @@ describe('Personal Aadhaar before vehicle onboarding', () => {
           licenceVerifiedAt: new Date(),
         },
       });
+      // Past the included vehicle, so the account-holder check applies.
+      await existingVehicle(organization.id);
 
       // Still refused: a DRIVER_AADHAAR is not a USER_AADHAAR.
       const refused = await addVehicle(owner);

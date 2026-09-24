@@ -2,12 +2,13 @@ import * as React from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { BadgeCheck } from 'lucide-react';
 import { toast } from 'sonner';
-import { Permission } from '@saarthi/shared';
+import { Permission, VerificationCheckType, VerificationStepState } from '@saarthi/shared';
 import { api, errorMessage } from '@/lib/api-client';
 import type { RegistryVerificationResult } from '@/lib/api-types';
 import { useAuth } from '@/features/auth/auth-context';
 import { Button } from '@/components/ui/button';
 import { RegistryVerifyDialog } from './registry-verify-dialog';
+import { payLabel, usePayAndVerify, usePriceFor, type PayAndVerifyOutcome } from './use-pay-and-verify';
 
 /**
  * The Verify control on a vehicle or a driver.
@@ -71,13 +72,46 @@ export function VerifyButton({
     void queryClient.invalidateQueries({ queryKey: ['licence-lookup'] });
   }, [invalidateKeys, queryClient]);
 
+  const { run } = usePayAndVerify();
+  const checkType =
+    subjectType === 'truck' ? VerificationCheckType.VEHICLE_RC : VerificationCheckType.DRIVING_LICENCE;
+  const price = usePriceFor(registryBacked ? checkType : null);
+
+  /**
+   * Answered without the registry's own reply: the check waited on a hosted
+   * checkout, or needed no call at all. Said in a toast, and the dialog closes.
+   */
+  const announceOutcome = (outcome: PayAndVerifyOutcome): void => {
+    refresh();
+    setOpen(false);
+    if (outcome.state === VerificationStepState.VERIFIED) {
+      toast.success(outcome.mode === 'ALREADY_VERIFIED' ? 'Already verified' : 'Verified');
+    } else if (outcome.state === VerificationStepState.PAYMENT_PROCESSING) {
+      toast.info('Payment not completed', { description: 'Nothing was charged. You can pay and verify at any time.' });
+    } else if (outcome.state === VerificationStepState.RETRY_REQUIRED) {
+      toast.warning('Your fee is kept', { description: outcome.message ?? 'Try the check again at no charge.' });
+    } else {
+      toast.error('Not verified', { description: outcome.message ?? undefined });
+    }
+  };
+
   const check = useMutation({
-    mutationFn: (variables: { dateOfBirth?: string | undefined }) =>
-      api.post<RegistryVerificationResult>(
-        `/verification/subject/${subjectType}/${subjectId}/registry-verify`,
-        variables.dateOfBirth ? { dateOfBirth: variables.dateOfBirth } : {},
-      ),
-    onSuccess: (result) => {
+    // Pay & Verify: the fee is paid through Saarthi's checkout, then the
+    // registry is asked. The dialog shows the registry's own answer.
+    mutationFn: async (variables: { dateOfBirth?: string | undefined }) => {
+      const outcome = await run({
+        kind: checkType,
+        subjectType: subjectType === 'truck' ? 'TRUCK' : 'DRIVER',
+        subjectId,
+        ...(variables.dateOfBirth ? { dateOfBirth: variables.dateOfBirth } : {}),
+      });
+      return { outcome, result: (outcome.detail as RegistryVerificationResult | null) ?? null };
+    },
+    onSuccess: ({ outcome, result }) => {
+      if (!result) {
+        announceOutcome(outcome);
+        return;
+      }
       // A refusal is a recorded outcome, not a failed request — the subject's
       // status changed either way, so the page behind must be refreshed for
       // both.
@@ -159,7 +193,7 @@ export function VerifyButton({
           }
         >
           <BadgeCheck className="size-4" />
-          Verify
+          {payLabel(price)}
         </Button>
       ) : null}
 
@@ -172,7 +206,7 @@ export function VerifyButton({
         kind={subjectType === 'truck' ? 'VEHICLE' : 'DRIVER'}
         subjectLabel={subjectLabel}
         pending={check.isPending}
-        result={check.data ?? null}
+        result={check.data?.result ?? null}
         error={check.error}
         onRetry={(dateOfBirth) => {
           check.reset();

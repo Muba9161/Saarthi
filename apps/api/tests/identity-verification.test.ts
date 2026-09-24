@@ -26,8 +26,9 @@ import {
  * What is asserted:
  *
  *  * A malformed number is refused locally, with no provider call.
- *  * A well-formed number reaches the provider layer and gets an honest 503
- *    rather than a fabricated "verified".
+ *  * A well-formed number that needs a billable call is refused with 402 on
+ *    the direct endpoint — it runs only once its fee is paid — and is never
+ *    answered with a fabricated "verified".
  *  * A driver on another fleet's roster is a 404, not a 403 — the tenant guard.
  *  * Aadhaar without a linked PAN is recorded as UNCONFIRMED, never VERIFIED.
  */
@@ -79,14 +80,17 @@ describe('Identity verification', () => {
       }>({ method: 'GET', url: '/api/v1/identity/kinds', user: ownerA });
 
       expect(response.status).toBe(200);
-      // Aadhaar appears twice, and that is the catalogue being accurate rather
-      // than duplicated: a driver's Aadhaar and an account holder's own are the
-      // same card asked for in two different capacities, with different owners
-      // and different places to record the answer.
+      // Aadhaar appears twice and PAN three times, and that is the catalogue
+      // being accurate rather than duplicated: a driver's, an account holder's
+      // own and (for PAN) a business's are the same card asked for in different
+      // capacities, with different owners and different places to record the
+      // answer.
       expect(response.body.data.kinds.map((entry) => entry.kind).sort()).toEqual([
         'AADHAAR',
         'AADHAAR',
         'GST',
+        'PAN',
+        'PAN',
         'PAN',
         'VOTER_ID',
       ]);
@@ -238,23 +242,24 @@ describe('Identity verification', () => {
       });
 
       expect(response.status).toBe(200);
-      expect(response.body.data.checks).toHaveLength(1);
-      expect(response.body.data.checks[0]?.kind).toBe('GST');
+      // A business is asked for its own PAN and its GSTIN.
+      expect(response.body.data.checks.map((entry) => entry.kind)).toEqual(['PAN', 'GST']);
       // Null rather than absent: the row still needs a Verify button.
-      expect(response.body.data.checks[0]?.verification).toBeNull();
+      expect(response.body.data.checks.every((entry) => entry.verification === null)).toBe(true);
     });
   });
 
-  describe('without a provider key', () => {
+  describe('the unpaid direct endpoint', () => {
     /**
-     * The honest-failure contract.
+     * The honest-failure contract, and the fee rule.
      *
-     * With no key configured, a well-formed number must produce a 503 saying
-     * verification is unavailable — never a fabricated pass. A green tick this
-     * environment did not earn would be worse than no answer at all, because a
-     * fleet would dispatch on it.
+     * A well-formed number that needs a billable call is refused with 402 —
+     * the check is only ever run once its verification fee is paid, through
+     * Pay & Verify — and it is never answered with a fabricated pass. A green
+     * tick this environment did not earn would be worse than no answer at all,
+     * because a fleet would dispatch on it.
      */
-    it('returns 503 rather than inventing a result', async () => {
+    it('refuses a billable check without payment rather than inventing a result', async () => {
       const driverId = await driverIdFor(driverUserA);
 
       for (const payload of [
@@ -279,7 +284,8 @@ describe('Identity verification', () => {
           payload,
         });
 
-        expect(response.status, `${payload.kind} should report unavailable`).toBe(503);
+        expect(response.status, `${payload.kind} should require payment`).toBe(402);
+        expect((response.body as { error?: { code: string } }).error?.code).toBe('PAYMENT_REQUIRED');
       }
 
       // No subject was marked verified on the way past.
@@ -375,7 +381,7 @@ describe('Identity verification', () => {
    * stands in for the other, and this is where that is pinned down.
    */
   describe('the account holder’s own identity', () => {
-    it('offers a person their own Aadhaar and nothing else', async () => {
+    it('offers a person their own Aadhaar and PAN, and nothing else', async () => {
       const response = await request<{ checks: { kind: string; documentType: string }[] }>({
         method: 'GET',
         url: `/api/v1/identity/subject/user/${ownerA.id}`,
@@ -383,9 +389,12 @@ describe('Identity verification', () => {
       });
 
       expect(response.status).toBe(200);
-      expect(response.body.data.checks.map((entry) => entry.kind)).toEqual(['AADHAAR']);
-      // Their own document code, not the driver's.
-      expect(response.body.data.checks[0]?.documentType).toBe('USER_AADHAAR');
+      expect(response.body.data.checks.map((entry) => entry.kind)).toEqual(['AADHAAR', 'PAN']);
+      // Their own document codes, not the driver's.
+      expect(response.body.data.checks.map((entry) => entry.documentType)).toEqual([
+        'USER_AADHAAR',
+        'USER_PAN',
+      ]);
     });
 
     it('refuses one person the identity checks of another', async () => {

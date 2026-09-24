@@ -32,6 +32,7 @@ import {
   markRequirementFulfilled,
 } from '../requirements/fulfilment.service';
 import type { AuthContext } from '../../auth/context';
+import { assertOrderStatusAllowed, onOrderCancelled } from '../marketplace-finance/order-finance.service';
 
 /**
  * Orders — the customer marketplace.
@@ -1193,6 +1194,9 @@ export async function transitionOrder(
 
   const check = orderStateMachine.assertTransition(order.status, status);
   if (!check.allowed) throw errors.invalidTransition(check.reason!);
+  // An order with a payment plan completes itself and cannot be called off
+  // once its supplier is paid.
+  await assertOrderStatusAllowed(orderId, status);
 
   const updated = await prisma.order.update({
     where: { id: orderId },
@@ -1254,6 +1258,7 @@ export async function cancelOrder(
       `This order cannot be cancelled once it is ${order.status.toLowerCase().replace(/_/g, ' ')}.`,
     );
   }
+  await assertOrderStatusAllowed(orderId, OrderStatus.CANCELLED);
 
   await prisma.$transaction(async (tx) => {
     await tx.order.update({
@@ -1297,6 +1302,8 @@ export async function cancelOrder(
   });
 
   await recordEvent(orderId, 'CANCELLED', `Order cancelled: ${input.reason}`, auth.user.id);
+  // The customer's 30%, if it was paid, goes back.
+  await onOrderCancelled(orderId, auth.user.id);
 
   for (const organizationId of partiesOf(order)) {
     if (!organizationId || organizationId === auth.organizationId) continue;

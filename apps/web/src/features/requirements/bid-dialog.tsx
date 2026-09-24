@@ -6,6 +6,7 @@ import {
   BID_SCOPE_LABELS,
   Permission,
   RequirementBidScope,
+  RequirementKind,
   VehicleType,
   formatCurrency,
   humanizeEnum,
@@ -20,6 +21,7 @@ import type {
 } from '@/lib/api-types';
 import { useAuth } from '@/features/auth/auth-context';
 import { WizardField } from '@/components/common/form-wizard';
+import { SourcedMaterialField } from './sourced-material-field';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -72,6 +74,11 @@ export function BidDialog({
   // Transport
   const [vehicleId, setVehicleId] = React.useState(existing?.vehicle?.id ?? '');
   const [driverId, setDriverId] = React.useState(existing?.driver?.id ?? '');
+  // A fleet supplying the material itself, bought from a supplier listing.
+  const canSource =
+    scope === RequirementBidScope.TRANSPORT && requirement.kind === RequirementKind.MATERIAL_SUPPLY;
+  const [sourcing, setSourcing] = React.useState(existing?.deliversMaterial ?? false);
+  const [sourceMaterialId, setSourceMaterialId] = React.useState(existing?.sourceMaterialId ?? '');
 
   // Material
   const [materialId, setMaterialId] = React.useState(existing?.materialId ?? '');
@@ -122,6 +129,7 @@ export function BidDialog({
           ? {
               vehicleId,
               ...(driverId ? { driverId } : {}),
+              ...(canSource && sourcing && sourceMaterialId ? { sourceMaterialId } : {}),
             }
           : {}),
         ...(scope === RequirementBidScope.MATERIAL
@@ -170,6 +178,10 @@ export function BidDialog({
     }
     if (scope === RequirementBidScope.TRANSPORT && !vehicleId) {
       setError('Choose the vehicle you are offering. Accepting your bid creates a trip for it.');
+      return;
+    }
+    if (canSource && sourcing && !sourceMaterialId) {
+      setError('Choose the supplier listing you will buy the material from.');
       return;
     }
 
@@ -247,6 +259,18 @@ export function BidDialog({
                   placeholder="Driver id (optional)"
                 />
               </WizardField>
+
+              {canSource ? (
+                <SourcedMaterialField
+                  requirement={requirement}
+                  enabled={sourcing}
+                  onEnabledChange={setSourcing}
+                  materialId={sourceMaterialId}
+                  onMaterialChange={setSourceMaterialId}
+                  price={Number(price) || 0}
+                  open={open}
+                />
+              ) : null}
             </>
           ) : null}
 

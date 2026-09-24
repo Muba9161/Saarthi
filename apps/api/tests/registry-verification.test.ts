@@ -272,6 +272,40 @@ function verifyUrl(subjectType: 'truck' | 'driver' | 'organization', id: string)
   return `/api/v1/verification/subject/${subjectType}/${id}/registry-verify`;
 }
 
+const CHECKS_URL = '/api/v1/verification-center/checks';
+
+/**
+ * Verify a vehicle or a driver the way the product does: Pay & Verify.
+ *
+ * The suite runs on the mock gateway, which settles in-process, so the fee is
+ * paid and the registry check runs within the one request. The reply carries
+ * the registry's own result as `detail`, which is what is handed back here —
+ * so every rule below is still asserted against exactly what the registry
+ * module decided.
+ */
+async function verify<T = RegistryResponse>(
+  subject: 'truck' | 'driver',
+  id: string,
+  user: TestUser,
+  payload: Record<string, unknown> = {},
+): Promise<{ status: number; body: { success: boolean; data: T; error?: { code: string; message: string } } }> {
+  const response = await request<{ detail: T }>({
+    method: 'POST',
+    url: CHECKS_URL,
+    user,
+    payload: {
+      kind: subject === 'truck' ? 'VEHICLE_RC' : 'DRIVING_LICENCE',
+      subjectType: subject === 'truck' ? 'TRUCK' : 'DRIVER',
+      subjectId: id,
+      ...payload,
+    },
+  });
+  return {
+    status: response.status,
+    body: { ...response.body, data: response.body.data?.detail as T },
+  };
+}
+
 beforeAll(async () => {
   await getApp();
   await resetDatabase();
@@ -309,12 +343,7 @@ describe('registry verification — vehicles', () => {
     stubRegistry();
     const truck = await createTruck(fleet.id);
 
-    const response = await request<RegistryResponse>({
-      method: 'POST',
-      url: verifyUrl('truck', truck.id),
-      user: owner,
-      payload: {},
-    });
+    const response = await verify<RegistryResponse>('truck', truck.id, owner, {});
 
     expect(response.status).toBe(200);
     expect(response.body.data.verified).toBe(true);
@@ -335,12 +364,7 @@ describe('registry verification — vehicles', () => {
     stubRegistry();
     const truck = await createTruck(fleet.id);
 
-    const response = await request<RegistryResponse>({
-      method: 'POST',
-      url: verifyUrl('truck', truck.id),
-      user: owner,
-      payload: {},
-    });
+    const response = await verify<RegistryResponse>('truck', truck.id, owner, {});
 
     const labels = response.body.data.registry.details.map((row) => row.label);
     expect(labels).toContain('Make and model');
@@ -352,7 +376,7 @@ describe('registry verification — vehicles', () => {
     stubRegistry();
     const truck = await createTruck(fleet.id);
 
-    await request({ method: 'POST', url: verifyUrl('truck', truck.id), user: owner, payload: {} });
+    await verify('truck', truck.id, owner, {});
 
     const verificationCase = await prisma.verificationCase.findFirstOrThrow({
       where: { subjectId: truck.id },
@@ -367,12 +391,7 @@ describe('registry verification — vehicles', () => {
     stubRegistry({ rcEnvelopeOverride: rcNotFoundEnvelope() });
     const truck = await createTruck(fleet.id);
 
-    const response = await request<RegistryResponse>({
-      method: 'POST',
-      url: verifyUrl('truck', truck.id),
-      user: owner,
-      payload: {},
-    });
+    const response = await verify<RegistryResponse>('truck', truck.id, owner, {});
 
     // A recorded answer, not a failed request — the caller gets a 200 with the
     // problem in it, because the subject's status did change.
@@ -390,12 +409,7 @@ describe('registry verification — vehicles', () => {
     stubRegistry({ rc: { rc_status: 'RC Cancelled' } });
     const truck = await createTruck(fleet.id);
 
-    const response = await request<RegistryResponse>({
-      method: 'POST',
-      url: verifyUrl('truck', truck.id),
-      user: owner,
-      payload: {},
-    });
+    const response = await verify<RegistryResponse>('truck', truck.id, owner, {});
 
     expect(response.body.data.outcome).toBe('INELIGIBLE');
     expect(response.body.data.verified).toBe(false);
@@ -406,12 +420,7 @@ describe('registry verification — vehicles', () => {
     stubRegistry({ rc: { rc_number: 'MH12XY9999' } });
     const truck = await createTruck(fleet.id);
 
-    const response = await request<RegistryResponse>({
-      method: 'POST',
-      url: verifyUrl('truck', truck.id),
-      user: owner,
-      payload: {},
-    });
+    const response = await verify<RegistryResponse>('truck', truck.id, owner, {});
 
     expect(response.body.data.outcome).toBe('MISMATCH');
     expect(response.body.data.findings[0]?.code).toBe('RC_PLATE_MISMATCH');
@@ -421,12 +430,7 @@ describe('registry verification — vehicles', () => {
     stubRegistry({ rc: { insurance_upto: '2020-01-31' } });
     const truck = await createTruck(fleet.id);
 
-    const response = await request<RegistryResponse>({
-      method: 'POST',
-      url: verifyUrl('truck', truck.id),
-      user: owner,
-      payload: {},
-    });
+    const response = await verify<RegistryResponse>('truck', truck.id, owner, {});
 
     expect(response.body.data.verified).toBe(true);
     const advisory = response.body.data.findings.filter(
@@ -441,12 +445,7 @@ describe('registry verification — vehicles', () => {
     // this, but a legacy row can still carry it.
     const truck = await createTruck(fleet.id, 'ABCDEFG');
 
-    const response = await request<RegistryResponse>({
-      method: 'POST',
-      url: verifyUrl('truck', truck.id),
-      user: owner,
-      payload: {},
-    });
+    const response = await verify<RegistryResponse>('truck', truck.id, owner, {});
 
     expect(response.body.data.outcome).toBe('INVALID_FORMAT');
     expect(response.body.data.registry.checked).toBe(false);
@@ -457,14 +456,18 @@ describe('registry verification — vehicles', () => {
     stubRegistry({ status: 503 });
     const truck = await createTruck(fleet.id);
 
-    const response = await request({
+    const response = await request<{ state: string; charge: { status: string; freeRetryAvailable: boolean } }>({
       method: 'POST',
-      url: verifyUrl('truck', truck.id),
+      url: CHECKS_URL,
       user: owner,
-      payload: {},
+      payload: { kind: 'VEHICLE_RC', subjectType: 'TRUCK', subjectId: truck.id },
     });
 
-    expect(response.status).toBe(503);
+    // Paid for, but no answer: the fee is kept as a free retry rather than
+    // spent on nothing.
+    expect(response.status).toBe(200);
+    expect(response.body.data.state).toBe('RETRY_REQUIRED');
+    expect(response.body.data.charge.freeRetryAvailable).toBe(true);
 
     // The whole point: an outage is not evidence about a vehicle, so nothing
     // was recorded and the status is exactly where it was.
@@ -477,12 +480,7 @@ describe('registry verification — vehicles', () => {
     stubRegistry();
     const truck = await createTruck(otherFleet.id, 'DL3CAB1234');
 
-    const response = await request({
-      method: 'POST',
-      url: verifyUrl('truck', truck.id),
-      user: owner,
-      payload: {},
-    });
+    const response = await verify('truck', truck.id, owner, {});
 
     // 404 rather than 403 so ids cannot be probed across tenants.
     expect(response.status).toBe(404);
@@ -497,34 +495,30 @@ describe('registry verification — vehicles', () => {
 
     // A dispatcher holds `vehicles.lookup` but not `verification.submit`, so
     // the route's own gate is what stops this one.
-    const response = await request({
-      method: 'POST',
-      url: verifyUrl('truck', truck.id),
-      user: dispatcher,
-      payload: {},
-    });
+    const response = await verify('truck', truck.id, dispatcher, {});
 
     expect(response.status).toBe(403);
   });
 
-  it('re-verifying uses the stored record rather than paying twice', async () => {
+  it('re-verifying a verified vehicle charges nothing and calls nothing', async () => {
     const fetchMock = stubRegistry();
     const truck = await createTruck(fleet.id);
 
-    await request({ method: 'POST', url: verifyUrl('truck', truck.id), user: owner, payload: {} });
+    await verify('truck', truck.id, owner, {});
     const rcCalls = fetchMock.mock.calls.filter((call) =>
       String(call[0]).includes('/api/v1/rc/text-pdf'),
     ).length;
 
-    const second = await request<RegistryResponse>({
+    const second = await request<{ mode: string; charge: unknown }>({
       method: 'POST',
-      url: verifyUrl('truck', truck.id),
+      url: CHECKS_URL,
       user: owner,
-      payload: {},
+      payload: { kind: 'VEHICLE_RC', subjectType: 'TRUCK', subjectId: truck.id },
     });
 
-    expect(second.body.data.verified).toBe(true);
-    expect(second.body.data.registry.cached).toBe(true);
+    expect(second.body.data.mode).toBe('ALREADY_VERIFIED');
+    expect(second.body.data.charge).toBeNull();
+    expect(await prisma.verificationCharge.count({ where: { subjectId: truck.id } })).toBe(1);
     expect(
       fetchMock.mock.calls.filter((call) => String(call[0]).includes('/api/v1/rc/text-pdf')).length,
     ).toBe(rcCalls);
@@ -543,12 +537,7 @@ describe('registry verification — drivers', () => {
     stubRegistry();
     const driver = await createDriver(fleet.id);
 
-    const response = await request<RegistryResponse>({
-      method: 'POST',
-      url: verifyUrl('driver', driver.id),
-      user: owner,
-      payload: {},
-    });
+    const response = await verify<RegistryResponse>('driver', driver.id, owner, {});
 
     expect(response.status).toBe(200);
     expect(response.body.data.verified).toBe(true);
@@ -562,12 +551,7 @@ describe('registry verification — drivers', () => {
     stubRegistry();
     const driver = await createDriver(fleet.id);
 
-    const response = await request<RegistryResponse>({
-      method: 'POST',
-      url: verifyUrl('driver', driver.id),
-      user: owner,
-      payload: {},
-    });
+    const response = await verify<RegistryResponse>('driver', driver.id, owner, {});
 
     // The licence is confirmed, the driver is not. One of four.
     expect(response.body.data.verified).toBe(true);
@@ -588,12 +572,7 @@ describe('registry verification — drivers', () => {
     stubRegistry();
     const driver = await createDriver(fleet.id, { identityConfirmed: true });
 
-    const response = await request<RegistryResponse>({
-      method: 'POST',
-      url: verifyUrl('driver', driver.id),
-      user: owner,
-      payload: {},
-    });
+    const response = await verify<RegistryResponse>('driver', driver.id, owner, {});
 
     expect(response.body.data.driverChecklist?.complete).toBe(true);
     expect(response.body.data.status).toBe(VerificationStatus.VERIFIED);
@@ -613,7 +592,7 @@ describe('registry verification — drivers', () => {
       data: { licenceVerifiedAt: new Date('2026-01-01T00:00:00.000Z') },
     });
 
-    await request({ method: 'POST', url: verifyUrl('driver', driver.id), user: owner, payload: {} });
+    await verify('driver', driver.id, owner, { refresh: true });
 
     // An expired licence is not a confirmed one, and a stale confirmation left
     // in place would keep the driver verified on it.
@@ -626,13 +605,8 @@ describe('registry verification — drivers', () => {
     const fetchMock = stubRegistry();
     const driver = await createDriver(fleet.id);
 
-    const response = await request<RegistryResponse>({
-      method: 'POST',
-      url: verifyUrl('driver', driver.id),
-      user: owner,
-      // The number a licence upload would carry — belonging to another driver.
-      payload: { licenceNumber: 'MH1220100009999' },
-    });
+    // The number a licence upload would carry — belonging to another driver.
+    const response = await verify('driver', driver.id, owner, { licenceNumber: 'MH1220100009999' });
 
     expect(response.body.data.outcome).toBe('MISMATCH');
     expect(response.body.data.findings[0]?.code).toBe('DL_DOCUMENT_NUMBER_MISMATCH');
@@ -645,12 +619,9 @@ describe('registry verification — drivers', () => {
     stubRegistry();
     const driver = await createDriver(fleet.id);
 
-    const response = await request<RegistryResponse>({
-      method: 'POST',
-      url: verifyUrl('driver', driver.id),
-      user: owner,
-      // Typed with the separators a licence is printed with.
-      payload: { licenceNumber: `${driver.licenseNumber.slice(0, 4)}-${driver.licenseNumber.slice(4)}` },
+    // Typed with the separators a licence is printed with.
+    const response = await verify('driver', driver.id, owner, {
+      licenceNumber: `${driver.licenseNumber.slice(0, 4)}-${driver.licenseNumber.slice(4)}`,
     });
 
     expect(response.body.data.verified).toBe(true);
@@ -660,12 +631,7 @@ describe('registry verification — drivers', () => {
     stubRegistry();
     const driver = await createDriver(fleet.id);
 
-    const response = await request<RegistryResponse>({
-      method: 'POST',
-      url: verifyUrl('driver', driver.id),
-      user: owner,
-      payload: {},
-    });
+    const response = await verify<RegistryResponse>('driver', driver.id, owner, {});
 
     expect(response.body.data.reference).not.toBe(driver.licenseNumber);
     expect(response.body.data.reference).toContain('•');
@@ -675,12 +641,7 @@ describe('registry verification — drivers', () => {
     const fetchMock = stubRegistry();
     const driver = await createDriver(fleet.id, { dateOfBirth: null });
 
-    const response = await request<unknown>({
-      method: 'POST',
-      url: verifyUrl('driver', driver.id),
-      user: owner,
-      payload: {},
-    });
+    const response = await verify<unknown>('driver', driver.id, owner, {});
 
     expect(response.status).toBe(400);
     expect(response.body.error?.code).toBe('VALIDATION_ERROR');
@@ -701,12 +662,7 @@ describe('registry verification — drivers', () => {
     stubRegistry();
     const driver = await createDriver(fleet.id, { dateOfBirth: null });
 
-    const response = await request<RegistryResponse>({
-      method: 'POST',
-      url: verifyUrl('driver', driver.id),
-      user: owner,
-      payload: { dateOfBirth: '1988-03-14' },
-    });
+    const response = await verify<RegistryResponse>('driver', driver.id, owner, { dateOfBirth: '1988-03-14' });
 
     expect(response.body.data.verified).toBe(true);
 
@@ -720,12 +676,7 @@ describe('registry verification — drivers', () => {
     stubRegistry({ licence: { doe: '2020-05-19' } });
     const driver = await createDriver(fleet.id);
 
-    const response = await request<RegistryResponse>({
-      method: 'POST',
-      url: verifyUrl('driver', driver.id),
-      user: owner,
-      payload: {},
-    });
+    const response = await verify<RegistryResponse>('driver', driver.id, owner, {});
 
     expect(response.body.data.outcome).toBe('INELIGIBLE');
     expect(response.body.data.findings[0]?.code).toBe('DL_EXPIRED');
@@ -738,12 +689,7 @@ describe('registry verification — drivers', () => {
     stubRegistry({ licenceEnvelopeOverride: licenceNotFoundEnvelope() });
     const driver = await createDriver(fleet.id);
 
-    const response = await request<RegistryResponse>({
-      method: 'POST',
-      url: verifyUrl('driver', driver.id),
-      user: owner,
-      payload: {},
-    });
+    const response = await verify<RegistryResponse>('driver', driver.id, owner, {});
 
     expect(response.body.data.outcome).toBe('NOT_FOUND');
     expect(response.body.data.findings[0]?.code).toBe('DL_NOT_FOUND');
@@ -753,12 +699,7 @@ describe('registry verification — drivers', () => {
     stubRegistry({ licence: { vehicle_classes: ['MCWG', 'LMV-NT'], transport_doe: null } });
     const driver = await createDriver(fleet.id);
 
-    const response = await request<RegistryResponse>({
-      method: 'POST',
-      url: verifyUrl('driver', driver.id),
-      user: owner,
-      payload: {},
-    });
+    const response = await verify<RegistryResponse>('driver', driver.id, owner, {});
 
     expect(response.body.data.verified).toBe(true);
     expect(response.body.data.findings.map((finding) => finding.code)).toContain(
@@ -770,12 +711,7 @@ describe('registry verification — drivers', () => {
     stubRegistry();
     const driver = await createDriver(otherFleet.id, { licenseNumber: 'MH1220100009999' });
 
-    const response = await request({
-      method: 'POST',
-      url: verifyUrl('driver', driver.id),
-      user: owner,
-      payload: {},
-    });
+    const response = await verify('driver', driver.id, owner, {});
 
     expect(response.status).toBe(404);
   });
@@ -908,7 +844,7 @@ describe('a driver is verified only once all four checks are confirmed', () => {
       },
     });
 
-    await request({ method: 'POST', url: verifyUrl('driver', driver.id), user: owner, payload: {} });
+    await verify('driver', driver.id, owner, { refresh: true });
 
     const stored = await prisma.driver.findUniqueOrThrow({ where: { id: driver.id } });
     expect(stored.verificationStatus).toBe(VerificationStatus.REJECTED);

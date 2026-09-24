@@ -4,6 +4,7 @@ import { prisma } from '../../database/prisma';
 import { errors } from '../../lib/errors';
 import { verifyAccessToken } from '../../auth/tokens';
 import { buildAuthContext } from '../../auth/session.service';
+import { assertAccountNotArchived } from '../../modules/account-retention/account-lock';
 
 /**
  * Authentication plugin.
@@ -53,6 +54,8 @@ async function resolve(request: FastifyRequest): Promise<void> {
 export const authenticatePlugin = fp(async function authenticatePlugin(app: FastifyInstance) {
   app.decorate('authenticate', async (request: FastifyRequest, _reply: FastifyReply) => {
     await resolve(request);
+    // An account archived for non-payment reaches only what renews it.
+    if (request.auth) assertAccountNotArchived(request.auth, request);
   });
 
   app.decorate('optionalAuth', async (request: FastifyRequest, _reply: FastifyReply) => {

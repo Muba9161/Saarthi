@@ -7,10 +7,12 @@ import {
   OrganizationType,
   Permission,
   PlanTier,
+  allowedVehicleTypes,
   TruckStatus,
   VehicleType,
   formatNumber,
   humanizeEnum,
+  personalVehicleNeedsAadhaar,
 } from '@saarthi/shared';
 import { api } from '@/lib/api-client';
 import type { VehicleSummary, VehicleTypeOption } from '@/lib/mobility-types';
@@ -105,6 +107,17 @@ export function VehiclesPage() {
   // Declared before the columns because the row actions read it.
   const isTravelOperator = session?.organization?.type === OrganizationType.MOBILITY_PROVIDER;
   /*
+   * What this account may add — the same rule the API enforces: Personal never
+   * a truck, a fleet owner trucks only, a mobility provider no trucks. A
+   * personal seat is always Personal here, whatever the (development)
+   * entitlement reports.
+   */
+  const addableTypes = allowedVehicleTypes({
+    tier: session?.organization?.isPersonalSeat ? PlanTier.PERSONAL : session?.subscription?.planTier,
+    organizationType: session?.organization?.type,
+  });
+  const addableTypeProps = addableTypes.length > 0 ? { allowedTypes: addableTypes } : {};
+  /*
    * Somebody running their own vehicles rather than a business.
    *
    * This is their only vehicle screen — a Personal account is not offered the
@@ -141,9 +154,29 @@ export function VehiclesPage() {
     identity.data?.checks.find((entry) => entry.kind === 'AADHAAR')?.verification?.outcome ===
     'VERIFIED';
 
-  // Only once the answer is actually known, so the banner does not flash up at
-  // somebody who verified months ago.
-  const needsAadhaar = Boolean(isPersonalPlan && canAddVehicle && identity.data && !aadhaarVerified);
+  /*
+   * The vehicle the plan includes goes on without Aadhaar, so the banner is only
+   * for the next one. Counted the way the API counts it: without the screen's
+   * filters, and including removed vehicles — the free one is used once, not
+   * handed back when it is archived.
+   */
+  const vehiclesEverAdded = useQuery({
+    queryKey: ['vehicles', 'lifetime-count'],
+    queryFn: () =>
+      api.get<Paginated<VehicleSummary>>('/fleet/vehicles', {
+        page: 1,
+        pageSize: 1,
+        includeArchived: true,
+      }),
+    enabled: Boolean(isPersonalPlan && canAddVehicle && identity.data && !aadhaarVerified),
+  });
+
+  // Only once both answers are actually known, so the banner does not flash up
+  // at somebody who verified months ago or has not added their first vehicle.
+  const needsAadhaar = Boolean(
+    vehiclesEverAdded.data &&
+      personalVehicleNeedsAadhaar(vehiclesEverAdded.data.pagination.total),
+  );
 
   const columns: Column<VehicleSummary>[] = [
     {
@@ -323,7 +356,7 @@ export function VehiclesPage() {
                 // A travel operator has no other way in — there is no Trucks screen
                 // for them — so the type list is narrowed rather than hidden.
                 <AddVehicleDialog
-                  {...(isTravelOperator ? { allowedTypes: PASSENGER_VEHICLE_TYPES } : {})}
+                  {...addableTypeProps}
                   defaultType={
                     isTravelOperator || isPersonalSeat ? VehicleType.CAR : VehicleType.TRUCK
                   }
@@ -347,7 +380,7 @@ export function VehiclesPage() {
       {needsAadhaar ? (
         <Alert variant="warning">
           <BadgeCheck className="size-4" />
-          <AlertTitle>Verify your Aadhaar to add a vehicle</AlertTitle>
+          <AlertTitle>Verify your Aadhaar to add another vehicle</AlertTitle>
           <AlertDescription className="space-y-2">
             <p>
               Saarthi Personal is an account for you as an individual, so we ask for your own
@@ -355,7 +388,7 @@ export function VehiclesPage() {
               it is.
             </p>
             <Button asChild size="sm" variant="outline">
-              <Link to="/settings/profile">Verify now</Link>
+              <Link to="/settings/profile?step=identity">Verify now</Link>
             </Button>
           </AlertDescription>
         </Alert>
@@ -459,7 +492,7 @@ export function VehiclesPage() {
           action={
             can(Permission.VEHICLES_CREATE) ? (
               <AddVehicleDialog
-                {...(isTravelOperator ? { allowedTypes: PASSENGER_VEHICLE_TYPES } : {})}
+                {...addableTypeProps}
                 defaultType={
                   isTravelOperator || isPersonalSeat ? VehicleType.CAR : VehicleType.TRUCK
                 }

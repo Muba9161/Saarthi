@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
 import {
   Activity,
@@ -16,8 +16,8 @@ import {
   Permission,
   RealtimeEvent,
   TelemetryMetric,
-  VEHICLE_TRACKER,
-  formatCurrency,
+  OrganizationType,
+  describeTrackerPrices,
   humanizeEnum,
 } from '@saarthi/shared';
 import { api } from '@/lib/api-client';
@@ -37,6 +37,28 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { TrackerOfferDialog } from '@/features/telemetry/tracker-offer-dialog';
+
+/** Remembered for the session, so "Continue" means continue. */
+function offerDismissedKey(vehicleId: string): string {
+  return `saarthi:tracker-offer-dismissed:${vehicleId}`;
+}
+
+function offerDismissed(vehicleId: string): boolean {
+  try {
+    return window.sessionStorage.getItem(offerDismissedKey(vehicleId)) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function dismissOffer(vehicleId: string): void {
+  try {
+    window.sessionStorage.setItem(offerDismissedKey(vehicleId), '1');
+  } catch {
+    // Storage unavailable (private window): the offer simply reappears next visit.
+  }
+}
 
 /**
  * Vehicle telemetry.
@@ -118,7 +140,9 @@ function MetricTile({
 
 export function VehicleTelemetryPage() {
   const { id } = useParams<{ id: string }>();
-  const { can, hasFeature } = useAuth();
+  const { can, hasFeature, session } = useAuth();
+  const queryClient = useQueryClient();
+  const [offerOpen, setOfferOpen] = React.useState(false);
 
   const vehicle = useQuery({
     queryKey: ['vehicle', id],
@@ -176,6 +200,24 @@ export function VehicleTelemetryPage() {
     if (message.payload.vehicleId === id) void alerts.refetch();
   });
 
+  /*
+   * A fleet owner running trucks needs a tracker for live telemetry, so the
+   * offer opens by itself the first time they look at a vehicle without one.
+   * Anyone else can open it from the cards below.
+   */
+  const needsTracker = !hasFeature(Feature.TELEMETRY_LIVE);
+  const isFleetOwner =
+    session?.organization?.type === OrganizationType.FLEET_OWNER &&
+    !session.organization.isPersonalSeat;
+  React.useEffect(() => {
+    if (id && needsTracker && isFleetOwner && !offerDismissed(id)) setOfferOpen(true);
+  }, [id, needsTracker, isFleetOwner]);
+
+  const onOfferChange = (next: boolean): void => {
+    setOfferOpen(next);
+    if (!next && id) dismissOffer(id);
+  };
+
   if (!can(Permission.TELEMETRY_READ)) return <UnauthorizedState />;
   if (vehicle.isLoading) return <LoadingState label="Loading the vehicle…" />;
 
@@ -193,6 +235,18 @@ export function VehicleTelemetryPage() {
 
   return (
     <div className="space-y-5">
+      {id ? (
+        <TrackerOfferDialog
+          open={offerOpen}
+          onOpenChange={onOfferChange}
+          vehicleId={id}
+          vehicleLabel={vehicle.data?.registrationNumber ?? 'this vehicle'}
+          onPurchased={() => {
+            void queryClient.invalidateQueries({ queryKey: ['telemetry'] });
+            void queryClient.invalidateQueries({ queryKey: ['session'] });
+          }}
+        />
+      ) : null}
       <PageHeader
         eyebrow={
           <Link
@@ -227,7 +281,9 @@ export function VehicleTelemetryPage() {
           title="No device fitted"
           description="Fit a telematics unit to this vehicle to see engine, fuel, motion and diagnostic data. Until then Saarthi shows only phone or simulator GPS."
           action={
-            can(Permission.DEVICES_ASSIGN) ? (
+            needsTracker ? (
+              <Button onClick={() => setOfferOpen(true)}>See tracker options</Button>
+            ) : can(Permission.DEVICES_ASSIGN) ? (
               <Button asChild>
                 <Link to="/devices">Open devices</Link>
               </Button>
@@ -257,10 +313,15 @@ export function VehicleTelemetryPage() {
                     because it reads a device wired into the vehicle. Telling a
                     Business customer to upgrade would be advice they could not
                     act on. */}
-                <CardContent className="py-4 text-sm text-muted-foreground">
-                  Live telemetry reads the vehicle itself, so it needs a Saarthi tracker fitted -
-                  a one-time {formatCurrency(VEHICLE_TRACKER.priceOneTime)} per vehicle. Until then
-                  the driver app is the only source, and its figures are estimates.
+                <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4 text-sm text-muted-foreground">
+                  <span className="min-w-0 flex-1">
+                    Live telemetry reads the vehicle itself, so it needs a Saarthi tracker fitted -{' '}
+                    {describeTrackerPrices()}, once per vehicle. Until then the driver app is the only
+                    source, and its figures are estimates.
+                  </span>
+                  <Button size="sm" onClick={() => setOfferOpen(true)}>
+                    See tracker options
+                  </Button>
                 </CardContent>
               </Card>
             ) : reading === null ? (
@@ -537,9 +598,14 @@ export function VehicleTelemetryPage() {
           <TabsContent value="history" className="space-y-3">
             {!hasFeature(Feature.TELEMETRY_HISTORY) ? (
               <Card>
-                <CardContent className="py-4 text-sm text-muted-foreground">
-                  Telemetry history needs a Saarthi tracker on this vehicle - a one-time{' '}
-                  {formatCurrency(VEHICLE_TRACKER.priceOneTime)}, with no monthly charge.
+                <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4 text-sm text-muted-foreground">
+                  <span className="min-w-0 flex-1">
+                    Telemetry history needs a Saarthi tracker on this vehicle - charged once, with no
+                    monthly fee.
+                  </span>
+                  <Button size="sm" variant="outline" onClick={() => setOfferOpen(true)}>
+                    See tracker options
+                  </Button>
                 </CardContent>
               </Card>
             ) : (history.data?.items.length ?? 0) === 0 ? (

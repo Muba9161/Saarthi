@@ -1,8 +1,10 @@
 import {
   ALL_FEATURES,
   Feature,
+  LAPSED_FEATURES,
   PLAN_LIMITS,
   accountFeatures,
+  archiveDateFor,
   accountRunsVehicles,
   effectiveVehicleLimit,
   OrganizationType,
@@ -192,8 +194,19 @@ export async function resolveSubscription(
   let value: AuthSubscription | null = null;
 
   if (subscription) {
-    const expired =
-      subscription.endsAt !== null && subscription.endsAt.getTime() < Date.now();
+    /*
+     * An unpaid period in its grace (PAST_DUE) keeps full access until the
+     * archive date — the three days an owner is warned they have. The
+     * lifecycle sweep archives it then; this only stops the features going
+     * early.
+     */
+    const accessEndsAt =
+      subscription.endsAt === null
+        ? null
+        : subscription.status === SubscriptionStatus.PAST_DUE
+          ? archiveDateFor(subscription.endsAt)
+          : subscription.endsAt;
+    const expired = accessEndsAt !== null && accessEndsAt.getTime() < Date.now();
     const active =
       !expired && ACTIVE_STATUSES.includes(subscription.status as SubscriptionStatus);
 
@@ -233,25 +246,16 @@ export async function resolveSubscription(
     ]);
 
     /*
-     * An expired or cancelled plan falls back to a read-only floor rather than
+     * An expired or cancelled plan falls back to the lapsed floor rather than
      * to nothing, so a tenant never loses sight of their own data over a
-     * lapsed card.
-     *
-     * Which floor depends on whether there are vehicles to read about. Personal
-     * is the right fallback for an operator; for a supplier or a customer it
-     * offered maintenance records and trip replay for vehicles that do not
-     * exist, so Free — the plan built for an account with none — is the honest
-     * one. The account-shape filter below would strip most of the difference
-     * anyway; choosing the right floor here means the two agree instead of one
-     * undoing the other.
+     * lapsed card. The account-type filter below strips whatever in it the
+     * account cannot use.
      */
-    const lapsedFloor = runsVehicles ? PlanTier.PERSONAL : PlanTier.FREE;
-
     const planFeatures = active
       ? dbFeatures.length > 0
         ? dbFeatures
         : featuresForTier(tier)
-      : featuresForTier(lapsedFloor);
+      : LAPSED_FEATURES;
 
     /*
      * The tracker capabilities are added on top of the plan, never by it.
@@ -290,7 +294,7 @@ export async function resolveSubscription(
       vehicleTopUps: activeTopUps,
       activeTrackers,
       // Active plans grant their features; an expired/cancelled plan falls back
-      // to the Personal feature set so the tenant keeps read access to its data.
+      // to `LAPSED_FEATURES` so the tenant keeps read access to its data.
       features: withoutDeferred([...new Set(granted)]),
       limits: {
         ...limits,
@@ -342,7 +346,7 @@ export function subscriptionHasFeature(
 export async function createDefaultSubscription(
   organizationId: string,
   tier: PlanTier = PlanTier.BUSINESS,
-  options: { billing?: 'monthly' | 'yearly'; trialDays?: number } = {},
+  options: { trialDays?: number } = {},
 ): Promise<void> {
   const plan = await prisma.subscriptionPlan.findUnique({ where: { tier } });
   if (!plan) return;
@@ -352,19 +356,18 @@ export async function createDefaultSubscription(
    *
    * A trial is a paid plan somebody has not started paying for yet, and it
    * expires — which for Free would mean an account that costs nothing lapsing
-   * after fourteen days and falling back to a read-only floor. So it is
-   * created ACTIVE with no end date, and the trial applies to the two plans
-   * that are actually sold.
+   * at the end of the trial and falling back to a read-only floor. So it is
+   * created ACTIVE with no end date, and the trial (30 days by default)
+   * applies to the paid plans.
    */
   const trialDays = tier === PlanTier.FREE ? 0 : options.trialDays ?? config.subscription.trialDays;
-  const billingPeriod = options.billing === 'yearly' ? 'YEARLY' : 'MONTHLY';
 
   await prisma.subscription.upsert({
     where: { organizationId },
     create: {
       organizationId,
       planId: plan.id,
-      billingPeriod,
+      billingPeriod: 'MONTHLY',
       // A zero-day trial is a real configuration — a launch with no free
       // period — and must not become an already-expired subscription.
       status: trialDays > 0 ? SubscriptionStatus.TRIALING : SubscriptionStatus.ACTIVE,

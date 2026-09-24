@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { CarFront, Gauge, IdCard, Pencil, Plus } from 'lucide-react';
+import { CarFront, Cpu, Gauge, IdCard, Pencil, Plus } from 'lucide-react';
 import {
   FuelType,
   MediaOwnerType,
@@ -12,6 +12,7 @@ import {
   VehicleType,
   humanizeEnum,
   vehicleTypeDefinition,
+  type VehicleRcPrefill,
 } from '@saarthi/shared';
 import { api, errorMessage } from '@/lib/api-client';
 import { useAuth } from '@/features/auth/auth-context';
@@ -46,6 +47,8 @@ import {
 } from '@/components/common/form-wizard';
 import { ImageDropField } from '@/components/common/file-dropzone';
 import { uploadImageOrWarn } from '@/features/media/upload-image';
+import { VehicleConnectionStep, useVehicleOnboarding } from './vehicle-onboarding';
+import { RcPrefillPanel, RcPrefilledNotice, useRcPrefill } from './rc-prefill-panel';
 import { cn } from '@/lib/utils';
 
 /** Mirrors MEDIA_MAX_FILE_SIZE on the API, so a rejection happens here first. */
@@ -186,6 +189,34 @@ function stateFromVehicle(vehicle: EditableVehicle): VehicleFormState {
   };
 }
 
+/**
+ * The form, filled in from the RC. The type is taken only when this account
+ * may add it; otherwise the caller's default stands and the owner is told.
+ */
+function stateFromRc(
+  prefill: VehicleRcPrefill,
+  fallbackType: VehicleType,
+  offeredTypes: readonly VehicleType[],
+): { state: VehicleFormState; typeAccepted: boolean } {
+  const { draft } = prefill;
+  const typeAccepted = draft.vehicleType !== null && offeredTypes.includes(draft.vehicleType);
+  const base = initialState(typeAccepted && draft.vehicleType ? draft.vehicleType : fallbackType);
+  return {
+    typeAccepted,
+    state: {
+      ...base,
+      registrationNumber: prefill.registrationNumber,
+      manufacturer: draft.manufacturer ?? '',
+      model: draft.model ?? '',
+      year: numberField(draft.year),
+      colour: draft.colour ?? '',
+      capacityTons: numberField(draft.capacityTons),
+      passengerCapacity: numberField(draft.passengerCapacity),
+      fuelType: draft.fuelType ?? base.fuelType,
+    },
+  };
+}
+
 /** Blank means "this vehicle has no recorded value", which a patch says as null. */
 function trimmedOrNull(value: string): string | null {
   const trimmed = value.trim();
@@ -217,6 +248,12 @@ export function VehicleDialog({
     },
     [onOpenChange],
   );
+
+  // Create only: the vehicle's paid slot when the plan is full, and its tracker.
+  const onboarding = useVehicleOnboarding(open && !isEdit);
+  // Create only: start from the RC number and let Saarthi fill in the rest.
+  const rc = useRcPrefill(open && !isEdit);
+  const [rcTypeWarning, setRcTypeWarning] = React.useState<string | null>(null);
 
   const [form, setForm] = React.useState<VehicleFormState>(() =>
     subject ? stateFromVehicle(subject) : initialState(defaultType),
@@ -273,6 +310,22 @@ export function VehicleDialog({
   const carriesPassengers = definition.capabilities.includes(VehicleCapability.PASSENGER_CAPACITY);
   const typeChanged = subject !== null && form.vehicleType !== subject.vehicleType;
 
+  const applyRc = (prefill: VehicleRcPrefill): void => {
+    const { state, typeAccepted } = stateFromRc(
+      prefill,
+      defaultType,
+      types.map((entry) => entry.type),
+    );
+    setForm(state);
+    setErrors({});
+    setRcTypeWarning(
+      typeAccepted || !prefill.draft.vehicleType
+        ? null
+        : `The RC says this is a ${humanizeEnum(prefill.draft.vehicleType).toLowerCase()}, which this account cannot add. Check the number, or add it from an account that runs this kind of vehicle.`,
+    );
+    rc.begin(prefill);
+  };
+
   const set = <K extends keyof VehicleFormState>(key: K, value: VehicleFormState[K]): void => {
     setForm((previous) => ({ ...previous, [key]: value }));
     setErrors((previous) => (key in previous ? { ...previous, [key]: undefined } : previous));
@@ -296,11 +349,15 @@ export function VehicleDialog({
           'The vehicle was added, but its photo could not be saved.',
         );
       }
+      // The tracker paid for with the vehicle, fitted to it now that it exists.
+      await onboarding.finishConnection(created.id);
       return created;
     },
     onSuccess: (saved, variables) => {
       void queryClient.invalidateQueries({ queryKey: ['vehicles'] });
       void queryClient.invalidateQueries({ queryKey: ['trucks'] });
+      // Capacity, trackers and billing all move with the fleet.
+      void queryClient.invalidateQueries({ queryKey: ['subscription'] });
 
       if (subject) {
         // The detail screens read the row under its own key, so invalidating
@@ -340,7 +397,7 @@ export function VehicleDialog({
       }),
   });
 
-  const submit = (): void => {
+  const submit = async (): Promise<void> => {
     // Capacity is asked per capability, so it is sent per capability too.
     const capacities = {
       ...(carriesFreight && form.capacityTons ? { capacityTons: Number(form.capacityTons) } : {}),
@@ -378,7 +435,7 @@ export function VehicleDialog({
 
     // Blank optional fields are omitted rather than sent as empty strings, so
     // the API stores a real null instead of an empty value.
-    save.mutate({
+    const payload = {
       registrationNumber: form.registrationNumber,
       vehicleType: form.vehicleType,
       fuelType: form.fuelType,
@@ -388,7 +445,16 @@ export function VehicleDialog({
       ...(form.year ? { year: Number(form.year) } : {}),
       ...(form.colour.trim() ? { colour: form.colour.trim() } : {}),
       ...capacities,
-    });
+      // Added from its RC: the API verifies it against that record on save.
+      ...(rc.lookupIdFor(form.registrationNumber)
+        ? { rcLookupId: rc.lookupIdFor(form.registrationNumber) }
+        : {}),
+    };
+
+    // Whatever the vehicle needs — its slot on a full plan, its tracker — is
+    // paid in one payment first, and nothing is added unless it is confirmed.
+    if (!(await onboarding.payForVehicle(payload))) return;
+    save.mutate(payload);
   };
 
   /**
@@ -675,6 +741,17 @@ export function VehicleDialog({
         </>
       ),
     },
+    ...(isEdit
+      ? []
+      : [
+          {
+            id: 'connect',
+            title: 'Connect',
+            description: 'Driver App or a tracker.',
+            icon: Cpu,
+            content: <VehicleConnectionStep onboarding={onboarding} />,
+          } satisfies WizardStep,
+        ]),
   ];
 
   const addLabel = triggerLabel ?? 'Add vehicle';
@@ -700,28 +777,56 @@ export function VehicleDialog({
           <DialogDescription>
             {isEdit
               ? 'Correct this vehicle’s details. Open any step directly - only what you change is saved.'
-              : 'Register a vehicle to your organization. You can pull its RC record and upload photos once it is added.'}
+              : rc.asking
+                ? 'Start with the RC number - Saarthi fills in the rest from the RTO record.'
+                : 'Review the details, add a photo, and save.'}
           </DialogDescription>
         </DialogHeader>
 
-        <FormWizard
-          steps={steps}
-          className={WIZARD_IN_DIALOG}
-          panelClassName={WIZARD_DIALOG_PANEL}
-          resetKey={open}
-          onValidateStep={validateStep}
-          onSubmit={submit}
-          submitting={save.isPending}
-          submitLabel={isEdit ? 'Save changes' : 'Add vehicle'}
-          erroredStepIds={erroredStepIds}
-          // An edit is a visit to one step, not a walk through three.
-          allowJumpAhead={isEdit}
-          footerStart={
-            <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
-              Cancel
-            </Button>
-          }
-        />
+        {rc.asking ? (
+          <div className="px-4 pb-5 sm:px-6">
+            <RcPrefillPanel
+              onPrefilled={applyRc}
+              onManual={(plate) => {
+                setForm({ ...initialState(defaultType), registrationNumber: plate });
+                setRcTypeWarning(null);
+                rc.manual();
+              }}
+            />
+          </div>
+        ) : (
+          <>
+            {rc.prefill ? (
+              <RcPrefilledNotice
+                registrationNumber={rc.prefill.registrationNumber}
+                typeWarning={rcTypeWarning}
+                onRestart={() => {
+                  setRcTypeWarning(null);
+                  rc.restart();
+                }}
+              />
+            ) : null}
+
+            <FormWizard
+              steps={steps}
+              className={WIZARD_IN_DIALOG}
+              panelClassName={WIZARD_DIALOG_PANEL}
+              resetKey={open}
+              onValidateStep={validateStep}
+              onSubmit={() => void submit()}
+              submitting={save.isPending || onboarding.paying}
+              submitLabel={isEdit ? 'Save changes' : onboarding.submitLabel}
+              erroredStepIds={erroredStepIds}
+              // An edit is a visit to one step, not a walk through three.
+              allowJumpAhead={isEdit}
+              footerStart={
+                <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+                  Cancel
+                </Button>
+              }
+            />
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );

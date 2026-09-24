@@ -6,6 +6,7 @@ import {
 } from '@saarthi/shared';
 import { type Db, prisma } from '../../database/prisma';
 import { errors } from '../../lib/errors';
+import { generateInviteCode } from '../../auth/tokens';
 
 /**
  * Resolving a fleet invite code to the organization behind it.
@@ -25,6 +26,21 @@ export interface JoinableFleet {
   id: string;
   name: string;
   type: OrganizationType;
+}
+
+/**
+ * A fresh, unused joining code — `SR-` and six unambiguous characters.
+ *
+ * One allocator for every organization that gets a code: a new registration,
+ * a driver's own seat, and an owner regenerating a code that leaked.
+ */
+export async function allocateInviteCode(db: Db = prisma): Promise<string> {
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const code = generateInviteCode();
+    const existing = await db.organization.findUnique({ where: { inviteCode: code } });
+    if (!existing) return code;
+  }
+  throw errors.internal('Could not allocate an organization invite code.');
 }
 
 const invalidCode = () =>
@@ -89,6 +105,9 @@ export async function resolveJoinableFleet(
   // so its invite code is honoured here too — see
   // DRIVER_JOINABLE_ORGANIZATION_TYPES.
   if (!DRIVER_JOINABLE_ORGANIZATION_TYPES.includes(fleet.type)) throw notAnEmployer();
+  // Another driver's own seat carries a code too; only a fleet somebody runs
+  // can take a driver on.
+  if (!(await hasEmployer(fleet.id, db))) throw notAnEmployer();
 
   return { id: fleet.id, name: fleet.name, type: fleet.type };
 }

@@ -21,6 +21,8 @@ import { SubjectQrPanel } from '@/features/qr/subject-qr-panel';
 import { DataView, type Column } from '@/components/common/data-view';
 import { ScoreBadge, StatusBadge } from '@/components/common/status-badge';
 import { UnauthorizedState } from '@/components/common/states';
+import { DeleteAction } from '@/components/common/delete-action';
+import { InviteCodeCard } from '@/features/fleet/invite-code-card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -474,6 +476,24 @@ export function DriversPage() {
         </div>
       ),
     },
+    {
+      key: 'actions',
+      header: '',
+      className: 'w-12 text-right',
+      cell: (driver) => (
+        <DeleteAction
+          endpoint={`/drivers/${driver.id}`}
+          itemLabel={driver.fullName}
+          entityName="driver"
+          mode="remove"
+          description="will be removed from your fleet. Their account, trips, scores and documents stay with them, and they can join another fleet with its code."
+          permission={Permission.DRIVERS_MANAGE}
+          invalidateKeys={[['drivers']]}
+          disabled={driver.availability === 'ON_TRIP'}
+          disabledReason="On a trip — finish or reassign it first"
+        />
+      ),
+    },
   ];
 
   return (
@@ -490,6 +510,8 @@ export function DriversPage() {
           ) : null
         }
       />
+
+      {can(Permission.ORG_MEMBERS_MANAGE) ? <InviteCodeCard /> : null}
 
       <div className="relative">
         <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -517,7 +539,7 @@ export function DriversPage() {
         emptyDescription={
           debounced
             ? 'Try a different search.'
-            : 'Add a driver here, or share your fleet invite code so they can register themselves.'
+            : 'Add a driver here, or share your joining code above so they can join from their own account.'
         }
         emptyAction={
           can(Permission.DRIVERS_MANAGE) && !debounced ? (

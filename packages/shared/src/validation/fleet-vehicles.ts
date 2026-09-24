@@ -82,7 +82,17 @@ function refineCapacities<T extends z.ZodTypeAny>(schema: T): T {
   }) as unknown as T;
 }
 
-export const createVehicleSchema = refineCapacities(z.object(baseVehicleFields));
+export const createVehicleSchema = refineCapacities(
+  z.object({
+    ...baseVehicleFields,
+    /**
+     * The RC prefill this vehicle was added from (`POST /vehicles/rc-prefill`).
+     * When present, the saved vehicle is verified against that record at no
+     * charge. The API checks it belongs to this account and this plate.
+     */
+    rcLookupId: z.string().uuid().optional(),
+  }),
+);
 export type CreateVehicleInput = z.infer<typeof createVehicleSchema>;
 
 /**

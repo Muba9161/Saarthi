@@ -37,6 +37,7 @@ import {
   identityProviderConfigured,
   requireIdentityProvider,
 } from '../../providers/identity';
+import { type ProviderCallGate, refuseUnpaidProviderCall } from '../../lib/provider-call-gate';
 import { AuditAction } from '../audit/audit.service';
 import { notifyAsync } from '../notifications/notification.service';
 import { syncDriverVerificationStatus } from '../verification/verification.service';
@@ -350,6 +351,22 @@ async function applyToSubject(
       break;
 
     case IdentityDocumentKind.PAN:
+      // Three subjects, three separate facts — a driver's PAN, an account
+      // holder's own PAN and a business PAN never stand in for one another.
+      if (subjectType === VerificationSubjectType.USER) {
+        await prisma.user.update({
+          where: { id: subjectId },
+          data: { panNumber: normalizedNumber, panVerifiedAt: verifiedAt },
+        });
+        break;
+      }
+      if (subjectType === VerificationSubjectType.ORGANIZATION) {
+        await prisma.organization.update({
+          where: { id: subjectId },
+          data: { panNumber: normalizedNumber, panVerifiedAt: verifiedAt },
+        });
+        break;
+      }
       await prisma.driver.update({
         where: { id: subjectId },
         data: { panNumber: normalizedNumber, panVerifiedAt: verifiedAt },
@@ -524,6 +541,7 @@ interface CheckResult {
 async function checkAadhaar(
   normalizedNumber: string,
   linkedPan: string | undefined,
+  gate: ProviderCallGate,
 ): Promise<CheckResult> {
   const record: AadhaarRecord = {
     maskedNumber: maskIdentityNumber(IdentityDocumentKind.AADHAAR, normalizedNumber),
@@ -550,6 +568,7 @@ async function checkAadhaar(
 
   const provider = requireIdentityProvider();
   await reserveProviderCall();
+  await gate();
 
   const linkOutcome = await provider.checkAadhaarPanLink({
     aadhaarNumber: normalizedNumber,
@@ -599,9 +618,11 @@ async function checkAadhaar(
 async function checkPan(
   normalizedNumber: string,
   holderName: string | undefined,
+  gate: ProviderCallGate,
 ): Promise<CheckResult> {
   const provider = requireIdentityProvider();
   await reserveProviderCall();
+  await gate();
 
   const outcome = await provider.verifyPan({ panNumber: normalizedNumber, holderName });
 
@@ -628,7 +649,7 @@ async function checkPan(
       outcome: IdentityVerificationOutcome.MISMATCH,
       record,
       reason:
-        'This PAN is registered to a different name. Check that the card belongs to this driver.',
+        'This PAN is registered to a different name. Check that the card belongs to this person or business.',
       holderName: record.holderName,
       provider: provider.name,
       providerReference: outcome.providerReference,
@@ -656,9 +677,10 @@ async function checkPan(
   };
 }
 
-async function checkVoterId(normalizedNumber: string): Promise<CheckResult> {
+async function checkVoterId(normalizedNumber: string, gate: ProviderCallGate): Promise<CheckResult> {
   const provider = requireIdentityProvider();
   await reserveProviderCall();
+  await gate();
 
   const outcome = await provider.verifyVoterId({ epicNumber: normalizedNumber });
 
@@ -685,9 +707,10 @@ async function checkVoterId(normalizedNumber: string): Promise<CheckResult> {
   };
 }
 
-async function checkGstin(normalizedNumber: string): Promise<CheckResult> {
+async function checkGstin(normalizedNumber: string, gate: ProviderCallGate): Promise<CheckResult> {
   const provider = requireIdentityProvider();
   await reserveProviderCall();
+  await gate();
 
   const outcome = await provider.verifyGstin({ gstin: normalizedNumber });
 
@@ -752,15 +775,26 @@ export interface IdentityVerifyOutcome {
   };
 }
 
+export interface VerifyIdentityOptions {
+  /**
+   * Passed immediately before the billable provider call. Defaults to refusing
+   * it: a billable check runs only through Pay & Verify, once the customer's
+   * fee is confirmed. See `provider-call-gate.ts`.
+   */
+  gate?: ProviderCallGate;
+}
+
 /**
  * Verify one identity number for one subject.
  *
  * Order matters and is deliberate: scope, then local checksum, then cache, then
- * — last, and only if all three allow it — the billable provider call.
+ * — last, and only if all three allow it — the gate and the billable provider
+ * call.
  */
 export async function verifyIdentity(
   auth: AuthContext,
   input: VerifyIdentityInput,
+  options: VerifyIdentityOptions = {},
 ): Promise<IdentityVerifyOutcome> {
   const subject = await resolveSubject(auth, input.subjectType, input.subjectId);
   const definition = identityKindDefinition(input.kind);
@@ -847,7 +881,7 @@ export async function verifyIdentity(
   }
 
   // --- Provider ----------------------------------------------------------
-  const result = await runCheck(input, normalizedNumber);
+  const result = await runCheck(input, normalizedNumber, options.gate ?? refuseUnpaidProviderCall);
 
   const now = new Date();
   const ttlSeconds = config.identity.cacheTtlSeconds;
@@ -962,16 +996,17 @@ export async function verifyIdentity(
 function runCheck(
   input: VerifyIdentityInput,
   normalizedNumber: string,
+  gate: ProviderCallGate,
 ): Promise<CheckResult> {
   switch (input.kind) {
     case IdentityDocumentKind.AADHAAR:
-      return checkAadhaar(normalizedNumber, input.linkedPan);
+      return checkAadhaar(normalizedNumber, input.linkedPan, gate);
     case IdentityDocumentKind.PAN:
-      return checkPan(normalizedNumber, input.holderName);
+      return checkPan(normalizedNumber, input.holderName, gate);
     case IdentityDocumentKind.VOTER_ID:
-      return checkVoterId(normalizedNumber);
+      return checkVoterId(normalizedNumber, gate);
     case IdentityDocumentKind.GST:
-      return checkGstin(normalizedNumber);
+      return checkGstin(normalizedNumber, gate);
     default:
       throw errors.validation('That identity document type is not supported.');
   }

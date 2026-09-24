@@ -411,12 +411,16 @@ export async function travelRoutes(app: FastifyInstance): Promise<void> {
 
       const booking = await bookingService.payBooking(auth, id, input);
 
-      await auditFromRequest(request, {
-        action: AuditAction.PAYMENT_SUCCEEDED,
-        entityType: 'TravelBooking',
-        entityId: id,
-        after: { reference: booking.reference, amount: booking.totalAmount },
-      });
+      // A hosted checkout has not taken the money yet; it is audited when it
+      // settles, not here.
+      if (!booking.checkout) {
+        await auditFromRequest(request, {
+          action: AuditAction.PAYMENT_SUCCEEDED,
+          entityType: 'TravelBooking',
+          entityId: id,
+          after: { reference: booking.reference, amount: booking.totalAmount },
+        });
+      }
 
       return ok(reply, booking);
     },

@@ -90,8 +90,9 @@ work* and quotes for it.
 
 ### Registering your own
 
-Registration is open at `/register`, and a new organization is fully functional — it gets a 14-day
-Pro trial, so nothing is feature-locked while you explore. Because a self-served install has no
+Registration is open at `/register`, and a new organization on a paid plan starts a 30-day free
+trial (`SUBSCRIPTION_TRIAL_DAYS`). Every paid plan carries every capability, so nothing is
+feature-locked while you explore. Because a self-served install has no
 platform reviewer, demo mode lets you approve your own verification submissions (**Verification →
 Verify**) and mark a driver or truck verified directly from its detail page. Both are refused unless
 `DEMO_MODE` is on, which the API will not allow in production.

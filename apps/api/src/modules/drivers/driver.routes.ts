@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import {
   Feature,
   Permission,
@@ -20,8 +21,14 @@ import {
 import { AuditAction, auditFromRequest } from '../audit/audit.service';
 import * as authService from '../../auth/auth.service';
 import * as driverService from './driver.service';
+import { driverAppInviteStatus, inviteDriversToApp } from './driver-app-invite.service';
+import { releaseDriver } from './driver-release.service';
 import * as qrService from '../qr/qr.service';
 import { publicAppUrl } from '../../lib/public-url';
+
+const driverAppInviteSchema = z.object({
+  driverIds: z.array(z.string().uuid()).min(1).max(200),
+});
 
 export async function driverRoutes(app: FastifyInstance): Promise<void> {
   app.addHook('preHandler', app.authenticate);
@@ -32,6 +39,24 @@ export async function driverRoutes(app: FastifyInstance): Promise<void> {
     const result = await driverService.listDrivers(auth, query);
     return paginated(reply, result.items, result.pagination);
   });
+
+  /** Which drivers have already been asked to install the Driver App. */
+  app.get(
+    '/app-invites',
+    { preHandler: requirePermission(Permission.DRIVERS_READ) },
+    async (request, reply) => ok(reply, await driverAppInviteStatus(requireAuth(request))),
+  );
+
+  /** Ask drivers to install the Saarthi Driver App — offered beside the tracker on telemetry. */
+  app.post(
+    '/app-invites',
+    { preHandler: requirePermission(Permission.DRIVERS_MANAGE) },
+    async (request, reply) => {
+      const auth = requireAuth(request);
+      const input = parseBody(driverAppInviteSchema, request.body ?? {});
+      return ok(reply, await inviteDriversToApp(auth, input.driverIds));
+    },
+  );
 
   app.get(
     '/:id',
@@ -126,18 +151,23 @@ export async function driverRoutes(app: FastifyInstance): Promise<void> {
     },
   );
 
+  /*
+   * Remove a driver from this fleet. Not a deletion: the driver keeps their
+   * account, history and documents, and is seated back on their own, free to
+   * join another fleet — see `releaseDriver`.
+   */
   app.delete(
     '/:id',
     { preHandler: requirePermission(Permission.DRIVERS_MANAGE) },
     async (request, reply) => {
       const auth = requireAuth(request);
       const { id } = parseParams(idParamSchema, request.params);
-      await driverService.archiveDriver(auth, id);
+      await releaseDriver(auth, id);
       await auditFromRequest(request, {
-        action: AuditAction.DRIVER_UPDATED,
+        action: AuditAction.DRIVER_RELEASED_FROM_FLEET,
         entityType: 'Driver',
         entityId: id,
-        after: { archived: true },
+        after: { releasedFrom: auth.organizationId },
       });
       return noContent(reply);
     },

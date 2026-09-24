@@ -1,15 +1,19 @@
 import {
-  CommissionTrigger,
   NotificationPriority,
   NotificationType,
   OPERATOR_OWNER_ROLES,
   PLAN_LIMITS,
+  PaymentPurpose,
   OrganizationType,
   PlanTier,
-  VEHICLE_TRACKER,
+  TRACKER_PRODUCTS,
   accountRunsVehicles,
   canAddVehicleTracker,
-  withGst,
+  trackerProduct,
+  inclusiveOfGst,
+  trackerCharge,
+  type TrackerProduct,
+  type TrackerProductDefinition,
   type AssignTrackerInput,
   type PurchaseTrackerInput,
 } from '@saarthi/shared';
@@ -19,16 +23,19 @@ import { logger } from '../../lib/logger';
 import { cache } from '../../infra/cache';
 import { cacheKeys } from '../../infra/cache-keys';
 import { withLock } from '../../infra/lock';
-import { paymentProvider } from '../../providers/payments';
+import {
+  completeSettledPayment,
+  openPayment,
+  type CheckoutSession,
+} from '../payments/payment-settlement.service';
 import { AuditAction, recordAudit } from '../audit/audit.service';
 import { notifyOrganization } from '../notifications/notification.service';
-import { qualifyPayment } from '../sales/qualification';
 import { assertPersonalIdentityVerified } from '../identity-verification/personal-onboarding.guard';
 import { countActiveTrackers, invalidateEntitlements, resolveBaseLimits } from './entitlements.service';
 import type { AuthContext } from '../../auth/context';
 
 /**
- * The optional Saarthi tracker.
+ * Saarthi tracker hardware — the Bluetooth OBD unit or the 4G tracker.
  *
  * What it is for, in the customer's words: the driver app knows where the phone
  * is, and a phone can be left at home, run flat, or lose signal in a tunnel —
@@ -50,6 +57,7 @@ const ACTIVE_STATUS = 'ACTIVE' as const;
 export interface TrackerView {
   id: string;
   status: string;
+  product: TrackerProduct;
   truckId: string | null;
   truckRegistration: string | null;
   serialNumber: string | null;
@@ -63,6 +71,7 @@ export interface TrackerView {
 function toView(row: {
   id: string;
   status: string;
+  product: TrackerProduct;
   truckId: string | null;
   serialNumber: string | null;
   pricePaid: unknown;
@@ -74,6 +83,7 @@ function toView(row: {
   return {
     id: row.id,
     status: row.status,
+    product: row.product,
     truckId: row.truckId,
     truckRegistration,
     serialNumber: row.serialNumber,
@@ -123,7 +133,8 @@ export interface TrackerCoverage {
   canPurchase: boolean;
   /** Plan ceiling on holding trackers. `null` = unlimited. */
   ceiling: number | null;
-  priceOneTime: number;
+  /** What is on sale, with base prices before GST. */
+  products: readonly TrackerProductDefinition[];
 }
 
 /**
@@ -159,7 +170,7 @@ export async function trackerCoverage(organizationId: string): Promise<TrackerCo
         : Math.max(0, Math.min(ceiling, Math.max(vehicles, 1)) - activeTrackers),
     canPurchase: canAddVehicleTracker({ tier, activeTrackers, vehicleCount: vehicles }),
     ceiling,
-    priceOneTime: VEHICLE_TRACKER.priceOneTime,
+    products: TRACKER_PRODUCTS,
   };
 }
 
@@ -174,7 +185,7 @@ export async function purchaseTracker(
   auth: AuthContext,
   organizationId: string,
   input: PurchaseTrackerInput,
-): Promise<{ tracker: TrackerView; coverage: TrackerCoverage }> {
+): Promise<{ tracker: TrackerView; coverage: TrackerCoverage; checkout: CheckoutSession | null }> {
   const result = await withLock(`subscription:tracker:${organizationId}`, 30_000, async () => {
     const subscription = await prisma.subscription.findUnique({
       where: { organizationId },
@@ -198,11 +209,9 @@ export async function purchaseTracker(
     /*
      * An account that runs no vehicles is not sold capacity for them.
      *
-     * The tracker requirement follows the *account type*, not the price of the
-     * plan: a supplier buys the same Business subscription a freight fleet
-     * does and owns nothing to fit hardware to. Checked against the
-     * organization rather than the tier for exactly that reason - the tier
-     * cannot tell the two apart.
+     * This follows the *account type*, not the price of the plan: a Business
+     * account that is not a vehicle operator owns nothing to fit hardware to,
+     * and the tier alone cannot tell it apart from a fleet.
      *
      * Unreachable through the UI today, since neither a supplier nor a
      * customer holds SUBSCRIPTION_MANAGE. It is here because the next thing
@@ -229,13 +238,20 @@ export async function purchaseTracker(
       );
     }
 
-    if (!canAddVehicleTracker({ tier, activeTrackers, vehicleCount })) {
-      const ceiling = PLAN_LIMITS[tier].maxTrackers;
+    // Every tracker ordered must fit a vehicle and the plan — all of them, not
+    // just the first: one tracker per vehicle, and the plan's own ceiling.
+    const quantity = input.quantity;
+    const ceiling = PLAN_LIMITS[tier].maxTrackers;
+    const allowed = Math.min(ceiling ?? Number.POSITIVE_INFINITY, Math.max(vehicleCount, 1));
+    if (!canAddVehicleTracker({ tier, activeTrackers, vehicleCount }) || activeTrackers + quantity > allowed) {
+      const left = Math.max(0, allowed - activeTrackers);
       throw errors.planLimitReached(
         'maxTrackers',
-        ceiling !== null && activeTrackers >= ceiling
-          ? `The ${subscription.plan.name} plan covers up to ${ceiling} trackers. Moving to Business removes the limit.`
-          : 'You already hold a tracker for every vehicle on your fleet. Add the vehicle first, then buy its tracker.',
+        ceiling !== null && activeTrackers + quantity > ceiling
+          ? `The ${subscription.plan.name} plan covers up to ${ceiling} trackers${left > 0 ? ` - you can add ${left} more` : ''}.`
+          : left > 0
+            ? `You can add ${left} more tracker${left === 1 ? '' : 's'} - one for each vehicle without one.`
+            : 'You already hold a tracker for every vehicle on your fleet. Add the vehicle first, then buy its tracker.',
       );
     }
 
@@ -263,22 +279,30 @@ export async function purchaseTracker(
 
     const reference = `TRACKER-${organizationId.slice(0, 8)}-${Date.now().toString(36).toUpperCase()}`;
 
-    // Exclusive of GST in the catalogue, so the charge is the taxed figure.
-    // `pricePaid` on the row keeps the pre-tax price — see the note in
-    // `purchaseTopUp`.
-    const charge = withGst(VEHICLE_TRACKER.priceOneTime);
+    // The customer pays the final price — base plus GST, rounded up to end in
+    // 9. `pricePaid` on the row keeps the base price, which is what an invoice
+    // itemises and what `trackerCharge` derives the final price from.
+    const product = trackerProduct(input.product);
+    const unit = trackerCharge(product.priceOneTime);
+    const charge = inclusiveOfGst(unit.total * quantity);
 
-    const payment = await paymentProvider.createIntent({
+    const { paymentId, intent } = await openPayment({
       reference,
+      purpose: PaymentPurpose.SUBSCRIPTION,
+      organizationId,
+      userId: auth.user.id,
       amount: charge.total,
-      currency: 'INR',
-      description: `${VEHICLE_TRACKER.name} — ${organization.name}`,
-      customerName: `${auth.user.firstName} ${auth.user.lastName}`.trim(),
-      customerEmail: auth.user.email,
-      customerPhone: auth.user.phone,
+      description: `${quantity > 1 ? `${quantity} × ` : ''}${product.name} — ${organization.name}`,
+      customer: {
+        name: `${auth.user.firstName} ${auth.user.lastName}`.trim(),
+        email: auth.user.email,
+        phone: auth.user.phone,
+      },
+      returnPath: input.truckId ? `/fleet/vehicles/${input.truckId}/telemetry` : '/settings/subscription',
       metadata: {
-        organizationId,
         kind: 'vehicle_tracker',
+        product: product.product,
+        quantity: String(quantity),
         subtotal: charge.subtotal.toFixed(2),
         gst: charge.gst.toFixed(2),
         ...(input.truckId ? { truckId: input.truckId } : {}),
@@ -286,95 +310,63 @@ export async function purchaseTracker(
       },
     });
 
-    if (payment.status === 'FAILED') {
+    if (intent.status === 'FAILED') {
       // The failed attempt is recorded rather than discarded: "my payment did
       // not go through" is a support conversation that needs a row to point at.
       const failed = await prisma.vehicleTracker.create({
         data: {
           organizationId,
           status: 'PAYMENT_FAILED',
-          pricePaid: VEHICLE_TRACKER.priceOneTime,
+          product: product.product,
+          pricePaid: product.priceOneTime,
           truckId: input.truckId ?? null,
-          paymentReference: payment.providerReference,
+          paymentReference: intent.providerReference,
           purchasedById: auth.user.id,
-          note: payment.failureMessage ?? 'Payment declined.',
+          note: intent.failureMessage ?? 'Payment declined.',
         },
       });
 
       await notifyOrganization(organizationId, {
         type: NotificationType.PAYMENT_FAILED,
         title: 'Tracker payment failed',
-        body: payment.failureMessage ?? 'The payment was declined. No tracker was added.',
+        body: intent.failureMessage ?? 'The payment was declined. No tracker was added.',
         priority: NotificationPriority.HIGH,
         actionUrl: '/settings/subscription',
         roles: OPERATOR_OWNER_ROLES,
       });
 
       throw errors.businessRule(
-        payment.failureMessage ?? 'The payment was declined, so no tracker was added.',
-        { trackerId: failed.id, providerReference: payment.providerReference },
+        intent.failureMessage ?? 'The payment was declined, so no tracker was added.',
+        { trackerId: failed.id, providerReference: intent.providerReference },
       );
     }
 
-    const row = await prisma.vehicleTracker.create({
-      data: {
+    // Pending until the payment settles; `activatePaidAddOns` puts it live and
+    // handles the audit, notification and commission.
+    const rows = await prisma.vehicleTracker.createManyAndReturn({
+      data: Array.from({ length: quantity }, () => ({
         organizationId,
-        status: ACTIVE_STATUS,
-        pricePaid: VEHICLE_TRACKER.priceOneTime,
+        status: 'PENDING_PAYMENT' as const,
+        product: product.product,
+        pricePaid: product.priceOneTime,
         truckId: input.truckId ?? null,
-        paymentReference: payment.providerReference,
+        paymentReference: intent.providerReference,
         purchasedById: auth.user.id,
         ...(input.note ? { note: input.note } : {}),
-      },
+      })),
+      select: { id: true },
     });
+    const row = rows[0]!;
 
-    await invalidateTracking(organizationId);
+    if (intent.status === 'SUCCEEDED') await completeSettledPayment(paymentId);
 
     trackerLogger.info(
-      { organizationId, trackerId: row.id, activeTrackers: activeTrackers + 1 },
-      'Tracker purchased',
+      { organizationId, trackerId: row.id, quantity, status: intent.status },
+      'Tracker ordered',
     );
 
-    await recordAudit({
-      action: AuditAction.SUBSCRIPTION_TRACKER_PURCHASED,
-      entityType: 'VehicleTracker',
-      entityId: row.id,
-      actorUserId: auth.user.id,
-      organizationId,
-      after: {
-        price: charge.subtotal,
-        gst: charge.gst,
-        charged: charge.total,
-        reference: payment.providerReference,
-        truckId: row.truckId,
-      },
-    });
-
-    await notifyOrganization(organizationId, {
-      type: NotificationType.SUBSCRIPTION_UPDATED,
-      title: 'Tracker added',
-      body: 'Live telemetry is unlocked. Fit the tracker and pair it from the Devices screen to start reading the vehicle itself.',
-      priority: NotificationPriority.NORMAL,
-      actionUrl: '/devices',
-      roles: OPERATOR_OWNER_ROLES,
-    });
-
-    /*
-     * Commission, if a salesperson brought this customer.
-     *
-     * After the charge succeeded, never before, and on the pre-tax subtotal
-     * rather than the charged total — GST is not Saarthi's revenue. Cannot
-     * throw, so a commission problem can never undo a purchase the customer
-     * has already paid for.
-     */
-    await qualifyPayment({
-      organizationId,
-      baseAmount: charge.subtotal,
-      paymentReference: payment.providerReference,
-      trigger: CommissionTrigger.TRACKER,
-    });
-
-    return toView(row);
+    const fresh = await prisma.vehicleTracker.findUniqueOrThrow({ where: { id: row.id } });
+    return { view: toView(fresh), checkout: intent.checkout };
   });
 
   if (!result) {
@@ -386,7 +378,7 @@ export async function purchaseTracker(
   }
 
   const coverage = await trackerCoverage(organizationId);
-  return { tracker: result, coverage };
+  return { tracker: result.view, coverage, checkout: result.checkout };
 }
 
 /**
@@ -419,7 +411,7 @@ export async function assignTracker(
    * anything to stop sending data.
    */
   if (input.truckId) {
-    await assertPersonalIdentityVerified(auth, organizationId, 'tracker');
+    await assertPersonalIdentityVerified(auth, organizationId, 'tracker', trackerId);
   }
 
   if (input.truckId) {

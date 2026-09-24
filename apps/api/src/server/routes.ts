@@ -16,9 +16,15 @@ import {
 } from '../modules/return-loads/return-load.routes';
 import { verificationRoutes } from '../modules/verification/verification.routes';
 import { identityVerificationRoutes } from '../modules/identity-verification/identity-verification.routes';
+import { verificationCenterRoutes } from '../modules/verification-center/verification-center.routes';
 import { notificationRoutes } from '../modules/notifications/notification.routes';
 import { marketplaceRoutes } from '../modules/marketplace/marketplace.routes';
 import { orderRoutes } from '../modules/orders/order.routes';
+import {
+  bookingFinanceRoutes,
+  financeRoutes,
+  orderFinanceRoutes,
+} from '../modules/marketplace-finance/marketplace-finance.routes';
 import { requirementRoutes } from '../modules/requirements/requirement.routes';
 import { tripRoutes } from '../modules/trips/trip.routes';
 import { trackingRoutes } from '../modules/tracking/tracking.routes';
@@ -53,7 +59,10 @@ import { deviceGatewayRoutes } from '../modules/telemetry/gateway.routes';
 import { aiRoutes } from '../modules/ai/ai.routes';
 import { loanRoutes, vehicleLoanRoutes } from '../modules/loans/loan.routes';
 import { subscriptionRoutes } from '../modules/subscriptions/subscription.routes';
+import { cashfreeWebhookRoutes, paymentRoutes } from '../modules/payments/payment.routes';
 import { publicReferralRoutes, salesRoutes } from '../modules/sales/sales.routes';
+import { referralProgramRoutes } from '../modules/referral-program/referral-program.routes';
+import { walletRoutes } from '../modules/wallet/wallet.routes';
 import { viewPreferenceRoutes } from '../modules/preferences/view-preference.routes';
 import {
   cameraRoutes,
@@ -110,8 +119,14 @@ export async function registerApiRoutes(app: FastifyInstance): Promise<void> {
   // a case a reviewer works, this one is a number a government source either
   // confirms or does not.
   await app.register(identityVerificationRoutes, { prefix: '/identity' });
+  // Pay & Verify: the customer pays Saarthi's verification fee, then the
+  // check above runs. Also the per-account verification wizard's steps.
+  await app.register(verificationCenterRoutes, { prefix: '/verification-center' });
   await app.register(marketplaceRoutes, { prefix: '/marketplace' });
   await app.register(orderRoutes, { prefix: '/orders' });
+  // An order's marketplace money: 30% on confirmation, the supplier leg, the
+  // balance after delivery.
+  await app.register(orderFinanceRoutes, { prefix: '/orders' });
   // The customer's cross-category front door. Mounted apart from /orders
   // because a requirement is not an order yet — it may become one, or a
   // travel booking, or nothing at all if nobody bids.
@@ -135,6 +150,11 @@ export async function registerApiRoutes(app: FastifyInstance): Promise<void> {
   await app.register(analyticsRoutes, { prefix: '/analytics' });
   await app.register(notificationRoutes, { prefix: '/notifications' });
   await app.register(subscriptionRoutes, { prefix: '/subscriptions' });
+  // Confirming a payment after a hosted checkout, and the gateway's webhook.
+  // The webhook is public — Cashfree is the caller — and trusted only through
+  // its signature.
+  await app.register(paymentRoutes, { prefix: '/payments' });
+  await app.register(cashfreeWebhookRoutes, { prefix: '/webhooks/cashfree' });
   // Selling Saarthi: leads, referrals, commission and tracker handover. One
   // module inside this application — there is no separate sales portal, no
   // salesman site and no salesman app.
@@ -144,6 +164,11 @@ export async function registerApiRoutes(app: FastifyInstance): Promise<void> {
   // opened by somebody who does not have a Saarthi account yet. It reveals only
   // a display name and whether the code is real.
   await app.register(publicReferralRoutes, { prefix: '/referrals/public' });
+  // Refer & Earn — one Saarthi user referring another. A separate program from
+  // the salesman/GODID channel above, with its own codes and records.
+  await app.register(referralProgramRoutes, { prefix: '/referral-program' });
+  // The wallet those referrals pay into, and cash-out to a verified bank account.
+  await app.register(walletRoutes, { prefix: '/wallet' });
   // A person's own settings about their own screens — authentication is the
   // only guard, because the queries are scoped to their user id.
   await app.register(viewPreferenceRoutes, { prefix: '/me/view-preferences' });
@@ -170,6 +195,9 @@ export async function registerApiRoutes(app: FastifyInstance): Promise<void> {
   await app.register(tripTollRoutes, { prefix: '/trips' });
   await app.register(associationRoutes, { prefix: '/associations' });
   await app.register(travelRoutes, { prefix: '/travel' });
+  await app.register(bookingFinanceRoutes, { prefix: '/travel/bookings' });
+  // A business's payout bank account and the commissions taken on its profit.
+  await app.register(financeRoutes, { prefix: '/finance' });
   await app.register(deviceRoutes, { prefix: '/devices' });
   // Saarthi Terminal, people-facing half: the driver asking to be assigned to a
   // vehicle, and the owner or provider deciding. The terminal's own half is

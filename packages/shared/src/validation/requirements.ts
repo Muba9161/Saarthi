@@ -387,6 +387,13 @@ export const placeBidSchema = z
     driverId: uuidSchema.optional(),
     estimatedPickupAt: z.coerce.date().optional(),
     estimatedArrivalAt: z.coerce.date().optional(),
+    /**
+     * A delivered bid: the fleet buys the material from this supplier listing
+     * and delivers it, and `price` is the fleet's selling price to the customer.
+     * The procurement reference is worked out on the server from the listing —
+     * never taken from the request.
+     */
+    sourceMaterialId: uuidSchema.optional(),
 
     // --- Material ----------------------------------------------------------
     /** The listing this price is drawn from, when there is one. */
@@ -413,6 +420,13 @@ export const placeBidSchema = z
         code: z.ZodIssueCode.custom,
         path: ['vehicleId'],
         message: 'Name the vehicle you are offering.',
+      });
+    }
+    if (value.sourceMaterialId && value.scope !== RequirementBidScope.TRANSPORT) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['sourceMaterialId'],
+        message: 'Only a fleet delivering the material itself can source it from a supplier.',
       });
     }
     if (value.scope === RequirementBidScope.TRAVEL && !value.offeredVehicleType) {

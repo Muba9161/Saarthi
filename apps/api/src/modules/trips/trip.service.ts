@@ -30,6 +30,7 @@ import { recordTripFuel } from './trip-fuel.service';
 import { recalculateDriverScore, evaluateAndAwardAchievements } from '../drivers/driver.service';
 import { releaseVehicleFromAdHocTrip } from '../terminal/adhoc-trip.service';
 import type { AuthContext } from '../../auth/context';
+import { loadingBlockedReason } from '../marketplace-finance/order-finance.service';
 
 /**
  * Trip lifecycle.
@@ -681,6 +682,14 @@ export async function transitionTrip(
 
   const check = tripStateMachine.assertTransition(trip.status, input.status);
   if (!check.allowed) throw errors.invalidTransition(check.reason!);
+
+  // A marketplace order is loaded only once the money for it is in: the
+  // customer's 30% and the supplier's payment for the material.
+  if (input.status === TripStatus.LOADING || input.status === TripStatus.STARTED) {
+    const order = await prisma.order.findFirst({ where: { tripId }, select: { id: true } });
+    const blocked = await loadingBlockedReason(order?.id ?? null);
+    if (blocked) throw errors.businessRule(blocked);
+  }
 
   const now = new Date();
   const isStart = input.status === TripStatus.STARTED;

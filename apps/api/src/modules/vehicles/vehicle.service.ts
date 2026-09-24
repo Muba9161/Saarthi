@@ -21,8 +21,10 @@ import {
 import { type Prisma, prisma } from '../../database/prisma';
 import { errors } from '../../lib/errors';
 import { assertPersonalIdentityVerified } from '../identity-verification/personal-onboarding.guard';
+import { assertVehicleTypeAllowed } from './vehicle-eligibility.guard';
 import { skipTake } from '../../lib/http';
 import { assertTenantAccess } from '../../server/guards';
+import { verifyVehicleAddedFromRc } from '../verification/registry-verification.service';
 import type { AuthContext } from '../../auth/context';
 import { broadcastTruckStatus } from '../../realtime/realtime.service';
 import { scheduleFastagDiscovery } from '../toll/fastag.service';
@@ -373,11 +375,21 @@ async function assertVehicleLimit(auth: AuthContext, organizationId: string): Pr
   }
 }
 
-export async function createVehicle(
+/**
+ * Every rule a new vehicle must pass, in the order `createVehicle` applies them.
+ *
+ * `capacity: false` skips only the plan-capacity check. That is how the
+ * add-vehicle form asks "would this vehicle be accepted?" *before* it takes
+ * the ₹99 for an extra slot — so nobody pays for room and is then refused for
+ * a different reason (an unverified Aadhaar, a vehicle type the plan cannot
+ * hold, a plate already registered).
+ */
+export async function assertVehicleAddable(
   auth: AuthContext,
   organizationId: string,
   input: CreateVehicleInput,
-): Promise<VehicleSummary> {
+  { capacity = true }: { capacity?: boolean } = {},
+): Promise<void> {
   /*
    * A Personal account holder confirms who they are before a vehicle goes on
    * the account.
@@ -392,7 +404,11 @@ export async function createVehicle(
    */
   await assertPersonalIdentityVerified(auth, organizationId, 'vehicle');
 
-  await assertVehicleLimit(auth, organizationId);
+  // Before capacity for the same reason: a truck that cannot go on this account
+  // at all must not be answered with an offer to buy room for it.
+  await assertVehicleTypeAllowed(organizationId, input.vehicleType);
+
+  if (capacity) await assertVehicleLimit(auth, organizationId);
 
   const problems = validateVehicleCapacities(input.vehicleType, input);
   if (problems.length > 0) throw errors.validation(problems[0]!);
@@ -406,6 +422,14 @@ export async function createVehicle(
       { fields: { registrationNumber: ['This registration number is already registered.'] } },
     );
   }
+}
+
+export async function createVehicle(
+  auth: AuthContext,
+  organizationId: string,
+  input: CreateVehicleInput,
+): Promise<VehicleSummary> {
+  await assertVehicleAddable(auth, organizationId, input);
 
   const definition = vehicleTypeDefinition(input.vehicleType);
   const carriesFreight = definition.capabilities.includes(VehicleCapability.CARGO_CAPACITY);
@@ -455,6 +479,13 @@ export async function createVehicle(
   // the lookup.
   scheduleFastagDiscovery(auth, vehicle.id);
 
+  // Added from its RC: verified against that record, at no charge.
+  if (input.rcLookupId) {
+    await verifyVehicleAddedFromRc(auth, vehicle.id, input.rcLookupId);
+    const verified = await prisma.truck.findUniqueOrThrow({ where: { id: vehicle.id }, include: vehicleInclude });
+    return toSummary(verified);
+  }
+
   return toSummary(vehicle);
 }
 
@@ -470,6 +501,11 @@ export async function updateVehicle(
   // Validate the *resulting* vehicle, not the patch: changing type from TRUCK
   // to TAXI without clearing the payload would otherwise leave an incoherent row.
   const nextType = (input.vehicleType ?? existing.vehicleType) as VehicleType;
+  // Only a change of type is checked, so an existing vehicle that predates the
+  // eligibility rules can still be edited.
+  if (nextType !== existing.vehicleType) {
+    await assertVehicleTypeAllowed(existing.organizationId, nextType);
+  }
   const definition = vehicleTypeDefinition(nextType);
   const carriesFreight = definition.capabilities.includes(VehicleCapability.CARGO_CAPACITY);
   const carriesPassengers = definition.capabilities.includes(VehicleCapability.PASSENGER_CAPACITY);

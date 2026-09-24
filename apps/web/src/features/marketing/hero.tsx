@@ -457,13 +457,19 @@ export function ProofStats() {
        *
        * A cut-out rather than a framed photo because this band still follows
        * the theme - a rectangle would be a lit slab in the dark theme.
+       *
+       * Cropped tighter on phones. The vehicles fill only the middle ~28% of
+       * the file's height, so a 3:1 box at phone width was mostly transparent
+       * margin around a 27px-tall convoy - it read as an empty band. `cover`
+       * at 7:1 trims that margin (the convoy sits on the file's centre line)
+       * and still leaves every vehicle whole; wider screens keep the air.
        */}
       <Reveal delay={0.2}>
         <CutOut
           src={MARKETING_IMAGE.fleetLineup}
           alt="A goods truck, tipper, bus, SUV, sedan and auto-rickshaw - the six vehicle classes Saarthi manages."
-          aspect="aspect-[3/1]"
-          className="mx-auto mt-12 max-w-3xl"
+          aspect="aspect-[7/1] sm:aspect-[3/1]"
+          className="mx-auto mt-10 max-w-3xl object-cover sm:mt-12 sm:object-contain"
         />
       </Reveal>
     </div>

@@ -188,6 +188,12 @@ export const Permission = {
   // Payments
   PAYMENTS_READ: 'payments.read',
 
+  // Marketplace finance. Connecting the bank account marketplace payments are
+  // routed to is an owner's decision; reading the profit and commission on the
+  // business's own orders is the same owner-level sight.
+  PAYOUT_ACCOUNT_MANAGE: 'finance.payout_account.manage',
+  MARKETPLACE_FINANCE_READ: 'finance.marketplace.read',
+
   // Hardware devices.
   //
   // `manage` and `assign` are Saarthi-side: a telematics unit is a physical
@@ -455,6 +461,8 @@ const OPERATOR_OWNER_PERMISSIONS: Permission[] = [
   // Pairing a phone to one of its own vehicles is a lighter grant and comes
   // through FLEET_MANAGER_PERMISSIONS as DEVICES_PAIR.
   Permission.PAYMENTS_READ,
+  Permission.PAYOUT_ACCOUNT_MANAGE,
+  Permission.MARKETPLACE_FINANCE_READ,
   // Selling travel is gated by organization type, not by role: only a
   // MOBILITY_PROVIDER organization may publish packages. This decides which
   // role inside such an organization may act, and a freight fleet holding it
@@ -635,6 +643,9 @@ const ROLE_PERMISSIONS: Record<RoleName, Permission[]> = {
     Permission.QR_MANAGE,
     Permission.CITY_ACCESS_READ,
     Permission.ROUTE_INTEL_READ,
+    // Receives the fleet's procurement payments into its own bank account.
+    Permission.PAYOUT_ACCOUNT_MANAGE,
+    Permission.MARKETPLACE_FINANCE_READ,
   ],
 
   [RoleName.CUSTOMER]: [

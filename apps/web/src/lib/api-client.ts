@@ -107,6 +107,7 @@ export const API_PREFIX = '/api/v1';
 
 let accessToken: string | null = null;
 let onUnauthenticated: (() => void) | null = null;
+let onAccountArchived: (() => void) | null = null;
 let refreshInFlight: Promise<string | null> | null = null;
 
 export function setAccessToken(token: string | null): void {
@@ -120,6 +121,14 @@ export function getAccessToken(): string | null {
 /** Called when a refresh attempt fails, so the app can clear session state. */
 export function setUnauthenticatedHandler(handler: (() => void) | null): void {
   onUnauthenticated = handler;
+}
+
+/**
+ * Called when the API refuses a request because the account was archived for
+ * non-payment, so the app can reload the session and show the renewal screen.
+ */
+export function setAccountArchivedHandler(handler: (() => void) | null): void {
+  onAccountArchived = handler;
 }
 
 function buildUrl(path: string, query?: QueryParams): string {
@@ -253,6 +262,8 @@ async function performRequest<T>(
     accessToken = null;
     onUnauthenticated?.();
   }
+
+  if (error.code === ErrorCode.ACCOUNT_ARCHIVED) onAccountArchived?.();
 
   throw new ApiError(response.status, error.code, error.message, error.details);
 }

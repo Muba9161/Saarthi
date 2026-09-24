@@ -134,7 +134,14 @@ export function DashboardPage() {
    * sidebar now offers them Vehicles, so every link out of this board has to
    * agree with it or it becomes the dead end this check exists to avoid.
    */
-  const usesVehicleScreen = isMobility || Boolean(session?.organization?.isPersonalSeat);
+  const isPersonalSeat = Boolean(session?.organization?.isPersonalSeat);
+  const usesVehicleScreen = isMobility || isPersonalSeat;
+  /*
+   * Whether this board carries the freight order book. A travel operator works
+   * bookings instead, and a Personal account is not in the freight marketplace
+   * at all — its menu has no Orders entry, so neither does its command centre.
+   */
+  const worksOrderBook = !isMobility && !isPersonalSeat && can(Permission.ORDERS_READ);
 
   useChannels(organizationId ? [RealtimeChannel.fleet(organizationId)] : []);
 
@@ -166,7 +173,7 @@ export function DashboardPage() {
     // Not fetched for a travel operator: it holds `orders.read` and would get
     // a valid, permanently empty page. An empty panel headed "Orders needing
     // action" reads as a broken feed, not as a business it does not run.
-    enabled: Boolean(organizationId) && !isMobility && can(Permission.ORDERS_READ),
+    enabled: Boolean(organizationId) && worksOrderBook,
   });
 
   const openBookings = useQuery({
@@ -233,7 +240,7 @@ export function DashboardPage() {
               })),
             ),
         );
-      } else if (can(Permission.ORDERS_READ)) {
+      } else if (!isPersonalSeat && can(Permission.ORDERS_READ)) {
         sources.push(
           api.get<Paginated<OrderSummary>>('/orders', { search: term, pageSize: 4 }).then((page) =>
             page.items.map((order) => ({
@@ -472,9 +479,11 @@ export function DashboardPage() {
    * Without the live map, the trip list and the commercial column pair up to
    * close the row the map would have finished. Every row of this board sums to
    * twelve in both arrangements; a tile left half-alone is what makes a bento
-   * look like it lost something.
+   * look like it lost something. With no commercial column either (a Personal
+   * account has no order book), the trip list takes the row to itself.
    */
-  const tripsSpan = showMap ? 4 : 6;
+  const hasCommercialPanel = isMobility || worksOrderBook;
+  const tripsSpan = showMap ? 4 : hasCommercialPanel ? 6 : 12;
   const commercialSpan = showMap ? 12 : 6;
 
   const createRequirement = can(Permission.REQUIREMENTS_CREATE)
@@ -783,7 +792,7 @@ export function DashboardPage() {
                 hint={`${data.travel.upcoming} upcoming · ${data.travel.inProgress} under way`}
                 onClick={() => navigate('/travel/provider/bookings')}
               />
-            ) : (
+            ) : worksOrderBook ? (
               <BentoMetric
                 label={t('Open orders')}
                 numericValue={data.orders.open}
@@ -796,7 +805,7 @@ export function DashboardPage() {
                 hint={`${data.orders.inTransit} in transit`}
                 onClick={() => navigate('/orders')}
               />
-            )}
+            ) : null}
             <BentoMetric
               label={t('Safety events')}
               numericValue={data.safety.safetyEventsThisMonth}
@@ -1010,7 +1019,7 @@ export function DashboardPage() {
               ))
             )}
           </BentoPanel>
-        ) : (
+        ) : worksOrderBook ? (
           <BentoPanel
             span={commercialSpan}
             title={t('Orders needing action')}
@@ -1041,7 +1050,7 @@ export function DashboardPage() {
               ))
             )}
           </BentoPanel>
-        )}
+        ) : null}
       </BentoGrid>
     </div>
   );

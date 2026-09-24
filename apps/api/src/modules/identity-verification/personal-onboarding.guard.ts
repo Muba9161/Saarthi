@@ -4,6 +4,8 @@ import {
   PlanTier,
   type RoleName,
   VerificationSubjectType,
+  personalTrackerNeedsAadhaar,
+  personalVehicleNeedsAadhaar,
 } from '@saarthi/shared';
 import { prisma } from '../../database/prisma';
 import { errors } from '../../lib/errors';
@@ -48,8 +50,33 @@ import type { AuthContext } from '../../auth/context';
  * the driver checks before they may be assigned to it.
  */
 
+/**
+ * The account holder among an organization's active members, oldest first:
+ * an owner-role member, then a primary member, then simply the first. See
+ * `personalIdentityStanding` for why the order matters.
+ */
+function pickAccountHolder<T extends { role: string; isPrimary: boolean }>(
+  members: readonly T[],
+): T | undefined {
+  return (
+    members.find((m) => OPERATOR_OWNER_ROLES.includes(m.role as RoleName)) ??
+    members.find((m) => m.isPrimary) ??
+    members[0]
+  );
+}
+
+/** The user who holds an account — whose own Aadhaar "owner Aadhaar" means. */
+export async function accountHolderUserId(organizationId: string): Promise<string | null> {
+  const memberships = await prisma.membership.findMany({
+    where: { organizationId, status: 'ACTIVE' },
+    select: { role: true, isPrimary: true, userId: true },
+    orderBy: { createdAt: 'asc' },
+  });
+  return pickAccountHolder(memberships)?.userId ?? null;
+}
+
 /** Where a Personal account holder completes this check. */
-const VERIFY_URL = '/settings/profile';
+const VERIFY_URL = '/settings/profile?step=identity';
 
 export interface PersonalIdentityStanding {
   /** Whether the rule applies to this account at all. */
@@ -126,12 +153,7 @@ export async function personalIdentityStanding(
    * flagged primary made the check read a colleague's Aadhaar instead of the
    * owner's — refusing the owner for somebody else's unfinished paperwork.
    */
-  const members = organization?.memberships ?? [];
-  const holderMembership =
-    members.find((m) => OPERATOR_OWNER_ROLES.includes(m.role as RoleName)) ??
-    members.find((m) => m.isPrimary) ??
-    members[0];
-  const holder = holderMembership?.user;
+  const holder = pickAccountHolder(organization?.memberships ?? [])?.user;
 
   // No organization, or one with no members at all, is not a state this rule
   // can say anything useful about — and refusing on it would block an account
@@ -153,6 +175,11 @@ export async function personalIdentityStanding(
 /**
  * Refuse to add a vehicle or a tracker until the account holder is verified.
  *
+ * Not the vehicle the plan includes, nor its tracker: somebody who has just
+ * signed up puts their first car on the account, and buys and fits its
+ * tracker, without it. They meet this when they add the next one — see
+ * `personalVehicleNeedsAadhaar` and `personalTrackerNeedsAadhaar`.
+ *
  * Throws `IDENTITY_VERIFICATION_REQUIRED` rather than a plain 403, because the
  * remedy is neither a permission to be granted nor capacity to be bought: it is
  * a check the person can complete themselves, and the client routes this code
@@ -166,11 +193,39 @@ export async function assertPersonalIdentityVerified(
   auth: AuthContext,
   organizationId: string,
   action: 'vehicle' | 'tracker',
+  /**
+   * The tracker being fitted, when this guards a fitting rather than a
+   * purchase. It already counts as granted by then, so it is left out —
+   * otherwise the first tracker would be allowed to be bought but not fitted.
+   */
+  fittingTrackerId?: string,
 ): Promise<void> {
   const standing = await personalIdentityStanding(auth, organizationId);
   if (!standing.required || standing.verified) return;
 
-  const subject = action === 'vehicle' ? 'a vehicle' : 'a tracker';
+  /*
+   * Counted over everything the account has ever had, not what it holds now.
+   * The allowance is one vehicle and one tracker, once: removing a vehicle
+   * archives it rather than handing the free slot back, or adding and removing
+   * would put any number of vehicles on the road without the check.
+   */
+  if (action === 'vehicle') {
+    const vehiclesEverAdded = await prisma.truck.count({ where: { organizationId } });
+    if (!personalVehicleNeedsAadhaar(vehiclesEverAdded)) return;
+  } else {
+    const trackersEverGranted = await prisma.vehicleTracker.count({
+      where: {
+        organizationId,
+        // Not PAYMENT_FAILED or PENDING_PAYMENT: a declined or unsettled
+        // charge granted nothing, so it must not use the allowance up.
+        status: { in: ['ACTIVE', 'RETIRED', 'REFUNDED'] },
+        ...(fittingTrackerId ? { id: { not: fittingTrackerId } } : {}),
+      },
+    });
+    if (!personalTrackerNeedsAadhaar(trackersEverGranted)) return;
+  }
+
+  const subject = action === 'vehicle' ? 'another vehicle' : 'another tracker';
 
   const message = standing.grandfathered
     ? `Your Saarthi Personal account needs your Aadhaar verified before you can add ${subject}. ` +
