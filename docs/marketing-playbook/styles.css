@@ -1,0 +1,749 @@
+/*
+ * Saarthi Marketing Playbook — print design system.
+ *
+ * Palette, typography and photographic treatment all follow
+ * docs/MARKETING_VISUAL_DIRECTION.md so the PDF, the marketing site and the
+ * product read as one brand. Two light sources, always: cold navy, one warm
+ * saffron accent. Photographic bands stay near-black.
+ */
+
+:root {
+  /* Brand — sampled from vorldx-mark.png */
+  --navy-deep: #062a66;
+  --navy: #14428f;
+  --navy-bright: #2360be;
+  --saffron-deep: #e8590f;
+  --saffron: #f97316;
+  --saffron-bright: #ff8c2e;
+  --green: #12805c;
+  --ground: #18181b;
+
+  /* Ink */
+  --ink: #101828;
+  --ink-2: #344054;
+  --muted: #667085;
+  --faint: #98a2b3;
+
+  /* Surface */
+  --paper: #fbfbfc;
+  --card: #ffffff;
+  --tint: #f4f6fa;
+  --line: #e4e7ec;
+  --line-soft: #eef0f4;
+
+  /* Severity */
+  --sev-high: #b42318;
+  --sev-mid: #b54708;
+  --sev-low: #946800;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: #d8dae0;
+}
+
+body {
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: 'ss01', 'cv05', 'tnum' 0;
+}
+
+.script {
+  font-family: 'Nirmala UI', 'Segoe UI', 'Inter', sans-serif;
+}
+
+@page {
+  size: 297mm 210mm;
+  margin: 0;
+}
+
+/* --------------------------------------------------------------------- */
+/* Page shell                                                             */
+/* --------------------------------------------------------------------- */
+
+.page {
+  position: relative;
+  width: 297mm;
+  height: 210mm;
+  overflow: hidden;
+  background: var(--paper);
+  padding: 13mm 14mm 11mm;
+  display: flex;
+  flex-direction: column;
+  page-break-after: always;
+  break-after: page;
+}
+
+.page:last-child {
+  page-break-after: auto;
+  break-after: auto;
+}
+
+.page.dark {
+  background: var(--ground);
+  color: #fff;
+}
+
+.page.bleed {
+  padding: 0;
+}
+
+/* Screen-only page separation; invisible in print. */
+@media screen {
+  .page {
+    margin: 0 auto 10px;
+    box-shadow: 0 6px 24px rgba(16, 24, 40, 0.18);
+  }
+}
+
+/* --------------------------------------------------------------------- */
+/* Page header                                                            */
+/* --------------------------------------------------------------------- */
+
+.head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 7px;
+  margin-bottom: 11px;
+  flex: none;
+}
+
+.kicker {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--saffron-deep);
+  margin-bottom: 4px;
+}
+
+h1 {
+  font-size: 25px;
+  font-weight: 800;
+  letter-spacing: -0.024em;
+  line-height: 1.04;
+  margin: 0;
+  color: var(--ink);
+}
+
+.deck {
+  font-size: 10px;
+  line-height: 1.45;
+  color: var(--muted);
+  margin: 5px 0 0;
+  max-width: 155mm;
+}
+
+.folio {
+  text-align: right;
+  flex: none;
+  padding-top: 1px;
+}
+
+.folio .num {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--line);
+  line-height: 1;
+}
+
+.folio .lbl {
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--faint);
+  margin-top: 3px;
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.foot {
+  flex: none;
+  border-top: 1px solid var(--line-soft);
+  margin-top: 8px;
+  padding-top: 6px;
+  font-size: 8.5px;
+  line-height: 1.4;
+  color: var(--faint);
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.foot strong {
+  color: var(--ink-2);
+  font-weight: 700;
+}
+
+/* --------------------------------------------------------------------- */
+/* Grid                                                                   */
+/* --------------------------------------------------------------------- */
+
+/*
+ * minmax(0, 1fr) rather than 1fr on every track: a bare 1fr floors at the
+ * column's min-content width, so one long unbreakable label silently pushes
+ * the last column off the page. The page box clips it and nothing warns you.
+ */
+.g2,
+.g3,
+.g4,
+.g5,
+.g6 {
+  display: grid;
+  gap: 8px;
+}
+
+.g2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.g3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.g4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.g5 {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+.g6 {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+.grow {
+  flex: 1;
+  min-height: 0;
+}
+.gap12 {
+  gap: 12px;
+}
+.gap6 {
+  gap: 6px;
+}
+
+/* --------------------------------------------------------------------- */
+/* Cards                                                                  */
+/* --------------------------------------------------------------------- */
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 9px 11px 10px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.card.tint {
+  background: var(--tint);
+  border-color: #dfe4ee;
+}
+
+.card.ink {
+  background: var(--ground);
+  border-color: #2c2c31;
+  color: #fff;
+}
+
+.card.ink .ct,
+.card.ink h3 {
+  color: #fff;
+}
+
+.card.ink p,
+.card.ink li {
+  color: #c2c6cf;
+}
+
+.card.accent-navy {
+  border-left: 3px solid var(--navy-bright);
+}
+.card.accent-saffron {
+  border-left: 3px solid var(--saffron);
+}
+.card.accent-green {
+  border-left: 3px solid var(--green);
+}
+.card.accent-red {
+  border-left: 3px solid var(--sev-high);
+}
+.card.accent-amber {
+  border-left: 3px solid var(--sev-mid);
+}
+
+.ct {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: -0.012em;
+  color: var(--ink);
+  margin: 0 0 4px;
+  line-height: 1.2;
+}
+
+.card p {
+  font-size: 9px;
+  line-height: 1.45;
+  color: var(--ink-2);
+  margin: 0 0 4px;
+}
+
+.card p:last-child {
+  margin-bottom: 0;
+}
+
+.card ul {
+  margin: 0;
+  padding-left: 11px;
+  font-size: 9px;
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+
+.card li {
+  margin-bottom: 2.5px;
+}
+
+.card li::marker {
+  color: var(--saffron);
+}
+
+/* --------------------------------------------------------------------- */
+/* Labels, chips, micro-type                                              */
+/* --------------------------------------------------------------------- */
+
+.lab {
+  font-size: 7.5px;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--faint);
+  margin: 0 0 3px;
+  display: block;
+}
+
+.lab.navy {
+  color: var(--navy-bright);
+}
+.lab.saffron {
+  color: var(--saffron-deep);
+}
+.lab.green {
+  color: var(--green);
+}
+.lab.red {
+  color: var(--sev-high);
+}
+
+.chip {
+  display: inline-block;
+  font-size: 7.5px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 2.5px 6px;
+  border-radius: 20px;
+  background: var(--tint);
+  color: var(--navy);
+  border: 1px solid #dde3ee;
+  white-space: nowrap;
+}
+
+.chip.saffron {
+  background: #fff4ec;
+  color: var(--saffron-deep);
+  border-color: #ffd9bd;
+}
+.chip.green {
+  background: #eaf7f2;
+  color: var(--green);
+  border-color: #c3e6d9;
+}
+.chip.red {
+  background: #fdeeec;
+  color: var(--sev-high);
+  border-color: #f6cfc9;
+}
+.chip.amber {
+  background: #fdf3e7;
+  color: var(--sev-mid);
+  border-color: #f5ddbd;
+}
+.chip.dark {
+  background: #26262b;
+  color: #e6e8ec;
+  border-color: #3a3a41;
+}
+
+.mono {
+  font-variant-numeric: tabular-nums;
+}
+
+.hi {
+  color: var(--saffron-deep);
+  font-weight: 700;
+}
+.hn {
+  color: var(--navy);
+  font-weight: 700;
+}
+
+/* --------------------------------------------------------------------- */
+/* Flow chains                                                            */
+/* --------------------------------------------------------------------- */
+
+.flow {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+}
+
+.flow .step {
+  border: 1px solid var(--line);
+  background: var(--card);
+  border-radius: 8px;
+  padding: 7px 10px;
+  text-align: center;
+}
+
+.flow .arw,
+.arw {
+  text-align: center;
+  color: var(--saffron);
+  font-size: 11px;
+  line-height: 1;
+  padding: 3px 0;
+  font-weight: 700;
+}
+
+.chain {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+}
+
+.chain > .node {
+  flex: 1;
+  border: 1px solid var(--line);
+  background: var(--card);
+  border-radius: 8px;
+  padding: 8px 9px;
+  min-width: 0;
+}
+
+.chain > .sep {
+  flex: none;
+  width: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--saffron);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* --------------------------------------------------------------------- */
+/* Stat / KPI                                                             */
+/* --------------------------------------------------------------------- */
+
+.stat {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1;
+  color: var(--navy);
+  font-variant-numeric: tabular-nums;
+}
+
+.stat.s {
+  font-size: 19px;
+}
+.stat.saffron {
+  color: var(--saffron-deep);
+}
+.stat .u {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--muted);
+}
+
+/* --------------------------------------------------------------------- */
+/* Tables                                                                 */
+/* --------------------------------------------------------------------- */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 8.8px;
+  line-height: 1.38;
+}
+
+thead th {
+  text-align: left;
+  font-size: 7.5px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--faint);
+  padding: 0 8px 5px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: bottom;
+}
+
+tbody td {
+  padding: 5.5px 8px;
+  border-bottom: 1px solid var(--line-soft);
+  color: var(--ink-2);
+  vertical-align: top;
+}
+
+tbody tr:last-child td {
+  border-bottom: none;
+}
+
+tbody td.k {
+  font-weight: 700;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.tbl-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 9px 4px 5px;
+  overflow: hidden;
+}
+
+/* --------------------------------------------------------------------- */
+/* Photographic panels                                                    */
+/* --------------------------------------------------------------------- */
+
+.photo {
+  position: relative;
+  overflow: hidden;
+  border-radius: 9px;
+  background: var(--ground);
+}
+
+.photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.cover-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.veil {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, rgba(24, 24, 27, 0.96) 0%, rgba(24, 24, 27, 0.9) 42%, rgba(24, 24, 27, 0.32) 72%, rgba(24, 24, 27, 0.18) 100%);
+}
+
+.wordmark {
+  font-weight: 900;
+  letter-spacing: -0.035em;
+  background: linear-gradient(94deg, var(--navy-bright) 0%, #5b8fd8 34%, var(--saffron-bright) 72%, var(--saffron-deep) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* --------------------------------------------------------------------- */
+/* Misc blocks                                                            */
+/* --------------------------------------------------------------------- */
+
+.callout {
+  background: #fff6ef;
+  border: 1px solid #ffdcc2;
+  border-left: 3px solid var(--saffron);
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-size: 9px;
+  line-height: 1.45;
+  color: #7a3b0c;
+}
+
+.callout strong {
+  color: var(--saffron-deep);
+}
+
+.note {
+  background: #f2f6fd;
+  border: 1px solid #d9e4f7;
+  border-left: 3px solid var(--navy-bright);
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-size: 9px;
+  line-height: 1.45;
+  color: #1c3a6e;
+}
+
+.note strong {
+  color: var(--navy-deep);
+}
+
+.hooks {
+  font-size: 9.2px;
+  line-height: 1.42;
+  color: var(--ink);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hooks li {
+  padding: 2.5px 0 2.5px 10px;
+  position: relative;
+  color: var(--ink-2);
+}
+
+.hooks li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 8px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--saffron);
+}
+
+.rule {
+  height: 1px;
+  background: var(--line);
+  margin: 2px 0;
+}
+
+.bar {
+  height: 6px;
+  border-radius: 4px;
+  background: var(--line);
+  overflow: hidden;
+}
+
+.bar > span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--navy-bright), var(--saffron));
+}
+
+/* Card footer — a hairline turns the space above a bottom-pinned block into
+   structure rather than a gap when cards in a grid row differ in length. */
+.cfoot {
+  margin-top: auto;
+  padding-top: 6px;
+  border-top: 1px solid var(--line-soft);
+}
+
+/* Persona fact list: label and value on one line, tight. */
+.facts {
+  margin: 0;
+  font-size: 8.8px;
+  line-height: 1.42;
+  color: var(--ink-2);
+}
+
+.facts dt {
+  font-weight: 800;
+  font-size: 7.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--faint);
+  margin-top: 5px;
+}
+
+.facts dt:first-child {
+  margin-top: 0;
+}
+
+.facts dd {
+  margin: 1px 0 0;
+}
+
+/* Vertically centres a stretched card's content so the space a grid row
+   forces on a short card reads as deliberate rather than as a gap. */
+.vmid {
+  justify-content: center;
+}
+
+/* A table with few rows in a stretched card: open the rows up so the table
+   fills its card instead of leaving a block of empty paper beneath it. */
+.roomy tbody td {
+  padding-top: 19px;
+  padding-bottom: 19px;
+  vertical-align: middle;
+}
+
+/*
+ * Metric tables on the KPI board.
+ *
+ * `table-layout: fixed` and a wrapping key column are both required: the
+ * default `td.k { white-space: nowrap }` makes a long metric name widen the
+ * table past its card, and the card clips the value columns without a word.
+ */
+.kpi table {
+  table-layout: fixed;
+  font-size: 8.2px;
+}
+
+/* The metric name needs most of the width; the two target columns are short
+   numbers and never need a third of the card each. */
+.kpi table th:first-child,
+.kpi table td:first-child {
+  width: 58%;
+}
+
+.kpi table th:not(:first-child),
+.kpi table td:not(:first-child) {
+  width: 21%;
+}
+
+.kpi tbody td {
+  padding-top: 6.5px;
+  padding-bottom: 6.5px;
+  vertical-align: middle;
+}
+
+.kpi tbody td.k {
+  white-space: normal;
+}
+
+/*
+ * A short list between a fixed header band and a pinned footer: open the rows
+ * a little and let the auto margins centre the block, so the spare height in a
+ * stretched card frames the list instead of collecting under it.
+ */
+.airy ul {
+  margin-top: auto;
+  margin-bottom: auto;
+}
+
+.airy li {
+  margin-bottom: 7.5px;
+}
