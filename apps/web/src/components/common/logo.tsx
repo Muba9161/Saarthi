@@ -9,7 +9,9 @@ import { cn } from '@/lib/utils';
  *    beside other chrome at 40px or so. The full lockup's tagline is illegible
  *    at that size, so using it there would render type as texture.
  *  * `vorldx-saarthi.png` — the whole lockup, for the places with room to give
- *    it: the sign-in panel and the landing hero.
+ *    it: the sign-in panel and the landing hero. Served as `vorldx-saarthi.webp`
+ *    (a third of the bytes, same pixels); the PNG stays as the source that
+ *    `tools/trace-logo.mjs` reads. Re-export the WebP if the PNG changes.
  *
  * Both are raster, because the source is. They carry an empty `alt` where a
  * visible wordmark sits beside them, so a screen reader hears the name once
@@ -66,8 +68,10 @@ export function SaarthiLogo({
 export function SaarthiLockup({ className }: { className?: string }) {
   return (
     <img
-      src="/vorldx-saarthi.png"
+      src="/vorldx-saarthi.webp"
       alt={BRAND_NAME}
+      width={900}
+      height={813}
       className={cn('h-auto w-40 select-none object-contain', className)}
       draggable={false}
     />

@@ -126,30 +126,40 @@ const config: Config = {
         lifted: '0 2px 4px -2px hsl(240 6% 10% / 0.05), 0 14px 28px -8px hsl(240 6% 10% / 0.12)',
         overlay: '0 8px 20px -8px hsl(240 6% 10% / 0.14), 0 32px 64px -16px hsl(240 6% 10% / 0.22)',
         glow: '0 0 0 1px hsl(var(--primary) / 0.14), 0 8px 28px -8px hsl(var(--primary) / 0.32)',
+        // The hover light for a `brand-gradient` fill: its navy edge, its saffron pool.
+        'glow-brand': '0 0 0 1px rgb(2 42 89 / 0.18), 0 8px 28px -8px rgb(232 89 15 / 0.38)',
         'glow-danger':
           '0 0 0 1px hsl(var(--destructive) / 0.18), 0 8px 28px -8px hsl(var(--destructive) / 0.36)',
       },
       backgroundImage: {
         'grid-subtle':
           'linear-gradient(to right, hsl(var(--border)/0.5) 1px, transparent 1px), linear-gradient(to bottom, hsl(var(--border)/0.5) 1px, transparent 1px)',
-        'brand-gradient':
-          'linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary)/0.88) 55%, hsl(var(--accent)/0.7) 145%)',
         /*
          * The logo's own sweep, as a fill.
          *
-         * Sampled from `vorldx-mark.png` — the navy of the V and the road, and
-         * the saffron of the X. Held as fixed hex rather than tokens because
+         * Sampled from `vorldx-saarthi.png` — the navy of the V and the road,
+         * then the X, which runs saffron into green. Held as fixed hex rather than tokens because
          * the artwork is fixed: `--primary` is a desaturated indigo that was
          * chosen to sit quietly behind operational data, and the logo is not
          * that colour.
          *
-         * Separate from `brand-gradient` on purpose. That one fills every
-         * `variant="gradient"` button in the product, where a full navy-to-
-         * saffron ramp across 40px reads as a novelty; this is for the large
-         * brand surfaces where the ramp has room to be seen — the progress
-         * rail, the selected pills, and the marketing wordmarks.
+         * `logo-gradient` is the full sweep, for the large brand surfaces where
+         * it has room to be seen — the progress rail, the selected pills, the
+         * marketing wordmarks.
+         *
+         * `brand-gradient` is the logo's colours arranged for controls: every
+         * `variant="gradient"` button and the brand's filled chips. Not the
+         * sweep as stripes — navy-saffron-green in equal bands across a button
+         * reads as a novelty, not a brand. Instead the body is the V's deep
+         * navy, and the X's green and saffron arrive as light off the right
+         * edge, where the X sits in the mark. The label stays on navy.
          */
-        'logo-gradient': 'linear-gradient(100deg, #062a66 0%, #2360be 32%, #e8590f 85%, #ff8c2e 100%)',
+        'logo-gradient': 'linear-gradient(100deg, #022a59 0%, #2360be 30%, #fe5d09 64%, #02783f 100%)',
+        'brand-gradient': [
+          'radial-gradient(38% 110% at 100% 100%, rgb(254 93 9 / 0.85) 0%, rgb(254 93 9 / 0.35) 35%, rgb(254 93 9 / 0) 100%)',
+          'radial-gradient(30% 90% at 100% 0%, rgb(2 140 72 / 0.75) 0%, rgb(2 120 63 / 0) 100%)',
+          'linear-gradient(100deg, #021d40 0%, #022a59 55%, #07346f 100%)',
+        ].join(', '),
         // The soft pool of light a vehicle image is staged on.
         'stage-glow':
           'radial-gradient(120% 80% at 50% 118%, hsl(var(--primary)/0.10) 0%, transparent 72%)',

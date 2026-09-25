@@ -11,6 +11,11 @@ import { TrackersSection } from '@/features/marketing/trackers-section';
 import { CommandCentre } from '@/features/marketing/command-centre';
 import { SmoothScroll, useScrollToSection } from '@/features/marketing/scroll-engine';
 import { PointerHalo } from '@/features/marketing/magnetic';
+import { usePreloadWhenIdle } from '@/lib/lazy-with-preload';
+import { LoginPage, RegisterPage } from '@/pages/lazy-pages';
+
+/** Where "Sign in" and "Start free" go; fetched once the page has settled. */
+const NEXT_PAGES = [LoginPage, RegisterPage];
 
 /**
  * Public marketing site.
@@ -122,6 +127,8 @@ function LandingContent() {
 }
 
 export function LandingPage() {
+  usePreloadWhenIdle(NEXT_PAGES);
+
   return (
     <SmoothScroll>
       <LandingContent />

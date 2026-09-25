@@ -1,23 +1,26 @@
 /**
  * The languages Saarthi speaks.
  *
- * The twenty-two languages of the Eighth Schedule to the Constitution of
- * India, plus English. That list rather than a hand-picked few, because the
- * people this platform is for — drivers, yard staff, small fleet owners — are
- * not reliably comfortable in English, and the ones who are least comfortable
- * are the ones who most need the safety screens to be legible.
+ * English, the Eighth Schedule languages that have a complete translation, and
+ * Rajasthani — the language of the transport belt this platform grew up on.
+ * A wide list rather than a hand-picked few, because the people this platform
+ * is for — drivers, yard staff, small fleet owners — are not reliably
+ * comfortable in English, and the ones who are least comfortable are the ones
+ * who most need the safety screens to be legible.
  *
- * Every language is offered at registration and can be changed later. Whether
- * a full translation exists yet is a separate question, answered by
- * `translationCoverage` below: an entry with no catalogue still selects, and
- * simply falls through to English rather than showing a blank screen.
+ * Only translated languages are listed. An entry here is a promise that the
+ * app speaks it, so a language joins this list in the same change that adds
+ * its catalogue (`apps/web/src/features/i18n/translations`) — the web tests
+ * fail on any entry without one. Bodo, Kashmiri, Manipuri, Santali and Sindhi
+ * return once their catalogues are written; a stored preference for one of
+ * them resolves to English meanwhile.
  *
  * Names are given as endonyms — a Tamil speaker looks for "தமிழ்", not for the
  * word "Tamil" written in an alphabet they may not read. The English name is
  * carried alongside for search and for administrative screens.
  */
 
-/** Where a script runs. Only Urdu, Kashmiri and Sindhi are right-to-left here. */
+/** Where a script runs. Only Urdu is right-to-left here. */
 export type TextDirection = 'ltr' | 'rtl';
 
 export interface LanguageDefinition {
@@ -34,7 +37,7 @@ export interface LanguageDefinition {
    * How this language greets someone, in its own script.
    *
    * A natural greeting rather than a literal rendering of the word "Welcome":
-   * Punjabi says "ਜੀ ਆਇਆਂ ਨੂੰ", Santali says "ᱡᱚᱦᱟᱨ", and translating the
+   * Punjabi says "ਜੀ ਆਇਆਂ ਨੂੰ", Rajasthani says "खम्मा घणी", and translating the
    * English word instead would produce something no speaker actually says.
    */
   greeting: string;
@@ -44,7 +47,8 @@ export const DEFAULT_LOCALE = 'en-IN';
 
 /**
  * English first because it is the fallback every other entry resolves to, then
- * the Eighth Schedule languages in the order the Constitution lists them.
+ * the Eighth Schedule languages in the order the Constitution lists them, then
+ * Rajasthani, which is not on the Schedule.
  */
 export const LANGUAGE_CATALOGUE: readonly LanguageDefinition[] = [
   {
@@ -70,14 +74,6 @@ export const LANGUAGE_CATALOGUE: readonly LanguageDefinition[] = [
     script: 'Bengali-Assamese',
     direction: 'ltr',
     greeting: 'স্বাগতম',
-  },
-  {
-    code: 'brx-IN',
-    endonym: 'बड़ो',
-    english: 'Bodo',
-    script: 'Devanagari',
-    direction: 'ltr',
-    greeting: 'खुलुमबाय',
   },
   {
     code: 'doi-IN',
@@ -112,14 +108,6 @@ export const LANGUAGE_CATALOGUE: readonly LanguageDefinition[] = [
     greeting: 'ಸ್ವಾಗತ',
   },
   {
-    code: 'ks-IN',
-    endonym: 'کٲشُر',
-    english: 'Kashmiri',
-    script: 'Perso-Arabic',
-    direction: 'rtl',
-    greeting: 'آداب',
-  },
-  {
     code: 'kok-IN',
     endonym: 'कोंकणी',
     english: 'Konkani',
@@ -142,14 +130,6 @@ export const LANGUAGE_CATALOGUE: readonly LanguageDefinition[] = [
     script: 'Malayalam',
     direction: 'ltr',
     greeting: 'സ്വാഗതം',
-  },
-  {
-    code: 'mni-IN',
-    endonym: 'ꯃꯤꯇꯩꯂꯣꯟ',
-    english: 'Manipuri',
-    script: 'Meitei Mayek',
-    direction: 'ltr',
-    greeting: 'ꯈꯨꯔꯨꯝꯖꯔꯤ',
   },
   {
     code: 'mr-IN',
@@ -192,22 +172,6 @@ export const LANGUAGE_CATALOGUE: readonly LanguageDefinition[] = [
     greeting: 'स्वागतम्',
   },
   {
-    code: 'sat-IN',
-    endonym: 'ᱥᱟᱱᱛᱟᱲᱤ',
-    english: 'Santali',
-    script: 'Ol Chiki',
-    direction: 'ltr',
-    greeting: 'ᱡᱚᱦᱟᱨ',
-  },
-  {
-    code: 'sd-IN',
-    endonym: 'سنڌي',
-    english: 'Sindhi',
-    script: 'Perso-Arabic',
-    direction: 'rtl',
-    greeting: 'ڀلي ڪري آيا',
-  },
-  {
     code: 'ta-IN',
     endonym: 'தமிழ்',
     english: 'Tamil',
@@ -230,6 +194,14 @@ export const LANGUAGE_CATALOGUE: readonly LanguageDefinition[] = [
     script: 'Perso-Arabic',
     direction: 'rtl',
     greeting: 'خوش آمدید',
+  },
+  {
+    code: 'raj-IN',
+    endonym: 'राजस्थानी',
+    english: 'Rajasthani',
+    script: 'Devanagari',
+    direction: 'ltr',
+    greeting: 'खम्मा घणी',
   },
 ] as const;
 

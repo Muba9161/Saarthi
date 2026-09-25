@@ -146,7 +146,6 @@ export const pa: Catalogue = {
   'How Saarthi speaks to you.': 'Saarthi ਤੁਹਾਡੇ ਨਾਲ ਕਿਸ ਭਾਸ਼ਾ ਵਿੱਚ ਗੱਲ ਕਰੇ।',
   'Which language should Saarthi use?': 'Saarthi ਕਿਹੜੀ ਭਾਸ਼ਾ ਵਰਤੇ?',
   'You can change this later from your profile.': 'ਇਹ ਬਾਅਦ ਵਿੱਚ ਆਪਣੀ ਪ੍ਰੋਫਾਈਲ ਤੋਂ ਬਦਲ ਸਕਦੇ ਹੋ।',
-  'Not translated yet - shows in English': 'ਹਾਲੇ ਅਨੁਵਾਦ ਨਹੀਂ - ਅੰਗਰੇਜ਼ੀ ਵਿੱਚ ਦਿਖੇਗਾ',
 
   'Step {current} of {total}': 'ਪੜਾਅ {current} / {total}',
 

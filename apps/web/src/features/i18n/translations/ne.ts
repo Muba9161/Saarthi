@@ -146,7 +146,6 @@ export const ne: Catalogue = {
   'How Saarthi speaks to you.': 'Saarthi ले तपाईंसँग कुन भाषामा कुरा गरोस्।',
   'Which language should Saarthi use?': 'Saarthi ले कुन भाषा प्रयोग गरोस्?',
   'You can change this later from your profile.': 'यो पछि आफ्नो प्रोफाइलबाट बदल्न सक्नुहुन्छ।',
-  'Not translated yet - shows in English': 'अहिलेसम्म अनुवाद भएको छैन - अङ्ग्रेजीमा देखिनेछ',
 
   'Step {current} of {total}': 'चरण {current} / {total}',
 

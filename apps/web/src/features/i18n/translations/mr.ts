@@ -145,7 +145,6 @@ export const mr: Catalogue = {
   'How Saarthi speaks to you.': 'Saarthi तुमच्याशी कोणत्या भाषेत बोलेल.',
   'Which language should Saarthi use?': 'Saarthi कोणती भाषा वापरेल?',
   'You can change this later from your profile.': 'हे नंतर तुमच्या प्रोफाइलमधून बदलू शकता.',
-  'Not translated yet - shows in English': 'अद्याप भाषांतर नाही - इंग्रजीत दिसेल',
 
   'Step {current} of {total}': 'टप्पा {current} / {total}',
 

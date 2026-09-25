@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, PlayCircle, ShieldCheck } from 'lucide-react';
+import { ArrowRight, CalendarClock, LockKeyhole, PlayCircle, ShieldCheck } from 'lucide-react';
 import { useScroll, useTransform } from 'framer-motion';
 import { FEATURE_CATALOGUE, LANGUAGE_CATALOGUE } from '@saarthi/shared';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,10 @@ import { Backdrop, CutOut, MARKETING_IMAGE, STAGE } from './imagery';
 import { ROLE_SHOWCASE, TOTAL_DESTINATIONS } from './feature-catalogue';
 import { FleetCanvas, type FleetTelemetry } from './fleet-canvas';
 import { Magnetic } from './magnetic';
+import { Headlight } from './hero-scene/headlight';
+import { SceneFrame } from './hero-scene/scene-frame';
+import { HERO_OBJECT_POSITION } from './hero-scene/scene-geometry';
+import { TargetLock } from './hero-scene/target-lock';
 import { gsap, useGsapScope } from './scroll-engine';
 import { DURATION, STAGGER } from './design-system';
 import { cn } from '@/lib/utils';
@@ -86,13 +90,17 @@ function HeroHeadline({ lines }: { lines: readonly (readonly [string, string?])[
   return (
     <h1
       ref={scope}
-      className="mt-7 text-balance text-[2.6rem] font-semibold leading-[0.98] tracking-[-0.04em] text-white sm:text-6xl lg:text-[4.5rem] lg:leading-[0.95]"
+      className="mt-7 text-balance text-[2.6rem] font-semibold leading-[0.98] tracking-[-0.04em] text-white sm:text-6xl lg:text-[4.5rem] lg:leading-[0.95] xl:text-[5rem]"
     >
       {lines.map(([text, accent], index) => (
-        <span key={text} className="-mb-[0.16em] block overflow-hidden pb-[0.02em]">
+        <span key={text} className="-mb-[0.2em] block overflow-hidden pb-[0.02em]">
           <span
             data-hero-line
-            className={cn('block pb-[0.16em]', accent)}
+            // `mb-0` after the accent on purpose: the gradient class carries
+            // its own `-mb-[0.18em]` for inline use, and inside this clip box
+            // that negative margin shortened the box by exactly the room the
+            // padding gives back - which shaved the descender off the "y".
+            className={cn('block pb-[0.2em]', accent, 'mb-0')}
             // The static state. GSAP overwrites both properties on the first
             // frame of its timeline, and under reduced motion it never runs -
             // so the words must already be in place here rather than starting
@@ -163,6 +171,13 @@ function LiveReadout({ telemetry }: { telemetry: FleetTelemetry | null }) {
  * Hero
  * ---------------------------------------------------------------------- */
 
+/** The three promises under the calls to action. */
+const ASSURANCES = [
+  { icon: CalendarClock, label: '30-day trial on every paid feature', tone: 'text-white/45' },
+  { icon: ShieldCheck, label: 'SOS is never gated by a plan', tone: 'text-success' },
+  { icon: LockKeyhole, label: 'Your data stays yours', tone: 'text-white/45' },
+] as const;
+
 const HEADLINE = [
   ['The operating system'],
   ['for everything', undefined],
@@ -174,6 +189,9 @@ export function Hero() {
   const ref = React.useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end start'] });
   const [telemetry, setTelemetry] = React.useState<FleetTelemetry | null>(null);
+  // The lock points *at* the photograph, so it stands down if the frame
+  // never arrives - brackets around an empty stage would read as broken.
+  const [photoAvailable, setPhotoAvailable] = React.useState(true);
 
   /*
    * The two layers come apart as the page moves.
@@ -210,7 +228,7 @@ export function Hero() {
          * means anything if there is something behind it; the top padding puts
          * the same air back below it that the negative margin takes away.
          */
-        '-mt-[4.5rem] pt-[9rem] sm:pt-[11rem]',
+        '-mt-[4.5rem] pt-[8rem] sm:pt-[8.5rem]',
         STAGE,
       )}
     >
@@ -262,10 +280,18 @@ export function Hero() {
         priority
         opacity={0.66}
         // Holds the truck in frame as the 16:9 gets cropped to taller
-        // viewports - the subject sits right of centre and low.
-        objectPosition="72% 62%"
+        // viewports - the subject sits right of centre and low. Shared with
+        // the target lock, which reproduces this crop to find the truck.
+        objectPosition={HERO_OBJECT_POSITION}
         className="-z-20"
-      />
+        onUnavailable={() => setPhotoAvailable(false)}
+      >
+        <Headlight
+          src={MARKETING_IMAGE.hero}
+          portraitSrc={MARKETING_IMAGE.heroPortrait}
+          objectPosition={HERO_OBJECT_POSITION}
+        />
+      </Backdrop>
 
       {/*
        * What Saarthi sees.
@@ -281,8 +307,10 @@ export function Hero() {
         aria-hidden
         style={reduced ? undefined : { y: netY, opacity: netOpacity }}
       >
+        {/* Quieter on phones: there the copy spans the full width, so every
+            lane and the focus glow cross the paragraph rather than beside it. */}
         <div
-          className="size-full opacity-70 sm:opacity-90"
+          className="size-full opacity-40 sm:opacity-90"
           style={{
             maskImage:
               'radial-gradient(120% 100% at 78% 50%, #000 12%, rgba(0,0,0,0.55) 48%, transparent 82%)',
@@ -294,8 +322,14 @@ export function Hero() {
         </div>
       </motion.div>
 
+      <SceneFrame />
+
+      {photoAvailable ? <TargetLock telemetry={telemetry} /> : null}
+
       <div className="relative mx-auto w-full max-w-7xl">
-        <div className="max-w-3xl">
+        {/* Widened at `xl` only, where the headline steps up a size and its
+            first line would otherwise break. */}
+        <div className="max-w-3xl xl:max-w-[57rem]">
           <Reveal direction="none" duration={DURATION.quick}>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
               <p className="text-2xs font-semibold uppercase tracking-[0.2em] text-white/50">
@@ -361,13 +395,13 @@ export function Hero() {
           </Reveal>
 
           <Reveal delay={0.4} direction="none">
-            <ul className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-white/55">
-              <li>30-day trial on every paid feature</li>
-              <li className="flex items-center gap-1.5">
-                <ShieldCheck className="size-3.5 text-success" aria-hidden />
-                SOS is never gated by a plan
-              </li>
-              <li>Your data stays yours</li>
+            <ul className="mt-9 flex flex-col gap-2.5 text-xs text-white/60 sm:flex-row sm:items-center sm:gap-0 sm:divide-x sm:divide-white/10">
+              {ASSURANCES.map(({ icon: Icon, label, tone }) => (
+                <li key={label} className="flex items-center gap-2 sm:px-5 sm:first:pl-0">
+                  <Icon className={cn('size-3.5 shrink-0', tone)} aria-hidden />
+                  {label}
+                </li>
+              ))}
             </ul>
           </Reveal>
         </div>
@@ -375,7 +409,13 @@ export function Hero() {
         {/* The scene's caption. Sits on the band's own baseline rather than
             floating over the network, so it never lands on a moving vehicle. */}
         <Reveal delay={0.55} direction="none">
-          <div className="mt-16 border-t border-white/10 pt-5 sm:mt-20">
+          <div
+            className={cn(
+              'mt-14 border-t border-white/10 pt-5 sm:mt-16',
+              // The lock carries this readout on the truck itself at `xl`.
+              photoAvailable && 'xl:hidden',
+            )}
+          >
             <LiveReadout telemetry={telemetry} />
           </div>
         </Reveal>

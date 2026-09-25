@@ -67,7 +67,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { AccountMenu } from './account-menu';
 import { filterSections, useNavItemVisible } from './use-nav-visibility';
-import { LoadingState } from '@/components/common/states';
+import { SplashScreen } from '@/components/common/splash';
 import { SaarthiLogo } from '@/components/common/logo';
 import { AnimatePresence, PageTransition, motion } from '@/components/motion';
 import { FleetWelcomeDialog } from '@/features/fleet/fleet-welcome-dialog';
@@ -846,7 +846,7 @@ export function AppShell() {
   }, []);
 
   if (status === 'loading') {
-    return <LoadingState label="Restoring your session…" className="min-h-screen" />;
+    return <SplashScreen label="Restoring your session…" />;
   }
 
   return (

@@ -145,7 +145,6 @@ export const kn: Catalogue = {
   'How Saarthi speaks to you.': 'Saarthi ನಿಮ್ಮೊಂದಿಗೆ ಯಾವ ಭಾಷೆಯಲ್ಲಿ ಮಾತನಾಡಬೇಕು.',
   'Which language should Saarthi use?': 'Saarthi ಯಾವ ಭಾಷೆ ಬಳಸಬೇಕು?',
   'You can change this later from your profile.': 'ಇದನ್ನು ನಂತರ ನಿಮ್ಮ ಪ್ರೊಫೈಲ್‌ನಿಂದ ಬದಲಾಯಿಸಬಹುದು.',
-  'Not translated yet - shows in English': 'ಇನ್ನೂ ಅನುವಾದವಾಗಿಲ್ಲ - ಇಂಗ್ಲಿಷ್‌ನಲ್ಲಿ ಕಾಣಿಸುತ್ತದೆ',
 
   'Step {current} of {total}': 'ಹಂತ {current} / {total}',
 

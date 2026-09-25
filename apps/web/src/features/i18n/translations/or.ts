@@ -145,7 +145,6 @@ export const or: Catalogue = {
   'How Saarthi speaks to you.': 'Saarthi ଆପଣଙ୍କ ସହ କେଉଁ ଭାଷାରେ କଥା ହେବ।',
   'Which language should Saarthi use?': 'Saarthi କେଉଁ ଭାଷା ବ୍ୟବହାର କରିବ?',
   'You can change this later from your profile.': 'ଏହା ପରେ ଆପଣଙ୍କ ପ୍ରୋଫାଇଲରୁ ବଦଳାଇ ପାରିବେ।',
-  'Not translated yet - shows in English': 'ଏବେ ଅନୁବାଦ ହୋଇନାହିଁ - ଇଂରାଜୀରେ ଦେଖାଯିବ',
 
   'Step {current} of {total}': 'ପର୍ଯ୍ୟାୟ {current} / {total}',
 

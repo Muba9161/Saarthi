@@ -7,3 +7,5 @@ playwright-report
 test-results
 apps/api/prisma/migrations
 *.md
+# Generated path data — one word per line keeps diffs readable.
+*.generated.ts

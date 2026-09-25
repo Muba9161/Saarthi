@@ -7,7 +7,9 @@ import { ThemeProvider } from '@/features/theme/theme-context';
 import { ROLE_SHOWCASE } from './feature-catalogue';
 import { RoleShowcaseSection } from './role-showcase';
 import { WordsReveal } from './motion-extras';
-import { SAARTHI_IN_SCRIPT } from './knockout-band';
+import { SAARTHI_IN_SCRIPT } from './brush-name/saarthi-in-script';
+import { INK_ART } from './brush-name/ink-art.generated';
+import { erasedIn, planInk, reverseBeat } from '@/components/ink/ink-timeline';
 
 /**
  * The public site drifts from the product silently — a capability ships and
@@ -122,7 +124,7 @@ describe('brand band', () => {
   /*
    * The band writes "Saarthi" out in each catalogue's own script. Nothing at
    * runtime notices a missing one — the rotation falls back to the Latin
-   * spelling — so without this, adding a 24th language would quietly show
+   * spelling — so without this, adding a new language would quietly show
    * English to its speakers on the one part of the page whose entire point is
    * that it does not.
    */
@@ -145,5 +147,44 @@ describe('brand band', () => {
         `${language.code} (${language.english}) is still the Latin spelling`,
       ).toBe(false);
     }
+  });
+
+  it('has brush outlines for every spelling', () => {
+    // The outlines are generated, not written. A spelling added or corrected
+    // without re-running the generator would otherwise fall back to plain text
+    // for that one language, and nobody would notice.
+    for (const [code, text] of Object.entries(SAARTHI_IN_SCRIPT)) {
+      expect(
+        INK_ART[text]?.glyphs.length,
+        `${code} "${text}" has no art - run node tools/generate-ink-art.mjs`,
+      ).toBeGreaterThan(0);
+    }
+  });
+
+  it('writes every word in a steady, bounded rhythm', () => {
+    for (const [text, art] of Object.entries(INK_ART)) {
+      const plan = planInk(art);
+      const strokes = plan.glyphs.flatMap((glyph) => glyph.strokes);
+
+      // Strokes begin in writing order, each after the one before it.
+      for (let i = 1; i < strokes.length; i += 1) {
+        expect(strokes[i]!.delay, text).toBeGreaterThan(strokes[i - 1]!.delay);
+      }
+      // No word is rushed or left to drag, whatever its script.
+      expect(plan.written, text).toBeGreaterThan(1.5);
+      expect(plan.written, text).toBeLessThan(4);
+    }
+  });
+
+  it('un-writes a word as the writing played backwards', () => {
+    const plan = planInk(INK_ART['Saarthi']!);
+    const strokes = plan.glyphs.flatMap((glyph) => glyph.strokes);
+    const first = reverseBeat(plan, strokes[0]!);
+    const last = reverseBeat(plan, strokes[strokes.length - 1]!);
+
+    // The last stroke written is the first to lift, and the first stroke
+    // written finishes lifting no later than the erase does.
+    expect(last.delay).toBeLessThan(first.delay);
+    expect(first.delay + first.duration).toBeLessThanOrEqual(erasedIn(plan) + 1e-9);
   });
 });

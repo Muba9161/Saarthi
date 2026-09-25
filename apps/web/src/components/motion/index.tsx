@@ -20,7 +20,7 @@ import { cn } from '@/lib/utils';
  */
 
 /** Shared easing — fast out, settled finish, no overshoot. */
-const EASE = [0.16, 1, 0.3, 1] as const;
+export const EASE = [0.16, 1, 0.3, 1] as const;
 
 export const fadeInUp: Variants = {
   hidden: { opacity: 0, y: 12 },

@@ -12,6 +12,7 @@ import { mr } from './mr';
 import { ne } from './ne';
 import { or } from './or';
 import { pa } from './pa';
+import { raj } from './raj';
 import { sa } from './sa';
 import { ta } from './ta';
 import { te } from './te';
@@ -23,9 +24,9 @@ import { ur } from './ur';
  * The app loads catalogues on demand (see `./index`) so a user downloads the
  * one language they chose. The checks that keep these files honest — no
  * unknown keys, no blank entries, no dropped interpolation placeholders —
- * need to read all eighteen together, and a test bundle has no download cost.
+ * need to read all nineteen together, and a test bundle has no download cost.
  *
- * Importing this from application code would put all eighteen back in the
+ * Importing this from application code would put all nineteen back in the
  * entry bundle and quietly undo the split.
  */
 export const CATALOGUES: Readonly<Record<string, Catalogue>> = {
@@ -47,6 +48,7 @@ export const CATALOGUES: Readonly<Record<string, Catalogue>> = {
   'ta-IN': ta,
   'te-IN': te,
   'ur-IN': ur,
+  'raj-IN': raj,
 };
 
 export { en };

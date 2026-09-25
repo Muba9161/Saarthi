@@ -94,14 +94,14 @@ function WalletStrip({ to }: { to: string }) {
     <DropdownMenuItem
       asChild
       // Radix highlights an item on hover as well as on keyboard focus, and the
-      // shared item style turns it muted with dark text. On this blue card that
+      // shared item style turns it muted with dark text. On this brand card that
       // read as washed out, so the highlight is restyled for the card instead:
       // white text kept, a touch brighter, lifted, with a thin inner edge.
-      className="mt-2 p-0 transition-[filter,box-shadow] duration-200 focus:bg-transparent focus:text-primary-foreground data-[highlighted]:shadow-md data-[highlighted]:ring-1 data-[highlighted]:ring-inset data-[highlighted]:ring-white/40 data-[highlighted]:brightness-110"
+      className="mt-2 p-0 transition-[filter,box-shadow] duration-200 focus:bg-transparent focus:text-white data-[highlighted]:shadow-md data-[highlighted]:ring-1 data-[highlighted]:ring-inset data-[highlighted]:ring-white/40 data-[highlighted]:brightness-110"
     >
       <Link
         to={to}
-        className="group relative flex items-center gap-3 overflow-hidden rounded-lg bg-gradient-to-r from-primary to-primary/80 p-3 text-primary-foreground shadow-sm"
+        className="group relative flex items-center gap-3 overflow-hidden rounded-lg bg-brand-gradient p-3 text-white shadow-sm"
       >
         <span
           className="pointer-events-none absolute -right-6 -top-8 size-24 rounded-full bg-white/15 blur-2xl"

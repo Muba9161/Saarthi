@@ -55,7 +55,7 @@ export const MARKETING_IMAGE = {
    *
    * Deliberately carries **no pins, no arcs, no labels and no numerals**. Every
    * claim the band makes is live DOM on top, for the same reason the rest of
-   * the page is: the site writes itself in 23 scripts, and a figure baked into
+   * the page is: the site writes itself in every language it offers, and a figure baked into
    * a WebP is an English figure forever that no catalogue can keep honest.
    *
    * Nothing is registered to the map either. This is a full-bleed `Backdrop`,
@@ -167,6 +167,59 @@ const SCRIM: Record<Scrim, string | undefined> = {
 };
 
 /**
+ * How far a `Backdrop`'s frame overhangs its band, top and bottom, in px.
+ *
+ * Must match the `-inset-y-12` on the parallax layer below. Anything that has
+ * to be registered to a point *in* the photograph — the hero's target lock —
+ * needs this to reproduce the crop, because the image is covered into the
+ * overscanned box rather than into the band itself.
+ */
+export const BACKDROP_OVERSCAN = 48;
+
+/** How far a `Backdrop` drifts against the scroll, each way, in px. */
+export const BACKDROP_PARALLAX = 36;
+
+/**
+ * One art-directed frame: the landscape file, with the portrait cut swapped
+ * in on phones.
+ *
+ * Shared so that a second copy of a frame — the hero's headlight — crops
+ * exactly as the first does. Two `<picture>`s written out by hand drift apart
+ * the first time somebody changes one of them.
+ */
+export function FramePicture({
+  src,
+  portraitSrc,
+  priority = false,
+  objectPosition = 'center',
+  opacity,
+  onError,
+}: {
+  src: string;
+  portraitSrc?: string;
+  priority?: boolean;
+  objectPosition?: string;
+  opacity?: number;
+  onError?: () => void;
+}) {
+  return (
+    <picture>
+      {portraitSrc ? <source media="(max-width: 639px)" srcSet={portraitSrc} /> : null}
+      <img
+        src={src}
+        alt=""
+        loading={priority ? 'eager' : 'lazy'}
+        fetchPriority={priority ? 'high' : 'auto'}
+        decoding="async"
+        onError={onError}
+        className="size-full object-cover"
+        style={{ opacity, objectPosition }}
+      />
+    </picture>
+  );
+}
+
+/**
  * The photographic layer of a dark band.
  *
  * Renders nothing at all if the file cannot be loaded — see the note at the
@@ -192,6 +245,8 @@ export function Backdrop({
   opacity = 1,
   className,
   objectPosition = 'center',
+  onUnavailable,
+  children,
 }: {
   src: string;
   portraitSrc?: string;
@@ -200,11 +255,19 @@ export function Backdrop({
   opacity?: number;
   className?: string;
   objectPosition?: string;
+  /** Told when the file failed, so layers pointing *at* the photograph can stand down. */
+  onUnavailable?: () => void;
+  /**
+   * Layers registered to the photograph. They share its parallax and its
+   * overscanned box, and sit under the scrim, so they are protected the same
+   * way the frame is.
+   */
+  children?: React.ReactNode;
 }) {
   const [failed, setFailed] = React.useState(false);
   const reduced = useReducedMotion();
   const { ref, progress } = useSectionProgress();
-  const y = useParallax(progress, 36);
+  const y = useParallax(progress, BACKDROP_PARALLAX);
 
   if (failed) return null;
 
@@ -224,21 +287,21 @@ export function Backdrop({
       aria-hidden
     >
       {/* Overscanned so the parallax translation cannot pull the frame's edge
-          into view at either end of the travel. */}
+          into view at either end of the travel. `-inset-y-12` is
+          `BACKDROP_OVERSCAN`; change the two together. */}
       <motion.div className="absolute -inset-y-12 inset-x-0" style={reduced ? undefined : { y }}>
-        <picture>
-          {portraitSrc ? <source media="(max-width: 639px)" srcSet={portraitSrc} /> : null}
-          <img
-            src={src}
-            alt=""
-            loading={priority ? 'eager' : 'lazy'}
-            fetchPriority={priority ? 'high' : 'auto'}
-            decoding="async"
-            onError={() => setFailed(true)}
-            className="size-full object-cover"
-            style={{ opacity, objectPosition }}
-          />
-        </picture>
+        <FramePicture
+          src={src}
+          portraitSrc={portraitSrc}
+          priority={priority}
+          objectPosition={objectPosition}
+          opacity={opacity}
+          onError={() => {
+            setFailed(true);
+            onUnavailable?.();
+          }}
+        />
+        {children}
       </motion.div>
 
       {SCRIM[scrim] ? (

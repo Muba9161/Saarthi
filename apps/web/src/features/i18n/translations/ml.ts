@@ -147,7 +147,6 @@ export const ml: Catalogue = {
   'Which language should Saarthi use?': 'Saarthi ഏത് ഭാഷ ഉപയോഗിക്കണം?',
   'You can change this later from your profile.':
     'ഇത് പിന്നീട് നിങ്ങളുടെ പ്രൊഫൈലിൽ നിന്ന് മാറ്റാം.',
-  'Not translated yet - shows in English': 'ഇതുവരെ വിവർത്തനം ചെയ്തിട്ടില്ല - ഇംഗ്ലീഷിൽ കാണിക്കും',
 
   'Step {current} of {total}': 'ഘട്ടം {current} / {total}',
 

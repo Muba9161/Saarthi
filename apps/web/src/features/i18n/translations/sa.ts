@@ -150,7 +150,6 @@ export const sa: Catalogue = {
   'How Saarthi speaks to you.': 'Saarthi कया भाषया भवता सह वदतु।',
   'Which language should Saarthi use?': 'Saarthi कां भाषां प्रयुङ्क्ताम्?',
   'You can change this later from your profile.': 'एतत् पश्चात् स्वविवरणात् परिवर्तयितुं शक्नोति।',
-  'Not translated yet - shows in English': 'अद्यापि अनूदितं नास्ति - आङ्ग्लभाषायां दृश्यते',
 
   'Step {current} of {total}': 'सोपानम् {current} / {total}',
 

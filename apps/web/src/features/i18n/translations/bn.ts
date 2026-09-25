@@ -145,7 +145,6 @@ export const bn: Catalogue = {
   'How Saarthi speaks to you.': 'Saarthi আপনার সঙ্গে কোন ভাষায় কথা বলবে।',
   'Which language should Saarthi use?': 'Saarthi কোন ভাষা ব্যবহার করবে?',
   'You can change this later from your profile.': 'পরে আপনার প্রোফাইল থেকে এটি বদলাতে পারবেন।',
-  'Not translated yet - shows in English': 'এখনও অনুবাদ হয়নি - ইংরেজিতে দেখাবে',
 
   'Step {current} of {total}': 'ধাপ {current} / {total}',
 

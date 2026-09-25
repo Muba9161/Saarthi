@@ -51,17 +51,15 @@ bright.
 The brand band needs no photograph at all — the **VorldX Saarthi** lockup is
 filled with the logo's own gradient (`.brand-logo-gradient`, sampled from the
 navy of the V and the saffron of the X), and "Saarthi" writes itself out
-underneath in each of the 23 scripts from `LANGUAGE_CATALOGUE`.
+underneath in each language from `LANGUAGE_CATALOGUE`.
 
-> **One thing needs a human check before this goes to customers.** The
-> renderings of "Saarthi" live in `SAARTHI_IN_SCRIPT` in
-> `apps/web/src/features/marketing/knockout-band.tsx`. The Devanagari,
-> Bengali-Assamese, Gujarati, Gurmukhi, Kannada, Malayalam, Odia, Tamil, Telugu
-> and Urdu forms are standard and safe. The **Meitei Mayek** (Manipuri), **Ol
-> Chiki** (Santali), **Kashmiri** and **Sindhi** forms are transliterations I
-> could not verify to the same confidence — get a native reader to confirm
-> those four. A wrong one is visible to exactly the people it is meant to
-> welcome.
+> The renderings of "Saarthi" live in
+> `apps/web/src/features/marketing/brush-name/saarthi-in-script.json`. Every
+> form offered today — Devanagari, Bengali-Assamese, Gujarati, Gurmukhi,
+> Kannada, Malayalam, Odia, Tamil, Telugu and Urdu — is standard. When Bodo,
+> Kashmiri, Manipuri, Santali or Sindhi return with their catalogues, get a
+> native reader to confirm the Meitei Mayek, Ol Chiki and Perso-Arabic forms
+> first: a wrong one is visible to exactly the people it is meant to welcome.
 
 ## Palette to hold every image to
 
@@ -167,7 +165,7 @@ by the same two sources as everything else here, with one truck on an elevated
 ribbon crossing it.
 
 **No pins, no arcs, no city names, no numerals.** Every claim is live DOM over
-the top — the site writes itself in 23 scripts, and a label baked into a WebP
+the top — the site writes itself in every language it offers, and a label baked into a WebP
 is English forever. Nothing is registered to the map either: this is a
 full-bleed `Backdrop`, cropped differently at every viewport, so a pin placed
 against it slides off the coast on the next screen size.

@@ -37,4 +37,3 @@ export function AppLocaleProvider({ children }: { children: React.ReactNode }) {
 export { LocaleProvider, preloadStoredCatalogue, useLocale, useT } from './locale-context';
 export { LanguageGrid, LanguageMenu } from './language-picker';
 export { LocaleSplash } from './locale-splash';
-export { hasTranslations } from './translations';

@@ -1,16 +1,17 @@
 import * as React from 'react';
-import { Navigate, Outlet, createBrowserRouter, useRouteError } from 'react-router-dom';
+import { Navigate, Outlet, createBrowserRouter, useMatches, useRouteError } from 'react-router-dom';
 import { AppShell } from '@/layouts/app-shell';
 import { RunningCostsTabs } from '@/features/fleet/running-costs-tabs';
 import { AuthLayout } from '@/layouts/auth-layout';
 import { useAuth } from '@/features/auth/auth-context';
 import { useT } from '@/features/i18n';
 import { LoadingState } from '@/components/common/states';
-import { SplashScreen } from '@/components/common/splash';
+import { SplashScreen, useHoldBootSplash } from '@/components/common/splash';
 import { NotFoundPage } from '@/pages/not-found';
 import { RouteErrorPage } from '@/pages/route-error';
+import { LandingPage, LoginPage, RegisterPage } from '@/pages/lazy-pages';
+import { NOT_FOUND_HANDLE, bindRouteSeo, isNotFoundHandle } from '@/features/seo';
 
-const LandingPage = React.lazy(() => import('@/pages/marketing/landing'));
 
 /**
  * Routing.
@@ -20,14 +21,24 @@ const LandingPage = React.lazy(() => import('@/pages/marketing/landing'));
  * their own permissions, and the API is authoritative regardless.
  */
 
-const lazyPage = (loader: () => Promise<{ default: React.ComponentType }>) => {
-  const Component = React.lazy(loader);
-  return (
-    <React.Suspense fallback={<LoadingState className="min-h-[60vh]" />}>
-      <Component />
-    </React.Suspense>
-  );
-};
+/**
+ * A page's code still downloading. On the first load that happens behind the
+ * boot splash, so it holds the splash rather than lifting it onto a spinner;
+ * on every navigation after, it is the spinner.
+ */
+function PageLoading({ className }: { className: string }) {
+  const holdingBoot = useHoldBootSplash();
+  return holdingBoot ? null : <LoadingState className={className} />;
+}
+
+const suspendedPage = (Component: React.ComponentType) => (
+  <React.Suspense fallback={<PageLoading className="min-h-[60vh]" />}>
+    <Component />
+  </React.Suspense>
+);
+
+const lazyPage = (loader: () => Promise<{ default: React.ComponentType }>) =>
+  suspendedPage(React.lazy(loader));
 
 /** The root path is the marketing site when signed out, the app when signed in. */
 function RootRoute() {
@@ -39,7 +50,7 @@ function RootRoute() {
   if (status === 'authenticated') return <HomeRedirect />;
   return React.createElement(
     React.Suspense,
-    { fallback: <LoadingState className="min-h-screen" /> },
+    { fallback: <PageLoading className="min-h-screen" /> },
     React.createElement(LandingPage),
   );
 }
@@ -47,9 +58,22 @@ function RootRoute() {
 function RequireAuth() {
   const { status } = useAuth();
   const t = useT();
+  const notFound = useMatches().some((match) => isNotFoundHandle(match.handle));
 
   if (status === 'loading') return <SplashScreen label={t('Checking your session')} />;
-  if (status === 'unauthenticated') return <Navigate to="/login" replace />;
+  if (status === 'unauthenticated') {
+    // A URL that is no page at all is a 404 for everyone. Sending a signed-out
+    // visitor to sign in first would imply the page exists behind the wall,
+    // and it hands crawlers a sign-in form for every mistyped link.
+    if (notFound) {
+      return (
+        <main className="flex min-h-screen items-center justify-center px-4">
+          <NotFoundPage />
+        </main>
+      );
+    }
+    return <Navigate to="/login" replace />;
+  }
   return <Outlet />;
 }
 
@@ -147,8 +171,8 @@ export const router = createBrowserRouter([
     element: <AuthLayout />,
     errorElement: <RouteError />,
     children: [
-      { path: '/login', element: lazyPage(() => import('@/pages/auth/login')) },
-      { path: '/register', element: lazyPage(() => import('@/pages/auth/register')) },
+      { path: '/login', element: suspendedPage(LoginPage) },
+      { path: '/register', element: suspendedPage(RegisterPage) },
       { path: '/forgot-password', element: lazyPage(() => import('@/pages/auth/forgot-password')) },
       { path: '/reset-password', element: lazyPage(() => import('@/pages/auth/reset-password')) },
       // A salesperson joining with their GODID. Beside sign-in rather than in
@@ -467,9 +491,11 @@ export const router = createBrowserRouter([
             element: lazyPage(() => import('@/pages/admin/commerce-taxonomy')),
           },
 
-          { path: '*', element: <NotFoundPage /> },
+          { path: '*', element: <NotFoundPage />, handle: NOT_FOUND_HANDLE },
         ],
       },
     ],
   },
 ]);
+
+bindRouteSeo(router);

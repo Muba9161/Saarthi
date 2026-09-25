@@ -168,7 +168,6 @@ export const en = {
   'How Saarthi speaks to you.': 'How Saarthi speaks to you.',
   'Which language should Saarthi use?': 'Which language should Saarthi use?',
   'You can change this later from your profile.': 'You can change this later from your profile.',
-  'Not translated yet - shows in English': 'Not translated yet - shows in English',
 
   // --- Wizard chrome --------------------------------------------------------
   'Step {current} of {total}': 'Step {current} of {total}',

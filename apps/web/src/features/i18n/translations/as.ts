@@ -146,7 +146,6 @@ export const as: Catalogue = {
   'Which language should Saarthi use?': 'Saarthi কোন ভাষা ব্যৱহাৰ কৰিব?',
   'You can change this later from your profile.':
     'ইয়াক পিছত আপোনাৰ প্ৰৌফাইলৰ পৰা সলনি কৰিব পাৰিব।',
-  'Not translated yet - shows in English': 'এতিয়ালৈকে অনুবাদ হোৱা নাই - ইংৰাজীত দেখুৱাব',
 
   'Step {current} of {total}': 'পদক্ষেপ {current} / {total}',
 

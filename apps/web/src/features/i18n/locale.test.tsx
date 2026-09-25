@@ -3,6 +3,7 @@ import { render, screen, act, waitForElementToBeRemoved } from '@testing-library
 import { LANGUAGE_CATALOGUE, SUPPORTED_LOCALES, resolveLocale } from '@saarthi/shared';
 import { LocaleProvider, useLocale } from './locale-context';
 import { LocaleSplash } from './locale-splash';
+import { GREETING_INK } from './greeting-ink.generated';
 import { CATALOGUES, en } from './translations/all';
 
 /**
@@ -146,15 +147,15 @@ describe('LocaleProvider', () => {
     expect(screen.getByTestId('text')).toHaveTextContent('सहेजें');
   });
 
-  it('renders English for a language that has no catalogue yet', () => {
-    // Bodo is offered and selectable; no catalogue exists for it.
+  it('falls back to English for a stored language that is no longer offered', () => {
+    // Bodo was offered before its catalogue existed; accounts may still hold it.
     render(
       <LocaleProvider accountLocale="brx-IN">
         <Probe source="Save" />
       </LocaleProvider>,
     );
 
-    expect(screen.getByTestId('locale')).toHaveTextContent('brx-IN');
+    expect(screen.getByTestId('locale')).toHaveTextContent('en-IN');
     expect(screen.getByTestId('text')).toHaveTextContent('Save');
   });
 
@@ -281,6 +282,18 @@ describe('the language switch splash', () => {
     expect(live?.textContent).toContain('স্বাগতম');
   });
 
+  it('has brush outlines for every greeting', () => {
+    // The splash writes the greeting with a brush, from generated outlines. A
+    // greeting added or reworded without regenerating would quietly fall back
+    // to plain text for that one language.
+    for (const language of LANGUAGE_CATALOGUE) {
+      expect(
+        GREETING_INK[language.greeting]?.glyphs.length,
+        `${language.code} "${language.greeting}" has no art - run node tools/generate-ink-art.mjs`,
+      ).toBeGreaterThan(0);
+    }
+  });
+
   it('does not replay when the language already in use is picked again', () => {
     renderSplash({ to: 'en-IN' });
 
@@ -292,8 +305,16 @@ describe('the language switch splash', () => {
 });
 
 describe('the language catalogue', () => {
-  it('offers English plus the twenty-two Eighth Schedule languages', () => {
-    expect(LANGUAGE_CATALOGUE).toHaveLength(23);
+  it('offers only languages that have a catalogue behind them', () => {
+    // The picker lists the shared catalogue as-is, so an entry without a
+    // translation would put a language on screen that renders in English.
+    for (const language of LANGUAGE_CATALOGUE) {
+      expect(
+        CATALOGUES[language.code],
+        `${language.code} (${language.english}) is offered but has no catalogue`,
+      ).toBeDefined();
+    }
+    expect(LANGUAGE_CATALOGUE).toHaveLength(Object.keys(CATALOGUES).length);
   });
 
   it('gives every language a distinct code and a name in its own script', () => {

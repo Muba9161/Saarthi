@@ -1,5 +1,6 @@
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
+import { seoPlugin } from './vite/seo-plugin';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -99,7 +100,7 @@ export default defineConfig(({ mode, command }) => {
 
   return {
     envDir: repoRoot,
-    plugins: [react()],
+    plugins: [react(), seoPlugin()],
     resolve: {
       alias: {
         '@': path.resolve(dirname, './src'),

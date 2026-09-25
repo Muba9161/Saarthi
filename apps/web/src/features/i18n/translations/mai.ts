@@ -145,7 +145,6 @@ export const mai: Catalogue = {
   'How Saarthi speaks to you.': 'Saarthi अहाँ सँ कोन भाषा मे बात करय।',
   'Which language should Saarthi use?': 'Saarthi कोन भाषा प्रयोग करय?',
   'You can change this later from your profile.': 'एकरा बाद मे अपन प्रोफाइल सँ बदलि सकैत छी।',
-  'Not translated yet - shows in English': 'अखन धरि अनुवाद नै - अंग्रेजी मे देखाएत',
 
   'Step {current} of {total}': 'चरण {current} / {total}',
 

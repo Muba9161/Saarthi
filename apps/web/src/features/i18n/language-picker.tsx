@@ -12,7 +12,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useLocale } from './locale-context';
-import { hasTranslations } from './translations';
 import { cn } from '@/lib/utils';
 
 /**
@@ -26,9 +25,9 @@ import { cn } from '@/lib/utils';
  * control is, by definition, someone who may not be able to read the word
  * "Marathi" — but they can read "मराठी".
  *
- * Where no catalogue exists yet the option still selects and says so, rather
- * than being hidden. Hiding it would misrepresent what the platform supports,
- * and the fallback to English is exactly what the person would have got anyway.
+ * Every option is a fully translated language: the shared catalogue lists
+ * nothing without a catalogue behind it, so picking one never lands someone
+ * on screens that are silently still English.
  */
 
 /** Match on either name, so both "Tamil" and "தமிழ்" find the same row. */
@@ -81,7 +80,6 @@ export function LanguageGrid({
       >
         {shown.map((language) => {
           const selected = language.code === value;
-          const translated = hasTranslations(language.code);
 
           return (
             <button
@@ -107,11 +105,6 @@ export function LanguageGrid({
               <span className="text-2xs text-muted-foreground" dir="ltr">
                 {language.english}
               </span>
-              {!translated ? (
-                <span className="mt-0.5 text-2xs leading-snug text-warning" dir="ltr">
-                  {t('Not translated yet - shows in English')}
-                </span>
-              ) : null}
             </button>
           );
         })}
@@ -162,7 +155,6 @@ export function LanguageMenu() {
               </span>
               <span className="block truncate text-2xs text-muted-foreground">
                 {language.english}
-                {hasTranslations(language.code) ? '' : ' · English fallback'}
               </span>
             </span>
           </DropdownMenuItem>

@@ -3,14 +3,14 @@ import { en, type Catalogue } from './en';
 /**
  * Which catalogue serves which locale, and how to fetch it.
  *
- * A language in the catalogue but absent here still selects — every lookup
- * falls back to the English source, so an untranslated locale renders the app
- * in English rather than in blanks. `hasTranslations` is what lets the picker
- * say so honestly instead of promising a translation that does not exist.
+ * Every language the shared catalogue offers has an entry here — the picker
+ * lists only translated languages, and `locale.test.tsx` fails on an offered
+ * language with no catalogue. A single key a catalogue lacks still falls back
+ * to the English source, so a gap renders a readable sentence, never a blank.
  *
- * The catalogues load on demand rather than being imported together. Eighteen
- * languages is 380 kB of source, and statically importing all of them put the
- * whole set in the entry bundle: every user downloaded seventeen languages
+ * The catalogues load on demand rather than being imported together. Nineteen
+ * languages is 400 kB of source, and statically importing all of them put the
+ * whole set in the entry bundle: every user downloaded eighteen languages
  * they had not chosen before the app could paint. Indic scripts are
  * multi-byte, so that weight survives compression far better than English
  * does, and it landed hardest on exactly the low-end Android handsets and
@@ -40,6 +40,7 @@ const LOADERS: Readonly<Record<string, CatalogueLoader>> = {
   'ta-IN': () => import('./ta').then((m) => m.ta),
   'te-IN': () => import('./te').then((m) => m.te),
   'ur-IN': () => import('./ur').then((m) => m.ur),
+  'raj-IN': () => import('./raj').then((m) => m.raj),
 };
 
 /** Catalogues that have arrived. English is present from the start. */
@@ -47,18 +48,6 @@ const loaded = new Map<string, Catalogue>([['en-IN', en]]);
 
 /** In-flight loads, so a locale is never fetched twice concurrently. */
 const pending = new Map<string, Promise<void>>();
-
-/**
- * True when the locale has a translation of its own.
- *
- * Synchronous and independent of loading, because the language picker asks
- * this about every language in the list in order to label the ones that fall
- * back to English — fetching eighteen catalogues to answer it would undo the
- * point of loading them on demand.
- */
-export function hasTranslations(locale: string): boolean {
-  return locale === 'en-IN' || locale in LOADERS;
-}
 
 /**
  * The catalogue for a locale, if it is already in memory.

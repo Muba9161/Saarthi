@@ -249,24 +249,6 @@ export function Mailto({ address }: { address: string }) {
  * ---------------------------------------------------------------------- */
 
 /**
- * Names the tab after the document, and puts the old title back on the way out.
- *
- * The app ships one static `<title>` for the whole SPA. That is tolerable
- * behind the sign-in wall, where every screen is the same product, but these
- * two pages are the ones a person bookmarks, prints and sends to their lawyer,
- * and all three carry the title with them.
- */
-function useDocumentTitle(title: string): void {
-  React.useEffect(() => {
-    const previous = document.title;
-    document.title = title;
-    return () => {
-      document.title = previous;
-    };
-  }, [title]);
-}
-
-/**
  * Starts the reader at the top, unless they arrived at an anchor.
  *
  * The router keeps the browser's scroll position across a client-side
@@ -378,7 +360,7 @@ export function LegalDocument({
   const ids = React.useMemo(() => sections.map((section) => section.id), [sections]);
   const active = useActiveSection(ids);
 
-  useDocumentTitle(`${title} - VorldX Saarthi`);
+  // The tab title and meta tags come from `features/seo`, keyed by route.
   useScrollToTop(hash);
 
   return (

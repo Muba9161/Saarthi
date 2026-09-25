@@ -147,7 +147,6 @@ export const te: Catalogue = {
   'How Saarthi speaks to you.': 'Saarthi మీతో ఏ భాషలో మాట్లాడాలి.',
   'Which language should Saarthi use?': 'Saarthi ఏ భాషను ఉపయోగించాలి?',
   'You can change this later from your profile.': 'దీన్ని తర్వాత మీ ప్రొఫైల్ నుండి మార్చవచ్చు.',
-  'Not translated yet - shows in English': 'ఇంకా అనువదించలేదు - ఇంగ్లీషులో కనిపిస్తుంది',
 
   'Step {current} of {total}': 'దశ {current} / {total}',
 

@@ -145,7 +145,6 @@ export const ur: Catalogue = {
   'How Saarthi speaks to you.': 'Saarthi آپ سے کس زبان میں بات کرے۔',
   'Which language should Saarthi use?': 'Saarthi کون سی زبان استعمال کرے؟',
   'You can change this later from your profile.': 'اسے بعد میں اپنی پروفائل سے بدل سکتے ہیں۔',
-  'Not translated yet - shows in English': 'ابھی ترجمہ نہیں ہوا - انگریزی میں دکھے گا',
 
   'Step {current} of {total}': 'مرحلہ {current} / {total}',
 

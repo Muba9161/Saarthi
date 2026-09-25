@@ -146,7 +146,6 @@ export const kok: Catalogue = {
   'Which language should Saarthi use?': 'Saarthi खंयची भास वापरपाक जाय?',
   'You can change this later from your profile.':
     'हें उपरांत तुमच्या प्रोफायला वयल्यान बदलूं येता.',
-  'Not translated yet - shows in English': 'अजून भाशांतर ना - इंग्लीशांत दिसतलें',
 
   'Step {current} of {total}': 'पावल {current} / {total}',
 

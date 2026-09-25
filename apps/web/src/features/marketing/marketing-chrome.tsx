@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ArrowRight, Menu, Moon, Sun } from 'lucide-react';
+import { ArrowRight, Instagram, Menu, Moon, Sun, Youtube } from 'lucide-react';
 // `useScroll`/`useSpring` are not in the curated product motion vocabulary —
 // nothing behind the sign-in wall needs a scroll-linked value. Imported here
 // rather than widening that module for one page.
@@ -11,6 +11,7 @@ import { SaarthiLogo } from '@/components/common/logo';
 import { AnimatePresence, motion } from '@/components/motion';
 import { useTheme } from '@/features/theme/theme-context';
 import { LEGAL_LINKS } from '@/features/legal/legal-links';
+import { SITE } from '@/features/seo';
 import { Reveal, WordsReveal } from './motion-extras';
 import { STAGE } from './imagery';
 import { cn } from '@/lib/utils';
@@ -548,6 +549,12 @@ export function SectionHeading({
   );
 }
 
+/** Saarthi's official social accounts, shown as icons in the footer. */
+const SOCIAL_LINKS = [
+  { href: SITE.social.instagram, label: 'Instagram', Icon: Instagram },
+  { href: SITE.social.youtube, label: 'YouTube', Icon: Youtube },
+] as const;
+
 export function MarketingFooter() {
   const year = new Date().getFullYear();
   const { pathname } = useLocation();
@@ -571,6 +578,22 @@ export function MarketingFooter() {
             One system for everyone in a haul - fleet owners, drivers, suppliers, customers, travel
             operators, and the associations that answer when something goes wrong.
           </p>
+          <ul className="mt-6 flex items-center gap-2" aria-label="VorldX Saarthi on social media">
+            {SOCIAL_LINKS.map(({ href, label, Icon }) => (
+              <li key={href}>
+                <a
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`VorldX Saarthi on ${label}`}
+                  title={label}
+                  className="flex size-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/70 transition-colors duration-200 hover:border-white/25 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <Icon className="size-[1.125rem]" aria-hidden />
+                </a>
+              </li>
+            ))}
+          </ul>
         </div>
 
         <div>

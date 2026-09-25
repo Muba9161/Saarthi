@@ -146,8 +146,6 @@ export const ta: Catalogue = {
   'How Saarthi speaks to you.': 'Saarthi உங்களிடம் எந்த மொழியில் பேசும்.',
   'Which language should Saarthi use?': 'Saarthi எந்த மொழியைப் பயன்படுத்த வேண்டும்?',
   'You can change this later from your profile.': 'இதைப் பின்னர் உங்கள் சுயவிவரத்தில் மாற்றலாம்.',
-  'Not translated yet - shows in English':
-    'இன்னும் மொழிபெயர்க்கப்படவில்லை - ஆங்கிலத்தில் காட்டப்படும்',
 
   'Step {current} of {total}': 'படி {current} / {total}',
 

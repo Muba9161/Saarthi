@@ -145,7 +145,6 @@ export const gu: Catalogue = {
   'How Saarthi speaks to you.': 'Saarthi તમારી સાથે કઈ ભાષામાં વાત કરે.',
   'Which language should Saarthi use?': 'Saarthi કઈ ભાષા વાપરે?',
   'You can change this later from your profile.': 'આ પછીથી તમારી પ્રોફાઇલમાંથી બદલી શકો છો.',
-  'Not translated yet - shows in English': 'હજી અનુવાદ નથી - અંગ્રેજીમાં દેખાશે',
 
   'Step {current} of {total}': 'પગલું {current} / {total}',
 

@@ -31,8 +31,11 @@ const buttonVariants = cva(
         success: 'bg-success text-success-foreground shadow-sm hover:bg-success/92',
         // Frosted — for controls floating over a map or imagery.
         glass: 'glass text-foreground hover:bg-card',
+        // The logo's sweep. White rather than `primary-foreground`: the fill is
+        // the fixed artwork colour in both themes, and dark mode's foreground
+        // for the (lighter) primary is near-black.
         gradient:
-          'bg-brand-gradient text-primary-foreground shadow-sm hover:shadow-glow hover:brightness-105',
+          'bg-brand-gradient text-white shadow-sm hover:shadow-glow-brand hover:brightness-110',
       },
       size: {
         // One step taller than before. The reference language buys its calm

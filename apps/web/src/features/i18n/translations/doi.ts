@@ -145,7 +145,6 @@ export const doi: Catalogue = {
   'How Saarthi speaks to you.': 'Saarthi तुंदे कन्नै कुतै भाशा च गल्ल करै।',
   'Which language should Saarthi use?': 'Saarthi कुतै भाशा बरतै?',
   'You can change this later from your profile.': 'इसी बाद च अपनी प्रोफाइल थमां बदली सकदे ओ।',
-  'Not translated yet - shows in English': 'हल्ले अनुवाद नेईं - अंग्रेजी च दिक्खग',
 
   'Step {current} of {total}': 'चरण {current} / {total}',
 

@@ -3,7 +3,7 @@ import { Link, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { ArrowLeft, Bot, MapPin, Moon, ShieldCheck, Sun, Truck } from 'lucide-react';
 import { useAuth } from '@/features/auth/auth-context';
 import { SaarthiWordmark } from '@/components/common/logo';
-import { LoadingState } from '@/components/common/states';
+import { SplashScreen } from '@/components/common/splash';
 import { Button } from '@/components/ui/button';
 import {
   AnimatePresence,
@@ -15,7 +15,9 @@ import {
 import { LanguageMenu, useT } from '@/features/i18n';
 import { LEGAL_LINKS } from '@/features/legal/legal-links';
 import { useTheme } from '@/features/theme/theme-context';
+import { usePreloadWhenIdle } from '@/lib/lazy-with-preload';
 import { cn } from '@/lib/utils';
+import { LandingPage } from '@/pages/lazy-pages';
 
 const HIGHLIGHTS = [
   {
@@ -41,6 +43,9 @@ const HIGHLIGHTS = [
 ] as const;
 
 const EASE = [0.16, 1, 0.3, 1] as const;
+
+/** Where "Back to vorldxsaarthi.com" goes; fetched while the form is being filled. */
+const NEXT_PAGES = [LandingPage];
 
 /**
  * The theme control, repeated here rather than lifted out of the app shell.
@@ -217,6 +222,7 @@ export function AuthLayout() {
   const { status } = useAuth();
   const { pathname } = useLocation();
   const t = useT();
+  usePreloadWhenIdle(NEXT_PAGES);
 
   /**
    * Sign-in is two fields and reads best in a narrow column. Registration is a
@@ -226,7 +232,7 @@ export function AuthLayout() {
   const wide = pathname.startsWith('/register');
 
   if (status === 'loading') {
-    return <LoadingState label={t('Loading Saarthi…')} className="min-h-screen" />;
+    return <SplashScreen label={t('Loading Saarthi…')} />;
   }
   if (status === 'authenticated') {
     return <Navigate to="/" replace />;

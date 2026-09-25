@@ -745,6 +745,36 @@
   }
 
   /*
+   * The same sweep as SVG gradient stops, for ink drawn by
+   * `components/ink/ink-word.tsx` rather than set as text. Kept beside the
+   * text version so the two are retuned together.
+   */
+  .brand-ink-stop-1 {
+    stop-color: #062a66;
+  }
+  .brand-ink-stop-2 {
+    stop-color: #2360be;
+  }
+  .brand-ink-stop-3 {
+    stop-color: #e8590f;
+  }
+  .brand-ink-stop-4 {
+    stop-color: #ff8c2e;
+  }
+  .dark .brand-ink-stop-1 {
+    stop-color: #5b8ae0;
+  }
+  .dark .brand-ink-stop-2 {
+    stop-color: #86abf2;
+  }
+  .dark .brand-ink-stop-3 {
+    stop-color: #ff7a2e;
+  }
+  .dark .brand-ink-stop-4 {
+    stop-color: #ffa95e;
+  }
+
+  /*
    * The same ramp, pinned to its lifted values whatever the theme is.
    *
    * The hero and the closing band are fixed near-black stages that do not move
@@ -770,7 +800,7 @@
    * Telugu, Gurmukhi, Odia, Meitei and Ol Chiki all fall through it. Naming the
    * platform Indic faces explicitly is what stops the browser reaching for its
    * last-resort font and drawing a row of tofu. No webfont is loaded for this:
-   * 23 scripts is several megabytes, for one line of decoration.
+   * a face for every script is several megabytes, for one line of decoration.
    */
   .font-multilingual {
     font-family:
@@ -876,7 +906,7 @@
      The done state carries the brand gradient; the current one gets a halo so
      it is findable without reading any label. */
   .wizard-dot-done {
-    @apply border-transparent bg-brand-gradient text-primary-foreground shadow-sm;
+    @apply border-transparent bg-brand-gradient text-white shadow-sm;
   }
   .wizard-dot-current {
     @apply border-primary/70 bg-card text-primary;
@@ -997,6 +1027,14 @@
     @apply min-h-11 min-w-11;
   }
 
+  /* Photographic grain for the dark stages. A static tiled noise, painted once;
+     the white speckle's alpha comes from the noise itself, so no blend mode is
+     needed over whatever animates underneath. */
+  .film-grain {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0.14 0 0 0 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 160px 160px;
+  }
+
   /* Fade the far edge of a horizontally scrolling strip. */
   .fade-edge-r {
     mask-image: linear-gradient(to right, black 88%, transparent 100%);
@@ -1074,12 +1112,149 @@
   }
 }
 
-@keyframes splash-travel {
+/*
+ * The logo is the loader.
+ *
+ * It is drawn in by hand — each outline traced by `tools/trace-logo.mjs`,
+ * inked in its own brand colour, the pen sweeping from the location pin down
+ * the road and into the X — then its real colour floods through left to right,
+ * holds, and drives out the way the truck is heading. And again, until the
+ * wait is over.
+ *
+ * One cycle, as fractions of `--splash-cycle`:
+ *   0–46%   outlines draw, each over 20%, starting up to 26% apart (`--at`)
+ *   40–58%  colour floods in behind the pen
+ *   50–60%  the outlines dissolve into it
+ *   84–96%  the logo drives out to the right
+ * `.splash-logo--once` stops at 60% — drawn, filled, held — for waits with a
+ * known end.
+ *
+ * The flood is a mask three logos wide: clear, a solid band exactly one logo
+ * wide with a quarter-width feather either side, clear again. At 50% the band
+ * covers the logo; at 113% / -13% it has fully cleared it left / right.
+ *
+ * A stroke's pen starts late by up to 26%, which also shifts where its loop
+ * wraps; it hides at 69% of its own time so a stroke from the last cycle can
+ * never show at the start of the next.
+ */
+.splash-logo {
+  --splash-cycle: 5s;
+  --splash-runs: infinite;
+  position: relative;
+}
+.splash-logo--once {
+  --splash-runs: 0.6;
+}
+
+.splash-logo__ink {
+  display: block;
+  width: 100%;
+  height: auto;
+  -webkit-mask-image: linear-gradient(90deg, transparent 25%, #000 33.34%, #000 66.66%, transparent 75%);
+  mask-image: linear-gradient(90deg, transparent 25%, #000 33.34%, #000 66.66%, transparent 75%);
+  -webkit-mask-size: 300% 100%;
+  mask-size: 300% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: 113% 0;
+  mask-position: 113% 0;
+  animation: splash-flood var(--splash-cycle) cubic-bezier(0.65, 0, 0.35, 1) var(--splash-runs) both;
+}
+
+.splash-logo__trace {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  animation: splash-trace var(--splash-cycle) ease var(--splash-runs) both;
+}
+.splash-logo__stroke {
+  fill: none;
+  /* In the PNG's pixels: about 1–1.5px at splash size. */
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1 1;
+  stroke-dashoffset: 1;
+  animation: splash-stroke var(--splash-cycle) cubic-bezier(0.45, 0, 0.3, 1) var(--splash-runs) both;
+  animation-delay: calc(var(--at) * var(--splash-cycle) * 0.26);
+}
+.splash-logo__stroke--navy {
+  stroke: #011c45;
+}
+.splash-logo__stroke--saffron {
+  stroke: #fe5d09;
+}
+.splash-logo__stroke--green {
+  stroke: #02783f;
+}
+.dark .splash-logo__stroke--navy {
+  stroke: #9db7e6;
+}
+
+@keyframes splash-stroke {
   0% {
-    transform: translateX(-105%);
+    stroke-dashoffset: 1;
+    opacity: 0;
   }
+  1% {
+    opacity: 1;
+  }
+  20%,
+  68% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+  69%,
   100% {
-    transform: translateX(258%);
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
+}
+
+@keyframes splash-trace {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  60%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes splash-flood {
+  0%,
+  40% {
+    -webkit-mask-position: 113% 0;
+    mask-position: 113% 0;
+  }
+  58%,
+  84% {
+    -webkit-mask-position: 50% 0;
+    mask-position: 50% 0;
+  }
+  96%,
+  100% {
+    -webkit-mask-position: -13% 0;
+    mask-position: -13% 0;
+  }
+}
+
+/*
+ * The base reduced-motion rule collapses animations to their final frame,
+ * which for the flood is "driven out" — the logo would vanish. So show the
+ * artwork plainly instead.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .splash-logo__trace {
+    display: none;
+  }
+  .splash-logo__ink {
+    animation: none !important;
+    -webkit-mask-image: none;
+    mask-image: none;
   }
 }
 

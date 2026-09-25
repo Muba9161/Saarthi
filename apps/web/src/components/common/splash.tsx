@@ -1,45 +1,52 @@
 import * as React from 'react';
-import { languageByCode } from '@saarthi/shared';
 import { motion } from '@/components/motion';
+import type { InkArt } from '@/components/ink/ink-art.types';
+import type { InkPlan } from '@/components/ink/ink-timeline';
+import { InkWord } from '@/components/ink/ink-word';
 // The module rather than the feature barrel: the barrel re-exports the locale
 // splash, which imports this file, and going through it would be a cycle.
 import { useLocale } from '@/features/i18n/locale-context';
 import { cn } from '@/lib/utils';
-import { SaarthiLockup } from './logo';
+import { holdBootSplash, isBootSplashShowing } from './boot-splash';
+import { SplashLogo } from './splash-logo/splash-logo';
 
 /**
  * Full-screen brand splash.
  *
- * One surface, two occasions: waiting for the session to resolve, and
- * confirming a language switch. They used to look different, which meant a
- * user who changed language on the sign-in screen saw two unrelated
- * interstitials in a row.
+ * There is exactly one per occasion. At boot it is the splash inlined in
+ * `index.html`, held up until the session resolves (see `SplashScreen`), so a
+ * visitor sees one screen from first byte to first page — not a boot screen
+ * handing over to a second, different one. On a language switch it is
+ * `SplashSurface` with a greeting in the language just chosen.
  *
- * The hero is a greeting in the user's own language rather than a status
- * line — on the boot path it is the first thing the product says, and saying
- * it in Malayalam to a Malayalam speaker is worth more than "Loading".
+ * There is no separate loading indicator: the logo is the loader, drawn in by
+ * hand and flooded with colour (`SplashLogo`). A generic spinner would have
+ * done the job, but this is the one screen every user sees on every visit,
+ * and it costs nothing to make it belong to this product rather than any
+ * product.
  *
- * The loading indicator is a road with a dash travelling down it, because the
- * logo has one running through the V. A generic spinner would have done the
- * job, but this is the one screen every user sees on every visit, and it costs
- * nothing to make it belong to this product rather than any product.
- *
- * Kept deliberately in step with the boot splash inlined in `index.html`,
- * which runs before this bundle exists. If you retune one, retune both.
+ * Kept deliberately in step with the boot splash in `index.html`, which runs
+ * before this bundle exists. If you retune one, retune both.
  */
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
 export interface SplashSurfaceProps {
-  /** Large, in the language's own script. */
-  greeting: string;
+  /** Large, in the language's own script. Omitted, the logo stands alone. */
+  greeting?: string;
   /** BCP-47 tag for the greeting, so it is spoken and shaped correctly. */
-  greetingLang: string;
-  greetingDir: 'ltr' | 'rtl';
-  /** The quiet line beneath the greeting. */
+  greetingLang?: string;
+  greetingDir?: 'ltr' | 'rtl';
+  /**
+   * The greeting as brush outlines, written in rather than faded in. Without
+   * it the greeting is set as text — which is also what happens if the
+   * outlines have not arrived yet.
+   */
+  greetingInk?: { art: InkArt; plan: InkPlan; erasing: boolean };
+  /** The quiet line beneath the logo. */
   caption?: React.ReactNode;
   /**
-   * Fill the bar once over this many milliseconds instead of looping. Used
+   * Draw the logo once over this many milliseconds instead of looping. Used
    * where the wait has a known end; omitted while waiting on the network.
    */
   fillMs?: number;
@@ -54,6 +61,7 @@ export function SplashSurface({
   greeting,
   greetingLang,
   greetingDir,
+  greetingInk,
   caption,
   fillMs,
   className,
@@ -77,72 +85,95 @@ export function SplashSurface({
         }}
       />
 
-      <SaarthiLockup className="relative w-[min(190px,42vw)] opacity-90 motion-safe:animate-[splash-rise_900ms_cubic-bezier(.16,1,.3,1)_both]" />
-
-      <div className="relative flex flex-col items-center gap-3 px-6 text-center">
-        <motion.p
-          lang={greetingLang}
-          dir={greetingDir}
-          initial={{ opacity: 0, y: 16, scale: 0.96 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.46, ease: EASE, delay: 0.08 }}
-          className="brand-logo-gradient text-balance text-4xl font-semibold leading-tight tracking-tight sm:text-5xl"
-        >
-          {greeting}
-        </motion.p>
-
-        {caption ? (
-          <motion.p
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.46, ease: EASE, delay: 0.2 }}
-            className="text-sm text-muted-foreground"
-          >
-            {caption}
-          </motion.p>
-        ) : null}
-      </div>
-
-      <div
-        aria-hidden
-        className="relative h-1 w-[min(220px,48vw)] overflow-hidden rounded-full bg-primary/10"
-      >
-        {fillMs === undefined ? (
-          // No known end: the dash travels the road until the wait is over.
-          <div className="absolute inset-y-0 left-0 w-[42%] rounded-full bg-[linear-gradient(90deg,#fe5d09,#011c45_52%,#02783f)] motion-safe:animate-[splash-travel_1500ms_cubic-bezier(.65,0,.35,1)_infinite] motion-reduce:w-full" />
-        ) : (
-          <motion.div
-            className="h-full rounded-full bg-[linear-gradient(90deg,#fe5d09,#011c45_52%,#02783f)]"
-            initial={{ width: '0%' }}
-            animate={{ width: '100%' }}
-            transition={{ duration: fillMs / 1000, ease: 'linear' }}
-          />
+      <SplashLogo
+        drawInMs={fillMs}
+        className={cn(
+          'motion-safe:animate-[splash-rise_900ms_cubic-bezier(.16,1,.3,1)_both]',
+          greeting ? 'w-[min(190px,42vw)]' : 'w-[min(268px,58vw)]',
         )}
-      </div>
+      />
+
+      {greeting || caption ? (
+        <div className="relative flex flex-col items-center gap-3 px-6 text-center">
+          {greeting && greetingInk ? (
+            // The type classes size the ink, which is drawn in ems. The text
+            // stays in the document for anything that reads it; the drawing
+            // is only a picture of it.
+            <p lang={greetingLang} dir={greetingDir} className="text-4xl sm:text-5xl">
+              <span className="sr-only">{greeting}</span>
+              <InkWord
+                art={greetingInk.art}
+                plan={greetingInk.plan}
+                erasing={greetingInk.erasing}
+                ink="brand"
+              />
+            </p>
+          ) : greeting ? (
+            <motion.p
+              lang={greetingLang}
+              dir={greetingDir}
+              initial={{ opacity: 0, y: 16, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 0.46, ease: EASE, delay: 0.08 }}
+              className="brand-logo-gradient text-balance text-4xl font-semibold leading-tight tracking-tight sm:text-5xl"
+            >
+              {greeting}
+            </motion.p>
+          ) : null}
+
+          {caption ? (
+            <motion.p
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.46, ease: EASE, delay: 0.2 }}
+              className="text-sm text-muted-foreground"
+            >
+              {caption}
+            </motion.p>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }
 
 /**
  * Shown while the session resolves — the moment after the bundle has loaded
- * but before the app knows who is signed in. The boot splash in `index.html`
- * covers the gap before that; this takes over so the two read as one
- * continuous screen rather than a flash of brand, a flash of blank, then the
- * app.
+ * but before the app knows who is signed in.
+ *
+ * At boot the splash from `index.html` is still up, so this renders nothing
+ * and simply keeps that one on screen until it unmounts: one continuous
+ * splash, its drawing never restarted. Only when there is no boot splash left
+ * to hold does it draw its own.
  */
 export function SplashScreen({ label, className }: { label?: string; className?: string }) {
-  const { locale, t } = useLocale();
-  const language = languageByCode(locale);
+  const { t } = useLocale();
+  const holdingBoot = useHoldBootSplash();
 
+  if (holdingBoot) return null;
+
+  const text = label ?? t('Getting your fleet ready');
   return (
-    <div role="status" aria-live="polite" aria-label={label ?? t('Getting your fleet ready')}>
-      <SplashSurface
-        greeting={language.greeting}
-        greetingLang={language.code}
-        greetingDir={language.direction}
-        caption={label ?? t('Getting your fleet ready')}
-        {...(className ? { className } : {})}
-      />
+    <div role="status" aria-live="polite" aria-label={text}>
+      <SplashSurface caption={text} {...(className ? { className } : {})} />
     </div>
   );
+}
+
+/**
+ * Keep the boot splash on screen while the caller is mounted, if it is still
+ * showing, and say whether it is — in which case the caller should draw
+ * nothing of its own. For anything that is a loading screen at boot: the
+ * session check, or the first page's code still downloading. Without it, the
+ * splash would lift onto a spinner.
+ */
+export function useHoldBootSplash(): boolean {
+  // Decided once: a boot splash that has already lifted is not coming back.
+  const [holding] = React.useState(isBootSplashShowing);
+
+  // Layout effect, so the hold is taken in the same commit as the first
+  // paint — before the boot splash's own two-frame dismissal check runs.
+  React.useLayoutEffect(() => (holding ? holdBootSplash() : undefined), [holding]);
+
+  return holding;
 }
