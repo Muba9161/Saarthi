@@ -19,7 +19,11 @@ import { logger } from '../../lib/logger';
 import { config } from '../../config/env';
 import { cache } from '../../infra/cache';
 import { cacheKeys, cacheTtl } from '../../infra/cache-keys';
-import { godWebConfigured, requireGodWebProvider } from '../../providers/godweb';
+import {
+  godWebConfigured,
+  requireGodWebProvider,
+  type GodWebValidationOutcome,
+} from '../../providers/godweb';
 import { AuditAction, recordAudit } from '../audit/audit.service';
 import { notifyAsync } from '../notifications/notification.service';
 import type { AuthContext } from '../../auth/context';
@@ -35,7 +39,7 @@ import type { AuthContext } from '../../auth/context';
  *     permanently; a failure to reach GODWeb leaves it pending and retryable,
  *     because "we could not ask" is not "the answer is no".
  *   * Only an `ACTIVE` profile has a referral link and only an `ACTIVE` profile
- *     accrues commission — see `canShareReferral` and `resolveVerifiedSalesman`.
+ *     earns rewards — see `canShareReferral` and `resolveVerifiedSalesman`.
  *
  * The one deliberate exception is `verifyManually`, for the environment where
  * the approved GODWeb validation API does not exist yet. It is not a way round
@@ -59,7 +63,7 @@ export interface SalesmanView {
   verificationMethod: SalesmanVerificationMethod | null;
   verifiedAt: string | null;
   lastCheckedAt: string | null;
-  /** True when this profile may share a referral link and earn commission. */
+  /** True when this profile may share a referral link and earn rewards. */
   canSell: boolean;
   /**
    * Why the profile is not sellable, in the salesperson's own language.
@@ -106,7 +110,7 @@ function standingFor(status: SalesmanStatus, reason: string | null): string {
       return 'Verified and active.';
     case SalesmanStatus.PENDING_VERIFICATION:
       return godWebConfigured
-        ? 'This GODID has not been verified against GODWeb yet. No referral link is issued and no commission accrues until it is.'
+        ? 'This GODID has not been verified against GODWeb yet. No referral link is issued and no reward is earned until it is.'
         : 'GODID verification is not enabled on this environment, so a Saarthi platform administrator has to verify this profile before it can sell.';
     case SalesmanStatus.SUSPENDED:
       return reason ?? 'This profile has been suspended by Saarthi.';
@@ -343,7 +347,7 @@ export async function createSalesman(
 }
 
 /** Attach the SALESMAN role, idempotently. */
-async function grantSalesmanRole(userId: string): Promise<void> {
+export async function grantSalesmanRole(userId: string): Promise<void> {
   const role = await prisma.role.findUnique({ where: { name: RoleName.SALESMAN } });
   if (!role) {
     salesLogger.error('Role catalogue is missing SALESMAN — run `npm run db:seed`.');
@@ -423,7 +427,7 @@ export async function updateSalesman(
  *     staff id overwrite whatever was typed in, because GODWeb is the
  *     authority on all four.
  *   * **Recognised but inactive** → `SUSPENDED`. The person has left or been
- *     stood down. Their past commissions still have to reconcile, so the
+ *     stood down. Their past rewards still have to reconcile, so the
  *     profile is kept and only their ability to sell is withdrawn.
  *   * **Not recognised** → `REJECTED`. A definite negative from the authority.
  *
@@ -453,6 +457,27 @@ export async function verifyAgainstGodWeb(
     throw error;
   }
 
+  return recordGodWebOutcome(existing, outcome, auth.user.id);
+}
+
+/**
+ * Apply one GODWeb answer to a profile.
+ *
+ * Shared by an administrator's "Verify with GODWeb" and a salesperson's own
+ * signup, so both reach exactly the same standing from the same answer.
+ * `actorUserId` is null when nobody signed-in asked — a self-service signup.
+ */
+export async function recordGodWebOutcome(
+  existing: { id: string; godId: string } & Pick<
+    SalesmanRow,
+    'name' | 'phone' | 'email' | 'externalSalespersonId' | 'territory'
+  >,
+  outcome: GodWebValidationOutcome,
+  actorUserId: string | null,
+): Promise<SalesmanView> {
+  const id = existing.id;
+  const now = new Date();
+
   if (!outcome.found) {
     const row = await prisma.salesmanProfile.update({
       where: { id },
@@ -471,7 +496,7 @@ export async function verifyAgainstGodWeb(
       action: AuditAction.SALESMAN_VERIFICATION_FAILED,
       entityType: 'SalesmanProfile',
       entityId: id,
-      actorUserId: auth.user.id,
+      actorUserId,
       after: {
         godId: existing.godId,
         outcome: 'NOT_FOUND',
@@ -521,7 +546,7 @@ export async function verifyAgainstGodWeb(
     action: AuditAction.SALESMAN_VERIFIED,
     entityType: 'SalesmanProfile',
     entityId: id,
-    actorUserId: auth.user.id,
+    actorUserId,
     after: {
       godId: existing.godId,
       status,

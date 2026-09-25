@@ -171,6 +171,16 @@ export const AuditAction = {
   MATERIAL_UPDATED: 'material.updated',
   MATERIAL_DELETED: 'material.deleted',
 
+  // The shared commerce taxonomy. Platform reference data, changed by
+  // administrators only, and every change alters how listings classify.
+  COMMERCE_CATEGORY_CREATED: 'commerce.category_created',
+  COMMERCE_CATEGORY_UPDATED: 'commerce.category_updated',
+  COMMERCE_ATTRIBUTE_CREATED: 'commerce.attribute_created',
+  COMMERCE_ATTRIBUTE_UPDATED: 'commerce.attribute_updated',
+  COMMERCE_ATTRIBUTE_DELETED: 'commerce.attribute_deleted',
+  COMMERCE_ALIAS_CREATED: 'commerce.alias_created',
+  COMMERCE_ALIAS_DELETED: 'commerce.alias_deleted',
+
   ORDER_CREATED: 'order.created',
   ORDER_UPDATED: 'order.updated',
   ORDER_STATUS_CHANGED: 'order.status_changed',
@@ -396,6 +406,8 @@ export const AuditAction = {
   SALESMAN_VERIFIED_MANUALLY: 'salesman.verified_manually',
   SALESMAN_VERIFICATION_FAILED: 'salesman.verification_failed',
   SALESMAN_STANDING_CHANGED: 'salesman.standing_changed',
+  /// A salesperson started their own signup; the link went to their GODWeb email.
+  SALESMAN_SELF_SIGNUP_STARTED: 'salesman.self_signup_started',
 
   SALES_LEAD_CREATED: 'sales.lead_created',
   SALES_LEAD_UPDATED: 'sales.lead_updated',
@@ -427,16 +439,6 @@ export const AuditAction = {
   WALLET_CASHOUT_REQUESTED: 'wallet.cashout_requested',
   WALLET_CASHOUT_PAID: 'wallet.cashout_paid',
   WALLET_CASHOUT_FAILED: 'wallet.cashout_failed',
-
-  COMMISSION_RULE_CREATED: 'commission.rule_created',
-  COMMISSION_RULE_UPDATED: 'commission.rule_updated',
-  COMMISSION_GENERATED: 'commission.generated',
-  COMMISSION_RECALCULATED: 'commission.recalculated',
-  COMMISSION_APPROVED: 'commission.approved',
-  COMMISSION_PAYABLE: 'commission.payable',
-  COMMISSION_PAID: 'commission.paid',
-  COMMISSION_REVERSED: 'commission.reversed',
-  COMMISSION_REJECTED: 'commission.rejected',
 
   TRACKER_ASSIGNED_TO_SALESMAN: 'sales.tracker_assigned',
   TRACKER_HANDED_TO_CUSTOMER: 'sales.tracker_handed_over',

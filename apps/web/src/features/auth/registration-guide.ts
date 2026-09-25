@@ -280,7 +280,7 @@ export const ACCOUNT_GUIDES: readonly AccountGuide[] = [
     ],
     unlocks: [
       'Post a requirement and collect competing quotes',
-      'Order materials from suppliers on the marketplace',
+      'Post what you need - fleet owners source and deliver it',
       'Book cabs, buses and tour packages',
       'Track every order and trip you have placed, in one list',
     ],
@@ -307,14 +307,14 @@ export const ACCOUNT_GUIDES: readonly AccountGuide[] = [
   {
     role: RoleName.SUPPLIER,
     icon: Package,
-    title: 'Supplier',
-    tagline: 'I sell materials and arrange dispatch from my yard.',
+    title: 'Seller',
+    tagline: 'I sell goods of any kind and dispatch them from my own premises.',
     chooseIf: [
-      'You sell cement, steel, sand, aggregate - anything by the load.',
-      'You want buyers to find your catalogue and order from it.',
+      'You sell goods of any kind - furniture, wood, sand, steel, cement and more.',
+      'You want fleet owners to find your products and source from you.',
       'You dispatch from a yard and need the delivery tracked.',
     ],
-    creates: 'A supplier organization with a catalogue and a yard, with you as its administrator.',
+    creates: 'A seller organization with a product catalogue, with you as its administrator.',
     minutes: 4,
     prepare: [
       {

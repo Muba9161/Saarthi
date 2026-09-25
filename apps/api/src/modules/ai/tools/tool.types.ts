@@ -35,6 +35,21 @@ export interface ToolReference {
   label: string;
 }
 
+/**
+ * Something the assistant offers to do, rendered as a button under its reply.
+ *
+ * Never an action performed: it opens a Saarthi screen — prefilled when there
+ * is a draft — where the person reviews and confirms with the screen's own
+ * validation and permissions. Paths come from server-side constants only, so a
+ * model cannot point a button anywhere it likes.
+ */
+export interface AssistantAction {
+  label: string;
+  path: string;
+  /** Prefill for the target screen, e.g. the line a requirement starts from. */
+  draft?: Record<string, string>;
+}
+
 export interface ToolResult<T = unknown> {
   data: T;
   basis: ResultBasis;
@@ -50,6 +65,8 @@ export interface ToolResult<T = unknown> {
   caveats: string[];
   /** How many records the figures were computed from. */
   recordCount: number;
+  /** Screens the assistant offers to open for the person. */
+  actions?: AssistantAction[];
 }
 
 export interface ToolContext {
@@ -79,7 +96,8 @@ export interface AiTool<TInput = unknown, TOutput = unknown> {
     | 'driver'
     | 'cost'
     | 'subscription'
-    | 'safety';
+    | 'safety'
+    | 'assistant';
   /**
    * Seconds a result may be reused within one authorisation scope.
    *
@@ -102,6 +120,7 @@ export interface RecordedToolCall {
   durationMs: number;
   cached: boolean;
   error: string | null;
+  actions: AssistantAction[];
 }
 
 /** The model-facing description of a tool, in JSON Schema form. */

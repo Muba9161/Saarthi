@@ -19,7 +19,7 @@ import {
 } from '@saarthi/shared';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { AnimatePresence, motion, useReducedMotion } from '@/components/motion';
+import { motion, useReducedMotion } from '@/components/motion';
 import { Section, SectionHeading } from './marketing-chrome';
 import { Reveal, RevealGroup, RevealItem, Spotlight, useSpotlight } from './motion-extras';
 import { cn } from '@/lib/utils';
@@ -29,9 +29,9 @@ import { cn } from '@/lib/utils';
  *
  * The organising idea is that Saarthi is priced by the vehicle, so the page is
  * built around the one question an operator actually arrives with: what will
- * *my* fleet cost. The fleet-size control at the top drives both cards, so the
- * number on each card is this reader's real monthly total rather than a
- * headline price they then have to do arithmetic on.
+ * *my* fleet cost. Each card carries its own fleet-size control, so the
+ * number on it is this reader's real monthly total for that plan rather than
+ * a headline price they then have to do arithmetic on.
  *
  * That replaced a four-column grid whose most prominent element was a bar
  * showing "31 of 48 capabilities". Nobody buys a fraction of a capability
@@ -51,7 +51,7 @@ const EASE = [0.16, 1, 0.3, 1] as const;
 const TIER_LABEL: Record<PlanTier, string> = {
   [PlanTier.FREE]: 'Free',
   [PlanTier.PERSONAL]: 'Personal',
-  [PlanTier.SUPPLIER]: 'Supplier',
+  [PlanTier.SUPPLIER]: 'Seller',
   [PlanTier.BUSINESS]: 'Business',
 };
 
@@ -59,7 +59,7 @@ const TIER_LABEL: Record<PlanTier, string> = {
 const TIER_AUDIENCE: Record<PlanTier, string> = {
   [PlanTier.FREE]: 'You are not running a vehicle',
   [PlanTier.PERSONAL]: 'You own a personal vehicle',
-  [PlanTier.SUPPLIER]: 'You supply material',
+  [PlanTier.SUPPLIER]: 'You sell goods',
   [PlanTier.BUSINESS]: 'You run a fleet or a travel business',
 };
 
@@ -67,9 +67,6 @@ const TIER_AUDIENCE: Record<PlanTier, string> = {
 const OFFERED_PLANS = PLAN_TIER_ORDER.map((tier) =>
   PLAN_CATALOGUE.find((plan) => plan.tier === tier),
 ).filter((plan): plan is PlanDefinition => Boolean(plan));
-
-/** The most vehicles the fleet control goes up to before it stops being useful. */
-const MAX_VEHICLES = 30;
 
 /**
  * Days of free trial, mirroring `SUBSCRIPTION_TRIAL_DAYS` on the API.
@@ -107,11 +104,11 @@ const TIER_HIGHLIGHTS: Record<PlanTier, readonly string[]> = {
     'Every Saarthi capability, nothing held back',
   ],
   [PlanTier.SUPPLIER]: [
-    'Your material catalogue, stock and availability',
-    'Requirements, quotes and supplier orders',
+    'Your product catalogue in any category, with stock and availability',
+    'Fleet owners find and source from your listings',
     'No vehicle, fleet or tracker setup needed',
     'Your whole team included',
-    'Every Saarthi capability for a supplier',
+    'Every Saarthi capability for a seller',
   ],
   [PlanTier.BUSINESS]: [
     'Fleet owners: trucks, with a Saarthi tracker for telemetry',
@@ -178,7 +175,7 @@ function CountField({
           <input
             type="number"
             min={min}
-            max={max}
+            max={Number.isFinite(max) ? max : undefined}
             value={value}
             disabled={disabled}
             onChange={(event) => {
@@ -187,7 +184,10 @@ function CountField({
               // anything unparseable holds the last good number.
               if (Number.isFinite(next)) onChange(clamp(next));
             }}
-            className="w-9 border-0 bg-transparent p-0 text-center text-sm font-semibold tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-ring [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+            // Widens with the count, since an uncapped plan can run past
+            // three digits.
+            style={{ width: `${Math.max(3, String(value).length + 1)}ch` }}
+            className="border-0 bg-transparent p-0 text-center text-sm font-semibold tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-ring [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
           />
         </label>
 
@@ -207,15 +207,10 @@ function CountField({
   );
 }
 
-function PlanCard({
-  plan,
-  vehicles,
-  onVehicles,
-}: {
-  plan: PlanDefinition;
-  vehicles: number;
-  onVehicles: (next: number) => void;
-}) {
+function PlanCard({ plan }: { plan: PlanDefinition }) {
+  // Each card prices its own fleet: changing the count on one plan leaves the
+  // others where the reader set them.
+  const [vehicles, setVehicles] = React.useState(1);
   const reduced = useReducedMotion();
   const { ref, onPointerMove } = useSpotlight<HTMLDivElement>();
   const featured = plan.tier === PlanTier.BUSINESS;
@@ -258,27 +253,30 @@ function PlanCard({
 
         {/* The recurring figure, which is the one a customer compares. Only
             the number is keyed for animation, so changing the count does not
-            restage the card. */}
+            restage the card.
+
+            Enter-only, deliberately. It used to sit in `AnimatePresence
+            mode="wait"`, which holds the new figure back until the old one has
+            finished leaving — and under rapid stepping or typing that queue
+            could strand a stale total on screen, disagreeing with the
+            itemised total below it. */}
         <div className="mt-6">
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.p
-              key={vehicles}
-              initial={reduced ? false : { opacity: 0, y: 8 }}
-              animate={reduced ? undefined : { opacity: 1, y: 0 }}
-              exit={reduced ? undefined : { opacity: 0, y: -8 }}
-              transition={{ duration: 0.2, ease: EASE }}
-              className="text-4xl font-semibold tracking-[-0.03em] tabular-nums sm:text-5xl"
-            >
-              {free ? (
-                'Free'
-              ) : (
-                <>
-                  {formatCurrency(quote.monthly.total)}
-                  <span className="text-base font-normal text-muted-foreground">/month</span>
-                </>
-              )}
-            </motion.p>
-          </AnimatePresence>
+          <motion.p
+            key={vehicles}
+            initial={reduced ? false : { opacity: 0, y: 8 }}
+            animate={reduced ? undefined : { opacity: 1, y: 0 }}
+            transition={{ duration: 0.2, ease: EASE }}
+            className="text-4xl font-semibold tracking-[-0.03em] tabular-nums sm:text-5xl"
+          >
+            {free ? (
+              'Free'
+            ) : (
+              <>
+                {formatCurrency(quote.monthly.total)}
+                <span className="text-base font-normal text-muted-foreground">/month</span>
+              </>
+            )}
+          </motion.p>
           {/* The headline is the final monthly price — what is actually paid —
               so it carries no tax breakdown. */}
           <p className="mt-1.5 text-2xs text-muted-foreground">
@@ -291,9 +289,7 @@ function PlanCard({
         </div>
       </div>
 
-      {/* The configuration, on the card and not in a band underneath it. The
-          priced cards share this state, so changing the fleet size on one moves
-          the other too — which is the only way the two prices stay comparable.
+      {/* The configuration, on the card and not in a band underneath it.
 
           Absent from the free card, because a vehicle stepper on a plan that
           covers no vehicles is not a control, it is a promise the plan cannot
@@ -305,8 +301,11 @@ function PlanCard({
           hint={`1 included, then ${formatCurrency(VEHICLE_TOPUP.priceMonthly)} a month each`}
           value={vehicles}
           min={1}
-          max={MAX_VEHICLES}
-          onChange={onVehicles}
+          // The plan's own ceiling, top-ups included: Personal stops at 5, and
+          // Business runs to 1,000. The calculator never quotes a fleet the
+          // product would refuse.
+          max={quote.vehicleCeiling ?? Number.POSITIVE_INFINITY}
+          onChange={setVehicles}
         />
       </div>
       )}
@@ -347,6 +346,15 @@ function PlanCard({
       </dl>
       )}
 
+      {/* At Personal's ceiling the plus button stops, so say why and where
+          to go next rather than leaving a control that silently goes dead. */}
+      {plan.tier === PlanTier.PERSONAL && vehicles === quote.vehicleCeiling ? (
+        <p className="relative mt-4 rounded-lg border border-border/60 bg-secondary/40 p-2.5 text-2xs leading-relaxed text-muted-foreground">
+          Personal covers up to {quote.vehicleCeiling} vehicles. For more, Business is the plan
+          that fits.
+        </p>
+      ) : null}
+
       {quote.overVehicleCeiling ? (
         <p className="relative mt-4 rounded-lg border border-warning/40 bg-warning/5 p-2.5 text-2xs leading-relaxed">
           Personal covers up to {quote.vehicleCeiling} vehicles. For {vehicles}, Business is the
@@ -370,6 +378,17 @@ function PlanCard({
         ))}
       </ul>
 
+      {/* At Personal's ceiling the plus button stops, so say why and where to
+          go next rather than leaving a control that silently goes dead. Kept
+          outside the button: a button rendered `asChild` takes exactly one
+          child, and a second one crashes the page. */}
+      {plan.tier === PlanTier.PERSONAL && vehicles === quote.vehicleCeiling ? (
+        <p className="relative mt-4 rounded-lg border border-border/60 bg-secondary/40 p-2.5 text-2xs leading-relaxed text-muted-foreground">
+          Personal covers up to {quote.vehicleCeiling} vehicles. For more, Business is the plan
+          that fits.
+        </p>
+      ) : null}
+
       <div className="relative mt-6 space-y-3">
         <Button
           className="w-full rounded-full"
@@ -388,9 +407,9 @@ function PlanCard({
             </Link>
           )}
         </Button>
-        <p className="text-center text-2xs text-muted-foreground">
-          {free ? 'No payment details asked for.' : 'Cancel or change plan whenever you like.'}
-        </p>
+        {free ? (
+          <p className="text-center text-2xs text-muted-foreground">No payment details asked for.</p>
+        ) : null}
       </div>
     </div>
   );
@@ -412,7 +431,7 @@ function Terms() {
     },
     {
       q: 'Can I change plan later?',
-      a: 'Yes, whenever you like. Moving to Business is immediate. Moving down to Personal is allowed as long as what you already run fits inside it - otherwise you are told exactly which limit is in the way. The Supplier plan is for material suppliers only.',
+      a: 'Yes, whenever you like. Moving to Business is immediate. Moving down to Personal is allowed as long as what you already run fits inside it - otherwise you are told exactly which limit is in the way. The Seller plan is for businesses that sell goods.',
     },
     {
       q: 'What happens if I stop paying for a vehicle?',
@@ -479,15 +498,6 @@ function BandHeading({ eyebrow, title }: { eyebrow: string; title: string }) {
 }
 
 export function Pricing() {
-  /*
-   * One fleet configuration, shared by every card.
-   *
-   * Per-card state would let a reader price three vehicles on Personal against
-   * ten on Business and think they had compared the plans. Sharing it means the
-   * totals always answer the same question.
-   */
-  const [vehicles, setVehicles] = React.useState(1);
-
   return (
     <Section id="pricing" width="wide">
       <SectionHeading
@@ -498,8 +508,7 @@ export function Pricing() {
 
       <Reveal delay={0.1}>
         <p className="mx-auto mt-10 max-w-lg text-center text-2xs leading-relaxed text-muted-foreground">
-          Set your fleet size on any card - they all update together, so every total is for the
-          same fleet. Trackers are optional hardware, priced in their own section below.
+          Set your fleet size on each card to see that plan's monthly total. Trackers are optional hardware, priced in their own section below.
         </p>
       </Reveal>
 
@@ -510,7 +519,7 @@ export function Pricing() {
       >
         {OFFERED_PLANS.map((plan) => (
           <RevealItem key={plan.tier} className="h-full">
-            <PlanCard plan={plan} vehicles={vehicles} onVehicles={setVehicles} />
+            <PlanCard plan={plan} />
           </RevealItem>
         ))}
       </RevealGroup>

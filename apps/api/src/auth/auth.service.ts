@@ -40,6 +40,8 @@ import {
 import { linkLeadToOrganization } from '../modules/sales/lead.service';
 import { recordSignup as recordReferralProgramSignup } from '../modules/referral-program/referral-program.service';
 import { AuditAction, recordAudit } from '../modules/audit/audit.service';
+import { emailConfigured, sendEmail } from '../providers/email/smtp-email';
+import { actionEmail } from '../providers/email/action-email';
 
 /**
  * Authentication use-cases.
@@ -788,12 +790,17 @@ const RESET_TOKEN_TTL_MS = 60 * 60 * 1000;
 
 /**
  * Always resolves successfully so the endpoint cannot be used to discover
- * which email addresses have accounts. The token is returned only in
- * development, where there is no email provider configured.
+ * which email addresses have accounts — including when the email itself fails
+ * to send, which is logged rather than reported. The token is returned only
+ * outside production, for a developer without a mailbox to hand.
+ *
+ * `appUrl` is the web app origin the request came through, so the link opens
+ * on the host the person is actually using rather than a configured default.
  */
 export async function requestPasswordReset(
   email: string,
   meta: RequestMeta,
+  appUrl: string,
 ): Promise<{ devToken?: string }> {
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user) return {};
@@ -813,10 +820,30 @@ export async function requestPasswordReset(
     requestId: meta.requestId ?? null,
   });
 
-  const resetUrl = `${config.server.frontendUrl}/reset-password?token=${token}`;
-  logger.info({ email, resetUrl }, 'Password reset link generated (local notification provider)');
+  const resetUrl = `${appUrl.replace(/\/$/, '')}/reset-password?token=${token}`;
 
-  return config.isProduction ? {} : { devToken: token };
+  if (emailConfigured()) {
+    await sendEmail(
+      actionEmail({
+        to: user.email,
+        subject: 'Reset your VorldX Saarthi password',
+        greeting: `Hello ${user.firstName},`,
+        intro:
+          'We received a request to reset the password for your VorldX Saarthi account. ' +
+          'Choose a new password with the button below.',
+        actionLabel: 'Reset password',
+        actionUrl: resetUrl,
+        footnote:
+          'This link works once and expires in 1 hour. If you did not ask for this, you can ' +
+          'ignore this email; your password will not change.',
+      }),
+    ).catch(() => undefined);
+  } else {
+    logger.info({ email, resetUrl }, 'Password reset link generated (email is not configured)');
+  }
+
+  // Only a developer with no mailbox needs the link handed back.
+  return config.isProduction || emailConfigured() ? {} : { devToken: token };
 }
 
 export async function resetPassword(
@@ -832,10 +859,24 @@ export async function resetPassword(
     throw errors.validation('This password reset link is invalid or has expired.');
   }
 
+  /*
+   * A pending account becomes active here. Its only way in was an emailed
+   * link — a salesperson's self-signup — so following one proves the person
+   * holds the mailbox the account belongs to. Suspended and disabled accounts
+   * are left as they are: a password change is not a reinstatement.
+   */
+  const owner = await prisma.user.findUnique({
+    where: { id: record.userId },
+    select: { status: true },
+  });
+
   await prisma.$transaction([
     prisma.user.update({
       where: { id: record.userId },
-      data: { passwordHash: await passwordHasher.hash(newPassword) },
+      data: {
+        passwordHash: await passwordHasher.hash(newPassword),
+        ...(owner?.status === UserStatus.PENDING ? { status: UserStatus.ACTIVE } : {}),
+      },
     }),
     prisma.passwordResetToken.update({
       where: { id: record.id },

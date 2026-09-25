@@ -41,7 +41,7 @@ export const pa: Catalogue = {
   'Telemetry alerts': 'ਟੈਲੀਮੈਟਰੀ ਚੇਤਾਵਨੀਆਂ',
   Devices: 'ਡਿਵਾਈਸ',
   Analytics: 'ਐਨਾਲਿਟਿਕਸ',
-  'AI Copilot': 'AI ਕੋਪਾਇਲਟ',
+  'Saarthi Mitra': 'ਸਾਰਥੀ ਮਿੱਤਰ',
   'GPS simulator': 'GPS ਸਿਮੂਲੇਟਰ',
   'My trip': 'ਮੇਰੀ ਟ੍ਰਿਪ',
   Nearby: 'ਨੇੜੇ',
@@ -190,8 +190,6 @@ export const pa: Catalogue = {
     'ਮੇਰੇ ਕੋਲ ਟਰੱਕ ਹਨ ਅਤੇ ਮੈਂ ਆਪਣਾ ਬੇੜਾ ਚਲਾਉਣਾ ਤੇ ਲੋਡ ਹਾਸਲ ਕਰਨਾ ਚਾਹੁੰਦਾ ਹਾਂ।',
   'I need materials, transport, a cab or a tour, and want offers to compare.':
     'ਮੈਨੂੰ ਸਮੱਗਰੀ, ਢੋਆ-ਢੁਆਈ, ਕੈਬ ਜਾਂ ਸਫ਼ਰ ਚਾਹੀਦਾ ਹੈ, ਅਤੇ ਤੁਲਨਾ ਲਈ ਬੋਲੀਆਂ ਚਾਹੀਦੀਆਂ ਹਨ।',
-  'I sell materials and arrange dispatch from my yard.':
-    'ਮੈਂ ਸਮਾਨ ਵੇਚਦਾ ਹਾਂ ਅਤੇ ਆਪਣੇ ਯਾਰਡ ਤੋਂ ਭੇਜਣ ਦਾ ਪ੍ਰਬੰਧ ਕਰਦਾ ਹਾਂ।',
   'I run taxis, buses or tour packages and sell passenger journeys.':
     'ਮੈਂ ਟੈਕਸੀ, ਬੱਸ ਜਾਂ ਟੂਰ ਪੈਕੇਜ ਚਲਾਉਂਦਾ ਹਾਂ ਅਤੇ ਸਵਾਰੀਆਂ ਦੇ ਸਫ਼ਰ ਵੇਚਦਾ ਹਾਂ।',
   'I represent a district association coordinating roadside help.':
@@ -199,8 +197,6 @@ export const pa: Catalogue = {
   'I drive for a fleet that already uses Saarthi.':
     'ਮੈਂ ਅਜਿਹੇ ਬੇੜੇ ਲਈ ਗੱਡੀ ਚਲਾਉਂਦਾ ਹਾਂ ਜੋ ਪਹਿਲਾਂ ਤੋਂ Saarthi ਵਰਤਦਾ ਹੈ।',
   'The operating system for your trucking business.': 'ਤੁਹਾਡੇ ਟਰੱਕਿੰਗ ਕਾਰੋਬਾਰ ਦਾ ਓਪਰੇਟਿੰਗ ਸਿਸਟਮ।',
-  'Saarthi connects fleet owners, drivers, suppliers and customers on one platform - from posting a load to watching it arrive.':
-    'Saarthi ਬੇੜਾ ਮਾਲਕਾਂ, ਡਰਾਈਵਰਾਂ, ਸਪਲਾਇਰਾਂ ਤੇ ਗਾਹਕਾਂ ਨੂੰ ਇੱਕੋ ਪਲੇਟਫਾਰਮ ਉੱਤੇ ਜੋੜਦਾ ਹੈ - ਲੋਡ ਪਾਉਣ ਤੋਂ ਲੈ ਕੇ ਉਸ ਦੇ ਪਹੁੰਚਣ ਤੱਕ।',
   'One fleet command centre': 'ਇੱਕੋ ਫਲੀਟ ਕਮਾਂਡ ਸੈਂਟਰ',
   'Trucks, drivers, documents, orders and trips in a single operational view.':
     'ਟਰੱਕ, ਡਰਾਈਵਰ, ਦਸਤਾਵੇਜ਼, ਆਰਡਰ ਤੇ ਟ੍ਰਿਪ - ਸਭ ਇੱਕੋ ਕੰਮਕਾਜੀ ਨਜ਼ਾਰੇ ਵਿੱਚ।',
@@ -256,7 +252,6 @@ export const pa: Catalogue = {
   'SOS incidents': 'SOS ਘਟਨਾਵਾਂ',
   'Nearby services': 'ਨੇੜਲੀਆਂ ਸੇਵਾਵਾਂ',
   Deliveries: 'ਡਿਲਿਵਰੀਆਂ',
-  'Find materials': 'ਸਮੱਗਰੀ ਲੱਭੋ',
   'My orders': 'ਮੇਰੇ ਆਰਡਰ',
   'Track deliveries': 'ਡਿਲਿਵਰੀ ਟਰੈਕ ਕਰੋ',
   'My travel': 'ਮੇਰਾ ਸਫ਼ਰ',
@@ -313,4 +308,14 @@ export const pa: Catalogue = {
   'One number': 'ਇੱਕ ਅੰਕ',
   '{count} short steps. Nothing is saved until the last one.':
     '{count} ਛੋਟੇ ਪੜਾਅ। ਆਖ਼ਰੀ ਪੜਾਅ ਤੱਕ ਕੁਝ ਵੀ ਸੰਭਾਲਿਆ ਨਹੀਂ ਜਾਂਦਾ।',
+
+  // --- Smart commerce: sellers, products and categories ------------------
+  Products: 'ਉਤਪਾਦ',
+  'Find sellers': 'ਵਿਕਰੇਤਾ ਲੱਭੋ',
+  'Product categories': 'ਉਤਪਾਦ ਸ਼੍ਰੇਣੀਆਂ',
+  Seller: 'ਵਿਕਰੇਤਾ',
+  'I sell goods of any kind and dispatch them from my own premises.':
+    'ਮੈਂ ਹਰ ਕਿਸਮ ਦਾ ਸਮਾਨ ਵੇਚਦਾ ਹਾਂ ਅਤੇ ਆਪਣੀ ਥਾਂ ਤੋਂ ਭੇਜਦਾ ਹਾਂ।',
+  'Saarthi connects fleet owners, drivers, sellers and customers on one platform - from posting a load to watching it arrive.':
+    'Saarthi ਬੇੜਾ ਮਾਲਕਾਂ, ਡਰਾਈਵਰਾਂ, ਵਿਕਰੇਤਾਵਾਂ ਤੇ ਗਾਹਕਾਂ ਨੂੰ ਇੱਕੋ ਪਲੇਟਫਾਰਮ ਉੱਤੇ ਜੋੜਦਾ ਹੈ - ਲੋਡ ਪਾਉਣ ਤੋਂ ਲੈ ਕੇ ਉਸ ਦੇ ਪਹੁੰਚਣ ਤੱਕ।',
 };

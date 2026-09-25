@@ -1,7 +1,4 @@
 import type {
-  CommissionStatus,
-  CommissionTrigger,
-  CommissionType,
   OnboardingReadiness,
   PlanTier,
   ReferralSource,
@@ -12,6 +9,7 @@ import type {
   SalesmanVerificationMethod,
   TrackerHandoverStatus,
   VehicleType,
+  WalletEntryStatus,
 } from '@saarthi/shared';
 
 /**
@@ -39,7 +37,7 @@ export interface SalesmanProfileView {
   verificationMethod: SalesmanVerificationMethod | null;
   verifiedAt: string | null;
   lastCheckedAt: string | null;
-  /** True when this profile may share a referral link and earn commission. */
+  /** True when this profile may share a referral link and earn rewards. */
   canSell: boolean;
   /** Why it cannot, in the salesperson's own language. Always populated. */
   standing: string;
@@ -53,19 +51,6 @@ export interface SalesMeResponse {
   /** False when this environment cannot ask GODWeb about a GODID at all. */
   godWebVerificationAvailable: boolean;
   attributionWindowDays: number;
-}
-
-export interface CommissionTotals {
-  pending: number;
-  approved: number;
-  paid: number;
-  reversed: number;
-  /**
-   * Sales that qualified but have no amount yet, because no commission rule
-   * covered them. A count, never a total — see the API note.
-   */
-  awaitingRule: number;
-  currency: string;
 }
 
 export interface HandoverSummary {
@@ -90,7 +75,8 @@ export interface SalesDashboardResponse {
   referrals: { captured: number; attributed: number; converted: number };
   customers: { total: number; active: number };
   trackers: HandoverSummary;
-  commission: CommissionTotals;
+  /** The salesperson's wallet. Every reward in it is a successful referral. */
+  earnings: { totalEarned: number; available: number; held: number };
   onboarding: { awaitingFirstVehicle: number; completed: number };
 }
 
@@ -168,6 +154,8 @@ export interface AttributionView {
   revokedAt: string | null;
   revokeReason: string | null;
   attributionWindowDays: number;
+  /** The salesperson's reward for this customer. Null when none was earned. */
+  reward: { amount: number; status: WalletEntryStatus; availableAt: string } | null;
 }
 
 export interface SalesCustomerView {
@@ -216,48 +204,6 @@ export interface HandoverView {
   returnedAt: string | null;
   closeReason: string | null;
   note: string | null;
-}
-
-export interface CommissionView {
-  id: string;
-  godId: string;
-  salesmanId: string;
-  salesmanName: string | null;
-  organizationId: string;
-  organizationName: string | null;
-  planTier: PlanTier | null;
-  trigger: CommissionTrigger;
-  status: CommissionStatus;
-  baseAmount: number;
-  commissionRate: number | null;
-  /** Null means "qualified, no rule covered it". Never rendered as ₹0. */
-  commissionAmount: number | null;
-  currency: string;
-  paymentReference: string;
-  eligibleAt: string;
-  approvedAt: string | null;
-  paidAt: string | null;
-  payoutReference: string | null;
-  decisionReason: string | null;
-  /** Set when no rule matched, so the screen can say what to create. */
-  unmatchedReason: string | null;
-  createdAt: string;
-}
-
-export interface CommissionRuleView {
-  id: string;
-  name: string;
-  planTier: PlanTier | null;
-  trigger: CommissionTrigger;
-  commissionType: CommissionType;
-  commissionRate: number | null;
-  fixedAmount: number | null;
-  qualificationDays: number;
-  effectiveFrom: string | null;
-  effectiveTo: string | null;
-  active: boolean;
-  note: string | null;
-  createdAt: string;
 }
 
 export interface DemoScriptResponse {

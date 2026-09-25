@@ -11,7 +11,7 @@ import { prisma } from '../../database/prisma';
 import { errors } from '../../lib/errors';
 import { cache, cached } from '../../infra/cache';
 import { cacheKeys, cacheTtl } from '../../infra/cache-keys';
-import { commissionTotals, type CommissionTotals } from './commission.service';
+import { balances } from '../wallet/wallet-ledger.service';
 import { handoverSummary, type HandoverSummary } from './handover.service';
 
 /**
@@ -61,7 +61,8 @@ export interface SalesDashboard {
     active: number;
   };
   trackers: HandoverSummary;
-  commission: CommissionTotals;
+  /** The salesperson's wallet — every reward is a successful referral. */
+  earnings: { totalEarned: number; available: number; held: number };
   onboarding: {
     /** Customers with a tracker in hand and no live vehicle yet. */
     awaitingFirstVehicle: number;
@@ -81,6 +82,8 @@ export interface SalesDashboard {
 export async function dashboard(input: {
   salesmanId: string;
   godId: string;
+  /** The salesperson's login, whose wallet their rewards are paid into. */
+  userId: string | null;
 }): Promise<SalesDashboard> {
   return cached(
     cacheKeys.salesDashboard(input.salesmanId),
@@ -99,7 +102,7 @@ export async function dashboard(input: {
         referralGrouped,
         customerOrganizationIds,
         trackers,
-        commission,
+        earnings,
         onboardingCompleted,
       ] = await Promise.all([
         prisma.salesLead.count({ where: { salesmanId } }),
@@ -136,7 +139,9 @@ export async function dashboard(input: {
           select: { organizationId: true },
         }),
         handoverSummary(salesmanId),
-        commissionTotals(salesmanId),
+        input.userId
+          ? balances(input.userId)
+          : Promise.resolve({ totalEarned: 0, available: 0, held: 0 }),
         prisma.salesLead.count({ where: { salesmanId, onboardingCompletedAt: { not: null } } }),
       ]);
 
@@ -185,7 +190,7 @@ export async function dashboard(input: {
           active: activeSubscriptions,
         },
         trackers,
-        commission,
+        earnings,
         onboarding: {
           awaitingFirstVehicle,
           completed: onboardingCompleted,

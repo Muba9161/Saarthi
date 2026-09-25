@@ -41,7 +41,7 @@ export const kok: Catalogue = {
   'Telemetry alerts': 'टेलिमेट्री सूचना',
   Devices: 'उपकरणां',
   Analytics: 'अ‍ॅनालिटिक्स',
-  'AI Copilot': 'AI कोपायलट',
+  'Saarthi Mitra': 'सारथी मित्र',
   'GPS simulator': 'GPS सिम्युलेटर',
   'My trip': 'म्हजो प्रवास',
   Nearby: 'लागसार',
@@ -190,8 +190,6 @@ export const kok: Catalogue = {
     'म्हजे कडेन ट्रक आसात आनी म्हाका म्हजो वाहनसमूह सांबाळपाचो आनी लोड मेळोवपाचो आसा.',
   'I need materials, transport, a cab or a tour, and want offers to compare.':
     'म्हाका सामग्री, वाहतूक, कॅब वा प्रवास जाय, आनी तुळाजोगे प्रस्ताव जाय.',
-  'I sell materials and arrange dispatch from my yard.':
-    'हांव माल विकतां आनी म्हज्या यार्डा वयल्यान धाडपाची वेवस्था करतां.',
   'I run taxis, buses or tour packages and sell passenger journeys.':
     'हांव टॅक्सी, बस वा टूर पॅकेज चलयतां आनी प्रवासी भोंवडी विकतां.',
   'I represent a district association coordinating roadside help.':
@@ -199,8 +197,6 @@ export const kok: Catalogue = {
   'I drive for a fleet that already uses Saarthi.':
     'हांव अश्या वाहनसमूहा खातीर गाडी चलयतां जो पयलीच Saarthi वापरता.',
   'The operating system for your trucking business.': 'तुमच्या ट्रकिंग वेवसायाची ऑपरेटिंग सिस्टीम.',
-  'Saarthi connects fleet owners, drivers, suppliers and customers on one platform - from posting a load to watching it arrive.':
-    'Saarthi वाहनसमूह मालक, चालक, पुरवणदार आनी गिरायकांक एकाच मंचा चेर जोडता - लोड घालपा थावन तो पावता मेरेन.',
   'One fleet command centre': 'एकूच फ्लीट कमांड सेंटर',
   'Trucks, drivers, documents, orders and trips in a single operational view.':
     'ट्रक, चालक, दस्तावेज, ऑर्डर आनी प्रवास - सगळें एकाच कामाच्या नदरेंत.',
@@ -256,7 +252,6 @@ export const kok: Catalogue = {
   'SOS incidents': 'SOS घडणुको',
   'Nearby services': 'लागसारच्यो सेवा',
   Deliveries: 'डिलिव्हरी',
-  'Find materials': 'सामग्री सोदात',
   'My orders': 'म्हजे ऑर्डर',
   'Track deliveries': 'डिलिव्हरी ट्रॅक करात',
   'My travel': 'म्हजो प्रवास',
@@ -313,4 +308,14 @@ export const kok: Catalogue = {
   'One number': 'एक आंकडो',
   '{count} short steps. Nothing is saved until the last one.':
     '{count} ल्हान पावलां. निमाण्या पावलां मेरेन कांयच जतनाय जायना.',
+
+  // --- Smart commerce: sellers, products and categories ------------------
+  Products: 'उत्पादनां',
+  'Find sellers': 'विकणदार सोदात',
+  'Product categories': 'उत्पादन वर्ग',
+  Seller: 'विकणदार',
+  'I sell goods of any kind and dispatch them from my own premises.':
+    'हांव सगळ्या तरेचो माल विकतां आनी म्हज्या सुवातेर थावन धाडटां.',
+  'Saarthi connects fleet owners, drivers, sellers and customers on one platform - from posting a load to watching it arrive.':
+    'Saarthi वाहनसमूह मालक, चालक, विकणदार आनी गिरायकांक एकाच मंचा चेर जोडता - लोड घालपा थावन तो पावता मेरेन.',
 };

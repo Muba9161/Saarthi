@@ -26,6 +26,8 @@ import {
   orderFinanceRoutes,
 } from '../modules/marketplace-finance/marketplace-finance.routes';
 import { requirementRoutes } from '../modules/requirements/requirement.routes';
+import { commerceRoutes } from '../modules/commerce/commerce.routes';
+import { commerceAdminRoutes } from '../modules/commerce/commerce-admin.routes';
 import { tripRoutes } from '../modules/trips/trip.routes';
 import { trackingRoutes } from '../modules/tracking/tracking.routes';
 import { nearbyRoutes } from '../modules/nearby/nearby.routes';
@@ -61,6 +63,7 @@ import { loanRoutes, vehicleLoanRoutes } from '../modules/loans/loan.routes';
 import { subscriptionRoutes } from '../modules/subscriptions/subscription.routes';
 import { cashfreeWebhookRoutes, paymentRoutes } from '../modules/payments/payment.routes';
 import { publicReferralRoutes, salesRoutes } from '../modules/sales/sales.routes';
+import { salesmanSignupRoutes } from '../modules/sales/salesman-signup.routes';
 import { referralProgramRoutes } from '../modules/referral-program/referral-program.routes';
 import { walletRoutes } from '../modules/wallet/wallet.routes';
 import { viewPreferenceRoutes } from '../modules/preferences/view-preference.routes';
@@ -131,6 +134,9 @@ export async function registerApiRoutes(app: FastifyInstance): Promise<void> {
   // because a requirement is not an order yet — it may become one, or a
   // travel booking, or nothing at all if nobody bids.
   await app.register(requirementRoutes, { prefix: '/requirements' });
+  // The shared commerce taxonomy, the one-line interpreter behind seller and
+  // customer entry, and seller matching for fleet owners.
+  await app.register(commerceRoutes, { prefix: '/commerce' });
   await app.register(tripRoutes, { prefix: '/trips' });
   await app.register(trackingRoutes, { prefix: '/tracking' });
   await app.register(nearbyRoutes, { prefix: '/nearby' });
@@ -164,6 +170,9 @@ export async function registerApiRoutes(app: FastifyInstance): Promise<void> {
   // opened by somebody who does not have a Saarthi account yet. It reveals only
   // a display name and whether the code is real.
   await app.register(publicReferralRoutes, { prefix: '/referrals/public' });
+  // A salesperson signing themselves up with their GODID. Public, like the
+  // referral landing target: they have no Saarthi account yet.
+  await app.register(salesmanSignupRoutes, { prefix: '/salesman-signup' });
   // Refer & Earn — one Saarthi user referring another. A separate program from
   // the salesman/GODID channel above, with its own codes and records.
   await app.register(referralProgramRoutes, { prefix: '/referral-program' });
@@ -232,4 +241,5 @@ export async function registerApiRoutes(app: FastifyInstance): Promise<void> {
   // credential, and it is verified inside the route.
   await app.register(videoGatewayRoutes, { prefix: '/video-gateway' });
   await app.register(adminRoutes, { prefix: '/admin' });
+  await app.register(commerceAdminRoutes, { prefix: '/admin/commerce' });
 }

@@ -147,6 +147,7 @@ function unenforcedEntitlement(): AuthSubscription {
       telemetryRetentionDays: 3650,
     },
     active: true,
+    trialing: false,
     enforced: false,
   };
 }
@@ -319,6 +320,7 @@ export async function resolveSubscription(
         maxTrackers: runsVehicles ? limits.maxTrackers : 0,
       },
       active,
+      trialing: active && subscription.status === SubscriptionStatus.TRIALING,
       enforced: true,
     };
   }

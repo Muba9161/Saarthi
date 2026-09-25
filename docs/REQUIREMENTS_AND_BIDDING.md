@@ -64,7 +64,7 @@ answers *is this business in that market at all*.
 
 | Requirement kind | Scopes it attracts | Who may offer them |
 |---|---|---|
-| `MATERIAL_SUPPLY` | `MATERIAL`, and `TRANSPORT` if delivery is wanted | Suppliers; fleets |
+| `MATERIAL_SUPPLY` | `TRANSPORT` (a delivered bid naming a seller listing) | Fleet owners, enterprises |
 | `FREIGHT_TRANSPORT` | `TRANSPORT` | Fleet owners, enterprises |
 | `CAB_HIRE` | `TRAVEL` | Mobility providers |
 | `TOUR_PACKAGE` | `TRAVEL` | Mobility providers |
@@ -73,15 +73,16 @@ The rules live in `packages/shared/src/domain/requirements.ts` so the API and th
 about them. The board never trusts a client filter: `kind=` narrows what the caller already
 qualifies for, so it cannot be used to look into another market.
 
-### Why a material requirement settles twice
+### A material requirement is answered by a fleet owner
 
-The yard that sells the cement and the fleet that carries it are rarely the same business. So a
-material requirement that asked for delivery carries two award columns and passes through
-`PARTIALLY_AWARDED`: the supplier is appointed, the requirement stays on the transport board, and
-the `Order` is only raised once the lorry is settled too.
+Customer ↔ Fleet Owner ↔ Seller: the customer never deals with the seller directly (see
+`SAARTHI_SMART_COMMERCE_IMPLEMENTATION.md`). A fleet owner answers a material requirement with a
+delivered bid — it names the seller listing it will source from (`sourceMaterialId`), the server
+works out the procurement reference from that listing, and one award settles the requirement.
 
-A supplier that *does* deliver ticks **includes delivery** on its bid, and that single award settles
-the whole thing — no transport bid is needed.
+The `MATERIAL` scope and the `PARTIALLY_AWARDED` path remain in the schema for requirements posted
+before this change; no organization may place a `MATERIAL` bid now, and a legacy one cannot be
+awarded.
 
 ---
 
@@ -93,7 +94,9 @@ Three deliberate omissions from the read model (`requirement.view.ts`):
   race to undercut by one rupee.
 - **The budget is hidden unless the customer publishes it.** A visible budget tends to become the
   price everybody quotes.
-- **Contact details are released only to the winner.** Otherwise the board is a phone list.
+- **Contact details are released only to the winner,** and only if the winner is a party the
+  customer may deal with directly — a fleet owner or mobility provider, never a seller. Otherwise
+  the board is a phone list.
 
 ---
 

@@ -5,6 +5,12 @@ import {
   type AiRecommendationInput,
 } from '@saarthi/shared';
 import { prisma } from '../../database/prisma';
+import {
+  COPILOT_USAGE_FILTER,
+  MITRA_QUESTION_OPERATION,
+  dailyAiAllowance,
+  recordUsage,
+} from './ai-usage';
 import { errors } from '../../lib/errors';
 import { logger } from '../../lib/logger';
 import { aiProvider, type AiAnswer, type AiFact, type AiRecommendationItem } from '../../providers/ai';
@@ -23,8 +29,38 @@ import type { AuthContext } from '../../auth/context';
 
 const aiLogger = logger.child({ module: 'ai' });
 
-async function assertWithinDailyQuota(auth: AuthContext, organizationId: string): Promise<void> {
-  const limit = auth.subscription?.limits.aiRequestsPerDay ?? 0;
+function startOfToday(): Date {
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  return start;
+}
+
+/**
+ * What today's allowance has been spent on.
+ *
+ * A trial counts only the questions a person typed to Mitra — never a
+ * dashboard insight, a recommendation or the driver terminal. A paid plan's
+ * allowance covers every copilot request, as it always has.
+ */
+function usedToday(auth: AuthContext, organizationId: string): Promise<number> {
+  return prisma.aiUsage.count({
+    where: {
+      organizationId,
+      createdAt: { gte: startOfToday() },
+      ...(auth.subscription?.trialing ? { operation: MITRA_QUESTION_OPERATION } : COPILOT_USAGE_FILTER),
+    },
+  });
+}
+
+/** Mitra questions asked today, however the plan is metered. */
+function questionsToday(organizationId: string): Promise<number> {
+  return prisma.aiUsage.count({
+    where: { organizationId, createdAt: { gte: startOfToday() }, operation: MITRA_QUESTION_OPERATION },
+  });
+}
+
+export async function assertWithinDailyQuota(auth: AuthContext, organizationId: string): Promise<void> {
+  const limit = dailyAiAllowance(auth);
   if (limit <= 0) {
     throw errors.featureNotAvailable(
       'ai.copilot',
@@ -32,41 +68,14 @@ async function assertWithinDailyQuota(auth: AuthContext, organizationId: string)
     );
   }
 
-  const startOfDay = new Date();
-  startOfDay.setHours(0, 0, 0, 0);
-
-  const used = await prisma.aiUsage.count({
-    where: { organizationId, createdAt: { gte: startOfDay } },
-  });
-
-  if (used >= limit) {
+  if ((await usedToday(auth, organizationId)) >= limit) {
     throw errors.planLimitReached(
       'aiRequestsPerDay',
-      `Your plan allows ${limit} AI requests per day and today's allowance is used up. It resets at midnight.`,
+      auth.subscription?.trialing
+        ? `Your free trial includes ${limit} questions a day with Saarthi Mitra, and today's are used up. They reset at midnight - or choose a plan to keep going.`
+        : `Your plan allows ${limit} AI requests per day and today's allowance is used up. It resets at midnight.`,
     );
   }
-}
-
-async function recordUsage(
-  auth: AuthContext,
-  organizationId: string | null,
-  operation: string,
-  answer: { provider: string; model: string; tokensIn: number; tokensOut: number; latencyMs: number },
-  success = true,
-): Promise<void> {
-  await prisma.aiUsage.create({
-    data: {
-      organizationId,
-      userId: auth.user.id,
-      provider: answer.provider,
-      model: answer.model,
-      operation,
-      tokensIn: answer.tokensIn,
-      tokensOut: answer.tokensOut,
-      latencyMs: answer.latencyMs,
-      success,
-    },
-  });
 }
 
 /** Pick the narrowest context that can answer the question. */
@@ -431,25 +440,33 @@ export async function dismissInsight(organizationId: string, insightId: string):
   await prisma.aiInsight.update({ where: { id: insightId }, data: { dismissedAt: new Date() } });
 }
 
-export async function aiUsageSummary(organizationId: string) {
-  const startOfDay = new Date();
-  startOfDay.setHours(0, 0, 0, 0);
+export async function aiUsageSummary(auth: AuthContext, organizationId: string) {
+  const startOfDay = startOfToday();
   const startOfMonth = new Date();
   startOfMonth.setDate(1);
   startOfMonth.setHours(0, 0, 0, 0);
 
-  const [today, month, aggregate] = await Promise.all([
-    prisma.aiUsage.count({ where: { organizationId, createdAt: { gte: startOfDay } } }),
-    prisma.aiUsage.count({ where: { organizationId, createdAt: { gte: startOfMonth } } }),
+  const [today, month, aggregate, questions, spent] = await Promise.all([
+    prisma.aiUsage.count({ where: { organizationId, createdAt: { gte: startOfDay }, ...COPILOT_USAGE_FILTER } }),
+    prisma.aiUsage.count({ where: { organizationId, createdAt: { gte: startOfMonth }, ...COPILOT_USAGE_FILTER } }),
     prisma.aiUsage.aggregate({
-      where: { organizationId, createdAt: { gte: startOfMonth } },
+      where: { organizationId, createdAt: { gte: startOfMonth }, ...COPILOT_USAGE_FILTER },
       _sum: { tokensIn: true, tokensOut: true },
       _avg: { latencyMs: true },
     }),
+    questionsToday(organizationId),
+    usedToday(auth, organizationId),
   ]);
 
+  const dailyLimit = dailyAiAllowance(auth);
   return {
     requestsToday: today,
+    /** Questions typed to Mitra today — what the screen shows. */
+    questionsToday: questions,
+    /** Today's allowance, trial cap included, and what is left of it. */
+    dailyLimit,
+    remainingToday: Math.max(0, dailyLimit - spent),
+    trialing: auth.subscription?.trialing ?? false,
     requestsThisMonth: month,
     tokensThisMonth: (aggregate._sum.tokensIn ?? 0) + (aggregate._sum.tokensOut ?? 0),
     averageLatencyMs: Math.round(aggregate._avg.latencyMs ?? 0),

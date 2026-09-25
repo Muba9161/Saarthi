@@ -1,8 +1,5 @@
 import { z } from 'zod';
 import {
-  CommissionStatus,
-  CommissionTrigger,
-  CommissionType,
   PlanTier,
   ReferralSource,
   SalesLeadSource,
@@ -16,7 +13,6 @@ import { SELF_SERVICE_REFERRAL_SOURCES } from '../domain/sales';
 import {
   csvEnum,
   emailSchema,
-  moneySchema,
   optionalPhoneSchema,
   optionalTrimmedString,
   paginationSchema,
@@ -26,14 +22,11 @@ import {
 } from './common';
 
 /**
- * Input contracts for the sales, referral and commission surface.
+ * Input contracts for the sales and referral surface.
  *
- * Two things are validated here that are easy to miss.
- *
- * Nothing in this file accepts a commission *amount*. Every schema that
- * touches money takes either the terms of a rule (administrator input) or a
- * decision on an existing row; the figure itself is computed server-side from
- * a real payment, so there is no shape a client could send one in.
+ * Nothing in this file accepts a reward *amount*. A salesperson's reward is a
+ * fixed figure from configuration, credited server-side when a referral
+ * succeeds, so there is no shape a client could send one in.
  *
  * Nothing here accepts a customer's password, OTP or payment credential
  * either. Assisted signup is a request to *start* a signup the customer then
@@ -70,6 +63,16 @@ export const referralCodeSchema = godIdSchema;
 // ---------------------------------------------------------------------------
 // Salesman profile
 // ---------------------------------------------------------------------------
+
+/**
+ * A salesperson starting their own signup with their GODID.
+ *
+ * Public and unauthenticated. The GODID alone proves nothing — they appear in
+ * every referral link — so what this starts is an email to the address GODWeb
+ * holds for that GODID; only its owner can finish.
+ */
+export const salesmanSignupSchema = z.object({ godId: godIdSchema });
+export type SalesmanSignupInput = z.infer<typeof salesmanSignupSchema>;
 
 /**
  * Create a Saarthi salesman profile for an existing GODWeb identity.
@@ -124,7 +127,7 @@ export type SalesmanStandingInput = z.infer<typeof salesmanStandingSchema>;
  *
  * The fallback path for an environment where the approved GODWeb validation
  * API is not available. It requires the administrator to say what they checked
- * and against what, because the resulting profile is trusted for commission
+ * and against what, because the resulting profile is trusted to earn rewards
  * and the only thing standing behind it is this sentence.
  */
 export const manualVerifySalesmanSchema = z.object({
@@ -286,7 +289,7 @@ export type ValidateReferralInput = z.infer<typeof validateReferralSchema>;
  *
  * Platform administration only, and it cannot overwrite a live attribution —
  * the service refuses, because "first valid attribution wins" is worth nothing
- * if an administrator can quietly move a commission between two people.
+ * if an administrator can quietly move a reward between two people.
  */
 export const attributeCustomerSchema = z.object({
   organizationId: uuidSchema,
@@ -306,101 +309,6 @@ export const referralListQuerySchema = paginationSchema.extend({
   salesmanId: uuidSchema.optional(),
 });
 export type ReferralListQuery = z.infer<typeof referralListQuerySchema>;
-
-// ---------------------------------------------------------------------------
-// Commission rules
-// ---------------------------------------------------------------------------
-
-/**
- * The commercial terms, entered by an administrator.
- *
- * `qualificationDays` is the cooling-off period: a subscription refunded inside
- * it reverses the commission rather than paying it. It has no default here for
- * the same reason the rate has none — it is a commercial decision, and this
- * library is not where such a decision should first appear.
- */
-export const commissionRuleSchema = z
-  .object({
-    name: trimmedString(3, 120),
-    /** Null means "any plan". */
-    planTier: z.nativeEnum(PlanTier).nullable().optional(),
-    trigger: z.nativeEnum(CommissionTrigger).default(CommissionTrigger.SUBSCRIPTION),
-    commissionType: z.nativeEnum(CommissionType),
-    /** Percentage points. Required for a PERCENTAGE rule. */
-    commissionRate: z.coerce.number().min(0).max(100).optional(),
-    /** Rupees. Required for a FIXED rule. */
-    fixedAmount: moneySchema.optional(),
-    qualificationDays: z.coerce.number().int().min(0).max(365),
-    /** Applies only to sales from this date onwards. */
-    effectiveFrom: z.coerce.date().optional(),
-    effectiveTo: z.coerce.date().optional(),
-    active: z.coerce.boolean().default(true),
-    note: optionalTrimmedString(500),
-  })
-  .superRefine((value, ctx) => {
-    if (value.commissionType === CommissionType.PERCENTAGE && value.commissionRate === undefined) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['commissionRate'],
-        message: 'A percentage rule needs a rate.',
-      });
-    }
-    if (value.commissionType === CommissionType.FIXED && value.fixedAmount === undefined) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['fixedAmount'],
-        message: 'A fixed rule needs an amount.',
-      });
-    }
-    if (value.effectiveFrom && value.effectiveTo && value.effectiveFrom > value.effectiveTo) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['effectiveTo'],
-        message: 'The end date must be after the start date.',
-      });
-    }
-  });
-export type CommissionRuleInput = z.infer<typeof commissionRuleSchema>;
-
-// ---------------------------------------------------------------------------
-// Commission decisions
-// ---------------------------------------------------------------------------
-
-/**
- * Approve, pay, reverse or reject a commission.
- *
- * Note what is not here: an amount. The decision is on the row as computed,
- * and an administrator who believes the figure is wrong corrects the rule and
- * recalculates, which leaves a trail. Typing a number over the top of a
- * computed one leaves none.
- */
-export const commissionDecisionSchema = z.object({
-  status: z.enum([
-    CommissionStatus.APPROVED,
-    CommissionStatus.PAYABLE,
-    CommissionStatus.PAID,
-    CommissionStatus.REVERSED,
-    CommissionStatus.REJECTED,
-  ] as const),
-  /** Required for anything that denies or takes back money. */
-  reason: optionalTrimmedString(500),
-  /** The payout reference, for PAID. */
-  paymentReference: optionalTrimmedString(120),
-});
-export type CommissionDecisionInput = z.infer<typeof commissionDecisionSchema>;
-
-export const commissionListQuerySchema = paginationSchema.extend({
-  status: csvEnum([
-    CommissionStatus.PENDING,
-    CommissionStatus.APPROVED,
-    CommissionStatus.PAYABLE,
-    CommissionStatus.PAID,
-    CommissionStatus.REVERSED,
-    CommissionStatus.REJECTED,
-  ] as const),
-  salesmanId: uuidSchema.optional(),
-});
-export type CommissionListQuery = z.infer<typeof commissionListQuerySchema>;
 
 // ---------------------------------------------------------------------------
 // Tracker handover

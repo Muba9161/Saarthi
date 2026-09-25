@@ -41,7 +41,7 @@ export const ml: Catalogue = {
   'Telemetry alerts': 'ടെലിമെട്രി അലേർട്ടുകൾ',
   Devices: 'ഉപകരണങ്ങൾ',
   Analytics: 'അനലിറ്റിക്‌സ്',
-  'AI Copilot': 'AI കോപൈലറ്റ്',
+  'Saarthi Mitra': 'സാരഥി മിത്ര',
   'GPS simulator': 'GPS സിമുലേറ്റർ',
   'My trip': 'എന്റെ യാത്ര',
   Nearby: 'സമീപത്ത്',
@@ -192,8 +192,6 @@ export const ml: Catalogue = {
     'എനിക്ക് ട്രക്കുകളുണ്ട്, എന്റെ വാഹനനിര നടത്താനും ലോഡ് നേടാനും ആഗ്രഹിക്കുന്നു.',
   'I need materials, transport, a cab or a tour, and want offers to compare.':
     'എനിക്ക് സാമഗ്രികൾ, ഗതാഗതം, ക്യാബ് അല്ലെങ്കിൽ യാത്ര വേണം, താരതമ്യം ചെയ്യാൻ ഓഫറുകളും വേണം.',
-  'I sell materials and arrange dispatch from my yard.':
-    'ഞാൻ സാധനങ്ങൾ വിൽക്കുകയും എന്റെ യാർഡിൽ നിന്ന് അയക്കാൻ ക്രമീകരിക്കുകയും ചെയ്യുന്നു.',
   'I run taxis, buses or tour packages and sell passenger journeys.':
     'ഞാൻ ടാക്സി, ബസ് അല്ലെങ്കിൽ ടൂർ പാക്കേജുകൾ നടത്തുകയും യാത്രക്കാരുടെ യാത്രകൾ വിൽക്കുകയും ചെയ്യുന്നു.',
   'I represent a district association coordinating roadside help.':
@@ -202,8 +200,6 @@ export const ml: Catalogue = {
     'ഇതിനകം Saarthi ഉപയോഗിക്കുന്ന വാഹനനിരയ്ക്കായി ഞാൻ വണ്ടിയോടിക്കുന്നു.',
   'The operating system for your trucking business.':
     'നിങ്ങളുടെ ട്രക്കിംഗ് ബിസിനസിന്റെ ഓപ്പറേറ്റിംഗ് സിസ്റ്റം.',
-  'Saarthi connects fleet owners, drivers, suppliers and customers on one platform - from posting a load to watching it arrive.':
-    'Saarthi വാഹന ഉടമകളെയും ഡ്രൈവർമാരെയും വിതരണക്കാരെയും ഉപഭോക്താക്കളെയും ഒരേ പ്ലാറ്റ്‌ഫോമിൽ ബന്ധിപ്പിക്കുന്നു - ലോഡ് ഇടുന്നത് മുതൽ അത് എത്തുന്നത് കാണുന്നത് വരെ.',
   'One fleet command centre': 'ഒരൊറ്റ ഫ്ലീറ്റ് കമാൻഡ് സെന്റർ',
   'Trucks, drivers, documents, orders and trips in a single operational view.':
     'ട്രക്കുകൾ, ഡ്രൈവർമാർ, രേഖകൾ, ഓർഡറുകൾ, യാത്രകൾ - എല്ലാം ഒരൊറ്റ പ്രവർത്തന കാഴ്ചയിൽ.',
@@ -259,7 +255,6 @@ export const ml: Catalogue = {
   'SOS incidents': 'SOS സംഭവങ്ങൾ',
   'Nearby services': 'സമീപത്തെ സേവനങ്ങൾ',
   Deliveries: 'ഡെലിവറികൾ',
-  'Find materials': 'സാമഗ്രികൾ തിരയുക',
   'My orders': 'എന്റെ ഓർഡറുകൾ',
   'Track deliveries': 'ഡെലിവറി ട്രാക്ക് ചെയ്യുക',
   'My travel': 'എന്റെ യാത്ര',
@@ -316,4 +311,14 @@ export const ml: Catalogue = {
   'One number': 'ഒരു അക്കം',
   '{count} short steps. Nothing is saved until the last one.':
     '{count} ചെറിയ ഘട്ടങ്ങൾ. അവസാന ഘട്ടം വരെ ഒന്നും സേവ് ചെയ്യില്ല.',
+
+  // --- Smart commerce: sellers, products and categories ------------------
+  Products: 'ഉൽപ്പന്നങ്ങൾ',
+  'Find sellers': 'വിൽപ്പനക്കാരെ തിരയുക',
+  'Product categories': 'ഉൽപ്പന്ന വിഭാഗങ്ങൾ',
+  Seller: 'വിൽപ്പനക്കാരൻ',
+  'I sell goods of any kind and dispatch them from my own premises.':
+    'ഞാൻ എല്ലാത്തരം സാധനങ്ങളും വിൽക്കുകയും എന്റെ സ്ഥലത്തുനിന്ന് അയക്കുകയും ചെയ്യുന്നു.',
+  'Saarthi connects fleet owners, drivers, sellers and customers on one platform - from posting a load to watching it arrive.':
+    'Saarthi വാഹന ഉടമകളെയും ഡ്രൈവർമാരെയും വിൽപ്പനക്കാരെയും ഉപഭോക്താക്കളെയും ഒരേ പ്ലാറ്റ്‌ഫോമിൽ ബന്ധിപ്പിക്കുന്നു - ലോഡ് ഇടുന്നത് മുതൽ അത് എത്തുന്നത് കാണുന്നത് വരെ.',
 };

@@ -136,6 +136,48 @@ export interface ToolCapableAiProvider extends AiProvider {
   generate(input: AiGenerateInput): Promise<AiGeneration>;
 }
 
+// ---------------------------------------------------------------------------
+// Structured output
+// ---------------------------------------------------------------------------
+
+/**
+ * A single request whose answer must be JSON of a declared shape.
+ *
+ * Used for classification and extraction, where prose is useless and a
+ * parser guessing at the model's formatting is a bug waiting to happen. The
+ * caller still validates the result: a schema asked of a model is a request,
+ * not a guarantee.
+ */
+export interface AiJsonRequest {
+  system: string;
+  prompt: string;
+  /** OpenAPI-subset schema describing the expected object. */
+  schema: Record<string, unknown>;
+  maxOutputTokens: number;
+  timeoutMs: number;
+}
+
+export interface AiJsonGeneration {
+  data: unknown;
+  provider: string;
+  model: string;
+  tokensIn: number;
+  tokensOut: number;
+  latencyMs: number;
+}
+
+export interface StructuredOutputAiProvider extends AiProvider {
+  readonly supportsStructuredOutput: true;
+  generateJson(request: AiJsonRequest): Promise<AiJsonGeneration>;
+}
+
+export function supportsStructuredOutput(provider: AiProvider): provider is StructuredOutputAiProvider {
+  return (
+    (provider as StructuredOutputAiProvider).supportsStructuredOutput === true &&
+    typeof (provider as StructuredOutputAiProvider).generateJson === 'function'
+  );
+}
+
 export function supportsTools(provider: AiProvider): provider is ToolCapableAiProvider {
   return (
     (provider as ToolCapableAiProvider).supportsTools === true &&

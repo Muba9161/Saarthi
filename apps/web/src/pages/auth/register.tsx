@@ -168,9 +168,9 @@ const ACCOUNT_INTENTS = [
     planTier: PlanTier.SUPPLIER,
     role: RoleName.SUPPLIER,
     icon: Package,
-    title: 'I supply materials',
+    title: 'I sell goods',
     description:
-      'Sell from your yard: catalogue, stock, requirements and orders. No vehicle or fleet to set up.',
+      'Sell any goods - furniture, wood, sand, steel and more. Fleet owners source from your catalogue. No vehicle or fleet to set up.',
   },
   {
     id: 'driver' as const,

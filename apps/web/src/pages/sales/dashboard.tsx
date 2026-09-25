@@ -32,13 +32,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
  * login shows zeros, deliberately: a dashboard that opens with twenty-four
  * invented leads is one nobody trusts the day it has twenty-four real ones.
  *
- * The two figures worth reading carefully are on the commission tile.
- * `pending`, `approved` and `paid` are sums of amounts the server computed from
- * real payments. `awaitingRule` is a **count** of sales that qualified but have
- * no amount yet, because no commission rule covered them — it is shown as a
- * separate note rather than folded into a total, since treating an unpriced
- * sale as ₹0 would show somebody less than they are owed with nothing on the
- * screen to explain it.
+ * Earnings are the salesperson's wallet: every reward in it is one successful
+ * referral, credited automatically and cashed out from the Earnings screen.
  */
 export function SalesDashboardPage(): React.ReactElement {
   const { can } = useAuth();
@@ -59,7 +54,7 @@ export function SalesDashboardPage(): React.ReactElement {
       <div className="space-y-5">
         <PageHeader
           title="Sales"
-          description="Leads, referrals, tracker handover and commission."
+          description="Leads, referrals, tracker handover and earnings."
         />
         <Alert>
           <AlertDescription>
@@ -175,38 +170,19 @@ export function SalesDashboardPage(): React.ReactElement {
                 data.referrals.captured,
               )} link opened`}
             />
-            <StatCard
-              label="Commission pending"
-              numericValue={data.commission.pending}
-              format={(value) => formatCurrency(value, data.commission.currency)}
-              icon={Wallet}
-              tone="accent"
-              hint={`${formatCurrency(
-                data.commission.approved,
-                data.commission.currency,
-              )} approved · ${formatCurrency(data.commission.paid, data.commission.currency)} paid`}
-            />
+            <Link to="/sales/earnings" className="block rounded-2xl">
+              <StatCard
+                label="Earnings"
+                numericValue={data.earnings.totalEarned}
+                format={(value) => formatCurrency(value)}
+                icon={Wallet}
+                tone="accent"
+                hint={`${formatCurrency(data.earnings.available)} available · ${formatCurrency(
+                  data.earnings.held,
+                )} unlocking`}
+              />
+            </Link>
           </div>
-
-          {/*
-            An unpriced sale is surfaced rather than summed. It is the one thing
-            on this screen a salesperson cannot act on themselves, so it says
-            plainly who can.
-          */}
-          {data.commission.awaitingRule > 0 ? (
-            <Alert>
-              <Wallet className="h-4 w-4" />
-              <AlertDescription>
-                {formatNumber(data.commission.awaitingRule)}{' '}
-                {data.commission.awaitingRule === 1 ? 'sale' : 'sales'} of yours{' '}
-                {data.commission.awaitingRule === 1 ? 'has' : 'have'} qualified but{' '}
-                {data.commission.awaitingRule === 1 ? 'does' : 'do'} not have a commission amount
-                yet, because no commission rule covers{' '}
-                {data.commission.awaitingRule === 1 ? 'it' : 'them'}. Saarthi operations sets the
-                rule; the amount is then filled in automatically and nothing is lost.
-              </AlertDescription>
-            </Alert>
-          ) : null}
 
           <section className="space-y-3">
             <SectionHeader

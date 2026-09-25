@@ -1,7 +1,9 @@
 import { createHash } from 'node:crypto';
 import {
+  PlanTier,
   ReferralSource,
   ReferralStatus,
+  type WalletEntryStatus,
   attributionExpiresAt,
   normalizeGodId,
   type AttributeCustomerInput,
@@ -13,6 +15,7 @@ import { errors } from '../../lib/errors';
 import { logger } from '../../lib/logger';
 import { config } from '../../config/env';
 import { AuditAction, recordAudit } from '../audit/audit.service';
+import { creditReferralReward, voidHeldReward } from '../wallet/wallet-ledger.service';
 import { resolveVerifiedSalesman, type SalesmanView } from './salesman.service';
 import type { AuthContext } from '../../auth/context';
 
@@ -40,11 +43,13 @@ import type { AuthContext } from '../../auth/context';
  * the configured window cannot retroactively take a salesperson's credit away,
  * or hand it back to somebody whose window had already closed.
  *
- * ## Referral is not commission
+ * ## The reward
  *
- * Nothing in this file creates a commission. An attribution reaching
- * `CONVERTED` is the *input* to `commission.service.ts`, which requires a
- * successful payment of its own before any money is recorded as owed.
+ * A successful referral pays the salesperson a flat reward into their Saarthi
+ * wallet — see `rewardSalesperson`. "Successful" means the customer is on a
+ * paid plan, and so on its trial; nobody approves it. The reward is held for
+ * the configured period and released on its own while the customer's trial or
+ * plan is still running.
  */
 
 const referralLogger = logger.child({ module: 'sales:referral' });
@@ -74,6 +79,8 @@ export interface AttributionView {
   revokeReason: string | null;
   /** The window this row was captured under, in days. */
   attributionWindowDays: number;
+  /** The salesperson's reward for this customer. Null when none was earned. */
+  reward: { amount: number; status: WalletEntryStatus; availableAt: string } | null;
 }
 
 type AttributionRow = {
@@ -92,6 +99,7 @@ type AttributionRow = {
   revokeReason: string | null;
   salesman?: { name: string | null } | null;
   organization?: { name: string } | null;
+  walletEntry?: { amount: unknown; status: string; availableAt: Date } | null;
 };
 
 function toView(row: AttributionRow): AttributionView {
@@ -114,6 +122,13 @@ function toView(row: AttributionRow): AttributionView {
     attributionWindowDays: Math.round(
       (row.expiresAt.getTime() - row.capturedAt.getTime()) / 86_400_000,
     ),
+    reward: row.walletEntry
+      ? {
+          amount: Number(row.walletEntry.amount),
+          status: row.walletEntry.status as WalletEntryStatus,
+          availableAt: row.walletEntry.availableAt.toISOString(),
+        }
+      : null,
   };
 }
 
@@ -446,6 +461,7 @@ export async function attributeRegistration(input: {
       db,
     );
 
+    await rewardSalesperson(row.id);
     return { attributed: true, attributionId: row.id, reason: null };
   } catch (error) {
     if (isUniqueViolation(error)) {
@@ -533,6 +549,7 @@ export async function attributePhysicalSale(input: {
       after: { godId: input.salesman.godId, source: input.source ?? ReferralSource.PHYSICAL },
     });
 
+    await rewardSalesperson(row.id);
     return { attributed: true, attributionId: row.id, reason: null };
   } catch (error) {
     if (isUniqueViolation(error)) {
@@ -549,7 +566,7 @@ export async function attributePhysicalSale(input: {
 /**
  * Mark an attribution converted.
  *
- * Called by the commission service once a *successful payment* has been seen,
+ * Called by payment qualification once a *successful payment* has been seen,
  * never on the strength of a subscription record alone. Idempotent, because
  * payment events retry.
  */
@@ -603,6 +620,59 @@ export async function liveAttributionFor(
 }
 
 // ---------------------------------------------------------------------------
+// The reward
+// ---------------------------------------------------------------------------
+
+/** Subscription states in which a customer counts as a successful referral. */
+const PAID_PLAN_RUNNING = new Set(['TRIALING', 'ACTIVE']);
+
+/**
+ * Pay the salesperson's reward for a newly attributed customer, if the
+ * referral is a successful one: the customer is on a paid plan, on its trial
+ * or already paying. A Free customer earns nothing.
+ *
+ * Never throws — an attribution is already committed when this runs, and a
+ * reward problem must not undo it. Idempotent per customer, so a retried or
+ * repeated attribution cannot pay twice.
+ */
+async function rewardSalesperson(attributionId: string): Promise<void> {
+  try {
+    const attribution = await prisma.referralAttribution.findUnique({
+      where: { id: attributionId },
+      select: { organizationId: true, salesman: { select: { userId: true } } },
+    });
+    const organizationId = attribution?.organizationId;
+    if (!organizationId) return;
+
+    const userId = attribution.salesman.userId;
+    if (!userId) {
+      referralLogger.warn({ attributionId }, 'Salesperson has no Saarthi login to pay a reward to');
+      return;
+    }
+
+    const subscription = await prisma.subscription.findUnique({
+      where: { organizationId },
+      select: { status: true, plan: { select: { tier: true } } },
+    });
+    if (
+      !subscription ||
+      subscription.plan.tier === PlanTier.FREE ||
+      !PAID_PLAN_RUNNING.has(subscription.status)
+    ) {
+      return;
+    }
+
+    await creditReferralReward(prisma, {
+      userId,
+      organizationId,
+      source: { referralAttributionId: attributionId },
+    });
+  } catch (error) {
+    referralLogger.error({ err: error, attributionId }, 'Salesperson reward could not be credited');
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Administration
 // ---------------------------------------------------------------------------
 
@@ -618,7 +688,11 @@ export async function listAttributions(
   const [rows, total] = await Promise.all([
     prisma.referralAttribution.findMany({
       where,
-      include: { salesman: { select: { name: true } }, organization: { select: { name: true } } },
+      include: {
+        salesman: { select: { name: true } },
+        organization: { select: { name: true } },
+        walletEntry: { select: { amount: true, status: true, availableAt: true } },
+      },
       orderBy: { capturedAt: 'desc' },
       skip: (query.page - 1) * query.pageSize,
       take: query.pageSize,
@@ -708,18 +782,16 @@ export async function attributeManually(
     },
   });
 
+  await rewardSalesperson(row.id);
   return toView(row);
 }
 
 /**
  * Withdraw an attribution.
  *
- * Note what it does *not* touch: commissions already generated from it. A
- * commission is money owed on a sale that genuinely happened; if it should not
- * be paid, an administrator reverses the commission itself, with its own reason
- * and its own audit entry. Cascading a revocation into somebody's earnings
- * would let one click both re-credit a customer and cancel a payment, with one
- * sentence covering both.
+ * A reward still on hold is voided with it. One that has already unlocked is
+ * left alone: it is money the salesperson could already have cashed out, and
+ * clawing it back is a conversation, not a side effect of a revocation.
  */
 export async function revokeAttribution(
   auth: AuthContext,
@@ -744,9 +816,7 @@ export async function revokeAttribution(
     include: { salesman: { select: { name: true } }, organization: { select: { name: true } } },
   });
 
-  const pending = await prisma.commission.count({
-    where: { attributionId: id, status: { in: ['PENDING', 'APPROVED', 'PAYABLE'] } },
-  });
+  await voidHeldReward(id, 'The referral was withdrawn by Saarthi operations.');
 
   await recordAudit({
     action: AuditAction.REFERRAL_ATTRIBUTION_REVOKED,
@@ -758,18 +828,8 @@ export async function revokeAttribution(
     after: {
       status: ReferralStatus.REVOKED,
       reason: input.reason,
-      // Surfaced in the trail because it is the thing an administrator needs to
-      // deal with next, and it is deliberately not done for them.
-      unsettledCommissions: pending,
     },
   });
-
-  if (pending > 0) {
-    referralLogger.warn(
-      { attributionId: id, pending },
-      'Attribution revoked while commissions are still unsettled — reverse them explicitly',
-    );
-  }
 
   return toView(row);
 }

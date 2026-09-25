@@ -44,17 +44,14 @@ export function isFreightRequirement(kind: RequirementKind): boolean {
 /**
  * Which bid scopes a requirement of this kind can attract.
  *
- * MATERIAL_SUPPLY is the only kind that accepts two, and that is the point of
- * it: the goods and the lorry that carries them are usually sold by different
- * businesses, and forcing the customer to choose a single counterparty would
- * either exclude suppliers who do not own trucks or fleets that do not sell
- * cement.
+ * A material requirement is answered by a fleet owner with a delivered bid: it
+ * buys the goods from a Seller listing and quotes the customer one price for
+ * goods and transport. The Seller never bids to the customer — the customer
+ * deals with the fleet, and the fleet deals with the Seller (see
+ * `communication.ts`). The MATERIAL scope survives only on historical bids.
  */
 export const BID_SCOPES_BY_KIND: Record<RequirementKind, RequirementBidScope[]> = {
-  [RequirementKind.MATERIAL_SUPPLY]: [
-    RequirementBidScope.MATERIAL,
-    RequirementBidScope.TRANSPORT,
-  ],
+  [RequirementKind.MATERIAL_SUPPLY]: [RequirementBidScope.TRANSPORT],
   [RequirementKind.FREIGHT_TRANSPORT]: [RequirementBidScope.TRANSPORT],
   [RequirementKind.CAB_HIRE]: [RequirementBidScope.TRAVEL],
   [RequirementKind.TOUR_PACKAGE]: [RequirementBidScope.TRAVEL],
@@ -68,7 +65,8 @@ export const BID_SCOPES_BY_KIND: Record<RequirementKind, RequirementBidScope[]> 
  * the business they work for does not sell it.
  */
 export const BIDDER_TYPES_BY_SCOPE: Record<RequirementBidScope, OrganizationType[]> = {
-  [RequirementBidScope.MATERIAL]: [OrganizationType.SUPPLIER],
+  // Retired: nobody may offer goods straight to a customer.
+  [RequirementBidScope.MATERIAL]: [],
   [RequirementBidScope.TRANSPORT]: [OrganizationType.FLEET_OWNER, OrganizationType.ENTERPRISE],
   [RequirementBidScope.TRAVEL]: [OrganizationType.MOBILITY_PROVIDER],
 };
@@ -83,8 +81,8 @@ export function bidScopesForOrganizationType(type: OrganizationType): Requiremen
 /**
  * The requirement kinds an organization of this type should be shown.
  *
- * A supplier and a fleet both see MATERIAL_SUPPLY, because both have something
- * to sell against it — they simply bid with different scopes.
+ * A Seller is shown none: customer demand reaches it only as a fleet owner's
+ * procurement, never as a customer's requirement.
  */
 export function requirementKindsVisibleTo(type: OrganizationType): RequirementKind[] {
   const scopes = bidScopesForOrganizationType(type);
@@ -158,7 +156,7 @@ export const REQUIREMENT_KIND_LABELS: Record<RequirementKind, string> = {
 
 export const REQUIREMENT_KIND_DESCRIPTIONS: Record<RequirementKind, string> = {
   [RequirementKind.MATERIAL_SUPPLY]:
-    'Buy goods from a verified supplier, with delivery arranged if you need it.',
+    'Fleet owners source the goods from verified sellers and deliver them to you.',
   [RequirementKind.FREIGHT_TRANSPORT]:
     'You already have the goods. Fleets bid to move them for you.',
   [RequirementKind.CAB_HIRE]:

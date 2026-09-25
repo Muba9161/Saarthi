@@ -243,7 +243,6 @@ model Organization {
   /// them. Present only for a tenant that arrived through a salesperson.
   salesLeads           SalesLead[]
   referralAttributions ReferralAttribution[]
-  commissions          Commission[]
   payoutAccount        PayoutAccount?
   trackerHandovers     TrackerHandover[]
   /// The Refer & Earn referral this tenant registered under, if any.
@@ -1379,6 +1378,24 @@ enum MaterialStatus {
   OUT_OF_STOCK
 }
 
+enum CommerceCategoryStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum CommerceAttributeType {
+  TEXT
+  NUMBER
+  SELECT
+  BOOLEAN
+}
+
+enum CommerceAttributeScope {
+  BOTH
+  PRODUCT
+  REQUIREMENT
+}
+
 enum OrderStatus {
   DRAFT
   REQUESTED
@@ -1579,7 +1596,12 @@ model Material {
   supplierId        String         @db.Uuid
   organizationId    String         @db.Uuid
   name              String
+  /// Free-text label. Derived from `categoryId` when the listing is classified.
   category          String?
+  /// Shared commerce taxonomy node, the key requirement matching runs on.
+  categoryId        String?        @db.Uuid
+  /// Values for the category's attribute schema, validated on write.
+  attributes        Json?
   description       String?
   unit              MaterialUnit   @default(TON)
   pricePerUnit      Decimal        @db.Decimal(12, 2)
@@ -1618,16 +1640,18 @@ model Material {
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 
-  supplier     Supplier            @relation(fields: [supplierId], references: [id], onDelete: Cascade)
-  orders       Order[]
-  stockItems   StockItem[]
-  priceTiers   MaterialPriceTier[]
-  requirements Requirement[]       @relation("RequirementMaterial")
-  bids         RequirementBid[]    @relation("BidMaterial")
+  supplier         Supplier            @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  commerceCategory CommerceCategory?   @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  orders           Order[]
+  stockItems       StockItem[]
+  priceTiers       MaterialPriceTier[]
+  requirements     Requirement[]       @relation("RequirementMaterial")
+  bids             RequirementBid[]    @relation("BidMaterial")
 
   @@index([supplierId, status])
   @@index([organizationId, status])
   @@index([category])
+  @@index([categoryId, status])
   @@index([name])
   @@index([availabilityStatus])
   @@index([sku])
@@ -1886,6 +1910,10 @@ model Requirement {
   materialId       String?       @db.Uuid
   materialName     String?
   materialCategory String?
+  /// Shared commerce taxonomy node, confirmed by the customer.
+  categoryId       String?       @db.Uuid
+  /// Values for the category's requirement-side attribute schema.
+  attributes       Json?
   specification    String?
   quantity         Float?
   unit             MaterialUnit?
@@ -1937,13 +1965,14 @@ model Requirement {
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
-  customer Customer           @relation(fields: [customerId], references: [id])
-  material Material?          @relation("RequirementMaterial", fields: [materialId], references: [id], onDelete: SetNull)
-  order    Order?             @relation("RequirementOrder", fields: [orderId], references: [id], onDelete: SetNull)
-  booking  TravelBooking?     @relation("RequirementBooking", fields: [bookingId], references: [id], onDelete: SetNull)
-  bids     RequirementBid[]
-  events   RequirementEvent[]
-  packages TravelPackage[]    @relation("RequirementPackage")
+  customer         Customer           @relation(fields: [customerId], references: [id])
+  commerceCategory CommerceCategory?  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  material         Material?          @relation("RequirementMaterial", fields: [materialId], references: [id], onDelete: SetNull)
+  order            Order?             @relation("RequirementOrder", fields: [orderId], references: [id], onDelete: SetNull)
+  booking          TravelBooking?     @relation("RequirementBooking", fields: [bookingId], references: [id], onDelete: SetNull)
+  bids             RequirementBid[]
+  events           RequirementEvent[]
+  packages         TravelPackage[]    @relation("RequirementPackage")
 
   @@index([customerOrganizationId, status, createdAt])
   // The provider board's primary query: open requirements of a kind I can
@@ -1952,7 +1981,79 @@ model Requirement {
   @@index([kind, status, createdAt])
   @@index([bidsCloseAt, status])
   @@index([originLatitude, originLongitude])
+  @@index([categoryId, status])
   @@map("requirements")
+}
+
+// ===========================================================================
+// Commerce taxonomy — what Sellers sell and Customers ask for
+// ===========================================================================
+//
+// One Seller account type, one tree of categories. A node inherits the
+// attributes of every ancestor, so an administrator adds "Teak Wood" under
+// "Timber" as data — never a new account type, never new code.
+
+model CommerceCategory {
+  id          String                 @id @default(uuid()) @db.Uuid
+  parentId    String?                @db.Uuid
+  name        String
+  slug        String                 @unique
+  description String?
+  status      CommerceCategoryStatus @default(ACTIVE)
+  /// The generic "Other" node unclassifiable goods fall back to.
+  isFallback  Boolean                @default(false)
+  defaultUnit MaterialUnit?
+  sortOrder   Int                    @default(0)
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+
+  parent       CommerceCategory?           @relation("CommerceCategoryTree", fields: [parentId], references: [id], onDelete: Restrict)
+  children     CommerceCategory[]          @relation("CommerceCategoryTree")
+  attributes   CommerceCategoryAttribute[]
+  aliases      CommerceCategoryAlias[]
+  materials    Material[]
+  requirements Requirement[]
+
+  @@index([parentId, sortOrder])
+  @@index([status])
+  @@map("commerce_categories")
+}
+
+model CommerceCategoryAttribute {
+  id         String                 @id @default(uuid()) @db.Uuid
+  categoryId String                 @db.Uuid
+  /// Machine key the value is stored under. Immutable once created.
+  key        String
+  label      String
+  type       CommerceAttributeType
+  required   Boolean                @default(false)
+  unit       String?
+  options    String[]
+  /// `{ min, max, maxLength }`, all optional.
+  validation Json?
+  scope      CommerceAttributeScope @default(BOTH)
+  sortOrder  Int                    @default(0)
+  createdAt  DateTime               @default(now())
+  updatedAt  DateTime               @updatedAt
+
+  category CommerceCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([categoryId, key])
+  @@map("commerce_category_attributes")
+}
+
+/// A synonym the deterministic classifier matches, e.g. "m-sand" → Manufactured Sand.
+model CommerceCategoryAlias {
+  id         String   @id @default(uuid()) @db.Uuid
+  categoryId String   @db.Uuid
+  alias      String
+  createdAt  DateTime @default(now())
+
+  category CommerceCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([categoryId, alias])
+  @@index([alias])
+  @@map("commerce_category_aliases")
 }
 
 model RequirementBid {
@@ -6898,26 +6999,6 @@ enum ReferralStatus {
   REVOKED
 }
 
-enum CommissionType {
-  PERCENTAGE
-  FIXED
-}
-
-enum CommissionStatus {
-  PENDING
-  APPROVED
-  PAYABLE
-  PAID
-  REVERSED
-  REJECTED
-}
-
-enum CommissionTrigger {
-  SUBSCRIPTION
-  TRACKER
-  VEHICLE_TOPUP
-}
-
 enum TrackerHandoverStatus {
   ASSIGNED_TO_SALESMAN
   HANDED_TO_CUSTOMER
@@ -6988,7 +7069,6 @@ model SalesmanProfile {
   user         User?                 @relation("SalesmanUser", fields: [userId], references: [id], onDelete: SetNull)
   leads        SalesLead[]
   attributions ReferralAttribution[]
-  commissions  Commission[]
   handovers    TrackerHandover[]
 
   @@index([status])
@@ -7146,145 +7226,14 @@ model ReferralAttribution {
   salesman     SalesmanProfile @relation(fields: [salesmanId], references: [id], onDelete: Cascade)
   organization Organization?   @relation(fields: [organizationId], references: [id], onDelete: SetNull)
   lead         SalesLead?      @relation("LeadAttribution")
-  commissions  Commission[]
+  /// The salesperson's ₹ reward for this customer, if one was credited.
+  walletEntry  WalletEntry?
 
   @@index([salesmanId, status])
   @@index([godId])
   @@index([organizationId, status])
   @@index([status, expiresAt])
   @@map("referral_attributions")
-}
-
-/// The commercial terms a commission is calculated from.
-///
-/// This table ships **empty**, on purpose. Commission rates are an agreement
-/// between Saarthi and its salespeople; a default rate committed to source
-/// control is one somebody would eventually be paid on, and nobody could say
-/// who agreed it. Until an administrator creates a rule, qualifying sales still
-/// produce commission rows — with a null amount and a note saying no rule
-/// matched — so no sale is lost and no figure is invented.
-model CommissionRule {
-  id   String @id @default(uuid()) @db.Uuid
-  name String
-
-  /// Null means "any plan".
-  planTier PlanTier?
-  trigger  CommissionTrigger @default(SUBSCRIPTION)
-
-  commissionType CommissionType
-  /// Percentage points, for a PERCENTAGE rule.
-  commissionRate Decimal?       @db.Decimal(6, 3)
-  /// Rupees per qualifying sale, for a FIXED rule.
-  fixedAmount    Decimal?       @db.Decimal(12, 2)
-
-  /// Cooling-off period. A sale refunded inside it reverses the commission
-  /// rather than paying it.
-  qualificationDays Int
-
-  effectiveFrom DateTime?
-  effectiveTo   DateTime?
-  active        Boolean   @default(true)
-
-  note            String?
-  createdByUserId String?  @db.Uuid
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  commissions Commission[]
-
-  @@index([active, trigger, planTier])
-  @@map("commission_rules")
-}
-
-/// Money owed to a salesperson for one qualifying sale.
-///
-/// Three properties of this table are load-bearing.
-///
-/// **It is generated from a payment, never from a subscription record.** The
-/// `paymentReference` is the evidence, and the unique index on
-/// `(trigger, paymentReference)` in the migration is what makes a repeated
-/// subscription event — a retried webhook, a renewal replayed, a support agent
-/// clicking twice — produce one commission instead of several.
-///
-/// **The amount is nullable.** Null means "qualified, but no rule covered it".
-/// It is not zero, it is not payable, and it is visible to an administrator as
-/// something to fix. Rewriting it as zero would silently settle a debt.
-///
-/// **No client can write to it.** There is no endpoint that accepts an amount,
-/// the salesperson's role holds `commission.read` and not `commission.manage`,
-/// and every figure is computed by `commission.service.ts` from a real payment
-/// and an administrator-authored rule.
-model Commission {
-  id            String  @id @default(uuid()) @db.Uuid
-  salesmanId    String  @db.Uuid
-  attributionId String? @db.Uuid
-  ruleId        String? @db.Uuid
-
-  /// Denormalised for the same reason as on the attribution: a commission
-  /// statement has to read correctly long after profiles have been edited.
-  godId                 String
-  salespersonExternalId String?
-
-  /// The customer this was earned on.
-  organizationId String    @db.Uuid
-  planTier       PlanTier?
-
-  trigger CommissionTrigger @default(SUBSCRIPTION)
-  status  CommissionStatus  @default(PENDING)
-
-  /// What the customer actually paid, exclusive of anything not commissionable.
-  baseAmount Decimal @db.Decimal(12, 2)
-  currency   String  @default("INR")
-
-  /// The rate applied, when the rule was a percentage one.
-  commissionRate   Decimal? @db.Decimal(6, 3)
-  /// Null until a rule covers this sale. Never defaulted to zero.
-  commissionAmount Decimal? @db.Decimal(12, 2)
-
-  /// The successful payment that qualified this. The idempotency key.
-  paymentReference String
-  paymentId        String? @db.Uuid
-  subscriptionId   String? @db.Uuid
-
-  /// When the qualification period ends and the amount may be approved.
-  eligibleAt       DateTime
-  approvedAt       DateTime?
-  approvedByUserId String?   @db.Uuid
-  paidAt           DateTime?
-  paidByUserId     String?   @db.Uuid
-  /// Reference of the payout, not of the customer's payment.
-  payoutReference  String?
-
-  reversedAt     DateTime?
-  /// Why it was reversed or rejected. Required by the API for both.
-  decisionReason String?
-
-  /// Set when no rule matched, so an administrator can see what to create.
-  unmatchedReason String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  salesman     SalesmanProfile      @relation(fields: [salesmanId], references: [id], onDelete: Restrict)
-  attribution  ReferralAttribution? @relation(fields: [attributionId], references: [id], onDelete: SetNull)
-  rule         CommissionRule?      @relation(fields: [ruleId], references: [id], onDelete: SetNull)
-  organization Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-
-  /// One commission per qualifying payment, per kind of sale.
-  ///
-  /// Declared here as well as in the migration so the Prisma client can target
-  /// it: generation uses `upsert` on this key, which turns a retried payment
-  /// webhook into a no-op instead of a race the service has to detect.
-  ///
-  /// `trigger` is part of the key because one payment can legitimately carry a
-  /// subscription and a tracker — two commissions under two rules, and still
-  /// at most one of each.
-  @@unique([trigger, paymentReference])
-  @@index([salesmanId, status])
-  @@index([status, eligibleAt])
-  @@index([organizationId])
-  @@index([godId])
-  @@map("commissions")
 }
 
 /// Custody of one Saarthi tracker between the warehouse and a vehicle.
@@ -7443,17 +7392,22 @@ model WalletEntry {
   /// When a HELD reward is checked for release.
   availableAt DateTime
 
-  userReferralId String? @unique @db.Uuid
-  cashoutId      String? @db.Uuid
+  userReferralId         String? @unique @db.Uuid
+  /// A salesperson's reward: the attribution that earned it.
+  referralAttributionId  String? @unique @db.Uuid
+  /// The referred customer. What a held reward's release is checked against.
+  referredOrganizationId String? @db.Uuid
+  cashoutId              String? @db.Uuid
   /// Why a reward was voided, for the holder and for support.
-  note           String?
+  note                   String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userReferral UserReferral?  @relation(fields: [userReferralId], references: [id], onDelete: SetNull)
-  cashout      WalletCashout? @relation(fields: [cashoutId], references: [id], onDelete: SetNull)
+  user                User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userReferral        UserReferral?        @relation(fields: [userReferralId], references: [id], onDelete: SetNull)
+  referralAttribution ReferralAttribution? @relation(fields: [referralAttributionId], references: [id], onDelete: SetNull)
+  cashout             WalletCashout?       @relation(fields: [cashoutId], references: [id], onDelete: SetNull)
 
   @@index([userId, status])
   @@index([status, availableAt])

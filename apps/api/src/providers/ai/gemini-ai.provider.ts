@@ -6,11 +6,21 @@ import type {
   AiContext,
   AiGenerateInput,
   AiGeneration,
+  AiJsonGeneration,
+  AiJsonRequest,
   AiMessageInput,
   AiRecommendationItem,
   AiToolInvocation,
+  StructuredOutputAiProvider,
   ToolCapableAiProvider,
 } from './ai.provider';
+import {
+  contextBlock,
+  contextReferences,
+  groundedSystemPrompt,
+  parseRecommendations,
+  recommendationQuestion,
+} from './grounded-prompt';
 
 /**
  * Gemini adapter.
@@ -52,23 +62,24 @@ interface GeminiResponse {
   error?: { message?: string; status?: string };
 }
 
-export class GeminiAiProvider implements ToolCapableAiProvider {
+export class GeminiAiProvider implements ToolCapableAiProvider, StructuredOutputAiProvider {
   readonly name = 'gemini';
   readonly model: string;
   readonly supportsTools = true as const;
+  readonly supportsStructuredOutput = true as const;
 
   private readonly apiKey: string;
   private readonly baseUrl: string;
   private readonly log = logger.child({ module: 'ai', provider: 'gemini' });
 
-  constructor() {
+  constructor(model: string = config.ai.model) {
     if (!config.ai.apiKey) {
       // Thrown at construction, so the factory can fall back at boot rather
       // than every request failing at the moment a user asks a question.
       throw new Error('AI_API_KEY is required when AI_PROVIDER=gemini.');
     }
     this.apiKey = config.ai.apiKey;
-    this.model = config.ai.model;
+    this.model = model;
     this.baseUrl = (config.ai.baseUrl ?? DEFAULT_BASE_URL).replace(/\/$/, '');
   }
 
@@ -198,10 +209,7 @@ export class GeminiAiProvider implements ToolCapableAiProvider {
       content: generation.content ?? 'I do not have enough verified data to answer that.',
       // References come from the context Saarthi assembled, never from what the
       // model claims to have cited.
-      references: context.facts
-        .map((fact) => fact.reference)
-        .filter((reference): reference is NonNullable<typeof reference> => Boolean(reference))
-        .slice(0, 8),
+      references: contextReferences(context),
       provider: this.name,
       model: this.model,
       tokensIn: generation.tokensIn,
@@ -215,31 +223,9 @@ export class GeminiAiProvider implements ToolCapableAiProvider {
   }
 
   async recommend(context: AiContext, kind: string): Promise<AiRecommendationItem[]> {
-    const answer = await this.chat(
-      `Give up to three ${kind} recommendations. For each: a title, one sentence of detail, ` +
-        'and the specific facts from the context that justify it. Return JSON matching ' +
-        '[{"title":"","detail":"","reasoning":[""],"confidence":"LOW|MEDIUM|HIGH"}].',
-      context,
-    );
-
+    const answer = await this.chat(recommendationQuestion(kind), context);
     try {
-      const start = answer.content.indexOf('[');
-      const end = answer.content.lastIndexOf(']');
-      if (start === -1 || end === -1) return [];
-
-      const parsed = JSON.parse(answer.content.slice(start, end + 1)) as AiRecommendationItem[];
-      return parsed
-        .filter((item) => item && typeof item.title === 'string')
-        .map((item) => ({
-          title: item.title,
-          detail: item.detail ?? '',
-          // Reasoning is mandatory in the contract; an item without it is
-          // downgraded rather than presented as a justified recommendation.
-          reasoning: Array.isArray(item.reasoning) ? item.reasoning : [],
-          confidence: item.confidence ?? 'LOW',
-          ...(item.reference ? { reference: item.reference } : {}),
-        }))
-        .slice(0, 3);
+      return parseRecommendations(answer.content);
     } catch (error) {
       this.log.warn({ err: error }, 'Could not parse recommendations from the model');
       return [];
@@ -247,10 +233,58 @@ export class GeminiAiProvider implements ToolCapableAiProvider {
   }
 
   // -------------------------------------------------------------------------
+  // Structured output
+  // -------------------------------------------------------------------------
 
-  private async post(path: string, body: unknown): Promise<GeminiResponse> {
+  /**
+   * JSON mode with a response schema, so the answer is an object rather than
+   * prose that has to be scraped for braces. Temperature zero: this is
+   * classification, and the same line should classify the same way twice.
+   */
+  async generateJson(request: AiJsonRequest): Promise<AiJsonGeneration> {
+    const startedAt = Date.now();
+    const response = await this.post(
+      `/${API_VERSION}/models/${this.model}:generateContent`,
+      {
+        systemInstruction: { parts: [{ text: request.system }] },
+        contents: [{ role: 'user', parts: [{ text: request.prompt }] }],
+        generationConfig: {
+          maxOutputTokens: request.maxOutputTokens,
+          temperature: 0,
+          responseMimeType: 'application/json',
+          responseSchema: request.schema,
+        },
+      },
+      request.timeoutMs,
+    );
+
+    const text = (response.candidates?.[0]?.content?.parts ?? [])
+      .map((part) => part.text ?? '')
+      .join('');
+
+    let data: unknown = null;
+    try {
+      data = text ? JSON.parse(text) : null;
+    } catch (error) {
+      // Malformed output is the caller's to handle as "no suggestion".
+      this.log.warn({ err: error }, 'Gemini returned JSON that does not parse');
+    }
+
+    return {
+      data,
+      provider: this.name,
+      model: this.model,
+      tokensIn: response.usageMetadata?.promptTokenCount ?? 0,
+      tokensOut: response.usageMetadata?.candidatesTokenCount ?? 0,
+      latencyMs: Date.now() - startedAt,
+    };
+  }
+
+  // -------------------------------------------------------------------------
+
+  private async post(path: string, body: unknown, timeoutMs = TIMEOUT_MS): Promise<GeminiResponse> {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
       const response = await fetch(`${this.baseUrl}${path}`, {
@@ -292,33 +326,4 @@ function normaliseResponse(value: unknown): Record<string, unknown> {
     return value as Record<string, unknown>;
   }
   return { result: value ?? null };
-}
-
-function groundedSystemPrompt(context: AiContext): string {
-  return [
-    'You are the Saarthi Fleet Copilot, an analyst embedded in a fleet management platform.',
-    '',
-    'Rules you must follow:',
-    '1. Answer ONLY from the CONTEXT block. Never invent a number, a vehicle, a driver or a date.',
-    '2. If the context does not contain the answer, say so plainly and say what data would be needed.',
-    '3. Distinguish recorded facts from calculated metrics and from projections.',
-    '4. Be concise and operational. A fleet owner is reading this between phone calls.',
-    '5. Never suggest an action that would put a driver at risk to save time or money.',
-    '6. Use Indian number formatting for currency and refer to vehicles by registration number.',
-    '',
-    `The user is a ${context.role} operating in scope: ${context.scope}.`,
-  ].join('\n');
-}
-
-function contextBlock(context: AiContext): string {
-  const facts = context.facts
-    .map((fact) => `- [${fact.basis}] ${fact.statement}`)
-    .join('\n');
-  const metrics = Object.entries(context.metrics)
-    .map(([key, value]) => `- ${key}: ${String(value)}`)
-    .join('\n');
-
-  return ['CONTEXT', `Generated at: ${context.generatedAt}`, '', 'Facts:', facts, '', 'Metrics:', metrics].join(
-    '\n',
-  );
 }

@@ -40,7 +40,13 @@ import {
   requirementInclude,
   type RequirementRecord,
 } from './requirement.view';
-import { requireUsablePayoutAccount } from '../marketplace-finance/payout-account.service';
+import { assertCanBid, assertOwner, assertRequirementAccess } from './requirement.access';
+import { resolveSourcedListing } from './requirement-sourcing';
+import {
+  type CategoryAssignment,
+  readAttributeValues,
+  resolveCategoryAssignment,
+} from '../commerce/taxonomy.service';
 
 /**
  * Requirements — the customer's single front door.
@@ -58,113 +64,6 @@ import { requireUsablePayoutAccount } from '../marketplace-finance/payout-accoun
  */
 
 // ---------------------------------------------------------------------------
-// Access
-// ---------------------------------------------------------------------------
-
-/**
- * A requirement is visible to the customer who raised it, to any business that
- * has bid on it, and to any business that *could* bid on it while it is still
- * open. The third case is what makes the board work at all.
- */
-async function assertRequirementAccess(
-  auth: AuthContext,
-  requirement: RequirementRecord,
-): Promise<void> {
-  if (auth.isPlatformAdmin) return;
-  if (auth.organizationId === requirement.customerOrganizationId) return;
-
-  if (auth.organizationId) {
-    const bid = await prisma.requirementBid.findFirst({
-      where: { requirementId: requirement.id, bidderOrganizationId: auth.organizationId },
-      select: { id: true },
-    });
-    if (bid) return;
-
-    const type = auth.organization?.type;
-    if (
-      type &&
-      isRequirementBiddable(requirement.status as RequirementStatus) &&
-      requirementKindsVisibleTo(type).includes(requirement.kind as RequirementKind)
-    ) {
-      return;
-    }
-  }
-
-  throw errors.notFound('Requirement');
-}
-
-/** The customer who raised it, and nobody else. */
-function assertOwner(auth: AuthContext, requirement: RequirementRecord): void {
-  if (auth.isPlatformAdmin) return;
-  if (requirement.customerOrganizationId !== auth.organizationId) {
-    throw errors.forbidden('Only the customer who posted this requirement can do that.');
-  }
-}
-
-/**
- * Whether this organization may answer this requirement with this scope.
- *
- * Deliberately one function rather than a guard on each route: the same three
- * questions — is the scope valid for the kind, is my business type allowed to
- * offer it, is the requirement still open — have to be asked identically when
- * placing a bid, revising one and reading the board, and answering them in
- * three places is how they drift apart.
- */
-function assertCanBid(
-  auth: AuthContext,
-  requirement: RequirementRecord,
-  scope: RequirementBidScope,
-): void {
-  const kind = requirement.kind as RequirementKind;
-
-  if (!BID_SCOPES_BY_KIND[kind].includes(scope)) {
-    throw errors.businessRule(
-      `A ${REQUIREMENT_KIND_LABELS[kind].toLowerCase()} requirement does not take a ${scope.toLowerCase()} offer.`,
-    );
-  }
-
-  // Material requirements that the customer will transport themselves must not
-  // attract transport bids, or a fleet would price work that does not exist.
-  if (
-    kind === RequirementKind.MATERIAL_SUPPLY &&
-    scope === RequirementBidScope.TRANSPORT &&
-    !requirement.needsTransport
-  ) {
-    throw errors.businessRule(
-      'This customer is arranging their own transport, so only material offers are being taken.',
-    );
-  }
-
-  if (!isRequirementBiddable(requirement.status as RequirementStatus)) {
-    throw errors.businessRule('This requirement is no longer taking bids.');
-  }
-
-  if (requirement.bidsCloseAt.getTime() < Date.now()) {
-    throw errors.businessRule('Bidding on this requirement has closed.');
-  }
-
-  if (auth.isPlatformAdmin && !auth.organizationId) {
-    throw errors.organizationRequired('Select the organization you are bidding on behalf of.');
-  }
-
-  const type = auth.organization?.type;
-  if (!type) throw errors.organizationRequired();
-
-  if (!BIDDER_TYPES_BY_SCOPE[scope].includes(type)) {
-    throw errors.forbidden(
-      'This kind of offer is made by a different type of Saarthi account. ' +
-        'Register the appropriate account type to bid on it.',
-    );
-  }
-
-  // A customer bidding on their own requirement would be able to close it at
-  // any price and pollute every provider's win rate.
-  if (requirement.customerOrganizationId === auth.organizationId) {
-    throw errors.businessRule('You cannot bid on your own requirement.');
-  }
-}
-
-// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
@@ -172,6 +71,53 @@ async function nextReference(): Promise<string> {
   const year = new Date().getFullYear();
   const count = await prisma.requirement.count();
   return `RQ-${year}-${String(count + 1).padStart(5, '0')}`;
+}
+
+/** How far back an identical open material need counts as a double post. */
+const DUPLICATE_WINDOW_HOURS = 24;
+
+function sameAttributes(stored: Prisma.JsonValue | null, wanted: Record<string, unknown>): boolean {
+  const current = readAttributeValues(stored);
+  const keys = new Set([...Object.keys(current), ...Object.keys(wanted)]);
+  return [...keys].every((key) => current[key] === wanted[key]);
+}
+
+/**
+ * Refuse a second copy of a classified material need that is still open.
+ *
+ * Only classified needs are checked: category, quantity and details together
+ * identify one, whereas two free-text titles saying "cement" may well be two
+ * different sites. A double tap on "Post" would otherwise announce the same
+ * work twice to every fleet in range.
+ */
+async function assertNotDuplicateMaterialNeed(
+  organizationId: string,
+  kind: RequirementKind,
+  assignment: CategoryAssignment | null,
+  material: { quantity: number; unit: string },
+): Promise<void> {
+  if (!assignment || kind !== RequirementKind.MATERIAL_SUPPLY) return;
+
+  const recent = await prisma.requirement.findMany({
+    where: {
+      customerOrganizationId: organizationId,
+      kind: RequirementKind.MATERIAL_SUPPLY,
+      categoryId: assignment.categoryId,
+      quantity: material.quantity,
+      unit: material.unit as never,
+      status: { in: [RequirementStatus.OPEN, RequirementStatus.BIDDING] },
+      createdAt: { gte: new Date(Date.now() - DUPLICATE_WINDOW_HOURS * 3_600_000) },
+    },
+    select: { reference: true, attributes: true },
+    take: 10,
+  });
+
+  const duplicate = recent.find((row) => sameAttributes(row.attributes, assignment.attributes));
+  if (duplicate) {
+    throw errors.conflict(
+      `You already have this requirement open as ${duplicate.reference}. Update that one instead of posting it again.`,
+    );
+  }
 }
 
 async function recordEvent(
@@ -371,18 +317,13 @@ export async function createRequirement(
   const cab = input.cabDetail;
   const tour = input.tourDetail;
 
-  // A referenced listing has to exist and be sellable, or the supplier board
-  // would show an offer against something that was withdrawn yesterday.
-  if (material?.materialId) {
-    const listing = await prisma.material.findFirst({
-      where: { id: material.materialId, archivedAt: null },
-      select: { id: true, status: true, name: true },
-    });
-    if (!listing) throw errors.notFound('Material');
-    if (listing.status !== 'ACTIVE') {
-      throw errors.businessRule(`${listing.name} is not currently available to order.`);
-    }
-  }
+  // A classified need is validated against the taxonomy exactly as a seller's
+  // listing is, so the two can be matched on the same structured fields.
+  const assignment = material?.categoryId
+    ? await resolveCategoryAssignment(material.categoryId, material.attributes, 'REQUIREMENT')
+    : null;
+
+  if (material) await assertNotDuplicateMaterialNeed(organizationId, input.kind, assignment, material);
 
   const distance = input.destination
     ? Number(
@@ -427,13 +368,15 @@ export async function createRequirement(
       contactName: input.contactName ?? null,
       contactPhone: input.contactPhone ?? null,
 
-      materialId: material?.materialId ?? null,
       materialName: material?.materialName ?? null,
-      materialCategory: material?.category ?? null,
+      materialCategory: assignment?.categoryName ?? material?.category ?? null,
+      categoryId: assignment?.categoryId ?? null,
+      attributes: assignment ? (assignment.attributes as Prisma.InputJsonObject) : undefined,
       specification: material?.specification ?? null,
       quantity: material?.quantity ?? freight?.quantity ?? null,
       unit: material?.unit ?? freight?.unit ?? null,
-      needsTransport: material?.needsTransport ?? false,
+      // Always delivered: the fleet that sources the goods also brings them.
+      needsTransport: Boolean(material),
 
       goodsDescription: freight?.goodsDescription ?? null,
       requiredCapacityTons: freight?.requiredCapacityTons ?? null,
@@ -949,60 +892,17 @@ export async function placeBid(
     }
   }
 
-  /*
-   * A delivered bid: the fleet buys the material from a supplier listing and
-   * delivers it, and its price is its selling price to the customer. The
-   * procurement reference — the listing price for the quantity asked for — is
-   * worked out here from the listing, never taken from the request, and the
-   * listing must actually have the stock.
-   */
-  let procurementReference: number | null = null;
-  if (input.sourceMaterialId) {
-    if (requirement.kind !== RequirementKind.MATERIAL_SUPPLY) {
-      throw errors.businessRule('Only a material requirement can be bid on with sourced material.');
-    }
-    const listing = await prisma.material.findFirst({
-      where: { id: input.sourceMaterialId, archivedAt: null },
-      select: {
-        name: true,
-        category: true,
-        status: true,
-        pricePerUnit: true,
-        availableQuantity: true,
-        minimumOrderQty: true,
-        unit: true,
-      },
-    });
-    if (!listing || listing.status !== 'ACTIVE') {
-      throw errors.notFound('Material', 'That supplier listing is not available.');
-    }
-    if (requirement.materialCategory && listing.category !== requirement.materialCategory) {
-      throw errors.businessRule(`That listing is ${listing.name}, not the material this requirement asks for.`);
-    }
-    const quantity = requirement.quantity ?? 1;
-    if (listing.availableQuantity < quantity) {
-      throw errors.businessRule(
-        `The supplier has ${listing.availableQuantity} ${listing.unit.toLowerCase()} available; this requirement needs ${quantity}.`,
-      );
-    }
-    if (listing.minimumOrderQty && quantity < listing.minimumOrderQty) {
-      throw errors.businessRule(
-        `The supplier's minimum order is ${listing.minimumOrderQty} ${listing.unit.toLowerCase()}.`,
-      );
-    }
-    procurementReference = Math.round(Number(listing.pricePerUnit) * quantity * 100) / 100;
-    // The customer's 30% is routed straight to this fleet, so it must be able
-    // to receive it before it can offer the job.
-    await requireUsablePayoutAccount(organizationId, 'Your business');
+  // A material requirement is answered only by a fleet that sources the goods
+  // from a Seller and delivers them; there is no transport-only offer for it.
+  if (requirement.kind === RequirementKind.MATERIAL_SUPPLY && !input.sourceMaterialId) {
+    throw errors.businessRule(
+      'Choose the seller listing you will source this material from. Material is delivered by the fleet that supplies it.',
+    );
   }
 
-  if (input.scope === RequirementBidScope.MATERIAL && input.materialId) {
-    const listing = await prisma.material.findFirst({
-      where: { id: input.materialId, organizationId, archivedAt: null },
-      select: { id: true },
-    });
-    if (!listing) throw errors.notFound('Material', 'That material is not one of yours.');
-  }
+  const procurementReference = input.sourceMaterialId
+    ? (await resolveSourcedListing(requirement, input.sourceMaterialId, organizationId)).procurementReference
+    : null;
 
   if (input.scope === RequirementBidScope.TRAVEL) {
     const provider = await prisma.serviceProviderProfile.findUnique({

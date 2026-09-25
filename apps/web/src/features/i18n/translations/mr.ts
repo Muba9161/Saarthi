@@ -41,7 +41,7 @@ export const mr: Catalogue = {
   'Telemetry alerts': 'टेलिमेट्री सूचना',
   Devices: 'उपकरणे',
   Analytics: 'अ‍ॅनालिटिक्स',
-  'AI Copilot': 'AI कोपायलट',
+  'Saarthi Mitra': 'सारथी मित्र',
   'GPS simulator': 'GPS सिम्युलेटर',
   'My trip': 'माझी ट्रिप',
   Nearby: 'जवळपास',
@@ -189,8 +189,6 @@ export const mr: Catalogue = {
     'माझ्याकडे ट्रक आहेत आणि मला माझा ताफा सांभाळायचा व लोड मिळवायचे आहेत.',
   'I need materials, transport, a cab or a tour, and want offers to compare.':
     'मला साहित्य, वाहतूक, कॅब किंवा प्रवास हवा आहे, आणि तुलना करण्यासाठी प्रस्ताव हवेत.',
-  'I sell materials and arrange dispatch from my yard.':
-    'मी माल विकतो आणि माझ्या यार्डमधून पाठवण्याची व्यवस्था करतो.',
   'I run taxis, buses or tour packages and sell passenger journeys.':
     'मी टॅक्सी, बस किंवा टूर पॅकेज चालवतो आणि प्रवासी सहली विकतो.',
   'I represent a district association coordinating roadside help.':
@@ -199,8 +197,6 @@ export const mr: Catalogue = {
     'मी अशा ताफ्यासाठी गाडी चालवतो जो आधीच Saarthi वापरतो.',
   'The operating system for your trucking business.':
     'तुमच्या ट्रकिंग व्यवसायाची ऑपरेटिंग सिस्टिम.',
-  'Saarthi connects fleet owners, drivers, suppliers and customers on one platform - from posting a load to watching it arrive.':
-    'Saarthi ताफा मालक, चालक, पुरवठादार आणि ग्राहक यांना एकाच व्यासपीठावर जोडते - लोड टाकण्यापासून तो पोहोचेपर्यंत.',
   'One fleet command centre': 'एकच फ्लीट कमांड सेंटर',
   'Trucks, drivers, documents, orders and trips in a single operational view.':
     'ट्रक, चालक, कागदपत्रे, ऑर्डर आणि ट्रिप - सर्व एकाच कार्यदृश्यात.',
@@ -256,7 +252,6 @@ export const mr: Catalogue = {
   'SOS incidents': 'SOS घटना',
   'Nearby services': 'जवळपासच्या सेवा',
   Deliveries: 'डिलिव्हरी',
-  'Find materials': 'साहित्य शोधा',
   'My orders': 'माझे ऑर्डर',
   'Track deliveries': 'डिलिव्हरी ट्रॅक करा',
   'My travel': 'माझा प्रवास',
@@ -313,4 +308,14 @@ export const mr: Catalogue = {
   'One number': 'एक अंक',
   '{count} short steps. Nothing is saved until the last one.':
     '{count} छोटे टप्पे. शेवटच्या टप्प्यापर्यंत काहीही जतन होत नाही.',
+
+  // --- Smart commerce: sellers, products and categories ------------------
+  Products: 'उत्पादने',
+  'Find sellers': 'विक्रेते शोधा',
+  'Product categories': 'उत्पादन श्रेणी',
+  Seller: 'विक्रेता',
+  'I sell goods of any kind and dispatch them from my own premises.':
+    'मी सर्व प्रकारचा माल विकतो आणि माझ्या जागेवरून पाठवतो.',
+  'Saarthi connects fleet owners, drivers, sellers and customers on one platform - from posting a load to watching it arrive.':
+    'Saarthi ताफा मालक, चालक, विक्रेते आणि ग्राहक यांना एकाच व्यासपीठावर जोडते - लोड टाकण्यापासून तो पोहोचेपर्यंत.',
 };

@@ -53,6 +53,11 @@ process.env.PAYMENT_PROVIDER = 'mock';
 // Signs test webhooks. Never a real key.
 process.env.CASHFREE_SECRET_KEY = 'test-webhook-secret';
 process.env.SUBSCRIPTION_TRIAL_DAYS = '30';
+// The local analyst, whatever `.env` selects: a developer's Groq or Gemini key
+// must never turn the suite into billable, rate-limited, non-deterministic
+// calls. Hosted providers are tested against a mocked HTTP layer instead.
+process.env.AI_PROVIDER = 'development';
+process.env.AI_API_KEY = '';
 process.env.CACHE_DRIVER = 'memory';
 process.env.QUEUE_DRIVER = 'memory';
 process.env.PUBSUB_DRIVER = 'memory';

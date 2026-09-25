@@ -4,7 +4,9 @@ import { logger } from '../../lib/logger';
 import { aiProvider } from '../../providers/ai';
 import { supportsTools, type AiTurn } from '../../providers/ai/ai.provider';
 import { authorizedTools, executeTool, toolSpecifications } from './tools/registry';
-import type { RecordedToolCall } from './tools/tool.types';
+import { routeTools } from './tools/tool-routing';
+import { MITRA_QUESTION_OPERATION, TERMINAL_ASSISTANT_OPERATION } from './ai-usage';
+import type { AssistantAction, RecordedToolCall } from './tools/tool.types';
 import type { AuthContext } from '../../auth/context';
 
 /**
@@ -36,6 +38,8 @@ export interface CopilotAnswer {
   references: { type: string; id: string; label: string }[];
   /** Caveats gathered from the tools, surfaced rather than summarised away. */
   caveats: string[];
+  /** Screens Mitra offers to open — prefilled drafts, guides, the next setup step. */
+  actions: AssistantAction[];
   provider: string;
   model: string;
   tokensIn: number;
@@ -47,7 +51,64 @@ export interface CopilotAnswer {
   generatedAt: string;
 }
 
-function systemPrompt(auth: AuthContext, organizationName: string): string {
+/**
+ * How the copilot speaks.
+ *
+ * `companion` is the chat screen: warm, human, glad about good news and
+ * concerned about bad, in the person's own language. `terminal` is a driver's
+ * in-cab assistant, where every extra word is attention taken off the road, so
+ * it stays brief and plain.
+ */
+export type CopilotVoice = 'companion' | 'terminal';
+
+export interface AskOptions {
+  voice?: CopilotVoice;
+  /** Earlier messages, oldest first. Context only — never a source of figures. */
+  history?: { role: 'user' | 'assistant'; content: string }[];
+}
+
+function voiceGuidance(voice: CopilotVoice, firstName: string): string[] {
+  if (voice === 'terminal') {
+    return ['- Be brief and operational. The reader is running a business between phone calls.'];
+  }
+  return [
+    '',
+    'Your voice:',
+    `- You are Saarthi Mitra, a warm and switched-on companion to ${firstName}. Talk like a trusted`,
+    '  colleague who genuinely cares how their business is going - never like a report.',
+    `- Use their name ("${firstName}") now and then, not in every message.`,
+    '- React the way a person would. Celebrate good news ("That is a great week!"), show real',
+    '  concern about problems ("A breakdown on the highway is stressful - here is what I can see"),',
+    '  and reassure them plainly when everything is fine.',
+    '- Reply in the language they wrote in: English, Hindi or Hinglish.',
+    '- Keep it conversational and easy to read: short sentences, a short list when there are',
+    '  several items, **bold** for the one thing that matters most. At most one emoji, only when',
+    '  it fits the mood, and never beside bad news or anything about safety.',
+    '- When there is a natural next step, end by offering it in one short line.',
+    '- Warmth never outranks accuracy: every rule above still applies in full. You are an AI',
+    '  assistant, and you say so honestly if asked.',
+    '- Earlier messages in this conversation are context for what they mean. Any figure you give',
+    '  must come from a tool result in this turn - check again rather than repeating a number',
+    '  from an earlier message.',
+    '',
+    'What you can do for them:',
+    '- "How do I..." questions: use get_help_guide and walk them through the steps it returns.',
+    '- "What should I do next / am I verified / set up my account": use get_account_setup_status.',
+    '- When they want to post a requirement or list a product, use draft_requirement or',
+    '  draft_product with their own words. Tell them what you understood and what is still',
+    '  missing, and that the button under your reply opens it ready to review.',
+    '- You never save, post, publish, pay or change anything yourself. Every change is made by',
+    '  them on the screen your button opens. Never say something was posted or saved.',
+    '- You never start a payment. For verification fees, top-ups or trackers, show them the',
+    '  steps and the screen, and let them decide there.',
+  ];
+}
+
+function systemPrompt(
+  auth: AuthContext,
+  organizationName: string,
+  voice: CopilotVoice,
+): string {
   return [
     'You are the Saarthi Fleet Copilot, embedded in a fleet management platform used by',
     'transport operators in India.',
@@ -69,12 +130,12 @@ function systemPrompt(auth: AuthContext, organizationName: string): string {
     '  never average across them, and always say which one a figure came from. Telling an owner',
     '  their coolant ran at 112 °C, when a test app invented the number, could put a working',
     '  truck in a workshop for a fault that does not exist.',
-    '- Be brief and operational. The reader is running a business between phone calls.',
     '- Use Indian currency formatting and refer to vehicles by registration number.',
     '- Never recommend an action that trades a driver’s safety for time or money.',
     '',
     `The person asking is a ${auth.organization?.membershipRole ?? auth.user.roles[0] ?? 'user'} at ${organizationName}.`,
     'They can only see their own organisation’s data, and so can you.',
+    ...voiceGuidance(voice, auth.user.firstName || 'there'),
   ].join('\n');
 }
 
@@ -91,7 +152,9 @@ export async function askWithTools(
   auth: AuthContext,
   organizationId: string,
   question: string,
+  options: AskOptions = {},
 ): Promise<CopilotAnswer> {
+  const voice = options.voice ?? 'terminal';
   if (!supportsTools(aiProvider)) {
     throw errors.providerNotConfigured(
       'ai',
@@ -106,12 +169,25 @@ export async function askWithTools(
     select: { name: true },
   });
 
-  const tools = authorizedTools(auth);
+  // The chat screen offers only the tool groups the question is about, which
+  // keeps each model call small; the terminal keeps its full, fixed set.
+  const tools =
+    voice === 'companion'
+      ? routeTools(authorizedTools(auth), [
+          question,
+          ...(options.history ?? []).filter((message) => message.role === 'user').slice(-1).map((message) => message.content),
+        ])
+      : // Mitra's guide and drafts belong to the chat screen, not the cab.
+        authorizedTools(auth).filter((tool) => tool.category !== 'assistant');
   const specifications = toolSpecifications(tools);
 
-  const turns: AiTurn[] = [{ role: 'user', content: question }];
+  const turns: AiTurn[] = [
+    ...(options.history ?? []).map((message) => ({ role: message.role, content: message.content })),
+    { role: 'user', content: question },
+  ];
   const recorded: RecordedToolCall[] = [];
   const references: CopilotAnswer['references'] = [];
+  const actions: AssistantAction[] = [];
   const caveats = new Set<string>();
 
   let tokensIn = 0;
@@ -126,7 +202,7 @@ export async function askWithTools(
     iterations += 1;
 
     const generation = await aiProvider.generate({
-      system: systemPrompt(auth, organization?.name ?? 'your organisation'),
+      system: systemPrompt(auth, organization?.name ?? 'your organisation', voice),
       turns,
       tools: specifications,
     });
@@ -168,6 +244,9 @@ export async function askWithTools(
         }
       }
       for (const caveat of execution.record.caveats) caveats.add(caveat);
+      for (const action of execution.record.actions) {
+        if (!actions.some((entry) => entry.path === action.path)) actions.push(action);
+      }
 
       turns.push({
         role: 'tool',
@@ -192,6 +271,8 @@ export async function askWithTools(
     toolCalls: recorded,
     references: references.slice(0, 12),
     caveats: [...caveats],
+    // A reply with more than a few buttons is a menu, not an answer.
+    actions: actions.slice(0, 3),
     provider,
     model,
     tokensIn,
@@ -202,7 +283,7 @@ export async function askWithTools(
     generatedAt: new Date().toISOString(),
   };
 
-  await recordProvenance(auth, organizationId, question, result);
+  await recordProvenance(auth, organizationId, question, result, voice);
   return result;
 }
 
@@ -219,6 +300,7 @@ async function recordProvenance(
   organizationId: string,
   question: string,
   result: CopilotAnswer,
+  voice: CopilotVoice,
 ): Promise<void> {
   try {
     await prisma.aiUsage.create({
@@ -227,7 +309,7 @@ async function recordProvenance(
         userId: auth.user.id,
         provider: result.provider,
         model: result.model,
-        operation: 'copilot.tools',
+        operation: voice === 'terminal' ? TERMINAL_ASSISTANT_OPERATION : MITRA_QUESTION_OPERATION,
         tokensIn: result.tokensIn,
         tokensOut: result.tokensOut,
         latencyMs: result.latencyMs,

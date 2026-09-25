@@ -19,9 +19,13 @@ export function summarise(requirement: RequirementSummary): {
         requirement.quantity !== null && requirement.unit
           ? `${formatNumber(requirement.quantity)} ${humanizeEnum(requirement.unit).toLowerCase()}`
           : null;
+      const details = Object.values(requirement.attributes ?? {}).map(String);
       return {
         headline: [amount, requirement.materialName].filter(Boolean).join(' of ') || 'Material',
-        detail: requirement.needsTransport ? 'Delivery needed' : 'Customer arranges transport',
+        detail:
+          [requirement.category?.path.map((node) => node.name).join(' › '), ...details]
+            .filter(Boolean)
+            .join(' · ') || 'Sourced and delivered by a fleet owner',
       };
     }
 

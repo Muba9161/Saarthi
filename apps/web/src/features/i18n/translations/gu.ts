@@ -41,7 +41,7 @@ export const gu: Catalogue = {
   'Telemetry alerts': 'ટેલિમેટ્રી ચેતવણી',
   Devices: 'ઉપકરણો',
   Analytics: 'એનાલિટિક્સ',
-  'AI Copilot': 'AI કોપાયલટ',
+  'Saarthi Mitra': 'સારથી મિત્ર',
   'GPS simulator': 'GPS સિમ્યુલેટર',
   'My trip': 'મારી ટ્રિપ',
   Nearby: 'નજીકમાં',
@@ -189,8 +189,6 @@ export const gu: Catalogue = {
     'મારી પાસે ટ્રક છે અને હું મારો કાફલો ચલાવવા તથા લોડ મેળવવા માંગું છું.',
   'I need materials, transport, a cab or a tour, and want offers to compare.':
     'મને સામગ્રી, પરિવહન, કેબ કે પ્રવાસ જોઈએ છે, અને સરખામણી માટે ઓફર જોઈએ છે.',
-  'I sell materials and arrange dispatch from my yard.':
-    'હું માલ વેચું છું અને મારા યાર્ડમાંથી મોકલવાની વ્યવસ્થા કરું છું.',
   'I run taxis, buses or tour packages and sell passenger journeys.':
     'હું ટેક્સી, બસ કે ટૂર પેકેજ ચલાવું છું અને મુસાફરોની સફર વેચું છું.',
   'I represent a district association coordinating roadside help.':
@@ -198,8 +196,6 @@ export const gu: Catalogue = {
   'I drive for a fleet that already uses Saarthi.':
     'હું એવા કાફલા માટે ગાડી ચલાવું છું જે પહેલેથી Saarthi વાપરે છે.',
   'The operating system for your trucking business.': 'તમારા ટ્રકિંગ વ્યવસાયની ઓપરેટિંગ સિસ્ટમ.',
-  'Saarthi connects fleet owners, drivers, suppliers and customers on one platform - from posting a load to watching it arrive.':
-    'Saarthi કાફલા માલિકો, ડ્રાઇવરો, સપ્લાયરો અને ગ્રાહકોને એક જ પ્લેટફોર્મ પર જોડે છે - લોડ મૂકવાથી લઈને તે પહોંચે ત્યાં સુધી.',
   'One fleet command centre': 'એક જ ફ્લીટ કમાન્ડ સેન્ટર',
   'Trucks, drivers, documents, orders and trips in a single operational view.':
     'ટ્રક, ડ્રાઇવર, દસ્તાવેજો, ઓર્ડર અને ટ્રિપ - બધું એક જ કાર્યદૃશ્યમાં.',
@@ -255,7 +251,6 @@ export const gu: Catalogue = {
   'SOS incidents': 'SOS ઘટનાઓ',
   'Nearby services': 'નજીકની સેવાઓ',
   Deliveries: 'ડિલિવરી',
-  'Find materials': 'સામગ્રી શોધો',
   'My orders': 'મારા ઓર્ડર',
   'Track deliveries': 'ડિલિવરી ટ્રેક કરો',
   'My travel': 'મારો પ્રવાસ',
@@ -312,4 +307,14 @@ export const gu: Catalogue = {
   'One number': 'એક અંક',
   '{count} short steps. Nothing is saved until the last one.':
     '{count} ટૂંકા પગલાં. છેલ્લા પગલા સુધી કંઈ સાચવાતું નથી.',
+
+  // --- Smart commerce: sellers, products and categories ------------------
+  Products: 'ઉત્પાદનો',
+  'Find sellers': 'વિક્રેતાઓ શોધો',
+  'Product categories': 'ઉત્પાદન શ્રેણીઓ',
+  Seller: 'વિક્રેતા',
+  'I sell goods of any kind and dispatch them from my own premises.':
+    'હું દરેક પ્રકારનો માલ વેચું છું અને મારી પોતાની જગ્યાએથી મોકલું છું.',
+  'Saarthi connects fleet owners, drivers, sellers and customers on one platform - from posting a load to watching it arrive.':
+    'Saarthi કાફલા માલિકો, ડ્રાઇવરો, વિક્રેતાઓ અને ગ્રાહકોને એક જ પ્લેટફોર્મ પર જોડે છે - લોડ મૂકવાથી લઈને તે પહોંચે ત્યાં સુધી.',
 };

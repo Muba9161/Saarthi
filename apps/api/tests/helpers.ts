@@ -221,7 +221,7 @@ export async function resetDatabase(): Promise<void> {
     'password_reset_tokens',
     'sessions',
     /*
-     * Sales, referrals and commission.
+     * Sales, referrals and their wallet rewards.
      *
      * Listed explicitly and in dependency order, like the expansion tables
      * above. It matters more here than elsewhere: the attribution table carries
@@ -231,8 +231,11 @@ export async function resetDatabase(): Promise<void> {
      * bug rather than as leaked state.
      */
     'tracker_handovers',
-    'commissions',
-    'commission_rules',
+    'wallet_entries',
+    'wallet_cashouts',
+    'wallet_bank_accounts',
+    'user_referrals',
+    'referral_program_codes',
     'sales_lead_events',
     'sales_leads',
     'referral_attributions',

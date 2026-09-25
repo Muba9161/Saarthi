@@ -324,6 +324,20 @@ const envSchema = z.object({
   CASHFREE_PAYOUT_CLIENT_ID: blankAsUnset(z.string().min(1)),
   CASHFREE_PAYOUT_CLIENT_SECRET: blankAsUnset(z.string().min(1)),
   NOTIFICATION_PROVIDER: z.enum(['local', 'production']).default('local'),
+  /**
+   * Outgoing email over SMTP — password resets and salesperson signup links.
+   * Defaults suit Google (Gmail / Workspace): smtp.gmail.com on 465 with TLS,
+   * signed in with the mailbox address and a Google App Password. Email is
+   * sent only when both SMTP_USER and SMTP_PASSWORD are set.
+   */
+  SMTP_HOST: z.string().min(1).default('smtp.gmail.com'),
+  SMTP_PORT: z.coerce.number().int().min(1).max(65_535).default(465),
+  /** True for implicit TLS (port 465); false for STARTTLS (port 587). */
+  SMTP_SECURE: booleanish(true),
+  SMTP_USER: blankAsUnset(z.string().min(1)),
+  SMTP_PASSWORD: blankAsUnset(z.string().min(1)),
+  /** The From line, e.g. `VorldX Saarthi <no-reply@vorldx.com>`. Defaults to SMTP_USER. */
+  EMAIL_FROM: blankAsUnset(z.string().min(3)),
   VERIFICATION_PROVIDER: z.enum(['manual', 'external']).default('manual'),
 
   // --- Driver verification enforcement ---------------------------------------
@@ -355,10 +369,29 @@ const envSchema = z.object({
    */
   ALLOW_UNVERIFIED_DRIVERS: booleanish(false),
 
-  AI_PROVIDER: z.enum(['development', 'anthropic', 'gemini']).default('development'),
+  AI_PROVIDER: z.enum(['development', 'anthropic', 'gemini', 'groq']).default('development'),
   AI_API_KEY: z.string().optional(),
-  AI_MODEL: z.string().default('claude-sonnet-5'),
+  /** Defaults per provider when unset — see `DEFAULT_AI_MODEL`. */
+  AI_MODEL: z.string().optional(),
   AI_BASE_URL: z.string().optional(),
+  /**
+   * Models tried in order when the primary one fails, is rate-limited or times
+   * out. After the last, Saarthi answers with its local analyst, so an AI
+   * outage degrades answers rather than failing requests.
+   */
+  AI_FALLBACK_MODELS: csv([]),
+  AI_TIMEOUT_MS: z.coerce.number().int().min(1000).max(120_000).default(30_000),
+
+  // Smart commerce. The taxonomy classifies most product and requirement lines
+  // on its own; the model is consulted only when it is unsure, and these bound
+  // what that can cost. Exhausting a limit silently falls back to the
+  // deterministic result — the form never stops working because of AI.
+  COMMERCE_AI_ENABLED: booleanish(true),
+  COMMERCE_AI_TIMEOUT_MS: z.coerce.number().int().min(1000).max(30_000).default(8_000),
+  COMMERCE_AI_DAILY_LIMIT_PER_USER: z.coerce.number().int().min(0).max(10_000).default(50),
+  COMMERCE_AI_DAILY_LIMIT_PER_ORG: z.coerce.number().int().min(0).max(100_000).default(300),
+  /** Requests per user per minute to the interpret endpoint, AI or not. */
+  COMMERCE_INTERPRET_RATE_LIMIT: z.coerce.number().int().min(1).max(600).default(30),
 
   CACHE_DRIVER: z.enum(['memory', 'redis']).default('memory'),
   QUEUE_DRIVER: z.enum(['memory', 'redis']).default('memory'),
@@ -651,6 +684,20 @@ function parseEnv(): RawEnv {
 }
 
 const raw = parseEnv();
+
+/**
+ * The model each provider uses when AI_MODEL is unset. Anthropic's keeps the
+ * value the variable always defaulted to; Groq's is its production open model.
+ */
+const DEFAULT_AI_MODEL: Record<RawEnv['AI_PROVIDER'], string> = {
+  development: 'claude-sonnet-5',
+  anthropic: 'claude-sonnet-5',
+  gemini: 'claude-sonnet-5',
+  groq: 'openai/gpt-oss-120b',
+};
+
+/** Groq's fallback when AI_FALLBACK_MODELS is unset: the smaller sibling model. */
+const DEFAULT_GROQ_FALLBACK_MODELS = ['openai/gpt-oss-20b'];
 
 const isProduction = raw.NODE_ENV === 'production';
 
@@ -961,8 +1008,21 @@ export const config = {
   ai: {
     provider: raw.AI_PROVIDER,
     apiKey: raw.AI_API_KEY || undefined,
-    model: raw.AI_MODEL,
+    model: raw.AI_MODEL || DEFAULT_AI_MODEL[raw.AI_PROVIDER],
+    fallbackModels:
+      raw.AI_FALLBACK_MODELS.length > 0 || raw.AI_PROVIDER !== 'groq'
+        ? raw.AI_FALLBACK_MODELS
+        : DEFAULT_GROQ_FALLBACK_MODELS,
     baseUrl: raw.AI_BASE_URL || undefined,
+    timeoutMs: raw.AI_TIMEOUT_MS,
+  },
+
+  commerce: {
+    aiEnabled: raw.COMMERCE_AI_ENABLED,
+    aiTimeoutMs: raw.COMMERCE_AI_TIMEOUT_MS,
+    aiDailyLimitPerUser: raw.COMMERCE_AI_DAILY_LIMIT_PER_USER,
+    aiDailyLimitPerOrganization: raw.COMMERCE_AI_DAILY_LIMIT_PER_ORG,
+    interpretRateLimit: raw.COMMERCE_INTERPRET_RATE_LIMIT,
   },
 
   infra: {
@@ -1075,6 +1135,17 @@ export const config = {
     referralRateLimitMax: raw.SALES_REFERRAL_RATE_LIMIT_MAX,
     referralRateLimitWindow: raw.SALES_REFERRAL_RATE_LIMIT_WINDOW,
     onboardingTelemetryGraceMinutes: raw.SALES_ONBOARDING_TELEMETRY_GRACE_MINUTES,
+  },
+
+  email: {
+    /** Whether this deployment can send email at all. */
+    configured: Boolean(raw.SMTP_USER && raw.SMTP_PASSWORD),
+    host: raw.SMTP_HOST,
+    port: raw.SMTP_PORT,
+    secure: raw.SMTP_SECURE,
+    user: raw.SMTP_USER ?? '',
+    password: raw.SMTP_PASSWORD ?? '',
+    from: raw.EMAIL_FROM ?? raw.SMTP_USER ?? '',
   },
 
   referralProgram: {

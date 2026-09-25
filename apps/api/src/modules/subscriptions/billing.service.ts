@@ -1,5 +1,5 @@
 import {
-  CommissionTrigger,
+  PaymentTrigger,
   NotificationPriority,
   NotificationType,
   OPERATOR_OWNER_ROLES,
@@ -138,7 +138,7 @@ export async function activatePaidAddOns(input: {
       organizationId: input.organizationId,
       baseAmount: topUpCharge.subtotal,
       paymentReference: input.paymentReference,
-      trigger: CommissionTrigger.VEHICLE_TOPUP,
+      trigger: PaymentTrigger.VEHICLE_TOPUP,
       planTier: tier,
     });
   }
@@ -162,7 +162,7 @@ export async function activatePaidAddOns(input: {
       organizationId: input.organizationId,
       baseAmount: trackersCharged.subtotal,
       paymentReference: input.paymentReference,
-      trigger: CommissionTrigger.TRACKER,
+      trigger: PaymentTrigger.TRACKER,
       planTier: tier,
     });
   }

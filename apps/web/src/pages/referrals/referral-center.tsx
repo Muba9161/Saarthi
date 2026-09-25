@@ -4,7 +4,6 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Copy, Gift, Link2, Share2 } from 'lucide-react';
 import {
-  WalletEntryStatus,
   canJoinReferralProgram,
   formatCurrency,
   formatDate,
@@ -15,12 +14,12 @@ import type { Paginated } from '@/lib/api-types';
 import { api } from '@/lib/api-client';
 import { useAuth } from '@/features/auth/auth-context';
 import { EarningsBanner } from '@/features/referrals/earnings-banner';
+import { RewardCell } from '@/features/referrals/reward-cell';
 import { ShareLinks } from '@/features/referrals/share-links';
 import { WalletPanel } from '@/features/wallet/wallet-panel';
 import { useWallet } from '@/features/wallet/use-wallet';
 import { PageHeader, SectionHeader } from '@/components/common/page-header';
 import { DataTable, type Column } from '@/components/common/data-table';
-import { StatusBadge } from '@/components/common/status-badge';
 import { ErrorState, LoadingState } from '@/components/common/states';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -53,25 +52,6 @@ function openShareSheet(summary: ReferralProgramSummary): void {
     if (error instanceof DOMException && error.name === 'AbortError') return;
     toast.error('Could not open sharing on this device.');
   });
-}
-
-function RewardCell({ reward }: { reward: UserReferralView['reward'] }) {
-  if (!reward) {
-    return <span className="text-sm text-muted-foreground">No reward (Free plan)</span>;
-  }
-  const note =
-    reward.status === WalletEntryStatus.HELD
-      ? `Unlocks ${formatDate(reward.availableAt)}`
-      : reward.status === WalletEntryStatus.AVAILABLE
-        ? 'In your wallet'
-        : 'Trial ended early';
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      <span className="font-medium tabular-nums">{formatCurrency(reward.amount)}</span>
-      <StatusBadge status={reward.status} />
-      <span className="text-xs text-muted-foreground">{note}</span>
-    </div>
-  );
 }
 
 const columns: Column<UserReferralView>[] = [

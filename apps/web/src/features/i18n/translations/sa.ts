@@ -46,7 +46,7 @@ export const sa: Catalogue = {
   'Telemetry alerts': 'दूरमापनसूचनाः',
   Devices: 'उपकरणानि',
   Analytics: 'विश्लेषणम्',
-  'AI Copilot': 'AI सहचालकः',
+  'Saarthi Mitra': 'सारथिमित्रम्',
   'GPS simulator': 'GPS अनुकारकः',
   'My trip': 'मम यात्रा',
   Nearby: 'समीपे',
@@ -194,8 +194,6 @@ export const sa: Catalogue = {
     'मम भारयानानि सन्ति, स्वयानसमूहं परिपालयितुं भारं प्राप्तुं च इच्छामि।',
   'I need materials, transport, a cab or a tour, and want offers to compare.':
     'मह्यं सामग्री, परिवहनं, यानं वा यात्रा आवश्यकी, तुलनार्थं मूल्यनिवेदनानि च इच्छामि।',
-  'I sell materials and arrange dispatch from my yard.':
-    'अहं सामग्रीं विक्रीणामि स्वाङ्गणात् प्रेषणं च व्यवस्थापयामि।',
   'I run taxis, buses or tour packages and sell passenger journeys.':
     'अहं भाटकयानानि, बसयानानि यात्रासंहिताः वा चालयामि यात्रिकयात्राः च विक्रीणामि।',
   'I represent a district association coordinating roadside help.':
@@ -203,8 +201,6 @@ export const sa: Catalogue = {
   'I drive for a fleet that already uses Saarthi.':
     'अहं तस्य यानसमूहस्य कृते यानं चालयामि यः पूर्वमेव Saarthi प्रयुङ्क्ते।',
   'The operating system for your trucking business.': 'भवतः भारवहनव्यवसायस्य संचालनतन्त्रम्।',
-  'Saarthi connects fleet owners, drivers, suppliers and customers on one platform - from posting a load to watching it arrive.':
-    'Saarthi यानसमूहस्वामिनः चालकान् आपूर्तिकर्तॄन् ग्राहकांश्च एकस्मिन् मञ्चे संयोजयति - भारस्थापनतः तस्य आगमनदर्शनपर्यन्तम्।',
   'One fleet command centre': 'एकं यानसमूह-नियन्त्रणकेन्द्रम्',
   'Trucks, drivers, documents, orders and trips in a single operational view.':
     'भारयानानि चालकाः पत्राणि आदेशाः यात्राश्च - सर्वं एकस्मिन् कार्यदृश्ये।',
@@ -260,7 +256,6 @@ export const sa: Catalogue = {
   'SOS incidents': 'SOS घटनाः',
   'Nearby services': 'समीपस्थसेवाः',
   Deliveries: 'वितरणानि',
-  'Find materials': 'सामग्रीम् अन्विष्यतु',
   'My orders': 'मम आदेशाः',
   'Track deliveries': 'वितरणम् अनुसरतु',
   'My travel': 'मम यात्रा',
@@ -317,4 +312,14 @@ export const sa: Catalogue = {
   'One number': 'एकः अङ्कः',
   '{count} short steps. Nothing is saved until the last one.':
     '{count} लघुसोपानानि। अन्तिमसोपानपर्यन्तं किमपि न सुरक्ष्यते।',
+
+  // --- Smart commerce: sellers, products and categories ------------------
+  Products: 'उत्पादानि',
+  'Find sellers': 'विक्रेतॄन् अन्विष्यतु',
+  'Product categories': 'उत्पादवर्गाः',
+  Seller: 'विक्रेता',
+  'I sell goods of any kind and dispatch them from my own premises.':
+    'अहं सर्वविधं वस्तु विक्रीणामि स्वस्थानात् प्रेषयामि च।',
+  'Saarthi connects fleet owners, drivers, sellers and customers on one platform - from posting a load to watching it arrive.':
+    'Saarthi यानसमूहस्वामिनः चालकान् विक्रेतॄन् ग्राहकांश्च एकस्मिन् मञ्चे संयोजयति - भारस्थापनतः तस्य आगमनदर्शनपर्यन्तम्।',
 };

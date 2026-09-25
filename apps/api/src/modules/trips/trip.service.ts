@@ -10,6 +10,10 @@ import {
   TruckStatus,
   VerificationStatus,
   buildPaginationMeta,
+  canCommunicate,
+  communicationPartyForViewer,
+  mayKnowCounterparty,
+  type CommunicationParty,
   distanceKm,
   pathLength,
   tripStateMachine,
@@ -127,7 +131,23 @@ function progressOf(trip: TripRecord): number {
   return Math.max(0, Math.min(100, Math.round((trip.actualDistanceKm / trip.plannedDistanceKm) * 100)));
 }
 
-async function decorate(trips: TripRecord[]): Promise<TripSummary[]> {
+/** The party a signed-in caller reads a trip as. */
+function viewerParty(auth: AuthContext): CommunicationParty {
+  return communicationPartyForViewer({
+    isPlatformAdmin: auth.isPlatformAdmin,
+    organizationType: auth.organization?.type,
+  });
+}
+
+/**
+ * Shape trip rows for one viewer. A customer following a delivery sees the
+ * truck and the driver's name but never the driver's phone, and a Seller
+ * whose goods are on board is not told who the customer is.
+ */
+async function decorate(trips: TripRecord[], viewer: CommunicationParty): Promise<TripSummary[]> {
+  const mayCallDriver = canCommunicate(viewer, 'DRIVER');
+  const mayKnowCustomer = mayKnowCounterparty(viewer, 'CUSTOMER');
+
   const truckIds = [...new Set(trips.map((trip) => trip.truckId))];
   const driverIds = [
     ...new Set(trips.map((trip) => trip.driverId).filter((id): id is string => Boolean(id))),
@@ -181,7 +201,7 @@ async function decorate(trips: TripRecord[]): Promise<TripSummary[]> {
         ? {
             id: driver.id,
             name: `${driver.user.firstName} ${driver.user.lastName}`.trim(),
-            phone: driver.user.phone,
+            phone: mayCallDriver ? driver.user.phone : null,
             overallScore: driver.overallScore,
           }
         : null,
@@ -190,7 +210,9 @@ async function decorate(trips: TripRecord[]): Promise<TripSummary[]> {
             id: trip.order.id,
             reference: trip.order.reference,
             materialName: trip.order.materialName,
-            customerName: orgMap.get(trip.order.customerOrganizationId) ?? 'Customer',
+            customerName: mayKnowCustomer
+              ? (orgMap.get(trip.order.customerOrganizationId) ?? 'Customer')
+              : 'Saarthi customer',
           }
         : null,
       originAddress: trip.originAddress,
@@ -335,7 +357,7 @@ export async function listTrips(
   ]);
 
   return {
-    items: await decorate(trips),
+    items: await decorate(trips, viewerParty(auth)),
     pagination: buildPaginationMeta(query.page, query.pageSize, total),
   };
 }
@@ -345,7 +367,7 @@ export async function getTrip(auth: AuthContext, tripId: string) {
   if (!trip) throw errors.notFound('Trip');
   assertTripAccess(auth, trip);
 
-  const [summary] = await decorate([trip]);
+  const [summary] = await decorate([trip], viewerParty(auth));
   const [events, stops] = await Promise.all([
     prisma.tripEvent.findMany({ where: { tripId }, orderBy: { createdAt: 'asc' }, take: 300 }),
     prisma.tripStop.findMany({ where: { tripId }, orderBy: { sequence: 'asc' } }),
@@ -554,7 +576,7 @@ export async function createTrip(
     updatedAt: trip.updatedAt.toISOString(),
   });
 
-  return (await decorate([trip]))[0]!;
+  return (await decorate([trip], viewerParty(auth)))[0]!;
 }
 
 export async function updateTrip(
@@ -659,7 +681,7 @@ export async function updateTrip(
     return next;
   });
 
-  return (await decorate([updated]))[0]!;
+  return (await decorate([updated], viewerParty(auth)))[0]!;
 }
 
 // ---------------------------------------------------------------------------
@@ -924,7 +946,7 @@ export async function transitionTrip(
     });
   }
 
-  return (await decorate([updated]))[0]!;
+  return (await decorate([updated], viewerParty(auth)))[0]!;
 }
 
 /** Trips currently in flight for a fleet — powers the live command centre. */
@@ -935,7 +957,8 @@ export async function activeTrips(organizationId: string): Promise<TripSummary[]
     orderBy: { actualStartAt: 'desc' },
     take: 200,
   });
-  return decorate(trips);
+  // The operating fleet's own live board.
+  return decorate(trips, 'FLEET_OWNER');
 }
 
 /** The driver's own current trip, used by the driver app home screen. */
@@ -946,5 +969,5 @@ export async function currentTripForDriver(driverId: string): Promise<TripSummar
     orderBy: { createdAt: 'desc' },
   });
   if (!trip) return null;
-  return (await decorate([trip]))[0]!;
+  return (await decorate([trip], 'DRIVER'))[0]!;
 }

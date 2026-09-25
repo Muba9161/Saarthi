@@ -12,16 +12,25 @@ import {
   trimmedString,
   uuidSchema,
 } from './common';
+import { commerceAttributeValuesSchema } from './commerce';
 
 /**
- * Marketplace contracts: supplier materials, customer requirements, fleet
- * quotes and the order lifecycle.
+ * Marketplace contracts: seller listings, customer requirements, fleet quotes
+ * and the order lifecycle. ("Supplier" in identifiers is the internal name of
+ * the Seller account type.)
  */
 
 export const materialUnitSchema = z.nativeEnum(MaterialUnit);
 
 export const createMaterialSchema = z.object({
   name: trimmedString(2, 120),
+  /**
+   * Taxonomy node the seller confirmed. When present the free-text `category`
+   * is derived from it on the server, and `attributes` are validated against
+   * the node's schema.
+   */
+  categoryId: uuidSchema.optional(),
+  attributes: commerceAttributeValuesSchema.optional(),
   category: optionalTrimmedString(60),
   description: optionalTrimmedString(2000),
   unit: materialUnitSchema.default(MaterialUnit.TON),
@@ -84,14 +93,15 @@ export type CustomerProfileInput = z.infer<typeof customerProfileSchema>;
 // ---------------------------------------------------------------------------
 
 /**
- * A customer requirement. Either an existing material is selected (the
- * supplier then fulfils it) or the customer names the goods they already own
- * and needs transport only.
+ * A customer's direct transport request for goods they already own.
+ *
+ * It cannot name a seller listing: a customer never buys from a seller
+ * directly. Goods are requested through a material requirement, which a fleet
+ * owner sources and delivers.
  */
 export const createOrderSchema = z
   .object({
-    materialId: uuidSchema.optional(),
-    materialName: optionalTrimmedString(120),
+    materialName: trimmedString(2, 120),
     quantity: positiveQuantitySchema,
     unit: materialUnitSchema.default(MaterialUnit.TON),
     origin: addressSchema,
@@ -107,13 +117,6 @@ export const createOrderSchema = z
     notes: optionalTrimmedString(2000),
   })
   .superRefine((value, ctx) => {
-    if (!value.materialId && !value.materialName) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['materialName'],
-        message: 'Select a material from the marketplace or describe what needs to be moved.',
-      });
-    }
     if (value.pickupAt && value.deliverBy && value.pickupAt > value.deliverBy) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,

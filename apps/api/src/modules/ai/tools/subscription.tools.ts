@@ -9,6 +9,7 @@ import {
   type PlanTier,
 } from '@saarthi/shared';
 import { prisma } from '../../../database/prisma';
+import { COPILOT_USAGE_FILTER } from '../ai-usage';
 import { listTopUps, vehicleCapacity } from '../../subscriptions/topup.service';
 import { trackerCoverage } from '../../subscriptions/tracker.service';
 import { ResultBasis, type AiTool, type ToolResult } from './tool.types';
@@ -236,7 +237,9 @@ export const SUBSCRIPTION_TOOLS: AiTool[] = [
         prisma.truck.count({ where: { organizationId, archivedAt: null } }),
         prisma.driver.count({ where: { organizationId } }),
         prisma.hardwareDevice.count({ where: { organizationId, archivedAt: null } }),
-        prisma.aiUsage.count({ where: { organizationId, createdAt: { gte: startOfDay } } }),
+        prisma.aiUsage.count({
+          where: { organizationId, createdAt: { gte: startOfDay }, ...COPILOT_USAGE_FILTER },
+        }),
       ]);
 
       const limits = auth.subscription?.limits;

@@ -34,7 +34,7 @@ export function AdminOrganizationsPage() {
 
   return (
     <div className="space-y-5">
-      <PageHeader title="Organizations" description="Fleets, suppliers and customers on the platform." />
+      <PageHeader title="Organizations" description="Fleets, sellers and customers on the platform." />
       <DataTable
         columns={columns}
         rows={query.data?.items ?? (Array.isArray(query.data) ? query.data : undefined)}

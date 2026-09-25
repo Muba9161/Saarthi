@@ -41,7 +41,7 @@ export const ne: Catalogue = {
   'Telemetry alerts': 'टेलिमेट्री सूचना',
   Devices: 'उपकरणहरू',
   Analytics: 'एनालिटिक्स',
-  'AI Copilot': 'AI कोपाइलट',
+  'Saarthi Mitra': 'सारथी मित्र',
   'GPS simulator': 'GPS सिमुलेटर',
   'My trip': 'मेरो यात्रा',
   Nearby: 'नजिकै',
@@ -190,8 +190,6 @@ export const ne: Catalogue = {
     'मसँग ट्रक छन् र म आफ्नो बेडा चलाउन तथा लोड पाउन चाहन्छु।',
   'I need materials, transport, a cab or a tour, and want offers to compare.':
     'मलाई सामग्री, ढुवानी, ट्याक्सी वा भ्रमण चाहिन्छ, र तुलना गर्न प्रस्तावहरू चाहिन्छ।',
-  'I sell materials and arrange dispatch from my yard.':
-    'म सामान बेच्छु र आफ्नो यार्डबाट पठाउने व्यवस्था गर्छु।',
   'I run taxis, buses or tour packages and sell passenger journeys.':
     'म ट्याक्सी, बस वा टुर प्याकेज चलाउँछु र यात्रु यात्रा बेच्छु।',
   'I represent a district association coordinating roadside help.':
@@ -199,8 +197,6 @@ export const ne: Catalogue = {
   'I drive for a fleet that already uses Saarthi.':
     'म पहिले नै Saarthi प्रयोग गर्ने बेडाका लागि गाडी चलाउँछु।',
   'The operating system for your trucking business.': 'तपाईंको ट्रकिङ व्यवसायको अपरेटिङ सिस्टम।',
-  'Saarthi connects fleet owners, drivers, suppliers and customers on one platform - from posting a load to watching it arrive.':
-    'Saarthi ले बेडा मालिक, चालक, आपूर्तिकर्ता र ग्राहकलाई एउटै प्लेटफर्ममा जोड्छ - लोड राख्नेदेखि त्यो पुग्ने बेलासम्म।',
   'One fleet command centre': 'एउटै फ्लिट कमाण्ड सेन्टर',
   'Trucks, drivers, documents, orders and trips in a single operational view.':
     'ट्रक, चालक, कागजात, अर्डर र यात्रा - सबै एउटै कार्य दृश्यमा।',
@@ -256,7 +252,6 @@ export const ne: Catalogue = {
   'SOS incidents': 'SOS घटनाहरू',
   'Nearby services': 'नजिकका सेवाहरू',
   Deliveries: 'डेलिभरी',
-  'Find materials': 'सामग्री खोज्नुहोस्',
   'My orders': 'मेरा अर्डरहरू',
   'Track deliveries': 'डेलिभरी ट्र्याक गर्नुहोस्',
   'My travel': 'मेरो यात्रा',
@@ -313,4 +308,14 @@ export const ne: Catalogue = {
   'One number': 'एउटा अंक',
   '{count} short steps. Nothing is saved until the last one.':
     '{count} छोटा चरण। अन्तिम चरणसम्म केही पनि सुरक्षित हुँदैन।',
+
+  // --- Smart commerce: sellers, products and categories ------------------
+  Products: 'उत्पादनहरू',
+  'Find sellers': 'विक्रेता खोज्नुहोस्',
+  'Product categories': 'उत्पादन वर्गहरू',
+  Seller: 'विक्रेता',
+  'I sell goods of any kind and dispatch them from my own premises.':
+    'म सबै किसिमका सामान बेच्छु र आफ्नै ठाउँबाट पठाउँछु।',
+  'Saarthi connects fleet owners, drivers, sellers and customers on one platform - from posting a load to watching it arrive.':
+    'Saarthi ले बेडा मालिक, चालक, विक्रेता र ग्राहकलाई एउटै प्लेटफर्ममा जोड्छ - लोड राख्नेदेखि त्यो पुग्ने बेलासम्म।',
 };

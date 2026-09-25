@@ -41,7 +41,7 @@ export const ta: Catalogue = {
   'Telemetry alerts': 'டெலிமெட்ரி எச்சரிக்கைகள்',
   Devices: 'சாதனங்கள்',
   Analytics: 'பகுப்பாய்வு',
-  'AI Copilot': 'AI கோபைலட்',
+  'Saarthi Mitra': 'சாரதி மித்ரா',
   'GPS simulator': 'GPS உருவகப்படுத்தி',
   'My trip': 'எனது பயணம்',
   Nearby: 'அருகில்',
@@ -191,8 +191,6 @@ export const ta: Catalogue = {
     'என்னிடம் லாரிகள் உள்ளன; என் வாகனத் தொகுப்பை நிர்வகிக்கவும் சரக்கு பெறவும் விரும்புகிறேன்.',
   'I need materials, transport, a cab or a tour, and want offers to compare.':
     'எனக்கு பொருட்கள், போக்குவரத்து, வாடகை வாகனம் அல்லது சுற்றுலா தேவை, ஒப்பிட ஏல விலைகளும் தேவை.',
-  'I sell materials and arrange dispatch from my yard.':
-    'நான் பொருட்களை விற்று, என் முற்றத்திலிருந்து அனுப்ப ஏற்பாடு செய்கிறேன்.',
   'I run taxis, buses or tour packages and sell passenger journeys.':
     'நான் டாக்சி, பேருந்து அல்லது சுற்றுலாத் தொகுப்புகளை இயக்கி பயணிகள் பயணங்களை விற்கிறேன்.',
   'I represent a district association coordinating roadside help.':
@@ -200,8 +198,6 @@ export const ta: Catalogue = {
   'I drive for a fleet that already uses Saarthi.':
     'ஏற்கனவே Saarthi-ஐப் பயன்படுத்தும் வாகனத் தொகுப்புக்காக நான் ஓட்டுகிறேன்.',
   'The operating system for your trucking business.': 'உங்கள் லாரி வணிகத்தின் இயக்க அமைப்பு.',
-  'Saarthi connects fleet owners, drivers, suppliers and customers on one platform - from posting a load to watching it arrive.':
-    'Saarthi வாகன உரிமையாளர்கள், ஓட்டுநர்கள், சப்ளையர்கள், வாடிக்கையாளர்களை ஒரே தளத்தில் இணைக்கிறது - சரக்கு இடுவதிலிருந்து அது வந்து சேரும் வரை.',
   'One fleet command centre': 'ஒரே கட்டுப்பாட்டு மையம்',
   'Trucks, drivers, documents, orders and trips in a single operational view.':
     'லாரிகள், ஓட்டுநர்கள், ஆவணங்கள், ஆர்டர்கள், பயணங்கள் - அனைத்தும் ஒரே செயல்பாட்டுக் காட்சியில்.',
@@ -257,7 +253,6 @@ export const ta: Catalogue = {
   'SOS incidents': 'SOS சம்பவங்கள்',
   'Nearby services': 'அருகிலுள்ள சேவைகள்',
   Deliveries: 'விநியோகங்கள்',
-  'Find materials': 'பொருட்களைத் தேடு',
   'My orders': 'எனது ஆர்டர்கள்',
   'Track deliveries': 'விநியோகத்தைக் கண்காணி',
   'My travel': 'எனது பயணம்',
@@ -314,4 +309,14 @@ export const ta: Catalogue = {
   'One number': 'ஒரு எண்',
   '{count} short steps. Nothing is saved until the last one.':
     '{count} சிறு படிகள். கடைசிப் படி வரை எதுவும் சேமிக்கப்படாது.',
+
+  // --- Smart commerce: sellers, products and categories ------------------
+  Products: 'தயாரிப்புகள்',
+  'Find sellers': 'விற்பனையாளர்களைத் தேடு',
+  'Product categories': 'தயாரிப்பு வகைகள்',
+  Seller: 'விற்பனையாளர்',
+  'I sell goods of any kind and dispatch them from my own premises.':
+    'நான் எல்லா வகைப் பொருட்களையும் விற்று, என் இடத்திலிருந்தே அனுப்புகிறேன்.',
+  'Saarthi connects fleet owners, drivers, sellers and customers on one platform - from posting a load to watching it arrive.':
+    'Saarthi வாகன உரிமையாளர்கள், ஓட்டுநர்கள், விற்பனையாளர்கள், வாடிக்கையாளர்களை ஒரே தளத்தில் இணைக்கிறது - சரக்கு இடுவதிலிருந்து அது வந்து சேரும் வரை.',
 };

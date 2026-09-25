@@ -66,10 +66,10 @@ export const ROLE_SHOWCASE: RoleShowcase[] = [
   },
   {
     id: 'supplier',
-    label: 'Supplier',
-    quote: 'I manage material and transport in one place.',
+    label: 'Seller',
+    quote: 'I list what I sell once, in any category.',
     blurb:
-      'A live catalogue with yard-level stock, orders straight from customers, reservations against those orders, and dispatch you can follow out of the gate.',
+      'Describe a product in one line and Saarthi fills in the rest. Fleet owners find your listings, source from you for their customers, and you follow the dispatch out of the gate.',
     icon: Package,
     navigation: SUPPLIER_NAVIGATION,
   },

@@ -14,6 +14,7 @@ import { COST_TOOLS } from './cost.tools';
 import { SUBSCRIPTION_TOOLS } from './subscription.tools';
 import { DEVICE_TOOLS } from './device.tools';
 import { TERMINAL_TOOLS } from './terminal.tools';
+import { ASSISTANT_TOOLS } from './assistant.tools';
 import type { AiTool, RecordedToolCall, ToolResult, ToolSpecification } from './tool.types';
 
 /**
@@ -50,6 +51,9 @@ const ALL_TOOLS: AiTool[] = [
   // dispatcher asking the fleet copilot sees none of them, which is correct:
   // "my vehicle" is not a question they can ask.
   ...TERMINAL_TOOLS,
+  // Saarthi Mitra's guide, setup status and drafts. They prepare work and
+  // open screens; none of them writes a record.
+  ...ASSISTANT_TOOLS,
 ] as AiTool[];
 
 const BY_NAME = new Map(ALL_TOOLS.map((tool) => [tool.name, tool]));
@@ -243,6 +247,7 @@ export async function executeTool(
       durationMs: Date.now() - startedAt,
       cached: false,
       error,
+      actions: [],
     },
   });
 
@@ -282,6 +287,7 @@ export async function executeTool(
           durationMs: Date.now() - startedAt,
           cached: true,
           error: null,
+          actions: hit.actions ?? [],
         },
       };
     }
@@ -311,6 +317,7 @@ export async function executeTool(
         durationMs: Date.now() - startedAt,
         cached: false,
         error: null,
+        actions: result.actions ?? [],
       },
     };
   } catch (error) {

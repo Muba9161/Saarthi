@@ -10,7 +10,9 @@ import {
   type MaterialUnit,
   type TruckType,
   buildPaginationMeta,
+  communicationPartyForViewer,
   distanceKm,
+  mayKnowCounterparty,
   orderStateMachine,
   type CancelOrderInput,
   type CreateOrderInput,
@@ -88,7 +90,21 @@ const orderInclude = {
 
 type OrderRecord = Prisma.OrderGetPayload<{ include: typeof orderInclude }>;
 
-async function decorate(orders: OrderRecord[]): Promise<OrderSummary[]> {
+/**
+ * Shape order rows for one viewer.
+ *
+ * Every party to an order sees it, but not every party may see every other:
+ * a customer is never shown which Seller the fleet bought from, and a Seller is
+ * never shown who the customer is (see `communication.ts`).
+ */
+async function decorate(orders: OrderRecord[], viewer: AuthContext): Promise<OrderSummary[]> {
+  const viewerParty = communicationPartyForViewer({
+    isPlatformAdmin: viewer.isPlatformAdmin,
+    organizationType: viewer.organization?.type,
+  });
+  const mayKnowSeller = mayKnowCounterparty(viewerParty, 'SELLER');
+  const mayKnowCustomer = mayKnowCounterparty(viewerParty, 'CUSTOMER');
+
   const organizationIds = new Set<string>();
   const truckIds = new Set<string>();
   const driverIds = new Set<string>();
@@ -133,11 +149,14 @@ async function decorate(orders: OrderRecord[]): Promise<OrderSummary[]> {
       reference: order.reference,
       status: order.status,
       customerOrganizationId: order.customerOrganizationId,
-      customerName: orgMap.get(order.customerOrganizationId) ?? 'Customer',
-      supplierOrganizationId: order.supplierOrganizationId,
-      supplierName: order.supplierOrganizationId
-        ? (orgMap.get(order.supplierOrganizationId) ?? null)
-        : null,
+      customerName: mayKnowCustomer
+        ? (orgMap.get(order.customerOrganizationId) ?? 'Customer')
+        : 'Saarthi customer',
+      supplierOrganizationId: mayKnowSeller ? order.supplierOrganizationId : null,
+      supplierName:
+        mayKnowSeller && order.supplierOrganizationId
+          ? (orgMap.get(order.supplierOrganizationId) ?? null)
+          : null,
       fleetOrganizationId: order.fleetOrganizationId,
       fleetName: order.fleetOrganizationId
         ? (orgMap.get(order.fleetOrganizationId) ?? null)
@@ -262,33 +281,6 @@ export async function createOrder(
     );
   }
 
-  let materialName = input.materialName ?? '';
-  let materialPrice: number | null = null;
-  let supplierOrganizationId: string | null = null;
-
-  if (input.materialId) {
-    const material = await prisma.material.findFirst({
-      where: { id: input.materialId, archivedAt: null },
-    });
-    if (!material) throw errors.notFound('Material');
-    if (material.status !== 'ACTIVE') {
-      throw errors.businessRule('This material is not currently available to order.');
-    }
-    if (input.quantity < material.minimumOrderQty) {
-      throw errors.businessRule(
-        `The minimum order quantity for ${material.name} is ${material.minimumOrderQty} ${material.unit.toLowerCase()}.`,
-      );
-    }
-    if (input.quantity > material.availableQuantity) {
-      throw errors.businessRule(
-        `Only ${material.availableQuantity} ${material.unit.toLowerCase()} of ${material.name} is available.`,
-      );
-    }
-    materialName = material.name;
-    materialPrice = Number(material.pricePerUnit) * input.quantity;
-    supplierOrganizationId = material.organizationId;
-  }
-
   const distance = distanceKm(
     { latitude: input.origin.latitude, longitude: input.origin.longitude },
     { latitude: input.destination.latitude, longitude: input.destination.longitude },
@@ -299,12 +291,9 @@ export async function createOrder(
       reference: await nextReference(),
       customerId: customer.id,
       customerOrganizationId: organizationId,
-      materialId: input.materialId ?? null,
-      supplierOrganizationId,
-      materialName,
+      materialName: input.materialName,
       quantity: input.quantity,
       unit: input.unit,
-      materialPrice,
       budget: input.budget ?? null,
       originAddress: input.origin.addressLine,
       originLatitude: input.origin.latitude,
@@ -331,18 +320,8 @@ export async function createOrder(
     data: { totalOrders: { increment: 1 } },
   });
 
-  if (supplierOrganizationId) {
-    void notifyOrganization(supplierOrganizationId, {
-      type: NotificationType.ORDER_CREATED,
-      title: 'New material order',
-      body: `${order.reference}: ${order.quantity} ${order.unit.toLowerCase()} of ${order.materialName}.`,
-      priority: NotificationPriority.NORMAL,
-      actionUrl: `/orders/${order.id}`,
-    });
-  }
-
   await publishUpdate(order.id);
-  return (await decorate([order]))[0]!;
+  return (await decorate([order], auth))[0]!;
 }
 
 export async function listOrders(
@@ -416,7 +395,7 @@ export async function listOrders(
   ]);
 
   return {
-    items: await decorate(orders),
+    items: await decorate(orders, auth),
     pagination: buildPaginationMeta(query.page, query.pageSize, total),
   };
 }
@@ -426,7 +405,7 @@ export async function getOrder(auth: AuthContext, orderId: string) {
   if (!order) throw errors.notFound('Order');
   await assertOrderAccess(auth, order);
 
-  const [summary] = await decorate([order]);
+  const [summary] = await decorate([order], auth);
 
   const [events, quotes, rating] = await Promise.all([
     prisma.orderEvent.findMany({ where: { orderId }, orderBy: { createdAt: 'asc' } }),
@@ -495,7 +474,7 @@ export async function updateOrder(
 
   await recordEvent(orderId, 'NOTE', 'Requirement details updated by the customer.', auth.user.id);
   await publishUpdate(orderId);
-  return (await decorate([updated]))[0]!;
+  return (await decorate([updated], auth))[0]!;
 }
 
 // ---------------------------------------------------------------------------
@@ -569,7 +548,7 @@ export async function listOpenRequirements(
     }
   }
 
-  const decorated = await decorate(orders);
+  const decorated = await decorate(orders, auth);
   const enriched = decorated
     .map((order) => {
       const distance = referencePoint
@@ -1015,7 +994,7 @@ export async function acceptQuote(
     where: { id: orderId },
     include: orderInclude,
   });
-  return { order: (await decorate([updated]))[0]!, tripId };
+  return { order: (await decorate([updated], auth))[0]!, tripId };
 }
 
 // ---------------------------------------------------------------------------
@@ -1156,7 +1135,7 @@ export async function createOrderFromRequirement(
     }
 
     await publishUpdate(confirmed.id);
-    return { order: (await decorate([confirmed]))[0]!, tripId: null };
+    return { order: (await decorate([confirmed], auth))[0]!, tripId: null };
   }
 
   const quote = await prisma.orderQuote.create({
@@ -1240,7 +1219,7 @@ export async function transitionOrder(
   }
 
   await publishUpdate(orderId);
-  return (await decorate([updated]))[0]!;
+  return (await decorate([updated], auth))[0]!;
 }
 
 export async function cancelOrder(
@@ -1322,7 +1301,7 @@ export async function cancelOrder(
     where: { id: orderId },
     include: orderInclude,
   });
-  return (await decorate([updated]))[0]!;
+  return (await decorate([updated], auth))[0]!;
 }
 
 export async function rateOrder(

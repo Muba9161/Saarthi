@@ -20,6 +20,7 @@ The following skills are mandatory whenever applicable:
 ├── always-on-code-quality/SKILL.md
 ├── modular-architecture/SKILL.md
 └── vorldx-premium-design/SKILL.md
+└── seo/SKILL.md
 ```
 
 Claude MUST follow these skills for every relevant development task.

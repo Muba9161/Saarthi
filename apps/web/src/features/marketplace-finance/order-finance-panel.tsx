@@ -26,7 +26,7 @@ import type { CheckoutResponse, OrderFinanceSummary } from './types';
 /** The money path of a fleet-delivered order, in the order it happens. */
 const STEPS: { stage: OrderFinanceStage; label: string }[] = [
   { stage: OrderFinanceStage.PAYMENT_30_PAID, label: 'Customer pays 30%' },
-  { stage: OrderFinanceStage.PROCUREMENT_PAID, label: 'Fleet pays the supplier' },
+  { stage: OrderFinanceStage.PROCUREMENT_PAID, label: 'Fleet pays the seller' },
   { stage: OrderFinanceStage.PAYMENT_70_REQUIRED, label: 'Delivery confirmed' },
   { stage: OrderFinanceStage.PAYMENT_70_PAID, label: 'Customer pays the balance' },
   { stage: OrderFinanceStage.FINALIZED, label: 'Settled' },
@@ -35,7 +35,7 @@ const ORDER = [OrderFinanceStage.PAYMENT_30_REQUIRED, ...STEPS.map((step) => ste
 
 const PAYMENT_LABEL: Record<string, string> = {
   CONFIRMATION_30: '30% at confirmation',
-  PROCUREMENT: 'Supplier payment',
+  PROCUREMENT: 'Seller payment',
   FINAL_70: 'Balance after delivery',
 };
 
@@ -248,9 +248,9 @@ function ProcurementAction({
 
   return (
     <div className="space-y-2 rounded-lg border p-3">
-      <Label htmlFor="procurement-amount">Pay the supplier for the material (₹)</Label>
+      <Label htmlFor="procurement-amount">Pay the seller for the material (₹)</Label>
       <p className="text-xs text-muted-foreground">
-        Loading is unlocked once the supplier is paid. The listing price for this quantity was{' '}
+        Loading is unlocked once the seller is paid. The listing price for this quantity was{' '}
         {formatCurrency(reference)}.
       </p>
       <div className="flex flex-col gap-2 sm:flex-row">
@@ -264,10 +264,10 @@ function ProcurementAction({
         <Button
           loading={working}
           disabled={!(amount > 0)}
-          onClick={() => onPay('procurement-payment', 'Supplier paid - loading can start.', { amount })}
+          onClick={() => onPay('procurement-payment', 'Seller paid - loading can start.', { amount })}
         >
           <CreditCard className="size-4" />
-          Pay supplier
+          Pay seller
         </Button>
       </div>
     </div>

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Plus, ShieldAlert, ShieldCheck } from 'lucide-react';
+import { Link2, Plus, ShieldAlert, ShieldCheck } from 'lucide-react';
 import {
   Permission,
   SALESMAN_STATUS_LABEL,
@@ -96,6 +96,17 @@ export function AdminSalesmenPage(): React.ReactElement {
 
   if (!can(Permission.SALESMAN_MANAGE)) return <UnauthorizedState />;
 
+  const copySignupLink = () => {
+    void navigator.clipboard
+      .writeText(`${window.location.origin}/sales/join`)
+      .then(() =>
+        toast.success('Signup link copied', {
+          description: 'Share it with salespeople. They join with their own GODID.',
+        }),
+      )
+      .catch(() => toast.error('Could not copy the link.'));
+  };
+
   const columns: Column<SalesmanProfileView>[] = [
     {
       key: 'person',
@@ -183,10 +194,18 @@ export function AdminSalesmenPage(): React.ReactElement {
         title="Salespeople"
         description="Saarthi profiles for GODWeb identities. GODWeb owns who these people are."
         actions={
-          <Button size="sm" onClick={() => setCreating(true)}>
-            <Plus className="mr-1.5 h-4 w-4" />
-            Add a GODID
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            {/* The self-service route: a salesperson signs up with their own
+                GODID and nobody here has to create anything. */}
+            <Button size="sm" variant="outline" onClick={copySignupLink}>
+              <Link2 className="mr-1.5 h-4 w-4" />
+              Copy signup link
+            </Button>
+            <Button size="sm" onClick={() => setCreating(true)}>
+              <Plus className="mr-1.5 h-4 w-4" />
+              Add a GODID
+            </Button>
+          </div>
         }
       />
 
@@ -207,7 +226,7 @@ export function AdminSalesmenPage(): React.ReactElement {
               Saarthi cannot ask GODWeb whether a GODID is real on this environment, so no profile
               can be verified automatically. Until <code>GODWEB_BASE_URL</code> and{' '}
               <code>GODWEB_API_KEY</code> are set, a profile stays pending: it issues no referral
-              link and accrues no commission.
+              link and earns no rewards.
             </p>
             <p>
               You can vouch for a GODID by hand. Your user id and the evidence you cite are
@@ -419,7 +438,7 @@ function CreateSalesmanDialog({
  * Vouch for a GODID by hand.
  *
  * The evidence field is required and is the reason the dialog exists: this
- * profile will be trusted for commission, and the only thing standing behind
+ * profile will be trusted to earn rewards, and the only thing standing behind
  * it is the sentence typed here. It goes onto the profile and into an audit
  * action of its own — `salesman.verified_manually` — so a report can always
  * separate "GODWeb said yes" from "a named person said yes".
@@ -456,7 +475,7 @@ function ManualVerifyDialog({
           <DialogTitle>Verify {profile?.godId} by hand</DialogTitle>
           <DialogDescription>
             Only because GODWeb cannot be asked on this environment. This profile will then be
-            able to share a referral link and earn commission.
+            able to share a referral link and earn rewards.
           </DialogDescription>
         </DialogHeader>
 

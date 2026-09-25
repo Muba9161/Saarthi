@@ -235,9 +235,9 @@ export async function recordSignup(input: {
 
       if (rewarded) {
         await creditReferralReward(tx, {
-          referrerUserId: owner.userId,
-          userReferralId: row.id,
+          userId: owner.userId,
           organizationId: input.organizationId,
+          source: { userReferralId: row.id },
         });
       }
 

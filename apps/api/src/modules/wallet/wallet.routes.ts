@@ -8,10 +8,10 @@ import * as wallet from './wallet.service';
 /**
  * The Saarthi wallet — Refer & Earn rewards and cash-out.
  *
- * Authentication is the only guard, as for the referral program itself: every
- * query is scoped to the caller's own user id, and eligibility is the
- * program's business rule. Connecting a bank account runs a paid penny
- * validation, so it is throttled hard.
+ * Authentication is the only guard: every query is scoped to the caller's own
+ * user id, and anyone can hold a wallet — a Refer & Earn user or a
+ * salesperson. Connecting a bank account runs a paid penny validation, so it
+ * is throttled hard.
  */
 export async function walletRoutes(app: FastifyInstance): Promise<void> {
   app.addHook('preHandler', app.authenticate);

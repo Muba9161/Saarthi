@@ -41,7 +41,7 @@ export const as: Catalogue = {
   'Telemetry alerts': 'টেলিমেট্ৰি সতৰ্কবাণী',
   Devices: 'ডিভাইচ',
   Analytics: 'এনালিটিক্স',
-  'AI Copilot': 'AI কোপাইলট',
+  'Saarthi Mitra': 'সাৰথি মিত্ৰ',
   'GPS simulator': 'GPS চিমুলেটৰ',
   'My trip': 'মোৰ ট্ৰিপ',
   Nearby: 'ওচৰত',
@@ -190,8 +190,6 @@ export const as: Catalogue = {
     'মোৰ ট্ৰাক আছে আৰু মই মোৰ বাহিনী চলাব আৰু লোড পাব বিচাৰো।',
   'I need materials, transport, a cab or a tour, and want offers to compare.':
     'মোক সামগ্ৰী, পৰিবহন, কেব বা ভ্ৰমণৰ প্ৰয়োজন, আৰু তুলনা কৰিবলৈ প্ৰস্তাৱ বিচাৰো।',
-  'I sell materials and arrange dispatch from my yard.':
-    'মই সামগ্ৰী বিক্ৰী কৰো আৰু মোৰ ইয়াৰ্ডৰ পৰা পঠিওৱাৰ ব্যৱস্থা কৰো।',
   'I run taxis, buses or tour packages and sell passenger journeys.':
     'মই টেক্সি, বাছ বা টুৰ পেকেজ চলাও আৰু যাত্ৰীৰ ভ্ৰমণ বিক্ৰী কৰো।',
   'I represent a district association coordinating roadside help.':
@@ -199,8 +197,6 @@ export const as: Catalogue = {
   'I drive for a fleet that already uses Saarthi.':
     'মই এনে এখন বাহিনীৰ বাবে গাড়ী চলাও যিয়ে ইতিমধ্যে Saarthi ব্যৱহাৰ কৰে।',
   'The operating system for your trucking business.': 'আপোনাৰ ট্ৰাকিং ব্যৱসায়ৰ অপাৰেটিং ছিষ্টেম।',
-  'Saarthi connects fleet owners, drivers, suppliers and customers on one platform - from posting a load to watching it arrive.':
-    'Saarthi-এ বাহিনী মালিক, চালক, যোগানকাৰী আৰু গ্ৰাহকক একেখন প্লেটফৰ্মত সংযোগ কৰে - লোড দিয়াৰ পৰা সেয়া পোৱালৈকে।',
   'One fleet command centre': 'একেটাই ফ্লিট কমাণ্ড চেণ্টাৰ',
   'Trucks, drivers, documents, orders and trips in a single operational view.':
     'ট্ৰাক, চালক, নথিপত্ৰ, অৰ্ডাৰ আৰু ট্ৰিপ - সকলো একেটা কাৰ্যদৃশ্যত।',
@@ -256,7 +252,6 @@ export const as: Catalogue = {
   'SOS incidents': 'SOS ঘটনা',
   'Nearby services': 'ওচৰৰ সেৱা',
   Deliveries: 'ডেলিভাৰী',
-  'Find materials': 'সামগ্ৰী বিচাৰক',
   'My orders': 'মোৰ অৰ্ডাৰ',
   'Track deliveries': 'ডেলিভাৰী ট্ৰেক কৰক',
   'My travel': 'মোৰ ভ্ৰমণ',
@@ -313,4 +308,14 @@ export const as: Catalogue = {
   'One number': 'এটা সংখ্যা',
   '{count} short steps. Nothing is saved until the last one.':
     '{count} টা সৰু পদক্ষেপ। শেষ পদক্ষেপলৈকে একোৱে সংৰক্ষণ কৰা নহয়।',
+
+  // --- Smart commerce: sellers, products and categories ------------------
+  Products: 'পণ্যসামগ্ৰী',
+  'Find sellers': 'বিক্ৰেতা বিচাৰক',
+  'Product categories': 'পণ্যৰ শ্ৰেণী',
+  Seller: 'বিক্ৰেতা',
+  'I sell goods of any kind and dispatch them from my own premises.':
+    'মই সকলো ধৰণৰ সামগ্ৰী বিক্ৰী কৰো আৰু নিজৰ স্থানৰ পৰা পঠিয়াওঁ।',
+  'Saarthi connects fleet owners, drivers, sellers and customers on one platform - from posting a load to watching it arrive.':
+    'Saarthi-এ বাহিনী মালিক, চালক, বিক্ৰেতা আৰু গ্ৰাহকক একেখন প্লেটফৰ্মত সংযোগ কৰে - লোড দিয়াৰ পৰা সেয়া পোৱালৈকে।',
 };

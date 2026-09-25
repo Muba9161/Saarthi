@@ -79,23 +79,28 @@ function ProfileCard() {
 }
 
 /**
- * The wallet at a glance, linking to Refer & earn.
+ * The wallet at a glance, linking to where its rewards come from — Refer & earn,
+ * or a salesperson's Earnings.
  *
  * Rendered inside the open menu only, so the wallet is fetched when the menu
  * is opened rather than on every screen. A real menu item, so it is reachable
  * with the arrow keys like the rest.
  */
-function WalletStrip() {
+function WalletStrip({ to }: { to: string }) {
   const wallet = useWallet();
   const data = wallet.data;
 
   return (
     <DropdownMenuItem
       asChild
-      className="mt-2 p-0 focus:bg-transparent focus:ring-2 focus:ring-ring focus:ring-offset-1 focus:ring-offset-popover"
+      // Radix highlights an item on hover as well as on keyboard focus, and the
+      // shared item style turns it muted with dark text. On this blue card that
+      // read as washed out, so the highlight is restyled for the card instead:
+      // white text kept, a touch brighter, lifted, with a thin inner edge.
+      className="mt-2 p-0 transition-[filter,box-shadow] duration-200 focus:bg-transparent focus:text-primary-foreground data-[highlighted]:shadow-md data-[highlighted]:ring-1 data-[highlighted]:ring-inset data-[highlighted]:ring-white/40 data-[highlighted]:brightness-110"
     >
       <Link
-        to="/referrals"
+        to={to}
         className="group relative flex items-center gap-3 overflow-hidden rounded-lg bg-gradient-to-r from-primary to-primary/80 p-3 text-primary-foreground shadow-sm"
       >
         <span
@@ -140,8 +145,7 @@ function WalletStrip() {
 /**
  * The profile menu in the top bar — the one home of account navigation.
  *
- * Opens on a profile card and, for anyone in Refer & Earn, their wallet
- * balance; then the groups — Account, Business, Security and Legal — each shown
+ * Opens on a profile card and the wallet balance; then the groups — Account, Business, Security and Legal — each shown
  * only when it has something this user can open. Items are real links, so they
  * can be opened in a new tab and read as links to assistive technology, and
  * Radix supplies the keyboard model (arrow keys, type-ahead, Escape).
@@ -153,7 +157,11 @@ export function AccountMenu(): React.ReactElement {
   const { session, logout } = useAuth();
   const sections = useVisibleAccountNavigation();
   const t = useT();
-  const hasWallet = canJoinReferralProgram(session?.user.roles ?? []);
+  // Everybody has a wallet: Refer & Earn pays into it, and so does a
+  // salesperson's every successful referral.
+  const walletHome = canJoinReferralProgram(session?.user.roles ?? [])
+    ? '/referrals'
+    : '/sales/earnings';
 
   return (
     <DropdownMenu>
@@ -170,7 +178,7 @@ export function AccountMenu(): React.ReactElement {
       >
         <div className="p-1">
           <ProfileCard />
-          {hasWallet ? <WalletStrip /> : null}
+          <WalletStrip to={walletHome} />
         </div>
 
         {sections.map((section) => (

@@ -291,11 +291,9 @@ export const Permission = {
    *
    * A separate group from everything above, and the separation is the point: a
    * salesperson works prospects and their own pipeline, and none of these
-   * grants reaches a customer's fleet, drivers, trips or telemetry. The two
-   * commission entries are also deliberately lopsided — a salesperson reads
-   * their own figures, and only platform administration may approve or pay
-   * them, because commission is money and the person earning it must not be
-   * the person authorising it.
+   * grants reaches a customer's fleet, drivers, trips or telemetry. What a
+   * salesperson earns is a flat reward paid into their Saarthi wallet, which
+   * needs no permission of its own: it is scoped to their own user.
    */
   SALES_READ: 'sales.read',
   SALES_WRITE: 'sales.write',
@@ -303,9 +301,6 @@ export const Permission = {
   LEADS_WRITE: 'leads.write',
   REFERRALS_READ: 'referrals.read',
   REFERRALS_CREATE: 'referrals.create',
-  COMMISSION_READ: 'commission.read',
-  /** Approve, pay, reverse and reject. Never held by a salesperson. */
-  COMMISSION_MANAGE: 'commission.manage',
   TRACKER_HANDOVER_READ: 'tracker_handover.read',
   TRACKER_HANDOVER_WRITE: 'tracker_handover.write',
   /** Allocate stock to a salesperson. Platform operations, not field sales. */
@@ -613,10 +608,8 @@ const ROLE_PERMISSIONS: Record<RoleName, Permission[]> = {
     Permission.MATERIALS_MANAGE,
     Permission.ORDERS_READ,
     Permission.ORDERS_MANAGE,
-    // A supplier answers material requirements with a priced offer, which is
-    // the demand side it previously had no sight of at all.
-    Permission.REQUIREMENTS_READ,
-    Permission.REQUIREMENTS_BID,
+    // No requirement grants: a Seller never sees or answers a customer's
+    // requirement. Its buyer is the fleet owner that sources from it.
     Permission.DOCUMENTS_READ,
     Permission.DOCUMENTS_UPLOAD,
     Permission.VERIFICATION_READ,
@@ -646,13 +639,18 @@ const ROLE_PERMISSIONS: Record<RoleName, Permission[]> = {
     // Receives the fleet's procurement payments into its own bank account.
     Permission.PAYOUT_ACCOUNT_MANAGE,
     Permission.MARKETPLACE_FINANCE_READ,
+    // Saarthi Mitra: drafts product listings and guides setup. The plan still
+    // decides whether the copilot is included, and every draft is confirmed
+    // on the real screen.
+    Permission.AI_USE,
   ],
 
   [RoleName.CUSTOMER]: [
     Permission.ORG_READ,
     Permission.ORG_UPDATE,
-    Permission.SUPPLIERS_READ,
-    Permission.MATERIALS_READ,
+    // No seller, catalogue or inventory grants. A customer states a need and a
+    // fleet owner sources it; browsing sellers directly would put the customer
+    // in touch with the seller, which the marketplace does not allow.
     Permission.ORDERS_READ,
     Permission.ORDERS_CREATE,
     Permission.ORDERS_RATE,
@@ -697,7 +695,6 @@ const ROLE_PERMISSIONS: Record<RoleName, Permission[]> = {
     Permission.PAYMENTS_READ,
     Permission.MEDIA_READ,
     Permission.MEDIA_UPLOAD,
-    Permission.INVENTORY_READ,
     Permission.RESALE_BROWSE,
     Permission.RESALE_OFFER,
     Permission.PROFILE_DIRECTORY,
@@ -706,6 +703,10 @@ const ROLE_PERMISSIONS: Record<RoleName, Permission[]> = {
     Permission.RELAY_READ,
     Permission.CITY_ACCESS_READ,
     Permission.ROUTE_INTEL_READ,
+    // Saarthi Mitra: drafts requirements and guides setup. The plan still
+    // decides whether the copilot is included, and every draft is confirmed
+    // on the real screen.
+    Permission.AI_USE,
   ],
 
   [RoleName.SUPPORT_AGENT]: [
@@ -810,10 +811,6 @@ const ROLE_PERMISSIONS: Record<RoleName, Permission[]> = {
    * vehicles move. What they see of a customer is assembled by the sales
    * service from their own attributions and is deliberately thin — a name, a
    * vehicle count, a subscription state, how many vehicles are live.
-   *
-   * COMMISSION_READ without COMMISSION_MANAGE is the other deliberate gap: the
-   * figures are computed server-side from real payments, and the person they
-   * are owed to can look at them and nothing more.
    */
   [RoleName.SALESMAN]: [
     Permission.SALES_READ,
@@ -822,7 +819,6 @@ const ROLE_PERMISSIONS: Record<RoleName, Permission[]> = {
     Permission.LEADS_WRITE,
     Permission.REFERRALS_READ,
     Permission.REFERRALS_CREATE,
-    Permission.COMMISSION_READ,
     Permission.TRACKER_HANDOVER_READ,
     Permission.TRACKER_HANDOVER_WRITE,
     Permission.DEMO_USE,

@@ -151,6 +151,9 @@ export const router = createBrowserRouter([
       { path: '/register', element: lazyPage(() => import('@/pages/auth/register')) },
       { path: '/forgot-password', element: lazyPage(() => import('@/pages/auth/forgot-password')) },
       { path: '/reset-password', element: lazyPage(() => import('@/pages/auth/reset-password')) },
+      // A salesperson joining with their GODID. Beside sign-in rather than in
+      // the Sales area, because they have no account yet.
+      { path: '/sales/join', element: lazyPage(() => import('@/pages/sales/join')) },
     ],
   },
   {
@@ -261,6 +264,10 @@ export const router = createBrowserRouter([
           {
             path: '/supplier/materials',
             element: lazyPage(() => import('@/pages/supplier/materials')),
+          },
+          {
+            path: '/supplier/materials/new',
+            element: lazyPage(() => import('@/pages/supplier/new-product')),
           },
 
           // Generalized vehicles
@@ -427,9 +434,12 @@ export const router = createBrowserRouter([
             element: lazyPage(() => import('@/pages/sales/trackers')),
           },
           {
-            path: '/sales/commission',
-            element: lazyPage(() => import('@/pages/sales/commission')),
+            path: '/sales/earnings',
+            element: lazyPage(() => import('@/pages/sales/earnings')),
           },
+          // Commission was replaced by a flat reward paid into the wallet.
+          // Kept as a redirect so bookmarks still land somewhere useful.
+          { path: '/sales/commission', element: <Navigate to="/sales/earnings" replace /> },
 
           // Platform administration
           { path: '/admin', element: lazyPage(() => import('@/pages/admin/overview')) },
@@ -451,9 +461,10 @@ export const router = createBrowserRouter([
             path: '/admin/salesmen',
             element: lazyPage(() => import('@/pages/admin/salesmen')),
           },
+          { path: '/admin/commission', element: <Navigate to="/admin/salesmen" replace /> },
           {
-            path: '/admin/commission',
-            element: lazyPage(() => import('@/pages/admin/commission')),
+            path: '/admin/commerce',
+            element: lazyPage(() => import('@/pages/admin/commerce-taxonomy')),
           },
 
           { path: '*', element: <NotFoundPage /> },

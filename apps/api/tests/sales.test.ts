@@ -1,9 +1,8 @@
+import { randomBytes } from 'node:crypto';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import {
-  CommissionStatus,
-  CommissionTrigger,
-  CommissionType,
   OrganizationType,
+  PaymentTrigger,
   PlanTier,
   ReferralSource,
   ReferralStatus,
@@ -11,13 +10,12 @@ import {
   SalesLeadStatus,
   SalesmanStatus,
   TrackerHandoverStatus,
-  computeCommission,
   isPlausibleGodId,
   normalizeGodId,
   referralUrl,
 } from '@saarthi/shared';
 import { prisma } from '../src/database/prisma';
-import * as commissionService from '../src/modules/sales/commission.service';
+import { hashToken } from '../src/auth/tokens';
 import * as referralService from '../src/modules/sales/referral.service';
 import * as salesmanService from '../src/modules/sales/salesman.service';
 import { qualifyPayment } from '../src/modules/sales/qualification';
@@ -33,7 +31,7 @@ import {
 } from './helpers';
 
 /**
- * Salesman, sales, referral and commission.
+ * Salesman, sales, referral and reward.
  *
  * Written against the guarantees the specification calls non-negotiable, in the
  * order it states them. Every test that matters here is a test that something
@@ -41,11 +39,11 @@ import {
  *
  *   * an unverified GODID earns nothing;
  *   * a second salesperson cannot take over an attributed customer;
- *   * a commission never exists without a successful payment;
- *   * a repeated payment event never pays twice;
- *   * a commission with no rule behind it cannot be approved;
- *   * a salesperson cannot approve their own commission, see a colleague's
- *     lead, or mark their own conversion.
+ *   * a reward is paid only for a customer on a paid plan, once per customer;
+ *   * a withdrawn referral's held reward is voided;
+ *   * signup cannot be claimed with a GODID alone;
+ *   * a salesperson cannot see a colleague's lead, or mark their own
+ *     conversion.
  *
  * Nothing is stubbed. These run against the real PostgreSQL test database, so
  * the partial unique indexes and the CHECK constraint from the migration are
@@ -91,20 +89,6 @@ async function createPendingSalesman(): Promise<SalesmanFixture> {
     data: { godId, userId: user.id, status: SalesmanStatus.PENDING_VERIFICATION },
   });
   return { profileId: profile.id, godId, user };
-}
-
-async function createPercentageRule(rate: number, qualificationDays = 0): Promise<string> {
-  const rule = await prisma.commissionRule.create({
-    data: {
-      name: unique('Rule '),
-      trigger: CommissionTrigger.TRACKER,
-      commissionType: CommissionType.PERCENTAGE,
-      commissionRate: rate,
-      qualificationDays,
-      active: true,
-    },
-  });
-  return rule.id;
 }
 
 beforeEach(async () => {
@@ -485,93 +469,19 @@ describe('referral attribution', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Commission
+// Rewards
 // ---------------------------------------------------------------------------
 
-describe('commission arithmetic', () => {
-  it('rounds to paise, not to rupees', () => {
-    // 7.5% of 1499 is 112.425. Rounding to 112 loses money on every sale.
-    expect(
-      computeCommission(
-        { commissionType: CommissionType.PERCENTAGE, commissionRate: 7.5, fixedAmount: null },
-        1499,
-      ),
-    ).toEqual({ amount: 112.43, rate: 7.5, reason: null });
-  });
-
-  it('returns a null amount rather than zero when the terms cannot produce one', () => {
-    const result = computeCommission(
-      { commissionType: CommissionType.PERCENTAGE, commissionRate: null, fixedAmount: null },
-      1000,
-    );
-    expect(result.amount).toBeNull();
-    expect(result.reason).toBeTruthy();
-  });
-
-  it('honours a fixed rule whatever the sale was worth', () => {
-    expect(
-      computeCommission(
-        { commissionType: CommissionType.FIXED, commissionRate: null, fixedAmount: 500 },
-        99_999,
-      ),
-    ).toEqual({ amount: 500, rate: null, reason: null });
-  });
-});
-
-describe('commission generation', () => {
-  async function attributedCustomer(): Promise<{
-    salesman: SalesmanFixture;
-    organizationId: string;
-  }> {
-    const salesman = await createVerifiedSalesman();
-    const organization = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.PERSONAL);
-    await prisma.referralAttribution.create({
-      data: {
-        salesmanId: salesman.profileId,
-        godId: salesman.godId,
-        source: ReferralSource.REFERRAL_LINK,
-        status: ReferralStatus.ATTRIBUTED,
-        organizationId: organization.id,
-        expiresAt: new Date(Date.now() + 86_400_000),
-      },
-    });
-    return { salesman, organizationId: organization.id };
-  }
-
-  it('records nothing for a customer nobody is credited with', async () => {
-    const organization = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.PERSONAL);
-
-    const result = await commissionService.generateForPayment({
-      organizationId: organization.id,
-      baseAmount: 4000,
-      paymentReference: unique('PAY-'),
-      trigger: CommissionTrigger.TRACKER,
-    });
-
-    expect(result.commissionId).toBeNull();
-    expect(result.skipped).toMatch(/not attributed/i);
-    await expect(prisma.commission.count()).resolves.toBe(0);
-  });
-
-  /**
-   * The whole digital channel, through the endpoint a customer actually hits.
-   *
-   * `auth.register` both provisions the signup order — which charges for the
-   * trackers priced on the signup card and qualifies that payment — and
-   * records the referral. While the referral was recorded *second*, no
-   * attribution existed when `qualifyPayment` ran, so it credited nobody: a
-   * referred signup earned its salesperson nothing on the hardware they had
-   * just sold, with no error raised anywhere to say so.
-   *
-   * Every other referral test in this file calls `attributeRegistration`
-   * directly, which is precisely how that survived them all. This one goes in
-   * through `POST /auth/register`, so the ordering inside registration is part
-   * of what is under test.
-   */
-  it('credits the signup trackers of a referred registration', async () => {
-    const salesman = await createVerifiedSalesman();
-    await createPercentageRule(10);
-
+/**
+ * A salesperson's successful referral pays ₹100 into their wallet.
+ *
+ * "Successful" is the customer starting on a paid plan, so on its trial, with
+ * no payment and no approval. The reward is held, keyed per customer so it can
+ * never pay twice, and voided with its attribution while still on hold.
+ */
+describe('salesperson rewards', () => {
+  async function registerCustomer(referralCode: string, planTier: PlanTier = PlanTier.BUSINESS) {
+    const free = planTier === PlanTier.FREE;
     const { status, body } = await request<{
       session: { organization: { id: string } | null };
     }>({
@@ -583,435 +493,178 @@ describe('commission generation', () => {
         email: `${unique('referred').toLowerCase()}@saarthi.test`,
         phone: uniquePhone(),
         password: 'Monsoon2026road',
-        role: RoleName.FLEET_OWNER,
+        role: free ? RoleName.CUSTOMER : RoleName.FLEET_OWNER,
         organizationName: unique('Shah Transport '),
         acceptedTerms: true,
-        planTier: PlanTier.BUSINESS,
-        // Two of each: a tracker is fitted to a vehicle, so the order is
-        // refused if it carries more trackers than vehicles.
-        planVehicles: 2,
-        planTrackers: 2,
-        referralCode: salesman.godId,
+        planTier,
+        referralCode,
       },
     });
-
     expect(status).toBe(201);
-    const organizationId = body.data.session.organization?.id as string;
+    return body.data.session.organization?.id as string;
+  }
+
+  function rewardsOf(userId: string) {
+    return prisma.walletEntry.findMany({ where: { userId, type: 'REFERRAL_REWARD' } });
+  }
+
+  it('pays ₹100, held, the moment a referred customer starts a paid-plan trial', async () => {
+    const salesman = await createVerifiedSalesman();
+    const organizationId = await registerCustomer(salesman.godId);
 
     const attribution = await prisma.referralAttribution.findFirstOrThrow({
       where: { organizationId },
     });
-    expect(attribution.godId).toBe(salesman.godId);
-
-    // The hardware the customer paid for at signup, credited to the person who
-    // sold it. Priced off the row's own base amount rather than the tracker
-    // price, so a price change does not fail this test for the wrong reason.
-    const commission = await prisma.commission.findFirstOrThrow({
-      where: { organizationId, trigger: CommissionTrigger.TRACKER },
+    const [reward] = await rewardsOf(salesman.user.id);
+    expect(reward).toMatchObject({
+      status: 'HELD',
+      referralAttributionId: attribution.id,
+      referredOrganizationId: organizationId,
     });
-    expect(commission.salesmanId).toBe(salesman.profileId);
-    expect(commission.godId).toBe(salesman.godId);
-    expect(commission.commissionAmount).not.toBeNull();
-    expect(Number(commission.commissionAmount)).toBeCloseTo(Number(commission.baseAmount) * 0.1, 2);
-  });
+    expect(Number(reward?.amount)).toBe(100);
 
-  it('holds a sale with a null amount when no rule covers it', async () => {
-    const { salesman, organizationId } = await attributedCustomer();
-
-    const result = await commissionService.generateForPayment({
-      organizationId,
-      baseAmount: 4000,
-      paymentReference: unique('PAY-'),
-      trigger: CommissionTrigger.TRACKER,
-    });
-
-    expect(result.commissionId).not.toBeNull();
-    // Null, and emphatically not zero — zero would read as a settled debt.
-    expect(result.amount).toBeNull();
-
-    const row = await prisma.commission.findFirstOrThrow({
-      where: { salesmanId: salesman.profileId },
-    });
-    expect(row.commissionAmount).toBeNull();
-    expect(row.unmatchedReason).toMatch(/no active commission rule/i);
-    expect(row.status).toBe(CommissionStatus.PENDING);
-  });
-
-  it('computes the amount from the rule and marks the attribution converted', async () => {
-    const { salesman, organizationId } = await attributedCustomer();
-    await createPercentageRule(10);
-
-    const result = await commissionService.generateForPayment({
-      organizationId,
-      baseAmount: 4000,
-      paymentReference: unique('PAY-'),
-      trigger: CommissionTrigger.TRACKER,
-    });
-
-    expect(result.amount).toBe(400);
-
-    const attribution = await prisma.referralAttribution.findFirstOrThrow({
-      where: { salesmanId: salesman.profileId },
-    });
-    // CONVERTED only after a real payment was seen, never on the strength of a
-    // subscription record.
-    expect(attribution.status).toBe(ReferralStatus.CONVERTED);
-    expect(attribution.convertedAt).not.toBeNull();
-  });
-
-  it('never pays twice for one payment, however many times the event arrives', async () => {
-    const { organizationId } = await attributedCustomer();
-    await createPercentageRule(10);
-    const reference = unique('PAY-');
-
-    await commissionService.generateForPayment({
-      organizationId,
-      baseAmount: 4000,
-      paymentReference: reference,
-      trigger: CommissionTrigger.TRACKER,
-    });
-    await commissionService.generateForPayment({
-      organizationId,
-      baseAmount: 4000,
-      paymentReference: reference,
-      trigger: CommissionTrigger.TRACKER,
-    });
-    await commissionService.generateForPayment({
-      organizationId,
-      baseAmount: 4000,
-      paymentReference: reference,
-      trigger: CommissionTrigger.TRACKER,
-    });
-
-    await expect(prisma.commission.count()).resolves.toBe(1);
-  });
-
-  it('lets one payment earn a tracker and a top-up commission, and only one of each', async () => {
-    const { organizationId } = await attributedCustomer();
-    await createPercentageRule(10);
-    await prisma.commissionRule.create({
-      data: {
-        name: unique('Top-up '),
-        trigger: CommissionTrigger.VEHICLE_TOPUP,
-        commissionType: CommissionType.FIXED,
-        fixedAmount: 50,
-        qualificationDays: 0,
-        active: true,
-      },
-    });
-    const reference = unique('SIGNUP-');
-
-    for (const trigger of [CommissionTrigger.TRACKER, CommissionTrigger.VEHICLE_TOPUP]) {
-      // Twice each, to prove the key is (trigger, reference) rather than either
-      // one alone.
-      await commissionService.generateForPayment({
-        organizationId,
-        baseAmount: 4000,
-        paymentReference: reference,
-        trigger,
-      });
-      await commissionService.generateForPayment({
-        organizationId,
-        baseAmount: 4000,
-        paymentReference: reference,
-        trigger,
-      });
-    }
-
-    await expect(prisma.commission.count()).resolves.toBe(2);
-  });
-
-  it('keeps the rate a sale was computed at when the rule later changes', async () => {
-    const { organizationId } = await attributedCustomer();
-    const ruleId = await createPercentageRule(10);
-    const admin = await createUser({ role: RoleName.PLATFORM_ADMIN, organizationId: null });
-
-    await commissionService.generateForPayment({
-      organizationId,
-      baseAmount: 4000,
-      paymentReference: unique('PAY-'),
-      trigger: CommissionTrigger.TRACKER,
-    });
-
-    const updated = await request({
-      method: 'PUT',
-      url: `${ADMIN_PATH}/commission/rules/${ruleId}`,
-      user: admin,
-      payload: {
-        name: 'Renegotiated',
-        trigger: CommissionTrigger.TRACKER,
-        commissionType: CommissionType.PERCENTAGE,
-        commissionRate: 2,
-        qualificationDays: 0,
-        active: true,
-      },
-    });
-    expect(updated.status).toBe(200);
-
-    const row = await prisma.commission.findFirstOrThrow();
-    // A sale made in March does not shrink because the rate fell in June.
-    expect(Number(row.commissionAmount)).toBe(400);
-    expect(Number(row.commissionRate)).toBe(10);
-  });
-
-  it('prices the sales that were waiting for a rule, once one exists', async () => {
-    const { organizationId } = await attributedCustomer();
-    const admin = await createUser({ role: RoleName.PLATFORM_ADMIN, organizationId: null });
-
-    await commissionService.generateForPayment({
-      organizationId,
-      baseAmount: 4000,
-      paymentReference: unique('PAY-'),
-      trigger: CommissionTrigger.TRACKER,
-    });
-    await expect(
-      prisma.commission.count({ where: { commissionAmount: null } }),
-    ).resolves.toBe(1);
-
-    const created = await request({
-      method: 'POST',
-      url: `${ADMIN_PATH}/commission/rules`,
-      user: admin,
-      payload: {
-        name: 'First rule',
-        trigger: CommissionTrigger.TRACKER,
-        commissionType: CommissionType.PERCENTAGE,
-        commissionRate: 7.5,
-        qualificationDays: 0,
-        active: true,
-      },
-    });
-    expect(created.status).toBe(201);
-
-    const row = await prisma.commission.findFirstOrThrow();
-    expect(Number(row.commissionAmount)).toBe(300);
-    expect(row.unmatchedReason).toBeNull();
-  });
-
-  it('refuses two active rules covering the same sale', async () => {
-    const admin = await createUser({ role: RoleName.PLATFORM_ADMIN, organizationId: null });
-    const payload = {
-      trigger: CommissionTrigger.TRACKER,
-      commissionType: CommissionType.PERCENTAGE,
-      commissionRate: 5,
-      qualificationDays: 30,
-      active: true,
-    };
-
-    const first = await request({
-      method: 'POST',
-      url: `${ADMIN_PATH}/commission/rules`,
-      user: admin,
-      payload: { ...payload, name: 'One' },
-    });
-    expect(first.status).toBe(201);
-
-    const second = await request({
-      method: 'POST',
-      url: `${ADMIN_PATH}/commission/rules`,
-      user: admin,
-      payload: { ...payload, name: 'Two' },
-    });
-    // Otherwise the amount would depend on which row the planner returned.
-    expect(second.status).toBe(409);
-  });
-});
-
-describe('commission decisions', () => {
-  async function pendingCommission(options: { rate?: number; qualificationDays?: number } = {}) {
-    const salesman = await createVerifiedSalesman();
-    const organization = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.PERSONAL);
-    await prisma.referralAttribution.create({
-      data: {
-        salesmanId: salesman.profileId,
-        godId: salesman.godId,
-        source: ReferralSource.REFERRAL_LINK,
-        status: ReferralStatus.ATTRIBUTED,
-        organizationId: organization.id,
-        expiresAt: new Date(Date.now() + 86_400_000),
-      },
-    });
-    if (options.rate !== undefined) {
-      await createPercentageRule(options.rate, options.qualificationDays ?? 0);
-    }
-    await commissionService.generateForPayment({
-      organizationId: organization.id,
-      baseAmount: 4000,
-      paymentReference: unique('PAY-'),
-      trigger: CommissionTrigger.TRACKER,
-    });
-    const row = await prisma.commission.findFirstOrThrow();
-    return { salesman, commissionId: row.id, organizationId: organization.id };
-  }
-
-  it('does not let a salesperson approve their own commission', async () => {
-    const { salesman, commissionId } = await pendingCommission({ rate: 10 });
-
-    const response = await request({
-      method: 'POST',
-      url: `${ADMIN_PATH}/commission/${commissionId}/decision`,
+    // Shown on the salesperson's own dashboard.
+    const dashboard = await request<{ earnings: { totalEarned: number; held: number } }>({
+      method: 'GET',
+      url: `${ADMIN_PATH}/dashboard`,
       user: salesman.user,
-      payload: { status: CommissionStatus.APPROVED },
     });
-
-    expect(response.status).toBe(403);
+    expect(dashboard.body.data.earnings).toMatchObject({ totalEarned: 100, held: 100 });
   });
 
-  it('does not let a commission jump from pending to paid', async () => {
-    const { commissionId } = await pendingCommission({ rate: 10 });
-    const admin = await createUser({ role: RoleName.PLATFORM_ADMIN, organizationId: null });
-
-    const response = await request({
-      method: 'POST',
-      url: `${ADMIN_PATH}/commission/${commissionId}/decision`,
-      user: admin,
-      payload: { status: CommissionStatus.PAID },
-    });
-
-    // APPROVED records who confirmed the figure; PAYABLE records the payout run
-    // picking it up. A payment with neither has no authorisation trail.
-    expect(response.status).toBe(409);
-  });
-
-  it('will not approve a commission that has no amount', async () => {
-    const { commissionId } = await pendingCommission();
-    const admin = await createUser({ role: RoleName.PLATFORM_ADMIN, organizationId: null });
-
-    const response = await request({
-      method: 'POST',
-      url: `${ADMIN_PATH}/commission/${commissionId}/decision`,
-      user: admin,
-      payload: { status: CommissionStatus.APPROVED },
-    });
-
-    expect(response.status).toBe(422);
-    expect(response.body.error?.message).toMatch(/no amount/i);
-  });
-
-  it('will not approve inside the qualification period', async () => {
-    const { commissionId } = await pendingCommission({ rate: 10, qualificationDays: 30 });
-    const admin = await createUser({ role: RoleName.PLATFORM_ADMIN, organizationId: null });
-
-    const response = await request({
-      method: 'POST',
-      url: `${ADMIN_PATH}/commission/${commissionId}/decision`,
-      user: admin,
-      payload: { status: CommissionStatus.APPROVED },
-    });
-
-    expect(response.status).toBe(422);
-    expect(response.body.error?.message).toMatch(/qualification period/i);
-  });
-
-  it('requires a reason to take money back', async () => {
-    const { commissionId } = await pendingCommission({ rate: 10 });
-    const admin = await createUser({ role: RoleName.PLATFORM_ADMIN, organizationId: null });
-
-    const response = await request({
-      method: 'POST',
-      url: `${ADMIN_PATH}/commission/${commissionId}/decision`,
-      user: admin,
-      payload: { status: CommissionStatus.REVERSED },
-    });
-
-    expect(response.status).toBe(400);
-  });
-
-  it('walks approve → payable → paid and records who did each', async () => {
-    const { commissionId } = await pendingCommission({ rate: 10 });
-    const admin = await createUser({ role: RoleName.PLATFORM_ADMIN, organizationId: null });
-
-    for (const status of [
-      CommissionStatus.APPROVED,
-      CommissionStatus.PAYABLE,
-      CommissionStatus.PAID,
-    ]) {
-      const response = await request({
-        method: 'POST',
-        url: `${ADMIN_PATH}/commission/${commissionId}/decision`,
-        user: admin,
-        payload: {
-          status,
-          ...(status === CommissionStatus.PAID ? { paymentReference: 'NEFT-001' } : {}),
-        },
-      });
-      expect(response.status).toBe(200);
-    }
-
-    const row = await prisma.commission.findUniqueOrThrow({ where: { id: commissionId } });
-    expect(row.status).toBe(CommissionStatus.PAID);
-    expect(row.approvedByUserId).toBe(admin.id);
-    expect(row.paidByUserId).toBe(admin.id);
-    expect(row.payoutReference).toBe('NEFT-001');
-  });
-
-  it('refuses to settle a null amount even straight at the database', async () => {
-    const { commissionId } = await pendingCommission();
-
-    /*
-     * The CHECK constraint from the migration, exercised directly. It is the
-     * last line of defence: if a future code path ever approves an unpriced
-     * row, this refuses rather than creating a debt of unknown size.
-     */
-    await expect(
-      prisma.$executeRawUnsafe(
-        `UPDATE "commissions" SET "status" = 'APPROVED' WHERE "id" = $1::uuid`,
-        commissionId,
-      ),
-    ).rejects.toThrow();
-  });
-
-  it('counts an unpriced sale rather than summing it as zero', async () => {
-    const { salesman } = await pendingCommission();
-
-    const totals = await commissionService.commissionTotals(salesman.profileId);
-
-    expect(totals.pending).toBe(0);
-    expect(totals.awaitingRule).toBe(1);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Payment qualification — no payment, no commission
-// ---------------------------------------------------------------------------
-
-describe('payment qualification', () => {
-  it('records no commission without a provider reference', async () => {
+  it('pays nothing for a customer on the Free plan', async () => {
     const salesman = await createVerifiedSalesman();
-    const organization = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.PERSONAL);
-    await prisma.referralAttribution.create({
-      data: {
-        salesmanId: salesman.profileId,
-        godId: salesman.godId,
-        source: ReferralSource.REFERRAL_LINK,
-        status: ReferralStatus.ATTRIBUTED,
-        organizationId: organization.id,
-        expiresAt: new Date(Date.now() + 86_400_000),
-      },
-    });
-    await createPercentageRule(10);
+    await registerCustomer(salesman.godId, PlanTier.FREE);
 
-    // No reference means no idempotency key, so a retry could pay twice.
+    await expect(rewardsOf(salesman.user.id)).resolves.toHaveLength(0);
+  });
+
+  it('pays an unverified salesperson nothing', async () => {
+    const salesman = await createPendingSalesman();
+    await registerCustomer(salesman.godId);
+
+    await expect(rewardsOf(salesman.user.id)).resolves.toHaveLength(0);
+  });
+
+  it('voids a held reward when the referral is withdrawn, and never pays that customer twice', async () => {
+    const salesman = await createVerifiedSalesman();
+    const organizationId = await registerCustomer(salesman.godId);
+    const attribution = await prisma.referralAttribution.findFirstOrThrow({
+      where: { organizationId },
+    });
+
+    const admin = await createUser({ role: RoleName.PLATFORM_ADMIN, organizationId: null });
+    const revoked = await request({
+      method: 'POST',
+      url: `${ADMIN_PATH}/referrals/${attribution.id}/revoke`,
+      user: admin,
+      payload: { reason: 'Registered by mistake under this GODID' },
+    });
+    expect(revoked.status).toBe(200);
+    const [voided] = await rewardsOf(salesman.user.id);
+    expect(voided?.status).toBe('VOID');
+
+    // Attributed again: the customer has already earned their one reward.
+    await referralService.attributePhysicalSale({
+      salesman: await salesmanService.getSalesman(salesman.profileId),
+      organizationId,
+    });
+    await expect(rewardsOf(salesman.user.id)).resolves.toHaveLength(1);
+  });
+
+  it('marks the customer converted on their first subscription payment only', async () => {
+    const salesman = await createVerifiedSalesman();
+    const organizationId = await registerCustomer(salesman.godId);
+
     await qualifyPayment({
-      organizationId: organization.id,
-      baseAmount: 4000,
-      paymentReference: null,
-      trigger: CommissionTrigger.TRACKER,
+      organizationId,
+      baseAmount: 3000,
+      paymentReference: unique('PAY-'),
+      trigger: PaymentTrigger.TRACKER,
     });
+    await expect(
+      prisma.referralAttribution.findFirstOrThrow({ where: { organizationId } }),
+    ).resolves.toMatchObject({ status: ReferralStatus.ATTRIBUTED });
 
-    await expect(prisma.commission.count()).resolves.toBe(0);
+    await qualifyPayment({
+      organizationId,
+      baseAmount: 1499,
+      paymentReference: unique('PAY-'),
+      trigger: PaymentTrigger.SUBSCRIPTION,
+    });
+    await expect(
+      prisma.referralAttribution.findFirstOrThrow({ where: { organizationId } }),
+    ).resolves.toMatchObject({ status: ReferralStatus.CONVERTED });
+    // Converting is reporting; the reward was already paid at signup.
+    await expect(rewardsOf(salesman.user.id)).resolves.toHaveLength(1);
   });
 
   it('never throws out of a successful purchase, whatever goes wrong', async () => {
-    // A commission failure must not roll back a payment the customer has made.
     await expect(
       qualifyPayment({
         organizationId: '00000000-0000-0000-0000-000000000000',
         baseAmount: 4000,
         paymentReference: unique('PAY-'),
-        trigger: CommissionTrigger.TRACKER,
+        trigger: PaymentTrigger.TRACKER,
       }),
     ).resolves.toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Self-service signup
+// ---------------------------------------------------------------------------
+
+describe('salesperson self-signup', () => {
+  it('stays closed while GODWeb and email are not configured', async () => {
+    // The test environment has neither, which is exactly the state in which a
+    // GODID could otherwise be claimed with no proof of the GODWeb mailbox.
+    const response = await request({
+      method: 'POST',
+      url: '/api/v1/salesman-signup',
+      payload: { godId: 'GOD-7F42K' },
+    });
+    expect(response.status).toBe(503);
+    await expect(prisma.salesmanProfile.count()).resolves.toBe(0);
+  });
+
+  it('activates a pending account when its emailed link is used to choose a password', async () => {
+    // The state a signup leaves behind: a pending login and a one-time link.
+    const email = `${unique('godweb').toLowerCase()}@saarthi.test`;
+    const user = await prisma.user.create({
+      data: {
+        email,
+        passwordHash: 'unusable',
+        firstName: 'Priya',
+        lastName: 'Salesperson',
+        status: 'PENDING',
+      },
+    });
+    const token = randomBytes(24).toString('hex');
+    await prisma.passwordResetToken.create({
+      data: {
+        userId: user.id,
+        tokenHash: hashToken(token),
+        expiresAt: new Date(Date.now() + 3_600_000),
+      },
+    });
+
+    const reset = await request({
+      method: 'POST',
+      url: '/api/v1/auth/reset-password',
+      payload: { token, password: 'Monsoon2026road' },
+    });
+    expect(reset.status).toBe(200);
+    await expect(prisma.user.findUniqueOrThrow({ where: { id: user.id } })).resolves.toMatchObject({
+      status: 'ACTIVE',
+    });
+
+    const login = await request({
+      method: 'POST',
+      url: '/api/v1/auth/login',
+      payload: { email, password: 'Monsoon2026road' },
+    });
+    expect(login.status).toBe(200);
   });
 });
 
@@ -1377,7 +1030,6 @@ describe('sales RBAC', () => {
 
     for (const url of [
       `${ADMIN_PATH}/leads`,
-      `${ADMIN_PATH}/commission`,
       `${ADMIN_PATH}/referrals`,
       `${ADMIN_PATH}/trackers`,
     ]) {

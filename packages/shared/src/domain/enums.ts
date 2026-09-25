@@ -291,6 +291,41 @@ export const MaterialStatus = asEnum({
 });
 export type MaterialStatus = EnumValue<typeof MaterialStatus>;
 
+// ---------------------------------------------------------------------------
+// Commerce taxonomy — what a seller sells and a customer asks for
+// ---------------------------------------------------------------------------
+
+/**
+ * Whether a taxonomy node is offered. Deactivated rather than deleted, because
+ * listings and requirements already point at it.
+ */
+export const CommerceCategoryStatus = asEnum({
+  ACTIVE: 'ACTIVE',
+  INACTIVE: 'INACTIVE',
+});
+export type CommerceCategoryStatus = EnumValue<typeof CommerceCategoryStatus>;
+
+/** The value type a category attribute collects. */
+export const CommerceAttributeType = asEnum({
+  TEXT: 'TEXT',
+  NUMBER: 'NUMBER',
+  SELECT: 'SELECT',
+  BOOLEAN: 'BOOLEAN',
+});
+export type CommerceAttributeType = EnumValue<typeof CommerceAttributeType>;
+
+/**
+ * Which record an attribute belongs to. Seller products and customer
+ * requirements share one taxonomy, but a customer is not asked for a seller's
+ * brand, and a seller is not asked for a customer's tolerance.
+ */
+export const CommerceAttributeScope = asEnum({
+  BOTH: 'BOTH',
+  PRODUCT: 'PRODUCT',
+  REQUIREMENT: 'REQUIREMENT',
+});
+export type CommerceAttributeScope = EnumValue<typeof CommerceAttributeScope>;
+
 export const OrderStatus = asEnum({
   DRAFT: 'DRAFT',
   REQUESTED: 'REQUESTED',
@@ -2564,42 +2599,16 @@ export const WalletCashoutStatus = asEnum({
 });
 export type WalletCashoutStatus = EnumValue<typeof WalletCashoutStatus>;
 
-/** How a commission rule turns a qualifying payment into an amount. */
-export const CommissionType = asEnum({
-  /** A percentage of the qualifying payment. */
-  PERCENTAGE: 'PERCENTAGE',
-  /** A flat amount per qualifying sale, whatever it was worth. */
-  FIXED: 'FIXED',
-});
-export type CommissionType = EnumValue<typeof CommissionType>;
-
 /**
- * The commission lifecycle.
- *
- * `PENDING` means the sale qualified but the amount is not settled — either it
- * is still inside its qualification period, or no active rule covered it. A
- * null amount is not the same as zero, and is never paid.
+ * What a successful payment was for. Passed to the payment qualification hook,
+ * which uses it to decide what that payment counts towards.
  */
-export const CommissionStatus = asEnum({
-  PENDING: 'PENDING',
-  APPROVED: 'APPROVED',
-  PAYABLE: 'PAYABLE',
-  PAID: 'PAID',
-  /** Refunded, charged back or cancelled inside the qualification period. */
-  REVERSED: 'REVERSED',
-  /** Reviewed and refused, with a reason. */
-  REJECTED: 'REJECTED',
-});
-export type CommissionStatus = EnumValue<typeof CommissionStatus>;
-export const COMMISSION_STATUSES = Object.values(CommissionStatus) as CommissionStatus[];
-
-/** What a commission was earned on. */
-export const CommissionTrigger = asEnum({
+export const PaymentTrigger = asEnum({
   SUBSCRIPTION: 'SUBSCRIPTION',
   TRACKER: 'TRACKER',
   VEHICLE_TOPUP: 'VEHICLE_TOPUP',
 });
-export type CommissionTrigger = EnumValue<typeof CommissionTrigger>;
+export type PaymentTrigger = EnumValue<typeof PaymentTrigger>;
 
 /**
  * Custody of a Saarthi tracker on its way to a vehicle.

@@ -147,8 +147,10 @@ describe('Operations end-to-end', () => {
     materialId = material.id;
   });
 
+  // A direct order moves goods the customer already owns; it never names a
+  // seller listing (material is sourced through a fleet owner's requirement bid).
   const orderPayload = () => ({
-    materialId,
+    materialName: 'River Sand (Fine)',
     quantity: 20,
     unit: MaterialUnit.TON,
     origin: { addressLine: 'Bassi Industrial Area, Jaipur', ...ORIGIN },
@@ -158,11 +160,22 @@ describe('Operations end-to-end', () => {
   });
 
   describe('marketplace', () => {
-    it('lets a customer browse the supplier catalogue', async () => {
-      const { status, body } = await request<{ items: { name: string; supplierVerified: boolean }[] }>({
+    it('does not let a customer browse seller listings', async () => {
+      const { status } = await request({
         method: 'GET',
         url: '/api/v1/marketplace/materials?availableOnly=true',
         user: customer,
+      });
+
+      // Customer ↔ Seller is closed: the customer states a need, a fleet sources it.
+      expect(status).toBe(403);
+    });
+
+    it('lets a fleet owner browse seller listings to source from', async () => {
+      const { status, body } = await request<{ items: { name: string }[] }>({
+        method: 'GET',
+        url: '/api/v1/marketplace/materials?availableOnly=true',
+        user: owner,
       });
 
       expect(status).toBe(200);
@@ -170,35 +183,12 @@ describe('Operations end-to-end', () => {
       expect(body.data.items[0]?.name).toBe('River Sand (Fine)');
     });
 
-    it('rejects an order below the material minimum quantity', async () => {
-      const { status, body } = await request({
-        method: 'POST',
-        url: '/api/v1/orders',
-        user: customer,
-        payload: { ...orderPayload(), quantity: 1 },
-      });
-
-      expect(status).toBe(422);
-      expect(body.error?.message).toMatch(/minimum order quantity/i);
-    });
-
-    it('rejects an order larger than the available stock', async () => {
-      const { status, body } = await request({
-        method: 'POST',
-        url: '/api/v1/orders',
-        user: customer,
-        payload: { ...orderPayload(), quantity: 5000 },
-      });
-
-      expect(status).toBe(422);
-      expect(body.error?.message).toMatch(/available/i);
-    });
-
-    it('creates a requirement and prices the material from the catalogue', async () => {
+    it('creates a transport request for goods the customer already owns', async () => {
       const { status, body } = await request<{
         id: string;
         reference: string;
-        materialPrice: number;
+        materialPrice: number | null;
+        supplierOrganizationId: string | null;
         status: OrderStatus;
       }>({
         method: 'POST',
@@ -209,9 +199,23 @@ describe('Operations end-to-end', () => {
 
       expect(status).toBe(201);
       expect(body.data.status).toBe(OrderStatus.REQUESTED);
-      // 20 tonnes at ₹1,450 — computed from the catalogue, not the client.
-      expect(body.data.materialPrice).toBe(29_000);
       expect(body.data.reference).toMatch(/^SO-\d{4}-\d{5}$/);
+      expect(body.data.materialPrice).toBeNull();
+    });
+
+    it('ignores a seller listing named on a customer order', async () => {
+      const { status, body } = await request<{ id: string; materialId: string | null }>({
+        method: 'POST',
+        url: '/api/v1/orders',
+        user: customer,
+        payload: { ...orderPayload(), materialId },
+      });
+
+      expect(status).toBe(201);
+      expect(body.data.materialId).toBeNull();
+      const order = await prisma.order.findUniqueOrThrow({ where: { id: body.data.id } });
+      expect(order.supplierOrganizationId).toBeNull();
+      expect(order.materialPrice).toBeNull();
     });
 
     it('ranks available transport for a requirement with explainable scores', async () => {
@@ -292,7 +296,7 @@ describe('Operations end-to-end', () => {
       expect(status).toBe(403);
     });
 
-    it('accepts a quote, creates the trip and reserves the material', async () => {
+    it('accepts a quote and creates the trip', async () => {
       const orderId = await createOrder();
 
       const quote = await request<{ id: string }>({
@@ -336,8 +340,9 @@ describe('Operations end-to-end', () => {
       });
       expect(driverRecord.availability).toBe('ON_TRIP');
 
+      // The customer's own goods: no seller's stock is touched.
       const material = await prisma.material.findUniqueOrThrow({ where: { id: materialId } });
-      expect(material.availableQuantity).toBe(480);
+      expect(material.availableQuantity).toBe(500);
     });
 
     it('rejects the losing quotes when one is accepted', async () => {

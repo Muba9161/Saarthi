@@ -205,7 +205,7 @@ export async function purchaseTopUp(
     /*
      * The top-up is sold GST-inclusive, so the charge is exactly the price the
      * customer was shown. The taxable value and GST inside it are split out
-     * for the payment metadata, the audit and the commission base.
+     * for the payment metadata and the audit.
      */
     const charge = inclusiveOfGst(VEHICLE_TOPUP.priceMonthly);
 
@@ -261,7 +261,7 @@ export async function purchaseTopUp(
 
     // Written pending, granting nothing, until the payment settles — at once on
     // the mock gateway, after checkout on a hosted one. `activatePaidAddOns`
-    // then puts it live and handles the audit, notification and commission.
+    // then puts it live and handles the audit, notification and referral records.
     const row = await prisma.vehicleSubscriptionTopUp.create({
       data: {
         organizationId,

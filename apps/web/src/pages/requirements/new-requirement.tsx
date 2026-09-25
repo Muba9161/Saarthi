@@ -13,11 +13,18 @@ import {
   TruckType,
   VehicleType,
   humanizeEnum,
+  type CommerceInterpretation,
 } from '@saarthi/shared';
 import { api, errorMessage } from '@/lib/api-client';
 import type { RequirementSummary } from '@/lib/api-types';
 import { useAuth } from '@/features/auth/auth-context';
 import { KindPicker } from '@/features/requirements/kind-picker';
+import {
+  MaterialNeedDetails,
+  materialDetailFrom,
+} from '@/features/requirements/material-need-details';
+import { useCommerceEntry, useCommerceTaxonomy } from '@/features/commerce/use-commerce';
+import { useMitraDraft } from '@/features/ai/use-mitra-draft';
 import { PageHeader } from '@/components/common/page-header';
 import { UnauthorizedState } from '@/components/common/states';
 import {
@@ -54,7 +61,6 @@ import {
 
 type FieldKey =
   | 'title'
-  | 'materialName'
   | 'quantity'
   | 'goodsDescription'
   | 'capacity'
@@ -111,11 +117,9 @@ export function NewRequirementPage() {
   const [title, setTitle] = React.useState('');
   const [description, setDescription] = React.useState('');
 
-  // Material
-  const [materialName, setMaterialName] = React.useState('');
-  const [materialCategory, setMaterialCategory] = React.useState('');
+  // Material — read from one line by the commerce engine.
   const [specification, setSpecification] = React.useState('');
-  const [needsTransport, setNeedsTransport] = React.useState(true);
+  const [needErrors, setNeedErrors] = React.useState<Record<string, string | undefined>>({});
 
   // Material + freight share these two.
   const [quantity, setQuantity] = React.useState(20);
@@ -166,6 +170,62 @@ export function NewRequirementPage() {
   const [errors, setErrors] = React.useState<FieldErrors>({});
   const [erroredStepIds, setErroredStepIds] = React.useState<string[]>([]);
 
+  /**
+   * Carry what the line said into the rest of the wizard — quantity, the two
+   * cities, the deadline — so the customer is not asked for it again. Only
+   * empty places are filled; anything already typed stays.
+   */
+  const applyDetected = ({ commercial }: CommerceInterpretation): void => {
+    if (commercial.quantity !== null) setQuantity(commercial.quantity);
+    if (commercial.unit) setUnit(commercial.unit);
+    if (commercial.pickupCity) {
+      const city = commercial.pickupCity;
+      setOrigin((place) => (place.addressLine ? place : { ...place, addressLine: city, city }));
+    }
+    if (commercial.deliveryCity) {
+      const city = commercial.deliveryCity;
+      setDestination((place) => (place.addressLine ? place : { ...place, addressLine: city, city }));
+    }
+    if (commercial.requiredWithinDays !== null) {
+      const now = Date.now();
+      const deadline = now + commercial.requiredWithinDays * 86_400_000;
+      // Delivered by the deadline, picked up before it, bidding closed before that.
+      const pickup = now + (deadline - now) / 2;
+      setEndAt(toLocalInput(new Date(deadline)));
+      setStartAt((current) => (new Date(current).getTime() <= deadline ? current : toLocalInput(new Date(pickup))));
+      setBidsCloseAt((current) =>
+        new Date(current).getTime() < pickup ? current : toLocalInput(new Date(now + (pickup - now) / 2)),
+      );
+    }
+  };
+
+  const taxonomy = useCommerceTaxonomy();
+  const need = useCommerceEntry('REQUIREMENT', taxonomy.index, { onInterpreted: applyDetected });
+
+  // Opened from Saarthi Mitra: start from what the customer told it. The
+  // wizard still walks them through every step before anything is posted.
+  useMitraDraft((draft) => {
+    const text = (draft.text ?? '').trim();
+    const draftKind = (Object.values(RequirementKind) as string[]).includes(draft.kind ?? '')
+      ? (draft.kind as RequirementKind)
+      : RequirementKind.MATERIAL_SUPPLY;
+    setKind(draftKind);
+    if (text.length >= 5) setTitle(text.slice(0, 200));
+    if (draftKind === RequirementKind.MATERIAL_SUPPLY) need.interpret(text);
+    else setDescription(text);
+  }, taxonomy.index !== null);
+
+  const rulesForNeed = (): Record<string, string> => {
+    const found: Record<string, string> = {};
+    if (!need.interpreted) found.text = 'Tell us what you need, then press Continue.';
+    else if (!need.categoryId) found.categoryId = 'Choose what it is.';
+    for (const key of need.missingAttributes) {
+      found[key] = `${need.fields.find((field) => field.key === key)?.label ?? 'This'} is required.`;
+    }
+    if (!(quantity > 0)) found.quantity = 'How much do you need?';
+    return found;
+  };
+
   const clearError = (key: FieldKey): void =>
     setErrors((previous) => (key in previous ? { ...previous, [key]: undefined } : previous));
 
@@ -182,14 +242,7 @@ export function NewRequirementPage() {
       const detail =
         kind === RequirementKind.MATERIAL_SUPPLY
           ? {
-              materialDetail: {
-                materialName,
-                ...(materialCategory ? { category: materialCategory } : {}),
-                quantity,
-                unit,
-                ...(specification ? { specification } : {}),
-                needsTransport,
-              },
+              materialDetail: materialDetailFrom(need, quantity, unit, specification),
             }
           : kind === RequirementKind.FREIGHT_TRANSPORT
             ? {
@@ -279,10 +332,6 @@ export function NewRequirementPage() {
     }
 
     if (stepId === 'details') {
-      if (kind === RequirementKind.MATERIAL_SUPPLY) {
-        if (materialName.trim().length < 2) found.materialName = 'Name the material you need.';
-        if (!(quantity > 0)) found.quantity = 'How much do you need?';
-      }
       if (kind === RequirementKind.FREIGHT_TRANSPORT) {
         if (goodsDescription.trim().length < 2)
           found.goodsDescription = 'Describe what needs moving.';
@@ -348,7 +397,9 @@ export function NewRequirementPage() {
 
   const validateStep = (step: WizardStep): boolean => {
     const found = rulesFor(step.id);
-    const ok = Object.keys(found).length === 0;
+    const needFound = step.id === 'details' && kind === RequirementKind.MATERIAL_SUPPLY ? rulesForNeed() : {};
+    setNeedErrors(needFound);
+    const ok = Object.keys(found).length === 0 && Object.keys(needFound).length === 0;
 
     setErrors(found);
     setErroredStepIds((previous) =>
@@ -437,92 +488,17 @@ export function NewRequirementPage() {
   const detailBody = () => {
     if (kind === RequirementKind.MATERIAL_SUPPLY) {
       return (
-        <>
-          <WizardField
-            label="What material?"
-            htmlFor="req-material"
-            required
-            error={errors.materialName}
-          >
-            <Input
-              id="req-material"
-              value={materialName}
-              aria-invalid={Boolean(errors.materialName) || undefined}
-              onChange={(event) => {
-                setMaterialName(event.target.value);
-                clearError('materialName');
-              }}
-              placeholder="OPC 43 grade cement"
-            />
-          </WizardField>
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <WizardField label="Quantity" htmlFor="req-quantity" required error={errors.quantity}>
-              <Input
-                id="req-quantity"
-                type="number"
-                min={1}
-                value={quantity}
-                aria-invalid={Boolean(errors.quantity) || undefined}
-                onChange={(event) => {
-                  setQuantity(Number(event.target.value));
-                  clearError('quantity');
-                }}
-              />
-            </WizardField>
-            <WizardField label="Unit">
-              <Select value={unit} onValueChange={(value) => setUnit(value as MaterialUnit)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.values(MaterialUnit).map((value) => (
-                    <SelectItem key={value} value={value}>
-                      {humanizeEnum(value)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </WizardField>
-            <WizardField label="Category" htmlFor="req-category" hint="Optional.">
-              <Input
-                id="req-category"
-                value={materialCategory}
-                onChange={(event) => setMaterialCategory(event.target.value)}
-                placeholder="Cement"
-              />
-            </WizardField>
-          </div>
-
-          <WizardField
-            label="Grade or specification"
-            htmlFor="req-spec"
-            hint="What you will and will not accept. Suppliers price against this."
-          >
-            <Textarea
-              id="req-spec"
-              value={specification}
-              onChange={(event) => setSpecification(event.target.value)}
-              rows={3}
-              placeholder="ISI marked, bags of 50 kg, manufactured within 60 days…"
-            />
-          </WizardField>
-
-          <div className="flex items-start gap-3 rounded-lg border border-border p-3">
-            <Switch
-              id="req-needs-transport"
-              checked={needsTransport}
-              onCheckedChange={setNeedsTransport}
-            />
-            <label htmlFor="req-needs-transport" className="min-w-0 cursor-pointer space-y-0.5">
-              <span className="block text-sm font-medium">Find transport as well</span>
-              <span className="block text-xs leading-snug text-muted-foreground">
-                On: fleets bid to deliver it, and you award the supplier and the lorry separately.
-                Off: only suppliers bid, and they quote a delivered price or you collect.
-              </span>
-            </label>
-          </div>
-        </>
+        <MaterialNeedDetails
+          entry={need}
+          index={taxonomy.index}
+          quantity={quantity}
+          onQuantityChange={setQuantity}
+          unit={unit}
+          onUnitChange={setUnit}
+          specification={specification}
+          onSpecificationChange={setSpecification}
+          errors={needErrors}
+        />
       );
     }
 
@@ -1126,6 +1102,12 @@ export function NewRequirementPage() {
         submitting={create.isPending}
         submitLabel="Post requirement"
         erroredStepIds={erroredStepIds}
+        onStepChange={(_index, step) => {
+          // The title usually already says what is needed; start from it.
+          if (step.id === 'details' && kind === RequirementKind.MATERIAL_SUPPLY && !need.text) {
+            need.setText(title);
+          }
+        }}
         footerStart={
           <Button variant="ghost" onClick={() => navigate('/requirements')}>
             Cancel

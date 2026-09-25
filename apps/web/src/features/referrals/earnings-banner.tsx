@@ -23,8 +23,9 @@ export function EarningsBanner({
   /** Null while the wallet is still loading. */
   available: number | null;
   held: number | null;
-  rewarded: number;
-  referrals: number;
+  /** Omitted where only the money is known. */
+  rewarded?: number;
+  referrals?: number;
   rewardAmount: number;
 }) {
   const reduced = useReducedMotion();
@@ -54,9 +55,9 @@ export function EarningsBanner({
               className="block text-3xl font-semibold tabular-nums tracking-tight sm:text-4xl"
             />
             <p className="text-sm text-muted-foreground">
-              {rewarded > 0
+              {rewarded && referrals
                 ? `From ${formatNumber(rewarded)} rewarded of ${formatNumber(referrals)} referral${referrals === 1 ? '' : 's'}`
-                : `Every friend who starts a paid trial adds ${formatCurrency(rewardAmount)}`}
+                : `Every referral who starts a paid trial adds ${formatCurrency(rewardAmount)}`}
             </p>
           </div>
         </div>

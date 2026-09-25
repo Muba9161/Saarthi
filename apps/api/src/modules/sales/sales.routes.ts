@@ -6,9 +6,6 @@ import {
   assignTrackerToSalesmanSchema,
   attributeCustomerSchema,
   captureReferralSchema,
-  commissionDecisionSchema,
-  commissionListQuerySchema,
-  commissionRuleSchema,
   completeOnboardingSchema,
   createLeadSchema,
   createSalesmanSchema,
@@ -42,7 +39,6 @@ import { AuditAction, auditFromRequest } from '../audit/audit.service';
 import * as salesmanService from './salesman.service';
 import * as leadService from './lead.service';
 import * as referralService from './referral.service';
-import * as commissionService from './commission.service';
 import * as handoverService from './handover.service';
 import * as onboardingService from './onboarding.service';
 import * as dashboardService from './dashboard.service';
@@ -70,7 +66,7 @@ import { godWebConfigured } from '../../providers/godweb';
  *
  * ## What is deliberately absent
  *
- * No endpoint accepts a commission amount. No endpoint accepts a customer's
+ * No endpoint accepts a reward amount. No endpoint accepts a customer's
  * password, OTP or payment credential. No endpoint activates a tracker, pairs a
  * device, writes telemetry or resolves a tracker QR — those belong to
  * `modules/devices`, `modules/terminal` and `modules/telemetry`, which this
@@ -137,7 +133,11 @@ export async function salesRoutes(app: FastifyInstance): Promise<void> {
       const profile = await salesmanService.requireSalesmanProfile(auth);
       return ok(
         reply,
-        await dashboardService.dashboard({ salesmanId: profile.id, godId: profile.godId }),
+        await dashboardService.dashboard({
+          salesmanId: profile.id,
+          godId: profile.godId,
+          userId: profile.userId,
+        }),
       );
     },
   );
@@ -372,38 +372,6 @@ export async function salesRoutes(app: FastifyInstance): Promise<void> {
       const auth = requireAuth(request);
       const input = parseBody(validateReferralSchema, request.body ?? {});
       return ok(reply, await referralService.validateCode(input.code, auth.user.id));
-    },
-  );
-
-  // =========================================================================
-  // Commission
-  // =========================================================================
-
-  app.get(
-    '/commission',
-    { preHandler: requirePermission(Permission.COMMISSION_READ) },
-    async (request, reply) => {
-      const query = parseQuery(commissionListQuerySchema, request.query ?? {});
-      const salesmanId = await scopeFor(request);
-      const { items, total } = await commissionService.listCommissions(query, salesmanId);
-      return paginated(reply, items, makePagination(query.page, query.pageSize, total));
-    },
-  );
-
-  /**
-   * The salesperson's own totals.
-   *
-   * `awaitingRule` is a count and not a sum, on purpose: a commission with no
-   * amount cannot contribute to a total, and quietly treating it as zero would
-   * show a smaller figure than is owed with nothing on the screen to explain it.
-   */
-  app.get(
-    '/commission/summary',
-    { preHandler: requirePermission(Permission.COMMISSION_READ) },
-    async (request, reply) => {
-      const auth = requireAuth(request);
-      const profile = await salesmanService.requireSalesmanProfile(auth);
-      return ok(reply, await commissionService.commissionTotals(profile.id));
     },
   );
 
@@ -707,61 +675,6 @@ export async function salesRoutes(app: FastifyInstance): Promise<void> {
     },
   );
 
-  app.get(
-    '/commission/rules',
-    { preHandler: requirePermission(Permission.COMMISSION_MANAGE) },
-    async (_request, reply) => ok(reply, await commissionService.listRules()),
-  );
-
-  app.post(
-    '/commission/rules',
-    { preHandler: requirePermission(Permission.COMMISSION_MANAGE) },
-    async (request, reply) => {
-      const auth = requireAuth(request);
-      const input = parseBody(commissionRuleSchema, request.body ?? {});
-      return created(reply, await commissionService.createRule(auth, input));
-    },
-  );
-
-  app.put(
-    '/commission/rules/:id',
-    { preHandler: requirePermission(Permission.COMMISSION_MANAGE) },
-    async (request, reply) => {
-      const auth = requireAuth(request);
-      const { id } = parseParams(idParamSchema, request.params);
-      const input = parseBody(commissionRuleSchema, request.body ?? {});
-      return ok(reply, await commissionService.updateRule(auth, id, input));
-    },
-  );
-
-  /**
-   * Approve, pay, reverse or reject one commission.
-   *
-   * `commission.manage`, which the SALESMAN role does not hold: the person a
-   * commission is owed to must not be the person who authorises it.
-   */
-  app.post(
-    '/commission/:id/decision',
-    { preHandler: requirePermission(Permission.COMMISSION_MANAGE) },
-    async (request, reply) => {
-      const auth = requireAuth(request);
-      const { id } = parseParams(idParamSchema, request.params);
-      const input = parseBody(commissionDecisionSchema, request.body ?? {});
-      const commission = await commissionService.decide(auth, id, input);
-      await dashboardService.invalidateDashboard(commission.salesmanId);
-      return ok(reply, commission);
-    },
-  );
-
-  /** Price the commissions that qualified before a rule existed. */
-  app.post(
-    '/commission/recalculate',
-    { preHandler: requirePermission(Permission.COMMISSION_MANAGE) },
-    async (request, reply) => {
-      const auth = requireAuth(request);
-      return ok(reply, { priced: await commissionService.recalculatePending(auth) });
-    },
-  );
 }
 
 /**

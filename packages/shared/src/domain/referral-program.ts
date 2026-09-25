@@ -17,7 +17,7 @@
  *
  * **Anything to do with salespeople.** The salesman/GODID channel
  * (`domain/sales.ts`) is a separate program with its own tables, statuses and
- * commission engine. A code here is never a GODID and never resolves to one, so
+ * rewards. A code here is never a GODID and never resolves to one, so
  * the attribution source of any customer is always unambiguous.
  */
 
@@ -84,7 +84,7 @@ export function referralProgramUrl(baseUrl: string, code: string): string {
  * Roles that do not take part in Refer & Earn.
  *
  * A salesperson already refers customers through their GODID link, which earns
- * sales commission. Offering them a second, differently-rewarded code for the
+ * their reward. Offering them a second code for the
  * same act would merge the two programs in the one place the specification
  * asks for them to stay apart. This is the single place eligibility is
  * decided — plan tier is intentionally not an input.

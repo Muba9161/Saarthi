@@ -33,6 +33,8 @@ export interface WalletSummary {
   totalEarned: number;
   minCashout: number;
   holdDays: number;
+  /** What one successful referral pays, from configuration. */
+  rewardAmount: number;
   /** False where no real payout provider is configured for this deployment. */
   cashoutEnabled: boolean;
   bankAccount: WalletBankAccountView | null;

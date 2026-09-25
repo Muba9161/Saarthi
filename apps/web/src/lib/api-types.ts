@@ -1,4 +1,7 @@
 import type {
+  CommerceAttributeValues,
+  CommerceCategoryNode,
+  CommerceCategoryRef,
   DocumentOwnerType,
   IdentityDocumentKind,
   IdentityVerificationSummary,
@@ -459,6 +462,9 @@ export interface MaterialSummary {
   organizationId: string;
   name: string;
   category: string | null;
+  /** The shared taxonomy node, when the listing is classified. */
+  commerceCategory: CommerceCategoryRef | null;
+  attributes: CommerceAttributeValues;
   description: string | null;
   unit: string;
   pricePerUnit: number;
@@ -1180,10 +1186,27 @@ export interface RecordedToolCall {
   durationMs: number;
   cached: boolean;
   error: string | null;
+  actions: AssistantAction[];
+}
+
+/**
+ * A screen Saarthi Mitra offers to open, prefilled when it carries a draft.
+ * Built by the server from fixed routes; nothing is saved by clicking it.
+ */
+export interface AssistantAction {
+  label: string;
+  path: string;
+  draft?: Record<string, string>;
+}
+
+/** What a screen opened by Mitra receives in router state. */
+export interface MitraDraftState {
+  mitraDraft?: Record<string, string>;
 }
 
 export interface CopilotAnswer {
   answer: string;
+  actions: AssistantAction[];
   toolCalls: RecordedToolCall[];
   references: { type: string; id: string; label: string }[];
   caveats: string[];
@@ -1452,6 +1475,9 @@ export interface RequirementSummary {
   materialId: string | null;
   materialName: string | null;
   materialCategory: string | null;
+  /** The confirmed taxonomy node, with its breadcrumb. */
+  category: CommerceCategoryRef | null;
+  attributes: CommerceAttributeValues;
   specification: string | null;
   quantity: number | null;
   unit: MaterialUnit | null;
@@ -1541,6 +1567,49 @@ export interface RequirementBidSummary {
   rejectionReason: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+/**
+ * A Seller listing ranked against a customer's material need — the fleet
+ * owner's procurement view. Never shown to the customer.
+ */
+export interface SellerMatch {
+  materialId: string;
+  name: string;
+  sellerOrganizationId: string;
+  sellerName: string;
+  sellerVerified: boolean;
+  category: CommerceCategoryRef | null;
+  attributes: CommerceAttributeValues;
+  unit: MaterialUnit;
+  pricePerUnit: number;
+  availableQuantity: number;
+  minimumOrderQty: number;
+  pickupAddress: string | null;
+  distanceKm: number | null;
+  procurementReference: number | null;
+  score: number;
+  categoryMatch: 'EXACT' | 'MORE_SPECIFIC' | 'MORE_GENERAL' | 'TEXT';
+  stockSufficient: boolean | null;
+  meetsMinimumOrder: boolean | null;
+  matchedAttributes: string[];
+  conflictingAttributes: string[];
+  reasons: string[];
+}
+
+/** A taxonomy node as the administrator manages it. */
+export interface AdminCommerceCategory extends CommerceCategoryNode {
+  aliasEntries: { id: string; alias: string }[];
+  listingCount: number;
+  requirementCount: number;
+}
+
+export interface CommerceOtherUsageEntry {
+  kind: 'PRODUCT' | 'REQUIREMENT';
+  id: string;
+  name: string;
+  details: string | null;
+  createdAt: string;
 }
 
 /** A row on the provider board. */

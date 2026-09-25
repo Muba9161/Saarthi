@@ -27,6 +27,7 @@ import {
   trimmedString,
   uuidSchema,
 } from './common';
+import { commerceAttributeValuesSchema } from './commerce';
 
 /**
  * Requirement contracts — the customer's cross-category request for quotes.
@@ -42,21 +43,24 @@ import {
 // Detail blocks — one per requirement kind
 // ---------------------------------------------------------------------------
 
-/** Goods to be bought, and where they have to end up. */
+/**
+ * Goods to be bought, and where they have to end up.
+ *
+ * There is no seller listing on this block and no "collect it myself" switch:
+ * a customer's material need is answered by a fleet owner, who sources it
+ * from a seller and delivers it. The customer never deals with the seller.
+ */
 export const materialDetailSchema = z.object({
-  /** An existing marketplace listing, when the customer picked one. */
-  materialId: uuidSchema.optional(),
   materialName: trimmedString(2, 160),
+  /** Taxonomy node, when the customer confirmed one. Validated server-side. */
+  categoryId: uuidSchema.optional(),
+  /** Values for the category's attribute schema. Validated server-side. */
+  attributes: commerceAttributeValuesSchema.optional(),
   category: optionalTrimmedString(60),
   quantity: positiveQuantitySchema,
   unit: z.nativeEnum(MaterialUnit).default(MaterialUnit.TON),
   /** Grade, brand or specification the customer will accept. */
   specification: optionalTrimmedString(1000),
-  /**
-   * Whether Saarthi should also find the lorry. False means the customer
-   * either collects, or expects the supplier to price delivery into its bid.
-   */
-  needsTransport: z.boolean().default(true),
 });
 export type MaterialDetailInput = z.infer<typeof materialDetailSchema>;
 

@@ -1,5 +1,6 @@
 import {
   ASSIGNABLE_TRUCK_STATUSES,
+  BID_SCOPES_BY_KIND,
   LIVE_BID_STATUSES,
   MaterialUnit,
   NotificationPriority,
@@ -160,6 +161,14 @@ export async function awardBid(
 /** Everything that has to be true before an award can be made. */
 function assertAwardable(requirement: RequirementRecord, bid: BidRecord): void {
   const status = requirement.status as RequirementStatus;
+
+  // A Seller's direct offer, placed before material was routed through fleet
+  // owners. Accepting it now would make the customer the Seller's buyer.
+  if (!BID_SCOPES_BY_KIND[requirement.kind as RequirementKind].includes(bid.scope as RequirementBidScope)) {
+    throw errors.businessRule(
+      'This kind of offer can no longer be accepted. Material is now sourced and delivered by fleet owners.',
+    );
+  }
 
   if (
     status !== RequirementStatus.BIDDING &&

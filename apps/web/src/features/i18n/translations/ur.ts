@@ -41,7 +41,7 @@ export const ur: Catalogue = {
   'Telemetry alerts': 'ٹیلی میٹری الرٹس',
   Devices: 'ڈیوائسز',
   Analytics: 'اینالیٹکس',
-  'AI Copilot': 'AI کوپائلٹ',
+  'Saarthi Mitra': 'سارتھی مترا',
   'GPS simulator': 'GPS سمیولیٹر',
   'My trip': 'میرا سفر',
   Nearby: 'قریب',
@@ -189,8 +189,6 @@ export const ur: Catalogue = {
     'میرے پاس ٹرک ہیں اور میں اپنا بیڑا چلانا اور لوڈ حاصل کرنا چاہتا ہوں۔',
   'I need materials, transport, a cab or a tour, and want offers to compare.':
     'مجھے سامان، ٹرانسپورٹ، کیب یا سفر درکار ہے، اور موازنے کے لیے بولیاں چاہئیں۔',
-  'I sell materials and arrange dispatch from my yard.':
-    'میں سامان بیچتا ہوں اور اپنے یارڈ سے بھیجنے کا انتظام کرتا ہوں۔',
   'I run taxis, buses or tour packages and sell passenger journeys.':
     'میں ٹیکسی، بس یا ٹور پیکیج چلاتا ہوں اور مسافروں کے سفر بیچتا ہوں۔',
   'I represent a district association coordinating roadside help.':
@@ -198,8 +196,6 @@ export const ur: Catalogue = {
   'I drive for a fleet that already uses Saarthi.':
     'میں ایسے بیڑے کے لیے گاڑی چلاتا ہوں جو پہلے سے Saarthi استعمال کرتا ہے۔',
   'The operating system for your trucking business.': 'آپ کے ٹرکنگ کاروبار کا آپریٹنگ سسٹم۔',
-  'Saarthi connects fleet owners, drivers, suppliers and customers on one platform - from posting a load to watching it arrive.':
-    'Saarthi بیڑا مالکان، ڈرائیوروں، سپلائرز اور گاہکوں کو ایک ہی پلیٹ فارم پر جوڑتا ہے - لوڈ ڈالنے سے لے کر اس کے پہنچنے تک۔',
   'One fleet command centre': 'ایک ہی فلیٹ کمانڈ سینٹر',
   'Trucks, drivers, documents, orders and trips in a single operational view.':
     'ٹرک، ڈرائیور، دستاویزات، آرڈر اور ٹرپ - سب ایک ہی کاروباری منظر میں۔',
@@ -255,7 +251,6 @@ export const ur: Catalogue = {
   'SOS incidents': 'SOS واقعات',
   'Nearby services': 'قریبی خدمات',
   Deliveries: 'ڈیلیوری',
-  'Find materials': 'سامان تلاش کریں',
   'My orders': 'میرے آرڈر',
   'Track deliveries': 'ڈیلیوری ٹریک کریں',
   'My travel': 'میرا سفر',
@@ -312,4 +307,14 @@ export const ur: Catalogue = {
   'One number': 'ایک ہندسہ',
   '{count} short steps. Nothing is saved until the last one.':
     '{count} مختصر مراحل۔ آخری مرحلے تک کچھ محفوظ نہیں ہوتا۔',
+
+  // --- Smart commerce: sellers, products and categories ------------------
+  Products: 'مصنوعات',
+  'Find sellers': 'فروخت کنندگان تلاش کریں',
+  'Product categories': 'مصنوعات کے زمرے',
+  Seller: 'فروخت کنندہ',
+  'I sell goods of any kind and dispatch them from my own premises.':
+    'میں ہر قسم کا سامان بیچتا ہوں اور اپنی جگہ سے بھیجتا ہوں۔',
+  'Saarthi connects fleet owners, drivers, sellers and customers on one platform - from posting a load to watching it arrive.':
+    'Saarthi بیڑا مالکان، ڈرائیوروں، فروخت کنندگان اور گاہکوں کو ایک ہی پلیٹ فارم پر جوڑتا ہے - لوڈ ڈالنے سے لے کر اس کے پہنچنے تک۔',
 };

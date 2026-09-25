@@ -2,6 +2,7 @@ import type { ComponentType } from 'react';
 import {
   Activity,
   BadgeCheck,
+  Boxes,
   UserRoundCog,
   Wallet,
   QrCode,
@@ -153,6 +154,15 @@ export const FLEET_NAVIGATION: NavSection[] = [
         permissions: [Permission.REQUIREMENTS_BID],
         requiresBusiness: true,
       },
+      {
+        // The fleet owner is the bridge between customer and seller, so it is
+        // the one that browses seller listings - to price a delivered bid.
+        label: 'Find sellers',
+        to: '/browse',
+        icon: Package,
+        permissions: [Permission.MATERIALS_READ],
+        requiresBusiness: true,
+      },
     ],
   },
   {
@@ -284,7 +294,7 @@ export const FLEET_NAVIGATION: NavSection[] = [
         permissions: [Permission.ANALYTICS_READ],
       },
       {
-        label: 'AI Copilot',
+        label: 'Saarthi Mitra',
         to: '/copilot',
         icon: Bot,
         permissions: [Permission.AI_USE],
@@ -304,19 +314,23 @@ export const SUPPLIER_NAVIGATION: NavSection[] = [
     items: [
       { label: 'Dashboard', to: '/dashboard', icon: LayoutDashboard, end: true },
       {
-        label: 'Materials',
+        // Everything the seller sells, in any category.
+        label: 'Products',
         to: '/supplier/materials',
         icon: Package,
         permissions: [Permission.MATERIALS_MANAGE],
       },
+      // No requirement board: a Seller's buyer is the fleet owner that sources
+      // from it, never the customer directly.
       { label: 'Orders', to: '/orders', icon: ShoppingCart, permissions: [Permission.ORDERS_READ] },
       {
-        // The demand side a supplier previously could not see at all: customers
-        // asking for material, rather than customers finding a listing.
-        label: 'Bid on work',
-        to: '/requirements/board',
-        icon: Gavel,
-        permissions: [Permission.REQUIREMENTS_BID],
+        // Saarthi Mitra: prepares their work for review and guides them
+        // through the product. Gated by the plan like every AI surface.
+        label: 'Saarthi Mitra',
+        to: '/copilot',
+        icon: Bot,
+        permissions: [Permission.AI_USE],
+        feature: Feature.AI_COPILOT,
       },
       {
         label: 'Deliveries',
@@ -350,11 +364,16 @@ export const CUSTOMER_NAVIGATION: NavSection[] = [
         permissions: [Permission.REQUIREMENTS_READ],
       },
       {
-        label: 'Find materials',
-        to: '/browse',
-        icon: Package,
-        permissions: [Permission.MATERIALS_READ],
+        // Saarthi Mitra: prepares their work for review and guides them
+        // through the product. Gated by the plan like every AI surface.
+        label: 'Saarthi Mitra',
+        to: '/copilot',
+        icon: Bot,
+        permissions: [Permission.AI_USE],
+        feature: Feature.AI_COPILOT,
       },
+      // No seller catalogue: a customer states a need and a fleet owner sources
+      // it, so the customer and the seller never deal directly.
       {
         label: 'My orders',
         to: '/orders',
@@ -588,7 +607,7 @@ export const MOBILITY_NAVIGATION: NavSection[] = [
         permissions: [Permission.ANALYTICS_READ],
       },
       {
-        label: 'AI Copilot',
+        label: 'Saarthi Mitra',
         to: '/copilot',
         icon: Bot,
         permissions: [Permission.AI_USE],
@@ -717,10 +736,12 @@ export const SALES_NAVIGATION: NavSection[] = [
         permissions: [Permission.TRACKER_HANDOVER_READ],
       },
       {
-        label: 'Commission',
-        to: '/sales/commission',
+        // The salesperson's wallet: a flat reward for every successful
+        // referral, credited automatically and cashed out to their bank.
+        label: 'Earnings',
+        to: '/sales/earnings',
         icon: Wallet,
-        permissions: [Permission.COMMISSION_READ],
+        permissions: [Permission.SALES_READ],
       },
     ],
   },
@@ -785,13 +806,12 @@ export const ADMIN_NAVIGATION: NavSection[] = [
         permissions: [Permission.SALESMAN_MANAGE],
       },
       {
-        // Commission rules and approvals. Beneath Salespeople, and held by
-        // `commission.manage` — which the SALESMAN role deliberately lacks, so
-        // the person a commission is owed to cannot authorise it.
-        label: 'Commission',
-        to: '/admin/commission',
-        icon: Wallet,
-        permissions: [Permission.COMMISSION_MANAGE],
+        // The shared taxonomy every Seller product and customer requirement
+        // is classified against.
+        label: 'Product categories',
+        to: '/admin/commerce',
+        icon: Boxes,
+        permissions: [Permission.ADMIN_PLATFORM],
       },
     ],
   },

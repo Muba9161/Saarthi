@@ -41,7 +41,7 @@ export const kn: Catalogue = {
   'Telemetry alerts': 'ಟೆಲಿಮೆಟ್ರಿ ಎಚ್ಚರಿಕೆಗಳು',
   Devices: 'ಸಾಧನಗಳು',
   Analytics: 'ಅನಾಲಿಟಿಕ್ಸ್',
-  'AI Copilot': 'AI ಕೋಪೈಲಟ್',
+  'Saarthi Mitra': 'ಸಾರಥಿ ಮಿತ್ರ',
   'GPS simulator': 'GPS ಸಿಮ್ಯುಲೇಟರ್',
   'My trip': 'ನನ್ನ ಪ್ರಯಾಣ',
   Nearby: 'ಹತ್ತಿರದಲ್ಲಿ',
@@ -189,8 +189,6 @@ export const kn: Catalogue = {
     'ನನ್ನ ಬಳಿ ಟ್ರಕ್‌ಗಳಿವೆ, ನನ್ನ ವಾಹನ ಸಮೂಹವನ್ನು ನಿರ್ವಹಿಸಲು ಮತ್ತು ಲೋಡ್ ಪಡೆಯಲು ಬಯಸುತ್ತೇನೆ.',
   'I need materials, transport, a cab or a tour, and want offers to compare.':
     'ನನಗೆ ಸಾಮಗ್ರಿ, ಸಾಗಣೆ, ಕ್ಯಾಬ್ ಅಥವಾ ಪ್ರವಾಸ ಬೇಕು, ಮತ್ತು ಹೋಲಿಸಲು ಬಿಡ್‌ಗಳು ಬೇಕು.',
-  'I sell materials and arrange dispatch from my yard.':
-    'ನಾನು ಸಾಮಗ್ರಿ ಮಾರುತ್ತೇನೆ ಮತ್ತು ನನ್ನ ಯಾರ್ಡ್‌ನಿಂದ ಕಳುಹಿಸುವ ವ್ಯವಸ್ಥೆ ಮಾಡುತ್ತೇನೆ.',
   'I run taxis, buses or tour packages and sell passenger journeys.':
     'ನಾನು ಟ್ಯಾಕ್ಸಿ, ಬಸ್ ಅಥವಾ ಪ್ರವಾಸ ಪ್ಯಾಕೇಜ್ ನಡೆಸುತ್ತೇನೆ ಮತ್ತು ಪ್ರಯಾಣಿಕರ ಪ್ರಯಾಣ ಮಾರುತ್ತೇನೆ.',
   'I represent a district association coordinating roadside help.':
@@ -199,8 +197,6 @@ export const kn: Catalogue = {
     'ಈಗಾಗಲೇ Saarthi ಬಳಸುವ ವಾಹನ ಸಮೂಹಕ್ಕಾಗಿ ನಾನು ಚಾಲನೆ ಮಾಡುತ್ತೇನೆ.',
   'The operating system for your trucking business.':
     'ನಿಮ್ಮ ಟ್ರಕಿಂಗ್ ವ್ಯವಹಾರದ ಕಾರ್ಯಾಚರಣಾ ವ್ಯವಸ್ಥೆ.',
-  'Saarthi connects fleet owners, drivers, suppliers and customers on one platform - from posting a load to watching it arrive.':
-    'Saarthi ವಾಹನ ಮಾಲೀಕರು, ಚಾಲಕರು, ಪೂರೈಕೆದಾರರು ಮತ್ತು ಗ್ರಾಹಕರನ್ನು ಒಂದೇ ವೇದಿಕೆಯಲ್ಲಿ ಜೋಡಿಸುತ್ತದೆ - ಲೋಡ್ ಹಾಕುವುದರಿಂದ ಅದು ತಲುಪುವವರೆಗೆ.',
   'One fleet command centre': 'ಒಂದೇ ಫ್ಲೀಟ್ ಕಮಾಂಡ್ ಸೆಂಟರ್',
   'Trucks, drivers, documents, orders and trips in a single operational view.':
     'ಟ್ರಕ್, ಚಾಲಕರು, ದಾಖಲೆಗಳು, ಆರ್ಡರ್ ಮತ್ತು ಪ್ರಯಾಣ - ಎಲ್ಲವೂ ಒಂದೇ ಕಾರ್ಯ ನೋಟದಲ್ಲಿ.',
@@ -256,7 +252,6 @@ export const kn: Catalogue = {
   'SOS incidents': 'SOS ಘಟನೆಗಳು',
   'Nearby services': 'ಹತ್ತಿರದ ಸೇವೆಗಳು',
   Deliveries: 'ವಿತರಣೆಗಳು',
-  'Find materials': 'ಸಾಮಗ್ರಿ ಹುಡುಕಿ',
   'My orders': 'ನನ್ನ ಆರ್ಡರ್‌ಗಳು',
   'Track deliveries': 'ವಿತರಣೆ ಟ್ರ್ಯಾಕ್ ಮಾಡಿ',
   'My travel': 'ನನ್ನ ಪ್ರಯಾಣ',
@@ -313,4 +308,14 @@ export const kn: Catalogue = {
   'One number': 'ಒಂದು ಅಂಕಿ',
   '{count} short steps. Nothing is saved until the last one.':
     '{count} ಸಣ್ಣ ಹಂತಗಳು. ಕೊನೆಯ ಹಂತದವರೆಗೆ ಏನೂ ಉಳಿಸಲಾಗುವುದಿಲ್ಲ.',
+
+  // --- Smart commerce: sellers, products and categories ------------------
+  Products: 'ಉತ್ಪನ್ನಗಳು',
+  'Find sellers': 'ಮಾರಾಟಗಾರರನ್ನು ಹುಡುಕಿ',
+  'Product categories': 'ಉತ್ಪನ್ನ ವರ್ಗಗಳು',
+  Seller: 'ಮಾರಾಟಗಾರ',
+  'I sell goods of any kind and dispatch them from my own premises.':
+    'ನಾನು ಎಲ್ಲ ರೀತಿಯ ಸರಕು ಮಾರುತ್ತೇನೆ ಮತ್ತು ನನ್ನ ಸ್ಥಳದಿಂದಲೇ ಕಳುಹಿಸುತ್ತೇನೆ.',
+  'Saarthi connects fleet owners, drivers, sellers and customers on one platform - from posting a load to watching it arrive.':
+    'Saarthi ವಾಹನ ಮಾಲೀಕರು, ಚಾಲಕರು, ಮಾರಾಟಗಾರರು ಮತ್ತು ಗ್ರಾಹಕರನ್ನು ಒಂದೇ ವೇದಿಕೆಯಲ್ಲಿ ಜೋಡಿಸುತ್ತದೆ - ಲೋಡ್ ಹಾಕುವುದರಿಂದ ಅದು ತಲುಪುವವರೆಗೆ.',
 };

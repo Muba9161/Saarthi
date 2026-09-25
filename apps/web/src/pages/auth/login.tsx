@@ -175,6 +175,12 @@ export function LoginPage() {
             <Button variant="outline" size="lg" className="w-full" asChild>
               <Link to="/register">{t('Create an account')}</Link>
             </Button>
+            <p className="text-center text-sm text-muted-foreground">
+              Saarthi salesperson?{' '}
+              <Link to="/sales/join" className="font-medium text-primary hover:underline">
+                Join with your GODID
+              </Link>
+            </p>
           </div>
         </AuthCard>
       </StaggerItem>

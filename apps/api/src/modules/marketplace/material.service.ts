@@ -1,7 +1,12 @@
 import {
+  type CommerceAttributeValues,
+  type CommerceCategoryRef,
+  type CommerceTaxonomyIndex,
   MaterialStatus,
   buildPaginationMeta,
+  categoryRef,
   distanceKm,
+  normalizeCommerceText,
   type CreateMaterialInput,
   type MaterialListQuery,
   type Paginated,
@@ -11,13 +16,20 @@ import { type Prisma, prisma } from '../../database/prisma';
 import { errors } from '../../lib/errors';
 import { skipTake } from '../../lib/http';
 import type { AuthContext } from '../../auth/context';
+import {
+  type CategoryAssignment,
+  loadTaxonomy,
+  readAttributeValues,
+  resolveCategoryAssignment,
+} from '../commerce/taxonomy.service';
 
 /**
- * Supplier materials.
+ * Seller listings ("materials" internally, whatever the goods are).
  *
- * A supplier manages their own catalogue; customers and fleets browse an
- * availability-filtered view of everything on the marketplace, so the read
- * path is deliberately cross-tenant while every write is tenant-scoped.
+ * A Seller manages its own catalogue; fleet owners read an availability-
+ * filtered view of every listing to source against, so the read path is
+ * deliberately cross-tenant while every write is tenant-scoped. Customers do
+ * not read it at all — they reach sellers only through a fleet owner.
  */
 
 export interface MaterialSummary {
@@ -29,6 +41,9 @@ export interface MaterialSummary {
   organizationId: string;
   name: string;
   category: string | null;
+  /** The taxonomy node, with its breadcrumb, when the listing is classified. */
+  commerceCategory: CommerceCategoryRef | null;
+  attributes: CommerceAttributeValues;
   description: string | null;
   unit: string;
   pricePerUnit: number;
@@ -45,7 +60,7 @@ export interface MaterialSummary {
 
 const materialInclude = {
   supplier: {
-    include: { },
+    include: {},
   },
 } satisfies Prisma.MaterialInclude;
 
@@ -54,6 +69,7 @@ type MaterialRecord = Prisma.MaterialGetPayload<{ include: typeof materialInclud
 function toSummary(
   material: MaterialRecord,
   supplierName: string,
+  index: CommerceTaxonomyIndex,
   distance: number | null = null,
 ): MaterialSummary {
   return {
@@ -65,6 +81,8 @@ function toSummary(
     organizationId: material.organizationId,
     name: material.name,
     category: material.category,
+    commerceCategory: material.categoryId ? categoryRef(index, material.categoryId) : null,
+    attributes: readAttributeValues(material.attributes),
     description: material.description,
     unit: material.unit,
     pricePerUnit: Number(material.pricePerUnit),
@@ -88,6 +106,17 @@ async function supplierNames(organizationIds: string[]): Promise<Map<string, str
   return new Map(organizations.map((organization) => [organization.id, organization.name]));
 }
 
+async function summaryFor(material: MaterialRecord): Promise<MaterialSummary> {
+  const [organization, { index }] = await Promise.all([
+    prisma.organization.findUnique({
+      where: { id: material.organizationId },
+      select: { name: true },
+    }),
+    loadTaxonomy(),
+  ]);
+  return toSummary(material, organization?.name ?? 'Seller', index);
+}
+
 export async function listMaterials(
   auth: AuthContext,
   query: MaterialListQuery,
@@ -99,9 +128,7 @@ export async function listMaterials(
     ...(query.supplierId ? { supplierId: query.supplierId } : {}),
     ...(query.category ? { category: { equals: query.category, mode: 'insensitive' } } : {}),
     ...(query.status ? { status: { in: query.status as MaterialStatus[] } } : {}),
-    ...(query.availableOnly
-      ? { status: MaterialStatus.ACTIVE, availableQuantity: { gt: 0 } }
-      : {}),
+    ...(query.availableOnly ? { status: MaterialStatus.ACTIVE, availableQuantity: { gt: 0 } } : {}),
     ...(query.maxPrice !== undefined ? { pricePerUnit: { lte: query.maxPrice } } : {}),
     ...(query.search
       ? {
@@ -114,12 +141,14 @@ export async function listMaterials(
       : {}),
   };
 
-  const wantsDistance =
-    query.nearLatitude !== undefined && query.nearLongitude !== undefined;
+  const wantsDistance = query.nearLatitude !== undefined && query.nearLongitude !== undefined;
 
   // Distance ranking has to happen in memory, so load the filtered set once.
   if (wantsDistance) {
-    const materials = await prisma.material.findMany({ where, include: materialInclude });
+    const [materials, { index }] = await Promise.all([
+      prisma.material.findMany({ where, include: materialInclude }),
+      loadTaxonomy(),
+    ]);
     const names = await supplierNames(materials.map((material) => material.organizationId));
     const origin = { latitude: query.nearLatitude!, longitude: query.nearLongitude! };
 
@@ -149,7 +178,8 @@ export async function listMaterials(
         .map((entry) =>
           toSummary(
             entry.material,
-            names.get(entry.material.organizationId) ?? 'Supplier',
+            names.get(entry.material.organizationId) ?? 'Seller',
+            index,
             entry.distance === null ? null : Number(entry.distance.toFixed(1)),
           ),
         ),
@@ -164,7 +194,7 @@ export async function listMaterials(
         ? { pricePerUnit: query.sortOrder }
         : { createdAt: query.sortOrder };
 
-  const [total, materials] = await Promise.all([
+  const [total, materials, { index }] = await Promise.all([
     prisma.material.count({ where }),
     prisma.material.findMany({
       where,
@@ -172,13 +202,14 @@ export async function listMaterials(
       orderBy,
       ...skipTake(query.page, query.pageSize),
     }),
+    loadTaxonomy(),
   ]);
 
   const names = await supplierNames(materials.map((material) => material.organizationId));
 
   return {
     items: materials.map((material) =>
-      toSummary(material, names.get(material.organizationId) ?? 'Supplier'),
+      toSummary(material, names.get(material.organizationId) ?? 'Seller', index),
     ),
     pagination: buildPaginationMeta(query.page, query.pageSize, total),
   };
@@ -191,22 +222,44 @@ export async function getMaterial(materialId: string): Promise<MaterialSummary> 
   });
   if (!material) throw errors.notFound('Material');
 
-  const organization = await prisma.organization.findUnique({
-    where: { id: material.organizationId },
-    select: { name: true },
-  });
-
-  return toSummary(material, organization?.name ?? 'Supplier');
+  return summaryFor(material);
 }
 
 async function requireSupplier(organizationId: string) {
   const supplier = await prisma.supplier.findUnique({ where: { organizationId } });
   if (!supplier) {
-    throw errors.businessRule(
-      'This organization is not registered as a supplier on Saarthi.',
-    );
+    throw errors.businessRule('This organization is not registered as a seller on Saarthi.');
   }
   return supplier;
+}
+
+/**
+ * Refuse a second live listing of the same product under the same category.
+ * Two identical rows would split the seller's stock across listings a fleet
+ * owner cannot tell apart.
+ */
+async function assertNotDuplicateListing(
+  organizationId: string,
+  assignment: CategoryAssignment,
+  name: string,
+  excludeMaterialId?: string,
+): Promise<void> {
+  const siblings = await prisma.material.findMany({
+    where: {
+      organizationId,
+      categoryId: assignment.categoryId,
+      archivedAt: null,
+      ...(excludeMaterialId ? { id: { not: excludeMaterialId } } : {}),
+    },
+    select: { name: true },
+    take: 200,
+  });
+  const wanted = normalizeCommerceText(name);
+  if (siblings.some((sibling) => normalizeCommerceText(sibling.name) === wanted)) {
+    throw errors.conflict(
+      `You already list "${name}". Update that listing's price or stock instead.`,
+    );
+  }
 }
 
 export async function createMaterial(
@@ -216,12 +269,19 @@ export async function createMaterial(
 ): Promise<MaterialSummary> {
   const supplier = await requireSupplier(organizationId);
 
+  const assignment = input.categoryId
+    ? await resolveCategoryAssignment(input.categoryId, input.attributes, 'PRODUCT')
+    : null;
+  if (assignment) await assertNotDuplicateListing(organizationId, assignment, input.name);
+
   const material = await prisma.material.create({
     data: {
       supplierId: supplier.id,
       organizationId,
       name: input.name,
-      category: input.category ?? null,
+      category: assignment?.categoryName ?? input.category ?? null,
+      categoryId: assignment?.categoryId ?? null,
+      attributes: assignment ? (assignment.attributes as Prisma.InputJsonObject) : undefined,
       description: input.description ?? null,
       unit: input.unit,
       pricePerUnit: input.pricePerUnit,
@@ -236,13 +296,8 @@ export async function createMaterial(
     include: materialInclude,
   });
 
-  const organization = await prisma.organization.findUnique({
-    where: { id: organizationId },
-    select: { name: true },
-  });
-
   void auth;
-  return toSummary(material, organization?.name ?? 'Supplier');
+  return summaryFor(material);
 }
 
 export async function updateMaterial(
@@ -256,11 +311,40 @@ export async function updateMaterial(
     throw errors.notFound('Material');
   }
 
+  // Re-classifying, or changing the values of a classified listing, is checked
+  // against the schema of whichever category the listing ends up under.
+  const categoryId = input.categoryId ?? material.categoryId;
+  const reclassifying = input.categoryId !== undefined || input.attributes !== undefined;
+  const assignment =
+    categoryId && reclassifying
+      ? await resolveCategoryAssignment(
+          categoryId,
+          input.attributes ?? readAttributeValues(material.attributes),
+          'PRODUCT',
+        )
+      : null;
+  if (assignment && (input.categoryId !== undefined || input.name !== undefined)) {
+    await assertNotDuplicateListing(
+      material.organizationId,
+      assignment,
+      input.name ?? material.name,
+      materialId,
+    );
+  }
+
   const updated = await prisma.material.update({
     where: { id: materialId },
     data: {
       ...(input.name !== undefined ? { name: input.name } : {}),
-      ...(input.category !== undefined ? { category: input.category } : {}),
+      ...(assignment
+        ? {
+            category: assignment.categoryName,
+            categoryId: assignment.categoryId,
+            attributes: assignment.attributes as Prisma.InputJsonObject,
+          }
+        : input.category !== undefined
+          ? { category: input.category }
+          : {}),
       ...(input.description !== undefined ? { description: input.description } : {}),
       ...(input.unit !== undefined ? { unit: input.unit } : {}),
       ...(input.pricePerUnit !== undefined ? { pricePerUnit: input.pricePerUnit } : {}),
@@ -276,12 +360,7 @@ export async function updateMaterial(
     include: materialInclude,
   });
 
-  const organization = await prisma.organization.findUnique({
-    where: { id: updated.organizationId },
-    select: { name: true },
-  });
-
-  return toSummary(updated, organization?.name ?? 'Supplier');
+  return summaryFor(updated);
 }
 
 export async function archiveMaterial(auth: AuthContext, materialId: string): Promise<void> {

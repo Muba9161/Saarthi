@@ -160,3 +160,25 @@ rule agreed later be applied retroactively.
    only (trackers and top-ups do not qualify).
 5. **Notification to the referrer** on qualification — not built (needs a new
    notification type).
+
+---
+
+## Update: salesperson self-signup and flat rewards
+
+Decided by the business owner, and implemented:
+
+- **Self-signup.** A salesperson opens `/sales/join` (linked from the sign-in
+  page, and copyable from Platform → Salespeople), enters their GODID, and
+  Saarthi asks GODWeb for their details. A set-password link goes to the email
+  **GODWeb** holds, never one typed in, because a GODID is public. Choosing the
+  password activates the account with the SALESMAN role. No admin step.
+  Requires `GODWEB_BASE_URL` / `GODWEB_API_KEY` and SMTP; closed without them.
+- **Flat reward, no commission.** Every successful referral earns
+  `REFERRAL_REWARD_AMOUNT` (₹100) into the salesperson's Saarthi wallet:
+  successful = the customer starts on a paid plan (its trial). Held 7 days,
+  released automatically, cashed out like Refer & Earn. Commission rules,
+  commission rows, approvals and both Commission screens are removed
+  (migration `20260925160000_sales_rewards_replace_commissions` drops the
+  tables). Once per customer; a withdrawn referral's held reward is voided.
+- **Email.** Google SMTP (`SMTP_*`) now sends password-reset emails and
+  salesperson signup links.

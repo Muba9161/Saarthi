@@ -6,9 +6,11 @@ import {
   type Feature,
 } from '@saarthi/shared';
 import { type PrismaClient } from '@prisma/client';
+import { seedCommerceTaxonomy } from './commerce-taxonomy';
 
 /**
- * Reference data — roles, subscription plans and feature entitlements.
+ * Reference data — roles, subscription plans, feature entitlements and the
+ * starter commerce taxonomy.
  *
  * Idempotent: safe to run on every deploy. The shared catalogue is the source
  * of truth; PostgreSQL holds the runtime copy so plans can be tuned by an
@@ -100,4 +102,5 @@ export async function seedPlansAndFeatures(prisma: PrismaClient): Promise<void> 
 export async function seedReferenceData(prisma: PrismaClient): Promise<void> {
   await seedRoles(prisma);
   await seedPlansAndFeatures(prisma);
+  await seedCommerceTaxonomy(prisma);
 }

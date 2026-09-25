@@ -8,11 +8,10 @@ import {
   Permission,
   TruckType,
   formatCurrency,
-  formatNumber,
   humanizeEnum,
 } from '@saarthi/shared';
 import { api, errorMessage } from '@/lib/api-client';
-import type { MaterialSummary, OrderSummary, Paginated, TransportMatch } from '@/lib/api-types';
+import type { OrderSummary, TransportMatch } from '@/lib/api-types';
 import { useAuth } from '@/features/auth/auth-context';
 import { PageHeader, SectionHeader } from '@/components/common/page-header';
 import { UnauthorizedState, LoadingState, EmptyState } from '@/components/common/states';
@@ -59,7 +58,8 @@ type FieldKey =
   | 'originLongitude'
   | 'destinationAddress'
   | 'destinationLatitude'
-  | 'destinationLongitude';
+  | 'destinationLongitude'
+  | 'goods';
 
 type FieldErrors = Partial<Record<FieldKey, string>>;
 
@@ -72,7 +72,7 @@ export function NewOrderPage() {
   const { can } = useAuth();
   const navigate = useNavigate();
 
-  const [materialId, setMaterialId] = React.useState('');
+  const [goods, setGoods] = React.useState('');
   const [quantity, setQuantity] = React.useState(20);
   const [capacity, setCapacity] = React.useState(20);
   const [truckType, setTruckType] = React.useState<string>('any');
@@ -93,28 +93,6 @@ export function NewOrderPage() {
   const clearError = (key: FieldKey): void =>
     setErrors((previous) => (key in previous ? { ...previous, [key]: undefined } : previous));
 
-  const materials = useQuery({
-    queryKey: ['materials', 'available'],
-    queryFn: () =>
-      api.get<Paginated<MaterialSummary>>('/marketplace/materials', {
-        availableOnly: true,
-        pageSize: 100,
-      }),
-    enabled: can(Permission.ORDERS_CREATE),
-  });
-
-  const selected = (materials.data?.items ?? []).find((entry) => entry.id === materialId);
-
-  React.useEffect(() => {
-    // Default the pickup point to the supplier yard once a material is chosen.
-    if (!selected) return;
-    setOrigin((previous) => ({
-      addressLine: selected.pickupAddress ?? previous.addressLine,
-      latitude: selected.pickupLatitude ?? previous.latitude,
-      longitude: selected.pickupLongitude ?? previous.longitude,
-    }));
-  }, [selected]);
-
   const matches = useQuery({
     queryKey: ['orders', 'match', capacity, truckType, origin.latitude, destination.latitude],
     queryFn: () =>
@@ -132,9 +110,11 @@ export function NewOrderPage() {
   const create = useMutation({
     mutationFn: () =>
       api.post<OrderSummary>('/orders', {
-        ...(materialId ? { materialId } : { materialName: 'Customer-supplied goods' }),
+        // The customer's own goods. Buying goods goes through a material
+        // requirement, which a fleet owner sources from a seller.
+        materialName: goods.trim(),
         quantity,
-        unit: selected?.unit ?? MaterialUnit.TON,
+        unit: MaterialUnit.TON,
         origin,
         destination,
         requiredCapacityTons: capacity,
@@ -153,6 +133,7 @@ export function NewOrderPage() {
     const found: FieldErrors = {};
 
     if (stepId === 'load') {
+      if (goods.trim().length < 2) found.goods = 'Say what needs moving.';
       if (!(quantity > 0)) found.quantity = 'How much needs moving?';
       if (!(capacity > 0)) found.capacity = 'Enter the truck size this needs.';
     }
@@ -205,26 +186,23 @@ export function NewOrderPage() {
       content: (
         <>
           <WizardField
-            label="Material from the marketplace"
-            hint={
-              selected
-                ? `${selected.supplierName} · ${formatNumber(selected.availableQuantity)} available · minimum ${selected.minimumOrderQty}`
-                : 'Optional - leave it blank to move goods you already own.'
-            }
+            label="What needs moving?"
+            htmlFor="order-goods"
+            required
+            error={errors.goods}
+            hint="Goods you already own. To buy material, post a material requirement instead."
           >
-            <Select value={materialId} onValueChange={setMaterialId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Optional - or move goods you already own" />
-              </SelectTrigger>
-              <SelectContent>
-                {(materials.data?.items ?? []).map((material) => (
-                  <SelectItem key={material.id} value={material.id}>
-                    {material.name} · {formatCurrency(material.pricePerUnit)}/
-                    {humanizeEnum(material.unit).toLowerCase()}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Input
+              id="order-goods"
+              value={goods}
+              maxLength={120}
+              aria-invalid={Boolean(errors.goods) || undefined}
+              onChange={(event) => {
+                setGoods(event.target.value);
+                clearError('goods');
+              }}
+              placeholder="Steel coils"
+            />
           </WizardField>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

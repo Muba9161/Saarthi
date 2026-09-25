@@ -26,7 +26,7 @@ export const KIND_OPTIONS: KindOption[] = [
     kind: RequirementKind.MATERIAL_SUPPLY,
     label: 'Material supply',
     icon: Boxes,
-    audience: 'Suppliers bid for the goods, fleets bid to deliver them',
+    audience: 'Fleet owners source it from sellers and deliver it',
   },
   {
     kind: RequirementKind.FREIGHT_TRANSPORT,

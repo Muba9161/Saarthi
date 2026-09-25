@@ -1,7 +1,11 @@
 import {
   MediaOwnerType,
   MediaPurpose,
+  type OrganizationType,
   ProfileVisibility,
+  canCommunicate,
+  communicationPartyForOrganizationType,
+  communicationPartyForViewer,
   buildPaginationMeta,
   type Paginated,
   type ProfileDirectoryQuery,
@@ -283,6 +287,27 @@ async function searchPeople(
   };
 }
 
+/**
+ * Strip the ways to reach an organization the viewer may not reach directly —
+ * a customer looking up a Seller, or a Seller looking up a customer. The
+ * profile itself stays readable; only the contact channels go.
+ */
+function withoutBlockedContact(
+  auth: AuthContext,
+  profile: OrganizationProfileView,
+): OrganizationProfileView {
+  if (auth.organizationId === profile.organizationId) return profile;
+
+  const viewer = communicationPartyForViewer({
+    isPlatformAdmin: auth.isPlatformAdmin,
+    organizationType: auth.organization?.type,
+  });
+  const target = communicationPartyForOrganizationType(profile.type as OrganizationType);
+  if (canCommunicate(viewer, target)) return profile;
+
+  return { ...profile, supportEmail: null, supportPhone: null, website: null };
+}
+
 export interface SlugProfileView {
   kind: 'organization' | 'person';
   organization?: OrganizationProfileView;
@@ -312,7 +337,10 @@ export async function getBySlug(auth: AuthContext, slug: string): Promise<SlugPr
     }
     return {
       kind: 'organization',
-      organization: await getOrganizationProfile(organizationProfile.organizationId),
+      organization: withoutBlockedContact(
+        auth,
+        await getOrganizationProfile(organizationProfile.organizationId),
+      ),
     };
   }
 

@@ -33,11 +33,19 @@ const schema = z
     path: ['confirmPassword'],
   });
 
+/**
+ * Choosing a password from an emailed link.
+ *
+ * Also the last step of a salesperson's self-signup: their link carries
+ * `setup=salesman`, and the same form is worded as finishing an account
+ * rather than resetting one. The API call is identical either way.
+ */
 export function ResetPasswordPage() {
   const t = useT();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const token = searchParams.get('token');
+  const isSalesmanSetup = searchParams.get('setup') === 'salesman';
   const [error, setError] = React.useState<string | null>(null);
 
   const form = useForm<z.infer<typeof schema>>({
@@ -67,7 +75,13 @@ export function ResetPasswordPage() {
     setError(null);
     try {
       await api.post('/auth/reset-password', { token, password: values.password });
-      toast.success(t('Password updated'), { description: t('Sign in with your new password.') });
+      if (isSalesmanSetup) {
+        toast.success('Your account is ready', {
+          description: 'Sign in with your GODWeb email and the password you just chose.',
+        });
+      } else {
+        toast.success(t('Password updated'), { description: t('Sign in with your new password.') });
+      }
       navigate('/login', { replace: true });
     } catch (caught) {
       setError(errorMessage(caught));
@@ -76,11 +90,19 @@ export function ResetPasswordPage() {
 
   return (
     <AuthCard>
-      <AuthHeading
-        eyebrow={t('Security')}
-        title={t('Choose a new password')}
-        description={t('Setting a new password signs you out of every other device.')}
-      />
+      {isSalesmanSetup ? (
+        <AuthHeading
+          eyebrow="Saarthi Sales"
+          title="Choose your password"
+          description="Your GODID is verified. Set a password to finish setting up your salesperson account."
+        />
+      ) : (
+        <AuthHeading
+          eyebrow={t('Security')}
+          title={t('Choose a new password')}
+          description={t('Setting a new password signs you out of every other device.')}
+        />
+      )}
 
       <AnimatePresence initial={false}>
         {error ? (
@@ -144,7 +166,7 @@ export function ResetPasswordPage() {
             className="w-full"
             loading={form.formState.isSubmitting}
           >
-            {t('Update password')}
+            {isSalesmanSetup ? 'Set password' : t('Update password')}
           </Button>
         </form>
       </Form>

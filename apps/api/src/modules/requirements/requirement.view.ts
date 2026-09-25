@@ -1,4 +1,6 @@
 import {
+  type CommerceAttributeValues,
+  type CommerceCategoryRef,
   type RequirementBidScope,
   type HireBasis,
   type MaterialUnit,
@@ -7,9 +9,13 @@ import {
   type RequirementStatus,
   type TruckType,
   type VehicleType,
+  canCommunicate,
+  categoryRef,
+  communicationPartyForViewer,
 } from '@saarthi/shared';
 import { type Prisma, prisma } from '../../database/prisma';
 import type { AuthContext } from '../../auth/context';
+import { loadTaxonomy, readAttributeValues } from '../commerce/taxonomy.service';
 
 /**
  * Read models for requirements and bids.
@@ -68,6 +74,9 @@ export interface RequirementSummary {
   materialId: string | null;
   materialName: string | null;
   materialCategory: string | null;
+  /** The confirmed taxonomy node, with its breadcrumb. */
+  category: CommerceCategoryRef | null;
+  attributes: CommerceAttributeValues;
   specification: string | null;
   quantity: number | null;
   unit: MaterialUnit | null;
@@ -201,11 +210,22 @@ export async function decorateRequirements(
   }
 
   const now = Date.now();
+  const { index } = await loadTaxonomy();
+
+  // A winner is given the customer's contact only if it is a party the
+  // customer may deal with directly — a fleet owner, never a Seller.
+  const viewerMayContactCustomer = canCommunicate(
+    communicationPartyForViewer({
+      isPlatformAdmin: auth.isPlatformAdmin,
+      organizationType: auth.organization?.type,
+    }),
+    'CUSTOMER',
+  );
 
   return rows.map((row) => {
     const isCustomer =
       auth.isPlatformAdmin || row.customerOrganizationId === auth.organizationId;
-    const maySeeContact = isCustomer || wonRequirementIds.has(row.id);
+    const maySeeContact = isCustomer || (wonRequirementIds.has(row.id) && viewerMayContactCustomer);
 
     return {
       id: row.id,
@@ -248,6 +268,8 @@ export async function decorateRequirements(
       materialId: row.materialId,
       materialName: row.materialName,
       materialCategory: row.materialCategory,
+      category: row.categoryId ? categoryRef(index, row.categoryId) : null,
+      attributes: readAttributeValues(row.attributes),
       specification: row.specification,
       quantity: row.quantity,
       unit: row.unit as MaterialUnit | null,

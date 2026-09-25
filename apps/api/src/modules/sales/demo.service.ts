@@ -42,7 +42,7 @@ export const DEMO_PROHIBITIONS: readonly string[] = Object.freeze([
   'No customer is charged.',
   'No real vehicle, driver or document is changed.',
   'No telemetry is written.',
-  'No commission is generated.',
+  'No reward is earned.',
   'No tracker state is altered.',
 ]);
 

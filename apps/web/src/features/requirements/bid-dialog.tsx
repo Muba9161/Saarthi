@@ -14,7 +14,6 @@ import {
 import { api, errorMessage } from '@/lib/api-client';
 import type {
   BoardRequirement,
-  MaterialSummary,
   Paginated,
   RequirementBidSummary,
   TruckSummary,
@@ -45,11 +44,12 @@ import {
 /**
  * Place or revise a bid.
  *
- * One dialog for three scopes, because what a bidder is doing is the same in
- * each case — naming a price and saying what it covers — and only the "what it
- * covers" part differs. A transport bid must name a vehicle, since accepting it
- * creates a trip; a travel bid names a vehicle type and what is included; a
- * material bid says whether the price is ex-yard or delivered.
+ * One dialog for every scope a bidder may offer, because what a bidder is
+ * doing is the same in each case — naming a price and saying what it covers.
+ * A transport bid must name a vehicle, since accepting it creates a trip; on a
+ * material requirement it must also name the seller listing the fleet will
+ * source from, because the fleet delivers the goods itself; a travel bid names
+ * a vehicle type and what is included.
  */
 export function BidDialog({
   requirement,
@@ -74,22 +74,11 @@ export function BidDialog({
   // Transport
   const [vehicleId, setVehicleId] = React.useState(existing?.vehicle?.id ?? '');
   const [driverId, setDriverId] = React.useState(existing?.driver?.id ?? '');
-  // A fleet supplying the material itself, bought from a supplier listing.
-  const canSource =
+  // A material requirement is answered only by a fleet that sources the goods
+  // from a seller listing and delivers them.
+  const mustSource =
     scope === RequirementBidScope.TRANSPORT && requirement.kind === RequirementKind.MATERIAL_SUPPLY;
-  const [sourcing, setSourcing] = React.useState(existing?.deliversMaterial ?? false);
   const [sourceMaterialId, setSourceMaterialId] = React.useState(existing?.sourceMaterialId ?? '');
-
-  // Material
-  const [materialId, setMaterialId] = React.useState(existing?.materialId ?? '');
-  const [includesDelivery, setIncludesDelivery] = React.useState(
-    existing?.includesDelivery ?? false,
-  );
-  const [leadTimeDays, setLeadTimeDays] = React.useState(
-    existing?.leadTimeDays !== null && existing?.leadTimeDays !== undefined
-      ? String(existing.leadTimeDays)
-      : '',
-  );
 
   // Travel
   const [offeredVehicleType, setOfferedVehicleType] = React.useState<string>(
@@ -112,12 +101,6 @@ export function BidDialog({
     enabled: open && scope === RequirementBidScope.TRANSPORT && can(Permission.TRUCKS_READ),
   });
 
-  const materials = useQuery({
-    queryKey: ['materials', 'mine'],
-    queryFn: () => api.get<Paginated<MaterialSummary>>('/marketplace/materials', { pageSize: 100 }),
-    enabled: open && scope === RequirementBidScope.MATERIAL && can(Permission.MATERIALS_MANAGE),
-  });
-
   const place = useMutation({
     mutationFn: () =>
       api.post<RequirementBidSummary>(`/requirements/${requirement.id}/bids`, {
@@ -129,14 +112,7 @@ export function BidDialog({
           ? {
               vehicleId,
               ...(driverId ? { driverId } : {}),
-              ...(canSource && sourcing && sourceMaterialId ? { sourceMaterialId } : {}),
-            }
-          : {}),
-        ...(scope === RequirementBidScope.MATERIAL
-          ? {
-              ...(materialId ? { materialId } : {}),
-              includesDelivery,
-              ...(leadTimeDays ? { leadTimeDays: Number(leadTimeDays) } : {}),
+              ...(mustSource && sourceMaterialId ? { sourceMaterialId } : {}),
             }
           : {}),
         ...(scope === RequirementBidScope.TRAVEL
@@ -180,8 +156,8 @@ export function BidDialog({
       setError('Choose the vehicle you are offering. Accepting your bid creates a trip for it.');
       return;
     }
-    if (canSource && sourcing && !sourceMaterialId) {
-      setError('Choose the supplier listing you will buy the material from.');
+    if (mustSource && !sourceMaterialId) {
+      setError('Choose the seller listing you will source the material from.');
       return;
     }
 
@@ -260,62 +236,15 @@ export function BidDialog({
                 />
               </WizardField>
 
-              {canSource ? (
+              {mustSource ? (
                 <SourcedMaterialField
                   requirement={requirement}
-                  enabled={sourcing}
-                  onEnabledChange={setSourcing}
                   materialId={sourceMaterialId}
                   onMaterialChange={setSourceMaterialId}
                   price={Number(price) || 0}
                   open={open}
                 />
               ) : null}
-            </>
-          ) : null}
-
-          {scope === RequirementBidScope.MATERIAL ? (
-            <>
-              <WizardField label="From one of your listings" hint="Optional.">
-                <Select value={materialId} onValueChange={setMaterialId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Not from a listing" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(materials.data?.items ?? []).map((material) => (
-                      <SelectItem key={material.id} value={material.id}>
-                        {material.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </WizardField>
-
-              <WizardField label="Ready in (days)" htmlFor="bid-lead">
-                <Input
-                  id="bid-lead"
-                  type="number"
-                  min={0}
-                  value={leadTimeDays}
-                  onChange={(event) => setLeadTimeDays(event.target.value)}
-                  placeholder="2"
-                />
-              </WizardField>
-
-              <div className="flex items-start gap-3 rounded-lg border border-border p-3">
-                <Switch
-                  id="bid-delivery"
-                  checked={includesDelivery}
-                  onCheckedChange={setIncludesDelivery}
-                />
-                <label htmlFor="bid-delivery" className="min-w-0 cursor-pointer space-y-0.5">
-                  <span className="block text-sm font-medium">My price includes delivery</span>
-                  <span className="block text-xs leading-snug text-muted-foreground">
-                    Turn this on and the customer can settle the whole requirement with your bid
-                    alone - no separate transport award is needed.
-                  </span>
-                </label>
-              </div>
             </>
           ) : null}
 

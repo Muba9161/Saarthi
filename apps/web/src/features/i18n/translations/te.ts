@@ -41,7 +41,7 @@ export const te: Catalogue = {
   'Telemetry alerts': 'టెలిమెట్రీ హెచ్చరికలు',
   Devices: 'పరికరాలు',
   Analytics: 'అనలిటిక్స్',
-  'AI Copilot': 'AI కోపైలట్',
+  'Saarthi Mitra': 'సారథి మిత్ర',
   'GPS simulator': 'GPS సిమ్యులేటర్',
   'My trip': 'నా ట్రిప్',
   Nearby: 'సమీపంలో',
@@ -191,8 +191,6 @@ export const te: Catalogue = {
     'నా వద్ద ట్రక్కులు ఉన్నాయి, నా వాహన సముదాయాన్ని నడపాలని, లోడ్లు పొందాలని అనుకుంటున్నాను.',
   'I need materials, transport, a cab or a tour, and want offers to compare.':
     'నాకు సామగ్రి, రవాణా, క్యాబ్ లేదా యాత్ర కావాలి, పోల్చడానికి ఆఫర్లు కూడా కావాలి.',
-  'I sell materials and arrange dispatch from my yard.':
-    'నేను సరుకు అమ్ముతాను, నా యార్డ్ నుండి పంపే ఏర్పాటు చేస్తాను.',
   'I run taxis, buses or tour packages and sell passenger journeys.':
     'నేను టాక్సీలు, బస్సులు లేదా టూర్ ప్యాకేజీలు నడుపుతాను, ప్రయాణికుల ప్రయాణాలు అమ్ముతాను.',
   'I represent a district association coordinating roadside help.':
@@ -201,8 +199,6 @@ export const te: Catalogue = {
     'ఇప్పటికే Saarthi ఉపయోగించే వాహన సముదాయం కోసం నేను నడుపుతాను.',
   'The operating system for your trucking business.':
     'మీ ట్రకింగ్ వ్యాపారం యొక్క ఆపరేటింగ్ సిస్టమ్.',
-  'Saarthi connects fleet owners, drivers, suppliers and customers on one platform - from posting a load to watching it arrive.':
-    'Saarthi వాహన యజమానులు, డ్రైవర్లు, సరఫరాదారులు, కస్టమర్లను ఒకే వేదికపై కలుపుతుంది - లోడ్ పెట్టడం నుండి అది చేరుకోవడం చూసే వరకు.',
   'One fleet command centre': 'ఒకే ఫ్లీట్ కమాండ్ సెంటర్',
   'Trucks, drivers, documents, orders and trips in a single operational view.':
     'ట్రక్కులు, డ్రైవర్లు, పత్రాలు, ఆర్డర్లు, ట్రిప్‌లు - అన్నీ ఒకే కార్యాచరణ దృశ్యంలో.',
@@ -258,7 +254,6 @@ export const te: Catalogue = {
   'SOS incidents': 'SOS సంఘటనలు',
   'Nearby services': 'సమీప సేవలు',
   Deliveries: 'డెలివరీలు',
-  'Find materials': 'సామగ్రి వెతకండి',
   'My orders': 'నా ఆర్డర్లు',
   'Track deliveries': 'డెలివరీ ట్రాక్ చేయండి',
   'My travel': 'నా ప్రయాణం',
@@ -315,4 +310,14 @@ export const te: Catalogue = {
   'One number': 'ఒక అంకె',
   '{count} short steps. Nothing is saved until the last one.':
     '{count} చిన్న దశలు. చివరి దశ వరకు ఏదీ సేవ్ కాదు.',
+
+  // --- Smart commerce: sellers, products and categories ------------------
+  Products: 'ఉత్పత్తులు',
+  'Find sellers': 'విక్రేతలను వెతకండి',
+  'Product categories': 'ఉత్పత్తి వర్గాలు',
+  Seller: 'విక్రేత',
+  'I sell goods of any kind and dispatch them from my own premises.':
+    'నేను అన్ని రకాల సరుకు అమ్ముతాను, నా స్వంత స్థలం నుండి పంపుతాను.',
+  'Saarthi connects fleet owners, drivers, sellers and customers on one platform - from posting a load to watching it arrive.':
+    'Saarthi వాహన యజమానులు, డ్రైవర్లు, విక్రేతలు, కస్టమర్లను ఒకే వేదికపై కలుపుతుంది - లోడ్ పెట్టడం నుండి అది చేరుకోవడం చూసే వరకు.',
 };

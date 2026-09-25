@@ -63,6 +63,8 @@ export interface AuthSubscription {
    */
   activeTrackers: number;
   active: boolean;
+  /** On the free trial rather than a paid plan — trials carry tighter AI limits. */
+  trialing: boolean;
   /**
    * Whether plan gating was applied at all.
    *

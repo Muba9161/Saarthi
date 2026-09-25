@@ -13,12 +13,12 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
+  BID_SCOPES_BY_KIND,
   BID_SCOPE_LABELS,
   Permission,
   REQUIREMENT_KIND_LABELS,
   RequirementBidScope,
   RequirementBidStatus,
-  RequirementKind,
   RequirementStatus,
   formatCurrency,
   formatDateTime,
@@ -151,15 +151,8 @@ export function RequirementDetailPage() {
   const { headline, detail } = summarise(requirement);
   const bids = bidsQuery.data ?? [];
 
-  const scopes = (
-    requirement.kind === RequirementKind.MATERIAL_SUPPLY
-      ? requirement.needsTransport
-        ? [RequirementBidScope.MATERIAL, RequirementBidScope.TRANSPORT]
-        : [RequirementBidScope.MATERIAL]
-      : requirement.kind === RequirementKind.FREIGHT_TRANSPORT
-        ? [RequirementBidScope.TRANSPORT]
-        : [RequirementBidScope.TRAVEL]
-  ).filter(Boolean);
+  // The shared rule, so this page and the board agree on which offers exist.
+  const scopes = BID_SCOPES_BY_KIND[requirement.kind];
 
   const awardableStatuses: RequirementStatus[] = [
     RequirementStatus.OPEN,

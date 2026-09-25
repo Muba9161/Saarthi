@@ -1,6 +1,6 @@
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import {
-  CommissionTrigger,
+  PaymentTrigger,
   OrganizationType,
   PlanTier,
   RoleName,
@@ -111,7 +111,8 @@ describe('referral codes', () => {
   it('keeps a salesperson on their GODID channel', async () => {
     const salesman = await createUser({ role: RoleName.SALESMAN, organizationId: null });
     expect((await request({ method: 'GET', url: `${PATH}/me`, user: salesman })).status).toBe(403);
-    expect((await request({ method: 'GET', url: WALLET, user: salesman })).status).toBe(403);
+    // They still have a wallet: their own referral rewards are paid into it.
+    expect((await request({ method: 'GET', url: WALLET, user: salesman })).status).toBe(200);
   });
 });
 
@@ -219,7 +220,7 @@ describe('qualification', () => {
       organizationId,
       baseAmount: 3000,
       paymentReference: unique('PAY-'),
-      trigger: CommissionTrigger.TRACKER,
+      trigger: PaymentTrigger.TRACKER,
     });
     expect(
       (await prisma.userReferral.findUniqueOrThrow({ where: { organizationId } })).status,
@@ -230,13 +231,13 @@ describe('qualification', () => {
       organizationId,
       baseAmount: 1499,
       paymentReference: firstReference,
-      trigger: CommissionTrigger.SUBSCRIPTION,
+      trigger: PaymentTrigger.SUBSCRIPTION,
     });
     await qualifyPayment({
       organizationId,
       baseAmount: 1499,
       paymentReference: unique('PAY-'),
-      trigger: CommissionTrigger.SUBSCRIPTION,
+      trigger: PaymentTrigger.SUBSCRIPTION,
     });
 
     const referral = await prisma.userReferral.findUniqueOrThrow({ where: { organizationId } });

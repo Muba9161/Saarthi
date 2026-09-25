@@ -127,22 +127,11 @@ const STATUS_VARIANTS: Record<string, Variant> = {
   QUALIFIED: 'success',
 
   // Wallet. A held reward is not money yet, so it is a warning rather than a
-  // success; PAID and FAILED on a cash-out share the colours above.
+  // success; a cash-out's FAILED shares the colour above.
   HELD: 'warning',
   VOID: 'muted',
   PROCESSING: 'info',
-
-  /*
-   * Commission.
-   *
-   * PAYABLE is `accent` rather than `success`: the money is not with the
-   * salesperson yet, and colouring it as done is how somebody concludes they
-   * have been paid when a payout run has merely picked the row up. PAID is the
-   * only green one. REVERSED is destructive because it takes earnings back.
-   */
-  PAYABLE: 'accent',
   PAID: 'success',
-  REVERSED: 'destructive',
 
   /*
    * Tracker custody.

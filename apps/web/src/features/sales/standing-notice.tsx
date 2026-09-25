@@ -45,7 +45,7 @@ export function SalesStandingNotice({
           <p className="text-xs">
             GODWeb verification is not enabled on this environment, so Saarthi operations has to
             confirm your GODID by hand. Nothing you record before then is lost — leads and
-            handovers are kept, and only the referral link and commission wait.
+            handovers are kept, and only the referral link and rewards wait.
           </p>
         ) : null}
       </AlertDescription>

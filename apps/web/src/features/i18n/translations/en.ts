@@ -58,7 +58,7 @@ export const en = {
   'Telemetry alerts': 'Telemetry alerts',
   Devices: 'Devices',
   Analytics: 'Analytics',
-  'AI Copilot': 'AI Copilot',
+  'Saarthi Mitra': 'Saarthi Mitra',
   'GPS simulator': 'GPS simulator',
   'My trip': 'My trip',
   Nearby: 'Nearby',
@@ -216,8 +216,6 @@ export const en = {
     'I own trucks and want to manage my fleet and win loads.',
   'I need materials, transport, a cab or a tour, and want offers to compare.':
     'I need materials, transport, a cab or a tour, and want offers to compare.',
-  'I sell materials and arrange dispatch from my yard.':
-    'I sell materials and arrange dispatch from my yard.',
   'I run taxis, buses or tour packages and sell passenger journeys.':
     'I run taxis, buses or tour packages and sell passenger journeys.',
   'I represent a district association coordinating roadside help.':
@@ -228,8 +226,6 @@ export const en = {
   // --- The panel beside the sign-in and registration forms ------------------
   'The operating system for your trucking business.':
     'The operating system for your trucking business.',
-  'Saarthi connects fleet owners, drivers, suppliers and customers on one platform - from posting a load to watching it arrive.':
-    'Saarthi connects fleet owners, drivers, suppliers and customers on one platform - from posting a load to watching it arrive.',
   'One fleet command centre': 'One fleet command centre',
   'Trucks, drivers, documents, orders and trips in a single operational view.':
     'Trucks, drivers, documents, orders and trips in a single operational view.',
@@ -315,7 +311,6 @@ export const en = {
   'SOS incidents': 'SOS incidents',
   'Nearby services': 'Nearby services',
   Deliveries: 'Deliveries',
-  'Find materials': 'Find materials',
   'My orders': 'My orders',
   'Track deliveries': 'Track deliveries',
   'My travel': 'My travel',
@@ -362,6 +357,16 @@ export const en = {
   '“What needs my attention today?” - answered from your own records.':
     '“What needs my attention today?” - answered from your own records.',
   Open: 'Open',
+
+  // --- Smart commerce: sellers, products and categories ------------------
+  Products: 'Products',
+  'Find sellers': 'Find sellers',
+  'Product categories': 'Product categories',
+  Seller: 'Seller',
+  'I sell goods of any kind and dispatch them from my own premises.':
+    'I sell goods of any kind and dispatch them from my own premises.',
+  'Saarthi connects fleet owners, drivers, sellers and customers on one platform - from posting a load to watching it arrive.':
+    'Saarthi connects fleet owners, drivers, sellers and customers on one platform - from posting a load to watching it arrive.',
 } as const;
 
 /** Every translatable string. Other locales supply a subset of these. */

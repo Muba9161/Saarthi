@@ -28,9 +28,11 @@ function inrDate(value: Date): string {
  * The plan's billing state, above every screen, for whoever can pay.
  *
  *   • In the free trial with no autopay — days left, and a way to set it up.
- *     Dismissible for the session: it is a reminder, not an alarm.
+ *     Dismissible for the session: it is a reminder, not an alarm. On a phone
+ *     it floats above the tab bar instead of pushing every screen down under
+ *     the header; from `lg` up it is a slim strip.
  *   • Unpaid, in the 3-day grace — the date the account is archived. Not
- *     dismissible, because missing it costs the account.
+ *     dismissible and never floating, because missing it costs the account.
  */
 export function BillingBanner() {
   const { can, session } = useAuth();
@@ -65,6 +67,7 @@ export function BillingBanner() {
     return (
       <Banner
         tone="info"
+        floating
         icon={CalendarClock}
         action={awaiting ? 'Complete autopay setup' : 'Set up autopay'}
         onDismiss={() => {
@@ -96,20 +99,32 @@ function Banner({
   icon: Icon,
   action,
   onDismiss,
+  floating = false,
   children,
 }: {
   tone: 'info' | 'danger';
   icon: typeof AlertTriangle;
   action: string;
   onDismiss?: () => void;
+  /** Float above the mobile tab bar rather than taking a row under the header. */
+  floating?: boolean;
   children: React.ReactNode;
 }) {
   return (
     <div
       role={tone === 'danger' ? 'alert' : 'status'}
       className={cn(
-        'flex flex-wrap items-center gap-x-4 gap-y-2 border-b px-4 py-2.5 text-sm sm:px-6 lg:px-8',
+        'flex flex-wrap items-center gap-x-4 gap-y-2 text-sm',
         tone === 'danger' ? 'border-destructive/30 bg-destructive/10' : 'border-primary/20 bg-primary/[0.06]',
+        floating
+          ? [
+              // Phone and tablet: a card resting just above the tab bar.
+              'fixed inset-x-3 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-40 rounded-xl border bg-background/95 p-3 text-xs shadow-lg backdrop-blur',
+              'animate-in fade-in slide-in-from-bottom-4',
+              // Desktop: back to a slim strip under the header.
+              'lg:static lg:z-auto lg:rounded-none lg:border-x-0 lg:border-t-0 lg:bg-primary/[0.06] lg:px-8 lg:py-2.5 lg:text-sm lg:shadow-none lg:backdrop-blur-none lg:animate-none',
+            ]
+          : 'border-b px-4 py-2.5 sm:px-6 lg:px-8',
       )}
     >
       <Icon

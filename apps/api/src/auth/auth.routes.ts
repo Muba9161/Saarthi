@@ -15,6 +15,8 @@ import { requireAuth } from '../server/guards';
 import { buildSessionPayload } from './session.service';
 import * as authService from './auth.service';
 import { AuditAction, auditFromRequest } from '../modules/audit/audit.service';
+import { publicAppUrl } from '../lib/public-url';
+import { emailConfigured } from '../providers/email/smtp-email';
 
 /**
  * Authentication routes.
@@ -164,11 +166,16 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
 
   app.post('/forgot-password', { config: authLimit }, async (request, reply) => {
     const input = parseBody(forgotPasswordSchema, request.body);
-    const result = await authService.requestPasswordReset(input.email, requestMeta(request));
+    const result = await authService.requestPasswordReset(
+      input.email,
+      requestMeta(request),
+      publicAppUrl(request),
+    );
     // Always the same response shape, so the endpoint cannot enumerate accounts.
     return ok(reply, {
-      message:
-        'If an account exists for that email address, a password reset link has been generated.',
+      message: emailConfigured()
+        ? 'If an account exists for that email address, we have emailed it a password reset link.'
+        : 'If an account exists for that email address, a password reset link has been generated.',
       ...(result.devToken ? { devToken: result.devToken } : {}),
     });
   });

@@ -1,5 +1,5 @@
 /**
- * Selling Saarthi — referral codes, commission arithmetic and the onboarding
+ * Selling Saarthi — referral codes, attribution and the onboarding
  * checklist, shared by the API and the client.
  *
  * The division of ownership this file assumes, stated once because everything
@@ -8,7 +8,7 @@
  *   * **GODWeb owns who a salesperson is.** Saarthi holds a mirror of that
  *     identity and never mints one.
  *   * **Saarthi owns the sale.** Leads, attribution, subscriptions, payments,
- *     commission and tracker custody are Saarthi records.
+ *     referral rewards and tracker custody are Saarthi records.
  *   * **The existing tracker, Driver App, vehicle pairing, OBD and telemetry
  *     systems are the technical source of truth.** Nothing here connects a
  *     vehicle; the onboarding checklist below only *reads* what they already
@@ -17,8 +17,6 @@
  */
 
 import {
-  CommissionStatus,
-  CommissionType,
   ReferralSource,
   SalesLeadStatus,
   SalesmanStatus,
@@ -65,7 +63,7 @@ export function isPlausibleGodId(value: string): boolean {
  * It *is* the GODID, deliberately. A second opaque code would have to be
  * mapped back to a salesperson on every capture, and the failure mode of that
  * mapping — a code that resolves to the wrong person — is a misdirected
- * commission. Using the identity itself means there is nothing to get wrong,
+ * reward. Using the identity itself means there is nothing to get wrong,
  * and it makes the link legible to the salesperson sharing it, who can read
  * their own GODID in the URL and see that it is theirs.
  *
@@ -135,136 +133,6 @@ export function attributionIsLive(status: string): boolean {
  */
 export function attributionExpiresAt(capturedAt: Date, windowDays: number): Date {
   return new Date(capturedAt.getTime() + windowDays * 86_400_000);
-}
-
-// ---------------------------------------------------------------------------
-// Commission
-// ---------------------------------------------------------------------------
-
-/**
- * A commission rule, as both sides of the wire see it.
- *
- * There is no default rule anywhere in this codebase and no rate constant.
- * Commission is a commercial agreement between Saarthi and its salespeople,
- * and a plausible-looking number invented in a shared library is one somebody
- * would eventually be paid on.
- */
-export interface CommissionRuleTerms {
-  commissionType: CommissionType;
-  /** Percentage points, e.g. `7.5` for 7.5%. Set for PERCENTAGE rules. */
-  commissionRate: number | null;
-  /** Rupees per qualifying sale. Set for FIXED rules. */
-  fixedAmount: number | null;
-}
-
-export interface CommissionComputation {
-  /** Null when the terms cannot produce a figure. Never silently zero. */
-  amount: number | null;
-  /** The rate actually applied, carried onto the commission row. */
-  rate: number | null;
-  /** Why there is no amount, for the row's note and the screen. */
-  reason: string | null;
-}
-
-/**
- * Turn a qualifying payment into a commission amount.
- *
- * Rounded to paise rather than to rupees. Commission on a ₹1,499 subscription
- * at 7.5% is ₹112.425, and rounding that to ₹112 at computation time loses
- * money on every sale in a way nobody can reconcile later; the payout run can
- * round the total once, where the discrepancy is visible.
- *
- * Returns a null amount rather than throwing, because the caller is a payment
- * webhook: a rule that has not been configured yet must leave a commission row
- * behind for somebody to look at, not lose the sale.
- */
-export function computeCommission(
-  terms: CommissionRuleTerms,
-  baseAmount: number,
-): CommissionComputation {
-  if (!Number.isFinite(baseAmount) || baseAmount < 0) {
-    return { amount: null, rate: null, reason: 'The qualifying amount is not a valid figure.' };
-  }
-
-  if (terms.commissionType === CommissionType.FIXED) {
-    if (terms.fixedAmount === null || !Number.isFinite(terms.fixedAmount)) {
-      return {
-        amount: null,
-        rate: null,
-        reason: 'This rule is a fixed-amount rule but carries no amount.',
-      };
-    }
-    return { amount: round2(terms.fixedAmount), rate: null, reason: null };
-  }
-
-  if (terms.commissionRate === null || !Number.isFinite(terms.commissionRate)) {
-    return {
-      amount: null,
-      rate: null,
-      reason: 'This rule is a percentage rule but carries no rate.',
-    };
-  }
-
-  return {
-    amount: round2((baseAmount * terms.commissionRate) / 100),
-    rate: terms.commissionRate,
-    reason: null,
-  };
-}
-
-function round2(value: number): number {
-  return Math.round(value * 100) / 100;
-}
-
-/** Statuses whose amounts a salesperson is still waiting on. */
-export const PENDING_COMMISSION_STATUSES: readonly CommissionStatus[] = Object.freeze([
-  CommissionStatus.PENDING,
-]);
-
-/** Approved but not yet in a payout run. */
-export const APPROVED_COMMISSION_STATUSES: readonly CommissionStatus[] = Object.freeze([
-  CommissionStatus.APPROVED,
-  CommissionStatus.PAYABLE,
-]);
-
-/** Statuses that owe the salesperson nothing further. */
-export const CLOSED_COMMISSION_STATUSES: readonly CommissionStatus[] = Object.freeze([
-  CommissionStatus.PAID,
-  CommissionStatus.REVERSED,
-  CommissionStatus.REJECTED,
-]);
-
-/**
- * Commission transitions, as the API enforces them.
- *
- * PENDING cannot jump to PAID. The gap is not bureaucracy: APPROVED is where a
- * human confirmed the amount, and PAYABLE is where a payout run picked it up,
- * so a payment that arrives without either has no record of who authorised it.
- */
-export const COMMISSION_TRANSITIONS: Record<CommissionStatus, readonly CommissionStatus[]> = {
-  [CommissionStatus.PENDING]: [
-    CommissionStatus.APPROVED,
-    CommissionStatus.REJECTED,
-    CommissionStatus.REVERSED,
-  ],
-  [CommissionStatus.APPROVED]: [
-    CommissionStatus.PAYABLE,
-    CommissionStatus.REVERSED,
-    CommissionStatus.REJECTED,
-  ],
-  [CommissionStatus.PAYABLE]: [CommissionStatus.PAID, CommissionStatus.REVERSED],
-  // Terminal. A commission that was paid and then charged back is corrected by
-  // a reversal row of its own, not by rewriting the row that was paid.
-  [CommissionStatus.PAID]: [],
-  [CommissionStatus.REVERSED]: [],
-  [CommissionStatus.REJECTED]: [],
-};
-
-export function canTransitionCommission(
-  from: CommissionStatus,
-  to: CommissionStatus,
-): boolean {
-  return (COMMISSION_TRANSITIONS[from] ?? []).includes(to);
 }
 
 // ---------------------------------------------------------------------------
@@ -405,4 +273,17 @@ export const SALES_LEAD_STATUS_LABEL: Record<SalesLeadStatus, string> = {
  */
 export function canShareReferral(status: SalesmanStatus): boolean {
   return status === SalesmanStatus.ACTIVE;
+}
+
+// ---------------------------------------------------------------------------
+// Self-service signup
+// ---------------------------------------------------------------------------
+
+/** How long a salesperson's emailed signup link stays usable. */
+export const SALESMAN_SIGNUP_LINK_HOURS = 24;
+
+/** `POST /salesman-signup`. Where the link went, masked so it can be shown. */
+export interface SalesmanSignupStarted {
+  maskedEmail: string;
+  expiresInHours: number;
 }

@@ -46,8 +46,12 @@ export async function aiRoutes(app: FastifyInstance): Promise<void> {
       const auth = requireAuth(request);
       const organizationId = requireOrganizationId(request);
       const input = parseBody(aiChatSchema, request.body);
+      await aiService.assertWithinDailyQuota(auth, organizationId);
 
-      const result = await copilot.askWithTools(auth, organizationId, input.message);
+      const result = await copilot.askWithTools(auth, organizationId, input.message, {
+        voice: 'companion',
+        history: input.history,
+      });
 
       await auditFromRequest(request, {
         action: AuditAction.AI_QUERY,
@@ -222,7 +226,7 @@ export async function aiRoutes(app: FastifyInstance): Promise<void> {
     { preHandler: requirePermission(Permission.AI_USE) },
     async (request, reply) => {
       const organizationId = requireOrganizationId(request);
-      return ok(reply, await aiService.aiUsageSummary(organizationId));
+      return ok(reply, await aiService.aiUsageSummary(requireAuth(request), organizationId));
     },
   );
 }

@@ -12,6 +12,7 @@ import { AnimatePresence, motion } from '@/components/motion';
 import { useTheme } from '@/features/theme/theme-context';
 import { LEGAL_LINKS } from '@/features/legal/legal-links';
 import { Reveal, WordsReveal } from './motion-extras';
+import { STAGE } from './imagery';
 import { cn } from '@/lib/utils';
 
 /**
@@ -549,37 +550,40 @@ export function SectionHeading({
 
 export function MarketingFooter() {
   const year = new Date().getFullYear();
-  const { resolvedTheme } = useTheme();
   const { pathname } = useLocation();
   const onLanding = pathname === '/';
 
   return (
-    <footer className="border-t border-border/60 px-5 py-14 sm:px-8">
+    /*
+     * The same fixed near-black as the closing band above it, in both themes,
+     * so the photograph runs straight into the footer with no seam. Marked as
+     * a stage so the header keeps its light ink when scrolled over it.
+     */
+    <footer data-stage className={cn('px-5 py-14 sm:px-8', STAGE)}>
       <div className="mx-auto grid max-w-6xl gap-10 sm:grid-cols-2 lg:grid-cols-5">
         <div className="lg:col-span-2">
           <div className="flex items-center gap-2.5">
-            {/* Navy on transparency — without the chip the V is simply gone in
-                the dark theme. */}
-            <SaarthiLogo className="h-7" decorative onDark={resolvedTheme === 'dark'} />
+            {/* Navy on transparency — the chip keeps the V visible on the stage. */}
+            <SaarthiLogo className="h-7" decorative onDark />
             <p className="text-sm font-semibold">VorldX Saarthi</p>
           </div>
-          <p className="mt-4 max-w-sm text-sm leading-relaxed text-muted-foreground">
+          <p className="mt-4 max-w-sm text-sm leading-relaxed text-white/55">
             One system for everyone in a haul - fleet owners, drivers, suppliers, customers, travel
             operators, and the associations that answer when something goes wrong.
           </p>
         </div>
 
         <div>
-          <p className="text-2xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+          <p className="text-2xs font-semibold uppercase tracking-[0.16em] text-white/55">
             Product
           </p>
-          <ul className="mt-4 space-y-2.5 text-sm text-muted-foreground">
+          <ul className="mt-4 space-y-2.5 text-sm text-white/55">
             {NAV_SECTIONS.map((section) => (
               <li key={section.id}>
                 <SectionLink
                   id={section.id}
                   onLanding={onLanding}
-                  className="transition-colors hover:text-foreground"
+                  className="transition-colors hover:text-white"
                 >
                   {section.label}
                 </SectionLink>
@@ -589,22 +593,22 @@ export function MarketingFooter() {
         </div>
 
         <div>
-          <p className="text-2xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+          <p className="text-2xs font-semibold uppercase tracking-[0.16em] text-white/55">
             Get started
           </p>
-          <ul className="mt-4 space-y-2.5 text-sm text-muted-foreground">
+          <ul className="mt-4 space-y-2.5 text-sm text-white/55">
             <li>
-              <Link to="/register" className="transition-colors hover:text-foreground">
+              <Link to="/register" className="transition-colors hover:text-white">
                 Create an account
               </Link>
             </li>
             <li>
-              <Link to="/login" className="transition-colors hover:text-foreground">
+              <Link to="/login" className="transition-colors hover:text-white">
                 Sign in
               </Link>
             </li>
             <li>
-              <Link to="/login" className="transition-colors hover:text-foreground">
+              <Link to="/login" className="transition-colors hover:text-white">
                 Explore the demo fleet
               </Link>
             </li>
@@ -612,19 +616,19 @@ export function MarketingFooter() {
         </div>
 
         <div>
-          <p className="text-2xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+          <p className="text-2xs font-semibold uppercase tracking-[0.16em] text-white/55">
             Legal
           </p>
-          <ul className="mt-4 space-y-2.5 text-sm text-muted-foreground">
+          <ul className="mt-4 space-y-2.5 text-sm text-white/55">
             {LEGAL_LINKS.map((link) => (
               <li key={link.to}>
-                <Link to={link.to} className="transition-colors hover:text-foreground">
+                <Link to={link.to} className="transition-colors hover:text-white">
                   {link.label}
                 </Link>
               </li>
             ))}
             <li>
-              <Link to="/privacy#grievance" className="transition-colors hover:text-foreground">
+              <Link to="/privacy#grievance" className="transition-colors hover:text-white">
                 Grievance redressal
               </Link>
             </li>
@@ -632,13 +636,13 @@ export function MarketingFooter() {
         </div>
       </div>
 
-      <div className="mx-auto mt-12 max-w-6xl border-t border-border/60 pt-6">
-        <p className="max-w-3xl text-2xs leading-relaxed text-muted-foreground">
+      <div className="mx-auto mt-12 max-w-6xl border-t border-white/10 pt-6">
+        <p className="mx-auto max-w-3xl text-balance text-center text-2xs leading-relaxed text-white/55">
           Saarthi&rsquo;s emergency network connects nearby drivers who may be able to help. It does
           not replace official emergency services - always call 112 first in a life-threatening
           situation.
         </p>
-        <p className="mt-3 text-2xs text-muted-foreground">© {year} VorldX Saarthi</p>
+        <p className="mt-4 text-center text-2xs text-white/55">© {year} VorldX Saarthi</p>
       </div>
     </footer>
   );

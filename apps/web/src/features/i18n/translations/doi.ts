@@ -41,7 +41,7 @@ export const doi: Catalogue = {
   'Telemetry alerts': 'टेलीमेट्री अलर्ट',
   Devices: 'डिवाइस',
   Analytics: 'एनालिटिक्स',
-  'AI Copilot': 'AI कोपायलट',
+  'Saarthi Mitra': 'सारथी मित्तर',
   'GPS simulator': 'GPS सिम्युलेटर',
   'My trip': 'मेरी यात्रा',
   Nearby: 'नेड़े',
@@ -189,8 +189,6 @@ export const doi: Catalogue = {
     'मेरे कोल ट्रक न ते मैं अपना बेड़ा चलाना ते लोड हासल करना चांहदा आं।',
   'I need materials, transport, a cab or a tour, and want offers to compare.':
     'मिगी सामग्री, ढुलाई, कैब जां सैर दी लोड़ ऐ, ते तुलना आस्तै बोलियां चाहिदियां।',
-  'I sell materials and arrange dispatch from my yard.':
-    'मैं सामान बेचना आं ते अपने यार्ड थमां भेजने दा इंतजाम करना आं।',
   'I run taxis, buses or tour packages and sell passenger journeys.':
     'मैं टैक्सी, बस जां टूर पैकेज चलांदा आं ते सवारी दे सफर बेचना आं।',
   'I represent a district association coordinating roadside help.':
@@ -198,8 +196,6 @@ export const doi: Catalogue = {
   'I drive for a fleet that already uses Saarthi.':
     'मैं ऐसे बेड़े आस्तै गड्डी चलांदा आं जेह्ड़ा पैहलें थमां Saarthi बरतदा ऐ।',
   'The operating system for your trucking business.': 'तुंदे ट्रकिंग कारोबार दा ऑपरेटिंग सिस्टम।',
-  'Saarthi connects fleet owners, drivers, suppliers and customers on one platform - from posting a load to watching it arrive.':
-    'Saarthi बेड़ा मालकें, चालकें, आपूर्तिकर्तां ते ग्राहकें गी इक्कै प्लेटफॉर्म पर जोड़दा ऐ - लोड पाने थमां लेइयै उसदे पुज्जने तकर।',
   'One fleet command centre': 'इक्कै फ्लीट कमांड सेंटर',
   'Trucks, drivers, documents, orders and trips in a single operational view.':
     'ट्रक, चालक, कागजात, ऑर्डर ते सफर - सब इक्कै कम्मै दे नजारे च।',
@@ -255,7 +251,6 @@ export const doi: Catalogue = {
   'SOS incidents': 'SOS घटनां',
   'Nearby services': 'नेड़लियां सेवां',
   Deliveries: 'डिलीवरी',
-  'Find materials': 'सामान तुप्पो',
   'My orders': 'मेरे ऑर्डर',
   'Track deliveries': 'डिलीवरी ट्रैक करो',
   'My travel': 'मेरा सफर',
@@ -312,4 +307,14 @@ export const doi: Catalogue = {
   'One number': 'इक अंक',
   '{count} short steps. Nothing is saved until the last one.':
     '{count} निक्के चरण। आखरी चरण तकर कुछ बी सेव नेईं होंदा।',
+
+  // --- Smart commerce: sellers, products and categories ------------------
+  Products: 'उत्पाद',
+  'Find sellers': 'विक्रेता तुप्पो',
+  'Product categories': 'उत्पाद श्रेणियां',
+  Seller: 'विक्रेता',
+  'I sell goods of any kind and dispatch them from my own premises.':
+    'मैं हर किस्मै दा सामान बेचना आं ते अपनी थाह्र थमां भेजना आं।',
+  'Saarthi connects fleet owners, drivers, sellers and customers on one platform - from posting a load to watching it arrive.':
+    'Saarthi बेड़ा मालकें, चालकें, विक्रेताएं ते ग्राहकें गी इक्कै प्लेटफॉर्म पर जोड़दा ऐ - लोड पाने थमां लेइयै उसदे पुज्जने तकर।',
 };

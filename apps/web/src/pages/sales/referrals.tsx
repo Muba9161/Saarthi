@@ -12,6 +12,7 @@ import type { AttributionView, ReferralShareResponse } from '@/features/sales/ty
 import { PageHeader, SectionHeader } from '@/components/common/page-header';
 import { DataTable, type Column } from '@/components/common/data-table';
 import { StatusBadge } from '@/components/common/status-badge';
+import { RewardCell } from '@/features/referrals/reward-cell';
 import { LoadingState, UnauthorizedState } from '@/components/common/states';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,7 +23,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
  *
  * The link is the salesperson's GODID, deliberately — they can read their own
  * identity in the URL and see that it is theirs, and there is no second code
- * that could resolve to the wrong person and misdirect a commission.
+ * that could resolve to the wrong person and misdirect a reward.
  *
  * It is not a secret and is not presented as one. Following it grants nothing
  * and reveals nothing beyond a display name; the attribution is decided by the
@@ -81,6 +82,17 @@ export function SalesReferralsPage(): React.ReactElement {
       key: 'status',
       header: 'Status',
       cell: (row) => <StatusBadge status={row.status} />,
+    },
+    {
+      key: 'reward',
+      header: 'Reward',
+      cell: (row) =>
+        // A click with no signup behind it has not earned or missed anything yet.
+        row.organizationId ? (
+          <RewardCell reward={row.reward} />
+        ) : (
+          <span className="text-sm text-muted-foreground">-</span>
+        ),
     },
     {
       key: 'captured',

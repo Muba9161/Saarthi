@@ -128,7 +128,7 @@ describe('Requirements and bidding', () => {
     return body.data.id;
   }
 
-  async function postMaterialRequirement(needsTransport: boolean): Promise<string> {
+  async function postMaterialRequirement(): Promise<string> {
     const { status, body } = await request<{ id: string }>({
       method: 'POST',
       url: '/api/v1/requirements',
@@ -144,7 +144,6 @@ describe('Requirements and bidding', () => {
           materialName: 'OPC 43 grade cement',
           quantity: 400,
           unit: MaterialUnit.BAG,
-          needsTransport,
         },
       },
     });
@@ -206,6 +205,41 @@ describe('Requirements and bidding', () => {
     return truck.id;
   }
 
+  /** A Seller's cement listing a fleet can source a delivered bid from. */
+  async function createSellerListing(): Promise<string> {
+    const seller = await prisma.supplier.findUniqueOrThrow({ where: { organizationId: supplierOrg.id } });
+    const listing = await prisma.material.create({
+      data: {
+        supplierId: seller.id,
+        organizationId: supplierOrg.id,
+        name: 'OPC 43 grade cement',
+        unit: MaterialUnit.BAG,
+        pricePerUnit: 380,
+        availableQuantity: 1000,
+        status: 'ACTIVE',
+        pickupLatitude: JAIPUR.latitude,
+        pickupLongitude: JAIPUR.longitude,
+      },
+    });
+    return listing.id;
+  }
+
+  /** A penny-validated bank account, which a delivered bid requires. */
+  async function connectFleetBank(): Promise<void> {
+    const { status } = await request({
+      method: 'POST',
+      url: '/api/v1/finance/payout-account',
+      user: fleetOwner,
+      payload: {
+        accountHolderName: 'Sharma Transport',
+        accountNumber: '026291800001191',
+        ifsc: 'YESB0000262',
+        pan: 'ABCDE1234F',
+      },
+    });
+    expect(status).toBe(200);
+  }
+
   /** An active travel provider profile, without which a travel bid is refused. */
   async function createProviderProfile(): Promise<void> {
     await prisma.serviceProviderProfile.create({
@@ -226,7 +260,7 @@ describe('Requirements and bidding', () => {
   describe('posting a requirement', () => {
     it('accepts each of the four kinds with the detail block that matches', async () => {
       await postFreightRequirement();
-      await postMaterialRequirement(true);
+      await postMaterialRequirement();
       await postCabRequirement();
 
       const { body } = await request<{ items: { kind: string }[] }>({
@@ -365,21 +399,32 @@ describe('Requirements and bidding', () => {
       expect(body.data.items[0]?.kind).toBe(RequirementKind.CAB_HIRE);
     });
 
-    it('shows a supplier material work, and offers only the material scope', async () => {
-      await postMaterialRequirement(true);
-      await postFreightRequirement();
+    it('shows a seller no customer requirements at all', async () => {
+      await postMaterialRequirement();
+
+      const { status } = await request({
+        method: 'GET',
+        url: '/api/v1/requirements/board?radiusKm=3000',
+        user: supplier,
+      });
+
+      // Customer demand reaches a Seller only as a fleet owner's procurement.
+      expect(status).toBe(403);
+    });
+
+    it('shows a fleet material work, answered with a delivered transport bid', async () => {
+      await postMaterialRequirement();
 
       const { body } = await request<{
         items: { kind: string; availableScopes: string[] }[];
       }>({
         method: 'GET',
         url: '/api/v1/requirements/board?radiusKm=3000',
-        user: supplier,
+        user: fleetOwner,
       });
 
       expect(body.data.items).toHaveLength(1);
-      expect(body.data.items[0]?.kind).toBe(RequirementKind.MATERIAL_SUPPLY);
-      expect(body.data.items[0]?.availableScopes).toEqual([RequirementBidScope.MATERIAL]);
+      expect(body.data.items[0]?.availableScopes).toEqual([RequirementBidScope.TRANSPORT]);
     });
 
     it('does not let a kind filter widen what an account type may see', async () => {
@@ -510,9 +555,8 @@ describe('Requirements and bidding', () => {
         payload: { scope: RequirementBidScope.TRANSPORT, price: 40000 },
       });
 
-      // Refused at validation: a transport bid must name a vehicle, and a
-      // supplier has none to name.
-      expect(status).toBe(400);
+      // A Seller holds no requirement grants at all.
+      expect(status).toBe(403);
     });
 
     it('refuses a travel bid from a freight fleet', async () => {
@@ -668,8 +712,8 @@ describe('Requirements and bidding', () => {
       expect(asCustomer.body.data).toHaveLength(2);
     });
 
-    it('refuses a transport bid on a material requirement the customer will carry itself', async () => {
-      const requirementId = await postMaterialRequirement(false);
+    it('refuses a fleet bid on material that names no seller listing', async () => {
+      const requirementId = await postMaterialRequirement();
       const truckId = await createBiddableTruck();
 
       const { status, body } = await request({
@@ -680,7 +724,20 @@ describe('Requirements and bidding', () => {
       });
 
       expect(status).toBe(422);
-      expect(body.error?.message).toContain('own transport');
+      expect(body.error?.message).toContain('seller listing');
+    });
+
+    it('refuses a seller offering material straight to the customer', async () => {
+      const requirementId = await postMaterialRequirement();
+
+      const { status } = await request({
+        method: 'POST',
+        url: `/api/v1/requirements/${requirementId}/bids`,
+        user: supplier,
+        payload: { scope: RequirementBidScope.MATERIAL, price: 150000, includesDelivery: true },
+      });
+
+      expect(status).toBe(403);
     });
   });
 
@@ -734,69 +791,27 @@ describe('Requirements and bidding', () => {
       expect(truck.currentTripId).toBe(body.data.tripId);
     });
 
-    it('holds a delivered material requirement at PARTIALLY_AWARDED until transport lands', async () => {
-      const requirementId = await postMaterialRequirement(true);
-
-      const { body: materialBid } = await request<{ id: string }>({
-        method: 'POST',
-        url: `/api/v1/requirements/${requirementId}/bids`,
-        user: supplier,
-        payload: { scope: RequirementBidScope.MATERIAL, price: 152000, includesDelivery: false },
-      });
-
-      const first = await request<{ requirement: { status: string }; orderId: string | null }>({
-        method: 'POST',
-        url: `/api/v1/requirements/${requirementId}/award`,
-        user: customer,
-        payload: { bidId: materialBid.data.id },
-      });
-
-      expect(first.body.data.requirement.status).toBe(RequirementStatus.PARTIALLY_AWARDED);
-      expect(first.body.data.orderId).toBeNull();
-
+    it('settles material in one award of a fleet delivered bid, keeping the seller anonymous', async () => {
+      const requirementId = await postMaterialRequirement();
+      const listingId = await createSellerListing();
       const truckId = await createBiddableTruck();
-      const { body: transportBid } = await request<{ id: string }>({
+      await connectFleetBank();
+
+      const { status: bidStatus, body: bid } = await request<{ id: string }>({
         method: 'POST',
         url: `/api/v1/requirements/${requirementId}/bids`,
         user: fleetOwner,
-        payload: { scope: RequirementBidScope.TRANSPORT, price: 18000, vehicleId: truckId },
+        payload: {
+          scope: RequirementBidScope.TRANSPORT,
+          price: 168000,
+          vehicleId: truckId,
+          sourceMaterialId: listingId,
+        },
       });
-
-      const second = await request<{
-        requirement: { status: string };
-        orderId: string | null;
-        tripId: string | null;
-      }>({
-        method: 'POST',
-        url: `/api/v1/requirements/${requirementId}/award`,
-        user: customer,
-        payload: { bidId: transportBid.data.id },
-      });
-
-      expect(second.body.data.requirement.status).toBe(RequirementStatus.AWARDED);
-      expect(second.body.data.orderId).toBeTruthy();
-      expect(second.body.data.tripId).toBeTruthy();
-
-      const order = await prisma.order.findUniqueOrThrow({
-        where: { id: second.body.data.orderId! },
-      });
-      expect(order.supplierOrganizationId).toBe(supplierOrg.id);
-      expect(order.fleetOrganizationId).toBe(fleetOrg.id);
-      expect(Number(order.totalPrice)).toBe(152000 + 18000);
-    });
-
-    it('settles in one award when the supplier prices delivery in', async () => {
-      const requirementId = await postMaterialRequirement(true);
-
-      const { body: bid } = await request<{ id: string }>({
-        method: 'POST',
-        url: `/api/v1/requirements/${requirementId}/bids`,
-        user: supplier,
-        payload: { scope: RequirementBidScope.MATERIAL, price: 168000, includesDelivery: true },
-      });
+      expect(bidStatus).toBe(201);
 
       const { body } = await request<{
-        requirement: { status: string };
+        requirement: { status: string; contactPhone: string | null };
         orderId: string | null;
         tripId: string | null;
       }>({
@@ -808,8 +823,74 @@ describe('Requirements and bidding', () => {
 
       expect(body.data.requirement.status).toBe(RequirementStatus.AWARDED);
       expect(body.data.orderId).toBeTruthy();
-      // No fleet was appointed, so no trip is dispatched.
-      expect(body.data.tripId).toBeNull();
+      expect(body.data.tripId).toBeTruthy();
+
+      const stored = await prisma.order.findUniqueOrThrow({ where: { id: body.data.orderId! } });
+      expect(stored.supplierOrganizationId).toBe(supplierOrg.id);
+      expect(stored.fleetOrganizationId).toBe(fleetOrg.id);
+
+      // The fleet sees who it buys from; the customer and the seller never
+      // learn about each other.
+      const asFleet = await request<{ supplierName: string | null; customerName: string }>({
+        method: 'GET',
+        url: `/api/v1/orders/${body.data.orderId}`,
+        user: fleetOwner,
+      });
+      expect(asFleet.body.data.supplierName).toBe(supplierOrg.name);
+
+      const asCustomer = await request<{ supplierName: string | null; supplierOrganizationId: string | null }>({
+        method: 'GET',
+        url: `/api/v1/orders/${body.data.orderId}`,
+        user: customer,
+      });
+      expect(asCustomer.body.data.supplierName).toBeNull();
+      expect(asCustomer.body.data.supplierOrganizationId).toBeNull();
+
+      const asSeller = await request<{ customerName: string }>({
+        method: 'GET',
+        url: `/api/v1/orders/${body.data.orderId}`,
+        user: supplier,
+      });
+      expect(asSeller.body.data.customerName).toBe('Saarthi customer');
+
+      // A customer following the delivery does not receive the driver's phone.
+      const tripAsCustomer = await request<{ driver: { phone: string | null } | null }>({
+        method: 'GET',
+        url: `/api/v1/trips/${body.data.tripId}`,
+        user: customer,
+      });
+      expect(tripAsCustomer.status).toBe(200);
+      expect(tripAsCustomer.body.data.driver?.phone ?? null).toBeNull();
+
+      const tripAsFleet = await request<{ driver: { phone: string | null } | null }>({
+        method: 'GET',
+        url: `/api/v1/trips/${body.data.tripId}`,
+        user: fleetOwner,
+      });
+      expect(tripAsFleet.body.data.driver).not.toBeNull();
+    });
+
+    it('refuses to award a direct seller offer left over from before fleet sourcing', async () => {
+      const requirementId = await postMaterialRequirement();
+      const legacy = await prisma.requirementBid.create({
+        data: {
+          requirementId,
+          scope: RequirementBidScope.MATERIAL,
+          bidderOrganizationId: supplierOrg.id,
+          createdById: supplier.id,
+          price: 150000,
+        },
+      });
+
+      const { status, body } = await request({
+        method: 'POST',
+        url: `/api/v1/requirements/${requirementId}/award`,
+        user: customer,
+        payload: { bidId: legacy.id },
+      });
+
+      expect(status).toBe(422);
+      expect(body.error?.message).toContain('no longer be accepted');
     });
 
     it('turns a travel award into a booking on the existing travel pipeline', async () => {
@@ -857,31 +938,37 @@ describe('Requirements and bidding', () => {
       expect(catalogue.body.data.items).toHaveLength(0);
     });
 
-    it('rejects every rival for the awarded scope, and no others', async () => {
-      const requirementId = await postMaterialRequirement(true);
+    it('rejects every rival for the awarded scope', async () => {
+      const requirementId = await postFreightRequirement();
+      const truckId = await createBiddableTruck();
 
-      const rivalOrg = await createOrganization(OrganizationType.SUPPLIER, PlanTier.BUSINESS);
-      const rival = await createUser({ role: RoleName.SUPPLIER, organizationId: rivalOrg.id });
+      const rivalOrg = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.BUSINESS);
+      const rival = await createUser({ role: RoleName.FLEET_OWNER, organizationId: rivalOrg.id });
+      const rivalDriver = await createUser({ role: RoleName.DRIVER, organizationId: rivalOrg.id, driver: true });
+      const rivalTruck = await prisma.truck.create({
+        data: {
+          organizationId: rivalOrg.id,
+          registrationNumber: testPlate(),
+          truckType: TruckType.FLATBED,
+          vehicleType: VehicleType.TRUCK,
+          capacityTons: 25,
+          status: TruckStatus.AVAILABLE,
+          verificationStatus: VerificationStatus.VERIFIED,
+          currentDriverId: rivalDriver.driverId ?? null,
+        },
+      });
 
       const { body: winning } = await request<{ id: string }>({
         method: 'POST',
         url: `/api/v1/requirements/${requirementId}/bids`,
-        user: supplier,
-        payload: { scope: RequirementBidScope.MATERIAL, price: 150000 },
+        user: fleetOwner,
+        payload: { scope: RequirementBidScope.TRANSPORT, price: 40000, vehicleId: truckId },
       });
       await request({
         method: 'POST',
         url: `/api/v1/requirements/${requirementId}/bids`,
         user: rival,
-        payload: { scope: RequirementBidScope.MATERIAL, price: 158000 },
-      });
-
-      const truckId = await createBiddableTruck();
-      await request({
-        method: 'POST',
-        url: `/api/v1/requirements/${requirementId}/bids`,
-        user: fleetOwner,
-        payload: { scope: RequirementBidScope.TRANSPORT, price: 18000, vehicleId: truckId },
+        payload: { scope: RequirementBidScope.TRANSPORT, price: 42000, vehicleId: rivalTruck.id },
       });
 
       await request({
@@ -892,13 +979,9 @@ describe('Requirements and bidding', () => {
       });
 
       const bids = await prisma.requirementBid.findMany({ where: { requirementId } });
-      const byScope = (scope: string) => bids.filter((bid) => bid.scope === scope);
-
-      expect(byScope(RequirementBidScope.MATERIAL).map((bid) => bid.status).sort()).toEqual(
+      expect(bids.map((bid) => bid.status).sort()).toEqual(
         [RequirementBidStatus.ACCEPTED, RequirementBidStatus.REJECTED].sort(),
       );
-      // The transport half is still being competed for.
-      expect(byScope(RequirementBidScope.TRANSPORT)[0]?.status).toBe(RequirementBidStatus.OFFERED);
     });
 
     it('refuses to award the same half twice', async () => {

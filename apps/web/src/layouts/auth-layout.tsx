@@ -274,7 +274,7 @@ export function AuthLayout() {
               </h2>
               <p className="max-w-md text-sm leading-relaxed text-sidebar-muted">
                 {t(
-                  'Saarthi connects fleet owners, drivers, suppliers and customers on one platform - from posting a load to watching it arrive.',
+                  'Saarthi connects fleet owners, drivers, sellers and customers on one platform - from posting a load to watching it arrive.',
                 )}
               </p>
             </StaggerItem>

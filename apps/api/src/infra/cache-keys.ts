@@ -131,6 +131,19 @@ export const cacheKeys = {
   /** One computed route. Same reasoning as above. */
   terminalRoute: (signature: string): string => `${PREFIX}:routing:route:${signature}`,
 
+  // --- Smart commerce ------------------------------------------------------
+  //
+  // Not tenant-keyed: the taxonomy is platform reference data, and a
+  // classification is a fact about a line of product text ("river sand" is
+  // river sand for everybody). The key carries a hash of the normalised text,
+  // never the text, and the value holds only a category and attribute values.
+
+  /** The assembled active taxonomy. Invalidated on every administrator write. */
+  commerceTaxonomy: (): string => `${PREFIX}:commerce:taxonomy`,
+  /** A validated AI classification for one taxonomy version and one text hash. */
+  commerceClassification: (scope: string, taxonomyVersion: string, textHash: string): string =>
+    `${PREFIX}:commerce:classify:${scope}:${taxonomyVersion}:${textHash}`,
+
   /** Prefix for everything derived from one tenant, for bulk invalidation. */
   organizationPrefix: (organizationId: string): string => `${PREFIX}:fleet:${organizationId}`,
   vehiclePrefix: (vehicleId: string): string => `${PREFIX}:vehicle:${vehicleId}`,
@@ -223,4 +236,17 @@ export const cacheTtl = {
    * a bug rather than as caching.
    */
   salesDashboard: 20,
+
+  /**
+   * The commerce taxonomy. Explicitly invalidated on every administrator
+   * write, so this only bounds how long a second API instance can lag.
+   */
+  commerceTaxonomy: 300,
+
+  /**
+   * One AI classification. Long, because the same product text means the same
+   * thing next week; a taxonomy change alters the version in the key, so an
+   * edit never serves a stale answer.
+   */
+  commerceClassification: 7 * 86_400,
 } as const;

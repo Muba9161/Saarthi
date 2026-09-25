@@ -41,7 +41,7 @@ export const hi: Catalogue = {
   'Telemetry alerts': 'टेलीमेट्री अलर्ट',
   Devices: 'डिवाइस',
   Analytics: 'एनालिटिक्स',
-  'AI Copilot': 'AI कोपायलट',
+  'Saarthi Mitra': 'सारथी मित्र',
   'GPS simulator': 'GPS सिम्युलेटर',
   'My trip': 'मेरी ट्रिप',
   Nearby: 'आसपास',
@@ -189,8 +189,6 @@ export const hi: Catalogue = {
     'मेरे पास ट्रक हैं और मैं अपना बेड़ा चलाना तथा लोड पाना चाहता हूँ।',
   'I need materials, transport, a cab or a tour, and want offers to compare.':
     'मुझे सामग्री, परिवहन, कैब या यात्रा चाहिए, और तुलना के लिए प्रस्ताव चाहिए।',
-  'I sell materials and arrange dispatch from my yard.':
-    'मैं सामान बेचता हूँ और अपने यार्ड से भेजने की व्यवस्था करता हूँ।',
   'I run taxis, buses or tour packages and sell passenger journeys.':
     'मैं टैक्सी, बस या टूर पैकेज चलाता हूँ और यात्री यात्राएँ बेचता हूँ।',
   'I represent a district association coordinating roadside help.':
@@ -199,8 +197,6 @@ export const hi: Catalogue = {
     'मैं ऐसे बेड़े के लिए गाड़ी चलाता हूँ जो पहले से Saarthi इस्तेमाल करता है।',
   'The operating system for your trucking business.':
     'आपके ट्रांसपोर्ट व्यवसाय का ऑपरेटिंग सिस्टम।',
-  'Saarthi connects fleet owners, drivers, suppliers and customers on one platform - from posting a load to watching it arrive.':
-    'Saarthi बेड़ा मालिकों, ड्राइवरों, आपूर्तिकर्ताओं और ग्राहकों को एक ही प्लेटफ़ॉर्म पर जोड़ता है - लोड डालने से लेकर उसके पहुँचने तक।',
   'One fleet command centre': 'एक ही फ़्लीट कमांड सेंटर',
   'Trucks, drivers, documents, orders and trips in a single operational view.':
     'ट्रक, ड्राइवर, दस्तावेज़, ऑर्डर और ट्रिप - सब एक ही परिचालन दृश्य में।',
@@ -256,7 +252,6 @@ export const hi: Catalogue = {
   'SOS incidents': 'SOS घटनाएँ',
   'Nearby services': 'आसपास की सेवाएँ',
   Deliveries: 'डिलीवरी',
-  'Find materials': 'सामग्री खोजें',
   'My orders': 'मेरे ऑर्डर',
   'Track deliveries': 'डिलीवरी ट्रैक करें',
   'My travel': 'मेरी यात्रा',
@@ -313,4 +308,14 @@ export const hi: Catalogue = {
   'One number': 'एक अंक',
   '{count} short steps. Nothing is saved until the last one.':
     '{count} छोटे चरण। अंतिम चरण तक कुछ भी सहेजा नहीं जाता।',
+
+  // --- Smart commerce: sellers, products and categories ------------------
+  Products: 'उत्पाद',
+  'Find sellers': 'विक्रेता खोजें',
+  'Product categories': 'उत्पाद श्रेणियाँ',
+  Seller: 'विक्रेता',
+  'I sell goods of any kind and dispatch them from my own premises.':
+    'मैं हर तरह का सामान बेचता हूँ और अपनी जगह से भेजता हूँ।',
+  'Saarthi connects fleet owners, drivers, sellers and customers on one platform - from posting a load to watching it arrive.':
+    'Saarthi बेड़ा मालिकों, ड्राइवरों, विक्रेताओं और ग्राहकों को एक ही प्लेटफ़ॉर्म पर जोड़ता है - लोड डालने से लेकर उसके पहुँचने तक।',
 };

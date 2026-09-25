@@ -18,13 +18,13 @@ import {
   type TransferResult,
 } from '../../providers/payouts/cashfree-payouts';
 import { AuditAction, recordAudit } from '../audit/audit.service';
-import { requireEligible } from '../referral-program/referral-program.service';
 import { toBankView } from './wallet-bank.service';
 import { availableBalance, balances, releaseMatured } from './wallet-ledger.service';
 import type { AuthContext } from '../../auth/context';
 
 /**
- * The Saarthi wallet: what a person has earned, and cashing it out.
+ * The Saarthi wallet: what a person has earned — through Refer & Earn or, for a
+ * salesperson, through the customers they bring — and cashing it out.
  *
  * A cash-out takes the whole available balance to the holder's own verified
  * bank account, with no approval step. The debit is written before the
@@ -61,7 +61,6 @@ function toCashoutView(row: CashoutRow): WalletCashoutView {
 }
 
 export async function summary(auth: AuthContext): Promise<WalletSummary> {
-  requireEligible(auth);
   await releaseMatured(auth.user.id);
 
   const [totals, bank] = await Promise.all([
@@ -73,6 +72,7 @@ export async function summary(auth: AuthContext): Promise<WalletSummary> {
     ...totals,
     minCashout: config.wallet.minCashout,
     holdDays: config.referralProgram.rewardHoldDays,
+    rewardAmount: config.referralProgram.rewardAmount,
     cashoutEnabled: config.wallet.cashoutEnabled,
     bankAccount: bank ? toBankView(bank) : null,
   };
@@ -82,7 +82,6 @@ export async function listCashouts(
   auth: AuthContext,
   query: PaginationQuery,
 ): Promise<{ items: WalletCashoutView[]; total: number }> {
-  requireEligible(auth);
   const where = { userId: auth.user.id };
   const [rows, total] = await Promise.all([
     prisma.walletCashout.findMany({
@@ -101,7 +100,6 @@ export async function listCashouts(
 // ---------------------------------------------------------------------------
 
 export async function requestCashout(auth: AuthContext): Promise<WalletCashoutView> {
-  requireEligible(auth);
   if (!config.wallet.cashoutEnabled) {
     throw errors.providerNotConfigured(
       'cashfree',
