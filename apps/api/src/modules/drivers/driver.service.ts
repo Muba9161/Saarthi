@@ -19,6 +19,7 @@ import {
   type DriverListQuery,
   type JoinFleetInput,
   type Paginated,
+  type SelfDriverInput,
   type UpdateDriverInput,
   type AppliedScoreEvent,
 } from '@saarthi/shared';
@@ -365,6 +366,74 @@ export async function createDriver(
     setupUrl,
     ...(config.isProduction ? {} : { setupToken: token }),
   };
+}
+
+export interface SelfDriverResult {
+  driver: DriverSummary;
+  /** False when the owner already had a driver profile in this fleet. */
+  created: boolean;
+}
+
+/**
+ * The signed-in owner's own driver profile in this fleet, created on first use.
+ *
+ * Behind "Assign to yourself" on a vehicle, on Personal and Business alike.
+ * The profile hangs off the owner's own user, so their trips, duty hours and
+ * score stay on the account they already sign in with — never on a second
+ * account invented to make them assignable. Their membership role is left
+ * alone: they own the fleet and also drive in it.
+ *
+ * Idempotent: an owner who already has a profile here gets it back unchanged.
+ * `Driver.userId` is unique, so a profile held in a different fleet cannot be
+ * duplicated here and is refused instead.
+ */
+export async function ensureSelfDriver(
+  auth: AuthContext,
+  organizationId: string,
+  input: SelfDriverInput,
+): Promise<SelfDriverResult> {
+  const existing = await prisma.driver.findUnique({
+    where: { userId: auth.user.id },
+    select: { id: true, organizationId: true },
+  });
+  if (existing) {
+    if (existing.organizationId !== organizationId) {
+      throw errors.conflict(
+        'Your driver profile belongs to another fleet, so it cannot be assigned to this vehicle.',
+      );
+    }
+    return { driver: await getDriver(auth, existing.id), created: false };
+  }
+
+  await assertDriverLimit(auth, organizationId);
+
+  const licenceTaken = await prisma.driver.findFirst({
+    where: { organizationId, licenseNumber: input.licenseNumber },
+    select: { id: true },
+  });
+  if (licenceTaken) {
+    throw errors.duplicate('A driver with this licence number already exists in your fleet.', {
+      fields: { licenseNumber: ['This licence number is already registered in your fleet.'] },
+    });
+  }
+
+  const driver = await prisma.driver.create({
+    data: {
+      userId: auth.user.id,
+      organizationId,
+      licenseNumber: input.licenseNumber,
+      licenseExpiryDate: input.licenseExpiryDate ?? null,
+      // The same rule as every other driver record: an owner who drives is
+      // checked exactly like the drivers they employ — see `createDriver`.
+      verificationStatus: config.verification.driverChecksEnforced
+        ? VerificationStatus.PENDING
+        : VerificationStatus.VERIFIED,
+      availability: DriverAvailability.AVAILABLE,
+    },
+    select: { id: true },
+  });
+
+  return { driver: await getDriver(auth, driver.id), created: true };
 }
 
 export async function updateDriver(

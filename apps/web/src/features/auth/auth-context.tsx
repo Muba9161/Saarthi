@@ -50,8 +50,8 @@ interface AuthContextValue {
    * An employed driver, and nothing else.
    *
    * NOT the same as "has a driver profile", and the difference is the whole
-   * reason both flags exist. A Personal customer who ticked "I drive one of my
-   * vehicles myself" has a driver profile against his own user — that is the
+   * reason both flags exist. An owner who assigned one of their vehicles to
+   * themselves has a driver profile against their own user — that is the
    * feature working — but he is the owner: he buys the plan, adds the vehicles,
    * hires the drivers and pays the bill.
    *

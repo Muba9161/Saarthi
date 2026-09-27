@@ -2,11 +2,8 @@ import * as React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { AlertTriangle, ArrowUp, Info, Printer, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {
-  MarketingFooter,
-  MarketingNav,
-  useActiveSection,
-} from '@/features/marketing/marketing-chrome';
+import { MarketingNav, useActiveSection } from '@/features/marketing/marketing-chrome';
+import { MarketingFooter } from '@/features/marketing/marketing-footer';
 import { Reveal } from '@/features/marketing/motion-extras';
 import { STAGE } from '@/features/marketing/imagery';
 import {

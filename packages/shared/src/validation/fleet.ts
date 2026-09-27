@@ -158,6 +158,19 @@ export const createDriverSchema = z.object({
 });
 export type CreateDriverInput = z.infer<typeof createDriverSchema>;
 
+/**
+ * The signed-in owner adding themselves to their own driver list.
+ *
+ * Only what a driver record cannot exist without: the name, email and phone
+ * are already on the owner's own account, and the rest of the record is
+ * edited from the driver profile like anybody else's.
+ */
+export const selfDriverSchema = createDriverSchema.pick({
+  licenseNumber: true,
+  licenseExpiryDate: true,
+});
+export type SelfDriverInput = z.infer<typeof selfDriverSchema>;
+
 export const updateDriverSchema = createDriverSchema
   .omit({ email: true, firstName: true, lastName: true, phone: true })
   .partial()

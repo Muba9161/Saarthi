@@ -9,6 +9,7 @@ import {
   driverListQuerySchema,
   idParamSchema,
   joinFleetSchema,
+  selfDriverSchema,
   updateDriverSchema,
 } from '@saarthi/shared';
 import { created, noContent, ok, paginated, parseBody, parseParams, parseQuery } from '../../lib/http';
@@ -102,6 +103,40 @@ export async function driverRoutes(app: FastifyInstance): Promise<void> {
       await authService.switchOrganization(auth.user.id, auth.sessionId, result.fleet.id),
     );
   });
+
+  /*
+   * The owner adding themselves to their own driver list — "Assign to
+   * yourself" on a vehicle. Returns the existing profile when there is one, so
+   * the vehicle dialog can call it without first asking.
+   */
+  app.post(
+    '/me',
+    { preHandler: requirePermission(Permission.DRIVERS_MANAGE) },
+    async (request, reply) => {
+      const auth = requireAuth(request);
+      const organizationId = requireOrganizationId(request);
+      const input = parseBody(selfDriverSchema, request.body);
+      const result = await driverService.ensureSelfDriver(auth, organizationId, input);
+      if (!result.created) return ok(reply, result.driver);
+
+      // The owner's badge as a driver, issued exactly as for anybody added below.
+      await qrService.provisionOnCreate(
+        auth,
+        QrSubjectType.DRIVER,
+        result.driver.id,
+        publicAppUrl(request),
+      );
+
+      await auditFromRequest(request, {
+        action: AuditAction.DRIVER_CREATED,
+        entityType: 'Driver',
+        entityId: result.driver.id,
+        after: { self: true, licenseNumber: result.driver.licenseNumber },
+      });
+
+      return created(reply, result.driver);
+    },
+  );
 
   app.post(
     '/',

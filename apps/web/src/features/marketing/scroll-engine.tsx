@@ -4,6 +4,7 @@ import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import 'lenis/dist/lenis.css';
 import { useReducedMotion } from '@/components/motion';
+import { LenisContext, useLenis } from './scroll-context';
 
 /**
  * The public site's scroll spine.
@@ -37,12 +38,7 @@ gsap.registerPlugin(ScrollTrigger);
 
 export { gsap, ScrollTrigger };
 
-const LenisContext = React.createContext<Lenis | null>(null);
-
-/** The running Lenis instance, or `null` when smooth scrolling is off. */
-export function useLenis(): Lenis | null {
-  return React.useContext(LenisContext);
-}
+export { useLenis };
 
 /**
  * Scrolls to an element, through whichever mechanism is actually driving the

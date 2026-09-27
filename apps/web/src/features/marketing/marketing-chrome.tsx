@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ArrowRight, Instagram, Menu, Moon, Sun, Youtube } from 'lucide-react';
+import { ArrowRight, Menu, Moon, Sun } from 'lucide-react';
 // `useScroll`/`useSpring` are not in the curated product motion vocabulary —
 // nothing behind the sign-in wall needs a scroll-linked value. Imported here
 // rather than widening that module for one page.
@@ -10,10 +10,7 @@ import { Sheet, SheetClose, SheetContent, SheetTrigger } from '@/components/ui/s
 import { SaarthiLogo } from '@/components/common/logo';
 import { AnimatePresence, motion } from '@/components/motion';
 import { useTheme } from '@/features/theme/theme-context';
-import { LEGAL_LINKS } from '@/features/legal/legal-links';
-import { SITE } from '@/features/seo';
 import { Reveal, WordsReveal } from './motion-extras';
-import { STAGE } from './imagery';
 import { cn } from '@/lib/utils';
 
 /**
@@ -182,7 +179,7 @@ function ThemeToggle({ className }: { className?: string }) {
  * a route change to `/#pricing`, and the landing page finds the band on
  * arrival — see `useHashTarget` in `pages/marketing/landing`.
  */
-function SectionLink({
+export function SectionLink({
   id,
   onLanding,
   className,
@@ -546,127 +543,5 @@ export function SectionHeading({
         </Reveal>
       ) : null}
     </div>
-  );
-}
-
-/** Saarthi's official social accounts, shown as icons in the footer. */
-const SOCIAL_LINKS = [
-  { href: SITE.social.instagram, label: 'Instagram', Icon: Instagram },
-  { href: SITE.social.youtube, label: 'YouTube', Icon: Youtube },
-] as const;
-
-export function MarketingFooter() {
-  const year = new Date().getFullYear();
-  const { pathname } = useLocation();
-  const onLanding = pathname === '/';
-
-  return (
-    /*
-     * The same fixed near-black as the closing band above it, in both themes,
-     * so the photograph runs straight into the footer with no seam. Marked as
-     * a stage so the header keeps its light ink when scrolled over it.
-     */
-    <footer data-stage className={cn('px-5 py-14 sm:px-8', STAGE)}>
-      <div className="mx-auto grid max-w-6xl gap-10 sm:grid-cols-2 lg:grid-cols-5">
-        <div className="lg:col-span-2">
-          <div className="flex items-center gap-2.5">
-            {/* Navy on transparency — the chip keeps the V visible on the stage. */}
-            <SaarthiLogo className="h-7" decorative onDark />
-            <p className="text-sm font-semibold">VorldX Saarthi</p>
-          </div>
-          <p className="mt-4 max-w-sm text-sm leading-relaxed text-white/55">
-            One system for everyone in a haul - fleet owners, drivers, suppliers, customers, travel
-            operators, and the associations that answer when something goes wrong.
-          </p>
-          <ul className="mt-6 flex items-center gap-2" aria-label="VorldX Saarthi on social media">
-            {SOCIAL_LINKS.map(({ href, label, Icon }) => (
-              <li key={href}>
-                <a
-                  href={href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={`VorldX Saarthi on ${label}`}
-                  title={label}
-                  className="flex size-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/70 transition-colors duration-200 hover:border-white/25 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <Icon className="size-[1.125rem]" aria-hidden />
-                </a>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div>
-          <p className="text-2xs font-semibold uppercase tracking-[0.16em] text-white/55">
-            Product
-          </p>
-          <ul className="mt-4 space-y-2.5 text-sm text-white/55">
-            {NAV_SECTIONS.map((section) => (
-              <li key={section.id}>
-                <SectionLink
-                  id={section.id}
-                  onLanding={onLanding}
-                  className="transition-colors hover:text-white"
-                >
-                  {section.label}
-                </SectionLink>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div>
-          <p className="text-2xs font-semibold uppercase tracking-[0.16em] text-white/55">
-            Get started
-          </p>
-          <ul className="mt-4 space-y-2.5 text-sm text-white/55">
-            <li>
-              <Link to="/register" className="transition-colors hover:text-white">
-                Create an account
-              </Link>
-            </li>
-            <li>
-              <Link to="/login" className="transition-colors hover:text-white">
-                Sign in
-              </Link>
-            </li>
-            <li>
-              <Link to="/login" className="transition-colors hover:text-white">
-                Explore the demo fleet
-              </Link>
-            </li>
-          </ul>
-        </div>
-
-        <div>
-          <p className="text-2xs font-semibold uppercase tracking-[0.16em] text-white/55">
-            Legal
-          </p>
-          <ul className="mt-4 space-y-2.5 text-sm text-white/55">
-            {LEGAL_LINKS.map((link) => (
-              <li key={link.to}>
-                <Link to={link.to} className="transition-colors hover:text-white">
-                  {link.label}
-                </Link>
-              </li>
-            ))}
-            <li>
-              <Link to="/privacy#grievance" className="transition-colors hover:text-white">
-                Grievance redressal
-              </Link>
-            </li>
-          </ul>
-        </div>
-      </div>
-
-      <div className="mx-auto mt-12 max-w-6xl border-t border-white/10 pt-6">
-        <p className="mx-auto max-w-3xl text-balance text-center text-2xs leading-relaxed text-white/55">
-          Saarthi&rsquo;s emergency network connects nearby drivers who may be able to help. It does
-          not replace official emergency services - always call 112 first in a life-threatening
-          situation.
-        </p>
-        <p className="mt-4 text-center text-2xs text-white/55">© {year} VorldX Saarthi</p>
-      </div>
-    </footer>
   );
 }

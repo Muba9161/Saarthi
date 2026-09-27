@@ -29,7 +29,7 @@ import {
   vehicleTypeDefinition,
 } from '@saarthi/shared';
 import { api, errorMessage } from '@/lib/api-client';
-import type { DriverSummary, Paginated, TruckPassport } from '@/lib/api-types';
+import type { TruckPassport } from '@/lib/api-types';
 import type { VehicleSummary } from '@/lib/mobility-types';
 import { useAuth } from '@/features/auth/auth-context';
 import { SectionHeader } from '@/components/common/page-header';
@@ -41,6 +41,7 @@ import { EmptyState, ErrorState, LoadingState } from '@/components/common/states
 import { DocumentPanel } from '@/features/documents/document-panel';
 import { RcLookupPanel } from '@/features/vehicles/rc-lookup-panel';
 import { EditVehicleDialog } from '@/features/vehicles/vehicle-dialog';
+import { AssignDriverDialog } from '@/features/vehicles/assign-driver-dialog';
 import { VehicleHero } from '@/features/vehicles/detail/vehicle-hero';
 import { VehicleAiCard } from '@/features/vehicles/detail/vehicle-ai-card';
 import { VehicleInsights } from '@/features/vehicles/detail/vehicle-insights';
@@ -57,27 +58,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import {
   Table,
   TableBody,
@@ -1014,98 +1000,6 @@ export function VehicleDetailPage() {
         onOpenChange={setAssignOpen}
       />
     </div>
-  );
-}
-
-function AssignDriverDialog({
-  vehicleId,
-  vehicleLabel,
-  open,
-  onOpenChange,
-}: {
-  vehicleId: string;
-  /** What the vehicle is, so the copy reads right for a taxi as for a truck. */
-  vehicleLabel: string;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}) {
-  const queryClient = useQueryClient();
-  const [driverId, setDriverId] = React.useState('');
-
-  const drivers = useQuery({
-    queryKey: ['drivers', 'assignable'],
-    queryFn: () =>
-      api.get<Paginated<DriverSummary>>('/drivers', {
-        assigned: 'false',
-        verificationStatus: 'VERIFIED',
-        pageSize: 100,
-      }),
-    enabled: open,
-  });
-
-  const assign = useMutation({
-    mutationFn: () => api.post(`/trucks/${vehicleId}/assign-driver`, { driverId }),
-    onSuccess: () => {
-      toast.success('Driver assigned');
-      void queryClient.invalidateQueries({ queryKey: ['vehicle', vehicleId] });
-      void queryClient.invalidateQueries({ queryKey: ['truck', vehicleId] });
-      void queryClient.invalidateQueries({ queryKey: ['vehicles'] });
-      void queryClient.invalidateQueries({ queryKey: ['trucks'] });
-      void queryClient.invalidateQueries({ queryKey: ['drivers'] });
-      onOpenChange(false);
-      setDriverId('');
-    },
-    onError: (error) =>
-      toast.error('Could not assign driver', { description: errorMessage(error) }),
-  });
-
-  const available = drivers.data?.items ?? [];
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Assign a driver</DialogTitle>
-          <DialogDescription>
-            Only verified drivers who are not already on another vehicle can be assigned to this{' '}
-            {vehicleLabel}.
-          </DialogDescription>
-        </DialogHeader>
-
-        {drivers.isLoading ? (
-          <LoadingState label="Loading drivers…" />
-        ) : available.length === 0 ? (
-          <EmptyState
-            title="No available verified drivers"
-            description="Add a driver and complete their verification before assigning a vehicle."
-            className="min-h-32"
-          />
-        ) : (
-          <Select value={driverId} onValueChange={setDriverId}>
-            <SelectTrigger>
-              <SelectValue placeholder="Choose a driver" />
-            </SelectTrigger>
-            <SelectContent>
-              {available.map((driver) => (
-                <SelectItem key={driver.id} value={driver.id}>
-                  {driver.fullName}
-                  {driver.overallScore !== null ? ` · score ${driver.overallScore}` : ''}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
-
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button disabled={!driverId} loading={assign.isPending} onClick={() => assign.mutate()}>
-            Assign
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   );
 }
 

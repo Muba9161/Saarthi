@@ -192,9 +192,9 @@ export async function register(input: RegisterInput, meta: RequestMeta) {
      */
     const personalOrganizationName = `${input.firstName} ${input.lastName}`.trim();
     let organizationName = personalOrganizationName;
-    // Set by the driver branch below, or by the Personal "I drive too" toggle.
-    // Carried out of the transaction so the QR badge is issued once the rows
-    // are actually committed.
+    // Set by the driver branch below. Carried out of the transaction so the QR
+    // badge is issued once the rows are actually committed. An owner who drives
+    // is not made a driver here — they assign themselves to a vehicle later.
     let driverId: string | null = null;
 
     if (registrantRole === RoleName.DRIVER) {
@@ -306,37 +306,6 @@ export async function register(input: RegisterInput, meta: RequestMeta) {
         isPrimary: true,
       },
     });
-
-    /*
-     * A Personal customer who drives one of their own vehicles.
-     *
-     * The case: somebody buys Personal for three cars, two driven by the
-     * drivers he employs and one by himself. Without a driver profile of his
-     * own he is not assignable to a vehicle, and the only way round it was to
-     * invent a second account for himself — which then owns his trips, his
-     * duty hours and his score under a different identity.
-     *
-     * So the profile is created against his own user, inside his own
-     * organization, and he is assignable exactly like anybody else he employs.
-     * His membership role stays FLEET_OWNER: he owns the vehicles and can also
-     * drive them, which is the ordinary arrangement rather than a special case.
-     */
-    if (input.driveMyself && input.licenseNumber) {
-      const self = await tx.driver.create({
-        data: {
-          userId: user.id,
-          organizationId,
-          licenseNumber: input.licenseNumber,
-          licenseExpiryDate: input.licenseExpiryDate ?? null,
-          // As above: an owner who drives their own vehicle is a driver record
-          // like any other, and must follow the same enforcement setting.
-          verificationStatus: config.verification.driverChecksEnforced
-            ? VerificationStatus.PENDING
-            : VerificationStatus.VERIFIED,
-        },
-      });
-      driverId = self.id;
-    }
 
     // The language chosen on the first step of registration. Written here
     // rather than left for the profile screen, so the very first authenticated
@@ -477,9 +446,9 @@ export async function register(input: RegisterInput, meta: RequestMeta) {
   /*
    * A driver's badge is issued with the account, not on request.
    *
-   * Reached by both driver registrations and a Personal owner who ticked
-   * "I drive too": either way there is now a driver profile, and a profile
-   * without a badge is a driver who cannot be identified at a gate.
+   * Reached by both driver registrations: either way there is now a driver
+   * profile, and a profile without a badge is a driver who cannot be
+   * identified at a gate.
    *
    * After the transaction on purpose: the subscription lookup and the QR row
    * are not part of what makes a registration valid, and a driver must never

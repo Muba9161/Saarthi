@@ -136,8 +136,8 @@ function toReadingSummary(reading: ReadingRecord): TelemetryReadingSummary {
  * A caller who is a driver and nothing more.
  *
  * The distinction matters because "is there a driver profile on this account?"
- * is the wrong question: an owner running his own three cars who ticked
- * "I drive one myself" has a driver profile too, and he owns the fleet. What
+ * is the wrong question: an owner running his own three cars who assigned
+ * one to himself has a driver profile too, and he owns the fleet. What
  * separates them is what they may do with the vehicles — an employed driver
  * cannot alter one — so that is what is tested.
  *

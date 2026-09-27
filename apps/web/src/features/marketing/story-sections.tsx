@@ -24,6 +24,7 @@ import {
   STAGE,
   STEP_IMAGES,
 } from './imagery';
+import { STAGE_INK_CSS } from './design-system';
 import { cn } from '@/lib/utils';
 
 const EASE = [0.16, 1, 0.3, 1] as const;
@@ -464,6 +465,17 @@ export function FinalCta() {
       </div>
 
       <Backdrop src={MARKETING_IMAGE.cta} objectPosition="68% 55%" />
+      {/* A long dissolve into the stage ink, so the photograph melts into the
+          footer below rather than ending on a line. The shared scrim's short
+          bottom fade is right for bands that hand off to content; this one
+          hands off to the foot of the page. */}
+      <div
+        className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-2/3"
+        style={{
+          backgroundImage: `linear-gradient(to bottom, transparent 0%, hsl(240 6% 7% / 0.55) 55%, ${STAGE_INK_CSS} 100%)`,
+        }}
+        aria-hidden
+      />
 
       <div className="relative mx-auto max-w-6xl">
         <Reveal>

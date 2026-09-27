@@ -374,10 +374,10 @@ describe('Fleet management', () => {
 
     it('includes driver scoring on Personal, where the owner often drives', async () => {
       /*
-       * Scoring used to be Business-only, and that was wrong on the one plan
-       * whose registration form offers "I drive one of my vehicles myself": a
-       * customer who bought Personal for his own car, ticked that box and
-       * opened My score was told his own safety record was not part of his
+       * Scoring used to be Business-only, and that was wrong on Personal,
+       * where the owner so often drives: a customer who bought Personal for
+       * his own car, assigned it to himself and opened My score was told his
+       * own safety record was not part of his
        * plan. It is his record. It is also how he knows whether the person he
        * employs to drive his car drives it safely, which the plan covers up to
        * six of.
@@ -587,6 +587,73 @@ describe('Fleet management', () => {
       });
 
       expect(status).toBe(404);
+    });
+
+    it('lets an owner assign a vehicle to themselves on their own account', async () => {
+      const createdTruck = await request<{ id: string }>({
+        method: 'POST',
+        url: '/api/v1/trucks',
+        user: ownerA,
+        payload: truckPayload(),
+      });
+
+      const self = await request<{ id: string; userId: string }>({
+        method: 'POST',
+        url: '/api/v1/drivers/me',
+        user: ownerA,
+        payload: { licenseNumber: 'DL-1420-20100000001' },
+      });
+      expect(self.status).toBe(201);
+      expect(self.body.data.userId).toBe(ownerA.id);
+
+      // Asking again returns the same profile rather than a second one.
+      const again = await request<{ id: string }>({
+        method: 'POST',
+        url: '/api/v1/drivers/me',
+        user: ownerA,
+        payload: { licenseNumber: 'DL-1420-20100000001' },
+      });
+      expect(again.status).toBe(200);
+      expect(again.body.data.id).toBe(self.body.data.id);
+
+      // They stay the owner: driving is added to the account, not swapped in.
+      const membership = await prisma.membership.findFirstOrThrow({
+        where: { userId: ownerA.id, organizationId: fleetA.id },
+      });
+      expect(membership.role).toBe(RoleName.FLEET_OWNER);
+
+      // Verified like any other driver before they can be assigned.
+      await prisma.driver.update({
+        where: { id: self.body.data.id },
+        data: { verificationStatus: VerificationStatus.VERIFIED },
+      });
+      const assigned = await request<{ currentDriver: { id: string } | null }>({
+        method: 'POST',
+        url: `/api/v1/trucks/${createdTruck.body.data.id}/assign-driver`,
+        user: ownerA,
+        payload: { driverId: self.body.data.id },
+      });
+      expect(assigned.status).toBe(200);
+      expect(assigned.body.data.currentDriver?.id).toBe(self.body.data.id);
+    });
+
+    it('refuses to reuse a self driver profile held in another fleet', async () => {
+      await prisma.driver.create({
+        data: {
+          userId: ownerB.id,
+          organizationId: fleetA.id,
+          licenseNumber: unique('DL-'),
+          verificationStatus: VerificationStatus.VERIFIED,
+        },
+      });
+
+      const { status } = await request({
+        method: 'POST',
+        url: '/api/v1/drivers/me',
+        user: ownerB,
+        payload: { licenseNumber: 'DL-1420-20100000002' },
+      });
+      expect(status).toBe(409);
     });
   });
 

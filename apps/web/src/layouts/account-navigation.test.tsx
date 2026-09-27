@@ -246,8 +246,8 @@ describe('the fleet roster a personal seat is offered', () => {
 /**
  * The owner who also drives.
  *
- * The case: a Personal customer with a car of his own who ticked "I drive one
- * of my vehicles myself" during registration. That creates a driver profile
+ * The case: a Personal customer with a car of his own who chose "Assign to
+ * yourself" when assigning it. That creates a driver profile
  * against his own user — the feature working as intended — and for a while it
  * cost him the entire product.
  *

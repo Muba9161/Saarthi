@@ -458,7 +458,7 @@ function Terms() {
     },
     {
       q: 'Can I add myself as a driver?',
-      a: 'On Personal, yes - there is a switch for it when you sign up, and one more in your settings afterwards. Give your licence number and you can be assigned to your own vehicles alongside the drivers you employ.',
+      a: 'Yes, on Personal and Business. When you assign a vehicle, choose "Assign to yourself" and give your licence number - you join your own driver list and can drive your vehicles alongside the drivers you employ.',
     },
   ];
 

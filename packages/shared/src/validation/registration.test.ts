@@ -207,30 +207,22 @@ describe('registration plans', () => {
     expect(issuePaths(result)).toContain('role');
   });
 
-  it('lets a Personal owner also be a driver, and nobody else', () => {
-    // Bug 9. Three cars, two driven by the people he employs and one by him.
-    const owner = registerSchema.safeParse(
-      registration({
-        planTier: PlanTier.PERSONAL,
-        driveMyself: true,
-        licenseNumber: 'DL-1420-20100000000',
-      }),
-    );
-    expect(owner.success).toBe(true);
-
-    // On a Business account the owner adds themselves from the drivers screen,
-    // where the rest of a driver's record is captured too.
-    const business = registerSchema.safeParse(
+  it('never asks an owner at registration whether they drive', () => {
+    // An owner who drives one of their own vehicles says so when assigning it
+    // ("Assign to yourself"), on Personal and Business alike — see
+    // `selfDriverSchema`. Registration neither asks nor carries the answer.
+    for (const input of [
+      registration({ planTier: PlanTier.PERSONAL }),
       registration({
         planTier: PlanTier.BUSINESS,
         role: RoleName.FLEET_OWNER,
         organizationName: 'Sharma Transport Company',
-        driveMyself: true,
-        licenseNumber: 'DL-1420-20100000000',
       }),
-    );
-    expect(business.success).toBe(false);
-    expect(issuePaths(business)).toContain('driveMyself');
+    ]) {
+      const result = registerSchema.safeParse({ ...input, driveMyself: true });
+      expect(result.success).toBe(true);
+      if (result.success) expect('driveMyself' in result.data).toBe(false);
+    }
   });
 
   it('never asks a driver to buy a plan', () => {

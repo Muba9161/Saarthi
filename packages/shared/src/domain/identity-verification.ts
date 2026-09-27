@@ -386,8 +386,8 @@ export const IDENTITY_KINDS: readonly IdentityKindDefinition[] = Object.freeze([
      * computes. A Personal account holder is asked for Aadhaar alone, because
      * they are proving who they are rather than that they may drive.
      *
-     * Somebody can be both. An owner who ticks "I drive one of my vehicles
-     * myself" gets a driver profile alongside their user record, and that
+     * Somebody can be both. An owner who assigns a vehicle to themselves
+     * gets a driver profile alongside their user record, and that
      * profile then carries the driver checks in full — on its own subject, with
      * its own rows. The two never stand in for one another: confirming a
      * Personal holder's Aadhaar does not make them a verified driver, and

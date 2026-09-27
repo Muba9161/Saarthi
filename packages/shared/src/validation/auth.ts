@@ -248,18 +248,6 @@ export const registerSchema = z
     /** Which tracker the signup order is for — see `TRACKER_PRODUCTS`. */
     planTrackerProduct: z.nativeEnum(TrackerProduct).default(DEFAULT_TRACKER_PRODUCT),
     /**
-     * The registrant drives one of their own vehicles.
-     *
-     * The case this exists for: somebody buys Personal for three cars, two of
-     * which his drivers use and one he drives himself. Without this he would
-     * have to invent a second account for himself to be assignable to a
-     * vehicle — which then owns his trips, his duty hours and his score under a
-     * different identity. So the toggle creates a driver profile against his
-     * own user, inside his own organization, and he becomes assignable exactly
-     * like anybody he employs.
-     */
-    driveMyself: z.coerce.boolean().default(false),
-    /**
      * The language Saarthi speaks to this person in, stored on their profile
      * as `preferences.locale`. Asked first at registration rather than left to
      * a settings screen, because somebody who cannot read the form is not
@@ -296,7 +284,13 @@ export const registerSchema = z
      * see `captureRegistrationReferral` on the API side.
      */
     referralCode: optionalTrimmedString(32),
-    /** Required for DRIVER — the commercial driving licence number. */
+    /**
+     * Required for DRIVER — the commercial driving licence number.
+     *
+     * An owner who drives one of their own vehicles is not asked here: they
+     * choose "Assign to yourself" when assigning the vehicle, and give their
+     * licence there — see `selfDriverSchema`.
+     */
     licenseNumber: optionalTrimmedString(40),
     licenseExpiryDate: z.coerce.date().optional(),
     acceptedTerms: z.literal(true, {
@@ -405,17 +399,6 @@ export const registerSchema = z
       }
     }
 
-    // Only a Personal account holder drives their own vehicle. On a Business
-    // account the owner adds themselves from the drivers screen, where the rest
-    // of a driver's record is captured too.
-    if (value.driveMyself && !personal) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['driveMyself'],
-        message: 'Add yourself as a driver from the drivers screen on a Business account.',
-      });
-    }
-
     if (role === RoleName.DRIVER) {
       // No check on `fleetInviteCode`: it is optional, and a code that is
       // given but wrong is rejected by the API, which is the only side that
@@ -427,14 +410,6 @@ export const registerSchema = z
           message: 'Your driving licence number is required.',
         });
       }
-    } else if (value.driveMyself && !value.licenseNumber) {
-      // A driver profile without a licence number cannot exist, and would fail
-      // its first document check even if it could.
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['licenseNumber'],
-        message: 'Your driving licence number is required to add yourself as a driver.',
-      });
     }
   });
 export type RegisterInput = z.infer<typeof registerSchema>;

@@ -41,7 +41,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PasswordInput } from '@/components/ui/password-input';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Switch } from '@/components/ui/switch';
 import {
   Form,
   FormControl,
@@ -361,7 +360,6 @@ export function RegisterPage() {
       planVehicles: 1,
       planTrackers: 0,
       planTrackerProduct: DEFAULT_TRACKER_PRODUCT,
-      driveMyself: false,
       organizationName: '',
       // Whatever the browser or a previous visit already settled on, so the
       // first step opens on the answer rather than on a blank.
@@ -384,7 +382,6 @@ export function RegisterPage() {
 
   const role = form.watch('role');
   const planTier = form.watch('planTier');
-  const driveMyself = form.watch('driveMyself');
 
   const isPersonal = planTier === PlanTier.PERSONAL;
   const isBusiness = planTier === PlanTier.BUSINESS;
@@ -421,12 +418,6 @@ export function RegisterPage() {
     setIntent(next);
     form.setValue('planTier', definition.planTier ?? undefined, { shouldValidate: false });
     form.setValue('role', definition.role ?? undefined, { shouldValidate: false });
-
-    // Only a Personal account holder can mark themselves a driver, so moving
-    // off Personal must clear it rather than submit a flag the API rejects.
-    if (definition.planTier !== PlanTier.PERSONAL) {
-      form.setValue('driveMyself', false, { shouldValidate: false });
-    }
   };
 
   // Switching account type changes what the image *means*. Carrying a company
@@ -543,108 +534,16 @@ export function RegisterPage() {
   };
 
   /**
-   * What only this kind of account is asked: a Personal owner whether they
-   * drive, a driver their licence and joining code, a business its name.
-   * Shown inside "Your details" so every registration is the same four steps.
+   * What only this kind of account is asked: a driver their licence and
+   * joining code, a business its name. Shown inside "Your details" so every
+   * registration is the same four steps.
+   *
+   * A Personal owner is asked nothing more. Whether they drive is asked when
+   * they assign a vehicle — "Assign to yourself" or "Assign to a driver" —
+   * which is where the answer belongs, on Personal and Business alike.
    */
-  const typeStep: WizardStep = isPersonal
-      ? {
-          /*
-           * The switch a Personal customer needs and nobody else does.
-           *
-           * The case: three cars, two driven by the drivers he employs and one
-           * by him. Without this he is the only person on his own fleet who
-           * cannot be assigned to a vehicle, and the workaround was to invent a
-           * second account for himself — which then owns his trips, his duty
-           * hours and his driving score under a different name.
-           *
-           * Off by default, because plenty of owners never drive. Turning it on
-           * asks for the one thing a driver record cannot exist without.
-           */
-          id: 'driving',
-          title: t('Do you drive?'),
-          description: t('Only if one of them is yours to drive.'),
-          icon: Car,
-          fields: ['driveMyself', 'licenseNumber'],
-          content: (
-            <>
-              <FormField
-                control={form.control}
-                name="driveMyself"
-                render={({ field }) => (
-                  <FormItem>
-                    <div
-                      className={cn(
-                        'glass-inset flex items-start gap-3 p-3.5 transition-colors duration-200',
-                        field.value
-                          ? 'glass-choice-selected'
-                          : 'hover:border-white/70 hover:bg-white/60 dark:hover:bg-white/[0.06]',
-                      )}
-                    >
-                      <div className="min-w-0 flex-1">
-                        <FormLabel className="cursor-pointer text-sm font-medium">
-                          {t('I drive one of my vehicles myself')}
-                        </FormLabel>
-                        <p className="mt-1 text-xs leading-snug text-muted-foreground">
-                          {t(
-                            'Adds you to your own driver list, so you can be assigned to a vehicle alongside the drivers you employ. Your trips, duty hours and expenses stay on your own account.',
-                          )}
-                        </p>
-                      </div>
-                      <FormControl>
-                        <Switch
-                          checked={Boolean(field.value)}
-                          onCheckedChange={(checked) => field.onChange(checked)}
-                          aria-label={t('I drive one of my vehicles myself')}
-                          className="mt-0.5 shrink-0"
-                        />
-                      </FormControl>
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* Asked only once the switch is on: a licence number is the one
-                  thing a driver record cannot be created without, and asking
-                  for it unprompted would look like a requirement. */}
-              <AnimatePresence initial={false}>
-                {driveMyself ? (
-                  <motion.div
-                    key="self-licence"
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
-                    className="overflow-hidden"
-                  >
-                    <FormField
-                      control={form.control}
-                      name="licenseNumber"
-                      render={({ field }) => (
-                        <FormItem className="pt-3">
-                          <FormLabel required>{t('Your driving licence number')}</FormLabel>
-                          <FormControl>
-                            <Input
-                              {...field}
-                              value={field.value ?? ''}
-                              placeholder="DL-1420-20100000000"
-                              className="h-10"
-                            />
-                          </FormControl>
-                          <FormDescription>
-                            {t('Exactly as printed on the licence, including the dashes.')}
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </motion.div>
-                ) : null}
-              </AnimatePresence>
-            </>
-          ),
-        }
+  const typeStep: WizardStep | null = isPersonal
+      ? null
       : isDriver
       ? {
           // A distinct id from the business step on purpose: switching account
@@ -1104,7 +1003,7 @@ export function RegisterPage() {
       description: t('Who we should reach.'),
       icon: UserRound,
       // Plus whatever this kind of account also needs — see `typeStep`.
-      fields: ['firstName', 'lastName', 'email', 'phone', ...(typeStep.fields ?? [])],
+      fields: ['firstName', 'lastName', 'email', 'phone', ...(typeStep?.fields ?? [])],
       content: (
         <>
           {/* Not a form field: it is not part of `registerSchema` and does not
@@ -1199,15 +1098,17 @@ export function RegisterPage() {
 
           {/* The questions only this kind of account is asked, on the same
               step rather than a screen of their own. */}
-          <section className="space-y-3 border-t border-border/50 pt-4">
-            <div>
-              <p className="text-sm font-medium">{typeStep.title}</p>
-              {typeStep.description ? (
-                <p className="text-xs text-muted-foreground">{typeStep.description}</p>
-              ) : null}
-            </div>
-            {typeStep.content}
-          </section>
+          {typeStep ? (
+            <section className="space-y-3 border-t border-border/50 pt-4">
+              <div>
+                <p className="text-sm font-medium">{typeStep.title}</p>
+                {typeStep.description ? (
+                  <p className="text-xs text-muted-foreground">{typeStep.description}</p>
+                ) : null}
+              </div>
+              {typeStep.content}
+            </section>
+          ) : null}
         </>
       ),
     },
