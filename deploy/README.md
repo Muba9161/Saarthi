@@ -48,6 +48,10 @@ The API deliberately does not serve the SPA — see the comment in
 SAARTHI_DB_PASSWORD='...' bash /opt/saarthi/deploy/provision.sh
 
 # 2. Put .env at /opt/saarthi/.env  (NODE_ENV=production, DEMO_MODE=false)
+#    One origin serves everything, so FRONTEND_URL and API_URL are both
+#    https://vorldxsaarthi.com. Emailed links and QR codes are built on
+#    FRONTEND_URL; the API refuses to start with it on localhost.
+#    Set SMTP_USER / SMTP_PASSWORD / EMAIL_FROM for password-reset email.
 
 # 3. Certificate — needs DNS already pointing here
 certbot certonly --webroot -w /var/www/certbot \
@@ -84,13 +88,14 @@ production data — `pg_dump` on a timer plus an off-box copy at minimum.
 
 These are properties of the application, not of the server setup:
 
-1. **No outbound email or SMS.** `NOTIFICATION_PROVIDER=production` has no
-   implementation — only `LocalNotificationProvider` exists. In-app
-   notifications work; email and SMS are written to an outbox instead of being
-   sent. Password reset therefore cannot complete by email, and with
-   `NODE_ENV=production` the reset token is no longer returned in the API
-   response either. Until a mail provider is implemented, a forgotten password
-   needs an operator with database access.
+1. **Email covers account links only; no SMS.** Password-reset and salesperson
+   set-password emails go out over SMTP once `SMTP_USER` and `SMTP_PASSWORD` are
+   set. Without them no reset email is sent, and with `NODE_ENV=production` the
+   reset token is not returned in the API response either, so a forgotten
+   password needs an operator with database access. Alert notifications are a
+   separate path: `NOTIFICATION_PROVIDER=production` has no implementation —
+   only `LocalNotificationProvider` exists — so in-app notifications work and
+   alert email and SMS are written to an outbox instead of being sent.
 2. **Payment gateway.** Cashfree: set `PAYMENT_PROVIDER=cashfree`, `CASHFREE_ENV=production`,
    the live `CASHFREE_APP_ID` / `CASHFREE_SECRET_KEY`, and `CASHFREE_WEBHOOK_URL` (HTTPS URL of
    `/api/v1/webhooks/cashfree`, also registered on the Cashfree dashboard for Payments and

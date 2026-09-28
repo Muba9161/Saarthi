@@ -701,6 +701,10 @@ const DEFAULT_GROQ_FALLBACK_MODELS = ['openai/gpt-oss-20b'];
 
 const isProduction = raw.NODE_ENV === 'production';
 
+/** Hostnames only this machine or its LAN can reach: loopback and private ranges. */
+const NON_PUBLIC_HOST =
+  /^(localhost|0\.0\.0\.0|\[::1?\]|127(\.\d{1,3}){3}|10(\.\d{1,3}){3}|192\.168(\.\d{1,3}){2}|172\.(1[6-9]|2\d|3[01])(\.\d{1,3}){2})$/i;
+
 const payoutsConfigured = Boolean(
   raw.CASHFREE_PAYOUT_CLIENT_ID && raw.CASHFREE_PAYOUT_CLIENT_SECRET,
 );
@@ -725,6 +729,15 @@ if (isProduction) {
   }
   if (raw.DEMO_MODE) {
     throw new Error('DEMO_MODE must be false in production — simulation endpoints would be exposed.');
+  }
+  // In production every emailed link (password reset, salesperson signup) and
+  // every vehicle QR code is built on FRONTEND_URL, never on the request — see
+  // lib/public-url.ts. Left at its localhost default, each one points at the
+  // reader's own machine, and a printed sticker cannot be corrected afterwards.
+  if (NON_PUBLIC_HOST.test(new URL(raw.FRONTEND_URL).hostname)) {
+    throw new Error(
+      `FRONTEND_URL must be the public address of the web app in production (e.g. https://vorldxsaarthi.com), not ${raw.FRONTEND_URL} — password-reset links and vehicle QR codes are built on it.`,
+    );
   }
   // An unenforced deployment gives every capability away for nothing. That is
   // the correct behaviour on a developer's machine and an outage of the
