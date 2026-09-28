@@ -1,8 +1,5 @@
 import {
-  LAPSED_FEATURES,
   MembershipStatus,
-  PLAN_LIMITS,
-  PlanTier,
   RoleName,
   SubscriptionStatus,
   permissionsForRoles,
@@ -251,25 +248,7 @@ export async function buildSessionPayload(
           features: subscription.features,
           limits: subscription.limits,
         }
-      : organizationId
-        ? {
-            /*
-             * An organization with no subscription row is on Free.
-             *
-             * Reachable for a driver seated in a placeholder organization of
-             * their own, which never had a plan taken out on it — a driver
-             * does not pay. They keep the unpaid floor: their licence,
-             * documents and SOS all work, and nothing commercial is given away.
-             */
-            planTier: PlanTier.FREE,
-            planName: 'Saarthi Free',
-            status: SubscriptionStatus.ACTIVE,
-            startsAt: new Date().toISOString(),
-            endsAt: null,
-            features: LAPSED_FEATURES,
-            limits: PLAN_LIMITS[PlanTier.FREE],
-          }
-        : null,
+      : null,
     driver: user.driverProfile
       ? {
           id: user.driverProfile.id,

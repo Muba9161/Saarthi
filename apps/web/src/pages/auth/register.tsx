@@ -22,7 +22,6 @@ import {
 } from 'lucide-react';
 import {
   DEFAULT_TRACKER_PRODUCT,
-  DEFAULT_TRIAL_DAYS,
   MediaOwnerType,
   MediaPurpose,
   ORGANIZATION_NAME_REQUIRED_ROLES,
@@ -65,6 +64,7 @@ import { LanguageGrid, useLocale } from '@/features/i18n';
 import { LEGAL_LINKS } from '@/features/legal/legal-links';
 import { forgetReferralCode, resolveReferralCode } from '@/features/sales/referral-code';
 import { markFleetWelcomePending } from '@/features/fleet/fleet-welcome-dialog';
+import { TRIAL_DAYS } from '@/features/subscriptions/trial-days';
 import { useAuth } from '@/features/auth/auth-context';
 import { ApiError } from '@/lib/api-client';
 import { uploadImageOrWarn } from '@/features/media/upload-image';
@@ -235,20 +235,6 @@ const ORGANIZATION_PLACEHOLDER: Partial<Record<RoleName, string>> = {
   [RoleName.SUPPLIER]: 'Kumar Building Materials',
 };
 
-/**
- * Days of free trial, mirroring `SUBSCRIPTION_TRIAL_DAYS` on the API.
- *
- * From the build config rather than written into the copy, so the summary
- * cannot quote a period the server does not honour. Unset, both sides fall
- * back to the same shared default.
- */
-const REGISTRATION_TRIAL_DAYS = (() => {
-  const parsed = Number.parseInt(
-    (import.meta.env.VITE_SUBSCRIPTION_TRIAL_DAYS as string | undefined) ?? '',
-    10,
-  );
-  return Number.isFinite(parsed) && parsed >= 0 ? parsed : DEFAULT_TRIAL_DAYS;
-})();
 
 /**
  * What a paid plan includes, in one line, where the order summary used to be.
@@ -264,8 +250,8 @@ function PlanNote({ tier, runsVehicles }: { tier: PlanTier; runsVehicles: boolea
   return (
     <div className="glass-inset mt-3 p-3.5">
       <p className="text-sm font-medium">
-        {REGISTRATION_TRIAL_DAYS > 0
-          ? t('Free for {days} days - nothing is charged today', { days: REGISTRATION_TRIAL_DAYS })
+        {TRIAL_DAYS > 0
+          ? t('Free for {days} days - nothing is charged today', { days: TRIAL_DAYS })
           : t('Nothing is charged until you confirm your plan')}
       </p>
       <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
@@ -831,9 +817,9 @@ export function RegisterPage() {
                     <div className="glass-inset mt-3 p-3.5">
                       <p className="text-sm font-medium">{t('No vehicles to set up')}</p>
                       <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                        {REGISTRATION_TRIAL_DAYS > 0
+                        {TRIAL_DAYS > 0
                           ? t('Free for {days} days, then {price} a month. Saarthi will not ask you for trucks, trackers or drivers.', {
-                              days: REGISTRATION_TRIAL_DAYS,
+                              days: TRIAL_DAYS,
                               price: formatCurrency(SUPPLIER_PRICE),
                             })
                           : t('{price} a month. Saarthi will not ask you for trucks, trackers or drivers.', {

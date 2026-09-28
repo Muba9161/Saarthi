@@ -367,10 +367,14 @@ async function assertVehicleLimit(auth: AuthContext, organizationId: string): Pr
 
   const existing = await prisma.truck.count({ where: { organizationId, archivedAt: null } });
   if (existing >= max) {
+    // A plan with no vehicle allowance sells no top-up either, so the way on is a plan.
+    const coversNoVehicles = max === 0 && auth.subscription?.limits.maxVehicleTopUps === 0;
     throw errors.planLimitReached(
       'maxTrucks',
-      `Your ${auth.subscription?.planName ?? 'current'} plan covers ${max} vehicle${max === 1 ? '' : 's'}. ` +
-        `Add a +1 vehicle top-up for ${VEHICLE_TOPUP.priceMonthly} rupees a month to put this one on the road.`,
+      coversNoVehicles
+        ? `Your ${auth.subscription?.planName ?? 'current'} plan does not cover vehicles. Choose a paid plan on the Subscription page to add one.`
+        : `Your ${auth.subscription?.planName ?? 'current'} plan covers ${max} vehicle${max === 1 ? '' : 's'}. ` +
+            `Add a +1 vehicle top-up for ${VEHICLE_TOPUP.priceMonthly} rupees a month to put this one on the road.`,
     );
   }
 }

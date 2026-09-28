@@ -46,6 +46,7 @@ import { cn } from '@/lib/utils';
 import { useCheckout, useCheckoutReturn } from '@/features/payments/use-checkout';
 import { BillingCard, type BillingStatus } from '@/features/subscriptions/billing-card';
 import { BillingHistory } from '@/features/subscriptions/billing-history';
+import { PlanPicker } from '@/features/subscriptions/plan-picker';
 import { TrackerShop } from '@/features/subscriptions/tracker-shop';
 
 /**
@@ -55,6 +56,8 @@ import { TrackerShop } from '@/features/subscriptions/tracker-shop';
  * many vehicles can I still add, and what am I paying". It manages the plan
  * chosen at registration — billing, capacity and trackers — and deliberately
  * offers no plan switching: the plan is chosen once, when the account is made.
+ * The one exception is an organization that never had a plan, which chooses
+ * its first one here (`PlanPicker`).
  *
  * Every price is shown as the final amount — GST is inside it, trackers
  * included.
@@ -383,6 +386,12 @@ export function SubscriptionPage(): React.ReactElement {
             </dl>
           </CardContent>
         </Card>
+      ) : plan.isSuccess ? (
+        <PlanPicker
+          organizationType={session?.organization?.type}
+          canManage={canManage}
+          onChosen={refresh}
+        />
       ) : null}
 
       {billing.data ? (

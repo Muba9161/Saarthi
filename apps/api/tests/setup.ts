@@ -58,6 +58,10 @@ process.env.SUBSCRIPTION_TRIAL_DAYS = '30';
 // calls. Hosted providers are tested against a mocked HTTP layer instead.
 process.env.AI_PROVIDER = 'development';
 process.env.AI_API_KEY = '';
+// No email leaves the suite, whatever mailbox `.env` holds. Unconfigured, the
+// reset flow hands its token back in the response, which is what tests read.
+process.env.SMTP_USER = '';
+process.env.SMTP_PASSWORD = '';
 process.env.CACHE_DRIVER = 'memory';
 process.env.QUEUE_DRIVER = 'memory';
 process.env.PUBSUB_DRIVER = 'memory';

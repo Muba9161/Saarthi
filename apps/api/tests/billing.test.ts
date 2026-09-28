@@ -285,4 +285,66 @@ describe('subscription billing', () => {
       expect(await prisma.paymentWebhookEvent.count()).toBe(1);
     });
   });
+
+  describe('an organization that never had a plan', () => {
+    async function withoutSubscription(type: OrganizationType): Promise<TestOrganization> {
+      const organization = await createOrganization(type, PlanTier.BUSINESS, { vehicleTopUps: 0 });
+      await prisma.subscription.delete({ where: { organizationId: organization.id } });
+      invalidateEntitlements(organization.id);
+      return organization;
+    }
+
+    it('keeps the unpaid floor, trimmed to what the account can use', async () => {
+      const association = await withoutSubscription(OrganizationType.TRUCK_ASSOCIATION);
+      const admin = await createUser({ role: RoleName.ASSOCIATION_ADMIN, organizationId: association.id });
+
+      const { body } = await request<{
+        subscription: { planName: string; features: string[]; limits: { maxTrucks: number | null } } | null;
+      }>({ method: 'GET', url: '/api/v1/auth/me', user: admin });
+
+      expect(body.data.subscription?.planName).toBe('Saarthi Free');
+      // The safety net holds without a plan — responders can still answer an SOS.
+      expect(body.data.subscription?.features).toContain(Feature.SOS_NETWORK);
+      // An association runs no vehicles, so the floor carries nothing vehicle-shaped.
+      expect(body.data.subscription?.features).not.toContain(Feature.FLEET_BASIC);
+      expect(body.data.subscription?.limits.maxTrucks).toBe(0);
+    });
+
+    it('adds no vehicle until an owner chooses a plan, which starts the trial', async () => {
+      const planless = await withoutSubscription(OrganizationType.FLEET_OWNER);
+      const planlessOwner = await createUser({ role: RoleName.FLEET_OWNER, organizationId: planless.id });
+      const addTruck = () =>
+        request({
+          method: 'POST',
+          url: '/api/v1/fleet/vehicles',
+          user: planlessOwner,
+          payload: {
+            registrationNumber: 'MH12NP4000',
+            vehicleType: 'TRUCK',
+            capacityTons: 25,
+            fuelType: 'DIESEL',
+          },
+        });
+
+      const refused = await addTruck();
+      expect(refused.status).toBe(403);
+      expect(refused.body.error?.code).toBe('PLAN_LIMIT_REACHED');
+      // Free sells no top-up, so the refusal points at a plan rather than at one.
+      expect(refused.body.error?.message).toContain('Choose a paid plan');
+
+      const chosen = await request<{ tier: string; status: string; endsAt: string | null }>({
+        method: 'POST',
+        url: '/api/v1/subscriptions/plan',
+        user: planlessOwner,
+        payload: { tier: PlanTier.BUSINESS },
+      });
+      expect(chosen.status).toBe(200);
+      expect(chosen.body.data.tier).toBe(PlanTier.BUSINESS);
+      expect(chosen.body.data.status).toBe(SubscriptionStatus.TRIALING);
+      const trialDays = (new Date(chosen.body.data.endsAt!).getTime() - Date.now()) / DAY;
+      expect(trialDays).toBeGreaterThan(29.9);
+
+      expect((await addTruck()).status).toBe(201);
+    });
+  });
 });

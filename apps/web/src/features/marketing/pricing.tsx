@@ -7,7 +7,6 @@ import {
   Plus,
 } from 'lucide-react';
 import {
-  DEFAULT_TRIAL_DAYS,
   GST_RATE,
   PLAN_CATALOGUE,
   PLAN_TIER_ORDER,
@@ -22,6 +21,7 @@ import { Button } from '@/components/ui/button';
 import { motion, useReducedMotion } from '@/components/motion';
 import { Section, SectionHeading } from './marketing-chrome';
 import { Reveal, RevealGroup, RevealItem, Spotlight, useSpotlight } from './motion-extras';
+import { TRIAL_DAYS } from '@/features/subscriptions/trial-days';
 import { cn } from '@/lib/utils';
 
 /**
@@ -67,19 +67,6 @@ const TIER_AUDIENCE: Record<PlanTier, string> = {
 const OFFERED_PLANS = PLAN_TIER_ORDER.map((tier) =>
   PLAN_CATALOGUE.find((plan) => plan.tier === tier),
 ).filter((plan): plan is PlanDefinition => Boolean(plan));
-
-/**
- * Days of free trial, mirroring `SUBSCRIPTION_TRIAL_DAYS` on the API.
- *
- * Read from the build config rather than written into the copy, so the page
- * cannot quote a period the server does not honour. Unset, both sides fall
- * back to the same shared default.
- */
-const TRIAL_DAYS = Number.parseInt(
-  (import.meta.env.VITE_SUBSCRIPTION_TRIAL_DAYS as string | undefined) ?? '',
-  10,
-);
-const TRIAL = Number.isFinite(TRIAL_DAYS) && TRIAL_DAYS >= 0 ? TRIAL_DAYS : DEFAULT_TRIAL_DAYS;
 
 /**
  * The three or four things a reader checks before they read any further.
@@ -320,7 +307,7 @@ function PlanCard({ plan }: { plan: PlanDefinition }) {
         </p>
       ) : vehicleless ? (
         <p className="relative mt-4 text-2xs leading-relaxed text-muted-foreground">
-          {TRIAL > 0 ? `Free for ${TRIAL} days, then ` : ''}
+          {TRIAL_DAYS > 0 ? `Free for ${TRIAL_DAYS} days, then ` : ''}
           {formatCurrency(quote.monthly.total)} a month.
         </p>
       ) : (
@@ -340,7 +327,7 @@ function PlanCard({ plan }: { plan: PlanDefinition }) {
         </div>
 
         <p className="text-2xs leading-relaxed text-muted-foreground">
-          {TRIAL > 0 ? `Free for ${TRIAL} days - nothing is charged today. ` : ''}
+          {TRIAL_DAYS > 0 ? `Free for ${TRIAL_DAYS} days - nothing is charged today. ` : ''}
           Then {formatCurrency(quote.monthly.total)} a month.
         </p>
       </dl>
@@ -448,8 +435,8 @@ function Terms() {
     {
       q: 'When am I first charged?',
       a:
-        TRIAL > 0
-          ? `The plan is not charged on signup - every paid plan starts with ${TRIAL} days free, and is billed monthly after that. Extra vehicles and any trackers you order are charged when you sign up.`
+        TRIAL_DAYS > 0
+          ? `The plan is not charged on signup - every paid plan starts with ${TRIAL_DAYS} days free, and is billed monthly after that. Extra vehicles and any trackers you order are charged when you sign up.`
           : 'On signup. The first charge covers the plan, your extra vehicles and any trackers you ordered.',
     },
     {

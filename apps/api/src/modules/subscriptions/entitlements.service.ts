@@ -7,7 +7,7 @@ import {
   archiveDateFor,
   accountRunsVehicles,
   effectiveVehicleLimit,
-  OrganizationType,
+  type OrganizationType,
   PlanTier,
   SubscriptionStatus,
   featuresForTier,
@@ -47,7 +47,7 @@ import type { AuthSubscription } from '../../auth/context';
  */
 
 interface CacheEntry {
-  value: AuthSubscription | null;
+  value: AuthSubscription;
   expiresAt: number;
 }
 
@@ -152,6 +152,34 @@ function unenforcedEntitlement(): AuthSubscription {
   };
 }
 
+/**
+ * An organization with no subscription row is on Free, with the lapsed floor.
+ *
+ * Reachable for a driver seated in a placeholder organization of their own, an
+ * association, and an account that predates plans — none ever had a plan taken
+ * out on it. They keep the unpaid floor: their licence, documents, records and
+ * SOS all work, and nothing commercial is given away, because Free covers no
+ * vehicle, driver or device. Capacity arrives only with a plan, which an owner
+ * chooses on the subscription screen.
+ */
+function unsubscribedEntitlement(organizationType: OrganizationType | null): AuthSubscription {
+  const limits = PLAN_LIMITS[PlanTier.FREE];
+  return {
+    planTier: PlanTier.FREE,
+    planName: 'Saarthi Free',
+    baseVehicleLimit: limits.maxTrucks,
+    vehicleTopUps: 0,
+    activeTrackers: 0,
+    features: withoutDeferred(
+      accountFeatures({ tier: PlanTier.FREE, organizationType, planFeatures: LAPSED_FEATURES }),
+    ),
+    limits,
+    active: true,
+    trialing: false,
+    enforced: true,
+  };
+}
+
 /** Trackers that are paid for and not retired. */
 export async function countActiveTrackers(organizationId: string): Promise<number> {
   return prisma.vehicleTracker.count({
@@ -161,7 +189,7 @@ export async function countActiveTrackers(organizationId: string): Promise<numbe
 
 export async function resolveSubscription(
   organizationId: string,
-): Promise<AuthSubscription | null> {
+): Promise<AuthSubscription> {
   // Checked before the cache so flipping the flag takes effect on the next
   // request rather than fifteen seconds later.
   if (!config.subscription.enforced) return unenforcedEntitlement();
@@ -192,7 +220,7 @@ export async function resolveSubscription(
 
   const organizationType = (organization?.type as OrganizationType | undefined) ?? null;
 
-  let value: AuthSubscription | null = null;
+  let value: AuthSubscription;
 
   if (subscription) {
     /*
@@ -323,6 +351,8 @@ export async function resolveSubscription(
       trialing: active && subscription.status === SubscriptionStatus.TRIALING,
       enforced: true,
     };
+  } else {
+    value = unsubscribedEntitlement(organizationType);
   }
 
   cache.set(organizationId, { value, expiresAt: Date.now() + CACHE_TTL_MS });
