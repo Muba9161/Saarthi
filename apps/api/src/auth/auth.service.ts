@@ -42,6 +42,10 @@ import { recordSignup as recordReferralProgramSignup } from '../modules/referral
 import { AuditAction, recordAudit } from '../modules/audit/audit.service';
 import { emailConfigured, sendEmail } from '../providers/email/smtp-email';
 import { actionEmail } from '../providers/email/action-email';
+import {
+  consumeRegistrationEmailCode,
+  verifyRegistrationEmailCode,
+} from './email-verification.service';
 
 /**
  * Authentication use-cases.
@@ -123,6 +127,9 @@ async function toAuthResult(
 
 
 export async function register(input: RegisterInput, meta: RequestMeta) {
+  // Before anything else, and outside the transaction: a wrong guess has to
+  // be counted even though no account is created.
+  const emailCodeId = await verifyRegistrationEmailCode(input.email, input.emailCode);
   const passwordHash = await passwordHasher.hash(input.password);
 
   /*
@@ -171,6 +178,8 @@ export async function register(input: RegisterInput, meta: RequestMeta) {
     const role = await tx.role.findUnique({ where: { name: registrantRole } });
     if (!role) throw errors.internal('Role catalogue is not seeded. Run `npm run db:seed`.');
 
+    await consumeRegistrationEmailCode(tx, emailCodeId);
+
     const user = await tx.user.create({
       data: {
         email: input.email,
@@ -179,6 +188,7 @@ export async function register(input: RegisterInput, meta: RequestMeta) {
         firstName: input.firstName,
         lastName: input.lastName,
         status: UserStatus.ACTIVE,
+        emailVerifiedAt: new Date(),
         roles: { create: { roleId: role.id } },
       },
     });
@@ -572,11 +582,7 @@ export async function login(input: LoginInput, meta: RequestMeta) {
     throw errors.invalidCredentials();
   }
 
-  if (user.status === UserStatus.SUSPENDED || user.status === UserStatus.DISABLED) {
-    throw errors.forbidden(
-      'This account is not active. Please contact Saarthi support for assistance.',
-    );
-  }
+  assertAccountActive(user);
 
   // Opportunistically upgrade the stored hash if the cost factor has changed.
   if (passwordHasher.needsRehash(user.passwordHash)) {
@@ -584,6 +590,37 @@ export async function login(input: LoginInput, meta: RequestMeta) {
     await prisma.user.update({ where: { id: user.id }, data: { passwordHash: rehashed } });
   }
 
+  return startSignedInSession(user, meta, 'password');
+}
+
+/**
+ * Sign in somebody whose fingerprint or face has already been checked against
+ * a passkey on their account — see `modules/secure-access/passkey.service.ts`.
+ * From here on it is the same sign-in a password gives.
+ */
+export async function signInWithPasskey(userId: string, meta: RequestMeta) {
+  const user = await prisma.user.findUniqueOrThrow({
+    where: { id: userId },
+    include: { roles: { include: { role: true } } },
+  });
+  assertAccountActive(user);
+  return startSignedInSession(user, meta, 'passkey');
+}
+
+function assertAccountActive(user: { status: string }): void {
+  if (user.status === UserStatus.SUSPENDED || user.status === UserStatus.DISABLED) {
+    throw errors.forbidden(
+      'This account is not active. Please contact Saarthi support for assistance.',
+    );
+  }
+}
+
+/** Everything after the person has proven who they are, however they proved it. */
+async function startSignedInSession(
+  user: { id: string; roles: { role: { name: string } }[] },
+  meta: RequestMeta,
+  method: 'password' | 'passkey',
+) {
   const loaded = await loadUser(user.id);
   const membership = loaded ? resolveActiveMembership(loaded, null) : null;
   const organizationId = membership?.organizationId ?? null;
@@ -599,6 +636,8 @@ export async function login(input: LoginInput, meta: RequestMeta) {
     entityId: user.id,
     actorUserId: user.id,
     organizationId,
+    // Recorded only when it is not the password, so the trail says which way in.
+    ...(method === 'passkey' ? { after: { method } } : {}),
     ipAddress: meta.ipAddress,
     userAgent: meta.userAgent,
     requestId: meta.requestId ?? null,

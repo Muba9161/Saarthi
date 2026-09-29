@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Activity, AlertTriangle, BadgeCheck, Car, Cpu, Truck } from 'lucide-react';
 import {
   Feature,
@@ -19,6 +19,12 @@ import type { VehicleSummary, VehicleTypeOption } from '@/lib/mobility-types';
 import type { IdentitySubjectView, Paginated } from '@/lib/api-types';
 import { useAuth } from '@/features/auth/auth-context';
 import { PageHeader, FilterBar } from '@/components/common/page-header';
+import { SharedVehiclesPanel } from '@/features/vehicle-sharing/shared-vehicles-panel';
+import { useSharingAvailable } from '@/features/vehicle-sharing/sharing-api';
+import {
+  VehicleScopeToggle,
+  type VehicleScope,
+} from '@/features/vehicle-sharing/vehicle-scope-toggle';
 import { DataView, type Column } from '@/components/common/data-view';
 import { EmptyState, UnauthorizedState } from '@/components/common/states';
 import { StatusBadge } from '@/components/common/status-badge';
@@ -73,6 +79,15 @@ export function VehiclesPage() {
   // a plate from outside the fleet gets looked up.
   const canLookUpPlate = can(Permission.VEHICLE_LOOKUP) && hasFeature(Feature.FLEET_BASIC);
   const canAddVehicle = can(Permission.VEHICLES_CREATE);
+  /*
+   * Mine / Shared with me. Kept in the URL so the notification that says a
+   * vehicle was shared can link straight to the right list.
+   */
+  const canShare = useSharingAvailable();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const scope: VehicleScope = canShare && searchParams.get('view') === 'shared' ? 'shared' : 'mine';
+  const setScope = (next: VehicleScope): void =>
+    setSearchParams(next === 'shared' ? { view: 'shared' } : {}, { replace: true });
   /** The vehicle just added, held while its QR is shown. */
   const [added, setAdded] = React.useState<{ id: string; registrationNumber: string } | null>(null);
   const [page, setPage] = React.useState(1);
@@ -332,6 +347,19 @@ export function VehiclesPage() {
 
   const hasFilters = Boolean(search || capability || vehicleType || status);
 
+  if (scope === 'shared') {
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          title="Vehicles"
+          description="Vehicles other Saarthi accounts have shared with you — track them and log their trips, fuel and servicing."
+        />
+        <VehicleScopeToggle value={scope} onChange={setScope} />
+        <SharedVehiclesPanel />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -367,6 +395,8 @@ export function VehiclesPage() {
           ) : null
         }
       />
+
+      {canShare ? <VehicleScopeToggle value={scope} onChange={setScope} /> : null}
 
       {/*
         Said before the form rather than after it.

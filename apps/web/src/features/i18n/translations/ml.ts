@@ -187,6 +187,36 @@ export const ml: Catalogue = {
   'Privacy Policy': 'സ്വകാര്യതാ നയം',
   'Association name': 'അസോസിയേഷന്റെ പേര്',
   'Travel business name': 'ട്രാവൽ ബിസിനസ് പേര്',
+
+  // Registration: email verification
+  'We will email a 6-digit code to this address at the last step, to confirm it is yours. Use an inbox you can open now.':
+    'ഈ വിലാസം നിങ്ങളുടേതാണെന്ന് ഉറപ്പാക്കാൻ അവസാന ഘട്ടത്തിൽ ഞങ്ങൾ ഇതിലേക്ക് 6 അക്ക കോഡ് അയയ്ക്കും. ഇപ്പോൾത്തന്നെ തുറക്കാൻ കഴിയുന്ന ഇൻബോക്സ് ഉപയോഗിക്കുക.',
+  'Verify email':
+    'ഇമെയിൽ സ്ഥിരീകരിക്കുക',
+  'The code we emailed you.':
+    'ഞങ്ങൾ ഇമെയിൽ ചെയ്ത കോഡ്.',
+  'Confirm your email address':
+    'നിങ്ങളുടെ ഇമെയിൽ വിലാസം സ്ഥിരീകരിക്കുക',
+  'We sent a 6-digit code to {email}. Enter it below to finish creating your account.':
+    '{email} എന്നതിലേക്ക് ഞങ്ങൾ 6 അക്ക കോഡ് അയച്ചു. അക്കൗണ്ട് സൃഷ്ടിക്കൽ പൂർത്തിയാക്കാൻ അത് താഴെ നൽകുക.',
+  'We will email a 6-digit code to {email}.':
+    '{email} എന്നതിലേക്ക് ഞങ്ങൾ 6 അക്ക കോഡ് ഇമെയിൽ ചെയ്യും.',
+  'Enter the code to confirm this email address is yours. It keeps fake accounts out of Saarthi.':
+    'ഈ ഇമെയിൽ വിലാസം നിങ്ങളുടേതാണെന്ന് ഉറപ്പാക്കാൻ കോഡ് നൽകുക. ഇത് Saarthi-യെ വ്യാജ അക്കൗണ്ടുകളിൽ നിന്ന് സംരക്ഷിക്കുന്നു.',
+  'Verification code':
+    'സ്ഥിരീകരണ കോഡ്',
+  'Send code':
+    'കോഡ് അയയ്ക്കുക',
+  'Resend code':
+    'കോഡ് വീണ്ടും അയയ്ക്കുക',
+  'Resend in {seconds}s':
+    '{seconds} സെക്കൻഡിനുള്ളിൽ വീണ്ടും അയയ്ക്കാം',
+  'Not arrived? Check your spam folder. Wrong address? Go back and change it.':
+    'ലഭിച്ചില്ലേ? സ്പാം ഫോൾഡർ പരിശോധിക്കുക. വിലാസം തെറ്റാണോ? തിരികെ പോയി മാറ്റുക.',
+  'We emailed a verification code to {email}.':
+    '{email} എന്നതിലേക്ക് ഞങ്ങൾ സ്ഥിരീകരണ കോഡ് ഇമെയിൽ ചെയ്തു.',
+  'The code could not be sent. Please try again.':
+    'കോഡ് അയയ്ക്കാനായില്ല. ദയവായി വീണ്ടും ശ്രമിക്കുക.',
   'I own trucks and want to manage my fleet and win loads.':
     'എനിക്ക് ട്രക്കുകളുണ്ട്, എന്റെ വാഹനനിര നടത്താനും ലോഡ് നേടാനും ആഗ്രഹിക്കുന്നു.',
   'I need materials, transport, a cab or a tour, and want offers to compare.':

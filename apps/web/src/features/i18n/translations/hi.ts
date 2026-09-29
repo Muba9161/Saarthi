@@ -184,6 +184,27 @@ export const hi: Catalogue = {
   'Privacy Policy': 'गोपनीयता नीति',
   'Association name': 'एसोसिएशन का नाम',
   'Travel business name': 'ट्रैवल व्यवसाय का नाम',
+
+  // Registration: email verification
+  'We will email a 6-digit code to this address at the last step, to confirm it is yours. Use an inbox you can open now.':
+    'आख़िरी चरण में हम इस पते पर 6 अंकों का कोड भेजेंगे, ताकि पुष्टि हो सके कि यह आपका है। ऐसा इनबॉक्स इस्तेमाल करें जिसे आप अभी खोल सकें।',
+  'Verify email': 'ईमेल सत्यापित करें',
+  'The code we emailed you.': 'हमारे द्वारा ईमेल किया गया कोड।',
+  'Check your inbox': 'अपना इनबॉक्स देखें',
+  'Confirm your email address': 'अपने ईमेल पते की पुष्टि करें',
+  'We sent a 6-digit code to {email}. Enter it below to finish creating your account.':
+    'हमने {email} पर 6 अंकों का कोड भेजा है। खाता बनाना पूरा करने के लिए उसे नीचे दर्ज करें।',
+  'We will email a 6-digit code to {email}.': 'हम {email} पर 6 अंकों का कोड ईमेल करेंगे।',
+  'Enter the code to confirm this email address is yours. It keeps fake accounts out of Saarthi.':
+    'यह पुष्टि करने के लिए कोड दर्ज करें कि यह ईमेल पता आपका है। इससे Saarthi फ़र्ज़ी खातों से सुरक्षित रहता है।',
+  'Verification code': 'सत्यापन कोड',
+  'Send code': 'कोड भेजें',
+  'Resend code': 'कोड दोबारा भेजें',
+  'Resend in {seconds}s': '{seconds} सेकंड में दोबारा भेजें',
+  'Not arrived? Check your spam folder. Wrong address? Go back and change it.':
+    'कोड नहीं मिला? स्पैम फ़ोल्डर देखें। पता ग़लत है? वापस जाकर उसे बदलें।',
+  'We emailed a verification code to {email}.': 'हमने {email} पर सत्यापन कोड ईमेल किया है।',
+  'The code could not be sent. Please try again.': 'कोड भेजा नहीं जा सका। कृपया फिर से प्रयास करें।',
   'I own trucks and want to manage my fleet and win loads.':
     'मेरे पास ट्रक हैं और मैं अपना बेड़ा चलाना तथा लोड पाना चाहता हूँ।',
   'I need materials, transport, a cab or a tour, and want offers to compare.':
@@ -224,7 +245,6 @@ export const hi: Catalogue = {
   'Enter your email address and we will send you a reset link.':
     'अपना ईमेल पता दें, हम आपको रीसेट लिंक भेजेंगे।',
   'Send reset link': 'रीसेट लिंक भेजें',
-  'Check your inbox': 'अपना इनबॉक्स देखें',
   'If an account exists for that address, a password reset link has been generated.':
     'यदि उस पते पर खाता मौजूद है, तो पासवर्ड रीसेट लिंक बना दिया गया है।',
   'Development shortcut': 'डेवलपमेंट शॉर्टकट',

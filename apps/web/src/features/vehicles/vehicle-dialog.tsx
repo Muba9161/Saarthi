@@ -47,6 +47,8 @@ import {
 } from '@/components/common/form-wizard';
 import { ImageDropField } from '@/components/common/file-dropzone';
 import { uploadImageOrWarn } from '@/features/media/upload-image';
+import { SpinCapture } from './spin/spin-capture';
+import { uploadSpinOrWarn } from './spin/spin-api';
 import { VehicleConnectionStep, useVehicleOnboarding } from './vehicle-onboarding';
 import { RcPrefillPanel, RcPrefilledNotice, useRcPrefill } from './rc-prefill-panel';
 import { cn } from '@/lib/utils';
@@ -265,6 +267,8 @@ export function VehicleDialog({
    * there is no vehicle to own the photograph until the registration is saved.
    */
   const [photo, setPhoto] = React.useState<File | null>(null);
+  /** The optional 360° spin, offered once there is a photo; held for the same reason. */
+  const [spin, setSpin] = React.useState<Blob[] | null>(null);
 
   /*
    * Re-seed the fields each time the dialog is opened, and only then.
@@ -284,6 +288,7 @@ export function VehicleDialog({
     const { subject: opened, defaultType: fallbackType } = seed.current;
     setForm(opened ? stateFromVehicle(opened) : initialState(fallbackType));
     setPhoto(null);
+    setSpin(null);
     setErrors({});
     setErroredStepIds([]);
   }, [seedKey]);
@@ -349,6 +354,7 @@ export function VehicleDialog({
           'The vehicle was added, but its photo could not be saved.',
         );
       }
+      if (spin) await uploadSpinOrWarn(created.id, spin);
       // The tracker paid for with the vehicle, fitted to it now that it exists.
       await onboarding.finishConnection(created.id);
       return created;
@@ -380,6 +386,7 @@ export function VehicleDialog({
       setOpen(false);
       setForm(initialState(defaultType));
       setPhoto(null);
+      setSpin(null);
       setErrors({});
       setErroredStepIds([]);
 
@@ -574,7 +581,11 @@ export function VehicleDialog({
           {isEdit ? null : (
             <ImageDropField
               value={photo}
-              onChange={setPhoto}
+              onChange={(file) => {
+                setPhoto(file);
+                // A spin hidden with its photo must not upload unseen.
+                if (!file) setSpin(null);
+              }}
               label="Vehicle photo"
               hint={`Optional · JPEG, PNG, WebP or HEIC up to ${PHOTO_MAX_SIZE_MB} MB`}
               accept={PHOTO_ACCEPT}
@@ -585,6 +596,17 @@ export function VehicleDialog({
               className="pb-1"
             />
           )}
+
+          {/* Asked only once there is a photo: the spin adds to it, never replaces it. */}
+          {!isEdit && photo ? (
+            <SpinCapture
+              value={spin}
+              onChange={setSpin}
+              label={form.registrationNumber || 'the new vehicle'}
+              disabled={save.isPending}
+              className="pb-1"
+            />
+          ) : null}
 
           <WizardField
             label="Registration number"

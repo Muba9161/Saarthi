@@ -185,6 +185,36 @@ export const kok: Catalogue = {
   'Privacy Policy': 'गुप्तताय धोरण',
   'Association name': 'संघटनेचें नांव',
   'Travel business name': 'ट्रॅव्हल वेवसायाचें नांव',
+
+  // Registration: email verification
+  'We will email a 6-digit code to this address at the last step, to confirm it is yours. Use an inbox you can open now.':
+    'निमाण्या पावलार आमी ह्या नामार 6 आंकड्यांचो कोड धाडटले, जाका लागून तो तुमचोच हें पक्के जातलें. आतांच उगडूंक शकतात असो इनबॉक्स वापरात.',
+  'Verify email':
+    'ईमेल पडताळात',
+  'The code we emailed you.':
+    'आमी ईमेल केल्लो कोड.',
+  'Confirm your email address':
+    'तुमच्या ईमेल नामाची खात्री करात',
+  'We sent a 6-digit code to {email}. Enter it below to finish creating your account.':
+    'आमी {email} हांगा 6 आंकड्यांचो कोड धाडला. खातें तयार करप पुराय करुंक तो सकयल घालात.',
+  'We will email a 6-digit code to {email}.':
+    'आमी {email} हांगा 6 आंकड्यांचो कोड ईमेल करतले.',
+  'Enter the code to confirm this email address is yours. It keeps fake accounts out of Saarthi.':
+    'हें ईमेल नांव तुमचेंच हाची खात्री करुंक कोड घालात. हाका लागून Saarthi फटी खात्यां पसून सुरक्षीत उरता.',
+  'Verification code':
+    'पडताळणी कोड',
+  'Send code':
+    'कोड धाडात',
+  'Resend code':
+    'कोड परत धाडात',
+  'Resend in {seconds}s':
+    '{seconds} सेकंदांनी परत धाडात',
+  'Not arrived? Check your spam folder. Wrong address? Go back and change it.':
+    'कोड मेळूंक ना? स्पॅम फोल्डर पळयात. नांव चुकीचें? फाटीं वचून बदलात.',
+  'We emailed a verification code to {email}.':
+    'आमी {email} हांगा पडताळणी कोड ईमेल केला.',
+  'The code could not be sent. Please try again.':
+    'कोड धाडूंक जावंक ना. उपकार करून परत यत्न करात.',
   'I own trucks and want to manage my fleet and win loads.':
     'म्हजे कडेन ट्रक आसात आनी म्हाका म्हजो वाहनसमूह सांबाळपाचो आनी लोड मेळोवपाचो आसा.',
   'I need materials, transport, a cab or a tour, and want offers to compare.':

@@ -115,6 +115,18 @@ export interface AuthResult extends AuthTokens {
   session: SessionPayload;
 }
 
+/** Answer to a request for a registration email code. */
+export interface RegistrationEmailCodeResult {
+  /** The address the code went to, as the API normalised it. */
+  sentTo: string;
+  /** Seconds the code stays valid. */
+  expiresIn: number;
+  /** Seconds before another code may be requested for this address. */
+  resendIn: number;
+  /** Only outside production, when this server has no mailbox to send from. */
+  devCode?: string;
+}
+
 /** Claims embedded in the signed access token. Kept intentionally small. */
 export interface AccessTokenClaims {
   sub: string;

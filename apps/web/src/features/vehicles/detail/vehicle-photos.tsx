@@ -3,6 +3,7 @@ import { Camera, ImageOff } from 'lucide-react';
 import { MediaOwnerType, MediaPurpose, Permission } from '@saarthi/shared';
 import { useAuth } from '@/features/auth/auth-context';
 import { PhotoUploader } from '@/features/media/photo-uploader';
+import { VehicleSpinPanel } from '@/features/vehicles/spin/vehicle-spin-panel';
 import { SectionHeader } from '@/components/common/page-header';
 import { EmptyState } from '@/components/common/states';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -23,11 +24,9 @@ import { Separator } from '@/components/ui/separator';
  * here is reviewed or verified: an upload is finished the moment it lands, and
  * the picture is the record of it.
  *
- * Split by purpose rather than pooled into one album because the three are
- * asked for at different times and by different people — exterior shots
- * identify the vehicle, interior shots matter to a passenger operator and a
- * buyer, and damage shots are evidence attached to a specific event. Pooling
- * them would mean scrolling past forty exterior shots to find the dent.
+ * Exterior shots and the optional 360° spin only, for now. Interior and damage
+ * photos are still valid purposes for a vehicle (the API and any photos already
+ * uploaded are untouched); they are simply not offered here until needed.
  */
 export function VehiclePhotosPanel({
   vehicleId,
@@ -84,26 +83,11 @@ export function VehiclePhotosPanel({
 
         <Separator />
 
-        <PhotoUploader
-          ownerType={MediaOwnerType.VEHICLE}
-          ownerId={vehicleId}
-          purpose={MediaPurpose.VEHICLE_INTERIOR}
-          label="Interior"
-          description="Cabin, seats and dashboard."
-          max={8}
-          disabled={readOnly}
-        />
-
-        <Separator />
-
-        <PhotoUploader
-          ownerType={MediaOwnerType.VEHICLE}
-          ownerId={vehicleId}
-          purpose={MediaPurpose.VEHICLE_DAMAGE}
-          label="Damage"
-          description="Dents, scrapes and anything a workshop or an insurer will need to see."
-          max={12}
-          disabled={readOnly}
+        <VehicleSpinPanel
+          vehicleId={vehicleId}
+          label={registrationNumber ?? 'this vehicle'}
+          canUpload={!readOnly}
+          canDelete={!readOnly && can(Permission.MEDIA_DELETE)}
         />
 
         {readOnly ? (

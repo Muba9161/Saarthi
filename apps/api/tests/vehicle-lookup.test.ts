@@ -1,5 +1,5 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { RoleName } from '@saarthi/shared';
+import { RcDetailAccess, RoleName, VehicleOwnershipStatus } from '@saarthi/shared';
 import type { VehicleLookupResult } from '@saarthi/shared';
 import { config } from '../src/config/env';
 import { prisma } from '../src/database/prisma';
@@ -11,6 +11,7 @@ import {
   getApp,
   resetDatabase,
   request,
+  unlockSecureAccess,
   type TestUser,
 } from './helpers';
 
@@ -153,12 +154,14 @@ describe('vehicle RC lookup', () => {
     manager = await createUser({ role: RoleName.FLEET_MANAGER, organizationId: organization.id });
 
     // A lookup is only permitted for a vehicle the fleet actually owns, so the
-    // plates these tests use have to exist in it first.
+    // plates these tests use have to exist in it first — and, for the owner's
+    // details to be unmaskable at all, with their ownership confirmed.
     await prisma.truck.createMany({
       data: FLEET_PLATES.map((registrationNumber) => ({
         organizationId: organization.id,
         registrationNumber,
         capacityTons: 12,
+        ownershipStatus: VehicleOwnershipStatus.VERIFIED,
       })),
     });
   });
@@ -393,6 +396,16 @@ describe('vehicle RC lookup', () => {
     // The provider's temporary link is never persisted as the access path.
     expect(stored.pdfStorageKey).not.toContain('way2api.test');
 
+    // The certificate carries the owner's details, so it takes the secure PIN.
+    const locked = await request({
+      method: 'GET',
+      url: `/api/v1/vehicles/lookups/${lookup.body.data.lookupId}/document`,
+      user: owner,
+    });
+    expect(locked.status).toBe(403);
+    expect(locked.body.error?.code).toBe('SECURE_ACCESS_REQUIRED');
+
+    await unlockSecureAccess(owner);
     const app = await getApp();
     const download = await app.inject({
       method: 'GET',
@@ -432,6 +445,7 @@ describe('vehicle RC lookup', () => {
     });
     expect(lookup.body.data.pdfAvailable).toBe(false);
 
+    await unlockSecureAccess(owner);
     const download = await request({
       method: 'GET',
       url: `/api/v1/vehicles/lookups/${lookup.body.data.lookupId}/document`,
@@ -665,8 +679,31 @@ describe('vehicle RC lookup', () => {
     expect(vehicle.maker).toBe('MARUTI SUZUKI INDIA LTD');
   });
 
-  it('gives the full record to a caller holding the sensitive permission', async () => {
+  it('masks the owner for a permitted caller until they enter their secure PIN', async () => {
     stubProvider(successEnvelope());
+    // A session of its own: the PIN opens details on the session that entered it.
+    const fresh = await createUser({ role: RoleName.FLEET_OWNER, organizationId: owner.organizationId });
+
+    const response = await request<VehicleLookupResult>({
+      method: 'POST',
+      url: '/api/v1/vehicles/lookup',
+      user: fresh,
+      payload: { registrationNumber: PLATE },
+    });
+
+    const { vehicle, access } = response.body.data;
+    expect(access).toBe(RcDetailAccess.LOCKED);
+    expect(vehicle.redacted).toBe(true);
+    // Enough for the owner to recognise, too little for a stranger to trace.
+    expect(vehicle.owner?.name).toBe('SNEHA M.');
+    expect(vehicle.owner?.presentAddress).toBe('PIN 754119');
+    expect(vehicle.chassisNumber).toMatch(/8901$/);
+    expect(JSON.stringify(response.body)).not.toContain('Jagatsinghapur');
+  });
+
+  it('gives the full record to a permitted caller who has entered their secure PIN', async () => {
+    stubProvider(successEnvelope());
+    await unlockSecureAccess(owner);
 
     const response = await request<VehicleLookupResult>({
       method: 'POST',
@@ -676,6 +713,7 @@ describe('vehicle RC lookup', () => {
     });
 
     const { vehicle } = response.body.data;
+    expect(response.body.data.access).toBe(RcDetailAccess.FULL);
     expect(vehicle.redacted).toBe(false);
     expect(vehicle.owner?.name).toBe('SNEHA MOHANTY');
     expect(vehicle.engineNumber).toBe('G3AB1C234567');

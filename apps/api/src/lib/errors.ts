@@ -78,6 +78,10 @@ export const errors = {
     details: { subjectType: string; kind: string; grandfathered: boolean },
   ) => new AppError(403, ErrorCode.IDENTITY_VERIFICATION_REQUIRED, message, { details }),
 
+  /** Sensitive: enter the secure PIN or a passkey on this session first. */
+  secureAccessRequired: (message: string, details: { pinSet: boolean }) =>
+    new AppError(403, ErrorCode.SECURE_ACCESS_REQUIRED, message, { details }),
+
   /** A billable check was attempted without its verification fee being paid. */
   paymentRequired: (message: string, details?: Record<string, unknown>) =>
     new AppError(402, ErrorCode.PAYMENT_REQUIRED, message, { details }),

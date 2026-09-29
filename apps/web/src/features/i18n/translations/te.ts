@@ -186,6 +186,36 @@ export const te: Catalogue = {
   'Privacy Policy': 'గోప్యతా విధానం',
   'Association name': 'సంఘం పేరు',
   'Travel business name': 'ట్రావెల్ వ్యాపార పేరు',
+
+  // Registration: email verification
+  'We will email a 6-digit code to this address at the last step, to confirm it is yours. Use an inbox you can open now.':
+    'ఈ చిరునామా మీదేనని నిర్ధారించడానికి చివరి దశలో దీనికి 6 అంకెల కోడ్ పంపుతాము. మీరు ఇప్పుడే తెరవగల ఇన్‌బాక్స్‌ను ఉపయోగించండి.',
+  'Verify email':
+    'ఇమెయిల్‌ను ధృవీకరించండి',
+  'The code we emailed you.':
+    'మేము ఇమెయిల్ చేసిన కోడ్.',
+  'Confirm your email address':
+    'మీ ఇమెయిల్ చిరునామాను నిర్ధారించండి',
+  'We sent a 6-digit code to {email}. Enter it below to finish creating your account.':
+    'మేము {email} కు 6 అంకెల కోడ్ పంపాము. ఖాతా సృష్టిని పూర్తి చేయడానికి దాన్ని కింద నమోదు చేయండి.',
+  'We will email a 6-digit code to {email}.':
+    'మేము {email} కు 6 అంకెల కోడ్ ఇమెయిల్ చేస్తాము.',
+  'Enter the code to confirm this email address is yours. It keeps fake accounts out of Saarthi.':
+    'ఈ ఇమెయిల్ చిరునామా మీదేనని నిర్ధారించడానికి కోడ్ నమోదు చేయండి. ఇది Saarthi ని నకిలీ ఖాతాల నుండి కాపాడుతుంది.',
+  'Verification code':
+    'ధృవీకరణ కోడ్',
+  'Send code':
+    'కోడ్ పంపండి',
+  'Resend code':
+    'కోడ్ మళ్లీ పంపండి',
+  'Resend in {seconds}s':
+    '{seconds} సెకన్లలో మళ్లీ పంపండి',
+  'Not arrived? Check your spam folder. Wrong address? Go back and change it.':
+    'రాలేదా? స్పామ్ ఫోల్డర్ చూడండి. చిరునామా తప్పా? వెనక్కి వెళ్లి మార్చండి.',
+  'We emailed a verification code to {email}.':
+    'మేము {email} కు ధృవీకరణ కోడ్ ఇమెయిల్ చేశాము.',
+  'The code could not be sent. Please try again.':
+    'కోడ్ పంపలేకపోయాము. దయచేసి మళ్లీ ప్రయత్నించండి.',
   'I own trucks and want to manage my fleet and win loads.':
     'నా వద్ద ట్రక్కులు ఉన్నాయి, నా వాహన సముదాయాన్ని నడపాలని, లోడ్లు పొందాలని అనుకుంటున్నాను.',
   'I need materials, transport, a cab or a tour, and want offers to compare.':

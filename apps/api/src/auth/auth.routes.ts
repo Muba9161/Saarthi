@@ -3,7 +3,9 @@ import {
   changePasswordSchema,
   forgotPasswordSchema,
   loginSchema,
+  passkeySignInSchema,
   registerSchema,
+  registrationEmailCodeRequestSchema,
   resetPasswordSchema,
   switchOrganizationSchema,
   updateProfileSchema,
@@ -14,9 +16,11 @@ import { created, ok, parseBody } from '../lib/http';
 import { requireAuth } from '../server/guards';
 import { buildSessionPayload } from './session.service';
 import * as authService from './auth.service';
+import { sendRegistrationEmailCode } from './email-verification.service';
 import { AuditAction, auditFromRequest } from '../modules/audit/audit.service';
 import { publicAppUrl } from '../lib/public-url';
 import { emailConfigured } from '../providers/email/smtp-email';
+import * as passkeyService from '../modules/secure-access/passkey.service';
 
 /**
  * Authentication routes.
@@ -82,6 +86,12 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
     },
   };
 
+  // Emails the one-time code the last registration step asks for.
+  app.post('/register/email-code', { config: authLimit }, async (request, reply) => {
+    const input = parseBody(registrationEmailCodeRequestSchema, request.body);
+    return ok(reply, await sendRegistrationEmailCode(input));
+  });
+
   app.post('/register', { config: authLimit }, async (request, reply) => {
     const input = parseBody(registerSchema, request.body);
     const result = await authService.register(input, requestMeta(request));
@@ -98,6 +108,32 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
   app.post('/login', { config: authLimit }, async (request, reply) => {
     const input = parseBody(loginSchema, request.body);
     const result = await authService.login(input, requestMeta(request));
+    setRefreshCookie(reply, result.refreshToken, result.refreshExpiresAt);
+    return ok(reply, {
+      accessToken: result.accessToken,
+      expiresIn: result.expiresIn,
+      tokenType: result.tokenType,
+      session: result.session,
+      ...(isNativeClient(request) ? { refreshToken: result.refreshToken } : {}),
+    });
+  });
+
+  /*
+   * Fingerprint or face sign-in: a challenge, then the device's signed answer.
+   * Rate-limited like the password route, and answered with exactly the same
+   * session a password would give.
+   */
+  app.post('/passkey/options', { config: authLimit }, async (request, reply) =>
+    ok(reply, await passkeyService.passkeySignInOptions(passkeyService.relyingParty(request))),
+  );
+
+  app.post('/passkey/login', { config: authLimit }, async (request, reply) => {
+    const input = parseBody(passkeySignInSchema, request.body);
+    const userId = await passkeyService.verifyPasskeySignIn(
+      passkeyService.relyingParty(request),
+      input,
+    );
+    const result = await authService.signInWithPasskey(userId, requestMeta(request));
     setRefreshCookie(reply, result.refreshToken, result.refreshExpiresAt);
     return ok(reply, {
       accessToken: result.accessToken,

@@ -791,6 +791,74 @@ export interface VerifyIdentityOptions {
  * — last, and only if all three allow it — the gate and the billable provider
  * call.
  */
+/** The numbers whose verified holder name can confirm who owns a vehicle. */
+const NAME_BEARING_KINDS: readonly string[] = [
+  IdentityDocumentKind.PAN,
+  IdentityDocumentKind.VOTER_ID,
+  IdentityDocumentKind.GST,
+];
+
+/**
+ * One PAN, Voter ID or GSTIN, one Saarthi account.
+ *
+ * A verified holder name is what lets an account confirm it owns a vehicle, so
+ * a number already verified on one account must not verify on a second: that
+ * is how somebody who knows a vehicle owner's PAN would pass as them. Applies
+ * to account holders and businesses only — a driver may legitimately be on the
+ * books of more than one fleet under the same PAN.
+ *
+ * Checks the verification rows and the verified columns stamped on the user or
+ * organization, because the retention sweep deletes the rows but not the fact.
+ */
+async function assertNotVerifiedOnAnotherAccount(
+  input: VerifyIdentityInput,
+  normalizedNumber: string,
+  numberHash: string,
+  label: string,
+): Promise<void> {
+  const accountSubject =
+    input.subjectType === VerificationSubjectType.USER ||
+    input.subjectType === VerificationSubjectType.ORGANIZATION;
+  if (!accountSubject || !NAME_BEARING_KINDS.includes(input.kind)) return;
+
+  const [check, user, organization] = await Promise.all([
+    prisma.identityVerification.findFirst({
+      where: {
+        kind: input.kind,
+        numberHash,
+        subjectType: input.subjectType,
+        subjectId: { not: input.subjectId },
+        outcome: IdentityVerificationOutcome.VERIFIED,
+      },
+      select: { id: true },
+    }),
+    input.subjectType === VerificationSubjectType.USER && input.kind === IdentityDocumentKind.PAN
+      ? prisma.user.findFirst({
+          where: { panNumber: normalizedNumber, id: { not: input.subjectId } },
+          select: { id: true },
+        })
+      : null,
+    // A business is checked by PAN or GSTIN only; both are stamped on the row.
+    input.subjectType === VerificationSubjectType.ORGANIZATION
+      ? prisma.organization.findFirst({
+          where: {
+            ...(input.kind === IdentityDocumentKind.PAN
+              ? { panNumber: normalizedNumber }
+              : { gstin: normalizedNumber }),
+            id: { not: input.subjectId },
+          },
+          select: { id: true },
+        })
+      : null,
+  ]);
+
+  if (check || user || organization) {
+    throw errors.conflict(
+      `This ${label} is already verified on another VorldX Saarthi account. Each ${label} can be verified on one account only — if it is yours, contact support.`,
+    );
+  }
+}
+
 export async function verifyIdentity(
   auth: AuthContext,
   input: VerifyIdentityInput,
@@ -818,6 +886,8 @@ export async function verifyIdentity(
   }
 
   const numberHash = hashIdentityNumber(input.kind, normalizedNumber);
+  // Before the cache and the provider: a refusal here must cost nothing.
+  await assertNotVerifiedOnAnotherAccount(input, normalizedNumber, numberHash, definition.label);
   const documentId = await resolveLinkedDocument(input, subject.organizationId);
 
   const existing = await prisma.identityVerification.findUnique({

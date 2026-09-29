@@ -1,16 +1,18 @@
 import * as React from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronRight, LogOut, User as UserIcon, Wallet } from 'lucide-react';
+import { ChevronRight, LogOut, QrCode, User as UserIcon, Wallet } from 'lucide-react';
 import { canJoinReferralProgram, formatCurrency, humanizeEnum } from '@saarthi/shared';
 import { useAuth } from '@/features/auth/auth-context';
 import { useT } from '@/features/i18n';
 import { MediaImage } from '@/features/media/media-image';
 import { useWallet } from '@/features/wallet/use-wallet';
+import { useQrRcVisibility } from '@/features/qr/use-qr-rc-visibility';
 import { AnimatedNumber } from '@/components/motion';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Switch } from '@/components/ui/switch';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -156,6 +158,7 @@ function WalletStrip({ to }: { to: string }) {
 export function AccountMenu(): React.ReactElement {
   const { session, logout } = useAuth();
   const sections = useVisibleAccountNavigation();
+  const rcOnQr = useQrRcVisibility();
   const t = useT();
   // Everybody has a wallet: Refer & Earn pays into it, and so does a
   // salesperson's every successful referral.
@@ -201,12 +204,40 @@ export function AccountMenu(): React.ReactElement {
           </React.Fragment>
         ))}
 
+        {/*
+          RC details on QR scans: off by default, and flipping it either way
+          asks for the secure PIN. The prompt is rendered beside the menu, not
+          in it, because the menu closes as soon as the item is chosen.
+        */}
+        {rcOnQr.available ? (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              role="menuitemcheckbox"
+              aria-checked={rcOnQr.enabled}
+              disabled={rcOnQr.loading || rcOnQr.pending}
+              onSelect={() => rcOnQr.setEnabled(!rcOnQr.enabled)}
+            >
+              <QrCode className="size-4" aria-hidden />
+              <span className="flex-1 truncate">{t('RC details on QR scans')}</span>
+              <Switch
+                checked={rcOnQr.enabled}
+                tabIndex={-1}
+                aria-hidden
+                className="pointer-events-none"
+              />
+            </DropdownMenuItem>
+          </>
+        ) : null}
+
         <DropdownMenuSeparator />
         <DropdownMenuItem destructive onSelect={() => void logout()}>
           <LogOut className="size-4" aria-hidden />
           {t('Sign out')}
         </DropdownMenuItem>
       </DropdownMenuContent>
+
+      {rcOnQr.dialog}
     </DropdownMenu>
   );
 }

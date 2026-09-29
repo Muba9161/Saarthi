@@ -1206,6 +1206,7 @@ describe('speed violation', () => {
 describe('listing publish gates', () => {
   const ready = {
     vehicleBelongsToSeller: true,
+    vehicleOwnershipConfirmed: true,
     vehicleIsVerified: true,
     vehicleOnActiveTrip: false,
     vehicleHasActiveAssignment: false,
@@ -1240,6 +1241,14 @@ describe('listing publish gates', () => {
 
   it('requires the minimum photo set', () => {
     expect(checkListingPublishGates({ ...ready, exteriorPhotoCount: 2 }).ready).toBe(false);
+  });
+
+  it('blocks a vehicle whose ownership the seller has not confirmed', () => {
+    const result = checkListingPublishGates({ ...ready, vehicleOwnershipConfirmed: false });
+    expect(result.ready).toBe(false);
+    expect(result.blockers).toEqual([
+      'Confirm that you own this vehicle. Its Ownership card on the vehicle page shows how.',
+    ]);
   });
 });
 

@@ -9,11 +9,13 @@ import {
   type RoleName,
   SubscriptionStatus,
   VerificationStatus,
+  emailSchema,
   type SessionPayload,
 } from '@saarthi/shared';
 import bcrypt from 'bcryptjs';
 import { buildApp } from '../src/server/app';
 import { prisma } from '../src/database/prisma';
+import { storeRegistrationEmailCode } from '../src/auth/email-verification.service';
 
 /**
  * Shared test utilities: a booted app instance, tenant/user factories and a
@@ -470,6 +472,25 @@ export function authHeaders(user: TestUser): Record<string, string> {
   return { authorization: `Bearer ${user.accessToken}` };
 }
 
+const REGISTER_URL = '/api/v1/auth/register';
+
+/**
+ * A registration payload with a genuine email code attached.
+ *
+ * Every registration must carry the code emailed to its address. The suite has
+ * no mailbox, so a code is minted straight into the table instead — the API
+ * still checks it exactly as it would a real one. A payload that names
+ * `emailCode` itself is left alone, which is how the verification tests send
+ * wrong, reused or missing codes.
+ */
+async function withRegistrationEmailCode(payload: unknown): Promise<unknown> {
+  if (typeof payload !== 'object' || payload === null || 'emailCode' in payload) return payload;
+  const email = emailSchema.safeParse((payload as { email?: unknown }).email);
+  if (!email.success) return payload;
+  const { code } = await storeRegistrationEmailCode(email.data);
+  return { ...payload, emailCode: code };
+}
+
 /** Convenience: perform an authenticated request and return the parsed body. */
 export async function request<T = unknown>(options: {
   method: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
@@ -482,10 +503,14 @@ export async function request<T = unknown>(options: {
   body: { success: boolean; data: T; error?: ApiErrorBody };
 }> {
   const instance = await getApp();
+  const payload =
+    options.method === 'POST' && options.url === REGISTER_URL
+      ? await withRegistrationEmailCode(options.payload)
+      : options.payload;
   const response = await instance.inject({
     method: options.method,
     url: options.url,
-    ...(options.payload !== undefined ? { payload: options.payload as object } : {}),
+    ...(payload !== undefined ? { payload: payload as object } : {}),
     headers: {
       ...(options.user ? authHeaders(options.user) : {}),
       ...options.headers,
@@ -622,3 +647,26 @@ export function samplePdf(title = 'Test Document'): Buffer {
 }
 
 export type { SessionPayload };
+
+/**
+ * Give a user a secure PIN and enter it on their session, as the unlock screen
+ * would — for tests that need the full RC or a PIN-guarded setting. The PIN is
+ * written straight to the row (setting one through the API also takes the
+ * account password, which the secure-access suite covers itself).
+ */
+export async function unlockSecureAccess(user: TestUser, pin = '2468'): Promise<void> {
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { securePinHash: await bcrypt.hash(pin, 4), securePinSetAt: new Date() },
+  });
+  const instance = await getApp();
+  const response = await instance.inject({
+    method: 'POST',
+    url: '/api/v1/security/unlock/pin',
+    headers: authHeaders(user),
+    payload: { pin },
+  });
+  if (response.statusCode !== 200) {
+    throw new Error(`Could not unlock secure access: ${response.statusCode} ${response.body}`);
+  }
+}

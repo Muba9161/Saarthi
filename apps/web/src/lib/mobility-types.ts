@@ -15,6 +15,7 @@ import type {
   TravelPackageStatus,
   TravelServiceKind,
   VehicleCapability,
+  VehicleOwnershipView,
   VehicleType,
   VerificationStatus,
 } from '@saarthi/shared';
@@ -76,6 +77,8 @@ export interface VehicleSummary {
   device: VehicleDeviceSummary | null;
   openTelemetryAlerts: number;
   documentHealth: { total: number; expired: number; expiringSoon: number; pending: number };
+  /** Whether this account has shown it owns the vehicle — not the same as a verified RC. */
+  ownership: VehicleOwnershipView;
   notes: string | null;
   createdAt: string;
   archivedAt: string | null;

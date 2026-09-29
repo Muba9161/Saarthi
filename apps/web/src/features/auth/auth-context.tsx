@@ -16,6 +16,7 @@ import {
   setUnauthenticatedHandler,
   ApiError,
 } from '@/lib/api-client';
+import { passkeySignIn } from '@/features/secure-access/secure-access-api';
 
 /**
  * Session state for the whole client.
@@ -35,6 +36,8 @@ interface AuthContextValue {
   session: SessionPayload | null;
   status: 'loading' | 'authenticated' | 'unauthenticated';
   login: (email: string, password: string) => Promise<SessionPayload>;
+  /** Sign in with this device's fingerprint or face instead of a password. */
+  loginWithPasskey: () => Promise<SessionPayload>;
   register: (input: Record<string, unknown>) => Promise<SessionPayload>;
   logout: () => Promise<void>;
   refreshSession: () => Promise<void>;
@@ -167,6 +170,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [applyAuth],
   );
 
+  const loginWithPasskey = React.useCallback(
+    async () => applyAuth(await passkeySignIn()),
+    [applyAuth],
+  );
+
   const register = React.useCallback(
     async (input: Record<string, unknown>) => {
       const result = await api.post<AuthResponse>('/auth/register', input);
@@ -227,6 +235,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       session,
       status,
       login,
+      loginWithPasskey,
       register,
       logout,
       refreshSession,
@@ -249,7 +258,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         session?.driver != null && session?.organization?.membershipRole === RoleName.DRIVER,
       hasDriverProfile: session?.driver != null,
     };
-  }, [session, status, login, register, logout, refreshSession, switchOrganization, joinFleet]);
+  }, [
+    session,
+    status,
+    login,
+    loginWithPasskey,
+    register,
+    logout,
+    refreshSession,
+    switchOrganization,
+    joinFleet,
+  ]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

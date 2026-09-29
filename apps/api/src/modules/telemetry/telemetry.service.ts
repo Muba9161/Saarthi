@@ -1,5 +1,7 @@
 import {
   AlertSeverity,
+  Feature,
+  MOBILE_DEVICE_METRICS,
   MaintenanceStatus,
   MaintenanceType,
   OPERATOR_MANAGEMENT_ROLES,
@@ -27,7 +29,7 @@ import { errors } from '../../lib/errors';
 import { logger } from '../../lib/logger';
 import { skipTake } from '../../lib/http';
 import { notifyOrganization } from '../notifications/notification.service';
-import { assertTenantAccess, tenantScope } from '../../server/guards';
+import { assertTenantAccess, hasFeature, tenantScope } from '../../server/guards';
 import type { AuthContext } from '../../auth/context';
 
 /**
@@ -133,6 +135,59 @@ function toReadingSummary(reading: ReadingRecord): TelemetryReadingSummary {
 }
 
 /**
+ * What an account without a tracker is shown: what the driver's phone measured.
+ *
+ * Position, speed and motion come from the phone itself, and they describe the
+ * vehicle's movement whether or not a tracker is fitted. Engine, fuel and fault
+ * codes are different — a phone cannot read them, so from a phone they are
+ * simulated, and reading them off the vehicle is what a tracker is bought for.
+ * They are removed here rather than hidden by the UI, so no client can show them.
+ */
+const PHONE_METRICS = new Set<TelemetryMetric>(MOBILE_DEVICE_METRICS);
+
+/** Readings carrying at least one figure a phone can measure. */
+const PHONE_READING_FILTER = {
+  metrics: { hasSome: MOBILE_DEVICE_METRICS },
+} satisfies Prisma.TelemetryReadingWhereInput;
+
+function toPhoneOnlySummary(summary: TelemetryReadingSummary): TelemetryReadingSummary {
+  const keep = (metric: TelemetryMetric): boolean => PHONE_METRICS.has(metric);
+  const motion = keep(TelemetryMetric.ACCELEROMETER);
+
+  return {
+    ...summary,
+    metrics: summary.metrics.filter(keep),
+    simulatedMetrics: summary.simulatedMetrics.filter(keep),
+    latitude: keep(TelemetryMetric.LOCATION) ? summary.latitude : null,
+    longitude: keep(TelemetryMetric.LOCATION) ? summary.longitude : null,
+    speedKph: keep(TelemetryMetric.SPEED) ? summary.speedKph : null,
+    heading: keep(TelemetryMetric.HEADING) ? summary.heading : null,
+    altitude: keep(TelemetryMetric.ALTITUDE) ? summary.altitude : null,
+    satellites: keep(TelemetryMetric.SATELLITES) ? summary.satellites : null,
+    rpm: keep(TelemetryMetric.RPM) ? summary.rpm : null,
+    engineLoad: keep(TelemetryMetric.ENGINE_LOAD) ? summary.engineLoad : null,
+    coolantTemperature: keep(TelemetryMetric.COOLANT_TEMPERATURE)
+      ? summary.coolantTemperature
+      : null,
+    intakeTemperature: keep(TelemetryMetric.INTAKE_TEMPERATURE) ? summary.intakeTemperature : null,
+    fuelLevel: keep(TelemetryMetric.FUEL_LEVEL) ? summary.fuelLevel : null,
+    fuelRate: keep(TelemetryMetric.FUEL_RATE) ? summary.fuelRate : null,
+    throttlePosition: keep(TelemetryMetric.THROTTLE_POSITION) ? summary.throttlePosition : null,
+    batteryVoltage: keep(TelemetryMetric.BATTERY_VOLTAGE) ? summary.batteryVoltage : null,
+    odometerKm: keep(TelemetryMetric.ODOMETER) ? summary.odometerKm : null,
+    accelerationX: motion ? summary.accelerationX : null,
+    accelerationY: motion ? summary.accelerationY : null,
+    accelerationZ: motion ? summary.accelerationZ : null,
+    harshBraking: motion && summary.harshBraking,
+    harshAcceleration: motion && summary.harshAcceleration,
+    suddenMovement: motion && summary.suddenMovement,
+    deviceTemperature: keep(TelemetryMetric.DEVICE_TEMPERATURE) ? summary.deviceTemperature : null,
+    signalStrength: keep(TelemetryMetric.SIGNAL_STRENGTH) ? summary.signalStrength : null,
+    diagnostics: keep(TelemetryMetric.DTC) ? summary.diagnostics : [],
+  };
+}
+
+/**
  * A caller who is a driver and nothing more.
  *
  * The distinction matters because "is there a driver profile on this account?"
@@ -218,13 +273,23 @@ async function assertVehicleAccess(auth: AuthContext, vehicleId: string): Promis
  *
  * Returns `null` rather than an empty shell when nothing has been reported, so
  * the UI shows "no data yet" instead of a dashboard of zeros.
+ *
+ * Without a tracker, the latest reading the driver's phone could measure,
+ * narrowed to those figures (`toPhoneOnlySummary`).
  */
 export async function latestReading(
   auth: AuthContext,
   vehicleId: string,
 ): Promise<TelemetryReadingSummary | null> {
   await assertVehicleAccess(auth, vehicleId);
-  return latestReadingForVehicle(vehicleId);
+  if (hasFeature(auth, Feature.TELEMETRY_LIVE)) return latestReadingForVehicle(vehicleId);
+
+  const reading = await prisma.telemetryReading.findFirst({
+    where: { vehicleId, ...PHONE_READING_FILTER },
+    include: { diagnostics: true },
+    orderBy: { recordedAt: 'desc' },
+  });
+  return reading ? toPhoneOnlySummary(toReadingSummary(reading)) : null;
 }
 
 /**
@@ -256,6 +321,8 @@ export async function latestReadingForVehicle(
  * The retention window comes from the plan, and a request for more is silently
  * clamped rather than refused — the caller still gets the data they are
  * entitled to, and `windowStart` in the response says where the cut fell.
+ *
+ * Without a tracker, only what the driver's phone measured (`toPhoneOnlySummary`).
  */
 export async function telemetryHistory(
   auth: AuthContext,
@@ -265,6 +332,7 @@ export async function telemetryHistory(
     throw errors.validation('Specify a vehicle or a device to read telemetry for.');
   }
   if (query.vehicleId) await assertVehicleAccess(auth, query.vehicleId);
+  const measured = hasFeature(auth, Feature.TELEMETRY_HISTORY);
 
   const retentionDays = auth.subscription?.limits.telemetryRetentionDays ?? 0;
   const earliest = new Date(Date.now() - Math.max(1, retentionDays) * 86_400_000);
@@ -284,6 +352,7 @@ export async function telemetryHistory(
     ...(isDriverOnly(auth) ? { vehicle: driverVehicleScope(auth.driverId ?? '__none__') } : {}),
     ...(query.vehicleId ? { vehicleId: query.vehicleId } : {}),
     ...(query.deviceId ? { deviceId: query.deviceId } : {}),
+    ...(measured ? {} : PHONE_READING_FILTER),
     recordedAt: { gte: from, ...(query.to ? { lte: query.to } : {}) },
   };
 
@@ -297,7 +366,9 @@ export async function telemetryHistory(
     }),
   ]);
 
-  let items = readings.map(toReadingSummary);
+  let items = readings.map((reading) =>
+    measured ? toReadingSummary(reading) : toPhoneOnlySummary(toReadingSummary(reading)),
+  );
 
   // Downsampling for charts: keep one reading per interval so a day of
   // one-second data can be plotted without shipping 86,400 points.
@@ -365,11 +436,18 @@ export async function vehicleCapabilities(
     };
   }
 
+  // Narrowed like the readings themselves, so the page never offers a gauge
+  // for a figure it will not be sent.
+  const visible = (metrics: string[]): TelemetryMetric[] =>
+    hasFeature(auth, Feature.TELEMETRY_LIVE)
+      ? (metrics as TelemetryMetric[])
+      : (metrics as TelemetryMetric[]).filter((metric) => PHONE_METRICS.has(metric));
+
   return {
     hasDevice: true,
     deviceStatus: assignment.device.status,
-    observedMetrics: assignment.device.observedMetrics as TelemetryMetric[],
-    supportedMetrics: assignment.device.supportedMetrics as TelemetryMetric[],
+    observedMetrics: visible(assignment.device.observedMetrics),
+    supportedMetrics: visible(assignment.device.supportedMetrics),
     lastReadingAt: assignment.device.lastTelemetryAt?.toISOString() ?? null,
     readingCount: assignment.device.readingCount,
   };

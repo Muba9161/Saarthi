@@ -421,6 +421,12 @@ const envSchema = z.object({
   VEHICLE_LOOKUP_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).default(365),
   VEHICLE_LOOKUP_RATE_LIMIT_MAX: z.coerce.number().int().min(1).default(10),
   VEHICLE_LOOKUP_RATE_LIMIT_WINDOW: z.string().default('1 minute'),
+  /**
+   * The domain device passkeys are bound to. Defaults to the app's own host —
+   * FRONTEND_URL in production, the tunnel or LAN address in development. Set
+   * it when passkeys should work across a parent domain's subdomains.
+   */
+  WEBAUTHN_RP_ID: z.string().optional(),
 
   // --- Driving licence lookup (Way2API) -------------------------------------
   // Shares the Way2API credentials above; trial credits and billing are
@@ -1056,6 +1062,14 @@ export const config = {
     retentionDays: raw.VEHICLE_LOOKUP_RETENTION_DAYS,
     rateLimitMax: raw.VEHICLE_LOOKUP_RATE_LIMIT_MAX,
     rateLimitWindow: raw.VEHICLE_LOOKUP_RATE_LIMIT_WINDOW,
+  },
+
+  webAuthn: {
+    rpName: 'VorldX Saarthi',
+    /** Unset means "the app's own host" — see `relyingParty`. */
+    rpIdOverride: raw.WEBAUTHN_RP_ID || undefined,
+    // Every origin the app is served from may complete a passkey ceremony.
+    origins: [...new Set([raw.FRONTEND_URL.replace(/\/$/, ''), ...raw.CORS_ORIGINS])],
   },
 
   drivingLicence: {

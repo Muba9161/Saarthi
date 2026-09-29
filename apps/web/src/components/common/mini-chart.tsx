@@ -31,7 +31,7 @@ const TONE_VAR: Record<ChartTone, string> = {
   accent: '--accent',
 };
 
-function toneColor(tone: ChartTone, alpha = 1): string {
+export function toneColor(tone: ChartTone, alpha = 1): string {
   return alpha >= 1 ? `hsl(var(${TONE_VAR[tone]}))` : `hsl(var(${TONE_VAR[tone]}) / ${alpha})`;
 }
 

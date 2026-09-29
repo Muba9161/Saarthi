@@ -189,6 +189,36 @@ export const sa: Catalogue = {
   'Privacy Policy': 'गोपनीयता-नीतिः',
   'Association name': 'सङ्घनाम',
   'Travel business name': 'यात्राव्यवसायनाम',
+
+  // Registration: email verification
+  'We will email a 6-digit code to this address at the last step, to confirm it is yours. Use an inbox you can open now.':
+    'अन्तिमे सोपाने अस्मिन् सङ्केते षडङ्कात्मकं कूटं प्रेषयिष्यामः, येन एतत् भवतः एव इति निश्चीयेत। यत् इदानीमेव उद्घाटयितुं शक्नोति तादृशं पत्रपेटकं प्रयुङ्क्ताम्।',
+  'Verify email':
+    'ईमेल-सत्यापनम्',
+  'The code we emailed you.':
+    'अस्माभिः ईमेलद्वारा प्रेषितं कूटम्।',
+  'Confirm your email address':
+    'स्वस्य ईमेल-सङ्केतं पुष्टीकरोतु',
+  'We sent a 6-digit code to {email}. Enter it below to finish creating your account.':
+    'वयं {email} इत्यत्र षडङ्कात्मकं कूटं प्रेषितवन्तः। खातानिर्माणं समापयितुं तत् अधः लिखतु।',
+  'We will email a 6-digit code to {email}.':
+    'वयं {email} इत्यत्र षडङ्कात्मकं कूटं प्रेषयिष्यामः।',
+  'Enter the code to confirm this email address is yours. It keeps fake accounts out of Saarthi.':
+    'अयं ईमेल-सङ्केतः भवतः एव इति पुष्टीकर्तुं कूटं लिखतु। एतेन Saarthi कृत्रिमखातेभ्यः रक्षितं भवति।',
+  'Verification code':
+    'सत्यापनकूटम्',
+  'Send code':
+    'कूटं प्रेषयतु',
+  'Resend code':
+    'कूटं पुनः प्रेषयतु',
+  'Resend in {seconds}s':
+    '{seconds} क्षणेषु पुनः प्रेषयतु',
+  'Not arrived? Check your spam folder. Wrong address? Go back and change it.':
+    'न प्राप्तम्? स्पैम-कोशं पश्यतु। सङ्केतः अशुद्धः? पृष्ठतः गत्वा परिवर्तयतु।',
+  'We emailed a verification code to {email}.':
+    'वयं {email} इत्यत्र सत्यापनकूटं प्रेषितवन्तः।',
+  'The code could not be sent. Please try again.':
+    'कूटं प्रेषयितुं न शक्यम्। कृपया पुनः प्रयतताम्।',
   'I own trucks and want to manage my fleet and win loads.':
     'मम भारयानानि सन्ति, स्वयानसमूहं परिपालयितुं भारं प्राप्तुं च इच्छामि।',
   'I need materials, transport, a cab or a tour, and want offers to compare.':

@@ -42,14 +42,13 @@ export async function telemetryRoutes(app: FastifyInstance): Promise<void> {
     },
   );
 
+  /*
+   * Live and history are not feature-gated: without a tracker the service
+   * returns what the driver's phone measured, and nothing it could not.
+   */
   app.get(
     '/vehicles/:id/latest',
-    {
-      preHandler: [
-        requirePermission(Permission.TELEMETRY_READ),
-        requireFeature(Feature.TELEMETRY_LIVE),
-      ],
-    },
+    { preHandler: requirePermission(Permission.TELEMETRY_READ) },
     async (request, reply) => {
       const auth = requireAuth(request);
       const { id } = parseParams(idParamSchema, request.params);
@@ -59,12 +58,7 @@ export async function telemetryRoutes(app: FastifyInstance): Promise<void> {
 
   app.get(
     '/history',
-    {
-      preHandler: [
-        requirePermission(Permission.TELEMETRY_READ),
-        requireFeature(Feature.TELEMETRY_HISTORY),
-      ],
-    },
+    { preHandler: requirePermission(Permission.TELEMETRY_READ) },
     async (request, reply) => {
       const auth = requireAuth(request);
       const query = parseQuery(telemetryHistoryQuerySchema, request.query);

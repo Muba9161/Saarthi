@@ -1,8 +1,10 @@
 import * as React from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Car, Download, EyeOff, RefreshCw, Search, ShieldCheck } from 'lucide-react';
+import { Car, Download, EyeOff, LockKeyhole, RefreshCw, Search, ShieldCheck } from 'lucide-react';
 import {
+  ErrorCode,
+  RcDetailAccess,
   formatRegistrationNumber,
   isPlausibleIndianRegistration,
   normalizeRegistrationNumber,
@@ -11,6 +13,7 @@ import {
 import { ApiError, absoluteApiUrl, api, errorMessage, getAccessToken } from '@/lib/api-client';
 import { EmptyState, ErrorState, LoadingState } from '@/components/common/states';
 import { RcComplianceRows, RcRecordDetails } from '@/features/documents/rto-record-details';
+import { SecureUnlockDialog } from '@/features/secure-access/secure-unlock-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -64,12 +67,49 @@ export interface RcLookupPanelProps {
   registrationNumber?: string;
 }
 
+/**
+ * Why the owner's details are masked, in words the reader can act on — never
+ * "hidden" with no reason, and never a suggestion to pay for a refresh that
+ * would come back masked too.
+ */
+const MASKED_REASON: Record<Exclude<RcDetailAccess, 'FULL'>, string> = {
+  [RcDetailAccess.NOT_PERMITTED]:
+    'Owner details, engine number and chassis number are hidden. Your role does not include access to personal vehicle data.',
+  [RcDetailAccess.OWNERSHIP_REQUIRED]:
+    'Owner details are masked because this account has not confirmed it owns the vehicle. The RC owner’s name has to match a verified PAN, Voter ID or business GSTIN on the account — the vehicle’s Ownership card shows where it stands.',
+  [RcDetailAccess.LOCKED]:
+    'Owner details are masked. Enter your secure PIN to see them in full and download the certificate.',
+};
+
 export function RcLookupPanel({ registrationNumber: fixedPlate }: RcLookupPanelProps = {}) {
   const queryClient = useQueryClient();
   const locked = Boolean(fixedPlate);
   const [input, setInput] = React.useState(fixedPlate ?? '');
   const [result, setResult] = React.useState<VehicleLookupResult | null>(null);
   const [downloading, setDownloading] = React.useState(false);
+  const [unlockOpen, setUnlockOpen] = React.useState(false);
+  /** What to do once the PIN is in: reload the record, or retry a download. */
+  const afterUnlock = React.useRef<() => void>(() => undefined);
+
+  const requestUnlock = (then: () => void): void => {
+    afterUnlock.current = then;
+    setUnlockOpen(true);
+  };
+
+  /** Read the stored record again, now that this session may see more of it. */
+  const reloadRecord = async (registrationNumber: string): Promise<void> => {
+    try {
+      const fresh = await api.get<VehicleLookupResult | null>('/vehicles/lookups/latest', {
+        registrationNumber,
+      });
+      if (fresh) {
+        setResult(fresh);
+        queryClient.setQueryData(['vehicle-lookup', 'stored', fixedPlate], fresh);
+      }
+    } catch (error) {
+      toast.error('Could not load the full record', { description: errorMessage(error) });
+    }
+  };
 
   // Follow the vehicle if the surrounding page switches to another one.
   React.useEffect(() => {
@@ -141,6 +181,16 @@ export function RcLookupPanel({ registrationNumber: fixedPlate }: RcLookupPanelP
           credentials: 'include',
           headers: { authorization: `Bearer ${getAccessToken() ?? ''}` },
         });
+        if (response.status === 403) {
+          const body = (await response.json().catch(() => null)) as {
+            error?: { code?: string };
+          } | null;
+          // The unlock window ran out between showing the button and pressing it.
+          if (body?.error?.code === ErrorCode.SECURE_ACCESS_REQUIRED) {
+            requestUnlock(() => downloadRc(lookupId, registrationNumber));
+            return;
+          }
+        }
         if (!response.ok) throw new Error('Download failed');
 
         const blob = await response.blob();
@@ -279,12 +329,26 @@ export function RcLookupPanel({ registrationNumber: fixedPlate }: RcLookupPanelP
 
             <Button
               variant="gradient"
-              disabled={!result.pdfAvailable || downloading}
-              onClick={() => downloadRc(result.lookupId, result.registrationNumber)}
+              disabled={
+                !result.pdfAvailable ||
+                downloading ||
+                result.access === RcDetailAccess.NOT_PERMITTED ||
+                result.access === RcDetailAccess.OWNERSHIP_REQUIRED
+              }
+              onClick={() =>
+                result.access === RcDetailAccess.LOCKED
+                  ? requestUnlock(() => {
+                      void reloadRecord(result.registrationNumber);
+                      downloadRc(result.lookupId, result.registrationNumber);
+                    })
+                  : downloadRc(result.lookupId, result.registrationNumber)
+              }
               title={
-                result.pdfAvailable
-                  ? 'Download the RC certificate'
-                  : 'The provider did not produce a document for this vehicle'
+                !result.pdfAvailable
+                  ? 'The provider did not produce a document for this vehicle'
+                  : result.access === RcDetailAccess.OWNERSHIP_REQUIRED
+                    ? 'Available once this account has confirmed it owns the vehicle'
+                    : 'Download the RC certificate'
               }
             >
               <Download className="size-4" />
@@ -307,12 +371,24 @@ export function RcLookupPanel({ registrationNumber: fixedPlate }: RcLookupPanelP
 
             <RcRecordDetails record={result.vehicle} />
 
-            {result.vehicle.redacted ? (
-              <p className="flex items-start gap-2 rounded-lg bg-muted/60 px-3 py-2 text-xs text-muted-foreground">
-                <EyeOff className="mt-0.5 size-3.5 shrink-0" />
-                Owner details, engine number and chassis number are hidden. Your role does not
-                include access to personal vehicle data.
-              </p>
+            {result.access !== RcDetailAccess.FULL ? (
+              <div className="flex flex-col gap-2 rounded-lg bg-muted/60 px-3 py-2 sm:flex-row sm:items-center">
+                <p className="flex flex-1 items-start gap-2 text-xs text-muted-foreground">
+                  <EyeOff className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+                  {MASKED_REASON[result.access]}
+                </p>
+                {result.access === RcDetailAccess.LOCKED ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="shrink-0"
+                    onClick={() => requestUnlock(() => void reloadRecord(result.registrationNumber))}
+                  >
+                    <LockKeyhole className="size-4" aria-hidden />
+                    Unlock full details
+                  </Button>
+                ) : null}
+              </div>
             ) : null}
 
             {!result.pdfAvailable ? (
@@ -329,6 +405,13 @@ export function RcLookupPanel({ registrationNumber: fixedPlate }: RcLookupPanelP
           </CardContent>
         </Card>
       ) : null}
+
+      <SecureUnlockDialog
+        open={unlockOpen}
+        onOpenChange={setUnlockOpen}
+        purpose="see the full RC"
+        onUnlocked={() => afterUnlock.current()}
+      />
     </div>
   );
 }

@@ -82,7 +82,7 @@ export async function vehicleLookupRoutes(app: FastifyInstance): Promise<void> {
           cached: audit.cached,
           pdfStored: audit.pdfStored,
           providerReference: audit.providerReference,
-          sensitiveFieldsIncluded: vehicleLookupService.canSeeSensitiveVehicleData(auth),
+          sensitiveFieldsIncluded: !result.vehicle.redacted,
         },
       });
 

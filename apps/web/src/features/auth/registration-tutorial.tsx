@@ -12,6 +12,7 @@ import {
   Info,
   Languages,
   ListChecks,
+  MailCheck,
   Pencil,
   ShieldCheck,
   Sparkles,
@@ -56,6 +57,12 @@ import { ImageCircleField } from '@/components/common/file-dropzone';
 import { PasswordStrength } from '@/components/common/password-strength';
 import { AnimatePresence, motion, useReducedMotion } from '@/components/motion';
 import { LanguageGrid, useLocale } from '@/features/i18n';
+import {
+  EmailCodeStep,
+  EmailVerificationHint,
+  VERIFY_EMAIL_STEP_ID,
+  type EmailCodeController,
+} from './email-verification';
 import { cn } from '@/lib/utils';
 import {
   ACCOUNT_GUIDES,
@@ -343,7 +350,7 @@ function QuestionFrame({
 interface FlowStep extends StepDescriptor {
   /** Validated with `form.trigger` before the screen will let anybody past. */
   fields: readonly (keyof RegisterInput)[];
-  /** Absent on the language, account-type, ready-check and review screens. */
+  /** Absent on the language, account-type, ready-check, review and verify screens. */
   question?: GuidedQuestion;
 }
 
@@ -363,6 +370,8 @@ export interface RegistrationTutorialProps {
   submitting: boolean;
   /** Whatever the last submit failed with — the page's alert is behind this. */
   formError: string | null;
+  /** The page's email code, so a code sent here is still good in the wizard. */
+  emailCode: EmailCodeController;
 }
 
 export function RegistrationTutorial({
@@ -374,6 +383,7 @@ export function RegistrationTutorial({
   onSubmit,
   submitting,
   formError,
+  emailCode,
 }: RegistrationTutorialProps) {
   const { locale, setLocale, t } = useLocale();
   const reduced = useReducedMotion();
@@ -424,6 +434,8 @@ export function RegistrationTutorial({
         question,
       })),
       { id: 'review', title: t('Review'), icon: ShieldCheck, fields: ['acceptedTerms'] },
+      // Leaving the review is what emails the code; see `advance`.
+      { id: VERIFY_EMAIL_STEP_ID, title: t('Verify email'), icon: MailCheck, fields: ['emailCode'] },
     ],
     [guide, t],
   );
@@ -432,7 +444,7 @@ export function RegistrationTutorial({
   // somebody goes back and switches could land on a different screen entirely.
   const safeIndex = Math.min(index, steps.length - 1);
   const step = steps[safeIndex];
-  const isReview = step?.id === 'review';
+  const isLast = safeIndex === steps.length - 1;
 
   React.useEffect(() => {
     if (safeIndex !== index) setIndex(safeIndex);
@@ -465,7 +477,8 @@ export function RegistrationTutorial({
   const advance = async (): Promise<void> => {
     if (!step || submitting || checking) return;
 
-    if (step.fields.length) {
+    const sendsCode = steps[safeIndex + 1]?.id === VERIFY_EMAIL_STEP_ID;
+    if (step.fields.length || sendsCode) {
       setChecking(true);
       try {
         /*
@@ -477,6 +490,7 @@ export function RegistrationTutorial({
          */
         const ok = await form.trigger(step.fields, { shouldFocus: true });
         if (!ok) return;
+        if (sendsCode && !(await emailCode.ensureSent())) return;
       } finally {
         setChecking(false);
       }
@@ -651,6 +665,21 @@ export function RegistrationTutorial({
                       form={form}
                       formError={formError}
                     />
+                  ) : step.id === VERIFY_EMAIL_STEP_ID ? (
+                    <QuestionFrame
+                      icon={MailCheck}
+                      question="Check your inbox"
+                      help="Enter the code to confirm this email address is yours. It keeps fake accounts out of Saarthi."
+                    >
+                      {/* The account is created from this screen now, so a
+                          failure with no field to attach to is shown here. */}
+                      {formError ? (
+                        <Alert variant="destructive">
+                          <AlertDescription>{formError}</AlertDescription>
+                        </Alert>
+                      ) : null}
+                      <EmailCodeStep form={form} controller={emailCode} />
+                    </QuestionFrame>
                   ) : step.question ? (
                     <QuestionScreen
                       question={step.question}
@@ -707,7 +736,7 @@ export function RegistrationTutorial({
                   loading={submitting || checking}
                   className="min-w-36"
                 >
-                  {isReview ? (
+                  {isLast ? (
                     <>
                       <ShieldCheck className="size-4" />
                       {t('Create account')}
@@ -1068,6 +1097,7 @@ function QuestionScreen({
                   className="h-11"
                 />
               </FormControl>
+              <EmailVerificationHint />
               <FormMessage />
             </FormItem>
           )}
@@ -1241,7 +1271,10 @@ function ReviewScreen({
    * without scrolling a list looking for the red one.
    */
   const broken = steps.filter(
-    (step) => step.id !== 'review' && step.fields.some((field) => field in form.formState.errors),
+    (step) =>
+      step.id !== 'review' &&
+      step.id !== VERIFY_EMAIL_STEP_ID &&
+      step.fields.some((field) => field in form.formState.errors),
   );
 
   return (
@@ -1268,7 +1301,9 @@ function ReviewScreen({
 
       <ul className={cn(INSET, 'divide-y divide-border overflow-hidden dark:divide-white/[0.07]')}>
         {steps.map((step, position) => {
-          if (step.id === 'ready' || step.id === 'review') return null;
+          if (step.id === 'ready' || step.id === 'review' || step.id === VERIFY_EMAIL_STEP_ID) {
+            return null;
+          }
           const answer = answerFor(step);
           const errored = step.fields.some((field) => field in form.formState.errors);
           // Optional on the stepper's descriptor; every screen in this flow

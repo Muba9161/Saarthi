@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { ArrowRight, KeyRound, Mail } from 'lucide-react';
+import { ArrowRight, Fingerprint, KeyRound, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PasswordInput } from '@/components/ui/password-input';
@@ -18,6 +18,11 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AuthCard, AuthDivider, AuthHeading, FieldIcon } from '@/features/auth/auth-card';
 import { useAuth } from '@/features/auth/auth-context';
+import {
+  hasDevicePasskey,
+  isBiometricCancelled,
+  useBiometricSupport,
+} from '@/features/secure-access/secure-access-api';
 import { ApiError } from '@/lib/api-client';
 import { AnimatePresence, Stagger, StaggerItem, motion } from '@/components/motion';
 import { useT } from '@/features/i18n';
@@ -43,7 +48,11 @@ function safeNext(value: string | null): string | null {
 }
 
 export function LoginPage() {
-  const { login } = useAuth();
+  const { login, loginWithPasskey } = useAuth();
+  const biometrics = useBiometricSupport();
+  const [biometricPending, setBiometricPending] = React.useState(false);
+  // Only offered once a fingerprint or face has been added on this device.
+  const [deviceHasPasskey, setDeviceHasPasskey] = React.useState(hasDevicePasskey);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const next = safeNext(searchParams.get('next'));
@@ -70,6 +79,29 @@ export function LoginPage() {
   };
 
   const submitting = form.formState.isSubmitting;
+
+  const signInWithBiometrics = async (): Promise<void> => {
+    setFormError(null);
+    setBiometricPending(true);
+    try {
+      await loginWithPasskey();
+      navigate(next ?? '/', { replace: true });
+    } catch (error) {
+      // Closing the device prompt is a change of mind, not a failure.
+      if (isBiometricCancelled(error)) return;
+      // Removed from this account since: the button goes, password it is.
+      if (!hasDevicePasskey()) setDeviceHasPasskey(false);
+      setFormError(
+        error instanceof ApiError
+          ? error.message
+          : t(
+              'Fingerprint or face sign-in did not work on this device. Sign in with your password.',
+            ),
+      );
+    } finally {
+      setBiometricPending(false);
+    }
+  };
 
   return (
     <Stagger className="space-y-5">
@@ -169,6 +201,36 @@ export function LoginPage() {
               </Button>
             </form>
           </Form>
+
+          {/*
+            Fingerprint / face sign-in — shown only once a fingerprint or face
+            has been added on this device under Secure PIN & fingerprint. If
+            the device later cannot do it (the sensor was turned off), it stays
+            visible but disabled, with a quiet reason.
+          */}
+          {deviceHasPasskey ? (
+            <div className="mt-3 space-y-1.5">
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                className="w-full"
+                disabled={biometrics !== 'available' || submitting}
+                loading={biometricPending}
+                onClick={() => void signInWithBiometrics()}
+              >
+                <Fingerprint className="size-4" aria-hidden />
+                {t('Sign in with fingerprint or face')}
+              </Button>
+              {biometrics === 'unavailable' ? (
+                <p className="text-center text-xs text-muted-foreground">
+                  {t(
+                    'This device has no fingerprint or face sensor your browser can use, so sign in with your password.',
+                  )}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
 
           <div className="mt-6 space-y-4">
             <AuthDivider>{t('New to Saarthi?')}</AuthDivider>

@@ -44,6 +44,8 @@ import {
 } from '../modules/analytics/analytics.routes';
 import { adminRoutes } from '../modules/admin/admin.routes';
 import { vehicleRoutes } from '../modules/vehicles/vehicle.routes';
+import { secureAccessRoutes } from '../modules/secure-access/secure-access.routes';
+import { vehicleSharingRoutes } from '../modules/vehicle-sharing/vehicle-sharing.routes';
 import { associationRoutes } from '../modules/associations/association.routes';
 import { travelRoutes } from '../modules/travel/travel.routes';
 import { deviceRoutes } from '../modules/devices/device.routes';
@@ -143,6 +145,8 @@ export async function registerApiRoutes(app: FastifyInstance): Promise<void> {
   await app.register(petrolStationRoutes, { prefix: '/petrol-stations' });
   await app.register(fuelRateRoutes, { prefix: '/fuel-rates' });
   await app.register(vehicleLookupRoutes, { prefix: '/vehicles' });
+  // The secure PIN and passkeys that unlock sensitive details, like the full RC.
+  await app.register(secureAccessRoutes, { prefix: '/security' });
   await app.register(licenceLookupRoutes, { prefix: '/drivers' });
   await app.register(sosRoutes, { prefix: '/sos' });
   await app.register(maintenanceRoutes, { prefix: '/maintenance' });
@@ -187,6 +191,8 @@ export async function registerApiRoutes(app: FastifyInstance): Promise<void> {
   // /vehicles is the RC-lookup surface for arbitrary registration numbers.
   // Different resource, different trust level, so different path.
   await app.register(vehicleRoutes, { prefix: '/fleet/vehicles' });
+  // Another account's vehicle, seen and used through an accepted share.
+  await app.register(vehicleSharingRoutes, { prefix: '/fleet/sharing' });
   // Vehicle finance. Mounted under /fleet because it is fleet-owner data, and
   // the per-vehicle panel sits alongside the vehicle it belongs to.
   await app.register(loanRoutes, { prefix: '/fleet/loans' });

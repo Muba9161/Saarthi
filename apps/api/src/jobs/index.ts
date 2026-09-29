@@ -14,6 +14,7 @@ import { notifyOrganization } from '../modules/notifications/notification.servic
 import { runMaintenanceReminderSweep } from '../modules/maintenance/maintenance.service';
 import { recalculateDriverScore } from '../modules/drivers/driver.service';
 import { runVehicleLookupRetentionSweep } from '../modules/vehicle-lookup/vehicle-lookup.service';
+import { runVehicleOwnershipSweep } from '../modules/vehicles/vehicle-ownership.service';
 import { runLicenceLookupRetentionSweep } from '../modules/licence-lookup/licence-lookup.service';
 import { runIdentityVerificationRetentionSweep } from '../modules/identity-verification/identity-verification.service';
 import { runAssociationEscalationSweep } from '../modules/associations/association-alert.service';
@@ -165,18 +166,22 @@ export async function runTrackingRetentionSweep(): Promise<number> {
   return result.count;
 }
 
-/** Remove expired sessions and used password-reset tokens. */
+/** Remove expired sessions, used password-reset tokens and spent email codes. */
 export async function runSessionCleanup(): Promise<number> {
   const now = new Date();
-  const [sessions, tokens] = await Promise.all([
+  const [sessions, tokens, emailCodes] = await Promise.all([
     prisma.session.deleteMany({
       where: { OR: [{ expiresAt: { lt: now } }, { revokedAt: { lt: new Date(now.getTime() - 30 * 86_400_000) } }] },
     }),
     prisma.passwordResetToken.deleteMany({
       where: { OR: [{ expiresAt: { lt: now } }, { usedAt: { not: null } }] },
     }),
+    // Kept an hour past expiry: the hourly per-address send cap counts them.
+    prisma.emailVerificationCode.deleteMany({
+      where: { expiresAt: { lt: new Date(now.getTime() - 60 * 60_000) } },
+    }),
   ]);
-  return sessions.count + tokens.count;
+  return sessions.count + tokens.count + emailCodes.count;
 }
 
 export function registerBackgroundJobs(): void {
@@ -219,6 +224,23 @@ export function registerBackgroundJobs(): void {
       // Identity checks ride the same sweep: three caches of government data
       // with three retention windows, one place that enforces all of them.
       await runIdentityVerificationRetentionSweep();
+    },
+  });
+
+  /*
+   * Vehicle ownership: confirms vehicles whose evidence arrived since they were
+   * added — a PAN verified next day. Reads Saarthi's own records only; nothing
+   * here calls a provider.
+   */
+  queue.registerRepeating({
+    name: 'vehicles:ownership-sweep',
+    everyMs: HOUR,
+    initialDelayMs: 170_000,
+    handler: async () => {
+      const result = await runVehicleOwnershipSweep();
+      if (result.checked > 0) {
+        jobLogger.info(result, 'Vehicle ownership sweep');
+      }
     },
   });
 

@@ -12,6 +12,7 @@ import {
   QrScanResult,
   QrScope,
   QrSubjectType,
+  VehicleOwnershipStatus,
   ScannerRelationship,
   buildPaginationMeta,
   defaultScopesFor,
@@ -1014,6 +1015,7 @@ export async function resolveToken(
     subject,
     codeScopes,
     scopesGranted,
+    policy.showRcDetails,
   );
 
   // Field-level privacy runs last, over the assembled payload. It can only
@@ -1058,6 +1060,8 @@ async function buildScanPayload(
   subject: SubjectInfo,
   codeScopes: QrScope[],
   granted: QrScope[],
+  /** The account's own switch for RC details on scans — off unless turned on. */
+  showRcDetails: boolean,
 ): Promise<ResolvedScan> {
   const { scopeDeniedReason } = await import('@saarthi/shared');
 
@@ -1140,12 +1144,10 @@ async function buildScanPayload(
         if (driver.currentTruckId) {
           const assigned = await prisma.truck.findUnique({
             where: { id: driver.currentTruckId },
-            select: { registrationNumber: true },
+            select: { registrationNumber: true, ownershipStatus: true },
           });
-          if (assigned) {
-            const rc = await storedRcFor(assigned.registrationNumber);
-            if (rc) payload.rc = { ...rc, source: 'ASSIGNED_VEHICLE' };
-          }
+          const rc = assigned && showRcDetails ? await storedRcFor(assigned) : null;
+          if (rc) payload.rc = { ...rc, source: 'ASSIGNED_VEHICLE' };
         }
       }
     }
@@ -1173,7 +1175,7 @@ async function buildScanPayload(
       if (granted.includes(QrScope.COMPLIANCE)) {
         payload.compliance = await complianceFor('TRUCK', subjectId);
 
-        const rc = await storedRcFor(vehicle.registrationNumber);
+        const rc = showRcDetails ? await storedRcFor(vehicle) : null;
         if (rc) payload.rc = { ...rc, source: 'VEHICLE' };
       }
 
@@ -1276,13 +1278,22 @@ function scoreBandFor(score: number | null): string | null {
  * `expiresAt` is the retention boundary the lookup module set when it stored
  * the record, not a cache TTL — a row past it is data Saarthi has undertaken to
  * stop showing, so it is skipped rather than served stale.
+ *
+ * Only asked for when the account has turned RC details on for scans. Even
+ * then a sticker is readable by anyone on the road, so the owner's phone and
+ * addresses never leave, and the owner's name is dropped as well until the
+ * fleet has confirmed it owns the vehicle — a sticker on a plate somebody else
+ * typed in must not publish the real owner, whatever the privacy policy allows.
  */
-async function storedRcFor(registrationNumber: string): Promise<{
+async function storedRcFor(vehicle: {
+  registrationNumber: string;
+  ownershipStatus: string;
+}): Promise<{
   registrationNumber: string;
   retrievedAt: string;
   record: VehicleRcRecord;
 } | null> {
-  const plate = normalizeRegistrationNumber(registrationNumber);
+  const plate = normalizeRegistrationNumber(vehicle.registrationNumber);
   if (!plate) return null;
 
   const lookup = await prisma.vehicleLookup.findFirst({
@@ -1292,12 +1303,26 @@ async function storedRcFor(registrationNumber: string): Promise<{
   });
   if (!lookup?.responseData) return null;
 
+  // Stored by the lookup module in Saarthi's own normalised shape, before any
+  // per-caller redaction — the privacy pass below is what narrows it.
+  const record = lookup.responseData as unknown as VehicleRcRecord;
+  const ownerConfirmed = vehicle.ownershipStatus === VehicleOwnershipStatus.VERIFIED;
+  const owner =
+    ownerConfirmed && record.owner
+      ? {
+          name: record.owner.name,
+          fatherName: record.owner.fatherName,
+          serialNumber: null,
+          mobileNumber: null,
+          presentAddress: null,
+          permanentAddress: null,
+        }
+      : null;
+
   return {
     registrationNumber: plate,
     retrievedAt: lookup.fetchedAt.toISOString(),
-    // Stored by the lookup module in Saarthi's own normalised shape, before any
-    // per-caller redaction — the privacy pass below is what narrows it.
-    record: lookup.responseData as unknown as VehicleRcRecord,
+    record: { ...record, owner, redacted: true },
   };
 }
 

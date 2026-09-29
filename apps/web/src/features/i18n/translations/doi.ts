@@ -184,6 +184,36 @@ export const doi: Catalogue = {
   'Privacy Policy': 'निजता नीति',
   'Association name': 'एसोसिएशन दा नां',
   'Travel business name': 'ट्रैवल कारोबार दा नां',
+
+  // Registration: email verification
+  'We will email a 6-digit code to this address at the last step, to confirm it is yours. Use an inbox you can open now.':
+    'आखरी कदम पर अस इस पते पर 6 अंकें दा कोड भेजगे, तां जे पक्का होई जा जे एह् तुंदा ऐ। ऐसा इनबॉक्स बरतो जेह्ड़ा तुस हुनै खोली सकदे ओ।',
+  'Verify email':
+    'ईमेल दी पुश्टी करो',
+  'The code we emailed you.':
+    'साढ़े आसेआं ईमेल कीता गेदा कोड।',
+  'Confirm your email address':
+    'अपने ईमेल पते दी पुश्टी करो',
+  'We sent a 6-digit code to {email}. Enter it below to finish creating your account.':
+    'असें {email} पर 6 अंकें दा कोड भेजेआ ऐ। खाता बनाना पूरा करने लेई उसी ख’ल्ल दर्ज करो।',
+  'We will email a 6-digit code to {email}.':
+    'अस {email} पर 6 अंकें दा कोड ईमेल करगे।',
+  'Enter the code to confirm this email address is yours. It keeps fake accounts out of Saarthi.':
+    'एह् पुश्टी करने लेई कोड दर्ज करो जे एह् ईमेल पता तुंदा ऐ। इस कन्नै Saarthi नकली खातें थमां बचे दा रौंह्दा ऐ।',
+  'Verification code':
+    'पुश्टी कोड',
+  'Send code':
+    'कोड भेजो',
+  'Resend code':
+    'कोड फ्ही भेजो',
+  'Resend in {seconds}s':
+    '{seconds} सकिंटें च फ्ही भेजो',
+  'Not arrived? Check your spam folder. Wrong address? Go back and change it.':
+    'कोड नेईं आया? स्पैम फोल्डर दिक्खो। पता गलत ऐ? पिच्छें जाइयै उसी बदलो।',
+  'We emailed a verification code to {email}.':
+    'असें {email} पर पुश्टी कोड ईमेल कीता ऐ।',
+  'The code could not be sent. Please try again.':
+    'कोड नेईं भेजेआ जाई सकेआ। किरपा करियै फ्ही कोशश करो।',
   'I own trucks and want to manage my fleet and win loads.':
     'मेरे कोल ट्रक न ते मैं अपना बेड़ा चलाना ते लोड हासल करना चांहदा आं।',
   'I need materials, transport, a cab or a tour, and want offers to compare.':

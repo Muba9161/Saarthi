@@ -1,6 +1,9 @@
 import {
   Permission,
+  RcDetailAccess,
+  VehicleOwnershipStatus,
   hasPermission,
+  maskRcRecord,
   vehicleDraftFromRc,
   type VehicleLookupInput,
   type VehicleLookupResult,
@@ -15,6 +18,8 @@ import { logger } from '../../lib/logger';
 import { storageProvider } from '../../providers/storage';
 import { maskRegistration, requireVehicleRcProvider } from '../../providers/vehicle-rc';
 import { AuditAction } from '../audit/audit.service';
+import { evaluateOwnership } from '../vehicles/vehicle-ownership.service';
+import { assertUnlocked, isUnlocked } from '../secure-access/secure-access.service';
 import type { AuthContext } from '../../auth/context';
 
 /**
@@ -58,8 +63,33 @@ export function canSeeSensitiveVehicleData(auth: AuthContext): boolean {
   );
 }
 
-function recordForCaller(auth: AuthContext, record: VehicleRcRecord): VehicleRcRecord {
-  return canSeeSensitiveVehicleData(auth) ? { ...record, redacted: false } : redactRecord(record);
+/**
+ * How much of a vehicle's RC this caller may see right now.
+ *
+ * Three gates, each answering a different question, all automatic:
+ *
+ *  1. the permission — may this role read personal vehicle data at all?
+ *  2. ownership — has this account shown the vehicle is its own? Anyone can
+ *     type a plate; without this, adding a stranger's car would reveal them.
+ *  3. the secure PIN — is the account holder the one at the keyboard?
+ *
+ * Platform staff are exempt, as everywhere; their access is audited.
+ */
+async function rcAccess(
+  auth: AuthContext,
+  ownershipStatus: string | null | undefined,
+): Promise<RcDetailAccess> {
+  if (auth.isPlatformAdmin) return RcDetailAccess.FULL;
+  if (!canSeeSensitiveVehicleData(auth)) return RcDetailAccess.NOT_PERMITTED;
+  if (ownershipStatus !== VehicleOwnershipStatus.VERIFIED) return RcDetailAccess.OWNERSHIP_REQUIRED;
+  return (await isUnlocked(auth)) ? RcDetailAccess.FULL : RcDetailAccess.LOCKED;
+}
+
+/** The record as this level of access sees it: whole, masked, or stripped. */
+function presentRecord(record: VehicleRcRecord, access: RcDetailAccess): VehicleRcRecord {
+  if (access === RcDetailAccess.FULL) return { ...record, redacted: false };
+  if (access === RcDetailAccess.NOT_PERMITTED) return redactRecord(record);
+  return maskRcRecord(record);
 }
 
 /**
@@ -76,12 +106,16 @@ function recordForCaller(auth: AuthContext, record: VehicleRcRecord): VehicleRcR
  *
  * Platform admins are exempt so support can act on a tenant's behalf; that
  * access is audited like every other lookup.
+ *
+ * Being on the fleet is not the same as being owned: anyone can add a plate.
+ * The vehicle is returned so callers can also ask `rcAccess`; `null` for
+ * platform admins, who are not checked.
  */
 async function assertVehicleBelongsToCaller(
   auth: AuthContext,
   registrationNumber: string,
-): Promise<void> {
-  if (auth.isPlatformAdmin) return;
+): Promise<{ id: string; ownershipStatus: string } | null> {
+  if (auth.isPlatformAdmin) return null;
 
   const organizationId = auth.organizationId;
   if (!organizationId) {
@@ -92,7 +126,7 @@ async function assertVehicleBelongsToCaller(
 
   const owned = await prisma.truck.findFirst({
     where: { registrationNumber, organizationId, archivedAt: null },
-    select: { id: true },
+    select: { id: true, ownershipStatus: true },
   });
 
   if (!owned) {
@@ -101,6 +135,7 @@ async function assertVehicleBelongsToCaller(
         'Add it to your fleet first — registration lookups are limited to vehicles you own.',
     );
   }
+  return owned;
 }
 
 /**
@@ -234,7 +269,7 @@ export async function getStoredLookup(
   auth: AuthContext,
   registrationNumber: string,
 ): Promise<VehicleLookupResult | null> {
-  await assertVehicleBelongsToCaller(auth, registrationNumber);
+  const vehicle = await assertVehicleBelongsToCaller(auth, registrationNumber);
 
   const stored = await prisma.vehicleLookup.findFirst({
     where: { registrationNumber, organizationId: auth.organizationId ?? null },
@@ -242,20 +277,25 @@ export async function getStoredLookup(
   });
   if (!stored) return null;
 
+  const access = await rcAccess(auth, vehicle?.ownershipStatus);
   return {
     lookupId: stored.id,
     registrationNumber,
-    vehicle: recordForCaller(auth, stored.responseData as unknown as VehicleRcRecord),
+    vehicle: presentRecord(stored.responseData as unknown as VehicleRcRecord, access),
     cached: true,
     retrievedAt: stored.fetchedAt.toISOString(),
     expiresAt: stored.expiresAt.toISOString(),
     pdfAvailable: Boolean(stored.pdfStorageKey),
+    access,
     providerReference: stored.providerReference,
   };
 }
 
-export interface VehicleLookupOutcome {
-  result: VehicleLookupResult;
+/** A lookup before anyone has decided what the caller may see of it. */
+type RawLookupResult = Omit<VehicleLookupResult, 'access'>;
+
+export interface VehicleLookupOutcome<Result = VehicleLookupResult> {
+  result: Result;
   /** Billable calls left in this environment's allowance; `null` if uncapped. */
   budgetRemaining: number | null;
   /** Audit metadata. Never contains personal data. */
@@ -274,8 +314,25 @@ export async function lookupVehicle(
 ): Promise<VehicleLookupOutcome> {
   // Checked before the cache as well as the provider: a plate that left the
   // fleet must stop returning its owner's details from a warm cache entry.
-  await assertVehicleBelongsToCaller(auth, input.registrationNumber);
-  return fetchLookup(auth, input);
+  const vehicle = await assertVehicleBelongsToCaller(auth, input.registrationNumber);
+  const outcome = await fetchLookup(auth, input);
+
+  // A fresh record is the evidence ownership waits on, so settle it before
+  // deciding what this answer may show.
+  const status =
+    vehicle?.ownershipStatus === VehicleOwnershipStatus.PENDING
+      ? (await evaluateOwnership(vehicle.id)).status
+      : vehicle?.ownershipStatus;
+  const access = await rcAccess(auth, status);
+
+  return {
+    ...outcome,
+    result: {
+      ...outcome.result,
+      vehicle: presentRecord(outcome.result.vehicle, access),
+      access,
+    },
+  };
 }
 
 /**
@@ -296,16 +353,22 @@ export async function lookupVehicle(
 export async function prefillVehicleFromRc(
   auth: AuthContext,
   registrationNumber: string,
-): Promise<{ prefill: VehicleRcPrefill; outcome: VehicleLookupOutcome }> {
+): Promise<{ prefill: VehicleRcPrefill; outcome: VehicleLookupOutcome<RawLookupResult> }> {
   if (!auth.organizationId) {
     throw errors.organizationRequired('Your account is not linked to an organization, so it cannot add vehicles.');
   }
 
   const existing = await prisma.truck.findUnique({
     where: { registrationNumber },
-    select: { organizationId: true },
+    select: { organizationId: true, ownershipStatus: true },
   });
-  if (existing) {
+  // Another account's unconfirmed hold does not stop the owner: the draft
+  // carries no personal data, and saving the vehicle is where they must prove
+  // the plate is theirs — see `resolveRegistrationClaim`.
+  const claimable =
+    existing?.organizationId !== auth.organizationId &&
+    existing?.ownershipStatus !== VehicleOwnershipStatus.VERIFIED;
+  if (existing && !claimable) {
     throw errors.conflict(
       existing.organizationId === auth.organizationId
         ? `${registrationNumber} is already on your account.`
@@ -324,8 +387,15 @@ export async function prefillVehicleFromRc(
   };
 }
 
-/** The lookup itself — cache, budget, provider, stored copy — for a plate already cleared to be looked up. */
-async function fetchLookup(auth: AuthContext, input: VehicleLookupInput): Promise<VehicleLookupOutcome> {
+/**
+ * The lookup itself — cache, budget, provider, stored copy — for a plate
+ * already cleared to be looked up. The record comes back unredacted; each
+ * caller narrows it for whoever asked.
+ */
+async function fetchLookup(
+  auth: AuthContext,
+  input: VehicleLookupInput,
+): Promise<VehicleLookupOutcome<RawLookupResult>> {
   const registrationNumber = input.registrationNumber;
   const organizationId = auth.organizationId ?? null;
   const ttlSeconds = config.vehicleRc.cacheTtlSeconds;
@@ -347,7 +417,7 @@ async function fetchLookup(auth: AuthContext, input: VehicleLookupInput): Promis
         result: {
           lookupId: cached.id,
           registrationNumber,
-          vehicle: recordForCaller(auth, record),
+          vehicle: record,
           cached: true,
           retrievedAt: cached.fetchedAt.toISOString(),
           expiresAt: cached.expiresAt.toISOString(),
@@ -408,7 +478,7 @@ async function fetchLookup(auth: AuthContext, input: VehicleLookupInput): Promis
     result: {
       lookupId: stored.id,
       registrationNumber,
-      vehicle: recordForCaller(auth, lookup.record),
+      vehicle: lookup.record,
       cached: false,
       retrievedAt: fetchedAt.toISOString(),
       expiresAt: expiresAt.toISOString(),
@@ -444,6 +514,20 @@ export async function downloadRcDocument(
   if (!lookup) throw errors.notFound('Vehicle lookup');
 
   assertLookupAccess(auth, lookup.organizationId);
+
+  // The certificate names the owner, so it takes full access — including for a
+  // prefill made for a plate never added at all, which fails the fleet check.
+  if (!auth.isPlatformAdmin) {
+    const vehicle = await assertVehicleBelongsToCaller(auth, lookup.registrationNumber);
+    const access = await rcAccess(auth, vehicle?.ownershipStatus);
+    if (access === RcDetailAccess.LOCKED) {
+      await assertUnlocked(auth, 'download the RC certificate');
+    } else if (access !== RcDetailAccess.FULL) {
+      throw errors.forbidden(
+        'The RC certificate shows the registered owner’s personal details, so it can be downloaded only once this account has confirmed it owns the vehicle.',
+      );
+    }
+  }
 
   if (!lookup.pdfStorageKey) {
     throw errors.pdfUnavailable(

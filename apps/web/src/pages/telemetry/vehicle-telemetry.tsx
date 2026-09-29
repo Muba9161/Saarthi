@@ -1,21 +1,12 @@
 import * as React from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
+import { Activity, ArrowLeft, Cpu } from 'lucide-react';
 import {
-  Activity,
-  ArrowLeft,
-  BatteryCharging,
-  Cpu,
-  Fuel,
-  Gauge,
-  Thermometer,
-  TriangleAlert,
-} from 'lucide-react';
-import {
+  DeviceProvider,
   Feature,
   Permission,
   RealtimeEvent,
-  TelemetryMetric,
   OrganizationType,
   describeTrackerPrices,
   humanizeEnum,
@@ -37,6 +28,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { LiveReadings } from '@/features/telemetry/live-readings';
 import { TrackerOfferDialog } from '@/features/telemetry/tracker-offer-dialog';
 
 /** Remembered for the session, so "Continue" means continue. */
@@ -70,74 +62,6 @@ function dismissOffer(vehicleId: string): void {
  * sensor on the bus" would send a mechanic looking for entirely different
  * things. Section 22 of the expansion spec requires exactly this.
  */
-
-function MetricTile({
-  label,
-  value,
-  unit,
-  icon: Icon,
-  available,
-  simulated = false,
-  tone,
-}: {
-  label: string;
-  value: number | null;
-  unit: string;
-  icon: React.ComponentType<{ className?: string }>;
-  /** False when this vehicle does not report the metric at all. */
-  available: boolean;
-  /**
-   * True when this particular figure was invented rather than measured.
-   *
-   * Per metric, not per reading. A phone paired to a vehicle sends a real
-   * position and a simulated RPM in the same frame, so a row-level flag would
-   * either brand the position as fake or present the RPM as real.
-   */
-  simulated?: boolean;
-  tone?: 'warning' | 'destructive';
-}) {
-  // A made-up 112 °C must not be painted like a real overheating engine. The
-  // colour is a claim about the vehicle, and a simulator has no standing to
-  // make it.
-  const effectiveTone = simulated ? undefined : tone;
-
-  return (
-    <div className="rounded-lg border border-border p-3">
-      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-        <Icon className="h-3.5 w-3.5" />
-        {label}
-      </div>
-      {!available ? (
-        <p className="mt-1 text-sm text-muted-foreground">Not reported</p>
-      ) : value === null ? (
-        <p className="mt-1 text-sm text-muted-foreground">No reading</p>
-      ) : (
-        <>
-          <p
-            className={
-              effectiveTone === 'destructive'
-                ? 'mt-1 text-xl font-semibold text-destructive'
-                : effectiveTone === 'warning'
-                  ? 'mt-1 text-xl font-semibold text-warning'
-                  : simulated
-                    ? 'mt-1 text-xl font-semibold text-muted-foreground'
-                    : 'mt-1 text-xl font-semibold'
-            }
-          >
-            {Math.round(value * 10) / 10}
-            <span className="ml-1 text-xs font-normal text-muted-foreground">{unit}</span>
-          </p>
-          {simulated ? (
-            <Badge variant="warning" size="sm" className="mt-1">
-              Simulated
-            </Badge>
-          ) : null}
-        </>
-      )}
-    </div>
-  );
-}
-
 export function VehicleTelemetryPage() {
   const { id } = useParams<{ id: string }>();
   const { can, hasFeature, session } = useAuth();
@@ -157,11 +81,12 @@ export function VehicleTelemetryPage() {
     enabled: Boolean(id) && can(Permission.TELEMETRY_READ),
   });
 
+  // Not feature-gated: without a tracker the API sends what the driver's phone
+  // measured — position, speed and motion — and nothing it could not.
   const latest = useQuery({
     queryKey: ['telemetry', 'latest', id],
     queryFn: () => api.get<TelemetryReadingSummary | null>(`/telemetry/vehicles/${id}/latest`),
-    enabled:
-      Boolean(id) && can(Permission.TELEMETRY_READ) && hasFeature(Feature.TELEMETRY_LIVE),
+    enabled: Boolean(id) && can(Permission.TELEMETRY_READ),
     refetchInterval: 15_000,
   });
 
@@ -173,8 +98,7 @@ export function VehicleTelemetryPage() {
         pageSize: 50,
         intervalSeconds: 300,
       }),
-    enabled:
-      Boolean(id) && can(Permission.TELEMETRY_READ) && hasFeature(Feature.TELEMETRY_HISTORY),
+    enabled: Boolean(id) && can(Permission.TELEMETRY_READ),
   });
 
   const alerts = useQuery({
@@ -206,6 +130,10 @@ export function VehicleTelemetryPage() {
    * Anyone else can open it from the cards below.
    */
   const needsTracker = !hasFeature(Feature.TELEMETRY_LIVE);
+  // History narrows the same way; the two are granted together, but each tab
+  // follows its own entitlement.
+  const phoneOnlyHistory = !hasFeature(Feature.TELEMETRY_HISTORY);
+  const fromPhone = vehicle.data?.device?.provider === DeviceProvider.MOBILE;
   const isFleetOwner =
     session?.organization?.type === OrganizationType.FLEET_OWNER &&
     !session.organization.isPersonalSeat;
@@ -222,14 +150,11 @@ export function VehicleTelemetryPage() {
   if (vehicle.isLoading) return <LoadingState label="Loading the vehicle…" />;
 
   const reading = latest.data ?? null;
-  const supported = new Set(capabilities.data?.observedMetrics ?? []);
-  const has = (metric: TelemetryMetric) => supported.has(metric);
 
   // Which figures in *this* reading were invented. A phone standing in for
   // fitted hardware reports real GPS and a simulated engine, and the difference
   // has to survive all the way to the gauge.
   const simulatedMetrics = new Set(reading?.simulatedMetrics ?? []);
-  const isSimulated = (metric: TelemetryMetric) => simulatedMetrics.has(metric);
 
   const noDevice = capabilities.data && !capabilities.data.hasDevice;
 
@@ -269,6 +194,8 @@ export function VehicleTelemetryPage() {
             // Some of it is invented, not all. Saying "simulated data" outright
             // would discredit a position that is genuinely this vehicle's.
             <Badge variant="warning">Partly simulated</Badge>
+          ) : fromPhone ? (
+            <Badge variant="info">Driver app</Badge>
           ) : capabilities.data?.hasDevice ? (
             <Badge variant="success">Live hardware</Badge>
           ) : null
@@ -307,7 +234,7 @@ export function VehicleTelemetryPage() {
           </TabsList>
 
           <TabsContent value="live" className="space-y-4">
-            {!hasFeature(Feature.TELEMETRY_LIVE) ? (
+            {needsTracker ? (
               <Card>
                 {/* Not an upgrade prompt: no plan sells this at any price,
                     because it reads a device wired into the vehicle. Telling a
@@ -315,221 +242,35 @@ export function VehicleTelemetryPage() {
                     act on. */}
                 <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4 text-sm text-muted-foreground">
                   <span className="min-w-0 flex-1">
-                    Live telemetry reads the vehicle itself, so it needs a Saarthi tracker fitted -{' '}
-                    {describeTrackerPrices()}, once per vehicle. Until then the driver app is the only
-                    source, and its figures are estimates.
+                    Showing what the driver&apos;s phone reports - position, speed and motion - so
+                    these figures are estimates. Engine, fuel and fault codes are read from the
+                    vehicle itself and need a Saarthi tracker - {describeTrackerPrices()}, once per
+                    vehicle.
                   </span>
                   <Button size="sm" onClick={() => setOfferOpen(true)}>
                     See tracker options
                   </Button>
                 </CardContent>
               </Card>
-            ) : reading === null ? (
+            ) : null}
+
+            {reading === null ? (
               <EmptyState
                 icon={Activity}
                 title="No readings yet"
-                description="The device is registered but has not reported. Nothing is shown here rather than placeholder figures."
+                description={
+                  needsTracker
+                    ? 'Readings appear here once a driver signs on in the driver app and starts moving.'
+                    : 'The device is registered but has not reported. Nothing is shown here rather than placeholder figures.'
+                }
               />
             ) : (
-              <>
-                <Card>
-                  <CardHeader className="pb-3">
-                    <SectionHeader
-                      title="Position"
-                      description={`Recorded ${new Date(reading.recordedAt).toLocaleString('en-IN')}`}
-                    />
-                  </CardHeader>
-                  <CardContent className="grid grid-cols-2 gap-3 pt-0 sm:grid-cols-4">
-                    <MetricTile
-                      label="Speed"
-                      value={reading.speedKph}
-                      unit="km/h"
-                      icon={Gauge}
-                      available={has(TelemetryMetric.SPEED)}
-                    />
-                    <MetricTile
-                      label="Heading"
-                      value={reading.heading}
-                      unit="°"
-                      icon={Activity}
-                      available={has(TelemetryMetric.HEADING)}
-                    />
-                    <MetricTile
-                      label="Altitude"
-                      value={reading.altitude}
-                      unit="m"
-                      icon={Activity}
-                      available={has(TelemetryMetric.ALTITUDE)}
-                    />
-                    <MetricTile
-                      label="Satellites"
-                      value={reading.satellites}
-                      unit=""
-                      icon={Activity}
-                      available={has(TelemetryMetric.SATELLITES)}
-                    />
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="pb-3">
-                    <SectionHeader
-                      title="Engine"
-                      description="Only parameters this vehicle exposes on its diagnostic bus are shown."
-                    />
-                  </CardHeader>
-                  <CardContent className="grid grid-cols-2 gap-3 pt-0 sm:grid-cols-4">
-                    <MetricTile
-                      label="RPM"
-                      value={reading.rpm}
-                      unit="rpm"
-                      icon={Gauge}
-                      available={has(TelemetryMetric.RPM)}
-                      simulated={isSimulated(TelemetryMetric.RPM)}
-                    />
-                    <MetricTile
-                      label="Coolant"
-                      value={reading.coolantTemperature}
-                      unit="°C"
-                      icon={Thermometer}
-                      available={has(TelemetryMetric.COOLANT_TEMPERATURE)}
-                      simulated={isSimulated(TelemetryMetric.COOLANT_TEMPERATURE)}
-                      tone={
-                        reading.coolantTemperature !== null && reading.coolantTemperature > 105
-                          ? 'destructive'
-                          : undefined
-                      }
-                    />
-                    <MetricTile
-                      label="Engine load"
-                      value={reading.engineLoad}
-                      unit="%"
-                      icon={Activity}
-                      available={has(TelemetryMetric.ENGINE_LOAD)}
-                      simulated={isSimulated(TelemetryMetric.ENGINE_LOAD)}
-                    />
-                    <MetricTile
-                      label="Throttle"
-                      value={reading.throttlePosition}
-                      unit="%"
-                      icon={Activity}
-                      available={has(TelemetryMetric.THROTTLE_POSITION)}
-                      simulated={isSimulated(TelemetryMetric.THROTTLE_POSITION)}
-                    />
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="pb-3">
-                    <SectionHeader title="Fuel and electrical" />
-                  </CardHeader>
-                  <CardContent className="grid grid-cols-2 gap-3 pt-0 sm:grid-cols-4">
-                    <MetricTile
-                      label="Fuel level"
-                      value={reading.fuelLevel}
-                      unit="%"
-                      icon={Fuel}
-                      available={has(TelemetryMetric.FUEL_LEVEL)}
-                      simulated={isSimulated(TelemetryMetric.FUEL_LEVEL)}
-                      tone={
-                        reading.fuelLevel !== null && reading.fuelLevel < 15 ? 'warning' : undefined
-                      }
-                    />
-                    <MetricTile
-                      label="Consumption"
-                      value={reading.fuelRate}
-                      unit="L/h"
-                      icon={Fuel}
-                      available={has(TelemetryMetric.FUEL_RATE)}
-                      simulated={isSimulated(TelemetryMetric.FUEL_RATE)}
-                    />
-                    <MetricTile
-                      label="Battery"
-                      value={reading.batteryVoltage}
-                      unit="V"
-                      icon={BatteryCharging}
-                      available={has(TelemetryMetric.BATTERY_VOLTAGE)}
-                      simulated={isSimulated(TelemetryMetric.BATTERY_VOLTAGE)}
-                      tone={
-                        reading.batteryVoltage !== null && reading.batteryVoltage < 11.8
-                          ? 'warning'
-                          : undefined
-                      }
-                    />
-                    <MetricTile
-                      label="Odometer"
-                      value={reading.odometerKm}
-                      unit="km"
-                      icon={Gauge}
-                      available={has(TelemetryMetric.ODOMETER)}
-                      simulated={isSimulated(TelemetryMetric.ODOMETER)}
-                    />
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="pb-3">
-                    <SectionHeader title="Motion" />
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    {!has(TelemetryMetric.ACCELEROMETER) ? (
-                      <p className="text-sm text-muted-foreground">
-                        This device does not report accelerometer data, so harsh-driving events
-                        cannot be detected for this vehicle.
-                      </p>
-                    ) : (
-                      <div className="flex flex-wrap gap-2">
-                        <Badge variant={reading.harshBraking ? 'destructive' : 'secondary'}>
-                          {reading.harshBraking ? 'Harsh braking detected' : 'No harsh braking'}
-                        </Badge>
-                        <Badge variant={reading.harshAcceleration ? 'destructive' : 'secondary'}>
-                          {reading.harshAcceleration
-                            ? 'Harsh acceleration detected'
-                            : 'No harsh acceleration'}
-                        </Badge>
-                        {reading.accelerationX !== null ? (
-                          <Badge variant="outline">
-                            longitudinal {reading.accelerationX.toFixed(2)} g
-                          </Badge>
-                        ) : null}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {reading.diagnostics.length > 0 ? (
-                  <Card className="border-destructive/40 bg-destructive/5">
-                    <CardHeader className="pb-3">
-                      <SectionHeader title="Diagnostic trouble codes" />
-                    </CardHeader>
-                    <CardContent className="space-y-2 pt-0">
-                      {reading.diagnostics.map((code) => (
-                        <div key={code.code} className="flex items-start gap-2 text-sm">
-                          <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
-                          <div>
-                            <p className="font-mono font-medium">{code.code}</p>
-                            {code.description ? (
-                              <p className="text-muted-foreground">{code.description}</p>
-                            ) : null}
-                          </div>
-                        </div>
-                      ))}
-                    </CardContent>
-                  </Card>
-                ) : null}
-
-                <Card>
-                  <CardContent className="py-3">
-                    <p className="text-xs text-muted-foreground">
-                      This vehicle reports{' '}
-                      <strong>{capabilities.data?.observedMetrics.length ?? 0}</strong> of the{' '}
-                      {capabilities.data?.supportedMetrics.length ?? 0} metrics the device is capable
-                      of. What a device can do and what a given vehicle exposes are different
-                      questions - Saarthi shows only the second.
-                    </p>
-                  </CardContent>
-                </Card>
-              </>
+              <LiveReadings
+                reading={reading}
+                observedMetrics={capabilities.data?.observedMetrics ?? []}
+                supportedMetricCount={capabilities.data?.supportedMetrics.length ?? 0}
+                needsTracker={needsTracker}
+              />
             )}
           </TabsContent>
 
@@ -559,10 +300,7 @@ export function VehicleTelemetryPage() {
                         >
                           {alert.severity.toLowerCase()}
                         </Badge>
-                        <Badge
-                          variant={alert.status === 'OPEN' ? 'warning' : 'success'}
-                          size="sm"
-                        >
+                        <Badge variant={alert.status === 'OPEN' ? 'warning' : 'success'} size="sm">
                           {humanizeEnum(alert.status)}
                         </Badge>
                       </div>
@@ -596,30 +334,24 @@ export function VehicleTelemetryPage() {
           </TabsContent>
 
           <TabsContent value="history" className="space-y-3">
-            {!hasFeature(Feature.TELEMETRY_HISTORY) ? (
-              <Card>
-                <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4 text-sm text-muted-foreground">
-                  <span className="min-w-0 flex-1">
-                    Telemetry history needs a Saarthi tracker on this vehicle - charged once, with no
-                    monthly fee.
-                  </span>
-                  <Button size="sm" variant="outline" onClick={() => setOfferOpen(true)}>
-                    See tracker options
-                  </Button>
-                </CardContent>
-              </Card>
-            ) : (history.data?.items.length ?? 0) === 0 ? (
+            {(history.data?.items.length ?? 0) === 0 ? (
               <EmptyState
                 icon={Activity}
                 title="No history"
-                description="Readings appear here once the device starts reporting."
+                description={
+                  phoneOnlyHistory
+                    ? 'Readings from the driver app appear here once a driver signs on and starts moving.'
+                    : 'Readings appear here once the device starts reporting.'
+                }
               />
             ) : (
               <Card>
                 <CardHeader className="pb-3">
                   <SectionHeader
                     title="Recent readings"
-                    description={`Sampled every 5 minutes. Retained from ${
+                    description={`${
+                      phoneOnlyHistory ? "From the driver's phone, so figures are estimates. " : ''
+                    }Sampled every 5 minutes. Retained from ${
                       history.data?.windowStart
                         ? new Date(history.data.windowStart).toLocaleDateString('en-IN')
                         : 'the start of your retention window'
@@ -633,9 +365,18 @@ export function VehicleTelemetryPage() {
                         <tr className="border-b border-border text-left text-xs text-muted-foreground">
                           <th className="pb-2 pr-3 font-medium">Time</th>
                           <th className="pb-2 pr-3 text-right font-medium">Speed</th>
-                          <th className="pb-2 pr-3 text-right font-medium">RPM</th>
-                          <th className="pb-2 pr-3 text-right font-medium">Coolant</th>
-                          <th className="pb-2 text-right font-medium">Fuel</th>
+                          {phoneOnlyHistory ? (
+                            <>
+                              <th className="pb-2 pr-3 text-right font-medium">Heading</th>
+                              <th className="pb-2 text-right font-medium">Position</th>
+                            </>
+                          ) : (
+                            <>
+                              <th className="pb-2 pr-3 text-right font-medium">RPM</th>
+                              <th className="pb-2 pr-3 text-right font-medium">Coolant</th>
+                              <th className="pb-2 text-right font-medium">Fuel</th>
+                            </>
+                          )}
                         </tr>
                       </thead>
                       <tbody>
@@ -650,17 +391,32 @@ export function VehicleTelemetryPage() {
                             <td className="py-1.5 pr-3 text-right tabular-nums">
                               {row.speedKph === null ? '-' : `${Math.round(row.speedKph)}`}
                             </td>
-                            <td className="py-1.5 pr-3 text-right tabular-nums">
-                              {row.rpm === null ? '-' : Math.round(row.rpm)}
-                            </td>
-                            <td className="py-1.5 pr-3 text-right tabular-nums">
-                              {row.coolantTemperature === null
-                                ? '-'
-                                : `${Math.round(row.coolantTemperature)}°`}
-                            </td>
-                            <td className="py-1.5 text-right tabular-nums">
-                              {row.fuelLevel === null ? '-' : `${Math.round(row.fuelLevel)}%`}
-                            </td>
+                            {phoneOnlyHistory ? (
+                              <>
+                                <td className="py-1.5 pr-3 text-right tabular-nums">
+                                  {row.heading === null ? '-' : `${Math.round(row.heading)}°`}
+                                </td>
+                                <td className="py-1.5 text-right tabular-nums">
+                                  {row.latitude === null || row.longitude === null
+                                    ? '-'
+                                    : `${row.latitude.toFixed(4)}, ${row.longitude.toFixed(4)}`}
+                                </td>
+                              </>
+                            ) : (
+                              <>
+                                <td className="py-1.5 pr-3 text-right tabular-nums">
+                                  {row.rpm === null ? '-' : Math.round(row.rpm)}
+                                </td>
+                                <td className="py-1.5 pr-3 text-right tabular-nums">
+                                  {row.coolantTemperature === null
+                                    ? '-'
+                                    : `${Math.round(row.coolantTemperature)}°`}
+                                </td>
+                                <td className="py-1.5 text-right tabular-nums">
+                                  {row.fuelLevel === null ? '-' : `${Math.round(row.fuelLevel)}%`}
+                                </td>
+                              </>
+                            )}
                           </tr>
                         ))}
                       </tbody>

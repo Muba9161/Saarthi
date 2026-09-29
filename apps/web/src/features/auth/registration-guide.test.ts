@@ -31,6 +31,8 @@ const ASKED_ELSEWHERE = new Set([
   'role',
   // The review screen owns the terms.
   'acceptedTerms',
+  // The verify-email screen after it owns the emailed code.
+  'emailCode',
 ]);
 
 describe('registration guides', () => {

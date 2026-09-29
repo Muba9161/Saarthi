@@ -13,6 +13,7 @@ import {
   IdCard,
   KeyRound,
   Languages,
+  MailCheck,
   MapPin,
   Package,
   Plane,
@@ -66,6 +67,12 @@ import { forgetReferralCode, resolveReferralCode } from '@/features/sales/referr
 import { markFleetWelcomePending } from '@/features/fleet/fleet-welcome-dialog';
 import { TRIAL_DAYS } from '@/features/subscriptions/trial-days';
 import { useAuth } from '@/features/auth/auth-context';
+import {
+  EmailCodeStep,
+  EmailVerificationHint,
+  VERIFY_EMAIL_STEP_ID,
+  useRegistrationEmailCode,
+} from '@/features/auth/email-verification';
 import { ApiError } from '@/lib/api-client';
 import { uploadImageOrWarn } from '@/features/media/upload-image';
 import { AnimatePresence, motion } from '@/components/motion';
@@ -331,6 +338,8 @@ export function RegisterPage() {
       firstName: '',
       lastName: '',
       email: '',
+      // Asked for on the last step, once the code has been emailed.
+      emailCode: '',
       phone: '',
       password: '',
       // Left unset until the first step is answered: the account type is what
@@ -368,6 +377,8 @@ export function RegisterPage() {
 
   const role = form.watch('role');
   const planTier = form.watch('planTier');
+  /** Held here so the wizard and the guided tutorial share one live code. */
+  const emailCode = useRegistrationEmailCode(form);
 
   const isPersonal = planTier === PlanTier.PERSONAL;
   const isBusiness = planTier === PlanTier.BUSINESS;
@@ -1055,6 +1066,7 @@ export function RegisterPage() {
                     className="h-10"
                   />
                 </FormControl>
+                <EmailVerificationHint />
                 <FormMessage />
               </FormItem>
             )}
@@ -1190,6 +1202,14 @@ export function RegisterPage() {
         </>
       ),
     },
+    {
+      id: VERIFY_EMAIL_STEP_ID,
+      title: t('Verify email'),
+      description: t('The code we emailed you.'),
+      icon: MailCheck,
+      fields: ['emailCode'],
+      content: <EmailCodeStep form={form} controller={emailCode} />,
+    },
   ];
 
   /*
@@ -1210,9 +1230,14 @@ export function RegisterPage() {
    * is exactly right here: the driver rules fire against the full object and
    * surface on the step that owns the field.
    */
-  const validateStep = async (step: WizardStep): Promise<boolean> => {
-    if (!step.fields?.length) return true;
-    return form.trigger(step.fields as (keyof RegisterInput)[], { shouldFocus: true });
+  const validateStep = async (step: WizardStep, index: number): Promise<boolean> => {
+    if (step.fields?.length) {
+      const ok = await form.trigger(step.fields as (keyof RegisterInput)[], { shouldFocus: true });
+      if (!ok) return false;
+    }
+    // Leaving the step before verification is what emails the code.
+    if (steps[index + 1]?.id === VERIFY_EMAIL_STEP_ID) return emailCode.ensureSent();
+    return true;
   };
 
   // After a rejected submit the offending field may sit on a step that is no
@@ -1248,6 +1273,7 @@ export function RegisterPage() {
         onSubmit={form.handleSubmit(onSubmit)}
         submitting={form.formState.isSubmitting}
         formError={formError}
+        emailCode={emailCode}
       />
 
       <AnimatePresence initial={false}>

@@ -6,6 +6,7 @@ import {
   QrPrivacyProfile,
   RoleName,
   TruckType,
+  VehicleOwnershipStatus,
 } from '@saarthi/shared';
 import { prisma } from '../src/database/prisma';
 import {
@@ -303,6 +304,24 @@ describe('QR field privacy', () => {
    * scope wherever it happens to be stored.
    */
   describe('RTO records', () => {
+    /*
+     * RC details on scans are off until the account turns them on (with its
+     * secure PIN), and the owner is only named for a vehicle whose ownership
+     * the account has confirmed. These tests start from that switched-on,
+     * confirmed state; the ones below them pin what happens without it.
+     */
+    beforeEach(async () => {
+      await prisma.qrPrivacyPolicy.upsert({
+        where: { organizationId: fleet.id },
+        create: { organizationId: fleet.id, showRcDetails: true },
+        update: { showRcDetails: true },
+      });
+      await prisma.truck.update({
+        where: { id: truck.id },
+        data: { ownershipStatus: VehicleOwnershipStatus.VERIFIED },
+      });
+    });
+
     /** Seed a stored RC lookup, in the shape the lookup module writes. */
     async function storeRcLookup(): Promise<void> {
       await prisma.vehicleLookup.create({
@@ -366,7 +385,39 @@ describe('QR field privacy', () => {
       expect(body.data.rc?.record.chassisNumber).toBe('MAT456789012345678');
       expect(body.data.rc?.record.engineNumber).toBe('ENG9876543210');
       expect(body.data.rc?.record.owner?.name).toBe('Ramesh Kumar');
-      expect(body.data.rc?.record.redacted).toBe(false);
+      // A sticker is readable by anyone on the road: the owner's phone and
+      // addresses never leave, whatever else the policy allows.
+      expect(body.data.rc?.record.owner?.mobileNumber).toBeNull();
+      expect(body.data.rc?.record.owner?.presentAddress).toBeNull();
+      expect(body.data.rc?.record.redacted).toBe(true);
+    });
+
+    it('shows no RC at all until the account turns it on', async () => {
+      await storeRcLookup();
+      await prisma.qrPrivacyPolicy.update({
+        where: { organizationId: fleet.id },
+        data: { showRcDetails: false },
+      });
+
+      const token = await issueVehicleCode(true);
+      const { body } = await scan(token);
+
+      expect(body.data.rc).toBeUndefined();
+    });
+
+    it('never names the owner of a vehicle the account has not shown it owns', async () => {
+      await storeRcLookup();
+      await prisma.truck.update({
+        where: { id: truck.id },
+        data: { ownershipStatus: VehicleOwnershipStatus.PENDING },
+      });
+
+      const token = await issueVehicleCode(true);
+      const { body } = await scan(token);
+
+      expect(body.data.rc?.record.maker).toBe('Tata Motors');
+      expect(body.data.rc?.record.owner).toBeNull();
+      expect(JSON.stringify(body)).not.toContain('Ramesh');
     });
 
     it('skips a stored record that is past its retention boundary', async () => {

@@ -44,9 +44,15 @@ function policyCacheKey(organizationId: string): string {
 export interface ResolvedQrPolicy {
   overrides: QrPrivacyOverrides;
   allowPublicScans: boolean;
+  /** Whether a scan shows the vehicle's RC record at all — see `setRcVisibility`. */
+  showRcDetails: boolean;
 }
 
-const DEFAULT_POLICY: ResolvedQrPolicy = { overrides: {}, allowPublicScans: true };
+const DEFAULT_POLICY: ResolvedQrPolicy = {
+  overrides: {},
+  allowPublicScans: true,
+  showRcDetails: false,
+};
 
 /**
  * The tenant's policy, or the safe default when they have never set one.
@@ -67,6 +73,7 @@ export async function getPrivacyPolicy(organizationId: string | null): Promise<R
     ? {
         overrides: sanitizeOverrides(row.overrides),
         allowPublicScans: row.allowPublicScans,
+        showRcDetails: row.showRcDetails,
       }
     : DEFAULT_POLICY;
 
@@ -124,7 +131,44 @@ export async function updatePrivacyPolicy(
     'QR privacy policy updated',
   );
 
-  return { overrides, allowPublicScans };
+  return { overrides, allowPublicScans, showRcDetails: row.showRcDetails };
+}
+
+/**
+ * Turn RC details on QR scans on or off for the whole account.
+ *
+ * Its own write rather than part of the field policy, because it is guarded
+ * differently: the route asks for the secure PIN or a passkey, and the person
+ * is emailed. Off is the default, so a fleet discloses nothing from the RC
+ * until somebody who can prove they are the account holder decides to.
+ */
+export async function setRcVisibility(
+  auth: AuthContext,
+  organizationId: string,
+  enabled: boolean,
+): Promise<ResolvedQrPolicy> {
+  const row = await prisma.qrPrivacyPolicy.upsert({
+    where: { organizationId },
+    create: { organizationId, showRcDetails: enabled, updatedById: auth.user.id },
+    update: { showRcDetails: enabled, updatedById: auth.user.id },
+  });
+
+  await cache.delete(policyCacheKey(organizationId));
+
+  await recordAudit({
+    action: AuditAction.QR_RC_VISIBILITY_CHANGED,
+    entityType: 'QrPrivacyPolicy',
+    entityId: row.id,
+    actorUserId: auth.user.id,
+    organizationId,
+    after: { showRcDetails: enabled },
+  });
+
+  return {
+    overrides: sanitizeOverrides(row.overrides),
+    allowPublicScans: row.allowPublicScans,
+    showRcDetails: row.showRcDetails,
+  };
 }
 
 /**
@@ -134,6 +178,7 @@ export async function updatePrivacyPolicy(
 export function describePolicy(policy: ResolvedQrPolicy) {
   return {
     allowPublicScans: policy.allowPublicScans,
+    showRcDetails: policy.showRcDetails,
     fields: Object.entries(QR_FIELD_RULES).map(([field, rule]) => ({
       field: field as QrField,
       label: rule.label,

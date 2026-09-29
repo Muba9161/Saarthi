@@ -30,6 +30,11 @@ export const LISTING_MEDIA_REQUIREMENTS = {
 export interface ListingPublishContext {
   /** The vehicle belongs to the seller's tenant. */
   vehicleBelongsToSeller: boolean;
+  /**
+   * The seller has shown it owns the vehicle — not only that it sits on their
+   * account, which anyone typing a plate can arrange.
+   */
+  vehicleOwnershipConfirmed: boolean;
   vehicleIsVerified: boolean;
   /** The vehicle is on a live trip right now. */
   vehicleOnActiveTrip: boolean;
@@ -59,6 +64,8 @@ export function checkListingPublishGates(context: ListingPublishContext): GateRe
 
   if (!context.vehicleBelongsToSeller) {
     blockers.push('This vehicle is not registered to your organization.');
+  } else if (!context.vehicleOwnershipConfirmed) {
+    blockers.push('Confirm that you own this vehicle. Its Ownership card on the vehicle page shows how.');
   }
   if (context.vehicleOnActiveTrip) {
     blockers.push('The vehicle is on an active trip. Complete or reassign the trip first.');

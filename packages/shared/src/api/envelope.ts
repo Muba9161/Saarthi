@@ -74,6 +74,12 @@ export const ErrorCode = {
    * the verification screen rather than to billing or to a support message.
    */
   IDENTITY_VERIFICATION_REQUIRED: 'IDENTITY_VERIFICATION_REQUIRED',
+  /**
+   * The action is sensitive and this session has not entered the secure PIN
+   * or a passkey recently. The client asks for one and retries — see
+   * `validation/secure-access.ts`.
+   */
+  SECURE_ACCESS_REQUIRED: 'SECURE_ACCESS_REQUIRED',
   NOT_FOUND: 'NOT_FOUND',
   CONFLICT: 'CONFLICT',
   DUPLICATE_RESOURCE: 'DUPLICATE_RESOURCE',

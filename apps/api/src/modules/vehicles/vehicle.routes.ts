@@ -26,6 +26,7 @@ import { AuditAction, auditFromRequest } from '../audit/audit.service';
 // is how the two surfaces would start disagreeing about who is driving what.
 import * as truckService from '../trucks/truck.service';
 import * as vehicleService from './vehicle.service';
+import * as ownershipService from './vehicle-ownership.service';
 import * as qrService from '../qr/qr.service';
 import { publicAppUrl } from '../../lib/public-url';
 
@@ -230,6 +231,20 @@ export async function vehicleRoutes(app: FastifyInstance): Promise<void> {
       });
 
       return ok(reply, await vehicleService.getVehicle(auth, id));
+    },
+  );
+
+  /**
+   * Re-check ownership now, rather than waiting for the sweep — pressed after
+   * verifying a PAN or fetching the RC. Reads Saarthi's own records only.
+   */
+  app.post(
+    '/:id/ownership/check',
+    { preHandler: requirePermission(Permission.VEHICLES_UPDATE) },
+    async (request, reply) => {
+      const auth = requireAuth(request);
+      const { id } = parseParams(idParamSchema, request.params);
+      return ok(reply, await ownershipService.checkOwnership(auth, id));
     },
   );
 

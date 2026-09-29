@@ -184,6 +184,36 @@ export const ur: Catalogue = {
   'Privacy Policy': 'رازداری کی پالیسی',
   'Association name': 'ایسوسی ایشن کا نام',
   'Travel business name': 'ٹریول کاروبار کا نام',
+
+  // Registration: email verification
+  'We will email a 6-digit code to this address at the last step, to confirm it is yours. Use an inbox you can open now.':
+    'آخری مرحلے پر ہم اس پتے پر 6 ہندسوں کا کوڈ بھیجیں گے، تاکہ تصدیق ہو سکے کہ یہ آپ کا ہے۔ ایسا ان باکس استعمال کریں جو آپ ابھی کھول سکیں۔',
+  'Verify email':
+    'ای میل کی تصدیق کریں',
+  'The code we emailed you.':
+    'ہمارا ای میل کیا ہوا کوڈ۔',
+  'Confirm your email address':
+    'اپنے ای میل پتے کی تصدیق کریں',
+  'We sent a 6-digit code to {email}. Enter it below to finish creating your account.':
+    'ہم نے {email} پر 6 ہندسوں کا کوڈ بھیجا ہے۔ اکاؤنٹ بنانا مکمل کرنے کے لیے اسے نیچے درج کریں۔',
+  'We will email a 6-digit code to {email}.':
+    'ہم {email} پر 6 ہندسوں کا کوڈ ای میل کریں گے۔',
+  'Enter the code to confirm this email address is yours. It keeps fake accounts out of Saarthi.':
+    'یہ تصدیق کرنے کے لیے کوڈ درج کریں کہ یہ ای میل پتہ آپ کا ہے۔ اس سے Saarthi جعلی اکاؤنٹس سے محفوظ رہتا ہے۔',
+  'Verification code':
+    'تصدیقی کوڈ',
+  'Send code':
+    'کوڈ بھیجیں',
+  'Resend code':
+    'کوڈ دوبارہ بھیجیں',
+  'Resend in {seconds}s':
+    '{seconds} سیکنڈ میں دوبارہ بھیجیں',
+  'Not arrived? Check your spam folder. Wrong address? Go back and change it.':
+    'کوڈ نہیں ملا؟ اسپام فولڈر دیکھیں۔ پتہ غلط ہے؟ واپس جا کر اسے بدلیں۔',
+  'We emailed a verification code to {email}.':
+    'ہم نے {email} پر تصدیقی کوڈ ای میل کیا ہے۔',
+  'The code could not be sent. Please try again.':
+    'کوڈ نہیں بھیجا جا سکا۔ براہ کرم دوبارہ کوشش کریں۔',
   'I own trucks and want to manage my fleet and win loads.':
     'میرے پاس ٹرک ہیں اور میں اپنا بیڑا چلانا اور لوڈ حاصل کرنا چاہتا ہوں۔',
   'I need materials, transport, a cab or a tour, and want offers to compare.':

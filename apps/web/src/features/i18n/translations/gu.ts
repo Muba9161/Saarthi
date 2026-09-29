@@ -184,6 +184,36 @@ export const gu: Catalogue = {
   'Privacy Policy': 'ગોપનીયતા નીતિ',
   'Association name': 'એસોસિએશનનું નામ',
   'Travel business name': 'ટ્રાવેલ વ્યવસાયનું નામ',
+
+  // Registration: email verification
+  'We will email a 6-digit code to this address at the last step, to confirm it is yours. Use an inbox you can open now.':
+    'છેલ્લા પગલે અમે આ સરનામે 6 અંકનો કોડ મોકલીશું, જેથી ખાતરી થાય કે તે તમારું છે. એવું ઇનબોક્સ વાપરો જે તમે અત્યારે ખોલી શકો.',
+  'Verify email':
+    'ઇમેઇલ ચકાસો',
+  'The code we emailed you.':
+    'અમે ઇમેઇલ કરેલો કોડ.',
+  'Confirm your email address':
+    'તમારું ઇમેઇલ સરનામું કન્ફર્મ કરો',
+  'We sent a 6-digit code to {email}. Enter it below to finish creating your account.':
+    'અમે {email} પર 6 અંકનો કોડ મોકલ્યો છે. એકાઉન્ટ બનાવવાનું પૂરું કરવા તેને નીચે દાખલ કરો.',
+  'We will email a 6-digit code to {email}.':
+    'અમે {email} પર 6 અંકનો કોડ ઇમેઇલ કરીશું.',
+  'Enter the code to confirm this email address is yours. It keeps fake accounts out of Saarthi.':
+    'આ ઇમેઇલ સરનામું તમારું છે તેની ખાતરી કરવા કોડ દાખલ કરો. તેનાથી Saarthi નકલી એકાઉન્ટ્સથી મુક્ત રહે છે.',
+  'Verification code':
+    'ચકાસણી કોડ',
+  'Send code':
+    'કોડ મોકલો',
+  'Resend code':
+    'કોડ ફરી મોકલો',
+  'Resend in {seconds}s':
+    '{seconds} સેકન્ડમાં ફરી મોકલો',
+  'Not arrived? Check your spam folder. Wrong address? Go back and change it.':
+    'કોડ નથી મળ્યો? સ્પામ ફોલ્ડર તપાસો. સરનામું ખોટું છે? પાછા જઈને બદલો.',
+  'We emailed a verification code to {email}.':
+    'અમે {email} પર ચકાસણી કોડ ઇમેઇલ કર્યો છે.',
+  'The code could not be sent. Please try again.':
+    'કોડ મોકલી શકાયો નહીં. કૃપા કરીને ફરી પ્રયાસ કરો.',
   'I own trucks and want to manage my fleet and win loads.':
     'મારી પાસે ટ્રક છે અને હું મારો કાફલો ચલાવવા તથા લોડ મેળવવા માંગું છું.',
   'I need materials, transport, a cab or a tour, and want offers to compare.':

@@ -46,6 +46,8 @@ import { VehicleHero } from '@/features/vehicles/detail/vehicle-hero';
 import { VehicleAiCard } from '@/features/vehicles/detail/vehicle-ai-card';
 import { VehicleInsights } from '@/features/vehicles/detail/vehicle-insights';
 import { VehiclePhotosPanel } from '@/features/vehicles/detail/vehicle-photos';
+import { VehicleOwnershipCard } from '@/features/vehicles/detail/vehicle-ownership-card';
+import { VehicleSharingCard } from '@/features/vehicle-sharing/vehicle-sharing-card';
 import { SpecSheet, type SpecGroup } from '@/features/vehicles/detail/spec-sheet';
 import { SellVehiclePanel } from '@/features/resale/sell-vehicle-panel';
 import { LoanPanel } from '@/features/loans/loan-panel';
@@ -606,6 +608,8 @@ export function VehicleDetailPage() {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
+          <VehicleOwnershipCard vehicleId={vehicle.id} ownership={vehicle.ownership} />
+          <VehicleSharingCard vehicleId={vehicle.id} ownershipStatus={vehicle.ownership.status} />
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <Card className="rounded-2xl">
               <CardHeader className="pb-2">

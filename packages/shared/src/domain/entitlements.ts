@@ -19,6 +19,8 @@ export const Feature = {
 
   FLEET_BASIC: 'fleet.basic',
   FLEET_ANALYTICS: 'fleet.analytics',
+  /** Sharing a vehicle with another Saarthi account, and receiving one. */
+  VEHICLE_SHARING: 'fleet.sharing',
 
   DRIVER_SCORING: 'driver.scoring',
   DRIVER_ACHIEVEMENTS: 'driver.achievements',
@@ -142,6 +144,12 @@ export const FEATURE_CATALOGUE: FeatureDefinition[] = [
     key: Feature.FLEET_ANALYTICS,
     name: 'Fleet analytics',
     description: 'Utilisation, revenue and cost analytics.',
+  },
+  {
+    key: Feature.VEHICLE_SHARING,
+    name: 'Vehicle sharing',
+    description:
+      'Share a vehicle with up to three other Saarthi accounts, who can track it and add its trips, fuel and maintenance.',
   },
   {
     key: Feature.DRIVER_SCORING,
@@ -706,6 +714,8 @@ export function trackerFeatures(): Feature[] {
 const VEHICLE_OPERATOR_FEATURES: Feature[] = [
   Feature.FLEET_BASIC,
   Feature.FLEET_ANALYTICS,
+  // Sharing a vehicle, or receiving one, is still running one.
+  Feature.VEHICLE_SHARING,
   Feature.MAINTENANCE_BASIC,
   Feature.MAINTENANCE_PREDICTIVE,
   Feature.DRIVER_SCORING,

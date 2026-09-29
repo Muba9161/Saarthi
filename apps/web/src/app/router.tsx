@@ -413,6 +413,15 @@ export const router = createBrowserRouter([
             path: '/settings/business-documents',
             element: lazyPage(() => import('@/pages/settings/business-documents')),
           },
+          // A vehicle another account shared — its own screen, not the owner's page.
+          {
+            path: '/fleet/shared/:shareId',
+            element: lazyPage(() => import('@/pages/fleet/shared-vehicle')),
+          },
+          {
+            path: '/settings/security',
+            element: lazyPage(() => import('@/pages/settings/security')),
+          },
           {
             path: '/settings/qr-privacy',
             element: lazyPage(() => import('@/pages/settings/qr-privacy')),

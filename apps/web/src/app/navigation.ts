@@ -14,6 +14,7 @@ import {
   Car,
   CreditCard,
   Gift,
+  Fingerprint,
   KeyRound,
   Lock,
   Scale,
@@ -911,6 +912,7 @@ export const ACCOUNT_NAVIGATION: NavSection[] = [
     items: [
       // The password step of the profile screen, opened directly.
       { label: 'Change password', to: '/settings/profile?step=security', icon: KeyRound },
+      { label: 'Secure PIN & fingerprint', to: '/settings/security', icon: Fingerprint },
     ],
   },
   {

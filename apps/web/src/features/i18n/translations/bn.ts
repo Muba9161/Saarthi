@@ -184,6 +184,36 @@ export const bn: Catalogue = {
   'Privacy Policy': 'গোপনীয়তা নীতি',
   'Association name': 'সমিতির নাম',
   'Travel business name': 'ট্রাভেল ব্যবসার নাম',
+
+  // Registration: email verification
+  'We will email a 6-digit code to this address at the last step, to confirm it is yours. Use an inbox you can open now.':
+    'শেষ ধাপে আমরা এই ঠিকানায় ৬ সংখ্যার একটি কোড পাঠাব, যাতে নিশ্চিত হয় এটি আপনার। এমন একটি ইনবক্স ব্যবহার করুন যা আপনি এখনই খুলতে পারেন।',
+  'Verify email':
+    'ইমেল যাচাই করুন',
+  'The code we emailed you.':
+    'আমাদের ইমেল করা কোড।',
+  'Confirm your email address':
+    'আপনার ইমেল ঠিকানা নিশ্চিত করুন',
+  'We sent a 6-digit code to {email}. Enter it below to finish creating your account.':
+    'আমরা {email}-এ ৬ সংখ্যার একটি কোড পাঠিয়েছি। অ্যাকাউন্ট তৈরি শেষ করতে নিচে সেটি লিখুন।',
+  'We will email a 6-digit code to {email}.':
+    'আমরা {email}-এ ৬ সংখ্যার একটি কোড ইমেল করব।',
+  'Enter the code to confirm this email address is yours. It keeps fake accounts out of Saarthi.':
+    'এই ইমেল ঠিকানাটি আপনার, তা নিশ্চিত করতে কোডটি লিখুন। এতে Saarthi ভুয়া অ্যাকাউন্ট থেকে মুক্ত থাকে।',
+  'Verification code':
+    'যাচাইকরণ কোড',
+  'Send code':
+    'কোড পাঠান',
+  'Resend code':
+    'আবার কোড পাঠান',
+  'Resend in {seconds}s':
+    '{seconds} সেকেন্ডে আবার পাঠান',
+  'Not arrived? Check your spam folder. Wrong address? Go back and change it.':
+    'পাননি? স্প্যাম ফোল্ডার দেখুন। ঠিকানা ভুল? ফিরে গিয়ে বদলে দিন।',
+  'We emailed a verification code to {email}.':
+    'আমরা {email}-এ যাচাইকরণ কোড ইমেল করেছি।',
+  'The code could not be sent. Please try again.':
+    'কোড পাঠানো যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।',
   'I own trucks and want to manage my fleet and win loads.':
     'আমার ট্রক আছে এবং আমি আমার বহর চালাতে ও লোড পেতে চাই।',
   'I need materials, transport, a cab or a tour, and want offers to compare.':

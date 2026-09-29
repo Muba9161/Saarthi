@@ -14,6 +14,7 @@ import { useRealtimeEvent } from '@/hooks/use-realtime';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MediaImage } from '@/features/media/media-image';
+import { encodeJpeg } from '@/features/media/encode-image';
 import { Separator } from '@/components/ui/separator';
 
 /**
@@ -85,27 +86,10 @@ const STATUS_COPY: Record<string, { title: string; body: string }> = {
 /** Downscale before upload: a 12 MP selfie over a yard's signal is a failure. */
 async function prepareSelfie(file: File): Promise<{ full: Blob; thumb: Blob }> {
   const bitmap = await createImageBitmap(file);
-
-  const render = async (maxEdge: number, quality: number): Promise<Blob> => {
-    const scale = Math.min(1, maxEdge / Math.max(bitmap.width, bitmap.height));
-    const width = Math.round(bitmap.width * scale);
-    const height = Math.round(bitmap.height * scale);
-    const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-    const context = canvas.getContext('2d');
-    if (!context) throw new Error('This browser cannot process the photo.');
-    context.drawImage(bitmap, 0, 0, width, height);
-    return new Promise<Blob>((resolve, reject) => {
-      canvas.toBlob(
-        (blob) => (blob ? resolve(blob) : reject(new Error('Could not encode the photo.'))),
-        'image/jpeg',
-        quality,
-      );
-    });
-  };
-
-  const [full, thumb] = await Promise.all([render(800, 0.85), render(200, 0.7)]);
+  const [full, thumb] = await Promise.all([
+    encodeJpeg(bitmap, bitmap, 800, 0.85),
+    encodeJpeg(bitmap, bitmap, 200, 0.7),
+  ]);
   bitmap.close();
   return { full, thumb };
 }

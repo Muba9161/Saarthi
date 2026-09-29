@@ -79,15 +79,19 @@ enum VerificationStatus {
 // ===========================================================================
 
 model User {
-  id           String     @id @default(uuid()) @db.Uuid
-  email        String     @unique
-  phone        String?    @unique
-  passwordHash String
-  firstName    String
-  lastName     String
-  avatarUrl    String?
-  status       UserStatus @default(ACTIVE)
-  lastLoginAt  DateTime?
+  id              String     @id @default(uuid()) @db.Uuid
+  email           String     @unique
+  phone           String?    @unique
+  passwordHash    String
+  firstName       String
+  lastName        String
+  avatarUrl       String?
+  status          UserStatus @default(ACTIVE)
+  lastLoginAt     DateTime?
+  /// When this person proved they read `email`, with the code emailed at
+  /// registration. Null for accounts created before that check existed, or by
+  /// another route (a salesperson's self-signup proves it with a link instead).
+  emailVerifiedAt DateTime?
 
   /// Last four digits of this person's own verified Aadhaar, and when it was
   /// confirmed. The full number is never stored here — see
@@ -112,6 +116,15 @@ model User {
   panNumber         String?
   panVerifiedAt     DateTime?
 
+  /// The 4-digit PIN that unlocks sensitive details (the unmasked RC) and
+  /// sensitive settings. Hashed like a password; never stored or logged plain.
+  /// See `modules/secure-access`.
+  securePinHash        String?
+  securePinSetAt       DateTime?
+  /// Wrong PINs since the last right one. Reaching the limit locks the PIN.
+  securePinFailures    Int       @default(0)
+  securePinLockedUntil DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -123,6 +136,8 @@ model User {
   driverProfile   Driver?              @relation("DriverUser")
   profile         UserProfile?
   viewPreferences UserViewPreference[]
+  passkeys        UserPasskey[]
+  vehicleShares   VehicleShare[]       @relation("VehicleShareRecipient")
 
   uploadedTerminalReleases  TerminalRelease[] @relation("TerminalReleaseUploader")
   publishedTerminalReleases TerminalRelease[] @relation("TerminalReleasePublisher")
@@ -145,7 +160,31 @@ model User {
 
   @@index([status])
   @@index([createdAt])
+  @@index([panNumber])
   @@map("users")
+}
+
+/// A device biometric (Windows Hello, Touch ID, Face ID, Android fingerprint)
+/// registered as a WebAuthn passkey. An alternative to the secure PIN, never a
+/// replacement for signing in. Only the public key is held.
+model UserPasskey {
+  id           String    @id @default(uuid()) @db.Uuid
+  userId       String    @db.Uuid
+  /// Base64URL credential id the authenticator reports.
+  credentialId String    @unique
+  publicKey    Bytes
+  /// Signature counter, checked on every use against cloned authenticators.
+  counter      Int       @default(0)
+  transports   String[]
+  /// What the person called it, e.g. "Work laptop".
+  label        String?
+  lastUsedAt   DateTime?
+  createdAt    DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("user_passkeys")
 }
 
 model Role {
@@ -252,6 +291,7 @@ model Organization {
   @@index([verificationStatus])
   @@index([createdAt])
   @@index([gstin])
+  @@index([panNumber])
   @@index([dataPurgeAt])
   @@map("organizations")
 }
@@ -312,6 +352,24 @@ model PasswordResetToken {
   @@index([userId])
   @@index([expiresAt])
   @@map("password_reset_tokens")
+}
+
+/// A one-time code emailed to somebody registering, to prove they hold the
+/// mailbox before an account is opened for it. Keyed by address rather than
+/// user, because the user does not exist yet. Only the HMAC of the code is kept.
+model EmailVerificationCode {
+  id         String    @id @default(uuid()) @db.Uuid
+  email      String
+  codeHash   String
+  /// Wrong guesses against this code; it stops being accepted at the limit.
+  attempts   Int       @default(0)
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([email, createdAt])
+  @@index([expiresAt])
+  @@map("email_verification_codes")
 }
 
 // ===========================================================================
@@ -648,6 +706,19 @@ enum VerificationSubjectType {
   DRIVER
   TRUCK
   ORGANIZATION
+}
+
+enum VehicleOwnershipStatus {
+  PENDING
+  VERIFIED
+  RELEASED
+}
+
+enum VehicleShareStatus {
+  PENDING
+  ACTIVE
+  DECLINED
+  REVOKED
 }
 
 enum DocumentOwnerType {
@@ -1125,17 +1196,30 @@ model Truck {
   vin                String?
   status             TruckStatus        @default(AVAILABLE)
   verificationStatus VerificationStatus @default(PENDING)
-  currentDriverId    String?            @db.Uuid
-  currentTripId      String?            @db.Uuid
+
+  // --- Ownership ------------------------------------------------------------
+  //
+  // `verificationStatus` says the RC is real; these say the account holding the
+  // plate is the one that owns it. See `modules/vehicles/vehicle-ownership.service.ts`.
+  ownershipStatus            VehicleOwnershipStatus @default(PENDING)
+  ownershipVerifiedAt        DateTime?
+  /// Why it is still pending, in one sentence the owner can act on.
+  ownershipNote              String?
+  ownershipCheckedAt         DateTime?
+  /// The plate this row held before it was released to its verified owner.
+  releasedRegistrationNumber String?
+
+  currentDriverId String?   @db.Uuid
+  currentTripId   String?   @db.Uuid
   /// Last known position, denormalised for fast fleet map loads.
-  lastLatitude       Float?
-  lastLongitude      Float?
-  lastSpeedKph       Float?
-  lastHeading        Float?
-  lastLocationAt     DateTime?
+  lastLatitude    Float?
+  lastLongitude   Float?
+  lastSpeedKph    Float?
+  lastHeading     Float?
+  lastLocationAt  DateTime?
   /// Owner-controlled: may this truck appear in nearby and SOS discovery?
-  shareLocation      Boolean            @default(true)
-  notes              String?
+  shareLocation   Boolean   @default(true)
+  notes           String?
 
   // --- Physical dimensions, for city access rules -------------------------
   //
@@ -1181,6 +1265,7 @@ model Truck {
   tollTransactions    TollTransaction[]
   terminalSessions    TerminalSession[]     @relation("VehicleTerminalSessions")
   terminalIssues      TerminalIssueReport[] @relation("VehicleTerminalIssues")
+  shares              VehicleShare[]
 
   @@index([organizationId, status])
   @@index([organizationId, archivedAt])
@@ -1188,7 +1273,35 @@ model Truck {
   @@index([currentDriverId])
   @@index([lastLocationAt])
   @@index([lastLatitude, lastLongitude])
+  @@index([ownershipStatus, ownershipCheckedAt])
   @@map("trucks")
+}
+
+/// A vehicle shared with another person's account — see
+/// `modules/vehicle-sharing`. One row per vehicle and person: a new invitation
+/// after a decline or an end reuses it, so the history of who has had access
+/// stays in the audit log rather than in a pile of rows.
+model VehicleShare {
+  id                  String             @id @default(uuid()) @db.Uuid
+  vehicleId           String             @db.Uuid
+  /// The account that owns the vehicle and is billed for it.
+  ownerOrganizationId String             @db.Uuid
+  sharedWithUserId    String             @db.Uuid
+  invitedById         String             @db.Uuid
+  status              VehicleShareStatus @default(PENDING)
+  invitedAt           DateTime           @default(now())
+  respondedAt         DateTime?
+  endedAt             DateTime?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+
+  vehicle    Truck @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  sharedWith User  @relation("VehicleShareRecipient", fields: [sharedWithUserId], references: [id], onDelete: Cascade)
+
+  @@unique([vehicleId, sharedWithUserId])
+  @@index([sharedWithUserId, status])
+  @@index([vehicleId, status])
+  @@map("vehicle_shares")
 }
 
 model TruckAssignment {
@@ -4299,6 +4412,11 @@ enum MediaPurpose {
   /// person taken to prove they were physically at a vehicle, and it needs to
   /// be findable — and deletable — as that, not folded in with cargo photos.
   DRIVER_VERIFICATION
+  /// One frame of a vehicle's 360° exterior spin, ordered by `sortOrder`.
+  ///
+  /// Its own purpose so the frames never land in the exterior gallery: two
+  /// dozen near-identical shots would bury the photos people actually chose.
+  VEHICLE_SPIN_FRAME
 }
 
 enum MediaVisibility {
@@ -6051,6 +6169,11 @@ model QrPrivacyPolicy {
   /// public resolve, but if the fleet has turned this off, no code of theirs
   /// answers to a scanner without a session.
   allowPublicScans Boolean @default(true)
+
+  /// Whether a scan shows the vehicle's RC record at all. Off by default;
+  /// turning it on or off takes the secure PIN or a passkey and emails the
+  /// person who did it.
+  showRcDetails Boolean @default(false)
 
   updatedById String?  @db.Uuid
   createdAt   DateTime @default(now())

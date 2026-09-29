@@ -137,6 +137,17 @@ export const MEDIA_PURPOSE_CATALOGUE: MediaPurposeDefinition[] = [
     allowsDocuments: false,
   },
   {
+    purpose: MediaPurpose.VEHICLE_SPIN_FRAME,
+    label: '360° spin frame',
+    description: 'One step of a walk-around of the vehicle, shown as a drag-to-rotate view.',
+    singular: false,
+    aspectRatio: null,
+    maxDimension: 1280,
+    defaultVisibility: MediaVisibility.ORGANIZATION,
+    ownerTypes: [MediaOwnerType.VEHICLE],
+    allowsDocuments: false,
+  },
+  {
     purpose: MediaPurpose.ODOMETER,
     label: 'Odometer photo',
     description: 'Dash reading that substantiates the recorded kilometres.',
@@ -276,6 +287,16 @@ export const MEDIA_PURPOSE_CATALOGUE: MediaPurposeDefinition[] = [
     allowsDocuments: false,
   },
 ];
+
+/**
+ * How many frames make a vehicle's 360° spin.
+ *
+ * Four is the least that still reads as walking around the vehicle — front,
+ * both sides, rear. The ceiling matches the API's default per-owner cap
+ * (`MEDIA_MAX_PER_OWNER`), which counts per purpose, so a full spin never
+ * crowds out the exterior gallery.
+ */
+export const VEHICLE_SPIN_FRAMES = { min: 4, max: 24 } as const;
 
 const BY_PURPOSE = new Map<MediaPurpose, MediaPurposeDefinition>(
   MEDIA_PURPOSE_CATALOGUE.map((definition) => [definition.purpose, definition]),

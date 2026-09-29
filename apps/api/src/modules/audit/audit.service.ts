@@ -110,6 +110,9 @@ export const AuditAction = {
   USER_PROFILE_UPDATED: 'user.profile_updated',
   USER_STATUS_CHANGED: 'user.status_changed',
   SESSION_REVOKED: 'session.revoked',
+  SECURE_PIN_SET: 'user.secure_pin_set',
+  PASSKEY_ADDED: 'user.passkey_added',
+  PASSKEY_REMOVED: 'user.passkey_removed',
 
   ORGANIZATION_CREATED: 'organization.created',
   ORGANIZATION_UPDATED: 'organization.updated',
@@ -304,6 +307,12 @@ export const AuditAction = {
   QR_SCANNED: 'qr.scanned',
   QR_ACTION_PERFORMED: 'qr.action_performed',
   QR_PRIVACY_POLICY_UPDATED: 'qr.privacy_policy_updated',
+  QR_RC_VISIBILITY_CHANGED: 'qr.rc_visibility_changed',
+
+  VEHICLE_SHARED: 'vehicle.shared',
+  VEHICLE_SHARE_ACCEPTED: 'vehicle.share_accepted',
+  VEHICLE_SHARE_DECLINED: 'vehicle.share_declined',
+  VEHICLE_SHARE_ENDED: 'vehicle.share_ended',
 
   RETURN_LOAD_CREATED: 'returnload.created',
   RETURN_LOAD_UPDATED: 'returnload.updated',

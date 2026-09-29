@@ -29,6 +29,8 @@ export interface ImageAttachment {
   ownerId: string;
   purpose: MediaPurpose;
   file: File;
+  /** Position within the owner's set, for purposes where order is the point. */
+  sortOrder?: number;
 }
 
 export async function uploadImage(attachment: ImageAttachment): Promise<UploadedImage> {
@@ -36,6 +38,7 @@ export async function uploadImage(attachment: ImageAttachment): Promise<Uploaded
   body.append('ownerType', attachment.ownerType);
   body.append('ownerId', attachment.ownerId);
   body.append('purpose', attachment.purpose);
+  if (attachment.sortOrder !== undefined) body.append('sortOrder', String(attachment.sortOrder));
   body.append('file', attachment.file, attachment.file.name);
   return api.post<UploadedImage>('/media', body);
 }

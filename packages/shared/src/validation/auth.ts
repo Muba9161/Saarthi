@@ -203,11 +203,30 @@ export function isPersonalRegistration(input: { planTier?: PlanTier | undefined 
   return input.planTier === PlanTier.PERSONAL;
 }
 
+/** Digits in the code emailed to a registrant to prove they hold the mailbox. */
+export const EMAIL_VERIFICATION_CODE_LENGTH = 6;
+
+export const emailVerificationCodeSchema = z
+  .string()
+  .trim()
+  .regex(
+    new RegExp(`^\\d{${EMAIL_VERIFICATION_CODE_LENGTH}}$`),
+    `Enter the ${EMAIL_VERIFICATION_CODE_LENGTH}-digit code we emailed you.`,
+  );
+
 export const registerSchema = z
   .object({
     firstName: trimmedString(2, 60),
     lastName: trimmedString(1, 60),
     email: emailSchema,
+    /**
+     * The one-time code emailed to `email` before the account is created.
+     *
+     * Required for every registration: an account is only opened for an
+     * address its owner has proved they can read, which keeps throwaway and
+     * mistyped addresses — and the spam accounts behind them — out.
+     */
+    emailCode: emailVerificationCodeSchema,
     phone: phoneSchema,
     password: passwordSchema,
     /**
@@ -473,6 +492,13 @@ export const forgotPasswordSchema = z.object({
   email: emailSchema,
 });
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+
+/** Asks for a registration code to be emailed. The name only personalises the greeting. */
+export const registrationEmailCodeRequestSchema = z.object({
+  email: emailSchema,
+  firstName: optionalTrimmedString(60),
+});
+export type RegistrationEmailCodeRequest = z.infer<typeof registrationEmailCodeRequestSchema>;
 
 export const resetPasswordSchema = z.object({
   token: z.string().min(20, 'This password reset link is not valid.'),

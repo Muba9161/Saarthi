@@ -185,6 +185,36 @@ export const ne: Catalogue = {
   'Privacy Policy': 'गोपनीयता नीति',
   'Association name': 'संघको नाम',
   'Travel business name': 'ट्राभल व्यवसायको नाम',
+
+  // Registration: email verification
+  'We will email a 6-digit code to this address at the last step, to confirm it is yours. Use an inbox you can open now.':
+    'अन्तिम चरणमा यो ठेगाना तपाईंकै हो भनी पुष्टि गर्न हामी यसमा ६ अङ्कको कोड पठाउनेछौँ। तपाईंले अहिल्यै खोल्न सक्ने इनबक्स प्रयोग गर्नुहोस्।',
+  'Verify email':
+    'इमेल प्रमाणित गर्नुहोस्',
+  'The code we emailed you.':
+    'हामीले इमेल गरेको कोड।',
+  'Confirm your email address':
+    'आफ्नो इमेल ठेगाना पुष्टि गर्नुहोस्',
+  'We sent a 6-digit code to {email}. Enter it below to finish creating your account.':
+    'हामीले {email} मा ६ अङ्कको कोड पठाएका छौँ। खाता बनाउने काम पूरा गर्न त्यसलाई तल लेख्नुहोस्।',
+  'We will email a 6-digit code to {email}.':
+    'हामी {email} मा ६ अङ्कको कोड इमेल गर्नेछौँ।',
+  'Enter the code to confirm this email address is yours. It keeps fake accounts out of Saarthi.':
+    'यो इमेल ठेगाना तपाईंकै हो भनी पुष्टि गर्न कोड लेख्नुहोस्। यसले Saarthi लाई नक्कली खाताबाट जोगाउँछ।',
+  'Verification code':
+    'प्रमाणीकरण कोड',
+  'Send code':
+    'कोड पठाउनुहोस्',
+  'Resend code':
+    'कोड फेरि पठाउनुहोस्',
+  'Resend in {seconds}s':
+    '{seconds} सेकेन्डमा फेरि पठाउनुहोस्',
+  'Not arrived? Check your spam folder. Wrong address? Go back and change it.':
+    'आएन? स्प्याम फोल्डर हेर्नुहोस्। ठेगाना गलत छ? पछाडि गएर बदल्नुहोस्।',
+  'We emailed a verification code to {email}.':
+    'हामीले {email} मा प्रमाणीकरण कोड इमेल गरेका छौँ।',
+  'The code could not be sent. Please try again.':
+    'कोड पठाउन सकिएन। कृपया फेरि प्रयास गर्नुहोस्।',
   'I own trucks and want to manage my fleet and win loads.':
     'मसँग ट्रक छन् र म आफ्नो बेडा चलाउन तथा लोड पाउन चाहन्छु।',
   'I need materials, transport, a cab or a tour, and want offers to compare.':

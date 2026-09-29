@@ -108,6 +108,30 @@ export const VerificationSubjectType = asEnum({
 });
 export type VerificationSubjectType = EnumValue<typeof VerificationSubjectType>;
 
+/**
+ * Whether the account holding a vehicle is the one that owns it. Separate from
+ * `verificationStatus`, which only says the RC is real — see
+ * `domain/vehicle-ownership.ts`.
+ */
+export const VehicleOwnershipStatus = asEnum({
+  PENDING: 'PENDING',
+  VERIFIED: 'VERIFIED',
+  /** Handed back to the verified owner; the row keeps its history, not the plate. */
+  RELEASED: 'RELEASED',
+});
+export type VehicleOwnershipStatus = EnumValue<typeof VehicleOwnershipStatus>;
+
+/** A vehicle shared with another account — see `domain/vehicle-sharing.ts`. */
+export const VehicleShareStatus = asEnum({
+  /** Invited; waiting for the other person to accept. */
+  PENDING: 'PENDING',
+  ACTIVE: 'ACTIVE',
+  DECLINED: 'DECLINED',
+  /** Ended — by the owner, by the person it was shared with, or by the vehicle leaving. */
+  REVOKED: 'REVOKED',
+});
+export type VehicleShareStatus = EnumValue<typeof VehicleShareStatus>;
+
 export const DocumentOwnerType = asEnum({
   USER: 'USER',
   DRIVER: 'DRIVER',
@@ -1553,6 +1577,13 @@ export const MediaPurpose = asEnum({
    * findable — and deletable — as that rather than folded in with cargo photos.
    */
   DRIVER_VERIFICATION: 'DRIVER_VERIFICATION',
+  /**
+   * One frame of a vehicle's 360° exterior spin, ordered by `sortOrder`.
+   *
+   * Its own purpose so the frames never land in the exterior gallery: two dozen
+   * near-identical shots would bury the photos people actually chose.
+   */
+  VEHICLE_SPIN_FRAME: 'VEHICLE_SPIN_FRAME',
 });
 export type MediaPurpose = EnumValue<typeof MediaPurpose>;
 export const MEDIA_PURPOSES = Object.values(MediaPurpose) as MediaPurpose[];

@@ -3,6 +3,7 @@ import {
   MediaPurpose,
   VehicleListingStatus,
   VehicleListingVisibility,
+  VehicleOwnershipStatus,
   VerificationStatus,
   checkListingPublishGates,
   defaultSharedEvidenceBlocks,
@@ -93,7 +94,7 @@ async function readiness(listing: ListingRow, organizationId: string): Promise<G
   const [vehicle, organization, photos, activeTrip, activeAssignment] = await Promise.all([
     prisma.truck.findUnique({
       where: { id: listing.vehicleId },
-      select: { organizationId: true, verificationStatus: true },
+      select: { organizationId: true, verificationStatus: true, ownershipStatus: true },
     }),
     prisma.organization.findUnique({
       where: { id: organizationId },
@@ -115,6 +116,7 @@ async function readiness(listing: ListingRow, organizationId: string): Promise<G
 
   return checkListingPublishGates({
     vehicleBelongsToSeller: vehicle?.organizationId === organizationId,
+    vehicleOwnershipConfirmed: vehicle?.ownershipStatus === VehicleOwnershipStatus.VERIFIED,
     vehicleIsVerified: vehicle?.verificationStatus === VerificationStatus.VERIFIED,
     vehicleOnActiveTrip: Boolean(activeTrip),
     vehicleHasActiveAssignment: Boolean(activeAssignment),

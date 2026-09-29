@@ -144,6 +144,19 @@ export const cacheKeys = {
   commerceClassification: (scope: string, taxonomyVersion: string, textHash: string): string =>
     `${PREFIX}:commerce:classify:${scope}:${taxonomyVersion}:${textHash}`,
 
+  // --- Secure access ---------------------------------------------------------
+  //
+  // Keyed by session, not tenant: a PIN entered on one device opens sensitive
+  // details on that device only, and signing out ends it.
+  /** Sensitive details are open on this session until the entry expires. */
+  secureUnlock: (sessionId: string): string => `${PREFIX}:secure-access:${sessionId}:unlock`,
+  /** The WebAuthn challenge a passkey ceremony on this session must answer. */
+  passkeyChallenge: (sessionId: string, purpose: 'register' | 'unlock'): string =>
+    `${PREFIX}:secure-access:${sessionId}:challenge:${purpose}`,
+  /** A fingerprint sign-in in progress. No session yet, so keyed by a random id. */
+  passkeySignInChallenge: (challengeId: string): string =>
+    `${PREFIX}:secure-access:sign-in:${challengeId}`,
+
   /** Prefix for everything derived from one tenant, for bulk invalidation. */
   organizationPrefix: (organizationId: string): string => `${PREFIX}:fleet:${organizationId}`,
   vehiclePrefix: (vehicleId: string): string => `${PREFIX}:vehicle:${vehicleId}`,

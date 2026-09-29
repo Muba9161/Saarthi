@@ -184,6 +184,36 @@ export const or: Catalogue = {
   'Privacy Policy': 'ଗୋପନୀୟତା ନୀତି',
   'Association name': 'ସଂଘର ନାମ',
   'Travel business name': 'ଟ୍ରାଭେଲ ବ୍ୟବସାୟର ନାମ',
+
+  // Registration: email verification
+  'We will email a 6-digit code to this address at the last step, to confirm it is yours. Use an inbox you can open now.':
+    'ଶେଷ ପଦକ୍ଷେପରେ ଏହି ଠିକଣା ଆପଣଙ୍କର ବୋଲି ନିଶ୍ଚିତ କରିବାକୁ ଆମେ ଏଥିକୁ 6 ଅଙ୍କର କୋଡ୍ ପଠାଇବୁ। ଆପଣ ଏବେ ଖୋଲିପାରୁଥିବା ଇନବକ୍ସ ବ୍ୟବହାର କରନ୍ତୁ।',
+  'Verify email':
+    'ଇମେଲ୍ ଯାଞ୍ଚ କରନ୍ତୁ',
+  'The code we emailed you.':
+    'ଆମେ ଇମେଲ୍ କରିଥିବା କୋଡ୍।',
+  'Confirm your email address':
+    'ଆପଣଙ୍କ ଇମେଲ୍ ଠିକଣା ନିଶ୍ଚିତ କରନ୍ତୁ',
+  'We sent a 6-digit code to {email}. Enter it below to finish creating your account.':
+    'ଆମେ {email} କୁ 6 ଅଙ୍କର କୋଡ୍ ପଠାଇଛୁ। ଆକାଉଣ୍ଟ ତିଆରି ସମ୍ପୂର୍ଣ୍ଣ କରିବାକୁ ତାହା ତଳେ ଦିଅନ୍ତୁ।',
+  'We will email a 6-digit code to {email}.':
+    'ଆମେ {email} କୁ 6 ଅଙ୍କର କୋଡ୍ ଇମେଲ୍ କରିବୁ।',
+  'Enter the code to confirm this email address is yours. It keeps fake accounts out of Saarthi.':
+    'ଏହି ଇମେଲ୍ ଠିକଣା ଆପଣଙ୍କର ବୋଲି ନିଶ୍ଚିତ କରିବାକୁ କୋଡ୍ ଦିଅନ୍ତୁ। ଏହା Saarthi କୁ ନକଲି ଆକାଉଣ୍ଟରୁ ମୁକ୍ତ ରଖେ।',
+  'Verification code':
+    'ଯାଞ୍ଚ କୋଡ୍',
+  'Send code':
+    'କୋଡ୍ ପଠାନ୍ତୁ',
+  'Resend code':
+    'କୋଡ୍ ପୁଣି ପଠାନ୍ତୁ',
+  'Resend in {seconds}s':
+    '{seconds} ସେକେଣ୍ଡରେ ପୁଣି ପଠାନ୍ତୁ',
+  'Not arrived? Check your spam folder. Wrong address? Go back and change it.':
+    'ପାଇଲେ ନାହିଁ? ସ୍ପାମ୍ ଫୋଲ୍ଡର ଦେଖନ୍ତୁ। ଠିକଣା ଭୁଲ? ପଛକୁ ଯାଇ ବଦଳାନ୍ତୁ।',
+  'We emailed a verification code to {email}.':
+    'ଆମେ {email} କୁ ଯାଞ୍ଚ କୋଡ୍ ଇମେଲ୍ କରିଛୁ।',
+  'The code could not be sent. Please try again.':
+    'କୋଡ୍ ପଠାଯାଇପାରିଲା ନାହିଁ। ଦୟାକରି ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ।',
   'I own trucks and want to manage my fleet and win loads.':
     'ମୋର ଟ୍ରକ ଅଛି ଏବଂ ମୁଁ ମୋର ଯାନବାହିନୀ ଚଳାଇବାକୁ ଓ ଲୋଡ ପାଇବାକୁ ଚାହେଁ।',
   'I need materials, transport, a cab or a tour, and want offers to compare.':

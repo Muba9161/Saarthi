@@ -210,6 +210,27 @@ export const en = {
   'Association name': 'Association name',
   'Travel business name': 'Travel business name',
 
+  // --- Registration: email verification --------------------------------------
+  'We will email a 6-digit code to this address at the last step, to confirm it is yours. Use an inbox you can open now.':
+    'We will email a 6-digit code to this address at the last step, to confirm it is yours. Use an inbox you can open now.',
+  'Verify email': 'Verify email',
+  'The code we emailed you.': 'The code we emailed you.',
+  'Check your inbox': 'Check your inbox',
+  'Confirm your email address': 'Confirm your email address',
+  'We sent a 6-digit code to {email}. Enter it below to finish creating your account.':
+    'We sent a 6-digit code to {email}. Enter it below to finish creating your account.',
+  'We will email a 6-digit code to {email}.': 'We will email a 6-digit code to {email}.',
+  'Enter the code to confirm this email address is yours. It keeps fake accounts out of Saarthi.':
+    'Enter the code to confirm this email address is yours. It keeps fake accounts out of Saarthi.',
+  'Verification code': 'Verification code',
+  'Send code': 'Send code',
+  'Resend code': 'Resend code',
+  'Resend in {seconds}s': 'Resend in {seconds}s',
+  'Not arrived? Check your spam folder. Wrong address? Go back and change it.':
+    'Not arrived? Check your spam folder. Wrong address? Go back and change it.',
+  'We emailed a verification code to {email}.': 'We emailed a verification code to {email}.',
+  'The code could not be sent. Please try again.': 'The code could not be sent. Please try again.',
+
   // --- Account types --------------------------------------------------------
   'I own trucks and want to manage my fleet and win loads.':
     'I own trucks and want to manage my fleet and win loads.',
@@ -257,7 +278,6 @@ export const en = {
   'Enter your email address and we will send you a reset link.':
     'Enter your email address and we will send you a reset link.',
   'Send reset link': 'Send reset link',
-  'Check your inbox': 'Check your inbox',
   'If an account exists for that address, a password reset link has been generated.':
     'If an account exists for that address, a password reset link has been generated.',
   'Development shortcut': 'Development shortcut',

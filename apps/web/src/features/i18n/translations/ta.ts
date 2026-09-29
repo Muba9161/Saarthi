@@ -185,6 +185,36 @@ export const ta: Catalogue = {
   'Privacy Policy': 'தனியுரிமைக் கொள்கை',
   'Association name': 'சங்கத்தின் பெயர்',
   'Travel business name': 'பயண வணிகப் பெயர்',
+
+  // Registration: email verification
+  'We will email a 6-digit code to this address at the last step, to confirm it is yours. Use an inbox you can open now.':
+    'இந்த முகவரி உங்களுடையது என்பதை உறுதிசெய்ய, கடைசிப் படியில் இதற்கு 6 இலக்கக் குறியீட்டை அனுப்புவோம். இப்போதே திறக்கக்கூடிய இன்பாக்ஸைப் பயன்படுத்துங்கள்.',
+  'Verify email':
+    'மின்னஞ்சலைச் சரிபார்க்கவும்',
+  'The code we emailed you.':
+    'நாங்கள் மின்னஞ்சல் செய்த குறியீடு.',
+  'Confirm your email address':
+    'உங்கள் மின்னஞ்சல் முகவரியை உறுதிசெய்யவும்',
+  'We sent a 6-digit code to {email}. Enter it below to finish creating your account.':
+    '{email} க்கு 6 இலக்கக் குறியீட்டை அனுப்பியுள்ளோம். கணக்கை உருவாக்குவதை முடிக்க அதைக் கீழே உள்ளிடவும்.',
+  'We will email a 6-digit code to {email}.':
+    '{email} க்கு 6 இலக்கக் குறியீட்டை மின்னஞ்சல் செய்வோம்.',
+  'Enter the code to confirm this email address is yours. It keeps fake accounts out of Saarthi.':
+    'இந்த மின்னஞ்சல் முகவரி உங்களுடையது என்பதை உறுதிசெய்ய குறியீட்டை உள்ளிடவும். இது Saarthi-ஐப் போலிக் கணக்குகளிலிருந்து பாதுகாக்கிறது.',
+  'Verification code':
+    'சரிபார்ப்புக் குறியீடு',
+  'Send code':
+    'குறியீட்டை அனுப்பு',
+  'Resend code':
+    'குறியீட்டை மீண்டும் அனுப்பு',
+  'Resend in {seconds}s':
+    '{seconds} வினாடிகளில் மீண்டும் அனுப்பலாம்',
+  'Not arrived? Check your spam folder. Wrong address? Go back and change it.':
+    'வரவில்லையா? ஸ்பேம் கோப்புறையைப் பாருங்கள். முகவரி தவறா? பின்சென்று மாற்றுங்கள்.',
+  'We emailed a verification code to {email}.':
+    '{email} க்கு சரிபார்ப்புக் குறியீட்டை மின்னஞ்சல் செய்துள்ளோம்.',
+  'The code could not be sent. Please try again.':
+    'குறியீட்டை அனுப்ப முடியவில்லை. மீண்டும் முயற்சிக்கவும்.',
   'I own trucks and want to manage my fleet and win loads.':
     'என்னிடம் லாரிகள் உள்ளன; என் வாகனத் தொகுப்பை நிர்வகிக்கவும் சரக்கு பெறவும் விரும்புகிறேன்.',
   'I need materials, transport, a cab or a tour, and want offers to compare.':

@@ -132,21 +132,38 @@ export async function createMaintenance(
   if (!truck) throw errors.notFound('Vehicle');
   assertTenantAccess(auth, truck.organizationId, 'Truck');
 
+  return insertMaintenanceRecord(truck, organizationId, input, auth.user.id);
+}
+
+/**
+ * Write a maintenance record for a vehicle the caller has already been cleared
+ * to act on — by the tenant check above, or by an active share
+ * (`modules/vehicle-sharing`). One writer, so both paths produce the same row.
+ * `completedAt` records work already done rather than booked.
+ */
+export async function insertMaintenanceRecord(
+  truck: { id: string; odometerKm: number; registrationNumber: string },
+  organizationId: string,
+  input: Omit<CreateMaintenanceInput, 'truckId'>,
+  actorUserId: string,
+  completedAt?: Date,
+): Promise<MaintenanceSummary> {
   const record = await prisma.maintenanceRecord.create({
     data: {
-      truckId: input.truckId,
+      truckId: truck.id,
       organizationId,
       type: input.type,
       title: input.title,
       description: input.description ?? null,
       odometerKm: input.odometerKm ?? truck.odometerKm,
       cost: input.cost ?? null,
-      status: MaintenanceStatus.SCHEDULED,
+      status: completedAt ? MaintenanceStatus.COMPLETED : MaintenanceStatus.SCHEDULED,
       scheduledAt: input.scheduledAt ?? null,
+      completedAt: completedAt ?? null,
       serviceProvider: input.serviceProvider ?? null,
       nextDueOdometerKm: input.nextDueOdometerKm ?? null,
       nextDueAt: input.nextDueAt ?? null,
-      createdById: auth.user.id,
+      createdById: actorUserId,
     },
   });
 
@@ -235,11 +252,32 @@ export async function recordFuel(
   if (!truck) throw errors.notFound('Vehicle');
   assertTenantAccess(auth, truck.organizationId, 'Truck');
 
+  return insertFuelRecord(truck, organizationId, input, auth.user.id);
+}
+
+/**
+ * Write a fill-up for a vehicle the caller has already been cleared to act on
+ * — see `insertMaintenanceRecord` for why the check and the write are apart.
+ */
+export async function insertFuelRecord(
+  truck: {
+    id: string;
+    registrationNumber: string;
+    currentTripId: string | null;
+    currentDriverId: string | null;
+    odometerKm: number;
+    lastLatitude: number | null;
+    lastLongitude: number | null;
+  },
+  organizationId: string,
+  input: Omit<CreateFuelRecordInput, 'truckId'>,
+  actorUserId: string,
+) {
   const totalCost = Number((input.quantityLitres * input.pricePerUnit).toFixed(2));
 
   const record = await prisma.fuelRecord.create({
     data: {
-      truckId: input.truckId,
+      truckId: truck.id,
       organizationId,
       tripId: input.tripId ?? truck.currentTripId,
       driverId: truck.currentDriverId,
@@ -251,7 +289,7 @@ export async function recordFuel(
       latitude: input.latitude ?? truck.lastLatitude,
       longitude: input.longitude ?? truck.lastLongitude,
       recordedAt: input.recordedAt ?? new Date(),
-      createdById: auth.user.id,
+      createdById: actorUserId,
     },
   });
 

@@ -185,6 +185,36 @@ export const as: Catalogue = {
   'Privacy Policy': 'গোপনীয়তা নীতি',
   'Association name': 'সন্থাৰ নাম',
   'Travel business name': 'ট্ৰেভেল ব্যৱসায়ৰ নাম',
+
+  // Registration: email verification
+  'We will email a 6-digit code to this address at the last step, to confirm it is yours. Use an inbox you can open now.':
+    'শেষ পদক্ষেপত আমি এই ঠিকনালৈ ৬ অংকৰ এটা ক\'ড পঠিয়াম, যাতে নিশ্চিত হয় যে এইটো আপোনাৰ। এনে এটা ইনবক্স ব্যৱহাৰ কৰক যিটো আপুনি এতিয়াই খুলিব পাৰে।',
+  'Verify email':
+    'ইমেইল সত্যাপন কৰক',
+  'The code we emailed you.':
+    'আমি ইমেইল কৰা ক\'ড।',
+  'Confirm your email address':
+    'আপোনাৰ ইমেইল ঠিকনা নিশ্চিত কৰক',
+  'We sent a 6-digit code to {email}. Enter it below to finish creating your account.':
+    'আমি {email}লৈ ৬ অংকৰ ক\'ড পঠিয়াইছোঁ। একাউণ্ট সৃষ্টি সম্পূৰ্ণ কৰিবলৈ তলত সেইটো দিয়ক।',
+  'We will email a 6-digit code to {email}.':
+    'আমি {email}লৈ ৬ অংকৰ এটা ক\'ড ইমেইল কৰিম।',
+  'Enter the code to confirm this email address is yours. It keeps fake accounts out of Saarthi.':
+    'এই ইমেইল ঠিকনা আপোনাৰ বুলি নিশ্চিত কৰিবলৈ ক\'ডটো দিয়ক। ই Saarthi-ক ভুৱা একাউণ্টৰ পৰা মুক্ত ৰাখে।',
+  'Verification code':
+    'সত্যাপন ক\'ড',
+  'Send code':
+    'ক\'ড পঠিয়াওক',
+  'Resend code':
+    'ক\'ড পুনৰ পঠিয়াওক',
+  'Resend in {seconds}s':
+    '{seconds} ছেকেণ্ডত পুনৰ পঠিয়াওক',
+  'Not arrived? Check your spam folder. Wrong address? Go back and change it.':
+    'পোৱা নাই? স্পাম ফ\'ল্ডাৰ চাওক। ঠিকনা ভুল? উভতি গৈ সলনি কৰক।',
+  'We emailed a verification code to {email}.':
+    'আমি {email}লৈ সত্যাপন ক\'ড ইমেইল কৰিছোঁ।',
+  'The code could not be sent. Please try again.':
+    'ক\'ডটো পঠিয়াব পৰা নগ\'ল। অনুগ্ৰহ কৰি পুনৰ চেষ্টা কৰক।',
   'I own trucks and want to manage my fleet and win loads.':
     'মোৰ ট্ৰাক আছে আৰু মই মোৰ বাহিনী চলাব আৰু লোড পাব বিচাৰো।',
   'I need materials, transport, a cab or a tour, and want offers to compare.':

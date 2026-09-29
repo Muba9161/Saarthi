@@ -13,6 +13,8 @@
  *    for callers who are not authorised to see them.
  */
 
+import { maskLastFour, maskName, maskPhone } from './masking';
+
 /** Road-tax validity, as published by the RTO. */
 export interface VehicleTaxInfo {
   validUntil: string | null;
@@ -124,8 +126,56 @@ export interface VehicleRcRecord {
   /** The provider flagged this as a reduced record rather than a full one. */
   partialRecord: boolean | null;
   maskedByProvider: VehicleMaskedFields;
-  /** Saarthi stripped personal/identity fields for this caller. */
+  /** Saarthi stripped or masked personal/identity fields for this caller. */
   redacted: boolean;
+}
+
+/**
+ * How much of an RC record a caller sees, and what stands between them and the
+ * rest. Anything short of `FULL` is served masked (or, for `NOT_PERMITTED`,
+ * stripped) — never the raw record.
+ */
+export const RcDetailAccess = {
+  /** Unmasked: the owner's details and the certificate. */
+  FULL: 'FULL',
+  /** Masked until the secure PIN or a passkey is entered on this session. */
+  LOCKED: 'LOCKED',
+  /** Masked until the account confirms it owns the vehicle. */
+  OWNERSHIP_REQUIRED: 'OWNERSHIP_REQUIRED',
+  /** Stripped: this role may not see personal vehicle data at all. */
+  NOT_PERMITTED: 'NOT_PERMITTED',
+} as const;
+export type RcDetailAccess = (typeof RcDetailAccess)[keyof typeof RcDetailAccess];
+
+/** `Jagatsinghapur, 754119` → `PIN 754119`: the area, never the house. */
+function pinCodeOnly(address: string | null): string | null {
+  const pin = address?.match(/\b\d{6}\b/g)?.pop();
+  return pin ? `PIN ${pin}` : null;
+}
+
+/**
+ * The record as anyone short of `FULL` access sees it: enough for the owner to
+ * recognise their own vehicle, too little for a stranger to find the person —
+ * `Sneha M.`, `98******00`, a PIN code, the last four of the chassis.
+ */
+export function maskRcRecord(record: VehicleRcRecord): VehicleRcRecord {
+  return {
+    ...record,
+    owner: record.owner
+      ? {
+          name: maskName(record.owner.name),
+          fatherName: maskName(record.owner.fatherName),
+          serialNumber: record.owner.serialNumber,
+          mobileNumber: maskPhone(record.owner.mobileNumber),
+          presentAddress: pinCodeOnly(record.owner.presentAddress),
+          permanentAddress: pinCodeOnly(record.owner.permanentAddress),
+        }
+      : null,
+    engineNumber: maskLastFour(record.engineNumber),
+    chassisNumber: maskLastFour(record.chassisNumber),
+    insurancePolicyNumber: maskLastFour(record.insurancePolicyNumber),
+    redacted: true,
+  };
 }
 
 /** What `POST /api/v1/vehicles/lookup` returns. */
@@ -138,8 +188,10 @@ export interface VehicleLookupResult {
   cached: boolean;
   retrievedAt: string;
   expiresAt: string | null;
-  /** A stored RC PDF is available for download from Saarthi. */
+  /** A stored RC PDF exists. Downloading it takes `FULL` access. */
   pdfAvailable: boolean;
+  /** How much of `vehicle` this caller was shown — see `RcDetailAccess`. */
+  access: RcDetailAccess;
   /** Provider order reference, useful when raising a support ticket. */
   providerReference: string | null;
 }

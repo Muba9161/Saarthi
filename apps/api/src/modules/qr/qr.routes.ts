@@ -17,6 +17,7 @@ import {
   resolveQrQuerySchema,
   revokeQrCodeSchema,
   rotateQrCodeSchema,
+  qrRcVisibilitySchema,
   updateQrPrivacyPolicySchema,
 } from '@saarthi/shared';
 import { config } from '../../config/env';
@@ -32,6 +33,8 @@ import {
 import { AuditAction, auditFromRequest } from '../audit/audit.service';
 import * as qrService from './qr.service';
 import * as privacyService from './qr-privacy.service';
+import { assertUnlocked } from '../secure-access/secure-access.service';
+import { sendSecurityNotice } from '../secure-access/security-notice';
 import * as renderService from './sticker.renderer';
 import * as qrImage from './qr-render.service';
 
@@ -367,6 +370,36 @@ export async function qrRoutes(app: FastifyInstance): Promise<void> {
             fields: Object.keys(policy.overrides).length,
             allowPublicScans: policy.allowPublicScans,
           },
+        });
+
+        return ok(reply, privacyService.describePolicy(policy));
+      },
+    );
+
+    /*
+     * RC details on QR scans, on or off. The same two permissions as the field
+     * policy, plus the secure PIN or a passkey on this session — it decides
+     * whether every sticker on the account publishes RC details — and an email
+     * to the person who changed it, so that if it was not them they know.
+     */
+    scoped.put(
+      '/rc-visibility',
+      { preHandler: requireAllPermissions(Permission.QR_MANAGE, Permission.ORG_UPDATE) },
+      async (request, reply) => {
+        const auth = requireAuth(request);
+        const organizationId = requireOrganizationId(request);
+        const { enabled } = parseBody(qrRcVisibilitySchema, request.body);
+        await assertUnlocked(
+          auth,
+          enabled ? 'show RC details on QR scans' : 'hide RC details on QR scans',
+        );
+
+        const policy = await privacyService.setRcVisibility(auth, organizationId, enabled);
+        sendSecurityNotice(auth.user, {
+          subject: enabled ? 'RC details are now shown on QR scans' : 'RC details are now hidden on QR scans',
+          intro: enabled
+            ? 'You turned on RC details for QR scans on your VorldX Saarthi account. Scanning one of your vehicle stickers now shows its registration record and owner name — never a phone number or address.'
+            : 'You turned off RC details for QR scans on your VorldX Saarthi account. Scanning your vehicle stickers no longer shows their registration record.',
         });
 
         return ok(reply, privacyService.describePolicy(policy));

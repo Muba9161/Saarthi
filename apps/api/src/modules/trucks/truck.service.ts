@@ -21,6 +21,15 @@ import { scheduleFastagDiscovery } from '../toll/fastag.service';
 import { verifyVehicleAddedFromRc } from '../verification/registry-verification.service';
 import type { AuthContext } from '../../auth/context';
 import { broadcastTruckStatus } from '../../realtime/realtime.service';
+import { archiveTruckRecord } from './truck-archive';
+import {
+  assertNotReleased,
+  evaluateOwnership,
+  notifyRegistrationReleased,
+  ownershipResetForNewPlate,
+  releaseRegistration,
+  resolveRegistrationClaim,
+} from '../vehicles/vehicle-ownership.service';
 
 /**
  * Truck management.
@@ -109,7 +118,8 @@ function toSummary(
   const assignment = truck.assignments[0];
   return {
     id: truck.id,
-    registrationNumber: truck.registrationNumber,
+    // A released row keeps its own history under the plate it had.
+    registrationNumber: truck.releasedRegistrationNumber ?? truck.registrationNumber,
     truckType: truck.truckType,
     manufacturer: truck.manufacturer,
     model: truck.model,
@@ -258,35 +268,32 @@ export async function createTruck(
 
   await assertTruckLimit(auth, organizationId);
 
-  const existing = await prisma.truck.findUnique({
-    where: { registrationNumber: input.registrationNumber },
-  });
-  if (existing) {
-    throw errors.duplicate(
-      `A truck with registration ${input.registrationNumber} is already registered on Saarthi.`,
-      { fields: { registrationNumber: ['This registration number is already registered.'] } },
-    );
-  }
+  const releaseTruckId = await resolveRegistrationClaim(organizationId, input.registrationNumber, 'truck');
 
-  const truck = await prisma.truck.create({
-    data: {
-      organizationId,
-      registrationNumber: input.registrationNumber,
-      truckType: input.truckType,
-      manufacturer: input.manufacturer ?? null,
-      model: input.model ?? null,
-      year: input.year ?? null,
-      capacityTons: input.capacityTons,
-      fuelType: input.fuelType,
-      fuelEfficiency: input.fuelEfficiency ?? null,
-      odometerKm: input.odometerKm,
-      notes: input.notes ?? null,
-      shareLocation: input.shareLocation,
-      status: TruckStatus.AVAILABLE,
-      verificationStatus: VerificationStatus.PENDING,
-    },
-    include: truckInclude,
+  const { truck, released } = await prisma.$transaction(async (tx) => {
+    const released = releaseTruckId ? await releaseRegistration(tx, releaseTruckId) : null;
+    const truck = await tx.truck.create({
+      data: {
+        organizationId,
+        registrationNumber: input.registrationNumber,
+        truckType: input.truckType,
+        manufacturer: input.manufacturer ?? null,
+        model: input.model ?? null,
+        year: input.year ?? null,
+        capacityTons: input.capacityTons,
+        fuelType: input.fuelType,
+        fuelEfficiency: input.fuelEfficiency ?? null,
+        odometerKm: input.odometerKm,
+        notes: input.notes ?? null,
+        shareLocation: input.shareLocation,
+        status: TruckStatus.AVAILABLE,
+        verificationStatus: VerificationStatus.PENDING,
+      },
+      include: truckInclude,
+    });
+    return { truck, released };
   });
+  if (released) notifyRegistrationReleased(released);
 
   await prisma.truckEvent.create({
     data: {
@@ -307,13 +314,12 @@ export async function createTruck(
   scheduleFastagDiscovery(auth, truck.id);
 
   // Added from its RC: verified against that record, at no charge.
-  if (input.rcLookupId) {
-    await verifyVehicleAddedFromRc(auth, truck.id, input.rcLookupId);
-    const verified = await prisma.truck.findUniqueOrThrow({ where: { id: truck.id }, include: truckInclude });
-    return toSummary(verified);
-  }
+  if (input.rcLookupId) await verifyVehicleAddedFromRc(auth, truck.id, input.rcLookupId);
 
-  return toSummary(truck);
+  await evaluateOwnership(truck.id);
+
+  const saved = await prisma.truck.findUniqueOrThrow({ where: { id: truck.id }, include: truckInclude });
+  return toSummary(saved);
 }
 
 export async function updateTruck(
@@ -324,6 +330,9 @@ export async function updateTruck(
   const existing = await prisma.truck.findUnique({ where: { id: truckId } });
   if (!existing) throw errors.notFound('Vehicle');
   assertTenantAccess(auth, existing.organizationId, 'Truck');
+  assertNotReleased(existing);
+  const plateChanged =
+    input.registrationNumber !== undefined && input.registrationNumber !== existing.registrationNumber;
 
   if (input.registrationNumber && input.registrationNumber !== existing.registrationNumber) {
     const clash = await prisma.truck.findUnique({
@@ -342,6 +351,7 @@ export async function updateTruck(
       ...(input.registrationNumber !== undefined
         ? { registrationNumber: input.registrationNumber }
         : {}),
+      ...(plateChanged ? ownershipResetForNewPlate() : {}),
       ...(input.truckType !== undefined ? { truckType: input.truckType } : {}),
       ...(input.manufacturer !== undefined ? { manufacturer: input.manufacturer } : {}),
       ...(input.model !== undefined ? { model: input.model } : {}),
@@ -360,6 +370,7 @@ export async function updateTruck(
   if (input.status && input.status !== existing.status) {
     await recordStatusChange(auth, truck.id, existing.status, input.status, existing.organizationId);
   }
+  if (plateChanged) await evaluateOwnership(truck.id);
 
   const health = await documentHealthFor([truck.id]);
   return toSummary(truck, health.get(truck.id));
@@ -452,32 +463,20 @@ export async function archiveTruck(auth: AuthContext, truckId: string): Promise<
     throw errors.businessRule('This vehicle is on an active trip and cannot be archived yet.');
   }
 
-  await prisma.$transaction([
-    prisma.truckAssignment.updateMany({
-      where: { truckId, status: 'ACTIVE' },
-      data: { status: 'ENDED', unassignedAt: new Date() },
+  await prisma.$transaction((tx) =>
+    archiveTruckRecord(tx, truck, {
+      type: 'ARCHIVED',
+      description: `Truck ${truck.registrationNumber} archived.`,
+      actorUserId: auth.user.id,
     }),
-    prisma.driver.updateMany({ where: { currentTruckId: truckId }, data: { currentTruckId: null } }),
-    prisma.truck.update({
-      where: { id: truckId },
-      data: { archivedAt: new Date(), status: TruckStatus.OFFLINE, currentDriverId: null },
-    }),
-    prisma.truckEvent.create({
-      data: {
-        truckId,
-        organizationId: truck.organizationId,
-        type: 'ARCHIVED',
-        description: `Truck ${truck.registrationNumber} archived.`,
-        actorUserId: auth.user.id,
-      },
-    }),
-  ]);
+  );
 }
 
 export async function restoreTruck(auth: AuthContext, truckId: string): Promise<TruckSummary> {
   const truck = await prisma.truck.findUnique({ where: { id: truckId } });
   if (!truck) throw errors.notFound('Vehicle');
   assertTenantAccess(auth, truck.organizationId, 'Truck');
+  assertNotReleased(truck);
   await assertTruckLimit(auth, truck.organizationId);
 
   const restored = await prisma.truck.update({

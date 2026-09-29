@@ -16,6 +16,7 @@ import {
   type VehicleListQuery,
   VehicleType,
   vehicleTypeDefinition,
+  type VehicleOwnershipView,
   VerificationStatus,
 } from '@saarthi/shared';
 import { type Prisma, prisma } from '../../database/prisma';
@@ -28,6 +29,15 @@ import { verifyVehicleAddedFromRc } from '../verification/registry-verification.
 import type { AuthContext } from '../../auth/context';
 import { broadcastTruckStatus } from '../../realtime/realtime.service';
 import { scheduleFastagDiscovery } from '../toll/fastag.service';
+import {
+  assertNotReleased,
+  evaluateOwnership,
+  notifyRegistrationReleased,
+  ownershipResetForNewPlate,
+  ownershipView,
+  releaseRegistration,
+  resolveRegistrationClaim,
+} from './vehicle-ownership.service';
 
 /**
  * Generalized vehicle management.
@@ -103,6 +113,8 @@ export interface VehicleSummary {
   device: VehicleDeviceSummary | null;
   openTelemetryAlerts: number;
   documentHealth: { total: number; expired: number; expiringSoon: number; pending: number };
+  /** Whether this account has shown it owns the vehicle — not the same as a verified RC. */
+  ownership: VehicleOwnershipView;
   notes: string | null;
   createdAt: string;
   archivedAt: string | null;
@@ -197,7 +209,8 @@ function toSummary(
   return {
     id: vehicle.id,
     organizationId: vehicle.organizationId,
-    registrationNumber: vehicle.registrationNumber,
+    // A released row keeps its own history under the plate it had.
+    registrationNumber: vehicle.releasedRegistrationNumber ?? vehicle.registrationNumber,
     vehicleType,
     truckType: vehicle.truckType,
     typeLabel: definition.label,
@@ -246,6 +259,7 @@ function toSummary(
       : null,
     openTelemetryAlerts: openAlerts,
     documentHealth: health,
+    ownership: ownershipView(vehicle),
     notes: vehicle.notes,
     createdAt: vehicle.createdAt.toISOString(),
     archivedAt: vehicle.archivedAt?.toISOString() ?? null,
@@ -387,13 +401,16 @@ async function assertVehicleLimit(auth: AuthContext, organizationId: string): Pr
  * the ₹99 for an extra slot — so nobody pays for room and is then refused for
  * a different reason (an unverified Aadhaar, a vehicle type the plan cannot
  * hold, a plate already registered).
+ *
+ * Returns the unconfirmed vehicle on another account that adding this one
+ * would release, when the caller has proved the plate is theirs.
  */
 export async function assertVehicleAddable(
   auth: AuthContext,
   organizationId: string,
   input: CreateVehicleInput,
   { capacity = true }: { capacity?: boolean } = {},
-): Promise<void> {
+): Promise<string | null> {
   /*
    * A Personal account holder confirms who they are before a vehicle goes on
    * the account.
@@ -417,15 +434,7 @@ export async function assertVehicleAddable(
   const problems = validateVehicleCapacities(input.vehicleType, input);
   if (problems.length > 0) throw errors.validation(problems[0]!);
 
-  const existing = await prisma.truck.findUnique({
-    where: { registrationNumber: input.registrationNumber },
-  });
-  if (existing) {
-    throw errors.duplicate(
-      `A vehicle with registration ${input.registrationNumber} is already registered on Saarthi.`,
-      { fields: { registrationNumber: ['This registration number is already registered.'] } },
-    );
-  }
+  return resolveRegistrationClaim(organizationId, input.registrationNumber, 'vehicle');
 }
 
 export async function createVehicle(
@@ -433,36 +442,41 @@ export async function createVehicle(
   organizationId: string,
   input: CreateVehicleInput,
 ): Promise<VehicleSummary> {
-  await assertVehicleAddable(auth, organizationId, input);
+  const releaseTruckId = await assertVehicleAddable(auth, organizationId, input);
 
   const definition = vehicleTypeDefinition(input.vehicleType);
   const carriesFreight = definition.capabilities.includes(VehicleCapability.CARGO_CAPACITY);
 
-  const vehicle = await prisma.truck.create({
-    data: {
-      organizationId,
-      registrationNumber: input.registrationNumber,
-      vehicleType: input.vehicleType,
-      // Passenger vehicles have no meaningful body type, so the capability
-      // model supplies one and the legacy column stays valid.
-      truckType: resolveTruckType(input.vehicleType, input.truckType),
-      manufacturer: input.manufacturer ?? null,
-      model: input.model ?? null,
-      year: input.year ?? null,
-      colour: input.colour ?? null,
-      capacityTons: carriesFreight ? (input.capacityTons ?? 0) : 0,
-      passengerCapacity: input.passengerCapacity ?? null,
-      airConditioned: input.airConditioned ?? null,
-      fuelType: input.fuelType,
-      fuelEfficiency: input.fuelEfficiency ?? null,
-      odometerKm: input.odometerKm,
-      notes: input.notes ?? null,
-      shareLocation: input.shareLocation,
-      status: TruckStatus.AVAILABLE,
-      verificationStatus: VerificationStatus.PENDING,
-    },
-    include: vehicleInclude,
+  const { vehicle, released } = await prisma.$transaction(async (tx) => {
+    const released = releaseTruckId ? await releaseRegistration(tx, releaseTruckId) : null;
+    const vehicle = await tx.truck.create({
+      data: {
+        organizationId,
+        registrationNumber: input.registrationNumber,
+        vehicleType: input.vehicleType,
+        // Passenger vehicles have no meaningful body type, so the capability
+        // model supplies one and the legacy column stays valid.
+        truckType: resolveTruckType(input.vehicleType, input.truckType),
+        manufacturer: input.manufacturer ?? null,
+        model: input.model ?? null,
+        year: input.year ?? null,
+        colour: input.colour ?? null,
+        capacityTons: carriesFreight ? (input.capacityTons ?? 0) : 0,
+        passengerCapacity: input.passengerCapacity ?? null,
+        airConditioned: input.airConditioned ?? null,
+        fuelType: input.fuelType,
+        fuelEfficiency: input.fuelEfficiency ?? null,
+        odometerKm: input.odometerKm,
+        notes: input.notes ?? null,
+        shareLocation: input.shareLocation,
+        status: TruckStatus.AVAILABLE,
+        verificationStatus: VerificationStatus.PENDING,
+      },
+      include: vehicleInclude,
+    });
+    return { vehicle, released };
   });
+  if (released) notifyRegistrationReleased(released);
 
   await prisma.truckEvent.create({
     data: {
@@ -484,13 +498,13 @@ export async function createVehicle(
   scheduleFastagDiscovery(auth, vehicle.id);
 
   // Added from its RC: verified against that record, at no charge.
-  if (input.rcLookupId) {
-    await verifyVehicleAddedFromRc(auth, vehicle.id, input.rcLookupId);
-    const verified = await prisma.truck.findUniqueOrThrow({ where: { id: vehicle.id }, include: vehicleInclude });
-    return toSummary(verified);
-  }
+  if (input.rcLookupId) await verifyVehicleAddedFromRc(auth, vehicle.id, input.rcLookupId);
 
-  return toSummary(vehicle);
+  // Usually settled on the spot: the RC fetched to fill the form names the owner.
+  await evaluateOwnership(vehicle.id);
+
+  const saved = await prisma.truck.findUniqueOrThrow({ where: { id: vehicle.id }, include: vehicleInclude });
+  return toSummary(saved);
 }
 
 export async function updateVehicle(
@@ -501,6 +515,9 @@ export async function updateVehicle(
   const existing = await prisma.truck.findUnique({ where: { id: vehicleId } });
   if (!existing) throw errors.notFound('Vehicle');
   assertTenantAccess(auth, existing.organizationId, 'Vehicle');
+  assertNotReleased(existing);
+  const plateChanged =
+    input.registrationNumber !== undefined && input.registrationNumber !== existing.registrationNumber;
 
   // Validate the *resulting* vehicle, not the patch: changing type from TRUCK
   // to TAXI without clearing the payload would otherwise leave an incoherent row.
@@ -535,6 +552,7 @@ export async function updateVehicle(
         ? { truckType: resolveTruckType(nextType, input.truckType ?? undefined) }
         : {}),
       ...(input.registrationNumber ? { registrationNumber: input.registrationNumber } : {}),
+      ...(plateChanged ? ownershipResetForNewPlate() : {}),
       ...(input.manufacturer !== undefined ? { manufacturer: input.manufacturer ?? null } : {}),
       ...(input.model !== undefined ? { model: input.model ?? null } : {}),
       ...(input.year !== undefined ? { year: input.year ?? null } : {}),
@@ -565,11 +583,12 @@ export async function updateVehicle(
     });
   }
 
-  const [health, alerts] = await Promise.all([
+  const [health, alerts, ownership] = await Promise.all([
     documentHealthFor([vehicle.id]),
     openAlertCounts([vehicle.id]),
+    plateChanged ? evaluateOwnership(vehicle.id) : ownershipView(vehicle),
   ]);
-  return toSummary(vehicle, health.get(vehicle.id), alerts.get(vehicle.id) ?? 0);
+  return { ...toSummary(vehicle, health.get(vehicle.id), alerts.get(vehicle.id) ?? 0), ownership };
 }
 
 /** The catalogue the vehicle form and filters are built from. */
