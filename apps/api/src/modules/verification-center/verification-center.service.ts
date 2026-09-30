@@ -256,13 +256,24 @@ export async function getVerificationCenter(
     // --- A billable online check -----------------------------------------
     const checkType = requirement.checkType;
     const price = prices.find((entry) => entry.checkType === checkType) ?? null;
-    const charge =
-      charges.find(
-        (entry) =>
-          entry.checkType === checkType &&
-          entry.subjectType === subjectType &&
-          entry.subjectId === subjectId,
-      ) ?? null;
+    const forThisCheck = charges.filter(
+      (entry) =>
+        entry.checkType === checkType &&
+        entry.subjectType === subjectType &&
+        entry.subjectId === subjectId,
+    );
+    const latest = forThisCheck[0] ?? null;
+    // A fee kept for a free retry is spent before any new payment is asked
+    // for, so the step offers it even when a later attempt (an abandoned
+    // checkout, a definite "no") sits on top. Only a check already running
+    // comes first, exactly as it does when the next attempt is started.
+    const running =
+      latest?.status === VerificationChargeStatus.PAID ||
+      latest?.status === VerificationChargeStatus.VERIFYING;
+    const credit = running
+      ? null
+      : (forThisCheck.find((entry) => entry.status === VerificationChargeStatus.RETRY_REQUIRED) ?? null);
+    const charge = credit ?? latest;
     const identityKind = identityKindForCheckType(checkType);
     const identityRow = identityKind
       ? (identityRows.find(

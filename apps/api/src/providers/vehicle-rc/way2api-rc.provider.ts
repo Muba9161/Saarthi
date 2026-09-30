@@ -36,6 +36,7 @@ type MessageCode =
   | 'PROVIDER_NO_RESPONSE'
   | 'VERIFICATION_FAILED'
   | 'NO_RECORD_FOUND'
+  | 'SOURCE_UNAVAILABLE'
   | 'INVALID_INPUT'
   | 'REQUEST_FAILED'
   | 'MISSING_API_KEY'
@@ -355,9 +356,12 @@ export class Way2ApiRcProvider implements VehicleRcProvider {
       );
     }
 
+    // SOURCE_UNAVAILABLE arrives as a 422 that looks like a lookup, but the
+    // registry behind the provider never answered: an outage, not "no record".
     if (
       response.status === 503 ||
       code === 'PROVIDER_UNAVAILABLE' ||
+      code === 'SOURCE_UNAVAILABLE' ||
       code === 'INTERNAL_ERROR' ||
       code === 'REQUEST_FAILED'
     ) {

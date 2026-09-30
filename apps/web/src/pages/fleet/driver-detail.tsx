@@ -1,4 +1,4 @@
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, Award } from 'lucide-react';
 import { Feature, Permission, formatDistanceKm, humanizeEnum } from '@saarthi/shared';
@@ -33,6 +33,10 @@ interface AchievementRow {
 export function DriverDetailPage() {
   const { id = '' } = useParams();
   const navigate = useNavigate();
+  // The verification history links here with `?tab=documents` to reach a
+  // driver's free retry.
+  const [searchParams] = useSearchParams();
+  const initialTab = searchParams.get('tab') === 'documents' ? 'documents' : 'performance';
   const { can, hasFeature } = useAuth();
 
   const driver = useQuery({
@@ -167,7 +171,7 @@ export function DriverDetailPage() {
         />
       </div>
 
-      <Tabs defaultValue="performance">
+      <Tabs defaultValue={initialTab}>
         <TabsList>
           <TabsTrigger value="performance">Performance</TabsTrigger>
           <TabsTrigger value="achievements">Achievements</TabsTrigger>

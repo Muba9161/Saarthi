@@ -259,9 +259,12 @@ export class Way2ApiLicenceProvider implements DrivingLicenceProvider {
       );
     }
 
+    // SOURCE_UNAVAILABLE arrives as a 422 that looks like a lookup, but the
+    // registry behind the provider never answered: an outage, not "no record".
     if (
       response.status === 503 ||
       code === 'PROVIDER_UNAVAILABLE' ||
+      code === 'SOURCE_UNAVAILABLE' ||
       code === 'INTERNAL_ERROR' ||
       code === 'REQUEST_FAILED'
     ) {

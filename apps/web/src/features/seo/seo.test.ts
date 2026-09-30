@@ -1,3 +1,9 @@
+// Imported rather than taken from globals, as every other test in this app
+// does. tsconfig.json declares `types: ["vite/client", "node"]` and nothing
+// else, so `describe`/`it`/`expect` are undeclared names to tsc — which failed
+// the production build, not merely the test run, because tsconfig.build.json
+// type-checks `src` without excluding tests.
+import { describe, expect, it } from 'vitest';
 import { createMemoryRouter } from 'react-router-dom';
 import { buildHeadTags } from './head-tags';
 import { NOT_FOUND_HANDLE, bindRouteSeo } from './route-seo';

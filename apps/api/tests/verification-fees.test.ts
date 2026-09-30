@@ -1,4 +1,6 @@
-import { createHmac } from 'node:crypto';
+import { createHmac, randomUUID } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // A hosted checkout confirms later, by webhook, so the request is held
@@ -45,6 +47,9 @@ const VALID_AADHAAR = '234567890124';
 const VALID_PAN = 'ABCPE1234F';
 const OTHER_PAN = 'ABCPE9876K';
 const COMPANY_PAN = 'ABCCE1234F';
+const VALID_VOTER_ID = 'ABC1234567';
+// Embeds COMPANY_PAN, as a real GSTIN embeds its holder's PAN.
+const VALID_GSTIN = '27ABCCE1234F1Z2';
 
 interface StartResult {
   mode: 'ALREADY_VERIFIED' | 'COMPLETED_FREE' | 'CHECKOUT' | 'COMPLETED';
@@ -96,6 +101,56 @@ const panVerified = () =>
   stubWay2Api((path) =>
     path.endsWith('/pan/verify') ? found({ pan: VALID_PAN, name: 'TEST USER', status: 'VALID' }) : notFound,
   );
+
+// Answers exactly as Way2API's response pages document them — the envelope and
+// the field names both. See app.way2api.com/documentation/<endpoint>/response.
+const documented = (result: Record<string, unknown>): Way2ApiAnswer => ({
+  body: {
+    status: 'SUCCESS',
+    status_code: 200,
+    charged: true,
+    success: true,
+    message: '',
+    message_code: 'OK',
+    order_id: 'W2A-OK',
+    data: { order_id: 'W2A-OK', result },
+  },
+});
+const sourceDown: Way2ApiAnswer = {
+  status: 422,
+  body: {
+    status: 'SUCCESS',
+    status_code: 422,
+    charged: true,
+    success: false,
+    message: 'Record source temporarily unavailable.',
+    message_code: 'SOURCE_UNAVAILABLE',
+    order_id: 'W2A-DOWN',
+  },
+};
+
+/** The JSON body of the n-th call the stub received. */
+const sentBody = (fetchMock: ReturnType<typeof stubWay2Api>, call = 0): unknown =>
+  JSON.parse(String(((fetchMock.mock.calls[call] as unknown[])[1] as RequestInit).body));
+
+// The Aadhaar–PAN link check takes the Aadhaar alone and names the PAN it is
+// linked to, masked.
+const VALID_PAN_MASKED = 'ABXXXXXX4F';
+const aadhaarLinked = (maskedPan: string): Way2ApiAnswer =>
+  documented({ masked_pan: maskedPan, linking_status: true, reason: 'linked', detailed_reason: null });
+const aadhaarRejected: Way2ApiAnswer = {
+  status: 422,
+  body: {
+    status: 'SUCCESS',
+    status_code: 422,
+    charged: true,
+    success: false,
+    message: 'Invalid Aadhaar Number',
+    message_code: 'VERIFICATION_FAILED',
+    order_id: 'W2A-LINK',
+    data: { error_code: 'verification_failed', result: { linking_status: false, reason: 'invalid_aadhaar' } },
+  },
+};
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -427,7 +482,7 @@ describe('verification subjects stay separate', () => {
 
   it('keeps a person’s Aadhaar and a driver’s Aadhaar as separate facts', async () => {
     stubWay2Api((path) =>
-      path.endsWith('/aadhaar_pan_link_check') ? found({ is_linked: true }) : notFound,
+      path.endsWith('/aadhaar_pan_link_check') ? aadhaarLinked(VALID_PAN_MASKED) : notFound,
     );
 
     const response = await payAndVerify(driverUser, {
@@ -461,6 +516,289 @@ describe('verification subjects stay separate', () => {
     const organization = await prisma.organization.findUniqueOrThrow({ where: { id: fleet.id } });
     expect(organization.panNumber).toBe(COMPANY_PAN);
     expect(organization.panVerifiedAt).not.toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The Aadhaar–PAN link check
+// ---------------------------------------------------------------------------
+
+describe('the Aadhaar–PAN link check', () => {
+  const aadhaarForDriver = (linkedPan = VALID_PAN) => ({
+    kind: 'AADHAAR',
+    subjectType: 'DRIVER',
+    subjectId: driverId,
+    number: VALID_AADHAAR,
+    linkedPan,
+  });
+
+  const stubLinkCheck = (answer: Way2ApiAnswer) =>
+    stubWay2Api((path) => (path.endsWith('/aadhaar_pan_link_check') ? answer : notFound));
+
+  it('verifies a linked Aadhaar from the documented answer, sending the Aadhaar alone', async () => {
+    const fetchMock = stubLinkCheck(aadhaarLinked(VALID_PAN_MASKED));
+
+    const response = await payAndVerify(owner, aadhaarForDriver());
+
+    expect(response.body.data.state).toBe('VERIFIED');
+    expect(response.body.data.charge?.status).toBe(VerificationChargeStatus.VERIFIED);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(sentBody(fetchMock)).toEqual({ aadhaar_number: VALID_AADHAAR });
+    const driver = await prisma.driver.findUniqueOrThrow({ where: { id: driverId } });
+    expect(driver.aadhaarVerifiedAt).not.toBeNull();
+  });
+
+  it('refuses an Aadhaar that is linked to a different PAN', async () => {
+    stubLinkCheck(aadhaarLinked('EKXXXXXX6F'));
+
+    const response = await payAndVerify(owner, aadhaarForDriver());
+
+    expect(response.body.data.state).toBe('FAILED');
+    expect(response.body.data.message).toContain('different PAN');
+    const stored = await prisma.identityVerification.findFirstOrThrow({
+      where: { subjectId: driverId, kind: 'AADHAAR' },
+    });
+    expect(stored.outcome).toBe('MISMATCH');
+    const driver = await prisma.driver.findUniqueOrThrow({ where: { id: driverId } });
+    expect(driver.aadhaarVerifiedAt).toBeNull();
+  });
+
+  it('reports the source’s own reason when the Aadhaar does not verify', async () => {
+    stubLinkCheck(aadhaarRejected);
+
+    const response = await payAndVerify(owner, aadhaarForDriver());
+
+    expect(response.body.data.state).toBe('FAILED');
+    expect(response.body.data.message).toBe('Invalid Aadhaar Number');
+  });
+
+  it('keeps the fee as a free retry when the Income Tax source is down', async () => {
+    stubLinkCheck(sourceDown);
+
+    const first = await payAndVerify(owner, aadhaarForDriver());
+    expect(first.body.data.state).toBe('RETRY_REQUIRED');
+    expect(first.body.data.charge?.freeRetryAvailable).toBe(true);
+    const unverified = await prisma.driver.findUniqueOrThrow({ where: { id: driverId } });
+    expect(unverified.aadhaarVerifiedAt).toBeNull();
+
+    stubLinkCheck(aadhaarLinked(VALID_PAN_MASKED));
+    const retry = await payAndVerify(owner, aadhaarForDriver());
+
+    expect(retry.body.data.state).toBe('VERIFIED');
+    expect(await prisma.payment.count({ where: { purpose: PaymentPurpose.VERIFICATION_FEE } })).toBe(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// What is sent to Way2API, and how its answers are read
+// ---------------------------------------------------------------------------
+
+describe('Way2API identity checks, as documented', () => {
+  it('sends a PAN alone, and compares the holder’s name itself', async () => {
+    const fetchMock = stubWay2Api((path) =>
+      path.endsWith('/pan/verify')
+        ? documented({
+            pan_number: VALID_PAN,
+            full_name: 'TEST USER',
+            pan_status: 'E',
+            pan_status_desc: 'EXISTING AND VALID',
+            aadhaar_seeding_status: 'Y',
+            category: 'individual',
+          })
+        : notFound,
+    );
+
+    const response = await payAndVerify(owner, { ...panForDriver(), holderName: 'Test User' });
+
+    expect(response.body.data.state).toBe('VERIFIED');
+    expect(sentBody(fetchMock)).toEqual({ pan_number: VALID_PAN });
+  });
+
+  it('sends a Voter ID under `voter_id`', async () => {
+    const fetchMock = stubWay2Api((path) =>
+      path.endsWith('/voter-id/verify')
+        ? documented({ epic_no: VALID_VOTER_ID, name: 'TEST USER', relation_name: 'TEST PARENT', gender: 'M', age: '30' })
+        : notFound,
+    );
+
+    const response = await payAndVerify(owner, {
+      kind: 'VOTER_ID',
+      subjectType: 'DRIVER',
+      subjectId: driverId,
+      number: VALID_VOTER_ID,
+    });
+
+    expect(response.body.data.state).toBe('VERIFIED');
+    expect(sentBody(fetchMock)).toEqual({ voter_id: VALID_VOTER_ID });
+    const driver = await prisma.driver.findUniqueOrThrow({ where: { id: driverId } });
+    expect(driver.voterIdVerifiedAt).not.toBeNull();
+  });
+
+  it('sends a GSTIN under `gst_number`', async () => {
+    const fetchMock = stubWay2Api((path) =>
+      path.endsWith('/gst/verify')
+        ? documented({
+            gstin: VALID_GSTIN,
+            lgnm: 'TEST ORG',
+            sts: 'Active',
+            dty: 'Regular',
+            rgdt: '16/05/2019',
+            pradr: { addr: { bnm: 'PLOT 12', loc: 'ANDHERI', stcd: 'Maharashtra', pncd: '400053' } },
+          })
+        : notFound,
+    );
+
+    const response = await payAndVerify(owner, {
+      kind: 'GST',
+      subjectType: 'ORGANIZATION',
+      subjectId: fleet.id,
+      number: VALID_GSTIN,
+    });
+
+    expect(response.body.data.state).toBe('VERIFIED');
+    expect(sentBody(fetchMock)).toEqual({ gst_number: VALID_GSTIN });
+    const organization = await prisma.organization.findUniqueOrThrow({ where: { id: fleet.id } });
+    expect(organization.gstVerifiedAt).not.toBeNull();
+  });
+
+  it('keeps the fee when the government source behind the provider is down', async () => {
+    stubWay2Api(() => sourceDown);
+
+    const response = await payAndVerify(owner, panForDriver());
+
+    expect(response.body.data.state).toBe('RETRY_REQUIRED');
+    expect(response.body.data.charge?.freeRetryAvailable).toBe(true);
+    const driver = await prisma.driver.findUniqueOrThrow({ where: { id: driverId } });
+    expect(driver.panVerifiedAt).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Free retries for checks Saarthi misread
+// ---------------------------------------------------------------------------
+
+describe('free retries for misread checks', () => {
+  const MIGRATION = path.resolve(
+    __dirname,
+    '../prisma/migrations/20260930140000_verification_misread_free_retry/migration.sql',
+  );
+  const UNCONFIRMED_LINK = 'The records service would not confirm the Aadhaar–PAN link. Left for a reviewer.';
+  let sequence = 0;
+
+  const seedCharge = (data: {
+    checkType: 'AADHAAR' | 'PAN' | 'VOTER_ID' | 'GST' | 'VEHICLE_RC';
+    status?: 'FAILED' | 'VERIFIED' | 'RETRY_REQUIRED' | 'PAYMENT_FAILED';
+    reason: string | null;
+    subjectType?: 'DRIVER' | 'ORGANIZATION' | 'TRUCK';
+    subjectId?: string;
+    createdAt?: Date;
+  }) =>
+    prisma.verificationCharge.create({
+      data: {
+        checkType: data.checkType,
+        subjectType: data.subjectType ?? 'DRIVER',
+        subjectId: data.subjectId ?? driverId,
+        organizationId: fleet.id,
+        requestedById: owner.id,
+        status: data.status ?? 'FAILED',
+        paymentReference: `TEST-MISREAD-${(sequence += 1)}`,
+        customerPrice: 10,
+        provider: 'WAY2API',
+        pricingVersion: 'V1',
+        reason: data.reason,
+        providerBilled: true,
+        paidAt: new Date(),
+        completedAt: new Date(),
+        ...(data.createdAt ? { createdAt: data.createdAt } : {}),
+      },
+    });
+
+  const statusOf = async (id: string) =>
+    (await prisma.verificationCharge.findUniqueOrThrow({ where: { id } })).status;
+
+  const aadhaarStep = async () => {
+    const response = await request<{ steps: { checkType: string | null; state: string }[] }>({
+      method: 'GET',
+      url: `/api/v1/verification-center?driverId=${driverId}`,
+      user: owner,
+    });
+    return response.body.data.steps.find((step) => step.checkType === 'AADHAAR');
+  };
+
+  it('re-credits only the attempts that were misread, and tells the payer', async () => {
+    const aadhaarMisread = await seedCharge({ checkType: 'AADHAAR', reason: UNCONFIRMED_LINK });
+    const voterMalformed = await seedCharge({ checkType: 'VOTER_ID', reason: 'No matching record found.' });
+    const panSourceDown = await seedCharge({ checkType: 'PAN', reason: 'Record source temporarily unavailable.' });
+    const panGenuine = await seedCharge({
+      checkType: 'PAN',
+      reason: 'The Income Tax Department has no record of this PAN. Check it against the card.',
+    });
+    const aadhaarGenuine = await seedCharge({
+      checkType: 'AADHAAR',
+      subjectType: 'ORGANIZATION',
+      subjectId: fleet.id,
+      reason: 'Invalid Aadhaar Number',
+    });
+    // Registry checks are outside this fix, whatever their reason says.
+    const rc = await seedCharge({
+      checkType: 'VEHICLE_RC',
+      subjectType: 'TRUCK',
+      subjectId: randomUUID(),
+      reason: 'Record source temporarily unavailable.',
+    });
+    // A GSTIN verified on a later attempt has nothing left to retry.
+    const gstSinceVerified = await seedCharge({
+      checkType: 'GST',
+      subjectType: 'ORGANIZATION',
+      subjectId: fleet.id,
+      reason: 'The GST portal has no record of this GSTIN.',
+    });
+    await seedCharge({ checkType: 'GST', subjectType: 'ORGANIZATION', subjectId: fleet.id, status: 'VERIFIED', reason: null });
+
+    await prisma.$executeRawUnsafe(await readFile(MIGRATION, 'utf8'));
+
+    expect(await statusOf(aadhaarMisread.id)).toBe('RETRY_REQUIRED');
+    expect(await statusOf(voterMalformed.id)).toBe('RETRY_REQUIRED');
+    expect(await statusOf(panSourceDown.id)).toBe('RETRY_REQUIRED');
+    expect(await statusOf(panGenuine.id)).toBe('FAILED');
+    expect(await statusOf(aadhaarGenuine.id)).toBe('FAILED');
+    expect(await statusOf(rc.id)).toBe('FAILED');
+    expect(await statusOf(gstSinceVerified.id)).toBe('FAILED');
+
+    const notifications = await prisma.notification.findMany({ where: { userId: owner.id } });
+    expect(notifications.map((row) => row.title).sort()).toEqual([
+      'Aadhaar check can be retried free',
+      'PAN check can be retried free',
+      'Voter ID check can be retried free',
+    ]);
+    expect(notifications.every((row) => row.actionUrl === '/verification')).toBe(true);
+
+    // The step offers the retry, and the retry runs without a new payment.
+    expect((await aadhaarStep())?.state).toBe('RETRY_REQUIRED');
+    stubWay2Api((path) =>
+      path.endsWith('/aadhaar_pan_link_check') ? aadhaarLinked(VALID_PAN_MASKED) : notFound,
+    );
+    const retry = await payAndVerify(owner, {
+      kind: 'AADHAAR',
+      subjectType: 'DRIVER',
+      subjectId: driverId,
+      number: VALID_AADHAAR,
+      linkedPan: VALID_PAN,
+    });
+    expect(retry.body.data.state).toBe('VERIFIED');
+    expect(await prisma.payment.count({ where: { purpose: PaymentPurpose.VERIFICATION_FEE } })).toBe(0);
+  });
+
+  it('offers a kept fee even when a later attempt sits on top of it', async () => {
+    await seedCharge({
+      checkType: 'AADHAAR',
+      status: 'RETRY_REQUIRED',
+      reason: 'The verification service did not respond.',
+      createdAt: new Date(Date.now() - 60_000),
+    });
+    await seedCharge({ checkType: 'AADHAAR', status: 'PAYMENT_FAILED', reason: 'The payment was not completed.' });
+
+    expect((await aadhaarStep())?.state).toBe('RETRY_REQUIRED');
   });
 });
 

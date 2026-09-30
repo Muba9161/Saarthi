@@ -150,11 +150,16 @@ export function normalizeWay2ApiPan(
   record.holderName = text(pick(result, 'name', 'full_name', 'holder_name', 'registered_name'));
   record.holderType =
     text(pick(result, 'category', 'pan_type', 'holder_type')) ?? panHolderType(record.panNumber);
-  record.panStatus = text(pick(result, 'status', 'pan_status'));
+  // The department's words ("EXISTING AND VALID") over its one-letter code
+  // ("E"); read separately so an empty description still falls back to the code.
+  record.panStatus =
+    text(pick(result, 'pan_status_desc')) ?? text(pick(result, 'status', 'pan_status'));
   record.aadhaarLinked = boolish(
     pick(result, 'aadhaar_linked', 'aadhaar_seeding_status', 'is_aadhaar_linked'),
   );
-  record.lastUpdatedOn = isoDate(pick(result, 'last_updated', 'last_updated_on', 'updated_at'));
+  record.lastUpdatedOn = isoDate(
+    pick(result, 'pan_modified_date', 'last_updated', 'last_updated_on', 'updated_at'),
+  );
 
   // Name matching is Saarthi's own comparison unless the provider did it: the
   // question a fleet has is whether the card belongs to the person in front of
@@ -178,7 +183,9 @@ export function normalizeWay2ApiVoterId(
   record.epicNumber =
     text(pick(result, 'epic_number', 'epic_no', 'voter_id', 'epicNumber')) ?? submitted.epicNumber;
   record.holderName = text(pick(result, 'name', 'full_name', 'voter_name'));
-  record.relativeName = text(pick(result, 'relative_name', 'rln_name', 'father_name'));
+  record.relativeName = text(
+    pick(result, 'relation_name', 'relative_name', 'rln_name', 'father_name'),
+  );
   record.relationType = text(pick(result, 'relation_type', 'rln_type'));
   record.gender = text(pick(result, 'gender', 'sex'));
   record.age = integer(pick(result, 'age'));
@@ -196,6 +203,24 @@ export function normalizeWay2ApiVoterId(
   return record;
 }
 
+/** The GST portal's address parts, in the order an address is written. */
+const GST_ADDRESS_PARTS = ['bno', 'flno', 'bnm', 'st', 'loc', 'city', 'dst', 'stcd', 'pncd'] as const;
+
+/** The portal's principal address object (`pradr.addr`), or null. */
+function gstAddressBlock(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  const block = value as Record<string, unknown>;
+  return block.addr && typeof block.addr === 'object' ? (block.addr as Record<string, unknown>) : block;
+}
+
+function formatGstAddress(address: Record<string, unknown> | null): string | null {
+  if (!address) return null;
+  const parts = GST_ADDRESS_PARTS.map((key) => text(address[key])).filter(
+    (part): part is string => part !== null,
+  );
+  return parts.length > 0 ? parts.join(', ') : null;
+}
+
 export function normalizeWay2ApiGst(
   result: Record<string, unknown>,
   submitted: GstLookupInput,
@@ -210,8 +235,13 @@ export function normalizeWay2ApiGst(
   record.constitutionOfBusiness = text(pick(result, 'constitution_of_business', 'ctb'));
   record.registrationDate = isoDate(pick(result, 'registration_date', 'rgdt', 'date_of_registration'));
   record.cancellationDate = isoDate(pick(result, 'cancellation_date', 'cxdt'));
-  record.state = text(pick(result, 'state', 'state_jurisdiction')) ?? gstStateFromGstin(record.gstin);
-  record.principalAddress = text(pick(result, 'principal_address', 'pradr', 'address'));
+  const address = gstAddressBlock(pick(result, 'pradr'));
+  record.state =
+    text(pick(result, 'state', 'state_jurisdiction')) ??
+    text(address?.stcd) ??
+    gstStateFromGstin(record.gstin);
+  record.principalAddress =
+    text(pick(result, 'principal_address', 'address', 'pradr')) ?? formatGstAddress(address);
   record.natureOfBusiness = stringList(pick(result, 'nature_of_business', 'nba'));
   // Derived locally from the GSTIN's own characters, not from the response —
   // which is what makes it a cross-check rather than an echo.
@@ -250,6 +280,29 @@ export function looseNameMatch(submitted: string, official: string): boolean {
   return shorter.every((part) => longer.includes(part));
 }
 
+/**
+ * Does the provider's masked PAN agree with the PAN the caller supplied?
+ *
+ * The link endpoint takes the Aadhaar alone and answers with the PAN it is
+ * linked to, masked (`EKXXXXXX6F`). Saarthi is asked whether it is linked to
+ * *this* PAN, so every character the mask leaves visible must match. `null`
+ * when there is no usable mask to compare against.
+ */
+export function maskedPanMatches(maskedPan: string | null, panNumber: string): boolean | null {
+  if (!maskedPan) return null;
+  const masked = maskedPan.toUpperCase().replace(/\s/g, '');
+  if (masked.length !== panNumber.length) return null;
+
+  let compared = 0;
+  for (let index = 0; index < masked.length; index += 1) {
+    const char = masked[index];
+    if (char === 'X' || char === '*') continue;
+    if (char !== panNumber[index]) return false;
+    compared += 1;
+  }
+  return compared > 0 ? true : null;
+}
+
 // ---------------------------------------------------------------------------
 // Provider
 // ---------------------------------------------------------------------------
@@ -276,10 +329,9 @@ export class Way2ApiIdentityProvider implements IdentityVerificationProvider {
 
   async verifyPan(input: PanLookupInput): Promise<IdentityLookupOutcome<PanRecord>> {
     const masked = maskIdentityNumber(IdentityDocumentKind.PAN, input.panNumber);
-    const body: Record<string, unknown> = { pan_number: input.panNumber };
-    if (input.holderName) body.name = input.holderName;
-
-    const envelope = await this.call(PAN_PATH, body, 'PAN', masked);
+    // The endpoint takes the number alone; the holder's name is compared by
+    // Saarthi against the name it returns (see `normalizeWay2ApiPan`).
+    const envelope = await this.call(PAN_PATH, { pan_number: input.panNumber }, 'PAN', masked);
     return this.toOutcome(envelope, 'PAN', masked, (result) =>
       normalizeWay2ApiPan(result, input),
     );
@@ -287,12 +339,7 @@ export class Way2ApiIdentityProvider implements IdentityVerificationProvider {
 
   async verifyVoterId(input: VoterIdLookupInput): Promise<IdentityLookupOutcome<VoterIdRecord>> {
     const masked = maskIdentityNumber(IdentityDocumentKind.VOTER_ID, input.epicNumber);
-    const envelope = await this.call(
-      VOTER_PATH,
-      { epic_number: input.epicNumber },
-      'Voter ID',
-      masked,
-    );
+    const envelope = await this.call(VOTER_PATH, { voter_id: input.epicNumber }, 'Voter ID', masked);
     return this.toOutcome(envelope, 'Voter ID', masked, (result) =>
       normalizeWay2ApiVoterId(result, input),
     );
@@ -300,45 +347,69 @@ export class Way2ApiIdentityProvider implements IdentityVerificationProvider {
 
   async verifyGstin(input: GstLookupInput): Promise<IdentityLookupOutcome<GstRecord>> {
     const masked = maskIdentityNumber(IdentityDocumentKind.GST, input.gstin);
-    const envelope = await this.call(GST_PATH, { gstin: input.gstin }, 'GST', masked);
+    const envelope = await this.call(GST_PATH, { gst_number: input.gstin }, 'GST', masked);
     return this.toOutcome(envelope, 'GST', masked, (result) => normalizeWay2ApiGst(result, input));
   }
 
   async checkAadhaarPanLink(input: AadhaarPanLinkInput): Promise<AadhaarPanLinkOutcome> {
     const masked = maskIdentityNumber(IdentityDocumentKind.AADHAAR, input.aadhaarNumber);
+    // The endpoint takes the Aadhaar alone and names the PAN it is linked to;
+    // the comparison with the PAN supplied is made here, below.
     const envelope = await this.call(
       AADHAAR_PAN_LINK_PATH,
-      { aadhaar_number: input.aadhaarNumber, pan_number: input.panNumber },
+      { aadhaar_number: input.aadhaarNumber },
       'Aadhaar–PAN link',
       masked,
     );
 
     const reference = envelope.data?.order_id ?? envelope.order_id ?? null;
     const code = String(envelope.message_code ?? '');
-    const message = text(envelope.message);
 
     if (code === 'INVALID_INPUT') {
       throw errors.validation(
-        'The Aadhaar number and PAN were not accepted by the records service. Check both and try again.',
+        'The Aadhaar number was not accepted by the records service. Check it and try again.',
       );
     }
 
-    const result = envelope.data?.result;
-    // The link flag is the whole answer here, so it is read from either the
-    // result object or the envelope — the endpoint has used both.
+    const rawResult = envelope.data?.result;
+    const result =
+      rawResult && typeof rawResult === 'object' ? (rawResult as Record<string, unknown>) : {};
+    const message = text(envelope.message) ?? text(pick(result, 'detailed_reason'));
+
+    // `linking_status` is the documented flag; the others are tolerated aliases.
     const linked =
-      (result && typeof result === 'object'
-        ? boolish(
-            pick(
-              result as Record<string, unknown>,
-              'is_linked',
-              'linked',
-              'aadhaar_linked',
-              'aadhaar_seeding_status',
-              'status',
-            ),
-          )
-        : null) ?? (envelope.success === true ? null : false);
+      boolish(
+        pick(
+          result,
+          'linking_status',
+          'is_linked',
+          'linked',
+          'aadhaar_linked',
+          'aadhaar_seeding_status',
+          'status',
+        ),
+      ) ?? (envelope.success === true ? null : false);
+
+    if (linked === true) {
+      const panMatch = maskedPanMatches(
+        text(pick(result, 'masked_pan', 'pan', 'pan_number')),
+        input.panNumber,
+      );
+      if (panMatch === false) {
+        return {
+          linked: false,
+          providerReference: reference,
+          message:
+            'This Aadhaar is linked to a different PAN. Enter the PAN it is linked to and try again.',
+        };
+      }
+      if (panMatch === null) {
+        logger.warn(
+          { provider: this.name, label: 'Aadhaar–PAN link', masked, orderId: reference },
+          'Aadhaar–PAN link answer carried no masked PAN to compare; trusting the link flag',
+        );
+      }
+    }
 
     return { linked, providerReference: reference, message };
   }
@@ -466,9 +537,13 @@ export class Way2ApiIdentityProvider implements IdentityVerificationProvider {
       );
     }
 
+    // SOURCE_UNAVAILABLE arrives as a 422 that looks like a lookup, but the
+    // government source behind the provider never answered: an outage, not "no
+    // record" and not "not linked".
     if (
       response.status === 503 ||
       code === 'PROVIDER_UNAVAILABLE' ||
+      code === 'SOURCE_UNAVAILABLE' ||
       code === 'INTERNAL_ERROR' ||
       code === 'REQUEST_FAILED'
     ) {

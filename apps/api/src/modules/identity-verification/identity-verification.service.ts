@@ -656,7 +656,7 @@ async function checkPan(
     };
   }
 
-  if (record.panStatus && !/^(valid|active|existing|e)$/i.test(record.panStatus)) {
+  if (record.panStatus && !/^(valid|active|existing|e|existing and valid)$/i.test(record.panStatus)) {
     return {
       outcome: IdentityVerificationOutcome.MISMATCH,
       record,

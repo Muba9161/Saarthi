@@ -10,6 +10,12 @@ import {
   normalizeWay2ApiLicence,
   toProviderDate,
 } from '../src/providers/driving-licence/way2api-licence.provider';
+import {
+  maskedPanMatches,
+  normalizeWay2ApiGst,
+  normalizeWay2ApiPan,
+  normalizeWay2ApiVoterId,
+} from '../src/providers/identity/way2api-identity.provider';
 
 /**
  * Provider → Saarthi field mapping.
@@ -506,5 +512,132 @@ describe('Overpass search radius budget', () => {
     // Dense categories still stay near — that is about what a driver would
     // travel for a café, not about cost.
     expect(radii.denseKm).toBe(8);
+  });
+});
+
+/**
+ * The identity payloads below are copied from Way2API's published response
+ * pages (app.way2api.com/documentation/<pan|voter-id|gst>/response), not
+ * written from memory: the aliases these mappers first shipped with were
+ * guesses, and stubs built from the same guesses kept the suite green while
+ * production read nothing.
+ */
+describe('Way2API PAN record mapping', () => {
+  const documented = {
+    pan_number: 'ABCDE1234F',
+    full_name: 'ANANYA SHARMA',
+    title: '',
+    full_name_split: ['', '', 'ANANYA SHARMA'],
+    pan_status: 'E',
+    pan_status_desc: 'EXISTING AND VALID',
+    aadhaar_seeding_status: 'Y',
+    aadhaar_seeding_status_desc: 'Seeded',
+    pan_modified_date: null,
+    category: 'individual',
+    client_id: 'pan_advanced_v2_xxxxxxxxxxxxxxxxxxxx',
+  };
+
+  it('reads the documented answer', () => {
+    const record = normalizeWay2ApiPan(documented, { panNumber: 'ABCDE1234F', holderName: 'Ananya Sharma' });
+    expect(record.panNumber).toBe('ABCDE1234F');
+    expect(record.holderName).toBe('ANANYA SHARMA');
+    expect(record.holderType).toBe('individual');
+    expect(record.panStatus).toBe('EXISTING AND VALID');
+    expect(record.aadhaarLinked).toBe(true);
+    expect(record.nameMatch).toBe(true);
+  });
+
+  it('falls back to the status code when the description is blank', () => {
+    const record = normalizeWay2ApiPan({ ...documented, pan_status_desc: '' }, { panNumber: 'ABCDE1234F' });
+    expect(record.panStatus).toBe('E');
+  });
+});
+
+describe('Way2API Voter ID record mapping', () => {
+  it('reads the documented answer', () => {
+    const record = normalizeWay2ApiVoterId(
+      {
+        relation_type: 'F',
+        gender: 'F',
+        age: '32',
+        epic_no: 'ABC1234567',
+        dob: '1992-06-15',
+        relation_name: 'RAMESH SHARMA',
+        name: 'MEERA SHARMA',
+        area: 'Sector 5, Dwarka',
+        state: 'Delhi',
+        house_no: '42-B',
+      },
+      { epicNumber: 'ABC1234567' },
+    );
+    expect(record.epicNumber).toBe('ABC1234567');
+    expect(record.holderName).toBe('MEERA SHARMA');
+    expect(record.relativeName).toBe('RAMESH SHARMA');
+    expect(record.relationType).toBe('F');
+    expect(record.age).toBe(32);
+    expect(record.state).toBe('Delhi');
+  });
+});
+
+describe('Way2API GST record mapping', () => {
+  const documented = {
+    gstin: '10ABCDE1234F1Z5',
+    lgnm: 'EXAMPLE TRADERS PRIVATE LIMITED',
+    tradeNam: 'EXAMPLE TRADERS PRIVATE LIMITED',
+    sts: 'Active',
+    dty: 'Regular',
+    ctb: 'Private Limited Company',
+    rgdt: '16/05/2019',
+    lstupdt: '13/07/2023',
+    stj: 'Saran 1',
+    ctj: 'CHHAPRA RANGE',
+    panNo: 'ABCDE1234F',
+    einvoiceStatus: 'Yes',
+    nba: ['Office / Sale Office', 'Recipient of Goods or Services', 'Supplier of Services', 'Retail Business'],
+    pradr: {
+      addr: {
+        bnm: 'PLOT 12, GANDHI NAGAR',
+        st: 'MAIN ROAD, BLOCK-JALALPUR',
+        loc: 'JALALPUR',
+        dst: 'Saran',
+        stcd: 'Bihar',
+        pncd: '841412',
+      },
+      ntr: 'Office / Sale Office, Supplier of Services',
+    },
+  };
+
+  it('reads the documented answer, including the nested address', () => {
+    const record = normalizeWay2ApiGst(documented, { gstin: '10ABCDE1234F1Z5' });
+    expect(record.legalName).toBe('EXAMPLE TRADERS PRIVATE LIMITED');
+    expect(record.status).toBe('Active');
+    expect(record.registrationDate).toBe('2019-05-16');
+    expect(record.state).toBe('Bihar');
+    expect(record.principalAddress).toBe(
+      'PLOT 12, GANDHI NAGAR, MAIN ROAD, BLOCK-JALALPUR, JALALPUR, Saran, Bihar, 841412',
+    );
+    expect(record.natureOfBusiness).toHaveLength(4);
+  });
+
+  it('still takes an address the provider sends as plain text', () => {
+    const record = normalizeWay2ApiGst({ ...documented, pradr: '12 Main Road, Patna' }, { gstin: '10ABCDE1234F1Z5' });
+    expect(record.principalAddress).toBe('12 Main Road, Patna');
+  });
+});
+
+describe('Aadhaar–PAN link: masked PAN comparison', () => {
+  it('matches every character the mask leaves visible', () => {
+    expect(maskedPanMatches('ABXXXXXX4F', 'ABCPE1234F')).toBe(true);
+    expect(maskedPanMatches('ab******4f', 'ABCPE1234F')).toBe(true);
+  });
+
+  it('refuses a PAN the visible characters rule out', () => {
+    expect(maskedPanMatches('EKXXXXXX6F', 'ABCPE1234F')).toBe(false);
+  });
+
+  it('cannot say without a usable mask', () => {
+    expect(maskedPanMatches(null, 'ABCPE1234F')).toBeNull();
+    expect(maskedPanMatches('XXXXXXXXXX', 'ABCPE1234F')).toBeNull();
+    expect(maskedPanMatches('ABXX4F', 'ABCPE1234F')).toBeNull();
   });
 });

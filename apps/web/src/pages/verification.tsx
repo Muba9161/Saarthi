@@ -12,7 +12,10 @@ import { StatusBadge } from '@/components/common/status-badge';
 import { UnauthorizedState } from '@/components/common/states';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { VerificationWizard } from '@/features/verification/verification-wizard';
+import {
+  VerificationWizard,
+  type VerificationStepTarget,
+} from '@/features/verification/verification-wizard';
 import { VerificationHistory } from '@/features/verification/verification-history';
 
 /**
@@ -33,6 +36,7 @@ export function VerificationPage() {
   const { can, session } = useAuth();
   const queryClient = useQueryClient();
   const [page, setPage] = React.useState(1);
+  const [retryStep, setRetryStep] = React.useState<VerificationStepTarget | null>(null);
 
   const query = useQuery({
     queryKey: ['verification', 'mine', page],
@@ -127,13 +131,18 @@ export function VerificationPage() {
         description="Verify your account one step at a time, and follow every submission for your organization."
       />
 
-      <VerificationWizard />
+      <VerificationWizard focus={retryStep} />
 
       <section className="space-y-3" aria-labelledby="verification-history-title">
         <h2 id="verification-history-title" className="text-base font-semibold tracking-tight">
           Verification history
         </h2>
-        <VerificationHistory />
+        {/* A fresh object per click, so retrying the same row twice still scrolls to it. */}
+        <VerificationHistory
+          onRetry={({ checkType, subjectType, subjectId }) =>
+            setRetryStep({ checkType, subjectType, subjectId })
+          }
+        />
       </section>
 
       <h2 className="text-base font-semibold tracking-tight">Review submissions</h2>

@@ -7,7 +7,10 @@ import {
   VerificationOverallState,
   VerificationStepState,
   type VerificationCenterView,
+  type VerificationCheckType,
   type VerificationStepGroup,
+  type VerificationStepView,
+  type VerificationSubjectType,
 } from '@saarthi/shared';
 import { api } from '@/lib/api-client';
 import { AnimatePresence, motion, useReducedMotion } from '@/components/motion';
@@ -40,6 +43,30 @@ const GROUP_ICON: Record<VerificationStepGroup, React.ComponentType<{ className?
   DOCUMENTS: FileText,
 };
 
+/** The steps on screen for this account, or for one driver with `driverId`. */
+export function useVerificationCenterView(driverId?: string) {
+  return useQuery({
+    queryKey: ['verification-center', 'view', driverId ?? 'self'],
+    queryFn: () =>
+      api.get<VerificationCenterView>('/verification-center', driverId ? { driverId } : undefined),
+  });
+}
+
+/** One check on one subject, which is what a step and a paid attempt share. */
+export interface VerificationStepTarget {
+  checkType: VerificationCheckType;
+  subjectType: VerificationSubjectType;
+  subjectId: string;
+}
+
+export function isStepFor(step: VerificationStepView, target: VerificationStepTarget): boolean {
+  return (
+    step.checkType === target.checkType &&
+    step.subjectType === target.subjectType &&
+    step.subjectId === target.subjectId
+  );
+}
+
 function statusFor(state: VerificationStepState, isCurrent: boolean): StepStatus {
   if (state === VerificationStepState.VERIFIED) return 'complete';
   if (isCurrent) return 'current';
@@ -50,6 +77,7 @@ function statusFor(state: VerificationStepState, isCurrent: boolean): StepStatus
 export function VerificationWizard({
   driverId,
   embedded = false,
+  focus = null,
 }: {
   driverId?: string;
   /**
@@ -58,20 +86,37 @@ export function VerificationWizard({
    * the horizontal strip rather than a second rail beside the first.
    */
   embedded?: boolean;
+  /**
+   * A step to open and bring into view — the history's "Retry free". A new
+   * object each time, so asking for the same step twice still scrolls to it.
+   */
+  focus?: VerificationStepTarget | null;
 }) {
   const reduced = useReducedMotion();
-  const queryKey = ['verification-center', 'view', driverId ?? 'self'];
-  const view = useQuery({
-    queryKey,
-    queryFn: () =>
-      api.get<VerificationCenterView>('/verification-center', driverId ? { driverId } : undefined),
-  });
+  const view = useVerificationCenterView(driverId);
 
   const steps = React.useMemo(() => view.data?.steps ?? [], [view.data]);
   const [current, setCurrent] = React.useState<number | null>(null);
   const [celebrate, setCelebrate] = React.useState<{ label: string } | null>(null);
   const [complete, setComplete] = React.useState(false);
   const wasComplete = React.useRef<boolean | null>(null);
+  const anchor = React.useRef<HTMLDivElement>(null);
+
+  // Opened during render rather than in an effect, so the requested step is
+  // the first one painted instead of flashing the previous step first.
+  const [appliedFocus, setAppliedFocus] = React.useState<VerificationStepTarget | null>(null);
+  if (focus && focus !== appliedFocus && steps.length > 0) {
+    setAppliedFocus(focus);
+    const target = steps.findIndex((entry) => isStepFor(entry, focus));
+    if (target !== -1) setCurrent(target);
+  }
+
+  React.useEffect(() => {
+    if (!focus) return;
+    anchor.current?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+    // Keyboard users land in the wizard too, not back on the history table.
+    anchor.current?.focus({ preventScroll: true });
+  }, [focus, reduced]);
 
   // Returning from a redirect checkout: confirm, then read the steps again.
   useCheckoutReturn({ onPayment: () => void view.refetch() });
@@ -210,13 +255,15 @@ export function VerificationWizard({
 
   return (
     <>
-      {embedded ? (
-        body
-      ) : (
-        <Card>
-          <CardContent className="p-5 sm:p-6">{body}</CardContent>
-        </Card>
-      )}
+      <div ref={anchor} tabIndex={-1} className="scroll-mt-24 outline-none">
+        {embedded ? (
+          body
+        ) : (
+          <Card>
+            <CardContent className="p-5 sm:p-6">{body}</CardContent>
+          </Card>
+        )}
+      </div>
 
       <VerificationSuccessDialog
         open={celebrate !== null && !complete}

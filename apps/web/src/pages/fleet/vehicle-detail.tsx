@@ -608,8 +608,11 @@ export function VehicleDetailPage() {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
-          <VehicleOwnershipCard vehicleId={vehicle.id} ownership={vehicle.ownership} />
-          <VehicleSharingCard vehicleId={vehicle.id} ownershipStatus={vehicle.ownership.status} />
+          {/* Side by side; Ownership takes the full row when Sharing is not on the plan. */}
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:[&>:only-child]:col-span-full">
+            <VehicleOwnershipCard vehicleId={vehicle.id} ownership={vehicle.ownership} />
+            <VehicleSharingCard vehicleId={vehicle.id} ownershipStatus={vehicle.ownership.status} />
+          </div>
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <Card className="rounded-2xl">
               <CardHeader className="pb-2">
