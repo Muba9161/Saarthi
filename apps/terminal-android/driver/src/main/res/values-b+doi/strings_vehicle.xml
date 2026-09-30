@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="vehicle_sheet_title">गड्डी दी जानकारी</string>
+    <string name="vehicle_live_title">गड्डी दा लाइव डेटा</string>
+    <string name="vehicle_live_battery">बैटरी</string>
+    <string name="vehicle_live_load">लोड</string>
+    <string name="vehicle_unit_volts">V</string>
+    <string name="vehicle_codes_none">खराबी कोड · कोई नेईं</string>
+    <string name="vehicle_codes_unread">खराबी कोड · सिर्फ अडैप्टर जुड़े दा होने पर पढ़े जंदे न</string>
+    <plurals name="vehicle_codes_found">
+        <item quantity="one">खराबी कोड · %1$d मिलेआ</item>
+        <item quantity="other">खराबी कोड · %1$d मिले</item>
+    </plurals>
+
+    <string name="vehicle_passport_title">गड्डी दा पासपोर्ट</string>
+    <string name="vehicle_row_registration">रजिस्ट्रेशन</string>
+    <string name="vehicle_row_type">किस्म</string>
+    <string name="vehicle_row_make">कंपनी ते मॉडल</string>
+    <string name="vehicle_row_year">साल</string>
+    <string name="vehicle_row_fuel">तेल</string>
+    <string name="vehicle_row_capacity">क्षमता</string>
+    <string name="vehicle_row_fleet">फ़्लीट</string>
+    <string name="vehicle_capacity_value">%1$s टन</string>
+    <string name="vehicle_odometer_value">%1$s km</string>
+    <string name="vehicle_fuel_electric">बिजली</string>
+    <string name="vehicle_fuel_hybrid">हाइब्रिड</string>
+    <string name="vehicle_fuel_lng">एलएनजी</string>
+
+    <string name="vehicle_you_title">तुस</string>
+    <string name="vehicle_row_name">नां</string>
+    <string name="vehicle_row_licence_class">लाइसेंस क्लास</string>
+    <string name="vehicle_row_licence">लाइसेंस</string>
+    <string name="vehicle_row_profile">प्रोफ़ाइल</string>
+    <string name="vehicle_row_trips">ट्रिपां</string>
+    <string name="vehicle_licence_valid">%1$s तगर वैध</string>
+    <string name="vehicle_licence_expiring">%1$s गी मियाद मुक्कग</string>
+    <string name="vehicle_licence_expired">%1$s गी मियाद मुक्की</string>
+    <string name="vehicle_licence_pending">जांच बाकी</string>
+    <string name="vehicle_licence_no_expiry">कोई मियाद दर्ज नेईं</string>
+    <string name="vehicle_licence_rejected">नामंज़ूर</string>
+    <string name="vehicle_profile_pending">बाकी</string>
+    <string name="vehicle_profile_submitted">जमा होई</string>
+    <string name="vehicle_profile_under_review">जांच च</string>
+    <string name="vehicle_profile_verified">पक्की होई</string>
+    <string name="vehicle_profile_rejected">नामंज़ूर</string>
+    <string name="vehicle_profile_expired">मियाद मुक्की</string>
+    <string name="vehicle_profile_suspended">सस्पेंड</string>
+
+    <string name="vehicle_problems_title">दस्सियां गेदियां खराबियां</string>
+    <string name="vehicle_report_open">खराबी दस्सो</string>
+    <string name="vehicle_report_label">केह् खराबी ऐ?</string>
+    <string name="vehicle_report_send">अपनी फ़्लीट गी भेजो</string>
+    <string name="vehicle_report_sending">भेजेआ जा करदा ऐ…</string>
+    <string name="vehicle_report_failed">एह् नेईं भेजेआ जाई सकेआ. सिग्नल दिक्खो ते फ्ही कोशश करो.</string>
+    <string name="vehicle_issue_engine">इंजन</string>
+    <string name="vehicle_issue_tyre">टायर</string>
+    <string name="vehicle_issue_brake">ब्रेक</string>
+    <string name="vehicle_issue_electrical">बिजली</string>
+    <string name="vehicle_issue_accident">हादसा</string>
+    <string name="vehicle_issue_body">बॉडी</string>
+    <string name="vehicle_issue_other">होर</string>
+    <string name="vehicle_issue_status_open">खुल्ली</string>
+    <string name="vehicle_issue_status_acknowledged">मन्नी गेई</string>
+    <string name="vehicle_issue_status_in_progress">कम्म जारी ऐ</string>
+    <string name="vehicle_issue_status_resolved">ठीक होई गेई</string>
+    <string name="vehicle_issue_status_dismissed">रद्द</string>
+    <string name="vehicle_issue_head">%1$s · %2$s</string>
+    <string name="vehicle_issues_none">इस गड्डी दी कोई खराबी दर्ज नेईं.</string>
+    <string name="vehicle_issues_offline">तुस ऑफ़लाइन ओ, इस आस्तै पैह्लें दस्सियां गेदियां खराबियां नेईं आई सकियां.</string>
+</resources>

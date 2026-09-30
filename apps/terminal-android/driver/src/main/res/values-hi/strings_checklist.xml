@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="checklist_title">ट्रिप से पहले की सेफ़्टी चेक</string>
+    <string name="checklist_loading">आपकी चेकलिस्ट आ रही है…</string>
+    <string name="checklist_progress_count">%1$d/%2$d</string>
+    <string name="checklist_progress_title">%2$d में से %1$d चेक हो गए</string>
+    <plurals name="checklist_by_vehicle">
+        <item quantity="one">%d का जवाब गाड़ी ने दिया</item>
+        <item quantity="other">%d का जवाब गाड़ी ने दिया</item>
+    </plurals>
+    <string name="checklist_by_vehicle_none">गाड़ी ने इनमें से किसी का जवाब नहीं दिया</string>
+    <string name="checklist_chip">%1$s · %2$s</string>
+    <string name="checklist_chip_simulated">%1$s · %2$s · सिम्युलेटेड</string>
+    <string name="checklist_step">%2$d में से चेक %1$d</string>
+    <string name="checklist_can_stop">ट्रिप रोक सकता है</string>
+    <string name="checklist_answer_good">ठीक है</string>
+    <string name="checklist_answer_attention">ध्यान देना है</string>
+    <string name="checklist_answer_faulty">ख़राब है</string>
+    <string name="checklist_last_step">आख़िरी स्टेप</string>
+    <string name="checklist_notes_title">और कुछ?</string>
+    <string name="checklist_notes_label">और कुछ जो दर्ज करने लायक हो (ज़रूरी नहीं)</string>
+    <string name="checklist_complete">सेफ़्टी चेक पूरी करें</string>
+    <plurals name="checklist_remaining">
+        <item quantity="one">बाकी बची चीज़ चेक करें</item>
+        <item quantity="other">बाकी बची %d चीज़ें चेक करें</item>
+    </plurals>
+    <string name="checklist_previous">पिछला चेक</string>
+    <string name="checklist_submitting">भेजा जा रहा है…</string>
+    <string name="checklist_done_title">सेफ़्टी चेक हो गई</string>
+    <string name="checklist_done_body">आपके फ़्लीट के पास इसका रिकॉर्ड है। अब आप अपनी ट्रिप शुरू कर सकते हैं।</string>
+    <string name="checklist_done_warnings_body">आपके फ़्लीट के पास इसका रिकॉर्ड है, जिन चीज़ों पर ध्यान देना है वे भी। अब आप अपनी ट्रिप शुरू कर सकते हैं।</string>
+    <string name="checklist_blocked_title">यह गाड़ी न चलाएँ</string>
+    <string name="checklist_blocked_body">चेक में ऐसी ख़राबी मिली है जिससे ट्रिप रुक जाती है। आपके फ़्लीट को बता दिया गया है।</string>
+    <string name="checklist_blocked_reasons">किस वजह से रुका</string>
+    <string name="checklist_back_to_check">चेक पर वापस</string>
+    <string name="checklist_send_failed_title">चेक नहीं भेजी गई</string>
+    <string name="checklist_send_offline">आप ऑफ़लाइन हैं। आपके जवाब सेव हैं - सिग्नल आने पर फिर कोशिश करें।</string>
+    <string name="checklist_send_failed">Saarthi आपके फ़्लीट तक नहीं पहुँच सका। आपके जवाब सेव हैं, बस फिर से कोशिश करें।</string>
+    <string name="checklist_load_failed_title">चेकलिस्ट लोड नहीं हुई</string>
+    <string name="checklist_load_offline">आप ऑफ़लाइन हैं। सिग्नल आने पर फिर कोशिश करें।</string>
+    <string name="checklist_load_failed">Saarthi इस गाड़ी की चेकलिस्ट नहीं ला सका। थोड़ी देर में फिर कोशिश करें।</string>
+</resources>

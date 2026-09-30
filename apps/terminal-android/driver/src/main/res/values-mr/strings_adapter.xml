@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="adapter_title">गाडीचा अडॅप्टर</string>
+    <string name="adapter_intro">अडॅप्टर गाडीच्या OBD पोर्टमध्ये लावा आणि फोनच्या ब्लूटूथ सेटिंग्जमध्ये पेअर करा. मग तो इथे निवडा - फक्त एकदाच.</string>
+    <string name="adapter_look_again">पुन्हा शोधा</string>
+    <string name="adapter_connect_label">%1$s शी जोडा</string>
+    <string name="adapter_connecting">%1$s शी जोडत आहे…</string>
+    <string name="adapter_generic_name">अडॅप्टर</string>
+    <string name="adapter_failed">%1$s शी जोडता आले नाही. तो लावलेला आहे आणि इग्निशन चालू आहे हे तपासा, मग तो पुन्हा निवडा.</string>
+    <string name="adapter_connected">जोडले गेले. Saarthi या गाडीचे इंजिन थेट वाचत आहे.</string>
+    <string name="adapter_connected_note">प्रत्येक वेळी गाडी सुरू केल्यावर तो आपोआप पुन्हा जोडला जाईल. काहीही बंद करायची गरज नाही.</string>
+    <string name="adapter_engine_asleep">अडॅप्टर जोडला आहे, पण इंजिन अजून प्रतिसाद देत नाही. इग्निशन चालू करा, Saarthi ते वाचायला सुरुवात करेल.</string>
+
+    <string name="adapter_no_radio_title">या फोनमध्ये ब्लूटूथ नाही</string>
+    <string name="adapter_no_radio_body">हा फोन गाडीच्या अडॅप्टरशी जोडू शकत नाही.</string>
+    <string name="adapter_permission_title">ब्लूटूथला परवानगी द्या</string>
+    <string name="adapter_permission_body">अडॅप्टरशी बोलण्याआधी हमसफरला जवळपासच्या डिव्हाइसशी जोडण्याची परवानगी लागते.</string>
+    <string name="adapter_permission_allow">परवानगी द्या</string>
+    <string name="adapter_permission_refused">परवानगी नाकारली गेली. फोनच्या सेटिंग्जमध्ये हमसफरसाठी जवळपासची डिव्हाइस परवानगी द्या.</string>
+    <string name="adapter_open_app_settings">सेटिंग्ज उघडा</string>
+    <string name="adapter_off_title">ब्लूटूथ बंद आहे</string>
+    <string name="adapter_off_body">अडॅप्टरशी जोडण्यासाठी ब्लूटूथ चालू करा.</string>
+    <string name="adapter_open_bluetooth">ब्लूटूथ सेटिंग्ज उघडा</string>
+    <string name="adapter_empty_title">अजून कोणताही अडॅप्टर पेअर केलेला नाही</string>
+    <string name="adapter_empty_body">आधी फोनच्या ब्लूटूथ सेटिंग्जमध्ये अडॅप्टर पेअर करा, मग परत येऊन पुन्हा शोधा.</string>
+</resources>

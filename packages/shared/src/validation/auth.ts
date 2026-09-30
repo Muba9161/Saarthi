@@ -304,13 +304,20 @@ export const registerSchema = z
      */
     referralCode: optionalTrimmedString(32),
     /**
-     * Required for DRIVER — the commercial driving licence number.
+     * The driver's commercial driving licence number — optional.
+     *
+     * Asked of a DRIVER but not demanded: a driver who does not have the card
+     * to hand chooses "I'll do it later" and adds it afterwards from the app
+     * (`addDriverLicenceSchema`, `PUT /drivers/me/licence`). Until then the
+     * driver row carries no licence, and nothing is sent to a licensing
+     * authority on their behalf.
      *
      * An owner who drives one of their own vehicles is not asked here: they
      * choose "Assign to yourself" when assigning the vehicle, and give their
      * licence there — see `selfDriverSchema`.
      */
-    licenseNumber: optionalTrimmedString(40),
+    // A blank or whitespace-only answer is "not added", never an empty licence.
+    licenseNumber: optionalTrimmedString(40).transform((value) => value || undefined),
     licenseExpiryDate: z.coerce.date().optional(),
     acceptedTerms: z.literal(true, {
       errorMap: () => ({ message: 'You must accept the terms to create an account.' }),
@@ -418,18 +425,10 @@ export const registerSchema = z
       }
     }
 
-    if (role === RoleName.DRIVER) {
-      // No check on `fleetInviteCode`: it is optional, and a code that is
-      // given but wrong is rejected by the API, which is the only side that
-      // can tell a real fleet from a typo.
-      if (!value.licenseNumber) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['licenseNumber'],
-          message: 'Your driving licence number is required.',
-        });
-      }
-    }
+    // No driver-specific checks. `fleetInviteCode` is optional, and a code
+    // that is given but wrong is rejected by the API, which is the only side
+    // that can tell a real fleet from a typo. `licenseNumber` is optional too:
+    // a driver may register first and add their licence later from the app.
   });
 export type RegisterInput = z.infer<typeof registerSchema>;
 

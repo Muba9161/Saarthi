@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Fuel slip (ui/shift/fuel) -->
+    <string name="fuel_title">Fuel slip</string>
+    <string name="fuel_step_photo">Photo</string>
+    <string name="fuel_step_figures">Figures</string>
+    <string name="fuel_step_saved">Saved</string>
+    <string name="fuel_step_label">Step %1$d of %2$d: %3$s</string>
+    <string name="fuel_lead">Photograph the slip and type the two figures. No more paper to keep.</string>
+    <string name="fuel_rear_camera">Rear camera</string>
+    <string name="fuel_frame_hint">Fit the whole slip inside the frame.</string>
+    <string name="fuel_photograph">Photograph the slip</string>
+    <string name="fuel_taking">Taking the photo…</string>
+    <string name="fuel_photo_first">Photograph the slip first - it is the evidence for the figures.</string>
+    <string name="fuel_camera_needed">Humsafar needs the camera to photograph the slip. Allow camera access, then come back.</string>
+    <string name="fuel_open_settings">Open settings</string>
+    <string name="fuel_photo_alt">The slip you photographed</string>
+    <string name="fuel_retake">Take it again</string>
+    <string name="fuel_litres">Litres</string>
+    <string name="fuel_amount">Amount paid (₹)</string>
+    <string name="fuel_pump">Pump name</string>
+    <string name="fuel_odometer">Odometer (km)</string>
+    <string name="fuel_optional">Optional</string>
+    <string name="fuel_rate">₹%1$.2f</string>
+    <string name="fuel_per_litre">That is %1$s a litre.</string>
+    <string name="fuel_save">Save this slip</string>
+    <string name="fuel_saving">Saving…</string>
+    <string name="fuel_saved_title">Saved</string>
+    <string name="fuel_saved_body">Your fleet has the slip and the figures. You can throw the paper away.</string>
+    <string name="fuel_add_another">Add another</string>
+</resources>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="assistant_listening">सुना करदा ऐ…</string>
+    <string name="assistant_thinking">कम्म होआ करदा ऐ…</string>
+    <string name="assistant_answer">मिगी एह् लब्भा.</string>
+    <string name="assistant_error">मैं इसदा जवाब नेईं देई सकेआ.</string>
+    <string name="assistant_idle">बोलने आस्तै टैप करो, जां थल्लै टाइप करो.</string>
+    <string name="assistant_no_mic">इस फ़ोन पर आवाज़ नेईं चलदी. अपना सवाल थल्लै टाइप करो.</string>
+    <string name="assistant_mic_refused">माइक्रोफ़ोन दे बगैर Saarthi नेईं सुनी सकदा. अपना सवाल थल्लै टाइप करो.</string>
+    <string name="assistant_stop">रोको</string>
+    <string name="assistant_speak">Saarthi कन्नै गल्ल करो</string>
+    <string name="assistant_quote">“%1$s”</string>
+    <string name="assistant_from">थमां: %1$s</string>
+    <string name="assistant_try_asking">एह् पुच्छियै दिक्खो</string>
+    <string name="assistant_suggest_vehicle">केह् मेरी गड्डी ठीक ऐ?</string>
+    <string name="assistant_suggest_fuel">मेरी गड्डी च हून कितना तेल ऐ?</string>
+    <string name="assistant_suggest_service">मेरी अगली सर्विस कदूं ऐ?</string>
+    <string name="assistant_suggest_parking">मेरे नेड़ै ट्रक पार्किंग लब्भो</string>
+    <string name="assistant_ask_hint">Saarthi शा पुच्छो</string>
+    <string name="assistant_send">भेजो</string>
+</resources>

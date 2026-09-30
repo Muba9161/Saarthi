@@ -23,6 +23,7 @@ import {
 import { prisma } from '../../database/prisma';
 import { applyOdometer } from '../vehicles/odometer.service';
 import { errors } from '../../lib/errors';
+import { assertTenantAccess } from '../../server/guards';
 import { logger } from '../../lib/logger';
 import { notifyOrganization } from '../notifications/notification.service';
 import { latestReadingForVehicle } from '../telemetry/telemetry.service';
@@ -570,6 +571,7 @@ export async function submitChecklist(
 
 /** Recent checks for one vehicle — the fleet's evidence that they happen. */
 export async function checklistHistory(
+  auth: AuthContext,
   vehicleId: string,
   limit = 20,
 ): Promise<
@@ -582,6 +584,14 @@ export async function checklistHistory(
     failures: string[];
   }[]
 > {
+  // The fleet's own vehicle only: its safety checks name its drivers and its faults.
+  const vehicle = await prisma.truck.findUnique({
+    where: { id: vehicleId },
+    select: { organizationId: true },
+  });
+  if (!vehicle) throw errors.notFound('Vehicle');
+  assertTenantAccess(auth, vehicle.organizationId, 'Vehicle');
+
   const rows = await prisma.terminalChecklistSubmission.findMany({
     where: { vehicleId },
     orderBy: { submittedAt: 'desc' },

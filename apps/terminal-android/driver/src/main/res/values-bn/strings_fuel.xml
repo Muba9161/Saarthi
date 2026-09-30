@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="fuel_title">তেলের স্লিপ</string>
+    <string name="fuel_step_photo">ছবি</string>
+    <string name="fuel_step_figures">হিসেব</string>
+    <string name="fuel_step_saved">সেভ হয়েছে</string>
+    <string name="fuel_step_label">ধাপ %1$d / %2$d: %3$s</string>
+    <string name="fuel_lead">স্লিপের ছবি তুলুন আর দুটি সংখ্যা লিখুন। আর কাগজ রাখতে হবে না।</string>
+    <string name="fuel_rear_camera">পিছনের ক্যামেরা</string>
+    <string name="fuel_frame_hint">পুরো স্লিপটি ফ্রেমের ভিতরে রাখুন।</string>
+    <string name="fuel_photograph">স্লিপের ছবি তুলুন</string>
+    <string name="fuel_taking">ছবি তোলা হচ্ছে…</string>
+    <string name="fuel_photo_first">আগে স্লিপের ছবি তুলুন - এটাই সংখ্যাগুলোর প্রমাণ।</string>
+    <string name="fuel_camera_needed">স্লিপের ছবি তুলতে হমসফরের ক্যামেরা দরকার। ক্যামেরার অনুমতি দিয়ে আবার ফিরে আসুন।</string>
+    <string name="fuel_open_settings">সেটিংস খুলুন</string>
+    <string name="fuel_photo_alt">আপনি যে স্লিপের ছবি তুলেছেন</string>
+    <string name="fuel_retake">আবার তুলুন</string>
+    <string name="fuel_litres">লিটার</string>
+    <string name="fuel_amount">দেওয়া টাকা (₹)</string>
+    <string name="fuel_pump">পাম্পের নাম</string>
+    <string name="fuel_odometer">ওডোমিটার (km)</string>
+    <string name="fuel_optional">ঐচ্ছিক</string>
+    <string name="fuel_rate">₹%1$.2f</string>
+    <string name="fuel_per_litre">অর্থাৎ প্রতি লিটার %1$s।</string>
+    <string name="fuel_save">এই স্লিপ সেভ করুন</string>
+    <string name="fuel_saving">সেভ হচ্ছে…</string>
+    <string name="fuel_saved_title">সেভ হয়েছে</string>
+    <string name="fuel_saved_body">আপনার ফ্লিটের কাছে স্লিপ আর সংখ্যাগুলো পৌঁছে গেছে। কাগজটি ফেলে দিতে পারেন।</string>
+    <string name="fuel_add_another">আরেকটি যোগ করুন</string>
+</resources>

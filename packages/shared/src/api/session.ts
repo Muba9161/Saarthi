@@ -54,7 +54,11 @@ export interface SessionSubscription {
 
 export interface SessionDriverProfile {
   id: string;
-  licenseNumber: string;
+  /**
+   * `null` until the driver adds it. Registration lets a driver skip the
+   * licence, and the app then offers `PUT /drivers/me/licence` to add it.
+   */
+  licenseNumber: string | null;
   licenseExpiryDate: string | null;
   verificationStatus: VerificationStatus;
   currentTruckId: string | null;

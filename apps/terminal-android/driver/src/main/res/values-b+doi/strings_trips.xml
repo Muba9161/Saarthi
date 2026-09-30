@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="trips_distance_recorded">चलाई गेदी दूरी, दर्ज</string>
+    <string name="trips_km_unit">km</string>
+    <string name="trips_km">%1$s km</string>
+    <plurals name="trips_measured_across">
+        <item quantity="one">%d पूरी होई दी ट्रिप च, जेह्ड़ी Saarthi नै नापी. चलदी ट्रिपां नेईं गिनियां जंदियां.</item>
+        <item quantity="other">%d पूरी होई दियां ट्रिपां च, जेह्ड़ियां Saarthi नै नापियां. चलदी ट्रिपां नेईं गिनियां जंदियां.</item>
+    </plurals>
+    <string name="trips_none_measured">Saarthi नै अजें कुसै पूरी होई दी ट्रिप दी दूरी नेईं नापी. चलदी ट्रिपां नेईं गिनियां जंदियां.</string>
+
+    <string name="trips_filter_all">सब</string>
+    <string name="trips_filter_finished">पूरियां</string>
+    <string name="trips_filter_open">चलदियां</string>
+
+    <string name="trips_section_open">चलदियां</string>
+    <string name="trips_section_finished">पूरियां</string>
+    <string name="trips_none_open">इस बेलै कोई ट्रिप नेईं चला करदी.</string>
+    <string name="trips_none_finished">अजें कोई ट्रिप पूरी नेईं होई.</string>
+
+    <string name="trips_in_progress">जारी ऐ</string>
+    <string name="trips_no_destination">तुंदी फ़्लीट नै मंज़िल तै नेईं कीती</string>
+    <string name="trips_planned">%1$s प्लान कीती दी</string>
+    <string name="trips_started">%1$s शुरू होई</string>
+
+    <string name="trips_route">%1$s → %2$s</string>
+    <string name="trips_untitled">ट्रिप</string>
+    <string name="trips_planned_word">प्लान कीती दी</string>
+
+    <string name="trips_loading">तुंदियां ट्रिपां लोड होआ करदियां न</string>
+    <string name="trips_empty_title">अजें कोई ट्रिप नेईं</string>
+    <string name="trips_empty_body">जेह्ड़ियां ट्रिपां तुस पूरियां करगे ओ, ओह् इत्थै दिसङन, हर इक दी Saarthi आसेआ नापी गेदी दूरी कन्नै.</string>
+    <string name="trips_offline_title">सिग्नल नेईं</string>
+    <string name="trips_offline_body">तुंदियां ट्रिपां लोड करने आस्तै सिग्नल चाहिदा. फ़ोन दबारा जुड़दे गै एह् इत्थै दिसङन.</string>
+    <string name="trips_error_title">तुंदियां ट्रिपां लोड नेईं होई सकियां</string>
+    <string name="trips_error_body">Saarthi इस बेलै तुंदी फ़्लीट तगर नेईं पुज्जी सकेआ. थोड़ी देर च फ्ही कोशश करो.</string>
+    <string name="trips_retry">फ्ही कोशश करो</string>
+</resources>

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The Saarthi voice assistant. "Saarthi" is the assistant's name and is never translated. -->
+<resources>
+    <string name="assistant_title" translatable="false">Saarthi</string>
+    <string name="assistant_listening">Listening…</string>
+    <string name="assistant_thinking">Working on it…</string>
+    <string name="assistant_answer">Here is what I found.</string>
+    <string name="assistant_error">I could not answer that.</string>
+    <string name="assistant_idle">Tap to speak, or type below.</string>
+    <string name="assistant_no_mic">Voice is not available on this phone. Type your question below.</string>
+    <string name="assistant_mic_refused">Saarthi cannot listen without the microphone. Type your question below.</string>
+    <string name="assistant_stop">Stop</string>
+    <string name="assistant_speak">Speak to Saarthi</string>
+    <string name="assistant_quote">“%1$s”</string>
+    <string name="assistant_from">From: %1$s</string>
+    <string name="assistant_try_asking">Try asking</string>
+    <string name="assistant_suggest_vehicle">Is my vehicle okay?</string>
+    <string name="assistant_suggest_fuel">What is my current fuel level?</string>
+    <string name="assistant_suggest_service">When is my next service?</string>
+    <string name="assistant_suggest_parking">Find truck parking near me</string>
+    <string name="assistant_ask_hint">Ask Saarthi</string>
+    <string name="assistant_send">Send</string>
+</resources>

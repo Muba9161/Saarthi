@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="fuel_title">ഇന്ധന സ്ലിപ്പ്</string>
+    <string name="fuel_step_photo">ഫോട്ടോ</string>
+    <string name="fuel_step_figures">കണക്കുകൾ</string>
+    <string name="fuel_step_saved">സേവ് ചെയ്തു</string>
+    <string name="fuel_step_label">ഘട്ടം %1$d / %2$d: %3$s</string>
+    <string name="fuel_lead">സ്ലിപ്പിന്റെ ഫോട്ടോ എടുത്ത് രണ്ട് കണക്കുകൾ ടൈപ്പ് ചെയ്യുക. ഇനി പേപ്പർ സൂക്ഷിക്കേണ്ട.</string>
+    <string name="fuel_rear_camera">പിൻ ക്യാമറ</string>
+    <string name="fuel_frame_hint">സ്ലിപ്പ് മുഴുവനും ഫ്രെയിമിനുള്ളിൽ വരുത്തുക.</string>
+    <string name="fuel_photograph">സ്ലിപ്പിന്റെ ഫോട്ടോ എടുക്കുക</string>
+    <string name="fuel_taking">ഫോട്ടോ എടുക്കുന്നു…</string>
+    <string name="fuel_photo_first">ആദ്യം സ്ലിപ്പിന്റെ ഫോട്ടോ എടുക്കുക - കണക്കുകൾക്കുള്ള തെളിവ് അതാണ്.</string>
+    <string name="fuel_camera_needed">സ്ലിപ്പിന്റെ ഫോട്ടോ എടുക്കാൻ ഹംസഫറിന് ക്യാമറ വേണം. ക്യാമറ അനുവദിച്ച ശേഷം തിരികെ വരിക.</string>
+    <string name="fuel_open_settings">സെറ്റിംഗ്സ് തുറക്കുക</string>
+    <string name="fuel_photo_alt">നിങ്ങൾ ഫോട്ടോ എടുത്ത സ്ലിപ്പ്</string>
+    <string name="fuel_retake">വീണ്ടും എടുക്കുക</string>
+    <string name="fuel_litres">ലിറ്റർ</string>
+    <string name="fuel_amount">അടച്ച തുക (₹)</string>
+    <string name="fuel_pump">പമ്പിന്റെ പേര്</string>
+    <string name="fuel_odometer">ഓഡോമീറ്റർ (km)</string>
+    <string name="fuel_optional">ഓപ്ഷണൽ</string>
+    <string name="fuel_rate">₹%1$.2f</string>
+    <string name="fuel_per_litre">അതായത് ഒരു ലിറ്ററിന് %1$s.</string>
+    <string name="fuel_save">ഈ സ്ലിപ്പ് സേവ് ചെയ്യുക</string>
+    <string name="fuel_saving">സേവ് ചെയ്യുന്നു…</string>
+    <string name="fuel_saved_title">സേവ് ചെയ്തു</string>
+    <string name="fuel_saved_body">സ്ലിപ്പും കണക്കുകളും നിങ്ങളുടെ ഫ്ലീറ്റിന് ലഭിച്ചു. പേപ്പർ കളയാം.</string>
+    <string name="fuel_add_another">മറ്റൊന്ന് ചേർക്കുക</string>
+</resources>

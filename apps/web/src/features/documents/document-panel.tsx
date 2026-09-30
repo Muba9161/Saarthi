@@ -14,6 +14,7 @@ import {
   normalizeIdentityNumber,
   type DocumentOwnerType,
   type DriverVerificationChecklist,
+  type ScannableNumberKind,
   type VerificationSubjectType,
 } from '@saarthi/shared';
 import { absoluteApiUrl, api, errorMessage, getAccessToken } from '@/lib/api-client';
@@ -24,6 +25,8 @@ import {
   type IdentityVerifyTarget,
 } from '@/features/verification/identity-verify-dialog';
 import { InlineNumberVerify } from '@/features/verification/inline-number-verify';
+import { isScannableImage, useCardScan } from '@/features/verification/scan-card';
+import { ScanNumberButton, announceScan } from '@/features/verification/scan-number-button';
 import { StatusBadge } from '@/components/common/status-badge';
 import { EmptyState, ErrorState, LoadingState } from '@/components/common/states';
 import { SectionHeader } from '@/components/common/page-header';
@@ -633,6 +636,32 @@ function UploadDialog({
    * but is just as much a number an authority can confirm.
    */
   const driverCheck = definition ? driverCheckForDocumentType(definition.code) : undefined;
+  /** The number a photo of this document can be read for, if any. */
+  const scanKind: ScannableNumberKind | undefined =
+    identityKind?.kind ?? (driverCheck?.key === 'DRIVING_LICENCE' ? 'DRIVING_LICENCE' : undefined);
+  const numberLabel = identityKind?.label ?? driverCheck?.label ?? 'Document';
+  const { scan: scanCard, reading: readingCard } = useCardScan(scanKind);
+  /** The file the form holds now, so a read that finishes late only fills its own form. */
+  const chosenFile = React.useRef<File | null>(null);
+
+  /**
+   * A photo of the card chosen as the file doubles as the scan: with the
+   * number still empty, it is read on this device and filled in, so the
+   * person photographs the card once and is done. A typed number is never
+   * overwritten.
+   */
+  const chooseFile = async (chosen: File | null): Promise<void> => {
+    setFile(chosen);
+    chosenFile.current = chosen;
+    if (!scanKind || documentNumber.trim() || !isScannableImage(chosen)) return;
+    const result = await scanCard(chosen);
+    // Removed, replaced, or the dialog closed while it was being read.
+    if (chosenFile.current !== chosen) return;
+    if (result.status === 'found') {
+      setDocumentNumber((current) => (current.trim() ? current : result.number));
+    }
+    announceScan(result, numberLabel);
+  };
 
   const normalizedNumber = identityKind ? normalizeIdentityNumber(documentNumber) : documentNumber;
   const numberValid = identityKind
@@ -646,6 +675,7 @@ function UploadDialog({
     setIssueDate('');
     setExpiryDate('');
     setFile(null);
+    chosenFile.current = null;
     setNumberVerified(false);
   };
 
@@ -735,9 +765,14 @@ function UploadDialog({
           </div>
 
           <div className="space-y-1.5">
-            <Label required={Boolean(identityKind)}>
-              {identityKind ? `${identityKind.label} number` : 'Document number'}
-            </Label>
+            <div className="flex items-center justify-between gap-3">
+              <Label required={Boolean(identityKind)}>
+                {identityKind ? `${identityKind.label} number` : 'Document number'}
+              </Label>
+              {scanKind ? (
+                <ScanNumberButton kind={scanKind} label={numberLabel} onNumber={setDocumentNumber} />
+              ) : null}
+            </div>
             <Input
               value={documentNumber}
               onChange={(event) => setDocumentNumber(event.target.value)}
@@ -746,7 +781,13 @@ function UploadDialog({
               spellCheck={false}
               className={identityKind ? 'font-mono tracking-wide' : undefined}
               aria-invalid={showNumberError}
+              disabled={readingCard}
             />
+            {readingCard ? (
+              <p className="text-xs text-muted-foreground" role="status">
+                Reading the number from your photo…
+              </p>
+            ) : null}
             {identityKind ? (
               <p className={showNumberError ? 'text-xs text-destructive' : 'text-xs text-muted-foreground'}>
                 {showNumberError
@@ -799,7 +840,7 @@ function UploadDialog({
             {file ? (
               <FilePreviewCard
                 file={file}
-                onRemove={() => setFile(null)}
+                onRemove={() => void chooseFile(null)}
                 disabled={upload.isPending}
               />
             ) : (
@@ -807,7 +848,7 @@ function UploadDialog({
                 accept=".pdf,.jpg,.jpeg,.png,.webp,.heic"
                 maxSizeMb={10}
                 disabled={upload.isPending}
-                onFiles={(files) => setFile(files[0] ?? null)}
+                onFiles={(files) => void chooseFile(files[0] ?? null)}
                 onReject={(reason) => toast.error(reason)}
                 title="Drag the document here, or click to browse"
                 hint="PDF, JPEG, PNG, WebP or HEIC · up to 10 MB"

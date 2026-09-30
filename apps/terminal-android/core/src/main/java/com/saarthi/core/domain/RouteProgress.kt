@@ -448,7 +448,7 @@ internal fun haversineMetres(
 }
 
 /** Initial bearing from one point to another, in degrees clockwise from north. */
-internal fun bearing(fromLat: Double, fromLng: Double, toLat: Double, toLng: Double): Double {
+fun bearing(fromLat: Double, fromLng: Double, toLat: Double, toLng: Double): Double {
     val fromLatRad = Math.toRadians(fromLat)
     val toLatRad = Math.toRadians(toLat)
     val dLng = Math.toRadians(toLng - fromLng)

@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="vehicle_sheet_title">വാഹന വിവരങ്ങൾ</string>
+    <string name="vehicle_live_title">ലൈവ് വാഹന ഡാറ്റ</string>
+    <string name="vehicle_live_battery">ബാറ്ററി</string>
+    <string name="vehicle_live_load">ലോഡ്</string>
+    <string name="vehicle_unit_volts">V</string>
+    <string name="vehicle_codes_none">ട്രബിൾ കോഡുകൾ · ഒന്നും റിപ്പോർട്ട് ചെയ്തിട്ടില്ല</string>
+    <string name="vehicle_codes_unread">ട്രബിൾ കോഡുകൾ · അഡാപ്റ്റർ കണക്റ്റ് ചെയ്താൽ മാത്രം വായിക്കാം</string>
+    <plurals name="vehicle_codes_found">
+        <item quantity="one">ട്രബിൾ കോഡുകൾ · %1$d റിപ്പോർട്ട് ചെയ്തു</item>
+        <item quantity="other">ട്രബിൾ കോഡുകൾ · %1$d റിപ്പോർട്ട് ചെയ്തു</item>
+    </plurals>
+
+    <string name="vehicle_passport_title">വാഹന പാസ്‌പോർട്ട്</string>
+    <string name="vehicle_row_registration">രജിസ്ട്രേഷൻ</string>
+    <string name="vehicle_row_type">തരം</string>
+    <string name="vehicle_row_make">കമ്പനി &amp; മോഡൽ</string>
+    <string name="vehicle_row_year">വർഷം</string>
+    <string name="vehicle_row_fuel">ഇന്ധനം</string>
+    <string name="vehicle_row_capacity">കപ്പാസിറ്റി</string>
+    <string name="vehicle_row_fleet">ഫ്ലീറ്റ്</string>
+    <string name="vehicle_capacity_value">%1$s ടൺ</string>
+    <string name="vehicle_odometer_value">%1$s km</string>
+    <string name="vehicle_fuel_electric">ഇലക്ട്രിക്</string>
+    <string name="vehicle_fuel_hybrid">ഹൈബ്രിഡ്</string>
+    <string name="vehicle_fuel_lng">LNG</string>
+
+    <string name="vehicle_you_title">നിങ്ങൾ</string>
+    <string name="vehicle_row_name">പേര്</string>
+    <string name="vehicle_row_licence_class">ലൈസൻസ് ക്ലാസ്</string>
+    <string name="vehicle_row_licence">ലൈസൻസ്</string>
+    <string name="vehicle_row_profile">പ്രൊഫൈൽ</string>
+    <string name="vehicle_row_trips">ട്രിപ്പുകൾ</string>
+    <string name="vehicle_licence_valid">%1$s വരെ സാധുവാണ്</string>
+    <string name="vehicle_licence_expiring">%1$s-ന് കാലാവധി തീരും</string>
+    <string name="vehicle_licence_expired">%1$s-ന് കാലാവധി കഴിഞ്ഞു</string>
+    <string name="vehicle_licence_pending">വെരിഫിക്കേഷൻ കാത്തിരിക്കുന്നു</string>
+    <string name="vehicle_licence_no_expiry">കാലാവധി രേഖയിൽ ഇല്ല</string>
+    <string name="vehicle_licence_rejected">നിരസിച്ചു</string>
+    <string name="vehicle_profile_pending">ബാക്കി</string>
+    <string name="vehicle_profile_submitted">സമർപ്പിച്ചു</string>
+    <string name="vehicle_profile_under_review">പരിശോധനയിൽ</string>
+    <string name="vehicle_profile_verified">വെരിഫൈ ചെയ്തു</string>
+    <string name="vehicle_profile_rejected">നിരസിച്ചു</string>
+    <string name="vehicle_profile_expired">കാലാവധി കഴിഞ്ഞു</string>
+    <string name="vehicle_profile_suspended">സസ്പെൻഡ് ചെയ്തു</string>
+
+    <string name="vehicle_problems_title">റിപ്പോർട്ട് ചെയ്ത പ്രശ്നങ്ങൾ</string>
+    <string name="vehicle_report_open">ഒരു പ്രശ്നം റിപ്പോർട്ട് ചെയ്യുക</string>
+    <string name="vehicle_report_label">എന്താണ് പ്രശ്നം?</string>
+    <string name="vehicle_report_send">നിങ്ങളുടെ ഫ്ലീറ്റിലേക്ക് അയയ്ക്കുക</string>
+    <string name="vehicle_report_sending">അയയ്ക്കുന്നു…</string>
+    <string name="vehicle_report_failed">അത് അയയ്ക്കാനായില്ല. സിഗ്നൽ പരിശോധിച്ച് വീണ്ടും ശ്രമിക്കുക.</string>
+    <string name="vehicle_issue_engine">എഞ്ചിൻ</string>
+    <string name="vehicle_issue_tyre">ടയർ</string>
+    <string name="vehicle_issue_brake">ബ്രേക്ക്</string>
+    <string name="vehicle_issue_electrical">ഇലക്ട്രിക്കൽ</string>
+    <string name="vehicle_issue_accident">അപകടം</string>
+    <string name="vehicle_issue_body">ബോഡി</string>
+    <string name="vehicle_issue_other">മറ്റുള്ളവ</string>
+    <string name="vehicle_issue_status_open">തുറന്നത്</string>
+    <string name="vehicle_issue_status_acknowledged">കണ്ടു</string>
+    <string name="vehicle_issue_status_in_progress">നടക്കുന്നു</string>
+    <string name="vehicle_issue_status_resolved">പരിഹരിച്ചു</string>
+    <string name="vehicle_issue_status_dismissed">തള്ളി</string>
+    <string name="vehicle_issue_head">%1$s · %2$s</string>
+    <string name="vehicle_issues_none">ഈ വാഹനത്തിന് ഒന്നും റിപ്പോർട്ട് ചെയ്തിട്ടില്ല.</string>
+    <string name="vehicle_issues_offline">നിങ്ങൾ ഓഫ്‌ലൈനാണ്, അതിനാൽ മുമ്പ് റിപ്പോർട്ട് ചെയ്ത പ്രശ്നങ്ങൾ എടുക്കാനായില്ല.</string>
+</resources>

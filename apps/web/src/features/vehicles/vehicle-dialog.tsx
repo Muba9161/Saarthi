@@ -49,6 +49,7 @@ import { ImageDropField } from '@/components/common/file-dropzone';
 import { uploadImageOrWarn } from '@/features/media/upload-image';
 import { SpinCapture } from './spin/spin-capture';
 import { uploadSpinOrWarn } from './spin/spin-api';
+import type { SpinDraft } from './spin/spin-frames';
 import { VehicleConnectionStep, useVehicleOnboarding } from './vehicle-onboarding';
 import { RcPrefillPanel, RcPrefilledNotice, useRcPrefill } from './rc-prefill-panel';
 import { cn } from '@/lib/utils';
@@ -268,7 +269,7 @@ export function VehicleDialog({
    */
   const [photo, setPhoto] = React.useState<File | null>(null);
   /** The optional 360° spin, offered once there is a photo; held for the same reason. */
-  const [spin, setSpin] = React.useState<Blob[] | null>(null);
+  const [spin, setSpin] = React.useState<SpinDraft | null>(null);
 
   /*
    * Re-seed the fields each time the dialog is opened, and only then.
@@ -354,7 +355,7 @@ export function VehicleDialog({
           'The vehicle was added, but its photo could not be saved.',
         );
       }
-      if (spin) await uploadSpinOrWarn(created.id, spin);
+      if (spin) await uploadSpinOrWarn(created.id, spin.frames);
       // The tracker paid for with the vehicle, fitted to it now that it exists.
       await onboarding.finishConnection(created.id);
       return created;

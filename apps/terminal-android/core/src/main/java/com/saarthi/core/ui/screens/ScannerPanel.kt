@@ -197,64 +197,10 @@ fun ScannerPanel(
             return@GlassCard
         }
 
-        val executor = remember { Executors.newSingleThreadExecutor() }
-        val scanner = remember {
-            BarcodeScanning.getClient(
-                com.google.mlkit.vision.barcode.BarcodeScannerOptions.Builder()
-                    .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
-                    .build(),
-            )
-        }
-        val json = remember { Json { ignoreUnknownKeys = true } }
-
-        DisposableEffect(Unit) {
-            onDispose {
-                executor.shutdown()
-                scanner.close()
-            }
-        }
-
-        AndroidView(
-            factory = { viewContext ->
-                val previewView = PreviewView(viewContext).apply {
-                    scaleType = PreviewView.ScaleType.FILL_CENTER
-                }
-                val providerFuture = ProcessCameraProvider.getInstance(viewContext)
-
-                providerFuture.addListener({
-                    val provider = providerFuture.get()
-
-                    val preview = Preview.Builder().build().also {
-                        it.setSurfaceProvider(previewView.surfaceProvider)
-                    }
-
-                    val analysis = ImageAnalysis.Builder()
-                        .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                        .build()
-                        .also { imageAnalysis ->
-                            imageAnalysis.setAnalyzer(executor) { proxy ->
-                                processFrame(proxy, scanner, json, onToken, onRejected, accept)
-                            }
-                        }
-
-                    runCatching {
-                        provider.unbindAll()
-                        provider.bindToLifecycle(
-                            lifecycleOwner,
-                            // The rear camera: an installer holds a phone up to
-                            // the tablet, and the tablet's front camera is
-                            // pointed at the installer's face.
-                            CameraSelector.DEFAULT_BACK_CAMERA,
-                            preview,
-                            analysis,
-                        )
-                    }.onFailure { error ->
-                        DebugLog.error("pairing", "Could not open the camera", error)
-                    }
-                }, ContextCompat.getMainExecutor(viewContext))
-
-                previewView
-            },
+        QrCamera(
+            onToken = onToken,
+            onRejected = onRejected,
+            accept = accept,
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(1f)
@@ -277,6 +223,87 @@ fun ScannerPanel(
             )
         }
     }
+}
+
+/**
+ * The camera and the QR reader, with nothing drawn around them.
+ *
+ * The engine under [ScannerPanel], split out so an app that draws its own
+ * viewfinder — the driver app's scanner — can use the same camera binding,
+ * frame pump and ML Kit client without carrying a copy of them, and without
+ * this module's card and wording around it. The caller owns the camera
+ * permission: this only runs once it has been granted.
+ *
+ * Analysis runs on one background thread with `STRATEGY_KEEP_ONLY_LATEST`, so
+ * the reader is never several seconds behind what the camera points at.
+ */
+@Composable
+fun QrCamera(
+    onToken: (String) -> Unit,
+    onRejected: (String) -> Unit,
+    accept: (raw: String) -> ScanResult,
+    modifier: Modifier = Modifier,
+) {
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val executor = remember { Executors.newSingleThreadExecutor() }
+    val scanner = remember {
+        BarcodeScanning.getClient(
+            com.google.mlkit.vision.barcode.BarcodeScannerOptions.Builder()
+                .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
+                .build(),
+        )
+    }
+    val json = remember { Json { ignoreUnknownKeys = true } }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            executor.shutdown()
+            scanner.close()
+        }
+    }
+
+    AndroidView(
+        factory = { viewContext ->
+            val previewView = PreviewView(viewContext).apply {
+                scaleType = PreviewView.ScaleType.FILL_CENTER
+            }
+            val providerFuture = ProcessCameraProvider.getInstance(viewContext)
+
+            providerFuture.addListener({
+                val provider = providerFuture.get()
+
+                val preview = Preview.Builder().build().also {
+                    it.setSurfaceProvider(previewView.surfaceProvider)
+                }
+
+                val analysis = ImageAnalysis.Builder()
+                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                    .build()
+                    .also { imageAnalysis ->
+                        imageAnalysis.setAnalyzer(executor) { proxy ->
+                            processFrame(proxy, scanner, json, onToken, onRejected, accept)
+                        }
+                    }
+
+                runCatching {
+                    provider.unbindAll()
+                    provider.bindToLifecycle(
+                        lifecycleOwner,
+                        // The rear camera, on both apps: an installer holds a
+                        // phone up to a tablet, a driver holds one up to a truck.
+                        CameraSelector.DEFAULT_BACK_CAMERA,
+                        preview,
+                        analysis,
+                    )
+                }.onFailure { error ->
+                    DebugLog.error("scanner", "Could not open the camera", error)
+                }
+            }, ContextCompat.getMainExecutor(viewContext))
+
+            previewView
+        },
+        modifier = modifier,
+    )
 }
 
 /**

@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="vehicle_sheet_title">गाड़ी की जानकारी</string>
+    <string name="vehicle_live_title">गाड़ी का लाइव डेटा</string>
+    <string name="vehicle_live_battery">बैटरी</string>
+    <string name="vehicle_live_load">लोड</string>
+    <string name="vehicle_unit_volts">V</string>
+    <string name="vehicle_codes_none">ख़राबी कोड · कोई नहीं मिला</string>
+    <string name="vehicle_codes_unread">ख़राबी कोड · सिर्फ़ एडैप्टर जुड़ा होने पर पढ़े जाते हैं</string>
+    <plurals name="vehicle_codes_found">
+        <item quantity="one">ख़राबी कोड · %1$d मिला</item>
+        <item quantity="other">ख़राबी कोड · %1$d मिले</item>
+    </plurals>
+
+    <string name="vehicle_passport_title">गाड़ी का पासपोर्ट</string>
+    <string name="vehicle_row_registration">रजिस्ट्रेशन</string>
+    <string name="vehicle_row_type">प्रकार</string>
+    <string name="vehicle_row_make">कंपनी और मॉडल</string>
+    <string name="vehicle_row_year">साल</string>
+    <string name="vehicle_row_fuel">फ़्यूल</string>
+    <string name="vehicle_row_capacity">क्षमता</string>
+    <string name="vehicle_row_fleet">फ़्लीट</string>
+    <string name="vehicle_capacity_value">%1$s टन</string>
+    <string name="vehicle_odometer_value">%1$s km</string>
+    <string name="vehicle_fuel_electric">इलेक्ट्रिक</string>
+    <string name="vehicle_fuel_hybrid">हाइब्रिड</string>
+    <string name="vehicle_fuel_lng">LNG</string>
+
+    <string name="vehicle_you_title">आप</string>
+    <string name="vehicle_row_name">नाम</string>
+    <string name="vehicle_row_licence_class">लाइसेंस क्लास</string>
+    <string name="vehicle_row_licence">लाइसेंस</string>
+    <string name="vehicle_row_profile">प्रोफ़ाइल</string>
+    <string name="vehicle_row_trips">ट्रिप</string>
+    <string name="vehicle_licence_valid">%1$s तक वैध</string>
+    <string name="vehicle_licence_expiring">%1$s को एक्सपायर होगा</string>
+    <string name="vehicle_licence_expired">%1$s को एक्सपायर हो गया</string>
+    <string name="vehicle_licence_pending">जाँच बाकी है</string>
+    <string name="vehicle_licence_no_expiry">कोई एक्सपायरी दर्ज नहीं</string>
+    <string name="vehicle_licence_rejected">नामंज़ूर</string>
+    <string name="vehicle_profile_pending">बाकी</string>
+    <string name="vehicle_profile_submitted">जमा हो गई</string>
+    <string name="vehicle_profile_under_review">जाँच चल रही है</string>
+    <string name="vehicle_profile_verified">वेरिफ़ाइड</string>
+    <string name="vehicle_profile_rejected">नामंज़ूर</string>
+    <string name="vehicle_profile_expired">एक्सपायर हो गई</string>
+    <string name="vehicle_profile_suspended">सस्पेंड है</string>
+
+    <string name="vehicle_problems_title">बताई गई समस्याएँ</string>
+    <string name="vehicle_report_open">समस्या बताएँ</string>
+    <string name="vehicle_report_label">क्या ख़राबी है?</string>
+    <string name="vehicle_report_send">अपने फ़्लीट को भेजें</string>
+    <string name="vehicle_report_sending">भेज रहे हैं…</string>
+    <string name="vehicle_report_failed">यह भेजा नहीं जा सका। सिग्नल देखें और फिर कोशिश करें।</string>
+    <string name="vehicle_issue_engine">इंजन</string>
+    <string name="vehicle_issue_tyre">टायर</string>
+    <string name="vehicle_issue_brake">ब्रेक</string>
+    <string name="vehicle_issue_electrical">बिजली का काम</string>
+    <string name="vehicle_issue_accident">एक्सीडेंट</string>
+    <string name="vehicle_issue_body">बॉडी</string>
+    <string name="vehicle_issue_other">अन्य</string>
+    <string name="vehicle_issue_status_open">खुली है</string>
+    <string name="vehicle_issue_status_acknowledged">देख ली गई</string>
+    <string name="vehicle_issue_status_in_progress">काम चल रहा है</string>
+    <string name="vehicle_issue_status_resolved">ठीक हो गई</string>
+    <string name="vehicle_issue_status_dismissed">ख़ारिज</string>
+    <string name="vehicle_issue_head">%1$s · %2$s</string>
+    <string name="vehicle_issues_none">इस गाड़ी के लिए कुछ नहीं बताया गया।</string>
+    <string name="vehicle_issues_offline">आप ऑफ़लाइन हैं, इसलिए पहले बताई गई समस्याएँ नहीं आ सकीं।</string>
+</resources>

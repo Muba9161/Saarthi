@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="checklist_title">ട്രിപ്പിന് മുമ്പുള്ള സുരക്ഷാ പരിശോധന</string>
+    <string name="checklist_loading">നിങ്ങളുടെ ചെക്ക്‌ലിസ്റ്റ് എടുക്കുന്നു…</string>
+    <string name="checklist_progress_count">%1$d/%2$d</string>
+    <string name="checklist_progress_title">%2$d-ൽ %1$d എണ്ണം പരിശോധിച്ചു</string>
+    <plurals name="checklist_by_vehicle">
+        <item quantity="one">%d എണ്ണത്തിന് വാഹനം ഉത്തരം നൽകി</item>
+        <item quantity="other">%d എണ്ണത്തിന് വാഹനം ഉത്തരം നൽകി</item>
+    </plurals>
+    <string name="checklist_by_vehicle_none">ഇവയിൽ ഒന്നിനും വാഹനം ഉത്തരം നൽകിയില്ല</string>
+    <string name="checklist_chip">%1$s · %2$s</string>
+    <string name="checklist_chip_simulated">%1$s · %2$s · സിമുലേറ്റഡ്</string>
+    <string name="checklist_step">പരിശോധന %1$d / %2$d</string>
+    <string name="checklist_can_stop">ട്രിപ്പ് തടയാം</string>
+    <string name="checklist_answer_good">ശരി</string>
+    <string name="checklist_answer_attention">ശ്രദ്ധ വേണം</string>
+    <string name="checklist_answer_faulty">തകരാർ</string>
+    <string name="checklist_last_step">അവസാന ഘട്ടം</string>
+    <string name="checklist_notes_title">മറ്റെന്തെങ്കിലും?</string>
+    <string name="checklist_notes_label">രേഖപ്പെടുത്തേണ്ട മറ്റെന്തെങ്കിലും (ഓപ്ഷണൽ)</string>
+    <string name="checklist_complete">സുരക്ഷാ പരിശോധന പൂർത്തിയാക്കുക</string>
+    <plurals name="checklist_remaining">
+        <item quantity="one">ബാക്കിയുള്ള ഒരു ഇനം പരിശോധിക്കുക</item>
+        <item quantity="other">ബാക്കിയുള്ള %d ഇനങ്ങൾ പരിശോധിക്കുക</item>
+    </plurals>
+    <string name="checklist_previous">മുമ്പത്തെ പരിശോധന</string>
+    <string name="checklist_submitting">സമർപ്പിക്കുന്നു…</string>
+    <string name="checklist_done_title">സുരക്ഷാ പരിശോധന കഴിഞ്ഞു</string>
+    <string name="checklist_done_body">നിങ്ങളുടെ ഫ്ലീറ്റിന്റെ രേഖയിൽ ഇതുണ്ട്. ഇപ്പോൾ നിങ്ങൾക്ക് ട്രിപ്പ് തുടങ്ങാം.</string>
+    <string name="checklist_done_warnings_body">ശ്രദ്ധ വേണ്ടവ ഉൾപ്പെടെ, നിങ്ങളുടെ ഫ്ലീറ്റിന്റെ രേഖയിൽ ഇതുണ്ട്. ഇപ്പോൾ നിങ്ങൾക്ക് ട്രിപ്പ് തുടങ്ങാം.</string>
+    <string name="checklist_blocked_title">ഈ വാഹനം ഓടിക്കരുത്</string>
+    <string name="checklist_blocked_body">ട്രിപ്പ് തടയുന്ന ഒരു തകരാർ പരിശോധനയിൽ കണ്ടെത്തി. നിങ്ങളുടെ ഫ്ലീറ്റിനെ അറിയിച്ചിട്ടുണ്ട്.</string>
+    <string name="checklist_blocked_reasons">തടഞ്ഞത് എന്തുകൊണ്ട്</string>
+    <string name="checklist_back_to_check">പരിശോധനയിലേക്ക് മടങ്ങുക</string>
+    <string name="checklist_send_failed_title">പരിശോധന അയച്ചില്ല</string>
+    <string name="checklist_send_offline">നിങ്ങൾ ഓഫ്‌ലൈനാണ്. നിങ്ങളുടെ ഉത്തരങ്ങൾ സൂക്ഷിച്ചിട്ടുണ്ട് - സിഗ്നൽ കിട്ടുമ്പോൾ വീണ്ടും ശ്രമിക്കുക.</string>
+    <string name="checklist_send_failed">Saarthi-ക്ക് നിങ്ങളുടെ ഫ്ലീറ്റുമായി ബന്ധപ്പെടാനായില്ല. നിങ്ങളുടെ ഉത്തരങ്ങൾ സൂക്ഷിച്ചിട്ടുണ്ട്, വീണ്ടും ശ്രമിച്ചാൽ മതി.</string>
+    <string name="checklist_load_failed_title">ചെക്ക്‌ലിസ്റ്റ് ലോഡ് ആയില്ല</string>
+    <string name="checklist_load_offline">നിങ്ങൾ ഓഫ്‌ലൈനാണ്. സിഗ്നൽ കിട്ടുമ്പോൾ വീണ്ടും ശ്രമിക്കുക.</string>
+    <string name="checklist_load_failed">ഈ വാഹനത്തിന്റെ ചെക്ക്‌ലിസ്റ്റ് Saarthi-ക്ക് എടുക്കാനായില്ല. അൽപ്പസമയം കഴിഞ്ഞ് വീണ്ടും ശ്രമിക്കുക.</string>
+</resources>

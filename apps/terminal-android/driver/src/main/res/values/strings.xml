@@ -1,136 +1,270 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  The English original.
+  The English original of every word Humsafar shows a driver.
 
-  Every string a driver reads should live here rather than in Kotlin, and the
-  reason is not tidiness: Saarthi's platform supports twenty-six Indian
-  languages, the web app is fully localised, and registration already asks a
-  driver which language they read. The Android app spoke English regardless —
-  so a fleet owner could run Saarthi in Maithili and the driver, the person
-  least likely to read English and the one using it every day, could not.
+  Nothing a driver reads lives in Kotlin. Humsafar speaks all nineteen languages
+  the Saarthi platform supports, and each has a file beside this one
+  (values-bn, values-b+doi, …) with exactly these keys and the same
+  placeholders — LanguageCoverageTest holds every file to that.
 
-  Extraction is under way rather than finished. The screens below are done; the
-  cockpit, scanner, approval and profile screens still hold their strings in
-  Kotlin and are listed in the handover. A half-translated screen is worse than
-  an untranslated one, so `Language.available` offers only the languages whose
-  files are actually complete.
+  Grouped by the screen that uses them, in the order a driver meets them.
+  Humsafar, VorldX and Saarthi are names and are never translated; "Saarthi"
+  here is the platform and its voice assistant, not this app.
 -->
 <resources>
-    <string name="app_name">Saarthi Driver</string>
-    <string name="app_name_short">Saarthi</string>
+    <!-- Humsafar (हमसफ़र, "companion on the journey"), by VorldX Saarthi. -->
+    <string name="app_name" translatable="false">Humsafar</string>
+    <string name="app_name_short" translatable="false">Humsafar</string>
 
     <string name="service_channel_name">Trip reporting</string>
-    <string name="service_channel_description">Shown while Saarthi is reporting for the vehicle you are signed on to.</string>
-
+    <string name="service_channel_description">Shown while Humsafar is reporting for the vehicle you are signed on to.</string>
     <!-- Overrides the shared default: a driver's own phone, not a fitted unit. -->
-    <string name="service_title">Saarthi</string>
+    <string name="service_title" translatable="false">Humsafar</string>
 
-    <!-- Signing in ======================================================= -->
-    <string name="sign_in_title">Your shift starts here</string>
-    <string name="sign_in_blurb">Sign in once and Saarthi will remember you. No password in a yard at five in the morning.</string>
-    <string name="sign_in_create_title">Create your account</string>
-    <string name="sign_in_create_blurb">You will only do this once. Your fleet connects you to a vehicle after you scan it.</string>
-    <string name="sign_in_action">Sign in</string>
-    <string name="sign_in_working">Signing you in…</string>
-    <string name="sign_in_create_action">Create account</string>
-    <string name="sign_in_create_working">Creating your account…</string>
-    <string name="sign_in_new_prompt">New to Saarthi? </string>
-    <string name="sign_in_new_action">Create an account</string>
-    <string name="sign_in_have_prompt">Already have an account? </string>
-    <string name="field_email">Email</string>
+    <!-- Everywhere ======================================================== -->
+    <string name="action_back">Back</string>
+    <string name="action_close">Close</string>
+    <string name="action_continue">Continue</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_done">Done</string>
+    <string name="action_edit">Edit</string>
+    <string name="action_not_now">Not now</string>
+    <string name="action_try_again">Try again</string>
+    <string name="sos">SOS</string>
+    <string name="sos_raise">Raise an emergency</string>
     <string name="field_password">Password</string>
+    <string name="password_show">Show password</string>
+    <string name="password_hide">Hide password</string>
+    <string name="field_vehicle_number">Vehicle number</string>
+    <string name="pin_progress">%1$d of %2$d digits entered</string>
+    <string name="pin_delete">Delete the last digit</string>
+
+    <!-- Language ========================================================== -->
+    <string name="language_sheet_title">Choose a language</string>
+    <string name="language_sheet_blurb">Humsafar will speak this language on this phone.</string>
+    <string name="language_phone_default">Phone default</string>
+    <string name="language_phone_default_sub">Follows your phone</string>
+
+    <!-- Welcome =========================================================== -->
+    <string name="welcome_1_alt">The highway at night, seen from the cab</string>
+    <string name="welcome_1_eyebrow">Welcome to Humsafar</string>
+    <string name="welcome_1_title">Your shift starts here</string>
+    <string name="welcome_1_body">Sign in once and Humsafar will remember you. No password in a yard at five in the morning.</string>
+    <string name="welcome_2_alt">A driver with a phone beside a decorated truck</string>
+    <string name="welcome_2_eyebrow">How it works</string>
+    <string name="welcome_2_title">Scan. Get approved. Drive.</string>
+    <string name="welcome_2_body">Scan the Saarthi code on the vehicle. Your fleet approves you before the trip can start.</string>
+    <string name="welcome_3_alt">A truck with its lights on at night</string>
+    <string name="welcome_3_eyebrow">On the road</string>
+    <string name="welcome_3_title">Everything the road needs</string>
+    <string name="welcome_3_body">The live map, fuel nearby, your papers offline and SOS - all one tap away.</string>
+    <string name="welcome_previous">Previous</string>
+    <string name="welcome_next">Next</string>
+    <string name="welcome_sign_in">Sign in</string>
+    <string name="welcome_create">Create an account</string>
+
+    <!-- Signing in ======================================================== -->
+    <string name="signin_bar">Sign in, step %1$d of %2$d</string>
+    <string name="signin_eyebrow">Sign in · Step %1$d of %2$d</string>
+    <string name="signin_email_title">Welcome back</string>
+    <string name="signin_email_lead">Use the email you signed up with. Humsafar will remember you after this.</string>
+    <string name="signin_new_prompt">New to Humsafar?</string>
+    <string name="signin_password_title">Enter your password</string>
+    <string name="field_email">Email</string>
+    <string name="action_change">Change</string>
+    <string name="password_rule">%1$d characters or more. %2$d so far.</string>
+    <string name="password_good">Good to go</string>
+    <string name="password_short">Too short</string>
+    <string name="auth_working_sign_in">Signing you in…</string>
+    <string name="auth_working_create">Creating your account…</string>
+    <string name="auth_working_body">This can take a moment on a slow connection. Keep the app open.</string>
+
+    <!-- Creating an account =============================================== -->
+    <string name="register_bar">Create account, step %1$d of %2$d</string>
+    <string name="register_eyebrow">Create account · Step %1$d of %2$d</string>
+    <string name="register_eyebrow_optional">Create account · Step %1$d of %2$d · Optional</string>
+    <string name="register_have_prompt">Already have an account?</string>
+    <string name="register_name_title">What should we call you?</string>
+    <string name="register_name_lead">You will only do this once. Your fleet connects you to a vehicle after you scan it.</string>
     <string name="field_first_name">First name</string>
     <string name="field_last_name">Last name</string>
+    <string name="register_mobile_title">Your mobile number</string>
+    <string name="register_mobile_lead">So your fleet can reach you on the road.</string>
     <string name="field_mobile">Mobile number</string>
-    <string name="field_mobile_hint">10 digits</string>
-    <string name="field_licence">Driving licence number</string>
-    <string name="field_licence_hint">As printed on your licence</string>
-    <string name="field_optional">Optional</string>
-    <string name="terms_notice">By creating an account you accept the Saarthi terms of service and privacy policy.</string>
-    <string name="password_rule">%1$d characters or more. %2$d so far.</string>
     <string name="mobile_rule">An Indian mobile number, starting 6 to 9.</string>
+    <string name="register_licence_title">Your driving licence</string>
+    <string name="register_licence_lead">Type the number exactly as it is printed on the card.</string>
+    <string name="licence_card_label">Driving licence</string>
+    <string name="field_licence">Driving licence number</string>
+    <string name="licence_hint">As printed on your licence</string>
+    <string name="licence_later">I\'ll do it later</string>
+    <string name="review_licence_later">Adding it later</string>
+    <string name="licence_reminder">You skipped your driving licence at sign-up. Your fleet sees it as not added until you add it.</string>
+    <string name="licence_add">Add licence</string>
+    <string name="licence_sheet_title">Add your licence</string>
+    <string name="licence_save">Save licence</string>
+    <string name="licence_saving">Saving…</string>
+    <string name="licence_saved_title">Licence added</string>
+    <string name="licence_saved_body">Your fleet can see it now.</string>
+    <string name="register_account_title">Email and password</string>
+    <string name="register_account_lead">You sign in with these once. Quick Login takes over after that.</string>
+    <string name="register_fleet_title">Joining a fleet?</string>
+    <string name="register_fleet_lead">Enter your fleet\'s joining code and its vehicles open up to you straight away.</string>
+    <string name="field_joining_code">Joining code</string>
+    <string name="register_fleet_note">Your fleet owner finds the code on the Drivers page in Saarthi. No code yet? Skip this - you can join later from the vehicle screen.</string>
+    <string name="action_skip">Skip for now</string>
+    <string name="review_title">Check your details</string>
+    <string name="review_name">Name</string>
+    <string name="review_no_code">Not added</string>
+    <string name="review_terms">By creating an account you accept the Saarthi terms of service and privacy policy.</string>
+    <string name="review_create">Create account</string>
+    <string name="review_sending_code">Emailing your code…</string>
+    <string name="email_code_eyebrow">Last step</string>
+    <string name="email_code_title">Check your email</string>
+    <string name="email_code_lead">We sent a 6-digit code to %1$s. Enter it to create your account.</string>
+    <string name="field_email_code">6-digit code</string>
+    <string name="email_code_resend">Send a new code</string>
+    <string name="email_code_resend_in">Send a new code in %1$d s</string>
+    <string name="email_code_dev">Test build: the code is %1$s</string>
 
-    <!-- The dashboard ==================================================== -->
-    <string name="greeting">Hi, %1$s</string>
-    <string name="status_live">Live</string>
-    <string name="status_offline">Offline</string>
-    <string name="reporting_live">Live to your fleet</string>
-    <string name="reporting_saved">Saved on this phone</string>
-    <string name="label_reporting">Reporting</string>
-    <string name="tile_live_view">Live view</string>
-    <string name="tile_live_view_sub">Map and engine</string>
-    <string name="tile_nearby">Nearby</string>
-    <string name="tile_nearby_sub">Fuel and repairs</string>
-    <string name="tile_vehicle">Vehicle</string>
-    <string name="tile_vehicle_signed_on">Signed on</string>
-    <string name="tile_vehicle_not_signed_on">Not signed on</string>
-    <string name="tile_emergency">Emergency</string>
-    <string name="tile_emergency_sub">Raise an SOS</string>
-    <string name="tile_papers">Papers</string>
-    <string name="tile_papers_none">None uploaded</string>
-    <string name="tile_papers_none_saved">%1$d, none saved yet</string>
-    <string name="tile_papers_partial">%1$d of %2$d saved</string>
-    <string name="tile_papers_all">%1$d saved for offline</string>
-    <string name="tile_notices">Notices</string>
-    <string name="tile_notices_new">%1$d new</string>
-    <string name="tile_notices_none">Nothing new</string>
-    <string name="tile_trips">Your trips</string>
-    <string name="tile_trips_sub">What you have run</string>
-    <string name="tile_hours">Hours</string>
-    <string name="label_fastag">FASTag</string>
-    <string name="fastag_low">Low - top up</string>
-    <string name="fastag_unknown">Balance unknown</string>
-    <string name="label_diesel_today">Diesel today</string>
-    <string name="diesel_none">No rate published for %1$s</string>
-    <string name="ready_title">Ready to go</string>
-    <string name="ready_blurb">Your safety check is done. Slide when you are moving off.</string>
-    <string name="slide_start_trip">Slide to start your trip</string>
-    <string name="slide_open_live">Slide to open the live view</string>
-    <string name="trip_under_way">Trip under way</string>
-    <string name="trip_under_way_blurb">Saarthi is reporting for this vehicle. Open the live view for the map and engine readings.</string>
-    <string name="before_you_drive">Before you drive</string>
-    <string name="before_you_drive_blurb">A short safety check on the vehicle. Your fleet needs it on record before the trip can start.</string>
-    <string name="start_safety_check">Start your safety check</string>
-    <string name="next_step">Next step</string>
-    <string name="next_step_blurb">Open the live view to carry on.</string>
-    <string name="next_step_awaiting">Your fleet is looking at your request. This screen will change on its own once they decide.</string>
-    <string name="next_step_reconnect">This phone is not connected to a vehicle. Open your profile, sign out, then scan the vehicle again.</string>
+    <!-- Signed in, and Quick Login ======================================= -->
+    <string name="signed_in_title">Welcome back, %1$s</string>
+    <string name="signed_in_body">You are signed in on this phone.</string>
+    <string name="signed_in_created">Account created</string>
+    <string name="signed_in_created_body">You are in. One more thing and you can get to work.</string>
+    <string name="quick_login">Quick Login</string>
+    <string name="offer_title">Get back in with one touch</string>
+    <string name="offer_lead">Set up a quick way back in, so you never type that password in a yard at five in the morning.</string>
+    <string name="offer_biometric_title">Fingerprint or face</string>
+    <string name="offer_biometric_sub">Use the sensor on this phone</string>
+    <string name="offer_fastest">Fastest</string>
+    <string name="pin_title">4-digit PIN</string>
+    <string name="offer_pin_sub">Four numbers only you know</string>
+    <string name="offer_footnote">Your account sign-in does not change.</string>
+    <string name="pin_bar">Quick Login PIN</string>
+    <string name="pin_eyebrow">Quick Login · PIN</string>
+    <string name="pin_choose_title">Choose a 4-digit PIN</string>
+    <string name="pin_choose_body">Avoid 1234 or four of the same digit - they are too easy to guess.</string>
+    <string name="pin_confirm_title">Enter it once more</string>
+    <string name="pin_confirm_body">The same four digits, so we know you have them.</string>
+    <string name="pin_too_weak">That PIN is too easy to guess. Try four digits that are not a pattern.</string>
+    <string name="pin_malformed">Enter exactly four digits.</string>
+    <string name="pin_mismatch">Those two PINs do not match. Choose your PIN again.</string>
+    <string name="pin_not_saved">That PIN could not be saved. Try a different one.</string>
+    <string name="all_set_eyebrow">Quick Login is on</string>
+    <string name="all_set_title">You are all set, %1$s</string>
+    <string name="all_set_body_pin">Next time, open Humsafar with your PIN. No password needed.</string>
+    <string name="all_set_body_biometric">Next time, open Humsafar with your fingerprint. No password needed.</string>
+    <string name="all_set_action">Choose your vehicle</string>
 
-    <!-- Hours at the wheel =============================================== -->
-    <string name="hours_break_soon">You have been driving %1$s. A break is due soon - start looking for somewhere to stop.</string>
-    <string name="hours_break_due">You have been driving %1$s without a proper break. Please stop for half an hour.</string>
-    <string name="hours_shift_soon">%1$s driven today. Your shift should end soon - think about where you will park.</string>
-    <string name="hours_shift_due">%1$s driven today. That is a full day at the wheel. Please stop for the night.</string>
+    <!-- Unlock ============================================================ -->
+    <string name="unlock_title">Welcome back, %1$s</string>
+    <string name="unlock_lead">Unlock Humsafar to carry on.</string>
+    <string name="unlock_biometric">Use fingerprint or face</string>
+    <string name="unlock_password">Use password instead</string>
+    <string name="unlock_restoring">Restoring your session…</string>
+    <string name="biometric_unavailable">Fingerprint unlock is not available just now. Use your PIN or password.</string>
+    <string name="session_expired">Your session has expired. Please sign in again.</string>
+    <string name="pin_wrong_last">Wrong PIN. One more attempt before you will need to sign in.</string>
+    <string name="pin_wrong_left">Wrong PIN. %1$d attempts left.</string>
+    <string name="pin_cooling_down">Too many attempts. Try again in %1$d seconds.</string>
+    <string name="pin_locked_out">Too many wrong PINs. Please sign in with your password.</string>
+    <string name="quick_login_failed">Quick Login could not be used. Please sign in.</string>
+    <string name="pair_failed">Signed on, but this phone could not connect to the vehicle yet.</string>
+    <string name="error_generic">Something went wrong. Please try again.</string>
 
-    <!-- Papers =========================================================== -->
-    <string name="papers_title">Your papers</string>
-    <string name="papers_blurb">Kept on this phone, so a check post with no signal is not a problem.</string>
-    <string name="papers_empty_title">Nothing here yet</string>
-    <string name="papers_empty_blurb">Your fleet has not uploaded any papers for this vehicle or for you. Ask the office to add the RC, insurance, permit and PUC - they will appear here and stay available offline.</string>
-    <string name="papers_expiring_one">One paper needs attention. Tell the office before it lapses.</string>
-    <string name="papers_expiring_many">%1$d papers need attention. Tell the office before they lapse.</string>
-    <string name="papers_owner_yours">Yours</string>
-    <string name="papers_owner_vehicle">Vehicle</string>
-    <string name="papers_no_expiry">No expiry recorded</string>
-    <string name="papers_expired">Expired %1$d day(s) ago</string>
-    <string name="papers_expires_today">Expires today</string>
-    <string name="papers_days_left">%1$d day(s) left</string>
-    <string name="papers_not_here">That one is not on this phone yet. Open it once where there is a signal and it will stay.</string>
-    <string name="papers_no_reader">No app on this phone can open that. Install a PDF reader.</string>
-    <string name="papers_open_failed">Saarthi could not open that file.</string>
+    <!-- Choosing a vehicle =============================================== -->
+    <string name="choose_header">Start your shift</string>
+    <string name="profile_open">Your profile</string>
+    <string name="choose_title">Choose your vehicle</string>
+    <string name="choose_lead">Scan the Saarthi code on the vehicle, or enter its number. Your fleet approves you before the trip can start.</string>
+    <string name="choose_scan">Scan code</string>
+    <string name="choose_number">Enter number</string>
+    <string name="choose_request">Request this vehicle</string>
+    <string name="choose_scan_label">Scan the Saarthi code</string>
+    <string name="choose_scan_hint">Hold the phone steady over the sticker on the door or the windscreen.</string>
+    <string name="choose_quick_on">On · Change</string>
+    <string name="choose_quick_off">Off · Set up</string>
+    <string name="camera_needed_scan">Humsafar needs the camera to scan the code on the vehicle.</string>
+    <string name="camera_allow">Allow camera</string>
+    <string name="join_card_title">Join your fleet first</string>
+    <string name="join_card_body">No fleet yet, so no vehicle can be found.</string>
+    <string name="join_card_action">Enter code</string>
+    <string name="join_link">Join</string>
+    <string name="found_title">Vehicle found</string>
+    <string name="found_sending">Sending your request to the fleet…</string>
 
-    <!-- Language ========================================================= -->
-    <string name="language_title">Language</string>
-    <string name="language_blurb">Saarthi will speak to you in this language. Your fleet is not affected.</string>
-    <string name="language_phone_default">Phone default</string>
+    <!-- Joining a fleet =================================================== -->
+    <string name="join_title">Join your fleet</string>
+    <string name="join_subtitle">Then its vehicles open up to you</string>
+    <string name="join_lead">Ask your fleet owner for their joining code. They can find it on the Drivers page in Saarthi.</string>
+    <string name="join_note">Your papers and QR badge move with you. After you join, only your fleet can release you.</string>
+    <string name="join_action">Join fleet</string>
+    <string name="join_working">Joining…</string>
+    <string name="joined_title">You joined %1$s</string>
+    <string name="joined_title_generic">You joined your fleet</string>
+    <string name="joined_body">Its vehicles are open to you now. Scan the one you have been given.</string>
+    <string name="joined_action">Choose a vehicle</string>
 
-    <!-- Shared =========================================================== -->
-    <string name="action_back">Back</string>
-    <string name="action_done">Done</string>
-    <string name="action_cancel">Cancel</string>
-    <string name="action_try_again">Try again</string>
-    <string name="label_current_tracking">Current tracking</string>
-    <string name="label_status">Status</string>
+    <!-- Arrival photo ===================================================== -->
+    <string name="photo_step">Step %1$d of %2$d</string>
+    <string name="photo_title">Arrival photo</string>
+    <string name="photo_lead">Your fleet needs a photo of you at the vehicle before they can approve you.</string>
+    <string name="photo_front_camera">Front camera</string>
+    <string name="photo_hint">Stand where the vehicle number can be seen behind you if you can.</string>
+    <string name="photo_take">Take photo</string>
+    <string name="photo_taking">Taking the photo…</string>
+    <string name="photo_failed">The camera could not take the photo. Try again.</string>
+    <string name="camera_needed_photo">Humsafar needs the camera to take your arrival photo. Allow camera access, then come back.</string>
+    <string name="photo_preview_title">Your arrival photo</string>
+    <string name="photo_preview_alt">The photo you just took</string>
+    <string name="photo_retake">Retake</string>
+    <string name="photo_use">Use this photo</string>
+    <string name="photo_sending">Sending your photo to the fleet…</string>
+    <string name="photo_not_saved">The photo is not saved to your gallery.</string>
+
+    <!-- Waiting, declined, approved ======================================= -->
+    <string name="label_vehicle">Vehicle</string>
+    <string name="awaiting_eyebrow">Request sent</string>
+    <string name="awaiting_title">Waiting for approval</string>
+    <string name="awaiting_pill">Awaiting approval</string>
+    <string name="awaiting_body">Your fleet is reviewing it. Keep the app open - it will move on by itself as soon as somebody decides.</string>
+    <string name="awaiting_checking">Checking every few seconds</string>
+    <string name="awaiting_step_scanned">You scanned %1$s</string>
+    <string name="awaiting_step_sent">Request sent</string>
+    <string name="awaiting_step_scanned_sub">Sent from your phone, with your position</string>
+    <string name="awaiting_step_fleet">Waiting for your fleet</string>
+    <string name="awaiting_step_fleet_sub">Somebody in the office checks your photo</string>
+    <string name="awaiting_step_trip">Trip starts</string>
+    <string name="awaiting_step_trip_sub">Humsafar opens your dashboard</string>
+    <string name="awaiting_cancel">Cancel this request</string>
+    <string name="rejected_eyebrow">Your fleet decided</string>
+    <string name="rejected_title">Request declined</string>
+    <string name="rejected_pill">Not approved</string>
+    <string name="rejected_for">Your request for</string>
+    <string name="rejected_declined">was declined.</string>
+    <string name="rejected_generic">Your request was declined.</string>
+    <string name="rejected_reason">Reason given</string>
+    <string name="rejected_no_reason">Your fleet did not leave a reason. The commonest one is a vehicle that has been given to somebody else this morning.</string>
+    <string name="rejected_action">Scan a different vehicle</string>
+    <string name="approved_title">You are approved</string>
+    <string name="approved_by">%1$s approved you on</string>
+    <string name="approved_by_generic">Your fleet approved you on</string>
+    <string name="before_drive_title">Before you drive</string>
+    <string name="before_drive_body">A short safety check on the vehicle. Your fleet needs it on record before the trip can start.</string>
+    <string name="approved_action">Open your dashboard</string>
+
+    <!-- On shift: tabs, header, status ==================================== -->
+    <string name="tab_home">Home</string>
+    <string name="tab_map">Map</string>
+    <string name="tab_trips">Trips</string>
+    <string name="tab_papers">Papers</string>
+    <string name="tab_profile">Profile</string>
+    <string name="notices_title">Notices</string>
+    <plurals name="notices_new_label">
+        <item quantity="one">Notices, %d new</item>
+        <item quantity="other">Notices, %d new</item>
+    </plurals>
     <string name="state_in_transit">In transit</string>
     <string name="state_trip_finished">Trip finished</string>
     <string name="state_ready">Ready to drive</string>
@@ -138,18 +272,271 @@
     <string name="state_awaiting_approval">Awaiting approval</string>
     <string name="state_not_approved">Not approved</string>
     <string name="state_suspended">Suspended</string>
+    <string name="state_not_signed_on">Not signed on</string>
     <string name="state_signed_on">Signed on</string>
-    <string name="state_not_signed_on">Not signed on to a vehicle</string>
-    <string name="label_diesel">Diesel today</string>
-    <string name="label_petrol">Petrol today</string>
-    <string name="label_cng">CNG today</string>
-    <string name="label_pump_prices">Pump prices today</string>
-    <string name="unit_per_litre">a litre</string>
-    <string name="unit_per_kg">a kg</string>
+    <string name="status_live">Live</string>
+    <string name="status_offline">Offline</string>
+    <string name="status_connecting">Connecting…</string>
+    <string name="reporting_live">Reporting live to your fleet</string>
+    <string name="reporting_saved">Saved on this phone until the signal returns</string>
+    <string name="reporting_connecting">Reaching your fleet…</string>
+    <string name="reporting_live_short">Live to your fleet</string>
+    <string name="reporting_not_yet">Not reporting yet</string>
+
+    <!-- Home ============================================================== -->
+    <string name="home_greeting">Hi, %1$s</string>
+    <string name="home_current_tracking">Current tracking</string>
+    <string name="home_open_map">Open map</string>
+    <string name="hours_break_soon">You have been driving %1$s. A break is due soon - start looking for somewhere to stop.</string>
+    <string name="hours_break_due">You have been driving %1$s without a break. Stop somewhere safe and rest.</string>
+    <string name="hours_shift_soon">%1$s at the wheel today. Your daily limit is close.</string>
+    <string name="hours_shift_due">%1$s at the wheel today. That is the limit - finish the shift when you safely can.</string>
+    <string name="stat_fastag">FASTag</string>
+    <string name="stat_fuel">Fuel</string>
+    <string name="stat_today">Today</string>
+    <string name="stat_at_wheel">at the wheel</string>
+    <string name="fastag_not_linked">Not linked</string>
+    <string name="fastag_low">Low balance</string>
+    <string name="fastag_unknown">Balance not reported</string>
     <string name="fuel_diesel">Diesel</string>
     <string name="fuel_petrol">Petrol</string>
     <string name="fuel_cng">CNG</string>
-    <string name="rate_none_here">No rate published for %1$s</string>
-    <string name="status_connecting">Connecting…</string>
-    <string name="reporting_connecting">Reaching your fleet…</string>
+    <string name="rate_electric">No pump price</string>
+    <string name="rate_loading">Checking today\'s rate…</string>
+    <string name="rate_none_here">No rate for %1$s</string>
+    <string name="rate_per_litre">a litre · %1$s</string>
+    <string name="rate_per_kg">a kg · %1$s</string>
+    <string name="dispatch_title">Your trip</string>
+    <string name="dispatch_from">From</string>
+    <string name="dispatch_to">Going to</string>
+    <string name="dispatch_no_destination">Your fleet has not named the destination.</string>
+    <string name="trip_in_progress">In progress</string>
+    <string name="trip_assigned">Assigned</string>
+    <string name="dispatch_distance">Distance</string>
+    <string name="dispatch_distance_planned">Distance, planned</string>
+    <string name="dispatch_stops">Stops</string>
+    <string name="dispatch_from_fleet">From your fleet</string>
+    <string name="dispatch_other_driver">Your fleet assigned this trip to another driver. Check with them before you set off.</string>
+    <string name="dispatch_no_route">Humsafar could not work out a route yet. It needs to know where this vehicle is, so move somewhere with a clear view of the sky and try again.</string>
+    <string name="dispatch_show_way">Show me the way</string>
+    <string name="dispatch_routing">Working out the route…</string>
+    <string name="home_quick_actions">Quick actions</string>
+    <string name="home_action_nearby">Nearby</string>
+    <string name="home_action_fuel">Fuel slip</string>
+    <string name="home_action_check">Safety check</string>
+    <string name="home_action_notices">Notices</string>
+    <string name="home_start_check">Start your safety check</string>
+    <string name="home_ready_title">Ready to go</string>
+    <string name="home_ready_body">Your safety check is done. Slide when you are moving off.</string>
+    <string name="slide_start_trip">Slide to start your trip</string>
+    <string name="home_active_title">Trip under way</string>
+    <string name="home_active_body">Humsafar is reporting for this vehicle. Open the live view for the map and engine readings.</string>
+    <string name="slide_open_live">Slide to open the live view</string>
+    <string name="home_next_step">Next step</string>
+    <string name="next_step_awaiting">Your fleet is deciding. This screen moves on by itself as soon as they do.</string>
+    <string name="next_step_blurb">Open the live view to carry on.</string>
+    <string name="next_step_reconnect">This phone has lost its session on the vehicle. Sign on to the vehicle again to carry on.</string>
+    <string name="check_not_needed">Your safety check is already done for this trip.</string>
+
+    <!-- Map =============================================================== -->
+    <string name="map_back">Back to Home</string>
+    <string name="map_link_live">Live · %1$s</string>
+    <string name="map_link_offline">Offline · %1$s</string>
+    <string name="map_link_connecting">Connecting · %1$s</string>
+    <string name="vehicle_truck">Truck</string>
+    <string name="vehicle_bus">Bus</string>
+    <string name="vehicle_car">Car</string>
+    <string name="map_credits">© OpenMapTiles © OpenStreetMap</string>
+    <string name="map_full">Full-screen map</string>
+    <string name="map_full_leave">Leave full screen</string>
+    <string name="map_recentre">Follow the vehicle again</string>
+    <string name="unit_kmh">km/h</string>
+    <string name="nav_on_route">On route</string>
+    <string name="nav_arrived">You have arrived</string>
+    <string name="nav_rerouting">Finding a new route…</string>
+    <string name="nav_reroute_failed">No new route yet</string>
+    <string name="nav_off_route">Off the route</string>
+    <string name="nav_via">%1$s · via %2$s</string>
+    <string name="nav_next">%1$s · %2$s</string>
+    <string name="nav_now">Now</string>
+    <string name="nav_metres">In %1$d m</string>
+    <string name="nav_km">In %1$s km</string>
+    <string name="nav_route_ready">Route ready</string>
+    <string name="nav_route_summary">%1$s km · %2$d min · %3$s</string>
+    <string name="nav_start">Start</string>
+    <string name="nav_mute">Mute spoken directions</string>
+    <string name="nav_unmute">Turn spoken directions on</string>
+    <string name="nav_stop">Stop navigating</string>
+    <string name="instruments_title">Instruments</string>
+    <string name="instruments_from_obd">From the OBD adapter</string>
+    <string name="instruments_from_phone">From this phone</string>
+    <string name="instruments_hidden">Instruments are hidden. Turn them back on in Profile.</string>
+    <string name="instrument_speed">Speed</string>
+    <string name="instrument_engine">Engine</string>
+    <string name="instrument_fuel">Fuel</string>
+    <string name="instrument_coolant">Coolant</string>
+    <string name="instrument_odometer">Odometer</string>
+    <string name="instrument_mileage">Mileage</string>
+    <string name="unit_rpm">rpm</string>
+    <string name="unit_percent" formatted="false">%</string>
+    <string name="unit_celsius">°C</string>
+    <string name="unit_km">km</string>
+    <string name="unit_kmpl">km/L</string>
+    <string name="controls_title">Controls</string>
+    <string name="control_services">Services</string>
+    <string name="control_services_sub">Fuel, food, repairs</string>
+    <string name="control_saarthi">Saarthi</string>
+    <string name="control_saarthi_sub">Speak or type</string>
+    <string name="control_vehicle">Vehicle</string>
+    <string name="control_vehicle_sub">Details and issues</string>
+    <string name="control_adapter">Adapter</string>
+    <string name="control_adapter_sub">Pair over Bluetooth</string>
+    <string name="control_fuel_slip_sub">Photograph it, keep no paper</string>
+    <string name="control_fuel_nearby">Fuel nearby</string>
+    <string name="control_fuel_nearby_sub">Pumps close to you</string>
+    <string name="offline_title">Map for no-signal areas</string>
+    <string name="offline_saved">Saved</string>
+    <string name="offline_idle">Save the roads around you now and the map will still work where the signal does not. Roughly 30–60 MB, on your data.</string>
+    <string name="offline_save_here">Save the area around me</string>
+    <string name="offline_save_route">Save the roads along this route</string>
+    <string name="offline_saving">Saving the map…</string>
+    <string name="offline_keep_open">Keep the app open.</string>
+    <string name="offline_ready">%1$s of map is on this phone. It will be used automatically wherever there is no signal.</string>
+    <string name="offline_new_area">Save a new area</string>
+    <string name="offline_delete">Delete</string>
+    <string name="offline_failed">The map could not be saved. %1$s</string>
+    <string name="offline_no_position">Humsafar needs to know where you are first. Move somewhere with a clear view of the sky.</string>
+    <string name="shift_end_body">Ending the trip closes this journey for your fleet.</string>
+    <string name="slide_end_trip">Slide to end the trip</string>
+    <string name="shift_checks_body">Finish the safety check from Home before the trip can start.</string>
+    <string name="shift_finished_body">This trip is closed. Sign off when you hand the vehicle back.</string>
+    <string name="shift_sign_off">Sign off</string>
+    <string name="sign_off_title">Sign off this vehicle?</string>
+    <string name="sign_off_body">Your fleet will see that you have left %1$s. Scan its Saarthi code to sign on again.</string>
+
+    <!-- Shift shell: headers, toasts, SOS ================================== -->
+    <string name="header_trips">Your trips</string>
+    <string name="header_papers">Your papers</string>
+    <string name="header_papers_eyebrow">Kept on this phone</string>
+    <string name="header_profile">Profile and settings</string>
+    <string name="header_profile_eyebrow" translatable="false">VorldX Saarthi</string>
+    <string name="toast_check_done">Safety check done. You can start your trip.</string>
+    <string name="toast_trip_started">Trip started. Drive safely.</string>
+    <string name="toast_trip_ended">Trip ended. Your fleet has the record.</string>
+    <string name="toast_route_drawn">Route to %1$s drawn on the map.</string>
+    <string name="toast_route_failed">Humsafar could not work out a route there. Try again in a moment.</string>
+    <string name="toast_fuel_saved">Fuel slip saved.</string>
+    <string name="toast_instruments_on">Instruments are back on the map.</string>
+    <string name="toast_instruments_off">Instruments hidden from the map.</string>
+    <string name="sos_title">Raise an emergency?</string>
+    <string name="sos_body">Your fleet is alerted with your position straight away.</string>
+    <string name="sos_failed">The alert did not reach your fleet. Try again - it is sent the moment there is signal.</string>
+    <string name="sos_position">%1$s, %2$s</string>
+    <string name="sos_no_position">Position not known yet</string>
+    <string name="sos_send">Send it</string>
+    <string name="sos_sending">Sending…</string>
+    <string name="sos_banner">Emergency raised. Your fleet has it as %1$s.</string>
+    <string name="sos_dismiss">Dismiss</string>
+
+    <!-- Profile ============================================================ -->
+    <string name="profile_not_signed_on">Not signed on</string>
+    <string name="profile_on_vehicle">On %1$s</string>
+    <string name="profile_join_title">You are not in a fleet yet</string>
+    <string name="profile_join_body">Enter your fleet\'s joining code to see its vehicles.</string>
+    <string name="profile_join_action">Enter joining code</string>
+    <string name="profile_work">Your work</string>
+    <string name="profile_fleet">Fleet</string>
+    <string name="profile_no_fleet">Not in a fleet yet</string>
+    <string name="profile_vehicle">Vehicle</string>
+    <string name="profile_no_vehicle">Not signed on to a vehicle</string>
+    <string name="profile_vehicle_value">%1$s · %2$s</string>
+    <string name="profile_hours">Hours today</string>
+    <string name="profile_hours_value">%1$s at the wheel</string>
+    <string name="profile_licence_missing">Not added yet</string>
+    <string name="profile_map">Map</string>
+    <string name="profile_instruments">Instruments on the map</string>
+    <string name="profile_instruments_on">Speed, engine, fuel and coolant are shown</string>
+    <string name="profile_instruments_off">Hidden, so the map has more room</string>
+    <string name="profile_full_map_sub">Only the road, speed and SOS</string>
+    <string name="profile_appearance">Appearance</string>
+    <string name="appearance_phone">Phone</string>
+    <string name="appearance_light">Light</string>
+    <string name="appearance_dark">Dark</string>
+    <string name="profile_appearance_note">The live map always stays dark, so your eyes stay used to the road at night.</string>
+    <string name="profile_language">Language</string>
+    <string name="profile_security">Sign-in and security</string>
+    <string name="profile_on">On</string>
+    <string name="profile_off">Off</string>
+    <string name="profile_biometric_unavailable">Not set up on this phone</string>
+    <string name="profile_change_pin">Change PIN</string>
+    <string name="profile_sign_out">Sign out of this phone</string>
+    <string name="profile_sign_out_note">Signing out clears Quick Login on this phone. You will need your password to get back in.</string>
+    <string name="sign_out_title">Sign out of this phone?</string>
+    <string name="sign_out_body">Quick Login is cleared and you will need your password to get back in.</string>
+    <string name="toast_pin_on">Your PIN is on.</string>
+    <string name="toast_pin_off">Your PIN is off.</string>
+    <string name="toast_biometric_off">Fingerprint unlock is off.</string>
+    <string name="biometric_on">Fingerprint unlock is on.</string>
+    <string name="biometric_cancelled">Fingerprint setup was cancelled.</string>
+    <string name="biometric_no_key">This phone would not create a secure key. Your PIN still works.</string>
+    <string name="biometric_not_saved">That did not save. Your PIN still works.</string>
+    <string name="biometric_unlock_title">Unlock Humsafar</string>
+    <string name="biometric_unlock_sub">Use your fingerprint or face to carry on</string>
+    <string name="biometric_use_pin">Use your PIN</string>
+    <string name="biometric_setup_title">Set up fingerprint unlock</string>
+    <string name="biometric_setup_sub">Confirm it is you, and Humsafar will remember this phone</string>
+
+    <!-- Nearby services =================================================== -->
+    <string name="nearby_search">Search a place or landmark</string>
+    <string name="nearby_search_title">Search results</string>
+    <string name="nearby_searching">Searching…</string>
+    <string name="nearby_search_none">Nothing matched. Try the name of a town, a landmark or a society.</string>
+    <string name="nearby_cat_fuel">Fuel</string>
+    <string name="nearby_cat_mechanic">Mechanic</string>
+    <string name="nearby_cat_tyre">Tyres</string>
+    <string name="nearby_cat_parking">Parking</string>
+    <string name="nearby_cat_food">Food &amp; rest</string>
+    <string name="nearby_cat_hospital">Hospital</string>
+    <string name="nearby_cat_police">Police</string>
+    <string name="nearby_cat_weighbridge">Weighbridge</string>
+    <string name="nearby_title_fuel">Fuel stations</string>
+    <string name="nearby_title_mechanic">Mechanics</string>
+    <string name="nearby_title_tyre">Tyre shops</string>
+    <string name="nearby_title_parking">Parking</string>
+    <string name="nearby_title_food">Food and rest</string>
+    <string name="nearby_title_hospital">Hospitals</string>
+    <string name="nearby_title_police">Police</string>
+    <string name="nearby_title_weighbridge">Weighbridges</string>
+    <plurals name="nearby_count">
+        <item quantity="one">%d place</item>
+        <item quantity="other">%d places</item>
+    </plurals>
+    <string name="nearby_road">Distances by road</string>
+    <string name="nearby_straight">Straight-line distances</string>
+    <string name="nearby_loading">Finding places near you…</string>
+    <string name="nearby_failed">Places could not be loaded. Check the signal and try again.</string>
+    <string name="nearby_empty">Nothing of this kind was found close by. Try another kind of place above.</string>
+    <string name="nearby_no_others">No other places of this kind close by. Try another kind of place above.</string>
+    <string name="nearby_also">Also nearby</string>
+    <string name="nearby_ahead">Ahead of you</string>
+    <string name="nearby_left">To your left</string>
+    <string name="nearby_right">To your right</string>
+    <string name="nearby_behind">Behind you</string>
+    <string name="nearby_dir_n">To the north</string>
+    <string name="nearby_dir_ne">To the north-east</string>
+    <string name="nearby_dir_e">To the east</string>
+    <string name="nearby_dir_se">To the south-east</string>
+    <string name="nearby_dir_s">To the south</string>
+    <string name="nearby_dir_sw">To the south-west</string>
+    <string name="nearby_dir_w">To the west</string>
+    <string name="nearby_dir_nw">To the north-west</string>
+    <string name="nearby_by_road">%1$d min by road</string>
+    <string name="nearby_straight_line">Straight line. The drive is longer.</string>
+    <string name="nearby_straight_short">Straight line</string>
+    <string name="nearby_open_24h">Open 24 h</string>
+    <string name="nearby_navigate">Navigate</string>
+    <string name="nearby_navigate_to">Navigate to %1$s</string>
+    <string name="nearby_pin">Pin %1$d, %2$s</string>
+    <string name="nearby_footnote_straight">These are straight-line distances; the real drive is longer, sometimes much longer.</string>
+    <string name="nearby_footnote">Places from OpenStreetMap contributors, so details may be out of date. Call ahead if you are relying on one.</string>
 </resources>

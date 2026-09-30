@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="notices_lead">আপনার ফ্লিট আর Saarthi-র পক্ষ থেকে।</string>
+    <plurals name="notices_new_count">
+        <item quantity="one">%1$d নতুন</item>
+        <item quantity="other">%1$d নতুন</item>
+    </plurals>
+    <string name="notices_section_new">নতুন</string>
+    <string name="notices_section_earlier">আগের</string>
+    <string name="notices_just_now">এইমাত্র</string>
+    <string name="notices_loading">নোটিশ লোড হচ্ছে…</string>
+    <string name="notices_empty_title">এখনও কোনো নোটিশ নেই</string>
+    <string name="notices_empty_body">আপনার ফ্লিট আর Saarthi-র মেসেজ এখানে দেখা যাবে।</string>
+    <string name="notices_offline">আপনি অফলাইন আছেন, তাই নোটিশ আনা যায়নি। সিগন্যাল পেলেই লোড হবে।</string>
+    <string name="notices_failed">এই মুহূর্তে নোটিশ লোড করা গেল না।</string>
+</resources>

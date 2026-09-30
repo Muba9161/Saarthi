@@ -498,7 +498,7 @@ describe('QR field privacy', () => {
 
       await prisma.licenceLookup.create({
         data: {
-          licenceNumber: driverRecord.licenseNumber.toUpperCase().replace(/[\s-]/g, ''),
+          licenceNumber: driverRecord.licenseNumber!.toUpperCase().replace(/[\s-]/g, ''),
           driverId: driverRecord.id,
           organizationId: fleet.id,
           responseData: {

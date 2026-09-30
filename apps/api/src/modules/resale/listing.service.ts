@@ -244,6 +244,12 @@ export async function createListing(
   return view(listing, organizationId);
 }
 
+/** What the market shows: live adverts only. A withdrawn or sold vehicle is not for sale. */
+const MARKET_STATUSES: VehicleListingStatus[] = [
+  VehicleListingStatus.PUBLISHED,
+  VehicleListingStatus.RESERVED,
+];
+
 /** Statuses a seller may still edit. A sold vehicle is a historical record. */
 const EDITABLE_STATUSES: string[] = [
   VehicleListingStatus.DRAFT,
@@ -387,21 +393,26 @@ export async function browseListings(
     capacityTons: query.minCapacityTons ? { gte: query.minCapacityTons } : undefined,
   });
 
+  // Only live adverts, whatever the query asks for: a status filter may narrow
+  // the market (reserved only, say) but never widen it to another seller's
+  // drafts, rejected or withdrawn listings.
+  const statuses = (query.status ?? MARKET_STATUSES).filter((status) =>
+    MARKET_STATUSES.includes(status),
+  );
+
+  // ORGANIZATION-scoped listings stay inside the seller's own tenant.
+  const visibility = organizationId
+    ? {
+        OR: [
+          { visibility: { not: VehicleListingVisibility.ORGANIZATION } },
+          { organizationId },
+        ],
+      }
+    : { visibility: { not: VehicleListingVisibility.ORGANIZATION } };
+
   const where = {
     archivedAt: null,
-    // Only live adverts. A withdrawn or sold vehicle is not on the market.
-    status: query.status
-      ? { in: query.status }
-      : { in: [VehicleListingStatus.PUBLISHED, VehicleListingStatus.RESERVED] },
-    // ORGANIZATION-scoped listings stay inside the seller's own tenant.
-    ...(organizationId
-      ? {
-          OR: [
-            { visibility: { not: VehicleListingVisibility.ORGANIZATION } },
-            { organizationId },
-          ],
-        }
-      : { visibility: { not: VehicleListingVisibility.ORGANIZATION } }),
+    status: { in: statuses },
     ...(query.condition ? { condition: { in: query.condition } } : {}),
     ...(query.minPrice !== undefined || query.maxPrice !== undefined
       ? {
@@ -415,19 +426,27 @@ export async function browseListings(
     ...(query.city ? { city: { contains: query.city, mode: 'insensitive' as const } } : {}),
     ...(query.state ? { state: { contains: query.state, mode: 'insensitive' as const } } : {}),
     ...(Object.keys(vehicleFilter).length > 0 ? { vehicle: vehicleFilter } : {}),
-    ...(query.search
-      ? {
-          OR: [
-            { title: { contains: query.search, mode: 'insensitive' as const } },
-            { description: { contains: query.search, mode: 'insensitive' as const } },
+    // The visibility rule and the search each need an `OR`, so they are ANDed
+    // rather than spread side by side — spread, the search's `OR` replaced the
+    // visibility one and a search term opened every tenant's private listings.
+    AND: [
+      visibility,
+      ...(query.search
+        ? [
             {
-              vehicle: {
-                registrationNumber: { contains: query.search, mode: 'insensitive' as const },
-              },
+              OR: [
+                { title: { contains: query.search, mode: 'insensitive' as const } },
+                { description: { contains: query.search, mode: 'insensitive' as const } },
+                {
+                  vehicle: {
+                    registrationNumber: { contains: query.search, mode: 'insensitive' as const },
+                  },
+                },
+              ],
             },
-          ],
-        }
-      : {}),
+          ]
+        : []),
+    ],
   };
 
   // `distance` needs coordinates we may not have; fall back to recency.

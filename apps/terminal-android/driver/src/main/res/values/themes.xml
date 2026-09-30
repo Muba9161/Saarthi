@@ -13,7 +13,7 @@
 -->
 <resources>
     <style name="Theme.SaarthiDriver" parent="android:Theme.Material.NoActionBar">
-        <!-- The same value as `Obsidian` in FleetTheme.kt. -->
+        <!-- The same value as the dark splash in SplashScreen.kt. -->
         <item name="android:windowBackground">@color/driver_splash_background</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>

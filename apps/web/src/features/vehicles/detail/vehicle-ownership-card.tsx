@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { RefreshCw, ShieldAlert, ShieldCheck } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { IdCard, RefreshCw, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   Permission,
@@ -90,16 +91,32 @@ export function VehicleOwnershipCard({
           </div>
         </div>
 
-        {pending && canAct ? (
-          <Button
-            variant="outline"
-            className="w-full sm:w-auto"
-            onClick={() => recheck.mutate()}
-            loading={recheck.isPending}
-          >
-            <RefreshCw className="size-4" aria-hidden />
-            Check again
-          </Button>
+        {pending ? (
+          <div className="flex flex-col gap-2 sm:flex-row">
+            {/*
+              The name that confirms a vehicle comes from a verified PAN (or a
+              business GSTIN), so the way to it is one tap away. Verifying one
+              confirms the vehicle straight away; "Check again" is for anything
+              that changed elsewhere.
+            */}
+            <Button className="w-full sm:w-auto" asChild>
+              <Link to="/settings/profile?step=identity">
+                <IdCard className="size-4" aria-hidden />
+                Verify your PAN
+              </Link>
+            </Button>
+            {canAct ? (
+              <Button
+                variant="outline"
+                className="w-full sm:w-auto"
+                onClick={() => recheck.mutate()}
+                loading={recheck.isPending}
+              >
+                <RefreshCw className="size-4" aria-hidden />
+                Check again
+              </Button>
+            ) : null}
+          </div>
         ) : null}
       </CardContent>
     </Card>

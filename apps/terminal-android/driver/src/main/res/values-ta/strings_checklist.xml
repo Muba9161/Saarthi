@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="checklist_title">ட்ரிப்புக்கு முந்தைய பாதுகாப்பு சோதனை</string>
+    <string name="checklist_loading">உங்கள் செக்லிஸ்ட் பெறப்படுகிறது…</string>
+    <string name="checklist_progress_count">%1$d/%2$d</string>
+    <string name="checklist_progress_title">%2$d-இல் %1$d சரிபார்க்கப்பட்டது</string>
+    <plurals name="checklist_by_vehicle">
+        <item quantity="one">%d-க்கு வண்டி பதிலளித்தது</item>
+        <item quantity="other">%d-க்கு வண்டி பதிலளித்தது</item>
+    </plurals>
+    <string name="checklist_by_vehicle_none">இவற்றில் எதற்கும் வண்டி பதிலளிக்கவில்லை</string>
+    <string name="checklist_chip">%1$s · %2$s</string>
+    <string name="checklist_chip_simulated">%1$s · %2$s · சிமுலேஷன்</string>
+    <string name="checklist_step">சோதனை %1$d / %2$d</string>
+    <string name="checklist_can_stop">ட்ரிப்பை நிறுத்தக்கூடியது</string>
+    <string name="checklist_answer_good">நல்லது</string>
+    <string name="checklist_answer_attention">கவனம் தேவை</string>
+    <string name="checklist_answer_faulty">பழுது</string>
+    <string name="checklist_last_step">கடைசி படி</string>
+    <string name="checklist_notes_title">வேறு ஏதாவது?</string>
+    <string name="checklist_notes_label">பதிவு செய்ய வேண்டிய வேறு ஏதாவது (விருப்பத்தேர்வு)</string>
+    <string name="checklist_complete">பாதுகாப்பு சோதனையை முடி</string>
+    <plurals name="checklist_remaining">
+        <item quantity="one">மீதமுள்ள ஒன்றைச் சரிபாருங்கள்</item>
+        <item quantity="other">மீதமுள்ள %d-ஐச் சரிபாருங்கள்</item>
+    </plurals>
+    <string name="checklist_previous">முந்தைய சோதனை</string>
+    <string name="checklist_submitting">சமர்ப்பிக்கிறது…</string>
+    <string name="checklist_done_title">பாதுகாப்பு சோதனை முடிந்தது</string>
+    <string name="checklist_done_body">இது உங்கள் ஃப்ளீட்டின் பதிவில் உள்ளது. இப்போது உங்கள் ட்ரிப்பைத் தொடங்கலாம்.</string>
+    <string name="checklist_done_warnings_body">கவனம் தேவைப்படுவது உட்பட, இது உங்கள் ஃப்ளீட்டின் பதிவில் உள்ளது. இப்போது உங்கள் ட்ரிப்பைத் தொடங்கலாம்.</string>
+    <string name="checklist_blocked_title">இந்த வண்டியை ஓட்ட வேண்டாம்</string>
+    <string name="checklist_blocked_body">ட்ரிப்பை நிறுத்தும் ஒரு பழுது சோதனையில் கண்டறியப்பட்டது. உங்கள் ஃப்ளீட்டுக்குத் தெரிவிக்கப்பட்டுள்ளது.</string>
+    <string name="checklist_blocked_reasons">எது நிறுத்தியது</string>
+    <string name="checklist_back_to_check">சோதனைக்குத் திரும்பு</string>
+    <string name="checklist_send_failed_title">சோதனை அனுப்பப்படவில்லை</string>
+    <string name="checklist_send_offline">நீங்கள் ஆஃப்லைனில் உள்ளீர்கள். உங்கள் பதில்கள் சேமிக்கப்பட்டுள்ளன - சிக்னல் கிடைத்ததும் மீண்டும் முயலுங்கள்.</string>
+    <string name="checklist_send_failed">Saarthi-ஆல் உங்கள் ஃப்ளீட்டை அணுக முடியவில்லை. உங்கள் பதில்கள் சேமிக்கப்பட்டுள்ளன, மீண்டும் முயலுங்கள்.</string>
+    <string name="checklist_load_failed_title">செக்லிஸ்ட் லோடு ஆகவில்லை</string>
+    <string name="checklist_load_offline">நீங்கள் ஆஃப்லைனில் உள்ளீர்கள். சிக்னல் கிடைத்ததும் மீண்டும் முயலுங்கள்.</string>
+    <string name="checklist_load_failed">Saarthi-ஆல் இந்த வண்டியின் செக்லிஸ்ட்டைப் பெற முடியவில்லை. சிறிது நேரத்தில் மீண்டும் முயலுங்கள்.</string>
+</resources>

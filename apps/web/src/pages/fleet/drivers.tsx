@@ -425,7 +425,11 @@ export function DriversPage() {
       hideOnMobile: true,
       cell: (driver) => (
         <div>
-          <p className="text-sm">{driver.licenseNumber}</p>
+          {driver.licenseNumber ? (
+            <p className="text-sm">{driver.licenseNumber}</p>
+          ) : (
+            <p className="text-sm text-muted-foreground">Not added</p>
+          )}
           <p className="text-xs text-muted-foreground">
             {driver.licenseExpiryDate
               ? `Expires ${new Date(driver.licenseExpiryDate).toLocaleDateString('en-IN')}`

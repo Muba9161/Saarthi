@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="assistant_listening">കേൾക്കുന്നു…</string>
+    <string name="assistant_thinking">നോക്കുന്നു…</string>
+    <string name="assistant_answer">ഞാൻ കണ്ടെത്തിയത് ഇതാ.</string>
+    <string name="assistant_error">എനിക്ക് അതിന് ഉത്തരം നൽകാനായില്ല.</string>
+    <string name="assistant_idle">സംസാരിക്കാൻ ടാപ്പ് ചെയ്യുക, അല്ലെങ്കിൽ താഴെ ടൈപ്പ് ചെയ്യുക.</string>
+    <string name="assistant_no_mic">ഈ ഫോണിൽ വോയ്സ് ലഭ്യമല്ല. നിങ്ങളുടെ ചോദ്യം താഴെ ടൈപ്പ് ചെയ്യുക.</string>
+    <string name="assistant_mic_refused">മൈക്രോഫോൺ ഇല്ലാതെ Saarthi-ക്ക് കേൾക്കാനാവില്ല. നിങ്ങളുടെ ചോദ്യം താഴെ ടൈപ്പ് ചെയ്യുക.</string>
+    <string name="assistant_stop">നിർത്തുക</string>
+    <string name="assistant_speak">Saarthi-യോട് സംസാരിക്കുക</string>
+    <string name="assistant_quote">“%1$s”</string>
+    <string name="assistant_from">ഉറവിടം: %1$s</string>
+    <string name="assistant_try_asking">ഇങ്ങനെ ചോദിച്ചുനോക്കൂ</string>
+    <string name="assistant_suggest_vehicle">എന്റെ വാഹനം ശരിയാണോ?</string>
+    <string name="assistant_suggest_fuel">ഇപ്പോൾ എത്ര ഇന്ധനമുണ്ട്?</string>
+    <string name="assistant_suggest_service">എന്റെ അടുത്ത സർവീസ് എപ്പോഴാണ്?</string>
+    <string name="assistant_suggest_parking">എന്റെ അടുത്തുള്ള ട്രക്ക് പാർക്കിംഗ് കണ്ടെത്തുക</string>
+    <string name="assistant_ask_hint">Saarthi-യോട് ചോദിക്കുക</string>
+    <string name="assistant_send">അയയ്ക്കുക</string>
+</resources>

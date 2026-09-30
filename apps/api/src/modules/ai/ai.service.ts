@@ -15,7 +15,7 @@ import { errors } from '../../lib/errors';
 import { logger } from '../../lib/logger';
 import { aiProvider, type AiAnswer, type AiFact, type AiRecommendationItem } from '../../providers/ai';
 import { buildFleetContext, type ContextOptions } from './context.service';
-import { matchTransport } from '../orders/order.service';
+import { assertOrderAccess, matchTransport } from '../orders/order.service';
 import { maintenanceRisk } from '../maintenance/maintenance.service';
 import type { AuthContext } from '../../auth/context';
 
@@ -270,6 +270,9 @@ export async function recommend(
       }
       const order = await prisma.order.findUnique({ where: { id: input.orderId } });
       if (!order) throw errors.notFound('Order');
+      // Only an order the caller may see: its reference goes into the model's
+      // prompt and its route drives the matching the answer reveals.
+      await assertOrderAccess(auth, order);
 
       const matches = await matchTransport(auth, {
         originLatitude: order.originLatitude,

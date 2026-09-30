@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="papers_lead">এই ফোনে রাখা আছে, তাই সিগন্যাল না থাকা চেক পোস্টেও কোনো সমস্যা নেই।</string>
+
+    <plurals name="papers_attention_soon">
+        <item quantity="one">একটি কাগজ দেখা দরকার। মেয়াদ শেষ হওয়ার আগে অফিসকে জানান।</item>
+        <item quantity="other">%dটি কাগজ দেখা দরকার। মেয়াদ শেষ হওয়ার আগে অফিসকে জানান।</item>
+    </plurals>
+    <plurals name="papers_attention_expired">
+        <item quantity="one">একটি কাগজের মেয়াদ শেষ হয়ে গেছে। আজই অফিসকে জানান।</item>
+        <item quantity="other">%dটি কাগজ দেখা দরকার, আর অন্তত একটির মেয়াদ শেষ হয়ে গেছে। আজই অফিসকে জানান।</item>
+    </plurals>
+
+    <string name="papers_filter_all">সব</string>
+    <string name="papers_owner_vehicle">গাড়ির</string>
+    <string name="papers_owner_yours">আপনার</string>
+    <string name="papers_chip">%1$s · %2$d</string>
+    <string name="papers_sub">%1$s · %2$s</string>
+
+    <string name="papers_no_expiry">মেয়াদের তারিখ লেখা নেই</string>
+    <string name="papers_expires_today">আজ মেয়াদ শেষ</string>
+    <plurals name="papers_days_left">
+        <item quantity="one">আর %d দিন বাকি</item>
+        <item quantity="other">আর %d দিন বাকি</item>
+    </plurals>
+    <plurals name="papers_years_left">
+        <item quantity="one">আর %d বছর বাকি</item>
+        <item quantity="other">আর %d বছর বাকি</item>
+    </plurals>
+    <plurals name="papers_expired_ago">
+        <item quantity="one">%d দিন আগে মেয়াদ শেষ</item>
+        <item quantity="other">%d দিন আগে মেয়াদ শেষ</item>
+    </plurals>
+
+    <string name="papers_on_phone">এই ফোনে আছে</string>
+    <string name="papers_not_on_phone">এখনও এই ফোনে নেই</string>
+
+    <string name="papers_open_action">খুলুন</string>
+    <string name="papers_opening">%1$s খোলা হচ্ছে।</string>
+    <string name="papers_opening_pdf">%1$s আপনার PDF রিডারে খোলা হচ্ছে।</string>
+    <string name="papers_not_saved">এটা এখনও এই ফোনে নেই। সিগন্যাল আছে এমন জায়গায় একবার খুলুন, তারপর এটা ফোনে থেকে যাবে।</string>
+    <string name="papers_no_viewer">এই ফোনে এই ধরনের ফাইল খোলার কিছু নেই। একটি PDF বা ছবি দেখার অ্যাপ ইনস্টল করে আবার চেষ্টা করুন।</string>
+
+    <string name="papers_loading">আপনার কাগজপত্র লোড হচ্ছে</string>
+    <string name="papers_none_vehicle">এই গাড়ির কোনো কাগজের রেকর্ড নেই।</string>
+    <string name="papers_none_yours">আপনার নিজের কোনো কাগজের রেকর্ড নেই।</string>
+    <string name="papers_empty_title">কোনো কাগজের রেকর্ড নেই</string>
+    <string name="papers_empty_body">আপনার ফ্লিট এখনও আপনার বা এই গাড়ির কোনো কাগজ যোগ করেনি। অফিসকে সেগুলো আপলোড করতে বলুন।</string>
+    <string name="papers_error_title">আপনার কাগজপত্র লোড করা গেল না</string>
+    <string name="papers_retry">আবার চেষ্টা করুন</string>
+</resources>

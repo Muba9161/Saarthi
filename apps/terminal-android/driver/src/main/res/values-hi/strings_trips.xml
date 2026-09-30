@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="trips_distance_recorded">चलाई गई दूरी, जो दर्ज हुई</string>
+    <string name="trips_km_unit">km</string>
+    <string name="trips_km">%1$s km</string>
+    <plurals name="trips_measured_across">
+        <item quantity="one">%d पूरी हुई ट्रिप में, जिसे Saarthi ने मापा। चल रही ट्रिप नहीं गिनी जातीं।</item>
+        <item quantity="other">%d पूरी हुई ट्रिप में, जिन्हें Saarthi ने मापा। चल रही ट्रिप नहीं गिनी जातीं।</item>
+    </plurals>
+    <string name="trips_none_measured">Saarthi ने अभी तक किसी पूरी हुई ट्रिप की दूरी नहीं मापी है। चल रही ट्रिप नहीं गिनी जातीं।</string>
+
+    <string name="trips_filter_all">सभी</string>
+    <string name="trips_filter_finished">पूरी हुई</string>
+    <string name="trips_filter_open">चल रही</string>
+
+    <string name="trips_section_open">चल रही</string>
+    <string name="trips_section_finished">पूरी हुई</string>
+    <string name="trips_none_open">अभी कोई ट्रिप नहीं चल रही।</string>
+    <string name="trips_none_finished">अभी तक कोई ट्रिप पूरी नहीं हुई।</string>
+
+    <string name="trips_in_progress">चल रही है</string>
+    <string name="trips_no_destination">आपके फ़्लीट ने मंज़िल तय नहीं की</string>
+    <string name="trips_planned">%1$s प्लान की गई</string>
+    <string name="trips_started">%1$s शुरू हुई</string>
+
+    <string name="trips_route">%1$s → %2$s</string>
+    <string name="trips_untitled">ट्रिप</string>
+    <string name="trips_planned_word">प्लान की गई</string>
+
+    <string name="trips_loading">आपकी ट्रिप लोड हो रही हैं</string>
+    <string name="trips_empty_title">अभी कोई ट्रिप नहीं</string>
+    <string name="trips_empty_body">आपकी पूरी की गई ट्रिप यहाँ दिखेंगी, हर एक पर Saarthi की मापी दूरी के साथ।</string>
+    <string name="trips_offline_title">सिग्नल नहीं है</string>
+    <string name="trips_offline_body">आपकी ट्रिप लोड होने के लिए सिग्नल चाहिए। फ़ोन फिर से जुड़ते ही ये यहाँ दिखेंगी।</string>
+    <string name="trips_error_title">आपकी ट्रिप लोड नहीं हो सकीं</string>
+    <string name="trips_error_body">Saarthi अभी आपके फ़्लीट तक नहीं पहुँच सका। थोड़ी देर में फिर कोशिश करें।</string>
+    <string name="trips_retry">फिर से कोशिश करें</string>
+</resources>

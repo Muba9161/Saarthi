@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="adapter_title">வண்டி அடாப்டர்</string>
+    <string name="adapter_intro">அடாப்டரை வண்டியின் OBD போர்ட்டில் செருகி, உங்கள் போனின் ப்ளூடூத் செட்டிங்ஸில் பேர் செய்யுங்கள். பிறகு அதை இங்கே தேர்ந்தெடுங்கள் - ஒருமுறை மட்டும்.</string>
+    <string name="adapter_look_again">மீண்டும் தேடு</string>
+    <string name="adapter_connect_label">%1$s உடன் இணை</string>
+    <string name="adapter_connecting">%1$s உடன் இணைக்கிறது…</string>
+    <string name="adapter_generic_name">அடாப்டர்</string>
+    <string name="adapter_failed">%1$s உடன் இணைக்க முடியவில்லை. அது செருகப்பட்டுள்ளதா, இக்னிஷன் ஆன் செய்யப்பட்டுள்ளதா எனச் சரிபார்த்து, மீண்டும் தேர்ந்தெடுங்கள்.</string>
+    <string name="adapter_connected">இணைக்கப்பட்டது. Saarthi இந்த வண்டியின் இன்ஜினை நேரடியாகப் படிக்கிறது.</string>
+    <string name="adapter_connected_note">ஒவ்வொரு முறை வண்டியை ஸ்டார்ட் செய்யும்போதும் இது தானாகவே மீண்டும் இணையும். ஆஃப் செய்ய வேண்டியது எதுவும் இல்லை.</string>
+    <string name="adapter_engine_asleep">அடாப்டர் இணைக்கப்பட்டுள்ளது, ஆனால் இன்ஜின் இன்னும் பதிலளிக்கவில்லை. இக்னிஷனை ஆன் செய்யுங்கள், Saarthi அதைப் படிக்கத் தொடங்கும்.</string>
+
+    <string name="adapter_no_radio_title">இந்த போனில் ப்ளூடூத் இல்லை</string>
+    <string name="adapter_no_radio_body">இந்த போனால் வண்டி அடாப்டருடன் இணைக்க முடியாது.</string>
+    <string name="adapter_permission_title">ப்ளூடூத்தை அனுமதி</string>
+    <string name="adapter_permission_body">அடாப்டருடன் பேசுவதற்கு முன், அருகிலுள்ள சாதனங்களுடன் இணைக்க ஹம்சஃபருக்கு அனுமதி தேவை.</string>
+    <string name="adapter_permission_allow">அனுமதி</string>
+    <string name="adapter_permission_refused">அனுமதி மறுக்கப்பட்டது. உங்கள் போன் செட்டிங்ஸில் ஹம்சஃபருக்கு அருகிலுள்ள சாதனங்கள் அனுமதியை வழங்குங்கள்.</string>
+    <string name="adapter_open_app_settings">செட்டிங்ஸைத் திற</string>
+    <string name="adapter_off_title">ப்ளூடூத் ஆஃப் செய்யப்பட்டுள்ளது</string>
+    <string name="adapter_off_body">அடாப்டருடன் இணைக்க ப்ளூடூத்தை ஆன் செய்யுங்கள்.</string>
+    <string name="adapter_open_bluetooth">ப்ளூடூத் செட்டிங்ஸைத் திற</string>
+    <string name="adapter_empty_title">இன்னும் அடாப்டர் பேர் செய்யப்படவில்லை</string>
+    <string name="adapter_empty_body">முதலில் உங்கள் போனின் ப்ளூடூத் செட்டிங்ஸில் அடாப்டரைப் பேர் செய்து, பிறகு இங்கே வந்து மீண்டும் தேடுங்கள்.</string>
+</resources>

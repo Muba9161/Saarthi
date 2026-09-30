@@ -168,21 +168,32 @@ async function payerFor(
  * is why only the licence and the RC are asked here. `refresh` is an explicit
  * request to check again and is charged.
  */
-async function registryAlreadyVerified(input: StartVerificationInput): Promise<boolean> {
+async function registryAlreadyVerified(
+  auth: AuthContext,
+  input: StartVerificationInput,
+): Promise<boolean> {
   if (input.refresh) return false;
+  // Answers only for the caller's own driver or vehicle. For anyone else's it
+  // says "no" and lets the check's own tenant preflight refuse — otherwise this
+  // shortcut, which runs first, told any caller whether any id was verified.
+  const ours = (organizationId: string) =>
+    auth.isPlatformAdmin || organizationId === auth.organizationId;
+
   if (input.kind === VerificationCheckType.DRIVING_LICENCE) {
     const driver = await prisma.driver.findUnique({
       where: { id: input.subjectId },
-      select: { licenceVerifiedAt: true },
+      select: { licenceVerifiedAt: true, organizationId: true },
     });
-    return Boolean(driver?.licenceVerifiedAt);
+    if (!driver || (!ours(driver.organizationId) && auth.driverId !== input.subjectId)) return false;
+    return Boolean(driver.licenceVerifiedAt);
   }
   if (input.kind === VerificationCheckType.VEHICLE_RC) {
     const truck = await prisma.truck.findUnique({
       where: { id: input.subjectId },
-      select: { verificationStatus: true },
+      select: { verificationStatus: true, organizationId: true },
     });
-    return truck?.verificationStatus === 'VERIFIED';
+    if (!truck || !ours(truck.organizationId)) return false;
+    return truck.verificationStatus === 'VERIFIED';
   }
   return false;
 }
@@ -230,7 +241,7 @@ export async function startVerification(
   const label = VERIFICATION_CHECK_LABELS[input.kind];
 
   // --- Preflight -----------------------------------------------------------
-  if (await registryAlreadyVerified(input)) {
+  if (await registryAlreadyVerified(auth, input)) {
     return {
       mode: 'ALREADY_VERIFIED',
       charge: null,

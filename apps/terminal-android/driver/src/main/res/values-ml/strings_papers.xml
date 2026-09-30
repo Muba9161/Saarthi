@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="papers_lead">ഈ ഫോണിൽ സൂക്ഷിച്ചിരിക്കുന്നു, അതിനാൽ സിഗ്നൽ ഇല്ലാത്ത ചെക്ക് പോസ്റ്റിലും പ്രശ്നമില്ല.</string>
+
+    <plurals name="papers_attention_soon">
+        <item quantity="one">ഒരു പേപ്പറിന് ശ്രദ്ധ വേണം. കാലാവധി തീരുന്നതിന് മുമ്പ് ഓഫീസിനെ അറിയിക്കുക.</item>
+        <item quantity="other">%d പേപ്പറുകൾക്ക് ശ്രദ്ധ വേണം. കാലാവധി തീരുന്നതിന് മുമ്പ് ഓഫീസിനെ അറിയിക്കുക.</item>
+    </plurals>
+    <plurals name="papers_attention_expired">
+        <item quantity="one">ഒരു പേപ്പറിന്റെ കാലാവധി കഴിഞ്ഞു. ഇന്നുതന്നെ ഓഫീസിനെ അറിയിക്കുക.</item>
+        <item quantity="other">%d പേപ്പറുകൾക്ക് ശ്രദ്ധ വേണം, കുറഞ്ഞത് ഒന്നിന്റെ കാലാവധി കഴിഞ്ഞു. ഇന്നുതന്നെ ഓഫീസിനെ അറിയിക്കുക.</item>
+    </plurals>
+
+    <string name="papers_filter_all">എല്ലാം</string>
+    <string name="papers_owner_vehicle">വാഹനം</string>
+    <string name="papers_owner_yours">നിങ്ങളുടേത്</string>
+    <string name="papers_chip">%1$s · %2$d</string>
+    <string name="papers_sub">%1$s · %2$s</string>
+
+    <string name="papers_no_expiry">കാലാവധി രേഖപ്പെടുത്തിയിട്ടില്ല</string>
+    <string name="papers_expires_today">ഇന്ന് കാലാവധി തീരും</string>
+    <plurals name="papers_days_left">
+        <item quantity="one">%d ദിവസം ബാക്കി</item>
+        <item quantity="other">%d ദിവസം ബാക്കി</item>
+    </plurals>
+    <plurals name="papers_years_left">
+        <item quantity="one">%d വർഷം ബാക്കി</item>
+        <item quantity="other">%d വർഷം ബാക്കി</item>
+    </plurals>
+    <plurals name="papers_expired_ago">
+        <item quantity="one">%d ദിവസം മുമ്പ് കാലാവധി കഴിഞ്ഞു</item>
+        <item quantity="other">%d ദിവസം മുമ്പ് കാലാവധി കഴിഞ്ഞു</item>
+    </plurals>
+
+    <string name="papers_on_phone">ഈ ഫോണിലുണ്ട്</string>
+    <string name="papers_not_on_phone">ഇതുവരെ ഈ ഫോണിൽ ഇല്ല</string>
+
+    <string name="papers_open_action">തുറക്കുക</string>
+    <string name="papers_opening">%1$s തുറക്കുന്നു.</string>
+    <string name="papers_opening_pdf">%1$s നിങ്ങളുടെ PDF റീഡറിൽ തുറക്കുന്നു.</string>
+    <string name="papers_not_saved">അത് ഇതുവരെ ഈ ഫോണിൽ ഇല്ല. സിഗ്നൽ ഉള്ളിടത്ത് ഒരിക്കൽ തുറന്നാൽ അത് ഫോണിൽ നിൽക്കും.</string>
+    <string name="papers_no_viewer">ഈ തരം ഫയൽ തുറക്കാൻ ഈ ഫോണിൽ ഒന്നുമില്ല. ഒരു PDF അല്ലെങ്കിൽ ഇമേജ് വ്യൂവർ ഇൻസ്റ്റാൾ ചെയ്ത് വീണ്ടും ശ്രമിക്കുക.</string>
+
+    <string name="papers_loading">നിങ്ങളുടെ പേപ്പറുകൾ ലോഡ് ചെയ്യുന്നു</string>
+    <string name="papers_none_vehicle">ഈ വാഹനത്തിന്റെ പേപ്പറുകളൊന്നും രേഖയിൽ ഇല്ല.</string>
+    <string name="papers_none_yours">നിങ്ങളുടെ സ്വന്തം പേപ്പറുകളൊന്നും രേഖയിൽ ഇല്ല.</string>
+    <string name="papers_empty_title">രേഖയിൽ പേപ്പറുകളൊന്നുമില്ല</string>
+    <string name="papers_empty_body">നിങ്ങൾക്കോ ഈ വാഹനത്തിനോ വേണ്ടി ഫ്ലീറ്റ് ഇതുവരെ പേപ്പറുകളൊന്നും ചേർത്തിട്ടില്ല. അവ അപ്‌ലോഡ് ചെയ്യാൻ ഓഫീസിനോട് പറയുക.</string>
+    <string name="papers_error_title">നിങ്ങളുടെ പേപ്പറുകൾ ലോഡ് ചെയ്യാനായില്ല</string>
+    <string name="papers_retry">വീണ്ടും ശ്രമിക്കുക</string>
+</resources>

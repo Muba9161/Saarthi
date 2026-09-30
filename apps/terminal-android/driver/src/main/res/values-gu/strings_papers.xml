@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="papers_lead">આ ફોન પર રાખેલા છે, તેથી સિગ્નલ વગરની ચેક પોસ્ટ પર કોઈ વાંધો નહીં.</string>
+
+    <plurals name="papers_attention_soon">
+        <item quantity="one">એક કાગળ પર ધ્યાન આપવાનું છે. તેની મુદત પૂરી થાય તે પહેલાં ઑફિસને જણાવો.</item>
+        <item quantity="other">%d કાગળો પર ધ્યાન આપવાનું છે. તેની મુદત પૂરી થાય તે પહેલાં ઑફિસને જણાવો.</item>
+    </plurals>
+    <plurals name="papers_attention_expired">
+        <item quantity="one">એક કાગળની મુદત પૂરી થઈ ગઈ છે. આજે જ ઑફિસને જણાવો.</item>
+        <item quantity="other">%d કાગળો પર ધ્યાન આપવાનું છે, અને ઓછામાં ઓછા એકની મુદત પૂરી થઈ ગઈ છે. આજે જ ઑફિસને જણાવો.</item>
+    </plurals>
+
+    <string name="papers_filter_all">બધા</string>
+    <string name="papers_owner_vehicle">વાહન</string>
+    <string name="papers_owner_yours">તમારા</string>
+    <string name="papers_chip">%1$s · %2$d</string>
+    <string name="papers_sub">%1$s · %2$s</string>
+
+    <string name="papers_no_expiry">કોઈ મુદત નોંધાયેલી નથી</string>
+    <string name="papers_expires_today">આજે મુદત પૂરી થાય છે</string>
+    <plurals name="papers_days_left">
+        <item quantity="one">%d દિવસ બાકી</item>
+        <item quantity="other">%d દિવસ બાકી</item>
+    </plurals>
+    <plurals name="papers_years_left">
+        <item quantity="one">%d વર્ષ બાકી</item>
+        <item quantity="other">%d વર્ષ બાકી</item>
+    </plurals>
+    <plurals name="papers_expired_ago">
+        <item quantity="one">%d દિવસ પહેલાં મુદત પૂરી થઈ</item>
+        <item quantity="other">%d દિવસ પહેલાં મુદત પૂરી થઈ</item>
+    </plurals>
+
+    <string name="papers_on_phone">આ ફોન પર</string>
+    <string name="papers_not_on_phone">હજી આ ફોન પર નથી</string>
+
+    <string name="papers_open_action">ખોલો</string>
+    <string name="papers_opening">%1$s ખોલી રહ્યા છીએ.</string>
+    <string name="papers_opening_pdf">%1$s તમારા PDF રીડરમાં ખોલી રહ્યા છીએ.</string>
+    <string name="papers_not_saved">એ હજી આ ફોન પર નથી. જ્યાં સિગ્નલ હોય ત્યાં એક વાર ખોલો, પછી તે અહીં રહેશે.</string>
+    <string name="papers_no_viewer">આ ફોનમાં આવી ફાઇલ ખોલી શકે એવું કંઈ નથી. PDF કે ફોટો વ્યૂઅર ઇન્સ્ટોલ કરો, પછી ફરી પ્રયાસ કરો.</string>
+
+    <string name="papers_loading">તમારા કાગળો લોડ થઈ રહ્યા છે</string>
+    <string name="papers_none_vehicle">આ વાહનના કોઈ કાગળો રેકોર્ડમાં નથી.</string>
+    <string name="papers_none_yours">તમારા પોતાના કોઈ કાગળો રેકોર્ડમાં નથી.</string>
+    <string name="papers_empty_title">રેકોર્ડમાં કોઈ કાગળો નથી</string>
+    <string name="papers_empty_body">તમારા ફ્લીટે હજી તમારા કે આ વાહન માટે કોઈ કાગળો ઉમેર્યા નથી. ઑફિસને અપલોડ કરવા કહો.</string>
+    <string name="papers_error_title">તમારા કાગળો લોડ ન થઈ શક્યા</string>
+    <string name="papers_retry">ફરી પ્રયાસ કરો</string>
+</resources>

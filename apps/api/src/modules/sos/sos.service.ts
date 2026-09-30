@@ -25,6 +25,7 @@ import {
 } from '@saarthi/shared';
 import { type Prisma, prisma } from '../../database/prisma';
 import { errors } from '../../lib/errors';
+import { assertTenantAccess } from '../../server/guards';
 import { logger } from '../../lib/logger';
 import { skipTake } from '../../lib/http';
 import { notify, notifyOrganization } from '../notifications/notification.service';
@@ -362,6 +363,20 @@ export async function broadcastToResponders(incidentId: string): Promise<number>
 }
 
 /** Widen the search when nobody has responded yet. */
+/**
+ * A fleet manager widening the search by hand — for their own fleet's
+ * incident only. The automatic escalation calls `expandSearchRadius` directly.
+ */
+export async function expandSearchRadiusFor(auth: AuthContext, incidentId: string): Promise<boolean> {
+  const incident = await prisma.sosIncident.findUnique({
+    where: { id: incidentId },
+    select: { organizationId: true },
+  });
+  if (!incident) throw errors.notFound('Incident');
+  assertTenantAccess(auth, incident.organizationId, 'Incident');
+  return expandSearchRadius(incidentId);
+}
+
 export async function expandSearchRadius(incidentId: string): Promise<boolean> {
   const incident = await prisma.sosIncident.findUnique({ where: { id: incidentId } });
   if (!incident) return false;
@@ -421,6 +436,31 @@ export async function triggerSos(
 
   if (!organizationId) {
     throw errors.organizationRequired('An SOS must be raised from within an organization.');
+  }
+
+  /*
+   * The vehicle and trip named in the request must be the caller's own fleet's.
+   * An SOS flags its truck and trip as an emergency and its resolution resets
+   * them — so without this, anyone who could raise an SOS could mark another
+   * fleet's truck as in distress, or clear a real emergency by resolving theirs.
+   */
+  if (!auth.isPlatformAdmin) {
+    if (truckId) {
+      const truck = await prisma.truck.findUnique({
+        where: { id: truckId },
+        select: { organizationId: true },
+      });
+      if (!truck || truck.organizationId !== organizationId) throw errors.notFound('Vehicle');
+    }
+    if (tripId) {
+      const trip = await prisma.trip.findUnique({
+        where: { id: tripId },
+        select: { organizationId: true, truckId: true },
+      });
+      if (!trip || trip.organizationId !== organizationId || (truckId && trip.truckId !== truckId)) {
+        throw errors.notFound('Trip');
+      }
+    }
   }
 
   // Do not open a second incident for the same driver while one is live.

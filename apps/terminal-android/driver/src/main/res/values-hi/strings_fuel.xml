@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="fuel_title">फ़्यूल पर्ची</string>
+    <string name="fuel_step_photo">फ़ोटो</string>
+    <string name="fuel_step_figures">आँकड़े</string>
+    <string name="fuel_step_saved">सेव हुई</string>
+    <string name="fuel_step_label">%2$d में से स्टेप %1$d: %3$s</string>
+    <string name="fuel_lead">पर्ची की फ़ोटो लें और दो आँकड़े टाइप करें। अब काग़ज़ सँभालकर रखने की ज़रूरत नहीं।</string>
+    <string name="fuel_rear_camera">पीछे का कैमरा</string>
+    <string name="fuel_frame_hint">पूरी पर्ची फ़्रेम के अंदर रखें।</string>
+    <string name="fuel_photograph">पर्ची की फ़ोटो लें</string>
+    <string name="fuel_taking">फ़ोटो ली जा रही है…</string>
+    <string name="fuel_photo_first">पहले पर्ची की फ़ोटो लें - यही आँकड़ों का सबूत है।</string>
+    <string name="fuel_camera_needed">पर्ची की फ़ोटो लेने के लिए हमसफ़र को कैमरा चाहिए। कैमरे की अनुमति दें, फिर वापस आएँ।</string>
+    <string name="fuel_open_settings">सेटिंग खोलें</string>
+    <string name="fuel_photo_alt">आपकी खींची हुई पर्ची की फ़ोटो</string>
+    <string name="fuel_retake">फिर से लें</string>
+    <string name="fuel_litres">लीटर</string>
+    <string name="fuel_amount">चुकाई गई रकम (₹)</string>
+    <string name="fuel_pump">पंप का नाम</string>
+    <string name="fuel_odometer">ओडोमीटर (km)</string>
+    <string name="fuel_optional">ज़रूरी नहीं</string>
+    <string name="fuel_rate">₹%1$.2f</string>
+    <string name="fuel_per_litre">यानी %1$s प्रति लीटर।</string>
+    <string name="fuel_save">यह पर्ची सेव करें</string>
+    <string name="fuel_saving">सेव हो रहा है…</string>
+    <string name="fuel_saved_title">सेव हो गई</string>
+    <string name="fuel_saved_body">आपके फ़्लीट के पास पर्ची और आँकड़े पहुँच गए हैं। अब आप काग़ज़ फेंक सकते हैं।</string>
+    <string name="fuel_add_another">एक और जोड़ें</string>
+</resources>

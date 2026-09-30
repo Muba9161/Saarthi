@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="checklist_title">ट्रिप शा पैह्लें सेफ्टी चेक</string>
+    <string name="checklist_loading">तुंदी चेकलिस्ट आवा करदी ऐ…</string>
+    <string name="checklist_progress_count">%1$d/%2$d</string>
+    <string name="checklist_progress_title">%2$d चों %1$d जांचे गे</string>
+    <plurals name="checklist_by_vehicle">
+        <item quantity="one">%d दा जवाब गड्डी नै दित्ता</item>
+        <item quantity="other">%d दा जवाब गड्डी नै दित्ता</item>
+    </plurals>
+    <string name="checklist_by_vehicle_none">गड्डी नै इंदे चों कुसै दा जवाब नेईं दित्ता</string>
+    <string name="checklist_chip">%1$s · %2$s</string>
+    <string name="checklist_chip_simulated">%1$s · %2$s · नकली</string>
+    <string name="checklist_step">जांच %1$d / %2$d</string>
+    <string name="checklist_can_stop">ट्रिप रोकी सकदा ऐ</string>
+    <string name="checklist_answer_good">ठीक</string>
+    <string name="checklist_answer_attention">ध्यान चाहिदा</string>
+    <string name="checklist_answer_faulty">खराब</string>
+    <string name="checklist_last_step">आखरी कदम</string>
+    <string name="checklist_notes_title">होर किश?</string>
+    <string name="checklist_notes_label">होर किश जेह्ड़ा दर्ज करने जोग ऐ (जरूरी नेईं)</string>
+    <string name="checklist_complete">सेफ्टी चेक पूरा करो</string>
+    <plurals name="checklist_remaining">
+        <item quantity="one">बचे दा आइटम जांचो</item>
+        <item quantity="other">बचे दे %d आइटम जांचो</item>
+    </plurals>
+    <string name="checklist_previous">पिछली जांच</string>
+    <string name="checklist_submitting">भेजेआ जा करदा ऐ…</string>
+    <string name="checklist_done_title">सेफ्टी चेक होई गेआ</string>
+    <string name="checklist_done_body">तुंदी फ़्लीट कोल एह् रिकॉर्ड च ऐ. तुस हून अपनी ट्रिप शुरू करी सकदे ओ.</string>
+    <string name="checklist_done_warnings_body">तुंदी फ़्लीट कोल एह् रिकॉर्ड च ऐ, जिस चीज़ पर ध्यान चाहिदा ओह् बी. तुस हून अपनी ट्रिप शुरू करी सकदे ओ.</string>
+    <string name="checklist_blocked_title">एह् गड्डी नेईं चलाओ</string>
+    <string name="checklist_blocked_body">जांच च ऐसी खराबी लब्भी ऐ जेह्ड़ी ट्रिप रोकदी ऐ. तुंदी फ़्लीट गी दस्सी दित्ता गेआ ऐ.</string>
+    <string name="checklist_blocked_reasons">किस कारण रोकी गेई</string>
+    <string name="checklist_back_to_check">जांच पर वापस</string>
+    <string name="checklist_send_failed_title">जांच नेईं भेजी गेई</string>
+    <string name="checklist_send_offline">तुस ऑफ़लाइन ओ. तुंदे जवाब संभाले दे न - सिग्नल औने पर फ्ही कोशश करो.</string>
+    <string name="checklist_send_failed">Saarthi तुंदी फ़्लीट तगर नेईं पुज्जी सकेआ. तुंदे जवाब संभाले दे न, बस फ्ही कोशश करो.</string>
+    <string name="checklist_load_failed_title">चेकलिस्ट लोड नेईं होई</string>
+    <string name="checklist_load_offline">तुस ऑफ़लाइन ओ. सिग्नल औने पर फ्ही कोशश करो.</string>
+    <string name="checklist_load_failed">Saarthi इस गड्डी दी चेकलिस्ट नेईं लेई सकेआ. थोड़ी देर च फ्ही कोशश करो.</string>
+</resources>

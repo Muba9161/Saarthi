@@ -76,9 +76,16 @@ export function assertNotReleased(truck: { ownershipStatus: string }): void {
  * The business's GST legal and trade names and any verified business PAN, plus
  * the verified PAN and Voter ID names of its directors — the owner-role
  * members, or the account holder when there is none. Aadhaar is not a source:
- * its check returns no name. Profile names are not either; anyone can type one.
+ * its check confirms the number and its PAN link, and returns no name. Profile
+ * names are not either; anyone can type one.
+ *
+ * `aadhaarOnly` says a director has verified Aadhaar and nothing that names
+ * them, so the owner can be told exactly what is missing instead of being told
+ * they have verified nothing.
  */
-async function verifiedNamesFor(organizationId: string): Promise<string[]> {
+async function verifiedNamesFor(
+  organizationId: string,
+): Promise<{ names: string[]; aadhaarOnly: boolean }> {
   const [organization, directors] = await Promise.all([
     prisma.organization.findUnique({
       where: { id: organizationId },
@@ -96,21 +103,25 @@ async function verifiedNamesFor(organizationId: string): Promise<string[]> {
     if (holder) directorIds.push(holder);
   }
 
-  const checks = await prisma.identityVerification.findMany({
-    where: {
-      outcome: IdentityVerificationOutcome.VERIFIED,
-      holderName: { not: null },
-      OR: [
-        { subjectType: VerificationSubjectType.ORGANIZATION, subjectId: organizationId },
-        { subjectType: VerificationSubjectType.USER, subjectId: { in: directorIds } },
-      ],
-    },
-    select: { holderName: true },
-  });
+  const [checks, aadhaarVerified] = await Promise.all([
+    prisma.identityVerification.findMany({
+      where: {
+        outcome: IdentityVerificationOutcome.VERIFIED,
+        holderName: { not: null },
+        OR: [
+          { subjectType: VerificationSubjectType.ORGANIZATION, subjectId: organizationId },
+          { subjectType: VerificationSubjectType.USER, subjectId: { in: directorIds } },
+        ],
+      },
+      select: { holderName: true },
+    }),
+    prisma.user.count({ where: { id: { in: directorIds }, aadhaarVerifiedAt: { not: null } } }),
+  ]);
 
   const names = checks.map((check) => check.holderName);
   if (organization?.gstVerifiedAt) names.push(organization.gstLegalName, organization.gstTradeName);
-  return names.filter((name): name is string => Boolean(name?.trim()));
+  const usable = names.filter((name): name is string => Boolean(name?.trim()));
+  return { names: usable, aadhaarOnly: usable.length === 0 && aadhaarVerified > 0 };
 }
 
 /**
@@ -150,11 +161,13 @@ async function matchOwnerName(
     };
   }
 
-  const names = await verifiedNamesFor(organizationId);
+  const { names, aadhaarOnly } = await verifiedNamesFor(organizationId);
   if (names.length === 0) {
     return {
       matched: false,
-      note: 'There is no government-verified name on this account yet. Verify your PAN or Voter ID, or your business GSTIN, then check again.',
+      note: aadhaarOnly
+        ? 'Your Aadhaar is verified, but an Aadhaar check does not include your name, so it cannot be matched to the RC. Verify your PAN in Your identity and this vehicle is confirmed straight away.'
+        : 'There is no government-verified name on this account yet. Verify your PAN in Your identity — or your business GSTIN — and this vehicle is confirmed straight away.',
     };
   }
   if (names.some((name) => ownerNamesMatch(rcName, name))) return { matched: true };
@@ -218,6 +231,43 @@ export async function evaluateOwnership(truckId: string): Promise<VehicleOwnersh
     }),
   ]);
   return ownershipView(updated);
+}
+
+/**
+ * Re-check an account's unconfirmed vehicles the moment a name arrives — a PAN
+ * or GSTIN just verified — so the owner sees the vehicle confirmed there and
+ * then, not after the next sweep.
+ *
+ * Never throws: the identity check it follows has already succeeded, and that
+ * is what the person must be told.
+ */
+export async function recheckOwnershipAfterIdentity(
+  subject: { userId: string } | { organizationId: string },
+): Promise<void> {
+  try {
+    const organizationIds =
+      'organizationId' in subject
+        ? [subject.organizationId]
+        : (
+            await prisma.membership.findMany({
+              where: { userId: subject.userId, status: 'ACTIVE' },
+              select: { organizationId: true },
+            })
+          ).map((membership) => membership.organizationId);
+    if (organizationIds.length === 0) return;
+
+    const pending = await prisma.truck.findMany({
+      where: {
+        organizationId: { in: organizationIds },
+        ownershipStatus: VehicleOwnershipStatus.PENDING,
+      },
+      select: { id: true },
+      take: SWEEP_BATCH,
+    });
+    for (const { id } of pending) await evaluateOwnership(id);
+  } catch (error) {
+    serviceLogger.warn({ error }, 'Could not re-check ownership after an identity check');
+  }
 }
 
 /** The owner's "Check again" button. */

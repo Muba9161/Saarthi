@@ -17,6 +17,7 @@ import {
 } from '@saarthi/shared';
 import { type Prisma, prisma } from '../../database/prisma';
 import { errors } from '../../lib/errors';
+import { assertTripOnVehicle } from '../trips/trip-ownership';
 import { logger } from '../../lib/logger';
 import {
   broadcastTripEvent,
@@ -174,6 +175,10 @@ export async function ingestLocation(
   }
 
   const recordedAt = input.timestamp ?? new Date();
+  // A trip named by the caller must be this vehicle's own: otherwise a position
+  // posted for one fleet's truck would move another fleet's trip — its
+  // distance, ETA, status and the customer's live map.
+  if (input.tripId) await assertTripOnVehicle(input.tripId, truck.id, truck.organizationId);
   const tripId = input.tripId ?? truck.currentTripId;
   const simulated = options.simulated ?? input.source === TrackingSource.MOCK;
 

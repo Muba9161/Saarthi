@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="vehicle_sheet_title">વાહનની વિગતો</string>
+    <string name="vehicle_live_title">વાહનનો લાઇવ ડેટા</string>
+    <string name="vehicle_live_battery">બૅટરી</string>
+    <string name="vehicle_live_load">લોડ</string>
+    <string name="vehicle_unit_volts">V</string>
+    <string name="vehicle_codes_none">ફૉલ્ટ કોડ · કોઈ નોંધાયા નથી</string>
+    <string name="vehicle_codes_unread">ફૉલ્ટ કોડ · ફક્ત એડેપ્ટર જોડાયેલું હોય ત્યારે જ વંચાય</string>
+    <plurals name="vehicle_codes_found">
+        <item quantity="one">ફૉલ્ટ કોડ · %1$d નોંધાયો</item>
+        <item quantity="other">ફૉલ્ટ કોડ · %1$d નોંધાયા</item>
+    </plurals>
+
+    <string name="vehicle_passport_title">વાહન પાસપોર્ટ</string>
+    <string name="vehicle_row_registration">રજિસ્ટ્રેશન</string>
+    <string name="vehicle_row_type">પ્રકાર</string>
+    <string name="vehicle_row_make">કંપની &amp; મૉડલ</string>
+    <string name="vehicle_row_year">વર્ષ</string>
+    <string name="vehicle_row_fuel">ઈંધણ</string>
+    <string name="vehicle_row_capacity">ક્ષમતા</string>
+    <string name="vehicle_row_fleet">ફ્લીટ</string>
+    <string name="vehicle_capacity_value">%1$s ટન</string>
+    <string name="vehicle_odometer_value">%1$s km</string>
+    <string name="vehicle_fuel_electric">ઇલેક્ટ્રિક</string>
+    <string name="vehicle_fuel_hybrid">હાઇબ્રિડ</string>
+    <string name="vehicle_fuel_lng">LNG</string>
+
+    <string name="vehicle_you_title">તમે</string>
+    <string name="vehicle_row_name">નામ</string>
+    <string name="vehicle_row_licence_class">લાઇસન્સ વર્ગ</string>
+    <string name="vehicle_row_licence">લાઇસન્સ</string>
+    <string name="vehicle_row_profile">પ્રોફાઇલ</string>
+    <string name="vehicle_row_trips">ટ્રિપ</string>
+    <string name="vehicle_licence_valid">%1$s સુધી માન્ય</string>
+    <string name="vehicle_licence_expiring">%1$s એ મુદત પૂરી થશે</string>
+    <string name="vehicle_licence_expired">%1$s એ મુદત પૂરી થઈ</string>
+    <string name="vehicle_licence_pending">ચકાસણી બાકી</string>
+    <string name="vehicle_licence_no_expiry">કોઈ મુદત નોંધાયેલી નથી</string>
+    <string name="vehicle_licence_rejected">નામંજૂર</string>
+    <string name="vehicle_profile_pending">બાકી</string>
+    <string name="vehicle_profile_submitted">જમા કર્યું</string>
+    <string name="vehicle_profile_under_review">તપાસ ચાલુ</string>
+    <string name="vehicle_profile_verified">ચકાસાયેલ</string>
+    <string name="vehicle_profile_rejected">નામંજૂર</string>
+    <string name="vehicle_profile_expired">મુદત પૂરી</string>
+    <string name="vehicle_profile_suspended">સસ્પેન્ડ</string>
+
+    <string name="vehicle_problems_title">નોંધાયેલી સમસ્યાઓ</string>
+    <string name="vehicle_report_open">સમસ્યા જણાવો</string>
+    <string name="vehicle_report_label">શું તકલીફ છે?</string>
+    <string name="vehicle_report_send">તમારા ફ્લીટને મોકલો</string>
+    <string name="vehicle_report_sending">મોકલી રહ્યા છીએ…</string>
+    <string name="vehicle_report_failed">એ મોકલી શકાયું નહીં. સિગ્નલ તપાસો અને ફરી પ્રયાસ કરો.</string>
+    <string name="vehicle_issue_engine">એન્જિન</string>
+    <string name="vehicle_issue_tyre">ટાયર</string>
+    <string name="vehicle_issue_brake">બ્રેક</string>
+    <string name="vehicle_issue_electrical">ઇલેક્ટ્રિકલ</string>
+    <string name="vehicle_issue_accident">અકસ્માત</string>
+    <string name="vehicle_issue_body">બૉડી</string>
+    <string name="vehicle_issue_other">બીજું</string>
+    <string name="vehicle_issue_status_open">ખુલ્લી</string>
+    <string name="vehicle_issue_status_acknowledged">સ્વીકારી</string>
+    <string name="vehicle_issue_status_in_progress">કામ ચાલુ</string>
+    <string name="vehicle_issue_status_resolved">ઉકેલાઈ ગઈ</string>
+    <string name="vehicle_issue_status_dismissed">રદ કરી</string>
+    <string name="vehicle_issue_head">%1$s · %2$s</string>
+    <string name="vehicle_issues_none">આ વાહન માટે કંઈ નોંધાયું નથી.</string>
+    <string name="vehicle_issues_offline">તમે ઑફલાઇન છો, તેથી અગાઉ નોંધાયેલી સમસ્યાઓ લાવી શકાઈ નહીં.</string>
+</resources>

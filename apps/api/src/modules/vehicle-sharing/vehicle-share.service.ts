@@ -1,4 +1,5 @@
 import {
+  Feature,
   MAX_VEHICLE_SHARES,
   NotificationPriority,
   NotificationType,
@@ -11,6 +12,7 @@ import { prisma } from '../../database/prisma';
 import { errors } from '../../lib/errors';
 import type { AuthContext } from '../../auth/context';
 import { notifyAsync } from '../notifications/notification.service';
+import { resolveSubscription } from '../subscriptions/entitlements.service';
 import { sharedVehicleView, vehicleViewInclude } from './shared-vehicle.view';
 
 /**
@@ -29,6 +31,19 @@ const OPEN_STATUSES: VehicleShareStatus[] = [VehicleShareStatus.PENDING, Vehicle
 
 const fullName = (user: { firstName: string; lastName: string }): string =>
   `${user.firstName} ${user.lastName}`.trim();
+
+/**
+ * Sharing rides on the owner's plan. When the owner's subscription lapses the
+ * share stops working — the shared person sees nothing and can add nothing —
+ * and it comes back by itself if the owner renews, because the share itself
+ * is left as it was. Read from the same resolved subscription every other
+ * plan rule reads, so a lapsed plan falls to the lapsed floor, which does not
+ * include sharing.
+ */
+async function ownerPlanAllowsSharing(organizationId: string): Promise<boolean> {
+  const subscription = await resolveSubscription(organizationId);
+  return subscription.features.includes(Feature.VEHICLE_SHARING);
+}
 
 /** A vehicle can be shared while it is on the road and its owner has shown it is theirs. */
 function assertShareable(vehicle: { archivedAt: Date | null; ownershipStatus: string }): void {
@@ -244,7 +259,14 @@ export async function respondToShare(
   if (share.status !== VehicleShareStatus.PENDING) {
     throw errors.conflict('This invitation has already been answered or withdrawn.');
   }
-  if (accept) assertShareable(share.vehicle);
+  if (accept) {
+    assertShareable(share.vehicle);
+    if (!(await ownerPlanAllowsSharing(share.ownerOrganizationId))) {
+      throw errors.businessRule(
+        'The owner’s Saarthi plan no longer includes sharing, so this invitation cannot be accepted right now.',
+      );
+    }
+  }
 
   await prisma.vehicleShare.update({
     where: { id: share.id },
@@ -285,12 +307,22 @@ export async function sharedWithMe(auth: AuthContext): Promise<SharedWithMe> {
   const ownerName = new Map(organizations.map((org) => [org.id, org.name]));
   const inviterName = new Map(inviters.map((user) => [user.id, fullName(user)]));
 
-  // A vehicle that has left the road, or lost its confirmed owner, is not
-  // offered at all — neither as an invitation nor as something to open.
+  // Whose plans still include sharing — one lookup per owner, not per share.
+  const entitled = new Set<string>();
+  await Promise.all(
+    organizationIds.map(async (organizationId) => {
+      if (await ownerPlanAllowsSharing(organizationId)) entitled.add(organizationId);
+    }),
+  );
+
+  // A vehicle that has left the road, lost its confirmed owner, or whose
+  // owner's plan has lapsed is not offered at all — neither as an invitation
+  // nor as something to open.
   const usable = shares.filter(
     (share) =>
       !share.vehicle.archivedAt &&
-      share.vehicle.ownershipStatus === VehicleOwnershipStatus.VERIFIED,
+      share.vehicle.ownershipStatus === VehicleOwnershipStatus.VERIFIED &&
+      entitled.has(share.ownerOrganizationId),
   );
 
   return {
@@ -315,7 +347,8 @@ export async function sharedWithMe(auth: AuthContext): Promise<SharedWithMe> {
 
 /**
  * The gate every shared-vehicle read and write passes: an accepted share, made
- * to this person, of a vehicle still on the road with a confirmed owner.
+ * to this person, of a vehicle still on the road with a confirmed owner whose
+ * plan still includes sharing.
  * Anything else is a 404, so a share id says nothing to somebody else.
  */
 export async function requireActiveShare(auth: AuthContext, shareId: string) {
@@ -328,7 +361,8 @@ export async function requireActiveShare(auth: AuthContext, shareId: string) {
     share.sharedWithUserId !== auth.user.id ||
     share.status !== VehicleShareStatus.ACTIVE ||
     share.vehicle.archivedAt ||
-    share.vehicle.ownershipStatus !== VehicleOwnershipStatus.VERIFIED
+    share.vehicle.ownershipStatus !== VehicleOwnershipStatus.VERIFIED ||
+    !(await ownerPlanAllowsSharing(share.ownerOrganizationId))
   ) {
     throw errors.notFound('Shared vehicle');
   }

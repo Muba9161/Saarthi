@@ -117,7 +117,25 @@ interface OwnerResolution {
 }
 
 /**
- * Confirm the owner exists and work out which tenant it belongs to.
+ * The owner belongs to the uploader's own account. Anything else is reported
+ * as not-found, so an id from another tenant says nothing about whether it
+ * exists — and nobody can hang a photo, a logo or a primary vehicle image on
+ * another fleet's record.
+ */
+function assertOwnedByCaller(
+  auth: AuthContext,
+  organizationId: string | null,
+  resource: string,
+): void {
+  if (auth.isPlatformAdmin) return;
+  if (!organizationId || organizationId !== auth.organizationId) {
+    throw errors.notFound(resource);
+  }
+}
+
+/**
+ * Confirm the owner exists, that the caller may attach media to it, and work
+ * out which tenant it belongs to.
  *
  * Every branch is explicit rather than table-driven, because the tenant column
  * genuinely differs per entity and a generic lookup would have to trust a
@@ -148,6 +166,7 @@ async function resolveOwner(
         select: { id: true },
       });
       if (!organization) throw errors.notFound('Organization');
+      assertOwnedByCaller(auth, ownerId, 'Organization');
       return { organizationId: ownerId };
     }
 
@@ -157,6 +176,7 @@ async function resolveOwner(
         select: { organizationId: true },
       });
       if (!profile) throw errors.notFound('Association');
+      assertOwnedByCaller(auth, profile.organizationId, 'Association');
       return { organizationId: profile.organizationId };
     }
 
@@ -166,6 +186,8 @@ async function resolveOwner(
         select: { organizationId: true, userId: true },
       });
       if (!driver) throw errors.notFound('Driver');
+      // The fleet the driver belongs to, or the driver themselves.
+      if (auth.driverId !== ownerId) assertOwnedByCaller(auth, driver.organizationId, 'Driver');
       return { organizationId: driver.organizationId };
     }
 
@@ -175,6 +197,7 @@ async function resolveOwner(
         select: { organizationId: true },
       });
       if (!vehicle) throw errors.notFound('Vehicle');
+      assertOwnedByCaller(auth, vehicle.organizationId, 'Vehicle');
       return { organizationId: vehicle.organizationId };
     }
 
@@ -184,6 +207,7 @@ async function resolveOwner(
         select: { organizationId: true },
       });
       if (!material) throw errors.notFound('Material');
+      assertOwnedByCaller(auth, material.organizationId, 'Material');
       return { organizationId: material.organizationId };
     }
 
@@ -193,6 +217,7 @@ async function resolveOwner(
         select: { organizationId: true },
       });
       if (!location) throw errors.notFound('Inventory location');
+      assertOwnedByCaller(auth, location.organizationId, 'Inventory location');
       return { organizationId: location.organizationId };
     }
 
@@ -228,6 +253,7 @@ async function resolveOwner(
         select: { organizationId: true },
       });
       if (!trip) throw errors.notFound('Trip');
+      assertOwnedByCaller(auth, trip.organizationId, 'Trip');
       return { organizationId: trip.organizationId };
     }
 
@@ -237,6 +263,21 @@ async function resolveOwner(
         select: { organizationId: true },
       });
       if (!incident) throw errors.notFound('Incident');
+      // The fleet the emergency belongs to, or anyone responding to it — a
+      // responder photographing the scene is exactly who should be able to.
+      if (!auth.isPlatformAdmin && incident.organizationId !== auth.organizationId) {
+        const responding = await prisma.sosResponder.findFirst({
+          where: {
+            incidentId: ownerId,
+            OR: [
+              ...(auth.organizationId ? [{ organizationId: auth.organizationId }] : []),
+              ...(auth.driverId ? [{ driverId: auth.driverId }] : []),
+            ],
+          },
+          select: { id: true },
+        });
+        if (!responding) throw errors.notFound('Incident');
+      }
       return { organizationId: incident.organizationId };
     }
 
@@ -246,6 +287,7 @@ async function resolveOwner(
         select: { organizationId: true },
       });
       if (!record) throw errors.notFound('Maintenance record');
+      assertOwnedByCaller(auth, record.organizationId, 'Maintenance record');
       return { organizationId: record.organizationId };
     }
 
@@ -255,6 +297,7 @@ async function resolveOwner(
         select: { organizationId: true },
       });
       if (!record) throw errors.notFound('Fuel record');
+      assertOwnedByCaller(auth, record.organizationId, 'Fuel record');
       return { organizationId: record.organizationId };
     }
 
@@ -264,6 +307,7 @@ async function resolveOwner(
         select: { organizationId: true },
       });
       if (!listing) throw errors.notFound('Listing');
+      assertOwnedByCaller(auth, listing.organizationId, 'Listing');
       return { organizationId: listing.organizationId };
     }
 
@@ -273,6 +317,7 @@ async function resolveOwner(
         select: { organizationId: true },
       });
       if (!travelPackage) throw errors.notFound('Travel package');
+      assertOwnedByCaller(auth, travelPackage.organizationId, 'Travel package');
       return { organizationId: travelPackage.organizationId };
     }
 
@@ -298,6 +343,7 @@ async function resolveOwner(
         select: { organizationId: true },
       });
       if (!hub) throw errors.notFound('Transfer hub');
+      assertOwnedByCaller(auth, hub.organizationId, 'Transfer hub');
       return { organizationId: hub.organizationId };
     }
 
@@ -307,6 +353,7 @@ async function resolveOwner(
         select: { organizationId: true },
       });
       if (!device) throw errors.notFound('Device');
+      assertOwnedByCaller(auth, device.organizationId, 'Device');
       return { organizationId: device.organizationId };
     }
 

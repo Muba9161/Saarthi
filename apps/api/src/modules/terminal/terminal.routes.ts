@@ -445,7 +445,7 @@ export async function terminalRoutes(app: FastifyInstance): Promise<void> {
     { preHandler: requirePermission(Permission.TERMINAL_READ) },
     async (request, reply) => {
       const { id } = parseParams(idParamSchema, request.params);
-      return ok(reply, await checklist.checklistHistory(id));
+      return ok(reply, await checklist.checklistHistory(requireAuth(request), id));
     },
   );
 

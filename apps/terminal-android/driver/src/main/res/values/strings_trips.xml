@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Summary -->
+    <string name="trips_distance_recorded">Distance driven, recorded</string>
+    <string name="trips_km_unit">km</string>
+    <string name="trips_km">%1$s km</string>
+    <plurals name="trips_measured_across">
+        <item quantity="one">Across %d finished trip that Saarthi measured. Trips under way are not counted.</item>
+        <item quantity="other">Across %d finished trips that Saarthi measured. Trips under way are not counted.</item>
+    </plurals>
+    <string name="trips_none_measured">Saarthi has not measured the distance of a finished trip yet. Trips under way are not counted.</string>
+
+    <!-- Filter -->
+    <string name="trips_filter_all">All</string>
+    <string name="trips_filter_finished">Finished</string>
+    <string name="trips_filter_open">Under way</string>
+
+    <!-- Sections -->
+    <string name="trips_section_open">Under way</string>
+    <string name="trips_section_finished">Finished</string>
+    <string name="trips_none_open">No trip is under way right now.</string>
+    <string name="trips_none_finished">No finished trips yet.</string>
+
+    <!-- The trip under way -->
+    <string name="trips_in_progress">In progress</string>
+    <string name="trips_no_destination">Destination not set by your fleet</string>
+    <string name="trips_planned">%1$s planned</string>
+    <string name="trips_started">Started %1$s</string>
+
+    <!-- Finished rows -->
+    <string name="trips_route">%1$s → %2$s</string>
+    <string name="trips_untitled">Trip</string>
+    <string name="trips_planned_word">planned</string>
+
+    <!-- States -->
+    <string name="trips_loading">Loading your trips</string>
+    <string name="trips_empty_title">No trips yet</string>
+    <string name="trips_empty_body">Trips you finish will show here, with the distance Saarthi measured on each.</string>
+    <string name="trips_offline_title">No signal</string>
+    <string name="trips_offline_body">Your trips need a signal to load. They will show here once the phone reconnects.</string>
+    <string name="trips_error_title">Could not load your trips</string>
+    <string name="trips_error_body">Saarthi could not reach your fleet just now. Try again in a moment.</string>
+    <string name="trips_retry">Try again</string>
+</resources>

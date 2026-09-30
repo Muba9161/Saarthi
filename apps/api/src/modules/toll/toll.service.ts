@@ -18,6 +18,7 @@ import {
 } from '@saarthi/shared';
 import { type Prisma, prisma } from '../../database/prisma';
 import { errors } from '../../lib/errors';
+import { assertTripOnVehicle } from '../trips/trip-ownership';
 import { logger } from '../../lib/logger';
 import { skipTake } from '../../lib/http';
 import { cache } from '../../infra/cache';
@@ -162,9 +163,7 @@ export async function tollSummary(
   organizationId: string,
   query: TollSummaryQuery,
 ): Promise<TollSummaryResult> {
-  const cacheKey = query.vehicleId
-    ? `${cacheKeys.vehiclePrefix(query.vehicleId)}:toll:${query.days}`
-    : `${cacheKeys.organizationPrefix(organizationId)}:toll:${query.days}`;
+  const cacheKey = tollSummaryCacheKey(organizationId, query.vehicleId ?? null, query.days);
 
   const hit = await cache.get<TollSummaryResult>(cacheKey);
   if (hit) return hit;
@@ -331,6 +330,10 @@ export async function recordToll(
   const vehicle = await prisma.truck.findUnique({ where: { id: input.vehicleId } });
   if (!vehicle) throw errors.notFound('Vehicle');
   assertTenantAccess(auth, vehicle.organizationId, 'Vehicle');
+  // A crossing may only be filed against one of this vehicle's own trips.
+  if (input.tripId) {
+    await assertTripOnVehicle(input.tripId, input.vehicleId, vehicle.organizationId);
+  }
 
   const fastag = await prisma.fastagAccount.findFirst({
     where: { vehicleId: input.vehicleId, closedAt: null },
@@ -569,10 +572,20 @@ export async function importProviderCrossings(
   return imported;
 }
 
+/**
+ * The cache key for one toll summary. Always carries the tenant, the vehicle
+ * one included: keyed by vehicle alone, a summary cached for its owner was
+ * served to any other account that passed the same vehicle id within the TTL.
+ */
+function tollSummaryCacheKey(organizationId: string, vehicleId: string | null, days: number): string {
+  const tenant = cacheKeys.organizationPrefix(organizationId);
+  return vehicleId ? `${tenant}:vehicle:${vehicleId}:toll:${days}` : `${tenant}:toll:${days}`;
+}
+
 async function invalidateTollCache(organizationId: string, vehicleId: string): Promise<void> {
   // Summaries are cached per window, so every window a screen offers is cleared.
   for (const days of [7, 30, 90, 365]) {
-    await cache.delete(`${cacheKeys.organizationPrefix(organizationId)}:toll:${days}`);
-    await cache.delete(`${cacheKeys.vehiclePrefix(vehicleId)}:toll:${days}`);
+    await cache.delete(tollSummaryCacheKey(organizationId, null, days));
+    await cache.delete(tollSummaryCacheKey(organizationId, vehicleId, days));
   }
 }

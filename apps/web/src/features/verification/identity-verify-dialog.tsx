@@ -30,6 +30,7 @@ import {
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { payLabel, usePayAndVerify, usePriceFor, type PayAndVerifyOutcome } from './use-pay-and-verify';
 import { OutcomeAlert } from './verification-step-panel';
+import { ScanNumberButton } from './scan-number-button';
 
 /**
  * Verify one identity number against its government source.
@@ -187,7 +188,10 @@ export function IdentityVerifyDialog({
         ) : (
           <div className="space-y-4">
             <div className="space-y-1.5">
-              <Label required>{definition.label} number</Label>
+              <div className="flex items-center justify-between gap-3">
+                <Label required>{definition.label} number</Label>
+                <ScanNumberButton kind={target.kind} label={definition.label} onNumber={setNumber} />
+              </div>
               <Input
                 value={number}
                 onChange={(event) => setNumber(event.target.value)}

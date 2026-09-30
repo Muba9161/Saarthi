@@ -142,7 +142,7 @@ export async function sosRoutes(app: FastifyInstance): Promise<void> {
     { preHandler: requirePermission(Permission.SOS_MANAGE) },
     async (request, reply) => {
       const { id } = parseParams(idParamSchema, request.params);
-      const expanded = await sosService.expandSearchRadius(id);
+      const expanded = await sosService.expandSearchRadiusFor(requireAuth(request), id);
       return ok(reply, { expanded });
     },
   );

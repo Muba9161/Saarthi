@@ -67,11 +67,12 @@ export async function loadUser(userId: string) {
         driverProfile: {
           id: string;
           organizationId: string;
-          licenseNumber: string;
+          licenseNumber: string | null;
           licenseExpiryDate: Date | null;
           verificationStatus: VerificationStatus;
           currentTruckId: string | null;
           overallScore: number | null;
+          archivedAt: Date | null;
         } | null;
         profile: { preferences: unknown } | null;
       })
@@ -140,12 +141,39 @@ export function resolveActiveMembership(
   return active.find((membership) => membership.isPrimary) ?? active[0] ?? null;
 }
 
+/**
+ * Whether this person drives for the organization they are working in.
+ *
+ * True for an employed driver, and for an owner or manager who added themselves
+ * to their own driver list to drive one of the account's vehicles. A driver
+ * profile held in some other organization does not count here.
+ */
+function drivesFor(
+  user: LoadedUser,
+  membership: LoadedUser['memberships'][number] | null,
+): boolean {
+  const profile = user.driverProfile;
+  return Boolean(
+    membership && profile && !profile.archivedAt && profile.organizationId === membership.organizationId,
+  );
+}
+
 export function resolvePermissions(
   user: LoadedUser,
   membership: LoadedUser['memberships'][number] | null,
 ): Permission[] {
   const roles = new Set<RoleName>(globalRoles(user));
   if (membership) roles.add(membership.role);
+  /*
+   * An account holder who drives also gets what a driver can do.
+   *
+   * An owner who assigns himself a vehicle keeps his owner role, which on its
+   * own cannot raise an SOS, sign on to a vehicle or run the driver app. Those
+   * are the driver's permissions, so they come with the driver profile. The
+   * services limit each one to the caller's own driver record, exactly as they
+   * do for an employed driver, so this reveals nothing about anybody else.
+   */
+  if (drivesFor(user, membership)) roles.add(RoleName.DRIVER);
   return permissionsForRoles([...roles]);
 }
 

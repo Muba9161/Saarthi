@@ -12,6 +12,7 @@ import {
 } from '@saarthi/shared';
 import { prisma } from '../src/database/prisma';
 import { cache } from '../src/infra/cache';
+import { invalidateEntitlements } from '../src/modules/subscriptions/entitlements.service';
 import {
   closeApp,
   createOrganization,
@@ -253,6 +254,30 @@ describe('vehicle sharing', () => {
 
     const refused = await accept(freeUser, invited.body.data.id);
     expect(refused.status).toBe(403);
+  });
+
+  it('stops working when the owner’s subscription lapses, and returns on renewal', async () => {
+    const vehicle = await confirmedVehicle(ownerAccount.id);
+    const shareId = await sharedWithBrother(vehicle.id);
+    const open = () =>
+      request({ method: 'GET', url: `/api/v1/fleet/sharing/shares/${shareId}/vehicle`, user: brother });
+
+    await prisma.subscription.updateMany({
+      where: { organizationId: ownerAccount.id },
+      data: { status: 'EXPIRED', endsAt: new Date(Date.now() - 86_400_000) },
+    });
+    invalidateEntitlements(ownerAccount.id);
+
+    expect((await open()).status).toBe(404);
+    expect((await inbox(brother)).body.data.vehicles).toHaveLength(0);
+
+    await prisma.subscription.updateMany({
+      where: { organizationId: ownerAccount.id },
+      data: { status: 'ACTIVE', endsAt: new Date(Date.now() + 30 * 86_400_000) },
+    });
+    invalidateEntitlements(ownerAccount.id);
+
+    expect((await open()).status).toBe(200);
   });
 
   it('keeps strangers out of a share and ends it when the owner stops sharing', async () => {

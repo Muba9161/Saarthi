@@ -2,6 +2,7 @@ package com.saarthi.core.ui
 
 import android.content.Context
 import android.graphics.Canvas
+import androidx.annotation.DrawableRes
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.compose.runtime.Composable
 import androidx.core.graphics.createBitmap
@@ -17,7 +18,6 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.saarthi.core.CoreConfig
-import com.saarthi.core.R
 import com.saarthi.core.domain.bearingDelta
 import com.saarthi.core.telemetry.Position
 import com.saarthi.core.util.DebugLog
@@ -160,6 +160,18 @@ fun TerminalMap(
      * silhouette is a smaller failure than no marker at all.
      */
     vehicleType: String? = null,
+    /** The marker, glow and route colours. The tablet's own unless given. */
+    look: MapLook = MapLook.Terminal,
+    /** Numbered places to mark — a services list beside the map. None by default. */
+    pins: List<MapPin> = emptyList(),
+    /** A pin was tapped: its index in [pins]. */
+    onPinTapped: (Int) -> Unit = {},
+    /** Bumped to fit the vehicle and every pin in view once. */
+    framePinsRequest: Int = 0,
+    /** Pixels kept clear at the top when framing pins, for a bar over the map. */
+    framePinsTopPx: Int = 0,
+    /** Pixels kept clear at the foot when framing pins, for a sheet over the map. */
+    framePinsBottomPx: Int = 0,
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val reducedMotion = LocalReducedMotion.current
@@ -183,6 +195,12 @@ fun TerminalMap(
     // so a driver who drags the map while looking at the whole journey is not
     // yanked back to the vehicle three seconds later.
     val following by rememberUpdatedState(followVehicle)
+
+    val tappedPin by rememberUpdatedState(onPinTapped)
+    val currentPins by rememberUpdatedState(pins)
+    val currentPosition by rememberUpdatedState(position)
+    val pinsJson = remember(pins) { pinsJson(pins) }
+    val drawnPins = remember { DrawnPins() }
 
     // MapLibre's MapView is an Android View with its own lifecycle that must be
     // driven by hand. Missing any of these leaks the GL surface, which on a
@@ -262,6 +280,12 @@ fun TerminalMap(
         }
     }
 
+    LaunchedEffect(map, framePinsRequest) {
+        val current = map ?: return@LaunchedEffect
+        if (framePinsRequest == 0) return@LaunchedEffect
+        framePins(current, currentPins, currentPosition, framePinsTopPx, framePinsBottomPx, reducedMotion)
+    }
+
     AndroidView(
         modifier = modifier,
         factory = { context ->
@@ -287,9 +311,22 @@ fun TerminalMap(
                 view.getMapAsync { ready ->
                     ready.setStyle(CoreConfig.mapStyleUrl) { style ->
                         DebugLog.info("map", "Basemap loaded")
-                        registerVehicleIcon(context, style, vehicleType)
-                        drawRoute(style, routeGeometry, destination)
-                        drawVehicle(style, position, headingDegrees, vehicleType)
+                        registerVehicleIcon(context, style, look.markerFor(vehicleType))
+                        drawRoute(style, routeGeometry, destination, look)
+                        drawVehicle(style, position, headingDegrees, look.markerFor(vehicleType), look)
+                        if (currentPins.isNotEmpty()) {
+                            val json = pinsJson(currentPins)
+                            drawPins(style, json, look.pins)
+                            drawnPins.json = json
+                        }
+                    }
+
+                    // Only pins drawn by this map can be tapped; the listener is
+                    // a no-op for a map that never shows any.
+                    ready.addOnMapClickListener { point ->
+                        val index = pinAt(ready, point) ?: return@addOnMapClickListener false
+                        tappedPin(index)
+                        true
                     }
 
                     /*
@@ -324,9 +361,10 @@ fun TerminalMap(
                         isCompassEnabled = false
                         // Attribution stays. OpenStreetMap's licence requires it,
                         // and removing it would be both a legal and a bad-faith
-                        // choice.
-                        isAttributionEnabled = true
-                        isLogoEnabled = true
+                        // choice — a look that turns MapLibre's off prints the
+                        // credits itself.
+                        isAttributionEnabled = look.nativeAttribution
+                        isLogoEnabled = look.nativeAttribution
                     }
 
                     mapState.value = ready
@@ -344,9 +382,16 @@ fun TerminalMap(
                 ready.style?.let { style ->
                     // Cheap when the type has not changed: the style is asked
                     // for the image it already holds and nothing is decoded.
-                    registerVehicleIcon(view.context, style, vehicleType)
-                    drawRoute(style, routeGeometry, destination)
-                    drawVehicle(style, position, headingDegrees, vehicleType)
+                    registerVehicleIcon(view.context, style, look.markerFor(vehicleType))
+                    drawRoute(style, routeGeometry, destination, look)
+                    drawVehicle(style, position, headingDegrees, look.markerFor(vehicleType), look)
+                    // Re-sent only when the set changes, and never created for a
+                    // map that has not shown a pin.
+                    val stale = drawnPins.json != pinsJson || (drawnPins.json != null && style.getSource(PINS_SOURCE_ID) == null)
+                    if (stale && (pins.isNotEmpty() || drawnPins.json != null)) {
+                        drawPins(style, pinsJson, look.pins)
+                        drawnPins.json = pinsJson
+                    }
                 }
             }
         },
@@ -507,11 +552,11 @@ private fun distanceBetween(from: LatLng, to: LatLng): Double =
  * decoding a vector to a bitmap sixty times a minute on a low-end tablet is a
  * cost with nothing to show for it.
  */
-private fun registerVehicleIcon(context: Context, style: Style, vehicleType: String?) {
-    val id = "$VEHICLE_ICON-${vehicleType ?: "DEFAULT"}"
+private fun registerVehicleIcon(context: Context, style: Style, @DrawableRes marker: Int) {
+    val id = vehicleIconId(marker)
     if (style.getImage(id) != null) return
 
-    val drawable = AppCompatResources.getDrawable(context, markerDrawableFor(vehicleType)) ?: return
+    val drawable = AppCompatResources.getDrawable(context, marker) ?: return
     val bitmap = createBitmap(drawable.intrinsicWidth, drawable.intrinsicHeight)
     val canvas = Canvas(bitmap)
     drawable.setBounds(0, 0, canvas.width, canvas.height)
@@ -519,21 +564,8 @@ private fun registerVehicleIcon(context: Context, style: Style, vehicleType: Str
     style.addImage(id, bitmap)
 }
 
-/**
- * Which silhouette a vehicle gets.
- *
- * Grouped by *shape on a map* rather than by commercial category, because that
- * is all the marker can convey at fifteen pixels: a long rigid body, a car-sized
- * body, or something narrow. A taxi and a private car are the same shape from
- * above, and pretending otherwise would be detail nobody could see.
- */
-private fun markerDrawableFor(vehicleType: String?): Int = when (vehicleType?.uppercase()) {
-    "CAR", "TAXI", "SUV" -> R.drawable.ic_marker_car
-    "BUS", "VAN", "TEMPO" -> R.drawable.ic_marker_bus
-    "AUTO_RICKSHAW" -> R.drawable.ic_marker_auto
-    // TRUCK, PICKUP, OTHER, null, and anything this build has never heard of.
-    else -> R.drawable.ic_marker_truck
-}
+/** The style's name for a marker image — one per drawable, whichever look drew it. */
+private fun vehicleIconId(@DrawableRes marker: Int) = "$VEHICLE_ICON-$marker"
 
 /**
  * Where the vehicle is, and which way it is pointing.
@@ -556,29 +588,26 @@ private fun drawVehicle(
     style: Style,
     position: Position?,
     headingDegrees: Double?,
-    vehicleType: String? = null,
+    @DrawableRes marker: Int,
+    look: MapLook,
 ) {
     val point = position?.let { it.latitude to it.longitude }
     setGeoJson(style, VEHICLE_SOURCE, pointFeature(point, headingDegrees)) {
         style.addLayer(
             CircleLayer(VEHICLE_HALO_LAYER, VEHICLE_SOURCE).withProperties(
-                PropertyFactory.circleRadius(26f),
-                // Ember, matching the marker it sits under. It was a navy blue
-                // left over from the old blue plan-view icons, and against the
-                // new one it read as a separate bruise on the map rather than as
-                // the marker's own glow.
-                PropertyFactory.circleColor("#F26522"),
-                PropertyFactory.circleOpacity(0.16f),
+                PropertyFactory.circleRadius(look.haloRadius),
+                PropertyFactory.circleColor(look.haloColor),
+                PropertyFactory.circleOpacity(look.haloOpacity),
             ),
         )
         style.addLayer(
             SymbolLayer(VEHICLE_LAYER, VEHICLE_SOURCE).withProperties(
-                PropertyFactory.iconImage("$VEHICLE_ICON-${vehicleType ?: "DEFAULT"}"),
+                PropertyFactory.iconImage(vehicleIconId(marker)),
                 PropertyFactory.iconRotate(Expression.get(HEADING_PROPERTY)),
                 PropertyFactory.iconRotationAlignment(Property.ICON_ROTATION_ALIGNMENT_MAP),
                 PropertyFactory.iconAllowOverlap(true),
                 PropertyFactory.iconIgnorePlacement(true),
-                PropertyFactory.iconSize(0.85f),
+                PropertyFactory.iconSize(look.markerScale),
             ),
         )
     }
@@ -606,25 +635,24 @@ private fun drawRoute(
     style: Style,
     geometry: List<Pair<Double, Double>>,
     destination: Pair<Double, Double>?,
+    look: MapLook,
 ) {
     val signature = routeSignature(geometry)
     if (lastRouteSignature != signature || style.getSourceAs<GeoJsonSource>(ROUTE_SOURCE) == null) {
         setGeoJson(style, ROUTE_SOURCE, lineFeature(geometry)) {
             style.addLayer(
                 LineLayer(ROUTE_CASING_LAYER, ROUTE_SOURCE).withProperties(
-                    PropertyFactory.lineColor("#0B1020"),
-                    PropertyFactory.lineWidth(11f),
+                    PropertyFactory.lineColor(look.casingColor),
+                    PropertyFactory.lineWidth(look.casingWidth),
                     PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
                     PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
-                    PropertyFactory.lineOpacity(0.85f),
+                    PropertyFactory.lineOpacity(look.casingOpacity),
                 ),
             )
             style.addLayer(
                 LineLayer(ROUTE_LAYER, ROUTE_SOURCE).withProperties(
-                    // Saarthi indigo, bright variant — the hue the cockpit uses
-                    // for anything the driver is meant to follow.
-                    PropertyFactory.lineColor("#7A93FA"),
-                    PropertyFactory.lineWidth(6f),
+                    PropertyFactory.lineColor(look.routeColor),
+                    PropertyFactory.lineWidth(look.routeWidth),
                     PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
                     PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
                 ),
@@ -636,10 +664,10 @@ private fun drawRoute(
     setGeoJson(style, DESTINATION_SOURCE, pointFeature(destination)) {
         style.addLayer(
             CircleLayer(DESTINATION_LAYER, DESTINATION_SOURCE).withProperties(
-                PropertyFactory.circleRadius(9f),
-                PropertyFactory.circleColor("#FBA834"),
-                PropertyFactory.circleStrokeWidth(3f),
-                PropertyFactory.circleStrokeColor("#0B1020"),
+                PropertyFactory.circleRadius(look.destinationRadius),
+                PropertyFactory.circleColor(look.destinationColor),
+                PropertyFactory.circleStrokeWidth(look.destinationRingWidth),
+                PropertyFactory.circleStrokeColor(look.destinationRing),
             ),
         )
     }
@@ -679,7 +707,7 @@ private var lastRouteSignature: String? = null
  * assigns an empty FeatureCollection rather than tearing down layers, so there
  * is no window in which a redraw can race a removal.
  */
-private fun setGeoJson(
+internal fun setGeoJson(
     style: Style,
     sourceId: String,
     json: String,

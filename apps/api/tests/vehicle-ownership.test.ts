@@ -15,7 +15,10 @@ import {
 } from '@saarthi/shared';
 import { prisma } from '../src/database/prisma';
 import { cache } from '../src/infra/cache';
-import { runVehicleOwnershipSweep } from '../src/modules/vehicles/vehicle-ownership.service';
+import {
+  recheckOwnershipAfterIdentity,
+  runVehicleOwnershipSweep,
+} from '../src/modules/vehicles/vehicle-ownership.service';
 import {
   closeApp,
   createOrganization,
@@ -213,6 +216,33 @@ describe('vehicle ownership', () => {
 
       expect(created.body.data.ownership.status).toBe(VehicleOwnershipStatus.PENDING);
       expect(created.body.data.ownership.note).toMatch(/no government-verified name/i);
+    });
+
+    it('tells an Aadhaar-verified owner that Aadhaar carries no name, and what to do', async () => {
+      await storeRc(fleet.id);
+      await prisma.user.update({
+        where: { id: owner.id },
+        data: { aadhaarLast4: '9012', aadhaarVerifiedAt: new Date() },
+      });
+
+      const created = await addVehicle(owner);
+
+      expect(created.body.data.ownership.status).toBe(VehicleOwnershipStatus.PENDING);
+      expect(created.body.data.ownership.note).toMatch(/Aadhaar is verified/);
+      expect(created.body.data.ownership.note).toMatch(/Verify your PAN/);
+      expect(created.body.data.ownership.note).not.toMatch(/Voter ID/);
+    });
+
+    it('confirms the vehicle the moment a PAN is verified', async () => {
+      await storeRc(fleet.id);
+      const created = await addVehicle(owner);
+      expect(created.body.data.ownership.status).toBe(VehicleOwnershipStatus.PENDING);
+
+      await verifyPan(owner.id, RC_OWNER);
+      await recheckOwnershipAfterIdentity({ userId: owner.id });
+
+      const vehicle = await prisma.truck.findUniqueOrThrow({ where: { id: created.body.data.id } });
+      expect(vehicle.ownershipStatus).toBe(VehicleOwnershipStatus.VERIFIED);
     });
 
     it('never repeats the RC owner’s name in the explanation', async () => {

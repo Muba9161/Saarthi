@@ -66,7 +66,8 @@ export interface DriverSummary {
   fullName: string;
   email: string;
   phone: string | null;
-  licenseNumber: string;
+  /** `null` while the driver has not added it — see `addOwnLicence`. */
+  licenseNumber: string | null;
   licenseExpiryDate: string | null;
   licenseClass: string | null;
   experienceYears: number;
@@ -880,9 +881,17 @@ export async function joinFleet(
     }
   }
 
-  const duplicateLicence = await prisma.driver.findFirst({
-    where: { organizationId: fleet.id, licenseNumber: driver.licenseNumber, id: { not: driver.id } },
-  });
+  // Only a recorded licence can clash. Without this guard a driver who has not
+  // added theirs yet would match every other licence-less driver in the fleet.
+  const duplicateLicence = driver.licenseNumber
+    ? await prisma.driver.findFirst({
+        where: {
+          organizationId: fleet.id,
+          licenseNumber: driver.licenseNumber,
+          id: { not: driver.id },
+        },
+      })
+    : null;
   if (duplicateLicence) {
     throw errors.duplicate('This licence number is already registered with that fleet.', {
       fields: { fleetInviteCode: ['This licence number is already registered with that fleet.'] },

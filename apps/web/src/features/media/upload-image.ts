@@ -31,6 +31,9 @@ export interface ImageAttachment {
   file: File;
   /** Position within the owner's set, for purposes where order is the point. */
   sortOrder?: number;
+  /** A small rendition made in the browser; the API serves it as `variant=thumb`. */
+  thumbnail?: Blob;
+  signal?: AbortSignal;
 }
 
 export async function uploadImage(attachment: ImageAttachment): Promise<UploadedImage> {
@@ -40,7 +43,14 @@ export async function uploadImage(attachment: ImageAttachment): Promise<Uploaded
   body.append('purpose', attachment.purpose);
   if (attachment.sortOrder !== undefined) body.append('sortOrder', String(attachment.sortOrder));
   body.append('file', attachment.file, attachment.file.name);
-  return api.post<UploadedImage>('/media', body);
+  if (attachment.thumbnail) {
+    body.append('thumbnail', attachment.thumbnail, `thumb-${attachment.file.name}`);
+  }
+  return api.post<UploadedImage>(
+    '/media',
+    body,
+    attachment.signal ? { signal: attachment.signal } : undefined,
+  );
 }
 
 /**

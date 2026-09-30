@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="fuel_title">ફ્યુઅલ સ્લિપ</string>
+    <string name="fuel_step_photo">ફોટો</string>
+    <string name="fuel_step_figures">આંકડા</string>
+    <string name="fuel_step_saved">સેવ થયું</string>
+    <string name="fuel_step_label">%2$d માંથી પગલું %1$d: %3$s</string>
+    <string name="fuel_lead">સ્લિપનો ફોટો પાડો અને બે આંકડા લખો. હવે કાગળ રાખવાની જરૂર નહીં.</string>
+    <string name="fuel_rear_camera">પાછળનો કૅમેરા</string>
+    <string name="fuel_frame_hint">આખી સ્લિપ ફ્રેમની અંદર આવે એમ રાખો.</string>
+    <string name="fuel_photograph">સ્લિપનો ફોટો પાડો</string>
+    <string name="fuel_taking">ફોટો લઈ રહ્યા છીએ…</string>
+    <string name="fuel_photo_first">પહેલાં સ્લિપનો ફોટો પાડો - એ આંકડાનો પુરાવો છે.</string>
+    <string name="fuel_camera_needed">સ્લિપનો ફોટો પાડવા હમસફરને કૅમેરાની જરૂર છે. કૅમેરાની મંજૂરી આપો, પછી પાછા આવો.</string>
+    <string name="fuel_open_settings">સેટિંગ્સ ખોલો</string>
+    <string name="fuel_photo_alt">તમે પાડેલો સ્લિપનો ફોટો</string>
+    <string name="fuel_retake">ફરી પાડો</string>
+    <string name="fuel_litres">લિટર</string>
+    <string name="fuel_amount">ચૂકવેલી રકમ (₹)</string>
+    <string name="fuel_pump">પંપનું નામ</string>
+    <string name="fuel_odometer">ઓડોમીટર (km)</string>
+    <string name="fuel_optional">વૈકલ્પિક</string>
+    <string name="fuel_rate">₹%1$.2f</string>
+    <string name="fuel_per_litre">એટલે લિટરના %1$s.</string>
+    <string name="fuel_save">આ સ્લિપ સેવ કરો</string>
+    <string name="fuel_saving">સેવ થઈ રહ્યું છે…</string>
+    <string name="fuel_saved_title">સેવ થયું</string>
+    <string name="fuel_saved_body">તમારા ફ્લીટ પાસે સ્લિપ અને આંકડા છે. તમે કાગળ ફેંકી શકો છો.</string>
+    <string name="fuel_add_another">બીજી ઉમેરો</string>
+</resources>

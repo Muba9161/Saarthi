@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="assistant_listening">सुन रहा हूँ…</string>
+    <string name="assistant_thinking">पता कर रहा हूँ…</string>
+    <string name="assistant_answer">मुझे यह मिला।</string>
+    <string name="assistant_error">मैं इसका जवाब नहीं दे सका।</string>
+    <string name="assistant_idle">बोलने के लिए टैप करें, या नीचे टाइप करें।</string>
+    <string name="assistant_no_mic">इस फ़ोन पर आवाज़ की सुविधा नहीं है। अपना सवाल नीचे टाइप करें।</string>
+    <string name="assistant_mic_refused">माइक्रोफ़ोन के बिना Saarthi सुन नहीं सकता। अपना सवाल नीचे टाइप करें।</string>
+    <string name="assistant_stop">रोकें</string>
+    <string name="assistant_speak">Saarthi से बोलें</string>
+    <string name="assistant_quote">“%1$s”</string>
+    <string name="assistant_from">स्रोत: %1$s</string>
+    <string name="assistant_try_asking">ऐसे पूछकर देखें</string>
+    <string name="assistant_suggest_vehicle">क्या मेरी गाड़ी ठीक है?</string>
+    <string name="assistant_suggest_fuel">अभी मेरा फ़्यूल लेवल कितना है?</string>
+    <string name="assistant_suggest_service">मेरी अगली सर्विस कब है?</string>
+    <string name="assistant_suggest_parking">मेरे पास ट्रक पार्किंग ढूँढें</string>
+    <string name="assistant_ask_hint">Saarthi से पूछें</string>
+    <string name="assistant_send">भेजें</string>
+</resources>

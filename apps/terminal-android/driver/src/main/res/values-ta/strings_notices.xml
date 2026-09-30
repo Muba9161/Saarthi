@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="notices_lead">உங்கள் ஃப்ளீட்டிடமிருந்தும் Saarthi-இடமிருந்தும்.</string>
+    <plurals name="notices_new_count">
+        <item quantity="one">%1$d புதியது</item>
+        <item quantity="other">%1$d புதியவை</item>
+    </plurals>
+    <string name="notices_section_new">புதியவை</string>
+    <string name="notices_section_earlier">முன்பு</string>
+    <string name="notices_just_now">இப்போதுதான்</string>
+    <string name="notices_loading">அறிவிப்புகள் ஏற்றப்படுகின்றன…</string>
+    <string name="notices_empty_title">இன்னும் அறிவிப்புகள் இல்லை</string>
+    <string name="notices_empty_body">உங்கள் ஃப்ளீட்டிடமிருந்தும் Saarthi-இடமிருந்தும் வரும் செய்திகள் இங்கே தோன்றும்.</string>
+    <string name="notices_offline">நீங்கள் ஆஃப்லைனில் உள்ளீர்கள், அதனால் அறிவிப்புகளைப் பெற முடியவில்லை. சிக்னல் கிடைத்ததும் அவை ஏறும்.</string>
+    <string name="notices_failed">இப்போது அறிவிப்புகளை ஏற்ற முடியவில்லை.</string>
+</resources>

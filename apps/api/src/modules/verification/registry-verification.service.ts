@@ -379,6 +379,21 @@ async function verifyDriver(
 
   const label = `${driver.user.firstName} ${driver.user.lastName}`.trim() || 'Driver';
   const licence = driver.licenseNumber;
+
+  /*
+   * A driver may register without a licence and add it later, so there may be
+   * nothing to check yet. Refused before any case is written or any call is
+   * made: "not added" is not a rejection, and recording it as one would mark
+   * a driver REJECTED for a card nobody has typed in.
+   */
+  if (!licence) {
+    throw errors.businessRule(
+      'No driving licence number has been added for this driver yet, so there is nothing to ' +
+        'verify. Add the licence number first, then run the check.',
+      { fields: { licenseNumber: ['Add the driving licence number before verifying it.'] } },
+    );
+  }
+
   const normalized = normalizeLicenceNumber(licence);
 
   const base = {

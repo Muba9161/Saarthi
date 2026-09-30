@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The Notices panel: what the fleet and Saarthi have written to the driver. -->
+<resources>
+    <string name="notices_lead">From your fleet and from Saarthi.</string>
+    <plurals name="notices_new_count">
+        <item quantity="one">%1$d new</item>
+        <item quantity="other">%1$d new</item>
+    </plurals>
+    <string name="notices_section_new">New</string>
+    <string name="notices_section_earlier">Earlier</string>
+    <string name="notices_just_now">Just now</string>
+    <string name="notices_loading">Loading notices…</string>
+    <string name="notices_empty_title">No notices yet</string>
+    <string name="notices_empty_body">Messages from your fleet and from Saarthi will appear here.</string>
+    <string name="notices_offline">You are offline, so notices could not be fetched. They will load once there is signal.</string>
+    <string name="notices_failed">Notices could not be loaded just now.</string>
+</resources>

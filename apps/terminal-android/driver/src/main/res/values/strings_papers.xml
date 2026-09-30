@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="papers_lead">Kept on this phone, so a check post with no signal is not a problem.</string>
+
+    <!-- Attention banner -->
+    <plurals name="papers_attention_soon">
+        <item quantity="one">One paper needs attention. Tell the office before it lapses.</item>
+        <item quantity="other">%d papers need attention. Tell the office before they lapse.</item>
+    </plurals>
+    <plurals name="papers_attention_expired">
+        <item quantity="one">One paper has expired. Tell the office today.</item>
+        <item quantity="other">%d papers need attention, and at least one has expired. Tell the office today.</item>
+    </plurals>
+
+    <!-- Filter chips and owners -->
+    <string name="papers_filter_all">All</string>
+    <string name="papers_owner_vehicle">Vehicle</string>
+    <string name="papers_owner_yours">Yours</string>
+    <string name="papers_chip">%1$s · %2$d</string>
+    <string name="papers_sub">%1$s · %2$s</string>
+
+    <!-- Expiry pill -->
+    <string name="papers_no_expiry">No expiry recorded</string>
+    <string name="papers_expires_today">Expires today</string>
+    <plurals name="papers_days_left">
+        <item quantity="one">%d day left</item>
+        <item quantity="other">%d days left</item>
+    </plurals>
+    <plurals name="papers_years_left">
+        <item quantity="one">%d year left</item>
+        <item quantity="other">%d years left</item>
+    </plurals>
+    <plurals name="papers_expired_ago">
+        <item quantity="one">Expired %d day ago</item>
+        <item quantity="other">Expired %d days ago</item>
+    </plurals>
+
+    <!-- On this phone -->
+    <string name="papers_on_phone">On this phone</string>
+    <string name="papers_not_on_phone">Not on this phone yet</string>
+
+    <!-- Opening a paper -->
+    <string name="papers_open_action">Open</string>
+    <string name="papers_opening">Opening %1$s.</string>
+    <string name="papers_opening_pdf">Opening %1$s in your PDF reader.</string>
+    <string name="papers_not_saved">That one is not on this phone yet. Open it once where there is a signal and it will stay.</string>
+    <string name="papers_no_viewer">Nothing on this phone can open this kind of file. Install a PDF or image viewer, then try again.</string>
+
+    <!-- States -->
+    <string name="papers_loading">Loading your papers</string>
+    <string name="papers_none_vehicle">No papers for this vehicle are on record.</string>
+    <string name="papers_none_yours">None of your own papers are on record.</string>
+    <string name="papers_empty_title">No papers on record</string>
+    <string name="papers_empty_body">Your fleet has not added any papers for you or this vehicle yet. Ask the office to upload them.</string>
+    <string name="papers_error_title">Could not load your papers</string>
+    <string name="papers_retry">Try again</string>
+</resources>

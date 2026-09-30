@@ -294,7 +294,12 @@ export async function decorateRequirements(
       mealsNeeded: row.mealsNeeded,
 
       bidCount: row.bidCount,
-      lowestBid: row.lowestBid ? Number(row.lowestBid) : null,
+      // The customer's figure alone: shown to bidders it would unseal the
+      // auction — every rival could undercut the best offer by a rupee.
+      lowestBid:
+        row.lowestBid && (auth.isPlatformAdmin || row.customerOrganizationId === auth.organizationId)
+          ? Number(row.lowestBid)
+          : null,
       awardedMaterialBidId: row.awardedMaterialBidId,
       awardedTransportBidId: row.awardedTransportBidId,
       awardedTravelBidId: row.awardedTravelBidId,

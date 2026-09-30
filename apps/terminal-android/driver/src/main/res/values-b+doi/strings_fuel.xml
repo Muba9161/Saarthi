@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="fuel_title">तेल पर्ची</string>
+    <string name="fuel_step_photo">फ़ोटो</string>
+    <string name="fuel_step_figures">अंकड़े</string>
+    <string name="fuel_step_saved">सेव होई</string>
+    <string name="fuel_step_label">कदम %1$d / %2$d: %3$s</string>
+    <string name="fuel_lead">पर्ची दी फ़ोटो खिच्चो ते दो अंकड़े टाइप करो. हून कागज़ संभालने दी लोड़ नेईं.</string>
+    <string name="fuel_rear_camera">पिछला कैमरा</string>
+    <string name="fuel_frame_hint">पूरी पर्ची फ़्रेम दे अंदर रक्खो.</string>
+    <string name="fuel_photograph">पर्ची दी फ़ोटो खिच्चो</string>
+    <string name="fuel_taking">फ़ोटो खिच्ची जा करदी ऐ…</string>
+    <string name="fuel_photo_first">पैह्लें पर्ची दी फ़ोटो खिच्चो - अंकड़ें दा सबूत ओह्ये ऐ.</string>
+    <string name="fuel_camera_needed">पर्ची दी फ़ोटो खिच्चने आस्तै हमसफ़र गी कैमरे दी लोड़ ऐ. कैमरे दी इजाज़त देओ, फ्ही वापस आओ.</string>
+    <string name="fuel_open_settings">सेटिंग खोह्लो</string>
+    <string name="fuel_photo_alt">जेह्ड़ी पर्ची दी तुसें फ़ोटो खिच्ची</string>
+    <string name="fuel_retake">फ्ही खिच्चो</string>
+    <string name="fuel_litres">लीटर</string>
+    <string name="fuel_amount">दित्ती गेदी रकम (₹)</string>
+    <string name="fuel_pump">पंप दा नां</string>
+    <string name="fuel_odometer">ओडोमीटर (km)</string>
+    <string name="fuel_optional">जरूरी नेईं</string>
+    <string name="fuel_rate">₹%1$.2f</string>
+    <string name="fuel_per_litre">यानी %1$s प्रति लीटर.</string>
+    <string name="fuel_save">एह् पर्ची सेव करो</string>
+    <string name="fuel_saving">सेव होआ करदी ऐ…</string>
+    <string name="fuel_saved_title">सेव होई गेई</string>
+    <string name="fuel_saved_body">तुंदी फ़्लीट कोल पर्ची ते अंकड़े पुज्जी गे न. हून तुस कागज़ सुट्टी सकदे ओ.</string>
+    <string name="fuel_add_another">होर जोड़ो</string>
+</resources>

@@ -41,6 +41,7 @@ import { type ProviderCallGate, refuseUnpaidProviderCall } from '../../lib/provi
 import { AuditAction } from '../audit/audit.service';
 import { notifyAsync } from '../notifications/notification.service';
 import { syncDriverVerificationStatus } from '../verification/verification.service';
+import { recheckOwnershipAfterIdentity } from '../vehicles/vehicle-ownership.service';
 import type { AuthContext } from '../../auth/context';
 
 /**
@@ -1013,6 +1014,15 @@ export async function verifyIdentity(
       result.record,
       now,
     );
+
+    // A verified name is what confirms a vehicle's ownership — act on it now.
+    if (NAME_BEARING_KINDS.includes(input.kind)) {
+      if (input.subjectType === VerificationSubjectType.USER) {
+        await recheckOwnershipAfterIdentity({ userId: input.subjectId });
+      } else if (input.subjectType === VerificationSubjectType.ORGANIZATION) {
+        await recheckOwnershipAfterIdentity({ organizationId: input.subjectId });
+      }
+    }
   }
 
   if (documentId) {

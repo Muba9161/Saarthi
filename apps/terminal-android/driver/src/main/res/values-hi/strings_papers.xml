@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="papers_lead">इस फ़ोन में रखे हैं, इसलिए बिना सिग्नल वाली चेक पोस्ट पर भी कोई दिक्कत नहीं।</string>
+
+    <plurals name="papers_attention_soon">
+        <item quantity="one">एक काग़ज़ पर ध्यान देना है। इसकी मियाद ख़त्म होने से पहले ऑफ़िस को बताएँ।</item>
+        <item quantity="other">%d काग़ज़ों पर ध्यान देना है। इनकी मियाद ख़त्म होने से पहले ऑफ़िस को बताएँ।</item>
+    </plurals>
+    <plurals name="papers_attention_expired">
+        <item quantity="one">एक काग़ज़ की मियाद ख़त्म हो गई है। आज ही ऑफ़िस को बताएँ।</item>
+        <item quantity="other">%d काग़ज़ों पर ध्यान देना है, और कम से कम एक की मियाद ख़त्म हो गई है। आज ही ऑफ़िस को बताएँ।</item>
+    </plurals>
+
+    <string name="papers_filter_all">सभी</string>
+    <string name="papers_owner_vehicle">गाड़ी के</string>
+    <string name="papers_owner_yours">आपके</string>
+    <string name="papers_chip">%1$s · %2$d</string>
+    <string name="papers_sub">%1$s · %2$s</string>
+
+    <string name="papers_no_expiry">कोई एक्सपायरी दर्ज नहीं</string>
+    <string name="papers_expires_today">आज एक्सपायर हो रहा है</string>
+    <plurals name="papers_days_left">
+        <item quantity="one">%d दिन बाकी</item>
+        <item quantity="other">%d दिन बाकी</item>
+    </plurals>
+    <plurals name="papers_years_left">
+        <item quantity="one">%d साल बाकी</item>
+        <item quantity="other">%d साल बाकी</item>
+    </plurals>
+    <plurals name="papers_expired_ago">
+        <item quantity="one">%d दिन पहले एक्सपायर हुआ</item>
+        <item quantity="other">%d दिन पहले एक्सपायर हुआ</item>
+    </plurals>
+
+    <string name="papers_on_phone">इस फ़ोन में है</string>
+    <string name="papers_not_on_phone">अभी इस फ़ोन में नहीं</string>
+
+    <string name="papers_open_action">खोलें</string>
+    <string name="papers_opening">%1$s खुल रहा है।</string>
+    <string name="papers_opening_pdf">%1$s आपके PDF रीडर में खुल रहा है।</string>
+    <string name="papers_not_saved">यह अभी इस फ़ोन में नहीं है। सिग्नल वाली जगह पर इसे एक बार खोल लें, फिर यह फ़ोन में रहेगा।</string>
+    <string name="papers_no_viewer">इस फ़ोन में ऐसी फ़ाइल खोलने वाला कोई ऐप नहीं है। कोई PDF या इमेज व्यूअर इंस्टॉल करें, फिर कोशिश करें।</string>
+
+    <string name="papers_loading">आपके काग़ज़ात लोड हो रहे हैं</string>
+    <string name="papers_none_vehicle">इस गाड़ी का कोई काग़ज़ दर्ज नहीं है।</string>
+    <string name="papers_none_yours">आपका अपना कोई काग़ज़ दर्ज नहीं है।</string>
+    <string name="papers_empty_title">कोई काग़ज़ दर्ज नहीं</string>
+    <string name="papers_empty_body">आपके फ़्लीट ने अभी आपके या इस गाड़ी के लिए कोई काग़ज़ नहीं जोड़ा है। ऑफ़िस से इन्हें अपलोड करने को कहें।</string>
+    <string name="papers_error_title">आपके काग़ज़ात लोड नहीं हो सके</string>
+    <string name="papers_retry">फिर से कोशिश करें</string>
+</resources>

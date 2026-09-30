@@ -212,7 +212,15 @@ function partiesOf(order: {
  * it, the fleet carrying it — and to any fleet that has quoted on it, so a
  * bidder can follow the requirement it competed for.
  */
-async function assertOrderAccess(auth: AuthContext, order: OrderRecord): Promise<void> {
+export async function assertOrderAccess(
+  auth: AuthContext,
+  order: {
+    id: string;
+    customerOrganizationId: string;
+    supplierOrganizationId: string | null;
+    fleetOrganizationId: string | null;
+  },
+): Promise<void> {
   if (auth.isPlatformAdmin) return;
   if (auth.organizationId && partiesOf(order).includes(auth.organizationId)) return;
 
@@ -226,6 +234,32 @@ async function assertOrderAccess(auth: AuthContext, order: OrderRecord): Promise
 
   throw errors.notFound('Order');
 }
+
+/** The customer, the supplier or the fleet carrying it — not merely a bidder. */
+function isOrderParty(auth: AuthContext, order: OrderRecord): boolean {
+  return (
+    auth.isPlatformAdmin ||
+    (auth.organizationId !== null && partiesOf(order).includes(auth.organizationId))
+  );
+}
+
+/**
+ * Changing an order is for its parties only.
+ *
+ * A fleet that quoted may follow the order (`assertOrderAccess`), but a quote —
+ * least of all a losing or withdrawn one — is not a say in it: without this a
+ * rival bidder could cancel the order, release the winner's truck and driver,
+ * or walk it to "completed". Reported as not-found to anyone who cannot see it.
+ */
+async function assertOrderParty(auth: AuthContext, order: OrderRecord): Promise<void> {
+  await assertOrderAccess(auth, order);
+  if (!isOrderParty(auth, order)) {
+    throw errors.forbidden('Only the customer, the supplier or the assigned fleet can change this order.');
+  }
+}
+
+/** Events that describe the bidding itself — who quoted what — and belong to the parties. */
+const BIDDING_EVENTS = new Set(['QUOTE_ADDED', 'QUOTE_WITHDRAWN', 'QUOTE_ACCEPTED']);
 
 async function nextReference(): Promise<string> {
   const year = new Date().getFullYear();
@@ -413,13 +447,19 @@ export async function getOrder(auth: AuthContext, orderId: string) {
     prisma.orderRating.findUnique({ where: { orderId } }),
   ]);
 
+  // A fleet following an order it quoted on sees how the order moves, never
+  // the bidding: quote events name rival fleets and their prices, and event
+  // metadata carries them — which `listQuotes` already keeps to its own quote.
+  const party = isOrderParty(auth, order);
+  const visibleEvents = party ? events : events.filter((event) => !BIDDING_EVENTS.has(event.type));
+
   return {
     ...summary!,
-    events: events.map((event) => ({
+    events: visibleEvents.map((event) => ({
       id: event.id,
       type: event.type,
       description: event.description,
-      metadata: event.metadata,
+      metadata: party ? event.metadata : null,
       createdAt: event.createdAt.toISOString(),
     })),
     quotes,
@@ -1169,7 +1209,7 @@ export async function transitionOrder(
 ): Promise<OrderSummary> {
   const order = await prisma.order.findUnique({ where: { id: orderId }, include: orderInclude });
   if (!order) throw errors.notFound('Order');
-  await assertOrderAccess(auth, order);
+  await assertOrderParty(auth, order);
 
   const check = orderStateMachine.assertTransition(order.status, status);
   if (!check.allowed) throw errors.invalidTransition(check.reason!);
@@ -1229,7 +1269,7 @@ export async function cancelOrder(
 ): Promise<OrderSummary> {
   const order = await prisma.order.findUnique({ where: { id: orderId }, include: orderInclude });
   if (!order) throw errors.notFound('Order');
-  await assertOrderAccess(auth, order);
+  await assertOrderParty(auth, order);
 
   const check = orderStateMachine.assertTransition(order.status, OrderStatus.CANCELLED);
   if (!check.allowed) {

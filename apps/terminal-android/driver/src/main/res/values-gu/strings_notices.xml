@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="notices_lead">તમારા ફ્લીટ અને Saarthi તરફથી.</string>
+    <plurals name="notices_new_count">
+        <item quantity="one">%1$d નવી</item>
+        <item quantity="other">%1$d નવી</item>
+    </plurals>
+    <string name="notices_section_new">નવી</string>
+    <string name="notices_section_earlier">પહેલાંની</string>
+    <string name="notices_just_now">હમણાં જ</string>
+    <string name="notices_loading">નોટિસ લોડ થઈ રહી છે…</string>
+    <string name="notices_empty_title">હજી કોઈ નોટિસ નથી</string>
+    <string name="notices_empty_body">તમારા ફ્લીટ અને Saarthi ના સંદેશા અહીં દેખાશે.</string>
+    <string name="notices_offline">તમે ઑફલાઇન છો, તેથી નોટિસ લાવી શકાઈ નહીં. સિગ્નલ મળતાં તે લોડ થશે.</string>
+    <string name="notices_failed">અત્યારે નોટિસ લોડ થઈ શકી નહીં.</string>
+</resources>

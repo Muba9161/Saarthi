@@ -551,9 +551,18 @@ export async function findNearbyTrucks(
 
   return trucks
     .map((truck) => {
-      const position = { latitude: truck.lastLatitude!, longitude: truck.lastLongitude! };
+      const exact = { latitude: truck.lastLatitude!, longitude: truck.lastLongitude! };
       const sameFleet = truck.organizationId === auth.organizationId;
       const assignment = truck.assignments[0];
+      // Another fleet's truck is placed, measured and bearing-ed from the same
+      // rounded point it is drawn at. An exact distance beside a rounded pin
+      // gives the pin away: measure from three spots and the truck is found.
+      const position = sameFleet
+        ? exact
+        : {
+            latitude: Number(exact.latitude.toFixed(PRIVACY_PRECISION)),
+            longitude: Number(exact.longitude.toFixed(PRIVACY_PRECISION)),
+          };
 
       return {
         truckId: truck.id,
@@ -573,12 +582,8 @@ export async function findNearbyTrucks(
         contactPhone: sameFleet ? (assignment?.driver.user.phone ?? null) : null,
         distanceKm: Number(distanceKm(origin, position).toFixed(2)),
         direction: compassDirection(bearing(origin, position)),
-        latitude: sameFleet
-          ? position.latitude
-          : Number(position.latitude.toFixed(PRIVACY_PRECISION)),
-        longitude: sameFleet
-          ? position.longitude
-          : Number(position.longitude.toFixed(PRIVACY_PRECISION)),
+        latitude: position.latitude,
+        longitude: position.longitude,
         lastSeenAt: (truck.lastLocationAt ?? truck.updatedAt).toISOString(),
       };
     })

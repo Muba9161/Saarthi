@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="adapter_title">गड्डी अडैप्टर</string>
+    <string name="adapter_intro">अडैप्टर गी गड्डी दे OBD पोर्ट च लाओ ते अपने फ़ोन दी ब्लूटूथ सेटिंग च पेयर करो. फ्ही इसगी इत्थै चुनो - सिर्फ इक बारी.</string>
+    <string name="adapter_look_again">फ्ही दिक्खो</string>
+    <string name="adapter_connect_label">%1$s कन्नै जोड़ो</string>
+    <string name="adapter_connecting">%1$s कन्नै जुड़ा करदा ऐ…</string>
+    <string name="adapter_generic_name">अडैप्टर</string>
+    <string name="adapter_failed">%1$s कन्नै नेईं जुड़ी सकेआ. दिक्खो जे एह् लग्गे दा ऐ ते इग्निशन चालू ऐ, फ्ही इसगी दबारा चुनो.</string>
+    <string name="adapter_connected">जुड़ी गेआ. Saarthi इस गड्डी दा इंजन सिद्धा पढ़ा करदा ऐ.</string>
+    <string name="adapter_connected_note">हर बारी गड्डी स्टार्ट करने पर एह् अपने आप फ्ही जुड़ी जाग. किश बी बंद करने दी लोड़ नेईं.</string>
+    <string name="adapter_engine_asleep">अडैप्टर जुड़े दा ऐ, पर इंजन अजें जवाब नेईं देआ करदा. इग्निशन चालू करो ते Saarthi इसगी पढ़ना शुरू करी देग.</string>
+
+    <string name="adapter_no_radio_title">इस फ़ोन च ब्लूटूथ नेईं ऐ</string>
+    <string name="adapter_no_radio_body">एह् फ़ोन गड्डी अडैप्टर कन्नै नेईं जुड़ी सकदा.</string>
+    <string name="adapter_permission_title">ब्लूटूथ दी इजाज़त देओ</string>
+    <string name="adapter_permission_body">अडैप्टर कन्नै गल्ल करने शा पैह्लें हमसफ़र गी नेड़ै दे डिवाइसें कन्नै जुड़ने दी इजाज़त चाहिदी ऐ.</string>
+    <string name="adapter_permission_allow">इजाज़त देओ</string>
+    <string name="adapter_permission_refused">इजाज़त नेईं दित्ती गेई. अपने फ़ोन दी सेटिंग च हमसफ़र आस्तै नेड़ै दे डिवाइस दी इजाज़त देओ.</string>
+    <string name="adapter_open_app_settings">सेटिंग खोह्लो</string>
+    <string name="adapter_off_title">ब्लूटूथ बंद ऐ</string>
+    <string name="adapter_off_body">अडैप्टर कन्नै जुड़ने आस्तै ब्लूटूथ चालू करो.</string>
+    <string name="adapter_open_bluetooth">ब्लूटूथ सेटिंग खोह्लो</string>
+    <string name="adapter_empty_title">अजें कोई अडैप्टर पेयर नेईं</string>
+    <string name="adapter_empty_body">पैह्लें अपने फ़ोन दी ब्लूटूथ सेटिंग च अडैप्टर पेयर करो, फ्ही वापस आइयै दबारा दिक्खो.</string>
+</resources>

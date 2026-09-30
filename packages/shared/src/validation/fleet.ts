@@ -195,6 +195,29 @@ export const joinFleetSchema = z.object({
 });
 export type JoinFleetInput = z.infer<typeof joinFleetSchema>;
 
+/**
+ * A driver adding their own driving licence number after registration.
+ *
+ * Registration lets a driver skip the licence ("I'll do it later" — see
+ * `registerSchema`), so this is how the number arrives afterwards, from the
+ * driver's own app. Same length rule as a licence entered by the fleet
+ * (`createDriverSchema`), uppercased so the number is stored the way it is
+ * printed on the card. It sets a missing licence only: a licence already on
+ * record is changed by the fleet (`updateDriverSchema`), not by the driver.
+ */
+export const addDriverLicenceSchema = z.object({
+  licenseNumber: z
+    .string({ required_error: 'Enter your driving licence number.' })
+    .transform((value) => value.trim().toUpperCase())
+    .pipe(
+      z
+        .string()
+        .min(4, 'Enter your full driving licence number.')
+        .max(40, 'A driving licence number is at most 40 characters.'),
+    ),
+});
+export type AddDriverLicenceInput = z.infer<typeof addDriverLicenceSchema>;
+
 export const driverListQuerySchema = paginationSchema.extend({
   search: optionalTrimmedString(120),
   availability: csvEnum([

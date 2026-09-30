@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="adapter_title">વાહન એડેપ્ટર</string>
+    <string name="adapter_intro">એડેપ્ટરને વાહનના OBD પોર્ટમાં લગાવો અને તમારા ફોનના બ્લૂટૂથ સેટિંગ્સમાં જોડો. પછી તેને અહીં પસંદ કરો - ફક્ત એક જ વાર.</string>
+    <string name="adapter_look_again">ફરી જુઓ</string>
+    <string name="adapter_connect_label">%1$s સાથે જોડો</string>
+    <string name="adapter_connecting">%1$s સાથે જોડાઈ રહ્યું છે…</string>
+    <string name="adapter_generic_name">એડેપ્ટર</string>
+    <string name="adapter_failed">%1$s સાથે જોડાઈ શક્યું નહીં. તે લગાવેલું છે અને ઇગ્નિશન ચાલુ છે તે તપાસો, પછી ફરી પસંદ કરો.</string>
+    <string name="adapter_connected">જોડાઈ ગયું. Saarthi આ વાહનનું એન્જિન સીધું વાંચી રહ્યું છે.</string>
+    <string name="adapter_connected_note">દર વખતે તમે વાહન ચાલુ કરશો ત્યારે તે જાતે ફરી જોડાઈ જશે. કંઈ બંધ કરવાનું નથી.</string>
+    <string name="adapter_engine_asleep">એડેપ્ટર જોડાયેલું છે, પણ એન્જિન હજી જવાબ નથી આપતું. ઇગ્નિશન ચાલુ કરો, પછી Saarthi તેને વાંચવાનું શરૂ કરશે.</string>
+
+    <string name="adapter_no_radio_title">આ ફોનમાં બ્લૂટૂથ નથી</string>
+    <string name="adapter_no_radio_body">આ ફોન વાહન એડેપ્ટર સાથે જોડાઈ શકતો નથી.</string>
+    <string name="adapter_permission_title">બ્લૂટૂથની મંજૂરી આપો</string>
+    <string name="adapter_permission_body">એડેપ્ટર સાથે વાત કરતાં પહેલાં હમસફરને નજીકનાં ડિવાઇસ સાથે જોડાવાની મંજૂરી જોઈએ.</string>
+    <string name="adapter_permission_allow">મંજૂરી આપો</string>
+    <string name="adapter_permission_refused">મંજૂરી નકારાઈ. તમારા ફોનના સેટિંગ્સમાં હમસફર માટે નજીકનાં ડિવાઇસની મંજૂરી આપો.</string>
+    <string name="adapter_open_app_settings">સેટિંગ્સ ખોલો</string>
+    <string name="adapter_off_title">બ્લૂટૂથ બંધ છે</string>
+    <string name="adapter_off_body">એડેપ્ટર સાથે જોડાવા બ્લૂટૂથ ચાલુ કરો.</string>
+    <string name="adapter_open_bluetooth">બ્લૂટૂથ સેટિંગ્સ ખોલો</string>
+    <string name="adapter_empty_title">હજી કોઈ એડેપ્ટર જોડાયેલું નથી</string>
+    <string name="adapter_empty_body">પહેલાં તમારા ફોનના બ્લૂટૂથ સેટિંગ્સમાં એડેપ્ટર જોડો, પછી પાછા આવીને ફરી જુઓ.</string>
+</resources>

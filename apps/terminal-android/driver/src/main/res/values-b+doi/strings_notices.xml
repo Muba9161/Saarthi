@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="notices_lead">तुंदी फ़्लीट ते Saarthi थमां.</string>
+    <plurals name="notices_new_count">
+        <item quantity="one">%1$d नमां</item>
+        <item quantity="other">%1$d नमें</item>
+    </plurals>
+    <string name="notices_section_new">नमें</string>
+    <string name="notices_section_earlier">पैह्लें दे</string>
+    <string name="notices_just_now">हुनै</string>
+    <string name="notices_loading">नोटिस लोड होआ करदे न…</string>
+    <string name="notices_empty_title">अजें कोई नोटिस नेईं</string>
+    <string name="notices_empty_body">तुंदी फ़्लीट ते Saarthi दे संदेश इत्थै दिसङन.</string>
+    <string name="notices_offline">तुस ऑफ़लाइन ओ, इस आस्तै नोटिस नेईं आई सके. सिग्नल औंदे गै एह् लोड होई जाङन.</string>
+    <string name="notices_failed">इस बेलै नोटिस लोड नेईं होई सके.</string>
+</resources>

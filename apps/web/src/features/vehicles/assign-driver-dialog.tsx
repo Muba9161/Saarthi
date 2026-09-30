@@ -345,7 +345,8 @@ function SelfProfileStatus({
   pending,
   elsewhereVehicleId,
 }: {
-  licenseNumber: string;
+  /** `null` while no licence has been added to the profile. */
+  licenseNumber: string | null;
   driverId: string;
   pending: boolean;
   elsewhereVehicleId: string | null;
@@ -355,7 +356,8 @@ function SelfProfileStatus({
       <div className="glass-inset flex items-center gap-3 p-3">
         <UserRound className="size-4 shrink-0 text-muted-foreground" aria-hidden />
         <p className="min-w-0 text-sm">
-          You <span className="text-muted-foreground">· licence {licenseNumber}</span>
+          You{' '}
+          <span className="text-muted-foreground">· licence {licenseNumber ?? 'not added'}</span>
         </p>
       </div>
       {pending ? (

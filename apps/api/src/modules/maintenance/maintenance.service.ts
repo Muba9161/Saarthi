@@ -13,6 +13,7 @@ import {
 } from '@saarthi/shared';
 import { type Prisma, prisma } from '../../database/prisma';
 import { errors } from '../../lib/errors';
+import { assertTripOnVehicle } from '../trips/trip-ownership';
 import { skipTake } from '../../lib/http';
 import {
   TREND_WINDOW_DAYS,
@@ -251,6 +252,8 @@ export async function recordFuel(
   const truck = await prisma.truck.findUnique({ where: { id: input.truckId } });
   if (!truck) throw errors.notFound('Vehicle');
   assertTenantAccess(auth, truck.organizationId, 'Truck');
+  // A fill-up may only be filed against one of this vehicle's own trips.
+  if (input.tripId) await assertTripOnVehicle(input.tripId, truck.id, truck.organizationId);
 
   return insertFuelRecord(truck, organizationId, input, auth.user.id);
 }

@@ -86,7 +86,8 @@ export interface DriverSummary {
   fullName: string;
   email: string;
   phone: string | null;
-  licenseNumber: string;
+  /** `null` until the driver adds it — registration lets them skip it. */
+  licenseNumber: string | null;
   licenseExpiryDate: string | null;
   licenseClass: string | null;
   experienceYears: number;

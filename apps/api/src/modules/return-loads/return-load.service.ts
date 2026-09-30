@@ -24,6 +24,8 @@ import {
 import { type Prisma, prisma } from '../../database/prisma';
 import { config } from '../../config/env';
 import { errors } from '../../lib/errors';
+import { assertTripOnVehicle } from '../trips/trip-ownership';
+import { assertOrderAccess } from '../orders/order.service';
 import { skipTake } from '../../lib/http';
 import { logger } from '../../lib/logger';
 import { assertTenantAccess } from '../../server/guards';
@@ -263,6 +265,20 @@ export async function createReturnLoad(
     throw errors.conflict(
       `This vehicle already has an open return-load request (${existing.reference}).`,
     );
+  }
+
+  // The driver and outbound trip named here travel onward into quotes and
+  // trips, so they must be this fleet's own — another fleet's driver would
+  // otherwise be put on this fleet's trip.
+  if (input.driverId) {
+    const driver = await prisma.driver.findUnique({
+      where: { id: input.driverId },
+      select: { organizationId: true },
+    });
+    if (!driver || driver.organizationId !== organizationId) throw errors.notFound('Driver');
+  }
+  if (input.outboundTripId) {
+    await assertTripOnVehicle(input.outboundTripId, input.truckId, organizationId);
   }
 
   const created = await prisma.returnLoadRequest.create({
@@ -1122,6 +1138,13 @@ export async function returnCandidatesForOrder(
 > {
   const order = await prisma.order.findUnique({ where: { id: orderId } });
   if (!order) throw errors.notFound('Order');
+  // Scoring reveals the route (detour and pickup distances). An order still out
+  // for quotes is open work any fleet may weigh up — that is what this screen
+  // is for. Once a fleet has it, only the order's own parties may.
+  const openForQuotes =
+    order.fleetOrganizationId === null &&
+    (order.status === 'REQUESTED' || order.status === 'QUOTED');
+  if (!openForQuotes) await assertOrderAccess(auth, order);
 
   const requests = await prisma.returnLoadRequest.findMany({
     where: {

@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The vehicle sheet: live data, the vehicle's passport, the driver, and reported problems. -->
+<resources>
+    <string name="vehicle_sheet_title">Vehicle details</string>
+    <string name="vehicle_live_title">Live vehicle data</string>
+    <string name="vehicle_live_battery">Battery</string>
+    <string name="vehicle_live_load">Load</string>
+    <string name="vehicle_unit_volts">V</string>
+    <string name="vehicle_codes_none">Trouble codes · None reported</string>
+    <string name="vehicle_codes_unread">Trouble codes · Read only with the adapter connected</string>
+    <plurals name="vehicle_codes_found">
+        <item quantity="one">Trouble codes · %1$d reported</item>
+        <item quantity="other">Trouble codes · %1$d reported</item>
+    </plurals>
+
+    <string name="vehicle_passport_title">Vehicle passport</string>
+    <string name="vehicle_row_registration">Registration</string>
+    <string name="vehicle_row_type">Type</string>
+    <string name="vehicle_row_make">Make &amp; model</string>
+    <string name="vehicle_row_year">Year</string>
+    <string name="vehicle_row_fuel">Fuel</string>
+    <string name="vehicle_row_capacity">Capacity</string>
+    <string name="vehicle_row_fleet">Fleet</string>
+    <string name="vehicle_capacity_value">%1$s t</string>
+    <string name="vehicle_odometer_value">%1$s km</string>
+    <string name="vehicle_fuel_electric">Electric</string>
+    <string name="vehicle_fuel_hybrid">Hybrid</string>
+    <string name="vehicle_fuel_lng">LNG</string>
+
+    <string name="vehicle_you_title">You</string>
+    <string name="vehicle_row_name">Name</string>
+    <string name="vehicle_row_licence_class">Licence class</string>
+    <string name="vehicle_row_licence">Licence</string>
+    <string name="vehicle_row_profile">Profile</string>
+    <string name="vehicle_row_trips">Trips</string>
+    <string name="vehicle_licence_valid">Valid to %1$s</string>
+    <string name="vehicle_licence_expiring">Expires %1$s</string>
+    <string name="vehicle_licence_expired">Expired %1$s</string>
+    <string name="vehicle_licence_pending">Awaiting verification</string>
+    <string name="vehicle_licence_no_expiry">No expiry on file</string>
+    <string name="vehicle_licence_rejected">Rejected</string>
+    <string name="vehicle_profile_pending">Pending</string>
+    <string name="vehicle_profile_submitted">Submitted</string>
+    <string name="vehicle_profile_under_review">Under review</string>
+    <string name="vehicle_profile_verified">Verified</string>
+    <string name="vehicle_profile_rejected">Rejected</string>
+    <string name="vehicle_profile_expired">Expired</string>
+    <string name="vehicle_profile_suspended">Suspended</string>
+
+    <string name="vehicle_problems_title">Reported problems</string>
+    <string name="vehicle_report_open">Report a problem</string>
+    <string name="vehicle_report_label">What is wrong?</string>
+    <string name="vehicle_report_send">Send to your fleet</string>
+    <string name="vehicle_report_sending">Sending…</string>
+    <string name="vehicle_report_failed">That could not be sent. Check your signal and try again.</string>
+    <string name="vehicle_issue_engine">Engine</string>
+    <string name="vehicle_issue_tyre">Tyre</string>
+    <string name="vehicle_issue_brake">Brake</string>
+    <string name="vehicle_issue_electrical">Electrical</string>
+    <string name="vehicle_issue_accident">Accident</string>
+    <string name="vehicle_issue_body">Body</string>
+    <string name="vehicle_issue_other">Other</string>
+    <string name="vehicle_issue_status_open">Open</string>
+    <string name="vehicle_issue_status_acknowledged">Acknowledged</string>
+    <string name="vehicle_issue_status_in_progress">In progress</string>
+    <string name="vehicle_issue_status_resolved">Resolved</string>
+    <string name="vehicle_issue_status_dismissed">Dismissed</string>
+    <string name="vehicle_issue_head">%1$s · %2$s</string>
+    <string name="vehicle_issues_none">Nothing reported for this vehicle.</string>
+    <string name="vehicle_issues_offline">You are offline, so problems reported earlier could not be fetched.</string>
+</resources>

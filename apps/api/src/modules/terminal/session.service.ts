@@ -10,6 +10,8 @@ import {
   NotificationPriority,
   NotificationType,
   OPERATOR_MANAGEMENT_ROLES,
+  OPERATOR_OWNER_ROLES,
+  Permission,
   QrScanPurpose,
   QrSubjectType,
   TERMINAL_APPROVAL_SLA,
@@ -27,6 +29,7 @@ import {
   type TerminalSessionView,
   normalizeRegistrationNumber,
   formatRegistrationNumber,
+  hasPermission,
 } from '@saarthi/shared';
 import { type Prisma, prisma } from '../../database/prisma';
 import { errors } from '../../lib/errors';
@@ -75,6 +78,12 @@ import type { AuthContext } from '../../auth/context';
  *        → PENDING_APPROVAL
  *   owner or provider decides                 (terminal.approve permission)
  *        → APPROVED or REJECTED
+ *
+ * One request skips the queue: the account's owner signing on to one of his
+ * own vehicles. He is the named, permitted person the rule above asks for, so
+ * his request is his decision and is recorded as approved by him, through the
+ * same `authorizeOntoVehicle` as every other approval. A manager who drives
+ * still waits for somebody else to decide.
  *   driver completes the safety check         (from the terminal)
  *        → READY
  */
@@ -162,6 +171,91 @@ async function requireDriverProfile(auth: AuthContext): Promise<{
     organizationId: driver.organizationId,
     name: `${driver.user.firstName} ${driver.user.lastName}`.trim(),
   };
+}
+
+/**
+ * Whether this request is the account's owner signing on to his own vehicle.
+ *
+ * Only the owner roles: they hold the approval themselves and answer for the
+ * account. Anybody else who drives, a manager included, goes through the queue.
+ */
+function isOwnerSigningOn(auth: AuthContext, vehicleOrganizationId: string): boolean {
+  const role = auth.organization?.membershipRole;
+  return (
+    auth.organizationId === vehicleOrganizationId &&
+    role !== undefined &&
+    OPERATOR_OWNER_ROLES.includes(role) &&
+    hasPermission(auth.permissions, Permission.TERMINAL_APPROVE)
+  );
+}
+
+/**
+ * Approve a request: put the driver on the vehicle and record who decided.
+ *
+ * The one place a request becomes APPROVED, shared by an approver's decision
+ * and an owner signing himself on, so both leave the same record behind.
+ */
+async function authorizeOntoVehicle(
+  tx: Prisma.TransactionClient,
+  session: { id: string; vehicleId: string; driverId: string; organizationId: string },
+  approver: AuthContext['user'],
+  input: ApproveTerminalAssignmentInput,
+  description: string,
+): Promise<SessionRecord> {
+  const now = new Date();
+  let truckAssignmentId: string | null = null;
+
+  if (input.assignVehicle) {
+    // Close whatever standing assignment the vehicle had. A truck with two
+    // active drivers is a truck nobody can be held responsible for.
+    await tx.truckAssignment.updateMany({
+      where: { truckId: session.vehicleId, status: AssignmentStatus.ACTIVE },
+      data: { status: AssignmentStatus.ENDED, unassignedAt: now },
+    });
+
+    const assignment = await tx.truckAssignment.create({
+      data: {
+        truckId: session.vehicleId,
+        driverId: session.driverId,
+        organizationId: session.organizationId,
+        status: AssignmentStatus.ACTIVE,
+        assignedById: approver.id,
+        assignedAt: now,
+        note: `Approved from Saarthi Terminal by ${approver.firstName} ${approver.lastName}.`,
+      },
+    });
+    truckAssignmentId = assignment.id;
+
+    await tx.truck.update({
+      where: { id: session.vehicleId },
+      data: { currentDriverId: session.driverId },
+    });
+    await tx.driver.update({
+      where: { id: session.driverId },
+      data: { currentTruckId: session.vehicleId },
+    });
+  }
+
+  const next = await tx.terminalSession.update({
+    where: { id: session.id },
+    data: {
+      status: TerminalSessionStatus.APPROVED,
+      decidedAt: now,
+      decidedById: approver.id,
+      decisionNote: input.note ?? null,
+      truckAssignmentId,
+      // The request window is over; the session's own idle life takes over.
+      expiresAt: null,
+    },
+    include: sessionInclude,
+  });
+
+  await recordEvent(tx, session.id, TerminalSessionEventType.APPROVED, description, {
+    actorUserId: approver.id,
+    metadata: { assignedVehicle: input.assignVehicle, note: input.note ?? null },
+  });
+
+  return next;
 }
 
 // ---------------------------------------------------------------------------
@@ -321,7 +415,14 @@ export async function requestAssignment(
   const [terminalBusy, driverBusy] = await Promise.all([
     prisma.terminalSession.findFirst({
       where: {
-        terminalDeviceId: assignment?.deviceId ?? null,
+        // This vehicle, or the terminal fitted to it. Matching on the device
+        // alone turned a vehicle with no fitted terminal into `terminalDeviceId:
+        // null`, which matched every phone-only session anywhere and refused
+        // the request in another driver's name.
+        OR: [
+          { vehicleId: vehicle.id },
+          ...(assignment ? [{ terminalDeviceId: assignment.deviceId }] : []),
+        ],
         status: { in: ACTIVE_TERMINAL_SESSION_STATUSES },
       },
       include: sessionInclude,
@@ -406,11 +507,18 @@ export async function requestAssignment(
       });
     }
 
-    return session;
+    if (!isOwnerSigningOn(auth, vehicle.organizationId)) return session;
+    return authorizeOntoVehicle(
+      tx,
+      session,
+      auth.user,
+      { assignVehicle: true },
+      `Approved by ${driver.name}, the account owner, signing on to their own vehicle.`,
+    );
   });
 
   sessionLogger.info(
-    { sessionId: created.id, driverId: driver.id, vehicleId: vehicle.id },
+    { sessionId: created.id, driverId: driver.id, vehicleId: vehicle.id, status: created.status },
     'Terminal driver request opened',
   );
 
@@ -670,8 +778,6 @@ export async function approveAssignment(
       );
     }
 
-    const now = new Date();
-
     const updated = await prisma.$transaction(async (tx) => {
       // Re-read inside the transaction. The claim above is best-effort; this is
       // what actually makes the decision single.
@@ -683,65 +789,13 @@ export async function approveAssignment(
         throw errors.conflict('That request has already been decided.');
       }
 
-      let truckAssignmentId: string | null = null;
-
-      if (input.assignVehicle) {
-        // Close whatever standing assignment the vehicle had. A truck with two
-        // active drivers is a truck nobody can be held responsible for.
-        await tx.truckAssignment.updateMany({
-          where: { truckId: session.vehicleId, status: AssignmentStatus.ACTIVE },
-          data: { status: AssignmentStatus.ENDED, unassignedAt: now },
-        });
-
-        const assignment = await tx.truckAssignment.create({
-          data: {
-            truckId: session.vehicleId,
-            driverId: session.driverId,
-            organizationId: session.organizationId,
-            status: AssignmentStatus.ACTIVE,
-            assignedById: auth.user.id,
-            assignedAt: now,
-            note: `Approved from Saarthi Terminal by ${auth.user.firstName} ${auth.user.lastName}.`,
-          },
-        });
-        truckAssignmentId = assignment.id;
-
-        await tx.truck.update({
-          where: { id: session.vehicleId },
-          data: { currentDriverId: session.driverId },
-        });
-        await tx.driver.update({
-          where: { id: session.driverId },
-          data: { currentTruckId: session.vehicleId },
-        });
-      }
-
-      const next = await tx.terminalSession.update({
-        where: { id: sessionId },
-        data: {
-          status: TerminalSessionStatus.APPROVED,
-          decidedAt: now,
-          decidedById: auth.user.id,
-          decisionNote: input.note ?? null,
-          truckAssignmentId,
-          // The request window is over; the session's own idle life takes over.
-          expiresAt: null,
-        },
-        include: sessionInclude,
-      });
-
-      await recordEvent(
+      return authorizeOntoVehicle(
         tx,
-        sessionId,
-        TerminalSessionEventType.APPROVED,
+        session,
+        auth.user,
+        input,
         `Approved by ${auth.user.firstName} ${auth.user.lastName}.`,
-        {
-          actorUserId: auth.user.id,
-          metadata: { assignedVehicle: input.assignVehicle, note: input.note ?? null },
-        },
       );
-
-      return next;
     });
 
     sessionLogger.info(

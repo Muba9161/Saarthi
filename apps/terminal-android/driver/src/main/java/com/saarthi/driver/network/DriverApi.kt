@@ -4,6 +4,9 @@ import com.saarthi.core.CoreConfig
 import com.saarthi.core.util.DebugLog
 import com.saarthi.driver.data.DriverAccountStore
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -91,6 +94,8 @@ class DriverApi(
         val password: String,
         val firstName: String,
         val lastName: String,
+        /** The six digits emailed by [sendRegistrationCode], proving the address is theirs. */
+        val emailCode: String,
         /**
          * Required, not optional.
          *
@@ -101,12 +106,19 @@ class DriverApi(
          */
         val phone: String,
         /**
-         * The commercial driving licence number.
-         *
-         * `registerSchema.superRefine` requires it specifically for DRIVER, and
-         * asking for it here is honest about what the account is for.
+         * The commercial driving licence number, or null when the driver chose
+         * "I'll do it later" — they add it afterwards from Profile. Omitted from
+         * the body when null.
          */
-        val licenseNumber: String,
+        val licenseNumber: String? = null,
+        /**
+         * The fleet's joining code, when the driver already has one.
+         *
+         * Optional, as `registerSchema` makes it: a driver who finds Saarthi
+         * before their fleet owner does still gets an account, and joins later
+         * from the vehicle screen. Omitted from the body when null.
+         */
+        val fleetInviteCode: String? = null,
         /*
          * Both of these are fixed, and both are required by the server.
          *
@@ -129,7 +141,44 @@ class DriverApi(
     )
 
     @Serializable
-    data class SessionDto(val user: SessionUser? = null)
+    data class SessionOrganization(val id: String? = null, val name: String? = null)
+
+    @Serializable
+    data class SessionDriver(val awaitingFleet: Boolean = false, val licenseNumber: String? = null)
+
+    @Serializable
+    data class SessionDto(
+        val user: SessionUser? = null,
+        val organization: SessionOrganization? = null,
+        val driver: SessionDriver? = null,
+    )
+
+    /**
+     * Whether this driver belongs to a fleet yet, and which.
+     *
+     * Read from the session every time one is issued — sign-in, every launch's
+     * silent refresh, and joining — so it is never older than the credential.
+     * A driver who registered without a code sits in a seat of their own until
+     * they join; [name] is null for them rather than their own name dressed up
+     * as a fleet's.
+     */
+    data class Fleet(val name: String?, val joined: Boolean)
+
+    private val _fleet = MutableStateFlow<Fleet?>(null)
+    val fleet: StateFlow<Fleet?> = _fleet.asStateFlow()
+
+    /** True when the driver registered without a licence and has not added it yet. */
+    private val _licenceMissing = MutableStateFlow(false)
+    val licenceMissing: StateFlow<Boolean> = _licenceMissing.asStateFlow()
+
+    private fun rememberSession(session: SessionDto?) {
+        val driver = session?.driver ?: return
+        _fleet.value = Fleet(
+            name = if (driver.awaitingFleet) null else session.organization?.name,
+            joined = !driver.awaitingFleet,
+        )
+        _licenceMissing.value = driver.licenseNumber.isNullOrBlank()
+    }
 
     @Serializable
     data class AuthDto(
@@ -152,6 +201,37 @@ class DriverApi(
             "/api/v1/auth/login",
             json.encodeToString(SignInRequest.serializer(), SignInRequest(email, password)),
         )
+
+    @Serializable
+    private data class EmailCodeRequest(val email: String, val firstName: String?)
+
+    /** A code on its way to the driver's inbox. */
+    @Serializable
+    data class EmailCode(
+        val sentTo: String,
+        val expiresIn: Int = 600,
+        /** Seconds before another code may be asked for. */
+        val resendIn: Int = 60,
+        /** Only from a server with no mailbox, outside production. */
+        val devCode: String? = null,
+    )
+
+    /**
+     * Email the one-time code registration asks for.
+     *
+     * The server opens an account only for an address its owner can read, so
+     * this goes out before `register`, and the code comes back with it.
+     */
+    suspend fun sendRegistrationCode(email: String, firstName: String?): EmailCode {
+        val raw = send(
+            "POST",
+            "/api/v1/auth/register/email-code",
+            json.encodeToString(EmailCodeRequest.serializer(), EmailCodeRequest(email.trim(), firstName?.takeIf { it.isNotBlank() })),
+            authenticated = false,
+        )
+        return json.decodeFromString(Envelope.serializer(EmailCode.serializer()), raw).data
+            ?: throw Failure.Refused(200, "Saarthi did not confirm the code was sent.")
+    }
 
     suspend fun register(request: RegisterRequest): DriverAccountStore.Account =
         authenticate(
@@ -212,7 +292,53 @@ class DriverApi(
             email = user.email,
         )
         account.store(stored, auth.accessToken, auth.expiresIn, auth.refreshToken)
+        rememberSession(auth.session)
         return stored
+    }
+
+    @Serializable
+    private data class JoinFleetRequest(val fleetInviteCode: String)
+
+    /**
+     * Join a fleet with the code its owner gave out.
+     *
+     * The code is the authorisation — the server checks it, the fleet's room
+     * on its plan, and that the driver is not already employed elsewhere, and
+     * says so in words when any of those fails. On success the session moves
+     * to the new fleet: a fresh access token comes back on the same session, so
+     * the stored refresh token stays exactly as it was.
+     */
+    suspend fun joinFleet(code: String): Fleet {
+        val raw = send(
+            "POST",
+            "/api/v1/drivers/me/fleet",
+            json.encodeToString(JoinFleetRequest.serializer(), JoinFleetRequest(code.trim().uppercase())),
+        )
+        val auth = json.decodeFromString(Envelope.serializer(AuthDto.serializer()), raw).data
+            ?: throw Failure.Refused(200, "Saarthi did not confirm the fleet.")
+        account.account.value?.let { current ->
+            account.store(current, auth.accessToken, auth.expiresIn, auth.refreshToken)
+        }
+        rememberSession(auth.session)
+        return _fleet.value ?: Fleet(name = auth.session?.organization?.name, joined = true)
+    }
+
+    @Serializable
+    private data class AddLicenceRequest(val licenseNumber: String)
+
+    /**
+     * Record the licence of a driver who registered without one.
+     *
+     * Only ever the first time: once a licence is on record it is the fleet's
+     * to change, and the server refuses a second one in words.
+     */
+    suspend fun addLicence(number: String) {
+        send(
+            "PUT",
+            "/api/v1/drivers/me/licence",
+            json.encodeToString(AddLicenceRequest.serializer(), AddLicenceRequest(number.trim().uppercase())),
+        )
+        _licenceMissing.value = false
     }
 
     /**
@@ -233,6 +359,8 @@ class DriverApi(
     suspend fun signOut() {
         runCatching { send("POST", "/api/v1/auth/logout", "{}", authenticated = true) }
         account.clear()
+        _fleet.value = null
+        _licenceMissing.value = false
     }
 
     // -----------------------------------------------------------------------
@@ -407,6 +535,7 @@ class DriverApi(
         when (method) {
             "GET" -> builder.get()
             "POST" -> builder.post((body ?: "{}").toRequestBody(JSON_MEDIA))
+            "PUT" -> builder.put((body ?: "{}").toRequestBody(JSON_MEDIA))
             else -> throw IllegalArgumentException("Unsupported method $method")
         }
 

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The vehicle adapter sheet: pairing a Bluetooth OBD adapter. -->
+<resources>
+    <string name="adapter_title">Vehicle adapter</string>
+    <string name="adapter_intro">Plug the adapter into the vehicle\'s OBD port and pair it in your phone\'s Bluetooth settings. Then choose it here - once only.</string>
+    <string name="adapter_look_again">Look again</string>
+    <string name="adapter_connect_label">Connect to %1$s</string>
+    <string name="adapter_connecting">Connecting to %1$s…</string>
+    <string name="adapter_generic_name">the adapter</string>
+    <string name="adapter_failed">Could not connect to %1$s. Check it is plugged in and the ignition is on, then choose it again.</string>
+    <string name="adapter_connected">Connected. Saarthi is reading this vehicle\'s engine directly.</string>
+    <string name="adapter_connected_note">It will reconnect on its own each time you start the vehicle. There is nothing to switch off.</string>
+    <string name="adapter_engine_asleep">The adapter is connected, but the engine is not answering yet. Turn the ignition on and Saarthi will start reading it.</string>
+
+    <string name="adapter_no_radio_title">No Bluetooth on this phone</string>
+    <string name="adapter_no_radio_body">This phone cannot connect to a vehicle adapter.</string>
+    <string name="adapter_permission_title">Allow Bluetooth</string>
+    <string name="adapter_permission_body">Humsafar needs permission to connect to nearby devices before it can talk to the adapter.</string>
+    <string name="adapter_permission_allow">Allow</string>
+    <string name="adapter_permission_refused">Permission was refused. Allow Nearby devices for Humsafar in your phone\'s settings.</string>
+    <string name="adapter_open_app_settings">Open settings</string>
+    <string name="adapter_off_title">Bluetooth is off</string>
+    <string name="adapter_off_body">Turn Bluetooth on to connect to the adapter.</string>
+    <string name="adapter_open_bluetooth">Open Bluetooth settings</string>
+    <string name="adapter_empty_title">No adapter paired yet</string>
+    <string name="adapter_empty_body">Pair the adapter in your phone\'s Bluetooth settings first, then come back and look again.</string>
+</resources>

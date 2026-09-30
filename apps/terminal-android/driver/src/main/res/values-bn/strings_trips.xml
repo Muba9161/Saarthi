@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="trips_distance_recorded">চালানো দূরত্ব, রেকর্ড করা</string>
+    <string name="trips_km_unit">km</string>
+    <string name="trips_km">%1$s km</string>
+    <plurals name="trips_measured_across">
+        <item quantity="one">Saarthi-র মাপা %dটি শেষ হওয়া ট্রিপ মিলিয়ে। চলতি ট্রিপ ধরা হয়নি।</item>
+        <item quantity="other">Saarthi-র মাপা %dটি শেষ হওয়া ট্রিপ মিলিয়ে। চলতি ট্রিপ ধরা হয়নি।</item>
+    </plurals>
+    <string name="trips_none_measured">Saarthi এখনও কোনো শেষ হওয়া ট্রিপের দূরত্ব মাপেনি। চলতি ট্রিপ ধরা হয়নি।</string>
+
+    <string name="trips_filter_all">সব</string>
+    <string name="trips_filter_finished">শেষ</string>
+    <string name="trips_filter_open">চলছে</string>
+
+    <string name="trips_section_open">চলছে</string>
+    <string name="trips_section_finished">শেষ</string>
+    <string name="trips_none_open">এখন কোনো ট্রিপ চলছে না।</string>
+    <string name="trips_none_finished">এখনও কোনো ট্রিপ শেষ হয়নি।</string>
+
+    <string name="trips_in_progress">চলছে</string>
+    <string name="trips_no_destination">আপনার ফ্লিট গন্তব্য ঠিক করেনি</string>
+    <string name="trips_planned">%1$s পরিকল্পিত</string>
+    <string name="trips_started">শুরু হয়েছে %1$s</string>
+
+    <string name="trips_route">%1$s → %2$s</string>
+    <string name="trips_untitled">ট্রিপ</string>
+    <string name="trips_planned_word">পরিকল্পিত</string>
+
+    <string name="trips_loading">আপনার ট্রিপ লোড হচ্ছে</string>
+    <string name="trips_empty_title">এখনও কোনো ট্রিপ নেই</string>
+    <string name="trips_empty_body">আপনার শেষ করা ট্রিপ এখানে দেখা যাবে, প্রতিটিতে Saarthi-র মাপা দূরত্বসহ।</string>
+    <string name="trips_offline_title">সিগন্যাল নেই</string>
+    <string name="trips_offline_body">আপনার ট্রিপ লোড হতে সিগন্যাল লাগবে। ফোন আবার যুক্ত হলেই এখানে দেখা যাবে।</string>
+    <string name="trips_error_title">আপনার ট্রিপ লোড করা গেল না</string>
+    <string name="trips_error_body">Saarthi এই মুহূর্তে আপনার ফ্লিটের কাছে পৌঁছাতে পারেনি। একটু পরে আবার চেষ্টা করুন।</string>
+    <string name="trips_retry">আবার চেষ্টা করুন</string>
+</resources>

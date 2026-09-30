@@ -259,7 +259,14 @@ export function DriverDetailPage() {
               title="Driving licence"
               description="The RTO record for this driver: entitlement classes, validity and issuing authority."
             />
-            <LicenceLookupPanel licenceNumber={person.licenseNumber} />
+            {person.licenseNumber ? (
+              <LicenceLookupPanel licenceNumber={person.licenseNumber} />
+            ) : (
+              <EmptyState
+                title="Licence not added"
+                description="This driver registered without a driving licence number. It appears here once they add it in the Saarthi app."
+              />
+            )}
           </TabsContent>
         ) : null}
       </Tabs>

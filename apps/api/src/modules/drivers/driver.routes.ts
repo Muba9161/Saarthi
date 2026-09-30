@@ -4,6 +4,7 @@ import {
   Feature,
   Permission,
   QrSubjectType,
+  addDriverLicenceSchema,
   adjustScoreSchema,
   createDriverSchema,
   driverListQuerySchema,
@@ -22,6 +23,7 @@ import {
 import { AuditAction, auditFromRequest } from '../audit/audit.service';
 import * as authService from '../../auth/auth.service';
 import * as driverService from './driver.service';
+import { addOwnLicence } from './driver-licence.service';
 import { driverAppInviteStatus, inviteDriversToApp } from './driver-app-invite.service';
 import { releaseDriver } from './driver-release.service';
 import * as qrService from '../qr/qr.service';
@@ -102,6 +104,28 @@ export async function driverRoutes(app: FastifyInstance): Promise<void> {
       reply,
       await authService.switchOrganization(auth.user.id, auth.sessionId, result.fleet.id),
     );
+  });
+
+  /*
+   * A driver adding the licence they skipped at registration ("I'll do it
+   * later"). Self-service like joining a fleet: it acts only on the caller's
+   * own driver row, and only while that row has no licence — see
+   * `addOwnLicence`.
+   */
+  app.put('/me/licence', async (request, reply) => {
+    const auth = requireAuth(request);
+    const input = parseBody(addDriverLicenceSchema, request.body);
+    const result = await addOwnLicence(auth, input);
+
+    await auditFromRequest(request, {
+      action: AuditAction.DRIVER_UPDATED,
+      entityType: 'Driver',
+      entityId: result.driverId,
+      organizationId: result.organizationId,
+      after: { licenseNumber: result.licenseNumber, self: true },
+    });
+
+    return ok(reply, { licenseNumber: result.licenseNumber });
   });
 
   /*

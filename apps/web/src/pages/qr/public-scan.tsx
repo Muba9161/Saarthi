@@ -370,6 +370,10 @@ export function PublicScanPage() {
               <p className="truncate text-sm text-muted-foreground">
                 {result.identity.secondaryLabel}
               </p>
+            ) : result.subjectType === 'DRIVER' ? (
+              // A driver's second line is their licence, which they may not
+              // have added yet — they can register first and add it later.
+              <p className="truncate text-sm text-muted-foreground">Licence: Not added</p>
             ) : null}
 
             {result.identity.organizationName ? (

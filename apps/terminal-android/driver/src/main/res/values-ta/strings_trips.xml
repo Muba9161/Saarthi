@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="trips_distance_recorded">ஓட்டிய தூரம், பதிவானது</string>
+    <string name="trips_km_unit">km</string>
+    <string name="trips_km">%1$s km</string>
+    <plurals name="trips_measured_across">
+        <item quantity="one">Saarthi அளந்த %d முடிந்த ட்ரிப்பின் அடிப்படையில். நடந்து வரும் ட்ரிப்கள் கணக்கில் இல்லை.</item>
+        <item quantity="other">Saarthi அளந்த %d முடிந்த ட்ரிப்களின் அடிப்படையில். நடந்து வரும் ட்ரிப்கள் கணக்கில் இல்லை.</item>
+    </plurals>
+    <string name="trips_none_measured">முடிந்த எந்த ட்ரிப்பின் தூரத்தையும் Saarthi இன்னும் அளக்கவில்லை. நடந்து வரும் ட்ரிப்கள் கணக்கில் இல்லை.</string>
+
+    <string name="trips_filter_all">அனைத்தும்</string>
+    <string name="trips_filter_finished">முடிந்தவை</string>
+    <string name="trips_filter_open">நடப்பவை</string>
+
+    <string name="trips_section_open">நடப்பவை</string>
+    <string name="trips_section_finished">முடிந்தவை</string>
+    <string name="trips_none_open">இப்போது எந்த ட்ரிப்பும் நடக்கவில்லை.</string>
+    <string name="trips_none_finished">இன்னும் முடிந்த ட்ரிப்கள் இல்லை.</string>
+
+    <string name="trips_in_progress">நடந்து வருகிறது</string>
+    <string name="trips_no_destination">உங்கள் ஃப்ளீட் சேருமிடத்தை அமைக்கவில்லை</string>
+    <string name="trips_planned">%1$s திட்டமிடப்பட்டது</string>
+    <string name="trips_started">%1$s தொடங்கியது</string>
+
+    <string name="trips_route">%1$s → %2$s</string>
+    <string name="trips_untitled">ட்ரிப்</string>
+    <string name="trips_planned_word">திட்டமிடப்பட்டது</string>
+
+    <string name="trips_loading">உங்கள் ட்ரிப்கள் ஏற்றப்படுகின்றன</string>
+    <string name="trips_empty_title">இன்னும் ட்ரிப்கள் இல்லை</string>
+    <string name="trips_empty_body">நீங்கள் முடிக்கும் ட்ரிப்கள், ஒவ்வொன்றிலும் Saarthi அளந்த தூரத்துடன் இங்கே காட்டப்படும்.</string>
+    <string name="trips_offline_title">சிக்னல் இல்லை</string>
+    <string name="trips_offline_body">உங்கள் ட்ரிப்கள் ஏற சிக்னல் தேவை. போன் மீண்டும் இணைந்ததும் அவை இங்கே காட்டப்படும்.</string>
+    <string name="trips_error_title">உங்கள் ட்ரிப்களை ஏற்ற முடியவில்லை</string>
+    <string name="trips_error_body">இப்போது Saarthi-ஆல் உங்கள் ஃப்ளீட்டை அணுக முடியவில்லை. சிறிது நேரத்தில் மீண்டும் முயலுங்கள்.</string>
+    <string name="trips_retry">மீண்டும் முயலவும்</string>
+</resources>

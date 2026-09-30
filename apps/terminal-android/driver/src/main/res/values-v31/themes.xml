@@ -11,7 +11,7 @@
   Set to the same Obsidian the app itself uses, so the first frame the driver
   sees and every frame after it are the same colour. The icon is the launcher
   foreground, whose geometry is corrected in `ic_launcher_foreground.xml`; the
-  full logo with the name and the tagline follows a moment later in `FleetSplash`.
+  full logo with the name follows a moment later in `SplashScreen`.
 -->
 <resources>
     <style name="Theme.SaarthiDriver" parent="android:Theme.Material.NoActionBar">

@@ -245,7 +245,8 @@ async function createTruck(organizationId: string, registrationNumber = nextPlat
 async function createDriver(
   organizationId: string,
   data: {
-    licenseNumber?: string;
+    /** `null` for a driver who registered without one and has not added it yet. */
+    licenseNumber?: string | null;
     dateOfBirth?: Date | null;
     /** Confirm the three identity checks up front, to isolate the licence. */
     identityConfirmed?: boolean;
@@ -258,7 +259,7 @@ async function createDriver(
     data: {
       userId: user.id,
       organizationId,
-      licenseNumber: data.licenseNumber ?? nextLicence(),
+      licenseNumber: data.licenseNumber === undefined ? nextLicence() : data.licenseNumber,
       dateOfBirth: data.dateOfBirth === undefined ? new Date('1988-03-14') : data.dateOfBirth,
       aadhaarVerifiedAt: confirmed,
       panVerifiedAt: confirmed,
@@ -618,10 +619,11 @@ describe('registry verification — drivers', () => {
   it('accepts the document number when it matches the profile', async () => {
     stubRegistry();
     const driver = await createDriver(fleet.id);
+    const licence = driver.licenseNumber!;
 
     // Typed with the separators a licence is printed with.
     const response = await verify('driver', driver.id, owner, {
-      licenceNumber: `${driver.licenseNumber.slice(0, 4)}-${driver.licenseNumber.slice(4)}`,
+      licenceNumber: `${licence.slice(0, 4)}-${licence.slice(4)}`,
     });
 
     expect(response.body.data.verified).toBe(true);
@@ -656,6 +658,24 @@ describe('registry verification — drivers', () => {
     expect(details?.fields).toHaveProperty('dateOfBirth');
     // Refused before the provider, so asking costs nothing.
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('refuses a driver who has not added a licence yet, before any charge or call', async () => {
+    const fetchMock = stubRegistry();
+    const driver = await createDriver(fleet.id, { licenseNumber: null });
+
+    const response = await verify<unknown>('driver', driver.id, owner, {});
+
+    expect(response.status).toBe(422);
+    expect(response.body.error?.code).toBe('BUSINESS_RULE_VIOLATION');
+    expect(response.body.error?.message).toMatch(/no driving licence number has been added/i);
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    // "Not added" is not a rejection: the driver is left as they were and
+    // nothing is charged for a check that could not run.
+    const stored = await prisma.driver.findUniqueOrThrow({ where: { id: driver.id } });
+    expect(stored.verificationStatus).toBe(VerificationStatus.PENDING);
+    expect(await prisma.verificationCharge.count({ where: { subjectId: driver.id } })).toBe(0);
   });
 
   it('accepts a date of birth in the request and keeps it once it has worked', async () => {

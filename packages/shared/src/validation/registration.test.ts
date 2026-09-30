@@ -12,6 +12,7 @@ import {
   registrationRole,
   registrationRunsVehicles,
 } from './auth';
+import { addDriverLicenceSchema } from './fleet';
 
 /**
  * Registration, as the rules rather than as the form.
@@ -29,6 +30,7 @@ function registration(overrides: Record<string, unknown> = {}) {
     firstName: 'Ravi',
     lastName: 'Kumar',
     email: `ravi.${Math.random().toString(36).slice(2, 10)}@example.com`,
+    emailCode: '123456',
     phone: '9876543210',
     password: 'Monsoon2026road',
     preferredLanguage: DEFAULT_LOCALE,
@@ -234,5 +236,36 @@ describe('registration plans', () => {
 
     expect(result.success).toBe(true);
     if (result.success) expect(result.data.planTier).toBeUndefined();
+  });
+
+  it('lets a driver register without a licence and add it later', () => {
+    // "I'll do it later": the licence arrives afterwards from the app, via
+    // `addDriverLicenceSchema`. A blank answer is "not added", never "".
+    for (const licenseNumber of [undefined, '', '   ']) {
+      const result = registerSchema.safeParse(registration({ role: RoleName.DRIVER, licenseNumber }));
+
+      expect(result.success).toBe(true);
+      if (result.success) expect(result.data.licenseNumber).toBeUndefined();
+    }
+  });
+});
+
+describe('a driver adding their licence later', () => {
+  it('trims and uppercases the number', () => {
+    const result = addDriverLicenceSchema.safeParse({ licenseNumber: '  up32 2014 0012345 ' });
+
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.licenseNumber).toBe('UP32 2014 0012345');
+  });
+
+  it('refuses a missing, blank, too short or too long number', () => {
+    for (const payload of [
+      {},
+      { licenseNumber: '   ' },
+      { licenseNumber: 'AB1' },
+      { licenseNumber: 'A'.repeat(41) },
+    ]) {
+      expect(addDriverLicenceSchema.safeParse(payload).success).toBe(false);
+    }
   });
 });

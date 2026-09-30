@@ -1,9 +1,13 @@
 package com.saarthi.driver.ui
 
 import android.app.Application
+import androidx.annotation.StringRes
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.saarthi.core.domain.TerminalState
+import com.saarthi.core.ui.Language
 import com.saarthi.core.util.DebugLog
+import com.saarthi.driver.R
 import com.saarthi.driver.SaarthiDriverApp
 import com.saarthi.driver.data.DriverAccountStore
 import com.saarthi.driver.data.QuickLoginStore
@@ -51,6 +55,12 @@ class DriverViewModel(application: Application) : AndroidViewModel(application) 
 
     /** Who is signed in, for the profile. Null once they sign out. */
     val account: StateFlow<DriverAccountStore.Account?> = app.account.account
+
+    /** Whether the driver belongs to a fleet yet, from the latest session. */
+    val fleet: StateFlow<DriverApi.Fleet?> = api.fleet
+
+    /** The driver registered without a licence and has not added it yet. */
+    val licenceMissing: StateFlow<Boolean> = api.licenceMissing
 
     /** Where the driver is on the way to a working cockpit. */
     sealed interface Stage {
@@ -210,6 +220,46 @@ class DriverViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    /**
+     * Join a fleet with its joining code.
+     *
+     * Self-service, and the code is the whole authorisation — the server says
+     * in plain words when it is wrong, full, or the driver already belongs
+     * elsewhere, and that sentence lands in [error] like any other refusal.
+     */
+    fun joinFleet(code: String, onJoined: (DriverApi.Fleet) -> Unit) {
+        attempt { onJoined(api.joinFleet(code)) }
+    }
+
+    /**
+     * Email the registration code. Not behind [busy]: the step stays on screen
+     * while it sends, rather than switching to "Creating your account".
+     */
+    fun sendRegistrationCode(email: String, firstName: String, onSent: (DriverApi.EmailCode?) -> Unit) {
+        viewModelScope.launch {
+            _error.value = null
+            val sent = try {
+                api.sendRegistrationCode(email, firstName)
+            } catch (failure: DriverApi.Failure) {
+                _error.value = failure.message
+                null
+            } catch (failure: Exception) {
+                DebugLog.warn(TAG, "Could not send the registration code: ${failure.message}")
+                _error.value = text(R.string.error_generic)
+                null
+            }
+            onSent(sent)
+        }
+    }
+
+    /** Record the licence skipped at sign-up. Failures land in [error]. */
+    fun addLicence(number: String, onSaved: () -> Unit) {
+        attempt {
+            api.addLicence(number)
+            onSaved()
+        }
+    }
+
     /** Poll for a decision. Called while the waiting screen is on show. */
     fun refreshAssignment() {
         viewModelScope.launch {
@@ -343,7 +393,7 @@ class DriverViewModel(application: Application) : AndroidViewModel(application) 
      */
     fun reportBiometricUnavailable() {
         _error.value = quickLogin.takeBiometricProblem()
-            ?: "Fingerprint unlock is not available just now. Use your PIN or password."
+            ?: text(R.string.biometric_unavailable)
     }
 
     /**
@@ -451,7 +501,7 @@ class DriverViewModel(application: Application) : AndroidViewModel(application) 
         // holding the phone; only the refresh endpoint can say the session lives.
         val driver = api.restoreWith(token)
         _stage.value = if (driver == null) {
-            _error.value = "Your session has expired. Please sign in again."
+            _error.value = text(R.string.session_expired)
             Stage.SignedOut
         } else {
             stageForOpenAssignment(driver)
@@ -474,19 +524,17 @@ class DriverViewModel(application: Application) : AndroidViewModel(application) 
     private fun describe(failure: QuickLoginStore.Failure?): String = when (failure) {
         is QuickLoginStore.Failure.WrongPin ->
             if (failure.attemptsLeft == 1) {
-                "Wrong PIN. One more attempt before you will need to sign in."
+                text(R.string.pin_wrong_last)
             } else {
-                "Wrong PIN. ${failure.attemptsLeft} attempts left."
+                text(R.string.pin_wrong_left, failure.attemptsLeft)
             }
 
-        is QuickLoginStore.Failure.CoolingDown ->
-            "Too many attempts. Try again in ${failure.seconds} seconds."
+        is QuickLoginStore.Failure.CoolingDown -> text(R.string.pin_cooling_down, failure.seconds)
 
-        QuickLoginStore.Failure.LockedOut ->
-            "Too many wrong PINs. Please sign in with your password."
+        QuickLoginStore.Failure.LockedOut -> text(R.string.pin_locked_out)
 
         is QuickLoginStore.Failure.Unavailable -> failure.reason
-        null -> "Quick Login could not be used. Please sign in."
+        null -> text(R.string.quick_login_failed)
     }
 
     /** Sign out of the phone entirely. */
@@ -544,10 +592,20 @@ class DriverViewModel(application: Application) : AndroidViewModel(application) 
      * tablet does.
      *
      * Idempotent: a phone already paired to this vehicle skips the whole dance,
-     * which is what happens every time the app is reopened mid-shift.
+     * which is what happens every time the app is reopened mid-shift — but only
+     * once the server confirms that pairing still stands. A stored pairing the
+     * server has since let go of (a finished session, a revoked device) would
+     * otherwise be trusted for the whole shift, and the cockpit would sit on
+     * "Not signed on" while the driver drives an approved truck.
      */
     private suspend fun pairToVehicle(assignment: DriverApi.AssignmentDto) {
-        if (app.identity.pairedRegistration == assignment.registrationNumber) return
+        if (app.identity.pairedRegistration == assignment.registrationNumber) {
+            val confirmed = app.repository.refresh().isSuccess &&
+                TerminalState.parse(app.repository.state.value?.state).signedOnToVehicle
+            if (confirmed) return
+            DebugLog.info(TAG, "Stored pairing to ${assignment.registrationNumber} no longer holds; pairing again")
+            app.repository.forgetPairing()
+        }
 
         try {
             val pairing = api.vehiclePairing(assignment.id)
@@ -559,7 +617,7 @@ class DriverViewModel(application: Application) : AndroidViewModel(application) 
             // cockpit will say it cannot report rather than the app refusing to
             // open. Reporting is the thing that degrades, not the shift.
             DebugLog.warn(TAG, "Could not pair to the vehicle: ${error.message}")
-            _error.value = "Signed on, but this phone could not connect to the vehicle yet."
+            _error.value = text(R.string.pair_failed)
         }
     }
 
@@ -574,12 +632,20 @@ class DriverViewModel(application: Application) : AndroidViewModel(application) 
                 _error.value = failure.message
             } catch (failure: Exception) {
                 DebugLog.warn(TAG, "Unexpected failure: ${failure.message}")
-                _error.value = "Something went wrong. Please try again."
+                _error.value = text(R.string.error_generic)
             } finally {
                 _busy.value = false
             }
         }
     }
+
+    /**
+     * A sentence in the driver's chosen language.
+     *
+     * Through [Language.wrap] because only the activity's context carries the
+     * in-app language; the application's own resources follow the phone.
+     */
+    private fun text(@StringRes id: Int, vararg args: Any): String = Language.wrap(app).getString(id, *args)
 
     private companion object {
         const val TAG = "DriverViewModel"

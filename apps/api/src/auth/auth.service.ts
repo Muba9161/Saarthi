@@ -33,6 +33,7 @@ import { createDefaultSubscription } from '../modules/subscriptions/entitlements
 import { provisionSignupOrder } from '../modules/subscriptions/signup-order.service';
 import { provisionDriverCodeOnRegistration } from '../modules/qr/qr.service';
 import { allocateInviteCode, resolveJoinableFleet } from '../modules/organizations/fleet-invite.service';
+import { assertLicenceFreeInOrganization } from '../modules/drivers/driver-licence.service';
 import {
   attributeRegistration,
   liveAttributionFor,
@@ -245,20 +246,19 @@ export async function register(input: RegisterInput, meta: RequestMeta) {
         organizationId = personal.id;
       }
 
-      const duplicateLicence = await tx.driver.findFirst({
-        where: { organizationId, licenseNumber: input.licenseNumber! },
-      });
-      if (duplicateLicence) {
-        throw errors.duplicate('This licence number is already registered with the fleet.', {
-          fields: { licenseNumber: ['This licence number is already registered with the fleet.'] },
-        });
-      }
+      /*
+       * The licence is optional: a driver may choose "I'll do it later" and
+       * add it from the app afterwards (`PUT /drivers/me/licence`). Only a
+       * licence that was actually given can clash with another driver's.
+       */
+      const licenseNumber = input.licenseNumber || null;
+      if (licenseNumber) await assertLicenceFreeInOrganization(tx, organizationId, licenseNumber);
 
       const driver = await tx.driver.create({
         data: {
           userId: user.id,
           organizationId,
-          licenseNumber: input.licenseNumber!,
+          licenseNumber,
           licenseExpiryDate: input.licenseExpiryDate ?? null,
           // Same rule as Fleet → Add driver in driver.service.ts: with checks
           // enforced a new driver starts PENDING until an authority confirms

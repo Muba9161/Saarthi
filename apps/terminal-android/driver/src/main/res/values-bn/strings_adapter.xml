@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="adapter_title">গাড়ির অ্যাডাপ্টার</string>
+    <string name="adapter_intro">অ্যাডাপ্টারটি গাড়ির OBD পোর্টে লাগান আর ফোনের ব্লুটুথ সেটিংসে পেয়ার করুন। তারপর এখানে সেটি বেছে নিন - শুধু একবার।</string>
+    <string name="adapter_look_again">আবার খুঁজুন</string>
+    <string name="adapter_connect_label">%1$s-এর সঙ্গে যুক্ত করুন</string>
+    <string name="adapter_connecting">%1$s-এর সঙ্গে যুক্ত হচ্ছে…</string>
+    <string name="adapter_generic_name">অ্যাডাপ্টার</string>
+    <string name="adapter_failed">%1$s-এর সঙ্গে যুক্ত হওয়া গেল না। দেখে নিন এটি লাগানো আছে আর ইগনিশন চালু আছে, তারপর আবার বেছে নিন।</string>
+    <string name="adapter_connected">যুক্ত হয়েছে। Saarthi সরাসরি এই গাড়ির ইঞ্জিন থেকে তথ্য পড়ছে।</string>
+    <string name="adapter_connected_note">প্রতিবার গাড়ি স্টার্ট করলে এটি নিজে থেকেই আবার যুক্ত হবে। কিছু বন্ধ করার দরকার নেই।</string>
+    <string name="adapter_engine_asleep">অ্যাডাপ্টার যুক্ত আছে, কিন্তু ইঞ্জিন এখনও সাড়া দিচ্ছে না। ইগনিশন চালু করুন, Saarthi পড়া শুরু করবে।</string>
+
+    <string name="adapter_no_radio_title">এই ফোনে ব্লুটুথ নেই</string>
+    <string name="adapter_no_radio_body">এই ফোন গাড়ির অ্যাডাপ্টারের সঙ্গে যুক্ত হতে পারবে না।</string>
+    <string name="adapter_permission_title">ব্লুটুথের অনুমতি দিন</string>
+    <string name="adapter_permission_body">অ্যাডাপ্টারের সঙ্গে কথা বলার আগে কাছের ডিভাইসের সঙ্গে যুক্ত হওয়ার অনুমতি হমসফরের দরকার।</string>
+    <string name="adapter_permission_allow">অনুমতি দিন</string>
+    <string name="adapter_permission_refused">অনুমতি দেওয়া হয়নি। ফোনের সেটিংসে হমসফরের জন্য Nearby devices-এর অনুমতি দিন।</string>
+    <string name="adapter_open_app_settings">সেটিংস খুলুন</string>
+    <string name="adapter_off_title">ব্লুটুথ বন্ধ আছে</string>
+    <string name="adapter_off_body">অ্যাডাপ্টারের সঙ্গে যুক্ত হতে ব্লুটুথ চালু করুন।</string>
+    <string name="adapter_open_bluetooth">ব্লুটুথ সেটিংস খুলুন</string>
+    <string name="adapter_empty_title">এখনও কোনো অ্যাডাপ্টার পেয়ার করা নেই</string>
+    <string name="adapter_empty_body">আগে ফোনের ব্লুটুথ সেটিংসে অ্যাডাপ্টারটি পেয়ার করুন, তারপর ফিরে এসে আবার খুঁজুন।</string>
+</resources>

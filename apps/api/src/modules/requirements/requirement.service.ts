@@ -487,6 +487,16 @@ export async function getRequirement(
   return (await decorateRequirements([requirement], auth))[0]!;
 }
 
+/** Events about individual bids, which name the bidder. */
+const BID_EVENT_TYPES = [
+  'BID_PLACED',
+  'BID_UPDATED',
+  'BID_WITHDRAWN',
+  'BID_SHORTLISTED',
+  'BID_ACCEPTED',
+  'BID_REJECTED',
+] as const;
+
 export async function getTimeline(auth: AuthContext, requirementId: string) {
   const requirement = await prisma.requirement.findUnique({
     where: { id: requirementId },
@@ -495,8 +505,16 @@ export async function getTimeline(auth: AuthContext, requirementId: string) {
   if (!requirement) throw errors.notFound('Requirement');
   await assertRequirementAccess(auth, requirement);
 
+  // The customer sees the whole story. Anyone else — a would-be bidder — sees
+  // how the requirement moved but not the individual bids: those events name
+  // the rival businesses, which a sealed auction keeps from each other.
+  const isCustomer =
+    auth.isPlatformAdmin || requirement.customerOrganizationId === auth.organizationId;
   const events = await prisma.requirementEvent.findMany({
-    where: { requirementId },
+    where: {
+      requirementId,
+      ...(isCustomer ? {} : { type: { notIn: [...BID_EVENT_TYPES] } }),
+    },
     orderBy: { createdAt: 'asc' },
     take: 200,
   });
@@ -916,6 +934,26 @@ export async function placeBid(
     }
     if (provider.status !== 'ACTIVE') {
       throw errors.businessRule('Your provider profile is not accepting new work right now.');
+    }
+  }
+
+  // Whatever the scope, a vehicle or driver named on a bid is shown to the
+  // customer as the bidder's own, with its registration, capacity and the
+  // driver's name and score — so it must be. Transport bids are checked above.
+  if (input.scope !== RequirementBidScope.TRANSPORT) {
+    if (input.vehicleId) {
+      const vehicle = await prisma.truck.findFirst({
+        where: { id: input.vehicleId, organizationId, archivedAt: null },
+        select: { id: true },
+      });
+      if (!vehicle) throw errors.notFound('Vehicle');
+    }
+    if (input.driverId) {
+      const driver = await prisma.driver.findFirst({
+        where: { id: input.driverId, organizationId },
+        select: { id: true },
+      });
+      if (!driver) throw errors.notFound('Driver');
     }
   }
 

@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="vehicle_sheet_title">গাড়ির বিবরণ</string>
+    <string name="vehicle_live_title">গাড়ির লাইভ তথ্য</string>
+    <string name="vehicle_live_battery">ব্যাটারি</string>
+    <string name="vehicle_live_load">লোড</string>
+    <string name="vehicle_unit_volts">V</string>
+    <string name="vehicle_codes_none">ট্রাবল কোড · কিছু পাওয়া যায়নি</string>
+    <string name="vehicle_codes_unread">ট্রাবল কোড · শুধু অ্যাডাপ্টার যুক্ত থাকলে পড়া যায়</string>
+    <plurals name="vehicle_codes_found">
+        <item quantity="one">ট্রাবল কোড · %1$dটি পাওয়া গেছে</item>
+        <item quantity="other">ট্রাবল কোড · %1$dটি পাওয়া গেছে</item>
+    </plurals>
+
+    <string name="vehicle_passport_title">গাড়ির পাসপোর্ট</string>
+    <string name="vehicle_row_registration">রেজিস্ট্রেশন</string>
+    <string name="vehicle_row_type">ধরন</string>
+    <string name="vehicle_row_make">কোম্পানি ও মডেল</string>
+    <string name="vehicle_row_year">বছর</string>
+    <string name="vehicle_row_fuel">জ্বালানি</string>
+    <string name="vehicle_row_capacity">ক্ষমতা</string>
+    <string name="vehicle_row_fleet">ফ্লিট</string>
+    <string name="vehicle_capacity_value">%1$s টন</string>
+    <string name="vehicle_odometer_value">%1$s km</string>
+    <string name="vehicle_fuel_electric">ইলেকট্রিক</string>
+    <string name="vehicle_fuel_hybrid">হাইব্রিড</string>
+    <string name="vehicle_fuel_lng">এলএনজি</string>
+
+    <string name="vehicle_you_title">আপনি</string>
+    <string name="vehicle_row_name">নাম</string>
+    <string name="vehicle_row_licence_class">লাইসেন্সের শ্রেণি</string>
+    <string name="vehicle_row_licence">লাইসেন্স</string>
+    <string name="vehicle_row_profile">প্রোফাইল</string>
+    <string name="vehicle_row_trips">ট্রিপ</string>
+    <string name="vehicle_licence_valid">%1$s পর্যন্ত বৈধ</string>
+    <string name="vehicle_licence_expiring">%1$s-এ মেয়াদ শেষ হবে</string>
+    <string name="vehicle_licence_expired">%1$s-এ মেয়াদ শেষ হয়েছে</string>
+    <string name="vehicle_licence_pending">যাচাইয়ের অপেক্ষায়</string>
+    <string name="vehicle_licence_no_expiry">মেয়াদের তারিখ নেই</string>
+    <string name="vehicle_licence_rejected">বাতিল হয়েছে</string>
+    <string name="vehicle_profile_pending">বাকি</string>
+    <string name="vehicle_profile_submitted">জমা দেওয়া হয়েছে</string>
+    <string name="vehicle_profile_under_review">দেখা হচ্ছে</string>
+    <string name="vehicle_profile_verified">যাচাই হয়েছে</string>
+    <string name="vehicle_profile_rejected">বাতিল হয়েছে</string>
+    <string name="vehicle_profile_expired">মেয়াদ শেষ</string>
+    <string name="vehicle_profile_suspended">সাসপেন্ড করা হয়েছে</string>
+
+    <string name="vehicle_problems_title">জানানো সমস্যা</string>
+    <string name="vehicle_report_open">সমস্যা জানান</string>
+    <string name="vehicle_report_label">কী সমস্যা হয়েছে?</string>
+    <string name="vehicle_report_send">আপনার ফ্লিটকে পাঠান</string>
+    <string name="vehicle_report_sending">পাঠানো হচ্ছে…</string>
+    <string name="vehicle_report_failed">এটা পাঠানো গেল না। সিগন্যাল দেখে আবার চেষ্টা করুন।</string>
+    <string name="vehicle_issue_engine">ইঞ্জিন</string>
+    <string name="vehicle_issue_tyre">টায়ার</string>
+    <string name="vehicle_issue_brake">ব্রেক</string>
+    <string name="vehicle_issue_electrical">ইলেকট্রিক্যাল</string>
+    <string name="vehicle_issue_accident">দুর্ঘটনা</string>
+    <string name="vehicle_issue_body">বডি</string>
+    <string name="vehicle_issue_other">অন্য</string>
+    <string name="vehicle_issue_status_open">খোলা</string>
+    <string name="vehicle_issue_status_acknowledged">দেখা হয়েছে</string>
+    <string name="vehicle_issue_status_in_progress">কাজ চলছে</string>
+    <string name="vehicle_issue_status_resolved">সমাধান হয়েছে</string>
+    <string name="vehicle_issue_status_dismissed">বাদ দেওয়া হয়েছে</string>
+    <string name="vehicle_issue_head">%1$s · %2$s</string>
+    <string name="vehicle_issues_none">এই গাড়ির জন্য কিছু জানানো হয়নি।</string>
+    <string name="vehicle_issues_offline">আপনি অফলাইন আছেন, তাই আগে জানানো সমস্যাগুলো আনা যায়নি।</string>
+</resources>

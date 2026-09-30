@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="fuel_title">எரிபொருள் ரசீது</string>
+    <string name="fuel_step_photo">போட்டோ</string>
+    <string name="fuel_step_figures">எண்கள்</string>
+    <string name="fuel_step_saved">சேமிக்கப்பட்டது</string>
+    <string name="fuel_step_label">படி %1$d / %2$d: %3$s</string>
+    <string name="fuel_lead">ரசீதைப் போட்டோ எடுத்து, இரண்டு எண்களையும் டைப் செய்யுங்கள். இனி காகிதத்தை வைத்திருக்க வேண்டாம்.</string>
+    <string name="fuel_rear_camera">பின் கேமரா</string>
+    <string name="fuel_frame_hint">முழு ரசீதும் சட்டத்துக்குள் வரும்படி வையுங்கள்.</string>
+    <string name="fuel_photograph">ரசீதைப் போட்டோ எடு</string>
+    <string name="fuel_taking">போட்டோ எடுக்கப்படுகிறது…</string>
+    <string name="fuel_photo_first">முதலில் ரசீதைப் போட்டோ எடுங்கள் - அதுதான் எண்களுக்கான ஆதாரம்.</string>
+    <string name="fuel_camera_needed">ரசீதைப் போட்டோ எடுக்க ஹம்சஃபருக்குக் கேமரா தேவை. கேமராவை அனுமதித்துவிட்டு, திரும்ப வாருங்கள்.</string>
+    <string name="fuel_open_settings">செட்டிங்ஸைத் திற</string>
+    <string name="fuel_photo_alt">நீங்கள் போட்டோ எடுத்த ரசீது</string>
+    <string name="fuel_retake">மீண்டும் எடு</string>
+    <string name="fuel_litres">லிட்டர்</string>
+    <string name="fuel_amount">செலுத்திய தொகை (₹)</string>
+    <string name="fuel_pump">பங்க் பெயர்</string>
+    <string name="fuel_odometer">ஓடோமீட்டர் (km)</string>
+    <string name="fuel_optional">விருப்பத்தேர்வு</string>
+    <string name="fuel_rate">₹%1$.2f</string>
+    <string name="fuel_per_litre">அதாவது லிட்டருக்கு %1$s.</string>
+    <string name="fuel_save">இந்த ரசீதைச் சேமி</string>
+    <string name="fuel_saving">சேமிக்கிறது…</string>
+    <string name="fuel_saved_title">சேமிக்கப்பட்டது</string>
+    <string name="fuel_saved_body">ரசீதும் எண்களும் உங்கள் ஃப்ளீட்டிடம் உள்ளன. காகிதத்தைத் தூக்கி எறியலாம்.</string>
+    <string name="fuel_add_another">இன்னொன்றைச் சேர்</string>
+</resources>

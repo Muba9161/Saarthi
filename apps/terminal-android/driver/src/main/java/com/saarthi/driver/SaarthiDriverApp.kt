@@ -15,6 +15,7 @@ import com.saarthi.core.network.RealtimeClient
 import com.saarthi.core.telemetry.TelemetryHub
 import com.saarthi.core.util.DebugLog
 import com.saarthi.driver.data.DriverAccountStore
+import com.saarthi.driver.data.DriverPreferences
 import com.saarthi.core.data.OfflineMaps
 import com.saarthi.core.data.PaperCache
 import com.saarthi.driver.data.QuickLoginStore
@@ -109,6 +110,9 @@ class SaarthiDriverApp : Application(), SaarthiApp {
      * must survive the driver moving between the cockpit and the dashboard.
      */
     val offlineMaps: OfflineMaps by lazy { OfflineMaps(this) }
+
+    /** Appearance and the instruments switch — choices only this app has. */
+    val preferences: DriverPreferences by lazy { DriverPreferences(this, settings) }
 
     override fun onCreate() {
         super.onCreate()

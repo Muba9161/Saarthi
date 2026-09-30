@@ -16,17 +16,13 @@ import android.view.WindowManager
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
-import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.saarthi.core.service.TerminalService
 import com.saarthi.core.ui.Language
-import com.saarthi.driver.ui.design.FleetTheme
+import com.saarthi.driver.ui.design.SaarthiTheme
 import com.saarthi.core.ui.TerminalViewModel
 import com.saarthi.core.util.DebugLog
 import com.saarthi.driver.ui.DriverRoot
@@ -83,7 +79,6 @@ class DriverActivity : FragmentActivity() {
         super.attachBaseContext(Language.wrap(newBase))
     }
 
-    @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -102,20 +97,11 @@ class DriverActivity : FragmentActivity() {
         setContent {
             val driver: DriverViewModel = viewModel()
             val cockpit: TerminalViewModel = viewModel()
-            var reducedMotion by remember { mutableStateOf(app.settings.reducedMotion) }
-            var darkTheme by remember { mutableStateOf(app.settings.darkTheme) }
-            val windowSize = calculateWindowSizeClass(this)
+            val appearance by app.preferences.appearance.collectAsState()
 
-            FleetTheme(darkTheme = darkTheme, reducedMotion = reducedMotion) {
-                DriverRoot(
-                    driver = driver,
-                    cockpit = cockpit,
-                    windowSize = windowSize,
-                    onDarkThemeChanged = {
-                        darkTheme = it
-                        app.settings.darkTheme = it
-                    },
-                )
+            // Phone, Light or Dark from Profile; the live map stays dark in all three.
+            SaarthiTheme(appearance = appearance, reducedMotion = app.settings.reducedMotion) {
+                DriverRoot(driver = driver, cockpit = cockpit, preferences = app.preferences)
             }
         }
     }

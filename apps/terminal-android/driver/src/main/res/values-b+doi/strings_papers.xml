@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="papers_lead">इस फ़ोन पर रक्खे दे, तां जे बिना सिग्नल आह्ली चेक पोस्ट पर कोई मुश्कल नेईं.</string>
+
+    <plurals name="papers_attention_soon">
+        <item quantity="one">इक कागज़ पर ध्यान देने दी लोड़ ऐ. इसदी मियाद मुक्कने शा पैह्लें दफ़्तर गी दस्सो.</item>
+        <item quantity="other">%d कागज़ें पर ध्यान देने दी लोड़ ऐ. इंदी मियाद मुक्कने शा पैह्लें दफ़्तर गी दस्सो.</item>
+    </plurals>
+    <plurals name="papers_attention_expired">
+        <item quantity="one">इक कागज़ दी मियाद मुक्की गेई ऐ. अज्ज गै दफ़्तर गी दस्सो.</item>
+        <item quantity="other">%d कागज़ें पर ध्यान देने दी लोड़ ऐ, ते घट्टो-घट्ट इक दी मियाद मुक्की गेई ऐ. अज्ज गै दफ़्तर गी दस्सो.</item>
+    </plurals>
+
+    <string name="papers_filter_all">सब</string>
+    <string name="papers_owner_vehicle">गड्डी</string>
+    <string name="papers_owner_yours">तुंदे</string>
+    <string name="papers_chip">%1$s · %2$d</string>
+    <string name="papers_sub">%1$s · %2$s</string>
+
+    <string name="papers_no_expiry">कोई मियाद दर्ज नेईं</string>
+    <string name="papers_expires_today">अज्ज मियाद मुक्कदी ऐ</string>
+    <plurals name="papers_days_left">
+        <item quantity="one">%d दिन बचेआ</item>
+        <item quantity="other">%d दिन बचे</item>
+    </plurals>
+    <plurals name="papers_years_left">
+        <item quantity="one">%d साल बचेआ</item>
+        <item quantity="other">%d साल बचे</item>
+    </plurals>
+    <plurals name="papers_expired_ago">
+        <item quantity="one">%d दिन पैह्लें मियाद मुक्की</item>
+        <item quantity="other">%d दिन पैह्लें मियाद मुक्की</item>
+    </plurals>
+
+    <string name="papers_on_phone">इस फ़ोन पर ऐ</string>
+    <string name="papers_not_on_phone">अजें इस फ़ोन पर नेईं</string>
+
+    <string name="papers_open_action">खोह्लो</string>
+    <string name="papers_opening">%1$s खुल्ला करदा ऐ.</string>
+    <string name="papers_opening_pdf">%1$s तुंदे PDF रीडर च खुल्ला करदा ऐ.</string>
+    <string name="papers_not_saved">एह् अजें इस फ़ोन पर नेईं ऐ. जित्थै सिग्नल होऐ उत्थै इक बारी खोह्लो, फ्ही एह् फ़ोन पर रेही जाग.</string>
+    <string name="papers_no_viewer">इस फ़ोन पर इस किस्म दी फ़ाइल खोह्लने आह्ला कोई ऐप नेईं. कोई PDF जां फ़ोटो व्यूअर इंस्टॉल करो, फ्ही कोशश करो.</string>
+
+    <string name="papers_loading">तुंदे कागज़ लोड होआ करदे न</string>
+    <string name="papers_none_vehicle">इस गड्डी दा कोई कागज़ दर्ज नेईं.</string>
+    <string name="papers_none_yours">तुंदा अपना कोई कागज़ दर्ज नेईं.</string>
+    <string name="papers_empty_title">कोई कागज़ दर्ज नेईं</string>
+    <string name="papers_empty_body">तुंदी फ़्लीट नै अजें तुंदे जां इस गड्डी आस्तै कोई कागज़ नेईं जोड़ेआ. दफ़्तर गी इनेंगी अपलोड करने आस्तै आखो.</string>
+    <string name="papers_error_title">तुंदे कागज़ लोड नेईं होई सके</string>
+    <string name="papers_retry">फ्ही कोशश करो</string>
+</resources>

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Pre-trip safety check (ui/shift/checklist) -->
+    <string name="checklist_title">Pre-trip safety check</string>
+    <string name="checklist_loading">Getting your checklist…</string>
+    <string name="checklist_progress_count">%1$d/%2$d</string>
+    <string name="checklist_progress_title">%1$d of %2$d checked</string>
+    <plurals name="checklist_by_vehicle">
+        <item quantity="one">%d answered by the vehicle</item>
+        <item quantity="other">%d answered by the vehicle</item>
+    </plurals>
+    <string name="checklist_by_vehicle_none">The vehicle answered none of these</string>
+    <string name="checklist_chip">%1$s · %2$s</string>
+    <string name="checklist_chip_simulated">%1$s · %2$s · simulated</string>
+    <string name="checklist_step">Check %1$d of %2$d</string>
+    <string name="checklist_can_stop">Can stop a trip</string>
+    <string name="checklist_answer_good">Good</string>
+    <string name="checklist_answer_attention">Needs attention</string>
+    <string name="checklist_answer_faulty">Faulty</string>
+    <string name="checklist_last_step">Last step</string>
+    <string name="checklist_notes_title">Anything else?</string>
+    <string name="checklist_notes_label">Anything else worth recording (optional)</string>
+    <string name="checklist_complete">Complete the safety check</string>
+    <plurals name="checklist_remaining">
+        <item quantity="one">Check the remaining item</item>
+        <item quantity="other">Check the remaining %d items</item>
+    </plurals>
+    <string name="checklist_previous">Previous check</string>
+    <string name="checklist_submitting">Submitting…</string>
+    <string name="checklist_done_title">Safety check done</string>
+    <string name="checklist_done_body">Your fleet has it on record. You can start your trip now.</string>
+    <string name="checklist_done_warnings_body">Your fleet has it on record, including what needs attention. You can start your trip now.</string>
+    <string name="checklist_blocked_title">Do not drive this vehicle</string>
+    <string name="checklist_blocked_body">The check found a fault that stops a trip. Your fleet has been told.</string>
+    <string name="checklist_blocked_reasons">What stopped it</string>
+    <string name="checklist_back_to_check">Back to the check</string>
+    <string name="checklist_send_failed_title">The check was not sent</string>
+    <string name="checklist_send_offline">You are offline. Your answers are kept - try again when you have signal.</string>
+    <string name="checklist_send_failed">Saarthi could not reach your fleet. Your answers are kept, so just try again.</string>
+    <string name="checklist_load_failed_title">The checklist did not load</string>
+    <string name="checklist_load_offline">You are offline. Try again when you have signal.</string>
+    <string name="checklist_load_failed">Saarthi could not fetch this vehicle\'s checklist. Try again in a moment.</string>
+</resources>

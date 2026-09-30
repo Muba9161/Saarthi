@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="trips_distance_recorded">ഓടിച്ച ദൂരം, രേഖപ്പെടുത്തിയത്</string>
+    <string name="trips_km_unit">km</string>
+    <string name="trips_km">%1$s km</string>
+    <plurals name="trips_measured_across">
+        <item quantity="one">Saarthi അളന്ന %d പൂർത്തിയായ ട്രിപ്പിൽ നിന്ന്. നടന്നുകൊണ്ടിരിക്കുന്ന ട്രിപ്പുകൾ കണക്കാക്കിയിട്ടില്ല.</item>
+        <item quantity="other">Saarthi അളന്ന %d പൂർത്തിയായ ട്രിപ്പുകളിൽ നിന്ന്. നടന്നുകൊണ്ടിരിക്കുന്ന ട്രിപ്പുകൾ കണക്കാക്കിയിട്ടില്ല.</item>
+    </plurals>
+    <string name="trips_none_measured">പൂർത്തിയായ ഒരു ട്രിപ്പിന്റെയും ദൂരം Saarthi ഇതുവരെ അളന്നിട്ടില്ല. നടന്നുകൊണ്ടിരിക്കുന്ന ട്രിപ്പുകൾ കണക്കാക്കിയിട്ടില്ല.</string>
+
+    <string name="trips_filter_all">എല്ലാം</string>
+    <string name="trips_filter_finished">പൂർത്തിയായവ</string>
+    <string name="trips_filter_open">നടക്കുന്നവ</string>
+
+    <string name="trips_section_open">നടക്കുന്നവ</string>
+    <string name="trips_section_finished">പൂർത്തിയായവ</string>
+    <string name="trips_none_open">ഇപ്പോൾ ഒരു ട്രിപ്പും നടക്കുന്നില്ല.</string>
+    <string name="trips_none_finished">ഇതുവരെ പൂർത്തിയായ ട്രിപ്പുകളില്ല.</string>
+
+    <string name="trips_in_progress">നടക്കുന്നു</string>
+    <string name="trips_no_destination">ഫ്ലീറ്റ് ലക്ഷ്യസ്ഥാനം നിശ്ചയിച്ചിട്ടില്ല</string>
+    <string name="trips_planned">%1$s പ്ലാൻ ചെയ്തത്</string>
+    <string name="trips_started">%1$s-ന് തുടങ്ങി</string>
+
+    <string name="trips_route">%1$s → %2$s</string>
+    <string name="trips_untitled">ട്രിപ്പ്</string>
+    <string name="trips_planned_word">പ്ലാൻ ചെയ്തത്</string>
+
+    <string name="trips_loading">നിങ്ങളുടെ ട്രിപ്പുകൾ ലോഡ് ചെയ്യുന്നു</string>
+    <string name="trips_empty_title">ഇതുവരെ ട്രിപ്പുകളില്ല</string>
+    <string name="trips_empty_body">നിങ്ങൾ പൂർത്തിയാക്കുന്ന ട്രിപ്പുകൾ, ഓരോന്നിലും Saarthi അളന്ന ദൂരം സഹിതം, ഇവിടെ കാണാം.</string>
+    <string name="trips_offline_title">സിഗ്നൽ ഇല്ല</string>
+    <string name="trips_offline_body">നിങ്ങളുടെ ട്രിപ്പുകൾ ലോഡ് ചെയ്യാൻ സിഗ്നൽ വേണം. ഫോൺ വീണ്ടും കണക്റ്റ് ആകുമ്പോൾ അവ ഇവിടെ കാണാം.</string>
+    <string name="trips_error_title">നിങ്ങളുടെ ട്രിപ്പുകൾ ലോഡ് ചെയ്യാനായില്ല</string>
+    <string name="trips_error_body">Saarthi-ക്ക് ഇപ്പോൾ നിങ്ങളുടെ ഫ്ലീറ്റുമായി ബന്ധപ്പെടാനായില്ല. അൽപ്പസമയം കഴിഞ്ഞ് വീണ്ടും ശ്രമിക്കുക.</string>
+    <string name="trips_retry">വീണ്ടും ശ്രമിക്കുക</string>
+</resources>

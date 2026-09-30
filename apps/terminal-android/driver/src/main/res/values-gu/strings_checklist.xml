@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="checklist_title">ટ્રિપ પહેલાંની સેફ્ટી તપાસ</string>
+    <string name="checklist_loading">તમારી ચેકલિસ્ટ લાવી રહ્યા છીએ…</string>
+    <string name="checklist_progress_count">%1$d/%2$d</string>
+    <string name="checklist_progress_title">%2$d માંથી %1$d તપાસ્યા</string>
+    <plurals name="checklist_by_vehicle">
+        <item quantity="one">%d નો જવાબ વાહને આપ્યો</item>
+        <item quantity="other">%d નો જવાબ વાહને આપ્યો</item>
+    </plurals>
+    <string name="checklist_by_vehicle_none">આમાંથી એકેયનો જવાબ વાહને આપ્યો નથી</string>
+    <string name="checklist_chip">%1$s · %2$s</string>
+    <string name="checklist_chip_simulated">%1$s · %2$s · સિમ્યુલેટેડ</string>
+    <string name="checklist_step">%2$d માંથી તપાસ %1$d</string>
+    <string name="checklist_can_stop">ટ્રિપ રોકી શકે</string>
+    <string name="checklist_answer_good">બરાબર</string>
+    <string name="checklist_answer_attention">ધ્યાન જરૂરી</string>
+    <string name="checklist_answer_faulty">ખરાબ</string>
+    <string name="checklist_last_step">છેલ્લું પગલું</string>
+    <string name="checklist_notes_title">બીજું કંઈ?</string>
+    <string name="checklist_notes_label">નોંધવા જેવું બીજું કંઈ (વૈકલ્પિક)</string>
+    <string name="checklist_complete">સેફ્ટી તપાસ પૂરી કરો</string>
+    <plurals name="checklist_remaining">
+        <item quantity="one">બાકી રહેલી આઇટમ તપાસો</item>
+        <item quantity="other">બાકી રહેલી %d આઇટમ તપાસો</item>
+    </plurals>
+    <string name="checklist_previous">પાછલી તપાસ</string>
+    <string name="checklist_submitting">મોકલી રહ્યા છીએ…</string>
+    <string name="checklist_done_title">સેફ્ટી તપાસ થઈ ગઈ</string>
+    <string name="checklist_done_body">તમારા ફ્લીટ પાસે તેનો રેકોર્ડ છે. હવે તમે ટ્રિપ શરૂ કરી શકો છો.</string>
+    <string name="checklist_done_warnings_body">તમારા ફ્લીટ પાસે તેનો રેકોર્ડ છે, જેના પર ધ્યાન આપવાનું છે તે સહિત. હવે તમે ટ્રિપ શરૂ કરી શકો છો.</string>
+    <string name="checklist_blocked_title">આ વાહન ન ચલાવો</string>
+    <string name="checklist_blocked_body">તપાસમાં એવી ખામી મળી જે ટ્રિપ રોકે છે. તમારા ફ્લીટને જાણ કરી દેવાઈ છે.</string>
+    <string name="checklist_blocked_reasons">શાના કારણે રોકાયું</string>
+    <string name="checklist_back_to_check">તપાસ પર પાછા</string>
+    <string name="checklist_send_failed_title">તપાસ મોકલાઈ નહીં</string>
+    <string name="checklist_send_offline">તમે ઑફલાઇન છો. તમારા જવાબ સચવાયેલા છે - સિગ્નલ મળે ત્યારે ફરી પ્રયાસ કરો.</string>
+    <string name="checklist_send_failed">Saarthi તમારા ફ્લીટ સુધી પહોંચી શક્યું નહીં. તમારા જવાબ સચવાયેલા છે, બસ ફરી પ્રયાસ કરો.</string>
+    <string name="checklist_load_failed_title">ચેકલિસ્ટ લોડ થઈ નહીં</string>
+    <string name="checklist_load_offline">તમે ઑફલાઇન છો. સિગ્નલ મળે ત્યારે ફરી પ્રયાસ કરો.</string>
+    <string name="checklist_load_failed">Saarthi આ વાહનની ચેકલિસ્ટ લાવી શક્યું નહીં. થોડી વાર પછી ફરી પ્રયાસ કરો.</string>
+</resources>

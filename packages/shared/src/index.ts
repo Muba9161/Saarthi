@@ -22,6 +22,7 @@ export * from './domain/vehicle-rc-draft';
 export * from './domain/driving-licence';
 export * from './domain/identity-verification';
 export * from './domain/registry-verification';
+export * from './domain/identity-scan';
 export * from './domain/vehicle-ownership';
 export * from './domain/vehicle-sharing';
 export * from './domain/driver-verification';

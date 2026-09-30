@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The live map's bus, from above, facing north. See pin_truck.xml. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="88dp"
+    android:height="88dp"
+    android:viewportWidth="88"
+    android:viewportHeight="88">
+    <group android:rotation="-90" android:pivotX="44" android:pivotY="44">
+        <path android:pathData="M65,44 L87,27 L87,61 Z">
+            <aapt:attr name="android:fillColor">
+                <gradient android:type="radial" android:centerX="65" android:centerY="44"
+                    android:gradientRadius="22" android:startColor="#998E98F5" android:endColor="#008E98F5" />
+            </aapt:attr>
+        </path>
+        <group android:translateX="21" android:translateY="34" android:scaleX="0.8846" android:scaleY="0.8864">
+            <path android:fillColor="#EEF0FA" android:strokeColor="#590F1433" android:strokeWidth="1"
+                android:pathData="M5.5,1.5h41a4.5,4.5 0,0 1,4.5 4.5v10a4.5,4.5 0,0 1,-4.5 4.5h-41a4.5,4.5 0,0 1,-4.5 -4.5v-10a4.5,4.5 0,0 1,4.5 -4.5z" />
+            <path android:fillColor="#727FF3" android:pathData="M3,2h46a1.5,1.5 0,0 1,1.5 1.5v0a1.5,1.5 0,0 1,-1.5 1.5h-46a1.5,1.5 0,0 1,-1.5 -1.5v0a1.5,1.5 0,0 1,1.5 -1.5z" />
+            <path android:fillColor="#727FF3" android:pathData="M3,17h46a1.5,1.5 0,0 1,1.5 1.5v0a1.5,1.5 0,0 1,-1.5 1.5h-46a1.5,1.5 0,0 1,-1.5 -1.5v0a1.5,1.5 0,0 1,1.5 -1.5z" />
+            <path android:fillColor="#CDD1EA" android:pathData="M10.5,7h5a1.5,1.5 0,0 1,1.5 1.5v5a1.5,1.5 0,0 1,-1.5 1.5h-5a1.5,1.5 0,0 1,-1.5 -1.5v-5a1.5,1.5 0,0 1,1.5 -1.5z" />
+            <path android:fillColor="#CDD1EA" android:pathData="M23.5,7h5a1.5,1.5 0,0 1,1.5 1.5v5a1.5,1.5 0,0 1,-1.5 1.5h-5a1.5,1.5 0,0 1,-1.5 -1.5v-5a1.5,1.5 0,0 1,1.5 -1.5z" />
+            <path android:fillColor="#DADDF0" android:strokeColor="#CDD1EA" android:strokeWidth="1" android:pathData="M34,8h5v6h-5z" />
+            <path android:fillColor="#101535" android:pathData="M44.5,4.5h2.5a3,3 0,0 1,3 3v7a3,3 0,0 1,-3 3h-2.5z" />
+            <path android:fillColor="#2A2F57" android:pathData="M3.5,6h0a1,1 0,0 1,1 1v8a1,1 0,0 1,-1 1h0a1,1 0,0 1,-1 -1v-8a1,1 0,0 1,1 -1z" />
+        </group>
+    </group>
+</vector>

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="papers_lead">இந்த போனில் வைக்கப்பட்டுள்ளது, அதனால் சிக்னல் இல்லாத செக் போஸ்ட்டிலும் பிரச்சனை இல்லை.</string>
+
+    <plurals name="papers_attention_soon">
+        <item quantity="one">ஒரு ஆவணத்துக்குக் கவனம் தேவை. அது காலாவதியாகும் முன் அலுவலகத்திடம் சொல்லுங்கள்.</item>
+        <item quantity="other">%d ஆவணங்களுக்குக் கவனம் தேவை. அவை காலாவதியாகும் முன் அலுவலகத்திடம் சொல்லுங்கள்.</item>
+    </plurals>
+    <plurals name="papers_attention_expired">
+        <item quantity="one">ஒரு ஆவணம் காலாவதியாகிவிட்டது. இன்றே அலுவலகத்திடம் சொல்லுங்கள்.</item>
+        <item quantity="other">%d ஆவணங்களுக்குக் கவனம் தேவை, குறைந்தது ஒன்று காலாவதியாகிவிட்டது. இன்றே அலுவலகத்திடம் சொல்லுங்கள்.</item>
+    </plurals>
+
+    <string name="papers_filter_all">அனைத்தும்</string>
+    <string name="papers_owner_vehicle">வண்டி</string>
+    <string name="papers_owner_yours">உங்களுடையவை</string>
+    <string name="papers_chip">%1$s · %2$d</string>
+    <string name="papers_sub">%1$s · %2$s</string>
+
+    <string name="papers_no_expiry">காலாவதி தேதி பதிவில் இல்லை</string>
+    <string name="papers_expires_today">இன்று காலாவதியாகிறது</string>
+    <plurals name="papers_days_left">
+        <item quantity="one">%d நாள் உள்ளது</item>
+        <item quantity="other">%d நாட்கள் உள்ளன</item>
+    </plurals>
+    <plurals name="papers_years_left">
+        <item quantity="one">%d வருடம் உள்ளது</item>
+        <item quantity="other">%d வருடங்கள் உள்ளன</item>
+    </plurals>
+    <plurals name="papers_expired_ago">
+        <item quantity="one">%d நாள் முன்பு காலாவதியானது</item>
+        <item quantity="other">%d நாட்கள் முன்பு காலாவதியானது</item>
+    </plurals>
+
+    <string name="papers_on_phone">இந்த போனில் உள்ளது</string>
+    <string name="papers_not_on_phone">இன்னும் இந்த போனில் இல்லை</string>
+
+    <string name="papers_open_action">திற</string>
+    <string name="papers_opening">%1$s திறக்கப்படுகிறது.</string>
+    <string name="papers_opening_pdf">உங்கள் PDF ரீடரில் %1$s திறக்கப்படுகிறது.</string>
+    <string name="papers_not_saved">அது இன்னும் இந்த போனில் இல்லை. சிக்னல் உள்ள இடத்தில் ஒருமுறை திறந்தால் அது இங்கேயே இருக்கும்.</string>
+    <string name="papers_no_viewer">இந்த வகை ஃபைலைத் திறக்க இந்த போனில் எதுவும் இல்லை. PDF அல்லது படம் பார்க்கும் ஆப்பை இன்ஸ்டால் செய்து, மீண்டும் முயலுங்கள்.</string>
+
+    <string name="papers_loading">உங்கள் ஆவணங்கள் ஏற்றப்படுகின்றன</string>
+    <string name="papers_none_vehicle">இந்த வண்டிக்கான ஆவணங்கள் எதுவும் பதிவில் இல்லை.</string>
+    <string name="papers_none_yours">உங்கள் சொந்த ஆவணங்கள் எதுவும் பதிவில் இல்லை.</string>
+    <string name="papers_empty_title">பதிவில் ஆவணங்கள் இல்லை</string>
+    <string name="papers_empty_body">உங்களுக்கோ இந்த வண்டிக்கோ உங்கள் ஃப்ளீட் இன்னும் எந்த ஆவணத்தையும் சேர்க்கவில்லை. அவற்றை அப்லோடு செய்ய அலுவலகத்திடம் கேளுங்கள்.</string>
+    <string name="papers_error_title">உங்கள் ஆவணங்களை ஏற்ற முடியவில்லை</string>
+    <string name="papers_retry">மீண்டும் முயலவும்</string>
+</resources>

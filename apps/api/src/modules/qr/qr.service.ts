@@ -840,15 +840,25 @@ async function classifyScanner(
         (subjectType === QrSubjectType.VEHICLE && incident.truckId === subjectId) ||
         (subjectType === QrSubjectType.DRIVER && incident.driverId === subjectId);
 
+      /*
+       * Responding means being on this incident's responder list — as the
+       * driver alerted, or as that driver's fleet. Holding the "respond"
+       * permission is not enough on its own: every driver has it, and it
+       * would open any driver's medical details to any other driver who had
+       * the incident id. With neither a driver nor an account to match, the
+       * answer is no rather than "any responder at all".
+       */
+      const responderMatch = [
+        ...(auth.driverId ? [{ driverId: auth.driverId }] : []),
+        ...(auth.organizationId ? [{ organizationId: auth.organizationId }] : []),
+      ];
       const isResponder =
+        responderMatch.length > 0 &&
         (await prisma.sosResponder.count({
-          where: {
-            incidentId: incident.id,
-            ...(auth.driverId ? { driverId: auth.driverId } : {}),
-          },
+          where: { incidentId: incident.id, OR: responderMatch },
         })) > 0;
 
-      if (matchesSubject && (isResponder || auth.permissions.includes('sos.respond' as never))) {
+      if (matchesSubject && isResponder) {
         emergencyContextActive = true;
         return {
           relationship: ScannerRelationship.EMERGENCY_RESPONDER,

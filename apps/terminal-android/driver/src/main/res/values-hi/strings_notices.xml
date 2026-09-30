@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="notices_lead">आपके फ़्लीट और Saarthi की ओर से।</string>
+    <plurals name="notices_new_count">
+        <item quantity="one">%1$d नई</item>
+        <item quantity="other">%1$d नई</item>
+    </plurals>
+    <string name="notices_section_new">नई</string>
+    <string name="notices_section_earlier">पहले की</string>
+    <string name="notices_just_now">अभी-अभी</string>
+    <string name="notices_loading">सूचनाएँ लोड हो रही हैं…</string>
+    <string name="notices_empty_title">अभी कोई सूचना नहीं</string>
+    <string name="notices_empty_body">आपके फ़्लीट और Saarthi के संदेश यहाँ दिखेंगे।</string>
+    <string name="notices_offline">आप ऑफ़लाइन हैं, इसलिए सूचनाएँ नहीं आ सकीं। सिग्नल आते ही ये लोड हो जाएँगी।</string>
+    <string name="notices_failed">सूचनाएँ अभी लोड नहीं हो सकीं।</string>
+</resources>

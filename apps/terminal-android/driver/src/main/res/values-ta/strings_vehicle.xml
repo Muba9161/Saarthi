@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="vehicle_sheet_title">வண்டி விவரங்கள்</string>
+    <string name="vehicle_live_title">வண்டியின் லைவ் தகவல்</string>
+    <string name="vehicle_live_battery">பேட்டரி</string>
+    <string name="vehicle_live_load">லோடு</string>
+    <string name="vehicle_unit_volts">V</string>
+    <string name="vehicle_codes_none">கோளாறு குறியீடுகள் · எதுவும் தெரிவிக்கப்படவில்லை</string>
+    <string name="vehicle_codes_unread">கோளாறு குறியீடுகள் · அடாப்டர் இணைந்திருக்கும்போது மட்டுமே படிக்கப்படும்</string>
+    <plurals name="vehicle_codes_found">
+        <item quantity="one">கோளாறு குறியீடுகள் · %1$d தெரிவிக்கப்பட்டது</item>
+        <item quantity="other">கோளாறு குறியீடுகள் · %1$d தெரிவிக்கப்பட்டன</item>
+    </plurals>
+
+    <string name="vehicle_passport_title">வண்டி பாஸ்போர்ட்</string>
+    <string name="vehicle_row_registration">பதிவு எண்</string>
+    <string name="vehicle_row_type">வகை</string>
+    <string name="vehicle_row_make">நிறுவனம் &amp; மாடல்</string>
+    <string name="vehicle_row_year">வருடம்</string>
+    <string name="vehicle_row_fuel">எரிபொருள்</string>
+    <string name="vehicle_row_capacity">கொள்ளளவு</string>
+    <string name="vehicle_row_fleet">ஃப்ளீட்</string>
+    <string name="vehicle_capacity_value">%1$s டன்</string>
+    <string name="vehicle_odometer_value">%1$s km</string>
+    <string name="vehicle_fuel_electric">எலக்ட்ரிக்</string>
+    <string name="vehicle_fuel_hybrid">ஹைப்ரிட்</string>
+    <string name="vehicle_fuel_lng">LNG</string>
+
+    <string name="vehicle_you_title">நீங்கள்</string>
+    <string name="vehicle_row_name">பெயர்</string>
+    <string name="vehicle_row_licence_class">லைசென்ஸ் வகை</string>
+    <string name="vehicle_row_licence">லைசென்ஸ்</string>
+    <string name="vehicle_row_profile">ப்ரொஃபைல்</string>
+    <string name="vehicle_row_trips">ட்ரிப்கள்</string>
+    <string name="vehicle_licence_valid">%1$s வரை செல்லும்</string>
+    <string name="vehicle_licence_expiring">%1$s அன்று காலாவதியாகிறது</string>
+    <string name="vehicle_licence_expired">%1$s அன்று காலாவதியானது</string>
+    <string name="vehicle_licence_pending">சரிபார்ப்புக்குக் காத்திருக்கிறது</string>
+    <string name="vehicle_licence_no_expiry">காலாவதி தேதி பதிவில் இல்லை</string>
+    <string name="vehicle_licence_rejected">நிராகரிக்கப்பட்டது</string>
+    <string name="vehicle_profile_pending">நிலுவையில்</string>
+    <string name="vehicle_profile_submitted">சமர்ப்பிக்கப்பட்டது</string>
+    <string name="vehicle_profile_under_review">பரிசீலனையில்</string>
+    <string name="vehicle_profile_verified">சரிபார்க்கப்பட்டது</string>
+    <string name="vehicle_profile_rejected">நிராகரிக்கப்பட்டது</string>
+    <string name="vehicle_profile_expired">காலாவதியானது</string>
+    <string name="vehicle_profile_suspended">இடைநீக்கம் செய்யப்பட்டது</string>
+
+    <string name="vehicle_problems_title">தெரிவிக்கப்பட்ட பிரச்சனைகள்</string>
+    <string name="vehicle_report_open">பிரச்சனையைத் தெரிவி</string>
+    <string name="vehicle_report_label">என்ன பிரச்சனை?</string>
+    <string name="vehicle_report_send">உங்கள் ஃப்ளீட்டுக்கு அனுப்பு</string>
+    <string name="vehicle_report_sending">அனுப்புகிறது…</string>
+    <string name="vehicle_report_failed">அதை அனுப்ப முடியவில்லை. சிக்னலைச் சரிபார்த்து மீண்டும் முயலுங்கள்.</string>
+    <string name="vehicle_issue_engine">இன்ஜின்</string>
+    <string name="vehicle_issue_tyre">டயர்</string>
+    <string name="vehicle_issue_brake">பிரேக்</string>
+    <string name="vehicle_issue_electrical">எலக்ட்ரிக்கல்</string>
+    <string name="vehicle_issue_accident">விபத்து</string>
+    <string name="vehicle_issue_body">பாடி</string>
+    <string name="vehicle_issue_other">மற்றவை</string>
+    <string name="vehicle_issue_status_open">திறந்துள்ளது</string>
+    <string name="vehicle_issue_status_acknowledged">ஏற்கப்பட்டது</string>
+    <string name="vehicle_issue_status_in_progress">நடந்து வருகிறது</string>
+    <string name="vehicle_issue_status_resolved">தீர்க்கப்பட்டது</string>
+    <string name="vehicle_issue_status_dismissed">தள்ளுபடி செய்யப்பட்டது</string>
+    <string name="vehicle_issue_head">%1$s · %2$s</string>
+    <string name="vehicle_issues_none">இந்த வண்டிக்கு எதுவும் தெரிவிக்கப்படவில்லை.</string>
+    <string name="vehicle_issues_offline">நீங்கள் ஆஃப்லைனில் உள்ளீர்கள், அதனால் முன்பு தெரிவிக்கப்பட்ட பிரச்சனைகளைப் பெற முடியவில்லை.</string>
+</resources>
