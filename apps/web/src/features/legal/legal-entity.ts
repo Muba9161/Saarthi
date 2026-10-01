@@ -6,14 +6,15 @@
  * the moment one of them is edited, and a legal document that contradicts its
  * sibling is worse than one that is merely out of date.
  *
- * Fields that still need real values carry `TODO`. `unresolvedLegalFields()`
- * below finds them, and the documents render a development-only banner listing
- * what is still missing — so an unfilled registered address is visible while
- * the site is being built rather than discovered by a regulator.
+ * A field that still needs its real value holds `'TODO: <hint>'`.
+ * `unresolvedLegalFields()` below finds them, and the documents render a
+ * development-only banner listing what is still missing — so an unfilled
+ * registered address is visible while the site is being built rather than
+ * discovered by a regulator. A field that is `null` is deliberately left out
+ * of the documents instead.
  */
 
-/** Marks a value that has not been supplied yet. Never shown as real copy. */
-const TODO = (hint: string): string => `TODO: ${hint}`;
+import { SITE } from '@/features/seo';
 
 export interface PostalAddress {
   line1: string;
@@ -26,46 +27,51 @@ export interface PostalAddress {
 
 export const LEGAL_ENTITY = {
   /** The name on the certificate of incorporation, not the product name. */
-  name: TODO('registered company name, e.g. VorldX Technologies Private Limited'),
+  name: 'VorldX Industries Private Limited',
   /** What the product is called in front of customers. */
   tradingName: 'VorldX Saarthi',
   /** Short form used mid-sentence. */
   shortName: 'Saarthi',
   /** Corporate Identity Number issued by the MCA. */
-  cin: TODO('CIN from the MCA certificate'),
+  cin: 'U62099UP2026PTC245598',
   /** GSTIN under which subscription invoices are raised. */
-  gstin: TODO('GSTIN used for subscription invoicing'),
+  gstin: '09AAMCV0179Q1ZE',
+  /** As the MCA records it; the GST principal place of business is the same. */
   registeredOffice: {
-    line1: TODO('registered office address line 1'),
-    city: TODO('city'),
-    state: TODO('state'),
-    postalCode: TODO('PIN code'),
+    line1: 'MJCC Towers, Kh No. 282',
+    line2: 'Hariharpur Nilmatha',
+    city: 'Lucknow',
+    state: 'Uttar Pradesh',
+    postalCode: '226002',
     country: 'India',
   } satisfies PostalAddress,
+  /** One shared mailbox for now; split per role when dedicated ones exist. */
   email: {
-    support: TODO('support mailbox, e.g. support@vorldx.com'),
-    privacy: TODO('privacy mailbox, e.g. privacy@vorldx.com'),
-    legal: TODO('legal mailbox, e.g. legal@vorldx.com'),
+    support: 'vx.saarthi@gmail.com',
+    privacy: 'vx.saarthi@gmail.com',
+    legal: 'vx.saarthi@gmail.com',
     /** Must be monitored: the DPDP Act and the IT Rules both require it. */
-    grievance: TODO('grievance officer mailbox, e.g. grievance@vorldx.com'),
+    grievance: 'vx.saarthi@gmail.com',
   },
-  phone: TODO('support telephone number in +91 format'),
-  website: 'https://saarthi.vorldx.com',
+  /** Support telephone in +91 format. `null` leaves the row out of both documents. */
+  phone: null as string | null,
+  website: SITE.url,
   /**
    * The named Grievance Officer.
    *
    * Rule 3(2) of the IT (Intermediary Guidelines) Rules 2021 and section 13 of
    * the DPDP Act 2023 both require a named, contactable person — a role
-   * mailbox alone does not satisfy either.
+   * mailbox alone does not satisfy either. `name` is `null` until one is
+   * appointed, which leaves the name row out of both documents.
    */
   grievanceOfficer: {
-    name: TODO('name of the appointed Grievance Officer'),
+    name: null as string | null,
     designation: 'Grievance Officer',
   },
   /** Where a dispute is heard. */
   jurisdiction: {
-    city: TODO('city whose courts have jurisdiction'),
-    state: TODO('state'),
+    city: 'Lucknow',
+    state: 'Uttar Pradesh',
     country: 'India',
   },
 } as const;
@@ -151,9 +157,9 @@ export const TERMS_VERSION: DocumentVersion = {
 };
 
 export const PRIVACY_VERSION: DocumentVersion = {
-  version: '1.0',
-  effectiveDate: '2026-09-11',
-  lastUpdated: '2026-09-11',
+  version: '1.1',
+  effectiveDate: '2026-10-01',
+  lastUpdated: '2026-10-01',
 };
 
 /** "11 September 2026" — the form Indian legal documents are written in. */

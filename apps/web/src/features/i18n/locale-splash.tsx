@@ -87,7 +87,6 @@ export function LocaleSplash() {
     // it, and depending on both would replay the splash when the same language
     // is merely re-resolved. `greetingInk` is read, not watched, for the same
     // reason — its arrival is not a language switch.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [switchNonce, reduced]);
 
   const plan = React.useMemo(

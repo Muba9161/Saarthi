@@ -93,6 +93,24 @@ interface NavBadges {
 
 const SIDEBAR_STORAGE_KEY = 'saarthi.sidebar.collapsed';
 
+// Storage throws when the browser blocks site data. This is read on the
+// shell's first render, so unguarded it took down every signed-in screen.
+function readSidebarCollapsed(): boolean {
+  try {
+    return window.localStorage.getItem(SIDEBAR_STORAGE_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+function storeSidebarCollapsed(collapsed: boolean): void {
+  try {
+    window.localStorage.setItem(SIDEBAR_STORAGE_KEY, String(collapsed));
+  } catch {
+    // Not remembered across visits; the toggle still works for this one.
+  }
+}
+
 function navigationFor(
   organizationType: OrganizationType | undefined,
   isDriver: boolean,
@@ -829,9 +847,7 @@ export function AppShell() {
   // Archived for non-payment: every screen gives way to the renewal screen.
   const archived = session?.organization?.billingArchivedAt ? session.organization : null;
   const [navOpen, setNavOpen] = React.useState(false);
-  const [collapsed, setCollapsed] = React.useState(
-    () => window.localStorage.getItem(SIDEBAR_STORAGE_KEY) === 'true',
-  );
+  const [collapsed, setCollapsed] = React.useState(readSidebarCollapsed);
   const location = useLocation();
 
   // Close the mobile drawer whenever the route changes.
@@ -840,7 +856,7 @@ export function AppShell() {
   const toggleCollapse = React.useCallback(() => {
     setCollapsed((previous) => {
       const next = !previous;
-      window.localStorage.setItem(SIDEBAR_STORAGE_KEY, String(next));
+      storeSidebarCollapsed(next);
       return next;
     });
   }, []);

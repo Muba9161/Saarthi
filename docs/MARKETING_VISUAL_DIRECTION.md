@@ -396,6 +396,104 @@ and the subject in the middle third.
 
 ---
 
+## Humsafar band: the driver app in a phone
+
+The band between "Who it is for" and "How it works"
+(`src/features/marketing/driver-app/`) shows the driver app in a handset drawn
+in CSS. It needs **no generated image**: the screens are real captures from the
+app, and the phone is code, so a screen can change per step and stays crisp.
+
+### The six screens
+
+| Slot | Screen |
+| --- | --- |
+| `app-welcome` | Welcome card, "Scan. Get approved. Drive." |
+| `app-quick-login` | Quick Login offer: fingerprint, face or PIN |
+| `app-approval` | Waiting for approval, with the three-step timeline |
+| `app-safety-check` | Pre-trip safety check, 5 of 10 |
+| `app-on-shift` | Home during a trip |
+| `app-papers` | Papers kept on the phone, one near expiry |
+
+720x1650 PNGs from `adb exec-out screencap -p`, dark theme, on a demo account.
+The real status bar is painted out before they go into `design/marketing/`
+(the frame draws a clean 9:41 one), then the usual script encodes them with
+the `picture` preset at quality 90:
+
+```
+# UI screens: fill the status bar with the app ground
+ffmpeg -i in.png -vf "drawbox=x=0:y=0:w=720:h=72:color=0x0E0E10:t=fill" app-<slot>.png
+# A screen with a photograph behind the status bar: mirror and blur the strip below it
+ffmpeg -i in.png -filter_complex "[0]split[a][b];[b]crop=720:96:0:72,vflip,boxblur=luma_radius=18:luma_power=3:chroma_radius=9:chroma_power=3,eq=brightness=-0.16:saturation=0.85,crop=720:72:0:0[s];[a][s]overlay=0:0" app-<slot>.png
+```
+
+**Never capture** the map, Nearby or anything else drawn around the handset's
+real position, or the arrival-photo camera. The first shows where the phone
+really is; the second shows whoever is standing in front of it.
+
+### Optional: the phone in a real scene
+
+For the Play Store listing, social posts and ads, a photograph of the app in
+use. Generate the scene with a **flat chroma-green screen** and composite the
+real capture onto it. A generator asked to draw the interface invents its
+text, and an invented screen is a claim the product cannot back.
+
+**Shared tail: append verbatim to each.**
+
+> The phone is a generic modern Android handset with thin, even bezels and a
+> small centred punch-hole camera, no logo and no brand marks. Its screen is lit
+> but shows only a perfectly flat, uniform chroma-key green #00FF00 filling the
+> whole display edge to edge, with sharp corners and no reflections, so a real
+> app screen can be composited onto it. Near-black scene, RGB 24 24 27, cold
+> navy-blue #2360BE rim light, one warm saffron #FF8C2E practical light in frame.
+> Shallow depth of field, high dynamic range, fine film grain. Editorial
+> documentary advertising photography. Negative: no text, no lettering, no
+> logos, no badges, no number plates, no QR codes, no watermark, no
+> recognisable faces, no daylight, no user interface drawn on the screen.
+
+**`app-scene-cab` (4:5): the hero shot**
+
+> Close, intimate view inside the cab of an unbranded Indian-market flat-front
+> cabover truck at night. A driver's weathered hand holds a smartphone upright
+> towards the camera in the lower centre of the frame, screen facing us. Behind
+> it, out of focus, the windscreen shows an empty highway with saffron tail-light
+> bokeh far ahead; a dashboard glows softly. The driver's face is out of frame.
+> `--ar 4:5`
+
+**`app-scene-yard` (16:9): starting the shift**
+
+> Pre-dawn in a dark Indian transport yard. Over the shoulder of a driver
+> standing beside the door of an unbranded flat-front cabover truck, holding a
+> smartphone up towards a small plain white square sticker on the door, as if
+> scanning it. The phone sits in the left third, screen angled towards the
+> camera; the truck door fills the right. Marker lamps along the cab glow
+> saffron. Face not visible. `--ar 16:9`
+
+**`app-scene-mount` (16:9): on the road**
+
+> Wide view from the passenger seat of a vehicle cab at night on an empty
+> national highway. A smartphone sits in a dashboard mount right of the
+> steering wheel, screen facing the camera, the driver's hands soft on the wheel
+> beyond it. Through the windscreen, the road unspools in navy dusk with one pair
+> of saffron tail lights in the distance. `--ar 16:9`
+
+**`app-scene-hands` (1:1): social square**
+
+> Top-down flat-lay on a dark, worn steel truck step at night: a smartphone
+> lying screen-up beside a folded chequered gamcha, a set of keys and a steel
+> tea tumbler, lit by a single saffron work lamp from one side and a cold navy
+> fill from above. The phone is centred and square to the frame. `--ar 1:1`
+
+**Compositing the screen.** In Photoshop or Photopea: select the green with
+Select > Colour Range, place the matching `design/marketing/app-*.png` as a
+smart object, and use Edit > Transform > Distort to pin its four corners to
+the screen's. Clip it to the selection, then add a 3% grain layer and drop
+the screen to about 85% brightness so it sits in the scene rather than glowing
+on top of it. A model that edits from a reference image (Gemini, GPT Image,
+Flux Kontext) can do the same step when given the capture, but re-read every
+word on the result: they routinely rewrite interface text.
+
+---
+
 ## Delivery checklist
 
 1. Generate at or above the size in the manifest, RGB, 8-bit.

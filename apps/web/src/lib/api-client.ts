@@ -1,4 +1,4 @@
-import { ErrorCode, type ApiResponse } from '@saarthi/shared';
+import { ErrorCode, type ApiResponse, type SessionPayload } from '@saarthi/shared';
 
 /**
  * Single HTTP client for the VorldX Saarthi API.
@@ -105,10 +105,26 @@ export function apiBase(): string {
 
 export const API_PREFIX = '/api/v1';
 
+/** What the sign-in, registration and refresh endpoints hand back. */
+export interface AuthResponse {
+  accessToken: string;
+  expiresIn: number;
+  session: SessionPayload;
+}
+
+/**
+ * How a refresh attempt ended. `rejected` means the server refused the session
+ * itself, so it is over. Any other failure (rate limiting, an outage, no
+ * network) says nothing about the session, which is still good to retry.
+ */
+export type RefreshOutcome =
+  | { ok: true; auth: AuthResponse }
+  | { ok: false; rejected: boolean; error: ApiError };
+
 let accessToken: string | null = null;
 let onUnauthenticated: (() => void) | null = null;
 let onAccountArchived: (() => void) | null = null;
-let refreshInFlight: Promise<string | null> | null = null;
+let refreshInFlight: Promise<RefreshOutcome> | null = null;
 
 export function setAccessToken(token: string | null): void {
   accessToken = token;
@@ -189,8 +205,25 @@ async function readEnvelope<T>(response: Response): Promise<ApiResponse<T>> {
   }
 }
 
-async function refreshAccessToken(): Promise<string | null> {
-  refreshInFlight ??= (async () => {
+function networkError(): ApiError {
+  return new ApiError(
+    0,
+    'NETWORK_ERROR',
+    'Unable to reach the VorldX Saarthi server. Check that the API is running and try again.',
+  );
+}
+
+/**
+ * Exchange the refresh cookie for a new access token.
+ *
+ * Every refresh in the app goes through here, and concurrent callers share one
+ * request. That is a correctness rule, not an optimisation: the server rotates
+ * the refresh token on every use, so a second request carrying the same cookie
+ * is refused, and that refusal used to sign the user out. StrictMode runs the
+ * boot effect twice, so in development every reload raced two refreshes.
+ */
+async function refreshSession(): Promise<RefreshOutcome> {
+  refreshInFlight ??= (async (): Promise<RefreshOutcome> => {
     try {
       const response = await fetch(buildUrl('/auth/refresh'), {
         method: 'POST',
@@ -198,12 +231,21 @@ async function refreshAccessToken(): Promise<string | null> {
         headers: { 'content-type': 'application/json' },
         body: '{}',
       });
-      const envelope = await readEnvelope<{ accessToken: string }>(response);
-      if (!response.ok || !envelope.success) return null;
-      accessToken = envelope.data.accessToken;
-      return accessToken;
+      const envelope = await readEnvelope<AuthResponse>(response);
+      if (response.ok && envelope.success) {
+        accessToken = envelope.data.accessToken;
+        return { ok: true, auth: envelope.data };
+      }
+      const failure = envelope.success
+        ? { code: ErrorCode.INTERNAL_ERROR, message: 'Unexpected response from the server.' }
+        : envelope.error;
+      return {
+        ok: false,
+        rejected: response.status === 401 || response.status === 403,
+        error: new ApiError(response.status, failure.code, failure.message, failure.details),
+      };
     } catch {
-      return null;
+      return { ok: false, rejected: false, error: networkError() };
     } finally {
       // Allow a future refresh once this attempt settles.
       setTimeout(() => {
@@ -240,11 +282,7 @@ async function performRequest<T>(
     });
   } catch (error) {
     if ((error as Error).name === 'AbortError') throw error;
-    throw new ApiError(
-      0,
-      'NETWORK_ERROR',
-      'Unable to reach the VorldX Saarthi server. Check that the API is running and try again.',
-    );
+    throw networkError();
   }
 
   const envelope = await readEnvelope<T>(response);
@@ -257,8 +295,11 @@ async function performRequest<T>(
 
   // One transparent refresh-and-retry for an expired access token.
   if (response.status === 401 && retry && !options.skipAuthRetry) {
-    const refreshed = await refreshAccessToken();
-    if (refreshed) return performRequest<T>(path, options, false);
+    const refreshed = await refreshSession();
+    if (refreshed.ok) return performRequest<T>(path, options, false);
+    // Only a refused session ends it. A refresh that could not happen right
+    // now (rate limited, offline) leaves the user signed in.
+    if (!refreshed.rejected) throw refreshed.error;
     accessToken = null;
     onUnauthenticated?.();
   }
@@ -287,7 +328,7 @@ export const api = {
     apiRequest<T>(path, { ...options, method: 'PUT', body }),
   delete: <T>(path: string, options?: Omit<RequestOptions, 'method'>) =>
     apiRequest<T>(path, { ...options, method: 'DELETE' }),
-  refresh: refreshAccessToken,
+  refresh: refreshSession,
 };
 
 /** Absolute URL for a document/file endpoint (used by download links). */

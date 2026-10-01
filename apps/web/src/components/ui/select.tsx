@@ -115,7 +115,12 @@ const SelectItem = React.forwardRef<
         <Check className="size-4" />
       </SelectPrimitive.ItemIndicator>
     </span>
-    <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
+    {/* Radix portals this text into the trigger. Wrapped, the portal holds an
+        element rather than a bare text node, so a translated page can still
+        change selection without React's removeChild failing. */}
+    <SelectPrimitive.ItemText>
+      <span>{children}</span>
+    </SelectPrimitive.ItemText>
   </SelectPrimitive.Item>
 ));
 SelectItem.displayName = SelectPrimitive.Item.displayName;

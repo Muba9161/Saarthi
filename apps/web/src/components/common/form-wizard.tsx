@@ -326,14 +326,10 @@ export function FormWizard({
               loading={submitting || checking}
               className="min-w-32"
             >
-              {isLast ? (
-                submitText
-              ) : (
-                <>
-                  {nextText}
-                  <ArrowRight className="size-4" />
-                </>
-              )}
+              {/* The label keeps one element across the last-step swap, so it
+                  never removes a text node page translation has replaced. */}
+              <span>{isLast ? submitText : nextText}</span>
+              {isLast ? null : <ArrowRight className="size-4" />}
             </Button>
           </div>
         </div>

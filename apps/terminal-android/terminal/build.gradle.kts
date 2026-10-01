@@ -36,14 +36,28 @@ fun setting(name: String): String? =
     (project.findProperty(name) as String?) ?: localProperties.getProperty(name)
 
 /**
+ * The same lookup, except a release will not read a developer's machine.
+ *
+ * `local.properties` is where a dev tunnel lives, and it is not checked in, so
+ * a release that honoured it would ship aimed at whatever tunnel the machine
+ * that built it happened to have — while looking perfectly normal. The driver
+ * app closed this first; the terminal had the same hole. An explicit
+ * `-PsaarthiApiUrl=...` still works, because a flag typed on the command line
+ * is a decision somebody made on purpose.
+ */
+fun releaseSetting(name: String): String? = project.findProperty(name) as String?
+
+/**
  * The official Saarthi API.
  *
- * `vorldxsaarthi.com` is the product's domain; the API and the device gateway
- * both live on `api.` beneath it. A release build points here unless it is told
- * otherwise, so a production APK is correct by default rather than by somebody
- * remembering a flag.
+ * The apex, not an `api.` subdomain: `api.vorldxsaarthi.com` has never
+ * resolved, so a release built from the old constant could reach nothing. The
+ * API is served from the same origin as the web app, with the routes under
+ * /api/v1 which the client appends itself — `/health` there answers as
+ * `saarthi-api` in production. A release build points here unless it is told
+ * otherwise, so a production APK is correct by default.
  */
-val productionApiUrl = "https://api.vorldxsaarthi.com"
+val productionApiUrl = "https://vorldxsaarthi.com"
 
 /**
  * The version this build is.
@@ -56,7 +70,7 @@ val productionApiUrl = "https://api.vorldxsaarthi.com"
 val appVersionCode = 1
 val appVersionName = "1.0.0"
 
-/** An explicit `-PsaarthiApiUrl=` or `local.properties` entry beats both defaults. */
+/** An explicit `-PsaarthiApiUrl=` or `local.properties` entry beats the debug default. */
 val saarthiApiUrlOverride: String? = setting("saarthiApiUrl")
 
 /** Debug: the emulator's alias for the machine running `npm run dev`. */
@@ -180,11 +194,14 @@ android {
              * given up either — `network_security_config.xml` permits cleartext
              * only to `localhost` and `10.0.2.2`, so a release build cannot
              * silently reach a development server whatever it is pointed at.
+             *
+             * `releaseSetting`, not the debug override: a tunnel kept in
+             * `local.properties` steers debug builds only.
              */
             buildConfigField(
                 "String",
                 "SAARTHI_API_URL",
-                "\"${saarthiApiUrlOverride ?: productionApiUrl}\"",
+                "\"${releaseSetting("saarthiApiUrl") ?: productionApiUrl}\"",
             )
         }
     }

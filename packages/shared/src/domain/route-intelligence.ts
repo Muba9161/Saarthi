@@ -20,7 +20,7 @@ import {
   RouteHazardTier,
   SignalPhase,
 } from './enums';
-import { bearing, cumulativeDistances, distanceToSegment, haversineDistance, type LatLng } from './geo';
+import { bearing, cumulativeDistances, haversineDistance, type LatLng } from './geo';
 
 export interface RouteHazardKindDefinition {
   kind: RouteHazardKind;

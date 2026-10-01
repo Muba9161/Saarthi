@@ -112,7 +112,7 @@ const PRIVATE_SEO: RouteSeo = {
 };
 
 /** Drops a trailing slash so `/terms/` and `/terms` resolve alike. */
-function normalizePath(pathname: string): string {
+export function normalizePath(pathname: string): string {
   return pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname;
 }
 

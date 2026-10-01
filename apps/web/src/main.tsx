@@ -3,10 +3,21 @@ import ReactDOM from 'react-dom/client';
 import { App } from './App';
 import { releaseBootSplash } from './components/common/boot-splash';
 import { preloadStoredCatalogue } from './features/i18n';
+import { reloadForCurrentBuild } from './lib/chunk-reload';
 import './styles/globals.css';
 
 const container = document.getElementById('root');
 if (!container) throw new Error('Root element not found');
+
+/*
+ * A production build preloads a page's chunks before importing it, and reports
+ * a failed preload here first. Reloading now, before the failure reaches the
+ * page's error boundary, means a tab left open across a deploy never shows an
+ * error at all. The boundary still catches whatever this does not.
+ */
+window.addEventListener('vite:preloadError', (event) => {
+  if (reloadForCurrentBuild()) event.preventDefault();
+});
 
 /*
  * Mount once the chosen language is in hand.

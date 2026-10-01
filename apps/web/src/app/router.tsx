@@ -98,9 +98,9 @@ function HomeRedirect() {
   return <Navigate to="/dashboard" replace />;
 }
 
-function RouteError() {
+function RouteError({ inline = false }: { inline?: boolean }) {
   const error = useRouteError();
-  return <RouteErrorPage error={error} />;
+  return <RouteErrorPage error={error} inline={inline} />;
 }
 
 export const router = createBrowserRouter([
@@ -187,320 +187,333 @@ export const router = createBrowserRouter([
       {
         element: <AppShell />,
         children: [
-          { path: '/dashboard', element: lazyPage(() => import('@/pages/dashboard')) },
-
-          // Fleet
-          { path: '/fleet/trucks', element: lazyPage(() => import('@/pages/fleet/trucks')) },
           {
-            path: '/fleet/trucks/:id',
-            element: lazyPage(() => import('@/pages/fleet/truck-detail')),
-          },
-          { path: '/fleet/drivers', element: lazyPage(() => import('@/pages/fleet/drivers')) },
-          {
-            path: '/fleet/drivers/:id',
-            element: lazyPage(() => import('@/pages/fleet/driver-detail')),
-          },
-          {
-            path: '/fleet/rc-lookup',
-            element: lazyPage(() => import('@/pages/fleet/rc-lookup')),
-          },
-          {
-            path: '/fleet/maintenance',
-            element: lazyPage(() => import('@/pages/fleet/maintenance')),
-          },
-          {
-            path: '/fleet/terminal-approvals',
-            element: lazyPage(() => import('@/pages/fleet/terminal-approvals')),
-          },
-
-          /*
-            The four fleet-wide roll-ups, behind one menu entry.
-
-            A pathless layout route, so every path below is exactly what it was
-            before — the dashboard's links, the notification `actionUrl`s the
-            API sends for toll, and any bookmark all still resolve. All the
-            layout adds is the strip that switches between them.
-          */
-          {
-            element: <RunningCostsTabs />,
+            /*
+             * Every page sits under its own error boundary, inside the shell.
+             *
+             * Without this the nearest boundary was `RequireAuth`, above the
+             * shell, so one failing widget replaced the whole app (navigation
+             * included) and only a reload got the user back. Here the sidebar
+             * and header survive, and moving to any other page clears it.
+             */
+            errorElement: <RouteError inline />,
             children: [
+              { path: '/dashboard', element: lazyPage(() => import('@/pages/dashboard')) },
+
+              // Fleet
+              { path: '/fleet/trucks', element: lazyPage(() => import('@/pages/fleet/trucks')) },
               {
-                path: '/fleet/documents',
-                element: lazyPage(() => import('@/pages/fleet/documents')),
+                path: '/fleet/trucks/:id',
+                element: lazyPage(() => import('@/pages/fleet/truck-detail')),
               },
-              { path: '/fleet/fuel', element: lazyPage(() => import('@/pages/fleet/fuel')) },
-              { path: '/fleet/loans', element: lazyPage(() => import('@/pages/fleet/loans')) },
-              { path: '/fleet/toll', element: lazyPage(() => import('@/pages/fleet/toll')) },
+              { path: '/fleet/drivers', element: lazyPage(() => import('@/pages/fleet/drivers')) },
+              {
+                path: '/fleet/drivers/:id',
+                element: lazyPage(() => import('@/pages/fleet/driver-detail')),
+              },
+              {
+                path: '/fleet/rc-lookup',
+                element: lazyPage(() => import('@/pages/fleet/rc-lookup')),
+              },
+              {
+                path: '/fleet/maintenance',
+                element: lazyPage(() => import('@/pages/fleet/maintenance')),
+              },
+              {
+                path: '/fleet/terminal-approvals',
+                element: lazyPage(() => import('@/pages/fleet/terminal-approvals')),
+              },
+
+              /*
+                The four fleet-wide roll-ups, behind one menu entry.
+
+                A pathless layout route, so every path below is exactly what it was
+                before — the dashboard's links, the notification `actionUrl`s the
+                API sends for toll, and any bookmark all still resolve. All the
+                layout adds is the strip that switches between them.
+              */
+              {
+                element: <RunningCostsTabs />,
+                children: [
+                  {
+                    path: '/fleet/documents',
+                    element: lazyPage(() => import('@/pages/fleet/documents')),
+                  },
+                  { path: '/fleet/fuel', element: lazyPage(() => import('@/pages/fleet/fuel')) },
+                  { path: '/fleet/loans', element: lazyPage(() => import('@/pages/fleet/loans')) },
+                  { path: '/fleet/toll', element: lazyPage(() => import('@/pages/fleet/toll')) },
+                ],
+              },
+
+              // Outside the strip on purpose: a single loan is a detail screen
+              // reached from the list, not a fifth peer of it.
+              {
+                path: '/fleet/loans/:id',
+                element: lazyPage(() => import('@/pages/fleet/loan-detail')),
+              },
+
+              // Operations
+              { path: '/tracking', element: lazyPage(() => import('@/pages/tracking/live-map')) },
+              { path: '/trips', element: lazyPage(() => import('@/pages/trips/trips')) },
+              { path: '/trips/:id', element: lazyPage(() => import('@/pages/trips/trip-detail')) },
+              { path: '/orders', element: lazyPage(() => import('@/pages/orders/orders')) },
+              { path: '/orders/new', element: lazyPage(() => import('@/pages/orders/new-order')) },
+              { path: '/orders/:id', element: lazyPage(() => import('@/pages/orders/order-detail')) },
+              {
+                path: '/marketplace',
+                element: lazyPage(() => import('@/pages/marketplace/requirements')),
+              },
+
+              /*
+               * Requirements — the customer's cross-category front door, and the
+               * board the businesses that serve it bid on.
+               *
+               * `/requirements/board` is declared before `/requirements/:id` so
+               * "board" is matched as the route it is rather than as an id.
+               */
+              {
+                path: '/requirements',
+                element: lazyPage(() => import('@/pages/requirements/requirements')),
+              },
+              {
+                path: '/requirements/new',
+                element: lazyPage(() => import('@/pages/requirements/new-requirement')),
+              },
+              {
+                path: '/requirements/board',
+                element: lazyPage(() => import('@/pages/requirements/board')),
+              },
+              {
+                path: '/requirements/board/:id',
+                element: lazyPage(() => import('@/pages/requirements/requirement-detail')),
+              },
+              {
+                path: '/requirements/:id',
+                element: lazyPage(() => import('@/pages/requirements/requirement-detail')),
+              },
+              { path: '/browse', element: lazyPage(() => import('@/pages/marketplace/browse')) },
+              {
+                path: '/marketplace/vehicles',
+                element: lazyPage(() => import('@/pages/resale/marketplace')),
+              },
+              {
+                path: '/supplier/materials',
+                element: lazyPage(() => import('@/pages/supplier/materials')),
+              },
+              {
+                path: '/supplier/materials/new',
+                element: lazyPage(() => import('@/pages/supplier/new-product')),
+              },
+
+              // Generalized vehicles
+              { path: '/fleet/vehicles', element: lazyPage(() => import('@/pages/fleet/vehicles')) },
+              // The type-aware detail screen. `/fleet/trucks/:id` renders the same
+              // page, so a car opened from either list is presented as a car.
+              {
+                path: '/fleet/vehicles/:id',
+                element: lazyPage(() => import('@/pages/fleet/vehicle-detail')),
+              },
+              {
+                path: '/fleet/vehicles/:id/telemetry',
+                element: lazyPage(() => import('@/pages/telemetry/vehicle-telemetry')),
+              },
+
+              // Hardware & telemetry
+              { path: '/devices', element: lazyPage(() => import('@/pages/devices/devices')) },
+              {
+                path: '/devices/:id',
+                element: lazyPage(() => import('@/pages/devices/device-detail')),
+              },
+              {
+                path: '/telemetry/alerts',
+                element: lazyPage(() => import('@/pages/telemetry/alerts')),
+              },
+
+              // Travel — customer
+              { path: '/travel', element: lazyPage(() => import('@/pages/travel/search')) },
+              {
+                path: '/travel/packages/:id',
+                element: lazyPage(() => import('@/pages/travel/package-detail')),
+              },
+              {
+                path: '/travel/bookings',
+                element: lazyPage(() => import('@/pages/travel/bookings')),
+              },
+              {
+                path: '/travel/bookings/:id',
+                element: lazyPage(() => import('@/pages/travel/booking-detail')),
+              },
+
+              // Travel — provider
+              {
+                path: '/travel/provider/packages',
+                element: lazyPage(() => import('@/pages/travel/provider-packages')),
+              },
+              {
+                path: '/travel/provider/bookings',
+                element: lazyPage(() => import('@/pages/travel/provider-bookings')),
+              },
+
+              // Truck association
+              {
+                path: '/association',
+                element: lazyPage(() => import('@/pages/association/dashboard')),
+              },
+              {
+                path: '/association/alerts/:id',
+                element: lazyPage(() => import('@/pages/association/alert-detail')),
+              },
+
+              // Safety
+              { path: '/sos', element: lazyPage(() => import('@/pages/sos/incidents')) },
+              { path: '/sos/:id', element: lazyPage(() => import('@/pages/sos/incident-detail')) },
+              { path: '/nearby', element: lazyPage(() => import('@/pages/nearby/nearby')) },
+
+              // Intelligence
+              { path: '/analytics', element: lazyPage(() => import('@/pages/analytics/analytics')) },
+              { path: '/copilot', element: lazyPage(() => import('@/pages/ai/copilot')) },
+
+              // Demo
+              { path: '/simulator', element: lazyPage(() => import('@/pages/simulator/simulator')) },
+
+              // Driver app
+              { path: '/driver', element: lazyPage(() => import('@/pages/driver/home')) },
+              /*
+               * The driver's own scanner.
+               *
+               * Inside the authenticated shell, unlike `/q/:token` above, and that
+               * is the whole point of it: a sign-on request has to be made by a
+               * signed-in driver. Sending them out to the phone's camera app meant
+               * landing back in whichever browser the OS preferred, often without a
+               * session, where the scan resolved but the sign-on card never
+               * appeared.
+               */
+              { path: '/driver/scan', element: lazyPage(() => import('@/pages/driver/scan')) },
+              { path: '/driver/nearby', element: lazyPage(() => import('@/pages/driver/nearby')) },
+              { path: '/driver/score', element: lazyPage(() => import('@/pages/driver/score')) },
+              {
+                path: '/driver/documents',
+                element: lazyPage(() => import('@/pages/driver/documents')),
+              },
+              { path: '/driver/trips', element: lazyPage(() => import('@/pages/driver/trips')) },
+              {
+                path: '/driver/trips/:id',
+                element: lazyPage(() => import('@/pages/trips/trip-detail')),
+              },
+              { path: '/driver/sos', element: lazyPage(() => import('@/pages/driver/sos')) },
+              {
+                path: '/driver/sos/:id',
+                element: lazyPage(() => import('@/pages/sos/incident-detail')),
+              },
+
+              // Account
+              { path: '/notifications', element: lazyPage(() => import('@/pages/notifications')) },
+              {
+                path: '/settings/profile',
+                element: lazyPage(() => import('@/pages/settings/profile-builder')),
+              },
+              { path: '/qr', element: lazyPage(() => import('@/pages/qr/qr-codes')) },
+              { path: '/verification', element: lazyPage(() => import('@/pages/verification')) },
+              // The Settings screen was folded into the profile builder. Kept as a
+              // redirect so bookmarks and older links still land somewhere useful.
+              { path: '/settings', element: <Navigate to="/settings/profile" replace /> },
+              // The business's own documents. The organization is the one subject
+              // with no detail screen of its own, so its documents — and the GST
+              // check on them — need a destination rather than a tab.
+              {
+                path: '/settings/business-documents',
+                element: lazyPage(() => import('@/pages/settings/business-documents')),
+              },
+              // A vehicle another account shared — its own screen, not the owner's page.
+              {
+                path: '/fleet/shared/:shareId',
+                element: lazyPage(() => import('@/pages/fleet/shared-vehicle')),
+              },
+              {
+                path: '/settings/security',
+                element: lazyPage(() => import('@/pages/settings/security')),
+              },
+              {
+                path: '/settings/qr-privacy',
+                element: lazyPage(() => import('@/pages/settings/qr-privacy')),
+              },
+              {
+                path: '/settings/subscription',
+                element: lazyPage(() => import('@/pages/settings/subscription')),
+              },
+              // Straight after registering on a paid plan: pay for extras, approve autopay.
+              {
+                path: '/activate',
+                element: lazyPage(() => import('@/pages/onboarding/activate')),
+              },
+              {
+                path: '/settings/payouts',
+                element: lazyPage(() => import('@/pages/settings/payouts')),
+              },
+              // Refer & Earn — the generic referral program, from the profile menu.
+              // Not under /sales: that is the salesman/GODID channel.
+              {
+                path: '/referrals',
+                element: lazyPage(() => import('@/pages/referrals/referral-center')),
+              },
+
+              // Sales — one section of this application, not a portal of its own.
+              { path: '/sales', element: lazyPage(() => import('@/pages/sales/dashboard')) },
+              { path: '/sales/leads', element: lazyPage(() => import('@/pages/sales/leads')) },
+              {
+                path: '/sales/leads/:id',
+                element: lazyPage(() => import('@/pages/sales/lead-detail')),
+              },
+              {
+                path: '/sales/customers',
+                element: lazyPage(() => import('@/pages/sales/customers')),
+              },
+              { path: '/sales/demo', element: lazyPage(() => import('@/pages/sales/demo')) },
+              {
+                path: '/sales/referrals',
+                element: lazyPage(() => import('@/pages/sales/referrals')),
+              },
+              {
+                path: '/sales/trackers',
+                element: lazyPage(() => import('@/pages/sales/trackers')),
+              },
+              {
+                path: '/sales/earnings',
+                element: lazyPage(() => import('@/pages/sales/earnings')),
+              },
+              // Commission was replaced by a flat reward paid into the wallet.
+              // Kept as a redirect so bookmarks still land somewhere useful.
+              { path: '/sales/commission', element: <Navigate to="/sales/earnings" replace /> },
+
+              // Platform administration
+              { path: '/admin', element: lazyPage(() => import('@/pages/admin/overview')) },
+              {
+                path: '/admin/verification',
+                element: lazyPage(() => import('@/pages/admin/verification-queue')),
+              },
+              { path: '/admin/users', element: lazyPage(() => import('@/pages/admin/users')) },
+              {
+                path: '/admin/organizations',
+                element: lazyPage(() => import('@/pages/admin/organizations')),
+              },
+              {
+                path: '/admin/terminal-releases',
+                element: lazyPage(() => import('@/pages/admin/terminal-releases')),
+              },
+              { path: '/admin/audit', element: lazyPage(() => import('@/pages/admin/audit')) },
+              {
+                path: '/admin/salesmen',
+                element: lazyPage(() => import('@/pages/admin/salesmen')),
+              },
+              { path: '/admin/commission', element: <Navigate to="/admin/salesmen" replace /> },
+              {
+                path: '/admin/commerce',
+                element: lazyPage(() => import('@/pages/admin/commerce-taxonomy')),
+              },
+
+              { path: '*', element: <NotFoundPage />, handle: NOT_FOUND_HANDLE },
             ],
           },
-
-          // Outside the strip on purpose: a single loan is a detail screen
-          // reached from the list, not a fifth peer of it.
-          {
-            path: '/fleet/loans/:id',
-            element: lazyPage(() => import('@/pages/fleet/loan-detail')),
-          },
-
-          // Operations
-          { path: '/tracking', element: lazyPage(() => import('@/pages/tracking/live-map')) },
-          { path: '/trips', element: lazyPage(() => import('@/pages/trips/trips')) },
-          { path: '/trips/:id', element: lazyPage(() => import('@/pages/trips/trip-detail')) },
-          { path: '/orders', element: lazyPage(() => import('@/pages/orders/orders')) },
-          { path: '/orders/new', element: lazyPage(() => import('@/pages/orders/new-order')) },
-          { path: '/orders/:id', element: lazyPage(() => import('@/pages/orders/order-detail')) },
-          {
-            path: '/marketplace',
-            element: lazyPage(() => import('@/pages/marketplace/requirements')),
-          },
-
-          /*
-           * Requirements — the customer's cross-category front door, and the
-           * board the businesses that serve it bid on.
-           *
-           * `/requirements/board` is declared before `/requirements/:id` so
-           * "board" is matched as the route it is rather than as an id.
-           */
-          {
-            path: '/requirements',
-            element: lazyPage(() => import('@/pages/requirements/requirements')),
-          },
-          {
-            path: '/requirements/new',
-            element: lazyPage(() => import('@/pages/requirements/new-requirement')),
-          },
-          {
-            path: '/requirements/board',
-            element: lazyPage(() => import('@/pages/requirements/board')),
-          },
-          {
-            path: '/requirements/board/:id',
-            element: lazyPage(() => import('@/pages/requirements/requirement-detail')),
-          },
-          {
-            path: '/requirements/:id',
-            element: lazyPage(() => import('@/pages/requirements/requirement-detail')),
-          },
-          { path: '/browse', element: lazyPage(() => import('@/pages/marketplace/browse')) },
-          {
-            path: '/marketplace/vehicles',
-            element: lazyPage(() => import('@/pages/resale/marketplace')),
-          },
-          {
-            path: '/supplier/materials',
-            element: lazyPage(() => import('@/pages/supplier/materials')),
-          },
-          {
-            path: '/supplier/materials/new',
-            element: lazyPage(() => import('@/pages/supplier/new-product')),
-          },
-
-          // Generalized vehicles
-          { path: '/fleet/vehicles', element: lazyPage(() => import('@/pages/fleet/vehicles')) },
-          // The type-aware detail screen. `/fleet/trucks/:id` renders the same
-          // page, so a car opened from either list is presented as a car.
-          {
-            path: '/fleet/vehicles/:id',
-            element: lazyPage(() => import('@/pages/fleet/vehicle-detail')),
-          },
-          {
-            path: '/fleet/vehicles/:id/telemetry',
-            element: lazyPage(() => import('@/pages/telemetry/vehicle-telemetry')),
-          },
-
-          // Hardware & telemetry
-          { path: '/devices', element: lazyPage(() => import('@/pages/devices/devices')) },
-          {
-            path: '/devices/:id',
-            element: lazyPage(() => import('@/pages/devices/device-detail')),
-          },
-          {
-            path: '/telemetry/alerts',
-            element: lazyPage(() => import('@/pages/telemetry/alerts')),
-          },
-
-          // Travel — customer
-          { path: '/travel', element: lazyPage(() => import('@/pages/travel/search')) },
-          {
-            path: '/travel/packages/:id',
-            element: lazyPage(() => import('@/pages/travel/package-detail')),
-          },
-          {
-            path: '/travel/bookings',
-            element: lazyPage(() => import('@/pages/travel/bookings')),
-          },
-          {
-            path: '/travel/bookings/:id',
-            element: lazyPage(() => import('@/pages/travel/booking-detail')),
-          },
-
-          // Travel — provider
-          {
-            path: '/travel/provider/packages',
-            element: lazyPage(() => import('@/pages/travel/provider-packages')),
-          },
-          {
-            path: '/travel/provider/bookings',
-            element: lazyPage(() => import('@/pages/travel/provider-bookings')),
-          },
-
-          // Truck association
-          {
-            path: '/association',
-            element: lazyPage(() => import('@/pages/association/dashboard')),
-          },
-          {
-            path: '/association/alerts/:id',
-            element: lazyPage(() => import('@/pages/association/alert-detail')),
-          },
-
-          // Safety
-          { path: '/sos', element: lazyPage(() => import('@/pages/sos/incidents')) },
-          { path: '/sos/:id', element: lazyPage(() => import('@/pages/sos/incident-detail')) },
-          { path: '/nearby', element: lazyPage(() => import('@/pages/nearby/nearby')) },
-
-          // Intelligence
-          { path: '/analytics', element: lazyPage(() => import('@/pages/analytics/analytics')) },
-          { path: '/copilot', element: lazyPage(() => import('@/pages/ai/copilot')) },
-
-          // Demo
-          { path: '/simulator', element: lazyPage(() => import('@/pages/simulator/simulator')) },
-
-          // Driver app
-          { path: '/driver', element: lazyPage(() => import('@/pages/driver/home')) },
-          /*
-           * The driver's own scanner.
-           *
-           * Inside the authenticated shell, unlike `/q/:token` above, and that
-           * is the whole point of it: a sign-on request has to be made by a
-           * signed-in driver. Sending them out to the phone's camera app meant
-           * landing back in whichever browser the OS preferred, often without a
-           * session, where the scan resolved but the sign-on card never
-           * appeared.
-           */
-          { path: '/driver/scan', element: lazyPage(() => import('@/pages/driver/scan')) },
-          { path: '/driver/nearby', element: lazyPage(() => import('@/pages/driver/nearby')) },
-          { path: '/driver/score', element: lazyPage(() => import('@/pages/driver/score')) },
-          {
-            path: '/driver/documents',
-            element: lazyPage(() => import('@/pages/driver/documents')),
-          },
-          { path: '/driver/trips', element: lazyPage(() => import('@/pages/driver/trips')) },
-          {
-            path: '/driver/trips/:id',
-            element: lazyPage(() => import('@/pages/trips/trip-detail')),
-          },
-          { path: '/driver/sos', element: lazyPage(() => import('@/pages/driver/sos')) },
-          {
-            path: '/driver/sos/:id',
-            element: lazyPage(() => import('@/pages/sos/incident-detail')),
-          },
-
-          // Account
-          { path: '/notifications', element: lazyPage(() => import('@/pages/notifications')) },
-          {
-            path: '/settings/profile',
-            element: lazyPage(() => import('@/pages/settings/profile-builder')),
-          },
-          { path: '/qr', element: lazyPage(() => import('@/pages/qr/qr-codes')) },
-          { path: '/verification', element: lazyPage(() => import('@/pages/verification')) },
-          // The Settings screen was folded into the profile builder. Kept as a
-          // redirect so bookmarks and older links still land somewhere useful.
-          { path: '/settings', element: <Navigate to="/settings/profile" replace /> },
-          // The business's own documents. The organization is the one subject
-          // with no detail screen of its own, so its documents — and the GST
-          // check on them — need a destination rather than a tab.
-          {
-            path: '/settings/business-documents',
-            element: lazyPage(() => import('@/pages/settings/business-documents')),
-          },
-          // A vehicle another account shared — its own screen, not the owner's page.
-          {
-            path: '/fleet/shared/:shareId',
-            element: lazyPage(() => import('@/pages/fleet/shared-vehicle')),
-          },
-          {
-            path: '/settings/security',
-            element: lazyPage(() => import('@/pages/settings/security')),
-          },
-          {
-            path: '/settings/qr-privacy',
-            element: lazyPage(() => import('@/pages/settings/qr-privacy')),
-          },
-          {
-            path: '/settings/subscription',
-            element: lazyPage(() => import('@/pages/settings/subscription')),
-          },
-          // Straight after registering on a paid plan: pay for extras, approve autopay.
-          {
-            path: '/activate',
-            element: lazyPage(() => import('@/pages/onboarding/activate')),
-          },
-          {
-            path: '/settings/payouts',
-            element: lazyPage(() => import('@/pages/settings/payouts')),
-          },
-          // Refer & Earn — the generic referral program, from the profile menu.
-          // Not under /sales: that is the salesman/GODID channel.
-          {
-            path: '/referrals',
-            element: lazyPage(() => import('@/pages/referrals/referral-center')),
-          },
-
-          // Sales — one section of this application, not a portal of its own.
-          { path: '/sales', element: lazyPage(() => import('@/pages/sales/dashboard')) },
-          { path: '/sales/leads', element: lazyPage(() => import('@/pages/sales/leads')) },
-          {
-            path: '/sales/leads/:id',
-            element: lazyPage(() => import('@/pages/sales/lead-detail')),
-          },
-          {
-            path: '/sales/customers',
-            element: lazyPage(() => import('@/pages/sales/customers')),
-          },
-          { path: '/sales/demo', element: lazyPage(() => import('@/pages/sales/demo')) },
-          {
-            path: '/sales/referrals',
-            element: lazyPage(() => import('@/pages/sales/referrals')),
-          },
-          {
-            path: '/sales/trackers',
-            element: lazyPage(() => import('@/pages/sales/trackers')),
-          },
-          {
-            path: '/sales/earnings',
-            element: lazyPage(() => import('@/pages/sales/earnings')),
-          },
-          // Commission was replaced by a flat reward paid into the wallet.
-          // Kept as a redirect so bookmarks still land somewhere useful.
-          { path: '/sales/commission', element: <Navigate to="/sales/earnings" replace /> },
-
-          // Platform administration
-          { path: '/admin', element: lazyPage(() => import('@/pages/admin/overview')) },
-          {
-            path: '/admin/verification',
-            element: lazyPage(() => import('@/pages/admin/verification-queue')),
-          },
-          { path: '/admin/users', element: lazyPage(() => import('@/pages/admin/users')) },
-          {
-            path: '/admin/organizations',
-            element: lazyPage(() => import('@/pages/admin/organizations')),
-          },
-          {
-            path: '/admin/terminal-releases',
-            element: lazyPage(() => import('@/pages/admin/terminal-releases')),
-          },
-          { path: '/admin/audit', element: lazyPage(() => import('@/pages/admin/audit')) },
-          {
-            path: '/admin/salesmen',
-            element: lazyPage(() => import('@/pages/admin/salesmen')),
-          },
-          { path: '/admin/commission', element: <Navigate to="/admin/salesmen" replace /> },
-          {
-            path: '/admin/commerce',
-            element: lazyPage(() => import('@/pages/admin/commerce-taxonomy')),
-          },
-
-          { path: '*', element: <NotFoundPage />, handle: NOT_FOUND_HANDLE },
         ],
       },
     ],

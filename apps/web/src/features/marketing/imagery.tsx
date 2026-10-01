@@ -116,6 +116,22 @@ export const STEP_IMAGES = [
 ] as const;
 
 /**
+ * Real screens from Humsafar, the driver app, for the phone in its band.
+ *
+ * 720x1650 captures from a handset with the system status bar painted out, so
+ * the device frame can draw a clean one over the top. They are interface, not
+ * photography: never cropped, never filtered, always shown whole.
+ */
+export const APP_SCREEN = {
+  welcome: `${BASE}/app-welcome.webp`,
+  quickLogin: `${BASE}/app-quick-login.webp`,
+  approval: `${BASE}/app-approval.webp`,
+  safetyCheck: `${BASE}/app-safety-check.webp`,
+  onShift: `${BASE}/app-on-shift.webp`,
+  papers: `${BASE}/app-papers.webp`,
+} as const;
+
+/**
  * A band that stays near-black whichever theme the visitor is in.
  *
  * Hard-coded rather than `bg-sidebar`, because the sidebar token is *nearly*
@@ -209,7 +225,10 @@ export function FramePicture({
         src={src}
         alt=""
         loading={priority ? 'eager' : 'lazy'}
-        fetchPriority={priority ? 'high' : 'auto'}
+        // Lowercase on purpose: React 18 does not know `fetchPriority` (19
+        // does), so it warned and dropped it, and the hint never reached the
+        // browser. Spread, because the typings only carry the camelCase name.
+        {...{ fetchpriority: priority ? 'high' : 'auto' }}
         decoding="async"
         onError={onError}
         className="size-full object-cover"

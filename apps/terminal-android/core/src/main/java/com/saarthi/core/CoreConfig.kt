@@ -46,8 +46,14 @@ object CoreConfig {
     var versionCode: Int = 0
         private set
 
-    /** Where this build points when nothing has been configured on the device. */
-    var defaultApiUrl: String = "https://api.vorldxsaarthi.com"
+    /**
+     * Where this build points when nothing has been configured on the device.
+     *
+     * Replaced by `initialise` with the app's BuildConfig value; this is only
+     * the fallback before that runs, so it names the real production origin
+     * (the apex; `api.` beneath it has never resolved).
+     */
+    var defaultApiUrl: String = "https://vorldxsaarthi.com"
         private set
 
     /** The basemap style the cockpit renders. */

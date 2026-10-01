@@ -6,6 +6,7 @@ import { AuthProvider } from '@/features/auth/auth-context';
 import { RealtimeProvider } from '@/hooks/use-realtime';
 import { ThemeProvider } from '@/features/theme/theme-context';
 import { AppLocaleProvider } from '@/features/i18n';
+import { AnalyticsTracker } from '@/features/analytics';
 import { ApiError } from '@/lib/api-client';
 import { router } from '@/app/router';
 
@@ -39,6 +40,7 @@ export function App() {
             <RealtimeProvider>
               <TooltipProvider delayDuration={200}>
                 <RouterProvider router={router} />
+                <AnalyticsTracker router={router} />
                 <Toaster
                   position="top-right"
                   richColors

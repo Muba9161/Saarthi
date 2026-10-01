@@ -23,6 +23,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { formatFee, payLabel, usePayAndVerify, type PayAndVerifyOutcome } from './use-pay-and-verify';
+import { ScanNumberButton } from './scan-number-button';
 
 /**
  * One focused verification step.
@@ -161,9 +162,12 @@ function PaidCheckForm({
 
       {identityKind && definition ? (
         <div className="space-y-1.5">
-          <Label htmlFor={`${step.id}-number`} required>
-            {definition.label} number
-          </Label>
+          <div className="flex items-center justify-between gap-3">
+            <Label htmlFor={`${step.id}-number`} required>
+              {definition.label} number
+            </Label>
+            <ScanNumberButton kind={identityKind} label={definition.label} onNumber={setNumber} />
+          </div>
           <Input
             id={`${step.id}-number`}
             value={number}

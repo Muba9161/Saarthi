@@ -94,7 +94,10 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         aria-busy={loading || undefined}
         {...props}
       >
-        {loading ? <Loader2 className="animate-spin" aria-hidden /> : null}
+        {/* Always mounted, only shown while loading. Inserted on demand it went
+            in front of the label's text node, which page translation swaps
+            out, and React threw "insertBefore … not a child of this node". */}
+        <Loader2 className={cn('animate-spin', !loading && 'hidden')} aria-hidden />
         {children}
       </Comp>
     );

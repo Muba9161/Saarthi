@@ -755,7 +755,9 @@ const SECTIONS: LegalSectionSpec[] = [
         <FactTable
           head={['', 'Detail']}
           rows={[
-            ['Name', entityText(LEGAL_ENTITY.grievanceOfficer.name)],
+            ...(LEGAL_ENTITY.grievanceOfficer.name
+              ? [['Name', LEGAL_ENTITY.grievanceOfficer.name]]
+              : []),
             ['Designation', LEGAL_ENTITY.grievanceOfficer.designation],
             ['Email', <Mailto key="email" address={LEGAL_ENTITY.email.grievance} />],
             ['Address', formatAddress(LEGAL_ENTITY.registeredOffice)],
@@ -844,7 +846,7 @@ const SECTIONS: LegalSectionSpec[] = [
             ['Support', <Mailto key="support" address={LEGAL_ENTITY.email.support} />],
             ['Legal', <Mailto key="legal" address={LEGAL_ENTITY.email.legal} />],
             ['Grievances', <Mailto key="grievance" address={LEGAL_ENTITY.email.grievance} />],
-            ['Telephone', entityText(LEGAL_ENTITY.phone)],
+            ...(LEGAL_ENTITY.phone ? [['Telephone', LEGAL_ENTITY.phone]] : []),
           ]}
         />
       </>

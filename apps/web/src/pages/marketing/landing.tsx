@@ -10,6 +10,7 @@ import { KnockoutBand } from '@/features/marketing/knockout-band';
 import { Pricing } from '@/features/marketing/pricing';
 import { TrackersSection } from '@/features/marketing/trackers-section';
 import { CommandCentre } from '@/features/marketing/command-centre';
+import { DriverAppSection } from '@/features/marketing/driver-app/driver-app-section';
 import { SmoothScroll, useScrollToSection } from '@/features/marketing/scroll-engine';
 import { PointerHalo } from '@/features/marketing/magnetic';
 import { usePreloadWhenIdle } from '@/lib/lazy-with-preload';
@@ -25,7 +26,8 @@ const NEXT_PAGES = [LoginPage, RegisterPage];
  * much of it is there (marquee and counted facts), does it work where my loads
  * go (coverage), why is it different from what I already pay for (pillars),
  * what does operating it actually feel like (the command centre), what does it
- * look like for someone like me (roles), how does a job move through it (how
+ * look like for someone like me (roles), what does the driver actually carry
+ * (the Humsafar app, in a phone), how does a job move through it (how
  * it works), what happens when something goes wrong (safety), what does it
  * cost (pricing), and what does a tracker add (trackers).
  *
@@ -116,6 +118,7 @@ function LandingContent() {
         <CommandCentre />
         <KnockoutBand />
         <RoleShowcaseSection />
+        <DriverAppSection />
         <HowItWorks />
         <SafetyBand />
         <Pricing />

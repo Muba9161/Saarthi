@@ -135,7 +135,9 @@ export function LiveMapPage() {
         actions={
           <Badge variant={connected ? 'success' : 'muted'} className="gap-1.5">
             {connected ? <span className="live-dot" aria-hidden /> : <Radio className="size-3" />}
-            {connected ? 'Live' : 'Reconnecting…'}
+            {/* Its own element: this flips on every reconnect, unprompted, and
+                a bare text node here crashed translated pages. */}
+            <span>{connected ? 'Live' : 'Reconnecting…'}</span>
           </Badge>
         }
       />

@@ -1,8 +1,9 @@
+import * as React from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
 import { IdCard, RefreshCw, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import {
+  IdentityDocumentKind,
   Permission,
   VehicleOwnershipStatus,
   formatDate,
@@ -10,6 +11,10 @@ import {
 } from '@saarthi/shared';
 import { api, errorMessage } from '@/lib/api-client';
 import { useAuth } from '@/features/auth/auth-context';
+import {
+  IdentityVerifyDialog,
+  type IdentityVerifyTarget,
+} from '@/features/verification/identity-verify-dialog';
 import { SectionHeader } from '@/components/common/page-header';
 import { StatusBadge } from '@/components/common/status-badge';
 import { Button } from '@/components/ui/button';
@@ -33,9 +38,13 @@ export function VehicleOwnershipCard({
   vehicleId: string;
   ownership: VehicleOwnershipView;
 }) {
-  const { can } = useAuth();
+  const { can, session } = useAuth();
   const queryClient = useQueryClient();
   const canAct = can(Permission.VEHICLES_UPDATE);
+  // Set on click and held until the dialog closes: the dialog re-seeds its
+  // fields whenever the target changes identity.
+  const [panTarget, setPanTarget] = React.useState<IdentityVerifyTarget | null>(null);
+  const userId = session?.user.id;
 
   const recheck = useMutation({
     mutationFn: () =>
@@ -95,16 +104,25 @@ export function VehicleOwnershipCard({
           <div className="flex flex-col gap-2 sm:flex-row">
             {/*
               The name that confirms a vehicle comes from a verified PAN (or a
-              business GSTIN), so the way to it is one tap away. Verifying one
-              confirms the vehicle straight away; "Check again" is for anything
-              that changed elsewhere.
+              business GSTIN), so it is verified right here rather than on a
+              settings screen. The server re-checks ownership as soon as the PAN
+              verifies; "Check again" is for anything that changed elsewhere.
             */}
-            <Button className="w-full sm:w-auto" asChild>
-              <Link to="/settings/profile?step=identity">
+            {userId ? (
+              <Button
+                className="w-full sm:w-auto"
+                onClick={() =>
+                  setPanTarget({
+                    kind: IdentityDocumentKind.PAN,
+                    subjectType: 'USER',
+                    subjectId: userId,
+                  })
+                }
+              >
                 <IdCard className="size-4" aria-hidden />
                 Verify your PAN
-              </Link>
-            </Button>
+              </Button>
+            ) : null}
             {canAct ? (
               <Button
                 variant="outline"
@@ -119,6 +137,14 @@ export function VehicleOwnershipCard({
           </div>
         ) : null}
       </CardContent>
+
+      <IdentityVerifyDialog
+        target={panTarget}
+        open={panTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setPanTarget(null);
+        }}
+      />
     </Card>
   );
 }

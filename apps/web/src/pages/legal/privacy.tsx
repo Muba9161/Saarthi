@@ -356,6 +356,10 @@ const SECTIONS: LegalSectionSpec[] = [
               'AI model providers',
               'The question asked and the pre-authorised context assembled for it - see the AI section below.',
             ],
+            [
+              'Website analytics (Google Analytics)',
+              'For visitors to the public pages who are not signed in: the pages viewed, how the visitor arrived (including campaign tags in the link), device and browser type, approximate location derived from the IP address, and, when an account is created, its type and plan. Never account details or fleet records - see the cookies section below.',
+            ],
           ]}
         />
         <P>
@@ -428,8 +432,9 @@ const SECTIONS: LegalSectionSpec[] = [
     body: (
       <>
         <P>
-          Saarthi uses the minimum a signed-in application needs. There is no advertising or
-          cross-site tracking on this Platform, and no third-party marketing cookie.
+          Saarthi uses the minimum a signed-in application needs, and measures visits to its public
+          pages. There is no advertising or cross-site tracking on this Platform, and no
+          third-party marketing cookie.
         </P>
         <FactTable
           head={['What', 'Why', 'Kind']}
@@ -454,11 +459,21 @@ const SECTIONS: LegalSectionSpec[] = [
               'Remembers your choice of list or map view on screens that offer both.',
               'Preference, stored in your browser',
             ],
+            [
+              'Analytics cookies (_ga, _ga_*)',
+              'Set by Google Analytics on the public pages - the home page, these legal pages, and the sign-in and registration screens - for visitors who are not signed in. They count visits, show which pages are read and how visitors arrived, and record when an account is created. Nothing inside the signed-in Platform is measured, and the password reset page is never measured.',
+              'Analytics, kept for up to 2 years',
+            ],
           ]}
         />
         <P>
           Clearing your browser storage signs you out and resets these preferences. Blocking the
-          session cookie prevents sign-in from working at all.
+          session cookie prevents sign-in from working at all. Blocking the analytics cookies, or
+          installing Google&rsquo;s{' '}
+          <LegalLink to="https://tools.google.com/dlpage/gaoptout">
+            Analytics opt-out add-on
+          </LegalLink>
+          , changes nothing about how Saarthi works.
         </P>
       </>
     ),
@@ -469,8 +484,8 @@ const SECTIONS: LegalSectionSpec[] = [
     body: (
       <P>
         We host and process personal data in India wherever we can. A small number of the services
-        described above - in particular AI model providers and some map and routing services -
-        process data outside India. Where that happens we rely on contractual protections with those
+        described above - in particular AI model providers, website analytics and some map and
+        routing services - process data outside India. Where that happens we rely on contractual protections with those
         providers, share only the minimum needed, and do not transfer to any territory restricted by
         the Central Government under the Digital Personal Data Protection Act, 2023.
       </P>
@@ -631,10 +646,12 @@ const SECTIONS: LegalSectionSpec[] = [
           head={['', 'Detail']}
           rows={[
             ['Entity', ENTITY],
-            ['Grievance Officer', entityText(LEGAL_ENTITY.grievanceOfficer.name)],
+            ...(LEGAL_ENTITY.grievanceOfficer.name
+              ? [['Grievance Officer', LEGAL_ENTITY.grievanceOfficer.name]]
+              : []),
             ['Email', <Mailto key="grievance" address={LEGAL_ENTITY.email.grievance} />],
             ['Privacy queries', <Mailto key="privacy" address={LEGAL_ENTITY.email.privacy} />],
-            ['Telephone', entityText(LEGAL_ENTITY.phone)],
+            ...(LEGAL_ENTITY.phone ? [['Telephone', LEGAL_ENTITY.phone]] : []),
             ['Registered office', formatAddress(LEGAL_ENTITY.registeredOffice)],
           ]}
         />

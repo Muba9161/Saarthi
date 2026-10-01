@@ -74,12 +74,28 @@ const MANIFEST = [
   { name: 'role-supplier', width: 800, height: 1000, budgetKb: 110 },
   { name: 'role-travel', width: 800, height: 1000, budgetKb: 110 },
   { name: 'role-association', width: 800, height: 1000, budgetKb: 110 },
+  // "Humsafar" — real screens from the driver app, captured on a phone, with
+  // the real status bar painted out (the device frame draws its own). Interface,
+  // not photography: small coloured type is what lossy chroma smears first,
+  // so these encode with the `picture` preset at a higher quality floor.
+  { name: 'app-welcome', width: 720, height: 1650, budgetKb: 120, screen: true },
+  { name: 'app-quick-login', width: 720, height: 1650, budgetKb: 60, screen: true },
+  { name: 'app-approval', width: 720, height: 1650, budgetKb: 60, screen: true },
+  { name: 'app-safety-check', width: 720, height: 1650, budgetKb: 60, screen: true },
+  { name: 'app-on-shift', width: 720, height: 1650, budgetKb: 70, screen: true },
+  { name: 'app-papers', width: 720, height: 1650, budgetKb: 70, screen: true },
 ];
+
+/** The default quality for photographs, and the floor for app screens. */
+const PHOTO_QUALITY = 82;
+const SCREEN_QUALITY = 90;
 
 const SOURCE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.webp', '.tif', '.tiff'];
 
 function parseArgs(argv) {
-  const options = { quality: 82, only: null };
+  // Null until passed, so an explicit --quality overrides every slot while the
+  // default still differs between photographs and app screens.
+  const options = { quality: null, only: null };
   for (let index = 0; index < argv.length; index += 1) {
     const flag = argv[index];
     if (flag === '--quality') options.quality = Number(argv[++index]);
@@ -87,7 +103,10 @@ function parseArgs(argv) {
     else if (flag === '--help' || flag === '-h') options.help = true;
     else throw new Error(`Unknown argument: ${flag}`);
   }
-  if (!Number.isFinite(options.quality) || options.quality < 1 || options.quality > 100) {
+  if (
+    options.quality !== null &&
+    (!Number.isFinite(options.quality) || options.quality < 1 || options.quality > 100)
+  ) {
     throw new Error('--quality must be a number between 1 and 100');
   }
   return options;
@@ -155,8 +174,9 @@ function findSource(name, entries) {
   return null;
 }
 
-function convert(entry, sourcePath, quality) {
-  const { alpha } = entry;
+function convert(entry, sourcePath, requestedQuality) {
+  const { alpha, screen } = entry;
+  const quality = requestedQuality ?? (screen ? SCREEN_QUALITY : PHOTO_QUALITY);
   const { width, height } = fitToSource(entry, probeSize(sourcePath));
   const outputPath = path.join(OUT_DIR, `${entry.name}.webp`);
 
@@ -187,7 +207,7 @@ function convert(entry, sourcePath, quality) {
       '-pix_fmt',
       alpha ? 'yuva420p' : 'yuv420p',
       '-preset',
-      'photo',
+      screen ? 'picture' : 'photo',
       '-quality',
       String(quality),
       '-frames:v',

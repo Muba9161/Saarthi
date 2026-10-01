@@ -89,8 +89,15 @@ export function formatRegistrationNumber(value: string): string {
   return [match[1], match[2], match[3], match[4]].filter(Boolean).join('-');
 }
 
-export function relativeTimeFrom(date: Date | string, now: Date = new Date()): string {
+export function relativeTimeFrom(
+  date: Date | string | null | undefined,
+  now: Date = new Date(),
+): string {
+  // A missing or unparseable date reached Intl as NaN, which throws, and this
+  // runs during render: one bad row took the whole screen down.
+  if (date === null || date === undefined) return '—';
   const target = typeof date === 'string' ? new Date(date) : date;
+  if (Number.isNaN(target.getTime())) return '—';
   const diffSeconds = Math.round((target.getTime() - now.getTime()) / 1000);
   const abs = Math.abs(diffSeconds);
 

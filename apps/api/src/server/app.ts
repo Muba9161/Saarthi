@@ -5,8 +5,8 @@ import cookie from '@fastify/cookie';
 import rateLimit from '@fastify/rate-limit';
 import multipart from '@fastify/multipart';
 import websocket from '@fastify/websocket';
-import { ErrorCode } from '@saarthi/shared';
 import { config } from '../config/env';
+import { errors } from '../lib/errors';
 import { DEV_TUNNEL_ORIGIN, LOCAL_ORIGIN } from '../lib/public-url';
 import { redisClient } from '../infra/redis';
 import { logger } from '../lib/logger';
@@ -103,13 +103,10 @@ export async function buildApp(): Promise<FastifyInstance> {
     // Rate limit per authenticated user when possible, else per IP.
     keyGenerator: (request) => request.auth?.user.id ?? request.clientIp ?? request.ip,
     allowList: () => config.isTest,
-    errorResponseBuilder: () => ({
-      success: false,
-      error: {
-        code: ErrorCode.RATE_LIMITED,
-        message: 'Too many requests. Please slow down and try again shortly.',
-      },
-    }),
+    // The plugin *throws* what this returns, so it must be an error the error
+    // handler recognises. A plain envelope carried no status and every
+    // rate-limited request was answered as a 500.
+    errorResponseBuilder: () => errors.rateLimited(),
   });
 
   await app.register(multipart, {

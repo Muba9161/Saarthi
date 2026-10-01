@@ -15,6 +15,7 @@ import {
   setAccountArchivedHandler,
   setUnauthenticatedHandler,
   ApiError,
+  type AuthResponse,
 } from '@/lib/api-client';
 import { passkeySignIn } from '@/features/secure-access/secure-access-api';
 
@@ -25,12 +26,6 @@ import { passkeySignIn } from '@/features/secure-access/secure-access-api';
  * the httpOnly refresh cookie for a fresh token, so a reload keeps the user
  * signed in without ever exposing a long-lived credential to JavaScript.
  */
-
-interface AuthResponse {
-  accessToken: string;
-  expiresIn: number;
-  session: SessionPayload;
-}
 
 interface AuthContextValue {
   session: SessionPayload | null;
@@ -103,14 +98,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (refreshTimer.current) window.clearTimeout(refreshTimer.current);
     const delay = Math.max(30_000, (expiresIn - 60) * 1000);
     refreshTimer.current = window.setTimeout(() => {
-      void api
-        .post<AuthResponse>('/auth/refresh', {})
-        .then((result) => {
-          setAccessToken(result.accessToken);
-          setSession(result.session);
-          scheduleRefresh(result.expiresIn);
-        })
-        .catch(() => clearSession());
+      void api.refresh().then((outcome) => {
+        if (outcome.ok) {
+          setSession(outcome.auth.session);
+          scheduleRefresh(outcome.auth.expiresIn);
+        } else if (outcome.rejected) {
+          clearSession();
+        } else {
+          // Rate limited, offline or mid-deploy: the session is still good,
+          // so try again shortly instead of signing the user out.
+          scheduleRefresh(0);
+        }
+      });
     }, delay);
   }, [clearSession]);
 
@@ -142,17 +141,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .catch(() => undefined);
     });
 
-    void (async () => {
-      try {
-        const result = await api.post<AuthResponse>('/auth/refresh', {}, { skipAuthRetry: true });
-        if (!cancelled) applyAuth(result);
-      } catch {
-        if (!cancelled) {
-          setStatus('unauthenticated');
-          setSession(null);
-        }
+    // Through the shared refresh, so StrictMode's second run of this effect
+    // joins the first request instead of racing it.
+    void api.refresh().then((outcome) => {
+      if (cancelled) return;
+      if (outcome.ok) {
+        applyAuth(outcome.auth);
+      } else {
+        setStatus('unauthenticated');
+        setSession(null);
       }
-    })();
+    });
 
     return () => {
       cancelled = true;

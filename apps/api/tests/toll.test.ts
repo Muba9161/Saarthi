@@ -378,6 +378,8 @@ describe('FASTag and toll', () => {
       replacedPreviousTag: boolean;
       issuerNamed: boolean;
       balanceServed: boolean;
+      crossingsImported: number;
+      coverageNote: string | null;
       fastag:
         | {
             id: string;

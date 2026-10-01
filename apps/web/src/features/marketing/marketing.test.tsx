@@ -1,3 +1,5 @@
+import { existsSync } from 'node:fs';
+import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -7,6 +9,8 @@ import { ThemeProvider } from '@/features/theme/theme-context';
 import { ROLE_SHOWCASE } from './feature-catalogue';
 import { RoleShowcaseSection } from './role-showcase';
 import { WordsReveal } from './motion-extras';
+import { DriverAppSection } from './driver-app/driver-app-section';
+import { DRIVER_APP_MOMENTS } from './driver-app/moments';
 import { SAARTHI_IN_SCRIPT } from './brush-name/saarthi-in-script';
 import { INK_ART } from './brush-name/ink-art.generated';
 import { erasedIn, planInk, reverseBeat } from '@/components/ink/ink-timeline';
@@ -186,5 +190,37 @@ describe('brand band', () => {
     // written finishes lifting no later than the erase does.
     expect(last.delay).toBeLessThan(first.delay);
     expect(first.delay + first.duration).toBeLessThanOrEqual(erasedIn(plan) + 1e-9);
+  });
+});
+
+describe('driver app band', () => {
+  it('offers every moment of the shift as a tab', () => {
+    renderWithProviders(<DriverAppSection />);
+
+    const tabs = within(screen.getByRole('tablist', { name: "Moments in a driver's shift" })).getAllByRole('tab');
+    expect(tabs.map((tab) => tab.textContent)).toEqual(
+      DRIVER_APP_MOMENTS.map((moment, at) => expect.stringContaining(`${String(at + 1).padStart(2, '0')}${moment.title}`)),
+    );
+  });
+
+  it('shows the screen of the moment the reader picks', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<DriverAppSection />);
+
+    const third = DRIVER_APP_MOMENTS[2];
+    expect(third, 'there is no third moment').toBeDefined();
+    if (!third) return;
+
+    await user.click(screen.getByRole('tab', { name: new RegExp(third.title) }));
+
+    expect(screen.getByRole('tab', { name: new RegExp(third.title) })).toHaveAttribute('aria-selected', 'true');
+    expect(within(screen.getByRole('tabpanel')).getByAltText(third.alt)).toBeInTheDocument();
+  });
+
+  it('only points at screens that ship with the site', () => {
+    const publicDir = path.resolve(__dirname, '../../../public');
+    for (const moment of DRIVER_APP_MOMENTS) {
+      expect(existsSync(path.join(publicDir, moment.screen)), `${moment.screen} is missing`).toBe(true);
+    }
   });
 });

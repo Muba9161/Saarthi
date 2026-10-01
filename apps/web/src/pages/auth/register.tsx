@@ -67,6 +67,7 @@ import { forgetReferralCode, resolveReferralCode } from '@/features/sales/referr
 import { markFleetWelcomePending } from '@/features/fleet/fleet-welcome-dialog';
 import { TRIAL_DAYS } from '@/features/subscriptions/trial-days';
 import { useAuth } from '@/features/auth/auth-context';
+import { trackEvent } from '@/features/analytics';
 import {
   EmailCodeStep,
   EmailVerificationHint,
@@ -497,18 +498,21 @@ export function RegisterPage() {
     setFormError(null);
     try {
       const session = await register(values as unknown as Record<string, unknown>);
+      const createdRole = registrationRole(values);
+      const tier = session.subscription?.planTier;
+      // The marketing site's conversion. Sent before the next await: the new
+      // session switches analytics off as soon as React re-renders with it.
+      trackEvent('sign_up', { account_type: createdRole, ...(tier ? { plan: tier } : {}) });
       // Whatever the API decided about the referral, this browser is done with
       // it: the account now exists and its attribution is settled server-side.
       forgetReferralCode();
       if (image) await uploadImage(session, image);
       // An owner who employs drivers is greeted with their joining code.
-      const createdRole = registrationRole(values);
       if (createdRole === RoleName.FLEET_OWNER || createdRole === RoleName.MOBILITY_PROVIDER) {
         markFleetWelcomePending();
       }
       // A paid plan goes on to activation: pay for any extras ordered here and
       // approve autopay for when the trial ends — both through Cashfree.
-      const tier = session.subscription?.planTier;
       const paidPlan =
         tier === PlanTier.PERSONAL || tier === PlanTier.BUSINESS || tier === PlanTier.SUPPLIER;
       navigate(paidPlan ? '/activate' : '/', { replace: true });

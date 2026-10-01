@@ -63,6 +63,9 @@ const AFFECTED_QUERIES = [
   ['profile'],
   ['vehicle-lookup'],
   ['licence-lookup'],
+  // A verified PAN or GSTIN re-checks the account's vehicle ownership server-side.
+  ['vehicle'],
+  ['vehicles'],
 ];
 
 export function usePayAndVerify() {
