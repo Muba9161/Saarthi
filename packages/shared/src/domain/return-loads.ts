@@ -12,7 +12,7 @@
  */
 
 import { bearing, distanceKm, type LatLng } from './geo';
-import { type TruckType } from './enums';
+import { PlanTier, TripLegType, TripStatus, type TruckType } from './enums';
 
 /** What the truck is offering. */
 export interface ReturnLoadSupply {
@@ -328,6 +328,51 @@ export function matchReturnLoads(
     matches: options.limit ? matches.slice(0, options.limit) : matches,
     rejected,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Backhaul offer — "Enable backhaul" on a completed trip
+// ---------------------------------------------------------------------------
+
+/** Plans whose owners are offered backhaul the moment a trip completes. */
+export const BACKHAUL_PLAN_TIERS: readonly PlanTier[] = [PlanTier.BUSINESS];
+
+/**
+ * `data.action` on the trip-completed notification, so the app can render an
+ * "Enable backhaul" button on it rather than a plain link.
+ */
+export const ENABLE_BACKHAUL_ACTION = 'ENABLE_BACKHAUL' as const;
+
+export interface BackhaulTripFacts {
+  planTier: PlanTier | null;
+  /** The account's resolved features include return-load matching. */
+  hasReturnLoads: boolean;
+  tripStatus: TripStatus;
+  legType: TripLegType;
+  adHoc: boolean;
+  acceptsReturnLoads: boolean;
+}
+
+/**
+ * Why backhaul cannot be offered on this trip, or null when it can.
+ *
+ * One rule for the completion notification, the trip screen and the enable
+ * endpoint, so the button is never shown on a trip the API would refuse.
+ */
+export function backhaulUnavailableReason(facts: BackhaulTripFacts): string | null {
+  if (!facts.planTier || !BACKHAUL_PLAN_TIERS.includes(facts.planTier) || !facts.hasReturnLoads) {
+    return 'Backhaul is available on the Business plan.';
+  }
+  if (facts.tripStatus !== TripStatus.COMPLETED) {
+    return 'Backhaul opens once the trip is completed.';
+  }
+  if (facts.adHoc) return 'A service run has no return leg to fill.';
+  // A return leg does not itself get a return leg.
+  if (facts.legType !== TripLegType.PRIMARY) return 'This trip is already a return leg.';
+  if (!facts.acceptsReturnLoads) {
+    return 'This vehicle is set not to accept return loads. Change that on the vehicle first.';
+  }
+  return null;
 }
 
 /**

@@ -1,7 +1,16 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { BadgeCheck } from 'lucide-react';
-import { formatCurrency, formatNumber, humanizeEnum, profitCommission } from '@saarthi/shared';
+import {
+  MARKETPLACE_COMMISSION_RULE,
+  formatCurrency,
+  formatNumber,
+  formatPercent,
+  humanizeEnum,
+  profitCommission,
+  type CommissionRule,
+  type LatLng,
+} from '@saarthi/shared';
 import { api } from '@/lib/api-client';
 import type { BoardRequirement, SellerMatch } from '@/lib/api-types';
 import { cn } from '@/lib/utils';
@@ -17,6 +26,9 @@ import { Badge } from '@/components/ui/badge';
  *
  * The margin shown is a preview. The server works out the procurement
  * reference from the listing itself and never trusts these figures.
+ *
+ * On a backhaul bid, sellers are measured from where the returning vehicle
+ * stands (`near`), and the margin uses the backhaul commission rate.
  */
 export function SourcedMaterialField({
   requirement,
@@ -24,17 +36,26 @@ export function SourcedMaterialField({
   onMaterialChange,
   price,
   open,
+  near,
+  commission = MARKETPLACE_COMMISSION_RULE,
 }: {
   requirement: BoardRequirement;
   materialId: string;
   onMaterialChange: (next: string) => void;
   price: number;
   open: boolean;
+  near?: LatLng;
+  commission?: CommissionRule;
 }) {
   const unit = humanizeEnum(requirement.unit ?? 'UNIT').toLowerCase();
+  const rate = formatPercent(commission.rate * 100);
   const matches = useQuery({
-    queryKey: ['commerce', 'matches', requirement.id],
-    queryFn: () => api.get<SellerMatch[]>(`/commerce/requirements/${requirement.id}/matches`),
+    queryKey: ['commerce', 'matches', requirement.id, near ?? null],
+    queryFn: () =>
+      api.get<SellerMatch[]>(
+        `/commerce/requirements/${requirement.id}/matches`,
+        near ? { nearLatitude: near.latitude, nearLongitude: near.longitude } : undefined,
+      ),
     enabled: open,
   });
 
@@ -42,7 +63,7 @@ export function SourcedMaterialField({
   const reference = chosen?.procurementReference ?? null;
   const preview =
     reference !== null && price > 0
-      ? profitCommission({ revenue: price, costBasis: reference })
+      ? profitCommission({ revenue: price, costBasis: reference }, commission)
       : null;
 
   return (
@@ -51,7 +72,7 @@ export function SourcedMaterialField({
         <p className="text-sm font-medium">You supply and deliver the material</p>
         <p className="text-xs leading-snug text-muted-foreground">
           Buy it from a seller on Saarthi and quote the customer one delivered price. The customer
-          pays 30% on award and the rest after delivery; Saarthi takes 2% of your profit. The
+          pays 30% on award and the rest after delivery; Saarthi takes {rate} of your profit. The
           customer never sees which seller you use.
         </p>
       </div>
@@ -100,7 +121,7 @@ export function SourcedMaterialField({
                         <BadgeCheck className="size-3.5 text-success" aria-label="Verified" />
                       ) : null}
                       {match.distanceKm !== null
-                        ? ` · ${formatNumber(match.distanceKm)} km from delivery`
+                        ? ` · ${formatNumber(match.distanceKm)} km from ${near ? 'your truck' : 'delivery'}`
                         : ''}
                     </p>
                   </div>
@@ -142,7 +163,7 @@ export function SourcedMaterialField({
         <dl className="grid grid-cols-2 gap-x-4 gap-y-2 rounded-md bg-muted/40 p-3 text-sm sm:grid-cols-4">
           <Figure label="Material cost" value={formatCurrency(reference)} />
           <Figure label="Your profit" value={preview ? formatCurrency(preview.profitBasis) : '—'} />
-          <Figure label="Saarthi (2%)" value={preview ? formatCurrency(preview.amount) : '—'} />
+          <Figure label={`Saarthi (${rate})`} value={preview ? formatCurrency(preview.amount) : '—'} />
           <Figure
             label="Net profit"
             value={preview ? formatCurrency(preview.profitBasis - preview.amount) : '—'}

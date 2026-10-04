@@ -29,7 +29,7 @@ import type { UploadFilePart } from '../media/media.service';
 import {
   createTerminalPairing,
   listTerminalPairings,
-  vehiclePairingForApprovedDriver,
+  vehiclePairingForDriver,
 } from './terminal-pairing.service';
 import {
   DRIVER_APPLICATION_ID,
@@ -261,7 +261,7 @@ export async function terminalRoutes(app: FastifyInstance): Promise<void> {
       const auth = requireAuth(request);
       const { id } = parseParams(idParamSchema, request.params);
 
-      const issued = await vehiclePairingForApprovedDriver(auth, id, publicAppUrl(request));
+      const issued = await vehiclePairingForDriver(auth, id, publicAppUrl(request));
 
       await auditFromRequest(request, {
         action: AuditAction.TERMINAL_PAIRING_ISSUED,

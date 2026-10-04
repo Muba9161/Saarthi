@@ -13,6 +13,7 @@ import androidx.core.app.NotificationCompat
 import com.saarthi.core.R
 import com.saarthi.core.CoreConfig
 import com.saarthi.core.SaarthiApp
+import com.saarthi.core.domain.TerminalState
 import com.saarthi.core.util.DebugLog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -20,6 +21,9 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
@@ -54,6 +58,21 @@ class TerminalService : Service() {
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var loops: MutableList<Job> = mutableListOf()
+
+    /**
+     * Whether this device should be reading and sending telemetry right now.
+     *
+     * Always, for a fitted tablet: it belongs to the vehicle and reports whenever
+     * it is paired. Only during an approved shift, for the driver app: a driver's
+     * own phone stays paired to their vehicle between shifts, and Saarthi records
+     * its readings only while a shift is approved — so outside one, running GPS
+     * and sending frames would spend the driver's battery and mobile data on
+     * something the server throws away.
+     */
+    private val reporting = MutableStateFlow(!reportsOnlyOnShift)
+
+    private val reportsOnlyOnShift: Boolean
+        get() = CoreConfig.host == CoreConfig.Host.DRIVER
 
     private val app: SaarthiApp by lazy { SaarthiApp.from(this) }
 
@@ -124,15 +143,15 @@ class TerminalService : Service() {
             // Off unless somebody asked for it. See `simulationEnabled`.
             app.telemetry.simulationAllowed =
                 CoreConfig.allowSimulation && app.settings.simulationEnabled
-            app.telemetry.start()
             app.realtime.start()
+            if (reportsOnlyOnShift) followShift() else app.telemetry.start()
         }
 
         // --- Produce --------------------------------------------------------
         loops += serviceScope.launch {
             while (isActive) {
                 val snapshot = app.telemetry.snapshot.value
-                if (snapshot.hasPosition) repository.enqueueFrame(snapshot)
+                if (reporting.value && snapshot.hasPosition) repository.enqueueFrame(snapshot)
                 updateNotification()
                 delay(app.telemetry.intervalMs)
             }
@@ -177,6 +196,7 @@ class TerminalService : Service() {
         loops += serviceScope.launch {
             while (isActive) {
                 delay(ODOMETER_INTERVAL_MS)
+                if (!reporting.value) continue
                 val odometer = repository.measuredOdometerKm()
                 if (odometer != null && odometer > 0.0) {
                     repository.reportOdometer(odometerKm = odometer, source = "OBD")
@@ -197,6 +217,28 @@ class TerminalService : Service() {
         }
 
         DebugLog.info("service", "Terminal service loops started")
+    }
+
+    /**
+     * Run the sensors only while the driver's shift is approved.
+     *
+     * Driven by the server's own state for this phone, so it starts the moment
+     * the fleet approves and stops the moment the shift ends — sign-off, the
+     * idle sweep, a rejection or an unpairing alike. Starts stopped, and stays
+     * stopped until the server says otherwise: a phone that cannot reach Saarthi
+     * has no way to know a shift is approved. Suspends for the life of the
+     * service.
+     */
+    private suspend fun followShift() {
+        app.repository.state
+            .map { TerminalState.parse(it?.state).onApprovedShift }
+            .distinctUntilChanged()
+            .collect { onShift ->
+                reporting.value = onShift
+                if (onShift) app.telemetry.start() else app.telemetry.stop()
+                updateNotification()
+                DebugLog.info(TAG, if (onShift) "Shift approved: reporting" else "Off shift: not reporting")
+            }
     }
 
     override fun onDestroy() {
@@ -236,10 +278,11 @@ class TerminalService : Service() {
             .setSmallIcon(app.notificationIcon)
             .setContentTitle(getString(R.string.service_title))
             .setContentText(
-                if (registration != null) {
-                    getString(R.string.service_text_paired, registration)
-                } else {
-                    getString(R.string.service_text_unpaired)
+                when {
+                    registration == null -> getString(R.string.service_text_unpaired)
+                    // The privacy notice must not claim reporting that is not happening.
+                    !reporting.value -> getString(R.string.service_text_off_shift, registration)
+                    else -> getString(R.string.service_text_paired, registration)
                 },
             )
             .setContentIntent(open)

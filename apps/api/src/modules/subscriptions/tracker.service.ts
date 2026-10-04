@@ -105,6 +105,15 @@ async function registrationsFor(truckIds: string[]): Promise<Map<string, string>
   return new Map(trucks.map((truck) => [truck.id, truck.registrationNumber]));
 }
 
+/** The Saarthi tracker bought for and fitted to this vehicle, if there is one. */
+export async function trackerProductFor(vehicleId: string): Promise<TrackerProduct | null> {
+  const row = await prisma.vehicleTracker.findFirst({
+    where: { truckId: vehicleId, status: ACTIVE_STATUS },
+    select: { product: true },
+  });
+  return row?.product ?? null;
+}
+
 export async function listTrackers(organizationId: string): Promise<TrackerView[]> {
   const rows = await prisma.vehicleTracker.findMany({
     where: { organizationId },

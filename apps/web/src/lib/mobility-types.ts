@@ -15,6 +15,7 @@ import type {
   TravelPackageStatus,
   TravelServiceKind,
   VehicleCapability,
+  VehicleCategory,
   VehicleOwnershipView,
   VehicleType,
   VerificationStatus,
@@ -49,6 +50,9 @@ export interface VehicleSummary {
   vehicleType: VehicleType;
   truckType: string;
   typeLabel: string;
+  /** Scooter, hatchback… `null` on a type with none, or a vehicle added before its type had them. */
+  category: VehicleCategory | null;
+  categoryLabel: string | null;
   capabilities: VehicleCapability[];
   manufacturer: string | null;
   model: string | null;

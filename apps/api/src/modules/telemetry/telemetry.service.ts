@@ -412,6 +412,8 @@ export async function vehicleCapabilities(
 
   const assignment = await prisma.deviceAssignment.findFirst({
     where: { vehicleId, status: 'ACTIVE' },
+    // The telemetry source first, ahead of a driver phone or a camera.
+    orderBy: { device: { role: 'asc' } },
     include: {
       device: {
         select: {

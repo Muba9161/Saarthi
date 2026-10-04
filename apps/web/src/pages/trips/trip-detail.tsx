@@ -30,6 +30,7 @@ import { FleetMap, type MapMarkerPoint } from '@/features/maps/fleet-map';
 import type { NavigationRoute } from '@/features/maps/directions';
 import { RouteSummary } from '@/features/travel/journey-picker';
 import { TripReplay } from '@/features/trips/trip-replay';
+import { BackhaulPanel } from '@/features/backhaul/backhaul-panel';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -367,6 +368,14 @@ export function TripDetailPage() {
             }
           />
         </div>
+      ) : null}
+
+      {/* The way home: offered to whoever runs the fleet, never on a service run. */}
+      {data.status === TripStatus.COMPLETED &&
+      !data.adHoc &&
+      hasFeature(Feature.RETURN_LOADS) &&
+      can(Permission.RETURN_LOADS_MANAGE) ? (
+        <BackhaulPanel trip={data} />
       ) : null}
 
       <Progress value={progress} className="h-2" />

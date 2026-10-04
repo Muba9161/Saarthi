@@ -1,4 +1,4 @@
-import { profitCommission } from '@saarthi/shared';
+import { type CommissionRule, profitCommission } from '@saarthi/shared';
 import type { Db } from '../../database/prisma';
 
 /**
@@ -70,6 +70,8 @@ export async function recordCommission(
     revenue: number;
     costBasis: number;
     settled: boolean;
+    /** Defaults to the ordinary marketplace rule; a backhaul job passes its own. */
+    rule?: CommissionRule;
   },
 ) {
   const existing = await db.marketplaceCommission.findFirst({
@@ -77,7 +79,10 @@ export async function recordCommission(
   });
   if (existing) return existing;
 
-  const commission = profitCommission({ revenue: input.revenue, costBasis: input.costBasis });
+  const commission = profitCommission(
+    { revenue: input.revenue, costBasis: input.costBasis },
+    input.rule,
+  );
   return db.marketplaceCommission.create({
     data: {
       kind: input.kind,

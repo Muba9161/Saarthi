@@ -42,6 +42,7 @@ import {
 } from './requirement.view';
 import { assertCanBid, assertOwner, assertRequirementAccess } from './requirement.access';
 import { resolveSourcedListing } from './requirement-sourcing';
+import { assertBackhaulBid } from '../return-loads/backhaul-lifecycle';
 import {
   type CategoryAssignment,
   readAttributeValues,
@@ -922,6 +923,16 @@ export async function placeBid(
     ? (await resolveSourcedListing(requirement, input.sourceMaterialId, organizationId)).procurementReference
     : null;
 
+  // A bid on a vehicle's return leg carries the backhaul commission the owner
+  // accepted, so it is held to that backhaul: still open, and the same vehicle.
+  if (input.returnLoadRequestId) {
+    await assertBackhaulBid({
+      organizationId,
+      returnLoadRequestId: input.returnLoadRequestId,
+      vehicleId: input.vehicleId!,
+    });
+  }
+
   if (input.scope === RequirementBidScope.TRAVEL) {
     const provider = await prisma.serviceProviderProfile.findUnique({
       where: { organizationId },
@@ -981,6 +992,7 @@ export async function placeBid(
     fuelIncluded: input.fuelIncluded,
     sourceMaterialId: input.sourceMaterialId ?? null,
     procurementReference,
+    returnLoadRequestId: input.returnLoadRequestId ?? null,
   };
 
   const existing = await prisma.requirementBid.findUnique({

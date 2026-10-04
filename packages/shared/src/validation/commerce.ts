@@ -5,7 +5,14 @@ import {
   CommerceCategoryStatus,
   MaterialUnit,
 } from '../domain/enums';
-import { optionalTrimmedString, paginationSchema, trimmedString, uuidSchema } from './common';
+import {
+  latitudeSchema,
+  longitudeSchema,
+  optionalTrimmedString,
+  paginationSchema,
+  trimmedString,
+  uuidSchema,
+} from './common';
 
 /**
  * Smart commerce contracts: interpreting a line of text, and the
@@ -43,9 +50,20 @@ export const interpretCommerceSchema = z.object({
 });
 export type InterpretCommerceInput = z.infer<typeof interpretCommerceSchema>;
 
-export const commerceMatchQuerySchema = z.object({
-  limit: z.coerce.number().int().min(1).max(50).default(25),
-});
+export const commerceMatchQuerySchema = z
+  .object({
+    limit: z.coerce.number().int().min(1).max(50).default(25),
+    /**
+     * Measure seller distance from here instead of the delivery point — a
+     * vehicle on its return leg buys near where it is standing.
+     */
+    nearLatitude: latitudeSchema.optional(),
+    nearLongitude: longitudeSchema.optional(),
+  })
+  .refine((value) => (value.nearLatitude === undefined) === (value.nearLongitude === undefined), {
+    message: 'Give both a latitude and a longitude, or neither.',
+    path: ['nearLongitude'],
+  });
 export type CommerceMatchQuery = z.infer<typeof commerceMatchQuerySchema>;
 
 // ---------------------------------------------------------------------------

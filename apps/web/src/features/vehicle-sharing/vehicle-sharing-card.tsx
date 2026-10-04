@@ -25,6 +25,7 @@ import {
   useSharingAvailable,
   useVehicleShares,
 } from './sharing-api';
+import { cn } from '@/lib/utils';
 
 /**
  * Share this vehicle with other Saarthi accounts — the owner's side.
@@ -38,9 +39,11 @@ import {
 export function VehicleSharingCard({
   vehicleId,
   ownershipStatus,
+  className,
 }: {
   vehicleId: string;
   ownershipStatus: string;
+  className?: string;
 }) {
   const { can } = useAuth();
   const available = useSharingAvailable() && can(Permission.VEHICLES_UPDATE);
@@ -76,7 +79,7 @@ export function VehicleSharingCard({
   const full = list.length >= MAX_VEHICLE_SHARES;
 
   return (
-    <Card className="rounded-2xl">
+    <Card className={cn('rounded-2xl', className)}>
       <CardHeader className="pb-2">
         <SectionHeader
           title="Sharing"

@@ -20,6 +20,24 @@ import { QrCodeCard, type QrCodeView } from '@/features/qr/qr-code-card';
  * issued automatically gets one the first time somebody looks, so there is no
  * empty state telling the user to go and generate something.
  */
+/**
+ * A subject's code, created on first read. Shared with any screen that prints
+ * the code beside the subject — the same key, so it is fetched once.
+ */
+export function useSubjectQrCode(
+  subjectType: Extract<QrSubjectType, 'VEHICLE' | 'DRIVER'>,
+  subjectId: string,
+) {
+  const { can, hasFeature } = useAuth();
+  const enabled = can(Permission.QR_READ) && hasFeature(Feature.QR_IDENTITY) && Boolean(subjectId);
+
+  return useQuery({
+    queryKey: ['qr', 'subject', subjectType, subjectId],
+    queryFn: () => api.get<QrCodeView>(`/qr/subject/${subjectType}/${subjectId}`),
+    enabled,
+  });
+}
+
 export function SubjectQrPanel({
   subjectType,
   subjectId,
@@ -29,15 +47,8 @@ export function SubjectQrPanel({
   subjectId: string;
   description?: string;
 }) {
-  const { can, hasFeature } = useAuth();
-
-  const enabled = can(Permission.QR_READ) && hasFeature(Feature.QR_IDENTITY) && Boolean(subjectId);
-
-  const code = useQuery({
-    queryKey: ['qr', 'subject', subjectType, subjectId],
-    queryFn: () => api.get<QrCodeView>(`/qr/subject/${subjectType}/${subjectId}`),
-    enabled,
-  });
+  const { hasFeature } = useAuth();
+  const code = useSubjectQrCode(subjectType, subjectId);
 
   if (!hasFeature(Feature.QR_IDENTITY)) {
     return <FeatureLockedState feature="QR identity codes" featureKey={Feature.QR_IDENTITY} />;

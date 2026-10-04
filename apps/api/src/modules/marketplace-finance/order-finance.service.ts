@@ -6,8 +6,10 @@ import {
   PaymentPurpose,
   PaymentStatus,
   balanceDue,
+  commissionRuleFor,
   confirmationAmount,
   finalCustomerAmount,
+  formatPercent,
   profitCommission,
   type CheckoutSession,
   type ConfirmDeliveryInput,
@@ -72,10 +74,16 @@ async function loadFinance(orderId: string) {
           quantity: true,
           unit: true,
           customerOrganizationId: true,
+          isReturnLoad: true,
         },
       },
     },
   });
+}
+
+/** Saarthi's commission on this order's profit, at the rate its kind of job carries. */
+function commissionOn(finance: FinanceRow, input: { revenue: number; costBasis: number }) {
+  return profitCommission(input, commissionRuleFor(finance.order));
 }
 
 async function requireFinance(orderId: string): Promise<FinanceRow> {
@@ -347,11 +355,11 @@ export async function payFinal(
 
   const finalAmount = Number(finance.finalAmount ?? finance.agreedAmount);
   const amount = balanceDue({ finalAmount, paidSoFar: Number(finance.confirmationAmount) });
-  const commission = profitCommission({
+  const commission = commissionOn(finance, {
     revenue: finalAmount,
     costBasis: Number(finance.procurementAmount ?? 0),
   });
-  // Saarthi's 2% of profit stays with Saarthi; the rest of the balance is the fleet's.
+  // Saarthi's share of the profit stays with Saarthi; the rest of the balance is the fleet's.
   const fleetShare = Math.max(0, Math.round((amount - commission.amount) * 100) / 100);
   const fleetVendor = await requireUsablePayoutAccount(finance.sellerOrganizationId, "The fleet's");
 
@@ -402,6 +410,7 @@ async function finalize(orderId: string, finalPayment: SettledPayment | null): P
       revenue: finalAmount,
       costBasis,
       settled: finalPayment !== null,
+      rule: commissionRuleFor(finance.order),
     });
     await recordLedgerEntry(tx, {
       entryKey: `commission:order:${orderId}`,
@@ -410,7 +419,7 @@ async function finalize(orderId: string, finalPayment: SettledPayment | null): P
       organizationId: finance.sellerOrganizationId,
       amount: Number(commission.amount),
       stage: 'FINAL',
-      note: `2% of profit ${Number(commission.profitBasis)} (${commission.ruleVersion})`,
+      note: `${formatPercent(Number(commission.rate) * 100)} of profit ${Number(commission.profitBasis)} (${commission.ruleVersion})`,
     });
     await tx.order.update({
       where: { id: orderId },
@@ -447,7 +456,7 @@ async function finalize(orderId: string, finalPayment: SettledPayment | null): P
   void notifyOrganization(finance.sellerOrganizationId, {
     type: NotificationType.ORDER_UPDATED,
     title: 'Order paid in full',
-    body: `${finance.order.reference} is complete. Saarthi's commission is ₹${Number(done.amount)} — 2% of your ₹${Number(done.profitBasis)} profit.`,
+    body: `${finance.order.reference} is complete. Saarthi's commission is ₹${Number(done.amount)} — ${formatPercent(Number(done.rate) * 100)} of your ₹${Number(done.profitBasis)} profit.`,
     priority: NotificationPriority.NORMAL,
     actionUrl: `/orders/${orderId}`,
   });
@@ -526,7 +535,7 @@ async function onOrderPaymentSucceeded(payment: SettledPayment): Promise<void> {
   } else if (payment.reference.startsWith(PREFIX.final)) {
     if (!(await moveStage(prisma, finance.id, OrderFinanceStage.PAYMENT_70_REQUIRED, OrderFinanceStage.PAYMENT_70_PAID))) return;
     const finalAmount = Number(finance.finalAmount ?? finance.agreedAmount);
-    const commission = profitCommission({
+    const commission = commissionOn(finance, {
       revenue: finalAmount,
       costBasis: Number(finance.procurementAmount ?? 0),
     });
@@ -749,7 +758,7 @@ export async function financialSummary(
     .reduce((sum, payment) => sum + Number(payment.amount), 0);
 
   const commissionRow = await prisma.marketplaceCommission.findUnique({ where: { orderId } });
-  const estimate = profitCommission({
+  const estimate = commissionOn(finance, {
     revenue: finalAmount ?? agreed,
     costBasis: Number(finance.procurementAmount ?? finance.procurementReference ?? 0),
   });

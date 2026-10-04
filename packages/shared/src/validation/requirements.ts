@@ -398,6 +398,11 @@ export const placeBidSchema = z
      * never taken from the request.
      */
     sourceMaterialId: uuidSchema.optional(),
+    /**
+     * Placed from a backhaul: the vehicle's return leg after a completed trip.
+     * A winning backhaul bid is charged the backhaul commission rate.
+     */
+    returnLoadRequestId: uuidSchema.optional(),
 
     // --- Material ----------------------------------------------------------
     /** The listing this price is drawn from, when there is one. */
@@ -431,6 +436,13 @@ export const placeBidSchema = z
         code: z.ZodIssueCode.custom,
         path: ['sourceMaterialId'],
         message: 'Only a fleet delivering the material itself can source it from a supplier.',
+      });
+    }
+    if (value.returnLoadRequestId && value.scope !== RequirementBidScope.TRANSPORT) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['returnLoadRequestId'],
+        message: 'Only a vehicle offering transport can bid on its return leg.',
       });
     }
     if (value.scope === RequirementBidScope.TRAVEL && !value.offeredVehicleType) {

@@ -185,6 +185,27 @@ export function StatusBadge({
   );
 }
 
+const TEXT_COLOURS: Record<Variant, string> = {
+  default: 'text-primary',
+  secondary: 'text-muted-foreground',
+  outline: 'text-foreground',
+  success: 'text-success',
+  warning: 'text-warning',
+  destructive: 'text-destructive',
+  info: 'text-info',
+  muted: 'text-muted-foreground',
+  accent: 'text-accent',
+};
+
+/**
+ * The status's colour as a text class, for places that state a status in a
+ * sentence or a meta line rather than as a pill. Same map as the badge, so the
+ * two can never disagree.
+ */
+export function statusTextClass(status: string | null | undefined): string {
+  return TEXT_COLOURS[(status && STATUS_VARIANTS[status]) || 'secondary'];
+}
+
 /** Coloured dot for dense tables where a full badge is too heavy. */
 export function StatusDot({ status, className }: { status: string; className?: string }) {
   const variant = STATUS_VARIANTS[status] ?? 'secondary';

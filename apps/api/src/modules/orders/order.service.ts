@@ -35,6 +35,7 @@ import {
 } from '../requirements/fulfilment.service';
 import type { AuthContext } from '../../auth/context';
 import { assertOrderStatusAllowed, onOrderCancelled } from '../marketplace-finance/order-finance.service';
+import { bookBackhaul, notifyBackhaulBooked } from '../return-loads/backhaul-lifecycle';
 
 /**
  * Orders — the customer marketplace.
@@ -905,7 +906,7 @@ export async function acceptQuote(
   const transportPrice = Number(quote.price);
   const materialPrice = order.materialPrice ? Number(order.materialPrice) : 0;
 
-  const tripId = await prisma.$transaction(async (tx) => {
+  const { tripId, backhaul } = await prisma.$transaction(async (tx) => {
     const tripCount = await tx.trip.count();
     const trip = await tx.trip.create({
       data: {
@@ -995,7 +996,17 @@ export async function acceptQuote(
       });
     }
 
-    return trip.id;
+    // A quote offered on a vehicle's return leg books that backhaul — only now,
+    // when it wins, so a quote the customer passed over changes nothing.
+    const booked = quote.returnLoadRequestId
+      ? await bookBackhaul(tx, {
+          returnLoadRequestId: quote.returnLoadRequestId,
+          orderId,
+          tripId: trip.id,
+        })
+      : null;
+
+    return { tripId: trip.id, backhaul: booked };
   });
 
   await recordEvent(orderId, 'QUOTE_ACCEPTED', 'Customer accepted the transport quote.', auth.user.id, {
@@ -1011,6 +1022,7 @@ export async function acceptQuote(
     priority: NotificationPriority.HIGH,
     actionUrl: `/trips/${tripId}`,
   });
+  if (backhaul) void notifyBackhaulBooked(backhaul, order.reference);
 
   const driver = await prisma.driver.findUnique({
     where: { id: driverId },
@@ -1081,6 +1093,8 @@ export interface RequirementOrderInput {
     estimatedPickupAt: Date | null;
     estimatedArrivalAt: Date | null;
     message: string | null;
+    /** The bid was placed on this vehicle's return leg. */
+    returnLoadRequestId: string | null;
   } | null;
 }
 
@@ -1188,6 +1202,7 @@ export async function createOrderFromRequirement(
       estimatedPickupAt: input.transport.estimatedPickupAt,
       estimatedArrivalAt: input.transport.estimatedArrivalAt,
       message: input.transport.message,
+      returnLoadRequestId: input.transport.returnLoadRequestId,
       status: QuoteStatus.OFFERED,
       createdById: auth.user.id,
     },

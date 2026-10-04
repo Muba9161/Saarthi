@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Bell, CheckCheck } from 'lucide-react';
+import { Bell, CheckCheck, Route } from 'lucide-react';
 import { relativeTimeFrom } from '@saarthi/shared';
 import { api } from '@/lib/api-client';
 import type { NotificationItem, Paginated } from '@/lib/api-types';
@@ -11,6 +11,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { backhaulTripOf, enableBackhaulPath } from '@/features/backhaul/backhaul-link';
 
 export function NotificationsPage() {
   const queryClient = useQueryClient();
@@ -63,9 +64,18 @@ export function NotificationsPage() {
                 </div>
               </>
             );
+            const backhaulTripId = backhaulTripOf(item.data);
             return (
               <Card key={item.id} className={cn('p-3.5 transition-colors', !item.readAt && 'border-primary/30 bg-primary/[0.03]')} onClick={() => !item.readAt && markOne.mutate(item.id)}>
                 {item.actionUrl ? <Link to={item.actionUrl} className="block">{body}</Link> : body}
+                {backhaulTripId ? (
+                  <Button asChild size="sm" className="mt-3">
+                    <Link to={enableBackhaulPath(backhaulTripId)}>
+                      <Route className="size-4" />
+                      Enable backhaul
+                    </Link>
+                  </Button>
+                ) : null}
               </Card>
             );
           })}

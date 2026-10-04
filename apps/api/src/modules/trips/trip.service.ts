@@ -35,6 +35,7 @@ import { recalculateDriverScore, evaluateAndAwardAchievements } from '../drivers
 import { releaseVehicleFromAdHocTrip } from '../terminal/adhoc-trip.service';
 import type { AuthContext } from '../../auth/context';
 import { loadingBlockedReason } from '../marketplace-finance/order-finance.service';
+import { onTripCompleted } from '../return-loads/backhaul.service';
 
 /**
  * Trip lifecycle.
@@ -945,6 +946,10 @@ export async function transitionTrip(
       actionUrl: `/orders/${trip.order.id}`,
     });
   }
+
+  // The owner is offered a backhaul for the way home, or a return leg closes
+  // its backhaul. Never throws, so it cannot undo a completion.
+  if (isComplete) await onTripCompleted(tripId);
 
   return (await decorate([updated], viewerParty(auth)))[0]!;
 }

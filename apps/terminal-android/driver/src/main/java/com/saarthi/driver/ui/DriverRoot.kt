@@ -6,6 +6,8 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -13,6 +15,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.saarthi.core.ui.TerminalViewModel
@@ -22,6 +25,7 @@ import com.saarthi.driver.ui.auth.SignedOutFlow
 import com.saarthi.driver.ui.auth.UnlockScreen
 import com.saarthi.driver.ui.design.Ease
 import com.saarthi.driver.ui.shift.ShiftShell
+import com.saarthi.driver.ui.shift.adapter.AdapterSheet
 import com.saarthi.driver.ui.splash.SplashScreen
 import com.saarthi.driver.ui.start.ApprovedScreen
 import com.saarthi.driver.ui.start.ArrivalPhotoScreen
@@ -98,38 +102,47 @@ fun DriverRoot(
     val slide = with(LocalDensity.current) { 48.dp.roundToPx() }
     val shown: DriverViewModel.Stage =
         if (!splashDone) DriverViewModel.Stage.Restoring else stage
+    val obdSetup by driver.obdSetup.collectAsState()
 
-    AnimatedContent(
-        targetState = shown::class,
-        transitionSpec = {
-            (slideInHorizontally(tween(550, easing = Ease.out)) { slide } + fadeIn(tween(550, easing = Ease.out))) togetherWith
-                fadeOut(tween(220))
-        },
-        label = "driver-stage",
-    ) { _ ->
-        when (val current = shown) {
-            is DriverViewModel.Stage.Restoring -> SplashScreen()
-            is DriverViewModel.Stage.SignedOut -> SignedOutFlow(driver, onCreating = { creatingAccount = it })
-            is DriverViewModel.Stage.Locked -> UnlockScreen(driver, current.methods)
-            is DriverViewModel.Stage.OfferQuickLogin ->
-                QuickLoginOfferFlow(driver, current.driver, creatingAccount)
-            is DriverViewModel.Stage.ChooseVehicle ->
-                ChooseVehicleScreen(driver, current.driver, preferences)
-            is DriverViewModel.Stage.Selfie -> ArrivalPhotoScreen(driver, current.assignment)
-            is DriverViewModel.Stage.AwaitingApproval -> AwaitingApprovalScreen(driver, current.assignment)
-            is DriverViewModel.Stage.Rejected -> RejectedScreen(driver, current.assignment)
-            // Decided in the same frame the stage changes, so the shell never
-            // flashes up before the celebration replaces it.
-            is DriverViewModel.Stage.Driving -> if (sawWaiting) {
-                ApprovedScreen(
-                    plate = current.assignment.registrationNumber,
-                    fleetName = fleet?.name,
-                    onContinue = { sawWaiting = false },
-                )
-            } else {
-                ShiftShell(driver, cockpit, preferences, fallbackPlate = current.assignment.registrationNumber)
+    Box(Modifier.fillMaxSize()) {
+        AnimatedContent(
+            targetState = shown::class,
+            transitionSpec = {
+                (slideInHorizontally(tween(550, easing = Ease.out)) { slide } + fadeIn(tween(550, easing = Ease.out))) togetherWith
+                    fadeOut(tween(220))
+            },
+            label = "driver-stage",
+        ) { _ ->
+            when (val current = shown) {
+                is DriverViewModel.Stage.Restoring -> SplashScreen()
+                is DriverViewModel.Stage.SignedOut -> SignedOutFlow(driver, onCreating = { creatingAccount = it })
+                is DriverViewModel.Stage.Locked -> UnlockScreen(driver, current.methods)
+                is DriverViewModel.Stage.OfferQuickLogin ->
+                    QuickLoginOfferFlow(driver, current.driver, creatingAccount)
+                is DriverViewModel.Stage.ChooseVehicle ->
+                    ChooseVehicleScreen(driver, current.driver, preferences)
+                is DriverViewModel.Stage.Selfie -> ArrivalPhotoScreen(driver, current.assignment)
+                is DriverViewModel.Stage.AwaitingApproval -> AwaitingApprovalScreen(driver, current.assignment)
+                is DriverViewModel.Stage.Rejected -> RejectedScreen(driver, current.assignment)
+                // Decided in the same frame the stage changes, so the shell never
+                // flashes up before the celebration replaces it.
+                is DriverViewModel.Stage.Driving -> if (sawWaiting) {
+                    ApprovedScreen(
+                        plate = current.assignment.registrationNumber,
+                        fleetName = fleet?.name,
+                        onContinue = { sawWaiting = false },
+                    )
+                } else {
+                    ShiftShell(driver, cockpit, preferences, fallbackPlate = current.assignment.registrationNumber)
+                }
             }
         }
+
+        /*
+         * The vehicle just scanned has a Saarthi OBD: connect it now, while the
+         * driver is standing at it, with the same sheet the shift uses later.
+         */
+        AdapterSheet(visible = obdSetup, cockpit = cockpit, onClose = driver::dismissObdSetup)
     }
 }
 

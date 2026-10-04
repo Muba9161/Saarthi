@@ -1,7 +1,14 @@
 import * as React from 'react';
 import { Link } from 'react-router-dom';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { formatCurrency, formatDate, formatPercent, humanizeEnum } from '@saarthi/shared';
+import {
+  BACKHAUL_COMMISSION_RULE,
+  MARKETPLACE_COMMISSION_RULE,
+  formatCurrency,
+  formatDate,
+  formatPercent,
+  humanizeEnum,
+} from '@saarthi/shared';
 import { api } from '@/lib/api-client';
 import type { Paginated } from '@/lib/api-types';
 import { SectionHeader } from '@/components/common/page-header';
@@ -72,7 +79,7 @@ export function CommissionHistory() {
       <CardHeader className="pb-3">
         <SectionHeader
           title="Saarthi commission"
-          description="2% of your profit on each completed order or trip — never of the customer's payment, and nothing on a loss."
+          description={`${formatPercent(MARKETPLACE_COMMISSION_RULE.rate * 100)} of your profit on each completed order or trip, or ${formatPercent(BACKHAUL_COMMISSION_RULE.rate * 100)} on a job won through backhaul — never of the customer's payment, and nothing on a loss.`}
         />
       </CardHeader>
       <CardContent className="pt-0">

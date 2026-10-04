@@ -11,6 +11,7 @@ import {
   TrackerProduct,
   TripStatus,
   OrganizationType,
+  VehicleCategory,
   VehicleType,
 } from './enums';
 import {
@@ -80,6 +81,11 @@ import {
   withGst,
 } from './pricing';
 import { TRUCK_VEHICLE_TYPES, allowedVehicleTypes, vehicleTypeRefusal } from './vehicle-eligibility';
+import {
+  resolveVehicleCategory,
+  validateVehicleCapacities,
+  validateVehicleCategory,
+} from './vehicles';
 import { Permission, hasPermission, permissionsForRole, permissionsForRoles } from './permissions';
 import { evaluateAchievements, emptyAchievementMetrics } from './achievements';
 
@@ -671,8 +677,47 @@ describe('vehicle eligibility', () => {
 
   it('lets Personal add a car but never a truck', () => {
     expect(vehicleTypeRefusal(personal, VehicleType.CAR)).toBeNull();
-    expect(vehicleTypeRefusal(personal, VehicleType.SUV)).toBeNull();
+    // An SUV is a Car with the SUV category here — see the folding test below.
     expect(vehicleTypeRefusal(personal, VehicleType.TRUCK)).toMatch(/Personal/);
+  });
+
+  it('lets Personal add a two-wheeler, and keeps it off a truck fleet', () => {
+    expect(vehicleTypeRefusal(personal, VehicleType.TWO_WHEELER)).toBeNull();
+    expect(vehicleTypeRefusal(fleet, VehicleType.TWO_WHEELER)).toMatch(/fleet owner/);
+    expect(TRUCK_VEHICLE_TYPES).not.toContain(VehicleType.TWO_WHEELER);
+  });
+
+  it('asks a two-wheeler which kind it is, and nothing else', () => {
+    expect(validateVehicleCategory(VehicleType.TWO_WHEELER, {})).toHaveLength(1);
+    expect(
+      validateVehicleCategory(VehicleType.TWO_WHEELER, { category: VehicleCategory.SCOOTER }),
+    ).toEqual([]);
+    // No seats and no payload to declare.
+    expect(validateVehicleCapacities(VehicleType.TWO_WHEELER, {})).toEqual([]);
+  });
+
+  it("lets a car's category be omitted by the API but asked by the form", () => {
+    expect(validateVehicleCategory(VehicleType.CAR, {})).toEqual([]);
+    expect(validateVehicleCategory(VehicleType.CAR, {}, { requireCategory: true })).toHaveLength(1);
+    expect(validateVehicleCategory(VehicleType.TAXI, { category: VehicleCategory.SEDAN })).toEqual([]);
+    // A category the type does not offer is refused either way.
+    expect(validateVehicleCategory(VehicleType.CAR, { category: VehicleCategory.SCOOTER })).toHaveLength(1);
+    expect(validateVehicleCategory(VehicleType.BUS, {}, { requireCategory: true })).toEqual([]);
+  });
+
+  it('clears a category the new type does not offer', () => {
+    expect(resolveVehicleCategory(VehicleType.TWO_WHEELER, VehicleCategory.CRUISER)).toBe(
+      VehicleCategory.CRUISER,
+    );
+    expect(resolveVehicleCategory(VehicleType.CAR, VehicleCategory.CRUISER)).toBeNull();
+    expect(resolveVehicleCategory(VehicleType.TAXI, VehicleCategory.SUV)).toBe(VehicleCategory.SUV);
+  });
+
+  it('folds SUV into Car on Saarthi Personal, and nowhere else', () => {
+    expect(allowedVehicleTypes(personal)).not.toContain(VehicleType.SUV);
+    expect(allowedVehicleTypes(personal)).toContain(VehicleType.CAR);
+    expect(vehicleTypeRefusal(personal, VehicleType.SUV)).toMatch(/Car/);
+    expect(vehicleTypeRefusal(mobility, VehicleType.SUV)).toBeNull();
   });
 
   it('keeps a fleet owner to trucks', () => {

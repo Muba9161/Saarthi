@@ -146,6 +146,27 @@ export const emptyRiskQuerySchema = z.object({
 });
 export type EmptyRiskQuery = z.infer<typeof emptyRiskQuerySchema>;
 
+/**
+ * "Enable backhaul" on a completed trip.
+ *
+ * The owner has to accept the backhaul commission explicitly — it is a higher
+ * rate than an ordinary job, so it is never applied by default.
+ */
+export const enableBackhaulSchema = z.object({
+  acceptCommission: z.literal(true, {
+    errorMap: () => ({ message: 'Accept the backhaul commission to enable backhaul.' }),
+  }),
+  /** How far off the straight way home the driver will divert, in km. */
+  detourToleranceKm: z.number().min(10).max(500).default(50),
+});
+export type EnableBackhaulInput = z.infer<typeof enableBackhaulSchema>;
+
+/** Customer requirements along a backhaul request's way home. */
+export const backhaulRequirementQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(50).default(20),
+});
+export type BackhaulRequirementQuery = z.infer<typeof backhaulRequirementQuerySchema>;
+
 /** Trucks that could carry a given order as a return leg. */
 export const returnCandidateQuerySchema = z.object({
   minScore: z.coerce.number().min(0).max(100).optional(),

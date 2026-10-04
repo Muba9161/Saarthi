@@ -74,6 +74,26 @@ enum class TerminalState {
             this != VEHICLE_PAIRED &&
             this != AWAITING_DRIVER
 
+    /**
+     * Whether this phone is paired to a vehicle at all, signed on or not.
+     *
+     * What an assigned driver's phone is between shifts: it stays paired to the
+     * vehicle and waits at [AWAITING_DRIVER], so [signedOnToVehicle] is the wrong
+     * question for whether it still needs pairing.
+     */
+    val pairedToVehicle: Boolean
+        get() = this != UNPAIRED && this != PAIRING && this != REVOKED
+
+    /**
+     * Whether a driver's shift on this vehicle is approved and not yet over.
+     *
+     * The states Saarthi records a driver phone's readings in — the mirror of
+     * `AUTHORIZED_TERMINAL_SESSION_STATUSES` on the server. [TRIP_COMPLETED] is
+     * not one: the session behind it has ended.
+     */
+    val onApprovedShift: Boolean
+        get() = this == APPROVED || this == CHECKLIST_REQUIRED || this == READY || this == TRIP_ACTIVE
+
     companion object {
         /**
          * Parse a state name from the server.

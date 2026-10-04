@@ -133,7 +133,8 @@ export async function vehiclePairingRoutes(app: FastifyInstance): Promise<void> 
           Permission.DEVICES_ASSIGN,
           Permission.TERMINAL_MANAGE,
         ),
-        requireFeature(Feature.HARDWARE_CONNECTIVITY),
+        // Not tracker-gated. A driver's phone and a terminal both pair without
+        // a tracker, and nobody should have to buy one to disconnect a device.
       ],
     },
     async (request, reply) => {

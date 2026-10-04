@@ -436,6 +436,9 @@ class TerminalRepository(
     }
 
     suspend fun endSession(reason: String?): Result<Unit> = runCatchingApi {
+        // What the shift recorded goes first. Once it ends, Saarthi no longer
+        // records a driver phone's readings, so frames still queued would be lost.
+        flushOutbox()
         api.endSession(EndSessionRequest(reason))
         refresh()
     }

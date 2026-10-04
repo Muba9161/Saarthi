@@ -6,10 +6,14 @@ import {
   PASSENGER_VEHICLE_TYPES,
   resolveDocumentValidity,
   resolveTruckType,
+  resolveVehicleCategory,
   TRAVEL_VEHICLE_TYPES,
   TruckStatus,
+  type VehicleCategory,
+  vehicleCategoryDefinition,
   type UpdateVehicleInput,
   validateVehicleCapacities,
+  validateVehicleCategory,
   VEHICLE_TOPUP,
   vehicleCapabilities,
   VehicleCapability,
@@ -84,6 +88,10 @@ export interface VehicleSummary {
   /** Body type. Meaningful for goods vehicles only. */
   truckType: string;
   typeLabel: string;
+  /** Scooter, hatchback… `null` on a type with none, or a vehicle added before its type had them. */
+  category: VehicleCategory | null;
+  /** The category's display label, alongside `typeLabel`. */
+  categoryLabel: string | null;
   capabilities: VehicleCapability[];
   manufacturer: string | null;
   model: string | null;
@@ -140,6 +148,9 @@ const vehicleInclude = {
         },
       },
     },
+    // The telemetry source first: a vehicle with a 4G tracker also carries the
+    // driver's paired phone, and the tracker is the one that reports for it.
+    orderBy: { device: { role: 'asc' as const } },
     take: 1,
   },
 } satisfies Prisma.TruckInclude;
@@ -214,6 +225,8 @@ function toSummary(
     vehicleType,
     truckType: vehicle.truckType,
     typeLabel: definition.label,
+    category: vehicle.category,
+    categoryLabel: vehicleCategoryDefinition(vehicle.category)?.label ?? null,
     capabilities,
     manufacturer: vehicle.manufacturer,
     model: vehicle.model,
@@ -431,7 +444,10 @@ export async function assertVehicleAddable(
 
   if (capacity) await assertVehicleLimit(auth, organizationId);
 
-  const problems = validateVehicleCapacities(input.vehicleType, input);
+  const problems = [
+    ...validateVehicleCapacities(input.vehicleType, input),
+    ...validateVehicleCategory(input.vehicleType, input),
+  ];
   if (problems.length > 0) throw errors.validation(problems[0]!);
 
   return resolveRegistrationClaim(organizationId, input.registrationNumber, 'vehicle');
@@ -457,6 +473,7 @@ export async function createVehicle(
         // Passenger vehicles have no meaningful body type, so the capability
         // model supplies one and the legacy column stays valid.
         truckType: resolveTruckType(input.vehicleType, input.truckType),
+        category: resolveVehicleCategory(input.vehicleType, input.category),
         manufacturer: input.manufacturer ?? null,
         model: input.model ?? null,
         year: input.year ?? null,
@@ -537,11 +554,19 @@ export async function updateVehicle(
   const nextPassengerCapacity = carriesPassengers
     ? (input.passengerCapacity ?? existing.passengerCapacity)
     : null;
+  // A category the new type does not offer is dropped, as capacities are.
+  const nextCategory = resolveVehicleCategory(
+    nextType,
+    (input.category ?? existing.category) as VehicleCategory | null,
+  );
 
-  const problems = validateVehicleCapacities(nextType, {
-    capacityTons: nextCapacityTons,
-    passengerCapacity: nextPassengerCapacity,
-  });
+  const problems = [
+    ...validateVehicleCapacities(nextType, {
+      capacityTons: nextCapacityTons,
+      passengerCapacity: nextPassengerCapacity,
+    }),
+    ...validateVehicleCategory(nextType, { category: nextCategory }),
+  ];
   if (problems.length > 0) throw errors.validation(problems[0]!);
 
   const vehicle = await prisma.truck.update({
@@ -551,6 +576,7 @@ export async function updateVehicle(
       ...(input.vehicleType || input.truckType
         ? { truckType: resolveTruckType(nextType, input.truckType ?? undefined) }
         : {}),
+      category: nextCategory,
       ...(input.registrationNumber ? { registrationNumber: input.registrationNumber } : {}),
       ...(plateChanged ? ownershipResetForNewPlate() : {}),
       ...(input.manufacturer !== undefined ? { manufacturer: input.manufacturer ?? null } : {}),

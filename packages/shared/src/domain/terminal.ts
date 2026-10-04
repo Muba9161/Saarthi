@@ -37,6 +37,7 @@ import type {
   TerminalIssueCategory,
   TerminalIssueStatus,
   TerminalSessionStatus,
+  TrackerProduct,
   VehicleType,
 } from './enums';
 import {
@@ -764,6 +765,29 @@ export interface TerminalSessionView {
   checklistOutcome: TerminalChecklistOutcome | null;
   tripStartedAt: string | null;
   tripCompletedAt: string | null;
+  /**
+   * How the driver app should set the phone up for this vehicle.
+   *
+   * Only on the driver's own request (`request`, `mine`); absent from what an
+   * approver reads.
+   */
+  vehicleSetup?: TerminalVehicleSetup;
+}
+
+/** What the driver app needs to know about the vehicle it scanned. */
+export interface TerminalVehicleSetup {
+  /**
+   * The owner assigned this driver to the vehicle. The phone pairs straight
+   * after the scan and stays paired across shifts; anyone else pairs only once
+   * their shift is approved, and only for that shift.
+   */
+  assignedToYou: boolean;
+  /**
+   * The Saarthi tracker fitted to the vehicle, if one was bought for it. With
+   * `OBD_BLUETOOTH` the app connects the adapter straight after pairing; with
+   * `CONNECTED_4G` the tracker reports and the phone's position is not used.
+   */
+  tracker: TrackerProduct | null;
 }
 
 /**

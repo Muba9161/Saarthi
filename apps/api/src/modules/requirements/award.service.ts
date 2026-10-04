@@ -420,6 +420,7 @@ async function settleFreight(
           estimatedPickupAt: transportBid.estimatedPickupAt,
           estimatedArrivalAt: transportBid.estimatedArrivalAt,
           message: note ?? transportBid.message,
+          returnLoadRequestId: transportBid.returnLoadRequestId,
         }
       : null,
   });

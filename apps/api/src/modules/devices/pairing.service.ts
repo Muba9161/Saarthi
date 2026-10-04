@@ -39,6 +39,7 @@ import { videoProvider } from '../../providers/video';
 import { renderPayloadDataUri } from '../qr/qr-render.service';
 import type { AuthContext } from '../../auth/context';
 import { assertVehicleAcceptsRole } from './device.service';
+import { driverPhoneRole } from './driver-phone.rules';
 import {
   signDeviceToken,
   type DeviceCaller,
@@ -139,7 +140,7 @@ export async function createPairingToken(
    * JSON — from marking a fitted tablet as disposable and having it unpair
    * itself the next time a driver signs off.
    */
-  input: CreatePairingTokenInput & { releaseOnSignOff?: boolean },
+  input: CreatePairingTokenInput & { releaseOnSignOff?: boolean; driverId?: string },
   /**
    * Where the scanning phone should send everything afterwards.
    *
@@ -173,8 +174,19 @@ export async function createPairingToken(
   // Refuse early if the slot this token would fill is already taken. Finding
   // out at redemption means a driver standing at a truck with a QR that will
   // never work, and no way to tell why.
-  const role = DEFAULT_DEVICE_ROLE[deviceTypeToProvider(input.deviceType)] ?? DeviceRole.TELEMETRY;
-  await assertVehicleAcceptsRole(vehicle.id, vehicle.registrationNumber, role);
+  //
+  // A driver's phone yields to a fitted 4G tracker rather than being refused by
+  // it, and does not count its own driver's older phone as the occupant.
+  const role = input.driverId
+    ? await driverPhoneRole(vehicle.id)
+    : (DEFAULT_DEVICE_ROLE[deviceTypeToProvider(input.deviceType)] ?? DeviceRole.TELEMETRY);
+  await assertVehicleAcceptsRole(
+    vehicle.id,
+    vehicle.registrationNumber,
+    role,
+    prisma,
+    input.driverId,
+  );
 
   const ttlSeconds = input.ttlSeconds ?? config.device.pairingTokenTtlSeconds;
   const token = generatePairingToken();
@@ -203,6 +215,7 @@ export async function createPairingToken(
       // Only the driver-app path sets this. A fitted tablet's pairing outlives
       // every driver who signs on to it.
       releaseOnSignOff: input.releaseOnSignOff ?? false,
+      driverId: input.driverId ?? null,
       expiresAt,
     },
   });
@@ -496,8 +509,16 @@ async function pairWithinTransaction(
       }
 
       const provider = deviceTypeToProvider(caller.deviceType);
-      const role = resolveDeviceRole(provider);
-      await assertVehicleAcceptsRole(vehicle.id, vehicle.registrationNumber, role, tx);
+      const role = pairing.driverId
+        ? await driverPhoneRole(vehicle.id, tx)
+        : resolveDeviceRole(provider);
+      await assertVehicleAcceptsRole(
+        vehicle.id,
+        vehicle.registrationNumber,
+        role,
+        tx,
+        pairing.driverId ?? undefined,
+      );
 
       const enrolment = await tx.deviceEnrolment.findUnique({ where: { id: caller.id } });
       if (!enrolment || enrolment.status !== 'PENDING') {
@@ -579,8 +600,14 @@ async function pairWithinTransaction(
         );
       }
 
+      // A driver's own phone follows its driver: re-pairing it — to this vehicle
+      // again, or to the one they are now approved on — replaces its pairing
+      // rather than being refused by it.
       const current = device.assignments[0];
-      if (current) {
+      const followsDriver = Boolean(
+        current && pairing.driverId && current.driverId === pairing.driverId,
+      );
+      if (current && !followsDriver) {
         if (current.vehicleId === vehicle.id) {
           throw errors.businessRule(
             `This device is already paired to ${current.vehicle.registrationNumber}.`,
@@ -590,17 +617,34 @@ async function pairWithinTransaction(
           `This device is paired to ${current.vehicle.registrationNumber}. Unpair it there first.`,
         );
       }
+      if (current && followsDriver) {
+        await tx.deviceAssignment.update({
+          where: { id: current.id },
+          data: {
+            status: DeviceAssignmentStatus.ENDED,
+            unassignedAt: now,
+            removalReason: `Re-paired by its driver to ${vehicle.registrationNumber}.`,
+          },
+        });
+      }
 
+      const role = pairing.driverId
+        ? await driverPhoneRole(vehicle.id, tx)
+        : resolveDeviceRole(device.provider as DeviceProvider, device.role as DeviceRole);
       await assertVehicleAcceptsRole(
         vehicle.id,
         vehicle.registrationNumber,
-        resolveDeviceRole(device.provider as DeviceProvider, device.role as DeviceRole),
+        role,
         tx,
+        pairing.driverId ?? undefined,
       );
 
       await tx.hardwareDevice.update({
         where: { id: device.id },
         data: {
+          // Per vehicle for a driver's phone: telemetry on one, auxiliary on a
+          // vehicle whose 4G tracker reports for it.
+          ...(pairing.driverId ? { role } : {}),
           status: DeviceStatus.ACTIVE,
           activatedAt: device.activatedAt ?? now,
           ...(input.deviceModel ? { deviceModel: input.deviceModel } : {}),
@@ -615,6 +659,23 @@ async function pairWithinTransaction(
     }
 
     // --- Open the assignment -------------------------------------------------
+    // A driver on a new handset: the old one stops standing in for them here.
+    if (pairing.driverId) {
+      await tx.deviceAssignment.updateMany({
+        where: {
+          vehicleId: vehicle.id,
+          driverId: pairing.driverId,
+          status: DeviceAssignmentStatus.ACTIVE,
+          deviceId: { not: deviceId },
+        },
+        data: {
+          status: DeviceAssignmentStatus.ENDED,
+          unassignedAt: now,
+          removalReason: 'Replaced by the driver’s new phone.',
+        },
+      });
+    }
+
     await tx.deviceAssignment.create({
       data: {
         deviceId,
@@ -627,6 +688,7 @@ async function pairWithinTransaction(
         // Carried from the token, so the decision about whether this pairing
         // outlives the driver's shift is the one made when it was issued.
         releaseOnSignOff: pairing.releaseOnSignOff,
+        driverId: pairing.driverId,
       },
     });
 

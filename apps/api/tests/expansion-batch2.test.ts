@@ -992,10 +992,13 @@ describe('Return loads', () => {
     expect(quote.truckId).toBe(truck.id);
     expect(Number(quote.price)).toBe(72_000);
 
+    // The quote carries the backhaul; the order becomes a return load only if
+    // the customer accepts it, so a quote passed over mislabels nothing.
+    expect(quote.returnLoadRequestId).toBe(created.body.data.id);
     const updatedOrder = await prisma.order.findUniqueOrThrow({ where: { id: order.id } });
     expect(updatedOrder.status).toBe('QUOTED');
-    expect(updatedOrder.isReturnLoad).toBe(true);
-    expect(updatedOrder.returnLoadRequestId).toBe(created.body.data.id);
+    expect(updatedOrder.isReturnLoad).toBe(false);
+    expect(updatedOrder.returnLoadRequestId).toBeNull();
   });
 
   it('refuses to quote the same match twice', async () => {

@@ -43,6 +43,9 @@ import { uploadMedia, type UploadFilePart } from '../media/media.service';
 import { invalidateTerminalState } from './terminal.service';
 import { applyOdometer } from '../vehicles/odometer.service';
 import { releaseVehicleFromAdHocTrip } from './adhoc-trip.service';
+import { holdsStandingAssignment } from '../devices/driver-phone.rules';
+import { releaseDriverPhones } from '../devices/driver-phone.service';
+import { withVehicleSetup } from './vehicle-setup';
 import {
   sessionInclude,
   toSessionPayload,
@@ -205,7 +208,14 @@ async function authorizeOntoVehicle(
   const now = new Date();
   let truckAssignmentId: string | null = null;
 
-  if (input.assignVehicle) {
+  // The vehicle's own assigned driver is already on it. Approving their shift
+  // must not swap the owner's assignment for one that ends at sign-off — that
+  // would unassign them, and unpair their phone, after their first shift.
+  const standing =
+    input.assignVehicle &&
+    (await holdsStandingAssignment(session.vehicleId, session.driverId, tx));
+
+  if (input.assignVehicle && !standing) {
     // Close whatever standing assignment the vehicle had. A truck with two
     // active drivers is a truck nobody can be held responsible for.
     await tx.truckAssignment.updateMany({
@@ -398,11 +408,15 @@ export async function requestAssignment(
    * here, as this did, made the whole driver flow impossible: the phone could
    * not request approval without a pairing and could not pair without approval.
    */
+  //
+  // A fitted tablet, or this driver's own paired phone — never another driver's
+  // phone, which would end this session when that phone is unpaired.
   const assignment = await prisma.deviceAssignment.findFirst({
     where: {
       vehicleId: vehicle.id,
       status: DeviceAssignmentStatus.ACTIVE,
       device: { deviceType: DeviceType.VEHICLE_TERMINAL, archivedAt: null },
+      OR: [{ driverId: null }, { driverId: driver.id }],
     },
     orderBy: { assignedAt: 'desc' },
     select: { deviceId: true },
@@ -436,7 +450,7 @@ export async function requestAssignment(
   // The driver's own request at this same vehicle is not a conflict — it is
   // them reopening the app. Hand back what they already have.
   if (driverBusy && driverBusy.vehicleId === vehicle.id) {
-    return toSessionView(driverBusy, { includeSelfie: true });
+    return withVehicleSetup(await toSessionView(driverBusy, { includeSelfie: true }), driver.id);
   }
   if (driverBusy) {
     throw errors.conflict(
@@ -517,13 +531,22 @@ export async function requestAssignment(
     );
   });
 
+  // The owner signing on to drive replaces the vehicle's assigned driver, as an
+  // approval of anyone else does.
+  if (isOwnerSigningOn(auth, vehicle.organizationId)) {
+    await releaseDriverPhones(
+      { vehicleId: vehicle.id, exceptDriverId: driver.id },
+      `The owner signed on to ${vehicle.registrationNumber}.`,
+    );
+  }
+
   sessionLogger.info(
     { sessionId: created.id, driverId: driver.id, vehicleId: vehicle.id, status: created.status },
     'Terminal driver request opened',
   );
 
   await announce(created);
-  return toSessionView(created, { includeSelfie: true });
+  return withVehicleSetup(await toSessionView(created, { includeSelfie: true }), driver.id);
 }
 
 // ---------------------------------------------------------------------------
@@ -797,6 +820,15 @@ export async function approveAssignment(
         `Approved by ${auth.user.firstName} ${auth.user.lastName}.`,
       );
     });
+
+    // A different driver approved onto the vehicle replaces its assigned
+    // driver, so that driver's paired phone goes too.
+    if (input.assignVehicle) {
+      await releaseDriverPhones(
+        { vehicleId: updated.vehicleId, exceptDriverId: updated.driverId },
+        `Another driver was approved onto ${updated.vehicle.registrationNumber}.`,
+      );
+    }
 
     sessionLogger.info(
       {
@@ -1194,7 +1226,9 @@ export async function mySession(auth: AuthContext): Promise<TerminalSessionView 
     include: sessionInclude,
     orderBy: { requestedAt: 'desc' },
   });
-  return session ? toSessionView(session, { includeSelfie: true }) : null;
+  return session
+    ? withVehicleSetup(await toSessionView(session, { includeSelfie: true }), auth.driverId)
+    : null;
 }
 
 export async function getSession(

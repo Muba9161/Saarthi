@@ -1,16 +1,16 @@
 import * as React from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Info, Send, Sparkles } from 'lucide-react';
+import { Info, Send } from 'lucide-react';
 import { Feature, Permission, formatRegistrationNumber } from '@saarthi/shared';
 import { api, errorMessage } from '@/lib/api-client';
 import type { CopilotAnswer } from '@/lib/api-types';
 import type { VehicleSummary } from '@/lib/mobility-types';
 import { useAuth } from '@/features/auth/auth-context';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
+import { Panel, PanelHeader } from './panel';
 
 /**
  * The copilot, asked about one vehicle.
@@ -117,23 +117,17 @@ export function VehicleAiCard({
   };
 
   return (
-    <Card variant="glass" className={cn('flex flex-col rounded-2xl p-5', className)}>
-      <div className="flex items-start gap-3">
-        <span className="shrink-0 rounded-xl bg-primary/10 p-2 text-primary ring-1 ring-primary/15">
-          <Sparkles className="size-4" />
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold">AI assistant</p>
-          <p className="text-xs text-muted-foreground">
-            Ask about this {vehicle.typeLabel.toLowerCase()} - answered from your own records.
-          </p>
-        </div>
-      </div>
+    <Panel aria-labelledby="vehicle-ai" className={cn('flex flex-col gap-3.5', className)}>
+      <PanelHeader
+        id="vehicle-ai"
+        title="AI assistant"
+        description={`Ask about this ${vehicle.typeLabel.toLowerCase()} — answered from your own records.`}
+        className="mb-0"
+      />
 
-      {/* The answer replaces the prompts once there is one, so the card does
-          not grow taller than the hero it sits beside. */}
+      {/* The answer replaces the prompts once there is one. */}
       {answer ? (
-        <div className="mt-4 min-w-0 space-y-2">
+        <div className="min-w-0 space-y-2">
           <p className="whitespace-pre-wrap text-sm leading-relaxed">{answer.answer}</p>
 
           {/*
@@ -166,24 +160,24 @@ export function VehicleAiCard({
           </Button>
         </div>
       ) : (
-        <div className="mt-4 grid gap-2 sm:grid-cols-2">
+        <div className="flex flex-wrap gap-2">
           {prompts.map((prompt) => (
             <button
               key={prompt.label}
               type="button"
+              title={prompt.hint}
               disabled={ask.isPending}
               onClick={() => send(prompt.question(plate))}
-              className="glass-inset surface-interactive rounded-xl px-3 py-2.5 text-left disabled:pointer-events-none disabled:opacity-60"
+              className="inline-flex min-h-9 items-center rounded-full border border-border px-3.5 text-[13px] font-medium transition-colors hover:bg-foreground/[0.04] disabled:pointer-events-none disabled:opacity-60"
             >
-              <span className="block text-xs font-medium">{prompt.label}</span>
-              <span className="mt-0.5 block text-[11px] text-muted-foreground">{prompt.hint}</span>
+              {prompt.label}
             </button>
           ))}
         </div>
       )}
 
       <form
-        className="mt-4 flex items-end gap-2"
+        className="flex items-end gap-1.5 rounded-[12px] border border-border bg-card/70 py-1 pl-3.5 pr-1"
         onSubmit={(event) => {
           event.preventDefault();
           send(message);
@@ -201,13 +195,13 @@ export function VehicleAiCard({
           }}
           placeholder={`Ask about ${plate}…`}
           rows={1}
-          className="min-h-10 resize-none py-2"
+          className="min-h-10 resize-none border-0 bg-transparent px-0 py-2.5 shadow-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
           aria-label={`Ask the assistant about ${plate}`}
         />
         <Button
           type="submit"
           size="icon"
-          shape="pill"
+          className="size-10 shrink-0 rounded-[9px]"
           loading={ask.isPending}
           disabled={!message.trim()}
           aria-label="Send"
@@ -215,7 +209,7 @@ export function VehicleAiCard({
           <Send className="size-4" />
         </Button>
       </form>
-    </Card>
+    </Panel>
   );
 }
 

@@ -22,5 +22,7 @@
     <string name="service_title">Saarthi</string>
     <string name="service_text_paired">Reporting position and vehicle data for %1$s.</string>
     <string name="service_text_unpaired">Not connected to a vehicle.</string>
+    <!-- A driver's phone between shifts: paired, but nothing is read or sent. -->
+    <string name="service_text_off_shift">Paired to %1$s. Not reporting until your shift is approved.</string>
     <string name="service_action_stop">Stop</string>
 </resources>

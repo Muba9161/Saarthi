@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
+  BACKHAUL_COMMISSION_RULE,
   MARKETPLACE_COMMISSION_RULE,
   OrderFinanceStage,
   balanceDue,
   canMoveFinanceStage,
+  commissionRuleFor,
   confirmationAmount,
   finalCustomerAmount,
   maskBankAccount,
@@ -22,6 +24,22 @@ describe('marketplace finance', () => {
 
   it('earns nothing on a loss', () => {
     expect(profitCommission({ revenue: 40000, costBasis: 50000 })).toMatchObject({ profitBasis: 0, amount: 0 });
+  });
+
+  it('takes 3% of profit on a job won through backhaul', () => {
+    const rule = commissionRuleFor({ isReturnLoad: true });
+    expect(rule).toBe(BACKHAUL_COMMISSION_RULE);
+    const commission = profitCommission({ revenue: 62500, costBasis: 50000 }, rule);
+    expect(commission.profitBasis).toBe(12500);
+    expect(commission.amount).toBe(375);
+    expect(commission.rate).toBe(0.03);
+    expect(commission.ruleVersion).toBe('BACKHAUL_PROFIT_V1');
+    // Still nothing on a loss.
+    expect(profitCommission({ revenue: 40000, costBasis: 50000 }, rule).amount).toBe(0);
+  });
+
+  it('keeps an ordinary job on the ordinary rule', () => {
+    expect(commissionRuleFor({ isReturnLoad: false })).toBe(MARKETPLACE_COMMISSION_RULE);
   });
 
   it('applies the same principle to travel', () => {

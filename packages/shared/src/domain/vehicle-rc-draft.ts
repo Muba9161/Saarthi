@@ -1,5 +1,6 @@
-import { FuelType, TruckType, VehicleType } from './enums';
+import { FuelType, TruckType, VehicleCapability, VehicleCategory, VehicleType } from './enums';
 import type { VehicleRcRecord } from './vehicle-rc';
+import { vehicleSupports } from './vehicles';
 
 /**
  * The vehicle form, filled in from an RC record.
@@ -17,6 +18,8 @@ import type { VehicleRcRecord } from './vehicle-rc';
 export interface VehicleRcDraft {
   vehicleType: VehicleType | null;
   truckType: TruckType | null;
+  /** Scooter, sedan… only where the RC itself says; see `categoryFrom`. */
+  category: VehicleCategory | null;
   manufacturer: string | null;
   model: string | null;
   year: number | null;
@@ -52,6 +55,7 @@ function vehicleTypeFrom(record: VehicleRcRecord): VehicleType | null {
 
   const threeWheeler = /THREE WHEELER|3W|E-?RICKSHAW|AUTO RICKSHAW/.test(description);
   if (threeWheeler) return isGoods(description) ? VehicleType.TEMPO : VehicleType.AUTO_RICKSHAW;
+  if (TWO_WHEELER_CLASS.test(description)) return VehicleType.TWO_WHEELER;
 
   if (isGoods(description)) {
     const gvw = record.grossVehicleWeight;
@@ -62,6 +66,60 @@ function vehicleTypeFrom(record: VehicleRcRecord): VehicleType | null {
   if (/\bVAN\b/.test(description)) return VehicleType.VAN;
   if (/\bSUV\b|\bMUV\b/.test(description)) return VehicleType.SUV;
   if (/MOTOR ?CAR|\bLMV\b|SALOON|SEDAN|HATCHBACK/.test(description)) return VehicleType.CAR;
+  return null;
+}
+
+/**
+ * RTO wording for two-wheelers: "M-Cycle/Scooter(2WN)", "Moped(2WN)",
+ * "Motor Cycle/Scooter-Used For Hire(2WT)", "Motorised Cycle (CC > 25cc)".
+ */
+const TWO_WHEELER_CLASS = /\b2W[NT]?\b|TWO WHEELER|M-?CYCLE|MOTOR ?CYCLE|MOTORISED CYCLE|SCOOTER|MOPED/;
+
+/**
+ * Which kind of two-wheeler, only where the RC actually says.
+ *
+ * The usual class is "M-Cycle/Scooter", which names both, so it settles
+ * nothing; a body type of "Scooter" or a class of "Moped" does. Sports,
+ * cruiser and adventure are never on an RC — the owner picks those.
+ */
+function twoWheelerCategoryFrom(record: VehicleRcRecord): VehicleCategory | null {
+  const body = text(record.bodyType);
+  const description = text(record.vehicleClass, record.vehicleCategory, record.bodyType);
+  if (/MOPED/.test(description)) return VehicleCategory.MOPED;
+  const saysScooter = /SCOOTER/.test(body || description);
+  const saysMotorcycle = /M-?CYCLE|MOTOR ?CYCLE/.test(body || description);
+  if (saysScooter && !saysMotorcycle) {
+    return fuelTypeFrom(record.fuelType) === FuelType.ELECTRIC
+      ? VehicleCategory.ELECTRIC_SCOOTER
+      : VehicleCategory.SCOOTER;
+  }
+  if (saysMotorcycle && !saysScooter) return VehicleCategory.MOTORCYCLE;
+  return null;
+}
+
+/**
+ * A car's body style, from the RC's body type — "SALOON", "HATCHBACK", "MUV".
+ * Compact SUV and luxury are never on an RC; the owner picks those.
+ */
+function carCategoryFrom(record: VehicleRcRecord): VehicleCategory | null {
+  const body = text(record.bodyType);
+  if (!body) return null;
+  if (body.includes('HATCH')) return VehicleCategory.HATCHBACK;
+  if (/SALOON|SEDAN/.test(body)) return VehicleCategory.SEDAN;
+  if (/\bMUV\b|\bMPV\b/.test(body)) return VehicleCategory.MUV;
+  if (/\bSUV\b/.test(body)) return VehicleCategory.SUV;
+  return null;
+}
+
+function categoryFrom(record: VehicleRcRecord, vehicleType: VehicleType | null): VehicleCategory | null {
+  if (vehicleType === VehicleType.TWO_WHEELER) return twoWheelerCategoryFrom(record);
+  if (
+    vehicleType === VehicleType.CAR ||
+    vehicleType === VehicleType.TAXI ||
+    vehicleType === VehicleType.SUV
+  ) {
+    return carCategoryFrom(record);
+  }
   return null;
 }
 
@@ -122,17 +180,21 @@ function modelName(record: VehicleRcRecord): string | null {
 export function vehicleDraftFromRc(record: VehicleRcRecord): VehicleRcDraft {
   const vehicleType = vehicleTypeFrom(record);
   const carriesGoods = vehicleType === VehicleType.TRUCK || vehicleType === VehicleType.PICKUP || vehicleType === VehicleType.TEMPO;
+  // A two-wheeler's RC lists a pillion as a seat; the type has no seat count.
+  const seats =
+    vehicleType === null || vehicleSupports(vehicleType, VehicleCapability.PASSENGER_CAPACITY);
 
   return {
     vehicleType,
     truckType: carriesGoods ? truckTypeFrom(record) : null,
+    category: categoryFrom(record, vehicleType),
     manufacturer: record.maker?.trim() || null,
     model: modelName(record),
     year: yearFrom(record.manufacturedOn, record.registrationDate),
     colour: record.color?.trim() || null,
     fuelType: fuelTypeFrom(record.fuelType),
     capacityTons: carriesGoods ? payloadTons(record) : null,
-    passengerCapacity: carriesGoods ? null : record.seatingCapacity,
+    passengerCapacity: carriesGoods || !seats ? null : record.seatingCapacity,
     registrationDate: record.registrationDate,
     registrationStatus: record.registrationStatus,
     insuranceValidUntil: record.insuranceValidUntil,

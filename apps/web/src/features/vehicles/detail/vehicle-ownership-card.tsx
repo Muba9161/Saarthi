@@ -19,6 +19,7 @@ import { SectionHeader } from '@/components/common/page-header';
 import { StatusBadge } from '@/components/common/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 
 /**
  * Whether this account has shown it owns the vehicle.
@@ -34,9 +35,11 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 export function VehicleOwnershipCard({
   vehicleId,
   ownership,
+  className,
 }: {
   vehicleId: string;
   ownership: VehicleOwnershipView;
+  className?: string;
 }) {
   const { can, session } = useAuth();
   const queryClient = useQueryClient();
@@ -64,7 +67,7 @@ export function VehicleOwnershipCard({
   const Icon = verified ? ShieldCheck : ShieldAlert;
 
   return (
-    <Card className="rounded-2xl">
+    <Card className={cn('rounded-2xl', className)}>
       <CardHeader className="pb-2">
         <SectionHeader
           title="Ownership"

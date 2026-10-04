@@ -159,6 +159,8 @@ export interface RequirementBidSummary {
   procurementReference: number | null;
   /** The supplier listing it sources from — shown to the bidding fleet only. */
   sourceMaterialId: string | null;
+  /** Placed on a vehicle's return leg (backhaul) — shown to the bidding fleet only. */
+  returnLoadRequestId: string | null;
 
   offeredVehicleType: VehicleType | null;
   inclusions: string[];
@@ -422,6 +424,8 @@ export async function decorateBids(
           ? Number(row.procurementReference)
           : null,
       sourceMaterialId: row.bidderOrganizationId === viewerOrganizationId ? row.sourceMaterialId : null,
+      returnLoadRequestId:
+        row.bidderOrganizationId === viewerOrganizationId ? row.returnLoadRequestId : null,
 
       offeredVehicleType: row.offeredVehicleType as VehicleType | null,
       inclusions: row.inclusions,

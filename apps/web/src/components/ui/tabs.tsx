@@ -22,7 +22,7 @@ const Tabs = TabsPrimitive.Root;
  * attribute, so a caller states it once where the count is visible rather than
  * repeating it on every trigger.
  */
-type TabsVariant = 'segmented' | 'merged';
+type TabsVariant = 'segmented' | 'merged' | 'underline';
 
 const LIST_VARIANTS: Record<TabsVariant, string> = {
   segmented:
@@ -39,6 +39,13 @@ const LIST_VARIANTS: Record<TabsVariant, string> = {
   // and last tab's outer fillet falls outside the track and is clipped by the
   // strip's own horizontal overflow, leaving a nicked corner.
   merged: 'mx-auto flex h-auto w-fit items-end gap-1 rounded-t-xl bg-tab-track px-3 pt-2',
+  /*
+   * Text tabs on a hairline, for a page whose tabs sit among panels rather than
+   * above one. The hairline is an inset shadow rather than a border: the strip
+   * scrolls sideways, and a scroll container clips anything that hangs below
+   * it, so the active underline has to be drawn inside the strip.
+   */
+  underline: 'flex w-full items-end gap-1 shadow-[inset_0_-1px_0_hsl(var(--border))]',
 };
 
 /**
@@ -161,6 +168,10 @@ const TabsTrigger = React.forwardRef<
       'group-data-[variant=merged]/tabs:rounded-t-lg group-data-[variant=merged]/tabs:px-4 group-data-[variant=merged]/tabs:pb-2.5 group-data-[variant=merged]/tabs:pt-2',
       'group-data-[variant=merged]/tabs:data-[state=active]:bg-transparent group-data-[variant=merged]/tabs:data-[state=active]:shadow-none group-data-[variant=merged]/tabs:data-[state=active]:ring-0',
       'dark:group-data-[variant=merged]/tabs:data-[state=active]:bg-transparent',
+      // `underline`: a label over a 2px rule that only the active tab colours.
+      'group-data-[variant=underline]/tabs:min-h-11 group-data-[variant=underline]/tabs:rounded-none group-data-[variant=underline]/tabs:border-b-2 group-data-[variant=underline]/tabs:border-transparent group-data-[variant=underline]/tabs:px-3 group-data-[variant=underline]/tabs:py-0',
+      'group-data-[variant=underline]/tabs:data-[state=active]:border-primary group-data-[variant=underline]/tabs:data-[state=active]:bg-transparent group-data-[variant=underline]/tabs:data-[state=active]:shadow-none group-data-[variant=underline]/tabs:data-[state=active]:ring-0',
+      'dark:group-data-[variant=underline]/tabs:data-[state=active]:bg-transparent',
       '[&_svg]:size-4',
       className,
     )}

@@ -14,6 +14,7 @@ import { assertTenantAccess } from '../../server/guards';
 import { notify } from '../notifications/notification.service';
 import { allocateInviteCode } from '../organizations/fleet-invite.service';
 import { moveDriverRecords } from './driver-fleet-move';
+import { releaseDriverPhones } from '../devices/driver-phone.service';
 import type { AuthContext } from '../../auth/context';
 
 /**
@@ -157,6 +158,9 @@ async function releaseFromFleet(
 
     return seat.id;
   });
+
+  // Off every vehicle means their paired phone too.
+  await releaseDriverPhones({ driverId }, 'The driver left the fleet.');
 
   await notify({
     userId: driver.userId,

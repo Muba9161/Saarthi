@@ -9,10 +9,12 @@ import {
   RequirementKind,
   categoryPath,
   categoryRef,
+  boundingDeltas,
   categorySubtreeIds,
   distanceKm,
   interpretCommerceText,
   scoreListingMatch,
+  type LatLng,
 } from '@saarthi/shared';
 import { type Prisma, prisma } from '../../database/prisma';
 import { errors } from '../../lib/errors';
@@ -49,6 +51,8 @@ export interface SellerMatch {
   availableQuantity: number;
   minimumOrderQty: number;
   pickupAddress: string | null;
+  pickupLatitude: number | null;
+  pickupLongitude: number | null;
   distanceKm: number | null;
   /** Listing price × requested quantity: what the fleet would pay the Seller. */
   procurementReference: number | null;
@@ -99,10 +103,19 @@ function requirementCategory(
     : null;
 }
 
-function deliveryPoint(requirement: RequirementRecord): { latitude: number; longitude: number } {
+function deliveryPoint(requirement: RequirementRecord): LatLng {
   return requirement.destinationLatitude !== null && requirement.destinationLongitude !== null
     ? { latitude: requirement.destinationLatitude, longitude: requirement.destinationLongitude }
     : { latitude: requirement.originLatitude, longitude: requirement.originLongitude };
+}
+
+/** An indexed box around a point; the exact radius is applied after scoring. */
+function pickupWithin(from: LatLng, km: number): Prisma.MaterialWhereInput {
+  const { latDelta, lngDelta } = boundingDeltas(from.latitude, km * 1000);
+  return {
+    pickupLatitude: { gte: from.latitude - latDelta, lte: from.latitude + latDelta },
+    pickupLongitude: { gte: from.longitude - lngDelta, lte: from.longitude + lngDelta },
+  };
 }
 
 export async function matchSellers(
@@ -120,7 +133,27 @@ export async function matchSellers(
     throw errors.businessRule('Only a material requirement is sourced from sellers.');
   }
 
-  const { index } = await loadTaxonomy();
+  const from =
+    query.nearLatitude !== undefined && query.nearLongitude !== undefined
+      ? { latitude: query.nearLatitude, longitude: query.nearLongitude }
+      : deliveryPoint(requirement);
+  return rankSellers(requirement, { from, limit: query.limit });
+}
+
+/**
+ * Rank the seller listings that could answer a material requirement.
+ *
+ * `from` is where distance is measured: the delivery point for an ordinary
+ * bid, or where a vehicle on its return leg is standing. With `withinKm`,
+ * listings further away — or with no pickup point at all — are left out.
+ * The caller has already checked that the requirement may be read.
+ */
+export async function rankSellers(
+  requirement: RequirementRecord,
+  options: { from: LatLng; limit: number; withinKm?: number; index?: CommerceTaxonomyIndex },
+): Promise<SellerMatch[]> {
+  // A caller ranking many requirements builds the index once and passes it in.
+  const index = options.index ?? (await loadTaxonomy()).index;
   const categoryId = requirementCategory(index, requirement);
   if (!categoryId && !requirement.materialCategory && !requirement.materialName) return [];
 
@@ -128,6 +161,7 @@ export async function matchSellers(
     archivedAt: null,
     status: MaterialStatus.ACTIVE,
     availableQuantity: { gt: 0 },
+    ...(options.withinKm !== undefined ? pickupWithin(options.from, options.withinKm) : {}),
   };
 
   const where: Prisma.MaterialWhereInput = categoryId
@@ -167,7 +201,6 @@ export async function matchSellers(
   });
   const sellerName = new Map(sellers.map((seller) => [seller.id, seller.name]));
 
-  const delivery = deliveryPoint(requirement);
   const wanted = readAttributeValues(requirement.attributes);
   const quantity = requirement.quantity;
 
@@ -175,7 +208,7 @@ export async function matchSellers(
     const distance =
       listing.pickupLatitude !== null && listing.pickupLongitude !== null
         ? Number(
-            distanceKm(delivery, {
+            distanceKm(options.from, {
               latitude: listing.pickupLatitude,
               longitude: listing.pickupLongitude,
             }).toFixed(1),
@@ -219,6 +252,8 @@ export async function matchSellers(
         availableQuantity: listing.availableQuantity,
         minimumOrderQty: listing.minimumOrderQty,
         pickupAddress: listing.pickupAddress,
+        pickupLatitude: listing.pickupLatitude,
+        pickupLongitude: listing.pickupLongitude,
         distanceKm: distance,
         procurementReference:
           quantity !== null
@@ -244,6 +279,11 @@ export async function matchSellers(
   });
 
   return matches
+    .filter(
+      (match) =>
+        options.withinKm === undefined ||
+        (match.distanceKm !== null && match.distanceKm <= options.withinKm),
+    )
     .sort((a, b) => b.score - a.score || (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity))
-    .slice(0, query.limit);
+    .slice(0, options.limit);
 }

@@ -29,6 +29,7 @@ import { DataView, type Column } from '@/components/common/data-view';
 import { EmptyState, UnauthorizedState } from '@/components/common/states';
 import { StatusBadge } from '@/components/common/status-badge';
 import { VehicleCard } from '@/components/common/vehicle-card';
+import { vehicleArtType } from '@/components/common/vehicle-art';
 import { DeleteAction } from '@/components/common/delete-action';
 import { AddVehicleDialog, EditVehicleDialog } from '@/features/vehicles/vehicle-dialog';
 import { QrWelcomeDialog } from '@/features/qr/qr-welcome-dialog';
@@ -201,7 +202,7 @@ export function VehiclesPage() {
         <div className="min-w-0">
           <p className="truncate font-medium">{row.registrationNumber}</p>
           <p className="truncate text-xs text-muted-foreground">
-            {row.typeLabel}
+            {row.categoryLabel ? `${row.typeLabel} · ${row.categoryLabel}` : row.typeLabel}
             {row.model ? ` · ${row.manufacturer ?? ''} ${row.model}`.trimEnd() : ''}
           </p>
         </div>
@@ -558,7 +559,7 @@ export function VehiclesPage() {
           card={(row) => (
             <VehicleCard
               registrationNumber={row.registrationNumber}
-              type={row.vehicleType}
+              type={vehicleArtType(row)}
               status={row.status}
               facts={[
                 {

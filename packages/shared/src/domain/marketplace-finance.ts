@@ -9,6 +9,11 @@
  *   Travel:   customer payment − recorded trip/package costs           = profit
  *   Saarthi commission = profit × 2%
  *
+ * A job won as a **backhaul** — the return leg of a completed trip, found
+ * through "Enable backhaul" — is charged at 3% of profit instead. The owner
+ * agrees to that rate when enabling backhaul, and it is collected the same way:
+ * held back from the customer's final 70% payment.
+ *
  * These rules are pure and versioned so every surface — the API, the order
  * screen, the provider's summary — computes the same figures, and a historical
  * commission can always be explained by the rule version it was calculated
@@ -20,12 +25,29 @@
 
 const toPaise = (amount: number): number => Math.round(amount * 100) / 100;
 
+/** A versioned commission rate on profit. */
+export interface CommissionRule {
+  version: string;
+  /** Share of the provider's profit. */
+  rate: number;
+}
+
 /** The rule every marketplace commission is calculated under. */
 export const MARKETPLACE_COMMISSION_RULE = {
   version: 'MARKETPLACE_PROFIT_V1',
-  /** Share of the provider's profit. */
   rate: 0.02,
-} as const;
+} as const satisfies CommissionRule;
+
+/** The rule for a job won as a backhaul — the return leg of a completed trip. */
+export const BACKHAUL_COMMISSION_RULE = {
+  version: 'BACKHAUL_PROFIT_V1',
+  rate: 0.03,
+} as const satisfies CommissionRule;
+
+/** The commission rule an order is charged under. */
+export function commissionRuleFor(order: { isReturnLoad: boolean }): CommissionRule {
+  return order.isReturnLoad ? BACKHAUL_COMMISSION_RULE : MARKETPLACE_COMMISSION_RULE;
+}
 
 /** Share of a freight order the customer pays when the order is confirmed. */
 export const FREIGHT_CONFIRMATION_SHARE = 0.3;
@@ -123,18 +145,21 @@ export interface ProfitCommission {
 /**
  * Saarthi's commission on a provider's profit.
  *
- * `profitBasis × 2%` — calculated on what the provider actually earned, so a
- * ₹62,500 order bought in at ₹50,000 pays ₹250, not ₹1,250.
+ * `profitBasis × rate` — calculated on what the provider actually earned, so a
+ * ₹62,500 order bought in at ₹50,000 pays ₹250 at 2%, not ₹1,250.
  */
-export function profitCommission(input: { revenue: number; costBasis: number }): ProfitCommission {
+export function profitCommission(
+  input: { revenue: number; costBasis: number },
+  rule: CommissionRule = MARKETPLACE_COMMISSION_RULE,
+): ProfitCommission {
   const profitBasis = toPaise(Math.max(0, input.revenue - input.costBasis));
   return {
     revenue: toPaise(input.revenue),
     costBasis: toPaise(input.costBasis),
     profitBasis,
-    rate: MARKETPLACE_COMMISSION_RULE.rate,
-    amount: toPaise(profitBasis * MARKETPLACE_COMMISSION_RULE.rate),
-    ruleVersion: MARKETPLACE_COMMISSION_RULE.version,
+    rate: rule.rate,
+    amount: toPaise(profitBasis * rule.rate),
+    ruleVersion: rule.version,
   };
 }
 

@@ -1225,6 +1225,35 @@ describe('Saarthi Terminal', () => {
       expect(truck.currentDriverId).toBeNull();
     });
 
+    it('lets a fleet without a tracker disconnect what it connected', async () => {
+      // A terminal pairs without a tracker, so removing one must not need one:
+      // otherwise the vehicle's single telemetry slot becomes a one-way door.
+      const untracked = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.BUSINESS);
+      const untrackedOwner = await createUser({
+        role: RoleName.FLEET_OWNER,
+        organizationId: untracked.id,
+      });
+      const untrackedVehicle = await createVehicle(untracked.id);
+
+      const terminal = await pairTerminal(untrackedOwner, untrackedVehicle.id);
+      const device = await prisma.hardwareDevice.findFirstOrThrow({
+        where: { deviceIdentifier: terminal.deviceIdentifier },
+      });
+
+      const response = await request({
+        method: 'POST',
+        url: `/api/v1/fleet/vehicles/${untrackedVehicle.id}/devices/${device.id}/unpair`,
+        user: untrackedOwner,
+        payload: {},
+      });
+
+      expect(response.status).toBe(200);
+      const assignment = await prisma.deviceAssignment.findFirstOrThrow({
+        where: { deviceId: device.id },
+      });
+      expect(assignment.status).not.toBe('ACTIVE');
+    });
+
     it('refuses to remove a terminal from another fleet', async () => {
       const terminal = await pairTerminal(owner, vehicle.id);
       const device = await prisma.hardwareDevice.findFirstOrThrow({

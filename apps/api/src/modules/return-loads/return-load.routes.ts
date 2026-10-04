@@ -2,9 +2,11 @@ import type { FastifyInstance } from 'fastify';
 import {
   Feature,
   Permission,
+  backhaulRequirementQuerySchema,
   cancelReturnLoadSchema,
   createReturnLoadSchema,
   emptyRiskQuerySchema,
+  enableBackhaulSchema,
   idParamSchema,
   matchListQuerySchema,
   opportunityQuerySchema,
@@ -23,6 +25,8 @@ import {
 } from '../../server/guards';
 import { AuditAction, auditFromRequest } from '../audit/audit.service';
 import * as returnLoadService from './return-load.service';
+import * as backhaulService from './backhaul.service';
+import { requirementsOnReturnRoute } from './backhaul-requirements';
 
 /**
  * Return-load routes.
@@ -105,6 +109,51 @@ export async function returnLoadRoutes(app: FastifyInstance): Promise<void> {
           ...(query.truckId ? { truckId: query.truckId } : {}),
         }),
       );
+    },
+  );
+
+  /**
+   * Backhaul on a completed trip: whether it is offered, the commission terms
+   * the owner will accept, and the backhaul already enabled from it.
+   */
+  app.get(
+    '/trips/:id',
+    { preHandler: requirePermission(Permission.RETURN_LOADS_READ) },
+    async (request, reply) => {
+      const auth = requireAuth(request);
+      const { id } = parseParams(idParamSchema, request.params);
+      return ok(reply, await backhaulService.backhaulForTrip(auth, id));
+    },
+  );
+
+  /** "Enable backhaul" — the owner accepts the backhaul commission for this return leg. */
+  app.post(
+    '/trips/:id/enable',
+    { preHandler: requirePermission(Permission.RETURN_LOADS_MANAGE) },
+    async (request, reply) => {
+      const auth = requireAuth(request);
+      const organizationId = requireOrganizationId(request);
+      const { id } = parseParams(idParamSchema, request.params);
+      const input = parseBody(enableBackhaulSchema, request.body);
+      const { offer, opened } = await backhaulService.enableBackhaul(auth, id, input);
+
+      if (opened && offer.request) {
+        await auditFromRequest(request, {
+          action: AuditAction.RETURN_LOAD_CREATED,
+          entityType: 'ReturnLoadRequest',
+          entityId: offer.request.id,
+          organizationId,
+          after: {
+            outboundTripId: id,
+            truckId: offer.request.truckId,
+            commissionRate: offer.commission.rate,
+            commissionRuleVersion: offer.commission.ruleVersion,
+            detourToleranceKm: offer.request.detourToleranceKm,
+          },
+        });
+      }
+
+      return ok(reply, offer);
     },
   );
 
@@ -192,6 +241,23 @@ export async function returnLoadRoutes(app: FastifyInstance): Promise<void> {
       });
 
       return ok(reply, result);
+    },
+  );
+
+  /** Customer requirements on the way home, each with sellers near the truck. */
+  app.get(
+    '/:id/requirements',
+    {
+      preHandler: [
+        requirePermission(Permission.RETURN_LOADS_READ),
+        requirePermission(Permission.REQUIREMENTS_BID),
+      ],
+    },
+    async (request, reply) => {
+      const auth = requireAuth(request);
+      const { id } = parseParams(idParamSchema, request.params);
+      const query = parseQuery(backhaulRequirementQuerySchema, request.query);
+      return ok(reply, await requirementsOnReturnRoute(auth, id, query));
     },
   );
 

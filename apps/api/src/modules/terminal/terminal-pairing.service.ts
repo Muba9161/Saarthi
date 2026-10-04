@@ -22,6 +22,7 @@ import {
   type PairingResult,
 } from '../devices/pairing.service';
 import type { DeviceCaller } from '../devices/device-auth';
+import { holdsStandingAssignment } from '../devices/driver-phone.rules';
 import { assertTenantAccess } from '../../server/guards';
 import type { AuthContext } from '../../auth/context';
 
@@ -97,20 +98,23 @@ export async function createTerminalPairing(
   input: CreateTerminalPairingTokenInput,
   apiUrl: string,
   /**
-   * Whether the pairing this creates ends with the driver's shift.
+   * For a driver's own phone only — see `vehiclePairingForDriver`. A fitted
+   * tablet, every other caller, passes neither: it is bolted to the truck and
+   * stays with it between drivers.
    *
-   * False for the fitted-tablet path, which is every caller but one: a tablet
-   * is bolted to the truck and stays with it between drivers. True only for a
-   * driver's own phone — see `vehiclePairingForApprovedDriver`.
+   * `releaseOnSignOff` ends the pairing with the shift (a driver who is not the
+   * vehicle's assigned driver); `driverId` marks the device as that driver's
+   * phone rather than a tablet.
    */
-  releaseOnSignOff = false,
+  driverPhone: { releaseOnSignOff: boolean; driverId: string } | null = null,
 ): Promise<IssuedTerminalPairing> {
   const issued = await createPairingToken(
     auth,
     vehicleId,
     {
       deviceType: DeviceType.VEHICLE_TERMINAL,
-      releaseOnSignOff,
+      releaseOnSignOff: driverPhone?.releaseOnSignOff ?? false,
+      ...(driverPhone ? { driverId: driverPhone.driverId } : {}),
       ...(input.ttlSeconds !== undefined ? { ttlSeconds: input.ttlSeconds } : {}),
       ...(input.note !== undefined ? { note: input.note } : {}),
     },
@@ -293,7 +297,7 @@ export async function listTerminalPairings(
 }
 
 /**
- * A driver's own phone claiming the vehicle it was just approved onto.
+ * A driver's own phone claiming the vehicle it scanned.
  *
  * The fitted-tablet story starts with a fitter: somebody with `TERMINAL_MANAGE`
  * generates a code on the vehicle's Hardware screen and carries it to the cab.
@@ -301,10 +305,15 @@ export async function listTerminalPairings(
  * their own phone, who would have to telephone the office before every shift —
  * which is the whole thing the driver app exists to remove.
  *
- * So the approval *is* the authorisation. A fleet that has looked at this
- * driver's selfie and approved them onto this truck has already made the
- * decision a pairing code would be asking them to make again, and nothing here
- * can be reached without that approval having happened first.
+ * So the authorisation is a decision the owner already made, one of two:
+ *
+ *   * **The owner assigned this driver to the vehicle.** The phone pairs as soon
+ *     as the driver scans the vehicle QR, before any shift is approved, and
+ *     stays paired across shifts until the owner unassigns or reassigns them.
+ *     Its readings still count only during an approved shift
+ *     (`driver-phone.rules.ts`), and every shift still needs its approval.
+ *   * **The fleet approved this driver for this shift.** The phone pairs for
+ *     that shift only, and lets go at sign-off.
  *
  * The token is short-lived and single-use like any other. It is minted, handed
  * to the phone that asked, and redeemed seconds later through the ordinary
@@ -312,7 +321,7 @@ export async function listTerminalPairings(
  * by exactly the same path a tablet does, with the same slot rules and the same
  * audit trail.
  */
-export async function vehiclePairingForApprovedDriver(
+export async function vehiclePairingForDriver(
   auth: AuthContext,
   sessionId: string,
   apiUrl: string,
@@ -323,6 +332,7 @@ export async function vehiclePairingForApprovedDriver(
       id: true,
       status: true,
       vehicleId: true,
+      driverId: true,
       driverUserId: true,
       organizationId: true,
       vehicle: { select: { registrationNumber: true } },
@@ -343,7 +353,12 @@ export async function vehiclePairingForApprovedDriver(
   }
   assertTenantAccess(auth, session.organizationId, 'Sign-on request');
 
-  if (!AUTHORIZED_TERMINAL_SESSION_STATUSES.includes(session.status as TerminalSessionStatus)) {
+  const status = session.status as TerminalSessionStatus;
+  const assigned =
+    ACTIVE_TERMINAL_SESSION_STATUSES.includes(status) &&
+    (await holdsStandingAssignment(session.vehicleId, session.driverId));
+
+  if (!assigned && !AUTHORIZED_TERMINAL_SESSION_STATUSES.includes(status)) {
     throw errors.businessRule(
       `Your request for ${session.vehicle.registrationNumber} has not been approved yet. ` +
         'Wait for the fleet to approve it before connecting.',
@@ -360,12 +375,12 @@ export async function vehiclePairingForApprovedDriver(
       // for it; a token that outlives the screen it was made for is a token
       // that can be used somewhere else.
       ttlSeconds: DRIVER_PAIRING_TTL_SECONDS,
-      note: 'Driver app, on approval',
+      note: assigned ? 'Driver app, assigned driver' : 'Driver app, on approval',
     },
     apiUrl,
-    // The one caller that sets this. A phone holds the vehicle only for the
-    // shift it was approved for.
-    true,
+    // The assigned driver's phone stays; anyone else's holds the vehicle only
+    // for the shift it was approved for.
+    { releaseOnSignOff: !assigned, driverId: session.driverId },
   );
 }
 

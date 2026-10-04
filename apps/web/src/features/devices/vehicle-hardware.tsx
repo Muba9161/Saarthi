@@ -14,7 +14,7 @@ import {
   Smartphone,
   Video,
 } from 'lucide-react';
-import { Permission, humanizeEnum } from '@saarthi/shared';
+import { Feature, Permission, humanizeEnum } from '@saarthi/shared';
 import { ApiError, api, errorMessage } from '@/lib/api-client';
 import { useAuth } from '@/features/auth/auth-context';
 import { SectionHeader } from '@/components/common/page-header';
@@ -25,6 +25,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import { TerminalPairingPanel } from '@/features/terminal/terminal-pairing-panel';
+import { DriverAppConnect } from './driver-app-connect';
 import { cn } from '@/lib/utils';
 
 /**
@@ -60,6 +61,9 @@ interface VehicleDeviceRow {
   assignedAt: string;
   unassignedAt: string | null;
   lastTelemetryAt: string | null;
+  role: string;
+  /** Set when this is a driver's own phone, paired from the Saarthi Driver app. */
+  driverPhone: { driverName: string | null; staysPaired: boolean } | null;
 }
 
 interface DeviceClientHealth {
@@ -297,7 +301,10 @@ function DeviceCard({
    * "Saarthi Terminal" in the section below — the same identifier twice under
    * two names, which is exactly how one unit gets mistaken for two.
    */
-  const isTerminal = detail.data?.deviceType === 'VEHICLE_TERMINAL';
+  // A driver's phone pairs the same way a tablet does, so it is told apart by
+  // the pairing rather than the device type.
+  const driverPhone = row.driverPhone;
+  const isTerminal = !driverPhone && detail.data?.deviceType === 'VEHICLE_TERMINAL';
 
   return (
     <Card>
@@ -305,7 +312,9 @@ function DeviceCard({
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-1">
             <span className="inline-flex items-center gap-2 text-sm font-semibold">
-              {isTerminal ? (
+              {driverPhone ? (
+                <Smartphone className="size-4 text-muted-foreground" />
+              ) : isTerminal ? (
                 <MonitorSmartphone className="size-4 text-muted-foreground" />
               ) : isPhone ? (
                 <Smartphone className="size-4 text-muted-foreground" />
@@ -316,11 +325,24 @@ function DeviceCard({
                 {row.deviceIdentifier}
               </Link>
             </span>
-            <p className="text-xs text-muted-foreground">
-              {isTerminal ? 'Saarthi Terminal' : humanizeEnum(row.provider)}
-              {row.model ? ` · ${row.model}` : ''}
-              {detail.data ? ` · ${humanizeEnum(detail.data.role)}` : ''}
-            </p>
+            {driverPhone ? (
+              <p className="text-xs text-muted-foreground">
+                {driverPhone.driverName ? `${driverPhone.driverName}'s phone` : 'Driver’s phone'}
+                {row.model ? ` · ${row.model}` : ''}
+                {' · '}
+                {row.role === 'AUXILIARY'
+                  ? 'sign-on only - the 4G tracker reports for this vehicle'
+                  : driverPhone.staysPaired
+                    ? 'stays paired, reports during approved shifts'
+                    : 'paired for this shift'}
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                {isTerminal ? 'Saarthi Terminal' : humanizeEnum(row.provider)}
+                {row.model ? ` · ${row.model}` : ''}
+                {detail.data ? ` · ${humanizeEnum(detail.data.role)}` : ''}
+              </p>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
@@ -527,12 +549,15 @@ export function VehicleHardware({
   vehicleId,
   registrationNumber,
 }: VehicleHardwareProps): React.ReactElement {
-  const { can } = useAuth();
+  const { can, hasFeature } = useAuth();
   const queryClient = useQueryClient();
   const [code, setCode] = React.useState<IssuedPairingCode | null>(null);
   const [pairingKind, setPairingKind] = React.useState<PairingKind>('DEVICE');
 
   const canPair = can(Permission.DEVICES_PAIR) || can(Permission.DEVICES_ASSIGN);
+  // A Saarthi Device code is refused without a tracker, so it is not offered.
+  // The driver app needs no code - see `DriverAppConnect`.
+  const canAddDevice = canPair && hasFeature(Feature.HARDWARE_CONNECTIVITY);
   /*
    * Unpairing follows pairing.
    *
@@ -635,7 +660,7 @@ export function VehicleHardware({
           description="Everything currently reporting for this vehicle. A vehicle can carry one telemetry source plus any number of cameras."
         />
         <div className="flex flex-wrap gap-2">
-          {canPair ? (
+          {canAddDevice ? (
             <Button
               size="sm"
               variant="outline"
@@ -664,9 +689,9 @@ export function VehicleHardware({
           icon={Smartphone}
           title="No device fitted"
           description={
-            canPair
+            canAddDevice
               ? 'Add a device to turn a phone into a Saarthi test device for this vehicle, or wait for Saarthi to install a telematics unit.'
-              : 'No telematics unit or test device is reporting for this vehicle yet.'
+              : 'No phone is paired yet. Assign a driver, then have them scan this vehicle’s QR in the Saarthi Driver app - see below.'
           }
         />
       ) : (
@@ -717,6 +742,8 @@ export function VehicleHardware({
           {registrationNumber} rather than against the device.
         </p>
       ) : null}
+
+      <DriverAppConnect vehicleId={vehicleId} registrationNumber={registrationNumber} />
 
       <Separator />
 

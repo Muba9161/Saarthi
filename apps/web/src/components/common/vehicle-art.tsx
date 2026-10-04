@@ -16,8 +16,9 @@ import { cn } from '@/lib/utils';
  *     prop and not a redesign.
  *  2. The cut-out artwork for its class, from `/vehicles/` — six side
  *     profiles covering the ten types, so it is coarse in places. See the note
- *     on PHOTO_BY_SILHOUETTE.
- *  3. The drawing below, if that artwork cannot be loaded at all.
+ *     on ARTWORK_BY_SILHOUETTE.
+ *  3. The drawing below, if that artwork cannot be loaded at all — or, for a
+ *     class with no artwork yet (the two-wheelers), straight away.
  *
  * The drawing is last rather than first because artwork reads as a vehicle at a
  * glance where line art has to be studied. It is kept because it is the only
@@ -29,12 +30,30 @@ import { cn } from '@/lib/utils';
 
 /** The silhouettes actually drawn below. */
 type Silhouette =
-  'truck' | 'trailer' | 'tanker' | 'tipper' | 'van' | 'pickup' | 'car' | 'suv' | 'bus' | 'rickshaw';
+  | 'truck'
+  | 'trailer'
+  | 'tanker'
+  | 'tipper'
+  | 'van'
+  | 'pickup'
+  | 'car'
+  | 'hatchback'
+  | 'suv'
+  | 'bus'
+  | 'rickshaw'
+  | 'scooter'
+  | 'motorcycle'
+  | 'sports'
+  | 'cruiser'
+  | 'adventure'
+  | 'moped';
 
 /**
- * Vehicle and truck types both land here — a record's shape is described by
- * `vehicleType` on some endpoints and `truckType` on others, and a caller
- * should not have to know which one it is holding.
+ * Vehicle, truck and two-wheeler types all land here — a record's shape is
+ * described by `vehicleType` on some endpoints and `truckType` on others, and a
+ * caller should not have to know which one it is holding. A two-wheeler's own
+ * category is the more specific of its two, so callers pass that when it has
+ * one (see `vehicleArtType`).
  */
 const SILHOUETTE_BY_TYPE: Record<string, Silhouette> = {
   // VehicleType
@@ -47,6 +66,21 @@ const SILHOUETTE_BY_TYPE: Record<string, Silhouette> = {
   TEMPO: 'van',
   AUTO_RICKSHAW: 'rickshaw',
   PICKUP: 'pickup',
+  TWO_WHEELER: 'motorcycle',
+  // VehicleCategory — the more specific of a vehicle's two, when it has one
+  SCOOTER: 'scooter',
+  ELECTRIC_SCOOTER: 'scooter',
+  MOTORCYCLE: 'motorcycle',
+  SPORTS_BIKE: 'sports',
+  CRUISER: 'cruiser',
+  ADVENTURE: 'adventure',
+  MOPED: 'moped',
+  HATCHBACK: 'hatchback',
+  SEDAN: 'car',
+  COMPACT_SUV: 'suv',
+  // SUV is shared with VehicleType above and means the same shape.
+  MUV: 'suv',
+  LUXURY: 'car',
   // TruckType
   OPEN_BODY: 'truck',
   CLOSED_CONTAINER: 'truck',
@@ -62,6 +96,14 @@ const SILHOUETTE_BY_TYPE: Record<string, Silhouette> = {
 export function silhouetteFor(type: string | null | undefined): Silhouette {
   if (!type) return 'truck';
   return SILHOUETTE_BY_TYPE[type.toUpperCase().replace(/[\s-]/g, '_')] ?? 'truck';
+}
+
+/** The most specific type a vehicle record has — its category, if it has one. */
+export function vehicleArtType(vehicle: {
+  vehicleType: string;
+  category?: string | null;
+}): string {
+  return vehicle.category ?? vehicle.vehicleType;
 }
 
 /* --- Drawing parts ---------------------------------------------------------
@@ -230,6 +272,148 @@ function Rickshaw() {
   );
 }
 
+/* --- Two-wheelers ----------------------------------------------------------
+   Same canvas and ground line, drawn at a larger scale than the four-wheelers
+   (a 2 m bike across ~100 units) so a scooter is not a speck beside a bus. */
+
+const FRAME = 'stroke-[hsl(var(--foreground)/0.55)]';
+
+/** Thin-section tyre on a large rim — the thing that reads as "bike" first. */
+function BikeWheel({
+  cx,
+  cy = 48,
+  r = 15,
+  rim = 0.7,
+}: {
+  cx: number;
+  cy?: number;
+  r?: number;
+  rim?: number;
+}) {
+  return (
+    <g>
+      <circle cx={cx} cy={cy} r={r} className={TYRE} />
+      <circle cx={cx} cy={cy} r={r * rim} className={HUB} />
+      <circle cx={cx} cy={cy} r={r * 0.16} className={TYRE} />
+    </g>
+  );
+}
+
+function Scooter() {
+  return (
+    <>
+      {/* Rear cowl over a small wheel, floorboard, and the leg shield */}
+      <path d="M34 47q0-15 16-18h26q4 0 4 4v13q0 6-6 6H40q-6 0-6-5Z" className={BODY} strokeWidth="2" />
+      <path d="M38 29q3-7 12-7h22q5 0 5 5v2H38Z" className={TRIM} />
+      <path d="M78 49h22v4H78Z" className={TRIM} />
+      <path d="M98 53l5-30q1-6 7-6h4l-2 13q-4 14-7 23Z" className={BODY} strokeWidth="2" />
+      <path d="M108 30l6 22" className={FRAME} strokeWidth="3" />
+      <path d="M106 12h10" className={FRAME} strokeWidth="2.5" />
+      <rect x="110" y="14" width="7" height="5" rx="2" className={GLASS} strokeWidth="1.5" />
+      <path d="M104 44q10-6 20 2" className={SEAM} strokeWidth="2" />
+      <BikeWheel cx={52} cy={52} r={11} rim={0.6} />
+      <BikeWheel cx={114} cy={52} r={11} rim={0.6} />
+    </>
+  );
+}
+
+function Motorcycle() {
+  return (
+    <>
+      {/* Commuter: flat bench seat, teardrop tank, upright bars */}
+      <path d="M30 44h34" className={FRAME} strokeWidth="4" />
+      <rect x="64" y="34" width="24" height="14" rx="3" className={TRIM} />
+      <path d="M36 30h36l-5 8H45Z" className={BODY} strokeWidth="2" />
+      <path d="M38 30q2-6 8-6h26v6Z" className={TRIM} />
+      <path d="M70 31q2-10 15-10h9q6 1 6 7l-4 5Z" className={BODY} strokeWidth="2" />
+      <path d="M116 48l-12-30" className={FRAME} strokeWidth="3" />
+      <path d="M104 18l-8-3" className={FRAME} strokeWidth="2.5" />
+      <circle cx="110" cy="24" r="4" className={GLASS} strokeWidth="1.5" />
+      <path d="M30 42a17 17 0 0 1 30-10" className={SEAM} strokeWidth="2.5" />
+      <path d="M104 38a15 15 0 0 1 22 0" className={SEAM} strokeWidth="2.5" />
+      <path d="M46 48l20-6" className={FRAME} strokeWidth="3" />
+      <BikeWheel cx={46} />
+      <BikeWheel cx={116} />
+    </>
+  );
+}
+
+function SportsBike() {
+  return (
+    <>
+      {/* Full fairing, swept-up tail, bars hidden behind the screen */}
+      <path d="M32 18l14 3 16 8-26-3Z" className={BODY} strokeWidth="2" />
+      <path d="M44 22l20 6v3H48Z" className={TRIM} />
+      <path d="M62 29q10-8 26-6l4 6Z" className={BODY} strokeWidth="2" />
+      <rect x="64" y="34" width="22" height="14" rx="3" className={TRIM} />
+      <path d="M84 46l6-18q4-11 17-13l10 3q8 6 10 16l-5 10H94Z" className={BODY} strokeWidth="2" />
+      <path d="M106 15q8-1 12 6l-8 2Z" className={GLASS} strokeWidth="1.5" />
+      <path d="M50 42h18v4H52Z" className={TRIM} />
+      <path d="M118 48l-6-16" className={FRAME} strokeWidth="3" />
+      <path d="M46 48l20-5" className={FRAME} strokeWidth="3" />
+      <BikeWheel cx={46} />
+      <BikeWheel cx={118} />
+    </>
+  );
+}
+
+function Cruiser() {
+  return (
+    <>
+      {/* Long and low: raked fork, valanced fender, twin pipes */}
+      <path d="M26 46q0-18 20-19h12v5H46q-12 2-13 14Z" className={BODY} strokeWidth="2" />
+      <path d="M44 31q4-5 10-5h16v6H48Z" className={TRIM} />
+      <path d="M68 30q4-10 18-10h6q6 2 6 8l-6 4Z" className={BODY} strokeWidth="2" />
+      <path d="M68 34l8 14h12l6-14Z" className={TRIM} />
+      <path d="M36 50h44" className={FRAME} strokeWidth="3" />
+      <path d="M124 48l-20-34" className={FRAME} strokeWidth="3" />
+      <path d="M104 14q-5-5-12-2" className={FRAME} strokeWidth="2.5" />
+      <circle cx="110" cy="23" r="4.5" className={GLASS} strokeWidth="1.5" />
+      <path d="M112 38a15 15 0 0 1 24 2" className={SEAM} strokeWidth="2.5" />
+      <BikeWheel cx={44} />
+      <BikeWheel cx={124} />
+    </>
+  );
+}
+
+function Adventure() {
+  return (
+    <>
+      {/* Tall stance: screen, beak, rear box and long-travel fork */}
+      <rect x="24" y="22" width="18" height="16" rx="2" className={BODY} strokeWidth="2" />
+      <path d="M40 22l30 2v5H42Z" className={TRIM} />
+      <path d="M68 24q4-9 18-9h8q6 2 6 10l-6 10H70Z" className={BODY} strokeWidth="2" />
+      <rect x="66" y="36" width="22" height="12" rx="3" className={TRIM} />
+      <path d="M62 50h28" className={FRAME} strokeWidth="2.5" />
+      <path d="M116 46l-12-34" className={FRAME} strokeWidth="3" />
+      <path d="M98 8l8-2 4 13-8 2Z" className={GLASS} strokeWidth="1.5" />
+      <path d="M106 22l14 6-10 3Z" className={BODY} strokeWidth="2" />
+      <path d="M46 47l22-6" className={FRAME} strokeWidth="3" />
+      <BikeWheel cx={46} cy={47} r={16} />
+      <BikeWheel cx={116} cy={46} r={17} rim={0.74} />
+    </>
+  );
+}
+
+function Moped() {
+  return (
+    <>
+      {/* Step-through tube frame with a carrier over the rear wheel */}
+      <path d="M106 18q-8 18-30 32H60l-4-18" className={FRAME} strokeWidth="3.5" />
+      <path d="M28 30h26" className={FRAME} strokeWidth="2.5" />
+      <path d="M30 30v8M40 30v8" className={SEAM} strokeWidth="2" />
+      <path d="M50 26q2-4 8-4h14v6H52Z" className={TRIM} />
+      <rect x="62" y="40" width="16" height="10" rx="2.5" className={TRIM} />
+      <path d="M114 48l-8-30" className={FRAME} strokeWidth="3" />
+      <path d="M106 18l-8-3" className={FRAME} strokeWidth="2.5" />
+      <circle cx="111" cy="22" r="3.5" className={GLASS} strokeWidth="1.5" />
+      <path d="M34 40a14 14 0 0 1 26-2" className={SEAM} strokeWidth="2" />
+      <BikeWheel cx={48} cy={50} r={13} rim={0.74} />
+      <BikeWheel cx={114} cy={50} r={13} rim={0.74} />
+    </>
+  );
+}
+
 const DRAWINGS: Record<Silhouette, () => React.ReactElement> = {
   truck: Truck,
   trailer: Trailer,
@@ -238,12 +422,19 @@ const DRAWINGS: Record<Silhouette, () => React.ReactElement> = {
   van: Van,
   pickup: Pickup,
   car: Car,
+  hatchback: Car,
   // The drawing is only the load-failure fallback, and a saloon silhouette
   // reads correctly for an SUV at card size; the artwork above is what
   // actually distinguishes them.
   suv: Car,
   bus: Bus,
   rickshaw: Rickshaw,
+  scooter: Scooter,
+  motorcycle: Motorcycle,
+  sports: SportsBike,
+  cruiser: Cruiser,
+  adventure: Adventure,
+  moped: Moped,
 };
 
 /** The drawing on its own, with no surrounding surface. */
@@ -271,8 +462,10 @@ export function VehicleSilhouette({
 
 /* --- Stock artwork ---------------------------------------------------------
    Cut-out side profiles in `/vehicles/`, one per vehicle class. They are
-   transparent PNG sources normalised to a single 900x450 canvas and delivered
-   as WebP: transparency is what lets one asset sit correctly on a white card
+   transparent PNG sources normalised to a single 2:1 canvas and delivered as
+   WebP at two sizes — `name.webp` at 900x450 and `name@2x.webp` at the
+   source's full width (~1800) for dense screens and the detail page's hero,
+   which draws the vehicle far larger than a card does. Transparency is what lets one asset sit correctly on a white card
    and on a near-black one, and the shared canvas is what stops a rickshaw and
    a tipper arriving at different visual weights in the same grid.
 
@@ -280,20 +473,44 @@ export function VehicleSilhouette({
    a van and a pickup all show the goods truck. That is a gap in the artwork
    rather than in the mapping — add a file and point its class at it, which is
    all the bus took. The type label under the plate is what disambiguates in
-   the meantime. */
-const PHOTO_BY_SILHOUETTE: Record<Silhouette, string> = {
-  truck: '/vehicles/truck.webp',
-  tipper: '/vehicles/tipper.webp',
-  suv: '/vehicles/suv.webp',
-  car: '/vehicles/sedan.webp',
-  bus: '/vehicles/bus.webp',
-  rickshaw: '/vehicles/autorickshaw.webp',
-  // No artwork of their own yet — nearest class by body shape.
-  trailer: '/vehicles/truck.webp',
-  tanker: '/vehicles/truck.webp',
-  van: '/vehicles/truck.webp',
-  pickup: '/vehicles/truck.webp',
+   the meantime.
+
+   Two-wheelers have no entry yet, so they go straight to their drawing rather
+   than requesting a file that is not there. Their artwork lands as
+   `/vehicles/{scooter,motorcycle,sports-bike,cruiser,adventure,moped}.webp`
+   (plus the `@2x` file), and each gets its line here when it does. */
+const ARTWORK_BY_SILHOUETTE: Partial<Record<Silhouette, string>> = {
+  truck: 'truck',
+  tipper: 'tipper',
+  suv: 'suv',
+  car: 'sedan',
+  bus: 'bus',
+  rickshaw: 'autorickshaw',
+  // No artwork of their own yet — nearest class by body shape. (The hatchback
+  // source in design/vehicles has its checkerboard baked into the pixels, so
+  // it cannot be cut out; it gets its own file once that is regenerated.)
+  hatchback: 'sedan',
+  trailer: 'truck',
+  tanker: 'truck',
+  van: 'truck',
+  pickup: 'truck',
 };
+
+export interface VehicleArtwork {
+  src: string;
+  /** The 900px file at 1x and the full-width one at 2x. */
+  srcSet: string;
+}
+
+/** The cut-out artwork for a type, or `null` when its class has none yet. */
+export function vehicleArtwork(type: string | null | undefined): VehicleArtwork | null {
+  const stem = ARTWORK_BY_SILHOUETTE[silhouetteFor(type)];
+  if (!stem) return null;
+  return {
+    src: `/vehicles/${stem}.webp`,
+    srcSet: `/vehicles/${stem}.webp 1x, /vehicles/${stem}@2x.webp 2x`,
+  };
+}
 
 /**
  * The shape the artwork is cut to, as a Tailwind aspect utility.
@@ -341,6 +558,7 @@ export function VehicleArt({
   padding?: string;
 }) {
   const [artworkFailed, setArtworkFailed] = React.useState(false);
+  const artwork = vehicleArtwork(type);
 
   const drawing = (
     <div className={cn('vehicle-stage size-full', padding)}>
@@ -362,12 +580,13 @@ export function VehicleArt({
     );
   }
 
-  if (artworkFailed) return <div className={className}>{drawing}</div>;
+  if (artworkFailed || !artwork) return <div className={className}>{drawing}</div>;
 
   return (
     <div className={cn('vehicle-stage', className)}>
       <img
-        src={PHOTO_BY_SILHOUETTE[silhouetteFor(type)]}
+        src={artwork.src}
+        srcSet={artwork.srcSet}
         alt=""
         loading="lazy"
         decoding="async"

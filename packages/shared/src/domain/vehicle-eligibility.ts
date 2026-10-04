@@ -5,7 +5,8 @@
  * changed — rather than by hiding features globally. The rule follows the
  * account's operational context:
  *
- *   • Personal              → normal vehicles, never a truck
+ *   • Personal              → normal vehicles, never a truck; an SUV is a Car
+ *                             with the SUV category rather than a type of its own
  *   • Business fleet owner  → trucks only
  *   • Business mobility     → passenger vehicles, never a truck
  *   • Free, Supplier, …     → no vehicle at all (`accountRunsVehicles`)
@@ -33,6 +34,13 @@ const NON_TRUCK_VEHICLE_TYPES = ALL_VEHICLE_TYPES.filter(
   (type) => !TRUCK_VEHICLE_TYPES.includes(type),
 );
 
+/**
+ * Personal picks Car → SUV, so the separate SUV type is not offered there. It
+ * stays for the SUVs already on file and for business and travel accounts,
+ * whose packages and requirements are written against it.
+ */
+const PERSONAL_VEHICLE_TYPES = NON_TRUCK_VEHICLE_TYPES.filter((type) => type !== VehicleType.SUV);
+
 export interface VehicleEligibilityContext {
   tier: PlanTier | null | undefined;
   organizationType: OrganizationType | null | undefined;
@@ -41,7 +49,7 @@ export interface VehicleEligibilityContext {
 /** The vehicle types this account may onboard. Empty when it runs none. */
 export function allowedVehicleTypes(context: VehicleEligibilityContext): VehicleType[] {
   if (!accountRunsVehicles(context)) return [];
-  if (context.tier === PlanTier.PERSONAL) return NON_TRUCK_VEHICLE_TYPES;
+  if (context.tier === PlanTier.PERSONAL) return PERSONAL_VEHICLE_TYPES;
   if (context.organizationType === OrganizationType.FLEET_OWNER) return [...TRUCK_VEHICLE_TYPES];
   if (context.organizationType === OrganizationType.MOBILITY_PROVIDER) {
     return NON_TRUCK_VEHICLE_TYPES;
@@ -64,6 +72,9 @@ export function vehicleTypeRefusal(
   if (allowed.length === 0) return 'This account does not run vehicles, so none can be added to it.';
 
   const label = vehicleTypeDefinition(vehicleType).label.toLowerCase();
+  if (context.tier === PlanTier.PERSONAL && vehicleType === VehicleType.SUV) {
+    return 'On Saarthi Personal an SUV is added as a Car — choose Car, then the SUV category.';
+  }
   if (context.tier === PlanTier.PERSONAL) {
     return `A ${label} cannot be added on Saarthi Personal. Trucks belong on a Business fleet account.`;
   }

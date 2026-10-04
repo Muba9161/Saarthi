@@ -11,6 +11,7 @@ import {
   matchReturnLoads,
   returnLoadStateMachine,
   scoreReturnLoad,
+  type CommissionRule,
   type CreateReturnLoadInput,
   type MatchListQuery,
   type Paginated,
@@ -84,7 +85,7 @@ export interface ReturnLoadView {
   updatedAt: string;
 }
 
-const requestInclude = {
+export const requestInclude = {
   truck: { select: { registrationNumber: true } },
   matches: {
     where: { status: { in: [ReturnLoadMatchStatus.SUGGESTED, ReturnLoadMatchStatus.OFFERED] } },
@@ -92,9 +93,9 @@ const requestInclude = {
   },
 } satisfies Prisma.ReturnLoadRequestInclude;
 
-type RequestRecord = Prisma.ReturnLoadRequestGetPayload<{ include: typeof requestInclude }>;
+export type RequestRecord = Prisma.ReturnLoadRequestGetPayload<{ include: typeof requestInclude }>;
 
-function toView(request: RequestRecord): ReturnLoadView {
+export function toView(request: RequestRecord): ReturnLoadView {
   const scores = request.matches.map((match) => match.score);
   return {
     id: request.id,
@@ -128,7 +129,7 @@ function toView(request: RequestRecord): ReturnLoadView {
   };
 }
 
-function toSupply(request: RequestRecord): ReturnLoadSupply {
+export function toSupply(request: RequestRecord): ReturnLoadSupply {
   return {
     freePoint: { latitude: request.originLatitude, longitude: request.originLongitude },
     homePoint: {
@@ -321,28 +322,21 @@ export async function createReturnLoad(
 }
 
 /**
- * Open a return-load request for a trip that is about to arrive.
+ * Open the backhaul for a completed trip, carrying the commission the owner
+ * accepted to enable it.
  *
- * Called from the trip pipeline. Idempotent, and silent when the fleet has
- * opted the vehicle out — an automation that argues with a setting is worse
- * than no automation.
+ * The caller has already decided the trip qualifies (see
+ * `backhaulUnavailableReason`); this only builds the request. The truck is free
+ * now, at the trip's destination, and wants to get home.
  */
-export async function ensureForTrip(tripId: string): Promise<ReturnLoadView | null> {
-  const trip = await prisma.trip.findUnique({ where: { id: tripId } });
-  if (!trip) return null;
-
-  // A return leg does not itself get a return leg.
-  if (trip.legType !== 'PRIMARY') return null;
-
-  // `trips` carries `truckId` as a plain column with no Prisma relation, so the
-  // vehicle is a second read rather than an include.
-  const truck = await prisma.truck.findUnique({ where: { id: trip.truckId } });
-  if (!truck || !truck.acceptsReturnLoads) return null;
-
-  const existing = await prisma.returnLoadRequest.findFirst({
-    where: { truckId: trip.truckId, status: { in: OPEN_RETURN_LOAD_STATUSES } },
-  });
-  if (existing) return null;
+export async function openReturnLoadForTrip(input: {
+  trip: Prisma.TripGetPayload<Record<string, never>>;
+  truck: Prisma.TruckGetPayload<Record<string, never>>;
+  acceptedById: string;
+  detourToleranceKm: number;
+  commission: CommissionRule;
+}): Promise<ReturnLoadView> {
+  const { trip, truck } = input;
 
   // Home base falls back to the trip origin: for most operators the outbound
   // start *is* where the truck lives, and that is a better guess than nothing.
@@ -350,9 +344,9 @@ export async function ensureForTrip(tripId: string): Promise<ReturnLoadView | nu
   const homeLongitude = truck.homeBaseLongitude ?? trip.originLongitude;
   const homeAddress = truck.homeBaseAddress ?? trip.originAddress;
 
-  const availableFrom = trip.etaAt ?? trip.plannedArrivalAt ?? new Date();
+  const now = new Date();
   const availableUntil = new Date(
-    availableFrom.getTime() + config.returnLoads.defaultWindowHours * 3_600_000,
+    now.getTime() + config.returnLoads.defaultWindowHours * 3_600_000,
   );
 
   const created = await prisma.returnLoadRequest.create({
@@ -368,22 +362,26 @@ export async function ensureForTrip(tripId: string): Promise<ReturnLoadView | nu
       destinationAddress: homeAddress,
       destinationLatitude: homeLatitude,
       destinationLongitude: homeLongitude,
-      availableFrom,
+      availableFrom: now,
       availableUntil,
       capacityTons: truck.capacityTons,
       truckType: truck.truckType,
-      detourToleranceKm: 50,
+      detourToleranceKm: input.detourToleranceKm,
       acceptsPartialLoad: true,
       autoMatch: true,
-      notes: 'Opened automatically from the arriving trip.',
-      createdById: trip.createdById,
+      notes: `Backhaul enabled from trip ${trip.reference}.`,
+      createdById: input.acceptedById,
+      commissionRate: input.commission.rate,
+      commissionRuleVersion: input.commission.version,
+      commissionAcceptedAt: now,
+      commissionAcceptedBy: input.acceptedById,
     },
     include: requestInclude,
   });
 
   returnLoadLogger.info(
-    { requestId: created.id, tripId, truckId: trip.truckId },
-    'Opened a return-load request for an arriving trip',
+    { requestId: created.id, tripId: trip.id, truckId: trip.truckId },
+    'Backhaul enabled for a completed trip',
   );
 
   return toView(created);
@@ -481,7 +479,7 @@ export async function cancelReturnLoad(
   return toView(updated);
 }
 
-async function loadRequest(auth: AuthContext, id: string): Promise<RequestRecord> {
+export async function loadRequest(auth: AuthContext, id: string): Promise<RequestRecord> {
   const request = await prisma.returnLoadRequest.findUnique({
     where: { id },
     include: requestInclude,
@@ -823,6 +821,10 @@ export async function quoteFromMatch(
         message:
           input.message ??
           `Return load offer — this vehicle is already returning from ${match.request.originAddress}, so only ${Math.round(rescored.detourKm)} km of detour is involved.`,
+        // The order becomes a return load only if this quote wins — see
+        // `bookBackhaul`. Flagging it now would mislabel an order the customer
+        // gives to another fleet, and hide it from every other backhaul.
+        returnLoadRequestId: match.returnLoadRequestId,
         status: QuoteStatus.OFFERED,
         expiresAt: input.expiresAt ?? null,
         createdById: auth.user.id,
@@ -840,13 +842,6 @@ export async function quoteFromMatch(
         distanceToPickupKm: rescored.distanceToPickupKm,
         reasons: rescored.reasons,
       },
-    });
-
-    // Mark the order as a backhaul fill so the saved empty kilometres can be
-    // reported later, and so analytics can tell the two apart.
-    await tx.order.update({
-      where: { id: order.id },
-      data: { isReturnLoad: true, returnLoadRequestId: match.returnLoadRequestId },
     });
 
     if (order.status === 'REQUESTED') {

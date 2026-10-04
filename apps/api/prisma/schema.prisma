@@ -1178,6 +1178,10 @@ model Truck {
   /// Goods-vehicle body type. Defaulted so passenger vehicles, which have no
   /// meaningful body type, can be created without inventing one.
   truckType          TruckType          @default(OTHER)
+  /// Scooter, hatchback… Only ever one the vehicle's type offers (see
+  /// `VEHICLE_CATEGORIES` in packages/shared). Null on a type with none, and on
+  /// cars and taxis added before theirs existed.
+  category           VehicleCategory?
   manufacturer       String?
   model              String?
   year               Int?
@@ -1913,6 +1917,10 @@ model OrderQuote {
   message             String?
   status              QuoteStatus @default(OFFERED)
   expiresAt           DateTime?
+  /// Offered on a vehicle's return leg. Accepting it books that backhaul and
+  /// marks the order as a return load — never before, so a quote the customer
+  /// passes over leaves the order untouched.
+  returnLoadRequestId String?     @db.Uuid
   createdById         String      @db.Uuid
   createdAt           DateTime    @default(now())
   updatedAt           DateTime    @updatedAt
@@ -2205,6 +2213,10 @@ model RequirementBid {
   availableQuantity    Float?
   leadTimeDays         Int?
 
+  // --- Backhaul ------------------------------------------------------------
+  /// Placed on the vehicle's return leg; a winning bid books that backhaul.
+  returnLoadRequestId String? @db.Uuid
+
   // --- Travel --------------------------------------------------------------
   offeredVehicleType VehicleType?
   inclusions         String[]
@@ -2234,6 +2246,7 @@ model RequirementBid {
   @@index([requirementId, status, price])
   @@index([bidderOrganizationId, status, createdAt])
   @@index([vehicleId])
+  @@index([returnLoadRequestId])
   @@map("requirement_bids")
 }
 
@@ -2903,7 +2916,27 @@ enum VehicleType {
   AUTO_RICKSHAW
   /// Small goods carrier for city delivery and last-mile relay.
   PICKUP
+  /// Scooter, motorcycle or moped. Which one is its `VehicleCategory`.
+  TWO_WHEELER
   OTHER
+}
+
+/// The kind of vehicle within a type, as an owner names it. Which categories a
+/// type offers is decided in packages/shared, not here.
+enum VehicleCategory {
+  SCOOTER
+  ELECTRIC_SCOOTER
+  MOTORCYCLE
+  SPORTS_BIKE
+  CRUISER
+  ADVENTURE
+  MOPED
+  HATCHBACK
+  SEDAN
+  COMPACT_SUV
+  SUV
+  MUV
+  LUXURY
 }
 
 // ===========================================================================
@@ -4002,6 +4035,11 @@ model DevicePairingToken {
   /// truck.
   releaseOnSignOff Boolean @default(false)
 
+  /// The driver whose own phone redeems this, when the Saarthi Driver app asked
+  /// for it. Carried onto the `DeviceAssignment` so a driver's phone can be
+  /// told apart from a fitted tablet, which pairs the same way.
+  driverId String? @db.Uuid
+
   /// Single-use. Both columns are written in the same transaction as the
   /// assignment they create.
   consumedAt         DateTime?
@@ -4090,11 +4128,21 @@ model DeviceAssignment {
   /// whether to disconnect a truck, made in a transaction nobody is watching.
   releaseOnSignOff Boolean @default(false)
 
+  /// The driver whose own phone this is, when the Saarthi Driver app paired it.
+  /// Null for fitted hardware and tablets.
+  ///
+  /// An assigned driver's phone stays paired across shifts (`releaseOnSignOff`
+  /// false) and ends when the owner unassigns or reassigns that driver. A
+  /// driver phone's readings are accepted only during that driver's approved
+  /// shift — see `driver-phone.rules.ts`.
+  driverId String? @db.Uuid
+
   device  HardwareDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
   vehicle Truck          @relation("VehicleDeviceAssignments", fields: [vehicleId], references: [id], onDelete: Cascade)
 
   @@index([deviceId, status])
   @@index([vehicleId, status])
+  @@index([driverId, status])
   @@index([organizationId, assignedAt])
   @@map("device_assignments")
 }
@@ -5418,6 +5466,14 @@ model ReturnLoadRequest {
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
+  // --- Backhaul consent ---------------------------------------------------
+  /// The commission the owner accepted when enabling backhaul. Null on a
+  /// request opened without it; such a request cannot carry backhaul bids.
+  commissionRate        Decimal?  @db.Decimal(6, 4)
+  commissionRuleVersion String?
+  commissionAcceptedAt  DateTime?
+  commissionAcceptedBy  String?   @db.Uuid
+
   truck   Truck             @relation(fields: [truckId], references: [id], onDelete: Cascade)
   matches ReturnLoadMatch[]
   orders  Order[]           @relation("OrderReturnLoad")
@@ -5427,6 +5483,7 @@ model ReturnLoadRequest {
   @@index([organizationId, status])
   @@index([truckId, status])
   @@index([originLatitude, originLongitude])
+  @@index([outboundTripId])
   @@map("return_load_requests")
 }
 

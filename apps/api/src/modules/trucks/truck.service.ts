@@ -22,6 +22,7 @@ import { verifyVehicleAddedFromRc } from '../verification/registry-verification.
 import type { AuthContext } from '../../auth/context';
 import { broadcastTruckStatus } from '../../realtime/realtime.service';
 import { archiveTruckRecord } from './truck-archive';
+import { releaseDriverPhones } from '../devices/driver-phone.service';
 import {
   assertNotReleased,
   evaluateOwnership,
@@ -561,6 +562,12 @@ export async function assignDriver(
     }),
   ]);
 
+  // The previous driver's paired phone leaves with them.
+  await releaseDriverPhones(
+    { vehicleId: truckId, exceptDriverId: driverId },
+    `${driverName} was assigned to ${truck.registrationNumber} instead.`,
+  );
+
   return getTruck(auth, truckId);
 }
 
@@ -596,6 +603,11 @@ export async function unassignDriver(auth: AuthContext, truckId: string): Promis
       },
     }),
   ]);
+
+  await releaseDriverPhones(
+    { vehicleId: truckId },
+    `The driver was unassigned from ${truck.registrationNumber}.`,
+  );
 
   return getTruck(auth, truckId);
 }

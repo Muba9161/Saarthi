@@ -9,7 +9,10 @@ import {
   RequirementKind,
   VehicleType,
   formatCurrency,
+  formatPercent,
   humanizeEnum,
+  type CommissionRule,
+  type LatLng,
 } from '@saarthi/shared';
 import { api, errorMessage } from '@/lib/api-client';
 import type {
@@ -51,18 +54,34 @@ import {
  * source from, because the fleet delivers the goods itself; a travel bid names
  * a vehicle type and what is included.
  */
+
+/** A bid on a vehicle's return leg, placed from its backhaul. */
+export interface BackhaulBid {
+  returnLoadRequestId: string;
+  /** The returning vehicle — the only one a backhaul bid can offer. */
+  vehicleId: string;
+  vehicleLabel: string;
+  /** Where the vehicle stands; sellers are measured from here. */
+  near: LatLng;
+  /** The seller listing to start from, when one was picked already. */
+  sourceMaterialId?: string;
+  commission: CommissionRule;
+}
+
 export function BidDialog({
   requirement,
   scope,
   open,
   onOpenChange,
   onPlaced,
+  backhaul,
 }: {
   requirement: BoardRequirement;
   scope: RequirementBidScope;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onPlaced: () => void;
+  backhaul?: BackhaulBid;
 }) {
   const { can } = useAuth();
   const existing = requirement.myBid?.scope === scope ? requirement.myBid : null;
@@ -72,13 +91,17 @@ export function BidDialog({
   const [message, setMessage] = React.useState(existing?.message ?? '');
 
   // Transport
-  const [vehicleId, setVehicleId] = React.useState(existing?.vehicle?.id ?? '');
+  const [vehicleId, setVehicleId] = React.useState(
+    backhaul?.vehicleId ?? existing?.vehicle?.id ?? '',
+  );
   const [driverId, setDriverId] = React.useState(existing?.driver?.id ?? '');
   // A material requirement is answered only by a fleet that sources the goods
   // from a seller listing and delivers them.
   const mustSource =
     scope === RequirementBidScope.TRANSPORT && requirement.kind === RequirementKind.MATERIAL_SUPPLY;
-  const [sourceMaterialId, setSourceMaterialId] = React.useState(existing?.sourceMaterialId ?? '');
+  const [sourceMaterialId, setSourceMaterialId] = React.useState(
+    existing?.sourceMaterialId ?? backhaul?.sourceMaterialId ?? '',
+  );
 
   // Travel
   const [offeredVehicleType, setOfferedVehicleType] = React.useState<string>(
@@ -98,7 +121,8 @@ export function BidDialog({
     queryKey: ['trucks', 'biddable'],
     queryFn: () =>
       api.get<Paginated<TruckSummary>>('/trucks', { pageSize: 100, status: 'AVAILABLE,IDLE' }),
-    enabled: open && scope === RequirementBidScope.TRANSPORT && can(Permission.TRUCKS_READ),
+    enabled:
+      open && scope === RequirementBidScope.TRANSPORT && !backhaul && can(Permission.TRUCKS_READ),
   });
 
   const place = useMutation({
@@ -113,6 +137,7 @@ export function BidDialog({
               vehicleId,
               ...(driverId ? { driverId } : {}),
               ...(mustSource && sourceMaterialId ? { sourceMaterialId } : {}),
+              ...(backhaul ? { returnLoadRequestId: backhaul.returnLoadRequestId } : {}),
             }
           : {}),
         ...(scope === RequirementBidScope.TRAVEL
@@ -169,12 +194,19 @@ export function BidDialog({
       <DialogContent className="max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {existing ? 'Revise your bid' : `Bid for ${BID_SCOPE_LABELS[scope].toLowerCase()}`}
+            {existing
+              ? 'Revise your bid'
+              : backhaul
+                ? 'Bid on the way home'
+                : `Bid for ${BID_SCOPE_LABELS[scope].toLowerCase()}`}
           </DialogTitle>
           <DialogDescription>
             {requirement.title}
             {requirement.budgetAmount !== null
               ? ` · customer budget ${formatCurrency(requirement.budgetAmount)}`
+              : ''}
+            {backhaul
+              ? ` · backhaul bid, ${formatPercent(backhaul.commission.rate * 100)} of profit if you win`
               : ''}
           </DialogDescription>
         </DialogHeader>
@@ -206,24 +238,35 @@ export function BidDialog({
 
           {scope === RequirementBidScope.TRANSPORT ? (
             <>
-              <WizardField
-                label="Vehicle"
-                required
-                hint="Awarding this bid dispatches the vehicle, so it has to be a real one."
-              >
-                <Select value={vehicleId} onValueChange={setVehicleId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choose a vehicle" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(vehicles.data?.items ?? []).map((vehicle) => (
-                      <SelectItem key={vehicle.id} value={vehicle.id}>
-                        {vehicle.registrationNumber} · {vehicle.capacityTons}T
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </WizardField>
+              {backhaul ? (
+                <WizardField
+                  label="Vehicle"
+                  hint="A backhaul bid offers the vehicle that is on its way home."
+                >
+                  <p className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm font-medium">
+                    {backhaul.vehicleLabel}
+                  </p>
+                </WizardField>
+              ) : (
+                <WizardField
+                  label="Vehicle"
+                  required
+                  hint="Awarding this bid dispatches the vehicle, so it has to be a real one."
+                >
+                  <Select value={vehicleId} onValueChange={setVehicleId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose a vehicle" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(vehicles.data?.items ?? []).map((vehicle) => (
+                        <SelectItem key={vehicle.id} value={vehicle.id}>
+                          {vehicle.registrationNumber} · {vehicle.capacityTons}T
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </WizardField>
+              )}
 
               <WizardField
                 label="Driver"
@@ -243,6 +286,7 @@ export function BidDialog({
                   onMaterialChange={setSourceMaterialId}
                   price={Number(price) || 0}
                   open={open}
+                  {...(backhaul ? { near: backhaul.near, commission: backhaul.commission } : {})}
                 />
               ) : null}
             </>

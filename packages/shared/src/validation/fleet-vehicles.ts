@@ -3,10 +3,15 @@ import {
   FuelType,
   TruckStatus,
   TruckType,
+  VehicleCategory,
   VehicleType,
   VerificationStatus,
 } from '../domain/enums';
-import { validateVehicleCapacities, vehicleTypeDefinition } from '../domain/vehicles';
+import {
+  validateVehicleCapacities,
+  validateVehicleCategory,
+  vehicleTypeDefinition,
+} from '../domain/vehicles';
 import {
   csvEnum,
   optionalTrimmedString,
@@ -39,6 +44,11 @@ const baseVehicleFields = {
    * a value for passenger vehicles so the legacy column stays populated.
    */
   truckType: z.nativeEnum(TruckType).optional(),
+  /**
+   * Scooter, hatchback… Required when the type offers categories (see
+   * `VEHICLE_CATEGORIES`); one the type does not offer is refused.
+   */
+  category: z.nativeEnum(VehicleCategory).optional(),
   manufacturer: optionalTrimmedString(80),
   model: optionalTrimmedString(80),
   year: z.coerce
@@ -64,7 +74,8 @@ const baseVehicleFields = {
 };
 
 /**
- * Reject capacities the vehicle type cannot have, and require the ones it must.
+ * Reject capacities the vehicle type cannot have, and require the ones it must —
+ * and, where the type has categories, which kind it is.
  * The same function backs the form, so the client and the API agree on what is
  * wrong before a request is even sent.
  */
@@ -72,11 +83,15 @@ function refineCapacities<T extends z.ZodTypeAny>(schema: T): T {
   return schema.superRefine((value: unknown, ctx: z.RefinementCtx) => {
     const input = value as {
       vehicleType?: VehicleType;
+      category?: VehicleCategory | null;
       capacityTons?: number | null;
       passengerCapacity?: number | null;
     };
     if (!input.vehicleType) return;
-    for (const problem of validateVehicleCapacities(input.vehicleType, input)) {
+    for (const problem of [
+      ...validateVehicleCapacities(input.vehicleType, input),
+      ...validateVehicleCategory(input.vehicleType, input),
+    ]) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: problem });
     }
   }) as unknown as T;
@@ -140,6 +155,7 @@ export const vehicleListQuerySchema = paginationSchema.extend({
     VehicleType.SUV,
     VehicleType.TEMPO,
     VehicleType.AUTO_RICKSHAW,
+    VehicleType.TWO_WHEELER,
     VehicleType.OTHER,
   ]),
   status: csvEnum([

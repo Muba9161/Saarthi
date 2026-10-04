@@ -36,6 +36,7 @@ import { notifyOrganization } from '../notifications/notification.service';
 import { broadcastDeviceStatus } from '../../realtime/realtime.service';
 import { assertTenantAccess } from '../../server/guards';
 import type { AuthContext } from '../../auth/context';
+import { driverPhoneRole, isFittedTracker, setDriverPhoneRoles } from './driver-phone.rules';
 
 /**
  * Hardware device management.
@@ -546,6 +547,11 @@ export async function assertVehicleAcceptsRole(
   registrationNumber: string,
   role: DeviceRole,
   db: typeof prisma | Prisma.TransactionClient = prisma,
+  /**
+   * A driver re-pairing: their own phones on this vehicle do not count as the
+   * occupant, because pairing ends them (a new handset replaces the old one).
+   */
+  exceptDriverId?: string,
 ): Promise<void> {
   if (!roleIsExclusivePerVehicle(role)) return;
 
@@ -554,6 +560,9 @@ export async function assertVehicleAcceptsRole(
       vehicleId,
       status: DeviceAssignmentStatus.ACTIVE,
       device: { role },
+      ...(exceptDriverId
+        ? { OR: [{ driverId: null }, { driverId: { not: exceptDriverId } }] }
+        : {}),
     },
     select: { device: { select: { deviceIdentifier: true, provider: true } } },
   });
@@ -614,18 +623,20 @@ export async function assignDevice(
     );
   }
 
-  await assertVehicleAcceptsRole(
-    input.vehicleId,
-    vehicle.registrationNumber,
-    resolveDeviceRole(device.provider as DeviceProvider, device.role as DeviceRole),
-  );
-
   const current = device.assignments[0];
   if (current) {
     throw errors.conflict(
       `This device is fitted to ${current.vehicle.registrationNumber}. Remove it from that vehicle first.`,
     );
   }
+
+  const role = resolveDeviceRole(device.provider as DeviceProvider, device.role as DeviceRole);
+  // A fitted 4G tracker becomes the vehicle's only source. Driver phones stay
+  // paired for the app, but step out of the telemetry slot for it first.
+  if (isFittedTracker(device.provider as DeviceProvider, role)) {
+    await setDriverPhoneRoles(input.vehicleId, DeviceRole.AUXILIARY);
+  }
+  await assertVehicleAcceptsRole(input.vehicleId, vehicle.registrationNumber, role);
 
   await prisma.$transaction(async (tx) => {
     await tx.deviceAssignment.create({
@@ -727,6 +738,18 @@ export async function unassignDevice(
     });
   });
 
+  // With the tracker gone, the driver's phone is the vehicle's source again —
+  // unless another fitted tracker still reports for it.
+  if (
+    isFittedTracker(
+      device.provider as DeviceProvider,
+      resolveDeviceRole(device.provider as DeviceProvider, device.role as DeviceRole),
+    ) &&
+    (await driverPhoneRole(assignment.vehicleId)) === DeviceRole.TELEMETRY
+  ) {
+    await setDriverPhoneRoles(assignment.vehicleId, DeviceRole.TELEMETRY);
+  }
+
   await recordDeviceEvent(
     deviceId,
     device.organizationId,
@@ -784,12 +807,27 @@ export async function vehicleDeviceHistory(auth: AuthContext, vehicleId: string)
           provider: true,
           model: true,
           status: true,
+          role: true,
           lastTelemetryAt: true,
         },
       },
     },
     orderBy: { assignedAt: 'desc' },
   });
+
+  // Whose phone each driver-app pairing is, so the Hardware tab can say so.
+  const driverIds = [
+    ...new Set(assignments.map((row) => row.driverId).filter((id): id is string => Boolean(id))),
+  ];
+  const drivers = driverIds.length
+    ? await prisma.driver.findMany({
+        where: { id: { in: driverIds } },
+        select: { id: true, user: { select: { firstName: true, lastName: true } } },
+      })
+    : [];
+  const driverNames = new Map(
+    drivers.map((driver) => [driver.id, `${driver.user.firstName} ${driver.user.lastName}`.trim()]),
+  );
 
   return assignments.map((assignment) => ({
     id: assignment.id,
@@ -798,10 +836,18 @@ export async function vehicleDeviceHistory(auth: AuthContext, vehicleId: string)
     provider: assignment.device.provider,
     model: assignment.device.model,
     deviceStatus: assignment.device.status,
+    role: assignment.device.role,
     status: assignment.status,
     assignedAt: assignment.assignedAt.toISOString(),
     unassignedAt: assignment.unassignedAt?.toISOString() ?? null,
     lastTelemetryAt: assignment.device.lastTelemetryAt?.toISOString() ?? null,
+    driverPhone: assignment.driverId
+      ? {
+          driverName: driverNames.get(assignment.driverId) ?? null,
+          // An assigned driver's phone; otherwise paired for one shift.
+          staysPaired: !assignment.releaseOnSignOff,
+        }
+      : null,
   }));
 }
 

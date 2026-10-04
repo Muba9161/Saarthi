@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { FuelType, TruckType, VehicleType, vehicleDraftFromRc, type VehicleRcRecord } from '../index';
+import {
+  FuelType,
+  TruckType,
+  VehicleCategory,
+  VehicleType,
+  vehicleDraftFromRc,
+  type VehicleRcRecord,
+} from '../index';
 
 /**
  * Filling the add-vehicle form from an RC record. RTO text is free-form, so
@@ -130,6 +137,68 @@ describe('vehicleDraftFromRc', () => {
     expect(
       vehicleDraftFromRc(rcRecord({ vehicleClass: 'e-Rickshaw(P)', vehicleCategory: '3WT', bodyType: null })).vehicleType,
     ).toBe(VehicleType.AUTO_RICKSHAW);
+  });
+
+  it('reads a two-wheeler, and its kind only where the RC names one', () => {
+    const ambiguous = vehicleDraftFromRc(
+      rcRecord({
+        vehicleClass: 'M-Cycle/Scooter(2WN)',
+        vehicleCategory: '2WN',
+        bodyType: 'SOLO',
+        seatingCapacity: 2,
+      }),
+    );
+    expect(ambiguous.vehicleType).toBe(VehicleType.TWO_WHEELER);
+    // "M-Cycle/Scooter" names both, so the owner is asked rather than guessed for.
+    expect(ambiguous.category).toBeNull();
+    // A pillion is not a seat count the type records.
+    expect(ambiguous.passengerCapacity).toBeNull();
+    expect(ambiguous.truckType).toBeNull();
+
+    expect(
+      vehicleDraftFromRc(
+        rcRecord({ vehicleClass: 'M-Cycle/Scooter(2WN)', vehicleCategory: '2WN', bodyType: 'SCOOTER' }),
+      ).category,
+    ).toBe(VehicleCategory.SCOOTER);
+    expect(
+      vehicleDraftFromRc(rcRecord({ vehicleClass: 'Moped(2WN)', vehicleCategory: '2WN', bodyType: null }))
+        .category,
+    ).toBe(VehicleCategory.MOPED);
+    expect(
+      vehicleDraftFromRc(
+        rcRecord({ vehicleClass: 'Motor Cycle-Used For Hire(2WT)', vehicleCategory: '2WT', bodyType: null }),
+      ).category,
+    ).toBe(VehicleCategory.MOTORCYCLE);
+  });
+
+  it('reads an electric scooter from its fuel', () => {
+    expect(
+      vehicleDraftFromRc(
+        rcRecord({
+          vehicleClass: 'M-Cycle/Scooter(2WN)',
+          vehicleCategory: '2WN',
+          bodyType: 'SCOOTER',
+          fuelType: 'ELECTRIC(BOV)',
+        }),
+      ).category,
+    ).toBe(VehicleCategory.ELECTRIC_SCOOTER);
+  });
+
+  it("reads a car's body style, and leaves what the RC does not say", () => {
+    const saloon = vehicleDraftFromRc(
+      rcRecord({ vehicleClass: 'Motor Car(LMV)', vehicleCategory: 'LMV', bodyType: 'SALOON' }),
+    );
+    expect(saloon.category).toBe(VehicleCategory.SEDAN);
+    expect(
+      vehicleDraftFromRc(
+        rcRecord({ vehicleClass: 'Motor Car(LMV)', vehicleCategory: 'LMV', bodyType: 'HATCHBACK' }),
+      ).category,
+    ).toBe(VehicleCategory.HATCHBACK);
+    expect(
+      vehicleDraftFromRc(
+        rcRecord({ vehicleClass: 'Motor Car(LMV)', vehicleCategory: 'LMV', bodyType: 'RIGID' }),
+      ).category,
+    ).toBeNull();
   });
 
   it('leaves what it cannot read blank', () => {

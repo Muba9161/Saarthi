@@ -1557,6 +1557,8 @@ export interface RequirementBidSummary {
   procurementReference: number | null;
   /** The supplier listing sourced from — the bidding fleet's own view only. */
   sourceMaterialId: string | null;
+  /** Placed on a vehicle's return leg (backhaul) — the bidding fleet's own view only. */
+  returnLoadRequestId: string | null;
 
   offeredVehicleType: VehicleType | null;
   inclusions: string[];
@@ -1587,6 +1589,8 @@ export interface SellerMatch {
   availableQuantity: number;
   minimumOrderQty: number;
   pickupAddress: string | null;
+  pickupLatitude: number | null;
+  pickupLongitude: number | null;
   distanceKm: number | null;
   procurementReference: number | null;
   score: number;

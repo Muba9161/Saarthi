@@ -392,6 +392,22 @@ class DriverApi(
         val submittedAt: String? = null,
         val decidedAt: String? = null,
         val rejectionReason: String? = null,
+        /** Only on the driver's own request and `mine`; null on every other reply. */
+        val vehicleSetup: VehicleSetupDto? = null,
+    )
+
+    /**
+     * How to set this phone up for the vehicle it scanned.
+     *
+     * [assignedToYou]: the owner assigned this driver to the vehicle, so the
+     * phone pairs straight after the scan and stays paired across shifts.
+     * [tracker]: `OBD_BLUETOOTH` means connect the adapter now; `CONNECTED_4G`
+     * means the tracker reports and the phone's position is not used.
+     */
+    @Serializable
+    data class VehicleSetupDto(
+        val assignedToYou: Boolean = false,
+        val tracker: String? = null,
     )
 
     /**

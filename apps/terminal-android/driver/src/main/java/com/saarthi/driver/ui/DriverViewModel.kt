@@ -123,6 +123,20 @@ class DriverViewModel(application: Application) : AndroidViewModel(application) 
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
 
+    /**
+     * The vehicle just scanned has a Saarthi OBD, and the adapter should be
+     * connected now — at the vehicle, not mid-shift.
+     */
+    private val _obdSetup = MutableStateFlow(false)
+    val obdSetup: StateFlow<Boolean> = _obdSetup.asStateFlow()
+
+    /** Requests the OBD prompt has already been shown for, so a poll cannot reopen it. */
+    private val obdOffered = mutableSetOf<String>()
+
+    fun dismissObdSetup() {
+        _obdSetup.value = false
+    }
+
     init {
         restore()
     }
@@ -557,7 +571,34 @@ class DriverViewModel(application: Application) : AndroidViewModel(application) 
         return if (open == null) Stage.ChooseVehicle(driver) else stageFor(open)
     }
 
-    private suspend fun stageFor(assignment: DriverApi.AssignmentDto): Stage =
+    private suspend fun stageFor(assignment: DriverApi.AssignmentDto): Stage {
+        prepareVehicle(assignment)
+        return stageForStatus(assignment)
+    }
+
+    /**
+     * Set the phone up for the vehicle, the moment it is scanned.
+     *
+     * The owner assigned this driver to the vehicle, so the phone pairs now and
+     * stays paired across shifts — the approval still has to come before the
+     * shift starts, and until it does nothing the phone sends is recorded. A
+     * driver who is not assigned waits for the approval, and pairs then.
+     *
+     * And if the vehicle has a Saarthi OBD, the adapter is connected now, while
+     * the driver is standing at it.
+     */
+    private suspend fun prepareVehicle(assignment: DriverApi.AssignmentDto) {
+        val setup = assignment.vehicleSetup ?: return
+        if (assignment.status !in PRE_APPROVAL_STATUSES) return
+
+        if (setup.assignedToYou) pairToVehicle(assignment, requireSignedOn = false)
+
+        if (setup.tracker == TRACKER_OBD && obdOffered.add(assignment.id)) {
+            _obdSetup.value = true
+        }
+    }
+
+    private suspend fun stageForStatus(assignment: DriverApi.AssignmentDto): Stage =
         when (assignment.status) {
             "APPROVED", "READY", "TRIP_ACTIVE" -> {
                 pairToVehicle(assignment)
@@ -597,11 +638,20 @@ class DriverViewModel(application: Application) : AndroidViewModel(application) 
      * server has since let go of (a finished session, a revoked device) would
      * otherwise be trusted for the whole shift, and the cockpit would sit on
      * "Not signed on" while the driver drives an approved truck.
+     *
+     * [requireSignedOn] is false for an assigned driver pairing before their
+     * shift is approved: a phone that is paired and waiting is already right,
+     * and treating it as stale would re-pair it on every poll.
      */
-    private suspend fun pairToVehicle(assignment: DriverApi.AssignmentDto) {
+    private suspend fun pairToVehicle(
+        assignment: DriverApi.AssignmentDto,
+        requireSignedOn: Boolean = true,
+    ) {
         if (app.identity.pairedRegistration == assignment.registrationNumber) {
             val confirmed = app.repository.refresh().isSuccess &&
-                TerminalState.parse(app.repository.state.value?.state).signedOnToVehicle
+                TerminalState.parse(app.repository.state.value?.state).let {
+                    if (requireSignedOn) it.signedOnToVehicle else it.pairedToVehicle
+                }
             if (confirmed) return
             DebugLog.info(TAG, "Stored pairing to ${assignment.registrationNumber} no longer holds; pairing again")
             app.repository.forgetPairing()
@@ -649,5 +699,11 @@ class DriverViewModel(application: Application) : AndroidViewModel(application) 
 
     private companion object {
         const val TAG = "DriverViewModel"
+
+        /** A request the fleet has not approved yet. */
+        val PRE_APPROVAL_STATUSES = setOf("DRIVER_IDENTIFIED", "SELFIE_SUBMITTED", "PENDING_APPROVAL")
+
+        /** `TrackerProduct.OBD_BLUETOOTH` on the server. */
+        const val TRACKER_OBD = "OBD_BLUETOOTH"
     }
 }

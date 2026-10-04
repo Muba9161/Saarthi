@@ -11,7 +11,12 @@ import {
   VehicleCapability,
   VehicleType,
   humanizeEnum,
+  categoriesFor,
+  resolveVehicleCategory,
+  validateVehicleCategory,
+  vehicleCategoryDefinition,
   vehicleTypeDefinition,
+  type VehicleCategory,
   type VehicleRcPrefill,
 } from '@saarthi/shared';
 import { api, errorMessage } from '@/lib/api-client';
@@ -52,6 +57,7 @@ import { uploadSpinOrWarn } from './spin/spin-api';
 import type { SpinDraft } from './spin/spin-frames';
 import { VehicleConnectionStep, useVehicleOnboarding } from './vehicle-onboarding';
 import { RcPrefillPanel, RcPrefilledNotice, useRcPrefill } from './rc-prefill-panel';
+import { VehicleCategoryPicker } from './vehicle-category-picker';
 import { cn } from '@/lib/utils';
 
 /** Mirrors MEDIA_MAX_FILE_SIZE on the API, so a rejection happens here first. */
@@ -93,6 +99,8 @@ export interface EditableVehicle {
   id: string;
   registrationNumber: string;
   vehicleType: VehicleType;
+  /** Optional so records that predate categories can still open the form. */
+  category?: VehicleCategory | null;
   manufacturer: string | null;
   model: string | null;
   year: number | null;
@@ -134,6 +142,7 @@ interface VehicleDialogProps {
 interface VehicleFormState {
   registrationNumber: string;
   vehicleType: VehicleType;
+  category: VehicleCategory | null;
   manufacturer: string;
   model: string;
   year: string;
@@ -153,6 +162,7 @@ function initialState(defaultType: VehicleType): VehicleFormState {
   return {
     registrationNumber: '',
     vehicleType: defaultType,
+    category: null,
     manufacturer: '',
     model: '',
     year: '',
@@ -179,6 +189,7 @@ function stateFromVehicle(vehicle: EditableVehicle): VehicleFormState {
   return {
     registrationNumber: vehicle.registrationNumber,
     vehicleType: vehicle.vehicleType,
+    category: vehicle.category ?? null,
     manufacturer: vehicle.manufacturer ?? '',
     model: vehicle.model ?? '',
     year: numberField(vehicle.year),
@@ -202,13 +213,23 @@ function stateFromRc(
   offeredTypes: readonly VehicleType[],
 ): { state: VehicleFormState; typeAccepted: boolean } {
   const { draft } = prefill;
-  const typeAccepted = draft.vehicleType !== null && offeredTypes.includes(draft.vehicleType);
-  const base = initialState(typeAccepted && draft.vehicleType ? draft.vehicleType : fallbackType);
+  // Where SUV is not a type of its own (Saarthi Personal), an SUV on the RC is
+  // a Car with the SUV category — not a type this account cannot add.
+  const foldsIntoCar =
+    draft.vehicleType === VehicleType.SUV &&
+    !offeredTypes.includes(VehicleType.SUV) &&
+    offeredTypes.includes(VehicleType.CAR);
+  const draftType = foldsIntoCar ? VehicleType.CAR : draft.vehicleType;
+  const draftCategory = foldsIntoCar ? (draft.category ?? 'SUV') : draft.category;
+  const typeAccepted = draftType !== null && offeredTypes.includes(draftType);
+  const base = initialState(typeAccepted && draftType ? draftType : fallbackType);
   return {
     typeAccepted,
     state: {
       ...base,
       registrationNumber: prefill.registrationNumber,
+      // Only where the RC names it; "M-Cycle/Scooter" leaves the owner to pick.
+      category: resolveVehicleCategory(base.vehicleType, draftCategory as VehicleCategory | null),
       manufacturer: draft.manufacturer ?? '',
       model: draft.model ?? '',
       year: numberField(draft.year),
@@ -337,6 +358,27 @@ export function VehicleDialog({
     setErrors((previous) => (key in previous ? { ...previous, [key]: undefined } : previous));
   };
 
+  const hasCategories = categoriesFor(form.vehicleType).length > 0;
+
+  /**
+   * Picking a type drops a category the new type does not offer, and moves a
+   * two-wheeler's fuel off the diesel default, which no scooter burns.
+   */
+  const chooseType = (next: VehicleType): void => {
+    set('vehicleType', next);
+    set('category', resolveVehicleCategory(next, form.category));
+    if (next === VehicleType.TWO_WHEELER && form.fuelType === FuelType.DIESEL) {
+      set('fuelType', FuelType.PETROL);
+    }
+  };
+
+  /** An electric scooter runs on electricity — its category says so. */
+  const chooseCategory = (next: VehicleCategory): void => {
+    set('category', next);
+    const implied = vehicleCategoryDefinition(next)?.impliesFuel;
+    if (implied) set('fuelType', implied);
+  };
+
   const save = useMutation({
     mutationFn: async (payload: Record<string, unknown>) => {
       if (subject) return api.patch<{ id: string }>(`/fleet/vehicles/${subject.id}`, payload);
@@ -413,6 +455,8 @@ export function VehicleDialog({
         ? { passengerCapacity: Number(form.passengerCapacity) }
         : {}),
       ...(carriesPassengers ? { airConditioned: form.airConditioned } : {}),
+      // Only a category the chosen type offers is ever sent.
+      ...(hasCategories && form.category ? { category: form.category } : {}),
     };
 
     if (subject) {
@@ -473,6 +517,16 @@ export function VehicleDialog({
   const rulesFor = (stepId: string): FieldErrors => {
     const found: FieldErrors = {};
 
+    if (stepId === 'type') {
+      // The API's own rule, so the form and the server refuse in the same words.
+      // Asked of a new vehicle or a retyped one — never of an old car being
+      // corrected, which predates categories.
+      const [problem] = validateVehicleCategory(form.vehicleType, form, {
+        requireCategory: !isEdit || typeChanged,
+      });
+      if (problem) found.category = problem;
+    }
+
     if (stepId === 'identity') {
       // Six is what `registrationNumberSchema` accepts once spacing is
       // stripped; a lower bar here only moves the rejection to the server.
@@ -529,7 +583,7 @@ export function VehicleDialog({
           >
             <Select
               value={form.vehicleType}
-              onValueChange={(value) => set('vehicleType', value as VehicleType)}
+              onValueChange={(value) => chooseType(value as VehicleType)}
             >
               <SelectTrigger id="vehicle-type">
                 <SelectValue />
@@ -543,6 +597,21 @@ export function VehicleDialog({
               </SelectContent>
             </Select>
           </WizardField>
+
+          {hasCategories ? (
+            <WizardField
+              label={`Kind of ${definition.label.toLowerCase()}`}
+              required={!isEdit || typeChanged}
+              error={errors.category}
+            >
+              <VehicleCategoryPicker
+                vehicleType={form.vehicleType}
+                value={form.category}
+                onChange={chooseCategory}
+                error={errors.category}
+              />
+            </WizardField>
+          ) : null}
 
           {/*
             Retyping a vehicle that already exists is not a relabelling: the

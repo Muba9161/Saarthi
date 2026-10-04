@@ -73,6 +73,7 @@ import { AnimatePresence, PageTransition, motion } from '@/components/motion';
 import { FleetWelcomeDialog } from '@/features/fleet/fleet-welcome-dialog';
 import { ArchivedAccountScreen } from '@/features/subscriptions/archived-account-screen';
 import { BillingBanner } from '@/features/subscriptions/billing-banner';
+import { backhaulTripOf, enableBackhaulPath } from '@/features/backhaul/backhaul-link';
 
 /**
  * The signed-in shell.
@@ -834,9 +835,21 @@ function CriticalAlerts() {
   });
 
   useRealtimeEvent(RealtimeEvent.NOTIFICATION, (message) => {
-    if (message.payload.priority === 'CRITICAL' || message.payload.priority === 'HIGH') {
-      toast(message.payload.title, { description: message.payload.body });
-    }
+    if (message.payload.priority !== 'CRITICAL' && message.payload.priority !== 'HIGH') return;
+    // A completed trip offers backhaul on the spot, not just a link to read later.
+    const backhaulTripId = backhaulTripOf(message.payload.data);
+    toast(message.payload.title, {
+      description: message.payload.body,
+      ...(backhaulTripId
+        ? {
+            duration: 30_000,
+            action: {
+              label: 'Enable backhaul',
+              onClick: () => navigate(enableBackhaulPath(backhaulTripId)),
+            },
+          }
+        : {}),
+    });
   });
 
   return null;

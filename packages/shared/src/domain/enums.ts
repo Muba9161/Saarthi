@@ -979,10 +979,44 @@ export const VehicleType = asEnum({
    * when a heavy vehicle cannot enter a city, a pickup completes the delivery.
    */
   PICKUP: 'PICKUP',
+  /**
+   * Scooter, motorcycle or moped — the most common personal vehicle in India.
+   * Which of those it is lives in `VehicleCategory`, as a truck's body lives in
+   * `TruckType`.
+   */
+  TWO_WHEELER: 'TWO_WHEELER',
   OTHER: 'OTHER',
 });
 export type VehicleType = EnumValue<typeof VehicleType>;
 export const VEHICLE_TYPES = Object.values(VehicleType) as VehicleType[];
+
+/**
+ * The kind of vehicle within a type, as an owner would name it — a scooter or
+ * a cruiser for a two-wheeler, a hatchback or an SUV for a car or a taxi.
+ *
+ * One list for every type rather than one per type; which categories a type
+ * offers is `VEHICLE_CATEGORIES` in `vehicles.ts`. Null on a type with none,
+ * and on a vehicle added before its type had categories.
+ */
+export const VehicleCategory = asEnum({
+  // Two-wheelers
+  SCOOTER: 'SCOOTER',
+  ELECTRIC_SCOOTER: 'ELECTRIC_SCOOTER',
+  MOTORCYCLE: 'MOTORCYCLE',
+  SPORTS_BIKE: 'SPORTS_BIKE',
+  CRUISER: 'CRUISER',
+  ADVENTURE: 'ADVENTURE',
+  MOPED: 'MOPED',
+  // Cars and taxis
+  HATCHBACK: 'HATCHBACK',
+  SEDAN: 'SEDAN',
+  COMPACT_SUV: 'COMPACT_SUV',
+  SUV: 'SUV',
+  MUV: 'MUV',
+  LUXURY: 'LUXURY',
+});
+export type VehicleCategory = EnumValue<typeof VehicleCategory>;
+export const VEHICLE_CATEGORY_VALUES = Object.values(VehicleCategory) as VehicleCategory[];
 
 /**
  * What a vehicle type is *able* to do. Business rules read this instead of

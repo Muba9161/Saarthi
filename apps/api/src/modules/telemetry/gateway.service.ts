@@ -22,6 +22,7 @@ import { ingestLocation } from '../tracking/tracking.service';
 import { applyOdometer } from '../vehicles/odometer.service';
 import { broadcastDeviceStatus, broadcastTelemetry } from '../../realtime/realtime.service';
 import type { AuthenticatedDevice } from '../devices/device.service';
+import { driverPhoneMayReport } from '../devices/driver-phone.rules';
 import { evaluateTelemetryRules } from './alert-engine';
 
 /**
@@ -207,6 +208,17 @@ export async function ingest(
     throw errors.businessRule(
       'This device is not fitted to a vehicle. Assign it before sending telemetry.',
     );
+  }
+
+  // --- Driver phones ------------------------------------------------------
+  // A driver's phone counts only during its driver's approved shift, and not at
+  // all on a vehicle whose 4G tracker reports for it. Dropped quietly rather
+  // than rejected or logged as a device fault: the app is right to send, and an
+  // off-shift phone would otherwise fill its event log every few seconds.
+  const phone = await driverPhoneMayReport(device.id);
+  if (!phone.allowed) {
+    outcome.reasons.push(phone.reason);
+    return outcome;
   }
 
   // --- Replay protection --------------------------------------------------

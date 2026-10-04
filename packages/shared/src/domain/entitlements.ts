@@ -598,7 +598,7 @@ export const PLAN_CATALOGUE: PlanDefinition[] = [
     tier: PlanTier.PERSONAL,
     name: 'Saarthi Personal',
     description:
-      'For your own car, SUV or other personal vehicle. Drive it yourself or hand it to a driver — a tracker is optional.',
+      'For your own car, SUV, two-wheeler or other personal vehicle. Drive it yourself or hand it to a driver — a tracker is optional.',
     priceMonthly: 119,
     features: PAID_PLAN_FEATURES,
     limits: PLAN_LIMITS[PlanTier.PERSONAL],
