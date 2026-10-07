@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { CarFront, Cpu, Gauge, IdCard, Pencil, Plus } from 'lucide-react';
 import {
+  CLAIM_NEEDS_VERIFIED_NAME,
   FuelType,
   MediaOwnerType,
   MediaPurpose,
@@ -19,7 +20,7 @@ import {
   type VehicleCategory,
   type VehicleRcPrefill,
 } from '@saarthi/shared';
-import { api, errorMessage } from '@/lib/api-client';
+import { ApiError, api, errorMessage } from '@/lib/api-client';
 import { useAuth } from '@/features/auth/auth-context';
 import { Button } from '@/components/ui/button';
 import {
@@ -57,6 +58,7 @@ import { uploadSpinOrWarn } from './spin/spin-api';
 import type { SpinDraft } from './spin/spin-frames';
 import { VehicleConnectionStep, useVehicleOnboarding } from './vehicle-onboarding';
 import { RcPrefillPanel, RcPrefilledNotice, useRcPrefill } from './rc-prefill-panel';
+import { ClaimNameNotice } from './claim-name-notice';
 import { VehicleCategoryPicker } from './vehicle-category-picker';
 import { cn } from '@/lib/utils';
 
@@ -291,6 +293,9 @@ export function VehicleDialog({
   const [photo, setPhoto] = React.useState<File | null>(null);
   /** The optional 360° spin, offered once there is a photo; held for the same reason. */
   const [spin, setSpin] = React.useState<SpinDraft | null>(null);
+  // Why a plate another account holds was not handed over, when verifying a
+  // name would fix it. Shown in the dialog, beside the fix; see ClaimNameNotice.
+  const [claimNotice, setClaimNotice] = React.useState<string | null>(null);
 
   /*
    * Re-seed the fields each time the dialog is opened, and only then.
@@ -313,6 +318,7 @@ export function VehicleDialog({
     setSpin(null);
     setErrors({});
     setErroredStepIds([]);
+    setClaimNotice(null);
   }, [seedKey]);
 
   /*
@@ -441,10 +447,18 @@ export function VehicleDialog({
         toast.success('Vehicle added');
       }
     },
-    onError: (error) =>
+    onMutate: () => setClaimNotice(null),
+    onError: (error) => {
+      // A plate held by an unconfirmed account, refused only because this one
+      // has no verified name to match: shown in the dialog, beside the fix.
+      if (error instanceof ApiError && error.details?.reason === CLAIM_NEEDS_VERIFIED_NAME) {
+        setClaimNotice(error.message);
+        return;
+      }
       toast.error(isEdit ? 'Could not save the changes' : 'Could not add the vehicle', {
         description: errorMessage(error),
-      }),
+      });
+    },
   });
 
   const submit = async (): Promise<void> => {
@@ -894,10 +908,14 @@ export function VehicleDialog({
                 typeWarning={rcTypeWarning}
                 onRestart={() => {
                   setRcTypeWarning(null);
+                  setClaimNotice(null);
                   rc.restart();
                 }}
               />
             ) : null}
+
+            {/* Keyed by the message, so a new refusal starts unverified. */}
+            {claimNotice ? <ClaimNameNotice key={claimNotice} message={claimNotice} /> : null}
 
             <FormWizard
               steps={steps}

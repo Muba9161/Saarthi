@@ -199,10 +199,10 @@ const REQUIREMENTS: Record<ProfileAudience, readonly VerificationRequirement[]> 
     },
   ],
   /*
-   * One step. The Aadhaar check already asks for the PAN it is linked to and
-   * confirms the pair with the Income Tax Department, so a separate PAN step
-   * would ask for the same number twice and charge for it twice — and nothing
-   * on a Personal account reads the holder's PAN on its own.
+   * Aadhaar, then PAN. The Aadhaar check confirms the Aadhaar–PAN link but
+   * returns no name; the PAN check returns the holder's name, which is what a
+   * vehicle's RC owner is matched against (`vehicle-ownership.ts`). Without
+   * it a Personal holder could never confirm, or claim, a vehicle as theirs.
    */
   [ProfileAudience.PERSONAL]: [
     {
@@ -213,6 +213,16 @@ const REQUIREMENTS: Record<ProfileAudience, readonly VerificationRequirement[]> 
       documentType: null,
       title: 'Aadhaar',
       description: 'Verify your Aadhaar against the PAN it is linked to.',
+    },
+    {
+      id: 'personal-pan',
+      group: VerificationStepGroup.TAX_BUSINESS,
+      subject: 'ACCOUNT_HOLDER',
+      checkType: VerificationCheckType.PAN,
+      documentType: null,
+      title: 'PAN',
+      description:
+        'Verify your PAN with the Income Tax Department. Its name is how a vehicle’s RC is matched to you.',
     },
   ],
   [ProfileAudience.FLEET]: BUSINESS_REQUIREMENTS,

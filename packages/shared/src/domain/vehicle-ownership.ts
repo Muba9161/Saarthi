@@ -26,6 +26,13 @@ export interface VehicleOwnershipView {
   note: string | null;
 }
 
+/**
+ * `details.reason` on a refused plate claim when the claimant has no
+ * government-verified name to match against the RC, so the client can offer
+ * to verify one rather than only saying so.
+ */
+export const CLAIM_NEEDS_VERIFIED_NAME = 'VERIFIED_NAME_REQUIRED';
+
 // ---------------------------------------------------------------------------
 // Name matching
 // ---------------------------------------------------------------------------

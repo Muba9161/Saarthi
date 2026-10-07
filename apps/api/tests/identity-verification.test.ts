@@ -107,10 +107,9 @@ describe('Identity verification', () => {
       expect(byKindAndSubject['VOTER_ID:DRIVER']?.documentType).toBe('DRIVER_VOTER_ID');
       expect(byKindAndSubject['GST:ORGANIZATION']?.documentType).toBe('GST_CERTIFICATE');
 
-      // PAN and Voter ID are asked of a driver and of nobody else: they are
-      // part of clearing somebody to take a vehicle out, not of proving who
-      // holds an account.
-      expect(byKindAndSubject['PAN:USER']).toBeUndefined();
+      // An account holder's own PAN is the name a vehicle's RC owner is
+      // matched against. Voter ID is still asked of a driver and nobody else.
+      expect(byKindAndSubject['PAN:USER']?.documentType).toBe('USER_PAN');
       expect(byKindAndSubject['VOTER_ID:USER']).toBeUndefined();
     });
   });

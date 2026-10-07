@@ -1,4 +1,8 @@
-import { VehicleOwnershipStatus, ownerNamesMatch } from '@saarthi/shared';
+import {
+  CLAIM_NEEDS_VERIFIED_NAME,
+  VehicleOwnershipStatus,
+  ownerNamesMatch,
+} from '@saarthi/shared';
 import type { AuthContext } from '../../auth/context';
 import { prisma } from '../../database/prisma';
 import { AppError, errors } from '../../lib/errors';
@@ -23,9 +27,9 @@ const PLATE_TAKEN = {
 /** Why a claim fails, each in terms the claimant can act on. Never the RC name. */
 const REFUSAL = {
   aadhaarOnly:
-    'Your Aadhaar is verified, but an Aadhaar check does not include your name, so it cannot be matched to the RC. Verify your PAN or Voter ID in Your identity, then add the vehicle again.',
+    'Your Aadhaar is verified, but an Aadhaar check does not include your name, so it cannot be matched to the RC. Verify your PAN in Your identity, then add the vehicle again.',
   noVerifiedName:
-    'This account has no government-verified name to match against the RC yet. Verify your PAN or Voter ID in Your identity, or your business GSTIN, then add the vehicle again.',
+    'This account has no government-verified name to match against the RC yet. Verify your PAN, or your business GSTIN, in Your identity, then add the vehicle again.',
   noRtoOwner:
     'The RTO records name no owner for this number, so ownership cannot be checked. Check the number against the RC.',
   masked:
@@ -68,9 +72,10 @@ export async function resolveRegistrationClaim(
   const refusal = await claimRefusal(auth, organizationId, registrationNumber);
   if (!refusal) return existing.id;
 
+  const needsVerifiedName = refusal === REFUSAL.aadhaarOnly || refusal === REFUSAL.noVerifiedName;
   throw errors.duplicate(
     `${registrationNumber} is held by another account that has not confirmed it owns it. ${refusal}`,
-    PLATE_TAKEN,
+    needsVerifiedName ? { ...PLATE_TAKEN, reason: CLAIM_NEEDS_VERIFIED_NAME } : PLATE_TAKEN,
   );
 }
 

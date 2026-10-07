@@ -1,5 +1,6 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  CLAIM_NEEDS_VERIFIED_NAME,
   IdentityDocumentKind,
   IdentityVerificationOutcome,
   OrganizationType,
@@ -439,6 +440,8 @@ describe('vehicle ownership', () => {
 
       expect(claimed.status).toBe(409);
       expect(claimed.body.error?.message).toMatch(/does not match a verified name/);
+      // A verified name that does not match: verifying another would not help.
+      expect(claimed.body.error?.details).not.toHaveProperty('reason');
       const kept = await prisma.truck.findUniqueOrThrow({ where: { id: squatted.body.data.id } });
       expect(kept.ownershipStatus).toBe(VehicleOwnershipStatus.PENDING);
       expect(kept.archivedAt).toBeNull();
@@ -487,6 +490,8 @@ describe('vehicle ownership', () => {
 
         expect(claimed.status).toBe(409);
         expect(claimed.body.error?.message).toMatch(/Aadhaar check does not include your name/);
+        // What puts a "Verify PAN" button on the error.
+        expect(claimed.body.error?.details).toMatchObject({ reason: CLAIM_NEEDS_VERIFIED_NAME });
         expect(provider).not.toHaveBeenCalled();
       });
 

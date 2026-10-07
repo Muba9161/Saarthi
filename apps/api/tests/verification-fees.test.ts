@@ -829,7 +829,7 @@ describe('the verification centre', () => {
     const ids = async (user: TestUser) => (await stepsFor(user)).steps.map((step) => step.id);
 
     expect(await ids(driverUser)).toEqual(['driver-licence', 'driver-aadhaar', 'driver-voter-id', 'driver-pan']);
-    expect(await ids(person)).toEqual(['personal-aadhaar']);
+    expect(await ids(person)).toEqual(['personal-aadhaar', 'personal-pan']);
     expect(await ids(owner)).toEqual(['owner-aadhaar', 'company-pan', 'company-gst']);
     expect(await ids(supplier)).toEqual([
       'owner-aadhaar',
@@ -855,6 +855,31 @@ describe('the verification centre', () => {
     const after = await stepsFor(owner, `?driverId=${driverId}`);
     expect(after.steps.find((step) => step.id === 'driver-pan')?.state).toBe('VERIFIED');
     expect(after.overall).toBe('IN_PROGRESS');
+  });
+
+  it('offers a Personal holder their own PAN at ₹10, paid through the same flow', async () => {
+    panVerified();
+    const personalOrg = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.PERSONAL);
+    await prisma.organization.update({ where: { id: personalOrg.id }, data: { isPersonalSeat: true } });
+    const person = await createUser({ role: RoleName.FLEET_OWNER, organizationId: personalOrg.id });
+    const panStep = async () =>
+      (await stepsFor(person)).steps.find((step) => step.id === 'personal-pan');
+
+    const before = await panStep();
+    expect(before?.state).toBe('NOT_STARTED');
+    expect(before?.price?.amount).toBe(10);
+    expect(before?.actionable).toBe(true);
+
+    const response = await payAndVerify(person, {
+      kind: 'PAN',
+      subjectType: 'USER',
+      subjectId: person.id,
+      number: VALID_PAN,
+    });
+
+    expect(response.body.data.charge?.amount).toBe(10);
+    expect(response.body.data.charge?.status).toBe(VerificationChargeStatus.VERIFIED);
+    expect((await panStep())?.state).toBe('VERIFIED');
   });
 
   it('refuses another fleet’s driver', async () => {
