@@ -4,6 +4,7 @@ import type { VehicleLookupResult } from '@saarthi/shared';
 import { config } from '../src/config/env';
 import { prisma } from '../src/database/prisma';
 import { cache } from '../src/infra/cache';
+import { logger } from '../src/lib/logger';
 import {
   closeApp,
   createOrganization,
@@ -98,6 +99,71 @@ describe('vehicle RC lookup', () => {
     expect(vehicle.rtoCode).toBeNull();
     expect(vehicle.permit.number).toBeNull();
     expect(vehicle.blacklistStatus).toBeNull();
+  });
+
+  describe('when Text + PDF is down', () => {
+    /** Text + PDF answers with `textPdf`; Lite with its documented record, which has no `pdf_url`. */
+    function stubTextPdfDown(textPdf: () => Response) {
+      const fetchMock = vi.fn(async (input: unknown) => {
+        const url = String(input);
+        if (url.endsWith('/api/v1/rc/text-pdf')) return textPdf();
+        if (url.endsWith('/api/v1/rc/lite')) return jsonResponse(successEnvelope({ pdf_url: undefined }));
+        return new Response('unexpected', { status: 500 });
+      });
+      vi.stubGlobal('fetch', fetchMock);
+      return fetchMock;
+    }
+
+    const lookup = () =>
+      request<VehicleLookupResult>({
+        method: 'POST',
+        url: '/api/v1/vehicles/lookup',
+        user: owner,
+        payload: { registrationNumber: PLATE },
+      });
+
+    const rcCalls = (fetchMock: ReturnType<typeof stubTextPdfDown>) =>
+      fetchMock.mock.calls.map(([input]) => String(input).replace(/^.*\/api\/v1\/rc\//, ''));
+
+    it('falls back to RC Details Lite, which carries the record but no certificate', async () => {
+      // What production received from 2026-10-03.
+      const fetchMock = stubTextPdfDown(() =>
+        jsonResponse(
+          { status: 'FAILED', success: false, charged: false, message_code: 'REQUEST_FAILED', message: 'Backend Down.' },
+          400,
+        ),
+      );
+
+      const response = await lookup();
+
+      expect(response.status).toBe(200);
+      expect(rcCalls(fetchMock)).toEqual(['text-pdf', 'lite']);
+      expect(response.body.data.vehicle.maker).toBe('MARUTI SUZUKI INDIA LTD');
+      expect(response.body.data.pdfAvailable).toBe(false);
+    });
+
+    it('falls back when Text + PDF answers with a gateway error page', async () => {
+      const fetchMock = stubTextPdfDown(() => new Response('<html>502 Bad Gateway</html>', { status: 502 }));
+
+      const response = await lookup();
+
+      expect(response.status).toBe(200);
+      expect(rcCalls(fetchMock)).toEqual(['text-pdf', 'lite']);
+    });
+
+    it('does not ask Lite after an answer about the vehicle, which Lite would repeat and charge for', async () => {
+      const fetchMock = stubTextPdfDown(() =>
+        jsonResponse(
+          { success: false, charged: true, message_code: 'NO_RECORD_FOUND', message: 'No record found' },
+          422,
+        ),
+      );
+
+      const response = await lookup();
+
+      expect(response.status).toBe(404);
+      expect(rcCalls(fetchMock)).toEqual(['text-pdf']);
+    });
   });
 
   it('normalises a lowercase, spaced and hyphenated registration number', async () => {
@@ -217,6 +283,42 @@ describe('vehicle RC lookup', () => {
     expect(response.status).toBe(503);
     expect(response.body.error?.code).toBe('PROVIDER_UNAVAILABLE');
     expect(response.body.error?.message).not.toMatch(/key/i);
+  });
+
+  it("logs Way2API's own reason for an outage, plate masked, and never sends it to the caller", async () => {
+    // What production received on 2026-10-07, here from both RC services.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        jsonResponse(
+          {
+            status: 'FAILED',
+            success: false,
+            charged: false,
+            message_code: 'REQUEST_FAILED',
+            message: `Backend Down for ${PLATE}.`,
+          },
+          400,
+        ),
+      ),
+    );
+    const warn = vi.spyOn(logger, 'warn');
+
+    const response = await request({
+      method: 'POST',
+      url: '/api/v1/vehicles/lookup',
+      user: owner,
+      payload: { registrationNumber: PLATE },
+    });
+
+    expect(response.status).toBe(503);
+    expect(response.body.error?.message).not.toMatch(/Backend/);
+    const loggedAs = (message: string) =>
+      warn.mock.calls.find(([, logged]) => logged === message)?.[0];
+    const reason = { messageCode: 'REQUEST_FAILED', providerMessage: 'Backend Down for UP••••34.' };
+    expect(loggedAs('Vehicle RC Text + PDF failed; asking RC Details Lite')).toMatchObject(reason);
+    expect(loggedAs('Vehicle RC provider is unavailable')).toMatchObject(reason);
+    warn.mockRestore();
   });
 
   it('handles a malformed provider response', async () => {

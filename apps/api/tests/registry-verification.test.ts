@@ -184,7 +184,8 @@ function stubRegistry(
 ) {
   const fetchMock = vi.fn(async (input: unknown, init?: RequestInit) => {
     const url = String(input);
-    if (url.includes('/api/v1/rc/text-pdf')) {
+    // Either RC service: Text + PDF, or Lite when Text + PDF is down.
+    if (url.includes('/api/v1/rc/')) {
       return jsonResponse(
         options.rcEnvelopeOverride ??
           rcEnvelope(requestedNumber(init, 'rc_number'), options.rc ?? {}),

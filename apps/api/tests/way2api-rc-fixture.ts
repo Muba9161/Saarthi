@@ -106,8 +106,9 @@ export function pdfResponse(): Response {
   return new Response(pdf, { status: 200, headers: { 'content-type': 'application/pdf' } });
 }
 
+/** A call to either Way2API RC service; `WAY2API_RC_SERVICE` decides which. */
 export function isRcLookupCall(input: unknown): boolean {
-  return String(input).includes('/api/v1/rc/text-pdf');
+  return String(input).includes('/api/v1/rc/');
 }
 
 /** Answers the RC endpoint with `envelope` and any PDF fetch with a real PDF. */

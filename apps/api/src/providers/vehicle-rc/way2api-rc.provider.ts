@@ -12,9 +12,13 @@ import {
 } from './vehicle-rc.provider';
 
 /**
- * Way2API "Vehicle RC Text + PDF" adapter.
+ * Way2API vehicle RC adapter: "Vehicle RC Text + PDF", falling back to
+ * "RC Details Lite" when Text + PDF is down.
  *
  * Contract notes that shape this file:
+ *  * The two services take the same request and return the same record and
+ *    message codes. Lite has no `pdf_url`, so a lookup it answers stores no
+ *    certificate and the UI says none was produced.
  *  * Every response is HTTP-shaped *and* body-shaped. A 200 does not mean the
  *    vehicle was found — `success` reports the verification outcome — so the
  *    body is always inspected before the record is trusted.
@@ -26,8 +30,24 @@ import {
  *    error, or included in anything that reaches a client.
  */
 
-const RC_PATH = '/api/v1/rc/text-pdf';
+const TEXT_PDF_PATH = '/api/v1/rc/text-pdf';
+const LITE_PATH = '/api/v1/rc/lite';
 const PROVIDER_NAME = 'way2api';
+
+/**
+ * Text + PDF failures that send the lookup on to RC Details Lite.
+ *
+ * Only failures Way2API does not charge for, and that say nothing about the
+ * vehicle: the service is down, broken, or not on this account. A "no record"
+ * is an answer Lite would repeat and charge for; a timeout or a pending order
+ * may still be billed, so asking again could pay twice for one vehicle.
+ */
+const LITE_FALLBACK_CODES: ReadonlySet<string> = new Set([
+  'REQUEST_FAILED',
+  'PROVIDER_UNAVAILABLE',
+  'INTERNAL_ERROR',
+  'NO_API_ACCESS',
+]);
 
 /** Provider status vocabulary, from the published integration rules. */
 type MessageCode =
@@ -226,6 +246,38 @@ export function maskRegistration(value: string): string {
   return `${value.slice(0, 2)}••••${value.slice(-2)}`;
 }
 
+/** Anything shaped like an Indian plate, standard or BH series. */
+const PLATE_PATTERN = /\b(?:[A-Z]{2}\d{1,2}[A-Z]{0,3}\d{1,4}|\d{2}BH\d{4}[A-Z]{1,2})\b/gi;
+
+/**
+ * Way2API's own words on a failure, for the operator's log only.
+ *
+ * `message_code` says which kind of failure; this says why ("Backend Down."),
+ * which is what tells an outage at Way2API from a fault at our end. Never sent
+ * to a client. Trimmed, capped, and with any plate in it masked like every
+ * other log line.
+ */
+function providerMessage(body: Way2ApiEnvelope): string | undefined {
+  const message = typeof body.message === 'string' ? body.message.trim() : '';
+  if (!message) return undefined;
+  return message.replace(PLATE_PATTERN, maskRegistration).slice(0, 200);
+}
+
+/** What one RC service sent back. */
+interface RcAnswer {
+  response: Response;
+  body: Way2ApiEnvelope;
+}
+
+/** Whether Text + PDF's answer means "down" rather than anything about the vehicle. */
+function shouldAskLite(answer: RcAnswer | null): boolean {
+  if (!answer) return true;
+  return (
+    answer.response.status >= 500 ||
+    LITE_FALLBACK_CODES.has(String(answer.body.message_code ?? ''))
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Provider
 // ---------------------------------------------------------------------------
@@ -250,46 +302,81 @@ export class Way2ApiRcProvider implements VehicleRcProvider {
     return true;
   }
 
+  /** Text + PDF first, for the certificate; RC Details Lite when it is down. */
   async lookup(input: VehicleRcLookup): Promise<VehicleRcLookupResult> {
     const plate = maskRegistration(input.registrationNumber);
+    const primary = await this.ask(TEXT_PDF_PATH, input.registrationNumber, plate);
+    if (!shouldAskLite(primary)) return this.settle(primary, plate);
+
+    logger.warn(
+      {
+        provider: this.name,
+        plate,
+        status: primary?.response.status ?? null,
+        messageCode: primary ? String(primary.body.message_code ?? '') : null,
+        providerMessage: primary ? providerMessage(primary.body) : undefined,
+      },
+      'Vehicle RC Text + PDF failed; asking RC Details Lite',
+    );
+    return this.settle(await this.ask(LITE_PATH, input.registrationNumber, plate), plate);
+  }
+
+  /**
+   * One call to one RC service: its answer, or `null` when it could not be
+   * reached. A timeout throws instead, because the order may still be billed.
+   */
+  private async ask(path: string, rcNumber: string, plate: string): Promise<RcAnswer | null> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
 
     let response: Response;
     try {
-      response = await fetch(`${this.baseUrl}${RC_PATH}`, {
+      response = await fetch(`${this.baseUrl}${path}`, {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
           accept: 'application/json',
           authorization: `Bearer ${this.apiKey}`,
         },
-        body: JSON.stringify({ rc_number: input.registrationNumber }),
+        body: JSON.stringify({ rc_number: rcNumber }),
         signal: controller.signal,
       });
     } catch (error) {
       if ((error as Error).name === 'AbortError') {
-        logger.warn({ provider: this.name, plate }, 'Vehicle RC lookup timed out');
+        logger.warn({ provider: this.name, plate, path }, 'Vehicle RC lookup timed out');
         throw errors.providerTimeout(
           this.name,
           'The vehicle records service took too long to respond. Please try again.',
         );
       }
       logger.error(
-        { provider: this.name, plate },
+        { provider: this.name, plate, path },
         'Vehicle RC lookup could not reach the provider',
       );
-      throw errors.providerUnavailable(
-        this.name,
-        'Vehicle data is temporarily unavailable. Please try again.',
-      );
+      return null;
     } finally {
       clearTimeout(timeout);
     }
 
-    const body = await this.readBody(response, plate);
-    this.assertTransportOk(response, body, plate);
-    return this.toResult(body, plate);
+    try {
+      return { response, body: await this.readBody(response, plate) };
+    } catch (error) {
+      // A gateway's error page instead of JSON: the service is down, not answering.
+      if (response.status >= 500) return null;
+      throw error;
+    }
+  }
+
+  /** An answer as a record, or as the error it amounts to. */
+  private settle(answer: RcAnswer | null, plate: string): VehicleRcLookupResult {
+    if (!answer) {
+      throw errors.providerUnavailable(
+        this.name,
+        'Vehicle data is temporarily unavailable. Please try again.',
+      );
+    }
+    this.assertTransportOk(answer.response, answer.body, plate);
+    return this.toResult(answer.body, plate);
   }
 
   /** Parse the envelope. A non-JSON body is a provider fault, not a crash here. */
@@ -330,7 +417,10 @@ export class Way2ApiRcProvider implements VehicleRcProvider {
     const code = String(body.message_code ?? '');
 
     if (response.status === 429 || code === 'RATE_LIMITED') {
-      logger.warn({ provider: this.name, plate }, 'Vehicle RC provider rate limit reached');
+      logger.warn(
+        { provider: this.name, plate, providerMessage: providerMessage(body) },
+        'Vehicle RC provider rate limit reached',
+      );
       throw errors.providerRateLimited(
         this.name,
         'Too many vehicle lookups right now. Please wait a moment and try again.',
@@ -347,7 +437,12 @@ export class Way2ApiRcProvider implements VehicleRcProvider {
       code === 'NO_API_ACCESS'
     ) {
       logger.error(
-        { provider: this.name, status: response.status, messageCode: code },
+        {
+          provider: this.name,
+          status: response.status,
+          messageCode: code,
+          providerMessage: providerMessage(body),
+        },
         'Vehicle RC provider rejected the Saarthi account — check the API key, balance and entitlements',
       );
       throw errors.providerUnavailable(
@@ -366,7 +461,13 @@ export class Way2ApiRcProvider implements VehicleRcProvider {
       code === 'REQUEST_FAILED'
     ) {
       logger.warn(
-        { provider: this.name, plate, status: response.status, messageCode: code },
+        {
+          provider: this.name,
+          plate,
+          status: response.status,
+          messageCode: code,
+          providerMessage: providerMessage(body),
+        },
         'Vehicle RC provider is unavailable',
       );
       throw errors.providerUnavailable(
@@ -378,7 +479,13 @@ export class Way2ApiRcProvider implements VehicleRcProvider {
     // 202 / pending: the order was accepted (and billed) but no record came back.
     if (response.status === 202 || code === 'ACCEPTED' || code === 'PROVIDER_NO_RESPONSE') {
       logger.warn(
-        { provider: this.name, plate, orderId: body.order_id, messageCode: code },
+        {
+          provider: this.name,
+          plate,
+          orderId: body.order_id,
+          messageCode: code,
+          providerMessage: providerMessage(body),
+        },
         'Vehicle RC lookup is still pending at the provider',
       );
       throw errors.providerUnavailable(
@@ -404,7 +511,13 @@ export class Way2ApiRcProvider implements VehicleRcProvider {
       code === 'NOT_FOUND'
     ) {
       logger.info(
-        { provider: this.name, plate, messageCode: code, charged: body.charged ?? null },
+        {
+          provider: this.name,
+          plate,
+          messageCode: code,
+          charged: body.charged ?? null,
+          providerMessage: providerMessage(body),
+        },
         'Vehicle RC lookup returned no record',
       );
       throw errors.vehicleNotFound();
