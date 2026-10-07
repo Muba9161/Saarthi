@@ -53,6 +53,13 @@ class SaarthiApi(
     baseUrl: String,
     private val identity: TerminalIdentityStore,
     private val appVersion: String,
+    /**
+     * Saarthi refused the device secret itself, named by its identifier.
+     *
+     * Called inside the token lock, so no other exchange starts with the same
+     * secret before the listener has dropped it.
+     */
+    private val onSecretRefused: suspend (deviceIdentifier: String) -> Unit,
 ) {
 
     /** Normalised once: a trailing slash here becomes a double slash everywhere. */
@@ -144,6 +151,13 @@ class SaarthiApi(
      *
      * Serialised. Several coroutines waking together must not each spend the
      * secret; the second one through the lock finds a valid token and returns it.
+     *
+     * A refused secret is reported once and then dropped, rather than offered
+     * again. It cannot recover — the enrolment lapsed, the device was archived,
+     * or another server issued it — and every loop in the service retrying it
+     * once a second ran into the gateway's rate limit within two minutes.
+     * After that the refusal was a 429, not a 401, and nothing recognised the
+     * identity as the problem.
      */
     suspend fun refreshToken(): String = tokenLock.withLock {
         identity.validAccessToken()?.let { return@withLock it }
@@ -154,13 +168,18 @@ class SaarthiApi(
             throw Failure.Unauthenticated
         }
 
-        val issued = post(
-            path = "/api/v1/device-gateway/token",
-            body = TokenRequest(deviceIdentifier, secret),
-            requestSerializer = TokenRequest.serializer(),
-            responseSerializer = IssuedToken.serializer(),
-            authenticated = false,
-        )
+        val issued = try {
+            post(
+                path = "/api/v1/device-gateway/token",
+                body = TokenRequest(deviceIdentifier, secret),
+                requestSerializer = TokenRequest.serializer(),
+                responseSerializer = IssuedToken.serializer(),
+                authenticated = false,
+            )
+        } catch (refused: Failure.Unauthenticated) {
+            onSecretRefused(deviceIdentifier)
+            throw refused
+        }
         identity.storeToken(issued.accessToken, issued.expiresIn)
         issued.accessToken
     }

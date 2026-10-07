@@ -94,8 +94,12 @@ describe('Driver phone pairing', () => {
   /** The driver scans the vehicle (by registration, the same path as the QR). */
   async function scan(
     driver: TestUser,
-  ): Promise<{ id: string; vehicleSetup: TerminalVehicleSetup }> {
-    const response = await request<{ id: string; vehicleSetup: TerminalVehicleSetup }>({
+  ): Promise<{ id: string; status: string; vehicleSetup: TerminalVehicleSetup }> {
+    const response = await request<{
+      id: string;
+      status: string;
+      vehicleSetup: TerminalVehicleSetup;
+    }>({
       method: 'POST',
       url: '/api/v1/terminal/assignments/request',
       user: driver,
@@ -105,11 +109,8 @@ describe('Driver phone pairing', () => {
     return response.body.data;
   }
 
-  /** What the driver app does: ask for a code, then redeem it on the phone. */
-  async function pairPhone(
-    driver: TestUser,
-    sessionId: string,
-  ): Promise<{ token: string; deviceId: string }> {
+  /** The driver app asking for a pairing code for the vehicle it is on. */
+  async function issuePairingCode(driver: TestUser, sessionId: string): Promise<string> {
     const issued = await request<{ pairingCode: string }>({
       method: 'POST',
       url: `/api/v1/terminal/assignments/${sessionId}/vehicle-pairing`,
@@ -117,8 +118,22 @@ describe('Driver phone pairing', () => {
       payload: {},
     });
     expect(issued.status).toBe(201);
+    return issued.body.data.pairingCode;
+  }
 
-    const enrolled = await request<{ token: { accessToken: string } }>({
+  /** A fresh install of the app taking a device identity. */
+  async function enrolPhone(): Promise<{
+    enrolmentId: string;
+    deviceIdentifier: string;
+    secret: string;
+    token: string;
+  }> {
+    const enrolled = await request<{
+      enrolmentId: string;
+      deviceIdentifier: string;
+      secret: string;
+      token: { accessToken: string };
+    }>({
       method: 'POST',
       url: '/api/v1/device-gateway/enroll',
       payload: {
@@ -130,16 +145,27 @@ describe('Driver phone pairing', () => {
       },
     });
     expect(enrolled.status).toBe(201);
+    const { enrolmentId, deviceIdentifier, secret, token } = enrolled.body.data;
+    return { enrolmentId, deviceIdentifier, secret, token: token.accessToken };
+  }
 
-    const paired = await request<{
-      identity: { deviceId: string };
-      token: { accessToken: string };
-    }>({
+  function redeem(phoneToken: string, pairingCode: string) {
+    return request<{ identity: { deviceId: string }; token: { accessToken: string } }>({
       method: 'POST',
       url: '/api/v1/device-gateway/terminal/pair',
-      headers: deviceAuth(enrolled.body.data.token.accessToken),
-      payload: { pairingCode: issued.body.data.pairingCode },
+      headers: deviceAuth(phoneToken),
+      payload: { pairingCode },
     });
+  }
+
+  /** What the driver app does: ask for a code, then redeem it on the phone. */
+  async function pairPhone(
+    driver: TestUser,
+    sessionId: string,
+  ): Promise<{ token: string; deviceId: string }> {
+    const pairingCode = await issuePairingCode(driver, sessionId);
+    const phone = await enrolPhone();
+    const paired = await redeem(phone.token, pairingCode);
     expect(paired.status).toBe(201);
     return {
       token: paired.body.data.token.accessToken,
@@ -261,6 +287,59 @@ describe('Driver phone pairing', () => {
 
     // And off shift, nothing it sends is recorded.
     expect((await report(phone.token)).accepted).toBe(0);
+  });
+
+  it('pairs the owner’s phone when they type the number of the vehicle they assigned themselves', async () => {
+    const ownerDriver = await createUser({
+      role: RoleName.FLEET_OWNER,
+      organizationId: fleet.id,
+      driver: true,
+    });
+    await assign(ownerDriver);
+
+    // The owner's own sign-on is approved by them, and leaves the standing
+    // assignment in place.
+    const session = await scan(ownerDriver);
+    expect(session.status).toBe(TerminalSessionStatus.APPROVED);
+    expect(session.vehicleSetup.assignedToYou).toBe(true);
+
+    const phone = await pairPhone(ownerDriver, session.id);
+    const pairing = await activePairing(phone.deviceId);
+    expect(pairing?.vehicleId).toBe(vehicle.id);
+    expect(pairing?.driverId).toBe(ownerDriver.driverId);
+    expect(pairing?.releaseOnSignOff).toBe(false);
+  });
+
+  // -------------------------------------------------------------------------
+  // A phone whose identity Saarthi refuses
+  // -------------------------------------------------------------------------
+
+  it('lets a phone with a refused identity redeem the same code after enrolling afresh', async () => {
+    await assign(ramesh);
+    const session = await scan(ramesh);
+    const pairingCode = await issuePairingCode(ramesh, session.id);
+
+    // Installed days before the driver reached the vehicle: the enrolment the
+    // phone still holds has lapsed on the server.
+    const stale = await enrolPhone();
+    await prisma.deviceEnrolment.update({
+      where: { id: stale.enrolmentId },
+      data: { expiresAt: new Date(Date.now() - 60_000) },
+    });
+
+    expect((await redeem(stale.token, pairingCode)).status).toBe(401);
+    const exchange = await request({
+      method: 'POST',
+      url: '/api/v1/device-gateway/token',
+      payload: { deviceIdentifier: stale.deviceIdentifier, secret: stale.secret },
+    });
+    expect(exchange.status).toBe(401);
+
+    // The refusal did not spend the code, so the app's fresh identity can.
+    const fresh = await enrolPhone();
+    const paired = await redeem(fresh.token, pairingCode);
+    expect(paired.status).toBe(201);
+    expect((await activePairing(paired.body.data.identity.deviceId))?.vehicleId).toBe(vehicle.id);
   });
 
   // -------------------------------------------------------------------------

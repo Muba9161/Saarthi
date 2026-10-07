@@ -94,7 +94,7 @@ class TerminalRepository(
     scope: CoroutineScope,
 ) {
 
-    val api = SaarthiApi(settings.apiUrl, identity, CoreConfig.versionName)
+    val api = SaarthiApi(settings.apiUrl, identity, CoreConfig.versionName, ::forgetRefusedIdentity)
 
     enum class Connection { UNKNOWN, ONLINE, OFFLINE, UNAUTHENTICATED }
 
@@ -108,6 +108,7 @@ class TerminalRepository(
     val lastError: StateFlow<String?> = _lastError.asStateFlow()
 
     private val uploadLock = Mutex()
+    private val enrolLock = Mutex()
     private var sequence: Long = 0L
 
     /** The terminal-level state, parsed. [TerminalState.UNPAIRED] until known. */
@@ -131,8 +132,27 @@ class TerminalRepository(
      * tenant data — the identity holds no organization and reaches nothing until
      * an authorised person pairs it.
      */
-    suspend fun ensureEnrolled(): Result<Unit> = runCatchingApi {
-        if (identity.hasCredentials) return@runCatchingApi
+    suspend fun ensureEnrolled(): Result<Unit> = runCatchingApi { enrolIfNeeded() }
+
+    /**
+     * Enrol, unless this terminal already holds credentials.
+     *
+     * Serialised, because the service and the screens both bring the terminal
+     * up at launch. Two enrolments under one installation id race on the
+     * server, and whichever stores its answer last can keep a secret Saarthi
+     * has already replaced.
+     */
+    private suspend fun enrolIfNeeded() = enrolLock.withLock {
+        if (!identity.hasCredentials) enrol()
+    }
+
+    /** Drop the identity Saarthi refused and enrol as a new, unpaired one. */
+    private suspend fun enrolAfresh() = enrolLock.withLock {
+        forgetPairing()
+        enrol()
+    }
+
+    private suspend fun enrol() {
         val result = api.enrol(
             deviceModel = DeviceEnvironment.deviceModel(),
             osVersion = DeviceEnvironment.osVersion(),
@@ -141,23 +161,64 @@ class TerminalRepository(
     }
 
     /**
+     * Saarthi refused this device's secret, so the identity is dead: forget it.
+     *
+     * Every later request then fails on the device instead of at the gateway,
+     * and the next [pair] or launch enrols afresh. Only the identifier that was
+     * refused: an enrolment that landed while that exchange was in flight is
+     * a live one.
+     */
+    private suspend fun forgetRefusedIdentity(refusedIdentifier: String) = enrolLock.withLock {
+        if (identity.deviceIdentifier != refusedIdentifier) return@withLock
+        DebugLog.warn("terminal", "Saarthi refused $refusedIdentifier; forgetting it")
+        forgetPairing()
+    }
+
+    /**
      * Connect to a vehicle.
      *
      * Accepts either the scanned token or the typed `STH-XXXX-XXXX` code. The
      * server treats them as the same single-use credential; which one the
      * installer used is not something the app needs an opinion about.
+     *
+     * Enrols first when there is no identity yet, rather than trusting the
+     * service to have done it: a phone pairing straight after sign-in, or
+     * straight after [forgetPairing], would otherwise send no credentials.
      */
     suspend fun pair(token: String?, pairingCode: String?): Result<Unit> = runCatchingApi {
-        val response = api.pair(
-            PairRequest(
-                token = token,
-                pairingCode = pairingCode,
-                deviceModel = DeviceEnvironment.deviceModel(),
-                osVersion = DeviceEnvironment.osVersion(),
-                appVersion = CoreConfig.versionName,
-                screenInches = DeviceEnvironment.screenInches(context),
-            ),
+        val request = PairRequest(
+            token = token,
+            pairingCode = pairingCode,
+            deviceModel = DeviceEnvironment.deviceModel(),
+            osVersion = DeviceEnvironment.osVersion(),
+            appVersion = CoreConfig.versionName,
+            screenInches = DeviceEnvironment.screenInches(context),
         )
+
+        enrolIfNeeded()
+        val response = try {
+            api.pair(request)
+        } catch (refused: SaarthiApi.Failure.Unauthenticated) {
+            /*
+             * The identity this device holds is one Saarthi no longer accepts.
+             *
+             * An enrolment that is never paired lapses on the server after a
+             * day but stays on the device, so a phone installed one day and
+             * first used at a vehicle the next presented a dead identity and
+             * was refused on every attempt — "not connected", with nothing the
+             * driver could do about it. An archived device, or an identity
+             * another Saarthi server issued, is in the same place.
+             *
+             * Starting over is safe because the pairing code is the
+             * authorisation, not the identity: a fresh enrolment reaches
+             * nothing until it redeems the code, and the refusal did not spend
+             * the code. One retry, so a server refusing everything is not
+             * hammered.
+             */
+            DebugLog.warn("terminal", "Device credentials refused while pairing; enrolling afresh")
+            enrolAfresh()
+            api.pair(request)
+        }
 
         // The pairing response carries a fresh token for the identity this
         // terminal has just become. Without storing it, the very next request

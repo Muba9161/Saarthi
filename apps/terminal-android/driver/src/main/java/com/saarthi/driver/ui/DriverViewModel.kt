@@ -5,6 +5,7 @@ import androidx.annotation.StringRes
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.saarthi.core.domain.TerminalState
+import com.saarthi.core.network.SaarthiApi
 import com.saarthi.core.ui.Language
 import com.saarthi.core.util.DebugLog
 import com.saarthi.driver.R
@@ -16,6 +17,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import javax.crypto.Cipher
 
 /**
@@ -122,6 +125,9 @@ class DriverViewModel(application: Application) : AndroidViewModel(application) 
     /** The last refusal, in the server's own words. Cleared on the next attempt. */
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
+
+    /** One pairing at a time; see [pairToVehicle]. */
+    private val pairingLock = Mutex()
 
     /**
      * The vehicle just scanned has a Saarthi OBD, and the adapter should be
@@ -642,24 +648,34 @@ class DriverViewModel(application: Application) : AndroidViewModel(application) 
      * [requireSignedOn] is false for an assigned driver pairing before their
      * shift is approved: a phone that is paired and waiting is already right,
      * and treating it as stale would re-pair it on every poll.
+     *
+     * Serialised by [pairingLock]. Sign-in and the assignment poll can both
+     * reach this within the same second, and two runs each minted a pairing
+     * code and redeemed it — the second one refused once, then paired again,
+     * and the driver got "Device paired" twice. Under the lock the second run
+     * finds the first one's pairing confirmed and stops.
      */
     private suspend fun pairToVehicle(
         assignment: DriverApi.AssignmentDto,
         requireSignedOn: Boolean = true,
-    ) {
+    ): Unit = pairingLock.withLock {
         if (app.identity.pairedRegistration == assignment.registrationNumber) {
-            val confirmed = app.repository.refresh().isSuccess &&
+            val refreshed = app.repository.refresh()
+            // Unreachable is not "no longer holds". Forgetting here would throw
+            // away a working pairing because of one bad connection.
+            if (refreshed.exceptionOrNull() is SaarthiApi.Failure.Offline) return@withLock
+            val confirmed = refreshed.isSuccess &&
                 TerminalState.parse(app.repository.state.value?.state).let {
                     if (requireSignedOn) it.signedOnToVehicle else it.pairedToVehicle
                 }
-            if (confirmed) return
+            if (confirmed) return@withLock
             DebugLog.info(TAG, "Stored pairing to ${assignment.registrationNumber} no longer holds; pairing again")
             app.repository.forgetPairing()
         }
 
         try {
             val pairing = api.vehiclePairing(assignment.id)
-            val code = pairing.pairingCode ?: return
+            val code = pairing.pairingCode ?: return@withLock
             app.repository.pair(token = null, pairingCode = code).getOrThrow()
             DebugLog.info(TAG, "Paired to ${assignment.registrationNumber}")
         } catch (error: Exception) {

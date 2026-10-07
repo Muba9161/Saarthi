@@ -97,6 +97,25 @@ fun DriverRoot(
         }
     }
 
+    /*
+     * Keep connecting while on shift without the vehicle.
+     *
+     * Pairing is attempted when the shift opens, and nothing tried again: a
+     * phone that was offline at that moment, or whose identity Saarthi later
+     * refused, sat on "Not connected" until the app was restarted. Asking where
+     * the driver stands re-pairs them if the shift still holds, and moves them
+     * on if it does not.
+     */
+    val cockpitState by cockpit.uiState.collectAsState()
+    val unpairedOnShift = stage is DriverViewModel.Stage.Driving && !cockpitState.state.pairedToVehicle
+    LaunchedEffect(unpairedOnShift) {
+        if (!unpairedOnShift) return@LaunchedEffect
+        while (true) {
+            delay(PAIRING_RETRY_MS)
+            driver.refreshAssignment()
+        }
+    }
+
     val fleet by driver.fleet.collectAsState()
 
     val slide = with(LocalDensity.current) { 48.dp.roundToPx() }
@@ -151,3 +170,9 @@ private const val SPLASH_MIN_MS = 2_200L
 
 /** How often to ask whether the fleet has decided. */
 private const val APPROVAL_POLL_MS = 5_000L
+
+/**
+ * How often an unpaired phone on shift tries the vehicle again. Slower than
+ * the approval poll: each attempt mints a pairing code on the server.
+ */
+private const val PAIRING_RETRY_MS = 30_000L
