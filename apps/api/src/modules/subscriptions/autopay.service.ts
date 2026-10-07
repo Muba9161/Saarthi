@@ -12,6 +12,7 @@ import {
   trackerCharge,
   type PlanTier,
 } from '@saarthi/shared';
+import { config } from '../../config/env';
 import { isUniqueViolation, prisma } from '../../database/prisma';
 import { errors } from '../../lib/errors';
 import { logger } from '../../lib/logger';
@@ -672,9 +673,10 @@ export async function runSubscriptionLifecycleSweep(): Promise<{
             amount: await monthlyTotalFor(organizationId, subscription.plan.tier as PlanTier),
           });
           renewed += 1;
-        } else {
+        } else if (config.subscription.enforced) {
           /*
-           * Unpaid. Three days' grace with the warning, then archived.
+           * Unpaid. Three days' grace with the warning, then archived. Never
+           * with enforcement off: a development machine holds no account.
            *
            * With a live Cashfree mandate the debit is expected and confirmed
            * by webhook, so the warning waits a day for a late or retried

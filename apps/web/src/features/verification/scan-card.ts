@@ -1,11 +1,17 @@
 import * as React from 'react';
-import { extractCardNumber, type ScannableNumberKind } from '@saarthi/shared';
+import {
+  UNREAD_WORD,
+  extractCardDetails,
+  type ScannableNumberKind,
+  type ScannedCard,
+} from '@saarthi/shared';
 
 /**
- * Reading an identity number off a card photo — on this device.
+ * Reading an identity number, and the details printed with it, off a card
+ * photo — on this device.
  *
  * The photo never leaves the browser: the text is recognised here, and only
- * the number the person then confirms is sent anywhere. That matters most for
+ * the details the person then confirms are sent anywhere. That matters most for
  * Aadhaar, whose image Saarthi has no business receiving just to fill a field.
  *
  * The recogniser is loaded on first use only, so nobody who types their number
@@ -34,14 +40,18 @@ export interface RecognisedBlock {
   paragraphs: { lines: { words: { text: string; confidence: number }[] }[] }[];
 }
 
-/** The recognised text, line by line, keeping only the words read with confidence. */
-export function confidentText(blocks: readonly RecognisedBlock[] | null): string {
+/**
+ * The recognised text, line by line, keeping only the words read with
+ * confidence. Each other word is dropped, or stands as `unread` when given, so
+ * a line read whole can be told from one with a gap in it.
+ */
+export function confidentText(blocks: readonly RecognisedBlock[] | null, unread = ''): string {
   return (blocks ?? [])
     .flatMap((block) => block.paragraphs.flatMap((paragraph) => paragraph.lines))
     .map((line) =>
       line.words
-        .filter((word) => word.confidence >= MIN_WORD_CONFIDENCE)
-        .map((word) => word.text)
+        .map((word) => (word.confidence >= MIN_WORD_CONFIDENCE ? word.text : unread))
+        .filter(Boolean)
         .join(' '),
     )
     .filter(Boolean)
@@ -52,7 +62,7 @@ export function confidentText(blocks: readonly RecognisedBlock[] | null): string
  * Decode the photo upright, as its orientation tag says.
  *
  * Older Safari rejects `from-image`; there the photo is decoded as stored, and
- * the turns tried in `readNumberFromCard` find the right way up instead.
+ * the turns tried in `readCardDetails` find the right way up instead.
  */
 async function decode(file: Blob): Promise<ImageBitmap> {
   try {
@@ -84,25 +94,25 @@ function prepare(bitmap: ImageBitmap, rotation: number): HTMLCanvasElement {
 }
 
 /**
- * The number of this kind on the photographed card, or null when none can be
- * read with confidence.
+ * The number of this kind on the photographed card, with whatever else the
+ * card shows clearly, or null when the number cannot be read with confidence.
  *
  * Phones store most photos sideways and say so in the photo's orientation tag,
  * which is honoured; a card photographed sideways or upside down is still
  * found, by trying the other turns when the first finds nothing.
  */
-export async function readNumberFromCard(
+export async function readCardDetails(
   file: Blob,
   kind: ScannableNumberKind,
-): Promise<string | null> {
+): Promise<ScannedCard | null> {
   const { createWorker } = await import('tesseract.js');
   const bitmap = await decode(file);
   const worker = await createWorker('eng');
   try {
     for (const rotation of ROTATIONS) {
       const { data } = await worker.recognize(prepare(bitmap, rotation), {}, { blocks: true });
-      const number = extractCardNumber(kind, confidentText(data.blocks));
-      if (number) return number;
+      const card = extractCardDetails(kind, confidentText(data.blocks, UNREAD_WORD));
+      if (card) return card;
     }
     return null;
   } finally {
@@ -111,7 +121,10 @@ export async function readNumberFromCard(
   }
 }
 
-export type CardScanResult = { status: 'found'; number: string } | { status: 'not-found' } | { status: 'failed' };
+export type CardScanResult =
+  | { status: 'found'; card: ScannedCard }
+  | { status: 'not-found' }
+  | { status: 'failed' };
 
 /** Scan state for a screen: whether a read is running, and the one call that runs it. */
 export function useCardScan(kind: ScannableNumberKind | null | undefined) {
@@ -122,8 +135,8 @@ export function useCardScan(kind: ScannableNumberKind | null | undefined) {
       if (!kind) return { status: 'not-found' };
       setReading(true);
       try {
-        const number = await readNumberFromCard(file, kind);
-        return number ? { status: 'found', number } : { status: 'not-found' };
+        const card = await readCardDetails(file, kind);
+        return card ? { status: 'found', card } : { status: 'not-found' };
       } catch {
         // An unreadable format (HEIC on a desktop browser), a blocked model
         // download: the field stays as it was and the person types it.

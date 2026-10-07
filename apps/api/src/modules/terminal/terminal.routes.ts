@@ -31,11 +31,8 @@ import {
   listTerminalPairings,
   vehiclePairingForDriver,
 } from './terminal-pairing.service';
-import {
-  DRIVER_APPLICATION_ID,
-  latestDriverApp,
-  openPublishedRelease,
-} from './release.service';
+import { latestDriverApp } from './release.service';
+import { sendLatestDriverApp } from './driver-app.routes';
 import { listTerminals } from './terminal.service';
 import * as sessions from './session.service';
 import * as checklist from './checklist.service';
@@ -206,40 +203,16 @@ export async function terminalRoutes(app: FastifyInstance): Promise<void> {
   /**
    * The APK.
    *
-   * Streamed through the API rather than handed out as a link to storage: the
-   * file is only for people entitled to drive, and a signed storage URL is a
-   * URL that can be forwarded. Same reason every other Saarthi download works
-   * this way.
+   * Streamed through the API rather than handed out as a link to storage, like
+   * every other Saarthi download. The same build is also offered publicly by
+   * `publicDriverAppRoutes`; this route stays for the dashboard card.
    */
   app.get(
     '/driver-app/download',
     { preHandler: requirePermission(Permission.TERMINAL_DRIVE) },
-    async (_request, reply) => {
-      const latest = await latestDriverApp();
-      if (!latest) {
-        throw errors.notFound(
-          'Driver app',
-          'No Saarthi Driver release has been published yet. Ask your fleet administrator.',
-        );
-      }
-
-      const release = await openPublishedRelease(latest.versionCode, DRIVER_APPLICATION_ID);
-
-      reply
-        .header('content-type', 'application/vnd.android.package-archive')
-        .header('content-length', release.size)
-        .header(
-          'content-disposition',
-          `attachment; filename="saarthi-driver-${latest.versionName}.apk"`,
-        )
-        // The bytes for a version never change, so this is safe to hold. It
-        // matters on a phone tethered to a yard's connection.
-        .header('cache-control', 'private, max-age=86400, immutable')
-        .header('etag', `"${release.sha256}"`)
-        .header('x-content-type-options', 'nosniff');
-
-      return reply.send(release.stream);
-    },
+    // The bytes for a version never change, so this is safe to hold. It
+    // matters on a phone tethered to a yard's connection.
+    async (_request, reply) => sendLatestDriverApp(reply, 'private, max-age=86400, immutable'),
   );
 
   /**

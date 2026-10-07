@@ -7,6 +7,7 @@ import { Reveal } from '../motion-extras';
 import { STAGE } from '../imagery';
 import { cn } from '@/lib/utils';
 import { DRIVER_APP_MOMENTS, type DriverAppMoment } from './moments';
+import { DriverAppDownload } from './driver-app-download';
 import { PhoneFrame } from './phone-frame';
 
 const EASE = [0.16, 1, 0.3, 1] as const;
@@ -71,14 +72,18 @@ export function DriverAppSection() {
           sits directly above the list that drives it. From `lg` the phone
           moves into a column of its own spanning both rows. */}
       <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,30rem)] lg:grid-rows-[auto_1fr] lg:gap-x-20 lg:gap-y-0">
-        <SectionHeading
-          align="start"
-          onDark
-          eyebrow="Humsafar · the driver app"
-          title="Every driver gets a humsafar"
-          body="Humsafar means fellow traveller, and that is the job: one app that walks a driver from the yard gate to the last kilometre, while the office sees every step of it."
-          className="lg:col-start-1 lg:row-start-1"
-        />
+        {/* The download sits with the heading so a reader on a phone, the
+            one who can install it, reaches it before the tour. */}
+        <div className="lg:col-start-1 lg:row-start-1">
+          <SectionHeading
+            align="start"
+            onDark
+            eyebrow="Humsafar · the driver app"
+            title="Every driver gets a humsafar"
+            body="Humsafar means fellow traveller, and that is the job: one app that walks a driver from the yard gate to the last kilometre, while the office sees every step of it."
+          />
+          <DriverAppDownload className="mt-8" />
+        </div>
 
         <Reveal
           direction="left"

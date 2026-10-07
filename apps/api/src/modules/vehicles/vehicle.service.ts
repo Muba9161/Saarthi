@@ -40,8 +40,8 @@ import {
   ownershipResetForNewPlate,
   ownershipView,
   releaseRegistration,
-  resolveRegistrationClaim,
 } from './vehicle-ownership.service';
+import { resolveRegistrationClaim } from './registration-claim.service';
 
 /**
  * Generalized vehicle management.
@@ -450,7 +450,7 @@ export async function assertVehicleAddable(
   ];
   if (problems.length > 0) throw errors.validation(problems[0]!);
 
-  return resolveRegistrationClaim(organizationId, input.registrationNumber, 'vehicle');
+  return resolveRegistrationClaim(auth, organizationId, input.registrationNumber, 'vehicle');
 }
 
 export async function createVehicle(

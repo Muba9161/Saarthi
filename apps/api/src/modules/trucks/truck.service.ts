@@ -29,8 +29,8 @@ import {
   notifyRegistrationReleased,
   ownershipResetForNewPlate,
   releaseRegistration,
-  resolveRegistrationClaim,
 } from '../vehicles/vehicle-ownership.service';
+import { resolveRegistrationClaim } from '../vehicles/registration-claim.service';
 
 /**
  * Truck management.
@@ -269,7 +269,12 @@ export async function createTruck(
 
   await assertTruckLimit(auth, organizationId);
 
-  const releaseTruckId = await resolveRegistrationClaim(organizationId, input.registrationNumber, 'truck');
+  const releaseTruckId = await resolveRegistrationClaim(
+    auth,
+    organizationId,
+    input.registrationNumber,
+    'truck',
+  );
 
   const { truck, released } = await prisma.$transaction(async (tx) => {
     const released = releaseTruckId ? await releaseRegistration(tx, releaseTruckId) : null;

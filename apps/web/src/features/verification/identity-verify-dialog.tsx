@@ -190,7 +190,14 @@ export function IdentityVerifyDialog({
             <div className="space-y-1.5">
               <div className="flex items-center justify-between gap-3">
                 <Label required>{definition.label} number</Label>
-                <ScanNumberButton kind={target.kind} label={definition.label} onNumber={setNumber} />
+                <ScanNumberButton
+                  kind={target.kind}
+                  label={definition.label}
+                  onScan={(card) => {
+                    setNumber(card.number);
+                    if (card.holderName) setHolderName(card.holderName);
+                  }}
+                />
               </div>
               <Input
                 value={number}

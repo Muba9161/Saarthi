@@ -1,9 +1,10 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { LANGUAGE_CATALOGUE } from '@saarthi/shared';
 import { ThemeProvider } from '@/features/theme/theme-context';
 import { ROLE_SHOWCASE } from './feature-catalogue';
@@ -22,10 +23,14 @@ import { erasedIn, planInk, reverseBeat } from '@/components/ink/ink-timeline';
  */
 
 function renderWithProviders(ui: React.ReactElement) {
+  // A fresh client per render, so one test's cached answer is not the next's.
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
-    <ThemeProvider>
-      <MemoryRouter>{ui}</MemoryRouter>
-    </ThemeProvider>,
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <MemoryRouter>{ui}</MemoryRouter>
+      </ThemeProvider>
+    </QueryClientProvider>,
   );
 }
 
@@ -194,6 +199,43 @@ describe('brand band', () => {
 });
 
 describe('driver app band', () => {
+  /** Answer the public driver-app lookup the way the API would. */
+  function publishDriverApp(data: unknown) {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        new Response(JSON.stringify({ success: true, data }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        }),
+      ),
+    );
+  }
+
+  beforeEach(() => publishDriverApp(null));
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('lets anybody download the published app', async () => {
+    publishDriverApp({
+      versionName: '1.4.0',
+      versionCode: 4,
+      sizeBytes: 38_400_000,
+      publishedAt: '2026-10-01T00:00:00.000Z',
+    });
+    renderWithProviders(<DriverAppSection />);
+
+    const link = await screen.findByRole('link', { name: 'Download for Android' });
+    expect(link.getAttribute('href')).toMatch(/\/api\/v1\/driver-app\/public\/download$/);
+    expect(screen.getByText('Version 1.4.0 · 38 MB · Android 8 and later')).toBeInTheDocument();
+  });
+
+  it('offers no download until a build is published', async () => {
+    renderWithProviders(<DriverAppSection />);
+
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalled());
+    expect(screen.queryByRole('link', { name: 'Download for Android' })).not.toBeInTheDocument();
+  });
+
   it('offers every moment of the shift as a tab', () => {
     renderWithProviders(<DriverAppSection />);
 

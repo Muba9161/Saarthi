@@ -166,7 +166,14 @@ function PaidCheckForm({
             <Label htmlFor={`${step.id}-number`} required>
               {definition.label} number
             </Label>
-            <ScanNumberButton kind={identityKind} label={definition.label} onNumber={setNumber} />
+            <ScanNumberButton
+              kind={identityKind}
+              label={definition.label}
+              onScan={(card) => {
+                setNumber(card.number);
+                if (card.holderName) setHolderName(card.holderName);
+              }}
+            />
           </div>
           <Input
             id={`${step.id}-number`}

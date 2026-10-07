@@ -83,7 +83,7 @@ export function assertNotReleased(truck: { ownershipStatus: string }): void {
  * them, so the owner can be told exactly what is missing instead of being told
  * they have verified nothing.
  */
-async function verifiedNamesFor(
+export async function verifiedNamesFor(
   organizationId: string,
 ): Promise<{ names: string[]; aadhaarOnly: boolean }> {
   const [organization, directors] = await Promise.all([
@@ -130,7 +130,7 @@ async function verifiedNamesFor(
  * Any account's lookup will do: the record describes the vehicle, not who
  * asked, and it is only compared here — never returned.
  */
-async function storedRcOwnerName(registrationNumber: string): Promise<string | null> {
+export async function storedRcOwnerName(registrationNumber: string): Promise<string | null> {
   const lookup = await prisma.vehicleLookup.findFirst({
     where: { registrationNumber },
     orderBy: { fetchedAt: 'desc' },
@@ -287,51 +287,10 @@ export async function checkOwnership(
 
 // ---------------------------------------------------------------------------
 // A plate already on Saarthi
+//
+// Whether a held plate may move is decided in `registration-claim.service.ts`,
+// which can fetch the RC; this is the hand-over itself.
 // ---------------------------------------------------------------------------
-
-/**
- * Is this plate free to add, and does another account's hold on it have to go?
- *
- * Registration numbers are unique across Saarthi, so whoever adds a plate first
- * would otherwise keep it from its owner for good. A hold that was never
- * confirmed gives way to an account whose verified name matches the RC; a
- * confirmed hold, or one on the same account, does not. Returns the vehicle to
- * release, or `null` when the plate is free.
- */
-export async function resolveRegistrationClaim(
-  organizationId: string,
-  registrationNumber: string,
-  noun: 'truck' | 'vehicle',
-): Promise<string | null> {
-  const existing = await prisma.truck.findUnique({
-    where: { registrationNumber },
-    select: { id: true, organizationId: true, ownershipStatus: true },
-  });
-  if (!existing) return null;
-
-  const fields = {
-    fields: { registrationNumber: ['This registration number is already registered.'] },
-  };
-
-  if (
-    existing.organizationId !== organizationId &&
-    existing.ownershipStatus !== VehicleOwnershipStatus.VERIFIED
-  ) {
-    const outcome = await matchOwnerName(organizationId, registrationNumber);
-    if (outcome.matched) return existing.id;
-
-    throw errors.duplicate(
-      `${registrationNumber} is held by another account that has not confirmed it owns it. ` +
-        'If it is yours, fetch its RC details on this form and make sure your PAN, Voter ID or business GSTIN is verified, so your name can be matched to the RC.',
-      fields,
-    );
-  }
-
-  throw errors.duplicate(
-    `A ${noun} with registration ${registrationNumber} is already registered on Saarthi.`,
-    fields,
-  );
-}
 
 /**
  * Hand a plate back to its verified owner: archive the unconfirmed holder's

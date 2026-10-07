@@ -11,6 +11,7 @@ import {
   normalizeIdentityNumber,
   type DocumentOwnerType,
   type ScannableNumberKind,
+  type ScannedCard,
 } from '@saarthi/shared';
 import { api, errorMessage } from '@/lib/api-client';
 import type { DocumentSummary } from '@/lib/api-types';
@@ -108,9 +109,22 @@ export function UploadDialog({
   const chosenFile = React.useRef<File | null>(null);
 
   /**
+   * Fill the number and dates from a scanned card. A scan the person asked for
+   * replaces what is there; the one that runs by itself when a photo is chosen
+   * only fills what is still empty.
+   */
+  const fillFromCard = (card: ScannedCard, replace: boolean): void => {
+    const fill = (scanned: string | undefined) => (current: string) =>
+      scanned && (replace || !current.trim()) ? scanned : current;
+    setDocumentNumber(fill(card.number));
+    setIssueDate(fill(card.issueDate));
+    setExpiryDate(fill(card.expiryDate));
+  };
+
+  /**
    * A photo of the card chosen as the file doubles as the scan: with the
-   * number still empty, it is read on this device and filled in, so the
-   * person photographs the card once and is done. A typed number is never
+   * number still empty, it is read on this device and the form filled in, so
+   * the person photographs the card once and is done. Nothing typed is ever
    * overwritten.
    */
   const chooseFile = async (chosen: File | null): Promise<void> => {
@@ -120,9 +134,7 @@ export function UploadDialog({
     const result = await scanCard(chosen);
     // Removed, replaced, or the dialog closed while it was being read.
     if (chosenFile.current !== chosen) return;
-    if (result.status === 'found') {
-      setDocumentNumber((current) => (current.trim() ? current : result.number));
-    }
+    if (result.status === 'found') fillFromCard(result.card, false);
     announceScan(result, numberLabel);
   };
 
@@ -251,7 +263,11 @@ export function UploadDialog({
                 {identityKind ? `${identityKind.label} number` : 'Document number'}
               </Label>
               {scanKind ? (
-                <ScanNumberButton kind={scanKind} label={numberLabel} onNumber={setDocumentNumber} />
+                <ScanNumberButton
+                  kind={scanKind}
+                  label={numberLabel}
+                  onScan={(card) => fillFromCard(card, true)}
+                />
               ) : null}
             </div>
             <Input

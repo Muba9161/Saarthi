@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import {
   DATA_PURGE_AFTER_DAYS,
   Feature,
@@ -9,6 +9,7 @@ import {
   SubscriptionStatus,
   TruckType,
 } from '@saarthi/shared';
+import { config } from '../src/config/env';
 import { prisma } from '../src/database/prisma';
 import { invalidateEntitlements } from '../src/modules/subscriptions/entitlements.service';
 import { runSubscriptionLifecycleSweep } from '../src/modules/subscriptions/autopay.service';
@@ -39,6 +40,11 @@ async function endPeriod(organizationId: string, daysAgo: number): Promise<void>
     data: { status: SubscriptionStatus.TRIALING, endsAt: new Date(Date.now() - daysAgo * DAY) },
   });
   invalidateEntitlements(organizationId);
+}
+
+/** `SUBSCRIPTION_ENFORCEMENT`, as a developer's machine runs it when off. */
+function setEnforced(enforced: boolean): void {
+  (config.subscription as { enforced: boolean }).enforced = enforced;
 }
 
 async function addTruck(organizationId: string): Promise<string> {
@@ -297,6 +303,50 @@ describe('unpaid account retention', () => {
       });
       expect((await runAccountPurgeSweep()).purged).toBe(0);
       expect(await prisma.truck.findUnique({ where: { id: truckId } })).not.toBeNull();
+    });
+  });
+
+  describe('with enforcement off (development)', () => {
+    beforeEach(() => setEnforced(false));
+    afterEach(() => setEnforced(true));
+
+    it('never warns or archives an unpaid account', async () => {
+      await endPeriod(fleet.id, 4);
+      const result = await runSubscriptionLifecycleSweep();
+      expect(result.expired).toBe(0);
+
+      const organization = await prisma.organization.findUniqueOrThrow({ where: { id: fleet.id } });
+      expect(organization.billingArchivedAt).toBeNull();
+      const subscription = await prisma.subscription.findUniqueOrThrow({ where: { organizationId: fleet.id } });
+      expect(subscription.status).toBe(SubscriptionStatus.TRIALING);
+    });
+
+    it('opens an account archived earlier, and never purges it', async () => {
+      const truckId = await addTruck(fleet.id);
+      await prisma.organization.update({
+        where: { id: fleet.id },
+        data: {
+          billingArchivedAt: new Date(Date.now() - (DATA_PURGE_AFTER_DAYS + 1) * DAY),
+          dataPurgeAt: new Date(Date.now() - DAY),
+        },
+      });
+
+      const trucks = await request({ method: 'GET', url: '/api/v1/trucks', user: owner });
+      expect(trucks.status).toBe(200);
+      const me = await request<{ organization: { billingArchivedAt: string | null } | null }>({
+        method: 'GET',
+        url: '/api/v1/auth/me',
+        user: owner,
+      });
+      expect(me.body.data.organization?.billingArchivedAt).toBeNull();
+
+      expect((await runAccountPurgeSweep()).purged).toBe(0);
+      expect(await prisma.truck.findUnique({ where: { id: truckId } })).not.toBeNull();
+
+      // The archive is kept, not cleared: enforcement back on, locked again.
+      setEnforced(true);
+      const locked = await request({ method: 'GET', url: '/api/v1/trucks', user: owner });
+      expect(locked.status).toBe(402);
     });
   });
 });

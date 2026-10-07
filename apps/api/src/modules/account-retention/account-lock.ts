@@ -1,4 +1,5 @@
 import type { FastifyRequest } from 'fastify';
+import { config } from '../../config/env';
 import { errors } from '../../lib/errors';
 import type { AuthContext } from '../../auth/context';
 
@@ -20,6 +21,24 @@ const OPEN_WHILE_ARCHIVED: readonly (string | RegExp)[] = [
 
 function isOpen(path: string): boolean {
   return OPEN_WHILE_ARCHIVED.some((rule) => (typeof rule === 'string' ? rule === path : rule.test(path)));
+}
+
+interface ArchiveState {
+  billingArchivedAt: Date | null;
+  dataPurgeAt: Date | null;
+}
+
+/**
+ * The archive as this deployment applies it.
+ *
+ * With `SUBSCRIPTION_ENFORCEMENT` off (development only; production refuses
+ * to start that way) nothing is held for non-payment, so an account archived
+ * before the flag was turned off reads as open. The columns are left as they
+ * are: turn enforcement back on and the lock is exactly where it was.
+ */
+export function effectiveArchive(organization: ArchiveState): ArchiveState {
+  if (!config.subscription.enforced) return { billingArchivedAt: null, dataPurgeAt: null };
+  return { billingArchivedAt: organization.billingArchivedAt, dataPurgeAt: organization.dataPurgeAt };
 }
 
 /** Refuse the request if the caller's organization is archived for non-payment. */

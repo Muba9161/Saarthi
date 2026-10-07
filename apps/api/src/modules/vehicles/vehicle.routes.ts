@@ -74,7 +74,9 @@ export async function vehicleRoutes(app: FastifyInstance): Promise<void> {
 
   /**
    * Would this vehicle be accepted, leaving plan capacity aside? Asked by the
-   * add-vehicle form before it takes payment for an extra slot. Writes nothing.
+   * add-vehicle form before it takes payment for an extra slot. Writes no
+   * vehicle; a plate another account holds may have its RC fetched and stored,
+   * so the claim is settled before anybody pays.
    */
   app.post(
     '/check',

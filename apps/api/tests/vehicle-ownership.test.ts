@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   IdentityDocumentKind,
   IdentityVerificationOutcome,
@@ -31,12 +31,14 @@ import {
   type TestOrganization,
   type TestUser,
 } from './helpers';
+import { isRcLookupCall, jsonResponse, stubProvider, successEnvelope } from './way2api-rc-fixture';
 
 /**
  * Vehicle ownership, automatically: an account sees a vehicle's owner unmasked,
  * and can take a plate from another account, only once the RC owner's name
- * matches a government-verified name on it. Every test seeds the stored RC
- * record directly, so no provider is ever called.
+ * matches a government-verified name on it. Tests seed the stored RC record
+ * directly; the few that need a claim to fetch it stub `fetch`, so no provider
+ * is ever called.
  */
 
 const PLATE = 'UP32AB1234';
@@ -436,6 +438,7 @@ describe('vehicle ownership', () => {
       const claimed = await addVehicle(owner);
 
       expect(claimed.status).toBe(409);
+      expect(claimed.body.error?.message).toMatch(/does not match a verified name/);
       const kept = await prisma.truck.findUniqueOrThrow({ where: { id: squatted.body.data.id } });
       expect(kept.ownershipStatus).toBe(VehicleOwnershipStatus.PENDING);
       expect(kept.archivedAt).toBeNull();
@@ -451,6 +454,63 @@ describe('vehicle ownership', () => {
 
       expect(claimed.status).toBe(409);
       expect(claimed.body.error?.message).toMatch(/already registered/);
+    });
+
+    describe('with no RC stored for the plate', () => {
+      afterEach(() => vi.unstubAllGlobals());
+
+      it('fetches the RC itself, then releases the hold to the verified owner', async () => {
+        const squatted = await addVehicle(otherOwner);
+        await verifyPan(owner.id, RC_OWNER);
+        const provider = stubProvider(successEnvelope());
+
+        const claimed = await addVehicle(owner);
+
+        expect(claimed.status, JSON.stringify(claimed.body)).toBe(201);
+        expect(claimed.body.data.ownership.status).toBe(VehicleOwnershipStatus.VERIFIED);
+        expect(provider.mock.calls.filter(([input]) => isRcLookupCall(input))).toHaveLength(1);
+        const released = await prisma.truck.findUniqueOrThrow({
+          where: { id: squatted.body.data.id },
+        });
+        expect(released.ownershipStatus).toBe(VehicleOwnershipStatus.RELEASED);
+      });
+
+      it('tells an Aadhaar-only claimant what is missing, without paying for a lookup', async () => {
+        await addVehicle(otherOwner);
+        await prisma.user.update({
+          where: { id: owner.id },
+          data: { aadhaarLast4: '9012', aadhaarVerifiedAt: new Date() },
+        });
+        const provider = stubProvider(successEnvelope());
+
+        const claimed = await addVehicle(owner);
+
+        expect(claimed.status).toBe(409);
+        expect(claimed.body.error?.message).toMatch(/Aadhaar check does not include your name/);
+        expect(provider).not.toHaveBeenCalled();
+      });
+
+      it('reports an RC provider failure as one, and keeps the hold', async () => {
+        const squatted = await addVehicle(otherOwner);
+        await verifyPan(owner.id, RC_OWNER);
+        // Way2API's documented answer when its upstream lookup fails outright.
+        vi.stubGlobal(
+          'fetch',
+          vi.fn(async () =>
+            jsonResponse(
+              { success: false, charged: false, message_code: 'REQUEST_FAILED', message: 'Request failed' },
+              400,
+            ),
+          ),
+        );
+
+        const claimed = await addVehicle(owner);
+
+        expect(claimed.status).toBe(503);
+        expect(claimed.body.error?.message).toMatch(/could not be fetched just now/);
+        const kept = await prisma.truck.findUniqueOrThrow({ where: { id: squatted.body.data.id } });
+        expect(kept.ownershipStatus).toBe(VehicleOwnershipStatus.PENDING);
+      });
     });
   });
 

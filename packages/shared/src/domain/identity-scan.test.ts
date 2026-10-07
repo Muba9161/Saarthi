@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { IdentityDocumentKind, extractCardNumber } from '../index';
+import { IdentityDocumentKind, UNREAD_WORD, extractCardDetails, extractCardNumber } from '../index';
 
 /**
  * Pulling the number off a photographed card. The inputs are shaped like real
@@ -70,5 +70,113 @@ describe('extractCardNumber', () => {
     expect(extractCardNumber(IdentityDocumentKind.PAN, text)).toBeNull();
     expect(extractCardNumber(IdentityDocumentKind.AADHAAR, text)).toBeNull();
     expect(extractCardNumber('DRIVING_LICENCE', text)).toBeNull();
+  });
+});
+
+describe('extractCardDetails', () => {
+  // Hindi on a bilingual card comes back from the English model as words read
+  // without confidence, which the scanner passes on as UNREAD_WORD.
+  const U = UNREAD_WORD;
+
+  it('reads the name under the label on the current PAN card, not the father’s', () => {
+    const text = [
+      `${U} ${U} INCOME TAX DEPARTMENT ${U} ${U} GOVT. OF INDIA`,
+      'Permanent Account Number Card',
+      PAN,
+      `${U} / Name`,
+      'SNEHA MOHANTY',
+      `${U} ${U} ${U} / Father's Name`,
+      'RAJESH MOHANTY',
+      `${U} ${U} / Date of Birth`,
+      '12/04/1990',
+    ].join('\n');
+    expect(extractCardDetails(IdentityDocumentKind.PAN, text)).toEqual({
+      number: PAN,
+      holderName: 'SNEHA MOHANTY',
+    });
+  });
+
+  it('reads the name under the heading on the older PAN card', () => {
+    const text = [
+      'INCOME TAX DEPARTMENT GOVT. OF INDIA',
+      'SNEHA MOHANTY',
+      'RAJESH MOHANTY',
+      '12/04/1990',
+      'Permanent Account Number',
+      PAN,
+    ].join('\n');
+    expect(extractCardDetails(IdentityDocumentKind.PAN, text)?.holderName).toBe('SNEHA MOHANTY');
+  });
+
+  it('reads a business name from a company PAN', () => {
+    const text = [
+      'Permanent Account Number Card',
+      'AAACS1234K',
+      `${U} / Name`,
+      'SAARTHI NETWORKS PRIVATE LIMITED',
+      `${U} / Date of Incorporation/Formation`,
+      '01/04/2015',
+    ].join('\n');
+    expect(extractCardDetails(IdentityDocumentKind.PAN, text)).toEqual({
+      number: 'AAACS1234K',
+      holderName: 'SAARTHI NETWORKS PRIVATE LIMITED',
+    });
+  });
+
+  it('offers no name when a word of it was not read', () => {
+    // "SNEHA" alone would fail a check that "SNEHA MOHANTY" passes.
+    const text = [`${U} / Name`, `SNEHA ${U}`, PAN].join('\n');
+    expect(extractCardDetails(IdentityDocumentKind.PAN, text)).toEqual({ number: PAN });
+  });
+
+  it('still reads the number around unread words', () => {
+    expect(extractCardDetails(IdentityDocumentKind.PAN, `${U} ABCPE ${U} 1234F`)?.number).toBe(PAN);
+  });
+
+  it('reads a licence’s issue date and the earlier of its validities', () => {
+    const text = [
+      'INDIAN UNION DRIVING LICENCE',
+      'DL No. UP32 2011 0012345',
+      'DOB: 01-01-1990  Issue Date: 12-03-2015',
+      'Validity(NT): 11-03-2035  Validity(TR): 11-03-2018',
+    ].join('\n');
+    expect(extractCardDetails('DRIVING_LICENCE', text)).toEqual({
+      number: 'UP3220110012345',
+      issueDate: '2015-03-12',
+      expiryDate: '2018-03-11',
+    });
+  });
+
+  it('reads dates printed in a row under a row of labels', () => {
+    const text = ['DL No. UP32 2011 0012345', 'Date of Issue   Valid Till', '12-03-2015  11-03-2035'].join(
+      '\n',
+    );
+    expect(extractCardDetails('DRIVING_LICENCE', text)).toMatchObject({
+      issueDate: '2015-03-12',
+      expiryDate: '2035-03-11',
+    });
+  });
+
+  it('takes the issue date from an Aadhaar and never the date of birth', () => {
+    const text = [
+      'Aadhaar no. issued: 12/04/2012',
+      'GOVERNMENT OF INDIA',
+      'Sneha Mohanty',
+      'DOB: 12/04/1990',
+      '2345 6789 0124',
+    ].join('\n');
+    expect(extractCardDetails(IdentityDocumentKind.AADHAAR, text)).toEqual({
+      number: AADHAAR,
+      issueDate: '2012-04-12',
+    });
+  });
+
+  it('ignores a date that is not a real one, and unlabelled dates', () => {
+    const text = ['DL No. UP32 2011 0012345', 'Issue Date: 31-02-2015', '11-03-2035'].join('\n');
+    expect(extractCardDetails('DRIVING_LICENCE', text)).toEqual({ number: 'UP3220110012345' });
+  });
+
+  it('offers nothing at all when the number cannot be read', () => {
+    expect(extractCardDetails(IdentityDocumentKind.PAN, `${U} / Name\nSNEHA MOHANTY`)).toBeNull();
   });
 });

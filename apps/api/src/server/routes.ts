@@ -59,6 +59,7 @@ import {
 } from '../modules/terminal/terminal.routes';
 import { terminalClientRoutes } from '../modules/terminal/terminal-client.routes';
 import { terminalReleaseRoutes } from '../modules/terminal/release.routes';
+import { publicDriverAppRoutes } from '../modules/terminal/driver-app.routes';
 import { deviceGatewayRoutes } from '../modules/telemetry/gateway.routes';
 import { aiRoutes } from '../modules/ai/ai.routes';
 import { loanRoutes, vehicleLoanRoutes } from '../modules/loans/loan.routes';
@@ -221,6 +222,10 @@ export async function registerApiRoutes(app: FastifyInstance): Promise<void> {
   // Shipping new Terminal builds. Platform administration, not a fleet's — see
   // `release.routes.ts`.
   await app.register(terminalReleaseRoutes, { prefix: '/terminal-releases' });
+  // The driver app's APK for anybody, offered from the marketing site. Public,
+  // like the referral landing target: the visitor has no Saarthi account yet,
+  // and the app itself still asks them to sign in.
+  await app.register(publicDriverAppRoutes, { prefix: '/driver-app/public' });
   await app.register(telemetryRoutes, { prefix: '/telemetry' });
   // Multi-camera devices (YC06). Registration hangs off the device; watching a
   // camera is its own surface, because that is how a person thinks about it.

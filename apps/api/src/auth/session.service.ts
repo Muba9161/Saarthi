@@ -16,6 +16,7 @@ import { errors } from '../lib/errors';
 import { config } from '../config/env';
 import { resolveSubscription } from '../modules/subscriptions/entitlements.service';
 import { hasEmployer } from '../modules/organizations/fleet-invite.service';
+import { effectiveArchive } from '../modules/account-retention/account-lock';
 import type { AuthContext } from './context';
 
 /**
@@ -102,6 +103,7 @@ function globalRoles(user: LoadedUser): RoleName[] {
 }
 
 function toSessionOrganization(membership: LoadedUser['memberships'][number]): SessionOrganization {
+  const archive = effectiveArchive(membership.organization);
   return {
     id: membership.organization.id,
     name: membership.organization.name,
@@ -110,8 +112,8 @@ function toSessionOrganization(membership: LoadedUser['memberships'][number]): S
     membershipRole: membership.role,
     membershipStatus: membership.status,
     isPersonalSeat: membership.organization.isPersonalSeat,
-    billingArchivedAt: membership.organization.billingArchivedAt?.toISOString() ?? null,
-    dataPurgeAt: membership.organization.dataPurgeAt?.toISOString() ?? null,
+    billingArchivedAt: archive.billingArchivedAt?.toISOString() ?? null,
+    dataPurgeAt: archive.dataPurgeAt?.toISOString() ?? null,
   };
 }
 
@@ -217,8 +219,7 @@ export async function buildAuthContext(
           type: membership.organization.type,
           membershipRole: membership.role,
           isPersonalSeat: membership.organization.isPersonalSeat,
-          billingArchivedAt: membership.organization.billingArchivedAt,
-          dataPurgeAt: membership.organization.dataPurgeAt,
+          ...effectiveArchive(membership.organization),
         }
       : null,
     permissions: resolvePermissions(user, membership),

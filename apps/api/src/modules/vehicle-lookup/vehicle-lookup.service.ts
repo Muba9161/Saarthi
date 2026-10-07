@@ -17,7 +17,7 @@ import { errors } from '../../lib/errors';
 import { logger } from '../../lib/logger';
 import { storageProvider } from '../../providers/storage';
 import { maskRegistration, requireVehicleRcProvider } from '../../providers/vehicle-rc';
-import { AuditAction } from '../audit/audit.service';
+import { AuditAction, recordAudit } from '../audit/audit.service';
 import { evaluateOwnership } from '../vehicles/vehicle-ownership.service';
 import { assertUnlocked, isUnlocked } from '../secure-access/secure-access.service';
 import type { AuthContext } from '../../auth/context';
@@ -385,6 +385,38 @@ export async function prefillVehicleFromRc(
     },
     outcome,
   };
+}
+
+/**
+ * Fetch and store the RC for a plate another account holds, so a claim on it
+ * can be settled.
+ *
+ * Run only when the claimant has a verified name to compare and no record of
+ * the plate exists yet: the claim needs the RTO's owner name, and asking the
+ * claimant to fetch it first is the step people miss. Audited like any other
+ * lookup, so the environment's budget still counts it. Nothing is returned;
+ * the stored record is what the claim reads.
+ */
+export async function fetchRcForOwnershipClaim(
+  auth: AuthContext,
+  registrationNumber: string,
+): Promise<void> {
+  const outcome = await fetchLookup(auth, { registrationNumber, refresh: false });
+
+  await recordAudit({
+    action: AuditAction.VEHICLE_RC_LOOKUP,
+    entityType: 'VehicleLookup',
+    entityId: outcome.audit.lookupId,
+    actorUserId: auth.user.id,
+    organizationId: auth.organizationId ?? null,
+    after: {
+      registrationNumber: outcome.audit.registrationNumber,
+      cached: outcome.audit.cached,
+      pdfStored: outcome.audit.pdfStored,
+      providerReference: outcome.audit.providerReference,
+      purpose: 'ownership-claim',
+    },
+  });
 }
 
 /**

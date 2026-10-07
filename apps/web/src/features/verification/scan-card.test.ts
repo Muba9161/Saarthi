@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { extractCardNumber, IdentityDocumentKind } from '@saarthi/shared';
+import {
+  UNREAD_WORD,
+  extractCardDetails,
+  extractCardNumber,
+  IdentityDocumentKind,
+} from '@saarthi/shared';
 import { confidentText, type RecognisedBlock } from './scan-card';
 
 /** One block of recognised lines, each word with the confidence OCR gave it. */
@@ -41,6 +46,19 @@ describe('confidentText', () => {
       ),
     ];
     expect(extractCardNumber(IdentityDocumentKind.PAN, confidentText(blocks))).toBeNull();
+  });
+
+  it('marks the words it dropped when asked, so a gap in a name is not missed', () => {
+    const blocks = [
+      block(
+        [['नाम', 12], ['/', 80], ['Name', 93]],
+        [['SNEHA', 94], ['MOHANTY', 41]],
+        [['ABCPE1234F', 91]],
+      ),
+    ];
+    const text = confidentText(blocks, UNREAD_WORD);
+    expect(text).toBe(`${UNREAD_WORD} / Name\nSNEHA ${UNREAD_WORD}\nABCPE1234F`);
+    expect(extractCardDetails(IdentityDocumentKind.PAN, text)).toEqual({ number: 'ABCPE1234F' });
   });
 
   it('reads nothing from nothing', () => {

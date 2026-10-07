@@ -1,4 +1,5 @@
 import { MembershipStatus, SubscriptionStatus } from '@saarthi/shared';
+import { config } from '../../config/env';
 import { prisma } from '../../database/prisma';
 import { logger } from '../../lib/logger';
 import { withLock } from '../../infra/lock';
@@ -211,8 +212,15 @@ export async function purgeAccountData(organizationId: string, now = new Date())
   });
 }
 
-/** Purge every archived account whose 90 days are up. */
+/**
+ * Purge every archived account whose 90 days are up.
+ *
+ * Not with enforcement off: the archive is not applied there (see
+ * `effectiveArchive`), so an account it would purge is one its owner is using.
+ */
 export async function runAccountPurgeSweep(now = new Date()): Promise<{ purged: number }> {
+  if (!config.subscription.enforced) return { purged: 0 };
+
   const due = await prisma.organization.findMany({
     where: {
       billingArchivedAt: { not: null },
