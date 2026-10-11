@@ -1,0 +1,96 @@
+# Lint, typecheck, build and test every pull request into main or develop, and
+# every commit that lands on them. Pull requests cannot merge until this passes.
+name: CI
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+
+# A newer push to the same branch or pull request makes the older run pointless.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # Matches deploy/provision.sh, so CI builds with what production runs.
+  NODE_VERSION: 22
+  # The Postgres service below. API tests derive their own `saarthi_test`
+  # database from this URL and set every other variable themselves.
+  DATABASE_URL: postgresql://postgres:postgres@localhost:5432/saarthi
+
+jobs:
+  verify:
+    name: Lint, typecheck & build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # Full history, so the formatting step can diff against the base branch.
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci
+      - run: npm run db:generate
+      - run: npm run lint
+
+      # Only the files a pull request touches: much of the existing codebase
+      # predates the Prettier config, and reformatting it all belongs in its
+      # own change rather than in whichever pull request happens to run first.
+      - name: Check formatting of changed files
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          git diff -z --name-only --diff-filter=ACMR "$BASE_SHA" HEAD -- \
+            '*.ts' '*.tsx' '*.js' '*.jsx' '*.mjs' '*.cjs' '*.json' '*.css' \
+            | xargs -0 --no-run-if-empty npx prettier --check
+
+      - run: npm run typecheck
+      - run: npm run build
+
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    services:
+      # Same image docker-compose.yml uses for local development. Its data lives
+      # in memory: most API suites truncate every operational table before each
+      # test, and on disk that truncate is most of the suite's running time.
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: saarthi
+        ports:
+          - 5432:5432
+        options: >-
+          --tmpfs /var/lib/postgresql/data
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci
+      - run: npm run db:generate
+      - run: npm test

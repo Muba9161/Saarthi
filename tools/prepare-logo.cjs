@@ -18,7 +18,7 @@ const path = require('node:path');
 const { PNG } = require('pngjs');
 
 const ROOT = path.resolve(__dirname, '..');
-const SOURCE = path.join(ROOT, 'saarthiLogo.png');
+const SOURCE = path.join(ROOT, 'design/brand/saarthiLogo.png');
 
 const png = PNG.sync.read(fs.readFileSync(SOURCE));
 const { width: W, height: H, data } = png;

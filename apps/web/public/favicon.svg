@@ -5,7 +5,7 @@
   white, because the mark is navy on transparency and needs a light ground to
   survive a dark tab strip.
 
-  Deliberately not favicon/favicon.svg from the generated set: that file is an
+  Deliberately not design/favicon/favicon.svg from the generated set: that file is an
   849KB wrapper around a raster of the *full lockup*, so it cost 20x the bytes
   to draw a wordmark that is illegible at 16px. Browsers prefer an SVG icon
   over the PNGs, so this is the one that actually gets fetched.

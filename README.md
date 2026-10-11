@@ -241,6 +241,8 @@ saarthi/
 
 ## Documentation
 
+- [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md) — branches, commit messages, pull requests and releases
+- [`docs/CHANGELOG.md`](docs/CHANGELOG.md) — release history
 - [`docs/LOCAL_SETUP.md`](docs/LOCAL_SETUP.md) — detailed setup and troubleshooting
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — how the pieces fit together
 - [`docs/API.md`](docs/API.md) — endpoint reference

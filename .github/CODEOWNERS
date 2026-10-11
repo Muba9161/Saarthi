@@ -1,0 +1,4 @@
+# Every change is reviewed by the lead developer. GitHub requests the review
+# automatically when a pull request is opened. Later rules override earlier
+# ones, so add path-specific owners below this line as the team grows.
+*  @Muba9161

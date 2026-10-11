@@ -1,0 +1,67 @@
+# Enforces the branch and pull request rules in docs/CONTRIBUTING.md.
+name: PR rules
+
+on:
+  pull_request:
+    branches: [main, develop]
+    # `edited` re-checks a renamed title or a changed base branch; `synchronize`
+    # re-attaches the result to each new commit so the check stays required.
+    types: [opened, edited, synchronize, reopened]
+
+permissions: {}
+
+jobs:
+  rules:
+    name: Branch & title rules
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Check branch name, target branch and title
+        # Passed through env, never interpolated into the script: a pull request
+        # title is user input and would otherwise run as shell code.
+        env:
+          HEAD_BRANCH: ${{ github.head_ref }}
+          BASE_BRANCH: ${{ github.base_ref }}
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          failed=0
+          fail() { echo "::error::$1"; failed=1; }
+
+          # GitHub's own security-update pull requests use their own naming.
+          if [[ "$HEAD_BRANCH" == dependabot/* ]]; then
+            echo "Dependabot pull request: rules skipped."
+            exit 0
+          fi
+
+          # --- Branch name -------------------------------------------------
+          # develop and main are allowed as sources for releases (develop → main)
+          # and hotfix back-merges (main → develop).
+          branch_re='^(feature|fix|refactor|chore|docs|hotfix)/[a-z0-9]+([.-][a-z0-9]+)*$'
+          if [[ "$HEAD_BRANCH" != develop && "$HEAD_BRANCH" != main && ! "$HEAD_BRANCH" =~ $branch_re ]]; then
+            fail "Branch '$HEAD_BRANCH' does not follow the naming rule. Use <type>/<issue>-<description> in lowercase, e.g. feature/123-add-login. Types: feature, fix, refactor, chore, docs, hotfix."
+          fi
+
+          # --- Target branch -----------------------------------------------
+          if [[ "$BASE_BRANCH" == main && "$HEAD_BRANCH" != develop && "$HEAD_BRANCH" != hotfix/* ]]; then
+            fail "Only develop (a release) or hotfix/* branches may target main. Change the base branch to develop."
+          fi
+          if [[ "$BASE_BRANCH" == develop && "$HEAD_BRANCH" == hotfix/* ]]; then
+            fail "hotfix/* branches target main. Change the base branch to main."
+          fi
+
+          # --- Title: the commit that lands after squash merge ---------------
+          title_re='^(feat|fix|refactor|perf|docs|test|chore|style)(\((api|web|shared|device|terminal|db|deploy|deps|ci|release)\))?!?: (.+)$'
+          if [[ "$TITLE" =~ $title_re ]]; then
+            subject="${BASH_REMATCH[4]}"
+            [[ "$subject" =~ ^[A-Z] ]] && fail "Start the title's subject with a lowercase letter: '$subject'."
+            [[ "$subject" == *. ]] && fail "Remove the full stop at the end of the title."
+            (( ${#subject} > 72 )) && fail "Keep the title's subject to 72 characters (it is ${#subject})."
+          else
+            fail "Title '$TITLE' is not a Conventional Commit. Use <type>(<scope>): <subject>, e.g. feat(web): add email verification flow. Types: feat, fix, refactor, perf, docs, test, chore, style. Scopes (optional): api, web, shared, device, terminal, db, deploy, deps, ci, release."
+          fi
+
+          if (( failed )); then
+            echo "See docs/CONTRIBUTING.md for the full rules."
+            exit 1
+          fi
+          echo "Branch, target and title all follow the rules."

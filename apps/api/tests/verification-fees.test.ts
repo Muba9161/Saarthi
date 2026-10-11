@@ -808,7 +808,7 @@ describe('free retries for misread checks', () => {
 
 describe('the verification centre', () => {
   const stepsFor = async (user: TestUser, query = '') => {
-    const response = await request<{ overall: string; steps: { id: string; state: string; price: { amount: number } | null }[] }>({
+    const response = await request<{ overall: string; steps: { id: string; state: string; price: { amount: number } | null; actionable: boolean }[] }>({
       method: 'GET',
       url: `/api/v1/verification-center${query}`,
       user,
