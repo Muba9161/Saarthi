@@ -40,7 +40,7 @@ import com.saarthi.driver.R
 import com.saarthi.driver.network.DriverApi
 import com.saarthi.driver.ui.DriverViewModel
 import com.saarthi.driver.ui.design.Aurora
-import com.saarthi.driver.ui.design.BrandMark
+import com.saarthi.driver.ui.design.BrandLockup
 import com.saarthi.driver.ui.design.ButtonTone
 import com.saarthi.driver.ui.design.Confetti
 import com.saarthi.driver.ui.design.Eyebrow
@@ -336,8 +336,8 @@ fun ApprovedScreen(plate: String?, fleetName: String?, onContinue: () -> Unit) {
                 colors = listOf(Color(0xFFFE5D09), Color(0xFF4ADE80), Color.White, Color(0xFF86ABF2), Color(0xFFF49434), Color(0xFF3DAE79)),
                 lefts = listOf(0.05f, 0.13f, 0.21f, 0.30f, 0.38f, 0.46f, 0.54f, 0.62f, 0.70f, 0.78f, 0.86f, 0.94f, 0.17f, 0.66f, 0.42f),
             )
-            BrandMark(
-                height = 32.dp,
+            BrandLockup(
+                height = 52.dp,
                 plated = true,
                 modifier = Modifier
                     .windowInsetsPadding(WindowInsets.statusBars)

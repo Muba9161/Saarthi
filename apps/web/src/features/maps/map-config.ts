@@ -3,6 +3,7 @@ import type {
   RasterDEMSourceSpecification,
   SkySpecification,
 } from 'maplibre-gl';
+import type { TrackRouteState } from '@saarthi/shared';
 
 /**
  * Map configuration — MapLibre GL JS on fully open data.
@@ -345,9 +346,26 @@ export const ROUTE_COLOURS = {
    */
   drivenCasing: '#4a556b',
   alternative: '#94a3b8',
-  trail: '#4338ca',
-  trailHead: '#a855f7',
 } as const;
+
+/**
+ * The covered-path trail, by the state stored on each point.
+ *
+ * Blue, green and red are the colours a dispatcher already reads as "idle",
+ * "fine" and "wrong"; amber is "different, but not a fault" — another road to
+ * the destination while Google Maps guided. Each is a 600 weight, which holds its contrast on a light
+ * basemap; the shared dark casing below is what keeps them distinct from the
+ * basemap's own coloured roads, parks and water, and on a dark basemap it is
+ * the bright line itself that carries.
+ */
+export const TRAIL_COLOURS: Readonly<Record<TrackRouteState, string>> = {
+  NO_TRIP: '#2563eb',
+  ON_ROUTE: '#16a34a',
+  OFF_ROUTE: '#dc2626',
+  ALTERNATE: '#d97706',
+};
+
+export const TRAIL_CASING_COLOUR = '#0f172a';
 
 // ---------------------------------------------------------------------------
 // Provider descriptor

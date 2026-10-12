@@ -4,22 +4,24 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.saarthi.core.SaarthiApp
+import com.saarthi.core.data.AssistantConversation
+import com.saarthi.core.data.AssistantUi
+import com.saarthi.core.data.FuelPriceFeed
+import com.saarthi.core.data.ShiftRepository
 import com.saarthi.core.data.TerminalRepository
 import com.saarthi.core.domain.AssistantState
 import com.saarthi.core.domain.DrivingHours
+import com.saarthi.core.domain.GoogleMapsLink
+import com.saarthi.core.domain.haversineMetres
 import com.saarthi.core.domain.TerminalState
-import com.saarthi.core.domain.VoiceClassifier
 import com.saarthi.core.domain.RouteFollower
-import com.saarthi.core.domain.VoiceIntent
 import com.saarthi.core.network.ChecklistAnswer
 import com.saarthi.core.update.UpdateManager
 import com.saarthi.core.network.ChecklistPreparationDto
 import com.saarthi.core.network.ChecklistResultDto
 import com.saarthi.core.network.IssueDto
 import com.saarthi.core.network.DriverNotificationsDto
-import com.saarthi.core.network.DriverPaperDto
 import com.saarthi.core.network.DriverTripDto
-import com.saarthi.core.network.FastagDto
 import com.saarthi.core.network.FuelPriceDto
 import com.saarthi.core.network.NearbyPlaceDto
 import com.saarthi.core.network.PlaceMatchDto
@@ -62,6 +64,7 @@ class TerminalViewModel(application: Application) : AndroidViewModel(application
 
     private val app: SaarthiApp = application as SaarthiApp
     private val repository: TerminalRepository = app.repository
+    private val shift = ShiftRepository(application, repository)
 
     // -----------------------------------------------------------------------
     // The assembled screen state
@@ -131,16 +134,11 @@ class TerminalViewModel(application: Application) : AndroidViewModel(application
     // Assistant
     // -----------------------------------------------------------------------
 
-    data class AssistantUi(
-        val state: AssistantState = AssistantState.IDLE,
-        val transcript: String? = null,
-        val answer: String? = null,
-        val caveats: List<String> = emptyList(),
-        val sources: List<String> = emptyList(),
-    )
-
-    private val _assistant = MutableStateFlow(AssistantUi())
-    val assistant: StateFlow<AssistantUi> = _assistant.asStateFlow()
+    private val conversation = AssistantConversation(viewModelScope, repository) { fresh ->
+        if (fresh) sosEventId = UUID.randomUUID().toString()
+        triggerSos("OTHER", "Raised by voice from the terminal.")
+    }
+    val assistant: StateFlow<AssistantUi> = conversation.ui
 
     // -----------------------------------------------------------------------
     // Checklist
@@ -196,29 +194,12 @@ class TerminalViewModel(application: Application) : AndroidViewModel(application
     // What a driver needs that only a browser could reach
     // -----------------------------------------------------------------------
 
-    private val _papers = MutableStateFlow<List<DriverPaperDto>>(emptyList())
-
-    /** Every paper a checkpoint might ask for, soonest to expire first. */
-    val papers: StateFlow<List<DriverPaperDto>> = _papers.asStateFlow()
-
-    private val _papersProblem = MutableStateFlow<String?>(null)
-
-    /**
-     * Why the papers could not be fetched or cached, if they could not.
-     *
-     * Surfaced rather than only logged. A driver looking at a row marked "not on
-     * this phone" with no explanation has no idea whether to wait, move to
-     * better signal, or telephone the office — and on some handsets the app's
-     * own log never reaches `logcat` at all, so a silent failure is invisible to
-     * everyone including us.
-     */
-    val papersProblem: StateFlow<String?> = _papersProblem.asStateFlow()
-
-    private val _fastag = MutableStateFlow<FastagDto?>(null)
-    val fastag: StateFlow<FastagDto?> = _fastag.asStateFlow()
-
-    private val _fuelPrice = MutableStateFlow<FuelPriceDto?>(null)
-    val fuelPrice: StateFlow<FuelPriceDto?> = _fuelPrice.asStateFlow()
+    private val fuelPriceFeed = FuelPriceFeed(
+        scope = viewModelScope,
+        positions = app.telemetry.snapshot.map { it.position },
+        fetch = repository::fuelPrice,
+    )
+    val fuelPrice: StateFlow<FuelPriceDto?> = fuelPriceFeed.price
 
     private val _trips = MutableStateFlow<List<DriverTripDto>>(emptyList())
     val trips: StateFlow<List<DriverTripDto>> = _trips.asStateFlow()
@@ -226,93 +207,8 @@ class TerminalViewModel(application: Application) : AndroidViewModel(application
     private val _notifications = MutableStateFlow(DriverNotificationsDto())
     val notifications: StateFlow<DriverNotificationsDto> = _notifications.asStateFlow()
 
-    /**
-     * Load the papers, and cache each one on the way past.
-     *
-     * The fetch of the *list* needs a signal; showing a paper afterwards must
-     * not. So the list is refreshed opportunistically and every document in it
-     * pulled down in the background — which is what makes the wallet work at a
-     * border post where nothing else does.
-     *
-     * Papers the fleet has withdrawn are dropped from the cache in the same
-     * pass, because a superseded certificate that can still be produced from a
-     * phone is worse than none.
-     */
-    fun loadPapers() {
-        viewModelScope.launch {
-            _papersProblem.value = null
-
-            repository.papers().onSuccess { list ->
-                _papers.value = list
-
-                val cache = app.papers
-                if (cache == null) {
-                    // The fitted tablet. Nothing to cache to, and nothing wrong.
-                    return@onSuccess
-                }
-
-                cache.retainOnly(list.map { it.id }.toSet())
-
-                var failures = 0
-                var lastProblem: String? = null
-                for (paper in list) {
-                    cache.ensure(paper.id, paper.mimeType).onFailure { problem ->
-                        failures += 1
-                        lastProblem = problem.message
-                        DebugLog.warn(
-                            "papers",
-                            "Could not cache ${paper.documentType}: ${problem.message}",
-                        )
-                    }
-                }
-
-                if (failures > 0) {
-                    _papersProblem.value =
-                        "$failures of ${list.size} could not be saved to this phone. " +
-                            (lastProblem ?: "Saarthi could not say why.")
-                }
-            }.onFailure { problem ->
-                DebugLog.warn("papers", "Could not list papers: ${problem.message}")
-                _papersProblem.value = problem.message
-                    ?: "Saarthi could not reach your fleet for the paper list."
-            }
-        }
-    }
-
-    fun loadFastag() {
-        viewModelScope.launch { repository.fastag().onSuccess { _fastag.value = it } }
-    }
-
-    fun loadFuelPrice() {
-        viewModelScope.launch { repository.fuelPrice().onSuccess { _fuelPrice.value = it } }
-    }
-
-    /**
-     * Save a fuel slip.
-     *
-     * `onDone(null)` for success and the message otherwise, rather than a state
-     * flow: the screen has to clear its fields on success and keep them on
-     * failure, and a driver who mistyped a figure must not lose the photograph
-     * they have already taken.
-     */
-    fun saveFuelSlip(
-        jpeg: ByteArray,
-        litres: Double,
-        totalCost: Double,
-        odometerKm: Double?,
-        stationName: String?,
-        onDone: (String?) -> Unit,
-    ) {
-        viewModelScope.launch {
-            _busy.value = true
-            repository.saveFuelSlip(jpeg, litres, totalCost, odometerKm, stationName)
-                .onSuccess { onDone(null) }
-                .onFailure { problem ->
-                    onDone(problem.message ?: "Saarthi could not save that slip.")
-                }
-            _busy.value = false
-        }
-    }
+    /** Ask now, then keep the rate current as the vehicle moves. See [FuelPriceFeed]. */
+    fun loadFuelPrice() = fuelPriceFeed.refresh()
 
     fun loadTrips() {
         viewModelScope.launch { repository.trips().onSuccess { _trips.value = it } }
@@ -886,10 +782,84 @@ class TerminalViewModel(application: Application) : AndroidViewModel(application
      */
     fun startNavigation() {
         val route = _route.value ?: return
+        if (_navigation.value.handedOff) {
+            // Back from Google Maps to Saarthi's own guidance, on the same journey.
+            _navigation.value = _navigation.value.copy(handedOff = false)
+            endHandoffReport()
+            return
+        }
         if (_navigation.value.guiding) return
 
         beginNavigation(route)
         openServiceRun(route, pendingService)
+    }
+
+    /**
+     * Hand the journey to Google Maps: it guides, Saarthi keeps recording.
+     *
+     * Following starts (or carries on) here, silently, so the run, arrival and
+     * the trail all still come from this phone's GPS. The fleet's trip is told,
+     * so a different road Google picks is recorded as an alternate road rather
+     * than a deviation; for that trip the link also carries a few points along
+     * the fleet's planned route, which keeps Google on the road the fleet chose.
+     *
+     * Returns the link to open, or null with no route on the map.
+     */
+    fun handOffToGoogleMaps(): String? {
+        val route = _route.value ?: return null
+        if (!_navigation.value.guiding) {
+            beginNavigation(route)
+            openServiceRun(route, pendingService)
+        }
+        _navigation.value = _navigation.value.copy(handedOff = true, rerouting = false)
+
+        // Only the trip's own journey is the trip's business: a detour to a pump
+        // in Google Maps is a detour, and is judged as one.
+        val trip = _dispatch.value?.takeIf { goesToDispatch(route, it) }
+        if (trip != null) {
+            handoffReported = true
+            reportHandoff(GOOGLE_MAPS)
+        }
+        val via = trip?.let { GoogleMapsLink.viaPoints(it.plannedRoute) }.orEmpty()
+        return GoogleMapsLink.navigate(route.destination.latitude, route.destination.longitude, via)
+    }
+
+    /** This route leads to the dispatched trip's destination, not to a pump on the way. */
+    private fun goesToDispatch(route: RouteDto, trip: TerminalTripDto): Boolean =
+        haversineMetres(
+            route.destination.latitude,
+            route.destination.longitude,
+            trip.destinationLatitude,
+            trip.destinationLongitude,
+        ) < SAME_DESTINATION_METRES
+
+    /** True once the fleet's trip has been told it is being followed in Google Maps. */
+    private var handoffReported = false
+
+    /** Back on Saarthi's own navigation, or off navigation altogether: tell the trip, if it was told. */
+    private fun endHandoffReport() {
+        if (!handoffReported) return
+        handoffReported = false
+        reportHandoff(null)
+    }
+
+    private fun reportHandoff(app: String?) {
+        viewModelScope.launch {
+            shift.navigationHandoff(app).onSuccess { trip -> if (trip != null) _dispatch.value = trip }
+        }
+    }
+
+    /**
+     * The driver confirms they have arrived — answering the prompt raised when
+     * the vehicle's GPS shows it at the destination. Saarthi records the GPS
+     * arrival time, not the moment of the tap.
+     */
+    fun confirmArrival(onDone: (Boolean) -> Unit = {}) {
+        viewModelScope.launch {
+            val result = shift.arriveTrip()
+            result.onSuccess { trip -> _dispatch.value = trip }
+            onDone(result.isSuccess)
+        }
     }
 
     /**
@@ -1025,6 +995,7 @@ class TerminalViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun clearRoute() {
+        endHandoffReport()
         val trip = _serviceRun.value
         _route.value = null
         _navigation.value = NavigationUi()
@@ -1073,6 +1044,12 @@ class TerminalViewModel(application: Application) : AndroidViewModel(application
         val arrived: Boolean = false,
         /** Saarthi could not produce a new route after the driver left the old one. */
         val rerouteFailed: Boolean = false,
+        /**
+         * Google Maps is guiding. Following carries on underneath — arrival,
+         * the run and the trail still work — but nothing is spoken and nothing
+         * is re-routed here, because Google is doing both.
+         */
+        val handedOff: Boolean = false,
     ) {
         /** A route is on the map, whether or not it is being followed. */
         val active: Boolean get() = route != null
@@ -1180,7 +1157,9 @@ class TerminalViewModel(application: Application) : AndroidViewModel(application
             return
         }
 
-        if (progress.offRoute) requestReroute(route)
+        // With Google Maps guiding, Google re-routes; asking here as well would
+        // spend the fleet's routing on a line nobody is following.
+        if (progress.offRoute && !_navigation.value.handedOff) requestReroute(route)
     }
 
     /**
@@ -1288,6 +1267,8 @@ class TerminalViewModel(application: Application) : AndroidViewModel(application
             // chosen during the pause belongs to a new journey and must survive.
             if (arriving) {
                 arriving = false
+                // Arriving ends the handoff on the trip too, once the driver confirms.
+                handoffReported = false
                 _route.value = null
                 _navigation.value = NavigationUi()
                 follower = null
@@ -1430,82 +1411,16 @@ class TerminalViewModel(application: Application) : AndroidViewModel(application
     // Assistant
     // -----------------------------------------------------------------------
 
-    fun setAssistantState(state: AssistantState) {
-        _assistant.value = _assistant.value.copy(state = state)
-    }
+    fun setAssistantState(state: AssistantState) = conversation.setState(state)
 
-    fun onTranscript(text: String) {
-        _assistant.value = _assistant.value.copy(transcript = text)
-    }
+    /** Answer a spoken or typed question, with the conversation so far. See [AssistantConversation]. */
+    fun ask(question: String, spoken: Boolean) = conversation.ask(question, spoken)
 
-    /**
-     * Answer a spoken or typed question.
-     *
-     * Emergency intent is classified *here*, on the device, before any network
-     * call — see [VoiceClassifier] for why. Everything else goes to Saarthi and
-     * is answered by Gemini through the controlled tool layer, under the signed-on
-     * driver's own permissions.
-     */
-    fun ask(question: String, spoken: Boolean) {
-        val intent = VoiceClassifier.classify(question)
+    /** Stop waiting for an answer, keeping the conversation. */
+    fun stopAssistant() = conversation.stop()
 
-        if (intent == VoiceIntent.SOS) {
-            _assistant.value = AssistantUi(
-                state = AssistantState.SPEAKING,
-                transcript = question,
-                answer = "Raising an emergency now. Stay where you are and stay safe.",
-            )
-            sosEventId = UUID.randomUUID().toString()
-            triggerSos("OTHER", "Raised by voice from the terminal.")
-            return
-        }
-
-        if (intent == VoiceIntent.CANCEL) {
-            _assistant.value = AssistantUi()
-            return
-        }
-
-        val cleaned = VoiceClassifier.stripWakePhrase(question)
-
-        viewModelScope.launch {
-            _assistant.value = AssistantUi(
-                state = AssistantState.THINKING,
-                transcript = cleaned,
-            )
-
-            repository.ask(cleaned, spoken)
-                .onSuccess { response ->
-                    if (response.action == "TRIGGER_SOS") {
-                        // The server also recognised an emergency. Belt and
-                        // braces: both sides classify, and either one firing is
-                        // enough.
-                        triggerSos("OTHER", "Raised by voice from the terminal.")
-                    }
-                    _assistant.value = AssistantUi(
-                        state = AssistantState.SPEAKING,
-                        transcript = cleaned,
-                        answer = response.answer,
-                        caveats = response.caveats,
-                        sources = response.sources.map { it.tool },
-                    )
-                }
-                .onFailure { error ->
-                    _assistant.value = AssistantUi(
-                        state = AssistantState.ERROR,
-                        transcript = cleaned,
-                        answer = when (error) {
-                            is com.saarthi.core.network.SaarthiApi.Failure.Offline ->
-                                "I cannot reach Saarthi right now. I will be able to answer once there is signal."
-                            else -> error.message ?: "I could not answer that."
-                        },
-                    )
-                }
-        }
-    }
-
-    fun dismissAssistant() {
-        _assistant.value = AssistantUi()
-    }
+    /** Stop and forget the conversation — the assistant was closed. */
+    fun dismissAssistant() = conversation.dismiss()
 
     // -----------------------------------------------------------------------
     // Developer tools
@@ -1571,6 +1486,12 @@ class TerminalViewModel(application: Application) : AndroidViewModel(application
          * them nothing at all.
          */
         const val ARRIVAL_BANNER_MS = 12_000L
+
+        /** Google Maps, as the server names the app a trip was handed to. */
+        const val GOOGLE_MAPS = "GOOGLE_MAPS"
+
+        /** A route ending this close to the dispatch's destination is the dispatch's route. */
+        const val SAME_DESTINATION_METRES = 300.0
 
         /**
          * How often to ask whether the fleet has dispatched this vehicle.

@@ -9,6 +9,7 @@ import {
   type LatLng,
   type PetrolFuelFilter,
   type PetrolStation,
+  type TrailPoint,
 } from '@saarthi/shared';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -25,6 +26,7 @@ import {
 import { MapSettingsControl, type MapSettings } from './map-controls';
 import { MapSearch } from './map-search';
 import { NavigationPanel } from './navigation-panel';
+import { TrailLegend } from './trail-legend';
 import { useNavigation } from './use-navigation';
 import type { DeviceLocation } from './use-device-location';
 import {
@@ -91,8 +93,11 @@ export interface FleetMapProps {
   trucks?: MapTruck[];
   /** Planned route drawn as the primary line when routing is off. */
   route?: LatLng[];
-  /** Actual travelled path, drawn as a gradient trail. */
-  trail?: LatLng[];
+  /**
+   * The path actually covered, oldest point first, coloured by each point's
+   * route state: blue with no trip, green on the planned route, red off it.
+   */
+  trail?: TrailPoint[];
   markers?: MapMarkerPoint[];
   /** Petrol stations from the fuel directory, drawn as their own marker layer. */
   stations?: PetrolStation[];
@@ -1301,6 +1306,11 @@ export function FleetMap({
               onChange={updateSettings}
               activeStyle={activeStyle}
             />
+
+            {/* In the control column rather than a bottom corner: the guidance
+                panel and callers' readouts claim the bottom edge, and on a
+                phone they span its whole width. */}
+            {trail && trail.length >= 2 ? <TrailLegend /> : null}
           </div>
 
           {showSearch ? (

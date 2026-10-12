@@ -1,11 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="fuel_title">তেলের স্লিপ</string>
     <string name="fuel_step_photo">ছবি</string>
-    <string name="fuel_step_figures">হিসেব</string>
     <string name="fuel_step_saved">সেভ হয়েছে</string>
     <string name="fuel_step_label">ধাপ %1$d / %2$d: %3$s</string>
-    <string name="fuel_lead">স্লিপের ছবি তুলুন আর দুটি সংখ্যা লিখুন। আর কাগজ রাখতে হবে না।</string>
     <string name="fuel_rear_camera">পিছনের ক্যামেরা</string>
     <string name="fuel_frame_hint">পুরো স্লিপটি ফ্রেমের ভিতরে রাখুন।</string>
     <string name="fuel_photograph">স্লিপের ছবি তুলুন</string>
@@ -27,4 +24,20 @@
     <string name="fuel_saved_title">সেভ হয়েছে</string>
     <string name="fuel_saved_body">আপনার ফ্লিটের কাছে স্লিপ আর সংখ্যাগুলো পৌঁছে গেছে। কাগজটি ফেলে দিতে পারেন।</string>
     <string name="fuel_add_another">আরেকটি যোগ করুন</string>
+
+    <!-- Expense slips -->
+    <string name="expense_title">খরচের স্লিপ</string>
+    <string name="expense_lead">যেকোনো স্লিপের ছবি তুলুন — জ্বালানি, টোল, পার্কিং, মেরামত, খাবার — আর কত টাকা লাগল লিখুন। কাগজ আর রেখে দিতে হবে না।</string>
+    <string name="expense_step_details">বিবরণ</string>
+    <string name="expense_kind_label">কীসের জন্য ছিল?</string>
+    <string name="expense_cat_fuel">জ্বালানি</string>
+    <string name="expense_cat_toll">টোল</string>
+    <string name="expense_cat_parking">পার্কিং</string>
+    <string name="expense_cat_repair">মেরামত</string>
+    <string name="expense_cat_food">খাবার</string>
+    <string name="expense_cat_loading">লোডিং</string>
+    <string name="expense_cat_challan">চালান</string>
+    <string name="expense_cat_other">অন্যান্য</string>
+    <string name="expense_vendor">কাকে দিলেন</string>
+    <string name="expense_note">নোট</string>
 </resources>

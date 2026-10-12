@@ -260,13 +260,9 @@
     <string name="hours_break_due">আপনি বিরতি ছাড়া %1$s ধরে গাড়ি চালাচ্ছেন। নিরাপদ কোথাও থামুন আর বিশ্রাম নিন।</string>
     <string name="hours_shift_soon">আজ %1$s স্টিয়ারিংয়ে। আপনার দিনের সীমা কাছে চলে এসেছে।</string>
     <string name="hours_shift_due">আজ %1$s স্টিয়ারিংয়ে। এটাই সীমা - নিরাপদে পারলেই শিফট শেষ করুন।</string>
-    <string name="stat_fastag">FASTag</string>
     <string name="stat_fuel">জ্বালানি</string>
     <string name="stat_today">আজ</string>
     <string name="stat_at_wheel">স্টিয়ারিংয়ে</string>
-    <string name="fastag_not_linked">লিঙ্ক করা নেই</string>
-    <string name="fastag_low">ব্যালান্স কম</string>
-    <string name="fastag_unknown">ব্যালান্সের তথ্য আসেনি</string>
     <string name="fuel_diesel">ডিজেল</string>
     <string name="fuel_petrol">পেট্রোল</string>
     <string name="fuel_cng">সিএনজি</string>
@@ -291,7 +287,6 @@
     <string name="dispatch_routing">রাস্তা ঠিক করা হচ্ছে…</string>
     <string name="home_quick_actions">তাড়াতাড়ি কাজ</string>
     <string name="home_action_nearby">কাছাকাছি</string>
-    <string name="home_action_fuel">তেলের স্লিপ</string>
     <string name="home_action_check">সেফটি চেক</string>
     <string name="home_action_notices">নোটিশ</string>
     <string name="home_start_check">আপনার সেফটি চেক শুরু করুন</string>
@@ -391,7 +386,6 @@
     <string name="toast_trip_ended">ট্রিপ শেষ। আপনার ফ্লিটের কাছে রেকর্ড আছে।</string>
     <string name="toast_route_drawn">%1$s পর্যন্ত রাস্তা ম্যাপে দেখানো হয়েছে।</string>
     <string name="toast_route_failed">হমসফর সেখানে যাওয়ার রাস্তা ঠিক করতে পারেনি। একটু পরে আবার চেষ্টা করুন।</string>
-    <string name="toast_fuel_saved">তেলের স্লিপ সেভ হয়েছে।</string>
     <string name="toast_instruments_on">মিটার আবার ম্যাপে দেখা যাচ্ছে।</string>
     <string name="toast_instruments_off">মিটার ম্যাপ থেকে লুকানো হয়েছে।</string>
     <string name="sos_title">ইমার্জেন্সি জানাবেন?</string>
@@ -427,7 +421,7 @@
     <string name="appearance_phone">ফোনের মতো</string>
     <string name="appearance_light">লাইট</string>
     <string name="appearance_dark">ডার্ক</string>
-    <string name="profile_appearance_note">লাইভ ম্যাপ সবসময় ডার্ক থাকে, যাতে রাতে আপনার চোখ রাস্তার অন্ধকারে অভ্যস্ত থাকে।</string>
+    <string name="profile_appearance_note">লাইভ ম্যাপও এই সেটিং মেনে চলে, যাতে দিনে সহজে পড়া যায় আর রাতে চোখে আরাম থাকে।</string>
     <string name="profile_language">ভাষা</string>
     <string name="profile_security">সাইন-ইন ও নিরাপত্তা</string>
     <string name="profile_on">চালু</string>
@@ -503,4 +497,42 @@
     <string name="nearby_pin">পিন %1$d, %2$s</string>
     <string name="nearby_footnote_straight">এগুলো সোজাসুজি দূরত্ব; আসল রাস্তা আরও লম্বা, কখনও অনেক বেশি লম্বা।</string>
     <string name="nearby_footnote">জায়গার তথ্য OpenStreetMap-এর অবদানকারীদের থেকে, তাই তথ্য পুরনো হতে পারে। কোনোটির উপর ভরসা করলে আগে ফোন করে নিন।</string>
+
+    <!-- Nearby services -->
+    <string name="nearby_cat_pharmacy">মেডিক্যাল</string>
+    <string name="nearby_title_pharmacy">ওষুধের দোকান</string>
+    <string name="nearby_trucks_welcome">ট্রাক ঢুকতে পারে</string>
+    <string name="nearby_truck_diesel">ট্রাকের ডিজেল</string>
+    <string name="nearby_failed_offline">এখন সিগন্যাল নেই। ফোন আবার অনলাইন হলেই জায়গাগুলো লোড হবে।</string>
+    <string name="nearby_failed_busy">ম্যাপের জায়গার তালিকা এখন ব্যস্ত। এক মিনিট পরে আবার চেষ্টা করুন।</string>
+    <string name="nearby_stale">জায়গার লাইভ তালিকায় পৌঁছানো গেল না, তাই এগুলো সেই জায়গা যা Saarthi শেষবার এখানে দেখেছিল।</string>
+    <string name="nearby_footnote_pumps">ফুয়েল স্টেশনের তথ্য তেল কোম্পানিগুলোর আউটলেট তালিকা থেকে।</string>
+    <string name="nearby_call_place">%1$s-এ ফোন করুন</string>
+
+    <!-- Expense slip shortcut -->
+    <string name="home_action_expense">খরচের স্লিপ</string>
+    <string name="toast_expense_saved">স্লিপ সেভ হয়েছে।</string>
+
+    <!-- Trip card note -->
+    <string name="dispatch_your_note">আপনার নোট</string>
+
+    <!-- Fuel rate -->
+    <string name="rate_state_average">%1$s-এর গড়</string>
+    <string name="profile_wake_word">“Hey Saarthi” বলে ডাকুন</string>
+    <string name="profile_wake_word_on">অ্যাপ খোলা থাকলে হাত না লাগিয়ে জিজ্ঞেস করুন। শোনার সময় মাইকের চিহ্ন দেখা যায়।</string>
+    <string name="profile_wake_word_off">আপনি মাইক ট্যাপ করলে তবেই Saarthi শোনে</string>
+    <string name="toast_wake_word_on">হাত না লাগিয়ে জিজ্ঞেস করতে বলুন “Hey Saarthi”।</string>
+    <string name="toast_wake_word_off">“Hey Saarthi” বন্ধ। জিজ্ঞেস করতে মাইক ট্যাপ করুন।</string>
+    <string name="profile_wake_word_unavailable">এই ফোনে অফলাইন স্পিচ নেই, তাই আপনি মাইক ট্যাপ করলে তবেই Saarthi শোনে</string>
+    <string name="nav_google_open">Google Maps-এ নেভিগেট করুন</string>
+    <string name="nav_google_reopen">Google Maps খুলুন</string>
+    <string name="nav_google_title">Google Maps পথ দেখাচ্ছে</string>
+    <string name="nav_google_sub">Saarthi রেকর্ড করে চলবে · %1$s</string>
+    <string name="nav_use_saarthi">Saarthi-তে ফিরুন</string>
+    <string name="arrival_reached">আপনি %1$s পৌঁছে গেছেন</string>
+    <string name="arrival_since">আপনার GPS আপনাকে %1$s থেকে এখানে দেখাচ্ছে। নিশ্চিত করুন, যাতে ফ্লিটের কাছে সঠিক সময় থাকে।</string>
+    <string name="arrival_confirm_body">আপনার GPS আপনাকে গন্তব্যে দেখাচ্ছে। নিশ্চিত করুন, যাতে ফ্লিটের কাছে সঠিক সময় থাকে।</string>
+    <string name="arrival_confirm">পৌঁছে গেছি</string>
+    <string name="arrival_confirming">জমা হচ্ছে…</string>
+    <string name="arrival_failed">Saarthi-র সঙ্গে যোগাযোগ হলো না। একটু পরে আবার চেষ্টা করুন।</string>
 </resources>

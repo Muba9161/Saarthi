@@ -260,13 +260,9 @@
     <string name="hours_break_due">तुम्ही विश्रांतीशिवाय %1$s गाडी चालवत आहात. सुरक्षित ठिकाणी थांबा आणि विश्रांती घ्या.</string>
     <string name="hours_shift_soon">आज %1$s स्टिअरिंगवर. तुमची रोजची मर्यादा जवळ आली आहे.</string>
     <string name="hours_shift_due">आज %1$s स्टिअरिंगवर. हीच मर्यादा आहे - सुरक्षित असेल तेव्हा ड्युटी संपवा.</string>
-    <string name="stat_fastag">FASTag</string>
     <string name="stat_fuel">इंधन</string>
     <string name="stat_today">आज</string>
     <string name="stat_at_wheel">स्टिअरिंगवर</string>
-    <string name="fastag_not_linked">लिंक नाही</string>
-    <string name="fastag_low">बॅलन्स कमी</string>
-    <string name="fastag_unknown">बॅलन्स कळलेला नाही</string>
     <string name="fuel_diesel">डिझेल</string>
     <string name="fuel_petrol">पेट्रोल</string>
     <string name="fuel_cng">CNG</string>
@@ -291,7 +287,6 @@
     <string name="dispatch_routing">रस्ता काढत आहे…</string>
     <string name="home_quick_actions">झटपट कामे</string>
     <string name="home_action_nearby">जवळपास</string>
-    <string name="home_action_fuel">इंधन पावती</string>
     <string name="home_action_check">सेफ्टी चेक</string>
     <string name="home_action_notices">सूचना</string>
     <string name="home_start_check">तुमचा सेफ्टी चेक सुरू करा</string>
@@ -391,7 +386,6 @@
     <string name="toast_trip_ended">ट्रिप संपली. तुमच्या फ्लीटकडे नोंद आहे.</string>
     <string name="toast_route_drawn">%1$s पर्यंतचा रस्ता मॅपवर दाखवला आहे.</string>
     <string name="toast_route_failed">हमसफरला तिथपर्यंतचा रस्ता काढता आला नाही. थोड्या वेळाने पुन्हा प्रयत्न करा.</string>
-    <string name="toast_fuel_saved">इंधन पावती सेव्ह झाली.</string>
     <string name="toast_instruments_on">मीटर पुन्हा मॅपवर आले.</string>
     <string name="toast_instruments_off">मीटर मॅपवरून लपवले.</string>
     <string name="sos_title">इमर्जन्सी पाठवायची?</string>
@@ -427,7 +421,7 @@
     <string name="appearance_phone">फोनप्रमाणे</string>
     <string name="appearance_light">लाइट</string>
     <string name="appearance_dark">डार्क</string>
-    <string name="profile_appearance_note">लाइव्ह मॅप नेहमी डार्क राहतो, म्हणजे रात्री तुमचे डोळे रस्त्याला सरावलेले राहतात.</string>
+    <string name="profile_appearance_note">लाइव्ह मॅपसुद्धा या सेटिंगनुसार बदलतो, म्हणजे दिवसा सहज वाचता येतो आणि रात्री डोळ्यांना त्रास होत नाही.</string>
     <string name="profile_language">भाषा</string>
     <string name="profile_security">साइन इन आणि सुरक्षा</string>
     <string name="profile_on">चालू</string>
@@ -503,4 +497,183 @@
     <string name="nearby_pin">पिन %1$d, %2$s</string>
     <string name="nearby_footnote_straight">ही सरळ रेषेतील अंतरे आहेत; खरा रस्ता जास्त लांब असतो, कधी कधी खूपच जास्त.</string>
     <string name="nearby_footnote">ठिकाणांची माहिती OpenStreetMap योगदानकर्त्यांकडून आहे, त्यामुळे काही माहिती जुनी असू शकते. एखाद्या ठिकाणावर अवलंबून असाल तर आधी फोन करा.</string>
+
+    <!-- Nearby services -->
+    <string name="nearby_cat_pharmacy">मेडिकल</string>
+    <string name="nearby_title_pharmacy">मेडिकल स्टोअर</string>
+    <string name="nearby_trucks_welcome">ट्रक येऊ शकतात</string>
+    <string name="nearby_truck_diesel">ट्रक डिझेल</string>
+    <string name="nearby_failed_offline">आत्ता सिग्नल नाही. फोन पुन्हा ऑनलाइन आल्यावर ठिकाणे लोड होतील.</string>
+    <string name="nearby_failed_busy">मॅपवरील ठिकाणांची यादी आत्ता व्यस्त आहे. एका मिनिटाने पुन्हा प्रयत्न करा.</string>
+    <string name="nearby_stale">ठिकाणांची लाइव्ह यादी मिळू शकली नाही, म्हणून Saarthi ने इथे शेवटची पाहिलेली ठिकाणे दाखवत आहोत.</string>
+    <string name="nearby_footnote_pumps">इंधन पंपांची माहिती तेल कंपन्यांच्या आउटलेट यादीतून आहे.</string>
+    <string name="nearby_call_place">%1$s ला फोन करा</string>
+
+    <!-- Expense slip shortcut -->
+    <string name="home_action_expense">खर्चाची पावती</string>
+    <string name="toast_expense_saved">पावती सेव्ह झाली.</string>
+
+    <!-- Trip card note -->
+    <string name="dispatch_your_note">तुमची नोंद</string>
+
+    <!-- Fuel rate -->
+    <string name="rate_state_average">%1$s ची सरासरी</string>
+
+    <!-- Expense slips -->
+    <string name="expense_title">खर्चाची पावती</string>
+    <string name="expense_lead">कोणत्याही पावतीचा फोटो घ्या — इंधन, टोल, पार्किंग, दुरुस्ती, जेवण — आणि किती खर्च आला ते टाका. आता कागद जपून ठेवायची गरज नाही.</string>
+    <string name="expense_step_details">तपशील</string>
+    <string name="expense_kind_label">हा खर्च कशासाठी होता?</string>
+    <string name="expense_cat_fuel">इंधन</string>
+    <string name="expense_cat_toll">टोल</string>
+    <string name="expense_cat_parking">पार्किंग</string>
+    <string name="expense_cat_repair">दुरुस्ती</string>
+    <string name="expense_cat_food">जेवण</string>
+    <string name="expense_cat_loading">लोडिंग</string>
+    <string name="expense_cat_challan">चलान</string>
+    <string name="expense_cat_other">इतर</string>
+    <string name="expense_vendor">कोणाला दिले</string>
+    <string name="expense_note">नोंद</string>
+
+    <!-- Up next and queued trips -->
+    <string name="trips_add">ट्रिप जोडा</string>
+    <string name="trips_up_next">पुढची</string>
+    <string name="trips_queued">रांगेत</string>
+    <string name="trips_from_fleet">तुमच्या फ्लीटकडून</string>
+    <string name="trips_added_by_you">तुम्ही जोडलेली</string>
+    <string name="trips_section_next">पुढची ट्रिप</string>
+    <string name="trips_section_queued">त्यानंतर रांगेत</string>
+    <string name="toast_trip_added">ट्रिप जोडली.</string>
+    <string name="toast_trip_queued">ट्रिप जोडली. ती तुमच्या फ्लीटच्या ट्रिपनंतर सुरू होईल.</string>
+
+    <!-- Adding a trip -->
+    <string name="add_trip_title">ट्रिप जोडा</string>
+    <string name="add_trip_lead">तुम्ही कुठे जात आहात ते निवडा. Saarthi रस्ता काढून तुमच्या फ्लीटला कळवेल.</string>
+    <string name="add_trip_from">कुठून</string>
+    <string name="add_trip_to">कुठे</string>
+    <string name="add_trip_here">तुम्ही आत्ता जिथे आहात</string>
+    <string name="add_trip_pick_start">कुठून सुरू करणार ते निवडा</string>
+    <string name="add_trip_pick_destination">कुठे जात आहात ते निवडा</string>
+    <string name="add_trip_change">बदला</string>
+    <string name="add_trip_search_from">सुरुवातीचे ठिकाण शोधा</string>
+    <string name="add_trip_search_to">जिथे जात आहात ते ठिकाण शोधा</string>
+    <string name="add_trip_routing">रस्ता काढत आहे…</string>
+    <string name="add_trip_route_failed">आत्ता रस्ता काढता आला नाही. तरीही तुम्ही ट्रिप जोडू शकता.</string>
+    <string name="add_trip_notes">तुमच्या फ्लीटसाठी नोंद</string>
+    <string name="add_trip_queue_note">तुमच्या फ्लीटची ट्रिप आधी होईल. ती संपल्यावर ही ट्रिप सुरू होईल.</string>
+    <string name="add_trip_create">ट्रिप जोडा</string>
+    <string name="add_trip_queue">फ्लीटच्या ट्रिपनंतर जोडा</string>
+    <string name="add_trip_creating">जोडत आहे…</string>
+
+    <!-- Papers folders and register records -->
+    <string name="papers_folder_rc">रजिस्ट्रेशन (RC)</string>
+    <string name="papers_folder_insurance">विमा</string>
+    <string name="papers_folder_fitness">फिटनेस</string>
+    <string name="papers_folder_permit">परमिट</string>
+    <string name="papers_folder_puc">प्रदूषण (PUC)</string>
+    <string name="papers_folder_road_tax">रोड टॅक्स</string>
+    <string name="papers_folder_photos">फोटो</string>
+    <string name="papers_folder_qr">QR स्टिकर</string>
+    <string name="papers_folder_other">इतर फाइल्स</string>
+    <string name="papers_folder_licence">ड्रायव्हिंग लायसन्स</string>
+    <string name="papers_folder_identity">ओळखीचा पुरावा</string>
+    <string name="papers_folder_address">पत्त्याचा पुरावा</string>
+    <string name="papers_folder_aadhaar">आधार कार्ड</string>
+    <string name="papers_folder_pan">PAN कार्ड</string>
+    <string name="papers_folder_voter">मतदार ओळखपत्र</string>
+    <string name="papers_folder_photo">तुमचा फोटो</string>
+    <string name="papers_folder_medical">मेडिकल सर्टिफिकेट</string>
+    <string name="papers_folder_police">पोलीस व्हेरिफिकेशन</string>
+    <string name="papers_status_valid">वैध</string>
+    <string name="papers_status_expiring">लवकरच संपणार</string>
+    <string name="papers_status_expired">मुदत संपली</string>
+    <string name="papers_status_rejected">नामंजूर</string>
+    <string name="papers_status_missing">नाही</string>
+    <string name="papers_status_optional">ऐच्छिक</string>
+    <string name="papers_status_on_file">नोंदीत आहे</string>
+    <string name="papers_qr_meta">समोरच्या काचेवर लावलेला</string>
+    <string name="papers_from_rto">RTO कडून</string>
+    <string name="papers_folder_empty">या फोल्डरमध्ये अजून काही नाही. तुमचा फ्लीट वेबवरून कागदपत्रे जोडतो.</string>
+    <string name="papers_folder_no_scan">अजून स्कॅन केलेली प्रत नाही. वरची माहिती RTO रजिस्टरमधून आहे.</string>
+    <string name="papers_photos_none">या गाडीचे अजून फोटो नाहीत.</string>
+    <string name="papers_photo_alt">गाडीचा फोटो</string>
+    <string name="papers_qr_none">QR स्टिकर दाखवता आला नाही. सिग्नल असेल तिथे हे पुन्हा उघडा.</string>
+    <string name="papers_qr_body">हा कोड स्कॅन केल्यावर Saarthi वर ही गाडी उघडते.</string>
+    <string name="papers_register_title">RTO रजिस्टर</string>
+    <string name="papers_valid_till">%1$s पर्यंत वैध</string>
+    <string name="papers_till">%1$s पर्यंत</string>
+    <string name="papers_not_published">नोंद नाही</string>
+    <string name="papers_rc_title">व्हर्च्युअल RC</string>
+    <string name="papers_rc_verified">पडताळलेले</string>
+    <string name="papers_rc_fetched">RTO रजिस्टरमधून · %1$s</string>
+    <string name="papers_rc_validity">वैधता</string>
+    <string name="papers_rc_details">तपशील</string>
+    <string name="papers_rc_insurance">विमा</string>
+    <string name="papers_rc_puc">प्रदूषण (PUC)</string>
+    <string name="papers_rc_fitness">फिटनेस</string>
+    <string name="papers_rc_tax">रोड टॅक्स</string>
+    <string name="papers_rc_permit">परमिट</string>
+    <string name="papers_rc_national_permit">नॅशनल परमिट</string>
+    <string name="papers_rc_owner">मालक</string>
+    <string name="papers_rc_registered">नोंदणीची तारीख</string>
+    <string name="papers_rc_status">स्थिती</string>
+    <string name="papers_rc_class">वर्ग</string>
+    <string name="papers_rc_fuel">इंधन</string>
+    <string name="papers_rc_colour">रंग</string>
+    <string name="papers_rc_made">बनवल्याची तारीख</string>
+    <string name="papers_rc_chassis">चेसिस नंबर</string>
+    <string name="papers_rc_engine">इंजिन नंबर</string>
+    <string name="papers_rc_rto">नोंदणी करणारे कार्यालय</string>
+    <string name="papers_rc_seats">सीट</string>
+    <string name="papers_rc_weight">एकूण वजन</string>
+    <string name="papers_rc_financer">फायनान्स करणारे</string>
+    <string name="papers_rc_blacklist">ब्लॅकलिस्ट</string>
+    <string name="papers_rc_note">माहितीसाठी RTO नोंदीची प्रत. गाडी चालवताना मूळ RC किंवा तिची DigiLocker प्रत सोबत ठेवा.</string>
+    <string name="papers_licence_title">ड्रायव्हिंग लायसन्स</string>
+    <string name="papers_licence_verified">पडताळलेले</string>
+    <string name="papers_licence_from_rto">RTO रजिस्टरमधून</string>
+    <string name="papers_licence_from_profile">तुमच्या प्रोफाइलमध्ये टाकल्याप्रमाणे</string>
+    <string name="papers_licence_transport">ट्रान्सपोर्ट (कमर्शियल)</string>
+    <string name="papers_licence_non_transport">नॉन-ट्रान्सपोर्ट</string>
+    <string name="papers_licence_classes">गाडीचे वर्ग</string>
+    <string name="papers_licence_issued">जारी केल्याची तारीख</string>
+    <string name="papers_licence_authority">जारी करणारे</string>
+    <string name="papers_licence_dob">जन्मतारीख</string>
+    <string name="papers_licence_blood">रक्तगट</string>
+
+    <!-- File and photo counts -->
+    <plurals name="papers_files">
+        <item quantity="one">%d फाइल</item>
+        <item quantity="other">%d फाइल्स</item>
+    </plurals>
+    <plurals name="papers_photos">
+        <item quantity="one">%d फोटो</item>
+        <item quantity="other">%d फोटो</item>
+    </plurals>
+    <string name="papers_tile_checking">कागदपत्रे तपासत आहे…</string>
+    <string name="papers_tile_failed">लोड होऊ शकले नाही</string>
+    <string name="papers_tile_none">अजून कोणतेही कागद नाहीत</string>
+    <string name="papers_tile_all_valid">सर्व वैध</string>
+    <string name="papers_tile_next_due">पुढील: %1$s · %2$s</string>
+    <plurals name="papers_tile_on_file">
+        <item quantity="one">%d कागद नोंदवलेला</item>
+        <item quantity="other">%d कागद नोंदवलेले</item>
+    </plurals>
+    <string name="profile_wake_word">“Hey Saarthi” ने बोलवा</string>
+    <string name="profile_wake_word_on">ॲप उघडे असताना हात न लावता विचारा. ऐकताना माइकचे चिन्ह दिसते.</string>
+    <string name="profile_wake_word_off">तुम्ही माइक दाबल्यावरच Saarthi ऐकतो</string>
+    <string name="toast_wake_word_on">हात न लावता विचारण्यासाठी “Hey Saarthi” म्हणा.</string>
+    <string name="toast_wake_word_off">“Hey Saarthi” बंद आहे. विचारण्यासाठी माइक दाबा.</string>
+    <string name="profile_wake_word_unavailable">या फोनमध्ये ऑफलाइन स्पीच नाही, त्यामुळे तुम्ही माइक दाबल्यावरच Saarthi ऐकतो</string>
+    <string name="nav_google_open">Google Maps मध्ये नेव्हिगेट करा</string>
+    <string name="nav_google_reopen">Google Maps उघडा</string>
+    <string name="nav_google_title">Google Maps मार्ग दाखवत आहे</string>
+    <string name="nav_google_sub">Saarthi रेकॉर्ड करत राहील · %1$s</string>
+    <string name="nav_use_saarthi">Saarthi वर परत</string>
+    <string name="arrival_reached">तुम्ही %1$s येथे पोहोचलात</string>
+    <string name="arrival_since">तुमचा GPS तुम्हाला %1$s पासून इथे दाखवत आहे. खात्री करा, म्हणजे फ्लीटकडे अचूक वेळ राहील.</string>
+    <string name="arrival_confirm_body">तुमचा GPS तुम्हाला ठिकाणी दाखवत आहे. खात्री करा, म्हणजे फ्लीटकडे अचूक वेळ राहील.</string>
+    <string name="arrival_confirm">पोहोचलो</string>
+    <string name="arrival_confirming">नोंद होत आहे…</string>
+    <string name="arrival_failed">Saarthi शी संपर्क झाला नाही. थोड्या वेळाने पुन्हा प्रयत्न करा.</string>
 </resources>

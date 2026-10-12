@@ -291,13 +291,9 @@
     <string name="hours_break_due">You have been driving %1$s without a break. Stop somewhere safe and rest.</string>
     <string name="hours_shift_soon">%1$s at the wheel today. Your daily limit is close.</string>
     <string name="hours_shift_due">%1$s at the wheel today. That is the limit - finish the shift when you safely can.</string>
-    <string name="stat_fastag">FASTag</string>
     <string name="stat_fuel">Fuel</string>
     <string name="stat_today">Today</string>
     <string name="stat_at_wheel">at the wheel</string>
-    <string name="fastag_not_linked">Not linked</string>
-    <string name="fastag_low">Low balance</string>
-    <string name="fastag_unknown">Balance not reported</string>
     <string name="fuel_diesel">Diesel</string>
     <string name="fuel_petrol">Petrol</string>
     <string name="fuel_cng">CNG</string>
@@ -322,7 +318,6 @@
     <string name="dispatch_routing">Working out the route…</string>
     <string name="home_quick_actions">Quick actions</string>
     <string name="home_action_nearby">Nearby</string>
-    <string name="home_action_fuel">Fuel slip</string>
     <string name="home_action_check">Safety check</string>
     <string name="home_action_notices">Notices</string>
     <string name="home_start_check">Start your safety check</string>
@@ -425,7 +420,6 @@
     <string name="toast_trip_ended">Trip ended. Your fleet has the record.</string>
     <string name="toast_route_drawn">Route to %1$s drawn on the map.</string>
     <string name="toast_route_failed">Humsafar could not work out a route there. Try again in a moment.</string>
-    <string name="toast_fuel_saved">Fuel slip saved.</string>
     <string name="toast_instruments_on">Instruments are back on the map.</string>
     <string name="toast_instruments_off">Instruments hidden from the map.</string>
     <string name="sos_title">Raise an emergency?</string>
@@ -462,7 +456,7 @@
     <string name="appearance_phone">Phone</string>
     <string name="appearance_light">Light</string>
     <string name="appearance_dark">Dark</string>
-    <string name="profile_appearance_note">The live map always stays dark, so your eyes stay used to the road at night.</string>
+    <string name="profile_appearance_note">The live map follows this setting too, so it is easy to read in daylight and gentle on your eyes at night.</string>
     <string name="profile_language">Language</string>
     <string name="profile_security">Sign-in and security</string>
     <string name="profile_on">On</string>
@@ -539,4 +533,35 @@
     <string name="nearby_pin">Pin %1$d, %2$s</string>
     <string name="nearby_footnote_straight">These are straight-line distances; the real drive is longer, sometimes much longer.</string>
     <string name="nearby_footnote">Places from OpenStreetMap contributors, so details may be out of date. Call ahead if you are relying on one.</string>
+
+    <string name="nearby_cat_pharmacy">Medical</string>
+    <string name="nearby_title_pharmacy">Medical stores</string>
+    <string name="nearby_trucks_welcome">Trucks welcome</string>
+    <string name="nearby_truck_diesel">Truck diesel</string>
+    <string name="nearby_failed_offline">No signal right now. Places will load when the phone is back online.</string>
+    <string name="nearby_failed_busy">The map\'s places directory is busy right now. Try again in a minute.</string>
+    <string name="nearby_stale">The live places directory could not be reached, so these are the places Saarthi last saw here.</string>
+    <string name="nearby_footnote_pumps">Fuel stations come from the oil companies\' outlet directory.</string>
+    <string name="nearby_call_place">Call %1$s</string>
+    <string name="home_action_expense">Expense slip</string>
+    <string name="toast_expense_saved">Slip saved.</string>
+    <string name="dispatch_your_note">Your note</string>
+    <string name="rate_state_average">%1$s average</string>
+    <string name="profile_wake_word">Wake with “Hey Saarthi”</string>
+    <string name="profile_wake_word_on">Ask hands-free while the app is open. The mic dot shows while it listens.</string>
+    <string name="profile_wake_word_off">Saarthi listens only when you tap the mic</string>
+    <string name="toast_wake_word_on">Say “Hey Saarthi” to ask hands-free.</string>
+    <string name="toast_wake_word_off">“Hey Saarthi” is off. Tap the mic to ask.</string>
+    <string name="profile_wake_word_unavailable">This phone has no offline speech, so Saarthi listens only when you tap the mic</string>
+    <string name="nav_google_open">Navigate in Google Maps</string>
+    <string name="nav_google_reopen">Open Google Maps</string>
+    <string name="nav_google_title">Google Maps is guiding</string>
+    <string name="nav_google_sub">Saarthi keeps recording · %1$s</string>
+    <string name="nav_use_saarthi">Use Saarthi</string>
+    <string name="arrival_reached">You have reached %1$s</string>
+    <string name="arrival_since">Your GPS shows you here since %1$s. Confirm so your fleet has the time.</string>
+    <string name="arrival_confirm_body">Your GPS shows you at the destination. Confirm so your fleet has the time.</string>
+    <string name="arrival_confirm">Mark arrived</string>
+    <string name="arrival_confirming">Marking arrived…</string>
+    <string name="arrival_failed">Could not reach Saarthi. Try again in a moment.</string>
 </resources>

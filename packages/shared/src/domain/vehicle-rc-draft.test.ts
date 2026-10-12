@@ -171,6 +171,32 @@ describe('vehicleDraftFromRc', () => {
     ).toBe(VehicleCategory.MOTORCYCLE);
   });
 
+  it('reads a goods three-wheeler as a cargo pickup, not a tempo traveller', () => {
+    const loader = vehicleDraftFromRc(
+      rcRecord({ vehicleClass: 'Three Wheeler (Goods)', vehicleCategory: '3WT', bodyType: null }),
+    );
+    expect(loader.vehicleType).toBe(VehicleType.PICKUP);
+    expect(loader.category).toBe(VehicleCategory.CARGO_THREE_WHEELER);
+    expect(loader.passengerCapacity).toBeNull();
+  });
+
+  it('tells an e-rickshaw from an auto, and reads a sleeper bus', () => {
+    expect(
+      vehicleDraftFromRc(rcRecord({ vehicleClass: 'e-Rickshaw(P)', vehicleCategory: '3WT', bodyType: null }))
+        .category,
+    ).toBe(VehicleCategory.E_RICKSHAW);
+    expect(
+      vehicleDraftFromRc(
+        rcRecord({ vehicleClass: 'Three Wheeler (Passenger)', vehicleCategory: '3WT', bodyType: null, fuelType: 'CNG' }),
+      ).category,
+    ).toBe(VehicleCategory.AUTO_RICKSHAW);
+    const sleeper = vehicleDraftFromRc(
+      rcRecord({ vehicleClass: 'Bus', vehicleCategory: 'HPV', bodyType: 'SLEEPER COACH' }),
+    );
+    expect(sleeper.vehicleType).toBe(VehicleType.BUS);
+    expect(sleeper.category).toBe(VehicleCategory.SLEEPER_BUS);
+  });
+
   it('reads an electric scooter from its fuel', () => {
     expect(
       vehicleDraftFromRc(

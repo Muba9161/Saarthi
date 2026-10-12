@@ -45,7 +45,7 @@ import com.saarthi.core.network.DriverNotificationDto
 import com.saarthi.core.ui.TerminalViewModel
 import com.saarthi.driver.R
 import com.saarthi.driver.ui.design.Brand
-import com.saarthi.driver.ui.design.BrandMark
+import com.saarthi.driver.ui.design.BrandLockup
 import com.saarthi.driver.ui.design.CircleButton
 import com.saarthi.driver.ui.design.Ease
 import com.saarthi.driver.ui.design.Eyebrow
@@ -153,7 +153,7 @@ private fun NoticesHeader(unread: Int, onClose: () -> Unit) {
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         CircleButton(Lucide.chevronLeft, stringResource(R.string.action_back), onClose)
-        BrandMark(height = 32.dp)
+        BrandLockup(height = 52.dp)
         Text(stringResource(R.string.notices_title), style = SType.section, color = c.fg, modifier = Modifier.weight(1f))
         if (unread > 0) {
             Box(

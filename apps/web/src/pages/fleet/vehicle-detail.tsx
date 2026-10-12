@@ -205,7 +205,7 @@ export function VehicleDetailPage() {
           {
             label: 'Payload',
             value: vehicle.capacityTons !== null ? `${vehicle.capacityTons} t` : '-',
-            hint: humanizeEnum(vehicle.truckType),
+            hint: vehicle.categoryLabel ?? undefined,
           },
         ]
       : []),
@@ -252,12 +252,9 @@ export function VehicleDetailPage() {
     {
       title: 'Identity',
       rows: [
-        { label: 'Vehicle type', value: vehicle.typeLabel },
-        ...(vehicle.categoryLabel ? [{ label: 'Category', value: vehicle.categoryLabel }] : []),
-        // Body type only means something for a goods vehicle.
-        ...(carriesFreight
-          ? [{ label: 'Body type', value: humanizeEnum(vehicle.truckType) }]
-          : []),
+        { label: 'Vehicle type', value: vehicle.classLabel },
+        // The kind: "SUV", "E-rickshaw" — and for a truck, its body.
+        ...(vehicle.categoryLabel ? [{ label: 'Kind', value: vehicle.categoryLabel }] : []),
         { label: 'Make', value: vehicle.manufacturer ?? '-' },
         { label: 'Model', value: vehicle.model ?? '-' },
         { label: 'Year', value: vehicle.year ?? '-' },

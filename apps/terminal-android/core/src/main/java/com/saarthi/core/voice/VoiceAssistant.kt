@@ -3,9 +3,6 @@ package com.saarthi.core.voice
 import android.content.Context
 import android.content.Intent
 import android.media.AudioAttributes
-import android.media.AudioFocusRequest
-import android.media.AudioManager
-import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -16,6 +13,7 @@ import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import com.saarthi.core.domain.AssistantState
 import com.saarthi.core.domain.VoiceClassifier
+import com.saarthi.core.domain.VoiceIntent
 import com.saarthi.core.util.DebugLog
 import com.saarthi.core.util.DeviceEnvironment
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -41,8 +39,9 @@ import java.util.Locale
  *
  * This is (3). It is the least accurate of the three and it is honest about
  * that: it misses the phrase in road noise, and it costs battery, which is why
- * it is **off by default** and turned on deliberately by a fleet rather than
- * starting on its own. When it does hear something, the audio never leaves the
+ * it is **off by default** on a fitted tablet and turned on deliberately by a
+ * fleet. The driver app turns it on for its own phone, with a switch in
+ * Profile, and only while the app is in front. When it does hear something, the audio never leaves the
  * device — only the recognised *text* is sent, and only after the wake phrase
  * matched.
  *
@@ -66,7 +65,23 @@ class VoiceAssistant(
      * One source now: this class owns the transitions and pushes them out.
      */
     private val onStateChange: (AssistantState) -> Unit = {},
+    /**
+     * Listen for the wake phrase on one quiet microphone stream fed to the
+     * phone's on-device recogniser, instead of restarting the recogniser every
+     * few seconds — see [quietWakeListener]. With it on, a phone that cannot
+     * listen quietly does not listen for the phrase at all: the restart loop's
+     * chime every two seconds is not an acceptable fallback on a phone.
+     */
+    private val quietWake: Boolean = false,
 ) {
+
+    /** The chime-free wake listener, when asked for and this phone can run one. */
+    private var quiet: WakeListener? =
+        if (quietWake) quietWakeListener(context, ::onQuietHeard, ::onQuietUnavailable) else null
+
+    /** True while the wake phrase is being listened for, quietly or by the restart loop. */
+    private val _wakeActive = MutableStateFlow(false)
+    val wakeActive: StateFlow<Boolean> = _wakeActive.asStateFlow()
 
     private val _state = MutableStateFlow(AssistantState.IDLE)
     val state: StateFlow<AssistantState> = _state.asStateFlow()
@@ -75,7 +90,11 @@ class VoiceAssistant(
     private fun moveTo(next: AssistantState) {
         if (_state.value == next) return
         _state.value = next
-        main.post { onStateChange(next) }
+        // At once when already on the main thread, so a caller that quiets
+        // Saarthi and then asks something new is never overtaken by its own
+        // "idle" arriving late. Callbacks from the speech engine's binder
+        // threads are still handed over.
+        if (Looper.myLooper() == Looper.getMainLooper()) onStateChange(next) else main.post { onStateChange(next) }
     }
 
     /** 0..1, driven from the recogniser's RMS. Feeds the blob's wobble. */
@@ -96,6 +115,15 @@ class VoiceAssistant(
      * this is also what says whether the wake loop needs restarting afterwards.
      */
     @Volatile private var speaking = false
+
+    /** True while the sentence being spoken is Saarthi's answer, rather than a turn instruction. */
+    @Volatile private var answering = false
+
+    /** The voice the engine is set to, so it is switched only when an answer's script changes. */
+    private var voiceLocale: Locale? = null
+
+    /** The English voice this device has: Indian where installed, else British or American. */
+    private var englishLocale: Locale = SpokenText.INDIAN_ENGLISH
 
     /** `SpeechRecognizer` must be driven from the main looper, always. */
     private val main = Handler(Looper.getMainLooper())
@@ -122,8 +150,8 @@ class VoiceAssistant(
      */
     @Volatile private var speechReady = false
 
-    /** Held between requesting the speaker and giving it back. */
-    private var focusRequest: AudioFocusRequest? = null
+    /** The speaker: asked for while Saarthi talks, given back afterwards. */
+    private val speaker = SpeakerChannel(context)
 
     /**
      * Consecutive wake-loop attempts that failed for a reason other than silence.
@@ -223,16 +251,20 @@ class VoiceAssistant(
         // Indian English where the device has it. A driver in Uttar Pradesh
         // being read a road name in a Californian accent is worse than useless —
         // they have to translate it back.
-        val indian = engine.setLanguage(Locale("en", "IN"))
+        val indian = engine.setLanguage(SpokenText.INDIAN_ENGLISH)
+        englishLocale = SpokenText.INDIAN_ENGLISH
         if (indian == TextToSpeech.LANG_MISSING_DATA || indian == TextToSpeech.LANG_NOT_SUPPORTED) {
             DebugLog.info("voice", "Indian English voice not installed; falling back")
             val fallback = engine.setLanguage(Locale.UK)
+            englishLocale = Locale.UK
             if (fallback == TextToSpeech.LANG_MISSING_DATA ||
                 fallback == TextToSpeech.LANG_NOT_SUPPORTED
             ) {
                 engine.language = Locale.US
+                englishLocale = Locale.US
             }
         }
+        voiceLocale = englishLocale
 
         engine.setOnUtteranceProgressListener(utteranceListener)
         speechReady = true
@@ -255,85 +287,93 @@ class VoiceAssistant(
         val engine = tts ?: return "No text-to-speech engine on this device."
         if (!speechReady) return "Text-to-speech is still starting."
 
-        val audio = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
-        val volume = audio?.getStreamVolume(AudioManager.STREAM_MUSIC) ?: -1
-        val max = audio?.getStreamMaxVolume(AudioManager.STREAM_MUSIC) ?: -1
-
         val voice = engine.voice?.locale?.toLanguageTag() ?: "unknown voice"
-        val level = if (volume < 0) "volume unknown" else "media volume $volume of $max"
-        val muted = if (volume == 0) " - the device is muted" else ""
-
-        return "$voice, $level$muted"
+        return "$voice, ${speaker.describeLevel()}"
     }
+
+    /** True when the phone's media volume is at zero, so an answer would play silently. */
+    val speakerMuted: Boolean get() = speaker.muted
+
+    /** Turn a silent phone up — on the driver's tap only. See [SpeakerChannel.raise]. */
+    fun raiseVolume() = speaker.raise()
 
     fun releaseSpeech() {
         speaking = false
+        answering = false
         speechReady = false
         _assistantBusy.value = false
-        abandonAudioFocus()
+        speaker.release()
         tts?.stop()
         tts?.shutdown()
         tts = null
     }
 
-    /**
-     * Ask the system for the speaker, politely.
-     *
-     * `TRANSIENT_MAY_DUCK` is the request a navigator makes: whatever is playing
-     * turns down for the instruction and comes back up afterwards, rather than
-     * stopping. A truck cab usually has something playing, and guidance that
-     * arrives at the same volume as the music is guidance nobody can make out.
-     */
-    private fun requestAudioFocus() {
-        val audio = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager ?: return
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            if (focusRequest == null) {
-                focusRequest = AudioFocusRequest.Builder(
-                    AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK,
-                )
-                    .setAudioAttributes(
-                        AudioAttributes.Builder()
-                            .setUsage(AudioAttributes.USAGE_ASSISTANCE_NAVIGATION_GUIDANCE)
-                            .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
-                            .build(),
-                    )
-                    // Nothing to do when focus moves: the utterance is short and
-                    // the engine has already been handed the text.
-                    .setOnAudioFocusChangeListener {}
-                    .build()
-            }
-            focusRequest?.let { runCatching { audio.requestAudioFocus(it) } }
-        } else {
-            @Suppress("DEPRECATION")
-            runCatching {
-                audio.requestAudioFocus(
-                    null,
-                    AudioManager.STREAM_MUSIC,
-                    AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK,
-                )
-            }
-        }
-    }
-
-    private fun abandonAudioFocus() {
-        val audio = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager ?: return
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            focusRequest?.let { runCatching { audio.abandonAudioFocusRequest(it) } }
-        } else {
-            @Suppress("DEPRECATION")
-            runCatching { audio.abandonAudioFocus(null) }
-        }
-    }
-
     /** Begin listening for the wake phrase. Requires a microphone. */
     fun startListening() {
         if (shouldRun) return
-        if (!ensureRecognizer()) return
-        shouldRun = true
         wakeFailures = 0
         wakeUnavailable = false
-        listenForWake()
+        if (quietWake) {
+            val listener = quiet
+            if (listener == null || !available) {
+                wakeUnavailable = true
+                return
+            }
+            shouldRun = true
+            _wakeActive.value = true
+            // A question being captured or an answer being read finishes first.
+            if (!capturingCommand && !speaking) listener.start()
+            return
+        }
+        if (!ensureRecognizer()) return
+        shouldRun = true
+        _wakeActive.value = true
+        // A question being captured finishes first; the loop picks up after it.
+        if (!capturingCommand) listenForWake()
+    }
+
+    /** Back to listening for the phrase, on whichever listener this phone uses. */
+    private fun resumeWake() {
+        val listener = quiet
+        if (quietWake) listener?.start() else listenForWake()
+    }
+
+    /**
+     * Speech made out by the quiet listener.
+     *
+     * Only speech addressed to Saarthi is acted on — emergencies included. The
+     * quiet listener hears everything said in the cab, all shift, and a phone
+     * call that mentions an accident on the highway must not raise an SOS.
+     * "Hey Saarthi, SOS" is acted on the moment it is made out; anything else
+     * waits for the end of the sentence, so the question arrives whole.
+     */
+    private fun onQuietHeard(heard: String, final: Boolean) {
+        if (!shouldRun || capturingCommand || speaking) return
+        if (!VoiceClassifier.containsWakePhrase(heard)) return
+        val remainder = VoiceClassifier.stripWakePhrase(heard)
+        val emergency = remainder.isNotBlank() &&
+            VoiceClassifier.classify(remainder) == VoiceIntent.SOS
+        if (!final && !emergency) return
+
+        quiet?.stop()
+        onWake()
+        if (remainder.isNotBlank()) {
+            moveTo(AssistantState.THINKING)
+            onUtterance(remainder)
+            afterCommand()
+        } else if (!captureCommand()) {
+            DebugLog.warn("voice", "Woken, but the recogniser would not start")
+            moveTo(AssistantState.IDLE)
+            afterCommand()
+        }
+    }
+
+    private fun onQuietUnavailable(reason: String) {
+        quiet = null
+        shouldRun = false
+        wakeUnavailable = true
+        _wakeActive.value = false
+        DebugLog.warn("voice", "Hey Saarthi is off on this phone: $reason")
     }
 
     /**
@@ -346,6 +386,8 @@ class VoiceAssistant(
      */
     fun wakeDiagnostic(): String = when {
         !available -> "No speech recogniser, or the microphone was refused."
+        quietWake && quiet == null -> "This phone has no offline speech, so the wake word is off."
+        quietWake && shouldRun -> "Listening quietly for “Hey Saarthi” on the phone's offline speech."
         wakeUnavailable -> "The recogniser kept failing, so listening was stopped."
         shouldRun -> "Listening for “Hey Saarthi”."
         else -> "Wake word is switched off."
@@ -353,6 +395,8 @@ class VoiceAssistant(
 
     fun stopListening() {
         shouldRun = false
+        quiet?.stop()
+        _wakeActive.value = false
         releaseRecognizer()
         moveTo(AssistantState.IDLE)
     }
@@ -393,7 +437,6 @@ class VoiceAssistant(
         recognizer = null
     }
 
-    /** Begin capturing a command directly — the tap-the-blob path. */
     /**
      * Begin capturing a question directly — the tap-the-button path.
      *
@@ -403,6 +446,24 @@ class VoiceAssistant(
      * be able to ask Saarthi something.
      */
     fun listenNow(): Boolean {
+        /*
+         * A fresh recogniser when the wake loop has one.
+         *
+         * The loop may be mid-attempt, and a second session started on a
+         * recogniser still winding the first one down fails within a second or
+         * two — on a phone with "Hey Saarthi" on, tapping the microphone showed
+         * "Listening" and then gave up before the driver had said a word. The
+         * loop takes the new recogniser back once the question is captured.
+         */
+        if (shouldRun) {
+            quiet?.stop()
+            releaseRecognizer()
+        }
+        return captureCommand()
+    }
+
+    /** Open the microphone for one question, on the recogniser there is. */
+    private fun captureCommand(): Boolean {
         if (!ensureRecognizer()) return false
 
         capturingCommand = true
@@ -434,9 +495,54 @@ class VoiceAssistant(
         moveTo(AssistantState.SPEAKING)
         _assistantBusy.value = true
         pauseListening()
-        requestAudioFocus()
+        speaker.claim()
         speaking = true
-        engine.speak(text, TextToSpeech.QUEUE_FLUSH, null, UTTERANCE_ANSWER)
+        answering = true
+        useVoice(SpokenText.localeOf(text))
+        engine.speak(SpokenText.of(text), TextToSpeech.QUEUE_FLUSH, null, UTTERANCE_ANSWER)
+    }
+
+    /**
+     * Quiet Saarthi without switching "Hey Saarthi" off.
+     *
+     * Stops an answer being read and drops a question being listened to - the
+     * Stop button, and closing the assistant. The wake loop, when it is on,
+     * carries on listening for the phrase; [stopListening] is what ends that.
+     */
+    fun hush() {
+        if (answering) {
+            tts?.stop()
+            speaking = false
+            answering = false
+            _assistantBusy.value = false
+            speaker.release()
+            if (!capturingCommand) resumeListening()
+        }
+        if (capturingCommand) {
+            capturingCommand = false
+            _assistantBusy.value = false
+            runCatching { recognizer?.cancel() }
+            afterCommand()
+        }
+        _amplitude.value = 0f
+        moveTo(AssistantState.IDLE)
+    }
+
+    /**
+     * Switch the engine to [locale], or to English when this phone has no voice
+     * for it - an English voice reading Devanagari is poor, but silence is worse.
+     */
+    private fun useVoice(locale: Locale) {
+        val engine = tts ?: return
+        if (locale == voiceLocale) return
+        val result = engine.setLanguage(locale)
+        voiceLocale = if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+            DebugLog.info("voice", "No ${locale.toLanguageTag()} voice installed; reading in English")
+            engine.setLanguage(englishLocale)
+            englishLocale
+        } else {
+            locale
+        }
     }
 
     /**
@@ -457,8 +563,10 @@ class VoiceAssistant(
     fun speakGuidance(text: String) {
         val engine = tts ?: return
         pauseListening()
-        requestAudioFocus()
+        speaker.claim()
         speaking = true
+        // Turn instructions are written in English, whatever the last answer was in.
+        useVoice(englishLocale)
         DebugLog.debug("voice", "Guidance: $text")
         engine.speak(text, TextToSpeech.QUEUE_FLUSH, null, UTTERANCE_GUIDANCE)
     }
@@ -469,7 +577,7 @@ class VoiceAssistant(
         tts?.stop()
         speaking = false
         _assistantBusy.value = false
-        abandonAudioFocus()
+        speaker.release()
         resumeListening()
     }
 
@@ -482,6 +590,7 @@ class VoiceAssistant(
      * classifier, which is a path that must only ever see a human speaking.
      */
     private fun pauseListening() {
+        quiet?.stop()
         if (recognizer == null) return
         listeningForWake = false
         main.post { runCatching { recognizer?.cancel() } }
@@ -492,7 +601,7 @@ class VoiceAssistant(
         // Posted, because `onDone` arrives on a binder thread and
         // `SpeechRecognizer` refuses to be started from anywhere but the main
         // looper.
-        main.post { if (shouldRun && !speaking) listenForWake() }
+        main.post { if (shouldRun && !speaking && !capturingCommand) resumeWake() }
     }
 
     private val utteranceListener = object : UtteranceProgressListener() {
@@ -500,8 +609,9 @@ class VoiceAssistant(
 
         override fun onDone(utteranceId: String?) {
             speaking = false
-            abandonAudioFocus()
+            speaker.release()
             if (utteranceId == UTTERANCE_ANSWER) {
+                answering = false
                 _assistantBusy.value = false
                 // Back to idle when the sentence ends, not when somebody taps
                 // the card away. The blob is how a driver tells whether the cab
@@ -521,8 +631,9 @@ class VoiceAssistant(
 
         private fun finishUtterance(utteranceId: String?) {
             speaking = false
-            abandonAudioFocus()
+            speaker.release()
             if (utteranceId == UTTERANCE_ANSWER) {
+                answering = false
                 _assistantBusy.value = false
                 moveTo(AssistantState.IDLE)
             }
@@ -553,7 +664,8 @@ class VoiceAssistant(
      */
     private fun scheduleWakeRestart(delayMs: Long = WAKE_RESTART_DELAY_MS) {
         if (!shouldRun) return
-        main.postDelayed({ if (shouldRun && !speaking) listenForWake() }, delayMs)
+        // Never over a question being captured: the restart was queued before the driver tapped the mic.
+        main.postDelayed({ if (shouldRun && !speaking && !capturingCommand) resumeWake() }, delayMs)
     }
 
     private fun listenForWake() {
@@ -585,7 +697,16 @@ class VoiceAssistant(
      * fleet declined by not enabling it.
      */
     private fun afterCommand() {
-        if (shouldRun) scheduleWakeRestart(WAKE_RESTART_AFTER_COMMAND_MS) else releaseRecognizer()
+        when {
+            !shouldRun -> releaseRecognizer()
+            quietWake -> {
+                // The question's recogniser goes, so the quiet stream can have the
+                // microphone back. Posted: this can run inside its own callback.
+                main.post { if (!capturingCommand) releaseRecognizer() }
+                scheduleWakeRestart(WAKE_RESTART_AFTER_COMMAND_MS)
+            }
+            else -> scheduleWakeRestart(WAKE_RESTART_AFTER_COMMAND_MS)
+        }
     }
 
     private fun startRecognition(offlineOnly: Boolean) {
@@ -653,6 +774,7 @@ class VoiceAssistant(
                 // trying would spin for the rest of the shift.
                 shouldRun = false
                 wakeUnavailable = true
+                _wakeActive.value = false
                 moveTo(AssistantState.ERROR)
                 return
             }
@@ -679,6 +801,8 @@ class VoiceAssistant(
                 if (wakeFailures >= MAX_WAKE_FAILURES) {
                     shouldRun = false
                     wakeUnavailable = true
+                    _wakeActive.value = false
+                    quiet?.stop()
                     releaseRecognizer()
                     DebugLog.warn(
                         "voice",
@@ -732,7 +856,7 @@ class VoiceAssistant(
                     moveTo(AssistantState.THINKING)
                     onUtterance(remainder)
                     afterCommand()
-                } else if (!listenNow()) {
+                } else if (!captureCommand()) {
                     // The phrase matched but the microphone could not be
                     // reopened. Without this the assistant is left showing as
                     // listening for ever, waiting for speech nothing is
@@ -761,7 +885,7 @@ class VoiceAssistant(
             // situation this exists for they matter.
             if (partial.isNotBlank() &&
                 VoiceClassifier.classify(partial) ==
-                com.saarthi.core.domain.VoiceIntent.SOS
+                VoiceIntent.SOS
             ) {
                 capturingCommand = false
                 onUtterance(partial)

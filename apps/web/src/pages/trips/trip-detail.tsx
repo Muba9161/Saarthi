@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, MapPin, Play } from 'lucide-react';
+import { ArrowLeft, MapPin, Navigation, Play, Smartphone } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   Feature,
@@ -30,8 +30,11 @@ import { FleetMap, type MapMarkerPoint } from '@/features/maps/fleet-map';
 import type { NavigationRoute } from '@/features/maps/directions';
 import { RouteSummary } from '@/features/travel/journey-picker';
 import { TripReplay } from '@/features/trips/trip-replay';
+import { useCoveredTrail } from '@/features/tracking/use-covered-trail';
 import { BackhaulPanel } from '@/features/backhaul/backhaul-panel';
+import { TripExpenseSlips } from '@/features/expenses/trip-expense-slips';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -43,6 +46,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+
+/**
+ * A stop as the vehicle's GPS saw it: when it got there, and how long it
+ * stayed. Shown beside the confirmed arrival rather than in place of it, so a
+ * dispatcher can see both what the driver marked and where the truck stood.
+ */
+function gpsVisit(reachedAt: string, leftAt: string | null): string {
+  const reached = `Reached by GPS ${relativeTimeFrom(reachedAt)}`;
+  if (!leftAt) return reached;
+  const minutes = Math.round((Date.parse(leftAt) - Date.parse(reachedAt)) / 60_000);
+  return `${reached} · left after ${minutes} min`;
+}
 
 /** Live trip view: map, progress, stops and the full event timeline. */
 export function TripDetailPage() {
@@ -122,6 +137,10 @@ export function TripDetailPage() {
     if (message.payload.tripId !== id) return;
     void queryClient.invalidateQueries({ queryKey: ['trip', id] });
   });
+
+  // This trip's covered path, coloured against its planned route. Trip-only:
+  // where the vehicle goes after this trip is not part of this trip's story.
+  const trail = useCoveredTrail({ truckId: trip.data?.truck?.id, tripId: id, tripOnly: true });
 
   const canDispatch = can(Permission.TRIPS_MANAGE);
   // Only worth loading once the panel that uses them can appear: a trip that
@@ -214,6 +233,18 @@ export function TripDetailPage() {
           <span className="flex flex-wrap items-center gap-2.5">
             {data.reference}
             <StatusBadge status={data.status} />
+            {data.driverCreated ? (
+              <Badge variant="info" size="sm" className="font-normal">
+                <Smartphone aria-hidden />
+                Added by driver
+              </Badge>
+            ) : null}
+            {data.navigationHandoff === 'GOOGLE_MAPS' ? (
+              <Badge variant="outline" size="sm" className="font-normal">
+                <Navigation aria-hidden />
+                Navigating with Google Maps
+              </Badge>
+            ) : null}
           </span>
         }
         description={`${data.originAddress} → ${data.destinationAddress}`}
@@ -406,6 +437,7 @@ export function TripDetailPage() {
             : []
         }
         route={data.plannedRoute}
+        trail={trail}
         markers={markers}
         allow3D={hasFeature(Feature.MAPS_3D)}
         height="440px"
@@ -462,6 +494,9 @@ export function TripDetailPage() {
                           ? `Planned ${relativeTimeFrom(stop.plannedArrival)}`
                           : 'Pending'}
                     </p>
+                    {stop.reachedAt ? (
+                      <p className="text-xs text-muted-foreground">{gpsVisit(stop.reachedAt, stop.leftAt)}</p>
+                    ) : null}
                   </div>
                   <StatusBadge status={stop.status} size="sm" />
                 </div>
@@ -594,6 +629,8 @@ export function TripDetailPage() {
               ) : null}
             </CardContent>
           </Card>
+
+          <TripExpenseSlips tripId={id} />
         </div>
       </div>
         </TabsContent>

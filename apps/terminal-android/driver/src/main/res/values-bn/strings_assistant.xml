@@ -18,4 +18,7 @@
     <string name="assistant_suggest_parking">আমার কাছে ট্রাক পার্কিং খুঁজে দাও</string>
     <string name="assistant_ask_hint">Saarthi-কে জিজ্ঞেস করুন</string>
     <string name="assistant_send">পাঠান</string>
+    <string name="assistant_idle_wake">মাইক ট্যাপ করুন, বা বলুন “Hey Saarthi”।</string>
+    <string name="assistant_volume_off">ফোনের মিডিয়া ভলিউম বন্ধ, তাই Saarthi-র কথা শোনা যাবে না।</string>
+    <string name="assistant_volume_up">ভলিউম বাড়ান</string>
 </resources>

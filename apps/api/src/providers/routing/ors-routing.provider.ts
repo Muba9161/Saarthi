@@ -247,7 +247,7 @@ export class OrsRoutingProvider implements RoutingProvider {
     const city = properties.locality ?? properties.county ?? properties.region ?? null;
     if (!city) return null;
 
-    return { city, state: properties.region ?? null };
+    return { city, district: properties.county ?? null, state: properties.region ?? null };
   }
 
   async searchPlaces(query: string, near: LatLng, limit: number): Promise<PlaceMatch[]> {

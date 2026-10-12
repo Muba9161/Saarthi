@@ -41,6 +41,19 @@ data class MapLook(
     val nativeAttribution: Boolean = true,
     /** How numbered place pins are drawn, for screens that show any. */
     val pins: PinLook = PinLook(),
+    /**
+     * The covered-path trail: blue with no trip, green on the planned route,
+     * red off it, amber on another road to the destination while Google Maps
+     * guided — the same four the fleet's web map draws.
+     */
+    val trailNoTripColor: String = "#2563EB",
+    val trailOnRouteColor: String = "#16A34A",
+    val trailOffRouteColor: String = "#DC2626",
+    val trailAlternateColor: String = "#D97706",
+    val trailWidth: Float = 5f,
+    /** The dark edge that keeps the trail readable on a pale basemap and a dark one. */
+    val trailCasingColor: String = "#0B1020",
+    val trailCasingOpacity: Float = 0.55f,
 ) {
     /**
      * Which silhouette a vehicle gets.

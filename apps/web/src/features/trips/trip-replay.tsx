@@ -10,6 +10,7 @@ import {
   type LatLng,
 } from '@saarthi/shared';
 import { api } from '@/lib/api-client';
+import type { TrackPoint } from '@/lib/api-types';
 import { useAuth } from '@/features/auth/auth-context';
 import { FleetMap, type MapMarkerPoint } from '@/features/maps/fleet-map';
 import { Card, CardContent } from '@/components/ui/card';
@@ -27,15 +28,6 @@ import { cn } from '@/lib/utils';
  * written while the trip ran — nothing is interpolated beyond drawing the line
  * between two recorded fixes.
  */
-
-interface ReplayPoint {
-  latitude: number;
-  longitude: number;
-  speedKph: number;
-  heading: number;
-  recordedAt: string;
-  simulated: boolean;
-}
 
 interface ReplayEvent {
   id: string;
@@ -55,7 +47,7 @@ interface ReplayPayload {
   endedAt: string | null;
   plannedDistanceKm: number | null;
   actualDistanceKm: number;
-  points: ReplayPoint[];
+  points: TrackPoint[];
   events: ReplayEvent[];
 }
 
@@ -115,10 +107,9 @@ export function TripReplay({ tripId }: { tripId: string }) {
 
   const data = replay.data;
   const current = points[Math.min(index, total - 1)]!;
-  const travelled = points.slice(0, index + 1).map((point) => ({
-    latitude: point.latitude,
-    longitude: point.longitude,
-  }));
+  // Each stored point carries its route state, so the replayed path takes the
+  // same colours the live view drew while the trip was running.
+  const travelled = points.slice(0, index + 1);
 
   const startedAt = data.startedAt ? new Date(data.startedAt) : new Date(points[0]!.recordedAt);
   const currentAt = new Date(current.recordedAt);

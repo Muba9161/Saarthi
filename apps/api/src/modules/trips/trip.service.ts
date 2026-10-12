@@ -10,10 +10,6 @@ import {
   TruckStatus,
   VerificationStatus,
   buildPaginationMeta,
-  canCommunicate,
-  communicationPartyForViewer,
-  mayKnowCounterparty,
-  type CommunicationParty,
   distanceKm,
   pathLength,
   tripStateMachine,
@@ -33,9 +29,20 @@ import { broadcastTripEvent, broadcastTripUpdate, broadcastTruckStatus } from '.
 import { recordTripFuel } from './trip-fuel.service';
 import { recalculateDriverScore, evaluateAndAwardAchievements } from '../drivers/driver.service';
 import { releaseVehicleFromAdHocTrip } from '../terminal/adhoc-trip.service';
+import { holdsRealTrip, promoteQueuedDriverTrip, yieldDriverTripToFleet } from './trip-queue.service';
 import type { AuthContext } from '../../auth/context';
 import { loadingBlockedReason } from '../marketplace-finance/order-finance.service';
 import { onTripCompleted } from '../return-loads/backhaul.service';
+import {
+  decorate,
+  routePoints,
+  tripInclude,
+  viewerParty,
+  type TripRecord,
+  type TripSummary,
+} from './trip.view';
+
+export type { TripSummary } from './trip.view';
 
 /**
  * Trip lifecycle.
@@ -45,222 +52,6 @@ import { onTripCompleted } from '../return-loads/backhaul.service';
  * the truck's status, the driver's availability and the order's status all
  * follow from the trip, so the three can never disagree.
  */
-
-export interface TripSummary {
-  id: string;
-  reference: string;
-  organizationId: string;
-  status: TripStatus;
-  truck: { id: string; registrationNumber: string; truckType: string; capacityTons: number } | null;
-  driver: { id: string; name: string; phone: string | null; overallScore: number | null } | null;
-  order: { id: string; reference: string; materialName: string; customerName: string } | null;
-  originAddress: string;
-  originLatitude: number;
-  originLongitude: number;
-  destinationAddress: string;
-  destinationLatitude: number;
-  destinationLongitude: number;
-  plannedDistanceKm: number | null;
-  actualDistanceKm: number;
-  plannedDurationMin: number | null;
-  actualDurationMin: number | null;
-  plannedStartAt: string | null;
-  actualStartAt: string | null;
-  plannedArrivalAt: string | null;
-  actualArrivalAt: string | null;
-  etaAt: string | null;
-  delayMinutes: number;
-  progressPercent: number;
-  price: number | null;
-  expenses: number | null;
-  /**
-   * A journey the vehicle made on its own account.
-   *
-   * True for a run to a petrol pump, a workshop or a weighbridge that a terminal
-   * opened because the driver navigated there with no dispatched trip against
-   * the vehicle. Surfaced rather than hidden: a fleet reporting on delivered
-   * work needs to be able to leave these out, and an owner looking at an
-   * unexplained forty kilometres needs to be able to find them.
-   */
-  adHoc: boolean;
-  /** Driving summary, written when the trip closed. Null while it is open. */
-  topSpeedKph: number | null;
-  averageSpeedKph: number | null;
-  harshBrakingCount: number;
-  harshAccelerationCount: number;
-  startOdometerKm: number | null;
-  endOdometerKm: number | null;
-  currentLocation: {
-    latitude: number;
-    longitude: number;
-    speedKph: number | null;
-    heading: number | null;
-    recordedAt: string;
-  } | null;
-  notes: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-const tripInclude = {
-  order: {
-    select: {
-      id: true,
-      reference: true,
-      materialName: true,
-      customerOrganizationId: true,
-      supplierOrganizationId: true,
-    },
-  },
-} satisfies Prisma.TripInclude;
-
-type TripRecord = Prisma.TripGetPayload<{ include: typeof tripInclude }>;
-
-function routePoints(trip: { plannedRoute: Prisma.JsonValue | null }): LatLng[] {
-  if (!Array.isArray(trip.plannedRoute)) return [];
-  return (trip.plannedRoute as unknown as LatLng[]).filter(
-    (point) =>
-      point &&
-      typeof point.latitude === 'number' &&
-      typeof point.longitude === 'number',
-  );
-}
-
-function progressOf(trip: TripRecord): number {
-  if (trip.status === TripStatus.COMPLETED) return 100;
-  if (!trip.plannedDistanceKm || trip.plannedDistanceKm <= 0) return 0;
-  return Math.max(0, Math.min(100, Math.round((trip.actualDistanceKm / trip.plannedDistanceKm) * 100)));
-}
-
-/** The party a signed-in caller reads a trip as. */
-function viewerParty(auth: AuthContext): CommunicationParty {
-  return communicationPartyForViewer({
-    isPlatformAdmin: auth.isPlatformAdmin,
-    organizationType: auth.organization?.type,
-  });
-}
-
-/**
- * Shape trip rows for one viewer. A customer following a delivery sees the
- * truck and the driver's name but never the driver's phone, and a Seller
- * whose goods are on board is not told who the customer is.
- */
-async function decorate(trips: TripRecord[], viewer: CommunicationParty): Promise<TripSummary[]> {
-  const mayCallDriver = canCommunicate(viewer, 'DRIVER');
-  const mayKnowCustomer = mayKnowCounterparty(viewer, 'CUSTOMER');
-
-  const truckIds = [...new Set(trips.map((trip) => trip.truckId))];
-  const driverIds = [
-    ...new Set(trips.map((trip) => trip.driverId).filter((id): id is string => Boolean(id))),
-  ];
-  const customerOrgIds = [
-    ...new Set(
-      trips
-        .map((trip) => trip.order?.customerOrganizationId)
-        .filter((id): id is string => Boolean(id)),
-    ),
-  ];
-
-  const [trucks, drivers, organizations] = await Promise.all([
-    prisma.truck.findMany({ where: { id: { in: truckIds } } }),
-    driverIds.length > 0
-      ? prisma.driver.findMany({
-          where: { id: { in: driverIds } },
-          include: { user: { select: { firstName: true, lastName: true, phone: true } } },
-        })
-      : Promise.resolve([]),
-    customerOrgIds.length > 0
-      ? prisma.organization.findMany({
-          where: { id: { in: customerOrgIds } },
-          select: { id: true, name: true },
-        })
-      : Promise.resolve([]),
-  ]);
-
-  const truckMap = new Map(trucks.map((truck) => [truck.id, truck]));
-  const driverMap = new Map(drivers.map((driver) => [driver.id, driver]));
-  const orgMap = new Map(organizations.map((organization) => [organization.id, organization.name]));
-
-  return trips.map((trip) => {
-    const truck = truckMap.get(trip.truckId);
-    const driver = trip.driverId ? driverMap.get(trip.driverId) : undefined;
-
-    return {
-      id: trip.id,
-      reference: trip.reference,
-      organizationId: trip.organizationId,
-      status: trip.status,
-      truck: truck
-        ? {
-            id: truck.id,
-            registrationNumber: truck.registrationNumber,
-            truckType: truck.truckType,
-            capacityTons: truck.capacityTons,
-          }
-        : null,
-      driver: driver
-        ? {
-            id: driver.id,
-            name: `${driver.user.firstName} ${driver.user.lastName}`.trim(),
-            phone: mayCallDriver ? driver.user.phone : null,
-            overallScore: driver.overallScore,
-          }
-        : null,
-      order: trip.order
-        ? {
-            id: trip.order.id,
-            reference: trip.order.reference,
-            materialName: trip.order.materialName,
-            customerName: mayKnowCustomer
-              ? (orgMap.get(trip.order.customerOrganizationId) ?? 'Customer')
-              : 'Saarthi customer',
-          }
-        : null,
-      originAddress: trip.originAddress,
-      originLatitude: trip.originLatitude,
-      originLongitude: trip.originLongitude,
-      destinationAddress: trip.destinationAddress,
-      destinationLatitude: trip.destinationLatitude,
-      destinationLongitude: trip.destinationLongitude,
-      plannedDistanceKm: trip.plannedDistanceKm,
-      actualDistanceKm: Number(trip.actualDistanceKm.toFixed(1)),
-      plannedDurationMin: trip.plannedDurationMin,
-      actualDurationMin: trip.actualDurationMin,
-      plannedStartAt: trip.plannedStartAt?.toISOString() ?? null,
-      actualStartAt: trip.actualStartAt?.toISOString() ?? null,
-      plannedArrivalAt: trip.plannedArrivalAt?.toISOString() ?? null,
-      actualArrivalAt: trip.actualArrivalAt?.toISOString() ?? null,
-      etaAt: trip.etaAt?.toISOString() ?? null,
-      delayMinutes: trip.delayMinutes,
-      progressPercent: progressOf(trip),
-      price: trip.price ? Number(trip.price) : null,
-      expenses: trip.expenses ? Number(trip.expenses) : null,
-      adHoc: trip.adHoc,
-      topSpeedKph: trip.topSpeedKph,
-      averageSpeedKph: trip.averageSpeedKph,
-      harshBrakingCount: trip.harshBrakingCount,
-      harshAccelerationCount: trip.harshAccelerationCount,
-      startOdometerKm: trip.startOdometerKm,
-      endOdometerKm: trip.endOdometerKm,
-      currentLocation:
-        truck?.lastLatitude !== null &&
-        truck?.lastLongitude !== null &&
-        truck?.lastLocationAt &&
-        truck
-          ? {
-              latitude: truck.lastLatitude!,
-              longitude: truck.lastLongitude!,
-              speedKph: truck.lastSpeedKph,
-              heading: truck.lastHeading,
-              recordedAt: truck.lastLocationAt.toISOString(),
-            }
-          : null,
-      notes: trip.notes,
-      createdAt: trip.createdAt.toISOString(),
-      updatedAt: trip.updatedAt.toISOString(),
-    };
-  });
-}
 
 /** Parties allowed to see a trip: the operating fleet, its driver, the order's customer/supplier. */
 function assertTripAccess(auth: AuthContext, trip: TripRecord): void {
@@ -389,6 +180,8 @@ export async function getTrip(auth: AuthContext, tripId: string) {
       plannedArrival: stop.plannedArrival?.toISOString() ?? null,
       actualArrival: stop.actualArrival?.toISOString() ?? null,
       actualDeparture: stop.actualDeparture?.toISOString() ?? null,
+      reachedAt: stop.reachedAt?.toISOString() ?? null,
+      leftAt: stop.leftAt?.toISOString() ?? null,
       status: stop.status,
     })),
     events: events.map((event) => ({
@@ -407,20 +200,35 @@ export async function getTrip(auth: AuthContext, tripId: string) {
 // Create / update
 // ---------------------------------------------------------------------------
 
+export interface CreateTripOptions {
+  /**
+   * The signed-on driver is raising this trip from the driver app. It queues
+   * behind a fleet trip already open on the vehicle instead of being refused,
+   * and the fleet — not the driver — is told about it.
+   */
+  driverCreated?: boolean;
+}
+
 export async function createTrip(
   auth: AuthContext,
   organizationId: string,
   input: CreateTripInput,
+  options: CreateTripOptions = {},
 ): Promise<TripSummary> {
+  const driverCreated = options.driverCreated === true;
   const truck = await prisma.truck.findUnique({ where: { id: input.truckId } });
   if (!truck || truck.organizationId !== organizationId) throw errors.notFound('Vehicle');
   if (truck.archivedAt) throw errors.businessRule('This vehicle is archived.');
-  if (!ASSIGNABLE_TRUCK_STATUSES.includes(truck.status as TruckStatus)) {
+
+  // A driver trip made while a real trip holds the vehicle waits its turn.
+  const queued = driverCreated && (await holdsRealTrip(truck.currentTripId));
+
+  if (!queued && !ASSIGNABLE_TRUCK_STATUSES.includes(truck.status as TruckStatus)) {
     throw errors.businessRule(
       `${truck.registrationNumber} is ${truck.status.toLowerCase().replace(/_/g, ' ')} and cannot start a new trip.`,
     );
   }
-  if (truck.currentTripId) {
+  if (truck.currentTripId && !queued) {
     /*
      * A service run is not a reason to refuse a dispatch.
      *
@@ -432,10 +240,14 @@ export async function createTrip(
      * run is closed and the dispatch proceeds; the distance it covered is
      * already banked on its own trip.
      */
-    const released = await releaseVehicleFromAdHocTrip(
-      input.truckId,
-      'Closed automatically: the vehicle was dispatched on a new trip.',
-    );
+    const released =
+      (await releaseVehicleFromAdHocTrip(
+        input.truckId,
+        'Closed automatically: the vehicle was dispatched on a new trip.',
+      )) ||
+      // The fleet comes first: a driver trip that has not moved goes back to
+      // the queue rather than blocking the dispatch.
+      (!driverCreated && (await yieldDriverTripToFleet(input.truckId, truck.currentTripId)));
     if (!released) {
       throw errors.conflict('This vehicle is already on an active trip.');
     }
@@ -497,9 +309,10 @@ export async function createTrip(
         plannedStartAt: input.plannedStartAt ?? null,
         plannedArrivalAt: input.plannedArrivalAt ?? null,
         etaAt: input.plannedArrivalAt ?? null,
-        status: TripStatus.ASSIGNED,
+        status: queued ? TripStatus.DRAFT : TripStatus.ASSIGNED,
         price: input.price ?? null,
         notes: input.notes ?? null,
+        driverCreated,
         createdById: auth.user.id,
         stops: {
           create: [
@@ -526,20 +339,34 @@ export async function createTrip(
           ],
         },
         events: {
-          create: [
-            { type: 'CREATED', description: 'Trip created.' },
-            { type: 'ASSIGNED', description: 'Vehicle and driver assigned.' },
-          ],
+          create: queued
+            ? [
+                { type: 'CREATED', description: 'Trip added by the driver.' },
+                {
+                  type: 'STATUS_CHANGED',
+                  description: 'Queued: it starts once the trip on this vehicle is finished.',
+                },
+              ]
+            : [
+                {
+                  type: 'CREATED',
+                  description: driverCreated ? 'Trip added by the driver.' : 'Trip created.',
+                },
+                { type: 'ASSIGNED', description: 'Vehicle and driver assigned.' },
+              ],
         },
       },
       include: tripInclude,
     });
 
-    await tx.truck.update({
-      where: { id: input.truckId },
-      data: { status: TruckStatus.ASSIGNED, currentTripId: created.id, currentDriverId: driverId },
-    });
-    await tx.driver.update({ where: { id: driverId }, data: { availability: 'ON_TRIP' } });
+    // A queued trip does not hold the vehicle yet; the trip it waits behind does.
+    if (!queued) {
+      await tx.truck.update({
+        where: { id: input.truckId },
+        data: { status: TruckStatus.ASSIGNED, currentTripId: created.id, currentDriverId: driverId },
+      });
+      await tx.driver.update({ where: { id: driverId }, data: { availability: 'ON_TRIP' } });
+    }
 
     if (orderId) {
       await tx.order.update({
@@ -557,15 +384,26 @@ export async function createTrip(
     return created;
   });
 
-  notifyAsync({
-    userId: driver.userId,
-    organizationId,
-    type: NotificationType.TRIP_ASSIGNED,
-    title: 'New trip assigned',
-    body: `${trip.reference}: ${trip.originAddress} → ${trip.destinationAddress}`,
-    priority: NotificationPriority.HIGH,
-    actionUrl: `/driver/trips/${trip.id}`,
-  });
+  if (driverCreated) {
+    // The driver made it, so the driver needs no telling — the office does.
+    void notifyOrganization(organizationId, {
+      type: NotificationType.TRIP_ASSIGNED,
+      title: queued ? 'Driver queued a trip' : 'Driver added a trip',
+      body: `${truck.registrationNumber} · ${trip.reference}: ${trip.originAddress} → ${trip.destinationAddress}`,
+      priority: NotificationPriority.NORMAL,
+      actionUrl: `/trips/${trip.id}`,
+    });
+  } else {
+    notifyAsync({
+      userId: driver.userId,
+      organizationId,
+      type: NotificationType.TRIP_ASSIGNED,
+      title: 'New trip assigned',
+      body: `${trip.reference}: ${trip.originAddress} → ${trip.destinationAddress}`,
+      priority: NotificationPriority.HIGH,
+      actionUrl: `/driver/trips/${trip.id}`,
+    });
+  }
 
   await broadcastTripUpdate({
     tripId: trip.id,
@@ -689,6 +527,15 @@ export async function updateTrip(
 // Lifecycle transitions
 // ---------------------------------------------------------------------------
 
+/** When the vehicle's GPS shows it reached the destination, if it has. */
+async function gpsArrivalAt(tripId: string): Promise<Date | null> {
+  const destination = await prisma.tripStop.findFirst({
+    where: { tripId, type: 'DESTINATION', reachedAt: { not: null } },
+    select: { reachedAt: true },
+  });
+  return destination?.reachedAt ?? null;
+}
+
 export async function transitionTrip(
   auth: AuthContext,
   tripId: string,
@@ -720,13 +567,49 @@ export async function transitionTrip(
   const isComplete = input.status === TripStatus.COMPLETED;
   const isCancel = input.status === TripStatus.CANCELLED;
 
+  /*
+   * A queued (DRAFT) trip does not hold the vehicle. Cancelling it must not free
+   * the vehicle from the trip it was waiting behind, and assigning it needs the
+   * vehicle to be free first.
+   */
+  const waiting = trip.status === TripStatus.DRAFT;
+  if (waiting && input.status === TripStatus.ASSIGNED) {
+    const truck = await prisma.truck.findUnique({
+      where: { id: trip.truckId },
+      select: { currentTripId: true },
+    });
+    if (truck?.currentTripId && truck.currentTripId !== trip.id) {
+      if (await holdsRealTrip(truck.currentTripId)) {
+        throw errors.conflict(
+          'This vehicle is still on another trip. The queued trip can start once that one is finished.',
+        );
+      }
+      await releaseVehicleFromAdHocTrip(
+        trip.truckId,
+        'Closed automatically: a queued trip was assigned to the vehicle.',
+      );
+    }
+  }
+  const touchesVehicle = !(waiting && isCancel);
+
+  /*
+   * When the vehicle actually got there.
+   *
+   * The GPS time when it has one — the driver usually confirms a few minutes
+   * after pulling in, and sometimes much later — so the arrival, the delay and
+   * the stop all carry the real time rather than the moment of the tap.
+   */
+  const arrivedAt = isArrival ? ((await gpsArrivalAt(tripId)) ?? now) : now;
+
   let delayMinutes = trip.delayMinutes;
   if (isArrival && trip.plannedArrivalAt) {
     delayMinutes = Math.max(
       0,
-      Math.round((now.getTime() - trip.plannedArrivalAt.getTime()) / 60_000),
+      Math.round((arrivedAt.getTime() - trip.plannedArrivalAt.getTime()) / 60_000),
     );
   }
+  // Another navigation app guides only while the vehicle is still on its way.
+  const endsHandoff = (isArrival || isComplete || isCancel) && trip.externalNavigation !== null;
 
   const truckStatus = TRIP_STATUS_TO_TRUCK_STATUS[input.status];
   const orderStatus = TRIP_STATUS_TO_ORDER_STATUS[input.status];
@@ -737,7 +620,8 @@ export async function transitionTrip(
       data: {
         status: input.status,
         ...(isStart ? { actualStartAt: trip.actualStartAt ?? now } : {}),
-        ...(isArrival ? { actualArrivalAt: now, delayMinutes } : {}),
+        ...(isArrival ? { actualArrivalAt: arrivedAt, delayMinutes } : {}),
+        ...(endsHandoff ? { externalNavigation: null, externalNavigationSince: null } : {}),
         ...(isComplete
           ? {
               actualArrivalAt: trip.actualArrivalAt ?? now,
@@ -772,7 +656,7 @@ export async function transitionTrip(
       },
     });
 
-    if (truckStatus) {
+    if (truckStatus && touchesVehicle) {
       await tx.truck.update({
         where: { id: trip.truckId },
         data: {
@@ -797,7 +681,7 @@ export async function transitionTrip(
      * started another one. `updateMany` matching nothing is the right outcome
      * there, not an error.
      */
-    if (isComplete || isCancel) {
+    if ((isComplete || isCancel) && touchesVehicle) {
       await tx.terminalSession.updateMany({
         where: {
           vehicleId: trip.truckId,
@@ -808,7 +692,7 @@ export async function transitionTrip(
       });
     }
 
-    if (trip.driverId && (isComplete || isCancel)) {
+    if (trip.driverId && (isComplete || isCancel) && touchesVehicle) {
       await tx.driver.update({
         where: { id: trip.driverId },
         data: {
@@ -826,7 +710,7 @@ export async function transitionTrip(
     if (isArrival) {
       await tx.tripStop.updateMany({
         where: { tripId, type: 'DESTINATION' },
-        data: { status: 'ARRIVED', actualArrival: now },
+        data: { status: 'ARRIVED', actualArrival: arrivedAt },
       });
     }
     if (isStart) {
@@ -917,7 +801,7 @@ export async function transitionTrip(
     trip.organizationId,
   );
 
-  if (truckStatus) {
+  if (truckStatus && touchesVehicle) {
     await broadcastTruckStatus({
       truckId: trip.truckId,
       organizationId: trip.organizationId,
@@ -950,6 +834,9 @@ export async function transitionTrip(
   // The owner is offered a backhaul for the way home, or a return leg closes
   // its backhaul. Never throws, so it cannot undo a completion.
   if (isComplete) await onTripCompleted(tripId);
+
+  // The vehicle is free: a trip the driver queued behind this one is next.
+  if ((isComplete || isCancel) && touchesVehicle) await promoteQueuedDriverTrip(trip.truckId);
 
   return (await decorate([updated], viewerParty(auth)))[0]!;
 }

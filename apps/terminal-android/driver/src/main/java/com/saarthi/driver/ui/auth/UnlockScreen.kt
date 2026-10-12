@@ -43,7 +43,7 @@ import com.saarthi.driver.data.QuickLoginStore
 import com.saarthi.driver.ui.DriverViewModel
 import com.saarthi.driver.ui.design.Aurora
 import com.saarthi.driver.ui.design.Avatar
-import com.saarthi.driver.ui.design.BrandMark
+import com.saarthi.driver.ui.design.BrandLockup
 import com.saarthi.driver.ui.design.BrandSpinner
 import com.saarthi.driver.ui.design.ButtonTone
 import com.saarthi.driver.ui.design.LinkButton
@@ -131,7 +131,7 @@ fun UnlockScreen(viewModel: DriverViewModel, methods: QuickLoginStore.Enabled) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                BrandMark(height = 32.dp, plated = true, modifier = Modifier.align(Alignment.Start))
+                BrandLockup(height = 52.dp, plated = true, modifier = Modifier.align(Alignment.Start))
                 Box(
                     Modifier
                         .padding(top = 4.dp)

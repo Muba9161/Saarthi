@@ -493,6 +493,9 @@ data class TerminalTripStopDto(
     val sequence: Int = 0,
     val status: String = "PENDING",
     val plannedArrival: String? = null,
+    /** When the vehicle's GPS shows it reached this stop. Recorded, not confirmed — the driver confirms. */
+    val reachedAt: String? = null,
+    val leftAt: String? = null,
 )
 
 /**
@@ -531,7 +534,25 @@ data class TerminalTripDto(
     val underway: Boolean = false,
     /** False when the paperwork names a colleague. Shown, never used to hide. */
     val assignedToSignedInDriver: Boolean = true,
-)
+    /** The driver added this trip from the app; the fleet did not dispatch it. */
+    val driverCreated: Boolean = false,
+    /** `GOOGLE_MAPS` while the driver follows this trip there; null on Saarthi's own navigation. */
+    val navigationHandoff: String? = null,
+) {
+    /** The trip's destination stop, which the arrival prompt is about. */
+    val destinationStop: TerminalTripStopDto? get() = stops.lastOrNull { it.type == "DESTINATION" }
+
+    /**
+     * The vehicle's GPS shows it at the destination and nobody has said so yet:
+     * the moment to ask the driver to confirm. A trip already arrived, or not
+     * yet set off, has nothing to ask.
+     */
+    val reachedUnconfirmed: Boolean
+        get() = underway && status !in CONFIRMED_ARRIVAL && destinationStop?.reachedAt != null
+}
+
+/** Trip statuses that already say the vehicle arrived. */
+private val CONFIRMED_ARRIVAL = setOf("ARRIVED", "UNLOADING", "COMPLETED")
 
 @Serializable
 data class ReportIssueRequest(
@@ -608,6 +629,16 @@ data class NearbyPlaceDto(
     /** What the driver will actually cover, road-measured where possible. */
     val distance: MeasuredDistanceDto = MeasuredDistanceDto(),
     val source: String = "",
+    /** The chain, e.g. "Indian Oil". */
+    val brand: String? = null,
+    val operator: String? = null,
+    val website: String? = null,
+    /** What a pump says it sells: `DIESEL`, `PETROL`, `TRUCK_DIESEL`, `CNG`, `LPG`. */
+    val fuels: List<String> = emptyList(),
+    /** The map says heavy vehicles are welcome (true) or refused (false). */
+    val hgv: Boolean? = null,
+    /** Saarthi's last copy, served while the live directory was unreachable. */
+    val stale: Boolean = false,
 )
 
 // ---------------------------------------------------------------------------
@@ -698,6 +729,15 @@ data class AskRequest(
     val latitude: Double? = null,
     val longitude: Double? = null,
     val moving: Boolean? = null,
+    /** The conversation so far, oldest first — the web chat's own `history`. */
+    val history: List<AskTurn> = emptyList(),
+)
+
+/** One earlier message: `user` for the driver, `assistant` for Saarthi. */
+@Serializable
+data class AskTurn(
+    val role: String,
+    val content: String,
 )
 
 @Serializable

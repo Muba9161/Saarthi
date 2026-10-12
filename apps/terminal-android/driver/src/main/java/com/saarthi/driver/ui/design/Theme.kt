@@ -79,6 +79,7 @@ fun SaarthiTheme(
     MaterialTheme(colorScheme = scheme) {
         CompositionLocalProvider(
             LocalPalette provides palette,
+            LocalMapInk provides if (dark) DarkMapInk else LightMapInk,
             LocalReducedMotion provides reducedMotion,
             LocalTextSelectionColors provides TextSelectionColors(
                 handleColor = palette.primary,
@@ -93,11 +94,11 @@ fun SaarthiTheme(
 
 /**
  * A part of the app that is dark whatever the appearance setting says — the
- * live map and everything floating on it, as the design paints them.
+ * SOS confirmation and the assistant, as the design paints them.
  */
 @Composable
 fun AlwaysDark(content: @Composable () -> Unit) {
-    CompositionLocalProvider(LocalPalette provides DarkPalette) {
+    CompositionLocalProvider(LocalPalette provides DarkPalette, LocalMapInk provides DarkMapInk) {
         SystemBars(lightContent = true)
         content()
     }

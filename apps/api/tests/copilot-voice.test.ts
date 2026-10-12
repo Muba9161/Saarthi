@@ -117,6 +117,31 @@ describe('copilot voice and memory', () => {
     expect(status).toBe(400);
   });
 
+  it('answers the driver app in the chat screen’s voice and memory, without its web-only drafts', async () => {
+    const auth = await buildAuthContext(owner.id, 'test-session', fleet.id);
+    await askWithTools(auth, fleet.id, 'And the one after that?', {
+      voice: 'companion',
+      inCab: true,
+      history: [
+        { role: 'user', content: 'Where is my next stop?' },
+        { role: 'assistant', content: 'Kanpur, about 80 km away.' },
+      ],
+    });
+
+    const input = seen[0]!;
+    expect(input.system).toContain('You are Saarthi Mitra');
+    expect(input.system).toContain('Reply in the language they wrote in');
+    expect(input.system).toContain('You never start a payment');
+    // Drafts open web screens a phone in a cab cannot show.
+    expect(input.system).not.toContain('draft_requirement');
+    expect(input.tools.some((tool) => tool.name.startsWith('draft_'))).toBe(false);
+    expect(input.turns.map((turn) => [turn.role, turn.content])).toEqual([
+      ['user', 'Where is my next stop?'],
+      ['assistant', 'Kanpur, about 80 km away.'],
+      ['user', 'And the one after that?'],
+    ]);
+  });
+
   it('keeps the driver terminal brief and operational', async () => {
     const auth = await buildAuthContext(owner.id, 'test-session', fleet.id);
     await askWithTools(auth, fleet.id, 'Where is my next stop?');

@@ -5,9 +5,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -41,7 +39,6 @@ import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.sin
 import com.saarthi.driver.R
-import com.saarthi.core.R as CoreR
 
 /**
  * The brand ground: deep navy, a saffron glow bottom-right and a green one top-right.
@@ -107,55 +104,21 @@ private fun DrawScope.ellipseGlow(
 }
 
 /**
- * The VorldX mark, sized by height, as every header in the design shows it.
+ * The VorldX Saarthi logo — mark, wordmark and strapline — as every header,
+ * sheet and screen in the app shows it.
  *
- * On a dark ground it sits on a white plate — the mark's navy disappears into
+ * Sized by height, as `height: 100%; width: auto` does: the logo's own
+ * proportions decide the width, so it never stretches across a row. On a dark
+ * ground it sits on a snug white tile — the navy wordmark disappears into
  * near-black otherwise — and on a light ground it stands on its own.
  */
 @Composable
-fun BrandMark(
-    height: Dp = 36.dp,
-    plated: Boolean = Saarthi.colors.dark,
-    modifier: Modifier = Modifier,
-) {
-    val corner = if (height >= 34.dp) 10.dp else 9.dp
-    val padX = if (plated) 7.dp * (height / 36.dp) else 0.dp
-    val padY = if (plated) 5.dp * (height / 36.dp) else 2.dp
-    // Sized from the height, as `height: 100%; width: auto` does: the mark's
-    // own proportions decide the width, so it never stretches across a row.
-    val width = (height - padY * 2) * MARK_RATIO + padX * 2
-    Box(
-        modifier
-            .size(width = width, height = height)
-            .clip(RoundedCornerShape(corner))
-            .background(if (plated) Color.White else Color.Transparent)
-            .padding(horizontal = padX, vertical = padY),
-        contentAlignment = Alignment.Center,
-    ) {
-        Image(
-            painter = painterResource(CoreR.drawable.saarthi_mark),
-            contentDescription = "VorldX Saarthi",
-            contentScale = ContentScale.Fit,
-            modifier = Modifier.fillMaxSize(),
-        )
-    }
-}
-
-/** The mark's own proportions: 512 × 307. */
-const val MARK_RATIO = 512f / 307f
-
-/**
- * The whole VorldX Saarthi logo — mark, wordmark and strapline — for the
- * places with room to show it. Sized by height like [BrandMark], on a snug
- * white tile when the ground is dark so the navy wordmark still reads.
- */
-@Composable
 fun BrandLockup(
-    height: Dp,
+    height: Dp = 52.dp,
     plated: Boolean = Saarthi.colors.dark,
     modifier: Modifier = Modifier,
 ) {
-    val pad = if (plated) height * 0.1f else 0.dp
+    val pad = if (plated) height * 0.08f else 0.dp
     val width = (height - pad * 2) * LOCKUP_RATIO + pad * 2
     Box(
         modifier
@@ -298,12 +261,13 @@ fun BrandSpinner(size: Dp = 136.dp, modifier: Modifier = Modifier) {
                 .background(Color.White),
             contentAlignment = Alignment.Center,
         ) {
+            // 74 of the 108 inside the ring keeps the logo's corners clear of the circle.
             Image(
-                painter = painterResource(CoreR.drawable.saarthi_mark),
+                painter = painterResource(R.drawable.brand_lockup),
                 contentDescription = null,
                 contentScale = ContentScale.Fit,
                 modifier = Modifier
-                    .size(width = 68.dp * (size / 136.dp), height = 68.dp * (size / 136.dp) / MARK_RATIO),
+                    .size(width = 74.dp * (size / 136.dp), height = 74.dp * (size / 136.dp) / LOCKUP_RATIO),
             )
         }
     }

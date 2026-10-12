@@ -1258,6 +1258,7 @@ model Truck {
   events              TruckEvent[]
   maintenance         MaintenanceRecord[]
   fuelRecords         FuelRecord[]
+  expenses            Expense[]
   deviceAssignments   DeviceAssignment[]    @relation("VehicleDeviceAssignments")
   devicePairingTokens DevicePairingToken[]  @relation("VehiclePairingTokens")
   telemetryReadings   TelemetryReading[]    @relation("VehicleTelemetry")
@@ -1335,22 +1336,25 @@ model TruckAssignment {
 /// High-volume append-only tracking table. Indexed for latest-position and
 /// time-range replay queries.
 model TruckLocation {
-  id             String         @id @default(uuid()) @db.Uuid
-  truckId        String         @db.Uuid
-  organizationId String         @db.Uuid
-  tripId         String?        @db.Uuid
-  driverId       String?        @db.Uuid
+  id             String          @id @default(uuid()) @db.Uuid
+  truckId        String          @db.Uuid
+  organizationId String          @db.Uuid
+  tripId         String?         @db.Uuid
+  driverId       String?         @db.Uuid
   latitude       Float
   longitude      Float
-  speedKph       Float          @default(0)
-  heading        Float          @default(0)
+  speedKph       Float           @default(0)
+  heading        Float           @default(0)
   accuracy       Float?
   altitude       Float?
-  source         TrackingSource @default(MOCK)
+  source         TrackingSource  @default(MOCK)
   /// True when produced by the local simulator — never conflated with real GPS.
-  simulated      Boolean        @default(false)
+  simulated      Boolean         @default(false)
+  /// Where this point stood against its trip's planned route, judged once at
+  /// ingest so the covered-path colours agree on every screen and in replay.
+  routeState     TrackRouteState @default(NO_TRIP)
   recordedAt     DateTime
-  createdAt      DateTime       @default(now())
+  createdAt      DateTime        @default(now())
 
   truck Truck @relation(fields: [truckId], references: [id], onDelete: Cascade)
 
@@ -1358,6 +1362,24 @@ model TruckLocation {
   @@index([tripId, recordedAt])
   @@index([organizationId, recordedAt])
   @@map("truck_locations")
+}
+
+/// A covered-path point's standing against the trip it was driven on.
+enum TrackRouteState {
+  /// No trip under way: the vehicle is moving on its own account.
+  NO_TRIP
+  /// A trip is under way and the vehicle is on its planned route.
+  ON_ROUTE
+  /// A trip is under way and the vehicle has left its planned route.
+  OFF_ROUTE
+  /// Off the planned route on another road to the destination, while an outside
+  /// navigation app (Google Maps) guides the driver. Not a fault of the driver's.
+  ALTERNATE
+}
+
+/// A navigation app outside Saarthi that a driver handed the journey to.
+enum ExternalNavigationApp {
+  GOOGLE_MAPS
 }
 
 model TruckEvent {
@@ -1477,6 +1499,49 @@ model FuelRecord {
   @@index([organizationId, recordedAt])
   @@index([tripId])
   @@map("fuel_records")
+}
+
+/// What a driver paid for on the road, other than fuel.
+///
+/// Fuel stays a `FuelRecord`, because litres drive efficiency figures that a
+/// toll receipt has no part in.
+enum ExpenseCategory {
+  TOLL
+  PARKING
+  REPAIR
+  FOOD
+  LOADING
+  CHALLAN
+  OTHER
+}
+
+/// A slip a driver photographed and recorded from the road.
+///
+/// Linked to the trip under way when it was paid, so it lands in that trip's
+/// expenses; the photograph is a `MediaAsset` owned by this row.
+model Expense {
+  id             String          @id @default(uuid()) @db.Uuid
+  organizationId String          @db.Uuid
+  truckId        String          @db.Uuid
+  tripId         String?         @db.Uuid
+  driverId       String?         @db.Uuid
+  category       ExpenseCategory
+  amount         Decimal         @db.Decimal(12, 2)
+  /// Who was paid: the plaza, the dhaba, the workshop.
+  vendorName     String?
+  notes          String?
+  latitude       Float?
+  longitude      Float?
+  recordedAt     DateTime        @default(now())
+  createdById    String?         @db.Uuid
+  createdAt      DateTime        @default(now())
+
+  truck Truck @relation(fields: [truckId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, recordedAt])
+  @@index([truckId, recordedAt])
+  @@index([tripId])
+  @@map("expenses")
 }
 
 // ===========================================================================
@@ -1663,6 +1728,14 @@ enum TripEventType {
   CANCELLED
   EMERGENCY
   NOTE
+  /// The driver handed the journey to another navigation app, or came back.
+  NAVIGATION_HANDOFF
+  /// Off the planned route on another road to the destination, under that app.
+  ALTERNATE_ROUTE
+  /// The vehicle's GPS shows it reached a stop.
+  STOP_REACHED
+  /// The vehicle's GPS shows it left a stop.
+  STOP_LEFT
 }
 
 enum TripStopType {
@@ -2335,6 +2408,19 @@ model Trip {
   // because the truck was still "busy" fetching diesel.
   adHoc Boolean @default(false)
 
+  /// The signed-on driver raised this trip from the driver app rather than the
+  /// fleet dispatching it. A fleet trip always comes first: a driver trip made
+  /// while one is open waits as a DRAFT until the vehicle is free.
+  driverCreated Boolean @default(false)
+
+  /// Set while the driver is following this trip in another navigation app.
+  /// That app chooses its own roads and cannot tell Saarthi which, so leaving
+  /// the planned route while still heading for the destination is recorded as
+  /// an alternate road rather than a deviation. Cleared when the trip arrives,
+  /// ends, or the driver returns to Saarthi's own navigation.
+  externalNavigation      ExternalNavigationApp?
+  externalNavigationSince DateTime?
+
   // --- Driving summary ----------------------------------------------------
   //
   // Written when the trip closes, from the figures the terminal accumulated
@@ -2403,8 +2489,24 @@ model TripStop {
   actualDeparture DateTime?
   status          TripStopStatus @default(PENDING)
   note            String?
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+
+  // --- What the vehicle's own GPS says -------------------------------------
+  //
+  // Kept apart from `actualArrival`/`actualDeparture`, which record what a
+  // person marked. These are measured from the reported positions whether the
+  // driver navigated with Saarthi, Google Maps or nothing at all, and a stop
+  // is never marked arrived from them alone — the driver confirms.
+
+  /// First slow position inside the stop's radius, while waiting to see whether
+  /// the vehicle actually stops there. Cleared if it leaves first.
+  reachingSince DateTime?
+  /// When the vehicle reached the stop: it stayed inside the radius long enough.
+  reachedAt     DateTime?
+  /// When it left again: the first position back outside the radius.
+  leftAt        DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
 
@@ -2926,17 +3028,28 @@ enum VehicleType {
 enum VehicleCategory {
   SCOOTER
   ELECTRIC_SCOOTER
+  ELECTRIC_MOTORCYCLE
   MOTORCYCLE
   SPORTS_BIKE
   CRUISER
   ADVENTURE
   MOPED
+  AUTO_RICKSHAW
+  E_RICKSHAW
+  CARGO_THREE_WHEELER
   HATCHBACK
   SEDAN
   COMPACT_SUV
   SUV
   MUV
   LUXURY
+  PASSENGER_VAN
+  CARGO_VAN
+  MINI_BUS
+  STANDARD_BUS
+  COACH
+  SLEEPER_BUS
+  SCHOOL_BUS
 }
 
 // ===========================================================================
@@ -4429,6 +4542,7 @@ enum MediaOwnerType {
   SOS_INCIDENT
   MAINTENANCE_RECORD
   FUEL_RECORD
+  EXPENSE
   VEHICLE_LISTING
   TRAVEL_PACKAGE
   ROUTE_HAZARD

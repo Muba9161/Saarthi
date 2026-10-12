@@ -6,16 +6,15 @@ import kotlinx.serialization.Serializable
  * The things a driver needs that only a browser could reach.
  *
  * Each of these already existed on the platform and was visible only to a fleet
- * manager at a desk: the FASTag balance, the papers a checkpoint asks for,
- * today's diesel rate, the driver's own trip history, and the notifications the
- * server had been writing for them all along.
+ * manager at a desk: the papers a checkpoint asks for, today's diesel rate,
+ * the driver's own trip history, and the notifications the server had been
+ * writing for them all along.
  *
  * Every nullable field here is nullable because the answer is genuinely
- * sometimes unknown, and none of them defaults to a number. A FASTag balance
- * the bank has not reported is not zero; a distance not yet driven is not zero;
- * a diesel rate for a district nobody publishes is not zero. A driver spends
- * money and makes decisions against these, and an invented figure is worse than
- * a dash.
+ * sometimes unknown, and none of them defaults to a number. A distance not yet
+ * driven is not zero; a diesel rate for a district nobody publishes is not
+ * zero. A driver spends money and makes decisions against these, and an
+ * invented figure is worse than a dash.
  */
 
 @Serializable
@@ -35,22 +34,6 @@ data class DriverPaperDto(
 )
 
 @Serializable
-data class FastagDto(
-    val tagId: String? = null,
-    val issuerBank: String? = null,
-    val status: String,
-    val balanceRupees: Double? = null,
-    /**
-     * Only ever true for a real balance against a real threshold.
-     *
-     * Unknown is not low. Colouring an unknown balance red would teach drivers
-     * to ignore the colour, and the colour is the whole point.
-     */
-    val lowBalance: Boolean = false,
-    val balanceUpdatedAt: String? = null,
-)
-
-@Serializable
 data class FuelPriceDto(
     val city: String,
     val state: String? = null,
@@ -66,6 +49,12 @@ data class FuelPriceDto(
      */
     val publishedOn: String? = null,
     val source: String = "",
+    /**
+     * What the rate is published for: `CITY`, `DISTRICT`, or `STATE` — the
+     * state-wide average for a town nobody prices on its own, which the card
+     * must call an average.
+     */
+    val scope: String = "CITY",
 )
 
 @Serializable
@@ -81,6 +70,13 @@ data class DriverTripDto(
     val distanceIsPlanned: Boolean = false,
     val fromLabel: String? = null,
     val toLabel: String? = null,
+    /** The driver added this trip; the fleet did not dispatch it. */
+    val driverCreated: Boolean = false,
+    /** A service run the app opened on its own, not a trip anyone planned. */
+    val adHoc: Boolean = false,
+    val plannedStartAt: String? = null,
+    val createdAt: String? = null,
+    val notes: String? = null,
 )
 
 @Serializable

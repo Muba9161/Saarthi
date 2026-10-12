@@ -50,7 +50,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.saarthi.driver.R
-import com.saarthi.driver.ui.design.BrandMark
+import com.saarthi.driver.ui.design.BrandLockup
 import com.saarthi.driver.ui.design.CircleButton
 import com.saarthi.driver.ui.design.Ease
 import com.saarthi.driver.ui.design.Eyebrow
@@ -117,7 +117,7 @@ fun ShiftHeader(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        BrandMark(height = 36.dp)
+        BrandLockup(height = 56.dp)
         Column(Modifier.weight(1f)) {
             Eyebrow(eyebrow, Modifier.rise(), maxLines = 1)
             Text(

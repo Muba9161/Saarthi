@@ -260,13 +260,9 @@
     <string name="hours_break_due">तुस बिना ब्रेक %1$s थमां गड्डी चला करदे ओ. कुसै सुरक्खत जगह रुकियै आराम करो.</string>
     <string name="hours_shift_soon">अज्ज %1$s स्टेयरिंग पर. तुंदी रोज़ दी हद्द नेड़ै ऐ.</string>
     <string name="hours_shift_due">अज्ज %1$s स्टेयरिंग पर. एह् हद्द ऐ - जिसलै सुरक्खत होऐ, शिफ्ट खत्म करो.</string>
-    <string name="stat_fastag">FASTag</string>
     <string name="stat_fuel">तेल</string>
     <string name="stat_today">अज्ज</string>
     <string name="stat_at_wheel">स्टेयरिंग पर</string>
-    <string name="fastag_not_linked">लिंक नेईं</string>
-    <string name="fastag_low">बैलेंस घट्ट</string>
-    <string name="fastag_unknown">बैलेंस दी जानकारी नेईं</string>
     <string name="fuel_diesel">डीज़ल</string>
     <string name="fuel_petrol">पेट्रोल</string>
     <string name="fuel_cng">सीएनजी</string>
@@ -291,7 +287,6 @@
     <string name="dispatch_routing">रूट बनाया जा करदा ऐ…</string>
     <string name="home_quick_actions">फटाफट कम्म</string>
     <string name="home_action_nearby">लागै</string>
-    <string name="home_action_fuel">तेल पर्ची</string>
     <string name="home_action_check">सेफ्टी चेक</string>
     <string name="home_action_notices">नोटिस</string>
     <string name="home_start_check">अपना सेफ्टी चेक शुरू करो</string>
@@ -391,7 +386,6 @@
     <string name="toast_trip_ended">ट्रिप खत्म होई गेई. तुंदी फ़्लीट कोल इसदा रिकॉर्ड ऐ.</string>
     <string name="toast_route_drawn">%1$s तगर दा रूट मैप पर बनाई दित्ता गेआ.</string>
     <string name="toast_route_failed">हमसफ़र उत्थें तगर रूट नेईं बनाई सकेआ. थोड़ी देर च फ्ही कोशश करो.</string>
-    <string name="toast_fuel_saved">तेल पर्ची सेव होई गेई.</string>
     <string name="toast_instruments_on">मीटर फ्ही मैप पर आई गे.</string>
     <string name="toast_instruments_off">मीटर मैप थमां छपाई दित्ते गे.</string>
     <string name="sos_title">एमरजेंसी दस्सनी ऐ?</string>
@@ -427,7 +421,7 @@
     <string name="appearance_phone">फ़ोन</string>
     <string name="appearance_light">लाइट</string>
     <string name="appearance_dark">डार्क</string>
-    <string name="profile_appearance_note">लाइव मैप हमेशा डार्क रौंह्दा ऐ, तां जे रातीं तुंदियां अक्खीं सड़का दे मताबक बनी रौह्न.</string>
+    <string name="profile_appearance_note">लाइव मैप बी इस सेटिंग मताबक बदलदा ऐ, तां जे दिनै च सौखा पढ़ोऐ ते रातीं अक्खें गी अराम रौह्.</string>
     <string name="profile_language">भाशा</string>
     <string name="profile_security">साइन-इन ते सुरक्षा</string>
     <string name="profile_on">चालू</string>
@@ -503,4 +497,42 @@
     <string name="nearby_pin">निशान %1$d, %2$s</string>
     <string name="nearby_footnote_straight">एह् सिद्धी लकीर दियां दूरियां न; असल सफ़र लम्मा ऐ, कदें-कदें बड़ा लम्मा.</string>
     <string name="nearby_footnote">जगहां OpenStreetMap दे योगदानकर्तें थमां न, इस आस्तै जानकारी पुरानी होई सकदी ऐ. जेकर तुस कुसै जगह पर भरोसा करा करदे ओ तां पैह्लें फ़ोन करी लैओ.</string>
+
+    <!-- Nearby services -->
+    <string name="nearby_cat_pharmacy">मेडिकल</string>
+    <string name="nearby_title_pharmacy">मेडिकल स्टोर</string>
+    <string name="nearby_trucks_welcome">ट्रक आई सकदे न</string>
+    <string name="nearby_truck_diesel">ट्रक डीज़ल</string>
+    <string name="nearby_failed_offline">इस बेलै सिग्नल नेईं. फ़ोन फ्ही ऑनलाइन होंदे गै जगहां लोड होई जाङन.</string>
+    <string name="nearby_failed_busy">मैप दी जगहें दी लिस्ट इस बेलै बिज़ी ऐ. इक मिनट बाद फ्ही कोशश करो.</string>
+    <string name="nearby_stale">जगहें दी लाइव लिस्ट तगर नेईं पुज्जी सके, इस आस्तै एह् ओह् जगहां न जेह्ड़ियां Saarthi नै इत्थै पिछली बारी दिक्खियां हियां.</string>
+    <string name="nearby_footnote_pumps">पेट्रोल पंपें दी जानकारी तेल कंपनियें दी आउटलेट लिस्ट थमां ऐ.</string>
+    <string name="nearby_call_place">%1$s गी फ़ोन करो</string>
+
+    <!-- Expense slip shortcut -->
+    <string name="home_action_expense">खर्चे दी पर्ची</string>
+    <string name="toast_expense_saved">पर्ची सेव होई गेई.</string>
+
+    <!-- Trip card note -->
+    <string name="dispatch_your_note">तुंदा नोट</string>
+
+    <!-- Fuel rate -->
+    <string name="rate_state_average">%1$s दा औसत</string>
+    <string name="profile_wake_word">“Hey Saarthi” कन्नै बुलाओ</string>
+    <string name="profile_wake_word_on">ऐप खुल्ली होऐ तां हत्थ लाए बगैर पुच्छो. सुनदे बेल्लै माइक दा नशान दिक्खदा ऐ.</string>
+    <string name="profile_wake_word_off">Saarthi तां गै सुनदा ऐ जिसलै तुस माइक दबांदे ओ</string>
+    <string name="toast_wake_word_on">हत्थ लाए बगैर पुच्छने आस्तै “Hey Saarthi” बोलो.</string>
+    <string name="toast_wake_word_off">“Hey Saarthi” बंद ऐ. पुच्छने आस्तै माइक दबाओ.</string>
+    <string name="profile_wake_word_unavailable">इस फ़ोन च ऑफ़लाइन स्पीच नेईं, इस करी Saarthi तां गै सुनदा ऐ जिसलै तुस माइक दबांदे ओ</string>
+    <string name="nav_google_open">Google Maps च नेविगेट करो</string>
+    <string name="nav_google_reopen">Google Maps खोल्लो</string>
+    <string name="nav_google_title">Google Maps रस्ता दस्सा करदा ऐ</string>
+    <string name="nav_google_sub">Saarthi रिकॉर्ड करदा रौह्ग · %1$s</string>
+    <string name="nav_use_saarthi">Saarthi पर परतो</string>
+    <string name="arrival_reached">तुस %1$s पुज्जी गे ओ</string>
+    <string name="arrival_since">तुंदा GPS तुसेंगी %1$s थमां इत्थै दस्सा करदा ऐ. पक्का करो तां जे फ़्लीट कोल ठीक बेल्ला र्हे.</string>
+    <string name="arrival_confirm_body">तुंदा GPS तुसेंगी मंज़िल पर दस्सा करदा ऐ. पक्का करो तां जे फ़्लीट कोल ठीक बेल्ला र्हे.</string>
+    <string name="arrival_confirm">पुज्जी गे</string>
+    <string name="arrival_confirming">दर्ज होआ करदा ऐ…</string>
+    <string name="arrival_failed">Saarthi कन्नै राबता नेईं होई सकेआ. थोड़ी देर बाद फ्ही कोशश करो.</string>
 </resources>

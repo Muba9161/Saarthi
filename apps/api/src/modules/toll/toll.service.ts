@@ -24,6 +24,7 @@ import { skipTake } from '../../lib/http';
 import { cache } from '../../infra/cache';
 import { cacheKeys } from '../../infra/cache-keys';
 import { assertTenantAccess } from '../../server/guards';
+import { expenseTotalsByTrip } from '../expenses/expense.service';
 import { AuditAction, recordAudit } from '../audit/audit.service';
 import type { ProviderTollHistory } from '../../providers/fastag';
 import type { AuthContext } from '../../auth/context';
@@ -275,21 +276,25 @@ export async function tripCostSummary(
   if (!trip) throw errors.notFound('Trip');
   assertTenantAccess(auth, trip.organizationId, 'Trip');
 
-  const [toll, fuel] = await Promise.all([
+  const [toll, fuel, slips] = await Promise.all([
     prisma.tollTransaction.aggregate({
       where: { tripId },
       _sum: { amount: true },
       _count: true,
     }),
     prisma.fuelRecord.aggregate({ where: { tripId }, _sum: { totalCost: true } }),
+    expenseTotalsByTrip([tripId]),
   ]);
 
-  const tollCost = Number(toll._sum.amount ?? 0);
+  // A toll the driver paid in cash and photographed is still toll.
+  const slipTotals = slips.get(tripId) ?? { total: 0, toll: 0 };
+  const tollCost = Number(toll._sum.amount ?? 0) + slipTotals.toll;
   const fuelCost = Number(fuel._sum.totalCost ?? 0);
   // `expenses` on a trip is the operator's own catch-all. Toll recorded
   // separately is not deducted from it — that would be guessing at what they
-  // put in the box.
-  const otherExpenses = trip.expenses === null ? 0 : Number(trip.expenses);
+  // put in the box. The driver's other slips are added to it.
+  const otherExpenses =
+    (trip.expenses === null ? 0 : Number(trip.expenses)) + (slipTotals.total - slipTotals.toll);
 
   return {
     ...summariseTripCost({

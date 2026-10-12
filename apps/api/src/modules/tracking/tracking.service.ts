@@ -3,19 +3,19 @@ import {
   MOVING_TRIP_STATUSES,
   NotificationPriority,
   NotificationType,
+  TrackRouteState,
   TrackingSource,
   TripStatus,
-  cumulativeDistances,
   distanceKm,
   distanceToPath,
-  distanceToSegment,
-  haversineDistance,
   pathLength,
+  thinTrail,
+  withoutGlitches,
   type LatLng,
   type TrackingHistoryQuery,
   type TrackingLocationInput,
 } from '@saarthi/shared';
-import { type Prisma, prisma } from '../../database/prisma';
+import { prisma } from '../../database/prisma';
 import { errors } from '../../lib/errors';
 import { assertTripOnVehicle } from '../trips/trip-ownership';
 import { logger } from '../../lib/logger';
@@ -29,6 +29,8 @@ import { cache } from '../../infra/cache';
 import { cacheKeys, cacheTtl } from '../../infra/cache-keys';
 import { readLiveStates, writeLiveState } from './live-state.service';
 import { applyOdometer } from '../vehicles/odometer.service';
+import { recordStopVisits } from '../trips/stop-arrival.service';
+import { progressAlongRoute, routeOf, routeStateFor } from './trip-route';
 import type { AuthContext } from '../../auth/context';
 
 /**
@@ -92,56 +94,14 @@ interface DerivedState {
   events: string[];
 }
 
-function routeOf(plannedRoute: Prisma.JsonValue | null): LatLng[] {
-  if (!Array.isArray(plannedRoute)) return [];
-  return (plannedRoute as unknown as LatLng[]).filter(
-    (point) => point && typeof point.latitude === 'number' && typeof point.longitude === 'number',
-  );
-}
-
-/**
- * Project the truck onto its planned route to work out how far along it is.
- *
- * The projection is onto the nearest *segment*, not the nearest vertex: a
- * two-point route (origin → destination) has no intermediate vertices, so a
- * vertex-based match would snap every position to 0% or 100%.
- *
- * Returns kilometres travelled along the route, or `null` when there is no
- * usable route to project onto.
- */
-function progressAlongRoute(route: LatLng[], position: LatLng): number | null {
-  if (route.length < 2) return null;
-
-  const cumulative = cumulativeDistances(route);
-
-  let bestSegment = 0;
-  let bestOffset = 0;
-  let bestDistance = Number.POSITIVE_INFINITY;
-
-  for (let index = 1; index < route.length; index += 1) {
-    const start = route[index - 1]!;
-    const end = route[index]!;
-    const segmentLength = haversineDistance(start, end);
-    if (segmentLength === 0) continue;
-
-    const perpendicular = distanceToSegment(position, start, end);
-    if (perpendicular < bestDistance) {
-      bestDistance = perpendicular;
-      bestSegment = index - 1;
-
-      // Scalar projection of the position onto this segment, clamped to it.
-      const toPosition = haversineDistance(start, position);
-      const along = Math.sqrt(
-        Math.max(0, toPosition * toPosition - perpendicular * perpendicular),
-      );
-      bestOffset = Math.min(segmentLength, along);
-    }
-  }
-
-  if (bestDistance === Number.POSITIVE_INFINITY) return null;
-
-  const base = cumulative[bestSegment] ?? 0;
-  return (base + bestOffset) / 1000;
+/** The trail state of the last point recorded for this trip, if any. */
+async function previousRouteState(truckId: string, tripId: string): Promise<TrackRouteState | null> {
+  const last = await prisma.truckLocation.findFirst({
+    where: { truckId, tripId },
+    orderBy: { recordedAt: 'desc' },
+    select: { routeState: true },
+  });
+  return last?.routeState ?? null;
 }
 
 export async function ingestLocation(
@@ -182,12 +142,22 @@ export async function ingestLocation(
   const tripId = input.tripId ?? truck.currentTripId;
   const simulated = options.simulated ?? input.source === TrackingSource.MOCK;
 
-  const trip = tripId
+  const tripNow = tripId
     ? await prisma.trip.findUnique({
         where: { id: tripId },
         include: { order: { select: { id: true, customerOrganizationId: true } } },
       })
     : null;
+
+  /*
+   * A position taken before the trip began is not part of it, whenever it
+   * arrives. A phone out of signal — or with Saarthi unreachable — keeps its
+   * fixes and uploads them late, sometimes a night's worth; attributing them to
+   * a trip started since would put their distance on its odometer, their colour
+   * on its trail and their stops in its arrival time.
+   */
+  const trip =
+    tripNow?.actualStartAt && recordedAt < tripNow.actualStartAt ? null : tripNow;
 
   // Ignore points for a trip that is not physically moving; they would corrupt
   // distance and ETA maths.
@@ -303,6 +273,9 @@ export async function ingestLocation(
     });
   }
 
+  // Decided before the deviation check below, which an alternate road skips.
+  const routeState = await routeStateFor(trip, truck.id, position, recordedAt);
+
   // --- Trip-derived state ------------------------------------------------
   if (trip) {
     const route = routeOf(trip.plannedRoute);
@@ -336,7 +309,9 @@ export async function ingestLocation(
       }
     }
 
-    if (route.length >= 2) {
+    // Another road to the destination while Google Maps guides is that app's
+    // choice of road, not the driver's deviation: no alert and no score.
+    if (route.length >= 2 && routeState !== TrackRouteState.ALTERNATE) {
       const offRouteMeters = distanceToPath(position, route);
       if (offRouteMeters > thresholds.routeDeviationMeters) {
         safetyEvents.push({
@@ -348,6 +323,12 @@ export async function ingestLocation(
       }
     }
   }
+
+  // One quiet note on the trip's timeline as each alternate stretch begins.
+  const alternateBegins =
+    trip !== null &&
+    routeState === TrackRouteState.ALTERNATE &&
+    (await previousRouteState(truck.id, trip.id)) !== TrackRouteState.ALTERNATE;
 
   // --- Persist -----------------------------------------------------------
   await prisma.$transaction(async (tx) => {
@@ -365,6 +346,7 @@ export async function ingestLocation(
         altitude: input.altitude ?? null,
         source: input.source,
         simulated,
+        routeState,
         recordedAt,
       },
     });
@@ -397,6 +379,26 @@ export async function ingestLocation(
       if (shouldPromoteToInTransit) derived.events.push('IN_TRANSIT');
     }
   });
+
+  if (trip && alternateBegins) {
+    await prisma.tripEvent.create({
+      data: {
+        tripId: trip.id,
+        type: 'ALTERNATE_ROUTE',
+        description: 'Took an alternate road while navigating with Google Maps.',
+        latitude: input.latitude,
+        longitude: input.longitude,
+      },
+    });
+    derived.events.push('ALTERNATE_ROUTE');
+  }
+
+  // Reached or left a stop, from the GPS alone. Never marks it arrived.
+  if (trip && !trip.adHoc) {
+    derived.events.push(
+      ...(await recordStopVisits(trip, { position, speedKph: input.speedKph, at: recordedAt })),
+    );
+  }
 
   // --- Raise safety events (deduplicated within a short window) ----------
   for (const event of safetyEvents) {
@@ -484,6 +486,7 @@ export async function ingestLocation(
     source: input.source,
     recordedAt: recordedAt.toISOString(),
     simulated,
+    routeState,
   });
 
   if (trip) {
@@ -761,11 +764,47 @@ export interface TrackPoint {
   heading: number;
   recordedAt: string;
   simulated: boolean;
+  /** How the covered-path trail colours this point. */
+  routeState: TrackRouteState;
 }
+
+function toTrackPoint(location: {
+  latitude: number;
+  longitude: number;
+  speedKph: number;
+  heading: number;
+  recordedAt: Date;
+  simulated: boolean;
+  routeState: TrackRouteState;
+}): TrackPoint {
+  return {
+    latitude: location.latitude,
+    longitude: location.longitude,
+    speedKph: location.speedKph,
+    heading: location.heading,
+    recordedAt: location.recordedAt.toISOString(),
+    simulated: location.simulated,
+    routeState: location.routeState,
+  };
+}
+
+const TRACK_POINT_SELECT = {
+  latitude: true,
+  longitude: true,
+  speedKph: true,
+  heading: true,
+  recordedAt: true,
+  simulated: true,
+  routeState: true,
+  accuracy: true,
+} as const;
 
 /**
  * Historical trail for a truck or trip. `simplify` keeps the payload small on
- * long journeys by dropping intermediate points at a fixed stride.
+ * long journeys by sampling at a stride — while keeping the first and last
+ * points and every point where the trail changes colour, so a short deviation
+ * is never sampled away. GPS glitches are dropped first, so they neither draw
+ * nor add to the distance.
  */
 export async function trackingHistory(
   auth: AuthContext,
@@ -814,37 +853,11 @@ export async function trackingHistory(
     },
     orderBy: { recordedAt: 'asc' },
     take: 20_000,
+    select: TRACK_POINT_SELECT,
   });
 
-  const stride =
-    query.simplify && locations.length > query.limit
-      ? Math.ceil(locations.length / query.limit)
-      : 1;
-
-  const points: TrackPoint[] = [];
-  for (let index = 0; index < locations.length; index += stride) {
-    const location = locations[index]!;
-    points.push({
-      latitude: location.latitude,
-      longitude: location.longitude,
-      speedKph: location.speedKph,
-      heading: location.heading,
-      recordedAt: location.recordedAt.toISOString(),
-      simulated: location.simulated,
-    });
-  }
-  // Always keep the final point so the trail ends where the truck actually is.
-  const last = locations[locations.length - 1];
-  if (last && points[points.length - 1]?.recordedAt !== last.recordedAt.toISOString()) {
-    points.push({
-      latitude: last.latitude,
-      longitude: last.longitude,
-      speedKph: last.speedKph,
-      heading: last.heading,
-      recordedAt: last.recordedAt.toISOString(),
-      simulated: last.simulated,
-    });
-  }
+  const all = withoutGlitches(locations).map(toTrackPoint);
+  const points = query.simplify ? thinTrail(all, query.limit) : all;
 
   const totalDistanceKm =
     points.length > 1
@@ -857,6 +870,22 @@ export async function trackingHistory(
     totalDistanceKm: Number(totalDistanceKm.toFixed(1)),
     sampledFrom: locations.length,
   };
+}
+
+/**
+ * The path a vehicle has covered since `since`, for a screen in its own cab.
+ *
+ * Scoped by the vehicle alone: the caller has already proved it is that
+ * vehicle's terminal, so no fleet, driver or customer check applies here.
+ */
+export async function coveredPath(truckId: string, since: Date, limit: number): Promise<TrackPoint[]> {
+  const locations = await prisma.truckLocation.findMany({
+    where: { truckId, recordedAt: { gte: since } },
+    orderBy: { recordedAt: 'asc' },
+    take: 20_000,
+    select: TRACK_POINT_SELECT,
+  });
+  return thinTrail(withoutGlitches(locations).map(toTrackPoint), limit);
 }
 
 /** Full replay payload for a completed trip. */
@@ -897,14 +926,7 @@ export async function tripReplay(auth: AuthContext, tripId: string) {
     endedAt: trip.actualArrivalAt?.toISOString() ?? null,
     plannedDistanceKm: trip.plannedDistanceKm,
     actualDistanceKm: trip.actualDistanceKm,
-    points: locations.map((location) => ({
-      latitude: location.latitude,
-      longitude: location.longitude,
-      speedKph: location.speedKph,
-      heading: location.heading,
-      recordedAt: location.recordedAt.toISOString(),
-      simulated: location.simulated,
-    })),
+    points: withoutGlitches(locations).map(toTrackPoint),
     events: events.map((event) => ({
       id: event.id,
       type: event.type,

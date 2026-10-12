@@ -7,11 +7,8 @@ import {
   VehicleType,
   VerificationStatus,
 } from '../domain/enums';
-import {
-  validateVehicleCapacities,
-  validateVehicleCategory,
-  vehicleTypeDefinition,
-} from '../domain/vehicles';
+import { validateVehicleCapacities, vehicleTypeDefinition } from '../domain/vehicles';
+import { validateVehicleCategory } from '../domain/vehicle-taxonomy';
 import {
   csvEnum,
   optionalTrimmedString,
@@ -45,8 +42,8 @@ const baseVehicleFields = {
    */
   truckType: z.nativeEnum(TruckType).optional(),
   /**
-   * Scooter, hatchback… Required when the type offers categories (see
-   * `VEHICLE_CATEGORIES`); one the type does not offer is refused.
+   * Scooter, hatchback… Required for a two-wheeler; one the type does not
+   * allow is refused (see `vehicle-taxonomy.ts`).
    */
   category: z.nativeEnum(VehicleCategory).optional(),
   manufacturer: optionalTrimmedString(80),
@@ -130,6 +127,7 @@ export type CreateVehicleInput = z.infer<typeof createVehicleSchema>;
  * would only be read as "leave it alone".
  */
 const clearableVehicleFields = {
+  category: baseVehicleFields.category.nullable(),
   manufacturer: baseVehicleFields.manufacturer.nullable(),
   model: baseVehicleFields.model.nullable(),
   year: baseVehicleFields.year.nullable(),
@@ -146,18 +144,8 @@ export type UpdateVehicleInput = z.infer<typeof updateVehicleSchema>;
 
 export const vehicleListQuerySchema = paginationSchema.extend({
   search: optionalTrimmedString(120),
-  vehicleType: csvEnum([
-    VehicleType.TRUCK,
-    VehicleType.TAXI,
-    VehicleType.CAR,
-    VehicleType.BUS,
-    VehicleType.VAN,
-    VehicleType.SUV,
-    VehicleType.TEMPO,
-    VehicleType.AUTO_RICKSHAW,
-    VehicleType.TWO_WHEELER,
-    VehicleType.OTHER,
-  ]),
+  // Every type — a filter must accept any value its own picker offers.
+  vehicleType: csvEnum(Object.values(VehicleType) as [VehicleType, ...VehicleType[]]),
   status: csvEnum([
     TruckStatus.AVAILABLE,
     TruckStatus.ASSIGNED,

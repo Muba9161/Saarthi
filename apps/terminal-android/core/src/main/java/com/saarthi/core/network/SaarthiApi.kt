@@ -309,39 +309,35 @@ class SaarthiApi(
     }
 
     /**
-     * A fuel slip and its photograph, in one request.
+     * A record and its photograph, in one multipart request.
      *
      * Deliberately one: a record without its photo, or a photo with no record,
      * is a reconciliation problem somebody unpicks by hand — and a driver at a
-     * pump on a patchy connection is exactly who would create it.
+     * pump on a patchy connection is exactly who would create it. Blank fields
+     * are omitted rather than sent empty: the schemas treat them as optional,
+     * and "" is not a number.
+     *
+     * Returns the new record's id.
      */
-    suspend fun uploadFuelSlip(
+    internal suspend fun uploadWithPhoto(
+        path: String,
         jpeg: ByteArray,
-        litres: Double,
-        totalCost: Double,
-        odometerKm: Double?,
-        stationName: String?,
-        latitude: Double?,
-        longitude: Double?,
+        fields: Map<String, String?>,
+        refusedCode: String,
+        refusedMessage: String,
     ): String = withContext(Dispatchers.IO) {
         val body = MultipartBody.Builder()
             .setType(MultipartBody.FORM)
             .addFormDataPart("file", "slip.jpg", jpeg.toRequestBody(JPEG_MEDIA))
-            .addFormDataPart("litres", litres.toString())
-            .addFormDataPart("totalCost", totalCost.toString())
             .apply {
-                // Omitted rather than sent empty: the schema treats these as
-                // optional, and "" is not a number.
-                odometerKm?.let { addFormDataPart("odometerKm", it.toString()) }
-                stationName?.takeIf { it.isNotBlank() }
-                    ?.let { addFormDataPart("stationName", it) }
-                latitude?.let { addFormDataPart("latitude", it.toString()) }
-                longitude?.let { addFormDataPart("longitude", it.toString()) }
+                fields.forEach { (name, value) ->
+                    value?.takeIf { it.isNotBlank() }?.let { addFormDataPart(name, it) }
+                }
             }
             .build()
 
         val request = Request.Builder()
-            .url("$baseUrl/api/v1/device-gateway/terminal/fuel")
+            .url("$baseUrl$path")
             .post(body)
             .header("Authorization", "Bearer ${bearer()}")
             .header("X-Saarthi-Client", "terminal/$appVersion")
@@ -368,13 +364,13 @@ class SaarthiApi(
                 }.getOrNull()
                 throw Failure.Refused(
                     status = raw.code,
-                    code = error?.code ?: "FUEL_REFUSED",
-                    message = error?.message ?: "Saarthi could not save that slip.",
+                    code = error?.code ?: refusedCode,
+                    message = error?.message ?: refusedMessage,
                 )
             }
             json.decodeFromString(ApiEnvelope.serializer(FuelSlipResponse.serializer()), text)
                 .data?.id
-                ?: throw Failure.Refused(200, "FUEL_EMPTY", "Saarthi did not confirm the slip.")
+                ?: throw Failure.Refused(200, "${refusedCode}_EMPTY", "Saarthi did not confirm it.")
         }
     }
 
@@ -637,13 +633,6 @@ class SaarthiApi(
     // What a driver needs that only a browser could reach
     // -----------------------------------------------------------------------
 
-    /** Every paper a checkpoint might ask for, vehicle and driver together. */
-    suspend fun papers(): List<DriverPaperDto> =
-        get(
-            "/api/v1/device-gateway/terminal/papers",
-            ListSerializer(DriverPaperDto.serializer()),
-        )
-
     /**
      * Where one document's bytes live.
      *
@@ -653,10 +642,6 @@ class SaarthiApi(
      */
     fun paperPath(documentId: String): String =
         "/api/v1/device-gateway/terminal/papers/$documentId/download"
-
-    /** The vehicle's FASTag. Null when the fleet has not registered one. */
-    suspend fun fastag(): FastagDto? =
-        getNullable("/api/v1/device-gateway/terminal/fastag", FastagDto.serializer())
 
     /** Today's pump price where the vehicle is. Null when nobody publishes it. */
     suspend fun fuelPrice(latitude: Double, longitude: Double): FuelPriceDto? =
@@ -692,15 +677,15 @@ class SaarthiApi(
     // Transport
     // -----------------------------------------------------------------------
 
-    private suspend fun <R> get(path: String, responseSerializer: KSerializer<R>): R =
+    internal suspend fun <R> get(path: String, responseSerializer: KSerializer<R>): R =
         decode(requestRaw("GET", path, null), responseSerializer)
 
-    private suspend fun <R> getNullable(path: String, responseSerializer: KSerializer<R>): R? {
+    internal suspend fun <R> getNullable(path: String, responseSerializer: KSerializer<R>): R? {
         val body = requestRaw("GET", path, null)
         return json.decodeFromString(ApiEnvelope.serializer(responseSerializer), body).data
     }
 
-    private suspend fun <B, R> post(
+    internal suspend fun <B, R> post(
         path: String,
         body: B,
         requestSerializer: KSerializer<B>,
@@ -725,7 +710,7 @@ class SaarthiApi(
      * recorded — and turning that into an exception would surface a red banner
      * in the cab for a decision that was entirely correct.
      */
-    private suspend fun <B, R> postNullable(
+    internal suspend fun <B, R> postNullable(
         path: String,
         body: B,
         requestSerializer: KSerializer<B>,

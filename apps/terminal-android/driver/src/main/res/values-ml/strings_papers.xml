@@ -11,10 +11,8 @@
         <item quantity="other">%d പേപ്പറുകൾക്ക് ശ്രദ്ധ വേണം, കുറഞ്ഞത് ഒന്നിന്റെ കാലാവധി കഴിഞ്ഞു. ഇന്നുതന്നെ ഓഫീസിനെ അറിയിക്കുക.</item>
     </plurals>
 
-    <string name="papers_filter_all">എല്ലാം</string>
     <string name="papers_owner_vehicle">വാഹനം</string>
     <string name="papers_owner_yours">നിങ്ങളുടേത്</string>
-    <string name="papers_chip">%1$s · %2$d</string>
     <string name="papers_sub">%1$s · %2$s</string>
 
     <string name="papers_no_expiry">കാലാവധി രേഖപ്പെടുത്തിയിട്ടില്ല</string>
@@ -37,15 +35,105 @@
 
     <string name="papers_open_action">തുറക്കുക</string>
     <string name="papers_opening">%1$s തുറക്കുന്നു.</string>
-    <string name="papers_opening_pdf">%1$s നിങ്ങളുടെ PDF റീഡറിൽ തുറക്കുന്നു.</string>
     <string name="papers_not_saved">അത് ഇതുവരെ ഈ ഫോണിൽ ഇല്ല. സിഗ്നൽ ഉള്ളിടത്ത് ഒരിക്കൽ തുറന്നാൽ അത് ഫോണിൽ നിൽക്കും.</string>
     <string name="papers_no_viewer">ഈ തരം ഫയൽ തുറക്കാൻ ഈ ഫോണിൽ ഒന്നുമില്ല. ഒരു PDF അല്ലെങ്കിൽ ഇമേജ് വ്യൂവർ ഇൻസ്റ്റാൾ ചെയ്ത് വീണ്ടും ശ്രമിക്കുക.</string>
 
     <string name="papers_loading">നിങ്ങളുടെ പേപ്പറുകൾ ലോഡ് ചെയ്യുന്നു</string>
-    <string name="papers_none_vehicle">ഈ വാഹനത്തിന്റെ പേപ്പറുകളൊന്നും രേഖയിൽ ഇല്ല.</string>
-    <string name="papers_none_yours">നിങ്ങളുടെ സ്വന്തം പേപ്പറുകളൊന്നും രേഖയിൽ ഇല്ല.</string>
-    <string name="papers_empty_title">രേഖയിൽ പേപ്പറുകളൊന്നുമില്ല</string>
-    <string name="papers_empty_body">നിങ്ങൾക്കോ ഈ വാഹനത്തിനോ വേണ്ടി ഫ്ലീറ്റ് ഇതുവരെ പേപ്പറുകളൊന്നും ചേർത്തിട്ടില്ല. അവ അപ്‌ലോഡ് ചെയ്യാൻ ഓഫീസിനോട് പറയുക.</string>
     <string name="papers_error_title">നിങ്ങളുടെ പേപ്പറുകൾ ലോഡ് ചെയ്യാനായില്ല</string>
     <string name="papers_retry">വീണ്ടും ശ്രമിക്കുക</string>
+
+    <!-- Papers folders and register records -->
+    <string name="papers_folder_rc">രജിസ്ട്രേഷൻ (RC)</string>
+    <string name="papers_folder_insurance">ഇൻഷുറൻസ്</string>
+    <string name="papers_folder_fitness">ഫിറ്റ്നസ്</string>
+    <string name="papers_folder_permit">പെർമിറ്റ്</string>
+    <string name="papers_folder_puc">മലിനീകരണം (PUC)</string>
+    <string name="papers_folder_road_tax">റോഡ് ടാക്സ്</string>
+    <string name="papers_folder_photos">ഫോട്ടോകൾ</string>
+    <string name="papers_folder_qr">QR സ്റ്റിക്കർ</string>
+    <string name="papers_folder_other">മറ്റ് ഫയലുകൾ</string>
+    <string name="papers_folder_licence">ഡ്രൈവിംഗ് ലൈസൻസ്</string>
+    <string name="papers_folder_identity">തിരിച്ചറിയൽ രേഖ</string>
+    <string name="papers_folder_address">വിലാസ രേഖ</string>
+    <string name="papers_folder_aadhaar">ആധാർ കാർഡ്</string>
+    <string name="papers_folder_pan">PAN കാർഡ്</string>
+    <string name="papers_folder_voter">വോട്ടർ ഐഡി</string>
+    <string name="papers_folder_photo">നിങ്ങളുടെ ഫോട്ടോ</string>
+    <string name="papers_folder_medical">മെഡിക്കൽ സർട്ടിഫിക്കറ്റ്</string>
+    <string name="papers_folder_police">പോലീസ് വെരിഫിക്കേഷൻ</string>
+    <string name="papers_status_valid">സാധുവാണ്</string>
+    <string name="papers_status_expiring">കാലാവധി തീരാറായി</string>
+    <string name="papers_status_expired">കാലാവധി കഴിഞ്ഞു</string>
+    <string name="papers_status_rejected">നിരസിച്ചു</string>
+    <string name="papers_status_missing">ഇല്ല</string>
+    <string name="papers_status_optional">ഓപ്ഷണൽ</string>
+    <string name="papers_status_on_file">രേഖയിലുണ്ട്</string>
+    <string name="papers_qr_meta">വിൻഡ്‌സ്ക്രീനിൽ ഒട്ടിച്ചത്</string>
+    <string name="papers_from_rto">RTO-യിൽ നിന്ന്</string>
+    <string name="papers_folder_empty">ഈ ഫോൾഡറിൽ ഇതുവരെ ഒന്നുമില്ല. നിങ്ങളുടെ ഫ്ലീറ്റ് വെബിൽ നിന്നാണ് പേപ്പറുകൾ ചേർക്കുന്നത്.</string>
+    <string name="papers_folder_no_scan">ഇതുവരെ സ്കാൻ ചെയ്ത കോപ്പി ഇല്ല. മുകളിലെ വിവരങ്ങൾ RTO രജിസ്റ്ററിൽ നിന്നാണ്.</string>
+    <string name="papers_photos_none">ഈ വാഹനത്തിന്റെ ഫോട്ടോകൾ ഇതുവരെ ഇല്ല.</string>
+    <string name="papers_photo_alt">വാഹനത്തിന്റെ ഫോട്ടോ</string>
+    <string name="papers_qr_none">QR സ്റ്റിക്കർ കാണിക്കാനായില്ല. സിഗ്നൽ ഉള്ളിടത്ത് ഇത് വീണ്ടും തുറക്കുക.</string>
+    <string name="papers_qr_body">ഈ കോഡ് സ്കാൻ ചെയ്താൽ Saarthi-യിൽ ഈ വാഹനം തുറക്കും.</string>
+    <string name="papers_register_title">RTO രജിസ്റ്റർ</string>
+    <string name="papers_valid_till">%1$s വരെ സാധുവാണ്</string>
+    <string name="papers_till">%1$s വരെ</string>
+    <string name="papers_not_published">രേഖപ്പെടുത്തിയിട്ടില്ല</string>
+    <string name="papers_rc_title">വെർച്വൽ RC</string>
+    <string name="papers_rc_verified">വെരിഫൈ ചെയ്തു</string>
+    <string name="papers_rc_fetched">RTO രജിസ്റ്ററിൽ നിന്ന് · %1$s</string>
+    <string name="papers_rc_validity">കാലാവധി</string>
+    <string name="papers_rc_details">വിവരങ്ങൾ</string>
+    <string name="papers_rc_insurance">ഇൻഷുറൻസ്</string>
+    <string name="papers_rc_puc">മലിനീകരണം (PUC)</string>
+    <string name="papers_rc_fitness">ഫിറ്റ്നസ്</string>
+    <string name="papers_rc_tax">റോഡ് ടാക്സ്</string>
+    <string name="papers_rc_permit">പെർമിറ്റ്</string>
+    <string name="papers_rc_national_permit">നാഷണൽ പെർമിറ്റ്</string>
+    <string name="papers_rc_owner">ഉടമ</string>
+    <string name="papers_rc_registered">രജിസ്റ്റർ ചെയ്ത തീയതി</string>
+    <string name="papers_rc_status">സ്ഥിതി</string>
+    <string name="papers_rc_class">ക്ലാസ്</string>
+    <string name="papers_rc_fuel">ഇന്ധനം</string>
+    <string name="papers_rc_colour">നിറം</string>
+    <string name="papers_rc_made">നിർമ്മിച്ച തീയതി</string>
+    <string name="papers_rc_chassis">ഷാസി നമ്പർ</string>
+    <string name="papers_rc_engine">എഞ്ചിൻ നമ്പർ</string>
+    <string name="papers_rc_rto">രജിസ്റ്റർ ചെയ്ത ഓഫീസ്</string>
+    <string name="papers_rc_seats">സീറ്റുകൾ</string>
+    <string name="papers_rc_weight">ആകെ ഭാരം</string>
+    <string name="papers_rc_financer">ഫിനാൻസ് ചെയ്തത്</string>
+    <string name="papers_rc_blacklist">ബ്ലാക്ക്‌ലിസ്റ്റ്</string>
+    <string name="papers_rc_note">റഫറൻസിനായി RTO രേഖയുടെ ഒരു കോപ്പി. വാഹനം ഓടിക്കുമ്പോൾ ഒറിജിനൽ RC അല്ലെങ്കിൽ അതിന്റെ DigiLocker കോപ്പി കൂടെ കരുതുക.</string>
+    <string name="papers_licence_title">ഡ്രൈവിംഗ് ലൈസൻസ്</string>
+    <string name="papers_licence_verified">വെരിഫൈ ചെയ്തു</string>
+    <string name="papers_licence_from_rto">RTO രജിസ്റ്ററിൽ നിന്ന്</string>
+    <string name="papers_licence_from_profile">നിങ്ങളുടെ പ്രൊഫൈലിൽ നൽകിയത് പോലെ</string>
+    <string name="papers_licence_transport">ട്രാൻസ്പോർട്ട് (കൊമേഴ്സ്യൽ)</string>
+    <string name="papers_licence_non_transport">നോൺ-ട്രാൻസ്പോർട്ട്</string>
+    <string name="papers_licence_classes">വാഹന ക്ലാസുകൾ</string>
+    <string name="papers_licence_issued">നൽകിയ തീയതി</string>
+    <string name="papers_licence_authority">നൽകിയത്</string>
+    <string name="papers_licence_dob">ജനനത്തീയതി</string>
+    <string name="papers_licence_blood">രക്തഗ്രൂപ്പ്</string>
+
+    <!-- File and photo counts -->
+    <plurals name="papers_files">
+        <item quantity="one">%d ഫയൽ</item>
+        <item quantity="other">%d ഫയലുകൾ</item>
+    </plurals>
+    <plurals name="papers_photos">
+        <item quantity="one">%d ഫോട്ടോ</item>
+        <item quantity="other">%d ഫോട്ടോകൾ</item>
+    </plurals>
+    <string name="papers_tile_checking">പേപ്പറുകൾ പരിശോധിക്കുന്നു…</string>
+    <string name="papers_tile_failed">ലോഡ് ചെയ്യാനായില്ല</string>
+    <string name="papers_tile_none">ഇതുവരെ പേപ്പറുകളൊന്നുമില്ല</string>
+    <string name="papers_tile_all_valid">എല്ലാം സാധുവാണ്</string>
+    <string name="papers_tile_next_due">അടുത്തത്: %1$s · %2$s</string>
+    <plurals name="papers_tile_on_file">
+        <item quantity="one">%d പേപ്പർ ഫയലിൽ</item>
+        <item quantity="other">%d പേപ്പറുകൾ ഫയലിൽ</item>
+    </plurals>
 </resources>

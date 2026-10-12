@@ -18,17 +18,20 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
+import com.saarthi.core.voice.canListenQuietly
 import com.saarthi.driver.R
 import com.saarthi.driver.data.DriverPreferences
 import com.saarthi.driver.ui.DriverViewModel
@@ -84,6 +87,7 @@ fun ProfileContent(
     val fleet by driver.fleet.collectAsState()
     val licenceMissing by driver.licenceMissing.collectAsState()
     val instruments by preferences.instruments.collectAsState()
+    val wakeWord by preferences.wakeWord.collectAsState()
     val appearance by preferences.appearance.collectAsState()
 
     Column(modifier, verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -154,21 +158,49 @@ fun ProfileContent(
             }
         }
 
-        GroupLabel(stringResource(R.string.profile_appearance), Modifier.rise(stagger(4)))
-        AppearancePicker(appearance, preferences::setAppearance, Modifier.rise(stagger(4)))
+        GroupLabel(stringResource(R.string.assistant_title), Modifier.rise(stagger(4)))
+        Column(Modifier.card().rise(stagger(4))) {
+            val label = stringResource(R.string.profile_wake_word)
+            val onToast = stringResource(R.string.toast_wake_word_on)
+            val offToast = stringResource(R.string.toast_wake_word_off)
+            // Only phones with offline speech can listen for the phrase without chiming.
+            val context = LocalContext.current
+            val possible = remember { canListenQuietly(context) }
+            SettingRow(
+                icon = Lucide.mic,
+                accent = true,
+                title = label,
+                subtitle = stringResource(
+                    when {
+                        !possible -> R.string.profile_wake_word_unavailable
+                        wakeWord -> R.string.profile_wake_word_on
+                        else -> R.string.profile_wake_word_off
+                    },
+                ),
+                divider = false,
+            ) {
+                SaarthiSwitch(wakeWord && possible, { on ->
+                    preferences.setWakeWord(on)
+                    actions.toast(if (on) onToast else offToast)
+                }, label, enabled = possible)
+            }
+        }
 
-        GroupLabel(stringResource(R.string.profile_language), Modifier.rise(stagger(5)))
-        LanguageRows(Modifier.card().rise(stagger(5)))
+        GroupLabel(stringResource(R.string.profile_appearance), Modifier.rise(stagger(5)))
+        AppearancePicker(appearance, preferences::setAppearance, Modifier.rise(stagger(5)))
 
-        GroupLabel(stringResource(R.string.profile_security), Modifier.rise(stagger(6)))
-        SecurityCard(driver, actions, Modifier.rise(stagger(6)))
+        GroupLabel(stringResource(R.string.profile_language), Modifier.rise(stagger(6)))
+        LanguageRows(Modifier.card().rise(stagger(6)))
+
+        GroupLabel(stringResource(R.string.profile_security), Modifier.rise(stagger(7)))
+        SecurityCard(driver, actions, Modifier.rise(stagger(7)))
 
         SaarthiButton(
             stringResource(R.string.profile_sign_out),
             actions.signOut,
             Modifier
                 .padding(top = 14.dp)
-                .rise(stagger(7)),
+                .rise(stagger(8)),
             tone = ButtonTone.DANGER_OUTLINE,
             leading = Lucide.logout,
         )

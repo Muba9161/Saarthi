@@ -13,7 +13,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.saarthi.driver.R
-import com.saarthi.driver.ui.design.BrandMark
+import com.saarthi.driver.ui.design.BrandLockup
 import com.saarthi.driver.ui.design.CircleButton
 import com.saarthi.driver.ui.design.Eyebrow
 import com.saarthi.driver.ui.design.Lucide
@@ -46,7 +46,7 @@ internal fun FlowTopBar(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         onBack?.let { CircleButton(Lucide.chevronLeft, stringResource(R.string.action_back), it) }
-        BrandMark(height = 32.dp)
+        BrandLockup(height = 52.dp)
         Column(Modifier.weight(1f)) {
             plate?.let { Eyebrow(it) }
             Text(

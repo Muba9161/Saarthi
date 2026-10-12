@@ -536,6 +536,10 @@ export const TripEventType = asEnum({
   CANCELLED: 'CANCELLED',
   EMERGENCY: 'EMERGENCY',
   NOTE: 'NOTE',
+  NAVIGATION_HANDOFF: 'NAVIGATION_HANDOFF',
+  ALTERNATE_ROUTE: 'ALTERNATE_ROUTE',
+  STOP_REACHED: 'STOP_REACHED',
+  STOP_LEFT: 'STOP_LEFT',
 });
 export type TripEventType = EnumValue<typeof TripEventType>;
 
@@ -994,8 +998,8 @@ export const VEHICLE_TYPES = Object.values(VehicleType) as VehicleType[];
  * The kind of vehicle within a type, as an owner would name it — a scooter or
  * a cruiser for a two-wheeler, a hatchback or an SUV for a car or a taxi.
  *
- * One list for every type rather than one per type; which categories a type
- * offers is `VEHICLE_CATEGORIES` in `vehicles.ts`. Null on a type with none,
+ * One list for every type rather than one per type; which a type allows, and
+ * which tile writes which, is `vehicle-taxonomy.ts`. Null on a type with none,
  * and on a vehicle added before its type had categories.
  */
 export const VehicleCategory = asEnum({
@@ -1003,10 +1007,15 @@ export const VehicleCategory = asEnum({
   SCOOTER: 'SCOOTER',
   ELECTRIC_SCOOTER: 'ELECTRIC_SCOOTER',
   MOTORCYCLE: 'MOTORCYCLE',
+  ELECTRIC_MOTORCYCLE: 'ELECTRIC_MOTORCYCLE',
   SPORTS_BIKE: 'SPORTS_BIKE',
   CRUISER: 'CRUISER',
   ADVENTURE: 'ADVENTURE',
   MOPED: 'MOPED',
+  // Three-wheelers
+  AUTO_RICKSHAW: 'AUTO_RICKSHAW',
+  E_RICKSHAW: 'E_RICKSHAW',
+  CARGO_THREE_WHEELER: 'CARGO_THREE_WHEELER',
   // Cars and taxis
   HATCHBACK: 'HATCHBACK',
   SEDAN: 'SEDAN',
@@ -1014,6 +1023,15 @@ export const VehicleCategory = asEnum({
   SUV: 'SUV',
   MUV: 'MUV',
   LUXURY: 'LUXURY',
+  // Vans
+  PASSENGER_VAN: 'PASSENGER_VAN',
+  CARGO_VAN: 'CARGO_VAN',
+  // Buses
+  MINI_BUS: 'MINI_BUS',
+  STANDARD_BUS: 'STANDARD_BUS',
+  COACH: 'COACH',
+  SLEEPER_BUS: 'SLEEPER_BUS',
+  SCHOOL_BUS: 'SCHOOL_BUS',
 });
 export type VehicleCategory = EnumValue<typeof VehicleCategory>;
 export const VEHICLE_CATEGORY_VALUES = Object.values(VehicleCategory) as VehicleCategory[];
@@ -1571,6 +1589,7 @@ export const MediaOwnerType = asEnum({
   SOS_INCIDENT: 'SOS_INCIDENT',
   MAINTENANCE_RECORD: 'MAINTENANCE_RECORD',
   FUEL_RECORD: 'FUEL_RECORD',
+  EXPENSE: 'EXPENSE',
   VEHICLE_LISTING: 'VEHICLE_LISTING',
   TRAVEL_PACKAGE: 'TRAVEL_PACKAGE',
   ROUTE_HAZARD: 'ROUTE_HAZARD',
@@ -1916,6 +1935,35 @@ export const TripLegType = asEnum({
   RELAY_LAST_MILE: 'RELAY_LAST_MILE',
 });
 export type TripLegType = EnumValue<typeof TripLegType>;
+
+/** A covered-path point's standing against the trip it was driven on. */
+export const TrackRouteState = asEnum({
+  NO_TRIP: 'NO_TRIP',
+  ON_ROUTE: 'ON_ROUTE',
+  OFF_ROUTE: 'OFF_ROUTE',
+  /** Another road to the destination, while Google Maps guides — not the driver's fault. */
+  ALTERNATE: 'ALTERNATE',
+});
+export type TrackRouteState = EnumValue<typeof TrackRouteState>;
+
+/** A navigation app outside Saarthi that a driver handed the journey to. */
+export const ExternalNavigationApp = asEnum({
+  GOOGLE_MAPS: 'GOOGLE_MAPS',
+});
+export type ExternalNavigationApp = EnumValue<typeof ExternalNavigationApp>;
+
+/** What a driver paid for on the road, other than fuel. */
+export const ExpenseCategory = asEnum({
+  TOLL: 'TOLL',
+  PARKING: 'PARKING',
+  REPAIR: 'REPAIR',
+  FOOD: 'FOOD',
+  LOADING: 'LOADING',
+  CHALLAN: 'CHALLAN',
+  OTHER: 'OTHER',
+});
+export type ExpenseCategory = EnumValue<typeof ExpenseCategory>;
+export const EXPENSE_CATEGORIES = Object.values(ExpenseCategory) as ExpenseCategory[];
 
 // ---------------------------------------------------------------------------
 // City access & last-mile relay

@@ -42,6 +42,7 @@ import {
 } from '@/components/common/form-wizard';
 import type { NavigationRoute } from '@/features/maps/directions';
 import { reverseCity } from '@/features/maps/places';
+import { simplifyRoute } from '@/features/maps/route-simplify';
 import { useCityFuelRate } from '@/features/petrol-stations/use-city-fuel-rate';
 import {
   EMPTY_POINT,
@@ -92,6 +93,9 @@ const EMPTY: TripFormState = {
   price: '',
   notes: '',
 };
+
+/** `createTripSchema` stores at most this many planned-route points. */
+const MAX_PLANNED_ROUTE_POINTS = 2000;
 
 /** `datetime-local` wants `YYYY-MM-DDTHH:mm` in local time, not an ISO string. */
 function localDateTime(date: Date): string {
@@ -206,6 +210,18 @@ export function CreateTripDialog({ trigger }: { trigger?: React.ReactNode }) {
   const submit = (): void => {
     if (!isLocatable(form.origin) || !isLocatable(form.destination)) return;
 
+    /*
+     * The roads the journey picker routed, sent as the plan. Without them the
+     * server stores a straight line between the two ends, which nobody can
+     * drive and nothing can be judged against — the covered path could never
+     * turn red, however far the lorry strayed. No route (routing unconfigured,
+     * or still computing) leaves that fallback in place, as before.
+     */
+    const plannedRoute =
+      route && route.geometry.length >= 2
+        ? simplifyRoute(route.geometry, MAX_PLANNED_ROUTE_POINTS)
+        : null;
+
     create.mutate({
       truckId: form.truckId,
       ...(form.driverId ? { driverId: form.driverId } : {}),
@@ -227,6 +243,7 @@ export function CreateTripDialog({ trigger }: { trigger?: React.ReactNode }) {
         : {}),
       ...(form.price ? { price: Number(form.price) } : {}),
       ...(form.notes.trim() ? { notes: form.notes.trim() } : {}),
+      ...(plannedRoute ? { plannedRoute } : {}),
     });
   };
 

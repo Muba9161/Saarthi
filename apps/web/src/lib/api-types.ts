@@ -6,6 +6,7 @@ import type {
   IdentityDocumentKind,
   IdentityVerificationSummary,
   EmiFrequency,
+  ExpenseCategory,
   FinanceDataSource,
   FinanceVerificationStatus,
   InstallmentStatus,
@@ -35,6 +36,7 @@ import type {
   VehicleType,
   SosStatus,
   SosType,
+  TrackRouteState,
   TripStatus,
   VerificationStatus,
 } from '@saarthi/shared';
@@ -283,6 +285,7 @@ export interface TripSummary {
   delayMinutes: number;
   progressPercent: number;
   price: number | null;
+  /** Includes the expense slips drivers filed against this trip. */
   expenses: number | null;
   /**
    * A journey the vehicle made on its own account.
@@ -294,6 +297,14 @@ export interface TripSummary {
    * unexplained forty kilometres needs to find them.
    */
   adHoc: boolean;
+  /**
+   * The driver added this trip from the app; the fleet did not dispatch it.
+   * One added while the vehicle is on another trip waits as a DRAFT until the
+   * vehicle is free.
+   */
+  driverCreated: boolean;
+  /** The navigation app the driver is following this trip in, if not Saarthi's own. */
+  navigationHandoff: 'GOOGLE_MAPS' | null;
   /** Driving summary, written when the trip closed. Null while it is open. */
   topSpeedKph: number | null;
   averageSpeedKph: number | null;
@@ -327,6 +338,10 @@ export interface TripDetail extends TripSummary {
     plannedArrival: string | null;
     actualArrival: string | null;
     actualDeparture: string | null;
+    /** When the vehicle's GPS shows it reached the stop — recorded, not a confirmation. */
+    reachedAt: string | null;
+    /** When the vehicle's GPS shows it left again. */
+    leftAt: string | null;
     status: string;
   }[];
   events: {
@@ -355,6 +370,27 @@ export interface LiveTruckPosition {
   stale: boolean;
   /** Whether this vehicle's position came from a simulator rather than a device. */
   simulated: boolean;
+}
+
+/** One stored position, as the tracking history and trip replay return it. */
+export interface TrackPoint {
+  latitude: number;
+  longitude: number;
+  speedKph: number;
+  heading: number;
+  recordedAt: string;
+  simulated: boolean;
+  /** How the covered-path trail colours this point, judged when it was stored. */
+  routeState: TrackRouteState;
+}
+
+/** `GET /tracking/trucks/:id/history`. */
+export interface TrackingHistory {
+  /** Oldest first. Thinned when `simplify` is on, keeping every colour change. */
+  points: TrackPoint[];
+  totalDistanceKm: number;
+  /** How many stored points `points` was thinned from. */
+  sampledFrom: number;
 }
 
 export interface DashboardMetrics {
@@ -1424,6 +1460,45 @@ export interface TollVarianceResult {
   sampleSize: number;
   verdict: 'NORMAL' | 'HIGH' | 'LOW' | 'INSUFFICIENT_DATA';
   basis: 'calculated';
+}
+
+// ---------------------------------------------------------------------------
+// Road expense slips
+// ---------------------------------------------------------------------------
+
+/**
+ * A non-fuel slip a driver paid and photographed in the driver app.
+ *
+ * Filed against the trip the vehicle was on when it was paid, and counted in
+ * that trip's expenses; one paid between trips stays on the vehicle alone.
+ */
+export interface ExpenseListItem {
+  id: string;
+  truckId: string;
+  registrationNumber: string;
+  tripId: string | null;
+  tripReference: string | null;
+  driverId: string | null;
+  driverName: string | null;
+  category: ExpenseCategory;
+  amount: number;
+  vendorName: string | null;
+  notes: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  recordedAt: string;
+  /** The slip's photograph, servable from `/media/:id/file`. */
+  photoId: string | null;
+}
+
+/** Sums across every slip under the list's filter, not only the page shown. */
+export interface ExpenseListTotals {
+  amount: number;
+  byCategory: Partial<Record<ExpenseCategory, number>>;
+}
+
+export interface ExpenseListResult extends Paginated<ExpenseListItem> {
+  totals: ExpenseListTotals;
 }
 
 

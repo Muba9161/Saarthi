@@ -38,6 +38,7 @@ import com.saarthi.core.telemetry.Metric
 import com.saarthi.core.telemetry.TelemetrySnapshot
 import com.saarthi.driver.R
 import com.saarthi.driver.ui.design.ArcGauge
+import com.saarthi.driver.ui.design.Brand
 import com.saarthi.driver.ui.design.ButtonTone
 import com.saarthi.driver.ui.design.Eyebrow
 import com.saarthi.driver.ui.design.IconWell
@@ -211,7 +212,7 @@ class ControlActions(
     val assistant: () -> Unit,
     val vehicle: () -> Unit,
     val adapter: () -> Unit,
-    val fuelSlip: () -> Unit,
+    val expenseSlip: () -> Unit,
     val fuelNearby: () -> Unit,
 )
 
@@ -238,7 +239,7 @@ fun ControlsSection(moving: Boolean, actions: ControlActions, modifier: Modifier
         if (moving) {
             WideControl(Lucide.fuel, R.string.control_fuel_nearby, R.string.control_fuel_nearby_sub, actions.fuelNearby)
         } else {
-            WideControl(Lucide.receipt, R.string.home_action_fuel, R.string.control_fuel_slip_sub, actions.fuelSlip)
+            WideControl(Lucide.receipt, R.string.home_action_expense, R.string.control_fuel_slip_sub, actions.expenseSlip)
         }
     }
 }
@@ -266,7 +267,7 @@ private fun ControlTile(
         IconWell(
             icon,
             well = if (accent) c.primarySoft else c.sunken,
-            ink = if (accent) Color(0xFF8E98F5) else c.muted,
+            ink = if (accent) c.primary else c.muted,
             size = 42.dp,
         )
         Column {
@@ -377,7 +378,7 @@ fun OfflineMapCard(
 private fun ProgressBar(fraction: Float?) {
     val c = Saarthi.colors
     val sweep by rememberLoop(1_400, Ease.inOut, rest = 0.5f, label = "offline-progress")
-    val fill = Brush.horizontalGradient(listOf(c.primary, Color(0xFFFE5D09)))
+    val fill = Brush.horizontalGradient(listOf(c.primary, Brand.saffron))
     Box(
         Modifier
             .fillMaxWidth()

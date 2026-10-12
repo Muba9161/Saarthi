@@ -1,4 +1,4 @@
-package com.saarthi.driver.ui.shift.fuel
+package com.saarthi.driver.ui.shift.expense
 
 import android.content.Context
 import android.content.Intent
@@ -79,7 +79,7 @@ import kotlinx.coroutines.launch
  * viewfinder explaining why the camera matters, with the way to allow it.
  */
 @Composable
-internal fun FuelCameraStep(
+internal fun SlipCameraStep(
     onShot: (jpeg: ByteArray, photo: ImageBitmap) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -101,7 +101,7 @@ internal fun FuelCameraStep(
         val pressedAt = SystemClock.uptimeMillis()
         capturePhoto(
             capture = capture,
-            tag = "fuel-slip",
+            tag = "expense-slip",
             // Both callbacks arrive on CameraX's executor; state is set back on
             // the main thread, and never after this step has gone.
             onResult = { jpeg, photo ->
@@ -123,7 +123,7 @@ internal fun FuelCameraStep(
     }
 
     Column(modifier, verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        Text(stringResource(R.string.fuel_lead), style = SType.lead, color = c.muted)
+        Text(stringResource(R.string.expense_lead), style = SType.lead, color = c.muted)
         Box(
             Modifier
                 .weight(1f)

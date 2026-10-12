@@ -25,6 +25,8 @@ import {
   type RoutingProfile,
 } from '../../providers/routing';
 import type { NearbyPlaceResult } from '../nearby/nearby.service';
+import { pumpFuelFor } from './driver-extras.service';
+import { mergePumps, pumpsNear } from './nearby-pumps';
 
 /**
  * How far, and by which road.
@@ -89,11 +91,49 @@ function straightLine(place: NearbyPlaceResult): MeasuredDistance {
   };
 }
 
+/** A tag value from the directory's own bag, trimmed, or null. */
+function tag(attributes: unknown, key: string): string | null {
+  if (!attributes || typeof attributes !== 'object') return null;
+  const value = (attributes as Record<string, unknown>)[key];
+  return typeof value === 'string' && value.trim() !== '' ? value.trim() : null;
+}
+
+/** OpenStreetMap's `yes`/`designated` and `no` for a tag, or null when it is silent. */
+function yesNo(value: string | null): boolean | null {
+  if (value === null) return null;
+  if (['yes', 'designated', 'only'].includes(value)) return true;
+  if (value === 'no') return false;
+  return null;
+}
+
+/** The fuels a pump declares, from its `fuel:*` tags. */
+function fuelsOf(attributes: unknown): string[] {
+  const declared: [string, string][] = [
+    ['fuel:diesel', 'DIESEL'],
+    ['fuel:octane_91', 'PETROL'],
+    ['fuel:octane_95', 'PETROL'],
+    ['fuel:HGV_diesel', 'TRUCK_DIESEL'],
+    ['fuel:cng', 'CNG'],
+    ['fuel:lpg', 'LPG'],
+  ];
+  return [
+    ...new Set(declared.filter(([key]) => tag(attributes, key) === 'yes').map(([, fuel]) => fuel)),
+  ];
+}
+
 function toResult(
   place: NearbyPlaceResult,
   distance: MeasuredDistance,
 ): TerminalServiceResult {
+  const brand = tag(place.attributes, 'brand');
+  const operator = tag(place.attributes, 'operator');
   return {
+    brand,
+    operator: operator && operator !== brand ? operator : null,
+    website: tag(place.attributes, 'website') ?? tag(place.attributes, 'contact:website'),
+    fuels: fuelsOf(place.attributes),
+    hgv: yesNo(tag(place.attributes, 'hgv')),
+    stale: place.stale,
     id: place.id,
     category: place.category,
     name: place.name,
@@ -174,16 +214,34 @@ export async function findServices(input: {
 
   const categories = refuellingCategoriesFor(input.service, vehicle?.fuelType, input.categories);
 
-  const places = await searchNearbyPlaces({
-    latitude: input.latitude,
-    longitude: input.longitude,
-    radiusKm: input.radiusKm,
-    category: [...categories] as never,
-    limit: input.limit,
-    openNow: undefined,
-  });
-
   const from: LatLng = { latitude: input.latitude, longitude: input.longitude };
+  const fuel = pumpFuelFor(vehicle?.fuelType ?? null);
+  const wantsPumps = categories.includes('FUEL');
+
+  // More than the page by straight line, so the road re-rank chooses the page
+  // from the nearest dozens rather than only re-ordering the first twenty. The
+  // map and the pump directory are asked together; for fuel, either alone is an
+  // answer, so one being down must not empty the list.
+  const [mapped, pumps] = await Promise.all([
+    searchNearbyPlaces({
+      latitude: input.latitude,
+      longitude: input.longitude,
+      radiusKm: input.radiusKm,
+      category: [...categories] as never,
+      limit: Math.max(input.limit, MAX_ROAD_MEASURED),
+      openNow: undefined,
+    }).then(
+      (found) => ({ found, failure: null }),
+      (failure: unknown) => ({ found: [] as NearbyPlaceResult[], failure }),
+    ),
+    wantsPumps ? pumpsNear(from, input.radiusKm, fuel) : Promise.resolve([]),
+  ]);
+  if (mapped.failure !== null && pumps.length === 0) throw mapped.failure;
+
+  const places = mergePumps(mapped.found, pumps, fuel).slice(
+    0,
+    Math.max(input.limit, MAX_ROAD_MEASURED),
+  );
 
   if (places.length === 0) {
     return {
@@ -199,7 +257,7 @@ export async function findServices(input: {
     return {
       service: input.service,
       from,
-      places: places.map((place) => toResult(place, straightLine(place))),
+      places: places.slice(0, input.limit).map((place) => toResult(place, straightLine(place))),
       roadDistancesAvailable: false,
       routingNote:
         'Showing direct distances. Road routing is not configured on this Saarthi instance, so the drive will be longer than the figures shown.',
@@ -234,15 +292,21 @@ export async function findServices(input: {
     });
 
     // Re-rank. A list with road distances in crow-flies order would put the
-    // wrong entry first while showing the right number beside it.
-    results.sort((a, b) => a.distance.km - b.distance.km);
+    // wrong entry first while showing the right number beside it. Road-measured
+    // places come first: a straight-line figure is always the shorter one, so
+    // mixing the two would float an unreachable place above a real drive.
+    results.sort((a, b) => {
+      const aRoad = a.distance.basis === DistanceBasis.ROAD ? 0 : 1;
+      const bRoad = b.distance.basis === DistanceBasis.ROAD ? 0 : 1;
+      return aRoad - bRoad || a.distance.km - b.distance.km;
+    });
 
     const anyRoad = results.some((result) => result.distance.basis === DistanceBasis.ROAD);
 
     return {
       service: input.service,
       from,
-      places: results,
+      places: results.slice(0, input.limit),
       roadDistancesAvailable: anyRoad,
       routingNote: anyRoad
         ? null
@@ -265,7 +329,7 @@ export async function findServices(input: {
     return {
       service: input.service,
       from,
-      places: places.map((place) => toResult(place, straightLine(place))),
+      places: places.slice(0, input.limit).map((place) => toResult(place, straightLine(place))),
       roadDistancesAvailable: false,
       routingNote: `Showing direct distances. ${note}`,
     };

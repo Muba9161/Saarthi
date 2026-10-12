@@ -52,6 +52,9 @@ export interface VehicleSummary {
   typeLabel: string;
   /** Scooter, hatchback… `null` on a type with none, or a vehicle added before its type had them. */
   category: VehicleCategory | null;
+  /** How the owner picked it: the class ("Car", "Truck")… */
+  classLabel: string;
+  /** …and the kind ("SUV", "Tipper"), when the record says. */
   categoryLabel: string | null;
   capabilities: VehicleCapability[];
   manufacturer: string | null;
@@ -86,12 +89,6 @@ export interface VehicleSummary {
   notes: string | null;
   createdAt: string;
   archivedAt: string | null;
-}
-
-export interface VehicleTypeOption {
-  type: VehicleType;
-  label: string;
-  capabilities: VehicleCapability[];
 }
 
 // ---------------------------------------------------------------------------

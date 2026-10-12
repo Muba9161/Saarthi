@@ -301,6 +301,16 @@ async function resolveOwner(
       return { organizationId: record.organizationId };
     }
 
+    case MediaOwnerType.EXPENSE: {
+      const record = await prisma.expense.findUnique({
+        where: { id: ownerId },
+        select: { organizationId: true },
+      });
+      if (!record) throw errors.notFound('Expense');
+      assertOwnedByCaller(auth, record.organizationId, 'Expense');
+      return { organizationId: record.organizationId };
+    }
+
     case MediaOwnerType.VEHICLE_LISTING: {
       const listing = await prisma.vehicleListing.findUnique({
         where: { id: ownerId },

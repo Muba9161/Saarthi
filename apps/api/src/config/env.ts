@@ -516,10 +516,16 @@ const envSchema = z.object({
   OVERPASS_API_URLS: z
     .string()
     .default(
-      'https://overpass-api.de/api/interpreter,https://overpass.kumi.systems/api/interpreter,https://overpass.private.coffee/api/interpreter',
+      'https://overpass-api.de/api/interpreter,https://overpass.private.coffee/api/interpreter,https://maps.mail.ru/osm/tools/overpass/api/interpreter,https://overpass.kumi.systems/api/interpreter',
     ),
-  /** Overall deadline for a search, across every endpoint tried. */
-  OVERPASS_TIMEOUT_MS: z.coerce.number().int().min(6_000).max(60_000).default(25_000),
+  /**
+   * Overall deadline for a search, across every endpoint raced.
+   *
+   * Kept well inside the driver app's 30-second read timeout once road
+   * distances (up to `ORS_TIMEOUT_MS`) are added after it: a search that
+   * outlasts the app is a search the driver sees fail as "no signal".
+   */
+  OVERPASS_TIMEOUT_MS: z.coerce.number().int().min(6_000).max(60_000).default(15_000),
   /**
    * Largest radius sent upstream, in km. Past this the mirror answers, and the
    * mirror does measure distance.

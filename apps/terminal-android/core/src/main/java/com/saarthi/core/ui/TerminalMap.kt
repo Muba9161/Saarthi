@@ -1,11 +1,7 @@
 package com.saarthi.core.ui
 
 import android.content.Context
-import android.graphics.Canvas
-import androidx.annotation.DrawableRes
-import androidx.appcompat.content.res.AppCompatResources
 import androidx.compose.runtime.Composable
-import androidx.core.graphics.createBitmap
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -18,6 +14,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.saarthi.core.CoreConfig
+import com.saarthi.core.domain.TrailPoint
 import com.saarthi.core.domain.bearingDelta
 import com.saarthi.core.telemetry.Position
 import com.saarthi.core.util.DebugLog
@@ -32,13 +29,6 @@ import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapLibreMapOptions
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
-import org.maplibre.android.style.expressions.Expression
-import org.maplibre.android.style.layers.CircleLayer
-import org.maplibre.android.style.layers.LineLayer
-import org.maplibre.android.style.layers.Property
-import org.maplibre.android.style.layers.PropertyFactory
-import org.maplibre.android.style.layers.SymbolLayer
-import org.maplibre.android.style.sources.GeoJsonSource
 import kotlin.math.abs
 
 /**
@@ -172,6 +162,13 @@ fun TerminalMap(
     framePinsTopPx: Int = 0,
     /** Pixels kept clear at the foot when framing pins, for a sheet over the map. */
     framePinsBottomPx: Int = 0,
+    /** The covered path, coloured by trip state. Empty draws nothing. */
+    trail: List<TrailPoint> = emptyList(),
+    /**
+     * The basemap. Changing it restyles the live map in place — how the phone
+     * follows a switch between the light and the dark theme.
+     */
+    styleUrl: String = CoreConfig.mapStyleUrl,
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val reducedMotion = LocalReducedMotion.current
@@ -201,6 +198,34 @@ fun TerminalMap(
     val currentPosition by rememberUpdatedState(position)
     val pinsJson = remember(pins) { pinsJson(pins) }
     val drawnPins = remember { DrawnPins() }
+
+    /*
+     * Everything a freshly loaded style must be given.
+     *
+     * Read at the moment the style finishes loading, not captured when the load
+     * began: a style takes a second or two to arrive, and the position, the
+     * vehicle and the route captured at the start were what the old map drew a
+     * parked vehicle from — a marker missing, or the wrong shape, until the
+     * vehicle next moved.
+     */
+    val overlays by rememberUpdatedState(
+        Overlays(position, headingDegrees, routeGeometry, destination, vehicleType, look, trail),
+    )
+    val loadedStyle = remember { LoadedStyle() }
+
+    /*
+     * The zoom the driver pinched to, kept while following.
+     *
+     * A pinch used to count as a pan: following stopped, the zoom happened
+     * around the fingers rather than the vehicle, and on the navigation view —
+     * the vehicle sitting low on purpose — two or three levels in were enough
+     * to push it under the panels or off the screen entirely. Now a pinch zooms
+     * on the vehicle and the vehicle stays followed; only a drag hands the map
+     * over. Cleared when the view changes kind, so starting a route still gets
+     * the navigation zoom.
+     */
+    val pinchedZoom = remember { PinchedZoom() }
+    LaunchedEffect(navigating, driving) { pinchedZoom.zoom = null }
 
     // MapLibre's MapView is an Android View with its own lifecycle that must be
     // driven by hand. Missing any of these leaks the GL surface, which on a
@@ -248,7 +273,20 @@ fun TerminalMap(
     ) {
         val current = map ?: return@LaunchedEffect
         if (!followVehicle || previewingRoute) return@LaunchedEffect
-        applyCamera(current, position, headingDegrees, driving, navigating, reducedMotion)
+        applyCamera(current, position, headingDegrees, driving, navigating, reducedMotion, pinchedZoom.zoom)
+    }
+
+    // A new basemap — the theme changed. Restyle in place and draw everything
+    // onto it again; the old style's sources and images went with it.
+    LaunchedEffect(map, styleUrl) {
+        val current = map ?: return@LaunchedEffect
+        if (loadedStyle.url == null || loadedStyle.url == styleUrl) return@LaunchedEffect
+        val context = mapView.value?.context ?: return@LaunchedEffect
+        loadedStyle.url = styleUrl
+        current.setStyle(styleUrl) { style ->
+            drawnPins.json = null
+            drawOverlays(context, style, overlays, currentPins, drawnPins)
+        }
     }
 
     /*
@@ -276,7 +314,7 @@ fun TerminalMap(
 
         delay(if (reducedMotion) ROUTE_PREVIEW_MS_REDUCED else ROUTE_PREVIEW_MS)
         if (following) {
-            applyCamera(current, position, headingDegrees, driving, navigating, reducedMotion)
+            applyCamera(current, position, headingDegrees, driving, navigating, reducedMotion, pinchedZoom.zoom)
         }
     }
 
@@ -309,16 +347,10 @@ fun TerminalMap(
                 mapView.value = view
                 view.onCreate(null)
                 view.getMapAsync { ready ->
-                    ready.setStyle(CoreConfig.mapStyleUrl) { style ->
+                    loadedStyle.url = styleUrl
+                    ready.setStyle(styleUrl) { style ->
                         DebugLog.info("map", "Basemap loaded")
-                        registerVehicleIcon(context, style, look.markerFor(vehicleType))
-                        drawRoute(style, routeGeometry, destination, look)
-                        drawVehicle(style, position, headingDegrees, look.markerFor(vehicleType), look)
-                        if (currentPins.isNotEmpty()) {
-                            val json = pinsJson(currentPins)
-                            drawPins(style, json, look.pins)
-                            drawnPins.json = json
-                        }
+                        drawOverlays(context, style, overlays, currentPins, drawnPins)
                     }
 
                     // Only pins drawn by this map can be tapped; the listener is
@@ -330,11 +362,10 @@ fun TerminalMap(
                     }
 
                     /*
-                     * A drag or a pinch means the driver wants to look somewhere
-                     * else. Reported so the caller can stop recentring and offer
-                     * the way back — without this the camera snapped to the
-                     * vehicle on the next fix and the map ahead could never be
-                     * read.
+                     * A drag means the driver wants to look somewhere else.
+                     * Reported so the caller can stop recentring and offer the
+                     * way back — without this the camera snapped to the vehicle
+                     * on the next fix and the map ahead could never be read.
                      *
                      * A *tap* deliberately does not count. Under the old
                      * camera-move listener, a double-tap zoom and every stray
@@ -345,10 +376,27 @@ fun TerminalMap(
                         override fun onMove(detector: MoveGestureDetector) = Unit
                         override fun onMoveEnd(detector: MoveGestureDetector) = Unit
                     })
+
+                    /*
+                     * A pinch while following zooms on the vehicle, not on the
+                     * fingers, and keeps following — see [PinchedZoom]. Not
+                     * following, it is an ordinary zoom on the map being read.
+                     */
                     ready.addOnScaleListener(object : MapLibreMap.OnScaleListener {
-                        override fun onScaleBegin(detector: StandardScaleGestureDetector) = onPanned()
+                        override fun onScaleBegin(detector: StandardScaleGestureDetector) {
+                            val vehicle = currentPosition ?: return
+                            if (!following) return
+                            ready.uiSettings.focalPoint = ready.projection.toScreenLocation(
+                                LatLng(vehicle.latitude, vehicle.longitude),
+                            )
+                        }
+
                         override fun onScale(detector: StandardScaleGestureDetector) = Unit
-                        override fun onScaleEnd(detector: StandardScaleGestureDetector) = Unit
+
+                        override fun onScaleEnd(detector: StandardScaleGestureDetector) {
+                            ready.uiSettings.focalPoint = null
+                            if (following) pinchedZoom.zoom = ready.cameraPosition.zoom
+                        }
                     })
 
                     ready.uiSettings.apply {
@@ -379,23 +427,72 @@ fun TerminalMap(
              * ticking.
              */
             view.getMapAsync { ready ->
-                ready.style?.let { style ->
-                    // Cheap when the type has not changed: the style is asked
-                    // for the image it already holds and nothing is decoded.
-                    registerVehicleIcon(view.context, style, look.markerFor(vehicleType))
-                    drawRoute(style, routeGeometry, destination, look)
-                    drawVehicle(style, position, headingDegrees, look.markerFor(vehicleType), look)
-                    // Re-sent only when the set changes, and never created for a
-                    // map that has not shown a pin.
-                    val stale = drawnPins.json != pinsJson || (drawnPins.json != null && style.getSource(PINS_SOURCE_ID) == null)
-                    if (stale && (pins.isNotEmpty() || drawnPins.json != null)) {
-                        drawPins(style, pinsJson, look.pins)
-                        drawnPins.json = pinsJson
-                    }
-                }
+                // A style still loading is skipped; its own callback draws.
+                val style = ready.style?.takeIf { it.isFullyLoaded } ?: return@getMapAsync
+                drawOverlays(
+                    view.context,
+                    style,
+                    Overlays(position, headingDegrees, routeGeometry, destination, vehicleType, look, trail),
+                    pins,
+                    drawnPins,
+                    pinsJson,
+                )
             }
         },
     )
+}
+
+/** What the overlays are drawn from — read fresh whenever a style finishes loading. */
+private data class Overlays(
+    val position: Position?,
+    val headingDegrees: Double?,
+    val routeGeometry: List<Pair<Double, Double>>,
+    val destination: Pair<Double, Double>?,
+    val vehicleType: String?,
+    val look: MapLook,
+    val trail: List<TrailPoint>,
+)
+
+/** The basemap the map was last asked to load, so a theme change restyles only once. */
+private class LoadedStyle {
+    var url: String? = null
+}
+
+/** The zoom a pinch left the followed view at; null for the view's own zoom. */
+private class PinchedZoom {
+    var zoom: Double? = null
+}
+
+/**
+ * Draw everything the app lays over the basemap, bottom to top.
+ *
+ * One path for all three moments that need it — the first style, a restyle on
+ * a theme change, and every recomposition after — so none of them can forget
+ * a layer. Each drawing step skips work that has not changed, which is what
+ * makes calling this on every recomposition affordable.
+ */
+private fun drawOverlays(
+    context: Context,
+    style: Style,
+    overlays: Overlays,
+    pins: List<MapPin>,
+    drawnPins: DrawnPins,
+    json: String = pinsJson(pins),
+) {
+    val marker = overlays.look.markerFor(overlays.vehicleType)
+    registerVehicleIcon(context, style, marker)
+    drawTrail(style, overlays.trail, overlays.look)
+    drawRoute(style, overlays.routeGeometry, overlays.destination, overlays.look)
+    drawVehicle(style, overlays.position, overlays.headingDegrees, marker, overlays.look)
+
+    // Re-sent only when the set changes, and never created for a map that has
+    // not shown a pin.
+    val stale = drawnPins.json != json ||
+        (drawnPins.json != null && style.getSource(PINS_SOURCE_ID) == null)
+    if (stale && (pins.isNotEmpty() || drawnPins.json != null)) {
+        drawPins(style, json, overlays.look.pins)
+        drawnPins.json = json
+    }
 }
 
 /**
@@ -423,6 +520,7 @@ private fun applyCamera(
     driving: Boolean,
     navigating: Boolean,
     reducedMotion: Boolean,
+    pinchedZoom: Double?,
 ) {
     if (position == null) return
 
@@ -433,7 +531,7 @@ private fun applyCamera(
     val builder = CameraPosition.Builder()
         .target(target)
         .zoom(
-            when {
+            pinchedZoom ?: when {
                 navigating && driving -> ZOOM_NAVIGATING
                 driving -> ZOOM_DRIVING
                 else -> ZOOM_PARKED
@@ -544,221 +642,6 @@ private fun distanceBetween(from: LatLng, to: LatLng): Double =
         to.longitude,
     )
 
-/**
- * Put the right vehicle silhouette into the style.
- *
- * Registered once per style and per type. `getImage` is checked first because
- * this runs on every recomposition — a speed change, a battery tick — and
- * decoding a vector to a bitmap sixty times a minute on a low-end tablet is a
- * cost with nothing to show for it.
- */
-private fun registerVehicleIcon(context: Context, style: Style, @DrawableRes marker: Int) {
-    val id = vehicleIconId(marker)
-    if (style.getImage(id) != null) return
-
-    val drawable = AppCompatResources.getDrawable(context, marker) ?: return
-    val bitmap = createBitmap(drawable.intrinsicWidth, drawable.intrinsicHeight)
-    val canvas = Canvas(bitmap)
-    drawable.setBounds(0, 0, canvas.width, canvas.height)
-    drawable.draw(canvas)
-    style.addImage(id, bitmap)
-}
-
-/** The style's name for a marker image — one per drawable, whichever look drew it. */
-private fun vehicleIconId(@DrawableRes marker: Int) = "$VEHICLE_ICON-$marker"
-
-/**
- * Where the vehicle is, and which way it is pointing.
- *
- * The marker is the vehicle itself — a lorry for a lorry, a car for a car —
- * drawn plan-view and rotated to the heading. A generic dot told the driver
- * where they were; this also tells anyone glancing at the screen *what* is
- * there, which matters on a dispatcher's map and matters again in a yard where
- * several Saarthi vehicles are parked together.
- *
- * A soft halo sits under it, because a silhouette alone can vanish against a
- * built-up basemap in a way a haloed one cannot.
- *
- * `iconRotationAlignment` is pinned to the map rather than the viewport, so the
- * vehicle keeps pointing at the road it is on when the camera rotates into the
- * driving view. With no heading reported the icon simply renders unrotated
- * rather than snapping to north and pointing somewhere wrong.
- */
-private fun drawVehicle(
-    style: Style,
-    position: Position?,
-    headingDegrees: Double?,
-    @DrawableRes marker: Int,
-    look: MapLook,
-) {
-    val point = position?.let { it.latitude to it.longitude }
-    setGeoJson(style, VEHICLE_SOURCE, pointFeature(point, headingDegrees)) {
-        style.addLayer(
-            CircleLayer(VEHICLE_HALO_LAYER, VEHICLE_SOURCE).withProperties(
-                PropertyFactory.circleRadius(look.haloRadius),
-                PropertyFactory.circleColor(look.haloColor),
-                PropertyFactory.circleOpacity(look.haloOpacity),
-            ),
-        )
-        style.addLayer(
-            SymbolLayer(VEHICLE_LAYER, VEHICLE_SOURCE).withProperties(
-                PropertyFactory.iconImage(vehicleIconId(marker)),
-                PropertyFactory.iconRotate(Expression.get(HEADING_PROPERTY)),
-                PropertyFactory.iconRotationAlignment(Property.ICON_ROTATION_ALIGNMENT_MAP),
-                PropertyFactory.iconAllowOverlap(true),
-                PropertyFactory.iconIgnorePlacement(true),
-                PropertyFactory.iconSize(look.markerScale),
-            ),
-        )
-    }
-}
-
-/**
- * Draw or clear the route line.
- *
- * A GeoJSON source updated in place rather than layers added and removed. The
- * update path runs on every recomposition — a speed change, a battery tick — and
- * adding a layer that already exists throws, while removing and re-adding one
- * makes the line flicker on a screen a driver is looking at.
- *
- * The line is drawn twice: a wide dark casing beneath a bright core. That is
- * what keeps a route legible over both a pale motorway and a dark park, and it
- * is cheaper and far more reliable on low-end hardware than any blur or glow.
- *
- * **The geometry is only re-serialised when it changes.** A route is thousands
- * of coordinates; building that string and handing it to MapLibre to reparse on
- * every recomposition was tens of milliseconds of main-thread work several times
- * a second, for a line that changes about once a journey. The signature stored
- * on the source is what makes the common case free.
- */
-private fun drawRoute(
-    style: Style,
-    geometry: List<Pair<Double, Double>>,
-    destination: Pair<Double, Double>?,
-    look: MapLook,
-) {
-    val signature = routeSignature(geometry)
-    if (lastRouteSignature != signature || style.getSourceAs<GeoJsonSource>(ROUTE_SOURCE) == null) {
-        setGeoJson(style, ROUTE_SOURCE, lineFeature(geometry)) {
-            style.addLayer(
-                LineLayer(ROUTE_CASING_LAYER, ROUTE_SOURCE).withProperties(
-                    PropertyFactory.lineColor(look.casingColor),
-                    PropertyFactory.lineWidth(look.casingWidth),
-                    PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
-                    PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
-                    PropertyFactory.lineOpacity(look.casingOpacity),
-                ),
-            )
-            style.addLayer(
-                LineLayer(ROUTE_LAYER, ROUTE_SOURCE).withProperties(
-                    PropertyFactory.lineColor(look.routeColor),
-                    PropertyFactory.lineWidth(look.routeWidth),
-                    PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
-                    PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
-                ),
-            )
-        }
-        lastRouteSignature = signature
-    }
-
-    setGeoJson(style, DESTINATION_SOURCE, pointFeature(destination)) {
-        style.addLayer(
-            CircleLayer(DESTINATION_LAYER, DESTINATION_SOURCE).withProperties(
-                PropertyFactory.circleRadius(look.destinationRadius),
-                PropertyFactory.circleColor(look.destinationColor),
-                PropertyFactory.circleStrokeWidth(look.destinationRingWidth),
-                PropertyFactory.circleStrokeColor(look.destinationRing),
-            ),
-        )
-    }
-}
-
-/**
- * A cheap identity for a route.
- *
- * Size and both ends. Two different routes to the same destination with the same
- * number of points would collide — which is why a re-route rebuilds the map's
- * source through the style-missing branch above as well, and why this is only
- * ever used to *skip* work rather than to decide correctness.
- */
-private fun routeSignature(geometry: List<Pair<Double, Double>>): String {
-    if (geometry.isEmpty()) return "empty"
-    val first = geometry.first()
-    val last = geometry.last()
-    val middle = geometry[geometry.size / 2]
-    return "${geometry.size}:${first.first},${first.second}:" +
-        "${middle.first},${middle.second}:${last.first},${last.second}"
-}
-
-/**
- * The route currently on the map.
- *
- * File-level rather than per-composable, because there is exactly one cockpit
- * map in this app and threading a remembered holder through the drawing
- * functions would buy nothing. A stale value costs one redundant redraw, never a
- * wrong one.
- */
-private var lastRouteSignature: String? = null
-
-/**
- * Set a source's data, creating it and its layers on first use.
- *
- * The create-once/update-forever split is the whole point: clearing a route
- * assigns an empty FeatureCollection rather than tearing down layers, so there
- * is no window in which a redraw can race a removal.
- */
-internal fun setGeoJson(
-    style: Style,
-    sourceId: String,
-    json: String,
-    addLayers: () -> Unit,
-) {
-    val existing = style.getSourceAs<GeoJsonSource>(sourceId)
-    if (existing != null) {
-        existing.setGeoJson(json)
-        return
-    }
-    runCatching {
-        style.addSource(GeoJsonSource(sourceId, json))
-        addLayers()
-    }.onFailure { error ->
-        // A style still loading, or already torn down. The map is still usable
-        // without the overlay, and the next update adds it.
-        DebugLog.debug("map", "Could not add $sourceId: ${error.message}")
-    }
-}
-
-/** An empty collection draws nothing, which is how a route is cleared. */
-private const val EMPTY_GEOJSON = "{\"type\":\"FeatureCollection\",\"features\":[]}"
-
-private fun lineFeature(geometry: List<Pair<Double, Double>>): String {
-    if (geometry.isEmpty()) return EMPTY_GEOJSON
-    // GeoJSON is [longitude, latitude], the opposite order to everything else
-    // in this app.
-    val coordinates = geometry.joinToString(",") { (lat, lng) -> "[$lng,$lat]" }
-    return "{\"type\":\"Feature\",\"properties\":{},\"geometry\":" +
-        "{\"type\":\"LineString\",\"coordinates\":[$coordinates]}}"
-}
-
-private fun pointFeature(point: Pair<Double, Double>?, headingDegrees: Double? = null): String {
-    if (point == null) return EMPTY_GEOJSON
-    // The heading rides on the feature rather than on the layer, so the icon
-    // rotates with the data instead of needing the layer rebuilt on every fix.
-    val properties = if (headingDegrees == null) "{}" else "{\"$HEADING_PROPERTY\":$headingDegrees}"
-    return "{\"type\":\"Feature\",\"properties\":$properties,\"geometry\":" +
-        "{\"type\":\"Point\",\"coordinates\":[${point.second},${point.first}]}}"
-}
-
-private const val ROUTE_SOURCE = "saarthi-route"
-private const val ROUTE_CASING_LAYER = "saarthi-route-casing"
-private const val ROUTE_LAYER = "saarthi-route-line"
-private const val DESTINATION_SOURCE = "saarthi-destination"
-private const val DESTINATION_LAYER = "saarthi-destination-point"
-private const val VEHICLE_SOURCE = "saarthi-vehicle"
-private const val VEHICLE_HALO_LAYER = "saarthi-vehicle-halo"
-private const val VEHICLE_LAYER = "saarthi-vehicle-icon"
-private const val VEHICLE_ICON = "saarthi-vehicle-image"
-private const val HEADING_PROPERTY = "heading"
 
 /** Close in on the next few hundred metres, which is all a turn needs. */
 private const val ZOOM_NAVIGATING = 17.0

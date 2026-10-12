@@ -20,7 +20,9 @@ import androidx.compose.ui.unit.dp
 import com.saarthi.core.domain.DrivingHours
 import com.saarthi.core.domain.PumpPrice
 import com.saarthi.core.ui.TerminalViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.saarthi.driver.R
+import com.saarthi.driver.ui.shift.papers.PapersViewModel
 import com.saarthi.driver.ui.design.Lucide
 import com.saarthi.driver.ui.design.NoticeCard
 import com.saarthi.driver.ui.design.NoticeTone
@@ -42,7 +44,8 @@ class HomeActions(
     val openCheck: () -> Unit,
     val startTrip: () -> Unit,
     val openNearby: () -> Unit,
-    val openFuel: () -> Unit,
+    val openExpense: () -> Unit,
+    val openPapers: () -> Unit,
     val openNotices: () -> Unit,
     val checkNotNeeded: () -> Unit,
 )
@@ -64,18 +67,20 @@ fun HomeTab(cockpit: TerminalViewModel, fallbackPlate: String?, actions: HomeAct
     val dispatch by cockpit.dispatch.collectAsState()
     val registration = state.registration ?: fallbackPlate
     val fuelType = state.server?.vehicle?.fuelType
+    // The same wallet the Papers tab shows, so opening Home also keeps the papers on the phone.
+    val papers: PapersViewModel = viewModel()
+    val paperWallet by papers.ui.collectAsState()
 
     /*
-     * Fetched when Home appears, not on a timer: a FASTag balance, today's
-     * diesel rate and the papers do not move minute to minute, and polling them
-     * from a cab spends a driver's data on answers that have not changed. The
-     * dispatch is the exception worth asking for — a controller can assign work
-     * while the driver is looking.
+     * Fetched when Home appears, not on a timer: today's diesel rate and the
+     * papers do not move minute to minute, and polling them from a cab spends a
+     * driver's data on answers that have not changed. The dispatch is the
+     * exception worth asking for — a controller can assign work while the
+     * driver is looking.
      */
     LaunchedEffect(registration) {
-        cockpit.loadFastag()
         if (PumpPrice.worthFetching(fuelType)) cockpit.loadFuelPrice()
-        cockpit.loadPapers()
+        papers.refresh()
         cockpit.loadNotifications()
         cockpit.loadDispatch()
     }
@@ -119,7 +124,7 @@ fun HomeTab(cockpit: TerminalViewModel, fallbackPlate: String?, actions: HomeAct
             )
         }
 
-        StatTiles(cockpit, fuelType, hours, Modifier.rise(stagger(3)))
+        StatTiles(cockpit, fuelType, hours, paperWallet, actions.openPapers, Modifier.rise(stagger(3)))
 
         if (dispatch != null) {
             DispatchSection(cockpit, onRouted = actions.openMap, modifier = Modifier.rise(stagger(4)))

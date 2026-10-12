@@ -8,6 +8,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import com.saarthi.core.domain.AssistantState
 import com.saarthi.core.telemetry.Metric
 import com.saarthi.core.domain.NavigationAnnouncer
@@ -38,9 +41,20 @@ class CockpitVoice internal constructor(
     val amplitude: Float,
     /** True when the driver has silenced spoken turn instructions. */
     val guidanceMuted: Boolean,
+    /** True while "Hey Saarthi" is being listened for — switched on, and this phone able to. */
+    val wakeWordOn: Boolean,
 ) {
     /** Whether this device can listen at all. False with no recogniser. */
     val canListen: Boolean get() = engine.available
+
+    /** True when the phone's media volume is at zero, so an answer would play silently. */
+    val speakerMuted: Boolean get() = engine.speakerMuted
+
+    /** Turn a silent phone up — on the driver's tap only. */
+    fun raiseVolume() = engine.raiseVolume()
+
+    /** Stop listening to a question or reading an answer, leaving "Hey Saarthi" as it was. */
+    fun hush() = engine.hush()
 
     /**
      * Start listening now, without a wake phrase.
@@ -58,10 +72,16 @@ class CockpitVoice internal constructor(
  * Deliberately scoped to the composable rather than the view model: the
  * recogniser holds a cab microphone, and a driver who signs off should get it
  * released with the screen rather than left running for the rest of the shift.
+ *
+ * [wakeWord] is the app's own choice of whether "Hey Saarthi" is listened for.
+ * Even when it is on, the phrase is only listened for while the app is in
+ * front: a phone in a pocket with the app behind something else is not a cab
+ * display, and a microphone open there is one nobody can see.
  */
 @Composable
-fun rememberCockpitVoice(viewModel: TerminalViewModel): CockpitVoice {
+fun rememberCockpitVoice(viewModel: TerminalViewModel, wakeWord: Boolean): CockpitVoice {
     val context = LocalContext.current
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
     val state by viewModel.uiState.collectAsState()
     val assistant by viewModel.assistant.collectAsState()
     val navigation by viewModel.navigation.collectAsState()
@@ -77,9 +97,13 @@ fun rememberCockpitVoice(viewModel: TerminalViewModel): CockpitVoice {
             // The engine drives the state rather than each caller setting it on
             // the way in and nobody clearing it on the way out.
             onStateChange = { next -> viewModel.setAssistantState(next) },
+            // A phone has no business chiming every two seconds: the phrase is
+            // listened for on the phone's offline speech, or not at all.
+            quietWake = true,
         )
     }
     val amplitude by engine.amplitude.collectAsState()
+    val wakeActive by engine.wakeActive.collectAsState()
     val assistantBusy by engine.assistantBusy.collectAsState()
 
     /*
@@ -96,9 +120,20 @@ fun rememberCockpitVoice(viewModel: TerminalViewModel): CockpitVoice {
         onDispose { engine.releaseSpeech() }
     }
 
-    DisposableEffect(viewModel.settings.wakeWordEnabled) {
-        if (viewModel.settings.wakeWordEnabled) engine.startListening()
-        onDispose { engine.stopListening() }
+    DisposableEffect(wakeWord, lifecycle) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_START -> if (wakeWord) engine.startListening()
+                Lifecycle.Event.ON_STOP -> engine.stopListening()
+                else -> Unit
+            }
+        }
+        if (wakeWord && lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) engine.startListening()
+        lifecycle.addObserver(observer)
+        onDispose {
+            lifecycle.removeObserver(observer)
+            engine.stopListening()
+        }
     }
 
     val guidanceOn by viewModel.voiceGuidance.collectAsState()
@@ -133,7 +168,8 @@ fun rememberCockpitVoice(viewModel: TerminalViewModel): CockpitVoice {
         // A previewed route is a drawing, not a journey. A null key resets the
         // announcer, so pressing Start opens with "Heading to …" rather than
         // resuming mid-sentence from a route the driver was only looking at.
-        val route = navigation.route?.takeIf { navigation.guiding }
+        // Google Maps speaks its own turns while it guides; two voices would be worse than one.
+        val route = navigation.route?.takeIf { navigation.guiding && !navigation.handedOff }
         val cue = announcer.next(
             NavigationAnnouncer.Input(
                 journeyKey = route?.let {
@@ -175,25 +211,30 @@ fun rememberCockpitVoice(viewModel: TerminalViewModel): CockpitVoice {
         val budget = when (assistant.state) {
             AssistantState.IDLE -> return@LaunchedEffect
             AssistantState.LISTENING -> 15_000L
-            AssistantState.THINKING -> 25_000L
+            // Past the network's own 30-second limit, so a slow answer ends in
+            // "cannot reach Saarthi" rather than in this backstop.
+            AssistantState.THINKING -> 35_000L
             AssistantState.SPEAKING -> 45_000L
             AssistantState.ERROR -> 8_000L
         }
         delay(budget)
         DebugLog.warn("voice", "Assistant stuck in ${assistant.state}; clearing")
-        viewModel.setAssistantState(AssistantState.IDLE)
+        // A question given up on is stopped, not just hidden: an answer that
+        // arrived after this would otherwise be read out of nowhere.
+        if (assistant.state == AssistantState.THINKING) viewModel.stopAssistant()
+        else viewModel.setAssistantState(AssistantState.IDLE)
     }
 
-    // Read the answer aloud when the question was asked aloud. A driver who
-    // spoke to the terminal is a driver who cannot look at it.
-    LaunchedEffect(assistant.answer) {
+    // Read each answer aloud as it arrives. Keyed on the conversation's length
+    // too, so the same words given twice in a row are still spoken twice.
+    LaunchedEffect(assistant.answer, assistant.earlier.size) {
         val answer = assistant.answer
         if (answer != null && assistant.state == AssistantState.SPEAKING) {
             engine.speak(answer)
         }
     }
 
-    return remember(amplitude, guidanceMuted) {
-        CockpitVoice(engine = engine, amplitude = amplitude, guidanceMuted = guidanceMuted)
+    return remember(amplitude, guidanceMuted, wakeActive) {
+        CockpitVoice(engine = engine, amplitude = amplitude, guidanceMuted = guidanceMuted, wakeWordOn = wakeActive)
     }
 }

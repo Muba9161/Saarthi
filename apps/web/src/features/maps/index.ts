@@ -7,6 +7,8 @@ export { FleetMap, type CameraMode, type FleetMapProps, type MapMarkerPoint, typ
 export { MapSearch, type MapSearchProps } from './map-search';
 export { MapSettingsControl, type MapSettings } from './map-controls';
 export { NavigationPanel, type NavigationPanelProps } from './navigation-panel';
+export { TrailLegend } from './trail-legend';
+export { simplifyRoute } from './route-simplify';
 export { ManeuverIcon, maneuverIcon, maneuverLabel } from './maneuver-icon';
 export { useNavigation, type NavigationState, type UseNavigationOptions } from './use-navigation';
 export {

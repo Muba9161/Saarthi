@@ -27,6 +27,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.saarthi.core.domain.AssistantState
 import com.saarthi.core.domain.DrivingHours
 import com.saarthi.core.domain.TerminalState
 import com.saarthi.core.ui.TerminalViewModel
@@ -46,8 +47,9 @@ import com.saarthi.driver.ui.profile.ShiftDetails
 import com.saarthi.driver.ui.profile.TOAST_MS
 import com.saarthi.driver.ui.shift.adapter.AdapterSheet
 import com.saarthi.driver.ui.shift.assistant.AssistantOverlay
+import com.saarthi.driver.ui.shift.assistant.rememberWakeWordMicrophone
 import com.saarthi.driver.ui.shift.checklist.ChecklistFlow
-import com.saarthi.driver.ui.shift.fuel.FuelSlipFlow
+import com.saarthi.driver.ui.shift.expense.ExpenseSlipFlow
 import com.saarthi.driver.ui.shift.home.HomeActions
 import com.saarthi.driver.ui.shift.home.HomeTab
 import com.saarthi.driver.ui.shift.map.ControlActions
@@ -58,13 +60,14 @@ import com.saarthi.driver.ui.shift.map.ShiftCardActions
 import com.saarthi.driver.ui.shift.nearby.NearbySheet
 import com.saarthi.driver.ui.shift.notices.NoticesPanel
 import com.saarthi.driver.ui.shift.papers.PapersTab
+import com.saarthi.driver.ui.shift.trips.AddTripFlow
 import com.saarthi.driver.ui.shift.trips.TripsTab
 import com.saarthi.driver.ui.shift.vehicle.VehicleSheet
 import com.saarthi.driver.ui.start.AddLicenceSheet
 import kotlinx.coroutines.delay
 
 /** What can sit over the tabs. One at a time, so no two ever fight for the screen. */
-private enum class Overlay { NONE, NOTICES, CHECK, FUEL, NEARBY, FULL_MAP, ASSISTANT, VEHICLE, ADAPTER, SOS, PIN, LICENCE, SIGN_OFF, SIGN_OUT }
+private enum class Overlay { NONE, NOTICES, CHECK, EXPENSE, ADD_TRIP, NEARBY, FULL_MAP, ASSISTANT, VEHICLE, ADAPTER, SOS, PIN, LICENCE, SIGN_OFF, SIGN_OUT }
 
 /**
  * The shift: five tabs under a floating header and tab bar, and every sheet and
@@ -89,10 +92,14 @@ fun ShiftShell(
     val instruments by preferences.instruments.collectAsState()
     val account by driver.account.collectAsState()
     val fleet by driver.fleet.collectAsState()
-    val voice = rememberCockpitVoice(cockpit)
+    val wakeWord by preferences.wakeWord.collectAsState()
+    val voice = rememberCockpitVoice(cockpit, wakeWord = rememberWakeWordMicrophone(wakeWord))
+    val assistant by cockpit.assistant.collectAsState()
 
     var tab by rememberSaveable { mutableStateOf(ShiftTab.HOME) }
     var overlay by rememberSaveable { mutableStateOf(Overlay.NONE) }
+    // Where closing the assistant goes back to: the full map it was woken over, or nothing.
+    var afterAssistant by rememberSaveable { mutableStateOf(Overlay.NONE) }
     var nearbyCategory by rememberSaveable { mutableStateOf<String?>(null) }
     var dismissedSos by rememberSaveable { mutableStateOf<String?>(null) }
     var toast by remember { mutableStateOf<String?>(null) }
@@ -103,6 +110,17 @@ fun ShiftShell(
     }
     val say: (Int) -> Unit = { toast = context.getString(it) }
     val plate = state.registration ?: fallbackPlate.orEmpty()
+
+    // "Hey Saarthi" heard with the assistant shut: open it, so the driver can
+    // see what was heard and stop it. Not over a sheet or an emergency, which
+    // the driver is in the middle of.
+    LaunchedEffect(assistant.state) {
+        val woken = assistant.state == AssistantState.LISTENING || assistant.state == AssistantState.THINKING
+        if (woken && (overlay == Overlay.NONE || overlay == Overlay.FULL_MAP)) {
+            afterAssistant = overlay
+            overlay = Overlay.ASSISTANT
+        }
+    }
 
     LeaveWhenSessionEnds(state, driver)
     FollowSharedDestinations(app, cockpit, onRouting = {
@@ -149,7 +167,8 @@ fun ShiftShell(
                             openCheck = { overlay = Overlay.CHECK },
                             startTrip = startTrip,
                             openNearby = { openNearby(null) },
-                            openFuel = { overlay = Overlay.FUEL },
+                            openExpense = { overlay = Overlay.EXPENSE },
+                            openPapers = { tab = ShiftTab.PAPERS },
                             openNotices = { overlay = Overlay.NOTICES },
                             checkNotNeeded = { say(R.string.check_not_needed) },
                         ),
@@ -168,7 +187,7 @@ fun ShiftShell(
                                 assistant = { overlay = Overlay.ASSISTANT },
                                 vehicle = { overlay = Overlay.VEHICLE },
                                 adapter = { overlay = Overlay.ADAPTER },
-                                fuelSlip = { overlay = Overlay.FUEL },
+                                expenseSlip = { overlay = Overlay.EXPENSE },
                                 fuelNearby = { openNearby(FUEL_CATEGORY) },
                             ),
                             shift = ShiftCardActions(
@@ -181,7 +200,7 @@ fun ShiftShell(
                             ),
                         ),
                     )
-                    ShiftTab.TRIPS -> TripsTab(cockpit)
+                    ShiftTab.TRIPS -> TripsTab(cockpit, onAddTrip = { overlay = Overlay.ADD_TRIP })
                     ShiftTab.PAPERS -> PapersTab(cockpit)
                     ShiftTab.PROFILE -> ProfileContent(
                         driver = driver,
@@ -242,13 +261,22 @@ fun ShiftShell(
                 say(R.string.toast_check_done)
             },
         )
-        FuelSlipFlow(
-            visible = overlay == Overlay.FUEL,
+        ExpenseSlipFlow(
+            visible = overlay == Overlay.EXPENSE,
             cockpit = cockpit,
             onClose = { overlay = Overlay.NONE },
             onSaved = {
                 overlay = Overlay.NONE
-                say(R.string.toast_fuel_saved)
+                say(R.string.toast_expense_saved)
+            },
+        )
+        AddTripFlow(
+            visible = overlay == Overlay.ADD_TRIP,
+            cockpit = cockpit,
+            onClose = { overlay = Overlay.NONE },
+            onCreated = { queued ->
+                overlay = Overlay.NONE
+                say(if (queued) R.string.toast_trip_queued else R.string.toast_trip_added)
             },
         )
         NearbySheet(
@@ -262,7 +290,10 @@ fun ShiftShell(
                 toast = context.getString(R.string.toast_route_drawn, name)
             },
         )
-        AssistantOverlay(overlay == Overlay.ASSISTANT, cockpit, voice) { overlay = Overlay.NONE }
+        AssistantOverlay(overlay == Overlay.ASSISTANT, cockpit, voice) {
+            overlay = afterAssistant
+            afterAssistant = Overlay.NONE
+        }
         VehicleSheet(overlay == Overlay.VEHICLE, cockpit) { overlay = Overlay.NONE }
         AdapterSheet(overlay == Overlay.ADAPTER, cockpit) { overlay = Overlay.NONE }
         AddLicenceSheet(overlay == Overlay.LICENCE, driver) {

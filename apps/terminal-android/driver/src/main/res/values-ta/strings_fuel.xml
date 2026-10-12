@@ -1,11 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="fuel_title">எரிபொருள் ரசீது</string>
     <string name="fuel_step_photo">போட்டோ</string>
-    <string name="fuel_step_figures">எண்கள்</string>
     <string name="fuel_step_saved">சேமிக்கப்பட்டது</string>
     <string name="fuel_step_label">படி %1$d / %2$d: %3$s</string>
-    <string name="fuel_lead">ரசீதைப் போட்டோ எடுத்து, இரண்டு எண்களையும் டைப் செய்யுங்கள். இனி காகிதத்தை வைத்திருக்க வேண்டாம்.</string>
     <string name="fuel_rear_camera">பின் கேமரா</string>
     <string name="fuel_frame_hint">முழு ரசீதும் சட்டத்துக்குள் வரும்படி வையுங்கள்.</string>
     <string name="fuel_photograph">ரசீதைப் போட்டோ எடு</string>
@@ -27,4 +24,20 @@
     <string name="fuel_saved_title">சேமிக்கப்பட்டது</string>
     <string name="fuel_saved_body">ரசீதும் எண்களும் உங்கள் ஃப்ளீட்டிடம் உள்ளன. காகிதத்தைத் தூக்கி எறியலாம்.</string>
     <string name="fuel_add_another">இன்னொன்றைச் சேர்</string>
+
+    <!-- Expense slips -->
+    <string name="expense_title">செலவு ரசீது</string>
+    <string name="expense_lead">எந்த ரசீதையும் போட்டோ எடுங்கள் — எரிபொருள், டோல், பார்க்கிங், ரிப்பேர், சாப்பாடு — எவ்வளவு ஆனது என்று டைப் செய்யுங்கள். இனி காகிதத்தை வைத்திருக்கத் தேவையில்லை.</string>
+    <string name="expense_step_details">விவரங்கள்</string>
+    <string name="expense_kind_label">இது எதற்காக?</string>
+    <string name="expense_cat_fuel">எரிபொருள்</string>
+    <string name="expense_cat_toll">டோல்</string>
+    <string name="expense_cat_parking">பார்க்கிங்</string>
+    <string name="expense_cat_repair">ரிப்பேர்</string>
+    <string name="expense_cat_food">சாப்பாடு</string>
+    <string name="expense_cat_loading">லோடிங்</string>
+    <string name="expense_cat_challan">சலான்</string>
+    <string name="expense_cat_other">மற்றவை</string>
+    <string name="expense_vendor">யாருக்குச் செலுத்தியது</string>
+    <string name="expense_note">குறிப்பு</string>
 </resources>

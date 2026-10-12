@@ -18,4 +18,7 @@
     <string name="assistant_suggest_parking">എന്റെ അടുത്തുള്ള ട്രക്ക് പാർക്കിംഗ് കണ്ടെത്തുക</string>
     <string name="assistant_ask_hint">Saarthi-യോട് ചോദിക്കുക</string>
     <string name="assistant_send">അയയ്ക്കുക</string>
+    <string name="assistant_idle_wake">മൈക്ക് ടാപ്പ് ചെയ്യുക, അല്ലെങ്കിൽ “Hey Saarthi” എന്ന് പറയുക.</string>
+    <string name="assistant_volume_off">ഫോണിന്റെ മീഡിയ ശബ്ദം ഓഫാണ്, അതിനാൽ Saarthi കേൾക്കില്ല.</string>
+    <string name="assistant_volume_up">ശബ്ദം കൂട്ടുക</string>
 </resources>

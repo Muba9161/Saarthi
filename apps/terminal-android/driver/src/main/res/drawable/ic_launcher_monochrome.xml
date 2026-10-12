@@ -3,19 +3,24 @@
   The themed-icon layer (Android 13+, when the user turns on themed icons).
 
   Android tints this drawable with the wallpaper palette and uses only its alpha
-  channel, so it has to be a silhouette. Pointing it at ic_launcher_foreground —
-  the full-colour mark — produced a shapeless blob, because the mark's pale sun
-  reads as solid alpha and the road, truck and skyline detail all merge.
+  channel, so it has to be a silhouette. The full-colour logo would read as a
+  shapeless blob, because its pale sun is solid alpha.
 
-  `saarthi_mark_mono.png` is the mark reduced for exactly this: the sun dropped,
-  the interior detail filled in, and the V and X left as two bold strokes.
+  `brand_lockup_mono.png` is the logo reduced for exactly this: the pale sun
+  dropped, and the white of the truck and car left as negative space so their
+  outlines and the skyline still read, with the wordmark and strapline whole.
 
-  Same 22dp inset as the foreground, so the themed icon sits where the real one
-  does.
+  Same box as the foreground, so the themed icon sits where the real one does.
 -->
-<inset xmlns:android="http://schemas.android.com/apk/res/android"
-    android:drawable="@drawable/saarthi_mark_mono"
-    android:insetLeft="22dp"
-    android:insetTop="22dp"
-    android:insetRight="22dp"
-    android:insetBottom="22dp" />
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:gravity="center"
+        android:width="44dp"
+        android:height="40dp">
+        <bitmap
+            android:src="@drawable/brand_lockup_mono"
+            android:gravity="fill"
+            android:filter="true"
+            android:mipMap="true" />
+    </item>
+</layer-list>

@@ -11,10 +11,8 @@
         <item quantity="other">%d कागज़ें पर ध्यान देने दी लोड़ ऐ, ते घट्टो-घट्ट इक दी मियाद मुक्की गेई ऐ. अज्ज गै दफ़्तर गी दस्सो.</item>
     </plurals>
 
-    <string name="papers_filter_all">सब</string>
     <string name="papers_owner_vehicle">गड्डी</string>
     <string name="papers_owner_yours">तुंदे</string>
-    <string name="papers_chip">%1$s · %2$d</string>
     <string name="papers_sub">%1$s · %2$s</string>
 
     <string name="papers_no_expiry">कोई मियाद दर्ज नेईं</string>
@@ -37,15 +35,105 @@
 
     <string name="papers_open_action">खोह्लो</string>
     <string name="papers_opening">%1$s खुल्ला करदा ऐ.</string>
-    <string name="papers_opening_pdf">%1$s तुंदे PDF रीडर च खुल्ला करदा ऐ.</string>
     <string name="papers_not_saved">एह् अजें इस फ़ोन पर नेईं ऐ. जित्थै सिग्नल होऐ उत्थै इक बारी खोह्लो, फ्ही एह् फ़ोन पर रेही जाग.</string>
     <string name="papers_no_viewer">इस फ़ोन पर इस किस्म दी फ़ाइल खोह्लने आह्ला कोई ऐप नेईं. कोई PDF जां फ़ोटो व्यूअर इंस्टॉल करो, फ्ही कोशश करो.</string>
 
     <string name="papers_loading">तुंदे कागज़ लोड होआ करदे न</string>
-    <string name="papers_none_vehicle">इस गड्डी दा कोई कागज़ दर्ज नेईं.</string>
-    <string name="papers_none_yours">तुंदा अपना कोई कागज़ दर्ज नेईं.</string>
-    <string name="papers_empty_title">कोई कागज़ दर्ज नेईं</string>
-    <string name="papers_empty_body">तुंदी फ़्लीट नै अजें तुंदे जां इस गड्डी आस्तै कोई कागज़ नेईं जोड़ेआ. दफ़्तर गी इनेंगी अपलोड करने आस्तै आखो.</string>
     <string name="papers_error_title">तुंदे कागज़ लोड नेईं होई सके</string>
     <string name="papers_retry">फ्ही कोशश करो</string>
+
+    <!-- Papers folders and register records -->
+    <string name="papers_folder_rc">रजिस्ट्रेशन (RC)</string>
+    <string name="papers_folder_insurance">बीमा</string>
+    <string name="papers_folder_fitness">फ़िटनेस</string>
+    <string name="papers_folder_permit">परमिट</string>
+    <string name="papers_folder_puc">प्रदूषण (PUC)</string>
+    <string name="papers_folder_road_tax">रोड टैक्स</string>
+    <string name="papers_folder_photos">फ़ोटो</string>
+    <string name="papers_folder_qr">QR स्टिकर</string>
+    <string name="papers_folder_other">होर फ़ाइलां</string>
+    <string name="papers_folder_licence">ड्राइविंग लाइसेंस</string>
+    <string name="papers_folder_identity">पछान दा सबूत</string>
+    <string name="papers_folder_address">पते दा सबूत</string>
+    <string name="papers_folder_aadhaar">आधार कार्ड</string>
+    <string name="papers_folder_pan">PAN कार्ड</string>
+    <string name="papers_folder_voter">वोटर कार्ड</string>
+    <string name="papers_folder_photo">तुंदी फ़ोटो</string>
+    <string name="papers_folder_medical">मेडिकल सर्टिफ़िकेट</string>
+    <string name="papers_folder_police">पुलिस वेरिफ़िकेशन</string>
+    <string name="papers_status_valid">वैध</string>
+    <string name="papers_status_expiring">मियाद मुक्कने आह्ली</string>
+    <string name="papers_status_expired">मियाद मुक्की</string>
+    <string name="papers_status_rejected">नामंज़ूर</string>
+    <string name="papers_status_missing">नेईं ऐ</string>
+    <string name="papers_status_optional">जरूरी नेईं</string>
+    <string name="papers_status_on_file">रिकॉर्ड च ऐ</string>
+    <string name="papers_qr_meta">अगले शीशे पर लग्गे दा</string>
+    <string name="papers_from_rto">RTO थमां</string>
+    <string name="papers_folder_empty">इस फ़ोल्डर च अजें किश नेईं. तुंदी फ़्लीट वेब थमां कागज़ जोड़दी ऐ.</string>
+    <string name="papers_folder_no_scan">अजें कोई स्कैन कॉपी नेईं. उप्पर दी जानकारी RTO रजिस्टर थमां ऐ.</string>
+    <string name="papers_photos_none">इस गड्डी दी अजें कोई फ़ोटो नेईं.</string>
+    <string name="papers_photo_alt">गड्डी दी फ़ोटो</string>
+    <string name="papers_qr_none">QR स्टिकर नेईं दस्सेआ जाई सकेआ. जित्थै सिग्नल होऐ उत्थै इसगी फ्ही खोह्लो.</string>
+    <string name="papers_qr_body">इस कोड गी स्कैन करने पर Saarthi पर एह् गड्डी खुलदी ऐ.</string>
+    <string name="papers_register_title">RTO रजिस्टर</string>
+    <string name="papers_valid_till">%1$s तगर वैध</string>
+    <string name="papers_till">%1$s तगर</string>
+    <string name="papers_not_published">दर्ज नेईं</string>
+    <string name="papers_rc_title">वर्चुअल RC</string>
+    <string name="papers_rc_verified">पक्की होई</string>
+    <string name="papers_rc_fetched">RTO रजिस्टर थमां · %1$s</string>
+    <string name="papers_rc_validity">मियाद</string>
+    <string name="papers_rc_details">जानकारी</string>
+    <string name="papers_rc_insurance">बीमा</string>
+    <string name="papers_rc_puc">प्रदूषण (PUC)</string>
+    <string name="papers_rc_fitness">फ़िटनेस</string>
+    <string name="papers_rc_tax">रोड टैक्स</string>
+    <string name="papers_rc_permit">परमिट</string>
+    <string name="papers_rc_national_permit">नेशनल परमिट</string>
+    <string name="papers_rc_owner">मालक</string>
+    <string name="papers_rc_registered">रजिस्ट्रेशन दी तरीक</string>
+    <string name="papers_rc_status">स्थिति</string>
+    <string name="papers_rc_class">क्लास</string>
+    <string name="papers_rc_fuel">तेल</string>
+    <string name="papers_rc_colour">रंग</string>
+    <string name="papers_rc_made">बनने दी तरीक</string>
+    <string name="papers_rc_chassis">चेसिस नंबर</string>
+    <string name="papers_rc_engine">इंजन नंबर</string>
+    <string name="papers_rc_rto">रजिस्टर करने आह्ला दफ़्तर</string>
+    <string name="papers_rc_seats">सीटां</string>
+    <string name="papers_rc_weight">कुल भार</string>
+    <string name="papers_rc_financer">फ़ाइनेंस करने आह्ला</string>
+    <string name="papers_rc_blacklist">ब्लैकलिस्ट</string>
+    <string name="papers_rc_note">जानकारी आस्तै RTO रिकॉर्ड दी इक कॉपी. गड्डी चलांदे बेलै असली RC जां उसदी DigiLocker कॉपी कोल रक्खो.</string>
+    <string name="papers_licence_title">ड्राइविंग लाइसेंस</string>
+    <string name="papers_licence_verified">पक्का होआ</string>
+    <string name="papers_licence_from_rto">RTO रजिस्टर थमां</string>
+    <string name="papers_licence_from_profile">जियां तुंदी प्रोफ़ाइल च भरेआ गेआ</string>
+    <string name="papers_licence_transport">ट्रांसपोर्ट (कमर्शियल)</string>
+    <string name="papers_licence_non_transport">नॉन-ट्रांसपोर्ट</string>
+    <string name="papers_licence_classes">गड्डियें दी क्लास</string>
+    <string name="papers_licence_issued">जारी होने दी तरीक</string>
+    <string name="papers_licence_authority">जारी करने आह्ला</string>
+    <string name="papers_licence_dob">जनम तरीक</string>
+    <string name="papers_licence_blood">ब्लड ग्रुप</string>
+
+    <!-- File and photo counts -->
+    <plurals name="papers_files">
+        <item quantity="one">%d फ़ाइल</item>
+        <item quantity="other">%d फ़ाइलां</item>
+    </plurals>
+    <plurals name="papers_photos">
+        <item quantity="one">%d फ़ोटो</item>
+        <item quantity="other">%d फ़ोटो</item>
+    </plurals>
+    <string name="papers_tile_checking">कागज़ दिक्खा करदे आं…</string>
+    <string name="papers_tile_failed">लोड नेईं होई सकेआ</string>
+    <string name="papers_tile_none">अजें कोई कागज़ नेईं</string>
+    <string name="papers_tile_all_valid">सब वैध</string>
+    <string name="papers_tile_next_due">अगला: %1$s · %2$s</string>
+    <plurals name="papers_tile_on_file">
+        <item quantity="one">%d कागज़ दर्ज</item>
+        <item quantity="other">%d कागज़ दर्ज</item>
+    </plurals>
 </resources>

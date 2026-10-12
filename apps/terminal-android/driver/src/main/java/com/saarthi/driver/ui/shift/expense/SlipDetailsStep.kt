@@ -1,12 +1,15 @@
-package com.saarthi.driver.ui.shift.fuel
+package com.saarthi.driver.ui.shift.expense
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -31,6 +34,9 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -46,6 +52,7 @@ import com.saarthi.driver.ui.design.ButtonTone
 import com.saarthi.driver.ui.design.CompactField
 import com.saarthi.driver.ui.design.Ease
 import com.saarthi.driver.ui.design.EqualRow
+import com.saarthi.driver.ui.design.Eyebrow
 import com.saarthi.driver.ui.design.LineIcon
 import com.saarthi.driver.ui.design.Lucide
 import com.saarthi.driver.ui.design.NoticeCard
@@ -59,18 +66,17 @@ import com.saarthi.driver.ui.shift.flow.FlowOutcome
 import com.saarthi.driver.ui.shift.flow.OutcomeTone
 
 /**
- * Step two: the photo just taken, the figures printed largest on the slip, and
- * Save.
+ * Step two: the photo just taken, what the slip was for, its figures, and Save.
  *
- * Litres and the amount are what the server requires; the pump name and the
- * odometer are optional, the odometer already filled in when the vehicle
- * reports one. The price per litre is shown, not asked — it is exactly
- * amount ÷ litres, and a wrong-looking rate is how a mistyped figure is caught
- * before it becomes a fuel-economy number the fleet acts on.
+ * A fuel slip asks for litres and the amount, with the pump and the odometer
+ * optional and the price per litre shown rather than asked — a wrong-looking
+ * rate is how a mistyped figure is caught before it becomes a fuel-economy
+ * number the fleet acts on. Every other kind asks only for the amount, with
+ * who was paid and a note optional: the photograph carries the rest.
  */
 @Composable
-internal fun FuelFiguresStep(
-    draft: FuelSlipDraft,
+internal fun SlipDetailsStep(
+    draft: ExpenseSlipDraft,
     saving: Boolean,
     problem: String?,
     onRetake: () -> Unit,
@@ -85,7 +91,8 @@ internal fun FuelFiguresStep(
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             SlipPhoto(draft, onRetake = { if (!saving) onRetake() })
-            FiguresCard(draft)
+            KindPicker(draft.kind, onPick = { if (!saving) draft.kind = it })
+            if (draft.kind == ExpenseKind.FUEL) FuelFigures(draft) else ExpenseFigures(draft)
             problem?.let { NoticeCard(it, NoticeTone.DANGER) }
         }
         SaarthiButton(
@@ -99,9 +106,43 @@ internal fun FuelFiguresStep(
     }
 }
 
+/** What the slip was for, as chips — one tap, no menu to open beside a running engine. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun KindPicker(kind: ExpenseKind, onPick: (ExpenseKind) -> Unit) {
+    val c = Saarthi.colors
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Eyebrow(stringResource(R.string.expense_kind_label), color = c.muted)
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            ExpenseKind.entries.forEach { option ->
+                val on = option == kind
+                val label = stringResource(option.label)
+                Row(
+                    Modifier
+                        .height(40.dp)
+                        .clip(CircleShape)
+                        .background(if (on) c.primary else c.card)
+                        .border(1.dp, if (on) c.primary else c.border, CircleShape)
+                        .semantics { selected = on }
+                        .pressable(role = Role.RadioButton, scale = 0.96f, label = label) { onPick(option) }
+                        .padding(horizontal = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(7.dp),
+                ) {
+                    LineIcon(option.icon, size = 16.dp, color = if (on) c.onPrimary else c.muted)
+                    Text(label, style = SType.smallStrong, color = if (on) c.onPrimary else c.fg)
+                }
+            }
+        }
+    }
+}
+
 /** The slip as photographed, dropped onto a dark tray, with the way to take it again. */
 @Composable
-private fun SlipPhoto(draft: FuelSlipDraft, onRetake: () -> Unit) {
+private fun SlipPhoto(draft: ExpenseSlipDraft, onRetake: () -> Unit) {
     val retake = stringResource(R.string.fuel_retake)
     Box(
         Modifier
@@ -143,8 +184,8 @@ private fun SlipPhoto(draft: FuelSlipDraft, onRetake: () -> Unit) {
 private val Tray = Color(0xFF2A2724)
 
 /**
- * `.fs-drop`: the slip falls in from above, turning, and settles at a slight
- * angle — as a till roll dropped on a counter does.
+ * The slip falls in from above, turning, and settles at a slight angle — as a
+ * till roll dropped on a counter does.
  */
 private fun Modifier.dropIn(): Modifier = composed {
     val reduced = LocalReducedMotion.current
@@ -162,11 +203,12 @@ private fun Modifier.dropIn(): Modifier = composed {
     }
 }
 
+private val Figures = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next)
+
 /** Litres and amount side by side, then the pump and the odometer, then the rate they make. */
 @Composable
-private fun FiguresCard(draft: FuelSlipDraft) {
+private fun FuelFigures(draft: ExpenseSlipDraft) {
     val c = Saarthi.colors
-    val figures = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next)
     val optional = stringResource(R.string.fuel_optional)
     Column(
         Modifier
@@ -181,19 +223,19 @@ private fun FiguresCard(draft: FuelSlipDraft) {
                 onValueChange = { draft.litres = it.asFigure() },
                 label = stringResource(R.string.fuel_litres),
                 modifier = Modifier.weight(1f),
-                keyboardOptions = figures,
+                keyboardOptions = Figures,
             )
             CompactField(
                 value = draft.amount,
                 onValueChange = { draft.amount = it.asFigure() },
                 label = stringResource(R.string.fuel_amount),
                 modifier = Modifier.weight(1f),
-                keyboardOptions = figures,
+                keyboardOptions = Figures,
             )
         }
         CompactField(
             value = draft.pump,
-            onValueChange = { draft.pump = it.take(PUMP_LIMIT) },
+            onValueChange = { draft.pump = it.take(NAME_LIMIT) },
             label = stringResource(R.string.fuel_pump),
             placeholder = optional,
             keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Next),
@@ -235,18 +277,57 @@ private fun FiguresCard(draft: FuelSlipDraft) {
     }
 }
 
+/** The amount, who was paid, and a note — for a toll, parking, a repair and the rest. */
+@Composable
+private fun ExpenseFigures(draft: ExpenseSlipDraft) {
+    val optional = stringResource(R.string.fuel_optional)
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .card(radius = 20.dp)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        CompactField(
+            value = draft.amount,
+            onValueChange = { draft.amount = it.asFigure() },
+            label = stringResource(R.string.fuel_amount),
+            keyboardOptions = Figures,
+        )
+        CompactField(
+            value = draft.vendor,
+            onValueChange = { draft.vendor = it.take(NAME_LIMIT) },
+            label = stringResource(R.string.expense_vendor),
+            placeholder = optional,
+            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Next),
+            textStyle = SType.field.copy(fontSize = 16.sp, fontWeight = FontWeight.Normal),
+        )
+        CompactField(
+            value = draft.notes,
+            onValueChange = { draft.notes = it.take(NOTES_LIMIT) },
+            label = stringResource(R.string.expense_note),
+            placeholder = optional,
+            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Done),
+            textStyle = SType.field.copy(fontSize = 16.sp, fontWeight = FontWeight.Normal),
+        )
+    }
+}
+
 /** Digits and one kind of decimal mark only, and no longer than any real figure. */
 private fun String.asFigure(): String = filter { it.isDigit() || it == '.' || it == ',' }.take(FIGURE_LIMIT)
 
-/** A pump name longer than this is refused by the server. */
-private const val PUMP_LIMIT = 120
+/** A pump or payee name longer than this is refused by the server. */
+private const val NAME_LIMIT = 120
+
+/** The server keeps a note to this length. */
+private const val NOTES_LIMIT = 300
 
 /** Ten characters covers ₹10,00,000.00 and a seven-figure odometer. */
 private const val FIGURE_LIMIT = 10
 
 /** Step three: saved, with a second slip one tap away. */
 @Composable
-internal fun FuelSavedStep(onAnother: () -> Unit, onDone: () -> Unit, modifier: Modifier = Modifier) {
+internal fun SlipSavedStep(onAnother: () -> Unit, onDone: () -> Unit, modifier: Modifier = Modifier) {
     Column(modifier) {
         FlowOutcome(
             tone = OutcomeTone.SUCCESS,

@@ -22,10 +22,12 @@ import androidx.compose.ui.unit.dp
 import com.saarthi.core.domain.TerminalState
 import com.saarthi.core.ui.TerminalViewModel
 import com.saarthi.driver.R
+import com.saarthi.driver.ui.design.ButtonTone
 import com.saarthi.driver.ui.design.Eyebrow
 import com.saarthi.driver.ui.design.Hint
 import com.saarthi.driver.ui.design.Lucide
 import com.saarthi.driver.ui.design.SType
+import com.saarthi.driver.ui.design.SaarthiButton
 import com.saarthi.driver.ui.design.Saarthi
 import com.saarthi.driver.ui.design.SegmentedControl
 import com.saarthi.driver.ui.design.rise
@@ -51,16 +53,21 @@ private enum class TripFilter(@StringRes val label: Int) {
 }
 
 /**
- * Trips, decluttered: how far Saarthi has measured, the trip on the road now,
- * and the trips finished — with a filter between them and nothing else.
+ * Trips, decluttered: how far Saarthi has measured, the trip holding the
+ * vehicle, the driver's own trips waiting behind it, and the trips finished —
+ * with a filter between them and a way to add one.
+ *
+ * The fleet's trip always comes first and is highlighted: the server queues a
+ * driver's trip behind it, and the screen shows that order rather than leaving
+ * a driver to guess which of two trips to drive.
  *
  * Fetched when the tab appears, not polled: history does not change while a
- * driver is looking at it, and the trip under way comes from the dispatch the
- * cockpit already keeps current. The header and the tab bar are the shell's;
- * this only leaves room for them.
+ * driver is looking at it, and the trip holding the vehicle comes from the
+ * dispatch the cockpit already keeps current. The header and the tab bar are
+ * the shell's; this only leaves room for them.
  */
 @Composable
-fun TripsTab(cockpit: TerminalViewModel) {
+fun TripsTab(cockpit: TerminalViewModel, onAddTrip: () -> Unit) {
     val state by cockpit.uiState.collectAsState()
     val trips by cockpit.trips.collectAsState()
     val dispatch by cockpit.dispatch.collectAsState()
@@ -91,6 +98,14 @@ fun TripsTab(cockpit: TerminalViewModel) {
     ) {
         val c = Saarthi.colors
         val retry = { attempt += 1 }
+        SaarthiButton(
+            stringResource(R.string.trips_add),
+            onAddTrip,
+            Modifier.rise(distance = TripsRise),
+            tone = ButtonTone.SECONDARY,
+            leading = Lucide.plus,
+            height = 48.dp,
+        )
         when {
             !board.isEmpty -> TripsBoardContent(board, filter, onFilter = { filter = it })
             trips.isEmpty() && state.offline -> TripsStateCard(
@@ -144,13 +159,20 @@ private fun TripsBoardContent(board: TripsBoard, filter: TripFilter, onFilter: (
         modifier = Modifier.rise(80, TripsRise),
     )
 
-    val open = board.open
-    if (filter == TripFilter.OPEN || (filter == TripFilter.ALL && open != null)) {
-        SectionLabel(R.string.trips_section_open, delayMs = 120)
-        if (open != null) {
-            OpenTripCard(open, Modifier.rise(140, TripsRise))
-        } else {
+    if (filter == TripFilter.OPEN || (filter == TripFilter.ALL && board.hasOpen)) {
+        val current = board.current
+        SectionLabel(
+            if (current?.stage == TripStage.UP_NEXT) R.string.trips_section_next else R.string.trips_section_open,
+            delayMs = 120,
+        )
+        if (current != null) {
+            OpenTripCard(current, Modifier.rise(140, TripsRise))
+        } else if (board.queued.isEmpty()) {
             Hint(stringResource(R.string.trips_none_open), Modifier.rise(140, TripsRise))
+        }
+        if (board.queued.isNotEmpty()) {
+            SectionLabel(R.string.trips_section_queued, delayMs = 150)
+            board.queued.forEach { trip -> OpenTripCard(trip, Modifier.rise(160, TripsRise)) }
         }
     }
 

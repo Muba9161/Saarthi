@@ -22,7 +22,7 @@ import {
   compassDirection,
   formatDistanceKm,
   formatSpeedKph,
-  type LatLng,
+  type TrailPoint,
 } from '@saarthi/shared';
 import { api, errorMessage } from '@/lib/api-client';
 import type { Paginated, SimulationSummary, TripDetail, TripSummary } from '@/lib/api-types';
@@ -76,7 +76,7 @@ export function SimulatorPage() {
   const [multiplier, setMultiplier] = React.useState('10');
   const [followTruck, setFollowTruck] = React.useState(true);
   const [telemetry, setTelemetry] = React.useState<Record<string, Telemetry>>({});
-  const [trails, setTrails] = React.useState<Record<string, LatLng[]>>({});
+  const [trails, setTrails] = React.useState<Record<string, TrailPoint[]>>({});
   const [selectedSimulationId, setSelectedSimulationId] = React.useState<string | null>(null);
 
   useChannels(organizationId ? [RealtimeChannel.fleet(organizationId)] : []);
@@ -113,17 +113,19 @@ export function SimulatorPage() {
 
   // --- Live telemetry ---------------------------------------------------
   useRealtimeEvent(RealtimeEvent.TRUCK_LOCATION, (message) => {
-    const { truckId, latitude, longitude, speedKph, heading, recordedAt } = message.payload;
+    const { truckId, latitude, longitude, speedKph, heading, recordedAt, routeState } =
+      message.payload;
 
     setTelemetry((previous) => ({
       ...previous,
       [truckId]: { latitude, longitude, speedKph, heading, recordedAt },
     }));
 
-    // Keep a bounded breadcrumb trail so the travelled path draws behind the truck.
+    // Keep a bounded breadcrumb trail so the travelled path draws behind the
+    // truck, turning red once a "Deviate" has taken it off the planned route.
     setTrails((previous) => {
       const existing = previous[truckId] ?? [];
-      const next = [...existing, { latitude, longitude }];
+      const next = [...existing, { latitude, longitude, routeState }];
       return { ...previous, [truckId]: next.length > 400 ? next.slice(-400) : next };
     });
   });

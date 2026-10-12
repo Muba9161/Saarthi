@@ -22,6 +22,7 @@ import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { FleetMap, type MapTruck } from '@/features/maps/fleet-map';
+import { useCoveredTrail } from '@/features/tracking/use-covered-trail';
 import { cn } from '@/lib/utils';
 
 /**
@@ -84,6 +85,13 @@ export function LiveMapPage() {
       next.set(message.payload.truckId, { ...existing, status: message.payload.status });
       return next;
     });
+  });
+
+  // The selected vehicle's covered path: from the start of the trip it is on,
+  // or the day so far when it has none, growing with every fix that arrives.
+  const trail = useCoveredTrail({
+    truckId: selected,
+    tripId: selected ? (live.get(selected)?.trip?.id ?? null) : null,
   });
 
   if (!hasFeature(Feature.TRACKING_LIVE)) {
@@ -248,6 +256,7 @@ export function LiveMapPage() {
           <div className="order-1 lg:order-2">
             <FleetMap
               trucks={mapTrucks}
+              trail={trail}
               selectedTruckId={selected}
               onSelectTruck={setSelected}
               allow3D={hasFeature(Feature.MAPS_3D)}

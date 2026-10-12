@@ -255,9 +255,10 @@ export const MEDIA_PURPOSE_CATALOGUE: MediaPurposeDefinition[] = [
      * genuinely different thing — a dash reading that substantiates
      * kilometres. A till roll from a pump is the evidence for the litres and
      * the amount, and filing it under the odometer would make both harder to
-     * find and misdescribe what it is.
+     * find and misdescribe what it is. A toll, parking or repair slip is the
+     * same kind of evidence for its own expense.
      */
-    ownerTypes: [MediaOwnerType.FUEL_RECORD],
+    ownerTypes: [MediaOwnerType.FUEL_RECORD, MediaOwnerType.EXPENSE],
     allowsDocuments: true,
   },
   {

@@ -175,6 +175,8 @@ const KEPT_TAGS = [
   'website',
   'contact:website',
   'fuel:diesel',
+  'fuel:octane_91',
+  'fuel:octane_95',
   'fuel:lpg',
   'fuel:cng',
   'fuel:HGV_diesel',
@@ -200,6 +202,17 @@ const MAX_ELEMENTS = 900;
 
 /** Smallest useful attempt: below this an endpoint cannot finish anything. */
 const MIN_ATTEMPT_MS = 6_000;
+
+/**
+ * How long one endpoint is given alone before the next is asked as well.
+ *
+ * The public instances are busy far more often than they are down, and a busy
+ * one does not fail — it sits on the request until its dispatcher gives up.
+ * Waiting on each in turn spent the whole deadline on the first. Asking the
+ * next after a few seconds, and taking whichever answers first, costs a second
+ * query only when the first is already slow.
+ */
+const HEDGE_AFTER_MS = 3_000;
 
 interface OverpassElement {
   type?: string;
@@ -472,9 +485,12 @@ export class OverpassPlaceProvider implements PlaceProvider {
     endpoint: string,
     query: string,
     budgetMs: number,
+    cancelled: AbortSignal,
   ): Promise<OverpassResponse | null> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), budgetMs);
+    const cancel = () => controller.abort();
+    cancelled.addEventListener('abort', cancel, { once: true });
 
     let response: Response;
     try {
@@ -491,6 +507,8 @@ export class OverpassPlaceProvider implements PlaceProvider {
         signal: controller.signal,
       });
     } catch (error) {
+      // Another endpoint answered first; this one was called off, not broken.
+      if (cancelled.aborted) return null;
       logger.warn(
         { provider: this.name, endpoint, err: (error as Error).name },
         'Overpass endpoint did not answer',
@@ -498,6 +516,7 @@ export class OverpassPlaceProvider implements PlaceProvider {
       return null;
     } finally {
       clearTimeout(timeout);
+      cancelled.removeEventListener('abort', cancel);
     }
 
     // 429 is the instance asking us to back off; 504 is its dispatcher giving
@@ -541,6 +560,59 @@ export class OverpassPlaceProvider implements PlaceProvider {
     return raw;
   }
 
+  /**
+   * Ask the endpoints in a staggered race and take the first good answer.
+   *
+   * One overall deadline across all of them, so the caller never waits for
+   * several timeouts in a row. The next endpoint joins after
+   * {@link HEDGE_AFTER_MS}, or at once when one fails; the first to answer
+   * calls the others off.
+   */
+  private race(queryFor: (remainingMs: number) => string): Promise<OverpassResponse | null> {
+    const deadline = Date.now() + this.timeoutMs;
+    const calledOff = new AbortController();
+
+    return new Promise((resolve) => {
+      let next = 0;
+      let pending = 0;
+      let settled = false;
+      let hedge: NodeJS.Timeout | null = null;
+
+      const finish = (raw: OverpassResponse | null) => {
+        if (settled) return;
+        settled = true;
+        if (hedge) clearTimeout(hedge);
+        calledOff.abort();
+        resolve(raw);
+      };
+
+      const launch = () => {
+        if (settled) return;
+        if (hedge) clearTimeout(hedge);
+        hedge = null;
+
+        const remaining = deadline - Date.now();
+        const endpoint = this.endpoints[next];
+        if (!endpoint || remaining < MIN_ATTEMPT_MS) {
+          if (pending === 0) finish(null);
+          return;
+        }
+        next += 1;
+        pending += 1;
+
+        void this.attempt(endpoint, queryFor(remaining), remaining, calledOff.signal).then((raw) => {
+          pending -= 1;
+          if (raw) finish(raw);
+          else launch();
+        });
+
+        hedge = setTimeout(launch, HEDGE_AFTER_MS);
+      };
+
+      launch();
+    });
+  }
+
   async search(input: PlaceSearch): Promise<PlaceSearchResponse> {
     const wanted =
       input.categories && input.categories.length > 0
@@ -574,23 +646,11 @@ export class OverpassPlaceProvider implements PlaceProvider {
       'Nearby places search planned',
     );
 
-    // One overall deadline across every endpoint, so a slow first endpoint
-    // cannot leave the caller waiting for three timeouts in a row.
-    const deadline = Date.now() + this.timeoutMs;
-    let raw: OverpassResponse | null = null;
-
-    for (const endpoint of this.endpoints) {
-      const remaining = deadline - Date.now();
-      if (remaining < MIN_ATTEMPT_MS) break;
-
+    const raw = await this.race((remaining) =>
       // Ask Overpass to give up a little before we do, so a slow query comes
       // back as a readable remark rather than as an aborted socket.
-      const serverTimeoutSeconds = Math.max(5, Math.floor(remaining / 1000) - 2);
-      const query = this.buildQuery(input, wanted, radii, serverTimeoutSeconds);
-
-      raw = await this.attempt(endpoint, query, remaining);
-      if (raw) break;
-    }
+      this.buildQuery(input, wanted, radii, Math.max(5, Math.floor(remaining / 1000) - 2)),
+    );
 
     if (!raw) {
       logger.error(

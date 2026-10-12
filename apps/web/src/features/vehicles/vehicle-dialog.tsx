@@ -8,16 +8,17 @@ import {
   MediaOwnerType,
   MediaPurpose,
   Permission,
-  VEHICLE_TYPE_CATALOGUE,
+  VEHICLE_TYPES,
   VehicleCapability,
   VehicleType,
+  describeVehicle,
   humanizeEnum,
-  categoriesFor,
-  resolveVehicleCategory,
-  validateVehicleCategory,
-  vehicleCategoryDefinition,
+  vehicleClassDefinition,
+  vehicleClassesFor,
+  vehicleOption,
   vehicleTypeDefinition,
-  type VehicleCategory,
+  type VehicleClass,
+  type VehicleOption,
   type VehicleRcPrefill,
 } from '@saarthi/shared';
 import { ApiError, api, errorMessage } from '@/lib/api-client';
@@ -59,7 +60,19 @@ import type { SpinDraft } from './spin/spin-frames';
 import { VehicleConnectionStep, useVehicleOnboarding } from './vehicle-onboarding';
 import { RcPrefillPanel, RcPrefilledNotice, useRcPrefill } from './rc-prefill-panel';
 import { ClaimNameNotice } from './claim-name-notice';
-import { VehicleCategoryPicker } from './vehicle-category-picker';
+import { VehicleKindField, kindOfRecord } from './vehicle-kind-field';
+import {
+  FUEL_TYPES,
+  initialState,
+  stateFromRc,
+  stateFromVehicle,
+  trimmedOrNull,
+  type EditableVehicle,
+  type FieldErrors,
+  type VehicleFormState,
+} from './vehicle-form-state';
+
+export type { EditableVehicle } from './vehicle-form-state';
 import { cn } from '@/lib/utils';
 
 /** Mirrors MEDIA_MAX_FILE_SIZE on the API, so a rejection happens here first. */
@@ -89,31 +102,6 @@ const PHOTO_ACCEPT = '.jpg,.jpeg,.png,.webp,.heic';
  * which is what `allowJumpAhead` on the wizard is for.
  */
 
-/**
- * What the form needs in order to show a vehicle that already exists.
- *
- * Structural rather than `VehicleSummary`, so the fleet list, a detail header
- * and a resale listing can all open this with the record they already hold.
- * Every field here is on the list response, so opening the dialog from the
- * grid costs no further request.
- */
-export interface EditableVehicle {
-  id: string;
-  registrationNumber: string;
-  vehicleType: VehicleType;
-  /** Optional so records that predate categories can still open the form. */
-  category?: VehicleCategory | null;
-  manufacturer: string | null;
-  model: string | null;
-  year: number | null;
-  colour: string | null;
-  capacityTons: number | null;
-  passengerCapacity: number | null;
-  airConditioned: boolean | null;
-  /** Widened to `string` on the summary responses; narrowed back on the way in. */
-  fuelType: string;
-  odometerKm: number;
-}
 
 interface VehicleDialogProps {
   /**
@@ -139,114 +127,6 @@ interface VehicleDialogProps {
   /** Controlled open state, for a caller supplying its own trigger. */
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
-}
-
-interface VehicleFormState {
-  registrationNumber: string;
-  vehicleType: VehicleType;
-  category: VehicleCategory | null;
-  manufacturer: string;
-  model: string;
-  year: string;
-  colour: string;
-  capacityTons: string;
-  passengerCapacity: string;
-  airConditioned: boolean;
-  fuelType: FuelType;
-  odometerKm: string;
-}
-
-type FieldErrors = Partial<Record<keyof VehicleFormState, string>>;
-
-const FUEL_TYPES = Object.values(FuelType);
-
-function initialState(defaultType: VehicleType): VehicleFormState {
-  return {
-    registrationNumber: '',
-    vehicleType: defaultType,
-    category: null,
-    manufacturer: '',
-    model: '',
-    year: '',
-    colour: '',
-    capacityTons: '',
-    passengerCapacity: '',
-    airConditioned: false,
-    fuelType: FuelType.DIESEL,
-    odometerKm: '0',
-  };
-}
-
-/** The summary responses type `fuelType` as a plain string; keep the union honest. */
-function asFuelType(value: string): FuelType {
-  return (FUEL_TYPES as string[]).includes(value) ? (value as FuelType) : FuelType.DIESEL;
-}
-
-/** A number the form holds as text — blank when the record has none. */
-function numberField(value: number | null): string {
-  return value === null ? '' : String(value);
-}
-
-function stateFromVehicle(vehicle: EditableVehicle): VehicleFormState {
-  return {
-    registrationNumber: vehicle.registrationNumber,
-    vehicleType: vehicle.vehicleType,
-    category: vehicle.category ?? null,
-    manufacturer: vehicle.manufacturer ?? '',
-    model: vehicle.model ?? '',
-    year: numberField(vehicle.year),
-    colour: vehicle.colour ?? '',
-    capacityTons: numberField(vehicle.capacityTons),
-    passengerCapacity: numberField(vehicle.passengerCapacity),
-    airConditioned: vehicle.airConditioned ?? false,
-    fuelType: asFuelType(vehicle.fuelType),
-    // Whole kilometres: the dial does not show a fraction of one.
-    odometerKm: String(Math.round(vehicle.odometerKm)),
-  };
-}
-
-/**
- * The form, filled in from the RC. The type is taken only when this account
- * may add it; otherwise the caller's default stands and the owner is told.
- */
-function stateFromRc(
-  prefill: VehicleRcPrefill,
-  fallbackType: VehicleType,
-  offeredTypes: readonly VehicleType[],
-): { state: VehicleFormState; typeAccepted: boolean } {
-  const { draft } = prefill;
-  // Where SUV is not a type of its own (Saarthi Personal), an SUV on the RC is
-  // a Car with the SUV category — not a type this account cannot add.
-  const foldsIntoCar =
-    draft.vehicleType === VehicleType.SUV &&
-    !offeredTypes.includes(VehicleType.SUV) &&
-    offeredTypes.includes(VehicleType.CAR);
-  const draftType = foldsIntoCar ? VehicleType.CAR : draft.vehicleType;
-  const draftCategory = foldsIntoCar ? (draft.category ?? 'SUV') : draft.category;
-  const typeAccepted = draftType !== null && offeredTypes.includes(draftType);
-  const base = initialState(typeAccepted && draftType ? draftType : fallbackType);
-  return {
-    typeAccepted,
-    state: {
-      ...base,
-      registrationNumber: prefill.registrationNumber,
-      // Only where the RC names it; "M-Cycle/Scooter" leaves the owner to pick.
-      category: resolveVehicleCategory(base.vehicleType, draftCategory as VehicleCategory | null),
-      manufacturer: draft.manufacturer ?? '',
-      model: draft.model ?? '',
-      year: numberField(draft.year),
-      colour: draft.colour ?? '',
-      capacityTons: numberField(draft.capacityTons),
-      passengerCapacity: numberField(draft.passengerCapacity),
-      fuelType: draft.fuelType ?? base.fuelType,
-    },
-  };
-}
-
-/** Blank means "this vehicle has no recorded value", which a patch says as null. */
-function trimmedOrNull(value: string): string | null {
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : null;
 }
 
 export function VehicleDialog({
@@ -322,39 +202,41 @@ export function VehicleDialog({
   }, [seedKey]);
 
   /*
-   * The offered types, narrowed when a caller restricts them.
+   * The offered types, narrowed when a caller restricts them, and the classes
+   * and tiles they allow.
    *
-   * A vehicle's own current type is always kept in the list even when it falls
-   * outside that restriction. Otherwise editing the one goods vehicle on a
-   * travel operator's books would open a select with nothing selected, and
-   * saving would silently retype the vehicle to whatever was picked to fill
-   * the blank.
+   * A vehicle's own current type is always kept even when it falls outside
+   * that restriction. Otherwise editing the one goods vehicle on a travel
+   * operator's books would open with nothing selected, and saving would
+   * silently retype the vehicle to whatever was picked to fill the blank.
    */
-  const types = React.useMemo(() => {
-    if (!allowedTypes) return VEHICLE_TYPE_CATALOGUE;
-    return VEHICLE_TYPE_CATALOGUE.filter(
-      (definition) =>
-        allowedTypes.includes(definition.type) || definition.type === subject?.vehicleType,
-    );
-  }, [allowedTypes, subject?.vehicleType]);
+  const offeredTypes = React.useMemo(() => {
+    const base = allowedTypes ?? VEHICLE_TYPES;
+    return subject && !base.includes(subject.vehicleType) ? [...base, subject.vehicleType] : base;
+  }, [allowedTypes, subject]);
+  const classes = React.useMemo(() => vehicleClassesFor(offeredTypes), [offeredTypes]);
 
   const definition = vehicleTypeDefinition(form.vehicleType);
   const carriesFreight = definition.capabilities.includes(VehicleCapability.CARGO_CAPACITY);
   const carriesPassengers = definition.capabilities.includes(VehicleCapability.PASSENGER_CAPACITY);
   const typeChanged = subject !== null && form.vehicleType !== subject.vehicleType;
+  const categoryChanged = subject !== null && form.category !== (subject.category ?? null);
+  const truckTypeChanged =
+    subject !== null && form.truckType !== null && form.truckType !== (subject.truckType ?? null);
+  const classChanged =
+    subject !== null && form.vehicleClass !== kindOfRecord(subject).vehicleClass;
+  /** "SUV", "Tipper" — or the class, before a tile is picked. */
+  const kindLabel =
+    vehicleOption(form.optionId)?.label ?? vehicleClassDefinition(form.vehicleClass).label;
 
   const applyRc = (prefill: VehicleRcPrefill): void => {
-    const { state, typeAccepted } = stateFromRc(
-      prefill,
-      defaultType,
-      types.map((entry) => entry.type),
-    );
+    const { state, typeAccepted } = stateFromRc(prefill, defaultType, offeredTypes);
     setForm(state);
     setErrors({});
     setRcTypeWarning(
       typeAccepted || !prefill.draft.vehicleType
         ? null
-        : `The RC says this is a ${humanizeEnum(prefill.draft.vehicleType).toLowerCase()}, which this account cannot add. Check the number, or add it from an account that runs this kind of vehicle.`,
+        : `The RC says this is a ${describeVehicle({ vehicleType: prefill.draft.vehicleType, category: prefill.draft.category }).kindLabel?.toLowerCase() ?? humanizeEnum(prefill.draft.vehicleType).toLowerCase()}, which this account cannot add. Check the number, or add it from an account that runs this kind of vehicle.`,
     );
     rc.begin(prefill);
   };
@@ -364,25 +246,34 @@ export function VehicleDialog({
     setErrors((previous) => (key in previous ? { ...previous, [key]: undefined } : previous));
   };
 
-  const hasCategories = categoriesFor(form.vehicleType).length > 0;
-
   /**
-   * Picking a type drops a category the new type does not offer, and moves a
-   * two-wheeler's fuel off the diesel default, which no scooter burns.
+   * A new class clears the tile. Until one is picked the type is the class's
+   * own (Other) or its first tile's, so the capacity step has something to ask.
    */
-  const chooseType = (next: VehicleType): void => {
-    set('vehicleType', next);
-    set('category', resolveVehicleCategory(next, form.category));
-    if (next === VehicleType.TWO_WHEELER && form.fuelType === FuelType.DIESEL) {
-      set('fuelType', FuelType.PETROL);
-    }
+  const chooseClass = (next: VehicleClass): void => {
+    const picked = classes.find((entry) => entry.id === next);
+    if (!picked) return;
+    set('vehicleClass', next);
+    set('optionId', null);
+    set('vehicleType', picked.implicitType ?? picked.options[0]?.vehicleType ?? form.vehicleType);
+    set('category', null);
+    set('truckType', null);
   };
 
-  /** An electric scooter runs on electricity — its category says so. */
-  const chooseCategory = (next: VehicleCategory): void => {
-    set('category', next);
-    const implied = vehicleCategoryDefinition(next)?.impliesFuel;
-    if (implied) set('fuelType', implied);
+  /**
+   * A tile writes the whole record — type, category and body — and moves fuel
+   * where the kind decides it: an e-rickshaw runs on electricity, and no
+   * scooter burns the diesel the form defaults to.
+   */
+  const chooseOption = (option: VehicleOption): void => {
+    set('optionId', option.id);
+    set('vehicleType', option.vehicleType);
+    set('category', option.category ?? null);
+    set('truckType', option.truckType ?? null);
+    if (option.impliesFuel) set('fuelType', option.impliesFuel);
+    else if (option.vehicleType === VehicleType.TWO_WHEELER && form.fuelType === FuelType.DIESEL) {
+      set('fuelType', FuelType.PETROL);
+    }
   };
 
   const save = useMutation({
@@ -469,8 +360,6 @@ export function VehicleDialog({
         ? { passengerCapacity: Number(form.passengerCapacity) }
         : {}),
       ...(carriesPassengers ? { airConditioned: form.airConditioned } : {}),
-      // Only a category the chosen type offers is ever sent.
-      ...(hasCategories && form.category ? { category: form.category } : {}),
     };
 
     if (subject) {
@@ -486,6 +375,9 @@ export function VehicleDialog({
          * it when the type really did change is the reset that should happen.
          */
         ...(typeChanged ? { vehicleType: form.vehicleType } : {}),
+        // The kind, when it changed — `null` clears one the new tile does not have.
+        ...(categoryChanged ? { category: form.category } : {}),
+        ...(truckTypeChanged ? { truckType: form.truckType } : {}),
         // Nulls rather than omissions: a detail cleared in the form is the
         // operator saying this vehicle does not have one.
         manufacturer: trimmedOrNull(form.manufacturer),
@@ -504,6 +396,8 @@ export function VehicleDialog({
     const payload = {
       registrationNumber: form.registrationNumber,
       vehicleType: form.vehicleType,
+      ...(form.category ? { category: form.category } : {}),
+      ...(form.truckType ? { truckType: form.truckType } : {}),
       fuelType: form.fuelType,
       odometerKm: Number(form.odometerKm || 0),
       ...(form.manufacturer.trim() ? { manufacturer: form.manufacturer.trim() } : {}),
@@ -532,13 +426,12 @@ export function VehicleDialog({
     const found: FieldErrors = {};
 
     if (stepId === 'type') {
-      // The API's own rule, so the form and the server refuse in the same words.
-      // Asked of a new vehicle or a retyped one — never of an old car being
-      // corrected, which predates categories.
-      const [problem] = validateVehicleCategory(form.vehicleType, form, {
-        requireCategory: !isEdit || typeChanged,
-      });
-      if (problem) found.category = problem;
+      // Asked of a new vehicle or one moved to another class — never of an old
+      // car being corrected, which predates kinds.
+      const picked = classes.find((entry) => entry.id === form.vehicleClass);
+      if (picked && picked.options.length > 0 && !form.optionId && (!isEdit || classChanged)) {
+        found.optionId = `Choose what kind of ${picked.label.toLowerCase()} this is.`;
+      }
     }
 
     if (stepId === 'identity') {
@@ -589,43 +482,13 @@ export function VehicleDialog({
       icon: CarFront,
       content: (
         <>
-          <WizardField
-            label="Vehicle type"
-            htmlFor="vehicle-type"
-            required
-            hint={definition.description}
-          >
-            <Select
-              value={form.vehicleType}
-              onValueChange={(value) => chooseType(value as VehicleType)}
-            >
-              <SelectTrigger id="vehicle-type">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {types.map((option) => (
-                  <SelectItem key={option.type} value={option.type}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </WizardField>
-
-          {hasCategories ? (
-            <WizardField
-              label={`Kind of ${definition.label.toLowerCase()}`}
-              required={!isEdit || typeChanged}
-              error={errors.category}
-            >
-              <VehicleCategoryPicker
-                vehicleType={form.vehicleType}
-                value={form.category}
-                onChange={chooseCategory}
-                error={errors.category}
-              />
-            </WizardField>
-          ) : null}
+          <VehicleKindField
+            classes={classes}
+            value={{ vehicleClass: form.vehicleClass, optionId: form.optionId }}
+            onClassChange={chooseClass}
+            onOptionChange={chooseOption}
+            error={errors.optionId}
+          />
 
           {/*
             Retyping a vehicle that already exists is not a relabelling: the
@@ -635,9 +498,9 @@ export function VehicleDialog({
           */}
           {typeChanged ? (
             <p className="glass-inset px-3 py-2.5 text-xs text-muted-foreground">
-              Changing the type to{' '}
-              <span className="font-medium text-foreground">{definition.label}</span> resets the
-              body type and drops any capacity a {definition.label.toLowerCase()} cannot have.
+              Changing it to{' '}
+              <span className="font-medium text-foreground">{kindLabel}</span> drops any capacity
+              a {kindLabel.toLowerCase()} cannot have.
             </p>
           ) : null}
         </>

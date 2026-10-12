@@ -1,7 +1,9 @@
 import {
   ACTIVE_TRIP_STATUSES,
+  MOVING_TRIP_STATUSES,
   TripStatus,
   tripStateMachine,
+  type ExternalNavigationApp,
   type LatLng,
   type TerminalTripStopView,
   type TerminalTripView,
@@ -28,9 +30,10 @@ import type { SessionRecord } from './session.view';
  * This module is both directions of that link:
  *
  *  * [dispatchedTripForSession] — what the terminal is meant to be doing.
- *  * [startDispatchedTrip] and [completeDispatchedTrip] — the terminal's own
- *    trip buttons moving the real `Trip` record, so the fleet's screen follows
- *    the vehicle rather than the other way round.
+ *  * [startDispatchedTrip], [arriveDispatchedTrip] and [completeDispatchedTrip]
+ *    — the terminal's own trip buttons moving the real `Trip` record, so the
+ *    fleet's screen follows the vehicle rather than the other way round.
+ *  * [setNavigationHandoff] — the driver following the trip in Google Maps.
  *
  * **A dispatch belongs to the vehicle, not to the phone in it.** The trip is
  * found by vehicle, because that is where `currentTripId` lives and where every
@@ -153,6 +156,8 @@ function toStopView(stop: DispatchRecord['stops'][number]): TerminalTripStopView
     sequence: stop.sequence,
     status: String(stop.status),
     plannedArrival: stop.plannedArrival?.toISOString() ?? null,
+    reachedAt: stop.reachedAt?.toISOString() ?? null,
+    leftAt: stop.leftAt?.toISOString() ?? null,
   };
 }
 
@@ -189,6 +194,8 @@ function toView(trip: DispatchRecord, signedInDriverId: string): TerminalTripVie
     orderReference: trip.order?.reference ?? null,
     underway: UNDERWAY_TRIP_STATUSES.includes(trip.status as TripStatus),
     assignedToSignedInDriver: trip.driverId === signedInDriverId,
+    driverCreated: trip.driverCreated,
+    navigationHandoff: trip.externalNavigation,
   };
 }
 
@@ -309,6 +316,71 @@ export async function startDispatchedTrip(
       { note: 'Driver set off from the terminal.', ...input },
     );
   }
+
+  return dispatchedTripForSession(session);
+}
+
+/**
+ * The driver confirmed they have arrived.
+ *
+ * Asked for when the vehicle's GPS shows it reached the destination — see
+ * `stop-arrival.service` — and never done on the GPS alone, because a truck
+ * stopped outside the gate for tea has not delivered anything. The arrival
+ * time recorded is the GPS one, not the moment of the tap.
+ */
+export async function arriveDispatchedTrip(
+  session: SessionRecord,
+  auth: AuthContext,
+  input: { latitude?: number; longitude?: number },
+): Promise<TerminalTripView | null> {
+  const trip = await openDispatchFor(session.vehicleId);
+  if (!trip) return null;
+
+  const status = trip.status as TripStatus;
+  // Only a trip under way and not yet arrived: a second tap changes nothing.
+  if (MOVING_TRIP_STATUSES.includes(status)) {
+    await walk(auth, { id: trip.id, status }, TripStatus.ARRIVED, {
+      note: 'Driver confirmed arrival from the terminal.',
+      ...input,
+    });
+  }
+
+  return dispatchedTripForSession(session);
+}
+
+/**
+ * The driver handed the trip to Google Maps, or came back to Saarthi's own
+ * navigation (`app: null`).
+ *
+ * Recorded on the trip, because that app picks its own roads and cannot tell
+ * Saarthi which: while it is set, a stretch off the planned route that still
+ * heads for the destination is an alternate road, not a deviation. Repeating
+ * the same answer changes nothing and adds nothing to the timeline.
+ */
+export async function setNavigationHandoff(
+  session: SessionRecord,
+  app: ExternalNavigationApp | null,
+): Promise<TerminalTripView | null> {
+  const trip = await openDispatchFor(session.vehicleId);
+  if (!trip) return null;
+  if (trip.externalNavigation === app) return toView(trip, session.driverId);
+
+  await prisma.$transaction([
+    prisma.trip.update({
+      where: { id: trip.id },
+      data: { externalNavigation: app, externalNavigationSince: app ? new Date() : null },
+    }),
+    prisma.tripEvent.create({
+      data: {
+        tripId: trip.id,
+        type: 'NAVIGATION_HANDOFF',
+        description: app
+          ? 'Driver is navigating with Google Maps. Saarthi keeps recording the route.'
+          : "Driver is back on Saarthi's navigation.",
+        metadata: { app },
+      },
+    }),
+  ]);
 
   return dispatchedTripForSession(session);
 }

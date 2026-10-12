@@ -225,7 +225,7 @@ export const router = createBrowserRouter([
               },
 
               /*
-                The four fleet-wide roll-ups, behind one menu entry.
+                The fleet-wide running-cost roll-ups, behind one menu entry.
 
                 A pathless layout route, so every path below is exactly what it was
                 before — the dashboard's links, the notification `actionUrl`s the
@@ -240,6 +240,10 @@ export const router = createBrowserRouter([
                     element: lazyPage(() => import('@/pages/fleet/documents')),
                   },
                   { path: '/fleet/fuel', element: lazyPage(() => import('@/pages/fleet/fuel')) },
+                  {
+                    path: '/fleet/expenses',
+                    element: lazyPage(() => import('@/pages/fleet/expenses')),
+                  },
                   { path: '/fleet/loans', element: lazyPage(() => import('@/pages/fleet/loans')) },
                   { path: '/fleet/toll', element: lazyPage(() => import('@/pages/fleet/toll')) },
                 ],

@@ -1,8 +1,6 @@
 package com.saarthi.driver.ui.shift.assistant
 
 import android.Manifest
-import android.content.Context
-import android.content.pm.PackageManager
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -54,34 +52,38 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
+import com.saarthi.core.data.AssistantUi
 import com.saarthi.core.domain.AssistantState
 import com.saarthi.core.ui.CockpitVoice
 import com.saarthi.core.ui.TerminalViewModel
 import com.saarthi.driver.R
 import com.saarthi.driver.ui.design.AlwaysDark
-import com.saarthi.driver.ui.design.BrandMark
+import com.saarthi.driver.ui.design.BrandLockup
 import com.saarthi.driver.ui.design.CircleButton
 import com.saarthi.driver.ui.design.Lucide
 import com.saarthi.driver.ui.design.SType
 import com.saarthi.driver.ui.design.Saarthi
 import com.saarthi.driver.ui.design.pressable
 import com.saarthi.driver.ui.design.rise
+import kotlinx.coroutines.delay
 
 /**
- * Saarthi, the voice assistant: speak, or type.
+ * Saarthi, the voice assistant: speak, or type — a conversation, as the web
+ * chat holds one.
  *
  * Opens listening, as the design does, unless Saarthi is already busy — woken
- * by its phrase, or still holding an answer. Everything shown is the view
- * model's: the state, what was heard, the answer with its caveats and sources.
- * Without a microphone — refused, or no recogniser on the phone — the typed
- * field takes over, because a driver must always be able to ask.
+ * by its phrase, or still holding an answer. The microphone, Send and Stop
+ * share the one button beside the field; Stop quiets Saarthi and leaves the
+ * conversation on screen, and closing stops whatever was under way, so nothing
+ * is read out after the driver has moved on. Without a microphone — refused,
+ * or no recogniser on the phone — the typed field takes over, because a driver
+ * must always be able to ask.
  */
 @Composable
 fun AssistantOverlay(visible: Boolean, cockpit: TerminalViewModel, voice: CockpitVoice, onClose: () -> Unit) {
     val assistant by cockpit.assistant.collectAsState()
     val close = {
-        voice.hush(assistant.state, cockpit.settings.wakeWordEnabled)
+        voice.hush()
         cockpit.dismissAssistant()
         onClose()
     }
@@ -100,13 +102,14 @@ fun AssistantOverlay(visible: Boolean, cockpit: TerminalViewModel, voice: Cockpi
 private fun AssistantScreen(
     cockpit: TerminalViewModel,
     voice: CockpitVoice,
-    assistant: TerminalViewModel.AssistantUi,
+    assistant: AssistantUi,
     onClose: () -> Unit,
 ) {
     val c = Saarthi.colors
     val context = LocalContext.current
     val keyboard = LocalSoftwareKeyboardController.current
     val focus = remember { FocusRequester() }
+    val scroll = rememberScrollState()
     var typed by rememberSaveable { mutableStateOf("") }
     // Why the microphone is not an option, once that is known; the field then takes the focus.
     var typingOnly by remember { mutableStateOf<Int?>(null) }
@@ -124,17 +127,23 @@ private fun AssistantScreen(
     }
 
     fun listen() {
-        voice.hush(assistant.state, cockpit.settings.wakeWordEnabled)
+        voice.hush()
         when {
-            !context.microphoneGranted() -> microphone.launch(Manifest.permission.RECORD_AUDIO)
+            !context.microphoneAllowed() -> microphone.launch(Manifest.permission.RECORD_AUDIO)
             !voice.listenNow() -> typeInstead(R.string.assistant_no_mic)
         }
     }
 
+    /** Quiet Saarthi and stop waiting, keeping the conversation on screen. */
+    fun stop() {
+        voice.hush()
+        cockpit.stopAssistant()
+    }
+
     fun ask(question: String) {
         val cleaned = question.trim()
-        if (cleaned.isEmpty() || assistant.state == AssistantState.THINKING) return
-        voice.hush(assistant.state, cockpit.settings.wakeWordEnabled)
+        if (cleaned.isEmpty()) return
+        voice.hush()
         cockpit.ask(cleaned, spoken = false)
         typed = ""
         keyboard?.hide()
@@ -144,13 +153,29 @@ private fun AssistantScreen(
         if (assistant.state == AssistantState.IDLE && assistant.answer == null) listen()
     }
 
+    // The newest message in view as the conversation grows.
+    LaunchedEffect(assistant.transcript, assistant.answer, assistant.earlier.size) {
+        scroll.animateScrollTo(scroll.maxValue)
+    }
+
+    // Checked while the assistant is open: the volume is changed with the
+    // phone's own keys, which tell nobody.
+    var speakerMuted by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            speakerMuted = voice.speakerMuted
+            delay(VOLUME_CHECK_MS)
+        }
+    }
+
     val state = assistant.state
+    val busy = state == AssistantState.LISTENING || state == AssistantState.THINKING || state == AssistantState.SPEAKING
     val line = when (state) {
         AssistantState.LISTENING -> R.string.assistant_listening
         AssistantState.THINKING -> R.string.assistant_thinking
         AssistantState.SPEAKING -> R.string.assistant_answer
         AssistantState.ERROR -> R.string.assistant_error
-        AssistantState.IDLE -> if (assistant.answer != null) R.string.assistant_answer else typingOnly ?: R.string.assistant_idle
+        AssistantState.IDLE -> typingOnly ?: if (voice.wakeWordOn) R.string.assistant_idle_wake else R.string.assistant_idle
     }
 
     Column(
@@ -168,7 +193,7 @@ private fun AssistantScreen(
             Modifier
                 .weight(1f)
                 .fillMaxWidth()
-                .verticalScroll(rememberScrollState()),
+                .verticalScroll(scroll),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Column(
@@ -178,15 +203,14 @@ private fun AssistantScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(18.dp),
             ) {
-                // While it listens or thinks the blob stops it, as the design has it; otherwise it listens again.
-                val stops = state == AssistantState.LISTENING || state == AssistantState.THINKING
+                // Busy, the blob stops Saarthi; quiet, it listens.
                 SaarthiBlob(
                     state,
                     voice.amplitude,
                     Modifier.pressable(
                         scale = 0.96f,
-                        label = stringResource(if (stops) R.string.assistant_stop else R.string.assistant_speak),
-                        onClick = { if (stops) onClose() else listen() },
+                        label = stringResource(if (busy) R.string.assistant_stop else R.string.assistant_speak),
+                        onClick = { if (busy) stop() else listen() },
                     ),
                 )
                 Text(
@@ -201,30 +225,46 @@ private fun AssistantScreen(
                     else -> Unit
                 }
             }
-            // A new question clears the old exchange from view, as the design's listening screen shows none.
-            val heard = assistant.transcript
-            if (heard != null && state != AssistantState.LISTENING) {
-                key(heard) { TranscriptBubble(heard, Modifier.rise(distance = 16.dp, durationMs = 600)) }
+            assistant.earlier.forEach { exchange ->
+                TranscriptBubble(exchange.question)
+                AnswerBubble(exchange.answer, exchange.caveats, exchange.sources)
             }
-            val answer = assistant.answer
-            if (answer != null && state != AssistantState.LISTENING && state != AssistantState.THINKING) {
-                key(answer) {
+            assistant.transcript?.let { heard ->
+                key(heard, assistant.earlier.size) { TranscriptBubble(heard, Modifier.rise(distance = 16.dp, durationMs = 600)) }
+            }
+            assistant.answer?.let { answer ->
+                key(answer, assistant.earlier.size) {
                     AnswerBubble(answer, assistant.caveats, assistant.sources, Modifier.rise(distance = 16.dp, durationMs = 600))
                 }
             }
         }
-        Suggestions(onAsk = ::ask)
+        if (speakerMuted) SpeakerNotice(onTurnUp = { voice.raiseVolume() })
+        // Offered before the first question, as the web chat's welcome does — and
+        // never while Saarthi is busy or the driver is typing. Once a
+        // conversation is under way its room belongs to the answers.
+        val fresh = assistant.transcript == null && assistant.earlier.isEmpty()
+        if (fresh && !busy && typed.isBlank()) Suggestions(onAsk = ::ask)
         AskField(
             value = typed,
             onValueChange = { typed = it },
-            canSend = typed.isNotBlank() && state != AssistantState.THINKING,
-            onSend = { ask(typed) },
+            action = when {
+                busy -> AskAction.STOP
+                typed.isNotBlank() || typingOnly != null -> AskAction.SEND
+                else -> AskAction.LISTEN
+            },
+            onAction = {
+                when {
+                    busy -> stop()
+                    typed.isNotBlank() -> ask(typed)
+                    typingOnly == null -> listen()
+                }
+            },
             focus = focus,
         )
     }
 }
 
-/** The mark, Saarthi's name, and close. */
+/** The logo, Saarthi's name, and close. */
 @Composable
 private fun AssistantHeader(onClose: () -> Unit) {
     Row(
@@ -234,7 +274,7 @@ private fun AssistantHeader(onClose: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        BrandMark(height = 32.dp, plated = true)
+        BrandLockup(height = 52.dp, plated = true)
         Text(stringResource(R.string.assistant_title), style = SType.headerTitle, color = Saarthi.colors.fg, modifier = Modifier.weight(1f))
         CircleButton(
             Lucide.close,
@@ -246,24 +286,6 @@ private fun AssistantHeader(onClose: () -> Unit) {
         )
     }
 }
-
-/**
- * Quiet Saarthi before it is closed or asked something else.
- *
- * A question being listened for is only cancelled when the wake phrase is
- * off: with it on, the recogniser is the wake loop's too, and stopping it
- * would switch "Hey Saarthi" off for the rest of the shift.
- */
-private fun CockpitVoice.hush(state: AssistantState, wakeWordOn: Boolean) {
-    when (state) {
-        AssistantState.SPEAKING -> engine.stopSpeaking()
-        AssistantState.LISTENING -> if (!wakeWordOn) engine.stopListening()
-        else -> Unit
-    }
-}
-
-private fun Context.microphoneGranted(): Boolean =
-    ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
 
 /**
  * The design's ground: `radial-gradient(120% 70% at 50% 30%, #17193A, #0B0B12 70%)`.
@@ -285,3 +307,6 @@ private fun DrawScope.drawNightSky() {
 
 private val SkyCentre = Color(0xFF17193A)
 private val SkyEdge = Color(0xFF0B0B12)
+
+/** How often the media volume is looked at while the assistant is open. */
+private const val VOLUME_CHECK_MS = 1_500L

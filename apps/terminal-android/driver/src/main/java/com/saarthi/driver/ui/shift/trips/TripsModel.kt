@@ -14,23 +14,46 @@ private val UnderwayStatuses = setOf("STARTED", "IN_TRANSIT", "DELAYED", "EMERGE
 /** The one status that means a trip is done. Cancelled and drafted trips are not finished trips. */
 private const val FINISHED_STATUS = "COMPLETED"
 
+/** A driver's trip waiting for the vehicle to be free. */
+private const val QUEUED_STATUS = "DRAFT"
+
 /** How many recent trips the summary's bars draw — the design's six columns. */
 private const val SUMMARY_BARS = 6
 
+/** Where a trip stands, as the card labels it. */
+internal enum class TripStage {
+    /** On the road now. */
+    UNDER_WAY,
+    /** Holds the vehicle and has not started: it is the next thing to drive. */
+    UP_NEXT,
+    /** A trip the driver added while another held the vehicle; it starts after. */
+    QUEUED,
+}
+
 /**
- * The trip on the road now, pieced together from what the server has said.
+ * A trip that is not finished, pieced together from what the server has said.
  *
  * Every field is nullable because each can genuinely be unknown — a trip the
  * driver started without a dispatch has no destination — and the card drops
  * what it does not have rather than filling it in.
  */
 internal data class OpenTrip(
+    val id: String?,
     val reference: String?,
     val origin: String?,
     val destination: String?,
     val plannedKm: Double?,
     val startedAt: String?,
     val registration: String?,
+    val stage: TripStage,
+    /**
+     * The fleet dispatched it, rather than the driver adding it.
+     *
+     * A fleet trip always comes first — the server queues a driver's trip
+     * behind it — and the card says so, so a driver never wonders which of two
+     * trips to drive.
+     */
+    val fromFleet: Boolean,
 )
 
 /**
@@ -41,23 +64,29 @@ internal data class OpenTrip(
  * however few there are. Each value is a fraction of the longest of them.
  */
 internal data class TripsBoard(
-    val open: OpenTrip?,
+    /** The trip holding the vehicle — under way, or next to start. */
+    val current: OpenTrip?,
+    /** The driver's own trips waiting behind it, oldest first: the order they will run in. */
+    val queued: List<OpenTrip>,
     val finished: List<DriverTripDto>,
     /** Distance Saarthi measured across the finished trips; null when it measured none. */
     val measuredKm: Double?,
     val measuredCount: Int,
     val bars: List<Float?>,
 ) {
-    val isEmpty: Boolean get() = open == null && finished.isEmpty()
+    val isEmpty: Boolean get() = current == null && queued.isEmpty() && finished.isEmpty()
+    val hasOpen: Boolean get() = current != null || queued.isNotEmpty()
 }
 
 /**
- * Sort the driver's trips into the one under way and the ones finished.
+ * Sort the driver's trips into the one holding the vehicle, the ones queued
+ * behind it, and the ones finished.
  *
  * The trip under way exists only while the server says [active]; its details
  * come from the fleet's dispatch first and the driver's own trip record second.
- * The summary counts measured distances only — a planned figure is a promise,
- * not kilometres driven, so it never reaches the total.
+ * A dispatch that has not started is the trip up next. The summary counts
+ * measured distances only — a planned figure is a promise, not kilometres
+ * driven, so it never reaches the total.
  */
 internal fun tripsBoard(
     trips: List<DriverTripDto>,
@@ -67,24 +96,44 @@ internal fun tripsBoard(
     registration: String?,
 ): TripsBoard {
     val record = when {
-        !active -> null
         dispatch != null -> trips.firstOrNull { it.id == dispatch.id }
-        else -> trips.firstOrNull { it.status in UnderwayStatuses }
+        active -> trips.firstOrNull { it.status in UnderwayStatuses }
+        else -> null
     }
-    val open = if (active) {
+    val current = if (active || dispatch != null) {
         OpenTrip(
+            id = dispatch?.id ?: record?.id,
             reference = dispatch?.reference?.ifBlank { null } ?: record?.reference?.ifBlank { null },
             origin = dispatch?.originAddress?.ifBlank { null } ?: record?.fromLabel?.ifBlank { null },
             destination = dispatch?.destinationAddress?.ifBlank { null } ?: record?.toLabel?.ifBlank { null },
             plannedKm = dispatch?.plannedDistanceKm ?: record?.takeIf { it.distanceIsPlanned }?.distanceKm,
-            startedAt = record?.startedAt ?: sessionStartedAt,
+            startedAt = if (active) record?.startedAt ?: sessionStartedAt else null,
             registration = registration ?: record?.registrationNumber,
+            stage = if (active) TripStage.UNDER_WAY else TripStage.UP_NEXT,
+            fromFleet = !(dispatch?.driverCreated ?: record?.driverCreated ?: false),
         )
     } else {
         null
     }
 
-    val finished = trips.filter { it.status == FINISHED_STATUS && it.id != record?.id }
+    val queued = trips
+        .filter { it.status == QUEUED_STATUS && it.driverCreated && it.id != current?.id }
+        .sortedBy { it.createdAt }
+        .map { trip ->
+            OpenTrip(
+                id = trip.id,
+                reference = trip.reference?.ifBlank { null },
+                origin = trip.fromLabel?.ifBlank { null },
+                destination = trip.toLabel?.ifBlank { null },
+                plannedKm = trip.takeIf { it.distanceIsPlanned }?.distanceKm,
+                startedAt = null,
+                registration = trip.registrationNumber,
+                stage = TripStage.QUEUED,
+                fromFleet = false,
+            )
+        }
+
+    val finished = trips.filter { it.status == FINISHED_STATUS && it.id != current?.id }
     val measured = finished.mapNotNull { trip -> trip.distanceKm?.takeUnless { trip.distanceIsPlanned } }
     // The list arrives newest first; the bars read left to right, oldest to newest.
     val recent = measured.take(SUMMARY_BARS).reversed()
@@ -93,7 +142,8 @@ internal fun tripsBoard(
         recent.map { km -> longest?.let { (km / it).toFloat() } ?: 0f }
 
     return TripsBoard(
-        open = open,
+        current = current,
+        queued = queued,
         finished = finished,
         measuredKm = if (measured.isEmpty()) null else measured.sum(),
         measuredCount = measured.size,

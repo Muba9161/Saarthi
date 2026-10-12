@@ -41,4 +41,31 @@
     <string name="trips_error_title">Could not load your trips</string>
     <string name="trips_error_body">Saarthi could not reach your fleet just now. Try again in a moment.</string>
     <string name="trips_retry">Try again</string>
+
+    <string name="trips_add">Add a trip</string>
+    <string name="trips_up_next">Up next</string>
+    <string name="trips_queued">Queued</string>
+    <string name="trips_from_fleet">From your fleet</string>
+    <string name="trips_added_by_you">Added by you</string>
+    <string name="trips_section_next">Up next</string>
+    <string name="trips_section_queued">Waiting behind it</string>
+    <string name="toast_trip_added">Trip added.</string>
+    <string name="toast_trip_queued">Trip added. It starts after your fleet\'s trip.</string>
+    <string name="add_trip_title">Add a trip</string>
+    <string name="add_trip_lead">Pick where you are going. Saarthi works out the road and tells your fleet.</string>
+    <string name="add_trip_from">From</string>
+    <string name="add_trip_to">To</string>
+    <string name="add_trip_here">Where you are now</string>
+    <string name="add_trip_pick_start">Choose where you start</string>
+    <string name="add_trip_pick_destination">Choose where you are going</string>
+    <string name="add_trip_change">Change</string>
+    <string name="add_trip_search_from">Search where you start</string>
+    <string name="add_trip_search_to">Search where you are going</string>
+    <string name="add_trip_routing">Working out the road…</string>
+    <string name="add_trip_route_failed">The road could not be worked out just now. You can still add the trip.</string>
+    <string name="add_trip_notes">Note for your fleet</string>
+    <string name="add_trip_queue_note">Your fleet\'s trip comes first. This one will start after it is finished.</string>
+    <string name="add_trip_create">Add trip</string>
+    <string name="add_trip_queue">Add after the fleet\'s trip</string>
+    <string name="add_trip_creating">Adding…</string>
 </resources>

@@ -77,18 +77,8 @@ export const listingListQuerySchema = paginationSchema.extend({
     VehicleListingStatus.REJECTED,
     VehicleListingStatus.EXPIRED,
   ]),
-  vehicleType: csvEnum([
-    VehicleType.TRUCK,
-    VehicleType.TAXI,
-    VehicleType.CAR,
-    VehicleType.BUS,
-    VehicleType.VAN,
-    VehicleType.SUV,
-    VehicleType.TEMPO,
-    VehicleType.AUTO_RICKSHAW,
-    VehicleType.PICKUP,
-    VehicleType.OTHER,
-  ]),
+  // Every type — a filter must accept any value its own picker offers.
+  vehicleType: csvEnum(Object.values(VehicleType) as [VehicleType, ...VehicleType[]]),
   truckType: csvEnum([
     TruckType.OPEN_BODY,
     TruckType.CLOSED_CONTAINER,

@@ -1,11 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="fuel_title">ഇന്ധന സ്ലിപ്പ്</string>
     <string name="fuel_step_photo">ഫോട്ടോ</string>
-    <string name="fuel_step_figures">കണക്കുകൾ</string>
     <string name="fuel_step_saved">സേവ് ചെയ്തു</string>
     <string name="fuel_step_label">ഘട്ടം %1$d / %2$d: %3$s</string>
-    <string name="fuel_lead">സ്ലിപ്പിന്റെ ഫോട്ടോ എടുത്ത് രണ്ട് കണക്കുകൾ ടൈപ്പ് ചെയ്യുക. ഇനി പേപ്പർ സൂക്ഷിക്കേണ്ട.</string>
     <string name="fuel_rear_camera">പിൻ ക്യാമറ</string>
     <string name="fuel_frame_hint">സ്ലിപ്പ് മുഴുവനും ഫ്രെയിമിനുള്ളിൽ വരുത്തുക.</string>
     <string name="fuel_photograph">സ്ലിപ്പിന്റെ ഫോട്ടോ എടുക്കുക</string>
@@ -27,4 +24,20 @@
     <string name="fuel_saved_title">സേവ് ചെയ്തു</string>
     <string name="fuel_saved_body">സ്ലിപ്പും കണക്കുകളും നിങ്ങളുടെ ഫ്ലീറ്റിന് ലഭിച്ചു. പേപ്പർ കളയാം.</string>
     <string name="fuel_add_another">മറ്റൊന്ന് ചേർക്കുക</string>
+
+    <!-- Expense slips -->
+    <string name="expense_title">ചെലവ് സ്ലിപ്പ്</string>
+    <string name="expense_lead">ഏത് സ്ലിപ്പിന്റെയും ഫോട്ടോ എടുക്കുക — ഇന്ധനം, ടോൾ, പാർക്കിംഗ്, റിപ്പയർ, ഭക്ഷണം — എത്ര ആയെന്ന് ടൈപ്പ് ചെയ്യുക. ഇനി പേപ്പർ സൂക്ഷിക്കേണ്ട.</string>
+    <string name="expense_step_details">വിവരങ്ങൾ</string>
+    <string name="expense_kind_label">എന്തിനായിരുന്നു?</string>
+    <string name="expense_cat_fuel">ഇന്ധനം</string>
+    <string name="expense_cat_toll">ടോൾ</string>
+    <string name="expense_cat_parking">പാർക്കിംഗ്</string>
+    <string name="expense_cat_repair">റിപ്പയർ</string>
+    <string name="expense_cat_food">ഭക്ഷണം</string>
+    <string name="expense_cat_loading">ലോഡിംഗ്</string>
+    <string name="expense_cat_challan">ചലാൻ</string>
+    <string name="expense_cat_other">മറ്റുള്ളവ</string>
+    <string name="expense_vendor">ആർക്ക് കൊടുത്തു</string>
+    <string name="expense_note">കുറിപ്പ്</string>
 </resources>

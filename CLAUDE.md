@@ -21,6 +21,7 @@ The following skills are mandatory whenever applicable:
 ├── modular-architecture/SKILL.md
 └── vorldx-premium-design/SKILL.md
 └── seo/SKILL.md
+└── testing/SKILL.md
 ```
 
 Claude MUST follow these skills for every relevant development task.

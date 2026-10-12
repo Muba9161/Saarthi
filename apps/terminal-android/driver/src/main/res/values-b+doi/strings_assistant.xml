@@ -18,4 +18,7 @@
     <string name="assistant_suggest_parking">मेरे नेड़ै ट्रक पार्किंग लब्भो</string>
     <string name="assistant_ask_hint">Saarthi शा पुच्छो</string>
     <string name="assistant_send">भेजो</string>
+    <string name="assistant_idle_wake">माइक दबाओ, जां “Hey Saarthi” बोलो.</string>
+    <string name="assistant_volume_off">फ़ोन दी मीडिया आवाज़ बंद ऐ, इस करी Saarthi सुनचदा नेईं.</string>
+    <string name="assistant_volume_up">आवाज़ बधाओ</string>
 </resources>

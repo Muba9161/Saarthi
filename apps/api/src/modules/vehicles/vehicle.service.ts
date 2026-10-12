@@ -10,7 +10,7 @@ import {
   TRAVEL_VEHICLE_TYPES,
   TruckStatus,
   type VehicleCategory,
-  vehicleCategoryDefinition,
+  describeVehicle,
   type UpdateVehicleInput,
   validateVehicleCapacities,
   validateVehicleCategory,
@@ -90,7 +90,9 @@ export interface VehicleSummary {
   typeLabel: string;
   /** Scooter, hatchback… `null` on a type with none, or a vehicle added before its type had them. */
   category: VehicleCategory | null;
-  /** The category's display label, alongside `typeLabel`. */
+  /** How an owner names it: the class ("Car", "Truck")… */
+  classLabel: string;
+  /** …and the kind within it ("SUV", "Tipper"), when the record says. */
   categoryLabel: string | null;
   capabilities: VehicleCapability[];
   manufacturer: string | null;
@@ -216,6 +218,12 @@ function toSummary(
   // taxi shows "—" rather than a plausible-looking 0 tonnes.
   const carriesFreight = capabilities.includes(VehicleCapability.CARGO_CAPACITY);
   const carriesPassengers = capabilities.includes(VehicleCapability.PASSENGER_CAPACITY);
+  // "Car · SUV", "Truck · Tipper" — how the owner picked it.
+  const kind = describeVehicle({
+    vehicleType,
+    category: vehicle.category,
+    truckType: vehicle.truckType,
+  });
 
   return {
     id: vehicle.id,
@@ -226,7 +234,8 @@ function toSummary(
     truckType: vehicle.truckType,
     typeLabel: definition.label,
     category: vehicle.category,
-    categoryLabel: vehicleCategoryDefinition(vehicle.category)?.label ?? null,
+    classLabel: kind.classLabel,
+    categoryLabel: kind.kindLabel,
     capabilities,
     manufacturer: vehicle.manufacturer,
     model: vehicle.model,
@@ -555,9 +564,10 @@ export async function updateVehicle(
     ? (input.passengerCapacity ?? existing.passengerCapacity)
     : null;
   // A category the new type does not offer is dropped, as capacities are.
+  // `null` on the patch clears it; omitted keeps what the row has.
   const nextCategory = resolveVehicleCategory(
     nextType,
-    (input.category ?? existing.category) as VehicleCategory | null,
+    (input.category !== undefined ? input.category : existing.category) as VehicleCategory | null,
   );
 
   const problems = [

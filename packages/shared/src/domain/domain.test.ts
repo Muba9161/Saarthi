@@ -81,11 +81,8 @@ import {
   withGst,
 } from './pricing';
 import { TRUCK_VEHICLE_TYPES, allowedVehicleTypes, vehicleTypeRefusal } from './vehicle-eligibility';
-import {
-  resolveVehicleCategory,
-  validateVehicleCapacities,
-  validateVehicleCategory,
-} from './vehicles';
+import { validateVehicleCapacities } from './vehicles';
+import { resolveVehicleCategory, validateVehicleCategory } from './vehicle-taxonomy';
 import { Permission, hasPermission, permissionsForRole, permissionsForRoles } from './permissions';
 import { evaluateAchievements, emptyAchievementMetrics } from './achievements';
 
@@ -702,7 +699,7 @@ describe('vehicle eligibility', () => {
     expect(validateVehicleCategory(VehicleType.TAXI, { category: VehicleCategory.SEDAN })).toEqual([]);
     // A category the type does not offer is refused either way.
     expect(validateVehicleCategory(VehicleType.CAR, { category: VehicleCategory.SCOOTER })).toHaveLength(1);
-    expect(validateVehicleCategory(VehicleType.BUS, {}, { requireCategory: true })).toEqual([]);
+    expect(validateVehicleCategory(VehicleType.TRUCK, {}, { requireCategory: true })).toEqual([]);
   });
 
   it('clears a category the new type does not offer', () => {
@@ -711,13 +708,17 @@ describe('vehicle eligibility', () => {
     );
     expect(resolveVehicleCategory(VehicleType.CAR, VehicleCategory.CRUISER)).toBeNull();
     expect(resolveVehicleCategory(VehicleType.TAXI, VehicleCategory.SUV)).toBe(VehicleCategory.SUV);
+    expect(resolveVehicleCategory(VehicleType.BUS, VehicleCategory.SLEEPER_BUS)).toBe(
+      VehicleCategory.SLEEPER_BUS,
+    );
   });
 
-  it('folds SUV into Car on Saarthi Personal, and nowhere else', () => {
-    expect(allowedVehicleTypes(personal)).not.toContain(VehicleType.SUV);
-    expect(allowedVehicleTypes(personal)).toContain(VehicleType.CAR);
-    expect(vehicleTypeRefusal(personal, VehicleType.SUV)).toMatch(/Car/);
-    expect(vehicleTypeRefusal(mobility, VehicleType.SUV)).toBeNull();
+  it('keeps commercial passenger vehicles off Saarthi Personal', () => {
+    // An SUV is offered as Car → SUV and stored as the SUV type.
+    expect(vehicleTypeRefusal(personal, VehicleType.SUV)).toBeNull();
+    expect(vehicleTypeRefusal(personal, VehicleType.TAXI)).toMatch(/Business/);
+    expect(vehicleTypeRefusal(personal, VehicleType.BUS)).toMatch(/Business/);
+    expect(vehicleTypeRefusal(mobility, VehicleType.TAXI)).toBeNull();
   });
 
   it('keeps a fleet owner to trucks', () => {

@@ -9,13 +9,17 @@ import {
   PlanTier,
   allowedVehicleTypes,
   TruckStatus,
+  VEHICLE_TYPES,
   VehicleType,
   formatNumber,
+  vehicleClassesFor,
+  vehicleTypesOfClass,
+  type VehicleClass,
   humanizeEnum,
   personalVehicleNeedsAadhaar,
 } from '@saarthi/shared';
 import { api } from '@/lib/api-client';
-import type { VehicleSummary, VehicleTypeOption } from '@/lib/mobility-types';
+import type { VehicleSummary } from '@/lib/mobility-types';
 import type { IdentitySubjectView, Paginated } from '@/lib/api-types';
 import { useAuth } from '@/features/auth/auth-context';
 import { PageHeader, FilterBar } from '@/components/common/page-header';
@@ -60,18 +64,6 @@ const STATUS_FILTERS = [
   ...Object.values(TruckStatus).map((status) => ({ value: status, label: humanizeEnum(status) })),
 ];
 
-/** Passenger types a travel operator can register. No goods vehicles. */
-const PASSENGER_VEHICLE_TYPES = [
-  VehicleType.CAR,
-  VehicleType.TAXI,
-  VehicleType.SUV,
-  VehicleType.VAN,
-  VehicleType.BUS,
-  VehicleType.TEMPO,
-  VehicleType.AUTO_RICKSHAW,
-  VehicleType.OTHER,
-];
-
 export function VehiclesPage() {
   const navigate = useNavigate();
   const { can, hasFeature, session } = useAuth();
@@ -94,15 +86,10 @@ export function VehiclesPage() {
   const [page, setPage] = React.useState(1);
   const [search, setSearch] = React.useState('');
   const [capability, setCapability] = React.useState('');
-  const [vehicleType, setVehicleType] = React.useState('');
+  /** The class filter — a list asks for the stored types at home in it. */
+  const [vehicleClass, setVehicleClass] = React.useState<VehicleClass | ''>('');
+  const vehicleType = vehicleClass ? vehicleTypesOfClass(vehicleClass).join(',') : '';
   const [status, setStatus] = React.useState('');
-
-  const types = useQuery({
-    queryKey: ['vehicle-types'],
-    queryFn: () => api.get<VehicleTypeOption[]>('/fleet/vehicles/types'),
-    enabled: can(Permission.VEHICLES_READ),
-    staleTime: 60 * 60 * 1000,
-  });
 
   const vehicles = useQuery({
     queryKey: ['vehicles', page, search, capability, vehicleType, status],
@@ -133,6 +120,8 @@ export function VehiclesPage() {
     organizationType: session?.organization?.type,
   });
   const addableTypeProps = addableTypes.length > 0 ? { allowedTypes: addableTypes } : {};
+  /** The classes this account works with — the filter offers no others. */
+  const filterClasses = vehicleClassesFor(addableTypes.length > 0 ? addableTypes : VEHICLE_TYPES);
   /*
    * Somebody running their own vehicles rather than a business.
    *
@@ -202,7 +191,7 @@ export function VehiclesPage() {
         <div className="min-w-0">
           <p className="truncate font-medium">{row.registrationNumber}</p>
           <p className="truncate text-xs text-muted-foreground">
-            {row.categoryLabel ? `${row.typeLabel} · ${row.categoryLabel}` : row.typeLabel}
+            {[row.classLabel, row.categoryLabel].filter(Boolean).join(' · ')}
             {row.model ? ` · ${row.manufacturer ?? ''} ${row.model}`.trimEnd() : ''}
           </p>
         </div>
@@ -328,10 +317,7 @@ export function VehiclesPage() {
           <Button asChild variant="ghost" size="sm">
             <Link to={`/fleet/vehicles/${row.id}`}>Open</Link>
           </Button>
-          <EditVehicleDialog
-            vehicle={row}
-            {...(isTravelOperator ? { allowedTypes: PASSENGER_VEHICLE_TYPES } : {})}
-          />
+          <EditVehicleDialog vehicle={row} {...addableTypeProps} />
           <DeleteAction
             endpoint={`/fleet/vehicles/${row.id}`}
             itemLabel={row.registrationNumber}
@@ -485,9 +471,9 @@ export function VehiclesPage() {
         <div className="w-[180px] space-y-1.5">
           <Label>Type</Label>
           <Select
-            value={vehicleType || 'ALL'}
+            value={vehicleClass || 'ALL'}
             onValueChange={(value) => {
-              setVehicleType(value === 'ALL' ? '' : value);
+              setVehicleClass(value === 'ALL' ? '' : (value as VehicleClass));
               setPage(1);
             }}
           >
@@ -496,9 +482,9 @@ export function VehiclesPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="ALL">Any type</SelectItem>
-              {(types.data ?? []).map((option) => (
-                <SelectItem key={option.type} value={option.type}>
-                  {option.label}
+              {filterClasses.map((definition) => (
+                <SelectItem key={definition.id} value={definition.id}>
+                  {definition.label}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -542,7 +528,7 @@ export function VehiclesPage() {
               onClick={() => {
                 setSearch('');
                 setCapability('');
-                setVehicleType('');
+                setVehicleClass('');
                 setStatus('');
               }}
             >
@@ -581,12 +567,11 @@ export function VehiclesPage() {
               ]}
               footer={
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs text-muted-foreground">{row.typeLabel}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {[row.classLabel, row.categoryLabel].filter(Boolean).join(' · ')}
+                  </span>
                   <div className="flex items-center gap-0.5">
-                    <EditVehicleDialog
-                      vehicle={row}
-                      {...(isTravelOperator ? { allowedTypes: PASSENGER_VEHICLE_TYPES } : {})}
-                    />
+                    <EditVehicleDialog vehicle={row} {...addableTypeProps} />
                     <DeleteAction
                       endpoint={`/fleet/vehicles/${row.id}`}
                       itemLabel={row.registrationNumber}

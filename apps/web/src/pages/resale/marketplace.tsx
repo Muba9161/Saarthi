@@ -6,10 +6,13 @@ import {
   Feature,
   Permission,
   VEHICLE_CONDITION_LABELS,
+  VEHICLE_CLASSES,
   VehicleCondition,
-  VehicleType,
+  describeVehicle,
   formatRegistrationNumber,
-  humanizeEnum,
+  vehicleTypesOfClass,
+  type VehicleClass,
+  type VehicleType,
 } from '@saarthi/shared';
 import { api } from '@/lib/api-client';
 import type { Paginated } from '@/lib/api-types';
@@ -132,7 +135,13 @@ function ListingCard({ listing }: { listing: MarketplaceListing }) {
 
         <div className="flex flex-wrap gap-1.5">
           <Badge variant="secondary" size="sm">
-            {humanizeEnum(listing.vehicle.vehicleType)}
+            {(() => {
+              const kind = describeVehicle({
+                vehicleType: listing.vehicle.vehicleType as VehicleType,
+                truckType: listing.vehicle.truckType,
+              });
+              return kind.kindLabel ?? kind.classLabel;
+            })()}
           </Badge>
           <Badge variant="muted" size="sm">
             {VEHICLE_CONDITION_LABELS[listing.condition]}
@@ -175,7 +184,9 @@ export function ResaleMarketplacePage() {
   const { can, hasFeature } = useAuth();
   const [page, setPage] = React.useState(1);
   const [search, setSearch] = React.useState('');
-  const [vehicleType, setVehicleType] = React.useState('');
+  /** The class filter — the listings asked for are the types at home in it. */
+  const [vehicleClass, setVehicleClass] = React.useState<VehicleClass | ''>('');
+  const vehicleType = vehicleClass ? vehicleTypesOfClass(vehicleClass).join(',') : '';
   const [condition, setCondition] = React.useState('');
   const [maxPrice, setMaxPrice] = React.useState('');
   const [maxOdometerKm, setMaxOdometerKm] = React.useState('');
@@ -231,7 +242,7 @@ export function ResaleMarketplacePage() {
 
   const clear = (): void => {
     setSearch('');
-    setVehicleType('');
+    setVehicleClass('');
     setCondition('');
     setMaxPrice('');
     setMaxOdometerKm('');
@@ -275,17 +286,19 @@ export function ResaleMarketplacePage() {
           <div className="space-y-1.5">
             <Label>Type</Label>
             <Select
-              value={vehicleType || 'ALL'}
-              onValueChange={(value) => onFilterChange(setVehicleType)(value === 'ALL' ? '' : value)}
+              value={vehicleClass || 'ALL'}
+              onValueChange={(value) =>
+                onFilterChange(setVehicleClass)(value === 'ALL' ? '' : (value as VehicleClass))
+              }
             >
               <SelectTrigger>
                 <SelectValue placeholder="Any type" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="ALL">Any type</SelectItem>
-                {Object.values(VehicleType).map((type) => (
-                  <SelectItem key={type} value={type}>
-                    {humanizeEnum(type)}
+                {VEHICLE_CLASSES.map((definition) => (
+                  <SelectItem key={definition.id} value={definition.id}>
+                    {definition.label}
                   </SelectItem>
                 ))}
               </SelectContent>

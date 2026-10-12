@@ -36,7 +36,7 @@ import androidx.compose.ui.unit.dp
 import com.saarthi.driver.R
 import com.saarthi.driver.data.DriverPreferences
 import com.saarthi.driver.ui.DriverViewModel
-import com.saarthi.driver.ui.design.BrandMark
+import com.saarthi.driver.ui.design.BrandLockup
 import com.saarthi.driver.ui.design.CircleButton
 import com.saarthi.driver.ui.design.Ease
 import com.saarthi.driver.ui.design.Eyebrow
@@ -96,7 +96,7 @@ fun ProfileSheet(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    BrandMark(height = 36.dp)
+                    BrandLockup(height = 52.dp)
                     Column(Modifier.weight(1f)) {
                         Eyebrow(stringResource(R.string.header_profile_eyebrow))
                         Text(stringResource(R.string.header_profile), style = SType.headerTitle, color = c.fg, maxLines = 1)

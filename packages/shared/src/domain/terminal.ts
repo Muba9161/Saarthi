@@ -29,6 +29,7 @@ import type {
   AlertSeverity,
   DeviceNetworkType,
   DeviceSubsystemStatus,
+  ExternalNavigationApp,
   NearbyCategory,
   TelemetryMetric,
   TerminalChecklistItemKind,
@@ -866,7 +867,10 @@ export const TERMINAL_SERVICE_CATEGORIES = [
   { key: 'TYRE', label: 'Tyres & battery', categories: ['TYRE_SHOP'] },
   { key: 'PARKING', label: 'Truck parking', categories: ['PARKING'] },
   { key: 'FOOD', label: 'Food & rest', categories: ['FOOD', 'REST_AREA'] },
-  { key: 'HOSPITAL', label: 'Hospital', categories: ['HOSPITAL', 'PHARMACY'] },
+  // Hospitals and clinics only. A driver hurt on the road looking for a
+  // hospital must not be handed the nearest chemist's counter.
+  { key: 'HOSPITAL', label: 'Hospital', categories: ['HOSPITAL'] },
+  { key: 'PHARMACY', label: 'Medical store', categories: ['PHARMACY'] },
   { key: 'POLICE', label: 'Police', categories: ['POLICE'] },
   { key: 'WEIGHBRIDGE', label: 'Weighbridge', categories: ['WEIGHBRIDGE'] },
 ] as const satisfies readonly {
@@ -1082,6 +1086,17 @@ export interface TerminalServiceResult {
   distance: MeasuredDistance;
   /** Which directory the record came from, for attribution. */
   source: string;
+  /** The chain, e.g. "Indian Oil", as the map tags it. */
+  brand: string | null;
+  /** Who runs it, when the map says and it differs from the brand. */
+  operator: string | null;
+  website: string | null;
+  /** What a pump says it sells: `DIESEL`, `TRUCK_DIESEL`, `CNG`, `LPG`. Empty when unsaid. */
+  fuels: string[];
+  /** The map marks it as taking heavy vehicles (`true`) or refusing them (`false`). */
+  hgv: boolean | null;
+  /** The live directory was unreachable and this is Saarthi's last copy. */
+  stale: boolean;
 }
 
 export interface TerminalServicesResponse {
@@ -1188,6 +1203,10 @@ export interface TerminalTripStopView {
   /** PENDING | ARRIVED | DEPARTED | SKIPPED — see `TripStopStatus`. */
   status: string;
   plannedArrival: string | null;
+  /** When the vehicle's GPS shows it reached this stop. Not a confirmation — see `stop-visit`. */
+  reachedAt: string | null;
+  /** When the vehicle's GPS shows it left again. */
+  leftAt: string | null;
 }
 
 /**
@@ -1255,6 +1274,10 @@ export interface TerminalTripView {
    * somebody else, which is a thing to display, not a reason to hide the job.
    */
   assignedToSignedInDriver: boolean;
+  /** The driver added this trip from the app; the fleet did not dispatch it. */
+  driverCreated: boolean;
+  /** The navigation app the driver handed this trip to, while they follow it there. */
+  navigationHandoff: ExternalNavigationApp | null;
 }
 
 /**

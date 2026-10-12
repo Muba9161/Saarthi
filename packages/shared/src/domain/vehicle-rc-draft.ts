@@ -53,8 +53,11 @@ function vehicleTypeFrom(record: VehicleRcRecord): VehicleType | null {
   const description = text(record.vehicleClass, record.vehicleCategory, record.bodyType);
   if (!description) return null;
 
-  const threeWheeler = /THREE WHEELER|3W|E-?RICKSHAW|AUTO RICKSHAW/.test(description);
-  if (threeWheeler) return isGoods(description) ? VehicleType.TEMPO : VehicleType.AUTO_RICKSHAW;
+  // A goods three-wheeler is a light goods carrier — stored as a pickup with
+  // the cargo three-wheeler category, never as a tempo traveller (a passenger van).
+  if (THREE_WHEELER_CLASS.test(description)) {
+    return isGoods(description) ? VehicleType.PICKUP : VehicleType.AUTO_RICKSHAW;
+  }
   if (TWO_WHEELER_CLASS.test(description)) return VehicleType.TWO_WHEELER;
 
   if (isGoods(description)) {
@@ -93,7 +96,11 @@ function twoWheelerCategoryFrom(record: VehicleRcRecord): VehicleCategory | null
       ? VehicleCategory.ELECTRIC_SCOOTER
       : VehicleCategory.SCOOTER;
   }
-  if (saysMotorcycle && !saysScooter) return VehicleCategory.MOTORCYCLE;
+  if (saysMotorcycle && !saysScooter) {
+    return fuelTypeFrom(record.fuelType) === FuelType.ELECTRIC
+      ? VehicleCategory.ELECTRIC_MOTORCYCLE
+      : VehicleCategory.MOTORCYCLE;
+  }
   return null;
 }
 
@@ -101,6 +108,25 @@ function twoWheelerCategoryFrom(record: VehicleRcRecord): VehicleCategory | null
  * A car's body style, from the RC's body type — "SALOON", "HATCHBACK", "MUV".
  * Compact SUV and luxury are never on an RC; the owner picks those.
  */
+const THREE_WHEELER_CLASS = /THREE WHEELER|3W|E-?RICKSHAW|AUTO RICKSHAW/;
+
+function threeWheelerCategoryFrom(record: VehicleRcRecord): VehicleCategory {
+  const description = text(record.vehicleClass, record.vehicleCategory, record.bodyType);
+  if (/E-?RICKSHAW/.test(description) || fuelTypeFrom(record.fuelType) === FuelType.ELECTRIC) {
+    return VehicleCategory.E_RICKSHAW;
+  }
+  return VehicleCategory.AUTO_RICKSHAW;
+}
+
+/** A bus's kind, only where its class or body says so. */
+function busCategoryFrom(record: VehicleRcRecord): VehicleCategory | null {
+  const description = text(record.vehicleClass, record.vehicleCategory, record.bodyType);
+  if (/SLEEPER/.test(description)) return VehicleCategory.SLEEPER_BUS;
+  if (/EDUCATIONAL|SCHOOL/.test(description)) return VehicleCategory.SCHOOL_BUS;
+  if (/MINI ?BUS/.test(description)) return VehicleCategory.MINI_BUS;
+  return null;
+}
+
 function carCategoryFrom(record: VehicleRcRecord): VehicleCategory | null {
   const body = text(record.bodyType);
   if (!body) return null;
@@ -113,6 +139,12 @@ function carCategoryFrom(record: VehicleRcRecord): VehicleCategory | null {
 
 function categoryFrom(record: VehicleRcRecord, vehicleType: VehicleType | null): VehicleCategory | null {
   if (vehicleType === VehicleType.TWO_WHEELER) return twoWheelerCategoryFrom(record);
+  if (vehicleType === VehicleType.AUTO_RICKSHAW) return threeWheelerCategoryFrom(record);
+  if (vehicleType === VehicleType.BUS) return busCategoryFrom(record);
+  if (vehicleType === VehicleType.PICKUP) {
+    const description = text(record.vehicleClass, record.vehicleCategory, record.bodyType);
+    return THREE_WHEELER_CLASS.test(description) ? VehicleCategory.CARGO_THREE_WHEELER : null;
+  }
   if (
     vehicleType === VehicleType.CAR ||
     vehicleType === VehicleType.TAXI ||
@@ -179,7 +211,7 @@ function modelName(record: VehicleRcRecord): string | null {
 
 export function vehicleDraftFromRc(record: VehicleRcRecord): VehicleRcDraft {
   const vehicleType = vehicleTypeFrom(record);
-  const carriesGoods = vehicleType === VehicleType.TRUCK || vehicleType === VehicleType.PICKUP || vehicleType === VehicleType.TEMPO;
+  const carriesGoods = vehicleType === VehicleType.TRUCK || vehicleType === VehicleType.PICKUP;
   // A two-wheeler's RC lists a pillion as a seat; the type has no seat count.
   const seats =
     vehicleType === null || vehicleSupports(vehicleType, VehicleCapability.PASSENGER_CAPACITY);

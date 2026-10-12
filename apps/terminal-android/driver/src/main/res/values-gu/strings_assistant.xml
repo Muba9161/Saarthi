@@ -18,4 +18,7 @@
     <string name="assistant_suggest_parking">મારી નજીક ટ્રક પાર્કિંગ શોધો</string>
     <string name="assistant_ask_hint">Saarthi ને પૂછો</string>
     <string name="assistant_send">મોકલો</string>
+    <string name="assistant_idle_wake">માઇક ટૅપ કરો, અથવા “Hey Saarthi” બોલો.</string>
+    <string name="assistant_volume_off">ફોનનો મીડિયા અવાજ બંધ છે, તેથી Saarthi સંભળાશે નહીં.</string>
+    <string name="assistant_volume_up">અવાજ વધારો</string>
 </resources>

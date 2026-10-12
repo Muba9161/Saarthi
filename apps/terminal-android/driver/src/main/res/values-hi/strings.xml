@@ -260,13 +260,9 @@
     <string name="hours_break_due">आप बिना आराम किए %1$s से गाड़ी चला रहे हैं। किसी सुरक्षित जगह रुककर आराम करें।</string>
     <string name="hours_shift_soon">आज %1$s स्टीयरिंग पर। आपकी रोज़ की सीमा पास है।</string>
     <string name="hours_shift_due">आज %1$s स्टीयरिंग पर। यही सीमा है - जब सुरक्षित हो, ड्यूटी ख़त्म करें।</string>
-    <string name="stat_fastag">FASTag</string>
     <string name="stat_fuel">फ़्यूल</string>
     <string name="stat_today">आज</string>
     <string name="stat_at_wheel">स्टीयरिंग पर</string>
-    <string name="fastag_not_linked">लिंक नहीं है</string>
-    <string name="fastag_low">बैलेंस कम है</string>
-    <string name="fastag_unknown">बैलेंस की जानकारी नहीं मिली</string>
     <string name="fuel_diesel">डीज़ल</string>
     <string name="fuel_petrol">पेट्रोल</string>
     <string name="fuel_cng">CNG</string>
@@ -291,7 +287,6 @@
     <string name="dispatch_routing">रास्ता निकाला जा रहा है…</string>
     <string name="home_quick_actions">क्विक एक्शन</string>
     <string name="home_action_nearby">आसपास</string>
-    <string name="home_action_fuel">फ़्यूल पर्ची</string>
     <string name="home_action_check">सेफ़्टी चेक</string>
     <string name="home_action_notices">सूचनाएँ</string>
     <string name="home_start_check">अपनी सेफ़्टी चेक शुरू करें</string>
@@ -391,7 +386,6 @@
     <string name="toast_trip_ended">ट्रिप ख़त्म हुई। आपके फ़्लीट के पास इसका रिकॉर्ड है।</string>
     <string name="toast_route_drawn">%1$s तक का रास्ता मैप पर दिखा दिया गया है।</string>
     <string name="toast_route_failed">हमसफ़र वहाँ तक का रास्ता नहीं निकाल सका। थोड़ी देर में फिर कोशिश करें।</string>
-    <string name="toast_fuel_saved">फ़्यूल पर्ची सेव हो गई।</string>
     <string name="toast_instruments_on">मीटर मैप पर वापस आ गए।</string>
     <string name="toast_instruments_off">मीटर मैप से छिपा दिए गए।</string>
     <string name="sos_title">इमरजेंसी भेजें?</string>
@@ -427,7 +421,7 @@
     <string name="appearance_phone">फ़ोन जैसा</string>
     <string name="appearance_light">लाइट</string>
     <string name="appearance_dark">डार्क</string>
-    <string name="profile_appearance_note">लाइव मैप हमेशा डार्क रहता है, ताकि रात में आपकी आँखें सड़क के हिसाब से ढली रहें।</string>
+    <string name="profile_appearance_note">लाइव मैप भी इसी सेटिंग के साथ बदलता है, ताकि दिन में साफ़ पढ़ा जा सके और रात में आँखों को आराम रहे।</string>
     <string name="profile_language">भाषा</string>
     <string name="profile_security">साइन इन और सुरक्षा</string>
     <string name="profile_on">चालू</string>
@@ -503,4 +497,42 @@
     <string name="nearby_pin">पिन %1$d, %2$s</string>
     <string name="nearby_footnote_straight">ये सीधी लाइन की दूरियाँ हैं; असली रास्ता लंबा है, कभी-कभी बहुत ज़्यादा लंबा।</string>
     <string name="nearby_footnote">जगहों की जानकारी OpenStreetMap योगदानकर्ताओं से है, इसलिए कुछ जानकारी पुरानी हो सकती है। अगर आप किसी जगह पर निर्भर हैं, तो पहले फ़ोन कर लें।</string>
+
+    <!-- Nearby services -->
+    <string name="nearby_cat_pharmacy">मेडिकल</string>
+    <string name="nearby_title_pharmacy">मेडिकल स्टोर</string>
+    <string name="nearby_trucks_welcome">ट्रक आ सकते हैं</string>
+    <string name="nearby_truck_diesel">ट्रक डीज़ल</string>
+    <string name="nearby_failed_offline">अभी सिग्नल नहीं है। फ़ोन फिर से ऑनलाइन होते ही जगहें लोड हो जाएँगी।</string>
+    <string name="nearby_failed_busy">मैप की जगहों की सूची अभी व्यस्त है। एक मिनट बाद फिर कोशिश करें।</string>
+    <string name="nearby_stale">जगहों की लाइव सूची तक नहीं पहुँच सके, इसलिए ये वे जगहें हैं जो Saarthi ने यहाँ पिछली बार देखी थीं।</string>
+    <string name="nearby_footnote_pumps">फ़्यूल पंप की जानकारी तेल कंपनियों की आउटलेट सूची से है।</string>
+    <string name="nearby_call_place">%1$s को फ़ोन करें</string>
+
+    <!-- Expense slip shortcut -->
+    <string name="home_action_expense">ख़र्च की पर्ची</string>
+    <string name="toast_expense_saved">पर्ची सेव हो गई।</string>
+
+    <!-- Trip card note -->
+    <string name="dispatch_your_note">आपका नोट</string>
+
+    <!-- Fuel rate -->
+    <string name="rate_state_average">%1$s का औसत</string>
+    <string name="profile_wake_word">“Hey Saarthi” से बुलाएँ</string>
+    <string name="profile_wake_word_on">ऐप खुला हो तो बिना हाथ लगाए पूछें। सुनते समय माइक का निशान दिखता है।</string>
+    <string name="profile_wake_word_off">Saarthi तभी सुनता है जब आप माइक दबाते हैं</string>
+    <string name="toast_wake_word_on">बिना हाथ लगाए पूछने के लिए “Hey Saarthi” बोलें।</string>
+    <string name="toast_wake_word_off">“Hey Saarthi” बंद है। पूछने के लिए माइक दबाएँ।</string>
+    <string name="profile_wake_word_unavailable">इस फ़ोन में ऑफ़लाइन स्पीच नहीं है, इसलिए Saarthi तभी सुनता है जब आप माइक दबाते हैं</string>
+    <string name="nav_google_open">Google Maps में नेविगेट करें</string>
+    <string name="nav_google_reopen">Google Maps खोलें</string>
+    <string name="nav_google_title">Google Maps रास्ता बता रहा है</string>
+    <string name="nav_google_sub">Saarthi रिकॉर्ड करता रहेगा · %1$s</string>
+    <string name="nav_use_saarthi">Saarthi पर लौटें</string>
+    <string name="arrival_reached">आप %1$s पहुँच गए हैं</string>
+    <string name="arrival_since">आपका GPS आपको %1$s से यहाँ दिखा रहा है। पुष्टि करें ताकि फ़्लीट के पास सही समय रहे।</string>
+    <string name="arrival_confirm_body">आपका GPS आपको मंज़िल पर दिखा रहा है। पुष्टि करें ताकि फ़्लीट के पास सही समय रहे।</string>
+    <string name="arrival_confirm">पहुँच गए</string>
+    <string name="arrival_confirming">दर्ज हो रहा है…</string>
+    <string name="arrival_failed">Saarthi से संपर्क नहीं हो पाया। थोड़ी देर में फिर कोशिश करें।</string>
 </resources>

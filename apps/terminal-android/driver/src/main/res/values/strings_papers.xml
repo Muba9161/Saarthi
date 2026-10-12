@@ -13,10 +13,8 @@
     </plurals>
 
     <!-- Filter chips and owners -->
-    <string name="papers_filter_all">All</string>
     <string name="papers_owner_vehicle">Vehicle</string>
     <string name="papers_owner_yours">Yours</string>
-    <string name="papers_chip">%1$s · %2$d</string>
     <string name="papers_sub">%1$s · %2$s</string>
 
     <!-- Expiry pill -->
@@ -42,16 +40,104 @@
     <!-- Opening a paper -->
     <string name="papers_open_action">Open</string>
     <string name="papers_opening">Opening %1$s.</string>
-    <string name="papers_opening_pdf">Opening %1$s in your PDF reader.</string>
     <string name="papers_not_saved">That one is not on this phone yet. Open it once where there is a signal and it will stay.</string>
     <string name="papers_no_viewer">Nothing on this phone can open this kind of file. Install a PDF or image viewer, then try again.</string>
 
     <!-- States -->
     <string name="papers_loading">Loading your papers</string>
-    <string name="papers_none_vehicle">No papers for this vehicle are on record.</string>
-    <string name="papers_none_yours">None of your own papers are on record.</string>
-    <string name="papers_empty_title">No papers on record</string>
-    <string name="papers_empty_body">Your fleet has not added any papers for you or this vehicle yet. Ask the office to upload them.</string>
     <string name="papers_error_title">Could not load your papers</string>
     <string name="papers_retry">Try again</string>
+
+    <string name="papers_folder_rc">Registration (RC)</string>
+    <string name="papers_folder_insurance">Insurance</string>
+    <string name="papers_folder_fitness">Fitness</string>
+    <string name="papers_folder_permit">Permit</string>
+    <string name="papers_folder_puc">Pollution (PUC)</string>
+    <string name="papers_folder_road_tax">Road tax</string>
+    <string name="papers_folder_photos">Photos</string>
+    <string name="papers_folder_qr">QR sticker</string>
+    <string name="papers_folder_other">Other files</string>
+    <string name="papers_folder_licence">Driving licence</string>
+    <string name="papers_folder_identity">Identity proof</string>
+    <string name="papers_folder_address">Address proof</string>
+    <string name="papers_folder_aadhaar">Aadhaar card</string>
+    <string name="papers_folder_pan">PAN card</string>
+    <string name="papers_folder_voter">Voter ID</string>
+    <string name="papers_folder_photo">Photograph</string>
+    <string name="papers_folder_medical">Medical certificate</string>
+    <string name="papers_folder_police">Police verification</string>
+    <string name="papers_status_valid">Valid</string>
+    <string name="papers_status_expiring">Expiring</string>
+    <string name="papers_status_expired">Expired</string>
+    <string name="papers_status_rejected">Rejected</string>
+    <string name="papers_status_missing">Missing</string>
+    <string name="papers_status_optional">Optional</string>
+    <string name="papers_status_on_file">On file</string>
+    <string name="papers_qr_meta">Shown on the windscreen</string>
+    <string name="papers_from_rto">From the RTO</string>
+    <string name="papers_folder_empty">Nothing in this folder yet. Your fleet adds papers from the web.</string>
+    <string name="papers_folder_no_scan">No scanned copy yet. The details above are from the RTO register.</string>
+    <string name="papers_photos_none">No photographs of this vehicle yet.</string>
+    <string name="papers_photo_alt">Vehicle photograph</string>
+    <string name="papers_qr_none">The QR sticker could not be shown. Open this again where there is a signal.</string>
+    <string name="papers_qr_body">A scan of this code opens this vehicle on Saarthi.</string>
+    <string name="papers_register_title">RTO register</string>
+    <string name="papers_valid_till">Valid till %1$s</string>
+    <string name="papers_till">Till %1$s</string>
+    <string name="papers_not_published">Not published</string>
+    <string name="papers_rc_title">Virtual RC</string>
+    <string name="papers_rc_verified">Verified</string>
+    <string name="papers_rc_fetched">From the RTO register · %1$s</string>
+    <string name="papers_rc_validity">Validity</string>
+    <string name="papers_rc_details">Details</string>
+    <string name="papers_rc_insurance">Insurance</string>
+    <string name="papers_rc_puc">Pollution (PUC)</string>
+    <string name="papers_rc_fitness">Fitness</string>
+    <string name="papers_rc_tax">Road tax</string>
+    <string name="papers_rc_permit">Permit</string>
+    <string name="papers_rc_national_permit">National permit</string>
+    <string name="papers_rc_owner">Owner</string>
+    <string name="papers_rc_registered">Registered on</string>
+    <string name="papers_rc_status">Status</string>
+    <string name="papers_rc_class">Class</string>
+    <string name="papers_rc_fuel">Fuel</string>
+    <string name="papers_rc_colour">Colour</string>
+    <string name="papers_rc_made">Manufactured</string>
+    <string name="papers_rc_chassis">Chassis no.</string>
+    <string name="papers_rc_engine">Engine no.</string>
+    <string name="papers_rc_rto">Registering authority</string>
+    <string name="papers_rc_seats">Seats</string>
+    <string name="papers_rc_weight">Gross weight</string>
+    <string name="papers_rc_financer">Financed by</string>
+    <string name="papers_rc_blacklist">Blacklist</string>
+    <string name="papers_rc_note">A copy of the RTO record for reference. Carry the original RC or its DigiLocker copy when you drive.</string>
+    <string name="papers_licence_title">Driving licence</string>
+    <string name="papers_licence_verified">Verified</string>
+    <string name="papers_licence_from_rto">From the RTO register</string>
+    <string name="papers_licence_from_profile">As entered on your profile</string>
+    <string name="papers_licence_transport">Transport (commercial)</string>
+    <string name="papers_licence_non_transport">Non-transport</string>
+    <string name="papers_licence_classes">Vehicle classes</string>
+    <string name="papers_licence_issued">Issued on</string>
+    <string name="papers_licence_authority">Issued by</string>
+    <string name="papers_licence_dob">Date of birth</string>
+    <string name="papers_licence_blood">Blood group</string>
+
+    <plurals name="papers_files">
+        <item quantity="one">%d file</item>
+        <item quantity="other">%d files</item>
+    </plurals>
+    <plurals name="papers_photos">
+        <item quantity="one">%d photo</item>
+        <item quantity="other">%d photos</item>
+    </plurals>
+    <string name="papers_tile_checking">Checking papers…</string>
+    <string name="papers_tile_failed">Could not load</string>
+    <string name="papers_tile_none">None on file yet</string>
+    <string name="papers_tile_all_valid">All valid</string>
+    <string name="papers_tile_next_due">Next: %1$s · %2$s</string>
+    <plurals name="papers_tile_on_file">
+        <item quantity="one">%d paper on file</item>
+        <item quantity="other">%d papers on file</item>
+    </plurals>
 </resources>

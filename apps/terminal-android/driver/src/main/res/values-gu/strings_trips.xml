@@ -35,4 +35,34 @@
     <string name="trips_error_title">તમારી ટ્રિપ લોડ ન થઈ શકી</string>
     <string name="trips_error_body">Saarthi અત્યારે તમારા ફ્લીટ સુધી પહોંચી શક્યું નહીં. થોડી વાર પછી ફરી પ્રયાસ કરો.</string>
     <string name="trips_retry">ફરી પ્રયાસ કરો</string>
+
+    <!-- Up next and queued trips -->
+    <string name="trips_add">ટ્રિપ ઉમેરો</string>
+    <string name="trips_up_next">હવે પછી</string>
+    <string name="trips_queued">કતારમાં</string>
+    <string name="trips_from_fleet">તમારા ફ્લીટ તરફથી</string>
+    <string name="trips_added_by_you">તમે ઉમેરેલી</string>
+    <string name="trips_section_next">હવે પછી</string>
+    <string name="trips_section_queued">તેના પછી રાહ જોતી</string>
+    <string name="toast_trip_added">ટ્રિપ ઉમેરાઈ.</string>
+    <string name="toast_trip_queued">ટ્રિપ ઉમેરાઈ. તે તમારા ફ્લીટની ટ્રિપ પછી શરૂ થશે.</string>
+
+    <!-- Adding a trip -->
+    <string name="add_trip_title">ટ્રિપ ઉમેરો</string>
+    <string name="add_trip_lead">તમે ક્યાં જાઓ છો તે પસંદ કરો. Saarthi રસ્તો શોધીને તમારા ફ્લીટને જણાવશે.</string>
+    <string name="add_trip_from">ક્યાંથી</string>
+    <string name="add_trip_to">ક્યાં સુધી</string>
+    <string name="add_trip_here">તમે અત્યારે જ્યાં છો</string>
+    <string name="add_trip_pick_start">ક્યાંથી શરૂ કરો છો તે પસંદ કરો</string>
+    <string name="add_trip_pick_destination">ક્યાં જાઓ છો તે પસંદ કરો</string>
+    <string name="add_trip_change">બદલો</string>
+    <string name="add_trip_search_from">શરૂઆતની જગ્યા શોધો</string>
+    <string name="add_trip_search_to">જ્યાં જાઓ છો તે જગ્યા શોધો</string>
+    <string name="add_trip_routing">રસ્તો શોધી રહ્યા છીએ…</string>
+    <string name="add_trip_route_failed">અત્યારે રસ્તો શોધી શકાયો નહીં. તમે તો પણ ટ્રિપ ઉમેરી શકો છો.</string>
+    <string name="add_trip_notes">તમારા ફ્લીટ માટે નોંધ</string>
+    <string name="add_trip_queue_note">તમારા ફ્લીટની ટ્રિપ પહેલાં થશે. એ પૂરી થયા પછી આ ટ્રિપ શરૂ થશે.</string>
+    <string name="add_trip_create">ટ્રિપ ઉમેરો</string>
+    <string name="add_trip_queue">ફ્લીટની ટ્રિપ પછી ઉમેરો</string>
+    <string name="add_trip_creating">ઉમેરી રહ્યા છીએ…</string>
 </resources>

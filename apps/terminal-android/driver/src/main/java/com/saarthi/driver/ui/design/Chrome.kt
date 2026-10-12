@@ -90,7 +90,7 @@ fun StepBar(
                 )
             }
         }
-        BrandMark(height = 32.dp)
+        BrandLockup(height = 48.dp)
     }
 }
 
@@ -140,7 +140,7 @@ fun StepHeader(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        BrandMark(height = 36.dp)
+        BrandLockup(height = 52.dp)
         Column(Modifier.weight(1f)) {
             Eyebrow(eyebrow, color = eyebrowColor)
             Text(title, style = SType.headerTitle, color = Saarthi.colors.fg, maxLines = 1)

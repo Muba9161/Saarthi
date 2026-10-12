@@ -10,6 +10,7 @@ import {
   DEFAULT_TRACKER_PRODUCT,
   TRACKER_PRODUCTS,
   inclusiveOfGst,
+  trackerCharge,
   trackerProduct,
 } from '@saarthi/shared';
 import { prisma } from '../src/database/prisma';
@@ -577,7 +578,8 @@ describe('Subscription vehicle capacity', () => {
        * The money assertion.
        *
        * Two vehicles and one tracker on Business is one top-up at ₹99, GST
-       * included, and one ₹599 tracker with 18% GST added — ₹99 + ₹706.82.
+       * included, and one ₹599 tracker with 18% GST added and rounded up to end
+       * in 9 — ₹99 + ₹709.
        * Adding GST to the top-up would charge more than the price shown;
        * leaving it off the tracker would have Saarthi absorb the tax.
        *
@@ -600,10 +602,10 @@ describe('Subscription vehicle capacity', () => {
       const after = entry.afterData as unknown as { subtotal: number; gst: number; charged: number };
 
       // The plan itself is on trial, so only the add-ons are charged.
-      const tracker = trackerProduct(DEFAULT_TRACKER_PRODUCT).priceOneTime;
-      expect(after.charged).toBeCloseTo(VEHICLE_TOPUP.priceMonthly + tracker * (1 + GST_RATE), 2);
+      const tracker = trackerCharge(trackerProduct(DEFAULT_TRACKER_PRODUCT).priceOneTime);
+      expect(after.charged).toBeCloseTo(VEHICLE_TOPUP.priceMonthly + tracker.total, 2);
       expect(after.subtotal).toBeCloseTo(
-        inclusiveOfGst(VEHICLE_TOPUP.priceMonthly).subtotal + tracker,
+        inclusiveOfGst(VEHICLE_TOPUP.priceMonthly).subtotal + tracker.subtotal,
         2,
       );
       expect(after.subtotal + after.gst).toBeCloseTo(after.charged, 2);

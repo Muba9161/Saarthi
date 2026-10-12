@@ -18,4 +18,7 @@
     <string name="assistant_suggest_parking">मेरे पास ट्रक पार्किंग ढूँढें</string>
     <string name="assistant_ask_hint">Saarthi से पूछें</string>
     <string name="assistant_send">भेजें</string>
+    <string name="assistant_idle_wake">माइक दबाएँ, या “Hey Saarthi” बोलें।</string>
+    <string name="assistant_volume_off">फ़ोन की मीडिया आवाज़ बंद है, इसलिए Saarthi सुनाई नहीं देगा।</string>
+    <string name="assistant_volume_up">आवाज़ बढ़ाएँ</string>
 </resources>

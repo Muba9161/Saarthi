@@ -1,12 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Fuel slip (ui/shift/fuel) -->
-    <string name="fuel_title">Fuel slip</string>
     <string name="fuel_step_photo">Photo</string>
-    <string name="fuel_step_figures">Figures</string>
     <string name="fuel_step_saved">Saved</string>
     <string name="fuel_step_label">Step %1$d of %2$d: %3$s</string>
-    <string name="fuel_lead">Photograph the slip and type the two figures. No more paper to keep.</string>
     <string name="fuel_rear_camera">Rear camera</string>
     <string name="fuel_frame_hint">Fit the whole slip inside the frame.</string>
     <string name="fuel_photograph">Photograph the slip</string>
@@ -28,4 +25,19 @@
     <string name="fuel_saved_title">Saved</string>
     <string name="fuel_saved_body">Your fleet has the slip and the figures. You can throw the paper away.</string>
     <string name="fuel_add_another">Add another</string>
+
+    <string name="expense_title">Expense slip</string>
+    <string name="expense_lead">Photograph any slip — fuel, toll, parking, repairs, food — and type what it came to. No more paper to keep.</string>
+    <string name="expense_step_details">Details</string>
+    <string name="expense_kind_label">What was it for?</string>
+    <string name="expense_cat_fuel">Fuel</string>
+    <string name="expense_cat_toll">Toll</string>
+    <string name="expense_cat_parking">Parking</string>
+    <string name="expense_cat_repair">Repair</string>
+    <string name="expense_cat_food">Food</string>
+    <string name="expense_cat_loading">Loading</string>
+    <string name="expense_cat_challan">Challan</string>
+    <string name="expense_cat_other">Other</string>
+    <string name="expense_vendor">Paid to</string>
+    <string name="expense_note">Note</string>
 </resources>

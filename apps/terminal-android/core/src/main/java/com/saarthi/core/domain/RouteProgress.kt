@@ -1,6 +1,7 @@
 package com.saarthi.core.domain
 
 import com.saarthi.core.network.RouteDto
+import com.saarthi.core.network.RoutePointDto
 import com.saarthi.core.network.RouteStepDto
 import kotlin.math.abs
 import kotlin.math.atan2
@@ -48,6 +49,12 @@ class RoutePath private constructor(
 
     /** The route's full length, in metres. */
     val totalMetres: Double get() = cumulative.lastOrNull() ?: 0.0
+
+    /**
+     * A road polyline rather than a trip's two ends joined by a straight line —
+     * the only kind a vehicle can sensibly be said to have left.
+     */
+    val isRoad: Boolean get() = latitudes.size > 2
 
     /** One instruction, and where on the line it happens. */
     data class StepOnPath(
@@ -187,30 +194,10 @@ class RoutePath private constructor(
          * amount of thinking to force.
          */
         fun of(route: RouteDto): RoutePath? {
-            val geometry = route.geometry
-            if (geometry.size < 2) return null
-
-            val size = geometry.size
-            val latitudes = DoubleArray(size)
-            val longitudes = DoubleArray(size)
-            val cumulative = DoubleArray(size)
-
-            for (index in 0 until size) {
-                latitudes[index] = geometry[index].latitude
-                longitudes[index] = geometry[index].longitude
-                cumulative[index] = if (index == 0) {
-                    0.0
-                } else {
-                    cumulative[index - 1] + haversineMetres(
-                        latitudes[index - 1],
-                        longitudes[index - 1],
-                        latitudes[index],
-                        longitudes[index],
-                    )
-                }
-            }
-
-            val path = RoutePath(latitudes, longitudes, cumulative, emptyList())
+            val path = of(route.geometry) ?: return null
+            val latitudes = path.latitudes
+            val longitudes = path.longitudes
+            val cumulative = path.cumulative
 
             /*
              * Each step, placed on the line.
@@ -238,6 +225,33 @@ class RoutePath private constructor(
                 // would otherwise make `nextStep` skip everything after it.
                 placed.sortedBy { it.alongMetres },
             )
+        }
+
+        /** The bare line, with no instructions — for measuring against a trip's plan. */
+        fun of(geometry: List<RoutePointDto>): RoutePath? {
+            if (geometry.size < 2) return null
+
+            val size = geometry.size
+            val latitudes = DoubleArray(size)
+            val longitudes = DoubleArray(size)
+            val cumulative = DoubleArray(size)
+
+            for (index in 0 until size) {
+                latitudes[index] = geometry[index].latitude
+                longitudes[index] = geometry[index].longitude
+                cumulative[index] = if (index == 0) {
+                    0.0
+                } else {
+                    cumulative[index - 1] + haversineMetres(
+                        latitudes[index - 1],
+                        longitudes[index - 1],
+                        latitudes[index],
+                        longitudes[index],
+                    )
+                }
+            }
+
+            return RoutePath(latitudes, longitudes, cumulative, emptyList())
         }
 
         private const val METRES_PER_DEGREE_LAT = 111_320.0

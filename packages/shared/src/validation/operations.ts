@@ -279,23 +279,26 @@ export type AnalyticsQuery = z.infer<typeof analyticsQuerySchema>;
 /** How many earlier messages travel with a question, and how long each may be. */
 export const AI_HISTORY_LIMIT = 10;
 
+/**
+ * The conversation so far, oldest first, so the copilot can follow "and what
+ * about last month?". Conversational context only: the copilot re-checks every
+ * figure with its tools rather than repeating one from here. Shared by the web
+ * chat and the driver app's assistant, which hold the same conversation.
+ */
+export const aiHistorySchema = z
+  .array(
+    z.object({
+      role: z.enum(['user', 'assistant']),
+      content: trimmedString(1, 4000),
+    }),
+  )
+  .max(AI_HISTORY_LIMIT)
+  .default([]);
+
 export const aiChatSchema = z.object({
   conversationId: uuidSchema.optional(),
   message: trimmedString(2, 2000),
-  /**
-   * The conversation so far, oldest first, so the copilot can follow "and
-   * what about last month?". Conversational context only: the copilot
-   * re-checks every figure with its tools rather than repeating one from here.
-   */
-  history: z
-    .array(
-      z.object({
-        role: z.enum(['user', 'assistant']),
-        content: trimmedString(1, 4000),
-      }),
-    )
-    .max(AI_HISTORY_LIMIT)
-    .default([]),
+  history: aiHistorySchema,
 });
 export type AiChatInput = z.infer<typeof aiChatSchema>;
 

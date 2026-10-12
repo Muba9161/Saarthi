@@ -13,15 +13,16 @@ import kotlinx.coroutines.flow.asStateFlow
  * has no "follow the phone" appearance and no instruments to hide, and a
  * setting added there would be one the tablet had to carry and ignore.
  *
- * Both values are observable, because each is changed on one screen (Profile)
- * and read on another (the theme, the Map tab) while both are on show.
+ * Every value is observable, because each is changed on one screen (Profile)
+ * and read on another (the theme, the Map tab, the assistant) while both are
+ * on show.
  */
 class DriverPreferences(context: Context, settings: TerminalSettings) {
 
     private val preferences =
         context.applicationContext.getSharedPreferences(FILE, Context.MODE_PRIVATE)
 
-    /** How the app is painted. The live map ignores this and stays dark. */
+    /** How the app is painted, the live map included. */
     enum class Appearance { PHONE, LIGHT, DARK }
 
     private val _appearance = MutableStateFlow(
@@ -52,9 +53,26 @@ class DriverPreferences(context: Context, settings: TerminalSettings) {
         _instruments.value = shown
     }
 
+    /**
+     * Whether "Hey Saarthi" is listened for while the app is open on a shift.
+     *
+     * On by default on a driver's own phone, which is in their hand or on
+     * their dash rather than fitted in somebody else's cab; the fitted tablet
+     * keeps its own setting, off. The phone shows its microphone dot while the
+     * phrase is listened for, and the switch in Profile turns it off.
+     */
+    private val _wakeWord = MutableStateFlow(preferences.getBoolean(KEY_WAKE_WORD, true))
+    val wakeWord: StateFlow<Boolean> = _wakeWord.asStateFlow()
+
+    fun setWakeWord(on: Boolean) {
+        preferences.edit().putBoolean(KEY_WAKE_WORD, on).apply()
+        _wakeWord.value = on
+    }
+
     private companion object {
         const val FILE = "saarthi_driver_preferences"
         const val KEY_APPEARANCE = "appearance"
         const val KEY_INSTRUMENTS = "instruments_on_map"
+        const val KEY_WAKE_WORD = "wake_word"
     }
 }

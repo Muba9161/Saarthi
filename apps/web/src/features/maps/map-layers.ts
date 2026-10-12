@@ -12,9 +12,11 @@ import type {
   LineString,
   Polygon,
 } from 'geojson';
-import type { LatLng } from '@saarthi/shared';
+import { TrackRouteState, trailRuns, type LatLng, type TrailPoint } from '@saarthi/shared';
 import {
   ROUTE_COLOURS,
+  TRAIL_CASING_COLOUR,
+  TRAIL_COLOURS,
   TERRAIN_EXAGGERATION,
   TERRAIN_SOURCE,
   TERRAIN_SOURCE_ID,
@@ -47,7 +49,7 @@ export const LAYER_IDS = {
   routeCasing: 'saarthi-route-casing',
   routeLine: 'saarthi-route-line',
   routeArrows: 'saarthi-route-arrows',
-  trailGlow: 'saarthi-trail-glow',
+  trailCasing: 'saarthi-trail-casing',
   trailLine: 'saarthi-trail-line',
 } as const;
 
@@ -58,10 +60,13 @@ const BUILDING_SOURCE_LAYER = 'building';
 
 const EMPTY: FeatureCollection<Geometry> = { type: 'FeatureCollection', features: [] };
 
-function lineFeature(points: readonly LatLng[]): Feature<LineString> {
+function lineFeature(
+  points: readonly LatLng[],
+  properties: Record<string, string> = {},
+): Feature<LineString> {
   return {
     type: 'Feature',
-    properties: {},
+    properties,
     geometry: {
       type: 'LineString',
       coordinates: points.map((point) => [point.longitude, point.latitude]),
@@ -328,21 +333,68 @@ const LINE_COLOURS = { driven: ROUTE_COLOURS.driven, ahead: ROUTE_COLOURS.line }
 const CASING_COLOURS = { driven: ROUTE_COLOURS.drivenCasing, ahead: ROUTE_COLOURS.casing };
 
 /**
+ * Each trail run's colour, read from the state `setTrailState` stamps on it.
+ *
+ * An unknown state falls back to the no-trip blue — the neutral colour — so a
+ * value added by a newer server can never paint a vehicle as off its route.
+ */
+const TRAIL_LINE_COLOUR: ExpressionSpecification = [
+  'match',
+  ['get', 'state'],
+  TrackRouteState.ON_ROUTE,
+  TRAIL_COLOURS.ON_ROUTE,
+  TrackRouteState.OFF_ROUTE,
+  TRAIL_COLOURS.OFF_ROUTE,
+  TrackRouteState.ALTERNATE,
+  TRAIL_COLOURS.ALTERNATE,
+  TRAIL_COLOURS.NO_TRIP,
+];
+
+/**
+ * Off-route runs draw above everything else in the trail. A vehicle that
+ * strays and comes back along the same road would otherwise have the way back
+ * painted green straight over the evidence that it left.
+ */
+const TRAIL_SORT_KEY: ExpressionSpecification = [
+  'match',
+  ['get', 'state'],
+  TrackRouteState.OFF_ROUTE,
+  3,
+  TrackRouteState.ALTERNATE,
+  2,
+  TrackRouteState.ON_ROUTE,
+  1,
+  0,
+];
+
+const TRAIL_WIDTH: DataDrivenPropertyValueSpecification<number> = [
+  'interpolate',
+  ['linear'],
+  ['zoom'],
+  5,
+  2.5,
+  14,
+  6,
+];
+
+/**
  * Creates the route and trail sources and layers. Safe to call on every style
  * load: existing layers are left alone, missing ones are rebuilt.
  */
 export function ensureOverlayLayers(map: MapLibreMap): void {
   const before = firstSymbolLayerId(map);
 
-  for (const id of [SOURCE_IDS.alternatives, SOURCE_IDS.route, SOURCE_IDS.trail]) {
+  for (const id of [SOURCE_IDS.alternatives, SOURCE_IDS.route]) {
     if (!hasSource(map, id)) {
-      // lineMetrics powers both the driven/remaining split and the trail fade.
+      // lineMetrics powers the driven/remaining split along the route.
       map.addSource(id, { type: 'geojson', data: EMPTY, lineMetrics: true });
     }
   }
 
-  if (!hasSource(map, SOURCE_IDS.accuracy)) {
-    map.addSource(SOURCE_IDS.accuracy, { type: 'geojson', data: EMPTY });
+  // The trail is coloured per run rather than along its length, so it needs
+  // no line metrics — and skipping them saves a pass over every vertex.
+  for (const id of [SOURCE_IDS.trail, SOURCE_IDS.accuracy]) {
+    if (!hasSource(map, id)) map.addSource(id, { type: 'geojson', data: EMPTY });
   }
 
   // The GPS accuracy halo sits beneath everything Saarthi draws: it is context
@@ -452,44 +504,38 @@ export function ensureOverlayLayers(map: MapLibreMap): void {
     );
   }
 
-  // Travelled trail: a soft glow plus a gradient line so the freshest section is
-  // brightest, which reads as direction of travel without any arrows.
-  if (!hasLayer(map, LAYER_IDS.trailGlow)) {
+  // Covered-path trail: one dark casing under every run, so the three state
+  // colours read the same on any basemap, and the trail stays outlined as its
+  // own line where it runs along the wider planned-route ribbon beneath it.
+  if (!hasLayer(map, LAYER_IDS.trailCasing)) {
     map.addLayer(
       {
-        id: LAYER_IDS.trailGlow,
+        id: LAYER_IDS.trailCasing,
         type: 'line',
         source: SOURCE_IDS.trail,
         layout: { 'line-cap': 'round', 'line-join': 'round' },
         paint: {
-          'line-color': ROUTE_COLOURS.trailHead,
-          'line-width': ['interpolate', ['linear'], ['zoom'], 5, 6, 14, 14],
-          'line-opacity': 0.2,
-          'line-blur': 6,
+          'line-color': TRAIL_CASING_COLOUR,
+          'line-width': ['interpolate', ['linear'], ['zoom'], 5, 4.5, 14, 9],
+          'line-opacity': 0.7,
         },
       },
       before,
     );
   }
 
+  // `line-color` rather than a `line-gradient`: a gradient overrides the colour
+  // outright, and the colour is what carries the route state.
   if (!hasLayer(map, LAYER_IDS.trailLine)) {
     map.addLayer(
       {
         id: LAYER_IDS.trailLine,
         type: 'line',
         source: SOURCE_IDS.trail,
-        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        layout: { 'line-cap': 'round', 'line-join': 'round', 'line-sort-key': TRAIL_SORT_KEY },
         paint: {
-          'line-gradient': [
-            'interpolate',
-            ['linear'],
-            ['line-progress'],
-            0,
-            ROUTE_COLOURS.trail,
-            1,
-            ROUTE_COLOURS.trailHead,
-          ],
-          'line-width': ['interpolate', ['linear'], ['zoom'], 5, 2.5, 14, 6],
+          'line-color': TRAIL_LINE_COLOUR,
+          'line-width': TRAIL_WIDTH,
           'line-opacity': 0.95,
         },
       },
@@ -552,9 +598,22 @@ export function setRouteState(map: MapLibreMap, state: RouteRenderState): void {
   }
 }
 
-/** Push the travelled trail geometry. */
-export function setTrailState(map: MapLibreMap, trail: readonly LatLng[] | undefined): void {
-  setGeoJson(map, SOURCE_IDS.trail, trail && trail.length >= 2 ? lineFeature(trail) : EMPTY);
+/**
+ * Push the covered-path trail: one line per run of a single route state, each
+ * carrying that state for the colour expression to read.
+ */
+export function setTrailState(map: MapLibreMap, trail: readonly TrailPoint[] | undefined): void {
+  const runs = trail && trail.length >= 2 ? trailRuns(trail) : [];
+  setGeoJson(
+    map,
+    SOURCE_IDS.trail,
+    runs.length > 0
+      ? {
+          type: 'FeatureCollection',
+          features: runs.map((run) => lineFeature(run.points, { state: run.state })),
+        }
+      : EMPTY,
+  );
 }
 
 /** Vertices used to approximate the accuracy circle — smooth at any zoom. */

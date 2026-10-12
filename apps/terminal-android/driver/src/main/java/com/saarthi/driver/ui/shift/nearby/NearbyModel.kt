@@ -9,7 +9,7 @@ import com.saarthi.core.telemetry.Position
 import com.saarthi.driver.R
 import com.saarthi.driver.ui.design.Lucide
 
-/** The eight kinds of place, keyed as the services endpoint names them. */
+/** The kinds of place, keyed as the services endpoint names them. */
 internal enum class ServiceKind(val key: String, @StringRes val label: Int, @StringRes val title: Int, val icon: String) {
     FUEL("FUEL", R.string.nearby_cat_fuel, R.string.nearby_title_fuel, Lucide.fuel),
     MECHANIC("MECHANIC", R.string.nearby_cat_mechanic, R.string.nearby_title_mechanic, Lucide.wrench),
@@ -17,6 +17,7 @@ internal enum class ServiceKind(val key: String, @StringRes val label: Int, @Str
     PARKING("PARKING", R.string.nearby_cat_parking, R.string.nearby_title_parking, Lucide.parking),
     FOOD("FOOD", R.string.nearby_cat_food, R.string.nearby_title_food, Lucide.food),
     HOSPITAL("HOSPITAL", R.string.nearby_cat_hospital, R.string.nearby_title_hospital, Lucide.hospital),
+    PHARMACY("PHARMACY", R.string.nearby_cat_pharmacy, R.string.nearby_title_pharmacy, Lucide.pill),
     POLICE("POLICE", R.string.nearby_cat_police, R.string.nearby_title_police, Lucide.shield),
     WEIGHBRIDGE("WEIGHBRIDGE", R.string.nearby_cat_weighbridge, R.string.nearby_title_weighbridge, Lucide.scale),
     ;
@@ -91,3 +92,35 @@ internal fun NearbyPlaceDto.meta(): String = listOfNotNull(
     address?.takeIf { it.isNotBlank() },
     if (open24Hours) stringResource(R.string.nearby_open_24h) else openingHours?.takeIf { it.isNotBlank() },
 ).joinToString(" · ")
+
+/**
+ * Who runs it and what it sells — "Indian Oil · Diesel · CNG" — when the
+ * directory says; empty otherwise, never guessed.
+ */
+@Composable
+internal fun NearbyPlaceDto.detail(): String = listOfNotNull(
+    brand?.takeIf { it.isNotBlank() && !name.contains(it, ignoreCase = true) },
+    *fuels.mapNotNull { fuelWord(it) }.toTypedArray(),
+    if (hgv == true) stringResource(R.string.nearby_trucks_welcome) else null,
+).joinToString(" · ")
+
+@Composable
+private fun fuelWord(fuel: String): String? = when (fuel) {
+    "DIESEL" -> stringResource(R.string.fuel_diesel)
+    "TRUCK_DIESEL" -> stringResource(R.string.nearby_truck_diesel)
+    "PETROL" -> stringResource(R.string.fuel_petrol)
+    "CNG" -> stringResource(R.string.fuel_cng)
+    "LPG" -> "LPG"
+    else -> null
+}
+
+/**
+ * The first number to dial, from what the map holds.
+ *
+ * OpenStreetMap often carries several, separated by semicolons, and with
+ * spaces or dashes a dialler would reject.
+ */
+internal fun NearbyPlaceDto.dialable(): String? =
+    phone?.split(';', ',', '/')
+        ?.map { part -> part.filter { it.isDigit() || it == '+' } }
+        ?.firstOrNull { it.count(Char::isDigit) >= 6 }

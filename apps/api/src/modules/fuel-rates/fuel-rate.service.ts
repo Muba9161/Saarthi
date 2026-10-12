@@ -3,7 +3,11 @@ import { config } from '../../config/env';
 import { cache } from '../../infra/cache';
 import { isAppError } from '../../lib/errors';
 import { logger } from '../../lib/logger';
-import { fuelRateProvider, fuelRatesEnabled } from '../../providers/fuel-rates';
+import {
+  fuelRateProvider,
+  fuelRatesEnabled,
+  type FuelRateScope,
+} from '../../providers/fuel-rates';
 
 /**
  * City fuel rates.
@@ -23,15 +27,25 @@ import { fuelRateProvider, fuelRatesEnabled } from '../../providers/fuel-rates';
 const serviceLogger = logger.child({ module: 'fuel-rates' });
 
 /**
+ * How long a rate missing some fuel is kept.
+ *
+ * Only ever applied when a page failed to load or could not be read. Caching
+ * that for the full TTL is how a petrol vehicle was shown "no rate" for hours
+ * in a city whose petrol rate was published all along.
+ */
+const INCOMPLETE_RATE_TTL_SECONDS = 10 * 60;
+
+/**
  * Cache key.
  *
  * Keyed on the resolved city and state, lower-cased, so "Gurugram", "GURGAON"
  * and "gurgaon" share one entry rather than billing three lookups for one city.
  */
-function cacheKey(query: CityFuelRateQuery): string {
+function cacheKey(query: CityFuelRateQuery, scope: FuelRateScope): string {
   return [
     'fuel-rate',
     fuelRateProvider.name,
+    scope,
     query.city.trim().toLowerCase(),
     (query.state ?? '').trim().toLowerCase(),
   ].join(':');
@@ -43,11 +57,17 @@ function cacheKey(query: CityFuelRateQuery): string {
  * Returns `null` when no rate can be had honestly — the feature is disabled,
  * the city is not covered, the publisher is down, or the page no longer parses.
  * Every one of those is a "show no price" outcome for the caller.
+ *
+ * `scope: 'state'` asks for the state-wide average instead, with `query.city`
+ * naming the state.
  */
-export async function getCityFuelRate(query: CityFuelRateQuery): Promise<CityFuelRate | null> {
+export async function getCityFuelRate(
+  query: CityFuelRateQuery,
+  scope: FuelRateScope = 'city',
+): Promise<CityFuelRate | null> {
   if (!fuelRatesEnabled) return null;
 
-  const key = cacheKey(query);
+  const key = cacheKey(query, scope);
 
   // A miss and a known-uncovered city are different things, and both must be
   // cached: without the second, an uncovered city re-fetches three pages on
@@ -59,15 +79,24 @@ export async function getCityFuelRate(query: CityFuelRateQuery): Promise<CityFue
   }
 
   let rate: CityFuelRate | null = null;
+  let ttlSeconds = config.fuelRates.cacheTtlSeconds;
 
   try {
     const provided = await fuelRateProvider.lookup({
       city: query.city,
       state: query.state ?? undefined,
+      scope,
     });
 
-    if (provided && hasAnyFuelRate({ ...provided, cached: false, retrievedAt: '' })) {
-      rate = { ...provided, retrievedAt: new Date().toISOString(), cached: false };
+    if (provided) {
+      const { incomplete, ...published } = provided;
+      const candidate: CityFuelRate = {
+        ...published,
+        retrievedAt: new Date().toISOString(),
+        cached: false,
+      };
+      if (hasAnyFuelRate(candidate)) rate = candidate;
+      if (incomplete) ttlSeconds = Math.min(ttlSeconds, INCOMPLETE_RATE_TTL_SECONDS);
     }
   } catch (error) {
     // Enrichment must not fail the request it decorates.
@@ -82,11 +111,7 @@ export async function getCityFuelRate(query: CityFuelRateQuery): Promise<CityFue
     return null;
   }
 
-  await cache.set(
-    key,
-    rate ?? { covered: false as const },
-    config.fuelRates.cacheTtlSeconds,
-  );
+  await cache.set(key, rate ?? { covered: false as const }, ttlSeconds);
 
   return rate;
 }

@@ -75,15 +75,13 @@ export function VehicleHero({
   const carriesFreight = vehicle.capabilities.includes(VehicleCapability.CARGO_CAPACITY);
   const carriesPassengers = vehicle.capabilities.includes(VehicleCapability.PASSENGER_CAPACITY);
 
-  const eyebrow = [vehicle.typeLabel, vehicle.categoryLabel].filter(Boolean).join(' · ');
+  const eyebrow = [vehicle.classLabel, vehicle.categoryLabel].filter(Boolean).join(' · ');
   const makeAndModel =
     [vehicle.manufacturer, vehicle.model, vehicle.year].filter(Boolean).join(' · ') || null;
   const verified = vehicle.verificationStatus === 'VERIFIED';
 
   // One fact per item, so a vehicle missing one simply has one fewer.
   const facts = [
-    // Body type only means something for a goods vehicle.
-    carriesFreight ? humanizeEnum(vehicle.truckType) : null,
     humanizeEnum(vehicle.fuelType),
     vehicle.colour,
     carriesFreight && vehicle.capacityTons !== null ? `${vehicle.capacityTons} t payload` : null,

@@ -133,9 +133,28 @@ describe('fuel rate parsing', () => {
     expect(low).toEqual({ status: 'implausible', price: 20 });
   });
 
-  it('reports absence when the labelled sentence is gone entirely', () => {
+  it('cannot identify a page that names no city at all', () => {
+    // A bot wall or an error page served with a 200. It proves nothing about
+    // whether the city is covered.
     const parsed = parseFuelRate('<html><body>Site under maintenance</body></html>', 'petrol', 'lucknow');
-    expect(parsed).toEqual({ status: 'absent' });
+    expect(parsed).toEqual({ status: 'unrecognised' });
+  });
+
+  it('reads the city from the title when the rate sentence is missing', () => {
+    // The real New Delhi fallback carries no "stands at" sentence at all.
+    const fallback =
+      '<html><head><title>Petrol price in New Delhi Today (10 October, 2026) | CarDekho.com</title></head>' +
+      '<body>Explore the daily, weekly, and monthly Petrol price growth trend</body></html>';
+    expect(parseFuelRate(fallback, 'petrol', 'kanpur')).toEqual({
+      status: 'wrong-city',
+      found: 'New Delhi',
+    });
+
+    // The right city's page without this fuel's figure: a real absence.
+    const noCng =
+      '<html><head><title>CNG price in Kanpur Today (10 October, 2026) | CarDekho.com</title></head>' +
+      '<body>No CNG outlets listed</body></html>';
+    expect(parseFuelRate(noCng, 'cng', 'kanpur')).toEqual({ status: 'absent' });
   });
 
   it('reads the publisher date, and invents none when absent', () => {
@@ -273,6 +292,40 @@ describe('city fuel rates', () => {
     await request({ method: 'GET', url: url('Nowhereville'), user });
 
     expect(fetchMock.mock.calls.length).toBe(callsAfterFirst);
+  });
+
+  it('keeps the fuels it read when another fuel page fails to load', async () => {
+    const fetchMock = vi.fn(async (input: unknown) => {
+      const target = String(input);
+      if (target.includes('/cng-price-in-')) throw new Error('ETIMEDOUT');
+      const fuel = target.includes('/diesel-price-in-') ? 'Diesel' : 'Petrol';
+      return htmlResponse(ratePage({ fuel, city: 'Kanpur', price: fuel === 'Diesel' ? '95.79' : '102.35' }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const response = await request<CityFuelRate>({ method: 'GET', url: url('Kanpur'), user });
+
+    // One slow page used to cost the vehicle every rate in the city.
+    expect(response.body.data.petrol?.price).toBe(102.35);
+    expect(response.body.data.diesel?.price).toBe(95.79);
+    expect(response.body.data.cng).toBeNull();
+  });
+
+  it('does not cache an unreadable publisher as an uncovered city', async () => {
+    // A bot wall: a 200 that names no city.
+    const fetchMock = vi.fn(async () => htmlResponse('<html><body>Access denied</body></html>'));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const first = await request<CityFuelRate | null>({ method: 'GET', url: url('Kanpur'), user });
+    expect(first.body.data).toBeNull();
+    const callsAfterFirst = fetchMock.mock.calls.length;
+
+    // The next lookup must ask again rather than serve hours of "no rate".
+    stubPublisher({ petrol: ratePage({ city: 'Kanpur', price: '102.35' }) });
+    const second = await request<CityFuelRate>({ method: 'GET', url: url('Kanpur'), user });
+
+    expect(callsAfterFirst).toBeGreaterThan(0);
+    expect(second.body.data.petrol?.price).toBe(102.35);
   });
 
   it('shows no rate rather than failing when the publisher is down', async () => {

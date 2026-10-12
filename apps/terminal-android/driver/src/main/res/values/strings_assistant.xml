@@ -20,4 +20,7 @@
     <string name="assistant_suggest_parking">Find truck parking near me</string>
     <string name="assistant_ask_hint">Ask Saarthi</string>
     <string name="assistant_send">Send</string>
+    <string name="assistant_idle_wake">Tap the mic, or say “Hey Saarthi”.</string>
+    <string name="assistant_volume_off">Your phone\'s media volume is off, so you can\'t hear Saarthi.</string>
+    <string name="assistant_volume_up">Turn up</string>
 </resources>

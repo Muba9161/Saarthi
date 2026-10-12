@@ -1,11 +1,12 @@
 import { PETROL_FUEL_FILTERS, fuelRateUnit, isPlausibleFuelRate } from '@saarthi/shared';
 import type { FuelRateEntry, PetrolFuelFilter } from '@saarthi/shared';
 import { config } from '../../config/env';
-import { errors } from '../../lib/errors';
+import { errors, isAppError } from '../../lib/errors';
 import { logger } from '../../lib/logger';
 import type {
   FuelRateLookup,
   FuelRateProvider,
+  FuelRateScope,
   ProviderCityFuelRate,
 } from './fuel-rate.provider';
 
@@ -52,28 +53,37 @@ const ATTRIBUTION = 'CarDekho';
 const USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
 
-/** Cities whose common name is not the slug the publisher keys on. */
+/**
+ * Cities whose common name is not the slug the publisher keys on.
+ *
+ * Checked against the live pages on 2026-10-10. `trivandrum` and `baroda` used
+ * to be listed here and now serve the New Delhi fallback — the publisher moved
+ * both to their official names — so they are gone. Ayodhya is still priced
+ * under its former name, Faizabad.
+ */
 const CITY_SLUG_ALIASES: Record<string, string> = {
   gurugram: 'gurgaon',
   bengaluru: 'bangalore',
   delhi: 'new-delhi',
   'new delhi': 'new-delhi',
   mysuru: 'mysore',
-  thiruvananthapuram: 'trivandrum',
-  kochi: 'cochin',
   puducherry: 'pondicherry',
   prayagraj: 'allahabad',
-  vadodara: 'baroda',
-  kanpur: 'kanpur',
+  ayodhya: 'faizabad',
 };
+
+/** A place name as the publisher writes it in a URL, with no aliasing. */
+function slugify(name: string): string {
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
 
 export function citySlug(city: string): string {
   const normalized = city.trim().toLowerCase().replace(/\s+/g, ' ');
-  const alias = CITY_SLUG_ALIASES[normalized];
-  if (alias) return alias;
-  return normalized
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
+  return CITY_SLUG_ALIASES[normalized] ?? slugify(normalized);
 }
 
 /** Strip markup so the labelled sentence can be matched as prose. */
@@ -97,14 +107,18 @@ function plainText(html: string): string {
  *    that stops Delhi's rate being labelled as an uncovered city's.
  *  * `implausible` — the sentence was found but the number failed its band,
  *    which means the page changed shape. Worth a warning.
- *  * `absent` — no labelled sentence at all. Normal for a city the publisher
- *    does not carry, so it is not warned about.
+ *  * `absent` — the page is for the right city but carries no rate for this
+ *    fuel. Normal: not every district retails CNG.
+ *  * `unrecognised` — the page names no city at all. A bot wall, an error page
+ *    or a redesign, served with a 200. It proves nothing about coverage, so it
+ *    must never be cached as "this city has no rate".
  */
 export type FuelRateParse =
   | { status: 'ok'; price: number }
   | { status: 'wrong-city'; found: string }
   | { status: 'implausible'; price: number }
-  | { status: 'absent' };
+  | { status: 'absent' }
+  | { status: 'unrecognised' };
 
 /** Compare place names the way the publisher's own slugs do. */
 function samePlace(found: string, expectedSlug: string): boolean {
@@ -130,6 +144,21 @@ const PRICE_PATTERNS: Record<PetrolFuelFilter, RegExp> = {
 };
 
 /**
+ * The city a page is for, from its title.
+ *
+ * "Petrol price in New Delhi Today (10 October, 2026) | …". The title is the
+ * one place every variant of the page names its city — including the New Delhi
+ * fallback, which carries no labelled rate sentence at all — so it is what tells
+ * "a page for another city" apart from "a page we could not read".
+ */
+const TITLE_CITY_PATTERN =
+  /<title>[^<]*?(?:petrol|diesel|cng)\s+price\s+in\s+([A-Za-z .()'-]{2,40}?)\s+today/i;
+
+function pageCity(html: string): string | null {
+  return html.match(TITLE_CITY_PATTERN)?.[1]?.trim() ?? null;
+}
+
+/**
  * Read the price from the sentence that names the fuel and the city.
  *
  * Two guards, both load-bearing:
@@ -142,6 +171,10 @@ const PRICE_PATTERNS: Record<PetrolFuelFilter, RegExp> = {
  *    city does not 404 here; it serves the New Delhi page with a 200, so
  *    without this check an uncovered city would silently show Delhi's rate.
  *
+ * With no labelled sentence the page title decides between `wrong-city`,
+ * `absent` and `unrecognised`, because only the first two say anything about
+ * whether the publisher covers the city.
+ *
  * Exported for unit testing against captured markup, so a layout change is
  * caught by a test rather than by a driver reading a wrong number.
  */
@@ -150,9 +183,14 @@ export function parseFuelRate(
   fuel: PetrolFuelFilter,
   expectedSlug: string,
 ): FuelRateParse {
-  const text = plainText(html);
-  const match = text.match(PRICE_PATTERNS[fuel]);
-  if (!match?.[1] || !match[2]) return { status: 'absent' };
+  const match = plainText(html).match(PRICE_PATTERNS[fuel]);
+
+  if (!match?.[1] || !match[2]) {
+    const titled = pageCity(html);
+    if (!titled) return { status: 'unrecognised' };
+    if (!samePlace(titled, expectedSlug)) return { status: 'wrong-city', found: titled };
+    return { status: 'absent' };
+  }
 
   const found = match[1].trim();
   if (!samePlace(found, expectedSlug)) return { status: 'wrong-city', found };
@@ -200,6 +238,12 @@ export function parsePublishedOn(html: string): string | null {
   return `${year}-${month}-${String(day).padStart(2, '0')}`;
 }
 
+/** What fetching one fuel's page came to, before it is parsed. */
+type FetchedPage =
+  | { fuel: PetrolFuelFilter; outcome: 'page'; html: string }
+  | { fuel: PetrolFuelFilter; outcome: 'uncovered' }
+  | { fuel: PetrolFuelFilter; outcome: 'failed'; error: unknown };
+
 export class CardekhoFuelRateProvider implements FuelRateProvider {
   readonly name = PROVIDER_NAME;
   readonly attribution = ATTRIBUTION;
@@ -212,15 +256,25 @@ export class CardekhoFuelRateProvider implements FuelRateProvider {
     this.timeoutMs = config.fuelRates.timeoutMs;
   }
 
-  /** Fetch one fuel's page. `null` means the city is not covered. */
-  private async fetchPage(fuel: PetrolFuelFilter, slug: string): Promise<string | null> {
-    const url = `${this.baseUrl}/${fuel}-price-in-${slug}-city`;
+
+  /**
+   * Fetch one fuel's page. `null` means the city is not covered.
+   *
+   * The timeout covers the body as well as the headers. The page is a third of
+   * a megabyte, and a body that stalls after its headers arrived used to hang
+   * the driver's request well past the app's own patience.
+   */
+  private async fetchPage(
+    fuel: PetrolFuelFilter,
+    slug: string,
+    scope: FuelRateScope,
+  ): Promise<string | null> {
+    const url = `${this.baseUrl}/${fuel}-price-in-${slug}-${scope}`;
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
 
-    let response: Response;
     try {
-      response = await fetch(url, {
+      const response = await fetch(url, {
         method: 'GET',
         headers: { 'user-agent': USER_AGENT, accept: 'text/html' },
         // A redirect means the city fell through to a national page, which
@@ -229,12 +283,34 @@ export class CardekhoFuelRateProvider implements FuelRateProvider {
         redirect: 'manual',
         signal: controller.signal,
       });
-    } catch (error) {
-      if ((error as Error).name === 'AbortError') {
-        throw errors.providerTimeout(
+
+      if (response.status === 404 || (response.status >= 300 && response.status < 400)) {
+        return null;
+      }
+
+      if (response.status === 429) {
+        throw errors.providerRateLimited(
           this.name,
-          'The fuel rate publisher took too long to respond.',
+          'Too many fuel rate lookups right now. Please wait a moment.',
         );
+      }
+
+      if (!response.ok) {
+        logger.warn(
+          { provider: this.name, status: response.status, fuel },
+          'Fuel rate publisher returned an error status',
+        );
+        throw errors.providerUnavailable(
+          this.name,
+          'Fuel rates are temporarily unavailable. Please try again.',
+        );
+      }
+
+      return await response.text();
+    } catch (error) {
+      if (isAppError(error)) throw error;
+      if ((error as Error).name === 'AbortError') {
+        throw errors.providerTimeout(this.name, 'The fuel rate publisher took too long to respond.');
       }
       throw errors.providerUnavailable(
         this.name,
@@ -243,71 +319,76 @@ export class CardekhoFuelRateProvider implements FuelRateProvider {
     } finally {
       clearTimeout(timeout);
     }
+  }
 
-    if (response.status === 404 || (response.status >= 300 && response.status < 400)) {
-      return null;
+  /** One fuel's page, with a fetch failure kept rather than thrown. */
+  private async readPage(
+    fuel: PetrolFuelFilter,
+    slug: string,
+    scope: FuelRateScope,
+  ): Promise<FetchedPage> {
+    try {
+      const html = await this.fetchPage(fuel, slug, scope);
+      return html === null ? { fuel, outcome: 'uncovered' } : { fuel, outcome: 'page', html };
+    } catch (error) {
+      return { fuel, outcome: 'failed', error };
     }
-
-    if (response.status === 429) {
-      throw errors.providerRateLimited(
-        this.name,
-        'Too many fuel rate lookups right now. Please wait a moment.',
-      );
-    }
-
-    if (!response.ok) {
-      logger.warn(
-        { provider: this.name, status: response.status, fuel },
-        'Fuel rate publisher returned an error status',
-      );
-      throw errors.providerUnavailable(
-        this.name,
-        'Fuel rates are temporarily unavailable. Please try again.',
-      );
-    }
-
-    return response.text();
   }
 
   async lookup(input: FuelRateLookup): Promise<ProviderCityFuelRate | null> {
-    const slug = citySlug(input.city);
+    // A state page is keyed on the state's own name; city aliases do not apply.
+    const scope = input.scope ?? 'city';
+    const slug = scope === 'state' ? slugify(input.city) : citySlug(input.city);
     if (!slug) return null;
 
     const entries: Partial<Record<PetrolFuelFilter, FuelRateEntry | null>> = {};
     let publishedOn: string | null = null;
     /** Set only by a figure we are willing to publish. */
     let covered = false;
+    /** The first fetch failure, rethrown when nothing else could be read. */
+    let failure: unknown = null;
+    /** A page that named no city says nothing about coverage either way. */
+    let unrecognised = false;
 
-    // Three pages, fetched together: one round trip's latency instead of three.
-    const pages = await Promise.all(
-      PETROL_FUEL_FILTERS.map(async (fuel) => ({
-        fuel,
-        html: await this.fetchPage(fuel, slug),
-      })),
-    );
+    /*
+     * Three pages, fetched together: one round trip's latency instead of three.
+     *
+     * Each settles on its own. One slow CNG page used to reject the whole
+     * lookup, so a petrol vehicle in a city with a perfectly good petrol rate
+     * was shown none at all.
+     */
+    const pages = await Promise.all(PETROL_FUEL_FILTERS.map((fuel) => this.readPage(fuel, slug, scope)));
 
-    for (const { fuel, html } of pages) {
-      if (html === null) {
-        entries[fuel] = null;
+    for (const page of pages) {
+      const { fuel } = page;
+      entries[fuel] = null;
+
+      if (page.outcome === 'failed') {
+        failure ??= page.error;
         continue;
       }
+      if (page.outcome === 'uncovered') continue;
 
-      const parsed = parseFuelRate(html, fuel, slug);
+      const parsed = parseFuelRate(page.html, fuel, slug);
 
       if (parsed.status === 'ok') {
         // Only trust the page's date once it has proved to be the right city's.
-        publishedOn ??= parsePublishedOn(html);
+        publishedOn ??= parsePublishedOn(page.html);
         entries[fuel] = { price: parsed.price, unit: fuelRateUnit(fuel) };
         covered = true;
         continue;
       }
 
-      entries[fuel] = null;
-
       if (parsed.status === 'implausible') {
         logger.warn(
           { provider: this.name, fuel, city: input.city, price: parsed.price },
           'Fuel rate failed its plausibility band — the page layout may have changed',
+        );
+      } else if (parsed.status === 'unrecognised') {
+        unrecognised = true;
+        logger.warn(
+          { provider: this.name, fuel, city: input.city },
+          'Fuel rate page named no city — blocked, erroring or redesigned',
         );
       } else if (parsed.status === 'wrong-city') {
         // The national fallback. Normal for an uncovered city, and the reason
@@ -319,8 +400,22 @@ export class CardekhoFuelRateProvider implements FuelRateProvider {
       }
     }
 
-    // Not one usable figure: the publisher does not cover this city.
-    if (!covered) return null;
+    if (!covered) {
+      /*
+       * Nothing usable — but "the publisher does not cover this city" is only
+       * true when the publisher said so. A failed fetch or an unreadable page
+       * is thrown instead, so the service never caches a passing failure as
+       * hours of "no rate" for a city that has one.
+       */
+      if (failure !== null) throw failure;
+      if (unrecognised) {
+        throw errors.providerUnavailable(
+          this.name,
+          'Fuel rates are temporarily unavailable. Please try again.',
+        );
+      }
+      return null;
+    }
 
     return {
       city: input.city.trim(),
@@ -330,6 +425,7 @@ export class CardekhoFuelRateProvider implements FuelRateProvider {
       cng: entries.cng ?? null,
       publishedOn,
       source: ATTRIBUTION,
+      incomplete: failure !== null || unrecognised,
     };
   }
 }

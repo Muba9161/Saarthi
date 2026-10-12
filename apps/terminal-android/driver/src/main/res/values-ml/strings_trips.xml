@@ -35,4 +35,34 @@
     <string name="trips_error_title">നിങ്ങളുടെ ട്രിപ്പുകൾ ലോഡ് ചെയ്യാനായില്ല</string>
     <string name="trips_error_body">Saarthi-ക്ക് ഇപ്പോൾ നിങ്ങളുടെ ഫ്ലീറ്റുമായി ബന്ധപ്പെടാനായില്ല. അൽപ്പസമയം കഴിഞ്ഞ് വീണ്ടും ശ്രമിക്കുക.</string>
     <string name="trips_retry">വീണ്ടും ശ്രമിക്കുക</string>
+
+    <!-- Up next and queued trips -->
+    <string name="trips_add">ട്രിപ്പ് ചേർക്കുക</string>
+    <string name="trips_up_next">അടുത്തത്</string>
+    <string name="trips_queued">ക്യൂവിൽ</string>
+    <string name="trips_from_fleet">നിങ്ങളുടെ ഫ്ലീറ്റിൽ നിന്ന്</string>
+    <string name="trips_added_by_you">നിങ്ങൾ ചേർത്തത്</string>
+    <string name="trips_section_next">അടുത്തത്</string>
+    <string name="trips_section_queued">അതിനു പിന്നിൽ കാത്തിരിക്കുന്നവ</string>
+    <string name="toast_trip_added">ട്രിപ്പ് ചേർത്തു.</string>
+    <string name="toast_trip_queued">ട്രിപ്പ് ചേർത്തു. നിങ്ങളുടെ ഫ്ലീറ്റിന്റെ ട്രിപ്പിനു ശേഷം ഇത് തുടങ്ങും.</string>
+
+    <!-- Adding a trip -->
+    <string name="add_trip_title">ട്രിപ്പ് ചേർക്കുക</string>
+    <string name="add_trip_lead">നിങ്ങൾ എവിടേക്ക് പോകുന്നു എന്ന് തിരഞ്ഞെടുക്കുക. Saarthi റൂട്ട് കണ്ടെത്തി നിങ്ങളുടെ ഫ്ലീറ്റിനെ അറിയിക്കും.</string>
+    <string name="add_trip_from">എവിടെ നിന്ന്</string>
+    <string name="add_trip_to">എവിടേക്ക്</string>
+    <string name="add_trip_here">നിങ്ങൾ ഇപ്പോൾ ഉള്ള സ്ഥലം</string>
+    <string name="add_trip_pick_start">എവിടെ നിന്ന് തുടങ്ങുന്നു എന്ന് തിരഞ്ഞെടുക്കുക</string>
+    <string name="add_trip_pick_destination">എവിടേക്ക് പോകുന്നു എന്ന് തിരഞ്ഞെടുക്കുക</string>
+    <string name="add_trip_change">മാറ്റുക</string>
+    <string name="add_trip_search_from">തുടങ്ങുന്ന സ്ഥലം തിരയുക</string>
+    <string name="add_trip_search_to">പോകുന്ന സ്ഥലം തിരയുക</string>
+    <string name="add_trip_routing">റൂട്ട് കണ്ടെത്തുന്നു…</string>
+    <string name="add_trip_route_failed">ഇപ്പോൾ റൂട്ട് കണ്ടെത്താനായില്ല. എന്നാലും നിങ്ങൾക്ക് ട്രിപ്പ് ചേർക്കാം.</string>
+    <string name="add_trip_notes">നിങ്ങളുടെ ഫ്ലീറ്റിനുള്ള കുറിപ്പ്</string>
+    <string name="add_trip_queue_note">നിങ്ങളുടെ ഫ്ലീറ്റിന്റെ ട്രിപ്പ് ആദ്യം നടക്കും. അത് കഴിഞ്ഞ ശേഷം ഇത് തുടങ്ങും.</string>
+    <string name="add_trip_create">ട്രിപ്പ് ചേർക്കുക</string>
+    <string name="add_trip_queue">ഫ്ലീറ്റിന്റെ ട്രിപ്പിനു ശേഷം ചേർക്കുക</string>
+    <string name="add_trip_creating">ചേർക്കുന്നു…</string>
 </resources>

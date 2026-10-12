@@ -6,6 +6,7 @@ import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.os.Looper
+import android.os.SystemClock
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
@@ -67,6 +68,12 @@ class PhoneTelemetryProvider(
     private val latest = AtomicReference<Map<Metric, MetricValue>>(emptyMap())
     private val latestPosition = AtomicReference<Position?>(null)
 
+    /** When the last fix arrived, on the monotonic clock. Zero before the first. */
+    private val lastFixNanos = java.util.concurrent.atomic.AtomicLong(0)
+
+    /** The moving/stopped verdict held between fixes — see [MotionGate]. */
+    private val motion = MotionGate()
+
     /** Harsh-event detection state. See [onSensorEvent] for why it is here. */
     @Volatile private var lastAcceleration: Double = 0.0
     @Volatile private var harshBraking = false
@@ -103,6 +110,8 @@ class PhoneTelemetryProvider(
     private val locationCallback = object : LocationCallback() {
         override fun onLocationResult(result: LocationResult) {
             val fix = result.lastLocation ?: return
+            lastFixNanos.set(fix.elapsedRealtimeNanos)
+            val movingNow = isMoving(fix)
 
             val values = buildMap {
                 put(Metric.LOCATION, MetricValue(1.0, MetricSource.PHONE, fix.time))
@@ -111,28 +120,18 @@ class PhoneTelemetryProvider(
                 // would corrupt the speed series and everything built on it.
                 if (fix.hasSpeed()) {
                     /*
-                     * Below walking pace, report a standstill.
+                     * Parked means 0 km/h — see [isMoving].
                      *
-                     * A phone lying still on a desk does not report 0 m/s — it
-                     * reports a metre or two per second of noise, wandering as
-                     * the satellite geometry shifts. Passed through untouched
-                     * that became a truck spontaneously doing 5 km/h in a locked
-                     * yard: the gauge swept, the marker twitched, and a driver
-                     * watching a stationary vehicle move on screen has no reason
-                     * to believe the next number either.
-                     *
-                     * 1.4 m/s is a slow walk. Anything under it, from a device
-                     * whose own accuracy estimate is worse than 25 m, is noise
-                     * rather than motion — and a vehicle genuinely creeping that
-                     * slowly is a vehicle whose speed nobody is reading.
+                     * A phone lying still does not report 0 m/s; it reports a
+                     * metre or two per second of noise as the satellite geometry
+                     * shifts. The old filter only zeroed that noise on a fix
+                     * whose accuracy was *bad*, so a parked truck with a good
+                     * clear-sky fix — the normal case — showed 1 to 5 km/h.
                      */
-                    val kph = fix.speed * 3.6
-                    val jitter = fix.speed < STATIONARY_MPS &&
-                        (!fix.hasAccuracy() || fix.accuracy > NOISY_FIX_METRES)
                     put(
                         Metric.SPEED,
                         MetricValue(
-                            if (jitter) 0.0 else kph.toDouble(),
+                            if (movingNow) fix.speed * 3.6 else 0.0,
                             MetricSource.PHONE,
                             fix.time,
                         ),
@@ -141,7 +140,7 @@ class PhoneTelemetryProvider(
                 // Bearing from a stationary fix is meaningless — the vehicle
                 // is not pointing anywhere in particular, and letting it through
                 // spins the marker on the spot.
-                if (fix.hasBearing() && fix.hasSpeed() && fix.speed >= STATIONARY_MPS) {
+                if (fix.hasBearing() && movingNow) {
                     put(
                         Metric.HEADING,
                         MetricValue(fix.bearing.toDouble(), MetricSource.PHONE, fix.time),
@@ -176,7 +175,7 @@ class PhoneTelemetryProvider(
              * frames posted to Saarthi all read one position that stops moving
              * when the vehicle does.
              */
-            if (isRealMovement(fix)) {
+            if (shouldMoveAnchor(fix, movingNow)) {
                 latestPosition.set(
                     Position(
                         latitude = fix.latitude,
@@ -223,15 +222,33 @@ class PhoneTelemetryProvider(
      * position is held. A vehicle that is genuinely driving gets satellite
      * fixes with a speed on them within seconds of moving, which is exactly when
      * this starts believing it again.
+     *
+     * One exception while parked: a fix far *better* than the anchor replaces
+     * it. The first fix of a session is accepted whatever it is — often a coarse
+     * network fix — and a parked truck never moves to replace it, so the nearby
+     * search and the map were working from a position a few hundred metres out
+     * for as long as the vehicle stood still. A sharper fix is not movement; it
+     * only corrects where the vehicle was all along, and with the speed at zero
+     * nothing books the correction as distance.
      */
-    private fun isRealMovement(fix: android.location.Location): Boolean {
-        if (latestPosition.get() == null) return true
+    private fun shouldMoveAnchor(fix: android.location.Location, movingNow: Boolean): Boolean {
+        val anchor = latestPosition.get() ?: return true
+        if (movingNow) return true
 
-        // No speed, no movement. See above: this is the Wi-Fi-fix case, and
-        // there is no displacement large enough to make it trustworthy.
+        val anchorAccuracy = anchor.accuracyMetres ?: return false
+        return fix.hasAccuracy() &&
+            fix.accuracy <= SHARP_FIX_METRES &&
+            fix.accuracy < anchorAccuracy * SHARPER_FACTOR
+    }
+
+    /** Whether the vehicle is moving — see [MotionGate] for the rule. */
+    private fun isMoving(fix: android.location.Location): Boolean {
         if (!fix.hasSpeed()) return false
-
-        return fix.speed >= STATIONARY_MPS
+        return motion.update(
+            speedMps = fix.speed,
+            speedAccuracyMps = if (fix.hasSpeedAccuracy()) fix.speedAccuracyMetersPerSecond else null,
+            accuracyMetres = if (fix.hasAccuracy()) fix.accuracy else null,
+        )
     }
 
     private val sensorListener = object : SensorEventListener {
@@ -332,29 +349,38 @@ class PhoneTelemetryProvider(
         locationClient.removeLocationUpdates(locationCallback)
         sensorManager?.unregisterListener(sensorListener)
         latest.set(emptyMap())
+        lastFixNanos.set(0)
+        motion.reset()
         _status.value = ProviderStatus.STOPPED
     }
 
-    override fun sample(): Map<Metric, MetricValue> = latest.get()
+    /**
+     * The latest readings, with speed and heading withdrawn once they are old.
+     *
+     * Fixes stop in a basement, a tunnel, or when the platform throttles a
+     * background app, and the last speed used to be re-published for ever — a
+     * vehicle parked underground for an hour still "doing 40". Unknown is the
+     * truth then, and the screens show unknown as a standstill.
+     */
+    override fun sample(): Map<Metric, MetricValue> {
+        val values = latest.get()
+        val ageNanos = SystemClock.elapsedRealtimeNanos() - lastFixNanos.get()
+        if (lastFixNanos.get() == 0L || ageNanos <= staleAfterNanos) return values
+        return values - Metric.SPEED - Metric.HEADING
+    }
+
+    /** Twice the reporting interval, and never under fifteen seconds. */
+    private val staleAfterNanos: Long
+        get() = maxOf(intervalMs * 2, STALE_FLOOR_MS) * 1_000_000L
 
     private companion object {
-        /** A slow walk. Below this a vehicle is parked, whatever GPS reports. */
-        const val STATIONARY_MPS = 1.4f
+        /** A fix this good may correct a parked vehicle's coarse anchor. */
+        const val SHARP_FIX_METRES = 30f
 
-        /** Past this much error, a small speed is the error rather than motion. */
-        const val NOISY_FIX_METRES = 25f
+        /** …when it is at least this much better than the anchor. */
+        const val SHARPER_FACTOR = 0.5
 
-        /**
-         * The smallest step believed from position alone.
-         *
-         * A floor under the accuracy test, for the optimistic fixes: a device
-         * claiming three metres of accuracy while sitting on a desk would
-         * otherwise have every twitch accepted.
-         */
-        const val MIN_MOVE_METRES = 15.0
-
-        /** What to assume when a fix does not say how good it is. Pessimistic. */
-        const val ASSUMED_ACCURACY_METRES = 30.0
+        const val STALE_FLOOR_MS = 15_000L
 
         const val GRAVITY = 9.80665
         /** Change in g between samples that counts as harsh. */

@@ -28,7 +28,7 @@ import com.saarthi.core.telemetry.ProviderStatus
 import com.saarthi.core.ui.TerminalViewModel
 import com.saarthi.driver.R
 import com.saarthi.driver.ui.design.BottomSheet
-import com.saarthi.driver.ui.design.BrandMark
+import com.saarthi.driver.ui.design.BrandLockup
 import com.saarthi.driver.ui.design.CircleButton
 import com.saarthi.driver.ui.design.DarkPalette
 import com.saarthi.driver.ui.design.LocalPalette
@@ -145,7 +145,7 @@ private fun AdapterContent(cockpit: TerminalViewModel, onClose: () -> Unit, modi
 private fun AdapterHeader(onClose: () -> Unit) {
     val c = Saarthi.colors
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        BrandMark(height = 30.dp, plated = true)
+        BrandLockup(height = 44.dp, plated = true)
         Text(stringResource(R.string.adapter_title), style = SType.sheetTitle, color = c.fg, modifier = Modifier.weight(1f))
         CircleButton(
             Lucide.close,

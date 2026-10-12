@@ -1,5 +1,7 @@
 import { z } from 'zod';
 import {
+  ExpenseCategory,
+  ExternalNavigationApp,
   TerminalChecklistItemStatus,
   TerminalIssueCategory,
   TerminalSessionStatus,
@@ -14,6 +16,7 @@ import {
   trimmedString,
   uuidSchema,
 } from './common';
+import { aiHistorySchema } from './operations';
 
 /**
  * The Saarthi Terminal wire contract.
@@ -315,6 +318,18 @@ export const terminalTripEventSchema = z.object({
 });
 export type TerminalTripEventInput = z.infer<typeof terminalTripEventSchema>;
 
+/**
+ * The driver handed the trip to another navigation app, or came back.
+ *
+ * `app: null` — or no `app` at all, which is how the phone's JSON client sends
+ * a null — is the return to Saarthi's own navigation. Only Google Maps is
+ * accepted, because it is the only app the terminal opens.
+ */
+export const terminalNavigationHandoffSchema = z.object({
+  app: z.enum([ExternalNavigationApp.GOOGLE_MAPS]).nullable().default(null),
+});
+export type TerminalNavigationHandoffInput = z.infer<typeof terminalNavigationHandoffSchema>;
+
 export const endTerminalSessionSchema = z.object({
   reason: optionalTrimmedString(300),
 });
@@ -413,6 +428,64 @@ export const terminalFuelSlipSchema = z.object({
 });
 export type TerminalFuelSlipInput = z.infer<typeof terminalFuelSlipSchema>;
 
+/**
+ * Any other slip a driver pays on the road — a toll, parking, a puncture, a
+ * meal, loading charges, a challan.
+ *
+ * One figure and what it was for; the photograph is the evidence for the rest.
+ * Coerced for the same reason as the fuel slip: multipart fields are strings.
+ */
+export const terminalExpenseSlipSchema = z.object({
+  category: z.nativeEnum(ExpenseCategory, {
+    errorMap: () => ({ message: 'Choose what the slip was for.' }),
+  }),
+  amount: z.coerce
+    .number()
+    .positive('What did it come to?')
+    .max(1_000_000, 'That is more than a road expense costs. Check the figure.'),
+  vendorName: optionalTrimmedString(120),
+  notes: optionalTrimmedString(300),
+  latitude: latitudeSchema.optional(),
+  longitude: longitudeSchema.optional(),
+});
+export type TerminalExpenseSlipInput = z.infer<typeof terminalExpenseSlipSchema>;
+
+/** One end of a trip a driver adds, as picked from the place search. */
+const terminalTripPlaceSchema = z.object({
+  name: trimmedString(2, 160),
+  address: optionalTrimmedString(300),
+  latitude: latitudeSchema,
+  longitude: longitudeSchema,
+});
+
+/**
+ * A trip the signed-on driver adds from the app.
+ *
+ * The vehicle and driver come from the session, never from the body: a driver
+ * adds trips for the vehicle they are on and for themselves. `plannedRoute` is
+ * the road route the app fetched between the two ends, so the trip has a real
+ * planned distance and a route its covered path can be judged against.
+ */
+export const terminalCreateTripSchema = z.object({
+  origin: terminalTripPlaceSchema,
+  destination: terminalTripPlaceSchema,
+  plannedStartAt: z.coerce.date().optional(),
+  notes: optionalTrimmedString(2000),
+  plannedRoute: z
+    .array(z.object({ latitude: latitudeSchema, longitude: longitudeSchema }))
+    .min(2)
+    .max(2000)
+    .optional(),
+});
+export type TerminalCreateTripInput = z.infer<typeof terminalCreateTripSchema>;
+
+/** Since when the cab's covered path is wanted. Bounded so a stale clock cannot ask for a year. */
+export const terminalTrailQuerySchema = z.object({
+  since: z.coerce.date().optional(),
+  limit: z.coerce.number().int().min(10).max(3000).default(1500),
+});
+export type TerminalTrailQuery = z.infer<typeof terminalTrailQuerySchema>;
+
 export const terminalNearbySchema = z.object({
   /**
    * A terminal service key such as FUEL or MECHANIC.
@@ -499,6 +572,8 @@ export const terminalAskSchema = z.object({
   longitude: longitudeSchema.optional(),
   /** True when the vehicle is in motion, so the answer is kept short. */
   moving: z.boolean().optional(),
+  /** The conversation so far, as the web chat sends it, so "and the one after?" makes sense. */
+  history: aiHistorySchema,
 });
 export type TerminalAskInput = z.infer<typeof terminalAskSchema>;
 

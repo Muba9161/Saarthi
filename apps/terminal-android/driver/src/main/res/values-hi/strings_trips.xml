@@ -35,4 +35,34 @@
     <string name="trips_error_title">आपकी ट्रिप लोड नहीं हो सकीं</string>
     <string name="trips_error_body">Saarthi अभी आपके फ़्लीट तक नहीं पहुँच सका। थोड़ी देर में फिर कोशिश करें।</string>
     <string name="trips_retry">फिर से कोशिश करें</string>
+
+    <!-- Up next and queued trips -->
+    <string name="trips_add">ट्रिप जोड़ें</string>
+    <string name="trips_up_next">अगली</string>
+    <string name="trips_queued">कतार में</string>
+    <string name="trips_from_fleet">आपके फ़्लीट से</string>
+    <string name="trips_added_by_you">आपने जोड़ी</string>
+    <string name="trips_section_next">अगली ट्रिप</string>
+    <string name="trips_section_queued">इसके बाद इंतज़ार में</string>
+    <string name="toast_trip_added">ट्रिप जुड़ गई।</string>
+    <string name="toast_trip_queued">ट्रिप जुड़ गई। यह आपके फ़्लीट की ट्रिप के बाद शुरू होगी।</string>
+
+    <!-- Adding a trip -->
+    <string name="add_trip_title">ट्रिप जोड़ें</string>
+    <string name="add_trip_lead">चुनें कि आप कहाँ जा रहे हैं। Saarthi रास्ता निकालकर आपके फ़्लीट को बता देगा।</string>
+    <string name="add_trip_from">कहाँ से</string>
+    <string name="add_trip_to">कहाँ तक</string>
+    <string name="add_trip_here">आप अभी जहाँ हैं</string>
+    <string name="add_trip_pick_start">चुनें कि कहाँ से शुरू करेंगे</string>
+    <string name="add_trip_pick_destination">चुनें कि कहाँ जा रहे हैं</string>
+    <string name="add_trip_change">बदलें</string>
+    <string name="add_trip_search_from">शुरू करने की जगह खोजें</string>
+    <string name="add_trip_search_to">जहाँ जा रहे हैं, वह जगह खोजें</string>
+    <string name="add_trip_routing">रास्ता निकाला जा रहा है…</string>
+    <string name="add_trip_route_failed">अभी रास्ता नहीं निकल सका। आप फिर भी ट्रिप जोड़ सकते हैं।</string>
+    <string name="add_trip_notes">आपके फ़्लीट के लिए नोट</string>
+    <string name="add_trip_queue_note">आपके फ़्लीट की ट्रिप पहले होगी। यह ट्रिप उसके पूरा होने के बाद शुरू होगी।</string>
+    <string name="add_trip_create">ट्रिप जोड़ें</string>
+    <string name="add_trip_queue">फ़्लीट की ट्रिप के बाद जोड़ें</string>
+    <string name="add_trip_creating">जोड़ रहे हैं…</string>
 </resources>

@@ -110,6 +110,7 @@ export async function purgeAccountData(organizationId: string, now = new Date())
         await tx.truckEvent.deleteMany({ where });
         await tx.maintenanceRecord.deleteMany({ where });
         await tx.fuelRecord.deleteMany({ where });
+        await tx.expense.deleteMany({ where });
         await tx.tollTransaction.deleteMany({ where });
         await tx.fastagAccount.deleteMany({ where });
         await tx.vehicleLoan.deleteMany({ where });

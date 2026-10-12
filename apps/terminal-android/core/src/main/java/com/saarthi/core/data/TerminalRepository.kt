@@ -11,6 +11,7 @@ import com.saarthi.core.telemetry.Position
 import com.saarthi.core.domain.TerminalState
 import com.saarthi.core.network.AskRequest
 import com.saarthi.core.network.AskResponse
+import com.saarthi.core.network.AskTurn
 import com.saarthi.core.network.ChecklistPreparationDto
 import com.saarthi.core.network.ChecklistResultDto
 import com.saarthi.core.network.EndSessionRequest
@@ -22,9 +23,7 @@ import com.saarthi.core.network.FrameVehicle
 import com.saarthi.core.network.HeartbeatRequest
 import com.saarthi.core.network.IssueDto
 import com.saarthi.core.network.DriverNotificationsDto
-import com.saarthi.core.network.DriverPaperDto
 import com.saarthi.core.network.DriverTripDto
-import com.saarthi.core.network.FastagDto
 import com.saarthi.core.network.FuelPriceDto
 import com.saarthi.core.network.NearbyResponse
 import com.saarthi.core.network.PairRequest
@@ -54,6 +53,7 @@ import com.saarthi.core.telemetry.TelemetrySnapshot
 import com.saarthi.core.telemetry.TripRecorder
 import com.saarthi.core.util.DebugLog
 import com.saarthi.core.util.DeviceEnvironment
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -508,44 +508,18 @@ class TerminalRepository(
     // What a driver needs that only a browser could reach
     // -----------------------------------------------------------------------
 
-    suspend fun papers(): Result<List<DriverPaperDto>> = runCatchingApi { api.papers() }
-
-    suspend fun fastag(): Result<FastagDto?> = runCatchingApi { api.fastag() }
-
     /**
-     * Today's pump price where the vehicle is.
+     * Today's pump price at [at].
      *
-     * Refuses rather than guesses without a position. A rate priced for the
+     * Takes the position rather than reading one, so a caller that has no fix
+     * waits for one instead of asking about nowhere. A rate priced for the
      * wrong district is a number a driver may budget a tank against.
      */
-    suspend fun fuelPrice(): Result<FuelPriceDto?> = runCatchingApi {
-        val position = telemetry.snapshot.value.position
-            ?: return@runCatchingApi null
-        api.fuelPrice(position.latitude, position.longitude)
+    suspend fun fuelPrice(at: Position): Result<FuelPriceDto?> = runCatchingApi {
+        api.fuelPrice(at.latitude, at.longitude)
     }
 
     suspend fun trips(): Result<List<DriverTripDto>> = runCatchingApi { api.trips() }
-
-    /** A fuel slip and its photograph, in one request. */
-    suspend fun saveFuelSlip(
-        jpeg: ByteArray,
-        litres: Double,
-        totalCost: Double,
-        odometerKm: Double?,
-        stationName: String?,
-    ): Result<String> = runCatchingApi {
-        val position = telemetry.snapshot.value.position
-        api.uploadFuelSlip(
-            jpeg = jpeg,
-            litres = litres,
-            totalCost = totalCost,
-            odometerKm = odometerKm,
-            stationName = stationName,
-            // Where the pump was, so the office can see it without asking.
-            latitude = position?.latitude,
-            longitude = position?.longitude,
-        )
-    }
 
     suspend fun notifications(): Result<DriverNotificationsDto> =
         runCatchingApi { api.notifications() }
@@ -850,7 +824,7 @@ class TerminalRepository(
 
     suspend fun issues(): Result<List<IssueDto>> = runCatchingApi { api.issues() }
 
-    suspend fun ask(question: String, spoken: Boolean): Result<AskResponse> = runCatchingApi {
+    suspend fun ask(question: String, spoken: Boolean, history: List<AskTurn>): Result<AskResponse> = runCatchingApi {
         val snapshot = telemetry.snapshot.value
         api.ask(
             AskRequest(
@@ -859,6 +833,7 @@ class TerminalRepository(
                 latitude = snapshot.position?.latitude,
                 longitude = snapshot.position?.longitude,
                 moving = (snapshot.value(Metric.SPEED) ?: 0.0) > MOVING_KPH,
+                history = history,
             ),
         )
     }
@@ -916,7 +891,7 @@ class TerminalRepository(
      * from the person in the cab: wait, fix something, or call the office. A
      * single "something went wrong" would be true and useless.
      */
-    private suspend fun <T> runCatchingApi(block: suspend () -> T): Result<T> = try {
+    internal suspend fun <T> runCatchingApi(block: suspend () -> T): Result<T> = try {
         val value = block()
         _connection.value = Connection.ONLINE
         _lastError.value = null
@@ -936,6 +911,11 @@ class TerminalRepository(
         _connection.value = Connection.ONLINE
         _lastError.value = error.message
         Result.failure(error)
+    } catch (error: CancellationException) {
+        // The caller stopped waiting — the driver closed the assistant, say.
+        // That is not a failure to report, and swallowing it would let the
+        // cancelled coroutine carry on as if the call had failed.
+        throw error
     } catch (error: Throwable) {
         _lastError.value = error.message ?: "Something went wrong."
         DebugLog.error("terminal", "Unexpected failure", error)

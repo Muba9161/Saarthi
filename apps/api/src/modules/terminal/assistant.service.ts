@@ -14,8 +14,10 @@ import type { SessionRecord } from './session.view';
 /**
  * "Hey Saarthi" — the in-cab assistant.
  *
- * A thin, deliberately boring layer over the existing copilot. It adds four
- * things and no intelligence of its own:
+ * A thin, deliberately boring layer over the existing copilot, answering in
+ * the web chat's own voice and with the same conversation so far, so a driver
+ * meets the same Saarthi on the phone as their fleet does on the web. It adds
+ * four things and no intelligence of its own:
  *
  *  1. **The driver's own authorisation.** The question is answered under an
  *     `AuthContext` built from the driver signed on to this terminal, loaded
@@ -171,6 +173,7 @@ export async function ask(
     auth,
     session.organizationId,
     `${framing}\n\nDriver asks: ${input.question}`,
+    { voice: 'companion', history: input.history, inCab: true },
   );
 
   assistantLogger.info(

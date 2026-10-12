@@ -39,7 +39,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.saarthi.core.network.DriverPaperDto
 import com.saarthi.driver.R
-import com.saarthi.driver.ui.design.ChoiceChip
 import com.saarthi.driver.ui.design.Ease
 import com.saarthi.driver.ui.design.IconWell
 import com.saarthi.driver.ui.design.LinkButton
@@ -116,29 +115,6 @@ private fun Modifier.pulsingRing(color: Color, radius: Dp): Modifier {
             cornerRadius = CornerRadius(radius.toPx() - inset),
             style = Stroke(width),
         )
-    }
-}
-
-/** "All · 5", "Vehicle · 4", "Yours · 1" — the chosen one filled, the others ringed. */
-@Composable
-internal fun PaperChips(
-    papers: List<DriverPaperDto>,
-    filter: PaperFilter,
-    onFilter: (PaperFilter) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val c = Saarthi.colors
-    Row(modifier, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        PaperFilter.entries.forEach { option ->
-            val on = option == filter
-            ChoiceChip(
-                label = stringResource(R.string.papers_chip, stringResource(option.label), papers.count(option::admits)),
-                selected = on,
-                onClick = { onFilter(option) },
-                offColor = c.elevated,
-                modifier = if (on) Modifier else Modifier.border(1.dp, c.border, CircleShape),
-            )
-        }
     }
 }
 

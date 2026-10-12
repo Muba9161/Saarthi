@@ -65,12 +65,27 @@ export interface AskOptions {
   voice?: CopilotVoice;
   /** Earlier messages, oldest first. Context only — never a source of figures. */
   history?: { role: 'user' | 'assistant'; content: string }[];
+  /**
+   * Asked from the driver app, in a vehicle's cab.
+   *
+   * The voice and the memory are the chat screen's — the same Saarthi on the
+   * phone as on the web — but two things stay the cab's own. The tool set is
+   * the cab's full, fixed one: a driver holds few grants, and keyword routing
+   * would drop the tool that answers "find parking near me". And Mitra's guide
+   * and drafts are left out, because they open web screens a phone in a cab has
+   * no way to show.
+   */
+  inCab?: boolean;
 }
 
-function voiceGuidance(voice: CopilotVoice, firstName: string): string[] {
+function voiceGuidance(voice: CopilotVoice, firstName: string, inCab: boolean): string[] {
   if (voice === 'terminal') {
     return ['- Be brief and operational. The reader is running a business between phone calls.'];
   }
+  return [...companionVoice(firstName), ...(inCab ? cabLimits() : companionAbilities())];
+}
+
+function companionVoice(firstName: string): string[] {
   return [
     '',
     'Your voice:',
@@ -90,6 +105,12 @@ function voiceGuidance(voice: CopilotVoice, firstName: string): string[] {
     '- Earlier messages in this conversation are context for what they mean. Any figure you give',
     '  must come from a tool result in this turn - check again rather than repeating a number',
     '  from an earlier message.',
+  ];
+}
+
+/** Mitra's guide and drafts, which only the chat screen offers. */
+function companionAbilities(): string[] {
+  return [
     '',
     'What you can do for them:',
     '- "How do I..." questions: use get_help_guide and walk them through the steps it returns.',
@@ -104,10 +125,21 @@ function voiceGuidance(voice: CopilotVoice, firstName: string): string[] {
   ];
 }
 
+/** The chat screen's limits, for a cab where there is no screen for a button to open. */
+function cabLimits(): string[] {
+  return [
+    '',
+    'In the cab:',
+    '- You never save, post, publish, pay or change anything yourself, and never say something',
+    '  was posted or saved. You never start a payment.',
+  ];
+}
+
 function systemPrompt(
   auth: AuthContext,
   organizationName: string,
   voice: CopilotVoice,
+  inCab: boolean,
 ): string {
   return [
     'You are the Saarthi Fleet Copilot, embedded in a fleet management platform used by',
@@ -135,7 +167,7 @@ function systemPrompt(
     '',
     `The person asking is a ${auth.organization?.membershipRole ?? auth.user.roles[0] ?? 'user'} at ${organizationName}.`,
     'They can only see their own organisation’s data, and so can you.',
-    ...voiceGuidance(voice, auth.user.firstName || 'there'),
+    ...voiceGuidance(voice, auth.user.firstName || 'there', inCab),
   ].join('\n');
 }
 
@@ -155,6 +187,7 @@ export async function askWithTools(
   options: AskOptions = {},
 ): Promise<CopilotAnswer> {
   const voice = options.voice ?? 'terminal';
+  const inCab = options.inCab ?? false;
   if (!supportsTools(aiProvider)) {
     throw errors.providerNotConfigured(
       'ai',
@@ -170,9 +203,9 @@ export async function askWithTools(
   });
 
   // The chat screen offers only the tool groups the question is about, which
-  // keeps each model call small; the terminal keeps its full, fixed set.
+  // keeps each model call small; the cab keeps its full, fixed set.
   const tools =
-    voice === 'companion'
+    voice === 'companion' && !inCab
       ? routeTools(authorizedTools(auth), [
           question,
           ...(options.history ?? []).filter((message) => message.role === 'user').slice(-1).map((message) => message.content),
@@ -202,7 +235,7 @@ export async function askWithTools(
     iterations += 1;
 
     const generation = await aiProvider.generate({
-      system: systemPrompt(auth, organization?.name ?? 'your organisation', voice),
+      system: systemPrompt(auth, organization?.name ?? 'your organisation', voice, inCab),
       turns,
       tools: specifications,
     });
@@ -283,7 +316,13 @@ export async function askWithTools(
     generatedAt: new Date().toISOString(),
   };
 
-  await recordProvenance(auth, organizationId, question, result, voice);
+  await recordProvenance(
+    auth,
+    organizationId,
+    question,
+    result,
+    voice === 'terminal' || inCab ? TERMINAL_ASSISTANT_OPERATION : MITRA_QUESTION_OPERATION,
+  );
   return result;
 }
 
@@ -300,7 +339,7 @@ async function recordProvenance(
   organizationId: string,
   question: string,
   result: CopilotAnswer,
-  voice: CopilotVoice,
+  operation: string,
 ): Promise<void> {
   try {
     await prisma.aiUsage.create({
@@ -309,7 +348,7 @@ async function recordProvenance(
         userId: auth.user.id,
         provider: result.provider,
         model: result.model,
-        operation: voice === 'terminal' ? TERMINAL_ASSISTANT_OPERATION : MITRA_QUESTION_OPERATION,
+        operation,
         tokensIn: result.tokensIn,
         tokensOut: result.tokensOut,
         latencyMs: result.latencyMs,

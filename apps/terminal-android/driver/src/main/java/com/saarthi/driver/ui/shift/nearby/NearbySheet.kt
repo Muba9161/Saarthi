@@ -49,7 +49,6 @@ import com.saarthi.core.ui.MapPin
 import com.saarthi.core.ui.TerminalMap
 import com.saarthi.core.ui.TerminalViewModel
 import com.saarthi.driver.R
-import com.saarthi.driver.ui.design.AlwaysDark
 import com.saarthi.driver.ui.design.CircleButton
 import com.saarthi.driver.ui.design.LineIcon
 import com.saarthi.driver.ui.design.Lucide
@@ -58,7 +57,7 @@ import com.saarthi.driver.ui.design.SType
 import com.saarthi.driver.ui.design.rise
 import com.saarthi.driver.ui.shift.map.HumsafarMapLook
 import com.saarthi.driver.ui.shift.map.MapCredits
-import kotlinx.coroutines.flow.first
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 /**
  * Nearby services, map first: numbered pins over the live map, the kinds of
@@ -81,7 +80,7 @@ fun NearbySheet(
     }
     BackHandler(enabled = visible, onBack = close)
     AnimatedVisibility(visible, enter = fadeIn(tween(300)), exit = fadeOut(tween(250))) {
-        AlwaysDark { NearbyScreen(cockpit, initialCategory, close, onRouted) }
+        NearbyScreen(cockpit, initialCategory, close, onRouted)
     }
 }
 
@@ -92,46 +91,27 @@ private fun NearbyScreen(
     onClose: () -> Unit,
     onRouted: (String) -> Unit,
 ) {
+    val nearby: NearbyViewModel = viewModel()
     val state by cockpit.uiState.collectAsState()
-    val places by cockpit.places.collectAsState()
-    val roadDistances by cockpit.roadDistances.collectAsState()
+    val ui by nearby.ui.collectAsState()
     val query by cockpit.searchQuery.collectAsState()
     val matches by cockpit.searchResults.collectAsState()
     val searching by cockpit.searching.collectAsState()
     val searchFailure by cockpit.searchFailure.collectAsState()
 
     var kind by rememberSaveable { mutableStateOf(ServiceKind.from(initialCategory)) }
-    var loaded by remember { mutableStateOf<ServiceKind?>(null) }
-    var failed by remember { mutableStateOf(false) }
-    var attempt by remember { mutableIntStateOf(0) }
     var picked by remember(kind) { mutableStateOf<Int?>(null) }
     var routing by remember { mutableStateOf<String?>(null) }
     var routeFailed by remember { mutableStateOf(false) }
     var frame by remember { mutableIntStateOf(0) }
 
-    /*
-     * One kind at a time. The request is over when the busy flag it raised
-     * comes down; a list the cockpit did not replace means it failed, so the
-     * previous kind's places are never shown under this kind's name.
-     */
-    LaunchedEffect(kind, attempt) {
-        loaded = null
-        failed = false
-        val before = cockpit.places.value
-        cockpit.findServices(kind.key)
-        var started = false
-        cockpit.busy.first { busy ->
-            if (busy) started = true
-            started && !busy
-        }
-        failed = cockpit.places.value === before
-        loaded = kind
-    }
+    LaunchedEffect(kind) { nearby.show(kind) }
 
     val position = state.telemetry.position
     val heading = state.telemetry.value(Metric.HEADING)?.takeIf { state.moving }
     val searchingMode = query.isNotBlank()
-    val shown = if (loaded == kind && !failed) places else emptyList()
+    val listing = ui.listing.takeIf { ui.kind == kind } ?: NearbyViewModel.Listing.Loading
+    val shown = (listing as? NearbyViewModel.Listing.Loaded)?.places.orEmpty()
     val rows = remember(shown, position?.latitude, position?.longitude, heading) { nearbyRows(shown, position, heading) }
     val featured = picked ?: rows.bestIndex()
 
@@ -213,11 +193,8 @@ private fun NearbyScreen(
         NearbyPanel(
             kind = kind,
             onKind = { if (it != kind) kind = it },
-            loading = loaded != kind,
-            failed = failed,
-            onRetry = { attempt++ },
-            hasPosition = position != null,
-            roadDistances = roadDistances,
+            listing = listing,
+            onRetry = { nearby.show(kind, refresh = true) },
             rows = rows,
             featured = featured,
             onPick = { picked = it },
@@ -241,8 +218,8 @@ private fun SearchRow(
     onClose: () -> Unit,
     modifier: Modifier,
 ) {
-    val fill = Color(0xF0161618)
-    val ring = Color(0x14FFFFFF)
+    val fill = MapInk.panelSolid
+    val ring = MapInk.lineStrong
     Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         CircleButton(
             Lucide.close,
@@ -253,13 +230,13 @@ private fun SearchRow(
             ink = MapInk.fg,
             elevated = false,
             ring = ring,
-            modifier = Modifier.shadow(12.dp, CircleShape, spotColor = Color.Black.copy(alpha = 0.7f)),
+            modifier = Modifier.shadow(12.dp, CircleShape, spotColor = MapInk.shadow),
         )
         Row(
             Modifier
                 .weight(1f)
                 .height(48.dp)
-                .shadow(12.dp, CircleShape, spotColor = Color.Black.copy(alpha = 0.7f))
+                .shadow(12.dp, CircleShape, spotColor = MapInk.shadow)
                 .clip(CircleShape)
                 .background(fill)
                 .border(1.dp, ring, CircleShape)
@@ -290,7 +267,7 @@ private fun SearchRow(
                     onClear,
                     size = 36.dp,
                     iconSize = 14.dp,
-                    background = Color(0x14FFFFFF),
+                    background = MapInk.button,
                     ink = MapInk.fg,
                     elevated = false,
                 )

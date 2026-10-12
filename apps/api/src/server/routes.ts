@@ -42,6 +42,7 @@ import {
   fuelRoutes,
   maintenanceRoutes,
 } from '../modules/analytics/analytics.routes';
+import { expenseRoutes } from '../modules/expenses/expense.routes';
 import { adminRoutes } from '../modules/admin/admin.routes';
 import { vehicleRoutes } from '../modules/vehicles/vehicle.routes';
 import { secureAccessRoutes } from '../modules/secure-access/secure-access.routes';
@@ -58,6 +59,8 @@ import {
   vehicleTerminalRoutes,
 } from '../modules/terminal/terminal.routes';
 import { terminalClientRoutes } from '../modules/terminal/terminal-client.routes';
+import { terminalPapersRoutes } from '../modules/terminal/terminal-papers.routes';
+import { terminalSlipRoutes } from '../modules/terminal/terminal-slips.routes';
 import { terminalReleaseRoutes } from '../modules/terminal/release.routes';
 import { publicDriverAppRoutes } from '../modules/terminal/driver-app.routes';
 import { deviceGatewayRoutes } from '../modules/telemetry/gateway.routes';
@@ -155,6 +158,8 @@ export async function registerApiRoutes(app: FastifyInstance): Promise<void> {
   // scheduled — different lifecycle, different provenance rules.
   await app.register(serviceHistoryRoutes, { prefix: '/service-history' });
   await app.register(fuelRoutes, { prefix: '/fuel' });
+  // Road expense slips other than fuel — tolls paid in cash, parking, repairs.
+  await app.register(expenseRoutes, { prefix: '/fleet/expenses' });
   // FASTag and toll. Mounted under /fleet alongside fuel: both are running
   // costs a dispatcher works with, not owner-only financial data.
   await app.register(tollRoutes, { prefix: '/fleet/toll' });
@@ -247,6 +252,9 @@ export async function registerApiRoutes(app: FastifyInstance): Promise<void> {
   // nothing: heartbeat, telemetry, location, SOS, commands and camera are the
   // endpoints above, used unchanged.
   await app.register(terminalClientRoutes, { prefix: '/device-gateway/terminal' });
+  // The driver's papers wallet and road expense slips, on the same base URL.
+  await app.register(terminalPapersRoutes, { prefix: '/device-gateway/terminal' });
+  await app.register(terminalSlipRoutes, { prefix: '/device-gateway/terminal' });
   // The video gateway's authorisation callback. Its caller is an SFU, not a
   // person and not a device — the signed ticket it presents is the whole
   // credential, and it is verified inside the route.

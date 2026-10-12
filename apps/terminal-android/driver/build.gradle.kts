@@ -89,6 +89,17 @@ val saarthiMapStyleUrl: String =
     setting("saarthiMapStyleUrl") ?: "https://tiles.openfreemap.org/styles/dark"
 
 /**
+ * The basemap in the light theme.
+ *
+ * The map now follows the app's Phone / Light / Dark setting rather than
+ * staying dark: a driver who chose Light at noon was handed a near-black map
+ * that is hard to read in sunlight. `liberty` is the style the web app and the
+ * fitted terminal already draw, so a junction looks the same on all three.
+ */
+val saarthiMapStyleUrlLight: String =
+    setting("saarthiMapStyleUrlLight") ?: "https://tiles.openfreemap.org/styles/liberty"
+
+/**
  * Signed by the same key as the terminal.
  *
  * Different application ids, one keystore. Two keys would mean two things to
@@ -130,6 +141,7 @@ android {
         buildConfigField("int", "VERSION_CODE", "$appVersionCode")
         buildConfigField("String", "SAARTHI_API_URL", "\"$saarthiApiUrl\"")
         buildConfigField("String", "MAP_STYLE_URL", "\"$saarthiMapStyleUrl\"")
+        buildConfigField("String", "MAP_STYLE_URL_LIGHT", "\"$saarthiMapStyleUrlLight\"")
     }
 
     buildTypes {

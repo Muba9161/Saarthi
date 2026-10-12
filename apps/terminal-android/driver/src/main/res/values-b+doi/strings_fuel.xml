@@ -1,11 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="fuel_title">तेल पर्ची</string>
     <string name="fuel_step_photo">फ़ोटो</string>
-    <string name="fuel_step_figures">अंकड़े</string>
     <string name="fuel_step_saved">सेव होई</string>
     <string name="fuel_step_label">कदम %1$d / %2$d: %3$s</string>
-    <string name="fuel_lead">पर्ची दी फ़ोटो खिच्चो ते दो अंकड़े टाइप करो. हून कागज़ संभालने दी लोड़ नेईं.</string>
     <string name="fuel_rear_camera">पिछला कैमरा</string>
     <string name="fuel_frame_hint">पूरी पर्ची फ़्रेम दे अंदर रक्खो.</string>
     <string name="fuel_photograph">पर्ची दी फ़ोटो खिच्चो</string>
@@ -27,4 +24,20 @@
     <string name="fuel_saved_title">सेव होई गेई</string>
     <string name="fuel_saved_body">तुंदी फ़्लीट कोल पर्ची ते अंकड़े पुज्जी गे न. हून तुस कागज़ सुट्टी सकदे ओ.</string>
     <string name="fuel_add_another">होर जोड़ो</string>
+
+    <!-- Expense slips -->
+    <string name="expense_title">खर्चे दी पर्ची</string>
+    <string name="expense_lead">कोई बी पर्ची — तेल, टोल, पार्किंग, मरम्मत, खाना — उसदी फ़ोटो खिच्चो ते लिखो जे कितना लग्गा. हून कागज़ संभालने दी लोड़ नेईं.</string>
+    <string name="expense_step_details">जानकारी</string>
+    <string name="expense_kind_label">एह् कुस चीज़ आस्तै हा?</string>
+    <string name="expense_cat_fuel">तेल</string>
+    <string name="expense_cat_toll">टोल</string>
+    <string name="expense_cat_parking">पार्किंग</string>
+    <string name="expense_cat_repair">मरम्मत</string>
+    <string name="expense_cat_food">खाना</string>
+    <string name="expense_cat_loading">लोडिंग</string>
+    <string name="expense_cat_challan">चालान</string>
+    <string name="expense_cat_other">होर</string>
+    <string name="expense_vendor">कुसगी दित्ते</string>
+    <string name="expense_note">नोट</string>
 </resources>

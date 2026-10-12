@@ -30,13 +30,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.saarthi.core.ui.TerminalViewModel
 import com.saarthi.driver.R
-import com.saarthi.driver.ui.design.AlwaysDark
 import com.saarthi.driver.ui.design.CircleButton
 import com.saarthi.driver.ui.design.Lucide
 import com.saarthi.driver.ui.design.MapInk
@@ -63,68 +63,69 @@ fun FullMapScreen(
     val navigation by cockpit.navigation.collectAsState()
     val guidanceOn by cockpit.voiceGuidance.collectAsState()
     val camera = rememberMapCamera(navigation)
+    val trail = rememberCoveredPath(cockpit)
+    val context = LocalContext.current
 
-    AlwaysDark {
-        Box(
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(MapInk.ground),
+    ) {
+        LiveMap(state, navigation, camera, Modifier.matchParentSize(), trail = trail)
+        MapScrim(MapInk.ground, top = 0.22f, bottom = 0.78f, footAlpha = 0.85f)
+
+        NavCard(
+            navigation = navigation,
+            guidanceMuted = !guidanceOn,
+            onToggleGuidance = { cockpit.setVoiceGuidance(!guidanceOn) },
+            onStart = cockpit::startNavigation,
+            onStop = null,
+            large = true,
+            onGoogleMaps = { context.navigateInGoogleMaps(cockpit) },
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .windowInsetsPadding(WindowInsets.statusBars)
+                .padding(start = 16.dp, end = 16.dp, top = 4.dp)
+                .rise(100, distance = (-16).dp),
+        )
+
+        Column(
             Modifier
-                .fillMaxSize()
-                .background(MapInk.ground),
+                .align(Alignment.BottomEnd)
+                .windowInsetsPadding(WindowInsets.navigationBars)
+                .padding(end = 16.dp, bottom = 116.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            LiveMap(state, navigation, camera, Modifier.matchParentSize())
-            MapScrim(MapInk.ground, top = 0.22f, bottom = 0.78f, footAlpha = 0.85f)
-
-            NavCard(
-                navigation = navigation,
-                guidanceMuted = !guidanceOn,
-                onToggleGuidance = { cockpit.setVoiceGuidance(!guidanceOn) },
-                onStart = cockpit::startNavigation,
-                onStop = null,
-                large = true,
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .windowInsetsPadding(WindowInsets.statusBars)
-                    .padding(start = 16.dp, end = 16.dp, top = 4.dp)
-                    .rise(100, distance = (-16).dp),
+            MapFab(
+                Lucide.crosshair,
+                stringResource(R.string.map_recentre),
+                camera::recentre,
+                Modifier.rise(150),
+                tint = MapInk.primary,
+                iconSize = 22.dp,
+                fill = Lucide.crosshairDot,
             )
-
-            Column(
-                Modifier
-                    .align(Alignment.BottomEnd)
-                    .windowInsetsPadding(WindowInsets.navigationBars)
-                    .padding(end = 16.dp, bottom = 116.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                MapFab(
-                    Lucide.crosshair,
-                    stringResource(R.string.map_recentre),
-                    camera::recentre,
-                    Modifier.rise(150),
-                    tint = MapInk.primary,
-                    iconSize = 22.dp,
-                    fill = Lucide.crosshairDot,
-                )
-                RoundSos(onSos, Modifier.rise(150))
-            }
-            MapCredits(
-                Modifier
-                    .align(Alignment.BottomStart)
-                    .windowInsetsPadding(WindowInsets.navigationBars)
-                    .padding(start = 20.dp, bottom = 108.dp),
-            )
-
-            FootBar(
-                speedKph = state.speedKph,
-                plate = state.registration ?: fallbackPlate.orEmpty(),
-                state = state,
-                onClose = onClose,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .windowInsetsPadding(WindowInsets.navigationBars)
-                    .padding(start = 16.dp, end = 16.dp, bottom = 24.dp)
-                    .rise(150),
-            )
+            RoundSos(onSos, Modifier.rise(150))
         }
+        MapCredits(
+            Modifier
+                .align(Alignment.BottomStart)
+                .windowInsetsPadding(WindowInsets.navigationBars)
+                .padding(start = 20.dp, bottom = 108.dp),
+        )
+
+        FootBar(
+            speedKph = state.speedKph,
+            plate = state.registration ?: fallbackPlate.orEmpty(),
+            state = state,
+            onClose = onClose,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .windowInsetsPadding(WindowInsets.navigationBars)
+                .padding(start = 16.dp, end = 16.dp, bottom = 24.dp)
+                .rise(150),
+        )
     }
 }
 
@@ -143,10 +144,10 @@ private fun FootBar(
         modifier
             .fillMaxWidth()
             .height(72.dp)
-            .shadow(16.dp, shape, spotColor = Color.Black.copy(alpha = 0.8f))
+            .shadow(16.dp, shape, spotColor = MapInk.shadow)
             .clip(shape)
-            .background(Color(0xF0161618))
-            .border(1.dp, Color(0x14FFFFFF), shape)
+            .background(MapInk.panelSolid)
+            .border(1.dp, MapInk.lineStrong, shape)
             .padding(start = 18.dp, end = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp),
@@ -163,7 +164,7 @@ private fun FootBar(
             Modifier
                 .width(1.dp)
                 .height(32.dp)
-                .background(Color(0x1AFFFFFF)),
+                .background(MapInk.lineStrong),
         )
         Box(Modifier.weight(1f)) {
             PlateLine(plate, state.link, state.server?.vehicle?.vehicleType, plateSize = 14)

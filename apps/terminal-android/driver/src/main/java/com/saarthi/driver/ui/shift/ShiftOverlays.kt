@@ -53,7 +53,7 @@ import androidx.compose.ui.unit.sp
 import com.saarthi.core.telemetry.Position
 import com.saarthi.driver.R
 import com.saarthi.driver.ui.design.Brand
-import com.saarthi.driver.ui.design.BrandMark
+import com.saarthi.driver.ui.design.BrandLockup
 import com.saarthi.driver.ui.design.BottomSheet
 import com.saarthi.driver.ui.design.ButtonTone
 import com.saarthi.driver.ui.design.CircleButton
@@ -110,7 +110,7 @@ fun SosOverlay(
                 .windowInsetsPadding(WindowInsets.statusBars)
                 .windowInsetsPadding(WindowInsets.navigationBars),
         ) {
-            BrandMark(height = 32.dp, plated = true, modifier = Modifier.padding(start = 20.dp, top = 4.dp))
+            BrandLockup(height = 52.dp, plated = true, modifier = Modifier.padding(start = 20.dp, top = 4.dp))
             SosBeacon(
                 Modifier
                     .align(Alignment.TopCenter)

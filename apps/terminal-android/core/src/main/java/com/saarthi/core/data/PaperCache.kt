@@ -33,6 +33,12 @@ class PaperCache(context: Context, private val api: SaarthiApi) {
 
     private val root = File(context.filesDir, "papers").apply { mkdirs() }
 
+    /** Vehicle photographs, apart from the papers so [retainOnly] never weighs them as documents. */
+    private val photos = File(context.filesDir, "paper-photos").apply { mkdirs() }
+
+    /** The last wallet the server sent — the folders a checkpoint with no signal still needs. */
+    private val snapshot = File(root, SNAPSHOT_NAME)
+
     private val _cached = MutableStateFlow(scanCached())
 
     /**
@@ -48,7 +54,7 @@ class PaperCache(context: Context, private val api: SaarthiApi) {
 
     private fun scanCached(): Set<String> =
         root.listFiles()
-            ?.filter { it.length() > 0 && !it.name.endsWith(".part") }
+            ?.filter { it.length() > 0 && !it.name.endsWith(".part") && !it.name.startsWith(PRIVATE_PREFIX) }
             ?.map { it.name.substringBefore('.') }
             ?.toSet()
             ?: emptySet()
@@ -99,6 +105,7 @@ class PaperCache(context: Context, private val api: SaarthiApi) {
     fun retainOnly(documentIds: Set<String>) {
         val keep = documentIds.toSet()
         root.listFiles()?.forEach { file ->
+            if (file.name.startsWith(PRIVATE_PREFIX)) return@forEach
             val id = file.name.substringBefore('.')
             if (id !in keep) {
                 DebugLog.debug(TAG, "Dropping a paper the fleet no longer lists")
@@ -111,7 +118,50 @@ class PaperCache(context: Context, private val api: SaarthiApi) {
     /** Everything, on sign-off. The next driver's phone is not this driver's. */
     fun clear() {
         root.listFiles()?.forEach { it.delete() }
+        photos.listFiles()?.forEach { it.delete() }
         _cached.value = emptySet()
+    }
+
+    /** Keep the wallet as last listed, written whole or not at all. */
+    suspend fun saveSnapshot(json: String): Unit = withContext(Dispatchers.IO) {
+        val partial = File(root, "$SNAPSHOT_NAME.part")
+        runCatching {
+            partial.writeText(json)
+            if (!partial.renameTo(snapshot)) {
+                snapshot.delete()
+                partial.renameTo(snapshot)
+            }
+        }.onFailure { DebugLog.warn(TAG, "Could not keep the papers list: ${it.message}") }
+        Unit
+    }
+
+    suspend fun readSnapshot(): String? = withContext(Dispatchers.IO) {
+        runCatching { snapshot.takeIf { it.exists() }?.readText() }.getOrNull()
+    }
+
+    /**
+     * A vehicle photograph on this phone, fetched once.
+     *
+     * Through [SaarthiApi.downloadTo] like a paper, so the same device credential
+     * and the same all-or-nothing write apply.
+     */
+    suspend fun photo(path: String, name: String): File? = withContext(Dispatchers.IO) {
+        val target = File(photos, name)
+        if (target.exists() && target.length() > 0) return@withContext target
+        val partial = File(photos, "$name.part")
+        runCatching {
+            api.downloadTo(path, partial)
+            if (partial.length() == 0L || !partial.renameTo(target)) error("Could not store the photo.")
+            target
+        }.onFailure {
+            partial.delete()
+            DebugLog.warn(TAG, "Could not fetch a vehicle photo: ${it.message}")
+        }.getOrNull()
+    }
+
+    /** Photos no longer on the vehicle go, as superseded papers do. */
+    fun retainPhotos(names: Set<String>) {
+        photos.listFiles()?.forEach { if (it.name !in names) it.delete() }
     }
 
     private fun extensionFor(mimeType: String?): String = when {
@@ -125,5 +175,9 @@ class PaperCache(context: Context, private val api: SaarthiApi) {
 
     private companion object {
         const val TAG = "papers"
+
+        /** Files in the papers folder that are not papers, and never counted as one. */
+        const val PRIVATE_PREFIX = "_"
+        const val SNAPSHOT_NAME = "_wallet.json"
     }
 }

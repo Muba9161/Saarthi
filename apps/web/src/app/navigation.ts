@@ -226,7 +226,7 @@ export const FLEET_NAVIGATION: NavSection[] = [
       {
         // One entry for four screens — documents, fuel, EMIs and toll — which
         // between them held four sidebar rows for records that are also on each
-        // vehicle's own page. They remain four distinct screens behind a tab
+        // vehicle's own page. They remain distinct screens behind a tab
         // strip (see `features/fleet/running-costs-tabs`), each on the URL it
         // always had; the menu simply stopped listing them separately.
         label: 'Documents & costs',
@@ -239,7 +239,7 @@ export const FLEET_NAVIGATION: NavSection[] = [
           Permission.TOLL_READ,
         ],
         badgeKey: 'expiringDocuments',
-        alsoMatches: ['/fleet/fuel', '/fleet/loans', '/fleet/toll'],
+        alsoMatches: ['/fleet/fuel', '/fleet/expenses', '/fleet/loans', '/fleet/toll'],
       },
       // No QR entry. A code is an attribute of one vehicle or one driver, and it
       // is now issued with them automatically and shown as a tab on their own
@@ -549,7 +549,7 @@ export const MOBILITY_NAVIGATION: NavSection[] = [
       {
         // One entry for four screens — documents, fuel, EMIs and toll — which
         // between them held four sidebar rows for records that are also on each
-        // vehicle's own page. They remain four distinct screens behind a tab
+        // vehicle's own page. They remain distinct screens behind a tab
         // strip (see `features/fleet/running-costs-tabs`), each on the URL it
         // always had; the menu simply stopped listing them separately.
         label: 'Documents & costs',
@@ -562,7 +562,7 @@ export const MOBILITY_NAVIGATION: NavSection[] = [
           Permission.TOLL_READ,
         ],
         badgeKey: 'expiringDocuments',
-        alsoMatches: ['/fleet/fuel', '/fleet/loans', '/fleet/toll'],
+        alsoMatches: ['/fleet/fuel', '/fleet/expenses', '/fleet/loans', '/fleet/toll'],
       },
       // No "Vehicle registration" entry, for the reason given in
       // FLEET_NAVIGATION: it duplicates the vehicle's own Registration tab. The

@@ -42,7 +42,7 @@ import com.saarthi.core.telemetry.TelemetrySnapshot
 import com.saarthi.core.ui.TerminalViewModel
 import com.saarthi.driver.R
 import com.saarthi.driver.ui.design.BottomSheet
-import com.saarthi.driver.ui.design.BrandMark
+import com.saarthi.driver.ui.design.BrandLockup
 import com.saarthi.driver.ui.design.CircleButton
 import com.saarthi.driver.ui.design.DarkPalette
 import com.saarthi.driver.ui.design.EqualRow
@@ -111,7 +111,7 @@ private fun VehicleContent(cockpit: TerminalViewModel, onClose: () -> Unit, modi
 private fun SheetHeader(title: String, onClose: () -> Unit) {
     val c = Saarthi.colors
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        BrandMark(height = 30.dp, plated = true)
+        BrandLockup(height = 44.dp, plated = true)
         Text(title, style = SType.plate(22.sp, 0.02.em), color = c.fg, maxLines = 1, modifier = Modifier.weight(1f))
         CircleButton(
             Lucide.close,

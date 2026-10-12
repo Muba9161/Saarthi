@@ -70,6 +70,17 @@ const SILHOUETTE_BY_TYPE: Record<string, Silhouette> = {
   // VehicleCategory — the more specific of a vehicle's two, when it has one
   SCOOTER: 'scooter',
   ELECTRIC_SCOOTER: 'scooter',
+  ELECTRIC_MOTORCYCLE: 'motorcycle',
+  // AUTO_RICKSHAW is shared with VehicleType above.
+  E_RICKSHAW: 'rickshaw',
+  CARGO_THREE_WHEELER: 'rickshaw',
+  PASSENGER_VAN: 'van',
+  CARGO_VAN: 'van',
+  MINI_BUS: 'bus',
+  STANDARD_BUS: 'bus',
+  COACH: 'bus',
+  SLEEPER_BUS: 'bus',
+  SCHOOL_BUS: 'bus',
   MOTORCYCLE: 'motorcycle',
   SPORTS_BIKE: 'sports',
   CRUISER: 'cruiser',
@@ -89,7 +100,7 @@ const SILHOUETTE_BY_TYPE: Record<string, Silhouette> = {
   TANKER: 'tanker',
   FLATBED: 'trailer',
   REFRIGERATED: 'truck',
-  MINI_TRUCK: 'van',
+  MINI_TRUCK: 'pickup',
   MULTI_AXLE: 'trailer',
 };
 
@@ -98,12 +109,21 @@ export function silhouetteFor(type: string | null | undefined): Silhouette {
   return SILHOUETTE_BY_TYPE[type.toUpperCase().replace(/[\s-]/g, '_')] ?? 'truck';
 }
 
-/** The most specific type a vehicle record has — its category, if it has one. */
+/**
+ * The most specific thing a record says about its shape: its category, a
+ * truck's body, or else its type.
+ */
 export function vehicleArtType(vehicle: {
   vehicleType: string;
   category?: string | null;
+  truckType?: string | null;
 }): string {
-  return vehicle.category ?? vehicle.vehicleType;
+  if (vehicle.category) return vehicle.category;
+  // Only a truck's body describes it; other types carry a placeholder body.
+  if (vehicle.vehicleType === 'TRUCK' && vehicle.truckType && vehicle.truckType !== 'OTHER') {
+    return vehicle.truckType;
+  }
+  return vehicle.vehicleType;
 }
 
 /* --- Drawing parts ---------------------------------------------------------
@@ -469,16 +489,13 @@ export function VehicleSilhouette({
    and on a near-black one, and the shared canvas is what stops a rickshaw and
    a tipper arriving at different visual weights in the same grid.
 
-   Six drawings for ten classes, so some sharing remains: a tanker, a trailer,
-   a van and a pickup all show the goods truck. That is a gap in the artwork
-   rather than in the mapping — add a file and point its class at it, which is
-   all the bus took. The type label under the plate is what disambiguates in
-   the meantime.
-
-   Two-wheelers have no entry yet, so they go straight to their drawing rather
-   than requesting a file that is not there. Their artwork lands as
-   `/vehicles/{scooter,motorcycle,sports-bike,cruiser,adventure,moped}.webp`
-   (plus the `@2x` file), and each gets its line here when it does. */
+   A class without artwork of its own shows its drawing rather than borrowing
+   another class's photo: a pickup, tanker, trailer or van shown as the open
+   goods truck reads as the wrong vehicle, and in the vehicle picker it made
+   the tiles indistinguishable. The drawing is accurate for every class. Add a
+   file (plus its `@2x`) and point the class at it here — that is all the bus
+   took. Two-wheelers land the same way, as
+   `/vehicles/{scooter,motorcycle,sports-bike,cruiser,adventure,moped}.webp`. */
 const ARTWORK_BY_SILHOUETTE: Partial<Record<Silhouette, string>> = {
   truck: 'truck',
   tipper: 'tipper',
@@ -486,14 +503,10 @@ const ARTWORK_BY_SILHOUETTE: Partial<Record<Silhouette, string>> = {
   car: 'sedan',
   bus: 'bus',
   rickshaw: 'autorickshaw',
-  // No artwork of their own yet — nearest class by body shape. (The hatchback
-  // source in design/vehicles has its checkerboard baked into the pixels, so
-  // it cannot be cut out; it gets its own file once that is regenerated.)
+  // A hatchback is close enough to the sedan to borrow it. (Its own source in
+  // design/vehicles has its checkerboard baked into the pixels, so it cannot
+  // be cut out; it gets its own file once that is regenerated.)
   hatchback: 'sedan',
-  trailer: 'truck',
-  tanker: 'truck',
-  van: 'truck',
-  pickup: 'truck',
 };
 
 export interface VehicleArtwork {

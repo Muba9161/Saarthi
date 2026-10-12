@@ -1,45 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  The launcher icon foreground: the company's own VX mark.
+  The launcher icon foreground: the whole VorldX Saarthi logo — the mark, the
+  "VorldX Saarthi" wordmark and the MANAGE · TRACK · MOVE · TOGETHER strapline —
+  the same `brand_lockup` the splash and welcome screens show.
 
-  Specification section 3 is explicit that the app must reuse the project's
-  official logo rather than invent one, so this is `saarthi_mark.png` — the same
-  mark the web app renders — rather than a drawing made for this app.
+  ## Fitting it to every launcher's mask
 
-  ## Getting a landscape mark into a square canvas
+  The box matches the artwork's own 900:813 proportions, so the drawable fills
+  it without stretching. 44dp wide, well inside the 66dp safe circle, because
+  some launchers mask far more than the standard: on a Redmi with HyperOS a 54dp
+  logo lost the pin, both ends of "VorldX" and the strapline to the squircle.
 
-  This began as an `<inset>` around the bitmap and looked blurred and cropped,
-  and the two attempts at fixing it are worth recording because each failed
-  differently:
+  A `<bitmap>` rather than the drawable directly, for `mipMap`: the 900px
+  artwork is drawn at a sixth of its size here, and sampling it down without
+  mipmaps is what turns the strapline into noise.
 
-    * **An inset stretches.** A bitmap drawable fills its bounds, so a 512x307
-      mark handed a 64x64 square was squashed into a square and the pin at the
-      top read as clipped.
-    * **A `center` gravity does not scale.** With the file moved to
-      `drawable-nodpi` it decodes at 512px, which on a 3x handset is about
-      171dp — far larger than the box — so centring it without scaling simply
-      cropped the middle out.
-
-  What works is a box whose *aspect already matches the artwork*: 64x38 is
-  512:307 to within a percent, so letting the drawable fill it preserves the
-  proportions by construction.
-
-  64dp rather than the 55dp that fits strictly inside the guaranteed 66dp safe
-  circle. At 55dp the mark sat visibly small in its tile, and the corners that
-  stray past the circle are empty in this artwork — the V and the X do not reach
-  them, and the pin sits well inside the left edge. The trade is deliberate: a
-  logo nobody can make out is a worse outcome than a transparent corner a round
-  mask might clip.
-
-  The file lives in `drawable-nodpi` deliberately. Plain `drawable/` is the mdpi
-  bucket, so a 512px image was decoded as though it were 512dp and pre-scaled up
-  threefold before being drawn back down — and upscaling then downscaling is
-  what softened the fine strokes in the first place.
+  The file lives in `drawable-nodpi` so it is never pre-scaled by density
+  before being drawn back down.
 -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item
         android:gravity="center"
-        android:width="64dp"
-        android:height="38dp"
-        android:drawable="@drawable/saarthi_mark" />
+        android:width="44dp"
+        android:height="40dp">
+        <bitmap
+            android:src="@drawable/brand_lockup"
+            android:gravity="fill"
+            android:filter="true"
+            android:mipMap="true" />
+    </item>
 </layer-list>

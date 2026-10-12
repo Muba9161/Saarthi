@@ -1,9 +1,10 @@
-import { DocumentOwnerType, type LatLng } from '@saarthi/shared';
+import type { CityFuelRate, LatLng, PetrolFuelFilter } from '@saarthi/shared';
 import { prisma } from '../../database/prisma';
 import { logger } from '../../lib/logger';
 import { cache } from '../../infra/cache';
-import { routingProvider } from '../../providers/routing';
+import { routingProvider, type Locality } from '../../providers/routing';
 import { getCityFuelRate } from '../fuel-rates/fuel-rate.service';
+import { tripForSlip } from '../expenses/expense.service';
 import type { AuthContext } from '../../auth/context';
 
 /**
@@ -33,7 +34,9 @@ const FUEL_LOCALITY_TTL_SECONDS = 6 * 60 * 60;
  * without which every telemetry frame would be a geocoder call.
  */
 function localityKey(at: LatLng): string {
-  return `terminal:locality:${at.latitude.toFixed(2)},${at.longitude.toFixed(2)}`;
+  // `v2`: entries now carry the district, and an older entry without one must
+  // not be read as "this place has no district".
+  return `terminal:locality:v2:${at.latitude.toFixed(2)},${at.longitude.toFixed(2)}`;
 }
 
 export interface DriverFuelPrice {
@@ -53,6 +56,11 @@ export interface DriverFuelPrice {
    */
   publishedOn: string | null;
   source: string;
+  /**
+   * What the rate is published for. `STATE` is the state-wide average for a
+   * town nobody prices on its own, and must be labelled as an average.
+   */
+  scope: 'CITY' | 'DISTRICT' | 'STATE';
 }
 
 /**
@@ -67,11 +75,14 @@ export interface DriverFuelPrice {
  * a number a driver may spend money against, and a wrong one is worse than an
  * absent one.
  */
-export async function fuelPriceNear(at: LatLng): Promise<DriverFuelPrice | null> {
+export async function fuelPriceNear(
+  at: LatLng,
+  fuel?: PetrolFuelFilter,
+): Promise<DriverFuelPrice | null> {
   if (!routingProvider) return null;
 
   const key = localityKey(at);
-  let locality = await cache.get<{ city: string; state: string | null }>(key);
+  let locality = await cache.get<Locality>(key);
 
   if (locality === null) {
     try {
@@ -84,14 +95,17 @@ export async function fuelPriceNear(at: LatLng): Promise<DriverFuelPrice | null>
     await cache.set(key, locality, FUEL_LOCALITY_TTL_SECONDS);
   }
 
-  const rate = await getCityFuelRate({ city: locality.city, state: locality.state ?? undefined });
-  if (!rate) {
+  const state = locality.state ?? undefined;
+  const priced = await pricedPlace(locality, fuel);
+
+  if (!priced) {
     // The city is known and the rate is not. Saying where we looked is more
     // use than a bare "unavailable" — a driver can tell whether we looked in
     // the right place.
     return {
       city: locality.city,
       state: locality.state,
+      scope: 'CITY',
       diesel: null,
       petrol: null,
       cng: null,
@@ -100,15 +114,74 @@ export async function fuelPriceNear(at: LatLng): Promise<DriverFuelPrice | null>
     };
   }
 
+  const { rate, scope } = priced;
   return {
-    city: locality.city,
-    state: locality.state,
+    // The place the rate is published for: the town, its district, or the state.
+    city: rate.city,
+    state: state ?? null,
+    scope,
     diesel: rate.diesel?.price ?? null,
     petrol: rate.petrol?.price ?? null,
     cng: rate.cng?.price ?? null,
     publishedOn: rate.publishedOn,
     source: rate.source,
   };
+}
+
+/**
+ * The pump fuel a vehicle's recorded fuel type buys — the same rule the app's
+ * `PumpPrice` applies: a hybrid buys petrol; electric and LNG buy none that is
+ * published; an unrecorded type is left open.
+ */
+export function pumpFuelFor(fuelType: string | null): PetrolFuelFilter | undefined {
+  switch (fuelType) {
+    case 'DIESEL':
+      return 'diesel';
+    case 'PETROL':
+    case 'HYBRID':
+      return 'petrol';
+    case 'CNG':
+      return 'cng';
+    default:
+      return undefined;
+  }
+}
+
+/**
+ * The most local published rate for a place: the town, then its district, then
+ * the state-wide average.
+ *
+ * In that order so a town that publishes its own rate always keeps it. A suburb
+ * or a highway village is priced by its district; a district nobody prices on
+ * its own falls back to the state average, which the card labels as such.
+ *
+ * With `fuel` named, a place that prices other fuels but not this one is
+ * passed over: a town publishing diesel and CNG is no answer for a petrol car.
+ */
+async function pricedPlace(
+  locality: Locality,
+  fuel: PetrolFuelFilter | undefined,
+): Promise<{ rate: CityFuelRate; scope: DriverFuelPrice['scope'] } | null> {
+  const state = locality.state ?? undefined;
+  const usable = (rate: CityFuelRate | null): rate is CityFuelRate =>
+    rate !== null && (fuel === undefined || rate[fuel] !== null);
+
+  const city = await getCityFuelRate({ city: locality.city, state });
+  if (usable(city)) return { rate: city, scope: 'CITY' };
+
+  const district = locality.district;
+  if (district && district.toLowerCase() !== locality.city.toLowerCase()) {
+    const rate = await getCityFuelRate({ city: district, state });
+    if (usable(rate)) return { rate, scope: 'DISTRICT' };
+  }
+
+  if (state) {
+    const rate = await getCityFuelRate({ city: state, state }, 'state');
+    if (usable(rate)) return { rate, scope: 'STATE' };
+  }
+
+  // Nothing prices this fuel; the town's other fuels are still worth showing.
+  return city ? { rate: city, scope: 'CITY' } : null;
 }
 
 export interface DriverFastag {
@@ -166,115 +239,6 @@ export async function fastagForVehicle(
     // When the *balance* was last known, not when we last talked to the bank.
     // A successful sync that returned nothing new is not fresher information.
     balanceUpdatedAt: account.balanceUpdatedAt?.toISOString() ?? null,
-  };
-}
-
-export interface DriverDocument {
-  id: string;
-  ownerType: string;
-  documentType: string;
-  title: string | null;
-  number: string | null;
-  expiryDate: string | null;
-  verificationStatus: string;
-  /** Days until expiry; negative once expired. Null with no expiry recorded. */
-  daysToExpiry: number | null;
-  mimeType: string | null;
-  sizeBytes: number | null;
-}
-
-function daysUntil(date: Date | null): number | null {
-  if (!date) return null;
-  return Math.ceil((date.getTime() - Date.now()) / 86_400_000);
-}
-
-/**
- * Every paper a checkpoint might ask for, vehicle and driver together.
- *
- * Returned as one list rather than two because that is how they are asked for:
- * an officer at a state border wants the RC, the insurance, the permit, the PUC
- * *and* the licence, and a driver holding a phone should not have to know which
- * of Saarthi's tables each lives in.
- *
- * Sorted by expiry, soonest first, so the one about to cause a problem is at the
- * top. Documents with no expiry sort last — they cannot lapse.
- */
-export async function driverDocuments(
-  organizationId: string,
-  vehicleId: string,
-  driverId: string | null,
-): Promise<DriverDocument[]> {
-  const rows = await prisma.document.findMany({
-    where: {
-      organizationId,
-      deletedAt: null,
-      OR: [
-        { ownerType: DocumentOwnerType.TRUCK, ownerId: vehicleId },
-        ...(driverId ? [{ ownerType: DocumentOwnerType.DRIVER, ownerId: driverId }] : []),
-      ],
-    },
-    select: {
-      id: true,
-      ownerType: true,
-      documentType: true,
-      title: true,
-      documentNumber: true,
-      expiryDate: true,
-      verificationStatus: true,
-      mimeType: true,
-      fileSize: true,
-    },
-  });
-
-  return rows
-    .map((row) => ({
-      id: row.id,
-      ownerType: String(row.ownerType),
-      documentType: String(row.documentType),
-      title: row.title,
-      number: row.documentNumber,
-      expiryDate: row.expiryDate?.toISOString() ?? null,
-      verificationStatus: String(row.verificationStatus),
-      daysToExpiry: daysUntil(row.expiryDate),
-      mimeType: row.mimeType,
-      sizeBytes: row.fileSize === null ? null : Number(row.fileSize),
-    }))
-    .sort((a, b) => {
-      if (a.expiryDate === null && b.expiryDate === null) return 0;
-      if (a.expiryDate === null) return 1;
-      if (b.expiryDate === null) return -1;
-      return a.expiryDate.localeCompare(b.expiryDate);
-    });
-}
-
-/** One document's stored object, for the app to cache against a checkpoint. */
-export async function driverDocumentForDownload(
-  organizationId: string,
-  vehicleId: string,
-  driverId: string | null,
-  documentId: string,
-): Promise<{ storageKey: string; mimeType: string | null; fileName: string } | null> {
-  const row = await prisma.document.findFirst({
-    // Scoped by owner as well as by id: a document id is not a capability, and
-    // a driver may read the papers of the vehicle they are signed on to and
-    // their own — nothing else in the fleet.
-    where: {
-      id: documentId,
-      organizationId,
-      deletedAt: null,
-      OR: [
-        { ownerType: DocumentOwnerType.TRUCK, ownerId: vehicleId },
-        ...(driverId ? [{ ownerType: DocumentOwnerType.DRIVER, ownerId: driverId }] : []),
-      ],
-    },
-    select: { storageKey: true, mimeType: true, fileName: true, documentType: true },
-  });
-  if (!row) return null;
-
-  return {
-    storageKey: row.storageKey,
-    mimeType: row.mimeType,
-    fileName: row.fileName ?? `${String(row.documentType).toLowerCase()}.pdf`,
   };
 }
 
@@ -340,6 +304,13 @@ export interface DriverTrip {
   distanceIsPlanned: boolean;
   fromLabel: string | null;
   toLabel: string | null;
+  /** The driver added this trip; the fleet did not dispatch it. */
+  driverCreated: boolean;
+  /** A service run the app opened on its own, not a trip anyone planned. */
+  adHoc: boolean;
+  plannedStartAt: string | null;
+  createdAt: string;
+  notes: string | null;
 }
 
 /**
@@ -369,6 +340,11 @@ export async function driverTrips(driverId: string, limit: number): Promise<Driv
       originAddress: true,
       destinationAddress: true,
       truckId: true,
+      driverCreated: true,
+      adHoc: true,
+      plannedStartAt: true,
+      createdAt: true,
+      notes: true,
     },
   });
 
@@ -396,17 +372,23 @@ export async function driverTrips(driverId: string, limit: number): Promise<Driv
      *
      * A trip still under way has no actual distance yet, and showing a plan as
      * though it were a measurement is the one thing this must not do — so the
-     * flag travels with the number.
+     * flag travels with the number. The driven figure defaults to zero in the
+     * database, so zero is "not driven yet", not a measurement.
      */
     distanceKm:
-      row.actualDistanceKm !== null
-        ? Number(row.actualDistanceKm)
+      row.actualDistanceKm > 0
+        ? Number(row.actualDistanceKm.toFixed(1))
         : row.plannedDistanceKm !== null
           ? Number(row.plannedDistanceKm)
           : null,
-    distanceIsPlanned: row.actualDistanceKm === null && row.plannedDistanceKm !== null,
+    distanceIsPlanned: row.actualDistanceKm <= 0 && row.plannedDistanceKm !== null,
     fromLabel: row.originAddress ?? null,
     toLabel: row.destinationAddress ?? null,
+    driverCreated: row.driverCreated,
+    adHoc: row.adHoc,
+    plannedStartAt: row.plannedStartAt?.toISOString() ?? null,
+    createdAt: row.createdAt.toISOString(),
+    notes: row.notes,
   }));
 }
 
@@ -414,6 +396,8 @@ export interface FuelSlipInput {
   organizationId: string;
   vehicleId: string;
   driverId: string | null;
+  /** The driver's own user, recorded as who entered the slip. */
+  createdById: string | null;
   litres: number;
   totalCost: number;
   odometerKm: number | null;
@@ -438,13 +422,18 @@ export interface FuelSlipInput {
  * The price per litre is derived rather than asked for. It is on the slip, but
  * it is also exactly `total ÷ litres`, and a third number to type at a pump is
  * a third chance to mistype one.
+ *
+ * Filed against the dispatched trip under way, as a fleet-entered fuel record
+ * is, so the fill lands in that trip's cost instead of floating free of it.
  */
 export async function recordFuelSlip(input: FuelSlipInput): Promise<{ id: string }> {
   const record = await prisma.fuelRecord.create({
     data: {
       truckId: input.vehicleId,
       organizationId: input.organizationId,
+      tripId: await tripForSlip(input.vehicleId),
       driverId: input.driverId,
+      createdById: input.createdById,
       quantityLitres: input.litres,
       pricePerUnit: input.totalCost / input.litres,
       totalCost: input.totalCost,
@@ -457,6 +446,11 @@ export async function recordFuelSlip(input: FuelSlipInput): Promise<{ id: string
   });
 
   return record;
+}
+
+/** Undo a fuel slip whose photograph could not be stored. */
+export async function discardFuelSlip(id: string): Promise<void> {
+  await prisma.fuelRecord.deleteMany({ where: { id } });
 }
 
 /** Unused today, kept so the auth shape of this module stays explicit. */

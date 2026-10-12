@@ -1,6 +1,9 @@
 package com.saarthi.driver.ui.design
 
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 
 /**
@@ -11,8 +14,7 @@ import androidx.compose.ui.graphics.Color
  * through [Saarthi.colors] and never hard-code a value, which is what lets the
  * Phone / Light / Dark switch in Profile repaint the whole app at once.
  *
- * The live map is the one surface that ignores this switch: it is always dark,
- * so a driver's eyes stay used to the road at night. Its colours are [MapInk].
+ * The live map follows the same switch with its own colours, [MapInk].
  */
 @Immutable
 data class SaarthiPalette(
@@ -177,35 +179,129 @@ val DarkPalette = SaarthiPalette(
 )
 
 /**
- * The live map's own colours.
+ * The live map's own colours, in a dark and a light form.
  *
- * Fixed, because the map and everything floating on it stays dark whatever the
- * appearance setting says — the design's rule, and the reason the Map tab does
- * not flash white at 3 a.m.
+ * The map used to stay dark whatever the appearance setting said. It now
+ * follows the setting — a driver who chose Light at midday was handed a
+ * near-black map that sunlight washes out — so these come from the theme as
+ * [LocalMapInk], and [MapInk] reads whichever the theme provides. The SOS and
+ * assistant overlays still pin the dark form through [AlwaysDark].
  */
-object MapInk {
-    val ground = Color(0xFF0C0D10)
-    val canvas = Color(0xFF0E0E10)
-    val panel = Color(0xEB161618)
-    val card = Color(0xFF161618)
-    val well = Color(0xFF1D1D20)
-    val sunken = Color(0xFF222225)
-    val line = Color(0x12FFFFFF)
-    val lineStrong = Color(0x14FFFFFF)
-    val fg = Color(0xFFF4F4F5)
-    val muted = Color(0xFF9F9FA8)
-    val subtle = Color(0xFF7E7E8B)
-    val soft = Color(0xFFD4D4D8)
-    val primary = Color(0xFF727FF3)
-    val primaryInk = Color(0xFF8E98F5)
-    val primarySoft = Color(0xFF232748)
-    val onPrimary = Color(0xFF0F0F24)
-    val success = Color(0xFF3DAE79)
-    val warning = Color(0xFFF2952C)
-    val danger = Color(0xFFDF494E)
-    val accent = Color(0xFFF49434)
-    val accentSoft = Color(0xFF3F2D1C)
-}
+@Immutable
+data class MapInkPalette(
+    val ground: Color,
+    val canvas: Color,
+    /** A panel floating over the map — translucent, so the map shows at its edge. */
+    val panel: Color,
+    /** The same panel where it must be nearly opaque, such as the foot bar. */
+    val panelSolid: Color,
+    val panelRing: Color,
+    val card: Color,
+    val well: Color,
+    val sunken: Color,
+    val line: Color,
+    val lineStrong: Color,
+    /** A round button on a panel. */
+    val button: Color,
+    val fg: Color,
+    val muted: Color,
+    val subtle: Color,
+    val soft: Color,
+    val primary: Color,
+    val primaryInk: Color,
+    val primarySoft: Color,
+    val onPrimary: Color,
+    val success: Color,
+    val warning: Color,
+    val danger: Color,
+    val accent: Color,
+    val accentSoft: Color,
+    /** A filter chip at rest, its outline and its text. */
+    val chip: Color,
+    val chipRing: Color,
+    val chipInk: Color,
+    /** A list row's divider on a sheet. */
+    val rule: Color,
+    /** The grab handle on a sheet. */
+    val handle: Color,
+    /** The OpenStreetMap credits, printed over the map. */
+    val credit: Color,
+    val shadow: Color,
+)
+
+val DarkMapInk = MapInkPalette(
+    ground = Color(0xFF0C0D10),
+    canvas = Color(0xFF0E0E10),
+    panel = Color(0xEB161618),
+    panelSolid = Color(0xF0161618),
+    panelRing = Color(0x12FFFFFF),
+    card = Color(0xFF161618),
+    well = Color(0xFF1D1D20),
+    sunken = Color(0xFF222225),
+    line = Color(0x12FFFFFF),
+    lineStrong = Color(0x14FFFFFF),
+    button = Color(0x14FFFFFF),
+    fg = Color(0xFFF4F4F5),
+    muted = Color(0xFF9F9FA8),
+    subtle = Color(0xFF7E7E8B),
+    soft = Color(0xFFD4D4D8),
+    primary = Color(0xFF727FF3),
+    primaryInk = Color(0xFF8E98F5),
+    primarySoft = Color(0xFF232748),
+    onPrimary = Color(0xFF0F0F24),
+    success = Color(0xFF3DAE79),
+    warning = Color(0xFFF2952C),
+    danger = Color(0xFFDF494E),
+    accent = Color(0xFFF49434),
+    accentSoft = Color(0xFF3F2D1C),
+    chip = Color(0xFF232326),
+    chipRing = Color(0xFF26262A),
+    chipInk = Color(0xFFB4B4BC),
+    rule = Color(0xFF232326),
+    handle = Color(0xFF3F3F46),
+    credit = Color(0x80FFFFFF),
+    shadow = Color(0xB3000000),
+)
+
+val LightMapInk = MapInkPalette(
+    ground = Color(0xFFF2F3F5),
+    canvas = Color(0xFFEFEFF1),
+    panel = Color(0xF0FFFFFF),
+    panelSolid = Color(0xFAFFFFFF),
+    panelRing = Color(0x1418181B),
+    card = Color(0xFFFFFFFF),
+    well = Color(0xFFF4F4F5),
+    sunken = Color(0xFFE9E9EC),
+    line = Color(0x1418181B),
+    lineStrong = Color(0x1F18181B),
+    button = Color(0x0F18181B),
+    fg = Color(0xFF18181B),
+    muted = Color(0xFF71717A),
+    subtle = Color(0xFF85858E),
+    soft = Color(0xFF3F3F46),
+    primary = Color(0xFF3B47BA),
+    primaryInk = Color(0xFF3B47BA),
+    primarySoft = Color(0xFFE5E7F5),
+    onPrimary = Color(0xFFFFFFFF),
+    success = Color(0xFF2A845A),
+    warning = Color(0xFFB4650B),
+    danger = Color(0xFFD6292F),
+    accent = Color(0xFFC2650A),
+    accentSoft = Color(0xFFFEF2E7),
+    chip = Color(0xFFF1F1F3),
+    chipRing = Color(0xFFE4E4E7),
+    chipInk = Color(0xFF52525B),
+    rule = Color(0xFFECECEF),
+    handle = Color(0xFFD4D4D8),
+    credit = Color(0x9918181B),
+    shadow = Color(0x2E18181B),
+)
+
+val LocalMapInk = staticCompositionLocalOf { DarkMapInk }
+
+/** The map's colours for the current theme. */
+val MapInk: MapInkPalette
+    @Composable @ReadOnlyComposable get() = LocalMapInk.current
 
 /** The brand colours, which are the same in both themes. */
 object Brand {

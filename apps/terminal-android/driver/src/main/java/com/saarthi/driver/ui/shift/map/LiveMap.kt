@@ -15,7 +15,10 @@ import com.saarthi.core.telemetry.Metric
 import com.saarthi.core.ui.MapLook
 import com.saarthi.core.ui.TerminalMap
 import com.saarthi.core.ui.TerminalViewModel
+import com.saarthi.core.domain.TrailPoint
+import com.saarthi.driver.BuildConfig
 import com.saarthi.driver.R
+import com.saarthi.driver.ui.design.Saarthi
 import com.saarthi.driver.ui.design.Lucide
 import kotlinx.coroutines.delay
 import java.util.Locale
@@ -92,13 +95,19 @@ fun rememberMapCamera(navigation: TerminalViewModel.NavigationUi): MapCamera {
     return camera
 }
 
-/** The shared map engine, dressed in [HumsafarMapLook] and driven by the cockpit. */
+/**
+ * The shared map engine, dressed in [HumsafarMapLook] and driven by the cockpit.
+ *
+ * The basemap follows the app's theme, and the covered path is drawn under the
+ * route: blue with no trip, green on the trip's planned route, red off it.
+ */
 @Composable
 fun LiveMap(
     state: TerminalViewModel.UiState,
     navigation: TerminalViewModel.NavigationUi,
     camera: MapCamera,
     modifier: Modifier = Modifier,
+    trail: List<TrailPoint> = emptyList(),
 ) {
     val route = navigation.route
     TerminalMap(
@@ -117,8 +126,15 @@ fun LiveMap(
         vehicleType = state.server?.vehicle?.vehicleType,
         look = HumsafarMapLook,
         modifier = modifier,
+        trail = trail,
+        styleUrl = mapStyleUrl(),
     )
 }
+
+/** The basemap for the current theme. */
+@Composable
+fun mapStyleUrl(): String =
+    if (Saarthi.colors.dark) BuildConfig.MAP_STYLE_URL else BuildConfig.MAP_STYLE_URL_LIGHT
 
 /** "Truck", "Bus" or "Car" — from the same grouping that picks the map pin. */
 @Composable

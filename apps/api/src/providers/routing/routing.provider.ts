@@ -130,6 +130,13 @@ export interface RoutingProvider {
 /** Where a position is, in the terms a price or a rule is published in. */
 export interface Locality {
   city: string;
+  /**
+   * The district, where the geocoder knows it.
+   *
+   * Fuel is priced per district, so a suburb or highway village that no
+   * publisher names on its own is still priced by the district it sits in.
+   */
+  district: string | null;
   /** The state, where the geocoder knows it. Disambiguates same-named towns. */
   state: string | null;
 }

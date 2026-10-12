@@ -35,4 +35,34 @@
     <string name="trips_error_title">तुंदियां ट्रिपां लोड नेईं होई सकियां</string>
     <string name="trips_error_body">Saarthi इस बेलै तुंदी फ़्लीट तगर नेईं पुज्जी सकेआ. थोड़ी देर च फ्ही कोशश करो.</string>
     <string name="trips_retry">फ्ही कोशश करो</string>
+
+    <!-- Up next and queued trips -->
+    <string name="trips_add">ट्रिप जोड़ो</string>
+    <string name="trips_up_next">अगली</string>
+    <string name="trips_queued">कतार च</string>
+    <string name="trips_from_fleet">तुंदी फ़्लीट थमां</string>
+    <string name="trips_added_by_you">तुसें जोड़ी</string>
+    <string name="trips_section_next">अगली ट्रिप</string>
+    <string name="trips_section_queued">इसदे पिच्छें इंतज़ार च</string>
+    <string name="toast_trip_added">ट्रिप जुड़ी गेई.</string>
+    <string name="toast_trip_queued">ट्रिप जुड़ी गेई. एह् तुंदी फ़्लीट दी ट्रिप दे बाद शुरू होग.</string>
+
+    <!-- Adding a trip -->
+    <string name="add_trip_title">ट्रिप जोड़ो</string>
+    <string name="add_trip_lead">चुनो जे तुस कुत्थें जा करदे ओ. Saarthi रूट बनाइयै तुंदी फ़्लीट गी दस्सी देग.</string>
+    <string name="add_trip_from">कुत्थुआं</string>
+    <string name="add_trip_to">कुत्थें तगर</string>
+    <string name="add_trip_here">जित्थै तुस हून ओ</string>
+    <string name="add_trip_pick_start">चुनो जे कुत्थुआं शुरू करगे ओ</string>
+    <string name="add_trip_pick_destination">चुनो जे कुत्थें जा करदे ओ</string>
+    <string name="add_trip_change">बदलो</string>
+    <string name="add_trip_search_from">शुरू करने आह्ली जगह लब्भो</string>
+    <string name="add_trip_search_to">जित्थै जा करदे ओ, ओह् जगह लब्भो</string>
+    <string name="add_trip_routing">रूट बनाया जा करदा ऐ…</string>
+    <string name="add_trip_route_failed">इस बेलै रूट नेईं बनी सकेआ. तुस फ्ही बी ट्रिप जोड़ी सकदे ओ.</string>
+    <string name="add_trip_notes">तुंदी फ़्लीट आस्तै नोट</string>
+    <string name="add_trip_queue_note">तुंदी फ़्लीट दी ट्रिप पैह्लें होग. एह् ट्रिप उसदे पूरी होने दे बाद शुरू होग.</string>
+    <string name="add_trip_create">ट्रिप जोड़ो</string>
+    <string name="add_trip_queue">फ़्लीट दी ट्रिप दे बाद जोड़ो</string>
+    <string name="add_trip_creating">जोड़ा करदे आं…</string>
 </resources>

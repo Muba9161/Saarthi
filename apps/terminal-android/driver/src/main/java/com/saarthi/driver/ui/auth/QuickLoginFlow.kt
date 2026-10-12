@@ -44,7 +44,7 @@ import com.saarthi.driver.R
 import com.saarthi.driver.data.DriverAccountStore
 import com.saarthi.driver.data.QuickLoginPolicy
 import com.saarthi.driver.ui.DriverViewModel
-import com.saarthi.driver.ui.design.BrandMark
+import com.saarthi.driver.ui.design.BrandLockup
 import com.saarthi.driver.ui.design.Confetti
 import com.saarthi.driver.ui.design.Ease
 import com.saarthi.driver.ui.design.Eyebrow
@@ -193,7 +193,7 @@ private fun OfferScreen(
                 .height(48.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            BrandMark(height = 32.dp)
+            BrandLockup(height = 48.dp)
             Spacer(Modifier.weight(1f))
             LinkButton(stringResource(R.string.action_not_now), onSkip, color = c.muted, weight = androidx.compose.ui.text.font.FontWeight.Medium)
         }
@@ -450,7 +450,7 @@ private fun AllSetScreen(firstName: String, biometric: Boolean, onContinue: () -
     Box(Modifier.fillMaxSize()) {
         StepScreen(padding = androidx.compose.foundation.layout.PaddingValues(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 28.dp)) {
             Row(Modifier.height(48.dp), verticalAlignment = Alignment.CenterVertically) {
-                BrandMark(height = 32.dp)
+                BrandLockup(height = 48.dp)
             }
             Column(
                 Modifier

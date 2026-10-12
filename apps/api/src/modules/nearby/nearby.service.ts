@@ -92,8 +92,11 @@ function openingHoursOf(attributes: unknown): string | null {
   return typeof value === 'string' && value.trim() !== '' ? value.trim() : null;
 }
 
+/** A place before it is measured from anybody — what the cache holds. */
+type PlaceRecord = Omit<NearbyPlaceResult, 'distanceKm' | 'direction'>;
+
 function measure(
-  place: Omit<NearbyPlaceResult, 'distanceKm' | 'direction'>,
+  place: PlaceRecord,
   origin: { latitude: number; longitude: number },
 ): NearbyPlaceResult {
   const target = { latitude: place.latitude, longitude: place.longitude };
@@ -104,13 +107,8 @@ function measure(
   };
 }
 
-function fromProvider(
-  place: ProviderPlace,
-  source: string,
-  origin: { latitude: number; longitude: number },
-): NearbyPlaceResult {
-  return measure(
-    {
+function fromProvider(place: ProviderPlace, source: string): PlaceRecord {
+  return {
       id: placeId(source, place.externalId, place.externalId),
       category: place.category,
       name: place.name,
@@ -129,18 +127,11 @@ function fromProvider(
       },
       source,
       stale: false,
-    },
-    origin,
-  );
+  };
 }
 
-function fromStored(
-  row: StoredPlaceRow,
-  origin: { latitude: number; longitude: number },
-  stale: boolean,
-): NearbyPlaceResult {
-  return measure(
-    {
+function fromStored(row: StoredPlaceRow, stale: boolean): PlaceRecord {
+  return {
       id: placeId(row.source, row.externalId, row.id),
       category: row.category as NearbyCategory,
       name: row.name,
@@ -154,18 +145,25 @@ function fromStored(
       attributes: row.attributes,
       source: row.source,
       stale,
-    },
-    origin,
-  );
+  };
 }
 
+/** How many of a search's places are kept in the mirror, nearest first. */
+const MIRROR_LIMIT = 150;
+
+/** Upserts in flight at once while mirroring, so a search never starves the pool. */
+const MIRROR_BATCH = 10;
+
 /**
- * Mirror the directory's answer into PostgreSQL.
+ * Mirror the directory's answer into PostgreSQL, in the background.
  *
- * Best-effort by design: the caller already has their places, so a write
- * failure is logged and swallowed rather than turned into a failed search.
+ * Best-effort by design and never awaited by a search: the caller already has
+ * their places, and making a driver wait on a few hundred upserts before the
+ * list appears is how the request used to outlast the app's own timeout. The
+ * writes go in small batches for the same reason a search used to starve the
+ * connection pool — hundreds of concurrent upserts for one query.
  */
-async function mirrorPlaces(source: string, places: ProviderPlace[]): Promise<void> {
+function mirrorPlaces(source: string, places: ProviderPlace[]): void {
   if (places.length === 0) return;
 
   const record = (place: ProviderPlace) => ({
@@ -185,19 +183,28 @@ async function mirrorPlaces(source: string, places: ProviderPlace[]): Promise<vo
     active: true,
   });
 
-  try {
-    await Promise.all(
-      places.map((place) =>
-        prisma.nearbyPlace.upsert({
-          where: { source_externalId: { source, externalId: place.externalId } },
-          create: { source, externalId: place.externalId, ...record(place) },
-          update: record(place),
-        }),
-      ),
-    );
-  } catch (error) {
+  void (async () => {
+    for (let start = 0; start < places.length; start += MIRROR_BATCH) {
+      await Promise.all(
+        places.slice(start, start + MIRROR_BATCH).map((place) =>
+          prisma.nearbyPlace.upsert({
+            where: { source_externalId: { source, externalId: place.externalId } },
+            create: { source, externalId: place.externalId, ...record(place) },
+            update: record(place),
+          }),
+        ),
+      );
+    }
+  })().catch((error: unknown) => {
     serviceLogger.warn({ err: error }, 'Nearby places could not be mirrored to the database');
-  }
+  });
+}
+
+interface AreaQuery {
+  center: { latitude: number; longitude: number };
+  radiusKm: number;
+  categories: NearbyCategory[] | undefined;
+  openNow: boolean | undefined;
 }
 
 /**
@@ -209,186 +216,199 @@ async function mirrorPlaces(source: string, places: ProviderPlace[]): Promise<vo
  * fictional dhabas into a list of real ones.
  */
 async function storedPlaces(
-  input: NearbySearchInput,
+  area: AreaQuery,
   options: { sources?: string[]; stale: boolean },
-): Promise<NearbyPlaceResult[]> {
-  const { latDelta, lngDelta } = boundingDeltas(input.latitude, input.radiusKm * 1000);
+): Promise<PlaceRecord[]> {
+  const { latDelta, lngDelta } = boundingDeltas(area.center.latitude, area.radiusKm * 1000);
 
   const rows = await prisma.nearbyPlace.findMany({
     where: {
       active: true,
       ...(options.sources ? { source: { in: options.sources } } : {}),
-      ...(input.category ? { category: { in: input.category as NearbyCategory[] } } : {}),
-      ...(input.openNow ? { open24Hours: true } : {}),
-      latitude: { gte: input.latitude - latDelta, lte: input.latitude + latDelta },
-      longitude: { gte: input.longitude - lngDelta, lte: input.longitude + lngDelta },
+      ...(area.categories ? { category: { in: area.categories } } : {}),
+      ...(area.openNow ? { open24Hours: true } : {}),
+      latitude: { gte: area.center.latitude - latDelta, lte: area.center.latitude + latDelta },
+      longitude: { gte: area.center.longitude - lngDelta, lte: area.center.longitude + lngDelta },
     },
     take: 2000,
   });
 
-  const origin = { latitude: input.latitude, longitude: input.longitude };
-
   return rows
-    .map((row) => fromStored(row, origin, options.stale))
-    .filter((place) => place.distanceKm <= input.radiusKm);
+    .filter((row) => distanceKm(area.center, row) <= area.radiusKm)
+    .map((row) => fromStored(row, options.stale));
+}
+
+/** One copy of each place. The live copy is passed first and wins — it is the fresher. */
+function unique(places: PlaceRecord[]): PlaceRecord[] {
+  const seen = new Set<string>();
+  return places.filter((place) => {
+    if (seen.has(place.id)) return false;
+    seen.add(place.id);
+    return true;
+  });
+}
+
+/** Measured from the caller, inside their radius, nearest first. */
+function rank(
+  places: PlaceRecord[],
+  origin: { latitude: number; longitude: number },
+  radiusKm: number,
+): NearbyPlaceResult[] {
+  return places
+    .map((place) => measure(place, origin))
+    .filter((place) => place.distanceKm <= radiusKm)
+    .sort((a, b) => a.distanceKm - b.distanceKm);
 }
 
 /**
- * Collapse duplicates and order by distance.
+ * The search tile a caller falls in: coordinates rounded to two places, ~1 km.
  *
- * The live answer and the mirror overlap by design — the mirror is written from
- * the live answer — so the same place arrives twice under one id. The live copy
- * is passed first and wins, which is also the fresher one.
+ * The directory is asked from the tile's centre rather than the caller's exact
+ * point, so the cached answer belongs to the tile and serves everybody in it.
  */
-function rank(places: NearbyPlaceResult[]): NearbyPlaceResult[] {
-  const seen = new Set<string>();
-  const unique: NearbyPlaceResult[] = [];
-
-  for (const place of places) {
-    if (seen.has(place.id)) continue;
-    seen.add(place.id);
-    unique.push(place);
-  }
-
-  return unique.sort((a, b) => a.distanceKm - b.distanceKm);
+function tileOf(input: { latitude: number; longitude: number }) {
+  return {
+    latitude: Number(input.latitude.toFixed(2)),
+    longitude: Number(input.longitude.toFixed(2)),
+  };
 }
+
+/**
+ * How much wider than the caller's radius a tile is searched.
+ *
+ * A caller can stand up to ~0.8 km from their tile's centre, so the tile is
+ * searched that much wider; every place inside any caller's own radius is then
+ * in the cached set, and the exact cut is made per caller.
+ */
+const TILE_PADDING_KM = 1;
 
 /**
  * Cache key.
  *
- * Coordinates are rounded to ~1 km so a driver nudging the map re-uses one
- * entry instead of spending a directory query on every pixel of pan. `limit` is
- * deliberately absent: the cached list is the whole ranked answer and callers
- * take the head of it, so a page asking for thirty and the category chips
- * asking for everything share one directory query.
+ * Keyed on the tile, never the caller's exact point, and holding *unmeasured*
+ * places. The cache used to hold distances and directions measured from
+ * whichever driver asked first, and serve them for three hours to everyone in
+ * the same square kilometre — so a second driver read "0.4 km NE" for a pump
+ * that was 1.2 km to their south. `limit` is deliberately absent: the cached
+ * list is the whole answer and callers take the head of it.
  */
-function cacheKey(input: NearbySearchInput): string {
+function cacheKey(area: AreaQuery): string {
   return [
-    'nearby-places',
+    'nearby-places:v2',
     placeProvider?.name ?? 'local',
-    input.latitude.toFixed(2),
-    input.longitude.toFixed(2),
-    input.radiusKm,
-    (input.category ?? []).join(','),
-    input.openNow ? '1' : '',
+    area.center.latitude.toFixed(2),
+    area.center.longitude.toFixed(2),
+    area.radiusKm,
+    (area.categories ?? []).join(','),
+    area.openNow ? '1' : '',
   ].join(':');
 }
 
+/** Every place in the tile's padded area, unmeasured, and whether it came from the mirror. */
+async function placesInArea(
+  area: AreaQuery,
+  limit: number,
+): Promise<{ places: PlaceRecord[]; stale: boolean }> {
+  const provider = placeProvider;
+  if (!provider) {
+    // `PLACES_PROVIDER=local`: the mirror is the whole dataset, and it is not
+    // stale — it is the configured source.
+    return { places: await storedPlaces(area, { stale: false }), stale: false };
+  }
+
+  try {
+    const response = await provider.search({
+      latitude: area.center.latitude,
+      longitude: area.center.longitude,
+      radiusKm: area.radiusKm,
+      categories: area.categories,
+      limit,
+    });
+
+    const live = response.places
+      .filter((place) => distanceKm(area.center, place) <= area.radiusKm)
+      .map((place) => fromProvider(place, provider.name));
+
+    // The provider caps how wide it will search (see OVERPASS_MAX_RADIUS_KM).
+    // Its own mirrored rows cover the rest of the requested radius, and they
+    // are the same data measured the same way — so the list stays whole
+    // without ever mixing in another source.
+    const beyondProviderReach = area.radiusKm > config.places.maxRadiusKm;
+    const mirrored = beyondProviderReach
+      ? await storedPlaces(area, { sources: [provider.name], stale: false })
+      : [];
+
+    // The nearest of the live answer, which is what an outage would need.
+    mirrorPlaces(
+      provider.name,
+      [...response.places]
+        .sort((a, b) => distanceKm(area.center, a) - distanceKm(area.center, b))
+        .slice(0, MIRROR_LIMIT),
+    );
+
+    return { places: unique([...live, ...mirrored]), stale: false };
+  } catch (error) {
+    // Only an upstream outage is worth falling back for; a bad request from
+    // the caller must still surface as a 4xx.
+    const recoverable =
+      isAppError(error) &&
+      (error.statusCode === 502 || error.statusCode === 503 || error.statusCode === 504);
+    if (!recoverable) throw error;
+
+    /**
+     * The outage fallback reads only the configured provider's own mirrored
+     * rows — never Saarthi's seeded corridor dataset.
+     *
+     * That dataset is generated: invented names, invented phone numbers,
+     * invented ratings. Showing a driver "Apollo Pharmacy 1" with a
+     * fabricated number beside real survey data is worse than showing them a
+     * short list, and far worse in an emergency. If the mirror is cold the
+     * honest answer is nothing, and the UI says so.
+     */
+    const fallback = await storedPlaces(area, { sources: [provider.name], stale: true });
+
+    // Nothing on record either. Surfacing the outage is the honest answer: an
+    // empty list reads as "there is nothing around you", which is a very
+    // different and possibly dangerous claim.
+    if (fallback.length === 0) throw error;
+
+    serviceLogger.warn(
+      { count: fallback.length, source: provider.name },
+      'Places directory unavailable — serving previously stored places',
+    );
+
+    return { places: fallback, stale: true };
+  }
+}
+
 /**
- * Every place around the point, nearest first — the whole answer, unsliced.
+ * Every place around the caller, nearest first — the whole answer, unsliced.
  *
  * Both the list and the category counts read from this, so a chip can never
  * promise more results than the list is able to show.
  */
 async function collectNearbyPlaces(input: NearbySearchInput): Promise<NearbyPlaceResult[]> {
   const origin = { latitude: input.latitude, longitude: input.longitude };
-
-  const compute = async (): Promise<{ places: NearbyPlaceResult[]; stale: boolean }> => {
-    const provider = placeProvider;
-    if (!provider) {
-      // `PLACES_PROVIDER=local`: the mirror is the whole dataset, and it is not
-      // stale — it is the configured source.
-      //
-      // Ranked, like every other branch. `storedPlaces` issues a `findMany` with
-      // no `orderBy`, so without this the list comes back in whatever physical
-      // order PostgreSQL happens to hold the rows in — and "find me the nearest
-      // fuel station" returns an arbitrary one. Every other path through this
-      // function already called `rank`; this one did not, which made the
-      // ordering depend on table layout and produced a test that passed or
-      // failed according to what had been inserted before it.
-      return { places: rank(await storedPlaces(input, { stale: false })), stale: false };
-    }
-
-    try {
-      const response = await provider.search({
-        latitude: input.latitude,
-        longitude: input.longitude,
-        radiusKm: input.radiusKm,
-        categories: input.category as NearbyCategory[] | undefined,
-        limit: input.limit,
-      });
-
-      const live = response.places
-        .map((place) => fromProvider(place, provider.name, origin))
-        .filter((place) => place.distanceKm <= input.radiusKm);
-
-      // The provider caps how wide it will search (see OVERPASS_MAX_RADIUS_KM).
-      // Its own mirrored rows cover the rest of the requested radius, and they
-      // are the same data measured the same way — so the list stays whole
-      // without ever mixing in another source.
-      const beyondProviderReach = input.radiusKm > config.places.maxRadiusKm;
-      const mirrored = beyondProviderReach
-        ? await storedPlaces(input, { sources: [provider.name], stale: false })
-        : [];
-
-      const places = rank([...live, ...mirrored]);
-
-      // Mirror only what was actually served, not the whole provider answer.
-      // A dense city yields several hundred places for one search, and firing
-      // that many concurrent upserts would starve the connection pool for the
-      // sake of rows no query would ever read back — the mirror exists to answer
-      // *this* search offline, and this search returns exactly these places.
-      const byExternalId = new Map(
-        response.places.map((place) => [`${provider.name}:${place.externalId}`, place]),
-      );
-      await mirrorPlaces(
-        provider.name,
-        places
-          .map((place) => byExternalId.get(place.id))
-          .filter((place): place is ProviderPlace => place !== undefined),
-      );
-
-      return { places, stale: false };
-    } catch (error) {
-      // Only an upstream outage is worth falling back for; a bad request from
-      // the caller must still surface as a 4xx.
-      const recoverable =
-        isAppError(error) &&
-        (error.statusCode === 502 || error.statusCode === 503 || error.statusCode === 504);
-      if (!recoverable) throw error;
-
-      /**
-       * The outage fallback reads only the configured provider's own mirrored
-       * rows — never Saarthi's seeded corridor dataset.
-       *
-       * That dataset is generated: invented names, invented phone numbers,
-       * invented ratings. Showing a driver "Apollo Pharmacy 1" with a
-       * fabricated number beside real survey data is worse than showing them a
-       * short list, and far worse in an emergency. If the mirror is cold the
-       * honest answer is nothing, and the UI says so.
-       *
-       * `PLACES_PROVIDER=local` remains the supported way to ask for the seeded
-       * dataset, and it never reaches this branch.
-       */
-      const fallback = await storedPlaces(input, { sources: [provider.name], stale: true });
-
-      // Nothing on record either. Surfacing the outage is the honest answer: an
-      // empty list reads as "there is nothing around you", which is a very
-      // different and possibly dangerous claim.
-      if (fallback.length === 0) throw error;
-
-      serviceLogger.warn(
-        { count: fallback.length, source: provider.name },
-        'Places directory unavailable — serving previously stored places',
-      );
-
-      return { places: rank(fallback), stale: true };
-    }
+  const area: AreaQuery = {
+    center: tileOf(input),
+    radiusKm: input.radiusKm + TILE_PADDING_KM,
+    categories: input.category as NearbyCategory[] | undefined,
+    openNow: input.openNow,
   };
 
   const ttl = config.places.cacheTtlSeconds;
-  if (ttl <= 0) return (await compute()).places;
+  if (ttl <= 0) return rank((await placesInArea(area, input.limit)).places, origin, input.radiusKm);
 
-  const key = cacheKey(input);
-  const hit = await cache.get<NearbyPlaceResult[]>(key);
-  if (hit) return hit;
+  const key = cacheKey(area);
+  const hit = await cache.get<PlaceRecord[]>(key);
+  if (hit) return rank(hit, origin, input.radiusKm);
 
-  const fresh = await compute();
+  const fresh = await placesInArea(area, input.limit);
   // A fallback answer is held only briefly, so the list recovers as soon as the
   // directory does instead of staying on the mirror for hours.
   await cache.set(key, fresh.places, fresh.stale ? Math.min(ttl, 120) : ttl);
 
-  return fresh.places;
+  return rank(fresh.places, origin, input.radiusKm);
 }
 
 /**

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import {
   DriverAvailability,
+  ExpenseCategory,
   FuelType,
   TruckStatus,
   TruckType,
@@ -331,3 +332,12 @@ export const fuelListQuerySchema = paginationSchema
   .extend({ truckId: uuidSchema.optional(), driverId: uuidSchema.optional() })
   .and(dateRangeSchema);
 export type FuelListQuery = z.infer<typeof fuelListQuerySchema>;
+
+export const expenseListQuerySchema = paginationSchema
+  .extend({
+    truckId: uuidSchema.optional(),
+    tripId: uuidSchema.optional(),
+    category: z.nativeEnum(ExpenseCategory).optional(),
+  })
+  .and(dateRangeSchema);
+export type ExpenseListQuery = z.infer<typeof expenseListQuerySchema>;

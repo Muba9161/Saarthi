@@ -17,6 +17,7 @@ import type {
   DeviceSubsystemStatus,
   NotificationPriority,
   NotificationType,
+  TrackRouteState,
   OrderStatus,
   SosStatus,
   SosType,
@@ -188,6 +189,8 @@ export interface TruckLocationPayload extends LatLng {
   recordedAt: string;
   /** True when the point came from the local simulator, never real hardware. */
   simulated: boolean;
+  /** How the covered-path trail colours this point. See `nextRouteState`. */
+  routeState: TrackRouteState;
 }
 
 export interface TruckStatusPayload {

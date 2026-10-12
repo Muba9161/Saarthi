@@ -1,12 +1,12 @@
 import { Link, Outlet, useLocation } from 'react-router-dom';
-import { Banknote, FileText, Fuel, Receipt } from 'lucide-react';
+import { Banknote, FileText, Fuel, Receipt, Wallet } from 'lucide-react';
 import { Feature, Permission } from '@saarthi/shared';
 import { useAuth } from '@/features/auth/auth-context';
 import { useT } from '@/features/i18n';
 import { cn } from '@/lib/utils';
 
 /**
- * One destination for the four fleet-wide roll-ups.
+ * One destination for the fleet-wide running-cost roll-ups.
  *
  * Documents, fuel, EMIs and toll each had a row of their own in the sidebar,
  * which put four entries there for records that are also on every vehicle's own
@@ -22,8 +22,9 @@ import { cn } from '@/lib/utils';
  *
  * Each tab is gated on exactly what its sidebar entry used to require, so a
  * plan or a role that could not reach a screen is not offered a tab that lands
- * on a locked one. A viewer with only one of the four sees no strip at all —
- * there is nothing to switch between.
+ * on a locked one. Expenses, which never had a sidebar row, is gated on the
+ * permission the API reads it under. A viewer with only one tab sees no strip
+ * at all — there is nothing to switch between.
  */
 
 interface CostTab {
@@ -49,6 +50,13 @@ export function RunningCostsTabs() {
       label: 'Fuel',
       to: '/fleet/fuel',
       icon: Fuel,
+      visible: can(Permission.FUEL_READ),
+    },
+    {
+      // The drivers' road slips other than fuel, read under the fuel permission.
+      label: 'Expenses',
+      to: '/fleet/expenses',
+      icon: Wallet,
       visible: can(Permission.FUEL_READ),
     },
     {

@@ -49,6 +49,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -79,7 +80,11 @@ import com.saarthi.driver.ui.design.card
 import com.saarthi.driver.ui.design.pressable
 import com.saarthi.driver.ui.design.rememberLoop
 import com.saarthi.driver.ui.shift.driverWord
-import com.saarthi.driver.ui.shift.humanised
+import com.saarthi.driver.ui.shift.papers.FolderStatus
+import com.saarthi.driver.ui.shift.papers.PapersViewModel
+import com.saarthi.driver.ui.shift.papers.displayName
+import com.saarthi.driver.ui.shift.papers.prettyDate
+import com.saarthi.driver.ui.shift.papers.vehicleStanding
 import kotlin.math.roundToInt
 
 /** The route the tracking card draws, on the design's 350 × 230 grid. */
@@ -242,27 +247,19 @@ internal fun TrackingCard(
     }
 }
 
-/** FASTag, the fuel this vehicle takes, and hours today — three small cards. */
+/** The vehicle's papers, the fuel it takes, and hours today — three small cards. */
 @Composable
 internal fun StatTiles(
     cockpit: TerminalViewModel,
     fuelType: String?,
     hours: DrivingHours.State,
+    papers: PapersViewModel.Ui,
+    onOpenPapers: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val c = Saarthi.colors
-    val fastag by cockpit.fastag.collectAsState()
     val price by cockpit.fuelPrice.collectAsState()
-
-    val tag = fastag
-    val fastagValue = tag?.balanceRupees?.let { "₹%,.0f".format(it) } ?: "–"
-    val fastagSub = when {
-        tag == null -> stringResource(R.string.fastag_not_linked)
-        tag.status != "ACTIVE" -> tag.status.humanised()
-        tag.lowBalance -> stringResource(R.string.fastag_low)
-        tag.balanceRupees == null -> stringResource(R.string.fastag_unknown)
-        else -> tag.issuerBank ?: stringResource(R.string.status_live)
-    }
+    val paperFigure = papersFigure(papers)
 
     val fuels = PumpPrice.shownFor(fuelType)
     val fuel = fuels.firstOrNull()
@@ -280,19 +277,24 @@ internal fun StatTiles(
             null -> R.string.stat_fuel
         },
     )
+    // A town nobody prices on its own is shown its state's average, and says so.
+    val place = price?.let {
+        if (it.scope == "STATE") stringResource(R.string.rate_state_average, it.city) else it.city
+    }.orEmpty()
     val fuelSub = when {
         fuel == null -> stringResource(R.string.rate_electric)
         price == null -> stringResource(R.string.rate_loading)
-        rate == null -> stringResource(R.string.rate_none_here, price?.city.orEmpty())
-        PumpPrice.unitOf(fuel) == PumpPrice.Unit.KILOGRAM -> stringResource(R.string.rate_per_kg, price?.city.orEmpty())
-        else -> stringResource(R.string.rate_per_litre, price?.city.orEmpty())
+        rate == null -> stringResource(R.string.rate_none_here, place)
+        PumpPrice.unitOf(fuel) == PumpPrice.Unit.KILOGRAM -> stringResource(R.string.rate_per_kg, place)
+        else -> stringResource(R.string.rate_per_litre, place)
     }
 
     Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         StatTile(
-            Lucide.creditCard, c.primarySoft, c.primary,
-            stringResource(R.string.stat_fastag), fastagValue, fastagSub,
-            valueColor = if (tag?.lowBalance == true) c.danger else c.fg,
+            Lucide.fileText, c.primarySoft, c.primary,
+            stringResource(R.string.tab_papers), paperFigure.value, paperFigure.sub,
+            valueColor = paperFigure.tone,
+            onClick = onOpenPapers,
             modifier = Modifier.weight(1f),
         )
         StatTile(
@@ -308,6 +310,42 @@ internal fun StatTiles(
     }
 }
 
+/** What the papers tile says, and in which colour. */
+private data class PapersFigure(val value: String, val sub: String, val tone: Color)
+
+/**
+ * The worst news about the vehicle's papers, or the next one due.
+ *
+ * Read from the same wallet the Papers tab keeps on the phone, so the tile has
+ * an answer offline too once the wallet has been fetched once.
+ */
+@Composable
+private fun papersFigure(papers: PapersViewModel.Ui): PapersFigure {
+    val c = Saarthi.colors
+    val wallet = papers.wallet
+        ?: return PapersFigure(
+            "–",
+            stringResource(if (papers.problem != null) R.string.papers_tile_failed else R.string.papers_tile_checking),
+            c.fg,
+        )
+    val standing = wallet.vehicleStanding()
+    val status = standing.status ?: return PapersFigure("–", stringResource(R.string.papers_tile_none), c.fg)
+    val names = standing.folders.map { it.displayName() }.joinToString(", ")
+    return when (status) {
+        FolderStatus.EXPIRED, FolderStatus.REJECTED -> PapersFigure(stringResource(status.word), names, c.danger)
+        FolderStatus.EXPIRING_SOON, FolderStatus.MISSING -> PapersFigure(stringResource(status.word), names, c.warning)
+        FolderStatus.VALID, FolderStatus.ON_FILE, FolderStatus.OPTIONAL -> {
+            val due = standing.nextDue
+            val sub = due?.let { folder ->
+                prettyDate(folder.registerValidUntil)?.let { date ->
+                    stringResource(R.string.papers_tile_next_due, folder.displayName(), date)
+                }
+            } ?: pluralStringResource(R.plurals.papers_tile_on_file, standing.onFile, standing.onFile)
+            PapersFigure(stringResource(R.string.papers_tile_all_valid), sub, c.success)
+        }
+    }
+}
+
 @Composable
 private fun StatTile(
     icon: String,
@@ -318,11 +356,13 @@ private fun StatTile(
     sub: String,
     modifier: Modifier = Modifier,
     valueColor: Color = Saarthi.colors.fg,
+    onClick: (() -> Unit)? = null,
 ) {
     val c = Saarthi.colors
     Column(
         modifier
             .card()
+            .then(if (onClick != null) Modifier.pressable(label = label, onClick = onClick) else Modifier)
             .padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
@@ -366,6 +406,8 @@ internal fun DispatchSection(
                 Text(job.reference, style = SType.mono(13.sp), color = c.muted)
             }
         }
+        // First, because it is the one thing on this card waiting for the driver.
+        if (job.reachedUnconfirmed) ArrivalPrompt(job, cockpit)
         SaarthiCard(padding = androidx.compose.foundation.layout.PaddingValues(20.dp), spacing = 16.dp) {
             Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                 RouteMarkers(Modifier.padding(top = 4.dp))
@@ -408,7 +450,11 @@ internal fun DispatchSection(
             }
             job.notes?.takeIf { it.isNotBlank() }?.let { note ->
                 Text(
-                    buildFleetNote(stringResource(R.string.dispatch_from_fleet), note, c.primary),
+                    buildFleetNote(
+                        stringResource(if (job.driverCreated) R.string.dispatch_your_note else R.string.dispatch_from_fleet),
+                        note,
+                        c.primary,
+                    ),
                     style = SType.body,
                     color = c.fg,
                     modifier = Modifier
@@ -517,7 +563,7 @@ internal fun QuickActions(
     val c = Saarthi.colors
     val items = listOf(
         QuickAction(R.string.home_action_nearby, Lucide.mapPin, c.primarySoft, c.primary, actions.openNearby),
-        QuickAction(R.string.home_action_fuel, Lucide.receipt, c.accentSoft, c.accent, actions.openFuel),
+        QuickAction(R.string.home_action_expense, Lucide.receipt, c.accentSoft, c.accent, actions.openExpense),
         QuickAction(
             R.string.home_action_check,
             Lucide.shieldCheck,

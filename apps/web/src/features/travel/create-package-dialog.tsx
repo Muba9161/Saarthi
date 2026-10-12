@@ -4,10 +4,12 @@ import { toast } from 'sonner';
 import { CarFront, IndianRupee, ListChecks, NotebookPen, Plus, Route } from 'lucide-react';
 import {
   PricingModel,
+  TRAVEL_VEHICLE_TYPES,
   TravelPackageStatus,
   TravelServiceKind,
   VehicleType,
   humanizeEnum,
+  vehicleTypeDefinition,
 } from '@saarthi/shared';
 import { api, errorMessage } from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
@@ -424,9 +426,10 @@ export function CreatePackageDialog() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {Object.values(VehicleType).map((type) => (
+                {/* Only what the API sells a package with — never a refusal in waiting. */}
+                {TRAVEL_VEHICLE_TYPES.map((type) => (
                   <SelectItem key={type} value={type}>
-                    {humanizeEnum(type)}
+                    {vehicleTypeDefinition(type).label}
                   </SelectItem>
                 ))}
               </SelectContent>

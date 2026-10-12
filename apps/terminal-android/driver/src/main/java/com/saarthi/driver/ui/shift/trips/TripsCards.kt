@@ -232,15 +232,33 @@ private fun GrowingBar(fraction: Float, color: Color, delayMs: Int, modifier: Mo
 internal fun OpenTripCard(trip: OpenTrip, modifier: Modifier = Modifier) {
     val c = Saarthi.colors
     val started = dayOf(trip.startedAt)
+    // The fleet's trip is the one to drive first, and is drawn so it cannot be missed.
+    val priority = trip.fromFleet && trip.stage != TripStage.QUEUED
     Column(
         modifier
             .fillMaxWidth()
-            .card()
+            .card(
+                color = if (priority) c.primaryWash else c.card,
+                ring = if (priority) c.primaryRing else c.ring,
+            )
             .padding(horizontal = 18.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            StatusPill(stringResource(R.string.trips_in_progress), background = c.warningBg, ink = c.warning, live = true)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            when (trip.stage) {
+                TripStage.UNDER_WAY ->
+                    StatusPill(stringResource(R.string.trips_in_progress), background = c.warningBg, ink = c.warning, live = true)
+                TripStage.UP_NEXT ->
+                    StatusPill(stringResource(R.string.trips_up_next), background = c.successBg, ink = c.success)
+                TripStage.QUEUED ->
+                    StatusPill(stringResource(R.string.trips_queued), background = c.sunken, ink = c.muted)
+            }
+            StatusPill(
+                stringResource(if (trip.fromFleet) R.string.trips_from_fleet else R.string.trips_added_by_you),
+                background = if (priority) c.primary else c.sunken,
+                ink = if (priority) c.onPrimary else c.muted,
+                dot = false,
+            )
             Spacer(Modifier.weight(1f))
             trip.reference?.let { Text(it, style = SType.mono(12.sp, tracking = 0.em), color = c.subtle, maxLines = 1) }
         }
@@ -346,7 +364,11 @@ internal fun FinishedList(trips: List<DriverTripDto>, modifier: Modifier = Modif
 @Composable
 private fun FinishedRow(trip: DriverTripDto, divider: Boolean) {
     val c = Saarthi.colors
-    val details = listOfNotNull(dayOf(trip.startedAt ?: trip.completedAt), trip.registrationNumber).joinToString(" · ")
+    val details = listOfNotNull(
+        dayOf(trip.startedAt ?: trip.completedAt),
+        trip.registrationNumber,
+        if (trip.driverCreated) stringResource(R.string.trips_added_by_you) else null,
+    ).joinToString(" · ")
     Row(
         Modifier
             .fillMaxWidth()

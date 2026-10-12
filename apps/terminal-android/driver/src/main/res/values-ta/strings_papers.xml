@@ -11,10 +11,8 @@
         <item quantity="other">%d ஆவணங்களுக்குக் கவனம் தேவை, குறைந்தது ஒன்று காலாவதியாகிவிட்டது. இன்றே அலுவலகத்திடம் சொல்லுங்கள்.</item>
     </plurals>
 
-    <string name="papers_filter_all">அனைத்தும்</string>
     <string name="papers_owner_vehicle">வண்டி</string>
     <string name="papers_owner_yours">உங்களுடையவை</string>
-    <string name="papers_chip">%1$s · %2$d</string>
     <string name="papers_sub">%1$s · %2$s</string>
 
     <string name="papers_no_expiry">காலாவதி தேதி பதிவில் இல்லை</string>
@@ -37,15 +35,105 @@
 
     <string name="papers_open_action">திற</string>
     <string name="papers_opening">%1$s திறக்கப்படுகிறது.</string>
-    <string name="papers_opening_pdf">உங்கள் PDF ரீடரில் %1$s திறக்கப்படுகிறது.</string>
     <string name="papers_not_saved">அது இன்னும் இந்த போனில் இல்லை. சிக்னல் உள்ள இடத்தில் ஒருமுறை திறந்தால் அது இங்கேயே இருக்கும்.</string>
     <string name="papers_no_viewer">இந்த வகை ஃபைலைத் திறக்க இந்த போனில் எதுவும் இல்லை. PDF அல்லது படம் பார்க்கும் ஆப்பை இன்ஸ்டால் செய்து, மீண்டும் முயலுங்கள்.</string>
 
     <string name="papers_loading">உங்கள் ஆவணங்கள் ஏற்றப்படுகின்றன</string>
-    <string name="papers_none_vehicle">இந்த வண்டிக்கான ஆவணங்கள் எதுவும் பதிவில் இல்லை.</string>
-    <string name="papers_none_yours">உங்கள் சொந்த ஆவணங்கள் எதுவும் பதிவில் இல்லை.</string>
-    <string name="papers_empty_title">பதிவில் ஆவணங்கள் இல்லை</string>
-    <string name="papers_empty_body">உங்களுக்கோ இந்த வண்டிக்கோ உங்கள் ஃப்ளீட் இன்னும் எந்த ஆவணத்தையும் சேர்க்கவில்லை. அவற்றை அப்லோடு செய்ய அலுவலகத்திடம் கேளுங்கள்.</string>
     <string name="papers_error_title">உங்கள் ஆவணங்களை ஏற்ற முடியவில்லை</string>
     <string name="papers_retry">மீண்டும் முயலவும்</string>
+
+    <!-- Papers folders and register records -->
+    <string name="papers_folder_rc">பதிவுச் சான்று (RC)</string>
+    <string name="papers_folder_insurance">இன்சூரன்ஸ்</string>
+    <string name="papers_folder_fitness">ஃபிட்னஸ்</string>
+    <string name="papers_folder_permit">பெர்மிட்</string>
+    <string name="papers_folder_puc">மாசு (PUC)</string>
+    <string name="papers_folder_road_tax">சாலை வரி</string>
+    <string name="papers_folder_photos">போட்டோக்கள்</string>
+    <string name="papers_folder_qr">QR ஸ்டிக்கர்</string>
+    <string name="papers_folder_other">மற்ற ஃபைல்கள்</string>
+    <string name="papers_folder_licence">டிரைவிங் லைசென்ஸ்</string>
+    <string name="papers_folder_identity">அடையாளச் சான்று</string>
+    <string name="papers_folder_address">முகவரிச் சான்று</string>
+    <string name="papers_folder_aadhaar">ஆதார் கார்டு</string>
+    <string name="papers_folder_pan">PAN கார்டு</string>
+    <string name="papers_folder_voter">வாக்காளர் அட்டை</string>
+    <string name="papers_folder_photo">உங்கள் போட்டோ</string>
+    <string name="papers_folder_medical">மருத்துவச் சான்றிதழ்</string>
+    <string name="papers_folder_police">போலீஸ் சரிபார்ப்பு</string>
+    <string name="papers_status_valid">செல்லும்</string>
+    <string name="papers_status_expiring">விரைவில் காலாவதி</string>
+    <string name="papers_status_expired">காலாவதியானது</string>
+    <string name="papers_status_rejected">நிராகரிக்கப்பட்டது</string>
+    <string name="papers_status_missing">இல்லை</string>
+    <string name="papers_status_optional">விருப்பத்தேர்வு</string>
+    <string name="papers_status_on_file">பதிவில் உள்ளது</string>
+    <string name="papers_qr_meta">முன் கண்ணாடியில் ஒட்டப்பட்டது</string>
+    <string name="papers_from_rto">RTO-விலிருந்து</string>
+    <string name="papers_folder_empty">இந்த ஃபோல்டரில் இன்னும் எதுவும் இல்லை. உங்கள் ஃப்ளீட் இணையத்திலிருந்து ஆவணங்களைச் சேர்க்கும்.</string>
+    <string name="papers_folder_no_scan">இன்னும் ஸ்கேன் நகல் இல்லை. மேலே உள்ள விவரங்கள் RTO பதிவேட்டிலிருந்து வந்தவை.</string>
+    <string name="papers_photos_none">இந்த வண்டியின் போட்டோக்கள் இன்னும் இல்லை.</string>
+    <string name="papers_photo_alt">வண்டியின் போட்டோ</string>
+    <string name="papers_qr_none">QR ஸ்டிக்கரைக் காட்ட முடியவில்லை. சிக்னல் உள்ள இடத்தில் மீண்டும் திறங்கள்.</string>
+    <string name="papers_qr_body">இந்தக் குறியீட்டை ஸ்கேன் செய்தால் Saarthi-இல் இந்த வண்டி திறக்கும்.</string>
+    <string name="papers_register_title">RTO பதிவேடு</string>
+    <string name="papers_valid_till">%1$s வரை செல்லும்</string>
+    <string name="papers_till">%1$s வரை</string>
+    <string name="papers_not_published">வெளியிடப்படவில்லை</string>
+    <string name="papers_rc_title">விர்ச்சுவல் RC</string>
+    <string name="papers_rc_verified">சரிபார்க்கப்பட்டது</string>
+    <string name="papers_rc_fetched">RTO பதிவேட்டிலிருந்து · %1$s</string>
+    <string name="papers_rc_validity">செல்லுபடி</string>
+    <string name="papers_rc_details">விவரங்கள்</string>
+    <string name="papers_rc_insurance">இன்சூரன்ஸ்</string>
+    <string name="papers_rc_puc">மாசு (PUC)</string>
+    <string name="papers_rc_fitness">ஃபிட்னஸ்</string>
+    <string name="papers_rc_tax">சாலை வரி</string>
+    <string name="papers_rc_permit">பெர்மிட்</string>
+    <string name="papers_rc_national_permit">நேஷனல் பெர்மிட்</string>
+    <string name="papers_rc_owner">உரிமையாளர்</string>
+    <string name="papers_rc_registered">பதிவு செய்த தேதி</string>
+    <string name="papers_rc_status">நிலை</string>
+    <string name="papers_rc_class">வகை</string>
+    <string name="papers_rc_fuel">எரிபொருள்</string>
+    <string name="papers_rc_colour">நிறம்</string>
+    <string name="papers_rc_made">தயாரித்த தேதி</string>
+    <string name="papers_rc_chassis">சேசிஸ் எண்</string>
+    <string name="papers_rc_engine">இன்ஜின் எண்</string>
+    <string name="papers_rc_rto">பதிவு செய்த அலுவலகம்</string>
+    <string name="papers_rc_seats">இருக்கைகள்</string>
+    <string name="papers_rc_weight">மொத்த எடை</string>
+    <string name="papers_rc_financer">ஃபைனான்ஸ் செய்தவர்</string>
+    <string name="papers_rc_blacklist">பிளாக்லிஸ்ட்</string>
+    <string name="papers_rc_note">தகவலுக்காக RTO பதிவின் நகல். வண்டி ஓட்டும்போது அசல் RC அல்லது அதன் DigiLocker நகலை வைத்திருங்கள்.</string>
+    <string name="papers_licence_title">டிரைவிங் லைசென்ஸ்</string>
+    <string name="papers_licence_verified">சரிபார்க்கப்பட்டது</string>
+    <string name="papers_licence_from_rto">RTO பதிவேட்டிலிருந்து</string>
+    <string name="papers_licence_from_profile">உங்கள் ப்ரொஃபைலில் உள்ளிட்டபடி</string>
+    <string name="papers_licence_transport">டிரான்ஸ்போர்ட் (வணிகம்)</string>
+    <string name="papers_licence_non_transport">நான்-டிரான்ஸ்போர்ட்</string>
+    <string name="papers_licence_classes">வண்டி வகைகள்</string>
+    <string name="papers_licence_issued">வழங்கிய தேதி</string>
+    <string name="papers_licence_authority">வழங்கியது</string>
+    <string name="papers_licence_dob">பிறந்த தேதி</string>
+    <string name="papers_licence_blood">இரத்த வகை</string>
+
+    <!-- File and photo counts -->
+    <plurals name="papers_files">
+        <item quantity="one">%d ஃபைல்</item>
+        <item quantity="other">%d ஃபைல்கள்</item>
+    </plurals>
+    <plurals name="papers_photos">
+        <item quantity="one">%d போட்டோ</item>
+        <item quantity="other">%d போட்டோக்கள்</item>
+    </plurals>
+    <string name="papers_tile_checking">ஆவணங்களைச் சரிபார்க்கிறது…</string>
+    <string name="papers_tile_failed">ஏற்ற முடியவில்லை</string>
+    <string name="papers_tile_none">இன்னும் ஆவணங்கள் இல்லை</string>
+    <string name="papers_tile_all_valid">அனைத்தும் செல்லும்</string>
+    <string name="papers_tile_next_due">அடுத்து: %1$s · %2$s</string>
+    <plurals name="papers_tile_on_file">
+        <item quantity="one">%d ஆவணம் பதிவில்</item>
+        <item quantity="other">%d ஆவணங்கள் பதிவில்</item>
+    </plurals>
 </resources>

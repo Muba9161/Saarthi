@@ -11,10 +11,8 @@
         <item quantity="other">%d काग़ज़ों पर ध्यान देना है, और कम से कम एक की मियाद ख़त्म हो गई है। आज ही ऑफ़िस को बताएँ।</item>
     </plurals>
 
-    <string name="papers_filter_all">सभी</string>
     <string name="papers_owner_vehicle">गाड़ी के</string>
     <string name="papers_owner_yours">आपके</string>
-    <string name="papers_chip">%1$s · %2$d</string>
     <string name="papers_sub">%1$s · %2$s</string>
 
     <string name="papers_no_expiry">कोई एक्सपायरी दर्ज नहीं</string>
@@ -37,15 +35,105 @@
 
     <string name="papers_open_action">खोलें</string>
     <string name="papers_opening">%1$s खुल रहा है।</string>
-    <string name="papers_opening_pdf">%1$s आपके PDF रीडर में खुल रहा है।</string>
     <string name="papers_not_saved">यह अभी इस फ़ोन में नहीं है। सिग्नल वाली जगह पर इसे एक बार खोल लें, फिर यह फ़ोन में रहेगा।</string>
     <string name="papers_no_viewer">इस फ़ोन में ऐसी फ़ाइल खोलने वाला कोई ऐप नहीं है। कोई PDF या इमेज व्यूअर इंस्टॉल करें, फिर कोशिश करें।</string>
 
     <string name="papers_loading">आपके काग़ज़ात लोड हो रहे हैं</string>
-    <string name="papers_none_vehicle">इस गाड़ी का कोई काग़ज़ दर्ज नहीं है।</string>
-    <string name="papers_none_yours">आपका अपना कोई काग़ज़ दर्ज नहीं है।</string>
-    <string name="papers_empty_title">कोई काग़ज़ दर्ज नहीं</string>
-    <string name="papers_empty_body">आपके फ़्लीट ने अभी आपके या इस गाड़ी के लिए कोई काग़ज़ नहीं जोड़ा है। ऑफ़िस से इन्हें अपलोड करने को कहें।</string>
     <string name="papers_error_title">आपके काग़ज़ात लोड नहीं हो सके</string>
     <string name="papers_retry">फिर से कोशिश करें</string>
+
+    <!-- Papers folders and register records -->
+    <string name="papers_folder_rc">रजिस्ट्रेशन (RC)</string>
+    <string name="papers_folder_insurance">बीमा</string>
+    <string name="papers_folder_fitness">फ़िटनेस</string>
+    <string name="papers_folder_permit">परमिट</string>
+    <string name="papers_folder_puc">प्रदूषण (PUC)</string>
+    <string name="papers_folder_road_tax">रोड टैक्स</string>
+    <string name="papers_folder_photos">फ़ोटो</string>
+    <string name="papers_folder_qr">QR स्टिकर</string>
+    <string name="papers_folder_other">अन्य फ़ाइलें</string>
+    <string name="papers_folder_licence">ड्राइविंग लाइसेंस</string>
+    <string name="papers_folder_identity">पहचान का सबूत</string>
+    <string name="papers_folder_address">पते का सबूत</string>
+    <string name="papers_folder_aadhaar">आधार कार्ड</string>
+    <string name="papers_folder_pan">PAN कार्ड</string>
+    <string name="papers_folder_voter">वोटर ID</string>
+    <string name="papers_folder_photo">आपकी फ़ोटो</string>
+    <string name="papers_folder_medical">मेडिकल सर्टिफ़िकेट</string>
+    <string name="papers_folder_police">पुलिस वेरिफ़िकेशन</string>
+    <string name="papers_status_valid">वैध</string>
+    <string name="papers_status_expiring">जल्द एक्सपायर</string>
+    <string name="papers_status_expired">एक्सपायर हो गया</string>
+    <string name="papers_status_rejected">नामंज़ूर</string>
+    <string name="papers_status_missing">नहीं है</string>
+    <string name="papers_status_optional">ज़रूरी नहीं</string>
+    <string name="papers_status_on_file">रिकॉर्ड में है</string>
+    <string name="papers_qr_meta">सामने के शीशे पर लगा</string>
+    <string name="papers_from_rto">RTO से</string>
+    <string name="papers_folder_empty">इस फ़ोल्डर में अभी कुछ नहीं है। आपका फ़्लीट वेब से काग़ज़ात जोड़ता है।</string>
+    <string name="papers_folder_no_scan">अभी कोई स्कैन कॉपी नहीं है। ऊपर दी गई जानकारी RTO रजिस्टर से है।</string>
+    <string name="papers_photos_none">इस गाड़ी की अभी कोई फ़ोटो नहीं है।</string>
+    <string name="papers_photo_alt">गाड़ी की फ़ोटो</string>
+    <string name="papers_qr_none">QR स्टिकर दिखाया नहीं जा सका। सिग्नल वाली जगह पर इसे फिर से खोलें।</string>
+    <string name="papers_qr_body">इस कोड को स्कैन करने पर Saarthi पर यह गाड़ी खुलती है।</string>
+    <string name="papers_register_title">RTO रजिस्टर</string>
+    <string name="papers_valid_till">%1$s तक वैध</string>
+    <string name="papers_till">%1$s तक</string>
+    <string name="papers_not_published">दर्ज नहीं</string>
+    <string name="papers_rc_title">वर्चुअल RC</string>
+    <string name="papers_rc_verified">वेरिफ़ाइड</string>
+    <string name="papers_rc_fetched">RTO रजिस्टर से · %1$s</string>
+    <string name="papers_rc_validity">वैधता</string>
+    <string name="papers_rc_details">जानकारी</string>
+    <string name="papers_rc_insurance">बीमा</string>
+    <string name="papers_rc_puc">प्रदूषण (PUC)</string>
+    <string name="papers_rc_fitness">फ़िटनेस</string>
+    <string name="papers_rc_tax">रोड टैक्स</string>
+    <string name="papers_rc_permit">परमिट</string>
+    <string name="papers_rc_national_permit">नेशनल परमिट</string>
+    <string name="papers_rc_owner">मालिक</string>
+    <string name="papers_rc_registered">रजिस्ट्रेशन की तारीख़</string>
+    <string name="papers_rc_status">स्थिति</string>
+    <string name="papers_rc_class">क्लास</string>
+    <string name="papers_rc_fuel">फ़्यूल</string>
+    <string name="papers_rc_colour">रंग</string>
+    <string name="papers_rc_made">बनने की तारीख़</string>
+    <string name="papers_rc_chassis">चेसिस नंबर</string>
+    <string name="papers_rc_engine">इंजन नंबर</string>
+    <string name="papers_rc_rto">रजिस्टर करने वाला RTO</string>
+    <string name="papers_rc_seats">सीटें</string>
+    <string name="papers_rc_weight">कुल वज़न</string>
+    <string name="papers_rc_financer">फ़ाइनेंस करने वाला</string>
+    <string name="papers_rc_blacklist">ब्लैकलिस्ट</string>
+    <string name="papers_rc_note">जानकारी के लिए RTO रिकॉर्ड की एक कॉपी। गाड़ी चलाते समय असली RC या उसकी DigiLocker कॉपी साथ रखें।</string>
+    <string name="papers_licence_title">ड्राइविंग लाइसेंस</string>
+    <string name="papers_licence_verified">वेरिफ़ाइड</string>
+    <string name="papers_licence_from_rto">RTO रजिस्टर से</string>
+    <string name="papers_licence_from_profile">जैसा आपकी प्रोफ़ाइल में डाला गया</string>
+    <string name="papers_licence_transport">ट्रांसपोर्ट (कमर्शियल)</string>
+    <string name="papers_licence_non_transport">नॉन-ट्रांसपोर्ट</string>
+    <string name="papers_licence_classes">गाड़ियों की क्लास</string>
+    <string name="papers_licence_issued">जारी होने की तारीख़</string>
+    <string name="papers_licence_authority">जारी करने वाला</string>
+    <string name="papers_licence_dob">जन्म तारीख़</string>
+    <string name="papers_licence_blood">ब्लड ग्रुप</string>
+
+    <!-- File and photo counts -->
+    <plurals name="papers_files">
+        <item quantity="one">%d फ़ाइल</item>
+        <item quantity="other">%d फ़ाइलें</item>
+    </plurals>
+    <plurals name="papers_photos">
+        <item quantity="one">%d फ़ोटो</item>
+        <item quantity="other">%d फ़ोटो</item>
+    </plurals>
+    <string name="papers_tile_checking">काग़ज़ात देख रहे हैं…</string>
+    <string name="papers_tile_failed">लोड नहीं हो सका</string>
+    <string name="papers_tile_none">अभी कोई काग़ज़ नहीं</string>
+    <string name="papers_tile_all_valid">सब वैध</string>
+    <string name="papers_tile_next_due">अगला: %1$s · %2$s</string>
+    <plurals name="papers_tile_on_file">
+        <item quantity="one">%d काग़ज़ दर्ज</item>
+        <item quantity="other">%d काग़ज़ दर्ज</item>
+    </plurals>
 </resources>

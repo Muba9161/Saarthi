@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { Search } from 'lucide-react';
+import { Search, Smartphone } from 'lucide-react';
 import {
   Permission,
   RealtimeChannel,
@@ -21,6 +21,7 @@ import { CreateTripDialog } from '@/features/trips/create-trip-dialog';
 import { DataView, type Column } from '@/components/common/data-view';
 import { StatusBadge } from '@/components/common/status-badge';
 import { UnauthorizedState } from '@/components/common/states';
+import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import {
@@ -78,7 +79,7 @@ export function TripsPage() {
       header: 'Trip',
       cell: (trip) => (
         <div className="min-w-0">
-          <p className="flex items-center gap-2 font-medium">
+          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 font-medium">
             {trip.reference}
             {/*
               A run the vehicle made on its own account — to a pump, a workshop,
@@ -91,6 +92,13 @@ export function TripsPage() {
               <span className="rounded-full border border-border px-2 py-0.5 text-[11px] font-normal text-muted-foreground">
                 Service run
               </span>
+            ) : null}
+            {/* Raised from the driver app rather than dispatched by the fleet. */}
+            {trip.driverCreated ? (
+              <Badge variant="info" size="sm" className="font-normal">
+                <Smartphone aria-hidden />
+                Added by driver
+              </Badge>
             ) : null}
           </p>
           <p className="truncate text-xs text-muted-foreground">
@@ -113,7 +121,26 @@ export function TripsPage() {
         </div>
       ),
     },
-    { key: 'status', header: 'Status', cell: (trip) => <StatusBadge status={trip.status} /> },
+    {
+      key: 'status',
+      header: 'Status',
+      cell: (trip) =>
+        /*
+          A driver's trip added while the vehicle is on another one waits as a
+          draft and is handed the vehicle when that trip ends. It reads as
+          queued, not as a draft nobody has dispatched yet.
+        */
+        trip.driverCreated && trip.status === TripStatus.DRAFT ? (
+          <div className="space-y-0.5">
+            <Badge variant="info" dot>
+              Queued
+            </Badge>
+            <p className="text-2xs text-muted-foreground">After the current trip</p>
+          </div>
+        ) : (
+          <StatusBadge status={trip.status} />
+        ),
+    },
     {
       key: 'progress',
       header: 'Progress',
