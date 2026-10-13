@@ -20,27 +20,30 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
- * A trip the driver is adding: where from, where to, the road between, a note.
+ * A trip the driver is adding: from where they are, to where they are going,
+ * the road between, a note.
  *
  * The same trip the fleet creates on the web — two ends and the road route
  * between them, so the trip has a real planned distance and a route its
  * covered path can be judged against. The vehicle and the driver are never
  * chosen here; the server takes both from the session.
+ *
+ * The start is always the phone's own position, kept current while the screen
+ * is open, and cannot be changed: a trip set up from somewhere the driver is
+ * not was a trip whose start nobody could check, and choosing it was one more
+ * search between a driver and the road.
  */
 class TripPlannerViewModel(application: Application) : AndroidViewModel(application) {
 
     private val app = application as SaarthiApp
     private val shift = ShiftRepository(application, app.repository)
 
-    enum class End { FROM, TO }
-
     data class Ui(
+        /** Where the vehicle is now. Null until the phone has a fix. */
         val from: TripPlaceDto? = null,
-        /** True while [from] is simply where the vehicle is. */
-        val fromHere: Boolean = true,
         val to: TripPlaceDto? = null,
-        /** Which end the search box is choosing, if either. */
-        val editing: End? = End.TO,
+        /** True while the search box is choosing the destination. */
+        val choosingDestination: Boolean = true,
         val query: String = "",
         val matches: List<PlaceMatchDto> = emptyList(),
         val searching: Boolean = false,
@@ -61,23 +64,31 @@ class TripPlannerViewModel(application: Application) : AndroidViewModel(applicat
     private var search: Job? = null
     private var routeJob: Job? = null
 
-    /**
-     * A fresh plan, starting where the driver's last trip ends when they have
-     * one waiting or under way — so a run of trips is a chain, each from where
-     * the last one finishes — and otherwise where the vehicle is now.
-     */
-    fun begin(here: Position?, hereName: String, after: TripPlaceDto? = null) {
+    /** A fresh plan, from where the vehicle is now. */
+    fun begin(here: Position?, hereName: String) {
         search?.cancel()
         routeJob?.cancel()
-        val from = after ?: here?.let { TripPlaceDto(name = hereName, latitude = it.latitude, longitude = it.longitude) }
-        _ui.value = Ui(
-            from = from,
-            fromHere = after == null && here != null,
-            editing = if (from == null) End.FROM else End.TO,
-        )
+        _ui.value = Ui(from = here?.let { place(it, hereName) })
     }
 
-    fun edit(end: End) = _ui.update { it.copy(editing = end, query = "", matches = emptyList(), searchFailure = null) }
+    /**
+     * Follow the phone's position while the plan is open.
+     *
+     * Every fix moves the start, so the trip is created from where the vehicle
+     * actually is when the driver presses Add. The road is planned once, when
+     * the first fix arrives with a destination already chosen; re-planning on
+     * every fix would spend a routing request a second on a line that has
+     * barely moved.
+     */
+    fun followHere(here: Position?, hereName: String) {
+        here ?: return
+        val hadStart = _ui.value.from != null
+        _ui.update { it.copy(from = place(here, hereName)) }
+        if (!hadStart) planRoute()
+    }
+
+    fun changeDestination() =
+        _ui.update { it.copy(choosingDestination = true, query = "", matches = emptyList(), searchFailure = null) }
 
     /** Searched as the driver types, after a short pause, from two characters. */
     fun setQuery(query: String) {
@@ -99,23 +110,13 @@ class TripPlannerViewModel(application: Application) : AndroidViewModel(applicat
     }
 
     fun choose(match: PlaceMatchDto) {
-        val place = TripPlaceDto(
+        val destination = TripPlaceDto(
             name = match.name,
             address = match.address,
             latitude = match.latitude,
             longitude = match.longitude,
         )
-        _ui.update { state ->
-            val next = when (state.editing) {
-                End.FROM -> state.copy(from = place, fromHere = false)
-                else -> state.copy(to = place)
-            }
-            next.copy(
-                editing = if (next.to == null) End.TO else null,
-                query = "",
-                matches = emptyList(),
-            )
-        }
+        _ui.update { it.copy(to = destination, choosingDestination = false, query = "", matches = emptyList()) }
         planRoute()
     }
 
@@ -163,6 +164,9 @@ class TripPlannerViewModel(application: Application) : AndroidViewModel(applicat
                 }
         }
     }
+
+    private fun place(here: Position, name: String) =
+        TripPlaceDto(name = name, latitude = here.latitude, longitude = here.longitude)
 
     private companion object {
         const val MIN_QUERY = 2

@@ -31,9 +31,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.saarthi.core.network.PlaceMatchDto
-import com.saarthi.core.network.TerminalTripDto
 import com.saarthi.core.network.TripPlaceDto
-import com.saarthi.core.network.TripQueueDto
 import com.saarthi.core.ui.TerminalMap
 import com.saarthi.core.ui.TerminalViewModel
 import com.saarthi.driver.R
@@ -56,12 +54,12 @@ import com.saarthi.driver.ui.shift.flow.FlowPanel
 import com.saarthi.driver.ui.shift.flow.FlowTopBar
 import com.saarthi.driver.ui.shift.map.HumsafarMapLook
 import com.saarthi.driver.ui.shift.map.mapStyleUrl
-import com.saarthi.driver.ui.shift.trips.TripPlannerViewModel.End
 import java.util.Locale
 
 /**
- * Add a trip from the cab: where from (here, unless changed), where to, the
- * road between them on a map, an optional note for the fleet — then Add.
+ * Add a trip from the cab: from where the driver is (always — see
+ * [TripPlannerViewModel]), to where they are going, the road between them on a
+ * map, an optional note for the fleet — then Add.
  *
  * The same trip the fleet creates on the web. When the fleet's own trip holds
  * the vehicle the new one is queued behind it, and the screen says so before
@@ -90,11 +88,11 @@ private fun ColumnScope.AddTripContent(
     val dispatch by cockpit.dispatch.collectAsState()
     val ui by planner.ui.collectAsState()
     val hereName = stringResource(R.string.add_trip_here)
+    val here = state.telemetry.position
 
-    val queue by cockpit.tripQueue.queue.collectAsState()
-
-    // Each opening starts a fresh plan: from where the driver's last trip ends, or from here.
-    LaunchedEffect(Unit) { planner.begin(state.telemetry.position, hereName, lastStop(queue, dispatch)) }
+    // Each opening starts a fresh plan from where the vehicle is, then keeps its start there.
+    LaunchedEffect(Unit) { planner.begin(here, hereName) }
+    LaunchedEffect(here) { planner.followHere(here, hereName) }
 
     val fleetFirst = dispatch?.let { !it.driverCreated } == true
 
@@ -118,11 +116,10 @@ private fun ColumnScope.AddTripContent(
             Text(stringResource(R.string.add_trip_lead), style = SType.lead, color = Saarthi.colors.muted)
             if (fleetFirst) NoticeCard(stringResource(R.string.add_trip_queue_note), NoticeTone.INFO, icon = Lucide.info)
 
-            Ends(ui, onEdit = planner::edit)
+            Ends(ui, onChangeDestination = planner::changeDestination)
 
-            val editing = ui.editing
-            if (editing != null) {
-                PlaceSearch(ui, editing, onQuery = planner::setQuery, onChoose = planner::choose)
+            if (ui.choosingDestination) {
+                PlaceSearch(ui, onQuery = planner::setQuery, onChoose = planner::choose)
             } else {
                 RoutePreview(ui, cockpit, onRetryRoute = planner::planRoute)
                 NotesField(
@@ -144,7 +141,7 @@ private fun ColumnScope.AddTripContent(
                 }
             },
             modifier = Modifier.padding(bottom = 16.dp),
-            enabled = ui.ready && ui.editing == null,
+            enabled = ui.ready && !ui.choosingDestination,
             busy = ui.saving,
             busyText = stringResource(R.string.add_trip_creating),
             leading = Lucide.plus,
@@ -152,9 +149,12 @@ private fun ColumnScope.AddTripContent(
     }
 }
 
-/** From and To, each with the way to change it. */
+/**
+ * From and To. Only the destination can be changed: the start is where the
+ * vehicle is, so it reads as a fact rather than a choice.
+ */
 @Composable
-private fun Ends(ui: TripPlannerViewModel.Ui, onEdit: (End) -> Unit) {
+private fun Ends(ui: TripPlannerViewModel.Ui, onChangeDestination: () -> Unit) {
     val c = Saarthi.colors
     Column(
         Modifier
@@ -164,12 +164,12 @@ private fun Ends(ui: TripPlannerViewModel.Ui, onEdit: (End) -> Unit) {
         EndRow(
             label = stringResource(R.string.add_trip_from),
             place = ui.from,
-            empty = stringResource(R.string.add_trip_pick_start),
+            empty = stringResource(R.string.add_trip_locating),
             icon = Lucide.crosshair,
             ink = c.primary,
-            active = ui.editing == End.FROM,
+            active = false,
             divider = true,
-            onEdit = { onEdit(End.FROM) },
+            locating = ui.from == null,
         )
         EndRow(
             label = stringResource(R.string.add_trip_to),
@@ -177,13 +177,14 @@ private fun Ends(ui: TripPlannerViewModel.Ui, onEdit: (End) -> Unit) {
             empty = stringResource(R.string.add_trip_pick_destination),
             icon = Lucide.flag,
             ink = c.accent,
-            active = ui.editing == End.TO,
+            active = ui.choosingDestination,
             divider = false,
-            onEdit = { onEdit(End.TO) },
+            onEdit = onChangeDestination,
         )
     }
 }
 
+/** One end of the trip; pressable, with "Change", only when [onEdit] is given. */
 @Composable
 private fun EndRow(
     label: String,
@@ -193,7 +194,8 @@ private fun EndRow(
     ink: androidx.compose.ui.graphics.Color,
     active: Boolean,
     divider: Boolean,
-    onEdit: () -> Unit,
+    locating: Boolean = false,
+    onEdit: (() -> Unit)? = null,
 ) {
     val c = Saarthi.colors
     val change = stringResource(R.string.add_trip_change)
@@ -202,7 +204,13 @@ private fun EndRow(
             .fillMaxWidth()
             .defaultMinSize(minHeight = 64.dp)
             .bottomRule(c.border, show = divider)
-            .pressable(scale = 0.99f, label = "$label: ${place?.name ?: empty}. $change", onClick = onEdit)
+            .then(
+                if (onEdit != null) {
+                    Modifier.pressable(scale = 0.99f, label = "$label: ${place?.name ?: empty}. $change", onClick = onEdit)
+                } else {
+                    Modifier
+                },
+            )
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -221,15 +229,17 @@ private fun EndRow(
                 Text(it, style = SType.caption, color = c.subtle, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
-        if (!active) Text(change, style = SType.smallStrong, color = c.primary)
+        when {
+            locating -> InlineSpinner(c.primary, size = 16.dp)
+            onEdit != null && !active -> Text(change, style = SType.smallStrong, color = c.primary)
+        }
     }
 }
 
-/** The search box for whichever end is being chosen, and what it found. */
+/** The search box for the destination, and what it found. */
 @Composable
 private fun PlaceSearch(
     ui: TripPlannerViewModel.Ui,
-    editing: End,
     onQuery: (String) -> Unit,
     onChoose: (PlaceMatchDto) -> Unit,
 ) {
@@ -237,7 +247,7 @@ private fun PlaceSearch(
     SaarthiField(
         value = ui.query,
         onValueChange = onQuery,
-        placeholder = stringResource(if (editing == End.FROM) R.string.add_trip_search_from else R.string.add_trip_search_to),
+        placeholder = stringResource(R.string.add_trip_search_to),
         leading = Lucide.search,
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
     )
@@ -341,23 +351,4 @@ private fun RoutePreview(ui: TripPlannerViewModel.Ui, cockpit: TerminalViewModel
         }
     }
     if (ui.routeFailed) LinkButton(stringResource(R.string.action_try_again), onRetryRoute, color = c.primary)
-}
-
-/**
- * Where the driver's last trip ends: the last of their queue, or else the trip
- * holding the vehicle. Null with nothing ahead, when a new trip starts here.
- */
-private fun lastStop(queue: TripQueueDto?, dispatch: TerminalTripDto?): TripPlaceDto? {
-    val last = queue?.trips?.lastOrNull()
-    val latitude = last?.toLatitude
-    val longitude = last?.toLongitude
-    if (last != null && latitude != null && longitude != null) {
-        return TripPlaceDto(name = last.toLabel ?: return null, latitude = latitude, longitude = longitude)
-    }
-    val held = dispatch ?: return null
-    return TripPlaceDto(
-        name = held.destinationAddress.ifBlank { return null },
-        latitude = held.destinationLatitude,
-        longitude = held.destinationLongitude,
-    )
 }

@@ -117,12 +117,27 @@ fun ShiftShell(
         toast = null
     }
     val say: (Int) -> Unit = { toast = context.getString(it) }
+    /*
+     * A trip that has just started goes straight onto the map.
+     *
+     * The same route Home's "Show me the way" draws — the trip now holding the
+     * vehicle, previewed for the driver to set off on — so starting a trip no
+     * longer means a detour to Home to see where it goes. A route already on
+     * the map is left alone, as that button leaves it, and a start with no trip
+     * behind it (setting off on the shift itself) has nowhere to route to.
+     */
+    val showStartedTrip: () -> Unit = {
+        if (cockpit.dispatch.value != null && !cockpit.navigation.value.active) {
+            cockpit.navigateToDispatch { routed -> if (!routed) say(R.string.toast_route_failed) }
+        }
+    }
     val startChosenTrip: (String) -> Unit = { tripId ->
         cockpit.startTrip(tripId) { result ->
             result
                 .onSuccess {
                     tab = ShiftTab.MAP
                     say(R.string.toast_trip_started)
+                    showStartedTrip()
                 }
                 .onFailure { toast = it.message ?: context.getString(R.string.trips_problem) }
         }
@@ -156,7 +171,7 @@ fun ShiftShell(
         overlay = Overlay.NEARBY
     }
     val startTrip = {
-        cockpit.startTrip()
+        cockpit.startTrip { result -> result.onSuccess { showStartedTrip() } }
         tab = ShiftTab.MAP
         say(R.string.toast_trip_started)
     }

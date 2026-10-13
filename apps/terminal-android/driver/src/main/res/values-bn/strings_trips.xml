@@ -53,10 +53,9 @@
     <string name="add_trip_from">কোথা থেকে</string>
     <string name="add_trip_to">কোথায়</string>
     <string name="add_trip_here">আপনি এখন যেখানে আছেন</string>
-    <string name="add_trip_pick_start">কোথা থেকে শুরু করবেন বেছে নিন</string>
+    <string name="add_trip_locating">আপনার অবস্থান খোঁজা হচ্ছে…</string>
     <string name="add_trip_pick_destination">কোথায় যাচ্ছেন বেছে নিন</string>
     <string name="add_trip_change">বদলান</string>
-    <string name="add_trip_search_from">শুরুর জায়গা খুঁজুন</string>
     <string name="add_trip_search_to">যেখানে যাচ্ছেন সেই জায়গা খুঁজুন</string>
     <string name="add_trip_routing">রাস্তা ঠিক করা হচ্ছে…</string>
     <string name="add_trip_route_failed">এখন রাস্তা ঠিক করা গেল না। তবুও আপনি ট্রিপ যোগ করতে পারেন।</string>

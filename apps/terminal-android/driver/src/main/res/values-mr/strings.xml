@@ -552,10 +552,9 @@
     <string name="add_trip_from">कुठून</string>
     <string name="add_trip_to">कुठे</string>
     <string name="add_trip_here">तुम्ही आत्ता जिथे आहात</string>
-    <string name="add_trip_pick_start">कुठून सुरू करणार ते निवडा</string>
+    <string name="add_trip_locating">तुमचे ठिकाण शोधत आहोत…</string>
     <string name="add_trip_pick_destination">कुठे जात आहात ते निवडा</string>
     <string name="add_trip_change">बदला</string>
-    <string name="add_trip_search_from">सुरुवातीचे ठिकाण शोधा</string>
     <string name="add_trip_search_to">जिथे जात आहात ते ठिकाण शोधा</string>
     <string name="add_trip_routing">रस्ता काढत आहे…</string>
     <string name="add_trip_route_failed">आत्ता रस्ता काढता आला नाही. तरीही तुम्ही ट्रिप जोडू शकता.</string>

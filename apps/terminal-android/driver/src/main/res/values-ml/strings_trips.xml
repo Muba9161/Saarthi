@@ -53,10 +53,9 @@
     <string name="add_trip_from">എവിടെ നിന്ന്</string>
     <string name="add_trip_to">എവിടേക്ക്</string>
     <string name="add_trip_here">നിങ്ങൾ ഇപ്പോൾ ഉള്ള സ്ഥലം</string>
-    <string name="add_trip_pick_start">എവിടെ നിന്ന് തുടങ്ങുന്നു എന്ന് തിരഞ്ഞെടുക്കുക</string>
+    <string name="add_trip_locating">നിങ്ങളുടെ സ്ഥാനം കണ്ടെത്തുന്നു…</string>
     <string name="add_trip_pick_destination">എവിടേക്ക് പോകുന്നു എന്ന് തിരഞ്ഞെടുക്കുക</string>
     <string name="add_trip_change">മാറ്റുക</string>
-    <string name="add_trip_search_from">തുടങ്ങുന്ന സ്ഥലം തിരയുക</string>
     <string name="add_trip_search_to">പോകുന്ന സ്ഥലം തിരയുക</string>
     <string name="add_trip_routing">റൂട്ട് കണ്ടെത്തുന്നു…</string>
     <string name="add_trip_route_failed">ഇപ്പോൾ റൂട്ട് കണ്ടെത്താനായില്ല. എന്നാലും നിങ്ങൾക്ക് ട്രിപ്പ് ചേർക്കാം.</string>

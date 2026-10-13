@@ -53,10 +53,9 @@
     <string name="add_trip_from">कुत्थुआं</string>
     <string name="add_trip_to">कुत्थें तगर</string>
     <string name="add_trip_here">जित्थै तुस हून ओ</string>
-    <string name="add_trip_pick_start">चुनो जे कुत्थुआं शुरू करगे ओ</string>
+    <string name="add_trip_locating">तुंदी जगह लब्भा करदे आं…</string>
     <string name="add_trip_pick_destination">चुनो जे कुत्थें जा करदे ओ</string>
     <string name="add_trip_change">बदलो</string>
-    <string name="add_trip_search_from">शुरू करने आह्ली जगह लब्भो</string>
     <string name="add_trip_search_to">जित्थै जा करदे ओ, ओह् जगह लब्भो</string>
     <string name="add_trip_routing">रूट बनाया जा करदा ऐ…</string>
     <string name="add_trip_route_failed">इस बेलै रूट नेईं बनी सकेआ. तुस फ्ही बी ट्रिप जोड़ी सकदे ओ.</string>
