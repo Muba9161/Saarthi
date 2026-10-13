@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">VorldX Saarthi</string>
+
+    <!-- Words the shared design components draw themselves. -->
+    <string name="action_back">Back</string>
+    <string name="field_password">Password</string>
+    <string name="password_show">Show password</string>
+    <string name="password_hide">Hide password</string>
+</resources>

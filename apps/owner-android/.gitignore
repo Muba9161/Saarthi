@@ -1,0 +1,21 @@
+# Gradle
+.gradle/
+build/
+local.properties
+captures/
+
+# Android Studio
+*.iml
+.idea/
+.cxx/
+
+# Build artefacts
+*.apk
+*.aab
+*.aar
+release/
+
+# Signing material must never be committed.
+*.jks
+*.keystore
+keystore.properties

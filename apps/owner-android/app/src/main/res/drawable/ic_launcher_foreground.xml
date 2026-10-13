@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The full VorldX Saarthi lockup, sized inside the 66dp safe circle (900:813 artwork). -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:gravity="center" android:width="44dp" android:height="40dp">
+        <bitmap android:src="@drawable/brand_lockup" android:gravity="fill" android:filter="true" android:mipMap="true" />
+    </item>
+</layer-list>

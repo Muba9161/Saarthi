@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The themed-icon layer (Android 13+, when the user turns on themed icons).
+
+  Android tints this drawable with the wallpaper palette and uses only its alpha
+  channel, so it has to be a silhouette. The full-colour logo would read as a
+  shapeless blob, because its pale sun is solid alpha.
+
+  `brand_lockup_mono.png` is the logo reduced for exactly this: the pale sun
+  dropped, and the white of the truck and car left as negative space so their
+  outlines and the skyline still read, with the wordmark and strapline whole.
+
+  Same box as the foreground, so the themed icon sits where the real one does.
+-->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:gravity="center"
+        android:width="44dp"
+        android:height="40dp">
+        <bitmap
+            android:src="@drawable/brand_lockup_mono"
+            android:gravity="fill"
+            android:filter="true"
+            android:mipMap="true" />
+    </item>
+</layer-list>

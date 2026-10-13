@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!--
+      The window behind the owner app. Compose paints every screen itself; this
+      only decides the first frame and keeps the phone's own "dark mode for
+      other apps" from repainting surfaces the app already themes.
+    -->
+    <style name="Theme.SaarthiOwner" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/owner_launch_background</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">false</item>
+        <item name="android:forceDarkAllowed" tools:targetApi="q">false</item>
+    </style>
+</resources>

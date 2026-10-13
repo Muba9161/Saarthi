@@ -1,0 +1,321 @@
+package com.saarthi.owner.ui.welcome
+
+import androidx.annotation.DrawableRes
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.BiasAlignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
+import com.saarthi.owner.R
+import com.saarthi.owner.ui.design.AppName
+import com.saarthi.owner.ui.design.BrandLockup
+import com.saarthi.owner.ui.design.ButtonTone
+import com.saarthi.owner.ui.design.Ease
+import com.saarthi.owner.ui.design.Eyebrow
+import com.saarthi.owner.ui.design.SType
+import com.saarthi.owner.ui.design.Saarthi
+import com.saarthi.owner.ui.design.SaarthiButton
+import com.saarthi.owner.ui.design.SystemBars
+import com.saarthi.owner.ui.design.pressable
+import com.saarthi.owner.ui.design.rise
+import com.saarthi.owner.ui.design.stagger
+import kotlinx.coroutines.delay
+
+private class Slide(
+    @DrawableRes val image: Int,
+    val alt: String,
+    /** Where the photo's focus sits, as the design's `object-position`. */
+    val focusX: Float,
+    val focusY: Float,
+    val eyebrow: String,
+    val title: String,
+    val body: String,
+)
+
+private val Slides = listOf(
+    Slide(
+        R.drawable.photo_role_fleet,
+        "A fleet owner standing in his truck yard at sunrise",
+        0.5f, 0.2f,
+        "For owners · fleets · businesses",
+        "Track. Approve.\nGet paid.",
+        "Every vehicle live on one map, drivers approved from your phone, and return loads before a truck drives back empty.",
+    ),
+    Slide(
+        R.drawable.photo_role_customer,
+        "A site manager checking a delivery on her phone",
+        0.5f, 0.22f,
+        "For customers",
+        "Post. Compare.\nTrack it in.",
+        "Say what you need moved, choose between fleet bids, and follow your load all the way to your gate.",
+    ),
+    Slide(
+        R.drawable.photo_role_seller,
+        "Two sellers in their building-materials yard",
+        0.5f, 0.25f,
+        "For sellers",
+        "Sell by the\ntruckload.",
+        "Fleets source from your listing and collect from your gate. You load; they deliver.",
+    ),
+)
+
+/**
+ * The welcome carousel — the driver app's, with the business's photographs.
+ *
+ * Stories-style: the bars at the top fill over five seconds each, a tap on the
+ * right moves on and a tap on the left goes back. One door only — accounts are
+ * opened on the web, so there is no "create account" here.
+ */
+@Composable
+fun WelcomeScreen(onSignIn: () -> Unit) {
+    SystemBars(lightContent = true)
+    val reduced = Saarthi.reducedMotion
+    var index by rememberSaveable { mutableIntStateOf(0) }
+    // Bumped on every change so the story bar and the zoom restart.
+    var epoch by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(index, epoch) {
+        if (reduced) return@LaunchedEffect
+        delay(SLIDE_MS.toLong())
+        index = (index + 1) % Slides.size
+        epoch++
+    }
+
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(Color(0xFF111113)),
+    ) {
+        Slides.forEachIndexed { i, slide ->
+            SlideImage(slide, visible = i == index, epoch = epoch)
+        }
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        0f to Color(0xB8111113),
+                        0.24f to Color(0x00111113),
+                        0.36f to Color(0x00111113),
+                        0.62f to Color(0xE0111113),
+                        0.82f to Color(0xFF111113),
+                    ),
+                ),
+        )
+
+        // Tap zones: back on the left third, forward on the rest.
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .padding(top = 110.dp)
+                .height(300.dp),
+        ) {
+            Box(
+                Modifier
+                    .weight(0.38f)
+                    .fillMaxHeight()
+                    .pressable(scale = 1f, label = "Previous") {
+                        index = (index + Slides.size - 1) % Slides.size
+                        epoch++
+                    },
+            )
+            Box(
+                Modifier
+                    .weight(0.62f)
+                    .fillMaxHeight()
+                    .pressable(scale = 1f, label = "Next") {
+                        index = (index + 1) % Slides.size
+                        epoch++
+                    },
+            )
+        }
+
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .windowInsetsPadding(WindowInsets.statusBars)
+                .padding(start = 20.dp, end = 20.dp, top = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Slides.forEachIndexed { i, _ ->
+                    StoryBar(
+                        state = when {
+                            i < index -> 1
+                            i == index -> 0
+                            else -> -1
+                        },
+                        epoch = epoch,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Box(Modifier.shadow(10.dp, RoundedCornerShape(13.dp))) {
+                    BrandLockup(height = 60.dp, plated = true)
+                }
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        AppName.APP,
+                        style = SType.bodyStrong.copy(letterSpacing = (-0.01).em),
+                        color = Color.White,
+                    )
+                    Text(
+                        AppName.FOR,
+                        style = SType.captionStrong,
+                        color = Color.White.copy(alpha = 0.72f),
+                        maxLines = 1,
+                    )
+                }
+            }
+        }
+
+        Column(
+            Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .windowInsetsPadding(WindowInsets.navigationBars)
+                .padding(start = 20.dp, end = 20.dp, bottom = 28.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            AnimatedContent(
+                targetState = index,
+                transitionSpec = { fadeIn(tween(400)) togetherWith fadeOut(tween(200)) },
+                label = "welcome-copy",
+            ) { shown ->
+                val slide = Slides[shown]
+                Column(
+                    Modifier.padding(bottom = 14.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Eyebrow(slide.eyebrow, Modifier.rise(stagger(1)), color = Color(0xFFFE8A4B))
+                    Text(
+                        slide.title,
+                        style = SType.hero,
+                        color = Color.White,
+                        modifier = Modifier.rise(stagger(2)),
+                    )
+                    Text(
+                        slide.body,
+                        style = SType.lead,
+                        color = Color.White.copy(alpha = 0.78f),
+                        modifier = Modifier.rise(stagger(3)),
+                    )
+                }
+            }
+            SaarthiButton(
+                "Sign in",
+                onSignIn,
+                Modifier.rise(stagger(4)),
+                tone = ButtonTone.WHITE,
+            )
+        }
+    }
+}
+
+/** One photograph: cross-fades in over a second and eases back from a slight zoom. */
+@Composable
+private fun SlideImage(slide: Slide, visible: Boolean, epoch: Int) {
+    val reduced = Saarthi.reducedMotion
+    val alpha by animateFloatAsState(if (visible) 1f else 0f, tween(1_000), label = "slide-fade")
+    val zoom = remember { Animatable(1f) }
+    LaunchedEffect(visible, epoch) {
+        if (visible && !reduced) {
+            zoom.snapTo(1.14f)
+            zoom.animateTo(1f, tween(7_000, easing = Ease.standard))
+        }
+    }
+    if (alpha <= 0f) return
+    Image(
+        painter = painterResource(slide.image),
+        contentDescription = slide.alt,
+        contentScale = ContentScale.Crop,
+        alignment = BiasAlignment(slide.focusX * 2f - 1f, slide.focusY * 2f - 1f),
+        modifier = Modifier
+            .fillMaxSize()
+            .graphicsLayer {
+                this.alpha = alpha
+                scaleX = zoom.value
+                scaleY = zoom.value
+            },
+    )
+}
+
+/** One segment of the story rail: done, filling, or waiting. */
+@Composable
+private fun StoryBar(state: Int, epoch: Int, modifier: Modifier) {
+    val reduced = Saarthi.reducedMotion
+    val fill = remember { Animatable(0f) }
+    LaunchedEffect(state, epoch) {
+        when (state) {
+            1 -> fill.snapTo(1f)
+            -1 -> fill.snapTo(0f)
+            else -> {
+                fill.snapTo(0f)
+                if (reduced) fill.snapTo(0.55f) else fill.animateTo(1f, tween(SLIDE_MS, easing = LinearEasing))
+            }
+        }
+    }
+    Box(
+        modifier
+            .height(3.dp)
+            .clip(RoundedCornerShape(9.dp))
+            .background(Color.White.copy(alpha = 0.28f)),
+    ) {
+        Box(
+            Modifier
+                .matchParentSize()
+                .graphicsLayer {
+                    scaleX = fill.value
+                    transformOrigin = TransformOrigin(0f, 0.5f)
+                }
+                .background(Color.White),
+        )
+    }
+}
+
+private const val SLIDE_MS = 5_000

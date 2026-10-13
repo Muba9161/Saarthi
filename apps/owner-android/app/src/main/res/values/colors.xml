@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The window behind the app before Compose draws: the splash's own ground, so launch hands over without a flash. -->
+    <color name="owner_launch_background">#080C17</color>
+</resources>
