@@ -29,13 +29,19 @@ import { broadcastTripEvent, broadcastTripUpdate, broadcastTruckStatus } from '.
 import { recordTripFuel } from './trip-fuel.service';
 import { recalculateDriverScore, evaluateAndAwardAchievements } from '../drivers/driver.service';
 import { releaseVehicleFromAdHocTrip } from '../terminal/adhoc-trip.service';
-import { holdsRealTrip, promoteQueuedDriverTrip, yieldDriverTripToFleet } from './trip-queue.service';
+import {
+  holdsRealTrip,
+  nextQueuePosition,
+  promoteQueuedDriverTrip,
+  yieldDriverTripToFleet,
+} from './trip-queue.service';
 import type { AuthContext } from '../../auth/context';
 import { loadingBlockedReason } from '../marketplace-finance/order-finance.service';
 import { onTripCompleted } from '../return-loads/backhaul.service';
 import {
   decorate,
   routePoints,
+  seesDelivery,
   tripInclude,
   viewerParty,
   type TripRecord,
@@ -123,7 +129,10 @@ export async function listTrips(
               OR: [
                 { reference: { contains: query.search, mode: 'insensitive' } },
                 { originAddress: { contains: query.search, mode: 'insensitive' } },
-                { destinationAddress: { contains: query.search, mode: 'insensitive' } },
+                // A match would confirm a delivery point the Seller is never shown.
+                ...(seesDelivery(viewerParty(auth))
+                  ? [{ destinationAddress: { contains: query.search, mode: 'insensitive' as const } }]
+                  : []),
               ],
             }
           : {}),
@@ -159,16 +168,26 @@ export async function getTrip(auth: AuthContext, tripId: string) {
   if (!trip) throw errors.notFound('Trip');
   assertTripAccess(auth, trip);
 
-  const [summary] = await decorate([trip], viewerParty(auth));
+  const viewer = viewerParty(auth);
+  const [summary] = await decorate([trip], viewer);
+  // The Seller loading the truck sees its own pickup and nothing past it: no
+  // route, no delivery stop, and no timeline, whose events carry the delivery's
+  // coordinates and the fleet's and driver's notes. It cannot move the trip.
+  const followsDelivery = seesDelivery(viewer);
   const [events, stops] = await Promise.all([
-    prisma.tripEvent.findMany({ where: { tripId }, orderBy: { createdAt: 'asc' }, take: 300 }),
-    prisma.tripStop.findMany({ where: { tripId }, orderBy: { sequence: 'asc' } }),
+    followsDelivery
+      ? prisma.tripEvent.findMany({ where: { tripId }, orderBy: { createdAt: 'asc' }, take: 300 })
+      : Promise.resolve([]),
+    prisma.tripStop.findMany({
+      where: { tripId, ...(followsDelivery ? {} : { type: 'ORIGIN' }) },
+      orderBy: { sequence: 'asc' },
+    }),
   ]);
 
   return {
     ...summary!,
-    plannedRoute: routePoints(trip),
-    allowedTransitions: tripStateMachine.nextStates(trip.status),
+    plannedRoute: followsDelivery ? routePoints(trip) : [],
+    allowedTransitions: followsDelivery ? tripStateMachine.nextStates(trip.status) : [],
     stops: stops.map((stop) => ({
       id: stop.id,
       type: stop.type,
@@ -222,6 +241,7 @@ export async function createTrip(
 
   // A driver trip made while a real trip holds the vehicle waits its turn.
   const queued = driverCreated && (await holdsRealTrip(truck.currentTripId));
+  const queuePosition = queued ? await nextQueuePosition(truck.id) : null;
 
   if (!queued && !ASSIGNABLE_TRUCK_STATUSES.includes(truck.status as TruckStatus)) {
     throw errors.businessRule(
@@ -313,6 +333,7 @@ export async function createTrip(
         price: input.price ?? null,
         notes: input.notes ?? null,
         driverCreated,
+        queuePosition,
         createdById: auth.user.id,
         stops: {
           create: [
@@ -846,7 +867,10 @@ export async function activeTrips(organizationId: string): Promise<TripSummary[]
   const trips = await prisma.trip.findMany({
     where: { organizationId, status: { in: ACTIVE_TRIP_STATUSES } },
     include: tripInclude,
-    orderBy: { actualStartAt: 'desc' },
+    // Trips on the road first, latest start first. Unstarted ones have no start
+    // time, and Postgres puts nulls first in a descending sort — the live board
+    // was leading with a trip that had not left.
+    orderBy: [{ actualStartAt: { sort: 'desc', nulls: 'last' } }, { createdAt: 'desc' }],
     take: 200,
   });
   // The operating fleet's own live board.
@@ -858,7 +882,9 @@ export async function currentTripForDriver(driverId: string): Promise<TripSummar
   const trip = await prisma.trip.findFirst({
     where: { driverId, status: { in: ACTIVE_TRIP_STATUSES } },
     include: tripInclude,
-    orderBy: { createdAt: 'desc' },
+    // The trip they are driving, or else the next to start — not the newest
+    // added, which with trips queued behind one another is the last to run.
+    orderBy: [{ actualStartAt: { sort: 'desc', nulls: 'last' } }, { createdAt: 'asc' }],
   });
   if (!trip) return null;
   return (await decorate([trip], 'DRIVER'))[0]!;

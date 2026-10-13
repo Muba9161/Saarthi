@@ -400,9 +400,9 @@ SOS and safety-related functionality must remain immediately accessible where th
 
 ---
 
-# 14. Referral vs Salesman/GODID
+# 14. Referral vs Saarthi Rahi/GODID
 
-The new generic referral system must remain conceptually separate from the specialized salesman/GODID system.
+The new generic referral system must remain conceptually separate from the specialized Saarthi Rahi/GODID system.
 
 Generic referral:
 
@@ -416,12 +416,12 @@ New User
 Commission
 ```
 
-Salesman/GODID:
+Saarthi Rahi/GODID:
 
 ```text
 GODID
  ↓
-Salesman
+Saarthi Rahi
  ↓
 Customer
  ↓
@@ -707,7 +707,7 @@ Before implementation:
 14. Inspect verification pages.
 15. Inspect settings/security.
 16. Inspect referral-related existing code if any.
-17. Inspect salesman/GODID functionality.
+17. Inspect Saarthi Rahi/GODID functionality.
 18. Inspect tests.
 
 Do not modify anything during the audit.

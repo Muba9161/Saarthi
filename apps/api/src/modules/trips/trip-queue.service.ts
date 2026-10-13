@@ -5,7 +5,7 @@ import {
   TripStatus,
   TruckStatus,
 } from '@saarthi/shared';
-import { prisma } from '../../database/prisma';
+import { type Prisma, prisma } from '../../database/prisma';
 import { logger } from '../../lib/logger';
 import { notifyAsync } from '../notifications/notification.service';
 import { broadcastTripUpdate, broadcastTruckStatus } from '../../realtime/realtime.service';
@@ -24,6 +24,24 @@ const queueLogger = logger.child({ module: 'trip-queue' });
 
 /** Driver trips that hold the vehicle but have not moved, and so may yield. */
 const YIELDABLE_STATUSES: TripStatus[] = [TripStatus.ASSIGNED, TripStatus.LOADING];
+
+/**
+ * The order queued driver trips run in: the driver's own order, then — for a
+ * trip from before the queue could be reordered — the order they were added.
+ */
+export const QUEUE_ORDER = [
+  { queuePosition: { sort: 'asc', nulls: 'last' } },
+  { createdAt: 'asc' },
+] as const satisfies Prisma.TripOrderByWithRelationInput[];
+
+/** The place at the back of the vehicle's queue, for a trip joining it. */
+export async function nextQueuePosition(truckId: string): Promise<number> {
+  const last = await prisma.trip.aggregate({
+    where: { truckId, driverCreated: true, status: TripStatus.DRAFT },
+    _max: { queuePosition: true },
+  });
+  return (last._max.queuePosition ?? -1) + 1;
+}
 
 /** Whether the vehicle's current trip is a real one (not a service run). */
 export async function holdsRealTrip(currentTripId: string | null): Promise<boolean> {
@@ -56,8 +74,15 @@ export async function yieldDriverTripToFleet(truckId: string, tripId: string): P
     return false;
   }
 
+  // First in line again: it was next before the fleet's trip arrived.
+  const first = await prisma.trip.aggregate({
+    where: { truckId, driverCreated: true, status: TripStatus.DRAFT },
+    _min: { queuePosition: true },
+  });
+  const queuePosition = (first._min.queuePosition ?? 1) - 1;
+
   await prisma.$transaction(async (tx) => {
-    await tx.trip.update({ where: { id: tripId }, data: { status: TripStatus.DRAFT } });
+    await tx.trip.update({ where: { id: tripId }, data: { status: TripStatus.DRAFT, queuePosition } });
     await tx.tripEvent.create({
       data: {
         tripId,
@@ -75,7 +100,7 @@ export async function yieldDriverTripToFleet(truckId: string, tripId: string): P
 }
 
 /**
- * Hand a free vehicle to the oldest queued driver trip on it.
+ * Hand a free vehicle to the next queued driver trip on it, in the driver's order.
  *
  * Called once a trip on the vehicle completes or is cancelled. Never throws: a
  * failure here must not undo the completion that triggered it, and the trip
@@ -85,7 +110,7 @@ export async function promoteQueuedDriverTrip(truckId: string): Promise<void> {
   try {
     const next = await prisma.trip.findFirst({
       where: { truckId, driverCreated: true, status: TripStatus.DRAFT },
-      orderBy: { createdAt: 'asc' },
+      orderBy: [...QUEUE_ORDER],
       select: {
         id: true,
         reference: true,

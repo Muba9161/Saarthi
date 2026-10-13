@@ -334,7 +334,10 @@ export const SUPPLIER_NAVIGATION: NavSection[] = [
         feature: Feature.AI_COPILOT,
       },
       {
-        label: 'Deliveries',
+        // The vehicles coming to collect from the Seller's yard. Not its
+        // deliveries: where the goods go is the fleet's run to the customer,
+        // which a Seller is never shown.
+        label: 'Pickups',
         to: '/trips',
         icon: Route,
         permissions: [Permission.TRIPS_READ],
@@ -648,7 +651,7 @@ export const DRIVER_NAVIGATION: NavSection[] = [
  *
  * A section of the same application, not a portal of its own. Read it for what
  * it does not contain: no live map, no trucks, no drivers, no telemetry. A
- * salesperson's navigation is their pipeline and their earnings, and the
+ * Saarthi Rahi's navigation is their pipeline and their earnings, and the
  * customer entry leads to a deliberately thin summary — see the API's
  * `dashboard.service`. The permissions on each row are the same ones the API
  * enforces, so nothing here can be reached by guessing a URL.
@@ -717,7 +720,7 @@ export const SALES_NAVIGATION: NavSection[] = [
         permissions: [Permission.SALES_READ],
       },
       {
-        // Above Referrals on purpose: a salesperson runs the demo in front of
+        // Above Referrals on purpose: a Saarthi Rahi runs the demo in front of
         // somebody, and shares a link afterwards.
         label: 'Demo',
         to: '/sales/demo',
@@ -737,7 +740,7 @@ export const SALES_NAVIGATION: NavSection[] = [
         permissions: [Permission.TRACKER_HANDOVER_READ],
       },
       {
-        // The salesperson's wallet: a flat reward for every successful
+        // The Saarthi Rahi's wallet: a flat reward for every successful
         // referral, credited automatically and cashed out to their bank.
         label: 'Earnings',
         to: '/sales/earnings',
@@ -799,9 +802,9 @@ export const ADMIN_NAVIGATION: NavSection[] = [
         permissions: [Permission.ADMIN_AUDIT],
       },
       {
-        // Salesman profiles and GODID verification. Under Platform rather than
-        // in the Sales section, because a salesperson administers nobody.
-        label: 'Salespeople',
+        // Saarthi Rahi profiles and GODID verification. Under Platform rather than
+        // in the Sales section, because a Saarthi Rahi administers nobody.
+        label: 'Saarthi Rahis',
         to: '/admin/salesmen',
         icon: BadgeCheck,
         permissions: [Permission.SALESMAN_MANAGE],
@@ -848,7 +851,7 @@ export const ACCOUNT_NAVIGATION: NavSection[] = [
        * entry at all — reachable only from an upgrade prompt — so somebody
        * wanting to see what they pay had no way to find it. SUBSCRIPTION_READ is
        * held by the account holders who have a plan of their own, and by no
-       * employed driver or salesperson.
+       * employed driver or Saarthi Rahi.
        */
       {
         label: 'Billing & subscription',
@@ -859,7 +862,7 @@ export const ACCOUNT_NAVIGATION: NavSection[] = [
       /*
        * Refer & Earn. Eligibility is a business rule of the program, not a plan
        * feature: a Free customer can refer as well as a Business one. A
-       * salesperson refers through their GODID link on the Sales screens
+       * Saarthi Rahi refers through their GODID link on the Sales screens
        * instead, so the two programs never appear side by side.
        */
       {

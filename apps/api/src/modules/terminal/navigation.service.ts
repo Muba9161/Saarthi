@@ -4,6 +4,7 @@ import {
   VehicleCapability,
   VehicleType,
   distanceKm,
+  haversineDistance,
   vehicleSupports,
   type LatLng,
   type MeasuredDistance,
@@ -12,16 +13,19 @@ import {
   type TerminalServiceResult,
   type TerminalServicesResponse,
 } from '@saarthi/shared';
+import { config } from '../../config/env';
 import { prisma } from '../../database/prisma';
 import { errors } from '../../lib/errors';
 import { logger } from '../../lib/logger';
 import { cache } from '../../infra/cache';
 import { cacheKeys, cacheTtl } from '../../infra/cache-keys';
 import { searchNearbyPlaces } from '../nearby/nearby.service';
+import { searchPhoton } from '../../providers/places/photon-place-search';
 import {
   RoutingError,
   isRoutingConfigured,
   routingProvider,
+  type PlaceMatch,
   type RoutingProfile,
 } from '../../providers/routing';
 import type { NearbyPlaceResult } from '../nearby/nearby.service';
@@ -377,8 +381,13 @@ function round(value: number): string {
  * rows, and a search that quietly blended them with real results would send
  * somebody to an address that does not exist.
  *
- * Requires routing to be configured, and says so plainly when it is not. A
- * search box that silently returns nothing is indistinguishable from a place
+ * Two searches, merged: Photon over OpenStreetMap first, which knows India's
+ * named places — the hospitals, colleges and malls a driver types — and the
+ * routing geocoder after it for anything Photon missed. The same place found
+ * by both is listed once.
+ *
+ * Requires one of them to be configured, and says so plainly when neither is.
+ * A search box that silently returns nothing is indistinguishable from a place
  * that does not exist, and a driver would conclude the wrong one.
  */
 export async function searchPlaces(input: {
@@ -386,7 +395,7 @@ export async function searchPlaces(input: {
   from: LatLng;
   limit: number;
 }): Promise<TerminalPlaceMatch[]> {
-  if (!routingProvider) {
+  if (!routingProvider && !config.placeSearch.photonUrl) {
     throw errors.providerNotConfigured(
       'routing',
       'Place search is not configured on this Saarthi instance. ' +
@@ -394,12 +403,19 @@ export async function searchPlaces(input: {
     );
   }
 
-  const matches = await routingProvider
-    .searchPlaces(input.query, input.from, input.limit)
-    .catch((error: unknown) => {
-      if (error instanceof RoutingError) throw errors.businessRule(error.message);
-      throw error;
-    });
+  const [photon, routed] = await Promise.all([
+    searchPhoton(input.query, input.from, input.limit),
+    routingProvider
+      ? routingProvider.searchPlaces(input.query, input.from, input.limit).catch((error: unknown) => {
+          // Photon may still have answered; only with nothing at all is the router's refusal the answer.
+          if (error instanceof RoutingError) return error;
+          throw error;
+        })
+      : Promise.resolve([] as PlaceMatch[]),
+  ]);
+  if (routed instanceof RoutingError && photon.length === 0) throw errors.businessRule(routed.message);
+
+  const matches = mergePlaceMatches(photon, routed instanceof RoutingError ? [] : routed).slice(0, input.limit);
 
   return matches.map((match, index) => ({
     // The geocoder has no stable id, and the cockpit needs one to key a list.
@@ -527,4 +543,25 @@ export async function routeTo(input: {
  */
 function etaFrom(durationMinutes: number): string {
   return new Date(Date.now() + durationMinutes * 60_000).toISOString();
+}
+
+/** Closer than this, two results with the same name are the same place. */
+const SAME_PLACE_METRES = 150;
+
+/**
+ * `first`, then whatever of `second` it does not already have — the same name
+ * within a short walk of each other being one place found twice.
+ */
+export function mergePlaceMatches(first: readonly PlaceMatch[], second: readonly PlaceMatch[]): PlaceMatch[] {
+  const merged = [...first];
+  for (const candidate of second) {
+    const name = candidate.name.trim().toLowerCase();
+    const duplicate = merged.some(
+      (kept) =>
+        haversineDistance(kept, candidate) <= SAME_PLACE_METRES &&
+        (kept.name.trim().toLowerCase().includes(name) || name.includes(kept.name.trim().toLowerCase())),
+    );
+    if (!duplicate) merged.push(candidate);
+  }
+  return merged;
 }

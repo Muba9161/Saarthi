@@ -31,18 +31,18 @@ import {
 } from './helpers';
 
 /**
- * Salesman, sales, referral and reward.
+ * Saarthi Rahi, sales, referral and reward.
  *
  * Written against the guarantees the specification calls non-negotiable, in the
  * order it states them. Every test that matters here is a test that something
  * is *refused*:
  *
  *   * an unverified GODID earns nothing;
- *   * a second salesperson cannot take over an attributed customer;
+ *   * a second Saarthi Rahi cannot take over an attributed customer;
  *   * a reward is paid only for a customer on a paid plan, once per customer;
  *   * a withdrawn referral's held reward is voided;
  *   * signup cannot be claimed with a GODID alone;
- *   * a salesperson cannot see a colleague's lead, or mark their own
+ *   * a Saarthi Rahi cannot see a colleague's lead, or mark their own
  *     conversion.
  *
  * Nothing is stubbed. These run against the real PostgreSQL test database, so
@@ -59,7 +59,7 @@ interface SalesmanFixture {
   user: TestUser;
 }
 
-/** A verified, active salesperson with a login. */
+/** A verified, active Saarthi Rahi with a login. */
 async function createVerifiedSalesman(overrides: { godId?: string } = {}): Promise<SalesmanFixture> {
   const godId = normalizeGodId(overrides.godId ?? unique('GOD-'));
   const user = await createUser({ role: RoleName.SALESMAN, organizationId: null });
@@ -68,7 +68,7 @@ async function createVerifiedSalesman(overrides: { godId?: string } = {}): Promi
     data: {
       godId,
       userId: user.id,
-      name: 'Test Salesperson',
+      name: 'Test Saarthi Rahi',
       phone: uniquePhone(),
       status: SalesmanStatus.ACTIVE,
       verificationMethod: 'GODWEB',
@@ -81,7 +81,7 @@ async function createVerifiedSalesman(overrides: { godId?: string } = {}): Promi
   return { profileId: profile.id, godId, user };
 }
 
-/** A salesperson whose GODID has never been checked. */
+/** A Saarthi Rahi whose GODID has never been checked. */
 async function createPendingSalesman(): Promise<SalesmanFixture> {
   const godId = normalizeGodId(unique('GOD-'));
   const user = await createUser({ role: RoleName.SALESMAN, organizationId: null });
@@ -130,7 +130,7 @@ describe('GODID normalisation', () => {
 // Verification gates selling
 // ---------------------------------------------------------------------------
 
-describe('salesman verification', () => {
+describe('Saarthi Rahi verification', () => {
   it('does not resolve an unverified GODID for attribution', async () => {
     const pending = await createPendingSalesman();
     await expect(salesmanService.resolveVerifiedSalesman(pending.godId)).resolves.toBeNull();
@@ -179,7 +179,7 @@ describe('salesman verification', () => {
     expect(response.body.data.qrDataUri).toMatch(/^data:image\/svg\+xml;base64,/);
   });
 
-  it('attributes nothing to an unverified salesperson at registration', async () => {
+  it('attributes nothing to an unverified Saarthi Rahi at registration', async () => {
     const pending = await createPendingSalesman();
     const organization = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.PERSONAL);
     const customer = await createUser({
@@ -206,7 +206,7 @@ describe('salesman verification', () => {
 // ---------------------------------------------------------------------------
 
 describe('referral attribution', () => {
-  it('credits the salesperson whose code a registration quoted', async () => {
+  it('credits the Saarthi Rahi whose code a registration quoted', async () => {
     const salesman = await createVerifiedSalesman();
     const organization = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.PERSONAL);
     const customer = await createUser({
@@ -260,7 +260,7 @@ describe('referral attribution', () => {
     expect(rows[0]?.id).toBe(captured.attributionId);
   });
 
-  it('refuses to let a second salesperson take over an attributed customer', async () => {
+  it('refuses to let a second Saarthi Rahi take over an attributed customer', async () => {
     const first = await createVerifiedSalesman();
     const second = await createVerifiedSalesman();
     const organization = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.PERSONAL);
@@ -350,7 +350,7 @@ describe('referral attribution', () => {
       method: 'POST',
       url: `${ADMIN_PATH}/referrals/${created.id}/revoke`,
       user: admin,
-      payload: { reason: 'Recorded against the wrong salesperson.' },
+      payload: { reason: 'Recorded against the wrong Saarthi Rahi.' },
     });
     expect(revoke.status).toBe(200);
 
@@ -362,13 +362,13 @@ describe('referral attribution', () => {
         organizationId: organization.id,
         godId: second.godId,
         source: ReferralSource.MANUAL_GODID,
-        reason: 'Physical sale by the second salesperson, confirmed with both.',
+        reason: 'Physical sale by the second Saarthi Rahi, confirmed with both.',
       },
     });
     expect(reattributed.status).toBe(201);
   });
 
-  it('will not move a live attribution between salespeople, even for an admin', async () => {
+  it('will not move a live attribution between Saarthi Rahis, even for an admin', async () => {
     const first = await createVerifiedSalesman();
     const second = await createVerifiedSalesman();
     const organization = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.PERSONAL);
@@ -400,7 +400,7 @@ describe('referral attribution', () => {
     expect(response.status).toBe(409);
   });
 
-  it('tells an anonymous visitor almost nothing about a salesperson', async () => {
+  it('tells an anonymous visitor almost nothing about a Saarthi Rahi', async () => {
     const salesman = await createVerifiedSalesman();
 
     const response = await request<Record<string, unknown>>({
@@ -411,7 +411,7 @@ describe('referral attribution', () => {
     expect(response.status).toBe(200);
     expect(response.body.data).toEqual({
       code: salesman.godId,
-      salesmanName: 'Test Salesperson',
+      salesmanName: 'Test Saarthi Rahi',
       territory: 'Delhi NCR',
       valid: true,
     });
@@ -473,13 +473,13 @@ describe('referral attribution', () => {
 // ---------------------------------------------------------------------------
 
 /**
- * A salesperson's successful referral pays ₹100 into their wallet.
+ * A Saarthi Rahi's successful referral pays ₹100 into their wallet.
  *
  * "Successful" is the customer starting on a paid plan, so on its trial, with
  * no payment and no approval. The reward is held, keyed per customer so it can
  * never pay twice, and voided with its attribution while still on hold.
  */
-describe('salesperson rewards', () => {
+describe('Saarthi Rahi rewards', () => {
   async function registerCustomer(referralCode: string, planTier: PlanTier = PlanTier.BUSINESS) {
     const free = planTier === PlanTier.FREE;
     const { status, body } = await request<{
@@ -523,7 +523,7 @@ describe('salesperson rewards', () => {
     });
     expect(Number(reward?.amount)).toBe(100);
 
-    // Shown on the salesperson's own dashboard.
+    // Shown on the Saarthi Rahi's own dashboard.
     const dashboard = await request<{ earnings: { totalEarned: number; held: number } }>({
       method: 'GET',
       url: `${ADMIN_PATH}/dashboard`,
@@ -539,7 +539,7 @@ describe('salesperson rewards', () => {
     await expect(rewardsOf(salesman.user.id)).resolves.toHaveLength(0);
   });
 
-  it('pays an unverified salesperson nothing', async () => {
+  it('pays an unverified Saarthi Rahi nothing', async () => {
     const salesman = await createPendingSalesman();
     await registerCustomer(salesman.godId);
 
@@ -615,7 +615,7 @@ describe('salesperson rewards', () => {
 // Self-service signup
 // ---------------------------------------------------------------------------
 
-describe('salesperson self-signup', () => {
+describe('Saarthi Rahi self-signup', () => {
   it('stays closed while GODWeb and email are not configured', async () => {
     // The test environment has neither, which is exactly the state in which a
     // GODID could otherwise be claimed with no proof of the GODWeb mailbox.
@@ -636,7 +636,7 @@ describe('salesperson self-signup', () => {
         email,
         passwordHash: 'unusable',
         firstName: 'Priya',
-        lastName: 'Salesperson',
+        lastName: 'Saarthi Rahi',
         status: 'PENDING',
       },
     });
@@ -673,7 +673,7 @@ describe('salesperson self-signup', () => {
 // ---------------------------------------------------------------------------
 
 describe('sales leads', () => {
-  it('lets a salesperson work their own pipeline', async () => {
+  it('lets a Saarthi Rahi work their own pipeline', async () => {
     const salesman = await createVerifiedSalesman();
 
     const created = await request<{ id: string; status: string; availableStatuses: string[] }>({
@@ -715,7 +715,7 @@ describe('sales leads', () => {
     expect(duplicate.status).toBe(409);
   });
 
-  it('does not let a salesperson mark their own conversion', async () => {
+  it('does not let a Saarthi Rahi mark their own conversion', async () => {
     const salesman = await createVerifiedSalesman();
     const created = await request<{ id: string }>({
       method: 'POST',
@@ -735,7 +735,7 @@ describe('sales leads', () => {
     expect(response.body.error?.message).toMatch(/Saarthi sets this stage/i);
   });
 
-  it('hides one salesperson’s leads from another', async () => {
+  it('hides one Saarthi Rahi’s leads from another', async () => {
     const mine = await createVerifiedSalesman();
     const theirs = await createVerifiedSalesman();
 
@@ -760,7 +760,7 @@ describe('sales leads', () => {
       url: `${ADMIN_PATH}/leads?salesmanId=${mine.profileId}`,
       user: theirs.user,
     });
-    // The query parameter is ignored for a salesman caller.
+    // The query parameter is ignored for a Saarthi Rahi caller.
     expect(list.body.data.items).toHaveLength(0);
   });
 
@@ -818,7 +818,7 @@ describe('tracker handover', () => {
       payload: { trackerId: tracker.id, salesmanId: salesman.profileId },
     });
 
-    // Otherwise a salesperson turns up with hardware nobody has bought.
+    // Otherwise a Saarthi Rahi turns up with hardware nobody has bought.
     expect(response.status).toBe(422);
   });
 
@@ -882,7 +882,7 @@ describe('tracker handover', () => {
     expect(response.status).toBe(400);
   });
 
-  it('does not let a salesperson allocate stock to themselves', async () => {
+  it('does not let a Saarthi Rahi allocate stock to themselves', async () => {
     const salesman = await createVerifiedSalesman();
     const organization = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.PERSONAL);
     const tracker = await prisma.vehicleTracker.create({
@@ -995,7 +995,7 @@ describe('first vehicle demonstration', () => {
     expect(response.body.data.steps.every((step) => step.detail.length > 0)).toBe(true);
   });
 
-  it('will not show a salesperson a vehicle belonging to somebody else’s customer', async () => {
+  it('will not show a Saarthi Rahi a vehicle belonging to somebody else’s customer', async () => {
     const salesman = await createVerifiedSalesman();
     const stranger = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.PERSONAL);
     const vehicle = await prisma.truck.create({
@@ -1038,7 +1038,7 @@ describe('sales RBAC', () => {
     }
   });
 
-  it('keeps a salesperson out of a customer’s fleet, drivers and telemetry', async () => {
+  it('keeps a Saarthi Rahi out of a customer’s fleet, drivers and telemetry', async () => {
     const salesman = await createVerifiedSalesman();
 
     for (const url of [
@@ -1054,7 +1054,7 @@ describe('sales RBAC', () => {
     }
   });
 
-  it('keeps a salesperson out of salesman administration', async () => {
+  it('keeps a Saarthi Rahi out of Saarthi Rahi administration', async () => {
     const salesman = await createVerifiedSalesman();
 
     const response = await request({
@@ -1066,7 +1066,7 @@ describe('sales RBAC', () => {
     expect(response.status).toBe(403);
   });
 
-  it('refuses the whole sales surface to a user with no salesman profile', async () => {
+  it('refuses the whole sales surface to a user with no Saarthi Rahi profile', async () => {
     const admin = await createUser({ role: RoleName.PLATFORM_ADMIN, organizationId: null });
     // A platform admin has no profile of their own, and `me` says so rather
     // than failing.

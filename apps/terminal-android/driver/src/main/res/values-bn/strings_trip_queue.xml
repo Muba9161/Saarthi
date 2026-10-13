@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="trips_start">ট্রিপ শুরু করুন</string>
+    <string name="trips_stop">ট্রিপ থামান</string>
+    <string name="trips_stop_title">ট্রিপ এখানেই শেষ করবেন?</string>
+    <string name="trips_stop_body">আপনার ফ্লিট দেখবে ট্রিপ কোথায় শেষ হল। আপনার আর কোনো ট্রিপ অপেক্ষায় থাকলে সেটি নিজে থেকেই শুরু হবে।</string>
+    <string name="trips_stop_confirm">এখানেই শেষ করুন</string>
+    <string name="trips_section_yours">আপনার ট্রিপ, ক্রম অনুযায়ী</string>
+    <string name="trips_after_current">এই ট্রিপ শেষ হলেই আপনার পরের ট্রিপ নিজে থেকে শুরু হবে।</string>
+    <string name="trips_fleet_first">আগে আপনার ফ্লিটের ট্রিপ। আপনারগুলো তার পরে।</string>
+    <string name="trips_check_first">Start চাপলে আগে সেফটি চেক খুলবে, তারপর ট্রিপ শুরু হবে।</string>
+    <string name="trips_move_up">উপরে সরান</string>
+    <string name="trips_move_down">নিচে সরান</string>
+    <string name="trips_suggest_title">ছোট ক্রম</string>
+    <string name="trips_suggest_saves">%1$s km বাঁচবে</string>
+    <string name="trips_suggest_total">%2$s km-এর বদলে %1$s km</string>
+    <string name="trips_suggest_estimated">সোজা দূরত্বে মাপা, রাস্তা একটু আলাদা হতে পারে।</string>
+    <string name="trips_suggest_use">এই ক্রম নিন</string>
+    <string name="trips_suggest_dismiss">এখন নয়</string>
+    <string name="trips_problem">এই মুহূর্তে করা গেল না। আবার চেষ্টা করুন।</string>
+    <string name="trips_remove">ট্রিপ সরান</string>
+    <string name="trips_remove_title">এই ট্রিপ সরাবেন?</string>
+    <string name="trips_remove_body">এটি আপনার তালিকা থেকে সরে যাবে। আপনার ফ্লিটের কাছে নোট থাকবে যে আপনি এটি সরিয়েছেন।</string>
+    <string name="trips_remove_confirm">ট্রিপ সরান</string>
+    <string name="toast_trip_removed">ট্রিপ সরানো হয়েছে।</string>
+</resources>

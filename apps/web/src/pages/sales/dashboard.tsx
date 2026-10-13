@@ -26,13 +26,13 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 /**
- * The salesman dashboard.
+ * The Saarthi Rahi dashboard.
  *
- * Every figure here is a count or a sum over real rows. A salesperson's first
+ * Every figure here is a count or a sum over real rows. A Saarthi Rahi's first
  * login shows zeros, deliberately: a dashboard that opens with twenty-four
  * invented leads is one nobody trusts the day it has twenty-four real ones.
  *
- * Earnings are the salesperson's wallet: every reward in it is one successful
+ * Earnings are the Saarthi Rahi's wallet: every reward in it is one successful
  * referral, credited automatically and cashed out from the Earnings screen.
  */
 export function SalesDashboardPage(): React.ReactElement {
@@ -58,7 +58,7 @@ export function SalesDashboardPage(): React.ReactElement {
         />
         <Alert>
           <AlertDescription>
-            Your Saarthi account is not linked to a salesman profile yet. Saarthi operations links
+            Your Saarthi account is not linked to a Saarthi Rahi profile yet. Saarthi operations links
             your GODID to your account — until then there is nothing here to show.
           </AlertDescription>
         </Alert>
@@ -222,7 +222,7 @@ export function SalesDashboardPage(): React.ReactElement {
  * One row of the "what to do next" list.
  *
  * A zero is stated rather than hidden. "No follow-up is overdue" is a useful
- * thing for a salesperson to read at 9am; an absent row is indistinguishable
+ * thing for a Saarthi Rahi to read at 9am; an absent row is indistinguishable
  * from a screen that failed to load.
  */
 function NextAction({

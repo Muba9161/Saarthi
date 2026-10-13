@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -50,6 +51,8 @@ import com.saarthi.driver.ui.shift.assistant.AssistantOverlay
 import com.saarthi.driver.ui.shift.assistant.rememberWakeWordMicrophone
 import com.saarthi.driver.ui.shift.checklist.ChecklistFlow
 import com.saarthi.driver.ui.shift.expense.ExpenseSlipFlow
+import com.saarthi.driver.ui.shift.flow.ChromeCover
+import com.saarthi.driver.ui.shift.flow.LocalChromeCover
 import com.saarthi.driver.ui.shift.home.HomeActions
 import com.saarthi.driver.ui.shift.home.HomeTab
 import com.saarthi.driver.ui.shift.map.ControlActions
@@ -67,7 +70,7 @@ import com.saarthi.driver.ui.start.AddLicenceSheet
 import kotlinx.coroutines.delay
 
 /** What can sit over the tabs. One at a time, so no two ever fight for the screen. */
-private enum class Overlay { NONE, NOTICES, CHECK, EXPENSE, ADD_TRIP, NEARBY, FULL_MAP, ASSISTANT, VEHICLE, ADAPTER, SOS, PIN, LICENCE, SIGN_OFF, SIGN_OUT }
+private enum class Overlay { NONE, NOTICES, CHECK, EXPENSE, ADD_TRIP, END_TRIP, REMOVE_TRIP, NEARBY, FULL_MAP, ASSISTANT, VEHICLE, ADAPTER, SOS, PIN, LICENCE, SIGN_OFF, SIGN_OUT }
 
 /**
  * The shift: five tabs under a floating header and tab bar, and every sheet and
@@ -103,12 +106,27 @@ fun ShiftShell(
     var nearbyCategory by rememberSaveable { mutableStateOf<String?>(null) }
     var dismissedSos by rememberSaveable { mutableStateOf<String?>(null) }
     var toast by remember { mutableStateOf<String?>(null) }
+    // A papers folder opens inside its tab; while one is up the header and tab bar step aside.
+    val chromeCover = remember { ChromeCover() }
+    // A trip the driver chose to start before the safety check: started once the check is done.
+    var startAfterCheck by rememberSaveable { mutableStateOf<String?>(null) }
+    var removing by rememberSaveable { mutableStateOf<String?>(null) }
     LaunchedEffect(toast) {
         if (toast == null) return@LaunchedEffect
         delay(TOAST_MS)
         toast = null
     }
     val say: (Int) -> Unit = { toast = context.getString(it) }
+    val startChosenTrip: (String) -> Unit = { tripId ->
+        cockpit.startTrip(tripId) { result ->
+            result
+                .onSuccess {
+                    tab = ShiftTab.MAP
+                    say(R.string.toast_trip_started)
+                }
+                .onFailure { toast = it.message ?: context.getString(R.string.trips_problem) }
+        }
+    }
     val plate = state.registration ?: fallbackPlate.orEmpty()
 
     // "Hey Saarthi" heard with the assistant shut: open it, so the driver can
@@ -157,72 +175,91 @@ fun ShiftShell(
             // One map at a time: the tab's map is let go while this one is up.
             FullMapScreen(cockpit, fallbackPlate, onClose = { overlay = Overlay.NONE }, onSos = openSos)
         } else {
-            TabPanes(tab) { shown ->
-                when (shown) {
-                    ShiftTab.HOME -> HomeTab(
-                        cockpit,
-                        fallbackPlate,
-                        HomeActions(
-                            openMap = { tab = ShiftTab.MAP },
-                            openCheck = { overlay = Overlay.CHECK },
-                            startTrip = startTrip,
-                            openNearby = { openNearby(null) },
-                            openExpense = { overlay = Overlay.EXPENSE },
-                            openPapers = { tab = ShiftTab.PAPERS },
-                            openNotices = { overlay = Overlay.NOTICES },
-                            checkNotNeeded = { say(R.string.check_not_needed) },
-                        ),
-                    )
-                    ShiftTab.MAP -> MapTab(
-                        cockpit = cockpit,
-                        offline = app.offlineMaps,
-                        showInstruments = instruments,
-                        fallbackPlate = fallbackPlate,
-                        actions = MapActions(
-                            back = { tab = ShiftTab.HOME },
-                            sos = openSos,
-                            fullScreen = { overlay = Overlay.FULL_MAP },
-                            controls = ControlActions(
-                                services = { openNearby(null) },
-                                assistant = { overlay = Overlay.ASSISTANT },
-                                vehicle = { overlay = Overlay.VEHICLE },
-                                adapter = { overlay = Overlay.ADAPTER },
-                                expenseSlip = { overlay = Overlay.EXPENSE },
-                                fuelNearby = { openNearby(FUEL_CATEGORY) },
-                            ),
-                            shift = ShiftCardActions(
+            CompositionLocalProvider(LocalChromeCover provides chromeCover) {
+                TabPanes(tab) { shown ->
+                    when (shown) {
+                        ShiftTab.HOME -> HomeTab(
+                            cockpit,
+                            fallbackPlate,
+                            HomeActions(
+                                openMap = { tab = ShiftTab.MAP },
+                                openCheck = { overlay = Overlay.CHECK },
                                 startTrip = startTrip,
-                                endTrip = {
-                                    cockpit.completeTrip()
-                                    say(R.string.toast_trip_ended)
-                                },
-                                signOff = { overlay = Overlay.SIGN_OFF },
+                                openNearby = { openNearby(null) },
+                                openExpense = { overlay = Overlay.EXPENSE },
+                                openPapers = { tab = ShiftTab.PAPERS },
+                                openNotices = { overlay = Overlay.NOTICES },
+                                checkNotNeeded = { say(R.string.check_not_needed) },
                             ),
-                        ),
-                    )
-                    ShiftTab.TRIPS -> TripsTab(cockpit, onAddTrip = { overlay = Overlay.ADD_TRIP })
-                    ShiftTab.PAPERS -> PapersTab(cockpit)
-                    ShiftTab.PROFILE -> ProfileContent(
-                        driver = driver,
-                        preferences = preferences,
-                        shift = ShiftDetails(plate, state.state.driverWord(), DrivingHours.format(hours.todayMs)),
-                        actions = ProfileActions(
-                            setPin = { overlay = Overlay.PIN },
-                            addLicence = { overlay = Overlay.LICENCE },
-                            joinFleet = {},
-                            fullMap = { overlay = Overlay.FULL_MAP },
-                            signOut = { overlay = Overlay.SIGN_OUT },
-                            toast = { toast = it },
-                        ),
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .verticalScroll(rememberScrollState())
-                            .padding(start = 20.dp, end = 20.dp, top = headerClearance(), bottom = tabBarClearance()),
-                    )
+                        )
+                        ShiftTab.MAP -> MapTab(
+                            cockpit = cockpit,
+                            offline = app.offlineMaps,
+                            showInstruments = instruments,
+                            fallbackPlate = fallbackPlate,
+                            actions = MapActions(
+                                back = { tab = ShiftTab.HOME },
+                                sos = openSos,
+                                fullScreen = { overlay = Overlay.FULL_MAP },
+                                controls = ControlActions(
+                                    services = { openNearby(null) },
+                                    assistant = { overlay = Overlay.ASSISTANT },
+                                    vehicle = { overlay = Overlay.VEHICLE },
+                                    adapter = { overlay = Overlay.ADAPTER },
+                                    expenseSlip = { overlay = Overlay.EXPENSE },
+                                    fuelNearby = { openNearby(FUEL_CATEGORY) },
+                                ),
+                                shift = ShiftCardActions(
+                                    startTrip = startTrip,
+                                    endTrip = {
+                                        cockpit.completeTrip()
+                                        say(R.string.toast_trip_ended)
+                                    },
+                                    signOff = { overlay = Overlay.SIGN_OFF },
+                                ),
+                            ),
+                        )
+                        ShiftTab.TRIPS -> TripsTab(
+                            cockpit,
+                            onAddTrip = { overlay = Overlay.ADD_TRIP },
+                            onStart = { tripId ->
+                                if (state.state.checklistOutstanding) {
+                                    startAfterCheck = tripId
+                                    overlay = Overlay.CHECK
+                                } else {
+                                    startChosenTrip(tripId)
+                                }
+                            },
+                            onStop = { overlay = Overlay.END_TRIP },
+                            onRemove = { tripId ->
+                                removing = tripId
+                                overlay = Overlay.REMOVE_TRIP
+                            },
+                            onProblem = { toast = it ?: context.getString(R.string.trips_problem) },
+                        )
+                        ShiftTab.PAPERS -> PapersTab(cockpit)
+                        ShiftTab.PROFILE -> ProfileContent(
+                            driver = driver,
+                            preferences = preferences,
+                            shift = ShiftDetails(plate, state.state.driverWord(), DrivingHours.format(hours.todayMs)),
+                            actions = ProfileActions(
+                                setPin = { overlay = Overlay.PIN },
+                                addLicence = { overlay = Overlay.LICENCE },
+                                joinFleet = {},
+                                fullMap = { overlay = Overlay.FULL_MAP },
+                                signOut = { overlay = Overlay.SIGN_OUT },
+                                toast = { toast = it },
+                            ),
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .verticalScroll(rememberScrollState())
+                                .padding(start = 20.dp, end = 20.dp, top = headerClearance(), bottom = tabBarClearance()),
+                        )
+                    }
                 }
             }
 
-            if (tab != ShiftTab.MAP) {
+            if (tab != ShiftTab.MAP && chromeCover.held == 0) {
                 val firstName = account?.name?.substringBefore(' ').orEmpty()
                 val fleetName = fleet?.name?.takeIf { fleet?.joined == true } ?: AppName.APP
                 val (eyebrow, title) = when (tab) {
@@ -240,12 +277,14 @@ fun ShiftShell(
                     modifier = Modifier.align(Alignment.TopCenter),
                 )
             }
-            ShiftTabBar(
-                active = tab,
-                dark = tab == ShiftTab.MAP || Saarthi.colors.dark,
-                onSelect = { tab = it },
-                modifier = Modifier.align(Alignment.BottomCenter),
-            )
+            if (chromeCover.held == 0) {
+                ShiftTabBar(
+                    active = tab,
+                    dark = Saarthi.colors.dark,
+                    onSelect = { tab = it },
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                )
+            }
         }
 
         ShellToast(toast)
@@ -255,10 +294,15 @@ fun ShiftShell(
         ChecklistFlow(
             visible = overlay == Overlay.CHECK,
             cockpit = cockpit,
-            onClose = { overlay = Overlay.NONE },
+            onClose = {
+                overlay = Overlay.NONE
+                startAfterCheck = null
+            },
             onDone = {
                 overlay = Overlay.NONE
-                say(R.string.toast_check_done)
+                val chosen = startAfterCheck
+                startAfterCheck = null
+                if (chosen != null) startChosenTrip(chosen) else say(R.string.toast_check_done)
             },
         )
         ExpenseSlipFlow(
@@ -307,6 +351,42 @@ fun ShiftShell(
             onSaved = {
                 overlay = Overlay.NONE
                 say(R.string.toast_pin_on)
+            },
+        )
+        ConfirmSheet(
+            visible = overlay == Overlay.END_TRIP,
+            title = stringResource(R.string.trips_stop_title),
+            body = stringResource(R.string.trips_stop_body),
+            action = stringResource(R.string.trips_stop_confirm),
+            onConfirm = {
+                overlay = Overlay.NONE
+                cockpit.completeTrip { result ->
+                    result
+                        .onSuccess { say(R.string.toast_trip_ended) }
+                        .onFailure { toast = it.message ?: context.getString(R.string.trips_problem) }
+                }
+            },
+            onDismiss = { overlay = Overlay.NONE },
+        )
+        ConfirmSheet(
+            visible = overlay == Overlay.REMOVE_TRIP,
+            title = stringResource(R.string.trips_remove_title),
+            body = stringResource(R.string.trips_remove_body),
+            action = stringResource(R.string.trips_remove_confirm),
+            onConfirm = {
+                overlay = Overlay.NONE
+                removing?.let { tripId ->
+                    cockpit.tripQueue.remove(tripId) { result ->
+                        result
+                            .onSuccess { say(R.string.toast_trip_removed) }
+                            .onFailure { toast = it.message ?: context.getString(R.string.trips_problem) }
+                    }
+                }
+                removing = null
+            },
+            onDismiss = {
+                overlay = Overlay.NONE
+                removing = null
             },
         )
         ConfirmSheet(

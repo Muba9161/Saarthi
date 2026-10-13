@@ -39,14 +39,14 @@ export interface SalesmanProfileView {
   lastCheckedAt: string | null;
   /** True when this profile may share a referral link and earn rewards. */
   canSell: boolean;
-  /** Why it cannot, in the salesperson's own language. Always populated. */
+  /** Why it cannot, in the Saarthi Rahi's own language. Always populated. */
   standing: string;
   note: string | null;
   createdAt: string;
 }
 
 export interface SalesMeResponse {
-  /** Null for a platform administrator with no salesman profile of their own. */
+  /** Null for a platform administrator with no Saarthi Rahi profile of their own. */
   profile: SalesmanProfileView | null;
   /** False when this environment cannot ask GODWeb about a GODID at all. */
   godWebVerificationAvailable: boolean;
@@ -75,7 +75,7 @@ export interface SalesDashboardResponse {
   referrals: { captured: number; attributed: number; converted: number };
   customers: { total: number; active: number };
   trackers: HandoverSummary;
-  /** The salesperson's wallet. Every reward in it is a successful referral. */
+  /** The Saarthi Rahi's wallet. Every reward in it is a successful referral. */
   earnings: { totalEarned: number; available: number; held: number };
   onboarding: { awaitingFirstVehicle: number; completed: number };
 }
@@ -111,7 +111,7 @@ export interface LeadView {
    *
    * Sent by the API rather than derived on the client, so the dropdown and the
    * server's guard cannot disagree — and so the system-set stages never appear
-   * as options a salesperson can pick and be refused.
+   * as options a Saarthi Rahi can pick and be refused.
    */
   availableStatuses: SalesLeadStatus[];
   createdAt: string;
@@ -154,7 +154,7 @@ export interface AttributionView {
   revokedAt: string | null;
   revokeReason: string | null;
   attributionWindowDays: number;
-  /** The salesperson's reward for this customer. Null when none was earned. */
+  /** The Saarthi Rahi's reward for this customer. Null when none was earned. */
   reward: { amount: number; status: WalletEntryStatus; availableAt: string } | null;
 }
 

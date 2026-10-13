@@ -15,7 +15,7 @@ It covers:
 - 2% Saarthi commission on provider profit
 - Commission visibility
 - Settlement/reconciliation
-- Separation from SaaS subscriptions, generic referrals, and GODID salesman commissions
+- Separation from SaaS subscriptions, generic referrals, and GODID Saarthi Rahi commissions
 
 **Inspect the existing project first. Reuse existing systems. Do not rebuild working authentication, orders, vehicles, trackers, telemetry, payments, or Driver App systems. Do not modify GODWeb.**
 
@@ -672,7 +672,7 @@ as a shortcut for Fleet Owner behavior.
 Do not merge marketplace 2% profit commission with:
 
 - Generic Saarthi referral commission
-- GODID salesman commission
+- GODID Saarthi Rahi commission
 
 Keep commission source distinguishable:
 
@@ -1229,7 +1229,7 @@ Implementation is complete only when:
 17. Freight and Tour/Travel logic do not collide.
 18. Subscription billing remains separate.
 19. Generic referral remains separate.
-20. GODID salesman commission remains separate.
+20. GODID Saarthi Rahi commission remains separate.
 21. Financial records are auditable and idempotent.
 22. Partial/refunded/disputed transactions are handled correctly.
 23. Existing functionality is preserved.
@@ -1249,7 +1249,7 @@ Implementation is complete only when:
 - Commission must be transparently shown.
 - SaaS subscriptions are separate from marketplace payments.
 - Generic referral commission is separate.
-- GODID salesman commission is separate.
+- GODID Saarthi Rahi commission is separate.
 - Do not build a fake internal wallet.
 - Do not trust frontend financial values.
 - Do not duplicate existing systems.

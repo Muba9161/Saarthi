@@ -31,7 +31,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.saarthi.core.network.PlaceMatchDto
+import com.saarthi.core.network.TerminalTripDto
 import com.saarthi.core.network.TripPlaceDto
+import com.saarthi.core.network.TripQueueDto
 import com.saarthi.core.ui.TerminalMap
 import com.saarthi.core.ui.TerminalViewModel
 import com.saarthi.driver.R
@@ -89,8 +91,10 @@ private fun ColumnScope.AddTripContent(
     val ui by planner.ui.collectAsState()
     val hereName = stringResource(R.string.add_trip_here)
 
-    // Each opening starts a fresh plan from where the vehicle is now.
-    LaunchedEffect(Unit) { planner.begin(state.telemetry.position, hereName) }
+    val queue by cockpit.tripQueue.queue.collectAsState()
+
+    // Each opening starts a fresh plan: from where the driver's last trip ends, or from here.
+    LaunchedEffect(Unit) { planner.begin(state.telemetry.position, hereName, lastStop(queue, dispatch)) }
 
     val fleetFirst = dispatch?.let { !it.driverCreated } == true
 
@@ -337,4 +341,23 @@ private fun RoutePreview(ui: TripPlannerViewModel.Ui, cockpit: TerminalViewModel
         }
     }
     if (ui.routeFailed) LinkButton(stringResource(R.string.action_try_again), onRetryRoute, color = c.primary)
+}
+
+/**
+ * Where the driver's last trip ends: the last of their queue, or else the trip
+ * holding the vehicle. Null with nothing ahead, when a new trip starts here.
+ */
+private fun lastStop(queue: TripQueueDto?, dispatch: TerminalTripDto?): TripPlaceDto? {
+    val last = queue?.trips?.lastOrNull()
+    val latitude = last?.toLatitude
+    val longitude = last?.toLongitude
+    if (last != null && latitude != null && longitude != null) {
+        return TripPlaceDto(name = last.toLabel ?: return null, latitude = latitude, longitude = longitude)
+    }
+    val held = dispatch ?: return null
+    return TripPlaceDto(
+        name = held.destinationAddress.ifBlank { return null },
+        latitude = held.destinationLatitude,
+        longitude = held.destinationLongitude,
+    )
 }

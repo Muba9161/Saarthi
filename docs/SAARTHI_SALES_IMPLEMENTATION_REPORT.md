@@ -27,7 +27,7 @@ a business answer before this goes live.
 ### PARTIALLY IMPLEMENTED — extended, not replaced
 
 - **Demo Mode.** Existed as a GPS simulator for real tenants. Now has a
-  salesman-facing script (`modules/sales/demo.service.ts`) that drives the
+  Saarthi Rahi-facing script (`modules/sales/demo.service.ts`) that drives the
   *existing* screens and the *existing* simulator. No demo data generator, no
   demo tenant, no duplicated screens.
 - **Tracker inventory.** `VehicleTracker` was a purchase record with a serial
@@ -70,7 +70,7 @@ document the dependency rather than invent a GODWeb-side system, so:
 - `apps/api/src/providers/godweb/` defines the contract, an HTTP adapter and a
   factory that returns `null` when unconfigured. **No local stub, no
   development fallback that answers "yes"** — for the same reason the identity
-  and RC providers have none: a "verified" salesman profile authorises money.
+  and RC providers have none: a "verified" Saarthi Rahi profile authorises money.
 - The endpoint path is configuration (`GODWEB_VALIDATE_PATH`) and the response
   mapper accepts several plausible field spellings, so switching Saarthi onto
   the real endpoint is an `.env` change rather than a code change.
@@ -96,7 +96,7 @@ GODWeb endpoint scheduled.
 codebase. When a qualifying payment arrives and no rule matches, the commission
 row is created `PENDING` with a **null** amount and a note saying so — not zero.
 It cannot be approved (the API refuses, and a database CHECK refuses behind it),
-it is counted separately from every total on both the salesman and admin
+it is counted separately from every total on both the Saarthi Rahi and admin
 screens, and creating the rule prices it automatically.
 
 → **Needed:** the rate (or fixed amount) per sale type and plan, and the
@@ -107,9 +107,9 @@ qualification period. Enter them at `/admin/commission → Rules`.
 Specification §19 forbids silently inventing one.
 `SALES_ATTRIBUTION_WINDOW_DAYS` defaults to **90**, is documented in
 `.env.example` as needing a business decision, is returned on every referral
-response, and is rendered on the salesman's referral screen. It is also **stored
+response, and is rendered on the Saarthi Rahi's referral screen. It is also **stored
 on each attribution row at capture time**, so changing it never retroactively
-takes a salesperson's credit away or hands it back.
+takes a Saarthi Rahi's credit away or hands it back.
 
 → **Confirm** 90 days.
 
@@ -144,7 +144,7 @@ inventing one would have meant a second inventory system of exactly the kind §1
 forbids.
 
 The physical path is complete: `TrackerHandover` records custody from stock to
-salesperson to a named person at the customer. For the digital path, a
+Saarthi Rahi to a named person at the customer. For the digital path, a
 customer's paid-for tracker is recorded and the shipment is currently an
 off-platform operation.
 
@@ -161,9 +161,9 @@ Specification §2 and §33 in the negative, verified:
 | Not built | Evidence |
 |---|---|
 | Separate sales portal | `/sales/*` are routes in `apps/web/src/app/router.tsx` inside the same `AppShell` |
-| Salesman website / APK | none; `SALES_NAVIGATION` is a section of the existing shell |
-| Salesman auth system | `salesRoutes` uses `app.authenticate` like every other module |
-| Salesman database | `SalesmanProfile.userId` → `users`; one identity system |
+| Saarthi Rahi website / APK | none; `SALES_NAVIGATION` is a section of the existing shell |
+| Saarthi Rahi auth system | `salesRoutes` uses `app.authenticate` like every other module |
+| Saarthi Rahi database | `SalesmanProfile.userId` → `users`; one identity system |
 | Duplicate customer onboarding | referral capture calls into `auth.register`; no second signup |
 | Duplicate tracker activation | `TrackerHandover` references `VehicleTracker`; no activation code |
 | Duplicate Driver App / OBD / pairing / telemetry | `onboarding.service.ts` contains only `SELECT`s |
@@ -183,7 +183,7 @@ read-then-write checks lose races and a lost race here pays one sale twice.
 | One commission per qualifying payment | `commissions_trigger_paymentReference_key`, reached through `upsert` |
 | No two active rules cover one sale | `commission_rules_one_default_per_trigger`, `commission_rules_one_per_trigger_plan` |
 | A settled commission always has an amount | `commissions_settled_amount_present` CHECK |
-| Salesman cannot approve own commission | `SALESMAN` holds `commission.read`, never `commission.manage` |
+| Saarthi Rahi cannot approve own commission | `SALESMAN` holds `commission.read`, never `commission.manage` |
 | Frontend cannot supply an amount | no schema in `validation/sales.ts` accepts one |
 | Fake GODID earns nothing | `resolveVerifiedSalesman` returns null unless the profile is `ACTIVE` |
 
@@ -225,8 +225,8 @@ service, are what refuse.
 
 ## 6. Acceptance criteria (specification §33)
 
-### Salesman
-- [x] Verified GODID associated with a Saarthi salesman — `SalesmanProfile.godId`, unique
+### Saarthi Rahi
+- [x] Verified GODID associated with a Saarthi Rahi — `SalesmanProfile.godId`, unique
 - [x] Sales accessible inside existing Saarthi — `/sales/*` in the same shell
 - [x] Create/manage leads — `modules/sales/lead.service.ts`
 - [x] Safe Demo Mode — reuses existing screens + simulator; six prohibitions enforced by construction
@@ -235,7 +235,7 @@ service, are what refuse.
 
 ### Physical sales
 - [x] Customer can register and subscribe — existing flow, untouched
-- [x] Salesman can record tracker handover — `TrackerHandover`
+- [x] Saarthi Rahi can record tracker handover — `TrackerHandover`
 - [x] Complete one real first-vehicle demonstration — `onboarding.service`, six real checks
 - [x] Existing Driver App used — no new app; checklist reads its heartbeat
 - [x] Existing vehicle QR / number connection used — reads `device_assignments`
@@ -253,14 +253,14 @@ service, are what refuse.
 
 ### Commission
 - [x] Calculated server-side — `computeCommission`, no client input
-- [x] Tied to the correct salesman/GODID — denormalised `godId` on every row
+- [x] Tied to the correct Saarthi Rahi/GODID — denormalised `godId` on every row
 - [x] Duplicates prevented — unique index + `upsert`
-- [x] Salesman cannot edit — permission split
+- [x] Saarthi Rahi cannot edit — permission split
 - [x] Status visible — `/sales/commission`
 - [x] Qualification uses actual successful payment — `qualifyPayment` call sites only
 
 ### Architecture
-- [x] No separate Sales portal / Salesman APK / GODWeb modification
+- [x] No separate Sales portal / Saarthi Rahi APK / GODWeb modification
 - [x] No tracker QR workflow, no duplicate tracker activation
 - [x] No duplicate Driver App / OBD / telemetry
 - [x] Existing design system and architecture preserved
@@ -285,7 +285,7 @@ should be exercised the day the endpoint appears.
 
 ---
 
-## 8. To put a salesperson live
+## 8. To put a Saarthi Rahi live
 
 1. Set the commission rule at `/admin/commission → Rules`. (Without it, sales
    are recorded but carry no amount.)

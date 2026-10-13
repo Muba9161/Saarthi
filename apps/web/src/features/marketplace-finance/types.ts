@@ -36,12 +36,13 @@ export interface OrderFinanceSummary {
   orderId: string;
   stage: OrderFinanceStage;
   role: 'CUSTOMER' | 'FLEET' | 'SUPPLIER' | 'ADMIN';
-  agreedAmount: number;
-  confirmationAmount: number;
+  /** Null for the supplier, which is not shown the customer's side. */
+  agreedAmount: number | null;
+  confirmationAmount: number | null;
   orderedQuantity: number;
   deliveredQuantity: number | null;
   finalAmount: number | null;
-  balanceDue: number;
+  balanceDue: number | null;
   payments: { stage: string; amount: number; status: string; reference: string; at: string }[];
   provider: {
     procurementReference: number | null;

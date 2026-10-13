@@ -47,8 +47,8 @@ import {
 /**
  * My leads.
  *
- * Ordered by the follow-up a salesperson owes, oldest first — the API decides
- * that, so the list a salesperson opens in the morning is the list of calls to
+ * Ordered by the follow-up a Saarthi Rahi owes, oldest first — the API decides
+ * that, so the list a Saarthi Rahi opens in the morning is the list of calls to
  * make rather than the last thing they typed in.
  *
  * The `overdueOnly` filter is in the URL rather than in component state so the

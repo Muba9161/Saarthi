@@ -5,7 +5,7 @@
  * The division of ownership this file assumes, stated once because everything
  * in it follows from it:
  *
- *   * **GODWeb owns who a salesperson is.** Saarthi holds a mirror of that
+ *   * **GODWeb owns who a Saarthi Rahi is.** Saarthi holds a mirror of that
  *     identity and never mints one.
  *   * **Saarthi owns the sale.** Leads, attribution, subscriptions, payments,
  *     referral rewards and tracker custody are Saarthi records.
@@ -32,7 +32,7 @@ import {
  *
  * Permissive on purpose: GODWeb owns the format and may widen it, and a
  * Saarthi-side regex that is stricter than the real thing rejects legitimate
- * salespeople with no way for them to appeal. This exists to keep obvious
+ * Saarthi Rahis with no way for them to appeal. This exists to keep obvious
  * rubbish out of a provider call and out of a URL — it is emphatically not a
  * substitute for verification, which only GODWeb can give.
  */
@@ -61,15 +61,15 @@ export function isPlausibleGodId(value: string): boolean {
  * The referral code that goes in a link and a QR.
  *
  * It *is* the GODID, deliberately. A second opaque code would have to be
- * mapped back to a salesperson on every capture, and the failure mode of that
+ * mapped back to a Saarthi Rahi on every capture, and the failure mode of that
  * mapping — a code that resolves to the wrong person — is a misdirected
  * reward. Using the identity itself means there is nothing to get wrong,
- * and it makes the link legible to the salesperson sharing it, who can read
+ * and it makes the link legible to the Saarthi Rahi sharing it, who can read
  * their own GODID in the URL and see that it is theirs.
  *
  * It is not a secret and is not treated as one: the code decides *credit*, and
  * nothing else. Following a link grants no access, reveals nothing about the
- * salesperson beyond a display name, and — because the backend re-resolves and
+ * Saarthi Rahi beyond a display name, and — because the backend re-resolves and
  * re-verifies the code at registration — a fabricated one attributes nothing.
  */
 export function referralCodeForGodId(godId: string): string {
@@ -99,11 +99,11 @@ export function referralUrl(baseUrl: string, code: string): string {
 // ---------------------------------------------------------------------------
 
 /**
- * Sources that can create an attribution without a salesperson present.
+ * Sources that can create an attribution without a Saarthi Rahi present.
  *
  * A manually typed GODID is here and PHYSICAL is not, because the two are
  * trusted differently: a physical sale is recorded by an authenticated
- * salesperson acting on their own profile, while a manual GODID is a string
+ * Saarthi Rahi acting on their own profile, while a manual GODID is a string
  * somebody typed into a form and has to be resolved and verified before it
  * means anything.
  */
@@ -129,7 +129,7 @@ export function attributionIsLive(status: string): boolean {
  *
  * The duration is configuration — see `SALES_ATTRIBUTION_WINDOW_DAYS` — and is
  * returned to the client alongside every referral so no screen has to guess
- * it and no salesperson has to be told a number nobody wrote down.
+ * it and no Saarthi Rahi has to be told a number nobody wrote down.
  */
 export function attributionExpiresAt(capturedAt: Date, windowDays: number): Date {
   return new Date(capturedAt.getTime() + windowDays * 86_400_000);
@@ -171,7 +171,7 @@ export function canTransitionHandover(
 // ---------------------------------------------------------------------------
 
 /**
- * The six things a salesperson shows an owner on their first vehicle.
+ * The six things a Saarthi Rahi shows an owner on their first vehicle.
  *
  * Every one is answered by querying a system that already exists — the tracker
  * purchase, the device assignment, the device's own heartbeat, its readings.
@@ -204,7 +204,7 @@ export const ONBOARDING_STEP_LABEL: Record<OnboardingStep, string> = {
  * What Saarthi can say about one step right now.
  *
  * `UNKNOWN` is a first-class answer rather than a failure. A vehicle whose
- * tracker has not reported since the salesperson plugged it in two minutes ago
+ * tracker has not reported since the Saarthi Rahi plugged it in two minutes ago
  * is not a vehicle whose OBD has failed, and reporting the second would send
  * somebody to check a cable that is fine.
  */
@@ -214,7 +214,7 @@ export interface OnboardingStepResult {
   step: OnboardingStep;
   label: string;
   state: OnboardingStepState;
-  /** What was actually observed, in the salesperson's language. */
+  /** What was actually observed, in the Saarthi Rahi's language. */
   detail: string;
   /** When the evidence was recorded, where there is a timestamp for it. */
   observedAt: string | null;
@@ -266,7 +266,7 @@ export const SALES_LEAD_STATUS_LABEL: Record<SalesLeadStatus, string> = {
 };
 
 /**
- * Only a verified, active salesperson has a referral link.
+ * Only a verified, active Saarthi Rahi has a referral link.
  *
  * The check is shared so the screen that hides the Share button and the API
  * that refuses to mint the link cannot disagree about who has one.
@@ -279,7 +279,7 @@ export function canShareReferral(status: SalesmanStatus): boolean {
 // Self-service signup
 // ---------------------------------------------------------------------------
 
-/** How long a salesperson's emailed signup link stays usable. */
+/** How long a Saarthi Rahi's emailed signup link stays usable. */
 export const SALESMAN_SIGNUP_LINK_HOURS = 24;
 
 /** `POST /salesman-signup`. Where the link went, masked so it can be shown. */

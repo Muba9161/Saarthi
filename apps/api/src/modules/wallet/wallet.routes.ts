@@ -10,7 +10,7 @@ import * as wallet from './wallet.service';
  *
  * Authentication is the only guard: every query is scoped to the caller's own
  * user id, and anyone can hold a wallet — a Refer & Earn user or a
- * salesperson. Connecting a bank account runs a paid penny validation, so it
+ * Saarthi Rahi. Connecting a bank account runs a paid penny validation, so it
  * is throttled hard.
  */
 export async function walletRoutes(app: FastifyInstance): Promise<void> {

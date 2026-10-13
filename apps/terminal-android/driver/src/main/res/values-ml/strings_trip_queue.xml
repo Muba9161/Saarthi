@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="trips_start">യാത്ര തുടങ്ങുക</string>
+    <string name="trips_stop">യാത്ര നിർത്തുക</string>
+    <string name="trips_stop_title">യാത്ര ഇവിടെ അവസാനിപ്പിക്കണോ?</string>
+    <string name="trips_stop_body">യാത്ര എവിടെ അവസാനിച്ചെന്ന് നിങ്ങളുടെ ഫ്ലീറ്റ് കാണും. നിങ്ങളുടെ മറ്റൊരു യാത്ര കാത്തിരിക്കുന്നുണ്ടെങ്കിൽ അത് സ്വയം തുടങ്ങും.</string>
+    <string name="trips_stop_confirm">ഇവിടെ അവസാനിപ്പിക്കുക</string>
+    <string name="trips_section_yours">നിങ്ങളുടെ യാത്രകൾ, ക്രമത്തിൽ</string>
+    <string name="trips_after_current">ഈ യാത്ര കഴിയുമ്പോൾ നിങ്ങളുടെ അടുത്ത യാത്ര സ്വയം തുടങ്ങും.</string>
+    <string name="trips_fleet_first">ആദ്യം നിങ്ങളുടെ ഫ്ലീറ്റിന്റെ യാത്ര. നിങ്ങളുടേത് അതിനു ശേഷം.</string>
+    <string name="trips_check_first">Start അമർത്തിയാൽ ആദ്യം സുരക്ഷാ പരിശോധന തുറക്കും, തുടർന്ന് യാത്ര തുടങ്ങും.</string>
+    <string name="trips_move_up">മുകളിലേക്ക് നീക്കുക</string>
+    <string name="trips_move_down">താഴേക്ക് നീക്കുക</string>
+    <string name="trips_suggest_title">ചെറിയ ക്രമം</string>
+    <string name="trips_suggest_saves">%1$s km ലാഭിക്കാം</string>
+    <string name="trips_suggest_total">%2$s km-ന് പകരം %1$s km</string>
+    <string name="trips_suggest_estimated">നേർരേഖാ ദൂരത്തിൽ അളന്നതാണ്, റോഡുകൾ അൽപം വ്യത്യാസപ്പെടാം.</string>
+    <string name="trips_suggest_use">ഈ ക്രമം ഉപയോഗിക്കുക</string>
+    <string name="trips_suggest_dismiss">ഇപ്പോൾ വേണ്ട</string>
+    <string name="trips_problem">ഇപ്പോൾ ഇത് ചെയ്യാനായില്ല. വീണ്ടും ശ്രമിക്കുക.</string>
+    <string name="trips_remove">യാത്ര നീക്കുക</string>
+    <string name="trips_remove_title">ഈ യാത്ര നീക്കണോ?</string>
+    <string name="trips_remove_body">ഇത് നിങ്ങളുടെ പട്ടികയിൽ നിന്ന് മാറും. നിങ്ങൾ ഇത് നീക്കിയെന്ന കുറിപ്പ് നിങ്ങളുടെ ഫ്ലീറ്റിന്റെ പക്കൽ ഉണ്ടാകും.</string>
+    <string name="trips_remove_confirm">യാത്ര നീക്കുക</string>
+    <string name="toast_trip_removed">യാത്ര നീക്കി.</string>
+</resources>

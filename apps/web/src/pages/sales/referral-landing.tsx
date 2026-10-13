@@ -16,7 +16,7 @@ import { Card, CardContent } from '@/components/ui/card';
  *
  * Public by necessity: the link is shared on WhatsApp and opened by somebody
  * with no Saarthi account and no reason to make one yet. Sending them to /login
- * would waste the salesperson's link.
+ * would waste the Saarthi Rahi's link.
  *
  * Three things this page does, and nothing else.
  *
@@ -24,18 +24,18 @@ import { Card, CardContent } from '@/components/ui/card';
  * code is real — no phone, no email, no pipeline. A public endpoint that
  * returned more would be a public staff directory.
  *
- * **It records the visit**, so the salesperson can see their link is being
+ * **It records the visit**, so the Saarthi Rahi can see their link is being
  * opened and so a signup hours later can still be credited. The capture is
  * anonymous and stores a salted hash of the caller's IP, nothing more.
  *
  * **It remembers the code locally** and carries it into registration. The code
  * in `localStorage` is a convenience, never the authority: the backend
- * re-resolves it at registration against a verified salesman profile, so an
+ * re-resolves it at registration against a verified Saarthi Rahi profile, so an
  * invented or hand-edited code credits nobody.
  *
  * An unrecognised code still leads to signup. The referral is what failed, not
  * the signup — turning a mistyped link into a dead end would cost Saarthi the
- * customer in order to punish the salesperson.
+ * customer in order to punish the Saarthi Rahi.
  */
 export function ReferralLandingPage(): React.ReactElement {
   const { code = '' } = useParams();
@@ -61,7 +61,7 @@ export function ReferralLandingPage(): React.ReactElement {
     if (!referral.data?.valid || captured.current) return;
     captured.current = true;
     rememberReferralCode(referral.data.code);
-    // Best-effort. A failed capture costs the salesperson a row in their
+    // Best-effort. A failed capture costs the Saarthi Rahi a row in their
     // "link opened" list; it must not stop the visitor reaching signup, so the
     // error is deliberately not surfaced.
     capture.mutate();
@@ -128,7 +128,7 @@ export function ReferralLandingPage(): React.ReactElement {
       {referral.data && !referral.data.valid ? (
         /*
          * Stated, not hidden. A visitor who was given this link deserves to
-         * know the code did not work, and the salesperson deserves to hear
+         * know the code did not work, and the Saarthi Rahi deserves to hear
          * about it — but neither is a reason to block the signup.
          */
         <p className="text-xs text-muted-foreground">

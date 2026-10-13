@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/form';
 
 /**
- * A salesperson joining Saarthi with their GODID — the link operations shares.
+ * A Saarthi Rahi joining Saarthi with their GODID — the link operations shares.
  *
  * Asks for the GODID and nothing else. Saarthi checks it with GODWeb and emails
  * a set-password link to the address GODWeb holds, so the name, email and
@@ -89,7 +89,7 @@ export function SalesJoinPage() {
     <AuthCard>
       <AuthHeading
         eyebrow="Saarthi Sales"
-        title="Join as a salesperson"
+        title="Join as a Saarthi Rahi"
         description="Enter your GODID. We check it with GODWeb and email you a link to set your password."
       />
 

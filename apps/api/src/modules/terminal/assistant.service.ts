@@ -88,6 +88,10 @@ function lengthGuidance(moving: boolean, spoken: boolean): string {
   return 'Keep the answer to a few short lines. The reader is in a vehicle cab.';
 }
 
+/** Answer in the driver's language and script, never in the framing's — see `ask`. */
+const LANGUAGE_GUIDANCE =
+  'Answer in the language and script of the question below, not of these notes: Hinglish (Hindi written in Roman letters) gets a Hinglish answer, Hindi in Devanagari gets Hindi, English gets English.';
+
 /**
  * Answer a question from the terminal.
  *
@@ -158,7 +162,11 @@ export async function ask(
    * Deliberately not "system prompt" material: the copilot owns its own system
    * prompt, and a second one competing with it is how a model ends up ignoring
    * both. This is situational framing on the user turn — where the driver is,
-   * what they are in, and how long the answer may be.
+   * what they are in, how long the answer may be, and which language to answer
+   * in. The last repeats the system prompt on purpose: with this framing in
+   * English just above a question in Hinglish, the model took the framing's
+   * language, and "Kya meri gadi ki PUC expire ho gai hai" was answered in
+   * English.
    */
   const framing = [
     `[Saarthi Terminal · vehicle ${session.vehicle.registrationNumber}]`,
@@ -167,6 +175,7 @@ export async function ask(
       : '[Driver position: not available]',
     lengthGuidance(input.moving ?? false, input.spokenBy === 'VOICE'),
     'Use the terminal tools for anything about "my vehicle". Never state a live reading that a tool did not return.',
+    LANGUAGE_GUIDANCE,
   ].join('\n');
 
   const answer = await askWithTools(

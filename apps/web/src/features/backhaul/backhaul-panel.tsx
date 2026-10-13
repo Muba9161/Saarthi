@@ -48,6 +48,10 @@ export function BackhaulPanel({ trip }: { trip: TripDetail }) {
   // backhaul is never offered again.
   const canEnable = unavailableReason === null && !isOpen;
   if (!request && !canEnable) return null;
+  // The way home starts where the delivery ended. Only a viewer shown that
+  // point — the fleet that ran the trip — is offered one.
+  const freeAt = trip.destinationAddress;
+  if (freeAt === null) return null;
 
   const vehicleLabel =
     request?.truckRegistration ?? trip.truck?.registrationNumber ?? 'this vehicle';
@@ -70,7 +74,7 @@ export function BackhaulPanel({ trip }: { trip: TripDetail }) {
         <ClosedBackhaul request={request} />
       ) : (
         <EnableCard
-          destination={trip.destinationAddress}
+          destination={freeAt}
           rate={formatPercent(commission.rate * 100)}
           again={request !== null}
           onEnable={() => changeDialog(true)}
@@ -81,7 +85,7 @@ export function BackhaulPanel({ trip }: { trip: TripDetail }) {
         <EnableBackhaulDialog
           tripId={trip.id}
           vehicleLabel={vehicleLabel}
-          freeAt={trip.destinationAddress}
+          freeAt={freeAt}
           commission={commission}
           open={openDialog}
           onOpenChange={changeDialog}

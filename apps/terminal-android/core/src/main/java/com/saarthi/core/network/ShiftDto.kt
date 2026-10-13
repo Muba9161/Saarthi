@@ -152,3 +152,53 @@ data class PapersWalletDto(
 /** `GOOGLE_MAPS`, or null for Saarthi's own navigation. */
 @Serializable
 data class NavigationHandoffRequest(val app: String?)
+
+/** One of the driver's own trips waiting to start — `TerminalQueuedTripView`. */
+@Serializable
+data class QueuedTripDto(
+    val id: String,
+    val reference: String? = null,
+    /** From 1, in the order the trips will run. */
+    val position: Int = 0,
+    val fromLabel: String? = null,
+    val toLabel: String? = null,
+    /** Where it ends — where a trip added after it starts. */
+    val toLatitude: Double? = null,
+    val toLongitude: Double? = null,
+    val plannedDistanceKm: Double? = null,
+    /** This trip holds the vehicle: it is the one that starts next. */
+    val upNext: Boolean = false,
+    /** It starts where the trip before it ends, so its start moves with the order. */
+    val chained: Boolean = false,
+)
+
+/** The trip the queue runs after: one under way, or the fleet's, which comes first. */
+@Serializable
+data class QueueBehindDto(val reference: String? = null, val toLabel: String? = null)
+
+/** A shorter order for the driver's trips, worth asking about. */
+@Serializable
+data class QueueSuggestionDto(
+    val order: List<String> = emptyList(),
+    val currentKm: Double = 0.0,
+    val suggestedKm: Double = 0.0,
+    val savedKm: Double = 0.0,
+    /** Straight-line distances, because road ones could not be had. */
+    val estimated: Boolean = false,
+)
+
+/** `TerminalTripQueueView`: the driver's trips that have not started, in their order. */
+@Serializable
+data class TripQueueDto(
+    val behind: QueueBehindDto? = null,
+    val trips: List<QueuedTripDto> = emptyList(),
+    val suggestion: QueueSuggestionDto? = null,
+)
+
+/** Run the driver's trips in this order: every one of them, exactly once. */
+@Serializable
+data class TripQueueOrderRequest(
+    val tripIds: List<String>,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
+)

@@ -290,12 +290,12 @@ export const registerSchema = z
      */
     fleetInviteCode: optionalTrimmedString(32),
     /**
-     * The salesperson to credit this account to, as a GODID.
+     * The Saarthi Rahi to credit this account to, as a GODID.
      *
      * Carried through registration rather than collected afterwards, because
      * the moment a customer has an account is the only moment the referral they
      * arrived through is still on the page. It is optional and untrusted: the
-     * API re-resolves the code against a verified salesman profile and ignores
+     * API re-resolves the code against a verified Saarthi Rahi profile and ignores
      * anything it cannot stand behind, so a made-up value costs the registrant
      * nothing and earns nobody a commission.
      *

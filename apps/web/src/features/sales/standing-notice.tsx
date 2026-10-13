@@ -4,11 +4,11 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import type { SalesmanProfileView } from './types';
 
 /**
- * Why this salesperson cannot sell yet.
+ * Why this Saarthi Rahi cannot sell yet.
  *
  * Shown on every Sales screen, unconditionally, whenever the profile is not
  * active. The alternative — hiding the Share button and leaving the rest of the
- * screen looking normal — produces a salesperson who thinks Saarthi is broken
+ * screen looking normal — produces a Saarthi Rahi who thinks Saarthi is broken
  * and a support ticket that takes a week to reach the right person.
  *
  * The wording comes from the API (`profile.standing`), which knows the one

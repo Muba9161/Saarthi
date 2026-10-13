@@ -58,7 +58,7 @@ import { cn } from '@/lib/utils';
  * The stage dropdown offers only `lead.availableStatuses`, which the API
  * computes. The stages Saarthi sets itself — Subscribed, Tracker pending,
  * Onboarding, Activated — never appear there, because they are read from the
- * customer's real subscription, handover and telemetry. A salesperson cannot
+ * customer's real subscription, handover and telemetry. A Saarthi Rahi cannot
  * mark their own conversion.
  *
  * The first-vehicle checklist is a mirror, not a form. Each of its six ticks is
@@ -94,7 +94,7 @@ export function SalesLeadDetailPage(): React.ReactElement {
     return (
       <EmptyState
         title="Lead not found"
-        description="It may belong to another salesperson, or it may have been removed."
+        description="It may belong to another Saarthi Rahi, or it may have been removed."
         action={
           <Button asChild variant="outline" size="sm">
             <Link to="/sales/leads">Back to my leads</Link>
@@ -226,7 +226,7 @@ function Field({
  *
  * The dropdown is populated from `availableStatuses`, which the API sends. It
  * deliberately excludes the stages Saarthi derives from the customer's own
- * records — offering a status the server would refuse is how a salesperson
+ * records — offering a status the server would refuse is how a Saarthi Rahi
  * learns to distrust the screen.
  */
 function StageCard({ lead, onChanged }: { lead: LeadView; onChanged: () => void }) {
@@ -327,7 +327,7 @@ function StageCard({ lead, onChanged }: { lead: LeadView; onChanged: () => void 
 /**
  * Start a signup the customer completes themselves.
  *
- * The safety notice is not decoration. A salesperson standing beside a customer
+ * The safety notice is not decoration. A Saarthi Rahi standing beside a customer
  * is exactly the person who might offer to "just type it in for them", and the
  * whole design of this flow is that they cannot: the endpoint takes a name and
  * a phone number and has nowhere to put a password, an OTP or a card number.
@@ -411,11 +411,11 @@ function AssistedSignupCard({ lead, onSent }: { lead: LeadView; onSent: () => vo
 /**
  * The first vehicle, set up in front of the owner.
  *
- * The salesperson does **one** complete vehicle so the owner learns the
+ * The Saarthi Rahi does **one** complete vehicle so the owner learns the
  * process; vehicles two to ten are then done by the owner's own drivers using
  * the same Driver App, the same vehicle QR and the same OBD. That is stated on
  * the card, because it is the entire point of the visit and the thing a
- * salesperson has to say out loud.
+ * Saarthi Rahi has to say out loud.
  *
  * Every tick comes from the API reading real device and telemetry state. A step
  * that cannot be confirmed shows as pending or unknown with the reason, rather
@@ -440,7 +440,7 @@ function FirstVehicleCard({ lead, onCompleted }: { lead: LeadView; onCompleted: 
     queryFn: () =>
       api.get<OnboardingReadiness>('/sales/onboarding/readiness', { vehicleId }),
     enabled: Boolean(vehicleId),
-    // Polled while the salesperson waits for the first reading to arrive. The
+    // Polled while the Saarthi Rahi waits for the first reading to arrive. The
     // endpoint is read-only, so this costs four SELECTs.
     refetchInterval: (query) => (query.state.data?.complete ? false : 10_000),
   });

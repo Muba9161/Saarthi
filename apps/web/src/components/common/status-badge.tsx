@@ -121,7 +121,7 @@ const STATUS_VARIANTS: Record<string, Variant> = {
   CONVERTED: 'success',
   REVOKED: 'destructive',
 
-  // Refer & Earn. Separate values from the salesman attribution above, so the
+  // Refer & Earn. Separate values from the Saarthi Rahi attribution above, so the
   // two programs can never be read as one.
   SIGNED_UP: 'info',
   QUALIFIED: 'success',

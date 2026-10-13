@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="trips_start">பயணத்தைத் தொடங்கு</string>
+    <string name="trips_stop">பயணத்தை நிறுத்து</string>
+    <string name="trips_stop_title">பயணத்தை இங்கேயே முடிக்கவா?</string>
+    <string name="trips_stop_body">பயணம் எங்கே முடிந்தது என்பதை உங்கள் ஃப்ளீட் பார்க்கும். உங்கள் வேறு பயணம் காத்திருந்தால், அது தானாகத் தொடங்கும்.</string>
+    <string name="trips_stop_confirm">இங்கேயே முடி</string>
+    <string name="trips_section_yours">உங்கள் பயணங்கள், வரிசைப்படி</string>
+    <string name="trips_after_current">இந்தப் பயணம் முடிந்ததும் உங்கள் அடுத்த பயணம் தானாகத் தொடங்கும்.</string>
+    <string name="trips_fleet_first">முதலில் உங்கள் ஃப்ளீட்டின் பயணம். உங்களுடையவை அதற்குப் பிறகு.</string>
+    <string name="trips_check_first">Start அழுத்தினால் முதலில் பாதுகாப்புச் சோதனை திறக்கும், பிறகு பயணம் தொடங்கும்.</string>
+    <string name="trips_move_up">மேலே நகர்த்து</string>
+    <string name="trips_move_down">கீழே நகர்த்து</string>
+    <string name="trips_suggest_title">குறுகிய வரிசை</string>
+    <string name="trips_suggest_saves">%1$s km சேமிக்கும்</string>
+    <string name="trips_suggest_total">%2$s km-க்குப் பதில் %1$s km</string>
+    <string name="trips_suggest_estimated">நேர்கோட்டு தூரத்தில் அளக்கப்பட்டது, சாலைகள் சற்று வேறுபடலாம்.</string>
+    <string name="trips_suggest_use">இந்த வரிசையைப் பயன்படுத்து</string>
+    <string name="trips_suggest_dismiss">இப்போது வேண்டாம்</string>
+    <string name="trips_problem">இப்போது இதைச் செய்ய முடியவில்லை. மீண்டும் முயலவும்.</string>
+    <string name="trips_remove">பயணத்தை நீக்கு</string>
+    <string name="trips_remove_title">இந்தப் பயணத்தை நீக்கவா?</string>
+    <string name="trips_remove_body">இது உங்கள் பட்டியலிலிருந்து நீங்கும். நீங்கள் நீக்கியதை உங்கள் ஃப்ளீட் குறித்து வைத்திருக்கும்.</string>
+    <string name="trips_remove_confirm">பயணத்தை நீக்கு</string>
+    <string name="toast_trip_removed">பயணம் நீக்கப்பட்டது.</string>
+</resources>

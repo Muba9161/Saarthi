@@ -24,7 +24,7 @@ import { Separator } from '@/components/ui/separator';
  * Movement comes from the existing GPS simulator, which is already gated behind
  * `DEMO_MODE` and which the API refuses to enable in production. When the
  * server says demo mode is off, that is stated plainly here rather than leaving
- * a salesperson to wonder why nothing on the map moves.
+ * a Saarthi Rahi to wonder why nothing on the map moves.
  *
  * The pricing block is computed by the API from the same catalogue the pricing
  * card and signup use, so a figure quoted in a yard is the figure the customer

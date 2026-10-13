@@ -42,7 +42,7 @@ import {
 } from '@/components/ui/select';
 
 /**
- * Salesman profiles — the Saarthi mirror of a GODWeb identity.
+ * Saarthi Rahi profiles — the Saarthi mirror of a GODWeb identity.
  *
  * The banner at the top of this screen is the important part. When GODWeb's
  * read-only validation endpoint is not configured, GODID verification is
@@ -101,7 +101,7 @@ export function AdminSalesmenPage(): React.ReactElement {
       .writeText(`${window.location.origin}/sales/join`)
       .then(() =>
         toast.success('Signup link copied', {
-          description: 'Share it with salespeople. They join with their own GODID.',
+          description: 'Share it with Saarthi Rahis. They join with their own GODID.',
         }),
       )
       .catch(() => toast.error('Could not copy the link.'));
@@ -110,7 +110,7 @@ export function AdminSalesmenPage(): React.ReactElement {
   const columns: Column<SalesmanProfileView>[] = [
     {
       key: 'person',
-      header: 'Salesperson',
+      header: 'Saarthi Rahi',
       cell: (row) => (
         <div className="min-w-0">
           <p className="truncate font-medium">{row.name ?? 'Name not supplied'}</p>
@@ -191,11 +191,11 @@ export function AdminSalesmenPage(): React.ReactElement {
     <div className="space-y-5">
       <PageHeader
         eyebrow="Platform"
-        title="Salespeople"
+        title="Saarthi Rahis"
         description="Saarthi profiles for GODWeb identities. GODWeb owns who these people are."
         actions={
           <div className="flex flex-wrap gap-2">
-            {/* The self-service route: a salesperson signs up with their own
+            {/* The self-service route: a Saarthi Rahi signs up with their own
                 GODID and nobody here has to create anything. */}
             <Button size="sm" variant="outline" onClick={copySignupLink}>
               <Link2 className="mr-1.5 h-4 w-4" />
@@ -277,7 +277,7 @@ export function AdminSalesmenPage(): React.ReactElement {
         onRetry={() => void salesmen.refetch()}
         {...(salesmen.data?.pagination ? { pagination: salesmen.data.pagination } : {})}
         onPageChange={setPage}
-        emptyTitle="No salesman profiles yet"
+        emptyTitle="No Saarthi Rahi profiles yet"
         emptyDescription="Add a GODWeb GODID to create the Saarthi profile that mirrors it."
       />
 
@@ -339,7 +339,7 @@ function CreateSalesmanDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add a salesman profile</DialogTitle>
+          <DialogTitle>Add a Saarthi Rahi profile</DialogTitle>
           <DialogDescription>
             For a GODID that already exists in GODWeb. This creates the Saarthi side only —
             Saarthi never creates a GODWeb account.
@@ -413,7 +413,7 @@ function CreateSalesmanDialog({
               placeholder="Optional — link later"
             />
             <p className="text-xs text-muted-foreground">
-              Linking a login also grants the SALESMAN role.
+              Linking a login also grants the Saarthi Rahi role.
             </p>
           </div>
         </div>
@@ -486,7 +486,7 @@ function ManualVerifyDialog({
             value={evidence}
             onChange={(event) => setEvidence(event.target.value)}
             rows={3}
-            placeholder="e.g. Confirmed against the GODWeb salesperson register with Priya Sharma (Sales Ops) on 11 Sep 2026; staff id EMP-2291 matches."
+            placeholder="e.g. Confirmed against the GODWeb Saarthi Rahi register with Priya Sharma (Sales Ops) on 11 Sep 2026; staff id EMP-2291 matches."
           />
           <p className="text-xs text-muted-foreground">
             Recorded on the profile and in the audit log permanently, with your user id.

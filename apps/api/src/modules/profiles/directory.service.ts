@@ -1,12 +1,14 @@
 import {
   MediaOwnerType,
   MediaPurpose,
-  type OrganizationType,
+  OrganizationType,
   ProfileVisibility,
   canCommunicate,
   communicationPartyForOrganizationType,
   communicationPartyForViewer,
   buildPaginationMeta,
+  mayKnowCounterparty,
+  type CommunicationParty,
   type Paginated,
   type ProfileDirectoryQuery,
 } from '@saarthi/shared';
@@ -15,6 +17,7 @@ import { errors } from '../../lib/errors';
 import { skipTake } from '../../lib/http';
 import type { AuthContext } from '../../auth/context';
 import { primaryUrlsFor } from '../media/media.service';
+import { partyOnOrder } from '../orders/order.view';
 
 /**
  * Internal people and organization directory.
@@ -99,12 +102,34 @@ export interface DirectoryEntry {
   slug: string | null;
 }
 
+function viewerParty(auth: AuthContext): CommunicationParty {
+  return communicationPartyForViewer({
+    isPlatformAdmin: auth.isPlatformAdmin,
+    organizationType: auth.organization?.type,
+  });
+}
+
+/**
+ * Kinds of business the viewer may not even be told about.
+ *
+ * A customer and a Seller stay anonymous to each other — the fleet owner sits
+ * between them — so neither finds the other here: a name and a search box would
+ * route around the fleet (see `mayKnowCounterparty`).
+ */
+function unknowableTypes(auth: AuthContext): OrganizationType[] {
+  const viewer = viewerParty(auth);
+  return Object.values(OrganizationType).filter(
+    (type) => !mayKnowCounterparty(viewer, communicationPartyForOrganizationType(type)),
+  );
+}
+
 /**
  * Organizations the caller has actually transacted with.
  *
  * Used to resolve PARTNERS visibility. Derived from orders rather than a
  * declared relationship list, because an order is evidence and a list is a
- * claim.
+ * claim. Only a counterparty the caller may know counts: the customer and the
+ * Seller on one order never dealt with each other — the fleet dealt with each.
  */
 async function partnerOrganizationIds(auth: AuthContext): Promise<Set<string>> {
   const own = auth.organizationId;
@@ -128,12 +153,15 @@ async function partnerOrganizationIds(auth: AuthContext): Promise<Set<string>> {
 
   const partners = new Set<string>();
   for (const order of orders) {
-    for (const id of [
-      order.customerOrganizationId,
-      order.supplierOrganizationId,
-      order.fleetOrganizationId,
-    ]) {
-      if (id && id !== own) partners.add(id);
+    const mine = partyOnOrder(order, own);
+    if (!mine) continue;
+    const counterparties: [string | null, CommunicationParty][] = [
+      [order.customerOrganizationId, 'CUSTOMER'],
+      [order.supplierOrganizationId, 'SELLER'],
+      [order.fleetOrganizationId, 'FLEET_OWNER'],
+    ];
+    for (const [id, party] of counterparties) {
+      if (id && id !== own && mayKnowCounterparty(mine, party)) partners.add(id);
     }
   }
   return partners;
@@ -173,20 +201,30 @@ async function searchOrganizations(
         ],
       };
 
+  const hidden = unknowableTypes(auth);
+  const searchFilter: Prisma.OrganizationWhereInput = query.search
+    ? {
+        OR: [
+          { name: { contains: query.search, mode: 'insensitive' } },
+          { city: { contains: query.search, mode: 'insensitive' } },
+          { profile: { tagline: { contains: query.search, mode: 'insensitive' } } },
+        ],
+      }
+    : {};
+
+  // ANDed rather than spread: each filter is an OR of its own, and spreading
+  // them into one object let the search's OR replace the visibility filter's.
   const where: Prisma.OrganizationWhereInput = {
     archivedAt: null,
-    ...visibilityFilter,
+    AND: [
+      visibilityFilter,
+      searchFilter,
+      hidden.length > 0
+        ? { OR: [{ id: auth.organizationId ?? '__none__' }, { type: { notIn: hidden } }] }
+        : {},
+    ],
     ...(query.city ? { city: { equals: query.city, mode: 'insensitive' } } : {}),
     ...(query.state ? { state: { equals: query.state, mode: 'insensitive' } } : {}),
-    ...(query.search
-      ? {
-          OR: [
-            { name: { contains: query.search, mode: 'insensitive' } },
-            { city: { contains: query.search, mode: 'insensitive' } },
-            { profile: { tagline: { contains: query.search, mode: 'insensitive' } } },
-          ],
-        }
-      : {}),
   };
 
   const [total, organizations] = await Promise.all([
@@ -288,9 +326,9 @@ async function searchPeople(
 }
 
 /**
- * Strip the ways to reach an organization the viewer may not reach directly —
- * a customer looking up a Seller, or a Seller looking up a customer. The
- * profile itself stays readable; only the contact channels go.
+ * Strip the ways to reach an organization the viewer may not reach directly.
+ * The profile itself stays readable; only the contact channels go. (A customer
+ * and a Seller never get this far with each other — see `canViewOrganization`.)
  */
 function withoutBlockedContact(
   auth: AuthContext,
@@ -298,12 +336,8 @@ function withoutBlockedContact(
 ): OrganizationProfileView {
   if (auth.organizationId === profile.organizationId) return profile;
 
-  const viewer = communicationPartyForViewer({
-    isPlatformAdmin: auth.isPlatformAdmin,
-    organizationType: auth.organization?.type,
-  });
   const target = communicationPartyForOrganizationType(profile.type as OrganizationType);
-  if (canCommunicate(viewer, target)) return profile;
+  if (canCommunicate(viewerParty(auth), target)) return profile;
 
   return { ...profile, supportEmail: null, supportPhone: null, website: null };
 }
@@ -328,7 +362,7 @@ export interface SlugProfileView {
 export async function getBySlug(auth: AuthContext, slug: string): Promise<SlugProfileView> {
   const organizationProfile = await prisma.organizationProfile.findUnique({
     where: { publicSlug: slug },
-    select: { organizationId: true, visibility: true },
+    select: { organizationId: true, visibility: true, organization: { select: { type: true } } },
   });
 
   if (organizationProfile) {
@@ -391,10 +425,13 @@ export async function getBySlug(auth: AuthContext, slug: string): Promise<SlugPr
 
 async function canViewOrganization(
   auth: AuthContext,
-  profile: { organizationId: string; visibility: string },
+  profile: { organizationId: string; visibility: string; organization: { type: OrganizationType } },
 ): Promise<boolean> {
   if (auth.isPlatformAdmin) return true;
   if (profile.organizationId === auth.organizationId) return true;
+  // Whatever its visibility, a business the viewer may not know does not exist
+  // for it, and reads exactly like a missing profile.
+  if (unknowableTypes(auth).includes(profile.organization.type)) return false;
   if (profile.visibility === ProfileVisibility.PLATFORM) return true;
   if (profile.visibility === ProfileVisibility.PARTNERS) {
     const partners = await partnerOrganizationIds(auth);

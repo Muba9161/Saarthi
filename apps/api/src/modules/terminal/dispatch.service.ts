@@ -1,7 +1,9 @@
 import {
   ACTIVE_TRIP_STATUSES,
   MOVING_TRIP_STATUSES,
+  STOP_REACHED_METRES,
   TripStatus,
+  haversineDistance,
   tripStateMachine,
   type ExternalNavigationApp,
   type LatLng,
@@ -209,6 +211,19 @@ function toView(trip: DispatchRecord, signedInDriverId: string): TerminalTripVie
  * a Complete button in front of a journey the fleet never asked for.
  */
 async function openDispatchFor(vehicleId: string): Promise<DispatchRecord | null> {
+  // The trip holding the vehicle is the one it is doing. With a driver's own
+  // trips queued behind it, "the newest open trip" could be any of them.
+  const truck = await prisma.truck.findUnique({
+    where: { id: vehicleId },
+    select: { currentTripId: true },
+  });
+  if (truck?.currentTripId) {
+    const held = await prisma.trip.findFirst({
+      where: { id: truck.currentTripId, truckId: vehicleId, adHoc: false, status: { in: ACTIVE_TRIP_STATUSES } },
+      include: dispatchInclude,
+    });
+    if (held) return held;
+  }
   return prisma.trip.findFirst({
     where: {
       truckId: vehicleId,
@@ -404,12 +419,44 @@ export async function completeDispatchedTrip(
   const status = trip.status as TripStatus;
   if (STARTABLE_TRIP_STATUSES.includes(status)) return toView(trip, session.driverId);
 
-  await walk(
+  const completed = await walk(
     auth,
     { id: trip.id, status },
     TripStatus.COMPLETED,
     { note: 'Trip completed from the terminal.', ...input },
   );
+  if (completed && MOVING_TRIP_STATUSES.includes(status)) await noteEndedEarly(trip, input);
 
   return dispatchedTripForSession(session);
+}
+
+/**
+ * A trip ended where it never arrived: the fleet sees where, and how far short.
+ *
+ * Only for a trip that had not arrived — a driver who reached the warehouse,
+ * unloaded and then drove off before pressing Complete finished the job. Said
+ * on the trip's timeline, quietly, as the driver's Stop is a decision rather
+ * than an incident.
+ */
+async function noteEndedEarly(
+  trip: DispatchRecord,
+  at: { latitude?: number; longitude?: number },
+): Promise<void> {
+  if (at.latitude === undefined || at.longitude === undefined) return;
+  const short = haversineDistance(
+    { latitude: at.latitude, longitude: at.longitude },
+    { latitude: trip.destinationLatitude, longitude: trip.destinationLongitude },
+  );
+  if (short <= STOP_REACHED_METRES) return;
+
+  await prisma.tripEvent.create({
+    data: {
+      tripId: trip.id,
+      type: 'NOTE',
+      description: `Ended early by the driver, ${(short / 1000).toFixed(1)} km short of ${trip.destinationAddress}.`,
+      latitude: at.latitude,
+      longitude: at.longitude,
+      metadata: { endedEarly: true, metresShort: Math.round(short) } as never,
+    },
+  });
 }

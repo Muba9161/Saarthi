@@ -13,6 +13,7 @@ import {
 import { api } from '@/lib/api-client';
 import type { OrderSummary, Paginated } from '@/lib/api-types';
 import { useAuth } from '@/features/auth/auth-context';
+import { placeName } from '@/features/trips/trip-route';
 import { PageHeader } from '@/components/common/page-header';
 import { DataView, type Column } from '@/components/common/data-view';
 import { StatusBadge } from '@/components/common/status-badge';
@@ -92,9 +93,11 @@ export function OrdersPage() {
       cell: (order) => (
         <div className="min-w-0 max-w-64">
           <p className="truncate text-sm">{order.originAddress.split(',')[0]}</p>
-          <p className="truncate text-xs text-muted-foreground">
-            → {order.destinationAddress.split(',')[0]}
-          </p>
+          {order.destinationAddress ? (
+            <p className="truncate text-xs text-muted-foreground">
+              → {placeName(order.destinationAddress)}
+            </p>
+          ) : null}
         </div>
       ),
     },

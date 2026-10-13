@@ -13,7 +13,7 @@ import { AuditAction, recordAudit } from '../audit/audit.service';
  * a retried call a no-op instead of a second credit.
  *
  * Nothing here is approved by a person. A reward — Refer & Earn or a
- * salesperson's — is credited `HELD`, and once its hold has passed it releases
+ * Saarthi Rahi's — is credited `HELD`, and once its hold has passed it releases
  * on its own, or is voided if the referred account did not stay on its trial
  * or plan.
  */
@@ -24,7 +24,7 @@ const ledgerLogger = logger.child({ module: 'wallet:ledger' });
 const GOOD_STANDING = new Set(['TRIALING', 'ACTIVE']);
 
 /**
- * What a reward was earned by: a Refer & Earn referral, or a salesperson's
+ * What a reward was earned by: a Refer & Earn referral, or a Saarthi Rahi's
  * attribution of a customer.
  */
 export type RewardSource = { userReferralId: string } | { referralAttributionId: string };
@@ -33,7 +33,7 @@ export type RewardSource = { userReferralId: string } | { referralAttributionId:
  * Credit a referral's reward, held.
  *
  * Idempotent on its `entryKey`: one reward per Refer & Earn referral, and one
- * per salesperson's *customer* — keyed on the organization rather than the
+ * per Saarthi Rahi's *customer* — keyed on the organization rather than the
  * attribution, so a customer revoked and re-attributed never pays twice.
  * Returns whether a reward was credited by this call.
  *

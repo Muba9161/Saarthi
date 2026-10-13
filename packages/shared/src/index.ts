@@ -44,6 +44,7 @@ export * from './domain/city-access';
 export * from './domain/route-intelligence';
 export * from './domain/route-trail';
 export * from './domain/stop-visit';
+export * from './domain/trip-order';
 export * from './domain/terminal';
 export * from './domain/requirements';
 export * from './domain/commerce';

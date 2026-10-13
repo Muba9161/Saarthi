@@ -11,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -67,11 +68,22 @@ private enum class TripFilter(@StringRes val label: Int) {
  * the shell's; this only leaves room for them.
  */
 @Composable
-fun TripsTab(cockpit: TerminalViewModel, onAddTrip: () -> Unit) {
+fun TripsTab(
+    cockpit: TerminalViewModel,
+    onAddTrip: () -> Unit,
+    onStart: (tripId: String) -> Unit,
+    onStop: () -> Unit,
+    onRemove: (tripId: String) -> Unit,
+    onProblem: (String?) -> Unit,
+) {
     val state by cockpit.uiState.collectAsState()
     val trips by cockpit.trips.collectAsState()
     val dispatch by cockpit.dispatch.collectAsState()
+    val queue by cockpit.tripQueue.queue.collectAsState()
+    val saving by cockpit.tripQueue.saving.collectAsState()
     var filter by rememberSaveable { mutableStateOf(TripFilter.ALL) }
+    // An order the driver said "not now" to is not offered again; a different one is.
+    var declined by rememberSaveable { mutableStateOf<String?>(null) }
     var attempt by remember { mutableIntStateOf(0) }
     var settled by remember { mutableStateOf(false) }
 
@@ -85,9 +97,24 @@ fun TripsTab(cockpit: TerminalViewModel, onAddTrip: () -> Unit) {
     val active = state.state == TerminalState.TRIP_ACTIVE
     val sessionStartedAt = state.server?.session?.tripStartedAt
     val registration = state.registration
-    val board = remember(trips, active, dispatch, sessionStartedAt, registration) {
-        tripsBoard(trips, active, dispatch, sessionStartedAt, registration)
+    val board = remember(trips, active, dispatch, sessionStartedAt, registration, queue) {
+        tripsBoard(trips, active, dispatch, sessionStartedAt, registration, queue)
     }
+    val fleetWaiting = board.current?.let { it.fromFleet && it.stage == TripStage.UP_NEXT } == true
+    val controls = TripControls(
+        window = when {
+            active -> StartWindow.AFTER_CURRENT
+            fleetWaiting -> StartWindow.FLEET_FIRST
+            state.state.checklistOutstanding -> StartWindow.CHECK_FIRST
+            else -> StartWindow.OPEN
+        },
+        onStart = onStart,
+        onStop = onStop,
+        onMove = { id, by -> cockpit.tripQueue.move(id, by, onProblem) },
+        onRemove = onRemove,
+        saving = saving,
+    )
+    val suggestion = queue?.suggestion?.takeIf { it.order.joinToString() != declined }
 
     Column(
         Modifier
@@ -106,8 +133,24 @@ fun TripsTab(cockpit: TerminalViewModel, onAddTrip: () -> Unit) {
             leading = Lucide.plus,
             height = 48.dp,
         )
+        if (suggestion != null && board.queued.size > 1) {
+            ShorterOrderCard(
+                suggestion = suggestion,
+                stops = suggestion.order.mapNotNull { id -> board.queued.firstOrNull { it.id == id }?.destination },
+                saving = saving,
+                onUse = { cockpit.tripQueue.acceptSuggestion(onProblem) },
+                onDismiss = { declined = suggestion.order.joinToString() },
+                modifier = Modifier.rise(distance = TripsRise),
+            )
+        }
         when {
-            !board.isEmpty -> TripsBoardContent(board, filter, onFilter = { filter = it })
+            !board.isEmpty -> TripsBoardContent(
+                board = board,
+                filter = filter,
+                onFilter = { filter = it },
+                controls = controls,
+                checkDue = state.state.checklistOutstanding,
+            )
             trips.isEmpty() && state.offline -> TripsStateCard(
                 Lucide.cloudOff,
                 well = c.warningSoft,
@@ -146,7 +189,13 @@ fun TripsTab(cockpit: TerminalViewModel, onAddTrip: () -> Unit) {
  * on the filter says plainly that it is empty instead of showing a blank.
  */
 @Composable
-private fun TripsBoardContent(board: TripsBoard, filter: TripFilter, onFilter: (TripFilter) -> Unit) {
+private fun TripsBoardContent(
+    board: TripsBoard,
+    filter: TripFilter,
+    onFilter: (TripFilter) -> Unit,
+    controls: TripControls,
+    checkDue: Boolean,
+) {
     if (board.finished.isNotEmpty()) TripsSummary(board)
 
     SegmentedControl(
@@ -161,18 +210,52 @@ private fun TripsBoardContent(board: TripsBoard, filter: TripFilter, onFilter: (
 
     if (filter == TripFilter.OPEN || (filter == TripFilter.ALL && board.hasOpen)) {
         val current = board.current
-        SectionLabel(
-            if (current?.stage == TripStage.UP_NEXT) R.string.trips_section_next else R.string.trips_section_open,
-            delayMs = 120,
-        )
+        // A heading over nothing is left out: with only the driver's queue, its own heading leads.
+        if (current != null || board.queued.isEmpty()) {
+            SectionLabel(
+                if (current?.stage == TripStage.UP_NEXT) R.string.trips_section_next else R.string.trips_section_open,
+                delayMs = 120,
+            )
+        }
         if (current != null) {
-            OpenTripCard(current, Modifier.rise(140, TripsRise))
+            OpenTripCard(current, Modifier.rise(140, TripsRise)) {
+                when {
+                    current.stage == TripStage.UNDER_WAY -> StopAction(controls.onStop)
+                    current.id != null -> QueuedActions(
+                        // Before the safety check, Start opens it — see the shell.
+                        canStart = true,
+                        onStart = { controls.onStart(current.id) },
+                        onUp = null,
+                        onDown = null,
+                    )
+                }
+            }
+            if (current.stage == TripStage.UP_NEXT && checkDue) {
+                StartWindowHint(StartWindow.CHECK_FIRST, Modifier.rise(145, TripsRise))
+            }
         } else if (board.queued.isEmpty()) {
             Hint(stringResource(R.string.trips_none_open), Modifier.rise(140, TripsRise))
         }
         if (board.queued.isNotEmpty()) {
-            SectionLabel(R.string.trips_section_queued, delayMs = 150)
-            board.queued.forEach { trip -> OpenTripCard(trip, Modifier.rise(160, TripsRise)) }
+            SectionLabel(
+                if (current == null) R.string.trips_section_yours else R.string.trips_section_queued,
+                delayMs = 150,
+            )
+            StartWindowHint(controls.window, Modifier.rise(155, TripsRise))
+            board.queued.forEachIndexed { index, trip ->
+                val id = trip.id ?: return@forEachIndexed
+                key(id) {
+                    OpenTripCard(trip, Modifier.rise(160, TripsRise)) {
+                        QueuedActions(
+                            canStart = controls.window == StartWindow.OPEN || controls.window == StartWindow.CHECK_FIRST,
+                            onStart = { controls.onStart(id) },
+                            onUp = if (index > 0 && !controls.saving) ({ controls.onMove(id, -1) }) else null,
+                            onDown = if (index < board.queued.lastIndex && !controls.saving) ({ controls.onMove(id, 1) }) else null,
+                            onRemove = if (!controls.saving) ({ controls.onRemove(id) }) else null,
+                        )
+                    }
+                }
+            }
         }
     }
 

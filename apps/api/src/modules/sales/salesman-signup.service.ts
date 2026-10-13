@@ -21,16 +21,16 @@ import { AuditAction, recordAudit } from '../audit/audit.service';
 import { grantSalesmanRole, recordGodWebOutcome } from './salesman.service';
 
 /**
- * A salesperson signing themselves up with their GODID.
+ * A Saarthi Rahi signing themselves up with their GODID.
  *
- * No administrator is involved. The salesperson types their GODID; Saarthi
- * asks GODWeb who that is, creates or refreshes their salesman profile from
+ * No administrator is involved. The Saarthi Rahi types their GODID; Saarthi
+ * asks GODWeb who that is, creates or refreshes their Saarthi Rahi profile from
  * GODWeb's answer, and emails a set-password link to the address **GODWeb**
  * holds for them. Choosing the password on the reset screen completes the
  * signup (see `resetPassword`, which activates a pending account).
  *
  * The email is the whole security model. A GODID is not a secret — it is in
- * every referral link the salesperson has ever shared — so typing one proves
+ * every referral link the Saarthi Rahi has ever shared — so typing one proves
  * nothing, and the account only becomes usable by whoever can read the GODWeb
  * mailbox. The address is never taken from the form.
  */
@@ -40,16 +40,18 @@ const signupLogger = logger.child({ module: 'sales:signup' });
 const notAvailable = () =>
   errors.providerNotConfigured(
     'godweb',
-    'Salesperson signup is not available yet. Please try again later or contact Saarthi.',
+    'Saarthi Rahi signup is not available yet. Please try again later or contact Saarthi.',
   );
 
 /** First word as the first name, the rest as the last — GODWeb gives one display name. */
 function splitName(name: string | null): { firstName: string; lastName: string } {
   const parts = (name ?? '').trim().split(/\s+/).filter(Boolean);
-  return { firstName: parts[0] ?? 'Saarthi', lastName: parts.slice(1).join(' ') || 'Salesperson' };
+  const [first, ...rest] = parts;
+  if (!first) return { firstName: 'Saarthi', lastName: 'Rahi' };
+  return { firstName: first, lastName: rest.join(' ') || 'Saarthi Rahi' };
 }
 
-/** The Saarthi login this salesperson will use — their existing one if they have it. */
+/** The Saarthi login this Saarthi Rahi will use — their existing one if they have it. */
 async function resolveLogin(input: {
   linkedUserId: string | null;
   email: string;
@@ -71,7 +73,7 @@ async function resolveLogin(input: {
     ? Boolean(await prisma.user.findUnique({ where: { phone: input.phone }, select: { id: true } }))
     : true;
 
-  // No usable password until the salesperson chooses one from the email.
+  // No usable password until the Saarthi Rahi chooses one from the email.
   const passwordHash = await passwordHasher.hash(randomBytes(32).toString('hex'));
   try {
     return await prisma.user.create({
@@ -175,11 +177,11 @@ export async function startSalesmanSignup(
   await sendEmail(
     actionEmail({
       to: email,
-      subject: 'Finish setting up your Saarthi salesperson account',
+      subject: 'Finish setting up your Saarthi Rahi account',
       greeting: `Hello ${person.name ?? user.firstName},`,
       intro:
         `Your GODID ${godId} is verified. Choose a password to finish setting up your Saarthi ` +
-        `salesperson account. You will sign in with ${user.email}.`,
+        `Rahi account. You will sign in with ${user.email}.`,
       actionLabel: 'Set my password',
       actionUrl: link,
       footnote:
@@ -195,7 +197,7 @@ export async function startSalesmanSignup(
     actorUserId: null,
     after: { godId, role: RoleName.SALESMAN, reference: outcome.providerReference },
   });
-  signupLogger.info({ godId }, 'Salesperson signup link sent');
+  signupLogger.info({ godId }, 'Saarthi Rahi signup link sent');
 
   return { maskedEmail: maskEmail(email) ?? email, expiresInHours: SALESMAN_SIGNUP_LINK_HOURS };
 }

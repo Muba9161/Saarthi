@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="trips_start">ટ્રિપ શરૂ કરો</string>
+    <string name="trips_stop">ટ્રિપ રોકો</string>
+    <string name="trips_stop_title">ટ્રિપ અહીં જ પૂરી કરશો?</string>
+    <string name="trips_stop_body">તમારી ફ્લીટ જોશે કે ટ્રિપ ક્યાં પૂરી થઈ. તમારી બીજી ટ્રિપ રાહ જોતી હોય તો તે આપમેળે શરૂ થશે.</string>
+    <string name="trips_stop_confirm">અહીં જ પૂરી કરો</string>
+    <string name="trips_section_yours">તમારી ટ્રિપ, ક્રમ પ્રમાણે</string>
+    <string name="trips_after_current">આ ટ્રિપ પૂરી થતાં જ તમારી આગલી ટ્રિપ આપમેળે શરૂ થશે.</string>
+    <string name="trips_fleet_first">પહેલાં તમારી ફ્લીટની ટ્રિપ. તમારી તેના પછી.</string>
+    <string name="trips_check_first">Start દબાવતાં પહેલાં સેફ્ટી ચેક ખૂલશે, પછી ટ્રિપ શરૂ થશે.</string>
+    <string name="trips_move_up">ઉપર ખસેડો</string>
+    <string name="trips_move_down">નીચે ખસેડો</string>
+    <string name="trips_suggest_title">ટૂંકો ક્રમ</string>
+    <string name="trips_suggest_saves">%1$s km બચશે</string>
+    <string name="trips_suggest_total">%2$s km ને બદલે %1$s km</string>
+    <string name="trips_suggest_estimated">સીધા અંતરથી માપેલું છે, રસ્તા થોડા જુદા હોઈ શકે.</string>
+    <string name="trips_suggest_use">આ ક્રમ અપનાવો</string>
+    <string name="trips_suggest_dismiss">હમણાં નહીં</string>
+    <string name="trips_problem">અત્યારે આ થઈ શક્યું નહીં. ફરી પ્રયાસ કરો.</string>
+    <string name="trips_remove">ટ્રિપ દૂર કરો</string>
+    <string name="trips_remove_title">આ ટ્રિપ દૂર કરશો?</string>
+    <string name="trips_remove_body">તે તમારી યાદીમાંથી નીકળી જશે. તમે તેને દૂર કરી એની નોંધ તમારી ફ્લીટ પાસે રહેશે.</string>
+    <string name="trips_remove_confirm">ટ્રિપ દૂર કરો</string>
+    <string name="toast_trip_removed">ટ્રિપ દૂર કરી.</string>
+</resources>

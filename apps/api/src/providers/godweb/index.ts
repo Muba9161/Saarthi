@@ -9,7 +9,7 @@ import type { GodWebProvider } from './godweb.provider';
  *
  * Like the identity, RC and licence providers, this one **does not degrade to
  * a local substitute**, and the reason is the same as it is there, only
- * sharper: a "verified" salesman profile is a claim that GODWeb recognises a
+ * sharper: a "verified" Saarthi Rahi profile is a claim that GODWeb recognises a
  * person, and rewards will eventually be paid against it. A development
  * stub that said yes would be a stub that authorised money.
  *
@@ -32,7 +32,7 @@ function createGodWebProvider(): GodWebProvider | null {
   if (!config.godweb.configured) {
     logger.warn(
       'GODWEB_BASE_URL / GODWEB_API_KEY are not set — GODID verification is disabled on this ' +
-        'environment. Salesman profiles will stay PENDING_VERIFICATION, issue no referral link ' +
+        'environment. Saarthi Rahi profiles will stay PENDING_VERIFICATION, issue no referral link ' +
         'and earn no rewards until a platform administrator verifies them.',
     );
     return null;
@@ -49,7 +49,7 @@ function createGodWebProvider(): GodWebProvider | null {
 export const godWebProvider: GodWebProvider | null = createGodWebProvider();
 
 if (godWebProvider) {
-  logger.info({ provider: godWebProvider.name }, 'GODWeb salesman validation ready');
+  logger.info({ provider: godWebProvider.name }, 'GODWeb Saarthi Rahi validation ready');
 }
 
 /** `true` when this environment can ask GODWeb about a GODID at all. */
@@ -61,7 +61,7 @@ export function requireGodWebProvider(): GodWebProvider {
     throw errors.providerNotConfigured(
       'godweb',
       'GODID verification is not enabled on this environment. A Saarthi platform ' +
-        'administrator can verify this salesperson manually in the meantime.',
+        'administrator can verify this Saarthi Rahi manually in the meantime.',
     );
   }
   return godWebProvider;

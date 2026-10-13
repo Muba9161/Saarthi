@@ -84,6 +84,22 @@ suspend fun SaarthiApi.navigationHandoff(app: String?): TerminalTripDto? =
 suspend fun SaarthiApi.arriveTrip(request: TripEventRequest): TerminalTripDto? =
     postNullable("$TERMINAL/trip/arrive", request, TripEventRequest.serializer(), TerminalTripDto.serializer())
 
+/** The driver's own trips that have not started, in order, with a shorter order when there is one. */
+suspend fun SaarthiApi.tripQueue(latitude: Double?, longitude: Double?): TripQueueDto =
+    get(
+        "$TERMINAL/trips/queue" +
+            if (latitude != null && longitude != null) "?latitude=$latitude&longitude=$longitude" else "",
+        TripQueueDto.serializer(),
+    )
+
+/** Run the driver's trips in this order. Answers with the queue as it now stands. */
+suspend fun SaarthiApi.orderTrips(request: TripQueueOrderRequest): TripQueueDto =
+    post("$TERMINAL/trips/queue", request, TripQueueOrderRequest.serializer(), TripQueueDto.serializer())
+
+/** Take one of the driver's own trips off their queue. Answers with the queue as it now stands. */
+suspend fun SaarthiApi.removeTrip(tripId: String): TripQueueDto =
+    post("$TERMINAL/trips/$tripId/remove", TripEventRequest(), TripEventRequest.serializer(), TripQueueDto.serializer())
+
 /** Every folder, paper, register record and photo for the Papers tab, in one call. */
 suspend fun SaarthiApi.papersWallet(): PapersWalletDto =
     get("$TERMINAL/papers/wallet", PapersWalletDto.serializer())

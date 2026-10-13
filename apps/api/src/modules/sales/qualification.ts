@@ -14,7 +14,7 @@ import { qualifyForPayment as qualifyReferralProgram } from '../referral-program
  *
  *   * a Refer & Earn referral is marked qualified on the first subscription
  *     payment — reporting only, since its reward was paid at signup;
- *   * a salesperson's customer is marked converted on the same event, and
+ *   * a Saarthi Rahi's customer is marked converted on the same event, and
  *     their lead and tracker records are brought up to date.
  *
  * Nothing here pays anybody. Rewards are credited when a referral succeeds —
@@ -25,7 +25,7 @@ import { qualifyForPayment as qualifyReferralProgram } from '../referral-program
  * `qualifyPayment` **never throws and never rejects.** Its callers have already
  * taken a customer's money and provisioned what they bought; a failure here
  * must not roll any of that back, and must not surface to a customer who has
- * no idea a salesperson exists. Every failure is logged and swallowed.
+ * no idea a Saarthi Rahi exists. Every failure is logged and swallowed.
  */
 
 const qualifyLogger = logger.child({ module: 'sales:qualification' });
@@ -64,7 +64,7 @@ export async function qualifyPayment(input: QualifyPaymentInput): Promise<void> 
     /*
      * Refer & Earn qualifies on the first subscription payment, and only that:
      * a tracker or a top-up is not the "qualifying subscription" the program
-     * is defined by. Ahead of the salesman short-circuit below because the two
+     * is defined by. Ahead of the Saarthi Rahi short-circuit below because the two
      * programs are independent — a customer can arrive through either. It
      * records the payment and computes nothing; see the program's own module.
      */
@@ -99,7 +99,7 @@ export async function qualifyPayment(input: QualifyPaymentInput): Promise<void> 
 }
 
 /**
- * Bring the salesperson's own records into line after a payment.
+ * Bring the Saarthi Rahi's own records into line after a payment.
  *
  * Two side effects, both derived from real state rather than asserted:
  *

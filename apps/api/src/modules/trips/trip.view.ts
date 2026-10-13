@@ -30,9 +30,10 @@ export interface TripSummary {
   originAddress: string;
   originLatitude: number;
   originLongitude: number;
-  destinationAddress: string;
-  destinationLatitude: number;
-  destinationLongitude: number;
+  /** The delivery point. Null for the Seller loading the trip — see `seesDelivery`. */
+  destinationAddress: string | null;
+  destinationLatitude: number | null;
+  destinationLongitude: number | null;
   plannedDistanceKm: number | null;
   actualDistanceKm: number;
   plannedDurationMin: number | null;
@@ -118,6 +119,54 @@ export function viewerParty(auth: AuthContext): CommunicationParty {
 }
 
 /**
+ * Whether the viewer may follow the trip past its pickup.
+ *
+ * Everything after the pickup is the customer's delivery, and the Seller
+ * loading the truck is never told where that goes (see `communication.ts`).
+ * Everyone else on a trip — the fleet, its driver, the customer — may.
+ */
+export function seesDelivery(viewer: CommunicationParty): boolean {
+  return mayKnowCounterparty(viewer, 'CUSTOMER');
+}
+
+/**
+ * The trip as the Seller loading it is shown it: the vehicle and driver coming
+ * to its yard, when they are due and the trip's status. The delivery point and
+ * everything measured on the way to it — distances, timings, progress, the
+ * vehicle's position, its driving record — plus the fleet's price, costs and
+ * notes are withheld. Unknowns read as null, and counters as on a trip nothing
+ * tracked: zero.
+ */
+function withheldPastPickup(trip: TripSummary): TripSummary {
+  return {
+    ...trip,
+    destinationAddress: null,
+    destinationLatitude: null,
+    destinationLongitude: null,
+    plannedDistanceKm: null,
+    actualDistanceKm: 0,
+    plannedDurationMin: null,
+    actualDurationMin: null,
+    plannedArrivalAt: null,
+    actualArrivalAt: null,
+    etaAt: null,
+    delayMinutes: 0,
+    progressPercent: trip.status === TripStatus.COMPLETED ? 100 : 0,
+    price: null,
+    expenses: null,
+    navigationHandoff: null,
+    topSpeedKph: null,
+    averageSpeedKph: null,
+    harshBrakingCount: 0,
+    harshAccelerationCount: 0,
+    startOdometerKm: null,
+    endOdometerKm: null,
+    currentLocation: null,
+    notes: null,
+  };
+}
+
+/**
  * What a trip spent beyond fuel: the office's own figure plus the driver's
  * slips. Null only when neither exists, so "nothing recorded" is not shown as
  * a spend of zero.
@@ -130,23 +179,27 @@ function tripExpenses(trip: { expenses: Prisma.Decimal | null }, slips: number):
 /**
  * Shape trip rows for one viewer. A customer following a delivery sees the
  * truck and the driver's name but never the driver's phone, and a Seller
- * whose goods are on board is not told who the customer is.
+ * whose goods are on board is told neither who the customer is nor where the
+ * goods go.
  */
 export async function decorate(trips: TripRecord[], viewer: CommunicationParty): Promise<TripSummary[]> {
   const mayCallDriver = canCommunicate(viewer, 'DRIVER');
   const mayKnowCustomer = mayKnowCounterparty(viewer, 'CUSTOMER');
+  const followsDelivery = seesDelivery(viewer);
 
   const truckIds = [...new Set(trips.map((trip) => trip.truckId))];
   const driverIds = [
     ...new Set(trips.map((trip) => trip.driverId).filter((id): id is string => Boolean(id))),
   ];
-  const customerOrgIds = [
-    ...new Set(
-      trips
-        .map((trip) => trip.order?.customerOrganizationId)
-        .filter((id): id is string => Boolean(id)),
-    ),
-  ];
+  const customerOrgIds = mayKnowCustomer
+    ? [
+        ...new Set(
+          trips
+            .map((trip) => trip.order?.customerOrganizationId)
+            .filter((id): id is string => Boolean(id)),
+        ),
+      ]
+    : [];
 
   const [trucks, drivers, organizations, slipTotals] = await Promise.all([
     prisma.truck.findMany({ where: { id: { in: truckIds } } }),
@@ -173,7 +226,7 @@ export async function decorate(trips: TripRecord[], viewer: CommunicationParty):
     const truck = truckMap.get(trip.truckId);
     const driver = trip.driverId ? driverMap.get(trip.driverId) : undefined;
 
-    return {
+    const summary: TripSummary = {
       id: trip.id,
       reference: trip.reference,
       organizationId: trip.organizationId,
@@ -249,5 +302,6 @@ export async function decorate(trips: TripRecord[], viewer: CommunicationParty):
       createdAt: trip.createdAt.toISOString(),
       updatedAt: trip.updatedAt.toISOString(),
     };
+    return followsDelivery ? summary : withheldPastPickup(summary);
   });
 }

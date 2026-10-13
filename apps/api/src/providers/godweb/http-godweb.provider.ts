@@ -9,7 +9,7 @@ import type {
 } from './godweb.provider';
 
 /**
- * HTTP adapter for the approved read-only GODWeb salesperson endpoint.
+ * HTTP adapter for the approved read-only GODWeb Saarthi Rahi endpoint.
  *
  * One `GET`, an API key in a header, and a mapping. That is the whole adapter,
  * and its narrowness is the design: everything GODWeb-shaped is confined here,
@@ -29,7 +29,7 @@ import type {
  *
  * ## Why a 404 is not an error
  *
- * A GODID GODWeb does not recognise is an *answer*, and the salesman service
+ * A GODID GODWeb does not recognise is an *answer*, and the Saarthi Rahi service
  * needs to act on it — that profile is rejected, permanently, and the person
  * is told their GODID is not recognised. Only a genuine failure to ask (a
  * timeout, a refused key, an unparseable body) throws, because that must leave
@@ -62,7 +62,7 @@ function pickString(source: JsonRecord, ...keys: string[]): string | null {
  * Defaults to `true` when GODWeb says nothing about it, and that default is
  * deliberate: an endpoint that returns a record at all is asserting the person
  * exists, and inferring "inactive" from a missing field would lock out every
- * legitimate salesperson the moment GODWeb ships a payload without a status.
+ * legitimate Saarthi Rahi the moment GODWeb ships a payload without a status.
  * An explicit negative — `false`, `"inactive"`, `"suspended"`, `"disabled"`,
  * `"left"` — is honoured.
  */
@@ -163,7 +163,7 @@ export class HttpGodWebProvider implements GodWebProvider {
   constructor() {
     if (!config.godweb.baseUrl || !config.godweb.apiKey) {
       throw new Error(
-        'GODWeb salesman validation requires GODWEB_BASE_URL and GODWEB_API_KEY to be configured.',
+        'GODWeb Saarthi Rahi validation requires GODWEB_BASE_URL and GODWEB_API_KEY to be configured.',
       );
     }
     this.baseUrl = config.godweb.baseUrl;
@@ -229,7 +229,7 @@ export class HttpGodWebProvider implements GodWebProvider {
     }
 
     if (response.status === 401 || response.status === 403) {
-      // Saarthi's credential, not the salesperson's problem. Loud for us,
+      // Saarthi's credential, not the Saarthi Rahi's problem. Loud for us,
       // generic for them — nobody in the field can act on "bad API key".
       logger.error(
         { provider: this.name, status: response.status },

@@ -25,7 +25,7 @@ import type { SalesmanView } from './salesman.service';
 import type { AuthContext } from '../../auth/context';
 
 /**
- * Sales leads — the pipeline a salesperson works.
+ * Sales leads — the pipeline a Saarthi Rahi works.
  *
  * Three decisions shape this file.
  *
@@ -34,16 +34,16 @@ import type { AuthContext } from '../../auth/context';
  * most never become one. When one does, `organizationId` links them and the
  * lead keeps the story of how the sale was made.
  *
- * **A salesperson cannot type their own conversions.** Everything from
+ * **A Saarthi Rahi cannot type their own conversions.** Everything from
  * `SUBSCRIBED` onwards is set by the system from the subscription, the tracker
  * handover and the vehicle's own telemetry — see `SALES_LEAD_DERIVED_STATUSES`
  * and `syncFromCustomerState`. A pipeline where the person paid on conversions
  * can mark a lead ACTIVATED measures optimism.
  *
  * **Lead data is pre-consent personal data.** A prospect has agreed to nothing,
- * so every query is scoped to the salesperson who created the lead, or to
- * platform administration. There is no cross-salesman read, and no route that
- * takes a salesman id from a salesman caller.
+ * so every query is scoped to the Saarthi Rahi who created the lead, or to
+ * platform administration. There is no read across Saarthi Rahis, and no route that
+ * takes a Saarthi Rahi id from a Saarthi Rahi caller.
  */
 
 const leadLogger = logger.child({ module: 'sales:lead' });
@@ -75,7 +75,7 @@ export interface LeadView {
   firstVehicleId: string | null;
   closedAt: string | null;
   closeReason: string | null;
-  /** Statuses this lead may be moved to by its salesperson, right now. */
+  /** Statuses this lead may be moved to by its Saarthi Rahi, right now. */
   availableStatuses: SalesLeadStatus[];
   createdAt: string;
   updatedAt: string;
@@ -111,11 +111,11 @@ type LeadRow = {
 };
 
 /**
- * Statuses the salesperson may pick from the screen.
+ * Statuses the Saarthi Rahi may pick from the screen.
  *
  * The state machine's legal transitions minus the derived ones, so the UI's
  * dropdown and the API's guard are the same list. Offering a status the API
- * would refuse is how a salesperson learns to distrust the screen.
+ * would refuse is how a Saarthi Rahi learns to distrust the screen.
  */
 function availableStatuses(status: SalesLeadStatus): SalesLeadStatus[] {
   return salesLeadStateMachine
@@ -171,12 +171,12 @@ const withRelations = {
 
 export async function listLeads(
   query: LeadListQuery,
-  /** Non-null pins the query to one salesperson. Null means administration. */
+  /** Non-null pins the query to one Saarthi Rahi. Null means administration. */
   salesmanId: string | null,
 ): Promise<{ items: LeadView[]; total: number }> {
   const where = {
-    // A salesman caller's own id always wins over anything in the query, so
-    // `?salesmanId=` on a salesman's request changes nothing.
+    // A Saarthi Rahi caller's own id always wins over anything in the query, so
+    // `?salesmanId=` on a Saarthi Rahi's request changes nothing.
     ...(salesmanId ? { salesmanId } : query.salesmanId ? { salesmanId: query.salesmanId } : {}),
     ...(query.status ? { status: { in: query.status as never } } : {}),
     ...(query.overdueOnly
@@ -201,7 +201,7 @@ export async function listLeads(
     prisma.salesLead.findMany({
       where,
       include: withRelations,
-      // Overdue follow-ups first, then the newest. A salesperson opening this
+      // Overdue follow-ups first, then the newest. A Saarthi Rahi opening this
       // screen in the morning wants the calls they owe, not the last lead they
       // typed in.
       orderBy: [{ nextFollowUpAt: { sort: 'asc', nulls: 'last' } }, { createdAt: 'desc' }],
@@ -217,7 +217,7 @@ export async function listLeads(
 /**
  * One lead, scoped.
  *
- * `salesmanId` non-null means the caller is a salesperson and may only see
+ * `salesmanId` non-null means the caller is a Saarthi Rahi and may only see
  * their own. A mismatch is reported as a 404 rather than a 403, for the reason
  * `assertTenantAccess` gives: the difference between the two would let somebody
  * enumerate their colleagues' prospects.
@@ -376,7 +376,7 @@ export async function updateLead(
  * Move a lead along the pipeline.
  *
  * Two guards, and the order matters. The derived-status refusal comes first so
- * that a salesperson trying to set ACTIVATED gets told *why* — "Saarthi sets
+ * that a Saarthi Rahi trying to set ACTIVATED gets told *why* — "Saarthi sets
  * this once the vehicle is live" is actionable, and "illegal transition" is
  * not.
  */
@@ -487,7 +487,7 @@ export interface AssistedSignupResult {
   sentTo: string;
   /**
    * Stated plainly in the response because it is the whole safety property of
-   * this endpoint, and it belongs on the salesperson's screen too.
+   * this endpoint, and it belongs on the Saarthi Rahi's screen too.
    */
   notice: string;
 }
@@ -504,8 +504,8 @@ export interface AssistedSignupResult {
  * The customer then registers through the ordinary `/register` flow, verifies
  * their own contact details, creates their own credentials and authorises their
  * own payment, exactly as a self-serve customer does. The only difference is
- * that the link carries the salesperson's referral code, so the sale is
- * credited without the salesperson having to hold anything belonging to the
+ * that the link carries the Saarthi Rahi's referral code, so the sale is
+ * credited without the Saarthi Rahi having to hold anything belonging to the
  * customer.
  */
 export async function startAssistedSignup(
@@ -681,9 +681,9 @@ export async function syncFromCustomerState(leadId: string): Promise<SalesLeadSt
 /**
  * Link a lead to the organization its prospect registered as.
  *
- * Called when a referral converts, so the salesperson's pipeline connects to
+ * Called when a referral converts, so the Saarthi Rahi's pipeline connects to
  * the real customer. Matched on phone number, which is the one identifier a
- * salesperson reliably captures and a registrant reliably supplies.
+ * Saarthi Rahi reliably captures and a registrant reliably supplies.
  */
 export async function linkLeadToOrganization(input: {
   salesmanId: string;
@@ -763,10 +763,10 @@ export async function recordOnboardingCompleted(input: {
 }
 
 /**
- * Remind salespeople of the follow-ups they owe.
+ * Remind Saarthi Rahis of the follow-ups they owe.
  *
  * Run from the jobs scheduler. One notification per lead per day at most,
- * because the alternative is a salesperson who turns Saarthi notifications off
+ * because the alternative is a Saarthi Rahi who turns Saarthi notifications off
  * and then misses the ones that matter.
  */
 export async function notifyDueFollowUps(): Promise<number> {

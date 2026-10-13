@@ -98,6 +98,15 @@ export interface RoutingProvider {
   ): Promise<RoadDistance[]>;
 
   /**
+   * Road distance between every pair of points, in metres: row `i`, column
+   * `j` is from point `i` to point `j`, null where no route joins them.
+   *
+   * For putting a driver's trips in the order that drives least, which needs
+   * every stop to every other stop rather than one point to many.
+   */
+  matrix(points: readonly LatLng[], profile: RoutingProfile): Promise<(number | null)[][]>;
+
+  /**
    * Places matching what somebody typed.
    *
    * Distinct from the nearby search, and needed because the two answer different

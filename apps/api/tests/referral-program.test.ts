@@ -29,7 +29,7 @@ import {
  * Pinned here: ₹100 is credited the moment a referred account starts a paid
  * plan, with no payment and no approval; it is held, then released or voided
  * on its own; a Free signup earns nothing; a program code never creates a
- * salesman attribution; and a salesperson stays on their GODID channel.
+ * Saarthi Rahi attribution; and a Saarthi Rahi stays on their GODID channel.
  *
  * The test environment has no Cashfree Payouts keys, so cash-out and bank
  * connection are exercised only up to the point where they refuse to run.
@@ -108,7 +108,7 @@ describe('referral codes', () => {
     expect(await prisma.referralProgramCode.count()).toBe(1);
   });
 
-  it('keeps a salesperson on their GODID channel', async () => {
+  it('keeps a Saarthi Rahi on their GODID channel', async () => {
     const salesman = await createUser({ role: RoleName.SALESMAN, organizationId: null });
     expect((await request({ method: 'GET', url: `${PATH}/me`, user: salesman })).status).toBe(403);
     // They still have a wallet: their own referral rewards are paid into it.
@@ -124,7 +124,7 @@ describe('the ₹100 reward', () => {
     const referral = await prisma.userReferral.findUniqueOrThrow({ where: { organizationId } });
     expect(referral.referrerUserId).toBe(user.id);
     expect(referral.status).toBe(UserReferralStatus.SIGNED_UP);
-    // A separate program: nothing lands in the salesman channel.
+    // A separate program: nothing lands in the Saarthi Rahi channel.
     expect(await prisma.referralAttribution.count({ where: { organizationId } })).toBe(0);
 
     const wallet = await walletOf(user);

@@ -24,7 +24,7 @@ import type { AuthContext } from '../../auth/context';
 
 /**
  * The Saarthi wallet: what a person has earned — through Refer & Earn or, for a
- * salesperson, through the customers they bring — and cashing it out.
+ * Saarthi Rahi, through the customers they bring — and cashing it out.
  *
  * A cash-out takes the whole available balance to the holder's own verified
  * bank account, with no approval step. The debit is written before the

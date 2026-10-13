@@ -39,6 +39,12 @@ process.env.SUBSCRIPTION_ENFORCEMENT = 'true';
  */
 process.env.DRIVER_VERIFICATION_ENFORCEMENT = 'true';
 /*
+ * No place search over the network. Photon is a public server: a suite that
+ * reached it would depend on someone else's uptime and send it every test's
+ * queries. Its parsing and merging are tested without it.
+ */
+process.env.PHOTON_API_URL = '';
+/*
  * The Personal Aadhaar cutover, pinned so the tests can put an organization on
  * either side of it.
  *
@@ -116,7 +122,7 @@ process.env.SALES_REFERRAL_RATE_LIMIT_MAX = '10000';
  * provider factory returns null, the verify endpoint answers 503, and the tests
  * exercise the real behaviour of an environment whose GODWeb integration does
  * not exist yet — which is every environment, today. Fixtures that need a
- * verified salesperson write the profile row directly.
+ * verified Saarthi Rahi write the profile row directly.
  */
 delete process.env.GODWEB_BASE_URL;
 delete process.env.GODWEB_API_KEY;

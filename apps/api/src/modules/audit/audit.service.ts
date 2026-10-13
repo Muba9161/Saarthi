@@ -415,7 +415,7 @@ export const AuditAction = {
   SALESMAN_VERIFIED_MANUALLY: 'salesman.verified_manually',
   SALESMAN_VERIFICATION_FAILED: 'salesman.verification_failed',
   SALESMAN_STANDING_CHANGED: 'salesman.standing_changed',
-  /// A salesperson started their own signup; the link went to their GODWeb email.
+  /// A Saarthi Rahi started their own signup; the link went to their GODWeb email.
   SALESMAN_SELF_SIGNUP_STARTED: 'salesman.self_signup_started',
 
   SALES_LEAD_CREATED: 'sales.lead_created',
@@ -435,7 +435,7 @@ export const AuditAction = {
 
   /*
    * Refer & Earn — the generic program, kept under its own prefix so an audit
-   * query for the salesman channel above never picks these up.
+   * query for the Saarthi Rahi channel above never picks these up.
    */
   REFERRAL_PROGRAM_CODE_ISSUED: 'referral_program.code_issued',
   REFERRAL_PROGRAM_SIGNUP: 'referral_program.signup',

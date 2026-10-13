@@ -46,16 +46,14 @@ export async function canSubscribe(auth: AuthContext, channel: string): Promise<
       if (auth.organizationId && truck.organizationId === auth.organizationId) return true;
       if (auth.driverId && truck.currentDriverId === auth.driverId) return true;
 
-      // A customer may watch the truck carrying their in-flight order.
+      // A customer may watch the truck carrying their in-flight order. The
+      // Seller that loads it may not: live position leads to the customer.
       if (auth.organizationId) {
         const order = await prisma.order.findFirst({
           where: {
             assignedTruckId: id,
             status: { in: ['ASSIGNED', 'PICKUP', 'IN_TRANSIT'] },
-            OR: [
-              { customerOrganizationId: auth.organizationId },
-              { supplierOrganizationId: auth.organizationId },
-            ],
+            customerOrganizationId: auth.organizationId,
           },
           select: { id: true },
         });
@@ -71,36 +69,34 @@ export async function canSubscribe(auth: AuthContext, channel: string): Promise<
         select: {
           organizationId: true,
           driverId: true,
-          order: {
-            select: { customerOrganizationId: true, supplierOrganizationId: true },
-          },
+          order: { select: { customerOrganizationId: true } },
         },
       });
       if (!trip) return false;
       if (auth.organizationId && trip.organizationId === auth.organizationId) return true;
       if (auth.driverId && trip.driverId === auth.driverId) return true;
-      if (auth.organizationId && trip.order) {
-        if (trip.order.customerOrganizationId === auth.organizationId) return true;
-        if (trip.order.supplierOrganizationId === auth.organizationId) return true;
-      }
-      return false;
+      // The customer follows its delivery live; the Seller does not.
+      return Boolean(
+        auth.organizationId && trip.order?.customerOrganizationId === auth.organizationId,
+      );
     }
 
     case 'order': {
+      /*
+       * The customer and the fleet only. The order stream also carries the live
+       * trip's progress towards the customer, so the Seller is not admitted;
+       * it hears about its orders on its own tenant stream, addressed to it
+       * (see `broadcastOrderUpdate`).
+       */
       if (auth.isPlatformAdmin) return true;
       if (!auth.organizationId) return false;
       const order = await prisma.order.findUnique({
         where: { id },
-        select: {
-          customerOrganizationId: true,
-          supplierOrganizationId: true,
-          fleetOrganizationId: true,
-        },
+        select: { customerOrganizationId: true, fleetOrganizationId: true },
       });
       if (!order) return false;
       return (
         order.customerOrganizationId === auth.organizationId ||
-        order.supplierOrganizationId === auth.organizationId ||
         order.fleetOrganizationId === auth.organizationId
       );
     }

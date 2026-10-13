@@ -522,6 +522,33 @@ function paperFolders(
   return { folders, others: owned.filter((document) => !codes.has(document.documentType)) };
 }
 
+/**
+ * A vehicle's papers exactly as its Papers tab shows them: what was uploaded,
+ * and the RTO register's own dates where nothing was.
+ *
+ * For anything else that answers "are this vehicle's papers in order" — the
+ * assistant above all, which used to read uploads alone and told a driver it
+ * had no PUC on record while their own Papers tab showed its date.
+ */
+export async function vehiclePapers(
+  organizationId: string,
+  vehicleId: string,
+): Promise<{ folders: PaperFolder[]; documents: DriverDocument[]; registerOnFile: boolean }> {
+  const vehicle = await prisma.truck.findUnique({
+    where: { id: vehicleId },
+    select: { registrationNumber: true, verificationStatus: true },
+  });
+  const [documents, rc] = await Promise.all([
+    driverDocuments(organizationId, vehicleId, null),
+    vehicle ? virtualRcFor(organizationId, vehicle) : Promise.resolve(null),
+  ]);
+  return {
+    folders: paperFolders('TRUCK', documents, rc, null).folders,
+    documents,
+    registerOnFile: rc !== null,
+  };
+}
+
 /** The whole wallet in one answer, so the Papers tab renders from one request. */
 export async function driverPapersWallet(
   organizationId: string,

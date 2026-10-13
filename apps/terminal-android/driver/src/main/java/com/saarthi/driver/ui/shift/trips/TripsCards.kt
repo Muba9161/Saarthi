@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -225,11 +226,16 @@ private fun GrowingBar(fraction: Float, color: Color, delayMs: Int, modifier: Mo
 }
 
 /**
- * The trip on the road now: where from, where to, how far was planned and
- * when it began. Anything the server did not say is left out, not guessed.
+ * A trip that is not finished: where from, where to, how far was planned and
+ * when it began — and, under it, what the driver can do with it. Anything the
+ * server did not say is left out, not guessed.
  */
 @Composable
-internal fun OpenTripCard(trip: OpenTrip, modifier: Modifier = Modifier) {
+internal fun OpenTripCard(
+    trip: OpenTrip,
+    modifier: Modifier = Modifier,
+    actions: (@Composable RowScope.() -> Unit)? = null,
+) {
     val c = Saarthi.colors
     val started = dayOf(trip.startedAt)
     // The fleet's trip is the one to drive first, and is drawn so it cannot be missed.
@@ -245,6 +251,7 @@ internal fun OpenTripCard(trip: OpenTrip, modifier: Modifier = Modifier) {
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            trip.position?.let { PositionDisc(it) }
             when (trip.stage) {
                 TripStage.UNDER_WAY ->
                     StatusPill(stringResource(R.string.trips_in_progress), background = c.warningBg, ink = c.warning, live = true)
@@ -253,12 +260,15 @@ internal fun OpenTripCard(trip: OpenTrip, modifier: Modifier = Modifier) {
                 TripStage.QUEUED ->
                     StatusPill(stringResource(R.string.trips_queued), background = c.sunken, ink = c.muted)
             }
-            StatusPill(
-                stringResource(if (trip.fromFleet) R.string.trips_from_fleet else R.string.trips_added_by_you),
-                background = if (priority) c.primary else c.sunken,
-                ink = if (priority) c.onPrimary else c.muted,
-                dot = false,
-            )
+            // In the driver's own numbered queue every trip is theirs; the pill would only crowd the reference.
+            if (trip.position == null) {
+                StatusPill(
+                    stringResource(if (trip.fromFleet) R.string.trips_from_fleet else R.string.trips_added_by_you),
+                    background = if (priority) c.primary else c.sunken,
+                    ink = if (priority) c.onPrimary else c.muted,
+                    dot = false,
+                )
+            }
             Spacer(Modifier.weight(1f))
             trip.reference?.let { Text(it, style = SType.mono(12.sp, tracking = 0.em), color = c.subtle, maxLines = 1) }
         }
@@ -284,6 +294,29 @@ internal fun OpenTripCard(trip: OpenTrip, modifier: Modifier = Modifier) {
                 trip.registration?.let { Text(it, style = SType.mono(12.sp, tracking = 0.em), color = c.muted, maxLines = 1) }
             }
         }
+        if (actions != null) {
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                content = actions,
+            )
+        }
+    }
+}
+
+/** A trip's place in the driver's order, in a small disc before its status. */
+@Composable
+private fun PositionDisc(position: Int) {
+    val c = Saarthi.colors
+    Box(
+        Modifier
+            .size(24.dp)
+            .clip(CircleShape)
+            .background(c.primarySoft),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(position.toString(), style = SType.microStrong, color = c.primary)
     }
 }
 

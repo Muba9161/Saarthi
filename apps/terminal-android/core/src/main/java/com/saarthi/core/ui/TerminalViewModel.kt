@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.saarthi.core.SaarthiApp
 import com.saarthi.core.data.AssistantConversation
+import com.saarthi.core.data.DriverTripQueue
 import com.saarthi.core.data.AssistantUi
 import com.saarthi.core.data.FuelPriceFeed
 import com.saarthi.core.data.ShiftRepository
@@ -204,14 +205,19 @@ class TerminalViewModel(application: Application) : AndroidViewModel(application
     private val _trips = MutableStateFlow<List<DriverTripDto>>(emptyList())
     val trips: StateFlow<List<DriverTripDto>> = _trips.asStateFlow()
 
+    /** The driver's own trips waiting to start, in their order. */
+    val tripQueue = DriverTripQueue(viewModelScope, shift, onChanged = { loadDispatch() })
+
     private val _notifications = MutableStateFlow(DriverNotificationsDto())
     val notifications: StateFlow<DriverNotificationsDto> = _notifications.asStateFlow()
 
     /** Ask now, then keep the rate current as the vehicle moves. See [FuelPriceFeed]. */
     fun loadFuelPrice() = fuelPriceFeed.refresh()
 
+    /** The driver's trips, and their queue with it — the two are read together everywhere. */
     fun loadTrips() {
         viewModelScope.launch { repository.trips().onSuccess { _trips.value = it } }
+        tripQueue.load()
     }
 
     fun loadNotifications() {
@@ -658,14 +664,27 @@ class TerminalViewModel(application: Application) : AndroidViewModel(application
      * the card stops offering Start the moment the vehicle is under way rather
      * than at the next poll.
      */
-    fun startTrip() = viewModelScope.launch {
-        repository.startTrip()
-        repository.dispatchedTrip().onSuccess { _dispatch.value = it }
+    /** Start the trip holding the vehicle, or [tripId] — one of the driver's own, picked from the Trips tab. */
+    fun startTrip(tripId: String? = null, onDone: (Result<Unit>) -> Unit = {}) = viewModelScope.launch {
+        val result = repository.startTrip(tripId)
+        afterTripMoved()
+        onDone(result)
     }
 
-    fun completeTrip() = viewModelScope.launch {
-        repository.completeTrip()
+    /**
+     * End the trip under way where the vehicle is. The server starts the
+     * driver's next trip on its own, so the dispatch, the list and the queue
+     * are all re-read.
+     */
+    fun completeTrip(onDone: (Result<Unit>) -> Unit = {}) = viewModelScope.launch {
+        val result = repository.completeTrip()
+        afterTripMoved()
+        onDone(result)
+    }
+
+    private suspend fun afterTripMoved() {
         repository.dispatchedTrip().onSuccess { _dispatch.value = it }
+        loadTrips()
     }
 
     fun endSession() = viewModelScope.launch { repository.endSession("Driver signed off.") }
@@ -800,8 +819,7 @@ class TerminalViewModel(application: Application) : AndroidViewModel(application
      * Following starts (or carries on) here, silently, so the run, arrival and
      * the trail all still come from this phone's GPS. The fleet's trip is told,
      * so a different road Google picks is recorded as an alternate road rather
-     * than a deviation; for that trip the link also carries a few points along
-     * the fleet's planned route, which keeps Google on the road the fleet chose.
+     * than a deviation. Google gets the destination only — see [GoogleMapsLink].
      *
      * Returns the link to open, or null with no route on the map.
      */
@@ -815,13 +833,11 @@ class TerminalViewModel(application: Application) : AndroidViewModel(application
 
         // Only the trip's own journey is the trip's business: a detour to a pump
         // in Google Maps is a detour, and is judged as one.
-        val trip = _dispatch.value?.takeIf { goesToDispatch(route, it) }
-        if (trip != null) {
+        if (_dispatch.value?.let { goesToDispatch(route, it) } == true) {
             handoffReported = true
             reportHandoff(GOOGLE_MAPS)
         }
-        val via = trip?.let { GoogleMapsLink.viaPoints(it.plannedRoute) }.orEmpty()
-        return GoogleMapsLink.navigate(route.destination.latitude, route.destination.longitude, via)
+        return GoogleMapsLink.navigate(route.destination.latitude, route.destination.longitude)
     }
 
     /** This route leads to the dispatched trip's destination, not to a pump on the way. */

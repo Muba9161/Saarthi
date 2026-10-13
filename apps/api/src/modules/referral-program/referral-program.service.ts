@@ -47,7 +47,7 @@ const programLogger = logger.child({ module: 'referral-program' });
 export function requireEligible(auth: AuthContext): void {
   if (!canJoinReferralProgram(auth.user.roles)) {
     throw errors.forbidden(
-      'Saarthi salespeople refer customers through their GODID link, on the Sales screens.',
+      'Saarthi Rahis refer customers through their GODID link, on the Sales screens.',
     );
   }
 }
@@ -189,7 +189,7 @@ export async function listReferrals(
  * Returns whether the code belonged to this program at all, so registration
  * knows not to try it as a GODID as well. Never throws: by the time this runs
  * the account is committed, and a referral problem must not cost anybody their
- * signup — the same contract as the salesman channel's registration hook.
+ * signup — the same contract as the Saarthi Rahi channel's registration hook.
  *
  * The reward is only for an account that starts on a paid plan, and so on its
  * trial. A Free signup is recorded as a referral and earns nothing.

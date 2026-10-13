@@ -77,8 +77,14 @@ class DriverApi(
             private fun readResolve(): Any = SignedOut
         }
 
-        /** The server refused, and said why in words worth showing. */
-        class Refused(val status: Int, message: String) : Failure(message)
+        /**
+         * The server refused, and said why in words worth showing.
+         *
+         * [code] is the server's own name for the refusal — `SECURE_ACCESS_REQUIRED`,
+         * `BUSINESS_RULE_VIOLATION` — for a screen that has to tell two refusals
+         * with the same status apart.
+         */
+        class Refused(val status: Int, message: String, val code: String? = null) : Failure(message)
     }
 
     // -----------------------------------------------------------------------
@@ -151,6 +157,7 @@ class DriverApi(
         val user: SessionUser? = null,
         val organization: SessionOrganization? = null,
         val driver: SessionDriver? = null,
+        val permissions: List<String> = emptyList(),
     )
 
     /**
@@ -171,7 +178,16 @@ class DriverApi(
     private val _licenceMissing = MutableStateFlow(false)
     val licenceMissing: StateFlow<Boolean> = _licenceMissing.asStateFlow()
 
+    /**
+     * Whether this person may see a vehicle's full RC once they enter their
+     * Secure PIN — a fleet owner who drives their own vehicle. The server still
+     * decides, per vehicle; this only says whether to offer it.
+     */
+    private val _seesFullRc = MutableStateFlow(false)
+    val seesFullRc: StateFlow<Boolean> = _seesFullRc.asStateFlow()
+
     private fun rememberSession(session: SessionDto?) {
+        if (session != null) _seesFullRc.value = FULL_RC_PERMISSION in session.permissions
         val driver = session?.driver ?: return
         _fleet.value = Fleet(
             name = if (driver.awaitingFleet) null else session.organization?.name,
@@ -361,6 +377,7 @@ class DriverApi(
         account.clear()
         _fleet.value = null
         _licenceMissing.value = false
+        _seesFullRc.value = false
     }
 
     // -----------------------------------------------------------------------
@@ -524,10 +541,17 @@ class DriverApi(
     @Serializable
     private data class ApiError(val code: String? = null, val message: String? = null)
 
-    private suspend fun <T> post(path: String, body: String, serializer: KSerializer<T>): T {
+    /** A signed-in POST, for this client and the account's other features — see [OwnerRcApi]. */
+    internal suspend fun <T> post(path: String, body: String, serializer: KSerializer<T>): T {
         val raw = send("POST", path, body)
         return json.decodeFromString(Envelope.serializer(serializer), raw).data
             ?: throw Failure.Refused(200, "Saarthi answered but sent nothing back.")
+    }
+
+    /** A signed-in GET, likewise. Null when the server answered with nothing. */
+    internal suspend fun <T> get(path: String, serializer: KSerializer<T>): T? {
+        val raw = send("GET", path, null)
+        return json.decodeFromString(Envelope.serializer(serializer), raw).data
     }
 
     /** A valid access token, refreshing once if the held one is stale. */
@@ -615,7 +639,7 @@ class DriverApi(
             // The path and the status, never the body: a sign-in payload
             // carries the password this method just sent.
             DebugLog.warn(TAG, "${raw.code} ${request.method} ${request.url.encodedPath}")
-            throw Failure.Refused(raw.code, parsed?.message ?: "Saarthi refused that request.")
+            throw Failure.Refused(raw.code, parsed?.message ?: "Saarthi refused that request.", parsed?.code)
         }
     }
 
@@ -624,6 +648,9 @@ class DriverApi(
 
     private companion object {
         const val TAG = "DriverApi"
+
+        /** `Permission.VEHICLE_LOOKUP_SENSITIVE` — held by a fleet owner, never by a driver alone. */
+        const val FULL_RC_PERMISSION = "vehicles.lookup.sensitive"
         val JSON_MEDIA = "application/json; charset=utf-8".toMediaType()
     }
 }

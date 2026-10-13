@@ -821,17 +821,13 @@ export async function trackingHistory(
     const isFleet = auth.organizationId === truck.organizationId;
     const isDriver = auth.driverId !== null && truck.currentDriverId === auth.driverId;
     if (!isFleet && !isDriver) {
-      // A customer may still replay the trip carrying their order.
+      // A customer may still replay the trip carrying their order. The Seller
+      // that loaded it may not: the trail leads to the customer's door.
       const permitted = query.tripId
         ? await prisma.trip.findFirst({
             where: {
               id: query.tripId,
-              order: {
-                OR: [
-                  { customerOrganizationId: auth.organizationId ?? '__none__' },
-                  { supplierOrganizationId: auth.organizationId ?? '__none__' },
-                ],
-              },
+              order: { customerOrganizationId: auth.organizationId ?? '__none__' },
             },
             select: { id: true },
           })
@@ -892,19 +888,19 @@ export async function coveredPath(truckId: string, since: Date, limit: number): 
 export async function tripReplay(auth: AuthContext, tripId: string) {
   const trip = await prisma.trip.findUnique({
     where: { id: tripId },
-    include: { order: { select: { customerOrganizationId: true, supplierOrganizationId: true } } },
+    include: { order: { select: { customerOrganizationId: true } } },
   });
   if (!trip) throw errors.notFound('Trip');
 
+  // The fleet, its driver and the customer — never the Seller, whose view of a
+  // trip stops at its own yard.
   if (!auth.isPlatformAdmin) {
     const permitted =
       auth.organizationId === trip.organizationId ||
       (auth.driverId !== null && trip.driverId === auth.driverId) ||
       (trip.order !== null &&
         auth.organizationId !== null &&
-        [trip.order.customerOrganizationId, trip.order.supplierOrganizationId].includes(
-          auth.organizationId,
-        ));
+        trip.order.customerOrganizationId === auth.organizationId);
     if (!permitted) throw errors.notFound('Trip');
   }
 

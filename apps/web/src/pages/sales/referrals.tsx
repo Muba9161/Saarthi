@@ -21,7 +21,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 /**
  * My referral link and QR.
  *
- * The link is the salesperson's GODID, deliberately — they can read their own
+ * The link is the Saarthi Rahi's GODID, deliberately — they can read their own
  * identity in the URL and see that it is theirs, and there is no second code
  * that could resolve to the wrong person and misdirect a reward.
  *

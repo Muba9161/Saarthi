@@ -35,11 +35,11 @@ import {
 } from '@/components/ui/dialog';
 
 /**
- * The trackers a salesperson is carrying.
+ * The trackers a Saarthi Rahi is carrying.
  *
  * Saarthi provides the tracker and a customer cannot substitute their own, so
  * this screen is a custody chain and nothing more: which paid-for units are in
- * the salesperson's bag, which have been handed over and to whom, and which the
+ * the Saarthi Rahi's bag, which have been handed over and to whom, and which the
  * customer has since fitted.
  *
  * Two things it deliberately does not do.
@@ -208,7 +208,7 @@ export function SalesTrackersPage(): React.ReactElement {
  *
  * `acknowledgedBy` is required, and it is the whole point of the form: a
  * handover with nobody's name against it is the one that gets disputed months
- * later when a unit cannot be found. The salesperson is standing in front of
+ * later when a unit cannot be found. The Saarthi Rahi is standing in front of
  * that person when they fill it in.
  */
 function HandoverDialog({

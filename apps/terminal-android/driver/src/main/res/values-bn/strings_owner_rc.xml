@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="owner_rc_show">সম্পূর্ণ RC দেখুন</string>
+    <string name="owner_rc_show_sub">গাড়ির মালিকের জন্য। আপনার Secure PIN চাইবে, Saarthi ওয়েবসাইটে যেটা ব্যবহার করেন।</string>
+    <string name="owner_rc_pin_title">আপনার Secure PIN দিন</string>
+    <string name="owner_rc_pin_sub">Saarthi ওয়েবসাইটে যে 4 সংখ্যার PIN ব্যবহার করেন।</string>
+    <string name="owner_rc_cancel">বাতিল</string>
+    <string name="owner_rc_title">সম্পূর্ণ RC</string>
+    <string name="owner_rc_father">পিতার নাম</string>
+    <string name="owner_rc_mobile">মোবাইল</string>
+    <string name="owner_rc_address">ঠিকানা</string>
+    <string name="owner_rc_policy">বিমা পলিসি</string>
+    <string name="owner_rc_hides">5 মিনিটে নিজে থেকেই লুকিয়ে যাবে।</string>
+    <string name="owner_rc_hide">সম্পূর্ণ RC লুকান</string>
+    <string name="owner_rc_needs_ownership">আগে Saarthi ওয়েবসাইটে নিশ্চিত করুন যে গাড়িটি আপনার (গাড়ির পেজ → মালিকানা)। তারপর সম্পূর্ণ RC এখানে খুলবে।</string>
+    <string name="owner_rc_no_pin">আগে Saarthi ওয়েবসাইটে Settings → Security-তে আপনার Secure PIN তৈরি করুন।</string>
+    <string name="owner_rc_unavailable">এই মুহূর্তে সম্পূর্ণ RC খোলা গেল না। একটু পরে আবার চেষ্টা করুন।</string>
+    <string name="owner_rc_offline">Saarthi-র সাথে সংযোগ নেই। সিগন্যাল পেলে আবার চেষ্টা করুন।</string>
+</resources>

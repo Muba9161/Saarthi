@@ -361,14 +361,14 @@ export function RegisterPage() {
       // first step opens on the answer rather than on a blank.
       preferredLanguage: locale,
       /*
-       * The salesperson to credit this signup to, if the visitor arrived
+       * The Saarthi Rahi to credit this signup to, if the visitor arrived
        * through a referral link or QR.
        *
        * Read from `?ref=` and, failing that, from what the referral landing
        * page remembered — somebody may open the link on Tuesday and finish
        * signing up on Thursday. Never shown as a field: it is not a question
        * the registrant should have to answer, and it is not trusted either.
-       * The API re-resolves it against a verified salesman profile and ignores
+       * The API re-resolves it against a verified Saarthi Rahi profile and ignores
        * anything it cannot stand behind, so an invented code credits nobody.
        */
       referralCode: referralCode ?? undefined,

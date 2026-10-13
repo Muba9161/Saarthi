@@ -23,11 +23,11 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
  * than an unfinished screen. It answers "did the sale land, and is the customer
  * actually using it" — a name, a subscription state, how many vehicles, how
  * many are live. It carries no driver names, no positions, no trips, no
- * documents and no contact details beyond what the salesperson recorded on
+ * documents and no contact details beyond what the Saarthi Rahi recorded on
  * their own lead.
  *
  * That is why the SALESMAN role holds none of the fleet read permissions: a
- * salesperson who closed a deal last quarter has no business watching that
+ * Saarthi Rahi who closed a deal last quarter has no business watching that
  * customer's vehicles move, and if this screen needed those grants to work, the
  * grants would be the leak.
  */

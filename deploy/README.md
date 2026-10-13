@@ -88,7 +88,7 @@ production data — `pg_dump` on a timer plus an off-box copy at minimum.
 
 These are properties of the application, not of the server setup:
 
-1. **Email covers account links only; no SMS.** Password-reset and salesperson
+1. **Email covers account links only; no SMS.** Password-reset and Saarthi Rahi
    set-password emails go out over SMTP once `SMTP_USER` and `SMTP_PASSWORD` are
    set. Without them no reset email is sent, and with `NODE_ENV=production` the
    reset token is not returned in the API response either, so a forgotten

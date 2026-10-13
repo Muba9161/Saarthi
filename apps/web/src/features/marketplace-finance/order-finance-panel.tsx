@@ -219,7 +219,12 @@ function Actions({
       <p className="text-sm text-muted-foreground">Confirm what arrived once the order is delivered.</p>
     );
   }
-  if (customer && data.stage === OrderFinanceStage.PAYMENT_70_REQUIRED && data.balanceDue > 0) {
+  if (
+    customer &&
+    data.stage === OrderFinanceStage.PAYMENT_70_REQUIRED &&
+    data.balanceDue !== null &&
+    data.balanceDue > 0
+  ) {
     return (
       <Button
         className="w-full sm:w-auto"
@@ -313,7 +318,7 @@ function ProviderEconomics({
   agreedAmount,
 }: {
   provider: NonNullable<OrderFinanceSummary['provider']>;
-  agreedAmount: number;
+  agreedAmount: number | null;
 }) {
   const cost = provider.procurementAmount ?? provider.procurementReference;
   return (

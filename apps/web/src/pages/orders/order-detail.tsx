@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Check, Star, Truck } from 'lucide-react';
 import { toast } from 'sonner';
-import { OrderStatus, Permission, RealtimeChannel, RealtimeEvent, formatCurrency, formatNumber, humanizeEnum, relativeTimeFrom } from '@saarthi/shared';
+import { OrderStatus, OrganizationType, Permission, RealtimeChannel, RealtimeEvent, formatCurrency, formatNumber, humanizeEnum, relativeTimeFrom } from '@saarthi/shared';
 import { api, errorMessage } from '@/lib/api-client';
 import type { OrderDetail } from '@/lib/api-types';
 import { useAuth } from '@/features/auth/auth-context';
@@ -27,8 +27,14 @@ export function OrderDetailPage() {
   const queryClient = useQueryClient();
   const [quoteOpen, setQuoteOpen] = React.useState(false);
   const [rateOpen, setRateOpen] = React.useState(false);
+  /*
+   * The Seller supplying this order is shown what it needs to load the truck,
+   * not the delivery or the fleet's price, and is not admitted to the order's
+   * live stream — its updates arrive on its own tenant stream instead.
+   */
+  const isSeller = session?.organization?.type === OrganizationType.SUPPLIER;
 
-  useChannels(id ? [RealtimeChannel.order(id)] : []);
+  useChannels(id && !isSeller ? [RealtimeChannel.order(id)] : []);
 
   const order = useQuery({
     queryKey: ['order', id],
@@ -73,7 +79,7 @@ export function OrderDetailPage() {
             {isCustomer && data.status === OrderStatus.DELIVERED && !data.rating ? (
               <Button onClick={() => setRateOpen(true)}><Star className="size-4" />Rate delivery</Button>
             ) : null}
-            {data.tripId ? <Button variant="outline" asChild><Link to={`/trips/${data.tripId}`}>Track delivery</Link></Button> : null}
+            {data.tripId && !isSeller ? <Button variant="outline" asChild><Link to={`/trips/${data.tripId}`}>Track delivery</Link></Button> : null}
           </div>
         }
       />
@@ -84,18 +90,19 @@ export function OrderDetailPage() {
             <CardHeader className="pb-3"><SectionHeader title="Requirement" /></CardHeader>
             <CardContent className="grid grid-cols-2 gap-4 pt-0 text-sm">
               <div><p className="text-xs text-muted-foreground">Pickup</p><p className="font-medium">{data.originAddress}</p></div>
-              <div><p className="text-xs text-muted-foreground">Delivery</p><p className="font-medium">{data.destinationAddress}</p></div>
-              <div><p className="text-xs text-muted-foreground">Distance</p><p className="tabular font-medium">{data.distanceKm ?? '-'} km</p></div>
+              {data.destinationAddress ? <div><p className="text-xs text-muted-foreground">Delivery</p><p className="font-medium">{data.destinationAddress}</p></div> : null}
+              {isSeller ? null : <div><p className="text-xs text-muted-foreground">Distance</p><p className="tabular font-medium">{data.distanceKm ?? '-'} km</p></div>}
               <div><p className="text-xs text-muted-foreground">Capacity needed</p><p className="tabular font-medium">{data.requiredCapacityTons}T</p></div>
               <div><p className="text-xs text-muted-foreground">Material value</p><p className="tabular font-medium">{formatCurrency(data.materialPrice)}</p></div>
-              <div><p className="text-xs text-muted-foreground">Transport</p><p className="tabular font-medium">{formatCurrency(data.transportPrice)}</p></div>
+              {isSeller ? null : <div><p className="text-xs text-muted-foreground">Transport</p><p className="tabular font-medium">{formatCurrency(data.transportPrice)}</p></div>}
               {data.notes ? <div className="col-span-2"><p className="text-xs text-muted-foreground">Notes</p><p>{data.notes}</p></div> : null}
             </CardContent>
           </Card>
 
           <OrderFinancePanel orderId={id} orderStatus={data.status} />
 
-          <Card>
+          {/* The bidding is between the customer and the fleets; a Seller has no part in it. */}
+          {isSeller ? null : <Card>
             <CardHeader className="pb-3">
               <SectionHeader title={`Quotes (${data.quotes.length})`} description={isCustomer ? 'Compare price, ETA, truck and driver score.' : 'Your offer on this requirement.'} />
             </CardHeader>
@@ -134,7 +141,7 @@ export function OrderDetailPage() {
                 ))
               )}
             </CardContent>
-          </Card>
+          </Card>}
         </div>
 
         <Card>

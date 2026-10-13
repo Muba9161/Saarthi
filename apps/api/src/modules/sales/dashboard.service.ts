@@ -15,25 +15,25 @@ import { balances } from '../wallet/wallet-ledger.service';
 import { handoverSummary, type HandoverSummary } from './handover.service';
 
 /**
- * The salesman dashboard and customer list.
+ * The Saarthi Rahi dashboard and customer list.
  *
  * Every number on these screens is a `COUNT` or a `SUM` over real rows. There
  * is no seeded pipeline, no demo lead, no illustrative commission figure. A
- * salesperson's first login shows zeros, and that is correct — a dashboard that
+ * Saarthi Rahi's first login shows zeros, and that is correct — a dashboard that
  * opens with twenty-four invented leads is a dashboard nobody can trust the
  * day it has twenty-four real ones.
  *
- * ## What a salesperson may see of a customer
+ * ## What a Saarthi Rahi may see of a customer
  *
  * Deliberately thin, and assembled here rather than by granting fleet
  * permissions. The list answers "did the sale land, and is the customer
  * actually using it" — a name, a vehicle count, a subscription state, how many
  * vehicles are reporting. It carries no driver names, no positions, no trips,
- * no documents, no contact details beyond what the salesperson captured on the
+ * no documents, no contact details beyond what the Saarthi Rahi captured on the
  * lead themselves.
  *
  * That restriction is why `SALESMAN` holds none of the fleet read permissions:
- * a salesperson who closed a deal last quarter has no business watching that
+ * a Saarthi Rahi who closed a deal last quarter has no business watching that
  * customer's vehicles move, and if this screen needed those grants to work, the
  * grants would be the leak.
  */
@@ -61,28 +61,28 @@ export interface SalesDashboard {
     active: number;
   };
   trackers: HandoverSummary;
-  /** The salesperson's wallet — every reward is a successful referral. */
+  /** The Saarthi Rahi's wallet — every reward is a successful referral. */
   earnings: { totalEarned: number; available: number; held: number };
   onboarding: {
     /** Customers with a tracker in hand and no live vehicle yet. */
     awaitingFirstVehicle: number;
-    /** First-vehicle demonstrations the salesperson has completed. */
+    /** First-vehicle demonstrations the Saarthi Rahi has completed. */
     completed: number;
   };
 }
 
 /**
- * The salesperson's own roll-up.
+ * The Saarthi Rahi's own roll-up.
  *
  * Cached for twenty seconds — long enough to absorb a screen that polls, short
- * enough that a salesperson who has just created a lead sees it. Keyed by
- * salesman id, which is the isolation boundary that applies to them; nothing in
+ * enough that a Saarthi Rahi who has just created a lead sees it. Keyed by
+ * Saarthi Rahi id, which is the isolation boundary that applies to them; nothing in
  * the payload belongs to a tenant, so there is no tenant to key by.
  */
 export async function dashboard(input: {
   salesmanId: string;
   godId: string;
-  /** The salesperson's login, whose wallet their rewards are paid into. */
+  /** The Saarthi Rahi's login, whose wallet their rewards are paid into. */
   userId: string | null;
 }): Promise<SalesDashboard> {
   return cached(
@@ -226,13 +226,13 @@ export interface SalesCustomerView {
 }
 
 /**
- * The customers attributed to one salesperson.
+ * The customers attributed to one Saarthi Rahi.
  *
- * Built from the attribution table outwards, so a salesperson sees exactly the
+ * Built from the attribution table outwards, so a Saarthi Rahi sees exactly the
  * customers they are credited with and no others. Each row is then enriched
  * with four counts, and the choice of *which* four is the access-control
  * decision: they describe whether the product is being used, which is what a
- * salesperson legitimately needs, and they describe nothing about who is
+ * Saarthi Rahi legitimately needs, and they describe nothing about who is
  * driving where.
  */
 export async function customers(
@@ -269,7 +269,7 @@ export async function customers(
   /*
    * Four grouped queries rather than a per-customer loop.
    *
-   * A salesperson with forty customers would otherwise cost a hundred and
+   * A Saarthi Rahi with forty customers would otherwise cost a hundred and
    * sixty round trips on a page they open every morning.
    */
   const [subscriptions, vehicleGroups, liveGroups, trackerGroups] = await Promise.all([
@@ -339,11 +339,11 @@ export async function customers(
 /**
  * The vehicles of one attributed customer, for the first-vehicle demonstration.
  *
- * Registration and a live flag, nothing else. The salesperson needs to pick
+ * Registration and a live flag, nothing else. The Saarthi Rahi needs to pick
  * which vehicle they are setting up and see whether it came alive; a position,
  * a driver or an odometer reading would be somebody else's data.
  *
- * Refuses outright when the customer is not attributed to this salesperson —
+ * Refuses outright when the customer is not attributed to this Saarthi Rahi —
  * as a 404, so the endpoint cannot be used to test whether an organization id
  * exists.
  */

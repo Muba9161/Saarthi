@@ -15,7 +15,7 @@ import { config } from '../../config/env';
  * The first-vehicle demonstration, read back from the systems that already
  * know the answer.
  *
- * A salesperson sets up one vehicle in front of the owner to teach them the
+ * A Saarthi Rahi sets up one vehicle in front of the owner to teach them the
  * process; vehicles two to ten are then done by the owner's own drivers using
  * the same Driver App, the same vehicle QR and the same OBD flow. This file's
  * only job is to say, honestly, whether that first vehicle actually came alive.
@@ -36,7 +36,7 @@ import { config } from '../../config/env';
  *
  * A checklist that only says ✓ or ✗ lies twice. A tracker fitted ninety
  * seconds ago that has not reported yet is not a failed OBD connection, and
- * telling a salesperson to go and check a cable that is fine wastes the visit
+ * telling a Saarthi Rahi to go and check a cable that is fine wastes the visit
  * and their credibility. So each step reports CONFIRMED, PENDING or UNKNOWN
  * with the observation behind it, and `SALES_ONBOARDING_TELEMETRY_GRACE_MINUTES`
  * decides when silence stops being "give it a moment".
@@ -63,7 +63,7 @@ function result(
  * Everything Saarthi currently knows about one vehicle's setup.
  *
  * Read in one pass rather than a query per step: the six answers come from
- * four tables, and a salesperson standing in a yard refreshing this screen on
+ * four tables, and a Saarthi Rahi standing in a yard refreshing this screen on
  * a phone tether should cost four round trips, not eleven.
  */
 async function gather(vehicleId: string) {
@@ -85,7 +85,7 @@ async function gather(vehicleId: string) {
      * The tracker entitlement the customer paid for, fitted to this vehicle.
      *
      * `vehicle_trackers`, not a sales-owned table: this is the row the
-     * subscription module creates when the tracker is bought, and the salesman
+     * subscription module creates when the tracker is bought, and the Saarthi Rahi
      * handover is a custody note against it.
      */
     prisma.vehicleTracker.findFirst({
@@ -162,7 +162,7 @@ const OBD_METRICS: readonly string[] = [
 /**
  * Assess one vehicle against the six demonstration steps.
  *
- * Read-only, and safe to poll: the salesperson's screen refreshes this while
+ * Read-only, and safe to poll: the Saarthi Rahi's screen refreshes this while
  * they wait for the first reading to arrive.
  */
 export async function readiness(
@@ -175,7 +175,7 @@ export async function readiness(
   /*
    * Tenant check by argument rather than by session.
    *
-   * A salesperson has no organization, so the usual `assertTenantAccess` does
+   * A Saarthi Rahi has no organization, so the usual `assertTenantAccess` does
    * not apply to them — their claim on this vehicle comes from the lead they
    * are working, which the route resolves and passes in here. Reported as a
    * 404 for the same reason `assertTenantAccess` does: a 403 would confirm the
@@ -427,9 +427,9 @@ export async function readiness(
 }
 
 /**
- * The readiness report, for a salesperson.
+ * The readiness report, for a Saarthi Rahi.
  *
- * A salesperson has no tenant membership, so their claim on a vehicle has to
+ * A Saarthi Rahi has no tenant membership, so their claim on a vehicle has to
  * come from somewhere else: the customer it belongs to must be one they are
  * credited with. That is resolved here — vehicle → organization → live
  * attribution — and a vehicle belonging to anybody else is reported as not

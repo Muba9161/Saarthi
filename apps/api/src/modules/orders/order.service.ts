@@ -10,7 +10,6 @@ import {
   type MaterialUnit,
   type TruckType,
   buildPaginationMeta,
-  communicationPartyForViewer,
   distanceKm,
   mayKnowCounterparty,
   orderStateMachine,
@@ -36,6 +35,23 @@ import {
 import type { AuthContext } from '../../auth/context';
 import { assertOrderStatusAllowed, onOrderCancelled } from '../marketplace-finance/order-finance.service';
 import { bookBackhaul, notifyBackhaulBooked } from '../return-loads/backhaul-lifecycle';
+import {
+  actingParty,
+  decorate,
+  eventsFor,
+  orderInclude,
+  orderViewerParty,
+  partyOnOrder,
+  ratingFor,
+  reasonFor,
+  searchableOrderFields,
+  statusChangeText,
+  type OrderParties,
+  type OrderRecord,
+  type OrderSummary,
+} from './order.view';
+
+export type { OrderSummary } from './order.view';
 
 /**
  * Orders — the customer marketplace.
@@ -46,165 +62,8 @@ import { bookBackhaul, notifyBackhaulBooked } from '../return-loads/backhaul-lif
  * and broadcast to exactly the parties involved.
  */
 
-export interface OrderSummary {
-  id: string;
-  reference: string;
-  status: OrderStatus;
-  customerOrganizationId: string;
-  customerName: string;
-  supplierOrganizationId: string | null;
-  supplierName: string | null;
-  fleetOrganizationId: string | null;
-  fleetName: string | null;
-  materialId: string | null;
-  materialName: string;
-  quantity: number;
-  unit: string;
-  materialPrice: number | null;
-  transportPrice: number | null;
-  totalPrice: number | null;
-  budget: number | null;
-  originAddress: string;
-  originLatitude: number;
-  originLongitude: number;
-  destinationAddress: string;
-  destinationLatitude: number;
-  destinationLongitude: number;
-  distanceKm: number | null;
-  requiredCapacityTons: number;
-  requiredTruckType: string | null;
-  pickupAt: string | null;
-  deliverBy: string | null;
-  assignedTruck: { id: string; registrationNumber: string } | null;
-  assignedDriver: { id: string; name: string; overallScore: number | null } | null;
-  tripId: string | null;
-  quoteCount: number;
-  notes: string | null;
-  cancellationReason: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-const orderInclude = {
-  _count: { select: { quotes: true } },
-} satisfies Prisma.OrderInclude;
-
-type OrderRecord = Prisma.OrderGetPayload<{ include: typeof orderInclude }>;
-
-/**
- * Shape order rows for one viewer.
- *
- * Every party to an order sees it, but not every party may see every other:
- * a customer is never shown which Seller the fleet bought from, and a Seller is
- * never shown who the customer is (see `communication.ts`).
- */
-async function decorate(orders: OrderRecord[], viewer: AuthContext): Promise<OrderSummary[]> {
-  const viewerParty = communicationPartyForViewer({
-    isPlatformAdmin: viewer.isPlatformAdmin,
-    organizationType: viewer.organization?.type,
-  });
-  const mayKnowSeller = mayKnowCounterparty(viewerParty, 'SELLER');
-  const mayKnowCustomer = mayKnowCounterparty(viewerParty, 'CUSTOMER');
-
-  const organizationIds = new Set<string>();
-  const truckIds = new Set<string>();
-  const driverIds = new Set<string>();
-
-  for (const order of orders) {
-    organizationIds.add(order.customerOrganizationId);
-    if (order.supplierOrganizationId) organizationIds.add(order.supplierOrganizationId);
-    if (order.fleetOrganizationId) organizationIds.add(order.fleetOrganizationId);
-    if (order.assignedTruckId) truckIds.add(order.assignedTruckId);
-    if (order.assignedDriverId) driverIds.add(order.assignedDriverId);
-  }
-
-  const [organizations, trucks, drivers] = await Promise.all([
-    prisma.organization.findMany({
-      where: { id: { in: [...organizationIds] } },
-      select: { id: true, name: true },
-    }),
-    truckIds.size > 0
-      ? prisma.truck.findMany({
-          where: { id: { in: [...truckIds] } },
-          select: { id: true, registrationNumber: true },
-        })
-      : Promise.resolve([]),
-    driverIds.size > 0
-      ? prisma.driver.findMany({
-          where: { id: { in: [...driverIds] } },
-          include: { user: { select: { firstName: true, lastName: true } } },
-        })
-      : Promise.resolve([]),
-  ]);
-
-  const orgMap = new Map(organizations.map((organization) => [organization.id, organization.name]));
-  const truckMap = new Map(trucks.map((truck) => [truck.id, truck]));
-  const driverMap = new Map(drivers.map((driver) => [driver.id, driver]));
-
-  return orders.map((order) => {
-    const truck = order.assignedTruckId ? truckMap.get(order.assignedTruckId) : undefined;
-    const driver = order.assignedDriverId ? driverMap.get(order.assignedDriverId) : undefined;
-
-    return {
-      id: order.id,
-      reference: order.reference,
-      status: order.status,
-      customerOrganizationId: order.customerOrganizationId,
-      customerName: mayKnowCustomer
-        ? (orgMap.get(order.customerOrganizationId) ?? 'Customer')
-        : 'Saarthi customer',
-      supplierOrganizationId: mayKnowSeller ? order.supplierOrganizationId : null,
-      supplierName:
-        mayKnowSeller && order.supplierOrganizationId
-          ? (orgMap.get(order.supplierOrganizationId) ?? null)
-          : null,
-      fleetOrganizationId: order.fleetOrganizationId,
-      fleetName: order.fleetOrganizationId
-        ? (orgMap.get(order.fleetOrganizationId) ?? null)
-        : null,
-      materialId: order.materialId,
-      materialName: order.materialName,
-      quantity: order.quantity,
-      unit: order.unit,
-      materialPrice: order.materialPrice ? Number(order.materialPrice) : null,
-      transportPrice: order.transportPrice ? Number(order.transportPrice) : null,
-      totalPrice: order.totalPrice ? Number(order.totalPrice) : null,
-      budget: order.budget ? Number(order.budget) : null,
-      originAddress: order.originAddress,
-      originLatitude: order.originLatitude,
-      originLongitude: order.originLongitude,
-      destinationAddress: order.destinationAddress,
-      destinationLatitude: order.destinationLatitude,
-      destinationLongitude: order.destinationLongitude,
-      distanceKm: order.distanceKm,
-      requiredCapacityTons: order.requiredCapacityTons,
-      requiredTruckType: order.requiredTruckType,
-      pickupAt: order.pickupAt?.toISOString() ?? null,
-      deliverBy: order.deliverBy?.toISOString() ?? null,
-      assignedTruck: truck ? { id: truck.id, registrationNumber: truck.registrationNumber } : null,
-      assignedDriver: driver
-        ? {
-            id: driver.id,
-            name: `${driver.user.firstName} ${driver.user.lastName}`.trim(),
-            overallScore: driver.overallScore,
-          }
-        : null,
-      tripId: order.tripId,
-      quoteCount: order._count.quotes,
-      notes: order.notes,
-      cancellationReason: order.cancellationReason,
-      createdAt: order.createdAt.toISOString(),
-      updatedAt: order.updatedAt.toISOString(),
-    };
-  });
-}
-
 /** Every organization entitled to see this order. */
-function partiesOf(order: {
-  customerOrganizationId: string;
-  supplierOrganizationId: string | null;
-  fleetOrganizationId: string | null;
-}): (string | null)[] {
+function partiesOf(order: OrderParties): (string | null)[] {
   return [order.customerOrganizationId, order.supplierOrganizationId, order.fleetOrganizationId];
 }
 
@@ -245,22 +104,27 @@ function isOrderParty(auth: AuthContext, order: OrderRecord): boolean {
 }
 
 /**
- * Changing an order is for its parties only.
+ * Changing an order is for the two ends that run it: the customer and the fleet
+ * carrying it (and platform admins).
  *
  * A fleet that quoted may follow the order (`assertOrderAccess`), but a quote —
  * least of all a losing or withdrawn one — is not a say in it: without this a
  * rival bidder could cancel the order, release the winner's truck and driver,
- * or walk it to "completed". Reported as not-found to anyone who cannot see it.
+ * or walk it to "completed". The Seller follows the order too, read-only: it
+ * supplies the fleet, not the customer, so it neither moves nor cancels the
+ * customer's order — and nothing it types can reach the customer as a reason.
+ * Reported as not-found to anyone who cannot see it.
  */
-async function assertOrderParty(auth: AuthContext, order: OrderRecord): Promise<void> {
+async function assertMayChangeOrder(auth: AuthContext, order: OrderRecord): Promise<void> {
   await assertOrderAccess(auth, order);
-  if (!isOrderParty(auth, order)) {
-    throw errors.forbidden('Only the customer, the supplier or the assigned fleet can change this order.');
+  const runsOrder =
+    auth.isPlatformAdmin ||
+    (auth.organizationId !== null &&
+      [order.customerOrganizationId, order.fleetOrganizationId].includes(auth.organizationId));
+  if (!runsOrder) {
+    throw errors.forbidden('Only the customer or the fleet carrying this order can change it.');
   }
 }
-
-/** Events that describe the bidding itself — who quoted what — and belong to the parties. */
-const BIDDING_EVENTS = new Set(['QUOTE_ADDED', 'QUOTE_WITHDRAWN', 'QUOTE_ACCEPTED']);
 
 async function nextReference(): Promise<string> {
   const year = new Date().getFullYear();
@@ -364,6 +228,9 @@ export async function listOrders(
   query: OrderListQuery,
 ): Promise<Paginated<OrderSummary>> {
   const organizationId = auth.organizationId;
+  // A Seller may not filter, search or sort on what it is never shown: a match
+  // or an ordering would confirm the customer, the delivery or the fleet's price.
+  const mayKnowCustomer = mayKnowCounterparty(orderViewerParty(auth), 'CUSTOMER');
 
   const scope: Prisma.OrderWhereInput =
     auth.isPlatformAdmin && !organizationId
@@ -382,7 +249,7 @@ export async function listOrders(
       {
         ...(query.status ? { status: { in: query.status as OrderStatus[] } } : {}),
         ...(query.activeOnly ? { status: { in: ACTIVE_ORDER_STATUSES } } : {}),
-        ...(query.customerOrganizationId
+        ...(query.customerOrganizationId && mayKnowCustomer
           ? { customerOrganizationId: query.customerOrganizationId }
           : {}),
         ...(query.fleetOrganizationId ? { fleetOrganizationId: query.fleetOrganizationId } : {}),
@@ -396,24 +263,15 @@ export async function listOrders(
               },
             }
           : {}),
-        ...(query.search
-          ? {
-              OR: [
-                { reference: { contains: query.search, mode: 'insensitive' } },
-                { materialName: { contains: query.search, mode: 'insensitive' } },
-                { originAddress: { contains: query.search, mode: 'insensitive' } },
-                { destinationAddress: { contains: query.search, mode: 'insensitive' } },
-              ],
-            }
-          : {}),
+        ...(query.search ? { OR: searchableOrderFields(auth, query.search) } : {}),
       },
     ],
   };
 
   const orderBy: Prisma.OrderOrderByWithRelationInput =
-    query.sortBy === 'deliverBy'
+    query.sortBy === 'deliverBy' && mayKnowCustomer
       ? { deliverBy: query.sortOrder }
-      : query.sortBy === 'totalPrice'
+      : query.sortBy === 'totalPrice' && mayKnowCustomer
         ? { totalPrice: query.sortOrder }
         : query.sortBy === 'status'
           ? { status: query.sortOrder }
@@ -448,32 +306,11 @@ export async function getOrder(auth: AuthContext, orderId: string) {
     prisma.orderRating.findUnique({ where: { orderId } }),
   ]);
 
-  // A fleet following an order it quoted on sees how the order moves, never
-  // the bidding: quote events name rival fleets and their prices, and event
-  // metadata carries them — which `listQuotes` already keeps to its own quote.
-  const party = isOrderParty(auth, order);
-  const visibleEvents = party ? events : events.filter((event) => !BIDDING_EVENTS.has(event.type));
-
   return {
     ...summary!,
-    events: visibleEvents.map((event) => ({
-      id: event.id,
-      type: event.type,
-      description: event.description,
-      metadata: party ? event.metadata : null,
-      createdAt: event.createdAt.toISOString(),
-    })),
+    events: await eventsFor(auth, order, events, isOrderParty(auth, order)),
     quotes,
-    rating: rating
-      ? {
-          rating: rating.rating,
-          punctuality: rating.punctuality,
-          communication: rating.communication,
-          cargoCondition: rating.cargoCondition,
-          comment: rating.comment,
-          createdAt: rating.createdAt.toISOString(),
-        }
-      : null,
+    rating: ratingFor(auth, rating),
   };
 }
 
@@ -1224,7 +1061,7 @@ export async function transitionOrder(
 ): Promise<OrderSummary> {
   const order = await prisma.order.findUnique({ where: { id: orderId }, include: orderInclude });
   if (!order) throw errors.notFound('Order');
-  await assertOrderParty(auth, order);
+  await assertMayChangeOrder(auth, order);
 
   const check = orderStateMachine.assertTransition(order.status, status);
   if (!check.allowed) throw errors.invalidTransition(check.reason!);
@@ -1248,15 +1085,17 @@ export async function transitionOrder(
   await recordEvent(
     orderId,
     'STATUS_CHANGED',
-    reason ?? `Order moved from ${order.status} to ${status}.`,
+    reason ?? statusChangeText(order.status, status),
     auth.user.id,
     { from: order.status, to: status },
   );
 
+  // The customer hears the reason only from a party it may hear from.
+  const toCustomer = reasonFor(actingParty(auth, order), 'CUSTOMER', reason);
   void notifyOrganization(order.customerOrganizationId, {
     type: NotificationType.ORDER_UPDATED,
     title: `Order ${status.toLowerCase().replace(/_/g, ' ')}`,
-    body: `${order.reference}: ${reason ?? `status is now ${status.toLowerCase().replace(/_/g, ' ')}.`}`,
+    body: `${order.reference}: ${toCustomer ?? `status is now ${status.toLowerCase().replace(/_/g, ' ')}.`}`,
     priority: NotificationPriority.NORMAL,
     actionUrl: `/orders/${orderId}`,
   });
@@ -1269,7 +1108,7 @@ export async function transitionOrder(
   } else if (status === OrderStatus.CANCELLED) {
     void markRequirementCancelled(
       { orderId },
-      reason ?? `Order ${order.reference} was cancelled.`,
+      toCustomer ?? `Order ${order.reference} was cancelled.`,
     );
   }
 
@@ -1284,7 +1123,7 @@ export async function cancelOrder(
 ): Promise<OrderSummary> {
   const order = await prisma.order.findUnique({ where: { id: orderId }, include: orderInclude });
   if (!order) throw errors.notFound('Order');
-  await assertOrderParty(auth, order);
+  await assertMayChangeOrder(auth, order);
 
   const check = orderStateMachine.assertTransition(order.status, OrderStatus.CANCELLED);
   if (!check.allowed) {
@@ -1339,12 +1178,16 @@ export async function cancelOrder(
   // The customer's 30%, if it was paid, goes back.
   await onOrderCancelled(orderId, auth.user.id);
 
+  // Each party is told; the reason goes only to a party allowed to hear from
+  // whoever gave it, so a customer's words never reach the Seller.
+  const author = actingParty(auth, order);
   for (const organizationId of partiesOf(order)) {
     if (!organizationId || organizationId === auth.organizationId) continue;
+    const reason = reasonFor(author, partyOnOrder(order, organizationId), input.reason);
     void notifyOrganization(organizationId, {
       type: NotificationType.ORDER_UPDATED,
       title: 'Order cancelled',
-      body: `${order.reference} was cancelled: ${input.reason}`,
+      body: reason ? `${order.reference} was cancelled: ${reason}` : `${order.reference} was cancelled.`,
       priority: NotificationPriority.HIGH,
       actionUrl: `/orders/${orderId}`,
     });

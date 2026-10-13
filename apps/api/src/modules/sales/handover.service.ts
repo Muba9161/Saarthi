@@ -170,7 +170,7 @@ export interface HandoverSummary {
   lost: number;
 }
 
-/** The counts on the salesperson's "My trackers" card. All real rows. */
+/** The counts on the Saarthi Rahi's "My trackers" card. All real rows. */
 export async function handoverSummary(salesmanId: string): Promise<HandoverSummary> {
   const grouped = await prisma.trackerHandover.groupBy({
     by: ['status'],
@@ -210,15 +210,15 @@ export async function getHandover(
 // ---------------------------------------------------------------------------
 
 /**
- * Allocate a paid-for tracker to a salesperson to carry.
+ * Allocate a paid-for tracker to a Saarthi Rahi to carry.
  *
- * Platform operations, not field sales — a salesperson taking stock out of the
+ * Platform operations, not field sales — a Saarthi Rahi taking stock out of the
  * warehouse on their own authority is how inventory goes missing, so this needs
  * `tracker_inventory.manage`, which the SALESMAN role does not hold.
  *
  * The tracker must exist and be `ACTIVE`, meaning somebody paid for it. That
  * refusal is worth being strict about: allocating a `PAYMENT_FAILED` tracker
- * would put a salesperson on a customer's doorstep with hardware the customer
+ * would put a Saarthi Rahi on a customer's doorstep with hardware the customer
  * has not bought.
  */
 export async function assignToSalesman(
@@ -243,11 +243,11 @@ export async function assignToSalesman(
   ]);
 
   if (!tracker) throw errors.notFound('Tracker');
-  if (!salesman) throw errors.notFound('Salesman profile');
+  if (!salesman) throw errors.notFound('Saarthi Rahi profile');
 
   if (tracker.status !== 'ACTIVE') {
     throw errors.businessRule(
-      `This tracker is ${tracker.status.toLowerCase()}, so it cannot be given to a salesperson to ` +
+      `This tracker is ${tracker.status.toLowerCase()}, so it cannot be given to a Saarthi Rahi to ` +
         'deliver. Only a tracker that has been paid for can be handed over.',
     );
   }
@@ -260,7 +260,7 @@ export async function assignToSalesman(
 
   if (salesman.status !== 'ACTIVE') {
     throw errors.businessRule(
-      'This salesman profile is not active, so stock cannot be allocated to it.',
+      'This Saarthi Rahi profile is not active, so stock cannot be allocated to it.',
     );
   }
 
@@ -332,11 +332,11 @@ export async function assignToSalesman(
 /**
  * Record a tracker physically changing hands.
  *
- * The one write in this module a salesperson performs on their own authority,
+ * The one write in this module a Saarthi Rahi performs on their own authority,
  * and it is deliberately a *statement about the past* rather than a state
  * change with consequences: it grants nothing, activates nothing, and starts
  * no billing. What it does is put a name — `acknowledgedBy` — against the
- * moment the unit left the salesperson's bag, which is the fact that gets
+ * moment the unit left the Saarthi Rahi's bag, which is the fact that gets
  * disputed three months later when a tracker cannot be found.
  *
  * It does not fit the tracker to a vehicle either, even when the customer has
@@ -432,7 +432,7 @@ export async function handToCustomer(
  * Takes no evidence from its caller — only the handover id. The proof is read
  * here: the tracker has to be fitted to a vehicle on `vehicle_trackers`, and
  * that vehicle has to have an active device assignment. Both are rows the
- * device and subscription modules own, so a salesperson cannot produce either
+ * device and subscription modules own, so a Saarthi Rahi cannot produce either
  * by asking.
  *
  * Idempotent, and it returns quietly rather than throwing when the evidence is
@@ -531,10 +531,10 @@ export async function closeHandover(
 }
 
 /**
- * The trackers a salesperson is carrying for one customer.
+ * The trackers a Saarthi Rahi is carrying for one customer.
  *
  * Used by the tracker-handover screen to show what is available to hand over
- * on this visit. Scoped to the salesperson, so it cannot be used to inspect a
+ * on this visit. Scoped to the Saarthi Rahi, so it cannot be used to inspect a
  * colleague's stock.
  */
 export async function availableForCustomer(

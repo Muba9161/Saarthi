@@ -10,7 +10,7 @@
     <string name="assistant_stop">നിർത്തുക</string>
     <string name="assistant_speak">Saarthi-യോട് സംസാരിക്കുക</string>
     <string name="assistant_quote">“%1$s”</string>
-    <string name="assistant_from">ഉറവിടം: %1$s</string>
+    <string name="assistant_from">നിങ്ങളുടെ Saarthi രേഖകളിൽ നിന്ന്</string>
     <string name="assistant_try_asking">ഇങ്ങനെ ചോദിച്ചുനോക്കൂ</string>
     <string name="assistant_suggest_vehicle">എന്റെ വാഹനം ശരിയാണോ?</string>
     <string name="assistant_suggest_fuel">ഇപ്പോൾ എത്ര ഇന്ധനമുണ്ട്?</string>

@@ -195,6 +195,28 @@ export class OrsRoutingProvider implements RoutingProvider {
     });
   }
 
+  /** Every point to every other, in one request — see [RoutingProvider.matrix]. */
+  async matrix(points: readonly LatLng[], profile: RoutingProfile): Promise<(number | null)[][]> {
+    if (points.length === 0) return [];
+    if (points.length > MAX_MATRIX_LOCATIONS) {
+      throw new RoutingError('UNAVAILABLE', `At most ${MAX_MATRIX_LOCATIONS} places can be compared at once.`);
+    }
+
+    const raw = await this.post<RawMatrixResponse>(`/v2/matrix/${profile}`, {
+      locations: points.map(pair),
+      metrics: ['distance'],
+      units: 'm',
+    });
+
+    // Square, whatever came back: a missing row or cell is "no route", never a shifted one.
+    return points.map((_, row) =>
+      points.map((__, column) => {
+        const value = raw.distances?.[row]?.[column];
+        return typeof value === 'number' ? value : null;
+      }),
+    );
+  }
+
   // -------------------------------------------------------------------------
   // Transport
   // -------------------------------------------------------------------------
@@ -437,6 +459,12 @@ export class OrsRoutingProvider implements RoutingProvider {
  * nobody scrolls to.
  */
 const MAX_MATRIX_DESTINATIONS = 25;
+
+/**
+ * Points in one all-pairs matrix. 1,600 pairs, inside the free plan's 3,500:
+ * a driver's queue of eight trips needs seventeen.
+ */
+const MAX_MATRIX_LOCATIONS = 40;
 
 /** ORS takes [longitude, latitude]. Six decimals is about 11 cm. */
 function pair(point: LatLng): [number, number] {

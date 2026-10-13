@@ -533,7 +533,7 @@ describe('smart commerce', () => {
   // -------------------------------------------------------------------------
 
   describe('communication boundary', () => {
-    it('hides a seller’s contact details from a customer, and not from a fleet owner', async () => {
+    it('hides a seller from a customer altogether, and not from a fleet owner', async () => {
       await prisma.organizationProfile.create({
         data: {
           organizationId: sellerOrg.id,
@@ -546,16 +546,15 @@ describe('smart commerce', () => {
         where: { organizationId: sellerOrg.id },
       });
 
-      const asCustomer = await request<{
-        organization: { supportPhone: string | null; supportEmail: string | null };
-      }>({
+      // Not merely its contact details: the customer is not told the Seller
+      // exists, so a name and a search box cannot route around the fleet.
+      const asCustomer = await request({
         method: 'GET',
         url: `/api/v1/profile/${publicSlug}`,
         user: customer,
       });
-      expect(asCustomer.status).toBe(200);
-      expect(asCustomer.body.data.organization.supportPhone).toBeNull();
-      expect(asCustomer.body.data.organization.supportEmail).toBeNull();
+      expect(asCustomer.status).toBe(404);
+      expect(JSON.stringify(asCustomer.body)).not.toContain('+919811112222');
 
       const asFleet = await request<{ organization: { supportPhone: string | null } }>({
         method: 'GET',

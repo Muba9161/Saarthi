@@ -15,7 +15,7 @@
  * The referral also records its first successful subscription payment
  * (`QUALIFIED`), which is reporting only — the reward does not wait for it.
  *
- * **Anything to do with salespeople.** The salesman/GODID channel
+ * **Anything to do with Saarthi Rahis.** The Saarthi Rahi/GODID channel
  * (`domain/sales.ts`) is a separate program with its own tables, statuses and
  * rewards. A code here is never a GODID and never resolves to one, so
  * the attribution source of any customer is always unambiguous.
@@ -83,7 +83,7 @@ export function referralProgramUrl(baseUrl: string, code: string): string {
 /**
  * Roles that do not take part in Refer & Earn.
  *
- * A salesperson already refers customers through their GODID link, which earns
+ * A Saarthi Rahi already refers customers through their GODID link, which earns
  * their reward. Offering them a second code for the
  * same act would merge the two programs in the one place the specification
  * asks for them to stay apart. This is the single place eligibility is

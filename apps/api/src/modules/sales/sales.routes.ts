@@ -49,18 +49,18 @@ import { godWebConfigured } from '../../providers/godweb';
  * The Sales surface.
  *
  * One module inside the one Saarthi platform. There is no sales portal, no
- * salesman website, no salesman APK and no salesman authentication system —
+ * Saarthi Rahi website, no Saarthi Rahi APK and no Saarthi Rahi authentication system —
  * these routes sit behind the same `app.authenticate`, the same RBAC guards and
  * the same error envelope as every other module, and the Sales screens are
  * pages in the same React application.
  *
  * ## Scoping, which is different here
  *
- * Every other module scopes by tenant. A salesperson has no tenant, so these
- * routes scope by *salesman profile* instead:
+ * Every other module scopes by tenant. A Saarthi Rahi has no tenant, so these
+ * routes scope by *Saarthi Rahi profile* instead:
  * `requireSalesmanProfile(auth)` resolves the caller's own profile from their
- * user id, and every query is keyed on it. A salesman caller can never supply
- * a salesman id — `scopeFor` below returns their own or refuses — so
+ * user id, and every query is keyed on it. A Saarthi Rahi caller can never supply
+ * a Saarthi Rahi id — `scopeFor` below returns their own or refuses — so
  * `?salesmanId=` is honoured for platform administration and silently ignored
  * for everybody else.
  *
@@ -86,7 +86,7 @@ export async function salesRoutes(app: FastifyInstance): Promise<void> {
   app.addHook('preHandler', app.authenticate);
 
   /**
-   * Which salesperson's records this request may see.
+   * Which Saarthi Rahi's records this request may see.
    *
    * A platform administrator gets `null`, meaning "unscoped", and may pass an
    * explicit `salesmanId`. Everybody else is pinned to their own profile. This
@@ -100,11 +100,11 @@ export async function salesRoutes(app: FastifyInstance): Promise<void> {
   }
 
   // =========================================================================
-  // The salesperson's own profile
+  // The Saarthi Rahi's own profile
   // =========================================================================
 
   /**
-   * Who am I, as a salesperson.
+   * Who am I, as a Saarthi Rahi.
    *
    * Answers with the profile *and* the reason it cannot sell yet when it
    * cannot, so the Sales screens can explain a pending GODID rather than
@@ -162,7 +162,7 @@ export async function salesRoutes(app: FastifyInstance): Promise<void> {
     { preHandler: requirePermission(Permission.LEADS_WRITE) },
     async (request, reply) => {
       const auth = requireAuth(request);
-      // Creating a lead needs a sellable profile: an unverified salesperson
+      // Creating a lead needs a sellable profile: an unverified Saarthi Rahi
       // building a pipeline Saarthi will never credit them for is worse than
       // being told plainly that their GODID is not verified yet.
       const profile = await salesmanService.requireActiveSalesman(auth);
@@ -285,12 +285,12 @@ export async function salesRoutes(app: FastifyInstance): Promise<void> {
   );
 
   /**
-   * Record a physical sale: this salesperson, in front of this customer.
+   * Record a physical sale: this Saarthi Rahi, in front of this customer.
    *
-   * Cannot displace a live attribution — a salesperson cannot walk into a
+   * Cannot displace a live attribution — a Saarthi Rahi cannot walk into a
    * customer a colleague signed up and claim them. Reports the refusal rather
    * than throwing, because "already attributed to somebody else" is
-   * information the salesperson needs, not an error in their request.
+   * information the Saarthi Rahi needs, not an error in their request.
    */
   app.post(
     '/customers/attribute',
@@ -326,7 +326,7 @@ export async function salesRoutes(app: FastifyInstance): Promise<void> {
   // =========================================================================
 
   /**
-   * The salesperson's own link, QR and share text.
+   * The Saarthi Rahi's own link, QR and share text.
    *
    * The QR is rendered by the existing QR service. It encodes the referral URL,
    * which is a public web page — nothing about a tracker, which carries no QR
@@ -453,7 +453,7 @@ export async function salesRoutes(app: FastifyInstance): Promise<void> {
   /**
    * Where this vehicle has got to, read from the systems that know.
    *
-   * Safe to poll — the salesperson's screen refreshes it while they wait for
+   * Safe to poll — the Saarthi Rahi's screen refreshes it while they wait for
    * the first reading. Every step is a `SELECT`; nothing here connects
    * anything.
    */
@@ -469,7 +469,7 @@ export async function salesRoutes(app: FastifyInstance): Promise<void> {
       }
 
       /*
-       * A salesperson's claim on a vehicle comes from the customer they are
+       * A Saarthi Rahi's claim on a vehicle comes from the customer they are
        * credited with, not from a tenant membership they do not have.
        * `readinessForSalesman` resolves vehicle → organization → live
        * attribution and reports anything else as not found.
@@ -641,7 +641,7 @@ export async function salesRoutes(app: FastifyInstance): Promise<void> {
     },
   );
 
-  /** Allocate a paid-for tracker to a salesperson. Operations, not field sales. */
+  /** Allocate a paid-for tracker to a Saarthi Rahi. Operations, not field sales. */
   app.post(
     '/trackers/assign',
     { preHandler: requirePermission(Permission.TRACKER_INVENTORY_MANAGE) },

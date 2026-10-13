@@ -470,6 +470,8 @@ data class TripEventRequest(
     val longitude: Double? = null,
     val odometerKm: Double? = null,
     val note: String? = null,
+    /** Start this one of the driver's trips rather than whichever holds the vehicle. `/trip/start` only. */
+    val tripId: String? = null,
 )
 
 @Serializable

@@ -76,7 +76,7 @@ The account menu runs through the same `useNavItemVisible` filter as the sidebar
 | Fleet owner | Profile, Verification, Billing, Refer & earn | Business documents, Payouts |
 | Mobility provider | Profile, Verification, Billing, Refer & earn | Business documents, Payouts |
 | Supplier | Profile, Verification, Billing, Refer & earn | Business documents, Payouts |
-| Salesperson | Profile, Verification (Refer & earn hidden — uses GODID link) | — |
+| Saarthi Rahi | Profile, Verification (Refer & earn hidden — uses GODID link) | — |
 
 Plan tier is not an input to referral visibility.
 
@@ -114,10 +114,10 @@ recording and qualification involve no admin approval at any step. When the
 reward rule is supplied, it is to be applied automatically on qualification as
 well, not routed through an approval queue.
 
-**Separation from salesman/GODID.** Separate tables (`referral_program_codes`,
+**Separation from Saarthi Rahi/GODID.** Separate tables (`referral_program_codes`,
 `user_referrals`), separate status enum, separate audit prefix
 (`referral_program.*`). At registration a `SAARTHI-` code is handled by the
-program and never tried as a GODID; anything else goes to the salesman channel
+program and never tried as a GODID; anything else goes to the Saarthi Rahi channel
 unchanged. No commission rows are created.
 
 **Commission.** Not implemented, by design. No amount or percentage exists in
@@ -133,7 +133,7 @@ rule agreed later be applied retroactively.
 | Stats: Referrals / Qualified / Pending | Done |
 | No hardcoded reward | Done |
 | Loading / error / empty states | Done |
-| Eligibility handling (salesperson explained, API 403) | Done |
+| Eligibility handling (Saarthi Rahi explained, API 403) | Done |
 
 ### Files
 
@@ -151,10 +151,10 @@ rule agreed later be applied retroactively.
 
 1. **Reward rule** — amount/percentage, payout method, and whether it applies to
    already-qualified referrals.
-2. **Salesperson eligibility** — currently excluded from Refer & Earn (one line:
+2. **Saarthi Rahi eligibility** — currently excluded from Refer & Earn (one line:
    `REFERRAL_PROGRAM_EXCLUDED_ROLES`).
 3. **Both channels on one customer** — a customer referred by a user can later
-   also be attributed to a salesperson by a physical sale. Both are recorded
+   also be attributed to a Saarthi Rahi by a physical sale. Both are recorded
    today; decide whether one should block the other before rewards are paid.
 4. **Qualifying event** — currently the first successful subscription payment
    only (trackers and top-ups do not qualify).
@@ -163,22 +163,22 @@ rule agreed later be applied retroactively.
 
 ---
 
-## Update: salesperson self-signup and flat rewards
+## Update: Saarthi Rahi self-signup and flat rewards
 
 Decided by the business owner, and implemented:
 
-- **Self-signup.** A salesperson opens `/sales/join` (linked from the sign-in
-  page, and copyable from Platform → Salespeople), enters their GODID, and
+- **Self-signup.** A Saarthi Rahi opens `/sales/join` (linked from the sign-in
+  page, and copyable from Platform → Saarthi Rahis), enters their GODID, and
   Saarthi asks GODWeb for their details. A set-password link goes to the email
   **GODWeb** holds, never one typed in, because a GODID is public. Choosing the
   password activates the account with the SALESMAN role. No admin step.
   Requires `GODWEB_BASE_URL` / `GODWEB_API_KEY` and SMTP; closed without them.
 - **Flat reward, no commission.** Every successful referral earns
-  `REFERRAL_REWARD_AMOUNT` (₹100) into the salesperson's Saarthi wallet:
+  `REFERRAL_REWARD_AMOUNT` (₹100) into the Saarthi Rahi's Saarthi wallet:
   successful = the customer starts on a paid plan (its trial). Held 7 days,
   released automatically, cashed out like Refer & Earn. Commission rules,
   commission rows, approvals and both Commission screens are removed
   (migration `20260925160000_sales_rewards_replace_commissions` drops the
   tables). Once per customer; a withdrawn referral's held reward is voided.
 - **Email.** Google SMTP (`SMTP_*`) now sends password-reset emails and
-  salesperson signup links.
+  Saarthi Rahi signup links.

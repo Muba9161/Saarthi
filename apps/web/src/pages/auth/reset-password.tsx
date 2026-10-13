@@ -36,7 +36,7 @@ const schema = z
 /**
  * Choosing a password from an emailed link.
  *
- * Also the last step of a salesperson's self-signup: their link carries
+ * Also the last step of a Saarthi Rahi's self-signup: their link carries
  * `setup=salesman`, and the same form is worded as finishing an account
  * rather than resetting one. The API call is identical either way.
  */
@@ -94,7 +94,7 @@ export function ResetPasswordPage() {
         <AuthHeading
           eyebrow="Saarthi Sales"
           title="Choose your password"
-          description="Your GODID is verified. Set a password to finish setting up your salesperson account."
+          description="Your GODID is verified. Set a password to finish setting up your Saarthi Rahi account."
         />
       ) : (
         <AuthHeading

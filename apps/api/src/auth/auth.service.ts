@@ -346,18 +346,18 @@ export async function register(input: RegisterInput, meta: RequestMeta) {
     await createDefaultSubscription(result.organizationId, tier);
 
     /*
-     * The salesperson who brought this customer, if there was one.
+     * The Saarthi Rahi who brought this customer, if there was one.
      *
      * **Before `provisionSignupOrder` below**, and that ordering is
      * load-bearing rather than tidy. That call charges for the trackers and
      * vehicle top-ups priced on the signup card and, on success, calls
      * `qualifyPayment` — which credits whoever holds a live attribution *at
      * that moment*. Run afterwards it found nobody, so every digital referral
-     * signup silently earned its salesperson nothing on the add-ons they had
+     * signup silently earned its Saarthi Rahi nothing on the add-ons they had
      * just sold.
      *
      * After `createDefaultSubscription` for the opposite reason: linking the
-     * salesperson's lead recomputes its stage from the customer's
+     * Saarthi Rahi's lead recomputes its stage from the customer's
      * subscription, so the subscription has to exist first. The trackers do
      * not need to — `qualifyPayment` recomputes every lead for the
      * organization once the charge lands, from the tracker state as it is by
@@ -368,7 +368,7 @@ export async function register(input: RegisterInput, meta: RequestMeta) {
      * membership are committed by here, and `captureRegistrationReferral`
      * swallows its own failures for the same reason
      * `provisionDriverCodeOnRegistration` does. A mistyped GODID, an
-     * unverified salesperson or a customer another colleague already signed up
+     * unverified Saarthi Rahi or a customer another colleague already signed up
      * are all outcomes an operator can correct afterwards, and none of them is
      * worth losing a registration over.
      *
@@ -377,7 +377,7 @@ export async function register(input: RegisterInput, meta: RequestMeta) {
      *
      * The one field carries both referral channels. A Refer & Earn code (its
      * `SAARTHI-` prefix is what identifies it) is recorded by that program and
-     * is never tried as a GODID; anything else goes to the salesman channel.
+     * is never tried as a GODID; anything else goes to the Saarthi Rahi channel.
      */
     if (input.referralCode) {
       const handledByReferralProgram = await recordReferralProgramSignup({
@@ -497,7 +497,7 @@ export async function register(input: RegisterInput, meta: RequestMeta) {
 }
 
 /**
- * Credit a new registration to the salesperson whose referral it arrived
+ * Credit a new registration to the Saarthi Rahi whose referral it arrived
  * through.
  *
  * Never throws. Every failure is logged and swallowed, because by the time this
@@ -510,7 +510,7 @@ export async function register(input: RegisterInput, meta: RequestMeta) {
  *      attribution on them. "First valid attribution wins" is enforced by a
  *      partial unique index, not by this code, so a simultaneous registration
  *      cannot slip past it.
- *   2. Link the salesperson's own lead to the new organization, matched on the
+ *   2. Link the Saarthi Rahi's own lead to the new organization, matched on the
  *      phone number or email they captured, so their pipeline connects to the
  *      real customer rather than sitting at SIGNUP_PENDING forever.
  *
@@ -869,7 +869,7 @@ export async function resetPassword(
 
   /*
    * A pending account becomes active here. Its only way in was an emailed
-   * link — a salesperson's self-signup — so following one proves the person
+   * link — a Saarthi Rahi's self-signup — so following one proves the person
    * holds the mailbox the account belongs to. Suspended and disabled accounts
    * are left as they are: a password change is not a reinstatement.
    */

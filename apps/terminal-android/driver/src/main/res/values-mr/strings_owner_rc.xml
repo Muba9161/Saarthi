@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="owner_rc_show">पूर्ण RC पाहा</string>
+    <string name="owner_rc_show_sub">वाहनाच्या मालकासाठी. तुमचा Secure PIN विचारेल, जो Saarthi वेबसाइटवर वापरता तोच.</string>
+    <string name="owner_rc_pin_title">तुमचा Secure PIN टाका</string>
+    <string name="owner_rc_pin_sub">Saarthi वेबसाइटवर वापरता तो 4 अंकी PIN.</string>
+    <string name="owner_rc_cancel">रद्द करा</string>
+    <string name="owner_rc_title">पूर्ण RC</string>
+    <string name="owner_rc_father">वडिलांचे नाव</string>
+    <string name="owner_rc_mobile">मोबाइल</string>
+    <string name="owner_rc_address">पत्ता</string>
+    <string name="owner_rc_policy">विमा पॉलिसी</string>
+    <string name="owner_rc_hides">5 मिनिटांत आपोआप लपेल.</string>
+    <string name="owner_rc_hide">पूर्ण RC लपवा</string>
+    <string name="owner_rc_needs_ownership">आधी Saarthi वेबसाइटवर हे वाहन तुमचे आहे याची खात्री करा (वाहनाचे पेज → मालकी). मग पूर्ण RC इथे उघडेल.</string>
+    <string name="owner_rc_no_pin">आधी Saarthi वेबसाइटवर Settings → Security मध्ये तुमचा Secure PIN तयार करा.</string>
+    <string name="owner_rc_unavailable">आत्ता पूर्ण RC उघडता आली नाही. थोड्या वेळाने पुन्हा प्रयत्न करा.</string>
+    <string name="owner_rc_offline">Saarthi शी कनेक्शन नाही. सिग्नल मिळाल्यावर पुन्हा प्रयत्न करा.</string>
+</resources>

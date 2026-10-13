@@ -40,12 +40,12 @@ import type { AuthContext } from '../../auth/context';
  * **Attribution persists.** A referral that produced no immediate signup keeps
  * its claim for `SALES_ATTRIBUTION_WINDOW_DAYS`, and the expiry is *stored on
  * the row at capture time* rather than recomputed. That way a later change to
- * the configured window cannot retroactively take a salesperson's credit away,
+ * the configured window cannot retroactively take a Saarthi Rahi's credit away,
  * or hand it back to somebody whose window had already closed.
  *
  * ## The reward
  *
- * A successful referral pays the salesperson a flat reward into their Saarthi
+ * A successful referral pays the Saarthi Rahi a flat reward into their Saarthi
  * wallet — see `rewardSalesperson`. "Successful" means the customer is on a
  * paid plan, and so on its trial; nobody approves it. The reward is held for
  * the configured period and released on its own while the customer's trial or
@@ -79,7 +79,7 @@ export interface AttributionView {
   revokeReason: string | null;
   /** The window this row was captured under, in days. */
   attributionWindowDays: number;
-  /** The salesperson's reward for this customer. Null when none was earned. */
+  /** The Saarthi Rahi's reward for this customer. Null when none was earned. */
   reward: { amount: number; status: WalletEntryStatus; availableAt: string } | null;
 }
 
@@ -164,7 +164,7 @@ export interface PublicReferralView {
  * What an anonymous visitor may learn from a referral code.
  *
  * Deliberately almost nothing: whether the code belongs to a verified Saarthi
- * salesperson, what to call them, and roughly where they work. No phone, no
+ * Saarthi Rahi, what to call them, and roughly where they work. No phone, no
  * email, no pipeline, no customer list. The landing page needs "you were
  * invited by Priya from Saarthi" and nothing more, and a public endpoint that
  * returned a staff directory would be a public staff directory.
@@ -172,7 +172,7 @@ export interface PublicReferralView {
  * An unknown or unverified code is reported as `valid: false` rather than 404,
  * so the page can still sign somebody up — the referral is what fails, not the
  * signup, and turning a mistyped code into a dead end would cost Saarthi the
- * customer to punish the salesperson.
+ * customer to punish the Saarthi Rahi.
  */
 export async function resolvePublic(code: string): Promise<PublicReferralView> {
   const salesman = await resolveVerifiedSalesman(code);
@@ -213,7 +213,7 @@ export async function validateCode(
 // ---------------------------------------------------------------------------
 
 export interface CaptureResult {
-  /** Null when the code did not resolve to a salesperson who may sell. */
+  /** Null when the code did not resolve to a Saarthi Rahi who may sell. */
   attributionId: string | null;
   code: string;
   valid: boolean;
@@ -226,7 +226,7 @@ export interface CaptureResult {
  *
  * Anonymous and pre-registration: there is no customer yet, so the row carries
  * no organization and is later claimed by the registration that quotes the
- * same code. The row exists so that a salesperson can see their link is being
+ * same code. The row exists so that a Saarthi Rahi can see their link is being
  * opened, and so that a signup arriving hours later can still be credited.
  *
  * A capture is cheap and unprivileged, so it is rate-limited at the route and
@@ -256,7 +256,7 @@ export async function capture(input: {
   const now = new Date();
 
   /*
-   * One open capture per (salesperson, device) at a time.
+   * One open capture per (Saarthi Rahi, device) at a time.
    *
    * Not a unique index, because it is a de-duplication convenience rather than
    * a correctness rule — two people behind one office NAT genuinely are two
@@ -328,7 +328,7 @@ export interface AttributionOutcome {
 }
 
 /**
- * Credit a newly registered organization to the salesperson behind `code`.
+ * Credit a newly registered organization to the Saarthi Rahi behind `code`.
  *
  * Called from registration, inside no transaction and swallowing nothing that
  * matters: **a referral problem must never cost somebody their account.** By
@@ -340,9 +340,9 @@ export interface AttributionOutcome {
  *
  * The order of the checks is the interesting part:
  *
- *   1. Resolve the code to a *verified, active* salesperson. An unverified one
+ *   1. Resolve the code to a *verified, active* Saarthi Rahi. An unverified one
  *      earns nothing, so there is nothing to attribute.
- *   2. Claim an existing unexpired `CAPTURED` row from the same salesperson if
+ *   2. Claim an existing unexpired `CAPTURED` row from the same Saarthi Rahi if
  *      there is one — that is the click this registration came from, and
  *      reusing it keeps the capture-to-signup chain intact.
  *   3. Otherwise insert a fresh row.
@@ -365,7 +365,7 @@ export async function attributeRegistration(input: {
     return {
       attributed: false,
       attributionId: null,
-      reason: 'The referral code did not match a verified Saarthi salesperson.',
+      reason: 'The referral code did not match a verified Saarthi Rahi.',
     };
   }
 
@@ -378,7 +378,7 @@ export async function attributeRegistration(input: {
    * The index is what makes this correct; this read is what makes the *message*
    * useful. Without it every already-attributed customer would surface as a
    * P2002, and the audit trail would say "unique violation" where it should say
-   * "Salesman B tried to claim a customer already credited to Salesman A".
+   * "Saarthi Rahi B tried to claim a customer already credited to Saarthi Rahi A".
    */
   const live = await db.referralAttribution.findFirst({
     where: { organizationId: input.organizationId, status: { in: LIVE_STATUSES as never } },
@@ -408,7 +408,7 @@ export async function attributeRegistration(input: {
     return {
       attributed: false,
       attributionId: live.id,
-      reason: 'This customer is already attributed to another salesperson.',
+      reason: 'This customer is already attributed to another Saarthi Rahi.',
     };
   }
 
@@ -474,7 +474,7 @@ export async function attributeRegistration(input: {
       return {
         attributed: false,
         attributionId: null,
-        reason: 'This customer was attributed to another salesperson a moment earlier.',
+        reason: 'This customer was attributed to another Saarthi Rahi a moment earlier.',
       };
     }
     throw error;
@@ -482,13 +482,13 @@ export async function attributeRegistration(input: {
 }
 
 /**
- * Record a physical sale: this salesperson, standing in front of this customer.
+ * Record a physical sale: this Saarthi Rahi, standing in front of this customer.
  *
  * Distinct from `attributeRegistration` because the trust model is different.
  * There is no code to resolve — the caller is an authenticated, verified
- * salesperson acting on their own profile, which is a stronger claim than a
+ * Saarthi Rahi acting on their own profile, which is a stronger claim than a
  * string in a form. It still cannot displace a live attribution, so a
- * salesperson cannot walk into a customer another colleague signed up and
+ * Saarthi Rahi cannot walk into a customer another colleague signed up and
  * claim them.
  */
 export async function attributePhysicalSale(input: {
@@ -521,7 +521,7 @@ export async function attributePhysicalSale(input: {
     return {
       attributed: false,
       attributionId: live.id,
-      reason: 'This customer is already attributed to another salesperson.',
+      reason: 'This customer is already attributed to another Saarthi Rahi.',
     };
   }
 
@@ -556,7 +556,7 @@ export async function attributePhysicalSale(input: {
       return {
         attributed: false,
         attributionId: null,
-        reason: 'This customer was attributed to another salesperson a moment earlier.',
+        reason: 'This customer was attributed to another Saarthi Rahi a moment earlier.',
       };
     }
     throw error;
@@ -627,7 +627,7 @@ export async function liveAttributionFor(
 const PAID_PLAN_RUNNING = new Set(['TRIALING', 'ACTIVE']);
 
 /**
- * Pay the salesperson's reward for a newly attributed customer, if the
+ * Pay the Saarthi Rahi's reward for a newly attributed customer, if the
  * referral is a successful one: the customer is on a paid plan, on its trial
  * or already paying. A Free customer earns nothing.
  *
@@ -646,7 +646,7 @@ async function rewardSalesperson(attributionId: string): Promise<void> {
 
     const userId = attribution.salesman.userId;
     if (!userId) {
-      referralLogger.warn({ attributionId }, 'Salesperson has no Saarthi login to pay a reward to');
+      referralLogger.warn({ attributionId }, 'Saarthi Rahi has no Saarthi login to pay a reward to');
       return;
     }
 
@@ -668,7 +668,7 @@ async function rewardSalesperson(attributionId: string): Promise<void> {
       source: { referralAttributionId: attributionId },
     });
   } catch (error) {
-    referralLogger.error({ err: error, attributionId }, 'Salesperson reward could not be credited');
+    referralLogger.error({ err: error, attributionId }, 'Saarthi Rahi reward could not be credited');
   }
 }
 
@@ -704,10 +704,10 @@ export async function listAttributions(
 }
 
 /**
- * Attribute an existing customer to a salesperson after the fact.
+ * Attribute an existing customer to a Saarthi Rahi after the fact.
  *
  * Platform administration only, for the genuine cases — a physical sale where
- * the salesperson forgot to record it, a customer who quoted the wrong GODID.
+ * the Saarthi Rahi forgot to record it, a customer who quoted the wrong GODID.
  * It **cannot** displace a live attribution, and that restriction applies to
  * administrators too: an administrator who could quietly move a commission
  * between two colleagues would make "first valid attribution wins" worthless.
@@ -727,7 +727,7 @@ export async function attributeManually(
   const salesman = await resolveVerifiedSalesman(input.godId);
   if (!salesman) {
     throw errors.businessRule(
-      'That GODID does not belong to a verified, active Saarthi salesperson, so nothing can be ' +
+      'That GODID does not belong to a verified, active Saarthi Rahi, so nothing can be ' +
         'attributed to it.',
     );
   }
@@ -736,8 +736,8 @@ export async function attributeManually(
   if (live) {
     throw errors.conflict(
       live.salesmanId === salesman.id
-        ? 'This customer is already attributed to that salesperson.'
-        : 'This customer is already attributed to another salesperson. Revoke that attribution ' +
+        ? 'This customer is already attributed to that Saarthi Rahi.'
+        : 'This customer is already attributed to another Saarthi Rahi. Revoke that attribution ' +
           'first, with a reason, if it is genuinely wrong.',
       { existingGodId: live.godId, existingStatus: live.status },
     );
@@ -763,7 +763,7 @@ export async function attributeManually(
     });
   } catch (error) {
     if (isUniqueViolation(error)) {
-      throw errors.conflict('This customer was attributed to a salesperson a moment earlier.');
+      throw errors.conflict('This customer was attributed to a Saarthi Rahi a moment earlier.');
     }
     throw error;
   }
@@ -790,7 +790,7 @@ export async function attributeManually(
  * Withdraw an attribution.
  *
  * A reward still on hold is voided with it. One that has already unlocked is
- * left alone: it is money the salesperson could already have cashed out, and
+ * left alone: it is money the Saarthi Rahi could already have cashed out, and
  * clawing it back is a conversation, not a side effect of a revocation.
  */
 export async function revokeAttribution(

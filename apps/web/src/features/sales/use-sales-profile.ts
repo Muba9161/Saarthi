@@ -5,10 +5,10 @@ import { useAuth } from '@/features/auth/auth-context';
 import type { SalesMeResponse } from './types';
 
 /**
- * The signed-in salesperson's own profile.
+ * The signed-in Saarthi Rahi's own profile.
  *
  * Every Sales screen needs it, for one reason: an unverified GODID has to be
- * *explained* rather than hidden behind an empty page. A salesperson whose
+ * *explained* rather than hidden behind an empty page. A Saarthi Rahi whose
  * profile is still `PENDING_VERIFICATION` sees their pipeline and a banner
  * saying what Saarthi is waiting on — which is a far better answer than a
  * dashboard of zeros with no cause.

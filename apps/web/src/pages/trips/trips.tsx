@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Search, Smartphone } from 'lucide-react';
 import {
+  OrganizationType,
   Permission,
   RealtimeChannel,
   RealtimeEvent,
@@ -18,6 +19,7 @@ import { useAuth } from '@/features/auth/auth-context';
 import { useChannels, useRealtimeEvent } from '@/hooks/use-realtime';
 import { PageHeader } from '@/components/common/page-header';
 import { CreateTripDialog } from '@/features/trips/create-trip-dialog';
+import { placeName } from '@/features/trips/trip-route';
 import { DataView, type Column } from '@/components/common/data-view';
 import { StatusBadge } from '@/components/common/status-badge';
 import { UnauthorizedState } from '@/components/common/states';
@@ -43,6 +45,12 @@ export function TripsPage() {
 
   const organizationId = session?.organization?.id;
   useChannels(organizationId ? [RealtimeChannel.fleet(organizationId)] : []);
+  /*
+   * A Seller sees the pickups at its yard: which vehicle and driver are coming
+   * and when. The run to the customer — its progress, arrival and the customer
+   * — is the fleet's delivery, which the API does not show it.
+   */
+  const isSeller = session?.organization?.type === OrganizationType.SUPPLIER;
 
   React.useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -73,7 +81,7 @@ export function TripsPage() {
 
   if (!can(Permission.TRIPS_READ)) return <UnauthorizedState />;
 
-  const columns: Column<TripSummary>[] = [
+  const allColumns: Column<TripSummary>[] = [
     {
       key: 'reference',
       header: 'Trip',
@@ -115,9 +123,11 @@ export function TripsPage() {
       cell: (trip) => (
         <div className="min-w-0 max-w-72">
           <p className="truncate text-sm">{trip.originAddress.split(',')[0]}</p>
-          <p className="truncate text-xs text-muted-foreground">
-            → {trip.destinationAddress.split(',')[0]}
-          </p>
+          {trip.destinationAddress ? (
+            <p className="truncate text-xs text-muted-foreground">
+              → {placeName(trip.destinationAddress)}
+            </p>
+          ) : null}
         </div>
       ),
     },
@@ -155,10 +165,18 @@ export function TripsPage() {
     },
     {
       key: 'eta',
-      header: 'ETA',
+      header: isSeller ? 'Pickup' : 'ETA',
       hideOnMobile: true,
       cell: (trip) =>
-        trip.status === TripStatus.COMPLETED ? (
+        isSeller ? (
+          <span className="text-sm">
+            {trip.actualStartAt
+              ? `Left ${relativeTimeFrom(trip.actualStartAt)}`
+              : trip.plannedStartAt
+                ? relativeTimeFrom(trip.plannedStartAt)
+                : '-'}
+          </span>
+        ) : trip.status === TripStatus.COMPLETED ? (
           <span className="text-sm text-muted-foreground">
             {trip.actualArrivalAt ? relativeTimeFrom(trip.actualArrivalAt) : '-'}
           </span>
@@ -178,19 +196,26 @@ export function TripsPage() {
         trip.order ? (
           <div className="min-w-0">
             <p className="truncate text-sm">{trip.order.materialName}</p>
-            <p className="truncate text-xs text-muted-foreground">{trip.order.customerName}</p>
+            {isSeller ? null : (
+              <p className="truncate text-xs text-muted-foreground">{trip.order.customerName}</p>
+            )}
           </div>
         ) : (
           <span className="text-sm text-muted-foreground">Ad-hoc trip</span>
         ),
     },
   ];
+  const columns = isSeller ? allColumns.filter((column) => column.key !== 'progress') : allColumns;
 
   return (
     <div className="space-y-5">
       <PageHeader
-        title="Trips"
-        description="Every movement, planned and in progress."
+        title={isSeller ? 'Pickups' : 'Trips'}
+        description={
+          isSeller
+            ? 'Vehicles coming to collect from you, and when.'
+            : 'Every movement, planned and in progress.'
+        }
         actions={can(Permission.TRIPS_MANAGE) ? <CreateTripDialog /> : undefined}
       />
 
@@ -235,11 +260,20 @@ export function TripsPage() {
         isLoading={query.isLoading || query.isFetching}
         error={query.error}
         onRetry={() => void query.refetch()}
-        onRowClick={(trip) => navigate(`/trips/${trip.id}`)}
+        // A Seller follows a pickup on its order; the trip screen is the live run.
+        onRowClick={(trip) =>
+          navigate(isSeller && trip.order ? `/orders/${trip.order.id}` : `/trips/${trip.id}`)
+        }
         {...(query.data?.pagination ? { pagination: query.data.pagination } : {})}
         onPageChange={setPage}
-        emptyTitle={status === 'active' ? 'No trips in progress' : 'No trips found'}
-        emptyDescription="Trips are created when a customer accepts a transport quote, or directly from the fleet console."
+        emptyTitle={
+          isSeller ? 'No pickups' : status === 'active' ? 'No trips in progress' : 'No trips found'
+        }
+        emptyDescription={
+          isSeller
+            ? 'A pickup appears here when a fleet sends a vehicle to collect what it bought from you.'
+            : 'Trips are created when a customer accepts a transport quote, or directly from the fleet console.'
+        }
       />
     </div>
   );

@@ -59,6 +59,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { FleetMap, type MapTruck } from '@/features/maps/fleet-map';
+import { placeName, tripRouteLabel } from '@/features/trips/trip-route';
 import { DailyBriefCard } from '@/features/ai/daily-brief-card';
 
 /**
@@ -217,7 +218,7 @@ export function DashboardPage() {
               icon: RouteIcon,
               tone: 'default' as const,
               title: trip.reference,
-              subtitle: `${trip.originAddress.split(',')[0]} → ${trip.destinationAddress.split(',')[0]}`,
+              subtitle: tripRouteLabel(trip),
               status: trip.status,
             })),
           ),
@@ -885,13 +886,15 @@ export function DashboardPage() {
                       {featuredTrip.originAddress.split(',')[0]}
                     </p>
                   </div>
-                  <div className="relative">
-                    <span className="absolute -left-5 top-1 size-2.5 rounded-full bg-destructive ring-2 ring-card" />
-                    <p className="section-label">{t('Drop')}</p>
-                    <p className="truncate text-xs font-medium">
-                      {featuredTrip.destinationAddress.split(',')[0]}
-                    </p>
-                  </div>
+                  {featuredTrip.destinationAddress ? (
+                    <div className="relative">
+                      <span className="absolute -left-5 top-1 size-2.5 rounded-full bg-destructive ring-2 ring-card" />
+                      <p className="section-label">{t('Drop')}</p>
+                      <p className="truncate text-xs font-medium">
+                        {placeName(featuredTrip.destinationAddress)}
+                      </p>
+                    </div>
+                  ) : null}
                 </div>
 
                 <Progress value={featuredTrip.progressPercent} className="mt-3 h-1.5" />
@@ -926,7 +929,7 @@ export function DashboardPage() {
                   icon={RouteIcon}
                   tone={trip.delayMinutes > 0 ? 'warning' : 'default'}
                   title={trip.reference}
-                  subtitle={`${trip.originAddress.split(',')[0]} → ${trip.destinationAddress.split(',')[0]}`}
+                  subtitle={tripRouteLabel(trip)}
                   trailing={
                     <span className="tabular text-xs font-semibold">{trip.progressPercent}%</span>
                   }

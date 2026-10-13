@@ -1,10 +1,12 @@
 import {
   RealtimeChannel,
   RealtimeEvent,
+  mayKnowCounterparty,
   vehicleChannel,
   type AssociationAlertPayload,
   type BookingUpdatePayload,
   type ChannelMessage,
+  type CommunicationParty,
   type DeviceAssignmentPayload,
   type DeviceCommandPayload,
   type DeviceConfigPayload,
@@ -140,24 +142,48 @@ export async function broadcastTripEvent(
   });
 }
 
-export async function broadcastOrderUpdate(payload: OrderUpdatePayload): Promise<void> {
-  const message: ChannelMessage = {
-    type: RealtimeEvent.ORDER_UPDATED,
-    channel: RealtimeChannel.order(payload.orderId),
-    payload,
+/**
+ * An order update as one party to the order may read it: the Seller is not
+ * told who the customer is, nor the customer which Seller the fleet buys from
+ * (see `communication.ts`).
+ */
+export function orderUpdateFor(
+  viewer: CommunicationParty,
+  payload: OrderUpdatePayload,
+): OrderUpdatePayload {
+  return {
+    ...payload,
+    customerOrganizationId: mayKnowCounterparty(viewer, 'CUSTOMER')
+      ? payload.customerOrganizationId
+      : null,
+    supplierOrganizationId: mayKnowCounterparty(viewer, 'SELLER')
+      ? payload.supplierOrganizationId
+      : null,
   };
-  await publish(RealtimeChannel.order(payload.orderId), message);
+}
 
-  for (const organizationId of [
-    payload.customerOrganizationId,
-    payload.supplierOrganizationId,
-    payload.fleetOrganizationId,
-  ]) {
+export async function broadcastOrderUpdate(payload: OrderUpdatePayload): Promise<void> {
+  const orderUpdate = (viewer: CommunicationParty, channel: string): ChannelMessage => ({
+    type: RealtimeEvent.ORDER_UPDATED,
+    channel,
+    payload: orderUpdateFor(viewer, payload),
+  });
+
+  // The order stream admits the customer and the fleet, never the Seller (see
+  // `canSubscribe`), so it carries the narrower of the two: the customer's.
+  const orderChannel = RealtimeChannel.order(payload.orderId);
+  await publish(orderChannel, orderUpdate('CUSTOMER', orderChannel));
+
+  // Each party also hears on its own tenant stream, addressed to it.
+  const recipients: [string | null, CommunicationParty][] = [
+    [payload.customerOrganizationId, 'CUSTOMER'],
+    [payload.supplierOrganizationId, 'SELLER'],
+    [payload.fleetOrganizationId, 'FLEET_OWNER'],
+  ];
+  for (const [organizationId, party] of recipients) {
     if (!organizationId) continue;
-    await publish(RealtimeChannel.fleet(organizationId), {
-      ...message,
-      channel: RealtimeChannel.fleet(organizationId),
-    });
+    const channel = RealtimeChannel.fleet(organizationId);
+    await publish(channel, orderUpdate(party, channel));
   }
 }
 

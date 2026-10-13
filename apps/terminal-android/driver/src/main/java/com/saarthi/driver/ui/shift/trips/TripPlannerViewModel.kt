@@ -61,14 +61,19 @@ class TripPlannerViewModel(application: Application) : AndroidViewModel(applicat
     private var search: Job? = null
     private var routeJob: Job? = null
 
-    /** A fresh plan, starting where the vehicle is when that is known. */
-    fun begin(here: Position?, hereName: String) {
+    /**
+     * A fresh plan, starting where the driver's last trip ends when they have
+     * one waiting or under way — so a run of trips is a chain, each from where
+     * the last one finishes — and otherwise where the vehicle is now.
+     */
+    fun begin(here: Position?, hereName: String, after: TripPlaceDto? = null) {
         search?.cancel()
         routeJob?.cancel()
+        val from = after ?: here?.let { TripPlaceDto(name = hereName, latitude = it.latitude, longitude = it.longitude) }
         _ui.value = Ui(
-            from = here?.let { TripPlaceDto(name = hereName, latitude = it.latitude, longitude = it.longitude) },
-            fromHere = here != null,
-            editing = if (here == null) End.FROM else End.TO,
+            from = from,
+            fromHere = after == null && here != null,
+            editing = if (from == null) End.FROM else End.TO,
         )
     }
 

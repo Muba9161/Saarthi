@@ -10,7 +10,7 @@
     <string name="assistant_stop">থামুন</string>
     <string name="assistant_speak">Saarthi-কে বলুন</string>
     <string name="assistant_quote">“%1$s”</string>
-    <string name="assistant_from">সূত্র: %1$s</string>
+    <string name="assistant_from">আপনার Saarthi রেকর্ড থেকে</string>
     <string name="assistant_try_asking">এভাবে জিজ্ঞেস করে দেখুন</string>
     <string name="assistant_suggest_vehicle">আমার গাড়ি ঠিক আছে তো?</string>
     <string name="assistant_suggest_fuel">এখন আমার গাড়িতে কত জ্বালানি আছে?</string>

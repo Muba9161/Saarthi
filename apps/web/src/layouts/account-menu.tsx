@@ -82,7 +82,7 @@ function ProfileCard() {
 
 /**
  * The wallet at a glance, linking to where its rewards come from — Refer & earn,
- * or a salesperson's Earnings.
+ * or a Saarthi Rahi's Earnings.
  *
  * Rendered inside the open menu only, so the wallet is fetched when the menu
  * is opened rather than on every screen. A real menu item, so it is reachable
@@ -161,7 +161,7 @@ export function AccountMenu(): React.ReactElement {
   const rcOnQr = useQrRcVisibility();
   const t = useT();
   // Everybody has a wallet: Refer & Earn pays into it, and so does a
-  // salesperson's every successful referral.
+  // Saarthi Rahi's every successful referral.
   const walletHome = canJoinReferralProgram(session?.user.roles ?? [])
     ? '/referrals'
     : '/sales/earnings';

@@ -19,7 +19,7 @@
  * commission can always be explained by the rule version it was calculated
  * under. The ledger stores the result; it is never recomputed.
  *
- * This is separate from SaaS subscription billing and from salesperson (GODID)
+ * This is separate from SaaS subscription billing and from Saarthi Rahi (GODID)
  * commission, which live in their own modules.
  */
 

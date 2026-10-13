@@ -468,12 +468,12 @@ export function registerBackgroundJobs(): void {
   });
 
   /*
-   * The follow-ups a salesperson owes today.
+   * The follow-ups a Saarthi Rahi owes today.
    *
    * Hourly rather than daily, because a follow-up set for 3pm is set for 3pm.
    * The service caps delivery at one reminder per lead per day, so a lead that
    * stays overdue for a week produces seven notifications and not a hundred and
-   * sixty-eight — which is the difference between a salesperson who reads
+   * sixty-eight — which is the difference between a Saarthi Rahi who reads
    * Saarthi notifications and one who has turned them off.
    */
   queue.registerRepeating({

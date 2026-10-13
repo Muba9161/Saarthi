@@ -1,10 +1,10 @@
 /**
- * GODWeb salesman-identity contract.
+ * GODWeb Saarthi Rahi identity contract.
  *
  * GODWeb is an existing, working project and Saarthi does not modify it. This
- * interface is the *only* way Saarthi may learn anything about a salesperson,
+ * interface is the *only* way Saarthi may learn anything about a Saarthi Rahi,
  * and it is deliberately narrow: one read, one question — "is this GODID a
- * salesperson you recognise, and what may I display for them".
+ * Saarthi Rahi you recognise, and what may I display for them".
  *
  * What is deliberately absent, and must stay absent:
  *
@@ -12,7 +12,7 @@
  *   * any direct database access — the adapter speaks HTTP to an approved
  *     endpoint and nothing else;
  *   * any password, session or token belonging to GODWeb — Saarthi's own
- *     authentication is the only credential a salesperson uses here;
+ *     authentication is the only credential a Saarthi Rahi uses here;
  *   * any "assume valid" path. A GODID that cannot be checked is unverified,
  *     which is a different state from verified and is treated as one.
  *
@@ -27,11 +27,11 @@
  * see `index.ts`. Nothing here fabricates a GODWeb-side system.
  */
 
-/** What GODWeb is prepared to tell Saarthi about one of its salespeople. */
+/** What GODWeb is prepared to tell Saarthi about one of its Saarthi Rahis. */
 export interface GodWebSalesperson {
   /** The GODID, as GODWeb spells it. Normalised by the caller. */
   godId: string;
-  /** Display name. Shown to the salesperson and on a referral landing page. */
+  /** Display name. Shown to the Saarthi Rahi and on a referral landing page. */
   name: string | null;
   phone: string | null;
   email: string | null;
@@ -41,7 +41,7 @@ export interface GodWebSalesperson {
   /**
    * Whether GODWeb considers this person currently able to sell.
    *
-   * Distinct from "the record exists": a salesperson who has left is a record
+   * Distinct from "the record exists": a Saarthi Rahi who has left is a record
    * GODWeb still holds and Saarthi must stop crediting. A `false` here
    * suspends the Saarthi profile rather than deleting it, because their past
    * commissions still have to reconcile.

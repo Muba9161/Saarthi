@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Starting any trip, stopping the one under way, reordering, and the shorter order. See TripActions.kt. -->
+<resources>
+    <string name="trips_start">Start trip</string>
+    <string name="trips_stop">Stop trip</string>
+    <string name="trips_stop_title">End this trip here?</string>
+    <string name="trips_stop_body">Your fleet sees where it ended. If another of your trips is waiting, it starts on its own.</string>
+    <string name="trips_stop_confirm">End trip here</string>
+    <string name="trips_section_yours">Your trips, in order</string>
+    <string name="trips_after_current">Your next trip starts on its own when this one ends.</string>
+    <string name="trips_fleet_first">Your fleet\'s trip comes first. Yours start after it.</string>
+    <string name="trips_check_first">Start takes you through the safety check first, then the trip starts.</string>
+    <string name="trips_move_up">Move up</string>
+    <string name="trips_move_down">Move down</string>
+    <string name="trips_suggest_title">A shorter order</string>
+    <string name="trips_suggest_saves">Saves %1$s km</string>
+    <string name="trips_suggest_total">%1$s km instead of %2$s km</string>
+    <string name="trips_suggest_estimated">Measured in straight lines, so the roads may differ a little.</string>
+    <string name="trips_suggest_use">Use this order</string>
+    <string name="trips_suggest_dismiss">Not now</string>
+    <string name="trips_problem">That could not be done just now. Try again.</string>
+    <string name="trips_remove">Remove trip</string>
+    <string name="trips_remove_title">Remove this trip?</string>
+    <string name="trips_remove_body">It comes off your list. Your fleet keeps a note that you removed it.</string>
+    <string name="trips_remove_confirm">Remove trip</string>
+    <string name="toast_trip_removed">Trip removed.</string>
+</resources>

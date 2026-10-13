@@ -26,10 +26,11 @@ import { StatCard } from '@/components/common/stat-card';
 import type { SeriesPoint } from '@/components/common/mini-chart';
 import { StatusBadge } from '@/components/common/status-badge';
 import { EmptyState, ErrorState, LoadingState } from '@/components/common/states';
-import { FleetMap, type MapMarkerPoint } from '@/features/maps/fleet-map';
+import { FleetMap } from '@/features/maps/fleet-map';
 import type { NavigationRoute } from '@/features/maps/directions';
 import { RouteSummary } from '@/features/travel/journey-picker';
 import { TripReplay } from '@/features/trips/trip-replay';
+import { routeMarkers } from '@/features/trips/trip-route';
 import { useCoveredTrail } from '@/features/tracking/use-covered-trail';
 import { BackhaulPanel } from '@/features/backhaul/backhaul-panel';
 import { TripExpenseSlips } from '@/features/expenses/trip-expense-slips';
@@ -204,22 +205,7 @@ export function TripDetailPage() {
     { label: 'Top', value: data.topSpeedKph ?? 0 },
   ];
 
-  const markers: MapMarkerPoint[] = [
-    {
-      id: 'origin',
-      latitude: data.originLatitude,
-      longitude: data.originLongitude,
-      label: data.originAddress,
-      kind: 'origin',
-    },
-    {
-      id: 'destination',
-      latitude: data.destinationLatitude,
-      longitude: data.destinationLongitude,
-      label: data.destinationAddress,
-      kind: 'destination',
-    },
-  ];
+  const markers = routeMarkers(data);
 
   return (
     <div className="space-y-5">
@@ -247,7 +233,11 @@ export function TripDetailPage() {
             ) : null}
           </span>
         }
-        description={`${data.originAddress} → ${data.destinationAddress}`}
+        description={
+          data.destinationAddress
+            ? `${data.originAddress} → ${data.destinationAddress}`
+            : data.originAddress
+        }
         actions={
           data.allowedTransitions.length > 0 ? (
             <div className="flex flex-wrap gap-2">

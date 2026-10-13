@@ -62,6 +62,12 @@ import {
   setNavigationHandoff,
   startDispatchedTrip,
 } from './dispatch.service';
+import {
+  assertTripStartable,
+  handVehicleTo,
+  positionFrom,
+  startNextDriverTrip,
+} from './driver-trip-queue.service';
 import { findServices, routeTo, searchPlaces } from './navigation.service';
 import {
   finishAdHocTrip,
@@ -249,9 +255,14 @@ export async function terminalClientRoutes(app: FastifyInstance): Promise<void> 
     // `driverAuthForSession` reads the status this call is about to change.
     const auth = await driverAuthForSession(session);
 
+    // A trip picked from the Trips tab is checked before anything moves, so a
+    // refusal ("stop the trip you are on first") leaves the shift as it was.
+    if (input.tripId) await assertTripStartable(session, input.tripId);
+
     // The session first: it enforces the safety check, and a driver who has not
     // completed one must not be able to move the fleet's trip by pressing Start.
     const view = await startTrip(session.id, input);
+    if (input.tripId) await handVehicleTo(session, input.tripId, positionFrom(input));
     await startDispatchedTrip(session, auth, {
       latitude: input.latitude,
       longitude: input.longitude,
@@ -296,13 +307,25 @@ export async function terminalClientRoutes(app: FastifyInstance): Promise<void> 
     // on this terminal, and `transitionTrip` returns the session to READY on
     // its own when a dispatcher closes the same trip from the web. Doing the
     // trip first would have the session service refuse a driver's own Complete.
+    const finishing = await dispatchedTripForSession(session);
     const view = await completeTrip(session.id, input);
     await completeDispatchedTrip(session, auth, {
       latitude: input.latitude,
       longitude: input.longitude,
     });
 
-    return ok(reply, view);
+    // The driver's next trip starts on its own — only after one that was
+    // actually under way, never in place of a trip that had not set off.
+    const next = finishing?.underway
+      ? await startNextDriverTrip(
+          session,
+          auth,
+          { latitude: input.latitude, longitude: input.longitude },
+          { id: finishing.id, latitude: finishing.destinationLatitude, longitude: finishing.destinationLongitude },
+        )
+      : null;
+
+    return ok(reply, next ?? view);
   });
 
   // -------------------------------------------------------------------------
@@ -559,13 +582,13 @@ export async function terminalClientRoutes(app: FastifyInstance): Promise<void> 
         driverId: session.driverId,
         origin: {
           label: input.origin.name,
-          addressLine: input.origin.address ?? input.origin.name,
+          addressLine: placeLine(input.origin),
           latitude: input.origin.latitude,
           longitude: input.origin.longitude,
         },
         destination: {
           label: input.destination.name,
-          addressLine: input.destination.address ?? input.destination.name,
+          addressLine: placeLine(input.destination),
           latitude: input.destination.latitude,
           longitude: input.destination.longitude,
         },
@@ -909,4 +932,18 @@ export async function terminalClientRoutes(app: FastifyInstance): Promise<void> 
     const input = parseBody(terminalAskSchema, request.body);
     return ok(reply, await ask(session, input));
   });
+}
+
+/**
+ * A place a driver picked, as one line: its name, then where it is.
+ *
+ * The area line alone was saved before — "Lucknow, Uttar Pradesh" for a trip
+ * to Medanta — which named neither the place on the driver's card nor on the
+ * fleet's trip list.
+ */
+function placeLine(place: { name: string; address?: string }): string {
+  if (!place.address) return place.name;
+  return place.address.toLowerCase().startsWith(place.name.toLowerCase())
+    ? place.address
+    : `${place.name}, ${place.address}`;
 }

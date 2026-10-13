@@ -173,7 +173,7 @@ describe('the account menu and the sidebar', () => {
     }
   });
 
-  it('keeps a salesperson on their GODID channel rather than Refer & earn', () => {
+  it('keeps a Saarthi Rahi on their GODID channel rather than Refer & earn', () => {
     const previous = auth.session.user.roles;
     auth.session.user.roles = ['SALESMAN'];
 

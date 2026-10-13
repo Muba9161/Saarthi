@@ -238,7 +238,7 @@ export function LoginPage() {
               <Link to="/register">{t('Create an account')}</Link>
             </Button>
             <p className="text-center text-sm text-muted-foreground">
-              Saarthi salesperson?{' '}
+              Saarthi Rahi?{' '}
               <Link to="/sales/join" className="font-medium text-primary hover:underline">
                 Join with your GODID
               </Link>

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="trips_start">ट्रिप शुरू करो</string>
+    <string name="trips_stop">ट्रिप रोको</string>
+    <string name="trips_stop_title">ट्रिप इत्थें गै खत्म करनी ऐ?</string>
+    <string name="trips_stop_body">ट्रिप कुत्थें खत्म होई, एह् तुंदी फ़्लीट दिक्खग. तुंदी होर कोई ट्रिप इंतज़ार च ऐ तां ओह् आपूं गै शुरू होई जाग.</string>
+    <string name="trips_stop_confirm">इत्थें गै खत्म करो</string>
+    <string name="trips_section_yours">तुंदियां ट्रिपां, क्रम कन्नै</string>
+    <string name="trips_after_current">एह् ट्रिप खत्म होंदे गै तुंदी अगली ट्रिप आपूं गै शुरू होग.</string>
+    <string name="trips_fleet_first">पैह्लें तुंदी फ़्लीट दी ट्रिप. तुंदियां उसदे बाद.</string>
+    <string name="trips_check_first">Start दबाने पर पैह्लें सेफ्टी चेक खुलग, फ्ही ट्रिप शुरू होग.</string>
+    <string name="trips_move_up">उप्पर करो</string>
+    <string name="trips_move_down">थल्लै करो</string>
+    <string name="trips_suggest_title">छोटा क्रम</string>
+    <string name="trips_suggest_saves">%1$s km बचंग</string>
+    <string name="trips_suggest_total">%2$s km दी जगह %1$s km</string>
+    <string name="trips_suggest_estimated">सिद्धी दूरी कन्नै मापेआ गेआ ऐ, सड़कां थोह्ड़ियां बक्खरियां होई सकदियां न.</string>
+    <string name="trips_suggest_use">एह् क्रम अपनाओ</string>
+    <string name="trips_suggest_dismiss">हून नेईं</string>
+    <string name="trips_problem">हून एह् नेईं होई सकेआ. फ्ही कोशश करो.</string>
+    <string name="trips_remove">ट्रिप हटाओ</string>
+    <string name="trips_remove_title">एह् ट्रिप हटानी ऐ?</string>
+    <string name="trips_remove_body">एह् तुंदी लिस्ट च हटी जाग. तुसें एह् हटाई, इसदा नोट तुंदी फ़्लीट कोल रौह्ग.</string>
+    <string name="trips_remove_confirm">ट्रिप हटाओ</string>
+    <string name="toast_trip_removed">ट्रिप हटाई गेई.</string>
+</resources>

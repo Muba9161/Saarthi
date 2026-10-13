@@ -13,7 +13,7 @@ import { config } from '../../config/env';
  *
  * ## Why this file is so small
  *
- * Because a demo should not have a backend. Everything a salesperson shows a
+ * Because a demo should not have a backend. Everything a Saarthi Rahi shows a
  * prospect — the fleet screens, the live map, trips, vehicle health, documents,
  * analytics — is the existing Saarthi UI, and the honest way to demonstrate it
  * is with the existing GPS simulator (`modules/simulation`), which already
@@ -23,17 +23,17 @@ import { config } from '../../config/env';
  * So there is no demo data generator here, no fake vehicle, no shadow tenant
  * and no mirrored version of any screen. What this file provides is the
  * *guardrails and the script*: what the demo may and may not do, and the real
- * pricing to quote from — so the salesperson's screen is a labelled tour rather
+ * pricing to quote from — so the Saarthi Rahi's screen is a labelled tour rather
  * than a second implementation of the product that will drift from the first.
  *
  * ## What Demo Mode must never do
  *
  * Enumerated below in `DEMO_PROHIBITIONS`, and enforced by construction rather
- * than by discipline: the salesman role holds no permission that could create a
+ * than by discipline: the Saarthi Rahi role holds no permission that could create a
  * subscription, take a payment, modify a vehicle, write telemetry, generate a
  * commission or change tracker state, and there is no route in this module that
  * accepts any of those. The prohibitions are stated in the payload as well
- * because they belong on the salesperson's screen, where the person who might
+ * because they belong on the Saarthi Rahi's screen, where the person who might
  * otherwise try is looking.
  */
 
@@ -51,7 +51,7 @@ export interface DemoCapability {
   label: string;
   /** Where the existing Saarthi screen lives. Reused, never rebuilt. */
   route: string;
-  /** What the salesperson should say while it is on screen. */
+  /** What the Saarthi Rahi should say while it is on screen. */
   talkingPoint: string;
   /** True when this screen needs the simulator running to show movement. */
   needsSimulator: boolean;
@@ -148,7 +148,7 @@ export interface DemoScript {
     trackers: { name: string; priceOneTime: number; price: number }[];
     /** GST included. */
     vehicleTopUpMonthly: number;
-    /** A worked example the salesperson can read out. */
+    /** A worked example the Saarthi Rahi can read out. */
     example: {
       vehicles: number;
       trackers: number;
@@ -157,7 +157,7 @@ export interface DemoScript {
       oneOffTotal: number;
     };
   };
-  /** How the salesperson should introduce it, and the label the UI must show. */
+  /** How the Saarthi Rahi should introduce it, and the label the UI must show. */
   notice: string;
 }
 
@@ -166,7 +166,7 @@ export interface DemoScript {
  *
  * The pricing block is the part that earns its place: it is computed from the
  * same `quoteSubscription` the pricing card and the signup order use, so the
- * figure a salesperson quotes in a yard is the figure the customer will be
+ * figure a Saarthi Rahi quotes in a yard is the figure the customer will be
  * charged. A demo screen with its own hard-coded prices is a demo screen that
  * eventually misquotes somebody.
  */

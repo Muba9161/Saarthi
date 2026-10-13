@@ -183,7 +183,7 @@ const SECTIONS: LegalSectionSpec[] = [
             'Toll and FASTag operators, when you connect a tag account, for balance and transaction history.',
             'Vehicle service history and valuation sources used for resale listings.',
             'The organisation that created your account, when an employer or fleet enrols you.',
-            'A salesperson or referral partner, when you were introduced to Saarthi through one.',
+            'A Saarthi Rahi or referral partner, when you were introduced to Saarthi through one.',
           ]}
         />
       </>
@@ -392,7 +392,7 @@ const SECTIONS: LegalSectionSpec[] = [
             'QR codes. A code printed on a vehicle or a document can be scanned by anybody holding it. The organisation decides which fields a scan reveals and whether anonymous scanning is allowed at all. Home address, chassis number and loan amounts can never be revealed this way.',
             'Listings. A requirement, material, travel package or vehicle offered for sale is shown to the businesses that can bid on or buy it, along with the contact details needed to respond.',
             'Profiles. Organisation and user profiles have a visibility setting that controls how widely they are shown.',
-            'Referral links. Opening a referral link tells us which salesperson or partner introduced you, and shows you their display name.',
+            'Referral links. Opening a referral link tells us which Saarthi Rahi or partner introduced you, and shows you their display name.',
             'Ratings and reviews you leave are shown with your display name against the business you rated.',
           ]}
         />

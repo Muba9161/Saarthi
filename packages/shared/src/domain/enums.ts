@@ -38,13 +38,13 @@ export const RoleName = asEnum({
    */
   MOBILITY_PROVIDER: 'MOBILITY_PROVIDER',
   /**
-   * Saarthi salesperson. Sells Saarthi itself rather than operating a fleet.
+   * Saarthi Rahi. Sells Saarthi itself rather than operating a fleet.
    *
    * GODWeb owns the identity, which is mirrored into a `SalesmanProfile`; this
    * role only says what the person may do *inside* Saarthi — work leads, run a
    * demo, share a referral, record a tracker handover and read their own
-   * commission. Deliberately not a tenant role: a salesperson is scoped by
-   * their own salesman profile rather than by an organization, so holding it
+   * commission. Deliberately not a tenant role: a Saarthi Rahi is scoped by
+   * their own Saarthi Rahi profile rather than by an organization, so holding it
    * grants sight of no customer's operational data.
    */
   SALESMAN: 'SALESMAN',
@@ -2541,7 +2541,7 @@ export type TerminalIssueStatus = EnumValue<typeof TerminalIssueStatus>;
 // ---------------------------------------------------------------------------
 
 /**
- * A Saarthi salesperson's standing.
+ * A Saarthi Rahi's standing.
  *
  * GODWeb owns the identity; this records what Saarthi has been able to confirm
  * about it. `PENDING_VERIFICATION` is the state every profile starts in, and
@@ -2558,7 +2558,7 @@ export const SalesmanStatus = asEnum({
 });
 export type SalesmanStatus = EnumValue<typeof SalesmanStatus>;
 
-/** How a salesman profile came to be trusted. */
+/** How a Saarthi Rahi profile came to be trusted. */
 export const SalesmanVerificationMethod = asEnum({
   /** Confirmed by the read-only GODWeb integration. The normal path. */
   GODWEB: 'GODWEB',
@@ -2577,7 +2577,7 @@ export type SalesmanVerificationMethod = EnumValue<typeof SalesmanVerificationMe
 /**
  * Where a lead came from.
  *
- * Kept apart from `ReferralSource` on purpose: this is how the salesperson met
+ * Kept apart from `ReferralSource` on purpose: this is how the Saarthi Rahi met
  * the prospect, that is how Saarthi came to credit the sale. The two agree in
  * the common case and diverge in the interesting one — a prospect met at a
  * depot who later signs up through a colleague's link.
@@ -2597,7 +2597,7 @@ export const SALES_LEAD_SOURCES = Object.values(SalesLeadSource) as SalesLeadSou
 /**
  * The lead lifecycle.
  *
- * Everything from `SUBSCRIBED` onwards is not the salesperson's opinion. Those
+ * Everything from `SUBSCRIBED` onwards is not the Saarthi Rahi's opinion. Those
  * states are set by the system from the subscription, the tracker handover and
  * the vehicle's own telemetry, so a lead cannot be marked live by somebody who
  * wishes it were — see `SALES_LEAD_DERIVED_STATUSES` in `domain/sales.ts`.
@@ -2633,9 +2633,9 @@ export const SalesLeadEventType = asEnum({
 });
 export type SalesLeadEventType = EnumValue<typeof SalesLeadEventType>;
 
-/** How Saarthi came to credit a customer to a salesperson. */
+/** How Saarthi came to credit a customer to a Saarthi Rahi. */
 export const ReferralSource = asEnum({
-  /** A salesperson standing in front of the customer. */
+  /** A Saarthi Rahi standing in front of the customer. */
   PHYSICAL: 'PHYSICAL',
   REFERRAL_LINK: 'REFERRAL_LINK',
   REFERRAL_QR: 'REFERRAL_QR',
@@ -2670,7 +2670,7 @@ export type ReferralStatus = EnumValue<typeof ReferralStatus>;
 /**
  * The lifecycle of a generic Refer & Earn referral — one Saarthi user bringing
  * another. Deliberately a different enum from `ReferralStatus`, which belongs
- * to the salesman/GODID channel: the two programs never share a row.
+ * to the Saarthi Rahi/GODID channel: the two programs never share a row.
  */
 export const UserReferralStatus = asEnum({
   /** The referred person created their account; nothing paid yet. */
@@ -2732,7 +2732,7 @@ export type PaymentTrigger = EnumValue<typeof PaymentTrigger>;
  * whose commission depends on it.
  */
 export const TrackerHandoverStatus = asEnum({
-  /** Allocated to a salesperson out of Saarthi stock. */
+  /** Allocated to a Saarthi Rahi out of Saarthi stock. */
   ASSIGNED_TO_SALESMAN: 'ASSIGNED_TO_SALESMAN',
   /** Physically given to the customer, with an acknowledgement recorded. */
   HANDED_TO_CUSTOMER: 'HANDED_TO_CUSTOMER',

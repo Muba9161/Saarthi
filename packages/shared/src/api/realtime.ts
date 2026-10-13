@@ -236,7 +236,9 @@ export interface OrderUpdatePayload {
   orderId: string;
   status: OrderStatus;
   tripId: string | null;
-  customerOrganizationId: string;
+  /** Null when addressed to the Seller, which is never told who the customer is. */
+  customerOrganizationId: string | null;
+  /** Null when addressed to the customer, which is never told who the Seller is. */
   supplierOrganizationId: string | null;
   fleetOrganizationId: string | null;
   updatedAt: string;

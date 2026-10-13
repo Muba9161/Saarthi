@@ -182,7 +182,8 @@ export interface OrderSummary {
   id: string;
   reference: string;
   status: OrderStatus;
-  customerOrganizationId: string;
+  /** Null for a Seller, which is never told who the customer is. */
+  customerOrganizationId: string | null;
   customerName: string;
   supplierOrganizationId: string | null;
   supplierName: string | null;
@@ -199,9 +200,10 @@ export interface OrderSummary {
   originAddress: string;
   originLatitude: number;
   originLongitude: number;
-  destinationAddress: string;
-  destinationLatitude: number;
-  destinationLongitude: number;
+  /** The delivery point. Null for a Seller. */
+  destinationAddress: string | null;
+  destinationLatitude: number | null;
+  destinationLongitude: number | null;
   distanceKm: number | null;
   requiredCapacityTons: number;
   requiredTruckType: string | null;
@@ -270,9 +272,10 @@ export interface TripSummary {
   originAddress: string;
   originLatitude: number;
   originLongitude: number;
-  destinationAddress: string;
-  destinationLatitude: number;
-  destinationLongitude: number;
+  /** The delivery point. Null for the Seller loading the trip. */
+  destinationAddress: string | null;
+  destinationLatitude: number | null;
+  destinationLongitude: number | null;
   plannedDistanceKm: number | null;
   actualDistanceKm: number;
   plannedDurationMin: number | null;

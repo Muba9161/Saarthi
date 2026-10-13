@@ -290,9 +290,9 @@ export const Permission = {
    * Selling Saarthi.
    *
    * A separate group from everything above, and the separation is the point: a
-   * salesperson works prospects and their own pipeline, and none of these
+   * Saarthi Rahi works prospects and their own pipeline, and none of these
    * grants reaches a customer's fleet, drivers, trips or telemetry. What a
-   * salesperson earns is a flat reward paid into their Saarthi wallet, which
+   * Saarthi Rahi earns is a flat reward paid into their Saarthi wallet, which
    * needs no permission of its own: it is scoped to their own user.
    */
   SALES_READ: 'sales.read',
@@ -303,11 +303,11 @@ export const Permission = {
   REFERRALS_CREATE: 'referrals.create',
   TRACKER_HANDOVER_READ: 'tracker_handover.read',
   TRACKER_HANDOVER_WRITE: 'tracker_handover.write',
-  /** Allocate stock to a salesperson. Platform operations, not field sales. */
+  /** Allocate stock to a Saarthi Rahi. Platform operations, not field sales. */
   TRACKER_INVENTORY_MANAGE: 'tracker_inventory.manage',
   /** The safe, clearly-labelled product walkthrough. */
   DEMO_USE: 'demo.use',
-  /** Administer salesman profiles and GODID verification. */
+  /** Administer Saarthi Rahi profiles and GODID verification. */
   SALESMAN_MANAGE: 'salesman.manage',
 
   // Platform administration
@@ -606,8 +606,10 @@ const ROLE_PERMISSIONS: Record<RoleName, Permission[]> = {
     Permission.SUPPLIERS_MANAGE,
     Permission.MATERIALS_READ,
     Permission.MATERIALS_MANAGE,
+    // Read-only on orders: a Seller follows the order it supplies but neither
+    // moves nor cancels it — the customer and the fleet run it, and nothing a
+    // Seller types may reach the customer (see `communication.ts`).
     Permission.ORDERS_READ,
-    Permission.ORDERS_MANAGE,
     // No requirement grants: a Seller never sees or answers a customer's
     // requirement. Its buyer is the fleet owner that sources from it.
     Permission.DOCUMENTS_READ,
@@ -619,8 +621,10 @@ const ROLE_PERMISSIONS: Record<RoleName, Permission[]> = {
     // travels with it rather than being held back from the people it describes.
     Permission.IDENTITY_VERIFY,
     Permission.IDENTITY_VERIFY_SENSITIVE,
+    // The pickups at its yard: which vehicle and driver are coming and when.
+    // No tracking grant — where the load goes after it leaves the yard is the
+    // customer's delivery, which a Seller is never shown.
     Permission.TRIPS_READ,
-    Permission.TRACKING_READ,
     Permission.NOTIFICATIONS_READ,
     Permission.ANALYTICS_READ,
     Permission.SUBSCRIPTION_READ,
@@ -803,10 +807,10 @@ const ROLE_PERMISSIONS: Record<RoleName, Permission[]> = {
   ],
 
   /**
-   * Saarthi salesperson.
+   * Saarthi Rahi.
    *
    * Read this list for what it does *not* contain. There is no TRUCKS_READ, no
-   * DRIVERS_READ, no TRACKING_READ and no TELEMETRY_READ: a salesperson who
+   * DRIVERS_READ, no TRACKING_READ and no TELEMETRY_READ: a Saarthi Rahi who
    * closed a deal last quarter has no business watching that customer's
    * vehicles move. What they see of a customer is assembled by the sales
    * service from their own attributions and is deliberately thin — a name, a

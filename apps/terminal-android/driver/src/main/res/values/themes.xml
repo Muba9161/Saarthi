@@ -11,7 +11,7 @@
   `:core` is untouched by this. The terminal keeps `Theme.SaarthiTerminal` and
   keeps its navy.
 -->
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <style name="Theme.SaarthiDriver" parent="android:Theme.Material.NoActionBar">
         <!-- The same value as the dark splash in SplashScreen.kt. -->
         <item name="android:windowBackground">@color/driver_splash_background</item>
@@ -27,5 +27,16 @@
         -->
         <item name="android:windowLightStatusBar">false</item>
         <item name="android:windowLightNavigationBar">false</item>
+        <!--
+          The app draws its own light and dark themes; the phone must not.
+
+          A phone in dark mode with "dark mode for other apps" on (ColorOS,
+          MIUI, Android's own override) repaints every light surface it finds:
+          on a Realme the white Sign in button and the logo's white plate came
+          out near-black, with the navy text on them all but unreadable. Here,
+          not in a v29 file, so a vendor's own Android 9 version of the feature
+          can read it too — the platform below 29 simply ignores the attribute.
+        -->
+        <item name="android:forceDarkAllowed" tools:targetApi="q">false</item>
     </style>
 </resources>

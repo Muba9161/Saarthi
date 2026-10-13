@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- An owner who drives: the full RC behind their Secure PIN. See OwnerRc.kt. -->
+<resources>
+    <string name="owner_rc_show">Show full RC</string>
+    <string name="owner_rc_show_sub">For the vehicle\'s owner. Asks for your Secure PIN, the same one you use on the Saarthi website.</string>
+    <string name="owner_rc_pin_title">Enter your Secure PIN</string>
+    <string name="owner_rc_pin_sub">The 4-digit PIN you use on the Saarthi website.</string>
+    <string name="owner_rc_cancel">Cancel</string>
+    <string name="owner_rc_title">Full RC</string>
+    <string name="owner_rc_father">Father\'s name</string>
+    <string name="owner_rc_mobile">Mobile</string>
+    <string name="owner_rc_address">Address</string>
+    <string name="owner_rc_policy">Insurance policy</string>
+    <string name="owner_rc_hides">Hides itself in 5 minutes.</string>
+    <string name="owner_rc_hide">Hide full RC</string>
+    <string name="owner_rc_needs_ownership">Confirm this vehicle is yours on the Saarthi website first (the vehicle\'s page → Ownership). Then the full RC opens here.</string>
+    <string name="owner_rc_no_pin">Set up your Secure PIN on the Saarthi website first, in Settings → Security.</string>
+    <string name="owner_rc_unavailable">The full RC could not be opened just now. Try again in a moment.</string>
+    <string name="owner_rc_offline">No connection to Saarthi. Try again where there is signal.</string>
+</resources>

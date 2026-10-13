@@ -100,7 +100,10 @@ private fun ColumnScope.FolderContent(
                 KIND_QR -> QrSticker(state.server?.vehicleQr?.imageDataUri, state.server?.vehicleQr?.shortLabel, papers)
                 else -> {
                     when (folder.id) {
-                        RC_FOLDER -> wallet.rc?.let { VirtualRcCard(it) }
+                        RC_FOLDER -> wallet.rc?.let {
+                            VirtualRcCard(it)
+                            OwnerRcControls(it.registrationNumber)
+                        }
                         LICENCE_FOLDER -> wallet.licence?.let { LicenceCard(it) }
                         else -> folder.registerValidUntil?.let { RegisterLine(it) }
                     }

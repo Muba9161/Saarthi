@@ -22,6 +22,11 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -61,6 +66,13 @@ internal fun FlowPanel(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     BackHandler(enabled = visible, onBack = onBack)
+    val cover = LocalChromeCover.current
+    if (visible) {
+        DisposableEffect(cover) {
+            cover.hold()
+            onDispose { cover.release() }
+        }
+    }
     val reduced = Saarthi.reducedMotion
     AnimatedVisibility(
         visible = visible,
@@ -182,3 +194,27 @@ internal fun FlowSpinner(label: String, modifier: Modifier = Modifier) {
         )
     }
 }
+
+/**
+ * How a full-screen panel opened inside a tab asks the shell to stand its
+ * header and tab bar down while it is up.
+ *
+ * The shell draws both above every tab, so a panel a tab draws itself — a
+ * papers folder — slid in underneath them, and the folder's own title ran
+ * into the header's. Panels the shell opens are drawn above its chrome and
+ * need nothing; holding the cover costs them nothing either.
+ */
+internal class ChromeCover {
+    var held by mutableIntStateOf(0)
+        private set
+
+    fun hold() {
+        held += 1
+    }
+
+    fun release() {
+        held = (held - 1).coerceAtLeast(0)
+    }
+}
+
+internal val LocalChromeCover = staticCompositionLocalOf { ChromeCover() }

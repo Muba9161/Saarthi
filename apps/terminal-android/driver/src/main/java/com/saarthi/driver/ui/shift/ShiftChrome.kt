@@ -74,12 +74,22 @@ enum class ShiftTab(@StringRes val label: Int, val icon: String) {
     PROFILE(R.string.tab_profile, Lucide.user),
 }
 
-/** Height of the header's own content, under the status bar. */
-val HeaderContentHeight: Dp = 64.dp
+/**
+ * Height of the header's own content, under the status bar.
+ *
+ * Sized to the full logo with room above and below it. It was 64 when the
+ * header carried the small mark; the 56-tall logo filled it, and the first line
+ * of every tab sat against — and scrolled up under — the logo's edge.
+ */
+val HeaderContentHeight: Dp = 76.dp
 
-/** What a scrolling tab leaves clear at its top: the status bar and the header. */
+/** Space between the header and the first thing in a tab, so the two never touch. */
+private val HeaderGap: Dp = 8.dp
+
+/** What a scrolling tab leaves clear at its top: the status bar, the header and a gap. */
 @Composable
-fun headerClearance(): Dp = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + HeaderContentHeight
+fun headerClearance(): Dp =
+    WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + HeaderContentHeight + HeaderGap
 
 /** What a scrolling tab leaves clear at its foot: the floating tab bar. */
 @Composable
@@ -180,8 +190,9 @@ private fun UnreadBadge(count: Int) {
 /**
  * The floating tab bar, with a highlight that glides to the chosen tab.
  *
- * Dark over the map and in the dark theme; light otherwise — exactly as the
- * design paints it. The chosen tab's icon pops a little as it lands.
+ * Follows the theme, over the map too: the map follows the theme now, and a
+ * dark bar left over a light map read as the one thing not switched over.
+ * The chosen tab's icon pops a little as it lands.
  */
 @Composable
 fun ShiftTabBar(

@@ -787,9 +787,9 @@ Do not create a second account just because the user changes plan/type unless th
 
 # 20. SALESMAN IMPACT
 
-The Salesman must sell the correct plan and account type.
+The Saarthi Rahi must sell the correct plan and account type.
 
-Salesman flow:
+Saarthi Rahi flow:
 
 ```text
 Prospect
@@ -820,7 +820,7 @@ Subscription
  ↓
 Saarthi tracker supplied
  ↓
-Salesman demonstrates first vehicle
+Saarthi Rahi demonstrates first vehicle
  ↓
 Existing Driver App
  ↓
@@ -831,7 +831,7 @@ Existing OBD flow
 Telemetry verified
 ```
 
-The salesman does not need to install every vehicle.
+The Saarthi Rahi does not need to install every vehicle.
 
 For Supplier:
 
@@ -866,7 +866,7 @@ No tracker sale/installation.
 Digital referral flow:
 
 ```text
-Salesman referral
+Saarthi Rahi referral
  ↓
 Customer opens Saarthi
  ↓
@@ -881,7 +881,7 @@ Subscription/payment where applicable
 Correct account type
 ```
 
-The salesman must not force every referred customer into a Business/Fleet workflow.
+The Saarthi Rahi must not force every referred customer into a Business/Fleet workflow.
 
 The customer chooses the plan/type that matches their actual use case.
 
@@ -989,12 +989,12 @@ Expected:
 PERSONAL OWNER → may also be DRIVER
 ```
 
-### Bug 10 — Salesman selling the wrong workflow
+### Bug 10 — Saarthi Rahi selling the wrong workflow
 
 Expected:
 
 ```text
-Salesman → plan/type → correct onboarding
+Saarthi Rahi → plan/type → correct onboarding
 ```
 
 ---
@@ -1018,7 +1018,7 @@ Before changing code:
 13. Inspect order tracking.
 14. Inspect Nearby Services.
 15. Inspect business verification/document flows.
-16. Inspect existing Salesman/referral/commission work.
+16. Inspect existing Saarthi Rahi/referral/commission work.
 17. Search the entire repository for feature flags and conditional rendering related to:
     - personal
     - free
@@ -1281,7 +1281,7 @@ For this workflow:
 10. **Existing tracker, Driver App, vehicle QR/vehicle-number pairing, OBD and telemetry systems must be reused.**
 11. **The tracker does not have a QR code.**
 12. **GODWeb remains unchanged.**
-13. **Salesman operates inside Saarthi and sells the appropriate plan/type.**
+13. **Saarthi Rahi operates inside Saarthi and sells the appropriate plan/type.**
 14. **Do not create a separate sales portal merely to implement these workflows.**
 
 ---

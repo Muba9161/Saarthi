@@ -1280,6 +1280,43 @@ export interface TerminalTripView {
   navigationHandoff: ExternalNavigationApp | null;
 }
 
+/** One of the driver's own trips waiting to start, in their order. */
+export interface TerminalQueuedTripView {
+  id: string;
+  reference: string;
+  /** From 1, in the order the trips will run. */
+  position: number;
+  fromLabel: string;
+  toLabel: string;
+  /** Where it ends — where a trip added after it starts. */
+  toLatitude: number;
+  toLongitude: number;
+  plannedDistanceKm: number | null;
+  /** This trip holds the vehicle: it is the one that starts next. */
+  upNext: boolean;
+  /** It starts where the trip before it ends, so its start moves with the order. */
+  chained: boolean;
+}
+
+/**
+ * The driver's own trips on this vehicle that have not started, and a shorter
+ * order to run them in when there is one worth asking about.
+ */
+export interface TerminalTripQueueView {
+  /** A trip under way, or the fleet's trip that comes first: the queue runs after it. */
+  behind: { reference: string; toLabel: string } | null;
+  trips: TerminalQueuedTripView[];
+  suggestion: {
+    /** Trip ids, first to last. */
+    order: string[];
+    currentKm: number;
+    suggestedKm: number;
+    savedKm: number;
+    /** Straight-line distances, because road distances could not be had. */
+    estimated: boolean;
+  } | null;
+}
+
 /**
  * A journey the vehicle made on its own account.
  *

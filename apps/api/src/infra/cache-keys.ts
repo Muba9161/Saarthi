@@ -38,13 +38,13 @@ export const cacheKeys = {
   // --- Sales ---------------------------------------------------------------
   //
   // Not tenant-keyed, and that is correct rather than an oversight: a
-  // salesperson is not a tenant. Both keys are scoped by the salesperson's own
+  // Saarthi Rahi is not a tenant. Both keys are scoped by the Saarthi Rahi's own
   // identity, which is the isolation boundary that applies to them, and
   // neither holds anything belonging to a customer.
 
   /** A GODWeb answer about one GODID. Display data only — see the TTL note. */
   godWebValidation: (godId: string): string => `${PREFIX}:godweb:${godId}`,
-  /** One salesperson's dashboard counts. */
+  /** One Saarthi Rahi's dashboard counts. */
   salesDashboard: (salesmanId: string): string => `${PREFIX}:sales:${salesmanId}:dashboard`,
 
   // --- Connected devices ---------------------------------------------------
@@ -130,6 +130,9 @@ export const cacheKeys = {
 
   /** One computed route. Same reasoning as above. */
   terminalRoute: (signature: string): string => `${PREFIX}:routing:route:${signature}`,
+
+  /** Every stop to every other, for ordering a driver's trips. Same reasoning as above. */
+  terminalTripMatrix: (signature: string): string => `${PREFIX}:routing:all-pairs:${signature}`,
 
   // --- Smart commerce ------------------------------------------------------
   //
@@ -228,6 +231,7 @@ export const cacheTtl = {
    * themselves — the arrival time is recomputed from `now` on every cache hit.
    */
   terminalRoute: 1_800,
+  terminalTripMatrix: 1_800,
 
   /**
    * A GODWeb validation answer.
@@ -235,16 +239,16 @@ export const cacheTtl = {
    * Configured rather than fixed (`GODWEB_CACHE_TTL`) because it is somebody
    * else's service in the path of a public URL: a referral link that is shared
    * on WhatsApp and opened four hundred times must not become four hundred
-   * GODWeb calls. A salesperson's identity does not change hourly, and the
+   * GODWeb calls. A Saarthi Rahi's identity does not change hourly, and the
    * cached answer is only used to *display* a name — every commission-bearing
    * decision re-reads the profile row, which is authoritative.
    */
   godWebValidation: config.godweb.cacheTtlSeconds,
 
   /**
-   * A salesman's own dashboard roll-up.
+   * A Saarthi Rahi's own dashboard roll-up.
    *
-   * Short. These are counts of the salesperson's own pipeline, which they
+   * Short. These are counts of the Saarthi Rahi's own pipeline, which they
    * change themselves while looking at the screen, so a stale figure reads as
    * a bug rather than as caching.
    */

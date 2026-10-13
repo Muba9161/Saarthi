@@ -10,7 +10,7 @@
     <string name="assistant_stop">रोको</string>
     <string name="assistant_speak">Saarthi कन्नै गल्ल करो</string>
     <string name="assistant_quote">“%1$s”</string>
-    <string name="assistant_from">थमां: %1$s</string>
+    <string name="assistant_from">तुंदे Saarthi रिकॉर्ड थमां</string>
     <string name="assistant_try_asking">एह् पुच्छियै दिक्खो</string>
     <string name="assistant_suggest_vehicle">केह् मेरी गड्डी ठीक ऐ?</string>
     <string name="assistant_suggest_fuel">मेरी गड्डी च हून कितना तेल ऐ?</string>

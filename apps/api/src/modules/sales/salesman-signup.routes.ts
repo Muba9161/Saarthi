@@ -5,7 +5,7 @@ import { publicAppUrl } from '../../lib/public-url';
 import { startSalesmanSignup } from './salesman-signup.service';
 
 /**
- * Salesperson self-signup.
+ * Saarthi Rahi self-signup.
  *
  * Public by necessity — the person has no Saarthi account yet. It is throttled
  * hard because each call asks GODWeb and sends an email. Nothing here grants

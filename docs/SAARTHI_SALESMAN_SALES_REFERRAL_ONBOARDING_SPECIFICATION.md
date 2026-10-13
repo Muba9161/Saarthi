@@ -2,12 +2,12 @@
 
 ## 1. Purpose
 
-Define the production implementation for Saarthi's salesman-led and digital sales workflow.
+Define the production implementation for Saarthi's Saarthi Rahi-led and digital sales workflow.
 
 The system must support:
 
-1. Physical sales — salesman visits a prospect, demonstrates Saarthi, closes the sale, provides the Saarthi tracker, and demonstrates the already-existing vehicle/tracker/Driver App/OBD connection flow on one vehicle.
-2. Digital sales — salesman shares a referral link/QR; the customer signs up and purchases remotely.
+1. Physical sales — Saarthi Rahi visits a prospect, demonstrates Saarthi, closes the sale, provides the Saarthi tracker, and demonstrates the already-existing vehicle/tracker/Driver App/OBD connection flow on one vehicle.
+2. Digital sales — Saarthi Rahi shares a referral link/QR; the customer signs up and purchases remotely.
 
 Both channels use the same Saarthi customer, subscription, payment, referral attribution, tracker and commission systems.
 
@@ -19,10 +19,10 @@ Use **one Saarthi platform**.
 
 Do NOT create:
 - a separate public Sales Portal
-- a separate Salesman website
-- a separate Salesman APK
-- a separate salesman authentication system
-- a separate salesman database
+- a separate Saarthi Rahi website
+- a separate Saarthi Rahi APK
+- a separate Saarthi Rahi authentication system
+- a separate Saarthi Rahi database
 - a duplicate customer onboarding system
 - a duplicate tracker activation system
 - a duplicate Driver App
@@ -35,11 +35,11 @@ Instead:
 SAARTHI
 ├── Customer / Fleet Owner
 ├── Driver
-├── Salesman
+├── Saarthi Rahi
 └── Admin / Operations
 ```
 
-Salesman is an authenticated Saarthi role with role-specific navigation, permissions and workflows.
+Saarthi Rahi is an authenticated Saarthi role with role-specific navigation, permissions and workflows.
 
 ---
 
@@ -47,7 +47,7 @@ Salesman is an authenticated Saarthi role with role-specific navigation, permiss
 
 GODWeb is an existing working project and must NOT be modified.
 
-Saarthi treats GODWeb as an external identity source for salesman identity.
+Saarthi treats GODWeb as an external identity source for Saarthi Rahi identity.
 
 ```text
 GODWeb
@@ -58,12 +58,12 @@ Saarthi GODWeb Integration
    │
  Validate
    ▼
-Saarthi Salesman Profile
+Saarthi Rahi Profile
 ```
 
 Saarthi must not:
 - modify GODWeb
-- create salesman accounts in GODWeb
+- create Saarthi Rahi accounts in GODWeb
 - directly query the GODWeb database
 - duplicate GODWeb identity/account functionality
 - trust a GODID without verification
@@ -72,9 +72,9 @@ Use an approved read-only GODWeb API/integration. If the required validation API
 
 ---
 
-## 4. Salesman Identity
+## 4. Saarthi Rahi Identity
 
-A salesman has a Saarthi Salesman Profile linked to a verified GODID.
+A Saarthi Rahi has a Saarthi Rahi Profile linked to a verified GODID.
 
 Conceptually:
 
@@ -94,11 +94,11 @@ SalesmanProfile
 
 Reconcile these fields with the existing Saarthi schema before implementation.
 
-GODWeb owns salesman identity. Saarthi owns Saarthi-side sales activity, leads, referrals, attribution, subscriptions, commissions and tracker handover.
+GODWeb owns Saarthi Rahi identity. Saarthi owns Saarthi-side sales activity, leads, referrals, attribution, subscriptions, commissions and tracker handover.
 
 ---
 
-## 5. Salesman Navigation
+## 5. Saarthi Rahi Navigation
 
 Expose a Sales section inside the existing Saarthi application:
 
@@ -117,7 +117,7 @@ Follow existing Saarthi authentication, RBAC, routing, design system and UI conv
 
 ---
 
-## 6. Salesman Dashboard
+## 6. Saarthi Rahi Dashboard
 
 The dashboard should show:
 
@@ -150,7 +150,7 @@ All values must be real records. Never fabricate metrics.
 
 ### 7.1 Lead
 
-The salesman can create/open a lead:
+The Saarthi Rahi can create/open a lead:
 
 ```text
 Lead
@@ -209,7 +209,7 @@ Reconcile with any existing CRM state model.
 
 ## 8. Demo Mode
 
-Salesman must be able to demonstrate Saarthi without touching real customer data.
+Saarthi Rahi must be able to demonstrate Saarthi without touching real customer data.
 
 Use a clearly labelled:
 
@@ -260,7 +260,7 @@ Subscription Active
 
 Customer should authenticate and authorize their own account/payment.
 
-Salesman may assist but must not collect/store:
+Saarthi Rahi may assist but must not collect/store:
 - passwords
 - OTPs
 - payment credentials
@@ -270,7 +270,7 @@ Salesman may assist but must not collect/store:
 ### Assisted Signup
 
 ```text
-Salesman
+Saarthi Rahi
  ↓
 Start Assisted Signup
  ↓
@@ -301,14 +301,14 @@ The existing Saarthi tracker/terminal, Driver App, vehicle pairing and OBD flow 
 
 ## 11. Physical Tracker Handover
 
-For physical sales, a salesman may be given tracker inventory.
+For physical sales, a Saarthi Rahi may be given tracker inventory.
 
 Conceptually:
 
 ```text
 Saarthi Inventory
       ↓
-Salesman Inventory
+Saarthi Rahi Inventory
       ↓
 Customer Handover
 ```
@@ -320,7 +320,7 @@ The system should record, where applicable:
 ```text
 Tracker
 Customer
-Salesman
+Saarthi Rahi
 Handover Date
 Handover Status
 ```
@@ -331,14 +331,14 @@ Do not create a second tracker/device registry.
 
 ## 12. First Vehicle Demonstration
 
-The salesman does **one complete real vehicle setup** to teach the customer.
+The Saarthi Rahi does **one complete real vehicle setup** to teach the customer.
 
 Example: customer has 10 vehicles.
 
 ```text
 Vehicle 1
  ↓
-Salesman completes setup
+Saarthi Rahi completes setup
  ↓
 Vehicle becomes live
  ↓
@@ -349,7 +349,7 @@ Vehicles 2–10
 Customer/driver repeats existing process
 ```
 
-The salesman does not need to install every vehicle.
+The Saarthi Rahi does not need to install every vehicle.
 
 ---
 
@@ -390,9 +390,9 @@ Do not add:
 
 ---
 
-## 14. Salesman First-Vehicle Demonstration
+## 14. Saarthi Rahi First-Vehicle Demonstration
 
-The salesman:
+The Saarthi Rahi:
 
 1. Plugs the Saarthi tracker/terminal into the vehicle adapter.
 2. Gets the owner/driver to install/open the existing Saarthi Driver App.
@@ -446,10 +446,10 @@ Saarthi may provide help/instructions, but must not duplicate the technical impl
 
 ## 17. Digital Sales
 
-Each salesman gets a personal referral mechanism:
+Each Saarthi Rahi gets a personal referral mechanism:
 
 ```text
-Salesman
+Saarthi Rahi
 GODID: GOD-7F42K
 
 [Copy Referral Link]
@@ -477,7 +477,7 @@ The referral may be shared through:
 Flow:
 
 ```text
-Salesman
+Saarthi Rahi
  ↓
 Referral Link / QR
  ↓
@@ -536,7 +536,7 @@ Recommended:
 
 ### First valid attribution wins
 
-Salesman B cannot overwrite Salesman A's valid attribution simply by entering another GODID later.
+Saarthi Rahi B cannot overwrite Saarthi Rahi A's valid attribution simply by entering another GODID later.
 
 ### Attribution must persist
 
@@ -657,15 +657,15 @@ Only acquisition and tracker delivery differ.
 ### Physical
 
 ```text
-Salesman visit
+Saarthi Rahi visit
  ↓
 Demo
  ↓
 Subscription
  ↓
-Salesman gives tracker
+Saarthi Rahi gives tracker
  ↓
-Salesman demonstrates first vehicle
+Saarthi Rahi demonstrates first vehicle
  ↓
 Customer repeats setup
 ```
@@ -708,9 +708,9 @@ Saarthi
 
 ---
 
-## 24. Salesman Customer View
+## 24. Saarthi Rahi Customer View
 
-Salesman should see customers/leads attributed to them, subject to RBAC.
+Saarthi Rahi should see customers/leads attributed to them, subject to RBAC.
 
 Example:
 
@@ -733,9 +733,9 @@ Do not expose unnecessary sensitive customer information.
 
 ---
 
-## 25. Salesman Tracker View
+## 25. Saarthi Rahi Tracker View
 
-If tracker inventory is assigned to salesmen:
+If tracker inventory is assigned to Saarthi Rahis:
 
 ```text
 MY TRACKERS
@@ -763,7 +763,7 @@ Reuse the existing device state machine if one exists.
 
 ---
 
-## 26. Salesman Commission View
+## 26. Saarthi Rahi Commission View
 
 Example:
 
@@ -784,7 +784,7 @@ Commission: ₹X,XXX
 Status: Approved
 ```
 
-Salesman cannot edit commission amounts.
+Saarthi Rahi cannot edit commission amounts.
 
 Commission calculations are server-side.
 
@@ -794,7 +794,7 @@ Commission calculations are server-side.
 
 Prevent:
 - invalid/fake GODIDs
-- salesman A overwriting salesman B's attribution
+- Saarthi Rahi A overwriting Saarthi Rahi B's attribution
 - frontend-generated commission amounts
 - commission without qualifying payment
 - duplicate commission for one subscription
@@ -825,7 +825,7 @@ Driver App
 Live Fleet
 ```
 
-The salesperson is only the acquisition/onboarding channel.
+The Saarthi Rahi is only the acquisition/onboarding channel.
 
 ---
 
@@ -854,7 +854,7 @@ Do not implement these blindly. Reuse existing services/routes wherever possible
 
 ## 30. RBAC
 
-Salesman permissions should be explicit.
+Saarthi Rahi permissions should be explicit.
 
 Potential permissions:
 
@@ -872,7 +872,7 @@ demo:use
 
 Follow the existing Saarthi RBAC model.
 
-Salesmen must not automatically receive:
+Saarthi Rahis must not automatically receive:
 - admin permissions
 - payment administration
 - commission editing
@@ -936,18 +936,18 @@ Do not code before this analysis.
 
 ## 33. Acceptance Criteria
 
-### Salesman
-- [ ] Verified GODID can be associated with a Saarthi salesman.
-- [ ] Salesman can access Sales inside existing Saarthi.
-- [ ] Salesman can create/manage leads.
-- [ ] Salesman can use safe Demo Mode.
-- [ ] Salesman can see attributed customers.
-- [ ] Salesman can see commission status.
+### Saarthi Rahi
+- [ ] Verified GODID can be associated with a Saarthi Rahi.
+- [ ] Saarthi Rahi can access Sales inside existing Saarthi.
+- [ ] Saarthi Rahi can create/manage leads.
+- [ ] Saarthi Rahi can use safe Demo Mode.
+- [ ] Saarthi Rahi can see attributed customers.
+- [ ] Saarthi Rahi can see commission status.
 
 ### Physical sales
 - [ ] Customer can register and subscribe.
-- [ ] Salesman can record tracker handover.
-- [ ] Salesman can complete one real first-vehicle demonstration.
+- [ ] Saarthi Rahi can record tracker handover.
+- [ ] Saarthi Rahi can complete one real first-vehicle demonstration.
 - [ ] Existing Driver App is used.
 - [ ] Existing vehicle QR/vehicle-number connection is used.
 - [ ] Existing OBD flow is used.
@@ -955,8 +955,8 @@ Do not code before this analysis.
 - [ ] Customer can repeat the same process for remaining vehicles.
 
 ### Digital sales
-- [ ] Salesman has referral link.
-- [ ] Salesman has referral QR.
+- [ ] Saarthi Rahi has referral link.
+- [ ] Saarthi Rahi has referral QR.
 - [ ] Referral attribution is server-side.
 - [ ] Customer can register and subscribe.
 - [ ] Tracker fulfillment uses existing commerce/operations architecture.
@@ -964,15 +964,15 @@ Do not code before this analysis.
 
 ### Commission
 - [ ] Commission is calculated server-side.
-- [ ] Commission is tied to correct salesman/GODID.
+- [ ] Commission is tied to correct Saarthi Rahi/GODID.
 - [ ] Duplicate commissions are prevented.
-- [ ] Salesman cannot edit commission.
+- [ ] Saarthi Rahi cannot edit commission.
 - [ ] Commission status is visible.
 - [ ] Qualification uses actual successful payment/subscription rules.
 
 ### Architecture
 - [ ] No separate Sales portal.
-- [ ] No separate Salesman APK.
+- [ ] No separate Saarthi Rahi APK.
 - [ ] No GODWeb modification.
 - [ ] No tracker QR workflow.
 - [ ] No duplicate tracker activation.
@@ -1020,7 +1020,7 @@ Do not code before this analysis.
                     │             │
                PHYSICAL       DIGITAL
                     │             │
-              Salesman gives   Saarthi ships
+              Saarthi Rahi gives   Saarthi ships
                  tracker         tracker
                     │             │
                     └──────┬──────┘
@@ -1049,4 +1049,4 @@ Do not code before this analysis.
 
 ## Core Principle
 
-> **GODWeb owns salesman identity. Saarthi owns the entire Saarthi sale. The existing Driver App, tracker/terminal, OBD, vehicle pairing and telemetry systems remain the technical source of truth. The new work is the sales/referral/commission layer and the necessary handover/onboarding tracking around those existing systems.**
+> **GODWeb owns Saarthi Rahi identity. Saarthi owns the entire Saarthi sale. The existing Driver App, tracker/terminal, OBD, vehicle pairing and telemetry systems remain the technical source of truth. The new work is the sales/referral/commission layer and the necessary handover/onboarding tracking around those existing systems.**

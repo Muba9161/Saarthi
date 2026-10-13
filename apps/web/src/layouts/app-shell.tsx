@@ -128,9 +128,9 @@ function navigationFor(
   if (isDriver) return DRIVER_NAVIGATION;
 
   /*
-   * A salesperson, before the organization-type switch is consulted.
+   * A Saarthi Rahi, before the organization-type switch is consulted.
    *
-   * Deliberately ahead of it: a salesperson has no tenant of their own, so
+   * Deliberately ahead of it: a Saarthi Rahi has no tenant of their own, so
    * whatever organization they happen to be seated in says nothing useful
    * about what they do here. Ordered after the driver check for the same
    * reason it is — the driver app is a different product surface — and before

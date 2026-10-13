@@ -12,14 +12,19 @@ import com.saarthi.core.network.PapersWalletDto
 import com.saarthi.core.network.RouteDto
 import com.saarthi.core.network.RouteRequest
 import com.saarthi.core.network.TerminalTripDto
-import com.saarthi.core.network.TripEventRequest
 import com.saarthi.core.network.TrailPointDto
+import com.saarthi.core.network.TripEventRequest
 import com.saarthi.core.network.TripPlaceDto
+import com.saarthi.core.network.TripQueueDto
+import com.saarthi.core.network.TripQueueOrderRequest
 import com.saarthi.core.network.arriveTrip
 import com.saarthi.core.network.createTrip
 import com.saarthi.core.network.navigationHandoff
+import com.saarthi.core.network.orderTrips
 import com.saarthi.core.network.papersWallet
+import com.saarthi.core.network.removeTrip
 import com.saarthi.core.network.trail
+import com.saarthi.core.network.tripQueue
 import com.saarthi.core.network.uploadExpenseSlip
 import com.saarthi.core.network.uploadFuelSlip
 import com.saarthi.core.telemetry.MetricSource
@@ -107,6 +112,22 @@ class ShiftRepository(
 
     suspend fun createTrip(request: CreateTripRequest): Result<CreatedTripDto> =
         repository.runCatchingApi { api.createTrip(request) }
+
+    /** The driver's own trips waiting to start, from where the vehicle is now. */
+    suspend fun tripQueue(): Result<TripQueueDto> = repository.runCatchingApi {
+        val position = telemetry.snapshot.value.position
+        api.tripQueue(position?.latitude, position?.longitude)
+    }
+
+    /** Run them in this order. */
+    suspend fun orderTrips(tripIds: List<String>): Result<TripQueueDto> = repository.runCatchingApi {
+        val position = telemetry.snapshot.value.position
+        api.orderTrips(TripQueueOrderRequest(tripIds, position?.latitude, position?.longitude))
+    }
+
+    /** Take one of the driver's own trips off their queue. */
+    suspend fun removeTrip(tripId: String): Result<TripQueueDto> =
+        repository.runCatchingApi { api.removeTrip(tripId) }
 
     /** Tell the fleet's trip the driver is following it in Google Maps, or is back. */
     suspend fun navigationHandoff(app: String?): Result<TerminalTripDto?> =

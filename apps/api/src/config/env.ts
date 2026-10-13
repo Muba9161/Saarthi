@@ -325,7 +325,7 @@ const envSchema = z.object({
   CASHFREE_PAYOUT_CLIENT_SECRET: blankAsUnset(z.string().min(1)),
   NOTIFICATION_PROVIDER: z.enum(['local', 'production']).default('local'),
   /**
-   * Outgoing email over SMTP — password resets and salesperson signup links.
+   * Outgoing email over SMTP — password resets and Saarthi Rahi signup links.
    * Defaults suit Google (Gmail / Workspace): smtp.gmail.com on 465 with TLS,
    * signed in with the mailbox address and a Google App Password. Email is
    * sent only when both SMTP_USER and SMTP_PASSWORD are set.
@@ -540,6 +540,14 @@ const envSchema = z.object({
    * a self-hosted instance, which has no such ceiling.
    */
   OVERPASS_WORK_BUDGET: z.coerce.number().min(20).max(20_000).default(200),
+  // --- Place search by name (OpenStreetMap via Photon) ---------------------
+  //
+  // Searched beside the routing provider's geocoder, which knows few of
+  // India's named places. Free and keyless; the public server asks for fair
+  // use, and a self-hosted Photon is a change of URL. Empty turns it off.
+  PHOTON_API_URL: z.union([z.string().url(), z.literal('')]).default('https://photon.komoot.io'),
+  PHOTON_TIMEOUT_MS: z.coerce.number().int().min(1_000).max(20_000).default(6_000),
+
   /** Seconds a places search is reused before the directory is queried again. */
   NEARBY_PLACE_CACHE_TTL: z.coerce.number().int().min(0).max(30 * 86_400).default(10_800),
 
@@ -590,14 +598,14 @@ const envSchema = z.object({
   DEMO_MODE: booleanish(true),
   SIMULATOR_TICK_MS: z.coerce.number().int().min(200).max(10_000).default(1000),
 
-  // --- GODWeb salesman identity (read-only) ---------------------------------
+  // --- GODWeb Saarthi Rahi identity (read-only) ---------------------------------
   //
-  // GODWeb owns who a salesperson is. Saarthi validates a GODID against it and
+  // GODWeb owns who a Saarthi Rahi is. Saarthi validates a GODID against it and
   // does nothing else: it never creates a GODWeb account, never writes to it
   // and never reads its database directly.
   //
   // With no base URL and key configured, GODID verification is *unavailable*
-  // rather than assumed. Salesman profiles stay PENDING_VERIFICATION, no
+  // rather than assumed. Saarthi Rahi profiles stay PENDING_VERIFICATION, no
   // referral link is issued for them and no commission accrues — see
   // `providers/godweb/index.ts`. That is the deliberate answer to the spec's
   // instruction to document the dependency rather than invent a GODWeb-side
@@ -615,7 +623,7 @@ const envSchema = z.object({
   GODWEB_TIMEOUT_MS: z.coerce.number().int().min(1_000).max(60_000).default(10_000),
   /**
    * Seconds a successful validation may be reused before GODWeb is called
-   * again. A salesperson's identity does not change hourly, and re-validating
+   * again. A Saarthi Rahi's identity does not change hourly, and re-validating
    * on every referral click would put GODWeb in the path of a public URL.
    */
   GODWEB_CACHE_TTL: z.coerce.number().int().min(0).max(30 * 86_400).default(3_600),
@@ -628,7 +636,7 @@ const envSchema = z.object({
    * This is a commercial decision, not a technical one, and the specification
    * is explicit that it must not be silently invented. So: it is configuration,
    * it is documented in `.env.example`, and it is returned to the client on
-   * every referral response and rendered on the salesman's referral screen —
+   * every referral response and rendered on the Saarthi Rahi's referral screen —
    * nobody has to guess the number, and changing it is one line of `.env`.
    *
    * 90 days is the default because it is the commonest figure in Indian SaaS
@@ -652,7 +660,7 @@ const envSchema = z.object({
    *
    * Used only by the first-vehicle readiness report, and only to phrase the
    * answer: a unit fitted two minutes ago that has not spoken is PENDING, not
-   * a failure, and telling a salesperson to check a cable that is fine wastes
+   * a failure, and telling a Saarthi Rahi to check a cable that is fine wastes
    * their visit.
    */
   SALES_ONBOARDING_TELEMETRY_GRACE_MINUTES: z.coerce
@@ -742,7 +750,7 @@ if (isProduction) {
   if (raw.DEMO_MODE) {
     throw new Error('DEMO_MODE must be false in production — simulation endpoints would be exposed.');
   }
-  // In production every emailed link (password reset, salesperson signup) and
+  // In production every emailed link (password reset, Saarthi Rahi signup) and
   // every vehicle QR code is built on FRONTEND_URL, never on the request — see
   // lib/public-url.ts. Left at its localhost default, each one points at the
   // reader's own machine, and a printed sticker cannot be corrected afterwards.
@@ -1129,6 +1137,11 @@ export const config = {
     maxRadiusKm: raw.OVERPASS_MAX_RADIUS_KM,
     workBudget: raw.OVERPASS_WORK_BUDGET,
     cacheTtlSeconds: raw.NEARBY_PLACE_CACHE_TTL,
+  },
+
+  placeSearch: {
+    photonUrl: raw.PHOTON_API_URL.replace(/\/+$/, ''),
+    timeoutMs: raw.PHOTON_TIMEOUT_MS,
   },
 
   fuelRates: {

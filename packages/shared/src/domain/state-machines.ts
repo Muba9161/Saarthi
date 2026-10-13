@@ -634,7 +634,7 @@ export const OPEN_RETURN_LOAD_STATUSES: ReturnLoadStatus[] = [
 // ---------------------------------------------------------------------------
 
 /**
- * The pipeline a salesperson works.
+ * The pipeline a Saarthi Rahi works.
  *
  * Two things are worth reading carefully.
  *
@@ -645,7 +645,7 @@ export const OPEN_RETURN_LOAD_STATUSES: ReturnLoadStatus[] = [
  * the notes field.
  *
  * The second is that the transitions *into* SUBSCRIBED and beyond exist here
- * but are not offered to the salesperson — see `SALES_LEAD_DERIVED_STATUSES`
+ * but are not offered to the Saarthi Rahi — see `SALES_LEAD_DERIVED_STATUSES`
  * below. The table describes what is possible; the API decides who may ask.
  */
 const SALES_LEAD_TRANSITIONS: Record<SalesLeadStatus, readonly SalesLeadStatus[]> = {
@@ -717,12 +717,12 @@ const SALES_LEAD_TRANSITIONS: Record<SalesLeadStatus, readonly SalesLeadStatus[]
 export const salesLeadStateMachine = buildValidator('Lead', SALES_LEAD_TRANSITIONS);
 
 /**
- * Statuses the system sets, never the salesperson.
+ * Statuses the system sets, never the Saarthi Rahi.
  *
  * Each one is a claim about something outside the CRM — a subscription, a
  * handover row, live telemetry — and a pipeline where the person paid on
  * conversions can type "ACTIVATED" is a pipeline that measures optimism. The
- * lead service refuses these from a salesman caller and sets them itself when
+ * lead service refuses these from a Saarthi Rahi caller and sets them itself when
  * the underlying record actually says so.
  */
 export const SALES_LEAD_DERIVED_STATUSES: readonly SalesLeadStatus[] = Object.freeze([

@@ -12,7 +12,7 @@
     <string name="assistant_stop">Stop</string>
     <string name="assistant_speak">Speak to Saarthi</string>
     <string name="assistant_quote">“%1$s”</string>
-    <string name="assistant_from">From: %1$s</string>
+    <string name="assistant_from">From your Saarthi records</string>
     <string name="assistant_try_asking">Try asking</string>
     <string name="assistant_suggest_vehicle">Is my vehicle okay?</string>
     <string name="assistant_suggest_fuel">What is my current fuel level?</string>

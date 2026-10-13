@@ -1,12 +1,7 @@
 import { z } from 'zod';
-import {
-  DocumentValidity,
-  Feature,
-  Permission,
-  resolveDocumentValidity,
-  documentTypeDefinition,
-} from '@saarthi/shared';
+import { Feature, Permission, rcValidity } from '@saarthi/shared';
 import { prisma } from '../../../database/prisma';
+import { vehiclePapers } from '../../terminal/driver-papers.service';
 import { readLiveState } from '../../tracking/live-state.service';
 import { ResultBasis, type AiTool, type ToolResult } from './tool.types';
 
@@ -176,7 +171,7 @@ export const VEHICLE_TOOLS: AiTool[] = [
   {
     name: 'get_vehicle_documents',
     description:
-      'Document compliance for one vehicle: insurance, fitness, permit, PUCC and their expiry status. Returns validity, never the files.',
+      'Paper compliance for one vehicle: RC, insurance, fitness, permit, PUC and road tax, each with its status and valid-until date - from uploaded papers, or the RTO register where nothing was uploaded. The same answer as the Papers tab of the vehicle. Returns validity, never the files.',
     input: vehicleArgs,
     permissions: [Permission.DOCUMENTS_READ],
     category: 'vehicle',
@@ -184,47 +179,41 @@ export const VEHICLE_TOOLS: AiTool[] = [
     handler: async ({ organizationId }, input) => {
       const { vehicleId } = input as { vehicleId: string };
       const vehicle = await loadVehicle(organizationId, vehicleId);
+      const { folders, documents, registerOnFile } = await vehiclePapers(organizationId, vehicleId);
+      const expiryOf = new Map(documents.map((document) => [document.id, document.expiryDate]));
 
-      const documents = await prisma.document.findMany({
-        where: { ownerType: 'TRUCK', ownerId: vehicleId, deletedAt: null },
-        select: {
-          id: true,
-          documentType: true,
-          expiryDate: true,
-          verificationStatus: true,
-        },
-      });
-
-      const evaluated = documents.map((document) => {
-        const { validity, daysRemaining } = resolveDocumentValidity({
-          expiryDate: document.expiryDate,
-          verificationStatus: document.verificationStatus,
-        });
+      const papers = folders.map((folder) => {
+        // The folder's own reading of its latest upload, so this matches the tab.
+        const latest = folder.documentIds[folder.documentIds.length - 1];
+        const validUntil =
+          (latest ? expiryOf.get(latest)?.slice(0, 10) : folder.registerValidUntil) ?? null;
         return {
-          documentId: document.id,
-          type: document.documentType,
-          label: documentTypeDefinition(document.documentType)?.label ?? document.documentType,
-          validity,
-          expiresAt: document.expiryDate?.toISOString().slice(0, 10) ?? null,
-          daysRemaining,
+          type: folder.id,
+          label: folder.label,
+          mandatory: folder.mandatory,
+          status: folder.status,
+          validUntil,
+          daysRemaining: rcValidity(validUntil).daysRemaining,
+          source: latest ? 'UPLOADED' : folder.registerValidUntil ? 'RTO_REGISTER' : null,
         };
       });
 
       return result(
         {
           registrationNumber: vehicle.registrationNumber,
-          documents: evaluated,
-          expired: evaluated.filter((entry) => entry.validity === DocumentValidity.EXPIRED).length,
-          expiringSoon: evaluated.filter(
-            (entry) => entry.validity === DocumentValidity.EXPIRING_SOON,
-          ).length,
+          papers,
+          expired: papers.filter((paper) => paper.status === 'EXPIRED').length,
+          expiringSoon: papers.filter((paper) => paper.status === 'EXPIRING_SOON').length,
+          missing: papers.filter((paper) => paper.status === 'MISSING').length,
         },
         {
           basis: ResultBasis.RULE_RESULT,
-          recordCount: evaluated.length,
+          recordCount: papers.length,
           caveats:
-            evaluated.length === 0
-              ? ['No documents are on file for this vehicle. That is not the same as none existing.']
+            documents.length === 0 && !registerOnFile
+              ? [
+                  'Nothing is uploaded for this vehicle and its RTO record has not been fetched, so its papers cannot be checked yet.',
+                ]
               : [],
         },
       );

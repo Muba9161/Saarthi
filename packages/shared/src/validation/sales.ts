@@ -24,7 +24,7 @@ import {
 /**
  * Input contracts for the sales and referral surface.
  *
- * Nothing in this file accepts a reward *amount*. A salesperson's reward is a
+ * Nothing in this file accepts a reward *amount*. A Saarthi Rahi's reward is a
  * fixed figure from configuration, credited server-side when a referral
  * succeeds, so there is no shape a client could send one in.
  *
@@ -61,11 +61,11 @@ export const godIdSchema = z
 export const referralCodeSchema = godIdSchema;
 
 // ---------------------------------------------------------------------------
-// Salesman profile
+// Saarthi Rahi profile
 // ---------------------------------------------------------------------------
 
 /**
- * A salesperson starting their own signup with their GODID.
+ * A Saarthi Rahi starting their own signup with their GODID.
  *
  * Public and unauthenticated. The GODID alone proves nothing — they appear in
  * every referral link — so what this starts is an email to the address GODWeb
@@ -75,7 +75,7 @@ export const salesmanSignupSchema = z.object({ godId: godIdSchema });
 export type SalesmanSignupInput = z.infer<typeof salesmanSignupSchema>;
 
 /**
- * Create a Saarthi salesman profile for an existing GODWeb identity.
+ * Create a Saarthi Rahi profile for an existing GODWeb identity.
  *
  * Platform administration only. Name, phone and email are optional because
  * GODWeb is the authority on all three: when the integration answers, its
@@ -109,10 +109,10 @@ export const updateSalesmanSchema = z.object({
 export type UpdateSalesmanInput = z.infer<typeof updateSalesmanSchema>;
 
 /**
- * Change a salesman's standing.
+ * Change a Saarthi Rahi's standing.
  *
  * `ACTIVE` is absent on purpose: a profile becomes active by being verified,
- * not by being switched on. Reinstating a suspended salesperson runs the
+ * not by being switched on. Reinstating a suspended Saarthi Rahi runs the
  * verification path again, which is the only thing that can honestly say the
  * GODID is still good.
  */
@@ -151,7 +151,7 @@ export type SalesmanListQuery = z.infer<typeof salesmanListQuerySchema>;
 // ---------------------------------------------------------------------------
 
 /**
- * A prospect, as the salesperson first writes it down.
+ * A prospect, as the Saarthi Rahi first writes it down.
  *
  * The phone number is the only required contact detail and it is required
  * deliberately: a lead nobody can ring is a note, and the pipeline counts on
@@ -226,7 +226,7 @@ export const leadListQuerySchema = paginationSchema.extend({
     .transform((value) =>
       value === undefined ? undefined : typeof value === 'boolean' ? value : value === 'true' || value === '1',
     ),
-  /** Platform administration only; a salesperson always sees their own. */
+  /** Platform administration only; a Saarthi Rahi always sees their own. */
   salesmanId: uuidSchema.optional(),
 });
 export type LeadListQuery = z.infer<typeof leadListQuerySchema>;
@@ -236,7 +236,7 @@ export type LeadListQuery = z.infer<typeof leadListQuerySchema>;
  *
  * This is the whole assisted-signup payload, and the shape is the safeguard:
  * there is nowhere in it to put a password, an OTP, a card number or a UPI PIN.
- * The salesperson names the prospect; Saarthi messages the prospect; the
+ * The Saarthi Rahi names the prospect; Saarthi messages the prospect; the
  * prospect creates their own account and authorises their own payment.
  */
 export const startAssistedSignupSchema = z.object({
@@ -256,7 +256,7 @@ export type StartAssistedSignupInput = z.infer<typeof startAssistedSignupSchema>
  * Resolve a referral code for display on the public landing page.
  *
  * Anonymous, so the response is deliberately thin — see the route. It answers
- * "is this a real Saarthi salesperson, and what may I call them" and nothing
+ * "is this a real Saarthi Rahi, and what may I call them" and nothing
  * else.
  */
 export const referralCodeParamSchema = z.object({ code: referralCodeSchema });
@@ -266,7 +266,7 @@ export type ReferralCodeParam = z.infer<typeof referralCodeParamSchema>;
  * Record that somebody followed a referral link or scanned a referral QR.
  *
  * `source` is restricted to the self-service values: a physical sale is
- * recorded through the lead the salesperson is working, not by posting to this
+ * recorded through the lead the Saarthi Rahi is working, not by posting to this
  * endpoint, and allowing PHYSICAL here would let an anonymous caller assert a
  * visit that never happened.
  */
@@ -285,7 +285,7 @@ export const validateReferralSchema = z.object({
 export type ValidateReferralInput = z.infer<typeof validateReferralSchema>;
 
 /**
- * Attribute an existing customer to a salesperson after the fact.
+ * Attribute an existing customer to a Saarthi Rahi after the fact.
  *
  * Platform administration only, and it cannot overwrite a live attribution —
  * the service refuses, because "first valid attribution wins" is worth nothing
@@ -315,7 +315,7 @@ export type ReferralListQuery = z.infer<typeof referralListQuerySchema>;
 // ---------------------------------------------------------------------------
 
 /**
- * Allocate a paid-for tracker to a salesperson to carry.
+ * Allocate a paid-for tracker to a Saarthi Rahi to carry.
  *
  * Takes the id of an existing `VehicleTracker` — the row the customer's money
  * created — rather than inventing a device record. There is deliberately no
@@ -336,7 +336,7 @@ export type AssignTrackerToSalesmanInput = z.infer<typeof assignTrackerToSalesma
  *
  * `acknowledgedBy` is who signed for it at the customer's end. It is required
  * because a handover with nobody's name on it is the one that gets disputed,
- * and the salesperson is standing in front of that person when they record it.
+ * and the Saarthi Rahi is standing in front of that person when they record it.
  */
 export const handOverTrackerSchema = z.object({
   acknowledgedBy: trimmedString(2, 120),

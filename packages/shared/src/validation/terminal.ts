@@ -315,8 +315,34 @@ export const terminalTripEventSchema = z.object({
   longitude: longitudeSchema.optional(),
   odometerKm: z.coerce.number().min(0).max(5_000_000).optional(),
   note: optionalTrimmedString(300),
+  /**
+   * Start this trip rather than whichever holds the vehicle — a driver's own
+   * queued trip, picked from the Trips tab. Absent means the trip holding the
+   * vehicle, exactly as before. Only `/trip/start` reads it.
+   */
+  tripId: z.string().uuid().optional(),
 });
 export type TerminalTripEventInput = z.infer<typeof terminalTripEventSchema>;
+
+/** Where the driver is, for the trip queue to start from. */
+export const terminalTripQueueQuerySchema = z.object({
+  latitude: z.coerce.number().min(-90).max(90).optional(),
+  longitude: z.coerce.number().min(-180).max(180).optional(),
+});
+export type TerminalTripQueueQuery = z.infer<typeof terminalTripQueueQuerySchema>;
+
+/**
+ * The driver's own not-yet-started trips, in the order they want to run them.
+ *
+ * Every one of them, exactly once: an order that leaves a trip out, or names
+ * one that is not theirs to move, is refused rather than half-applied.
+ */
+export const terminalTripQueueOrderSchema = z.object({
+  tripIds: z.array(z.string().uuid()).min(1).max(20),
+  latitude: latitudeSchema.optional(),
+  longitude: longitudeSchema.optional(),
+});
+export type TerminalTripQueueOrderInput = z.infer<typeof terminalTripQueueOrderSchema>;
 
 /**
  * The driver handed the trip to another navigation app, or came back.

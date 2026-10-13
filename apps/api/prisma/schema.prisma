@@ -32,7 +32,7 @@ enum RoleName {
   ASSOCIATION_ADMIN
   ASSOCIATION_RESPONDER
   MOBILITY_PROVIDER
-  /// Saarthi salesperson. Sells Saarthi; does not operate a fleet. Identity is
+  /// Saarthi Rahi. Sells Saarthi; does not operate a fleet. Identity is
   /// owned by GODWeb and mirrored into `salesman_profiles`.
   SALESMAN
 }
@@ -90,7 +90,7 @@ model User {
   lastLoginAt     DateTime?
   /// When this person proved they read `email`, with the code emailed at
   /// registration. Null for accounts created before that check existed, or by
-  /// another route (a salesperson's self-signup proves it with a link instead).
+  /// another route (a Saarthi Rahi's self-signup proves it with a link instead).
   emailVerifiedAt DateTime?
 
   /// Last four digits of this person's own verified Aadhaar, and when it was
@@ -142,14 +142,14 @@ model User {
   uploadedTerminalReleases  TerminalRelease[] @relation("TerminalReleaseUploader")
   publishedTerminalReleases TerminalRelease[] @relation("TerminalReleasePublisher")
 
-  /// Set only for a Saarthi salesperson. Optional in both directions: a
+  /// Set only for a Saarthi Rahi. Optional in both directions: a
   /// profile may be created from a GODID before the person has a login, and
   /// almost no user has one of these.
   salesmanProfile SalesmanProfile? @relation("SalesmanUser")
 
   /// Refer & Earn. The code this person shares, the referrals it brought, and
   /// — for somebody who registered through one — the referral that brought
-  /// them. Separate from the salesman/GODID channel above.
+  /// them. Separate from the Saarthi Rahi/GODID channel above.
   referralProgramCode ReferralProgramCode?
   referralsMade       UserReferral[]       @relation("UserReferralReferrer")
   referredBy          UserReferral?        @relation("UserReferralReferred")
@@ -279,7 +279,7 @@ model Organization {
   profile            OrganizationProfile?
 
   /// How this customer came to Saarthi, and what it earned whoever brought
-  /// them. Present only for a tenant that arrived through a salesperson.
+  /// them. Present only for a tenant that arrived through a Saarthi Rahi.
   salesLeads           SalesLead[]
   referralAttributions ReferralAttribution[]
   payoutAccount        PayoutAccount?
@@ -2412,6 +2412,13 @@ model Trip {
   /// fleet dispatching it. A fleet trip always comes first: a driver trip made
   /// while one is open waits as a DRAFT until the vehicle is free.
   driverCreated Boolean @default(false)
+
+  /// Where a driver's own trip stands in their queue on the vehicle, lowest
+  /// first. The driver may reorder their trips, so the order they were added
+  /// in is not the order they run in. Null for a fleet trip, which is never
+  /// queued, and for any trip from before the queue could be reordered — those
+  /// fall back to the order they were added in.
+  queuePosition Int?
 
   /// Set while the driver is following this trip in another navigation app.
   /// That app chooses its own roads and cannot tell Saarthi which, so leaving
@@ -6456,7 +6463,7 @@ model VehicleTracker {
   updatedAt        DateTime @updatedAt
 
   /// The custody chain, when this unit was carried to the customer by a
-  /// salesperson rather than couriered. Absent for a digital sale.
+  /// Saarthi Rahi rather than couriered. Absent for a digital sale.
   handover TrackerHandover?
 
   @@index([organizationId, status])
@@ -7309,7 +7316,7 @@ enum TrackerHandoverStatus {
 // Sales, referrals & commission
 // ===========================================================================
 
-/// A Saarthi salesperson.
+/// A Saarthi Rahi.
 ///
 /// A *mirror* of a GODWeb identity, not a second account system. `godId` is the
 /// identity GODWeb owns; everything else on this row is Saarthi's own record of
@@ -7320,7 +7327,7 @@ enum TrackerHandoverStatus {
 /// `userId` is nullable and unique. Nullable because a profile can be set up
 /// from a GODID before the person has logged into Saarthi at all — which is the
 /// ordinary sequence when a sales manager onboards a team. Unique because two
-/// salespeople sharing one login would make every attribution ambiguous.
+/// Saarthi Rahis sharing one login would make every attribution ambiguous.
 model SalesmanProfile {
   id     String  @id @default(uuid()) @db.Uuid
   /// The GODWeb identity. Stored normalised (upper case, no spaces) and unique,
@@ -7374,7 +7381,7 @@ model SalesmanProfile {
   @@map("salesman_profiles")
 }
 
-/// A prospect a salesperson is working.
+/// A prospect a Saarthi Rahi is working.
 ///
 /// Deliberately not a `Customer`. A `Customer` is a marketplace participant
 /// hanging off an organization that already exists; a lead is a phone number
@@ -7383,7 +7390,7 @@ model SalesmanProfile {
 /// sale was made.
 ///
 /// This is pre-account personal data belonging to somebody who has agreed to
-/// nothing, so it is scoped hard: a salesperson sees their own leads, platform
+/// nothing, so it is scoped hard: a Saarthi Rahi sees their own leads, platform
 /// administration sees all, and nobody else can reach the table at all.
 model SalesLead {
   id         String @id @default(uuid()) @db.Uuid
@@ -7414,12 +7421,12 @@ model SalesLead {
   /// The attribution that credited the sale, once there is one.
   attributionId  String? @unique @db.Uuid
 
-  /// Recorded when the salesperson finishes the first-vehicle demonstration —
+  /// Recorded when the Saarthi Rahi finishes the first-vehicle demonstration —
   /// and only after the API has re-read the device and telemetry state that
   /// justifies it. See `onboarding.service.ts`.
   demoCompletedAt       DateTime?
   onboardingCompletedAt DateTime?
-  /// The one vehicle the salesperson set up in front of the owner.
+  /// The one vehicle the Saarthi Rahi set up in front of the owner.
   firstVehicleId        String?   @db.Uuid
 
   closedAt    DateTime?
@@ -7434,7 +7441,7 @@ model SalesLead {
   events       SalesLeadEvent[]
   handovers    TrackerHandover[]
 
-  /// One salesperson cannot hold the same prospect twice. Two salespeople may
+  /// One Saarthi Rahi cannot hold the same prospect twice. Two Saarthi Rahis may
   /// both be talking to the same yard, which is a real situation and is
   /// resolved by attribution when one of them closes it, not by this index.
   @@unique([salesmanId, phone])
@@ -7482,7 +7489,7 @@ model SalesLeadEvent {
 model ReferralAttribution {
   id                    String  @id @default(uuid()) @db.Uuid
   salesmanId            String  @db.Uuid
-  /// Denormalised from the salesman profile at capture time.
+  /// Denormalised from the Saarthi Rahi profile at capture time.
   ///
   /// Kept because commission statements are reconciled by GODID and by the
   /// sales organization's own id, and both have to still read correctly years
@@ -7501,7 +7508,7 @@ model ReferralAttribution {
   capturedAt   DateTime  @default(now())
   /// End of the attribution window, computed at capture from
   /// `SALES_ATTRIBUTION_WINDOW_DAYS`. Stored rather than recomputed so a later
-  /// configuration change cannot retroactively take a salesperson's credit
+  /// configuration change cannot retroactively take a Saarthi Rahi's credit
   /// away — or hand it back.
   expiresAt    DateTime
   attributedAt DateTime?
@@ -7524,7 +7531,7 @@ model ReferralAttribution {
   salesman     SalesmanProfile @relation(fields: [salesmanId], references: [id], onDelete: Cascade)
   organization Organization?   @relation(fields: [organizationId], references: [id], onDelete: SetNull)
   lead         SalesLead?      @relation("LeadAttribution")
-  /// The salesperson's ₹ reward for this customer, if one was credited.
+  /// The Saarthi Rahi's ₹ reward for this customer, if one was credited.
   walletEntry  WalletEntry?
 
   @@index([salesmanId, status])
@@ -7593,7 +7600,7 @@ model TrackerHandover {
 // ---------------------------------------------------------------------------
 //
 // One Saarthi user bringing another. Kept entirely apart from the
-// salesman/GODID tables above: different codes, different statuses, and no
+// Saarthi Rahi/GODID tables above: different codes, different statuses, and no
 // commission row. The reward rule is not decided yet, so a qualified referral
 // records the payment it qualified on and nothing more.
 
@@ -7691,7 +7698,7 @@ model WalletEntry {
   availableAt DateTime
 
   userReferralId         String? @unique @db.Uuid
-  /// A salesperson's reward: the attribution that earned it.
+  /// A Saarthi Rahi's reward: the attribution that earned it.
   referralAttributionId  String? @unique @db.Uuid
   /// The referred customer. What a held reward's release is checked against.
   referredOrganizationId String? @db.Uuid
@@ -7886,7 +7893,7 @@ enum MarketplaceCommissionStatus {
 /// so a later rate change never rewrites what an old order paid.
 model MarketplaceCommission {
   id                     String                      @id @default(uuid()) @db.Uuid
-  /// Always MARKETPLACE_PROFIT — distinct from referral and salesperson commission.
+  /// Always MARKETPLACE_PROFIT — distinct from referral and Saarthi Rahi commission.
   source                 String                      @default("MARKETPLACE_PROFIT")
   /// FREIGHT_ORDER or TRAVEL_BOOKING.
   kind                   String

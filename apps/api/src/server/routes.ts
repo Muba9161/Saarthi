@@ -60,6 +60,7 @@ import {
 } from '../modules/terminal/terminal.routes';
 import { terminalClientRoutes } from '../modules/terminal/terminal-client.routes';
 import { terminalPapersRoutes } from '../modules/terminal/terminal-papers.routes';
+import { terminalTripQueueRoutes } from '../modules/terminal/terminal-trip-queue.routes';
 import { terminalSlipRoutes } from '../modules/terminal/terminal-slips.routes';
 import { terminalReleaseRoutes } from '../modules/terminal/release.routes';
 import { publicDriverAppRoutes } from '../modules/terminal/driver-app.routes';
@@ -173,18 +174,18 @@ export async function registerApiRoutes(app: FastifyInstance): Promise<void> {
   await app.register(cashfreeWebhookRoutes, { prefix: '/webhooks/cashfree' });
   // Selling Saarthi: leads, referrals, commission and tracker handover. One
   // module inside this application — there is no separate sales portal, no
-  // salesman site and no salesman app.
+  // Saarthi Rahi site and no Saarthi Rahi app.
   await app.register(salesRoutes, { prefix: '/sales' });
   // The referral landing target. Registered without the session guard, exactly
   // like `/qr/resolve/:token` above and for the same reason: a referral link is
   // opened by somebody who does not have a Saarthi account yet. It reveals only
   // a display name and whether the code is real.
   await app.register(publicReferralRoutes, { prefix: '/referrals/public' });
-  // A salesperson signing themselves up with their GODID. Public, like the
+  // A Saarthi Rahi signing themselves up with their GODID. Public, like the
   // referral landing target: they have no Saarthi account yet.
   await app.register(salesmanSignupRoutes, { prefix: '/salesman-signup' });
   // Refer & Earn — one Saarthi user referring another. A separate program from
-  // the salesman/GODID channel above, with its own codes and records.
+  // the Saarthi Rahi/GODID channel above, with its own codes and records.
   await app.register(referralProgramRoutes, { prefix: '/referral-program' });
   // The wallet those referrals pay into, and cash-out to a verified bank account.
   await app.register(walletRoutes, { prefix: '/wallet' });
@@ -254,6 +255,7 @@ export async function registerApiRoutes(app: FastifyInstance): Promise<void> {
   await app.register(terminalClientRoutes, { prefix: '/device-gateway/terminal' });
   // The driver's papers wallet and road expense slips, on the same base URL.
   await app.register(terminalPapersRoutes, { prefix: '/device-gateway/terminal' });
+  await app.register(terminalTripQueueRoutes, { prefix: '/device-gateway/terminal' });
   await app.register(terminalSlipRoutes, { prefix: '/device-gateway/terminal' });
   // The video gateway's authorisation callback. Its caller is an SFU, not a
   // person and not a device — the signed ticket it presents is the whole

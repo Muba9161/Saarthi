@@ -11,7 +11,7 @@ import { PageHeader } from '@/components/common/page-header';
 import { UnauthorizedState } from '@/components/common/states';
 
 /**
- * A salesperson's earnings.
+ * A Saarthi Rahi's earnings.
  *
  * Every successful referral — a customer who starts on a paid plan through
  * their link — pays a flat reward into their Saarthi wallet. Nobody approves

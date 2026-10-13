@@ -4,7 +4,7 @@ import { brandedEmailHtml, escapeHtml } from './email-layout';
 /**
  * A branded email that asks the reader to do one thing — follow a link.
  *
- * Password resets and salesperson signups are both this shape.
+ * Password resets and Saarthi Rahi signups are both this shape.
  */
 
 export function actionEmail(input: {

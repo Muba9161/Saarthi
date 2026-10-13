@@ -2,6 +2,7 @@ package com.saarthi.driver.ui.shift.trips
 
 import com.saarthi.core.network.DriverTripDto
 import com.saarthi.core.network.TerminalTripDto
+import com.saarthi.core.network.TripQueueDto
 
 /**
  * Statuses that mean a vehicle has set off and not yet finished.
@@ -54,6 +55,8 @@ internal data class OpenTrip(
      * trips to drive.
      */
     val fromFleet: Boolean,
+    /** Its place in the driver's own order, from 1 — null for a trip outside it. */
+    val position: Int? = null,
 )
 
 /**
@@ -64,9 +67,9 @@ internal data class OpenTrip(
  * however few there are. Each value is a fraction of the longest of them.
  */
 internal data class TripsBoard(
-    /** The trip holding the vehicle — under way, or next to start. */
+    /** The trip under way, or the fleet's trip next to start. */
     val current: OpenTrip?,
-    /** The driver's own trips waiting behind it, oldest first: the order they will run in. */
+    /** The driver's own trips that have not started, in the order they will run. */
     val queued: List<OpenTrip>,
     val finished: List<DriverTripDto>,
     /** Distance Saarthi measured across the finished trips; null when it measured none. */
@@ -94,13 +97,16 @@ internal fun tripsBoard(
     dispatch: TerminalTripDto?,
     sessionStartedAt: String?,
     registration: String?,
+    queue: TripQueueDto?,
 ): TripsBoard {
+    // The driver's own trip waiting for Start is the head of their queue, shown there and only there.
+    val headOfQueue = dispatch != null && !dispatch.underway && queue?.trips?.any { it.id == dispatch.id } == true
     val record = when {
         dispatch != null -> trips.firstOrNull { it.id == dispatch.id }
         active -> trips.firstOrNull { it.status in UnderwayStatuses }
         else -> null
     }
-    val current = if (active || dispatch != null) {
+    val current = if ((active || dispatch != null) && !headOfQueue) {
         OpenTrip(
             id = dispatch?.id ?: record?.id,
             reference = dispatch?.reference?.ifBlank { null } ?: record?.reference?.ifBlank { null },
@@ -116,7 +122,21 @@ internal fun tripsBoard(
         null
     }
 
-    val queued = trips
+    val queued = queue?.trips?.filter { it.id != current?.id }?.map { trip ->
+        OpenTrip(
+            id = trip.id,
+            reference = trip.reference?.ifBlank { null },
+            origin = trip.fromLabel?.ifBlank { null },
+            destination = trip.toLabel?.ifBlank { null },
+            plannedKm = trip.plannedDistanceKm,
+            startedAt = null,
+            registration = registration,
+            stage = if (trip.upNext) TripStage.UP_NEXT else TripStage.QUEUED,
+            fromFleet = false,
+            position = trip.position,
+        )
+    } ?: trips
+        // Until the queue has answered: the driver's queued trips in the order they were added.
         .filter { it.status == QUEUED_STATUS && it.driverCreated && it.id != current?.id }
         .sortedBy { it.createdAt }
         .map { trip ->

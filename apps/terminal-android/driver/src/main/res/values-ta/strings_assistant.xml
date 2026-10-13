@@ -10,7 +10,7 @@
     <string name="assistant_stop">நிறுத்து</string>
     <string name="assistant_speak">Saarthi-இடம் பேசுங்கள்</string>
     <string name="assistant_quote">“%1$s”</string>
-    <string name="assistant_from">மூலம்: %1$s</string>
+    <string name="assistant_from">உங்கள் Saarthi பதிவுகளிலிருந்து</string>
     <string name="assistant_try_asking">இப்படிக் கேட்டுப் பாருங்கள்</string>
     <string name="assistant_suggest_vehicle">என் வண்டி சரியாக இருக்கிறதா?</string>
     <string name="assistant_suggest_fuel">இப்போது என் எரிபொருள் அளவு என்ன?</string>

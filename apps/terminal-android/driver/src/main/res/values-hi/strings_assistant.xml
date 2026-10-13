@@ -10,7 +10,7 @@
     <string name="assistant_stop">रोकें</string>
     <string name="assistant_speak">Saarthi से बोलें</string>
     <string name="assistant_quote">“%1$s”</string>
-    <string name="assistant_from">स्रोत: %1$s</string>
+    <string name="assistant_from">आपके Saarthi रिकॉर्ड से</string>
     <string name="assistant_try_asking">ऐसे पूछकर देखें</string>
     <string name="assistant_suggest_vehicle">क्या मेरी गाड़ी ठीक है?</string>
     <string name="assistant_suggest_fuel">अभी मेरा फ़्यूल लेवल कितना है?</string>

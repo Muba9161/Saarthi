@@ -128,7 +128,7 @@ export function ReferralCenterPage(): React.ReactElement {
         {header}
         <Alert>
           <AlertDescription className="text-sm">
-            As a Saarthi salesperson you refer customers through your GODID link, which is credited
+            As a Saarthi Rahi you refer customers through your GODID link, which is credited
             to your sales commission.{' '}
             <Link to="/sales/referrals" className="font-medium underline underline-offset-2">
               Open my referral link

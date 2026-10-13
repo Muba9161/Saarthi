@@ -688,13 +688,18 @@ export interface OrderFinanceSummary {
   orderId: string;
   stage: OrderFinanceStage;
   role: 'CUSTOMER' | 'FLEET' | 'SUPPLIER' | 'ADMIN';
-  agreedAmount: number;
-  confirmationAmount: number;
+  /**
+   * What the customer pays and has confirmed. Null for the supplier: the
+   * fleet's selling price is the fleet's own, and what arrived is the
+   * customer's word (see `communication.ts`).
+   */
+  agreedAmount: number | null;
+  confirmationAmount: number | null;
   orderedQuantity: number;
   deliveredQuantity: number | null;
   finalAmount: number | null;
   /** What the customer still owes. */
-  balanceDue: number;
+  balanceDue: number | null;
   payments: { stage: string; amount: number; status: string; reference: string; at: string }[];
   /** The fleet's view: procurement, profit and Saarthi's commission. Null for others. */
   provider: {
@@ -765,19 +770,23 @@ export async function financialSummary(
   const profitBasis = commissionRow ? Number(commissionRow.profitBasis) : estimate.profitBasis;
   const commissionAmount = commissionRow ? Number(commissionRow.amount) : estimate.amount;
 
+  // The supplier is told what it was paid, and nothing of the customer's side.
+  const customerSide = <T>(value: T): T | null => (role === 'SUPPLIER' ? null : value);
+
   return {
     orderId,
     stage: finance.stage as OrderFinanceStage,
     role,
-    agreedAmount: agreed,
-    confirmationAmount: Number(finance.confirmationAmount),
+    agreedAmount: customerSide(agreed),
+    confirmationAmount: customerSide(Number(finance.confirmationAmount)),
     orderedQuantity: finance.orderedQuantity,
-    deliveredQuantity: finance.deliveredQuantity,
-    finalAmount,
-    balanceDue:
+    deliveredQuantity: customerSide(finance.deliveredQuantity),
+    finalAmount: customerSide(finalAmount),
+    balanceDue: customerSide(
       finance.stage === OrderFinanceStage.FINALIZED || finance.stage === OrderFinanceStage.CANCELLED
         ? 0
         : balanceDue({ finalAmount: finalAmount ?? agreed, paidSoFar: paidByCustomer }),
+    ),
     payments: payments.map((payment) => ({
       stage: Object.entries(STAGE_LABEL).find(([prefix]) => payment.reference.startsWith(prefix))?.[1] ?? 'OTHER',
       amount: Number(payment.amount),

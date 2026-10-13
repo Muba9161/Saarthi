@@ -32,6 +32,7 @@ import { PageHeader, SectionHeader } from '@/components/common/page-header';
 import { EmptyState, LoadingState, UnauthorizedState } from '@/components/common/states';
 import { StatusBadge } from '@/components/common/status-badge';
 import { FleetMap, type MapMarkerPoint, type MapTruck } from '@/features/maps/fleet-map';
+import { routeMarkers, tripRouteLabel } from '@/features/trips/trip-route';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -210,24 +211,7 @@ export function SimulatorPage() {
   const trail = selected ? (trails[selected.truckId] ?? []) : [];
   const liveSelected = selected ? telemetry[selected.truckId] : undefined;
 
-  const markers: MapMarkerPoint[] = selectedTrip.data
-    ? [
-        {
-          id: 'origin',
-          latitude: selectedTrip.data.originLatitude,
-          longitude: selectedTrip.data.originLongitude,
-          label: selectedTrip.data.originAddress,
-          kind: 'origin',
-        },
-        {
-          id: 'destination',
-          latitude: selectedTrip.data.destinationLatitude,
-          longitude: selectedTrip.data.destinationLongitude,
-          label: selectedTrip.data.destinationAddress,
-          kind: 'destination',
-        },
-      ]
-    : [];
+  const markers: MapMarkerPoint[] = selectedTrip.data ? routeMarkers(selectedTrip.data) : [];
 
   const runnable = (trips.data?.items ?? []).filter((trip) => trip.truck);
 
@@ -375,8 +359,7 @@ export function SimulatorPage() {
                 ) : (
                   runnable.map((trip) => (
                     <SelectItem key={trip.id} value={trip.id}>
-                      {trip.reference} · {trip.truck?.registrationNumber} ·{' '}
-                      {trip.originAddress.split(',')[0]} → {trip.destinationAddress.split(',')[0]}
+                      {trip.reference} · {trip.truck?.registrationNumber} · {tripRouteLabel(trip)}
                     </SelectItem>
                   ))
                 )}

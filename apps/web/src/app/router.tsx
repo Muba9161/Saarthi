@@ -84,11 +84,11 @@ function HomeRedirect() {
   if (isDriver) return <Navigate to="/driver" replace />;
   if (isPlatformAdmin && !session?.organization) return <Navigate to="/admin" replace />;
   /*
-   * A salesperson's home is their pipeline.
+   * A Saarthi Rahi's home is their pipeline.
    *
    * Below the admin check so operations staff who also carry a GODID still
    * land on the platform overview, and above the fleet dashboard because a
-   * salesperson has no fleet — that screen would be empty for them.
+   * Saarthi Rahi has no fleet — that screen would be empty for them.
    */
   if (session?.user.roles.includes('SALESMAN')) return <Navigate to="/sales" replace />;
   // An association has no fleet dashboard to land on — its home is the queue.
@@ -132,7 +132,7 @@ export const router = createBrowserRouter([
    * Registered here, outside `RequireAuth`, for the same reason `/q/:token` is:
    * a referral link is shared on WhatsApp and opened by somebody who has no
    * Saarthi account and has not decided to make one. Sending them to /login
-   * would waste the salesperson's link.
+   * would waste the Saarthi Rahi's link.
    *
    * Nothing is trusted to the client. The page asks the API who the code
    * belongs to and gets back a display name and whether it is real; the
@@ -175,7 +175,7 @@ export const router = createBrowserRouter([
       { path: '/register', element: suspendedPage(RegisterPage) },
       { path: '/forgot-password', element: lazyPage(() => import('@/pages/auth/forgot-password')) },
       { path: '/reset-password', element: lazyPage(() => import('@/pages/auth/reset-password')) },
-      // A salesperson joining with their GODID. Beside sign-in rather than in
+      // A Saarthi Rahi joining with their GODID. Beside sign-in rather than in
       // the Sales area, because they have no account yet.
       { path: '/sales/join', element: lazyPage(() => import('@/pages/sales/join')) },
     ],
@@ -455,7 +455,7 @@ export const router = createBrowserRouter([
                 element: lazyPage(() => import('@/pages/settings/payouts')),
               },
               // Refer & Earn — the generic referral program, from the profile menu.
-              // Not under /sales: that is the salesman/GODID channel.
+              // Not under /sales: that is the Saarthi Rahi/GODID channel.
               {
                 path: '/referrals',
                 element: lazyPage(() => import('@/pages/referrals/referral-center')),

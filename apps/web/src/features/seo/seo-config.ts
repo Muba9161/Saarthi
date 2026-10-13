@@ -93,8 +93,8 @@ export const ROUTE_SEO: Readonly<Record<string, RouteSeo>> = {
     indexable: false,
   },
   '/sales/join': {
-    title: 'Join as a salesperson | VorldX Saarthi',
-    description: 'Join VorldX Saarthi as a salesperson with your GODID.',
+    title: 'Join as a Saarthi Rahi | VorldX Saarthi',
+    description: 'Join VorldX Saarthi as a Saarthi Rahi with your GODID.',
     indexable: false,
   },
 };

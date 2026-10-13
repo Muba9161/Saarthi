@@ -95,7 +95,8 @@ internal fun RegisterLine(validUntil: String, modifier: Modifier = Modifier) {
  * The owner's name, the chassis and the engine number arrive partly hidden: the
  * driver is not the registered owner, and the card shows them as the server
  * sent them — enough for an officer to match the vehicle, too little to find
- * the person.
+ * the person. An owner who drives sees them whole with their Secure PIN — see
+ * [OwnerRcControls], which sits under this card.
  */
 @Composable
 internal fun VirtualRcCard(rc: VirtualRcDto, modifier: Modifier = Modifier) {
@@ -224,7 +225,7 @@ internal fun LicenceCard(licence: LicenceCardDto, modifier: Modifier = Modifier)
 }
 
 @Composable
-private fun RecordSection(@StringRes title: Int, rows: @Composable () -> Unit) {
+internal fun RecordSection(@StringRes title: Int, rows: @Composable () -> Unit) {
     Column(
         Modifier
             .fillMaxWidth()
@@ -238,7 +239,7 @@ private fun RecordSection(@StringRes title: Int, rows: @Composable () -> Unit) {
 
 /** A labelled value, left out when the register gave nothing — never a dash pretending to be data. */
 @Composable
-private fun Field(@StringRes label: Int, value: String?) {
+internal fun Field(@StringRes label: Int, value: String?) {
     val shown = value?.takeIf { it.isNotBlank() } ?: return
     val c = Saarthi.colors
     Row(

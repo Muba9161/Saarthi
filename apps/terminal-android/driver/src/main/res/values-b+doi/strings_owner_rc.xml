@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="owner_rc_show">पूरी RC दिक्खो</string>
+    <string name="owner_rc_show_sub">गड्डी दे मालक आस्तै. तुंदा Secure PIN मंगग, ओही जेह्ड़ा तुस Saarthi वेबसाइट पर बरतदे ओ.</string>
+    <string name="owner_rc_pin_title">अपना Secure PIN पाओ</string>
+    <string name="owner_rc_pin_sub">4 अंकें आह्ला ओह् PIN जेह्ड़ा तुस Saarthi वेबसाइट पर बरतदे ओ.</string>
+    <string name="owner_rc_cancel">रद्द करो</string>
+    <string name="owner_rc_title">पूरी RC</string>
+    <string name="owner_rc_father">पिता दा नां</string>
+    <string name="owner_rc_mobile">मोबाइल</string>
+    <string name="owner_rc_address">पता</string>
+    <string name="owner_rc_policy">बीमा पॉलिसी</string>
+    <string name="owner_rc_hides">5 मिनटें च आपूं गै छिपी जाग.</string>
+    <string name="owner_rc_hide">पूरी RC छपाओ</string>
+    <string name="owner_rc_needs_ownership">पैह्लें Saarthi वेबसाइट पर पक्का करो जे एह् गड्डी तुंदी ऐ (गड्डी दा पेज → मालकी). फ्ही पूरी RC इत्थें खुलग.</string>
+    <string name="owner_rc_no_pin">पैह्लें Saarthi वेबसाइट पर Settings → Security च अपना Secure PIN बनाओ.</string>
+    <string name="owner_rc_unavailable">हून पूरी RC नेईं खुल्ली सकी. थोह्ड़ी देर बाद फ्ही कोशश करो.</string>
+    <string name="owner_rc_offline">Saarthi कन्नै कनेक्शन नेईं ऐ. सिग्नल मिलने पर फ्ही कोशश करो.</string>
+</resources>

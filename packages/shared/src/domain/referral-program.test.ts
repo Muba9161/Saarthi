@@ -43,7 +43,7 @@ describe('referral program eligibility', () => {
     expect(canJoinReferralProgram([RoleName.SUPPLIER])).toBe(true);
   });
 
-  it('keeps salespeople on their GODID channel', () => {
+  it('keeps Saarthi Rahis on their GODID channel', () => {
     expect(canJoinReferralProgram([RoleName.SALESMAN])).toBe(false);
     expect(canJoinReferralProgram([RoleName.PLATFORM_ADMIN, RoleName.SALESMAN])).toBe(false);
   });

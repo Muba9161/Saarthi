@@ -49,7 +49,6 @@ import com.saarthi.driver.ui.design.MapInk
 import com.saarthi.driver.ui.design.SType
 import com.saarthi.driver.ui.design.Saarthi
 import com.saarthi.driver.ui.design.pressable
-import com.saarthi.driver.ui.shift.humanised
 
 /** What the driver asked, in their own words, on the right. */
 @Composable
@@ -72,9 +71,10 @@ internal fun TranscriptBubble(text: String, modifier: Modifier = Modifier) {
 /**
  * Saarthi's answer, with its caveats and where it came from.
  *
- * The sources are shown rather than implied: a driver deciding whether to
- * trust "your fitness certificate expires in six days" should see that it came
- * from a records lookup and not from a model's impression.
+ * Where it came from is shown rather than implied: a driver deciding whether
+ * to trust "your fitness certificate expires in six days" should see that it
+ * came from their records and not from a model's impression. Said in one
+ * plain line — the tools' own names ("Get vehicle documents") read as code.
  */
 @Composable
 internal fun AnswerBubble(answer: String, caveats: List<String>, sources: List<String>, modifier: Modifier = Modifier) {
@@ -92,7 +92,7 @@ internal fun AnswerBubble(answer: String, caveats: List<String>, sources: List<S
         caveats.forEach { Text(it, style = SType.small, color = c.warning) }
         if (sources.isNotEmpty()) {
             Text(
-                stringResource(R.string.assistant_from, sources.joinToString(", ") { it.humanised() }),
+                stringResource(R.string.assistant_from),
                 style = SType.caption,
                 color = c.subtle,
             )

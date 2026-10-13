@@ -9,7 +9,7 @@ export interface RewardState {
 
 /**
  * One referral's reward, for a history table — Refer & Earn and a
- * salesperson's customers alike. Null means the referral earned nothing,
+ * Saarthi Rahi's customers alike. Null means the referral earned nothing,
  * because the account started on the Free plan.
  */
 export function RewardCell({ reward }: { reward: RewardState | null }) {

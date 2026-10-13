@@ -5,12 +5,12 @@ import { isPlausibleGodId, normalizeGodId } from '@saarthi/shared';
  *
  * The problem: somebody opens `saarthi.vorldx.com/r/GOD-7F42K` on Tuesday, reads
  * the page, closes it, and signs up on Thursday from the home page. The code
- * has to survive that, or the salesperson loses a sale they genuinely made.
+ * has to survive that, or the Saarthi Rahi loses a sale they genuinely made.
  *
  * `localStorage` is the right place for it and a poor place to trust it, which
  * is why nothing here is authoritative. The stored code is a *hint* the
  * registration form sends along; the API re-resolves it against a verified
- * salesman profile and ignores anything it cannot stand behind. So a visitor
+ * Saarthi Rahi profile and ignores anything it cannot stand behind. So a visitor
  * who edits the value, or types one in, credits nobody — the worst they can do
  * is fail to credit the person who actually deserved it.
  *
@@ -83,7 +83,7 @@ export function forgetReferralCode(): void {
  * The code for this registration: the URL first, then what was remembered.
  *
  * URL wins, because a visitor who has just followed a link means *that*
- * salesperson, even if they followed a different one last week.
+ * Saarthi Rahi, even if they followed a different one last week.
  */
 export function resolveReferralCode(search: string): string | null {
   const params = new URLSearchParams(search);
