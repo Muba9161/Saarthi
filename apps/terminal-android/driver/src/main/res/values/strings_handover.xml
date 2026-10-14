@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The customer's handover code: asked for at Complete (delivery) and Start (booked ride). -->
+    <string name="handover_delivery_title">Customer\'s delivery code</string>
+    <string name="handover_pickup_title">Passenger\'s pickup code</string>
+    <string name="handover_delivery_lead">Ask the customer for the 4-digit code in their Saarthi app or SMS. The delivery is finished once you enter it.</string>
+    <string name="handover_pickup_lead">Ask the passenger for the 4-digit code in their Saarthi app or SMS. The ride starts once you enter it.</string>
+    <string name="handover_field">4-digit code</string>
+    <string name="handover_confirm_delivery">Confirm delivery</string>
+    <string name="handover_confirm_pickup">Start the ride</string>
+    <string name="handover_no_code">No code? Ask your owner to confirm it from the Saarthi app.</string>
+</resources>

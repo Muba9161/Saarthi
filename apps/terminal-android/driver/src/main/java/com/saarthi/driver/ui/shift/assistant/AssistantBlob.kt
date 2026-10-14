@@ -36,29 +36,40 @@ import com.saarthi.driver.ui.design.Ease
 import com.saarthi.driver.ui.design.LightPalette
 import com.saarthi.driver.ui.design.Saarthi
 import com.saarthi.driver.ui.design.rememberLoop
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.random.Random
+import kotlinx.coroutines.delay
 
 /**
  * Saarthi, as the design draws it: three soft shapes over one another, each
- * slowly changing its outline and turning.
+ * slowly turning — and alive: their outlines ripple all the time, like
+ * something breathing, never settling back into a circle.
  *
- * The outer one quickens while Saarthi listens and quickens again while it
- * thinks — the only layer the design speeds up — and swells a little with the
- * driver's voice. Its motion is accumulated frame by frame rather than looped,
- * so a change of pace never makes the shape jump. Still under reduced motion.
+ * The shapes answer to a voice. While Saarthi listens, the driver's own
+ * loudness swells the outer one and stirs the ripples; while it speaks, a
+ * speech-like rhythm does the same, so the blob seems to talk. Thinking
+ * quickens it. Motion is accumulated frame by frame rather than looped, so a
+ * change of pace never makes the shape jump. Still under reduced motion.
  */
 @Composable
 internal fun SaarthiBlob(state: AssistantState, amplitude: Float, modifier: Modifier = Modifier) {
-    val clock = rememberBlobClock(state)
-    val swell by animateFloatAsState(
-        if (state == AssistantState.LISTENING && !Saarthi.reducedMotion) amplitude.coerceIn(0f, 1f) else 0f,
-        tween(150),
-        label = "blob-swell",
-    )
+    val reduced = Saarthi.reducedMotion
+    val speech = rememberSpeechRhythm(active = state == AssistantState.SPEAKING && !reduced)
+    val target = when {
+        reduced -> 0f
+        state == AssistantState.LISTENING -> amplitude
+        state == AssistantState.SPEAKING -> speech
+        else -> 0f
+    }.coerceIn(0f, 1f)
+    val voice by animateFloatAsState(target, tween(110), label = "blob-voice")
+    val clock = rememberBlobClock(state, voice)
     Box(
         modifier
             .size(150.dp)
             .graphicsLayer {
-                val scale = 1f + 0.06f * swell
+                val scale = 1f + 0.08f * voice
                 scaleX = scale
                 scaleY = scale
             },
@@ -70,9 +81,10 @@ internal fun SaarthiBlob(state: AssistantState, amplitude: Float, modifier: Modi
                 .blur(10.dp, BlurredEdgeTreatment.Unbounded)
                 .drawWithCache {
                     val path = Path()
-                    val radii = FloatArray(8)
                     val brush = Brush.sweepGradient(OuterColors, size.center)
-                    onDrawBehind { drawLayer(path, radii, inset = 0f, clock.outerMorph, clock.outerSpin, brush) }
+                    onDrawBehind {
+                        drawLayer(path, inset = 0f, clock.outerPhase, clock.outerTurn, clock.outerDepth, seed = 0f, brush)
+                    }
                 },
         )
         Spacer(
@@ -80,7 +92,6 @@ internal fun SaarthiBlob(state: AssistantState, amplitude: Float, modifier: Modi
                 .matchParentSize()
                 .drawWithCache {
                     val path = Path()
-                    val radii = FloatArray(8)
                     val middle = Brush.sweepGradient(MiddleColors, size.center)
                     val innerInset = 26.dp.toPx()
                     val innerSide = size.width - innerInset * 2
@@ -93,18 +104,8 @@ internal fun SaarthiBlob(state: AssistantState, amplitude: Float, modifier: Modi
                     )
                     onDrawBehind {
                         // The middle layer runs backwards, outline and turn alike.
-                        val middlePhase = clock.seconds / MIDDLE_MORPH_S % 1f
-                        val middleTurn = clock.seconds / MIDDLE_SPIN_S % 1f
-                        drawLayer(path, radii, 10.dp.toPx(), 1f - middlePhase, -middleTurn, middle, alpha = 0.8f)
-                        drawLayer(
-                            path,
-                            radii,
-                            innerInset,
-                            clock.seconds / INNER_MORPH_S % 1f,
-                            clock.seconds / INNER_SPIN_S % 1f,
-                            inner,
-                            alpha = 0.9f,
-                        )
+                        drawLayer(path, 10.dp.toPx(), -clock.middlePhase, -clock.middleTurn, clock.middleDepth, seed = 1.7f, middle, alpha = 0.8f)
+                        drawLayer(path, innerInset, clock.innerPhase, clock.innerTurn, clock.innerDepth, seed = 3.1f, inner, alpha = 0.9f)
                     }
                 },
         )
@@ -160,38 +161,73 @@ private fun bounce(phase: Float): Float {
     return Ease.inOut.transform(if (local < 0.5f) local * 2f else (1f - local) * 2f)
 }
 
-/** Seconds on screen, and the outer layer's outline and turn, advanced a frame at a time. */
+/**
+ * How far along each layer's ripple and turn is, and how deep its ripples
+ * run — advanced a frame at a time from the state and the voice, so speeding
+ * up or slowing down never makes the shape jump.
+ */
 private class BlobClock {
-    var seconds by mutableFloatStateOf(0f)
+    var outerPhase by mutableFloatStateOf(0f)
         private set
-    var outerMorph by mutableFloatStateOf(0f)
+    var outerTurn by mutableFloatStateOf(0f)
         private set
-    var outerSpin by mutableFloatStateOf(0f)
+    var middlePhase by mutableFloatStateOf(0f)
+        private set
+    var middleTurn by mutableFloatStateOf(0f)
+        private set
+    var innerPhase by mutableFloatStateOf(0f)
+        private set
+    var innerTurn by mutableFloatStateOf(0f)
+        private set
+    var outerDepth by mutableFloatStateOf(BASE_DEPTH)
+        private set
+    var middleDepth by mutableFloatStateOf(BASE_DEPTH)
+        private set
+    var innerDepth by mutableFloatStateOf(BASE_DEPTH)
         private set
 
-    fun advance(dt: Float, state: AssistantState) {
-        val (morphS, spinS) = when (state) {
-            AssistantState.LISTENING -> 2.2f to 6f
-            AssistantState.THINKING -> 1.4f to 2.4f
-            else -> 7f to 12f
+    fun advance(dt: Float, state: AssistantState, voice: Float) {
+        // Ripples per second and turns per second, quickest while thinking.
+        val (ripple, turn) = when (state) {
+            AssistantState.LISTENING -> 0.42f to 0.16f
+            AssistantState.THINKING -> 0.7f to 0.42f
+            AssistantState.SPEAKING -> 0.36f to 0.12f
+            else -> 0.15f to 0.08f
         }
-        seconds += dt
-        outerMorph = (outerMorph + dt / morphS) % 1f
-        outerSpin = (outerSpin + dt / spinS) % 1f
+        // A louder voice stirs the ripples faster as well as deeper.
+        val stir = 1f + 1.4f * voice
+        outerPhase = (outerPhase + dt * ripple * stir) % 1f
+        outerTurn = (outerTurn + dt * turn) % 1f
+        middlePhase = (middlePhase + dt * ripple * 0.7f * stir) % 1f
+        middleTurn = (middleTurn + dt / MIDDLE_SPIN_S) % 1f
+        innerPhase = (innerPhase + dt * ripple * 1.3f) % 1f
+        innerTurn = (innerTurn + dt / INNER_SPIN_S) % 1f
+
+        val rest = when (state) {
+            AssistantState.THINKING -> BASE_DEPTH + 0.04f
+            AssistantState.LISTENING, AssistantState.SPEAKING -> BASE_DEPTH + 0.02f
+            else -> BASE_DEPTH
+        }
+        // Depth eases toward its target, the outer layer answering the voice the most.
+        val ease = (dt * 9f).coerceAtMost(1f)
+        outerDepth += (rest + VOICE_DEPTH * voice - outerDepth) * ease
+        middleDepth += (rest + VOICE_DEPTH * 0.6f * voice - middleDepth) * ease
+        innerDepth += (rest * 0.8f + VOICE_DEPTH * 0.35f * voice - innerDepth) * ease
     }
 }
 
 @Composable
-private fun rememberBlobClock(state: AssistantState): BlobClock {
+private fun rememberBlobClock(state: AssistantState, voice: Float): BlobClock {
     val clock = remember { BlobClock() }
-    val current by rememberUpdatedState(state)
+    val currentState by rememberUpdatedState(state)
+    val currentVoice by rememberUpdatedState(voice)
     val reduced = Saarthi.reducedMotion
     LaunchedEffect(reduced) {
         if (reduced) return@LaunchedEffect
         var last = withFrameNanos { it }
         while (true) {
             withFrameNanos { now ->
-                clock.advance((now - last) / 1_000_000_000f, current)
+                clock.advance(((now - last) / 1_000_000_000f).coerceAtMost(0.1f), currentState, currentVoice)
                 last = now
             }
         }
@@ -199,77 +235,84 @@ private fun rememberBlobClock(state: AssistantState): BlobClock {
     return clock
 }
 
-/** One layer: its outline at [morph] through the keyframes, turned [turns] of a circle. */
+/**
+ * Something like Saarthi's voice while it talks: syllables of varying
+ * loudness, with the odd pause between phrases. The words come from the
+ * phone's speech engine, which says nothing of how loud it is, so the shape
+ * follows this rhythm instead.
+ */
+@Composable
+private fun rememberSpeechRhythm(active: Boolean): Float {
+    var level by remember { mutableFloatStateOf(0f) }
+    LaunchedEffect(active) {
+        if (!active) {
+            level = 0f
+            return@LaunchedEffect
+        }
+        val random = Random(System.nanoTime())
+        while (true) {
+            val pause = random.nextFloat() < 0.14f
+            level = if (pause) 0.08f else 0.35f + random.nextFloat() * 0.65f
+            delay(if (pause) 260L + random.nextLong(220) else 110L + random.nextLong(150))
+        }
+    }
+    return level
+}
+
+/** One layer: its rippling outline at [phase], turned [turns] of a circle. */
 private fun DrawScope.drawLayer(
     path: Path,
-    radii: FloatArray,
     inset: Float,
-    morph: Float,
+    phase: Float,
     turns: Float,
+    depth: Float,
+    seed: Float,
     brush: Brush,
     alpha: Float = 1f,
 ) {
-    morphRadii(morph, radii)
-    path.blobOutline(inset, size.width - inset * 2, size.height - inset * 2, radii)
+    path.ripplingOutline(size.width / 2f, size.height / 2f, size.minDimension / 2f - inset, phase, depth, seed)
     rotate(turns * 360f) { drawPath(path, brush, alpha = alpha) }
 }
 
 /**
- * The design's `asmorph` keyframes — CSS `border-radius: a b c d / e f g h`,
- * as fractions of the side: horizontal radii clockwise from top-left, then
- * vertical radii in the same order.
+ * A closed, smooth outline whose radius rises and falls around the circle:
+ * three waves of different lengths, each travelling at its own pace, so the
+ * shape never repeats itself. [depth] is how far it strays from round.
  */
-private val Keyframes = arrayOf(
-    floatArrayOf(0.42f, 0.58f, 0.63f, 0.37f, 0.41f, 0.44f, 0.56f, 0.59f),
-    floatArrayOf(0.61f, 0.39f, 0.45f, 0.55f, 0.60f, 0.38f, 0.62f, 0.40f),
-    floatArrayOf(0.36f, 0.64f, 0.52f, 0.48f, 0.44f, 0.62f, 0.38f, 0.56f),
-)
-
-private fun morphRadii(progress: Float, out: FloatArray) {
-    val position = progress.coerceIn(0f, 1f) * Keyframes.size
-    val index = position.toInt() % Keyframes.size
-    val t = Ease.inOut.transform(position - position.toInt())
-    val from = Keyframes[index]
-    val to = Keyframes[(index + 1) % Keyframes.size]
-    for (k in out.indices) out[k] = from[k] + (to[k] - from[k]) * t
-}
-
-/** Four elliptical corners meeting edge to edge, as the browser draws those radii. */
-private fun Path.blobOutline(inset: Float, w: Float, h: Float, r: FloatArray) {
-    val tlx = r[0] * w
-    val trx = r[1] * w
-    val brx = r[2] * w
-    val blx = r[3] * w
-    val tly = r[4] * h
-    val tRy = r[5] * h
-    val bry = r[6] * h
-    val bly = r[7] * h
-    val left = inset
-    val top = inset
-    val right = inset + w
-    val bottom = inset + h
+private fun Path.ripplingOutline(cx: Float, cy: Float, radius: Float, phase: Float, depth: Float, seed: Float) {
+    val turn = phase * TAU
+    val xs = FloatArray(POINTS)
+    val ys = FloatArray(POINTS)
+    for (i in 0 until POINTS) {
+        val angle = TAU * i / POINTS
+        val wobble = 0.55f * sin(2f * angle + turn + seed) +
+            0.3f * sin(3f * angle - 1.3f * turn + seed * 2f) +
+            0.15f * sin(5f * angle + 2.1f * turn + seed * 3f)
+        val r = radius * (1f + depth * wobble)
+        xs[i] = cx + r * cos(angle)
+        ys[i] = cy + r * sin(angle)
+    }
     reset()
-    moveTo(left + tlx, top)
-    lineTo(right - trx, top)
-    cubicTo(right - trx + trx * K, top, right, top + tRy - tRy * K, right, top + tRy)
-    lineTo(right, bottom - bry)
-    cubicTo(right, bottom - bry + bry * K, right - brx + brx * K, bottom, right - brx, bottom)
-    lineTo(left + blx, bottom)
-    cubicTo(left + blx - blx * K, bottom, left, bottom - bly + bly * K, left, bottom - bly)
-    lineTo(left, top + tly)
-    cubicTo(left, top + tly - tly * K, left + tlx - tlx * K, top, left + tlx, top)
+    // Through the midpoints, curving at each sample: smooth all the way round.
+    moveTo((xs[POINTS - 1] + xs[0]) / 2f, (ys[POINTS - 1] + ys[0]) / 2f)
+    for (i in 0 until POINTS) {
+        val next = (i + 1) % POINTS
+        quadraticTo(xs[i], ys[i], (xs[i] + xs[next]) / 2f, (ys[i] + ys[next]) / 2f)
+    }
     close()
 }
 
-/** The cubic that best follows a quarter ellipse. */
-private const val K = 0.5523f
+private const val TAU = (2.0 * PI).toFloat()
+private const val POINTS = 24
+
+/** How far from round a resting layer strays, and how much further a loud voice takes it. */
+private const val BASE_DEPTH = 0.07f
+private const val VOICE_DEPTH = 0.2f
 
 /** `radial-gradient(circle at 35% 30%)` reaches its farthest corner at this multiple of the side. */
 private const val FARTHEST_CORNER = 0.955f
 
-private const val MIDDLE_MORPH_S = 9f
 private const val MIDDLE_SPIN_S = 16f
-private const val INNER_MORPH_S = 5f
 private const val INNER_SPIN_S = 10f
 private const val BARS = 5
 private const val DOTS = 3

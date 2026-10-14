@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import com.saarthi.core.domain.AssistantState
 import com.saarthi.core.domain.DrivingHours
 import com.saarthi.core.domain.TerminalState
+import com.saarthi.core.network.SaarthiApi
 import com.saarthi.core.ui.TerminalViewModel
 import com.saarthi.core.ui.rememberCockpitVoice
 import com.saarthi.driver.R
@@ -64,12 +65,21 @@ import com.saarthi.driver.ui.shift.nearby.NearbySheet
 import com.saarthi.driver.ui.shift.notices.NoticesPanel
 import com.saarthi.driver.ui.shift.papers.PapersTab
 import com.saarthi.driver.ui.shift.trips.AddTripFlow
+import com.saarthi.driver.ui.shift.trips.HandoverCodeSheet
+import com.saarthi.driver.ui.shift.trips.HandoverKind
 import com.saarthi.driver.ui.shift.trips.TripsTab
 import com.saarthi.driver.ui.shift.vehicle.VehicleSheet
 import com.saarthi.driver.ui.start.AddLicenceSheet
 import kotlinx.coroutines.delay
 
 /** What can sit over the tabs. One at a time, so no two ever fight for the screen. */
+/** The customer's code being asked for: what for, and which of the driver's trips (null: the one holding the vehicle). */
+private data class HandoverAsk(val kind: HandoverKind, val tripId: String?)
+
+/** The server refused for the customer's code — missing, wrong, or out of tries. */
+private fun Throwable.isHandoverRefusal(): Boolean =
+    (this as? SaarthiApi.Failure.Refused)?.code?.startsWith("HANDOVER_CODE") == true
+
 private enum class Overlay { NONE, NOTICES, CHECK, EXPENSE, ADD_TRIP, END_TRIP, REMOVE_TRIP, NEARBY, FULL_MAP, ASSISTANT, VEHICLE, ADAPTER, SOS, PIN, LICENCE, SIGN_OFF, SIGN_OUT }
 
 /**
@@ -106,6 +116,10 @@ fun ShiftShell(
     var nearbyCategory by rememberSaveable { mutableStateOf<String?>(null) }
     var dismissedSos by rememberSaveable { mutableStateOf<String?>(null) }
     var toast by remember { mutableStateOf<String?>(null) }
+    // The customer's code being asked for, for which trip, and how the last try went.
+    var handover by remember { mutableStateOf<HandoverAsk?>(null) }
+    var handoverBusy by remember { mutableStateOf(false) }
+    var handoverError by remember { mutableStateOf<String?>(null) }
     // A papers folder opens inside its tab; while one is up the header and tab bar step aside.
     val chromeCover = remember { ChromeCover() }
     // A trip the driver chose to start before the safety check: started once the check is done.
@@ -131,6 +145,10 @@ fun ShiftShell(
             cockpit.navigateToDispatch { routed -> if (!routed) say(R.string.toast_route_failed) }
         }
     }
+    val askForCode: (HandoverKind, String?) -> Unit = { kind, tripId ->
+        handoverError = null
+        handover = HandoverAsk(kind, tripId)
+    }
     val startChosenTrip: (String) -> Unit = { tripId ->
         cockpit.startTrip(tripId) { result ->
             result
@@ -139,7 +157,11 @@ fun ShiftShell(
                     say(R.string.toast_trip_started)
                     showStartedTrip()
                 }
-                .onFailure { toast = it.message ?: context.getString(R.string.trips_problem) }
+                .onFailure {
+                    // A booked ride: the passenger's pickup code first.
+                    if (it.isHandoverRefusal()) askForCode(HandoverKind.PICKUP, tripId)
+                    else toast = it.message ?: context.getString(R.string.trips_problem)
+                }
         }
     }
     val plate = state.registration ?: fallbackPlate.orEmpty()
@@ -171,9 +193,64 @@ fun ShiftShell(
         overlay = Overlay.NEARBY
     }
     val startTrip = {
-        cockpit.startTrip { result -> result.onSuccess { showStartedTrip() } }
-        tab = ShiftTab.MAP
-        say(R.string.toast_trip_started)
+        if (cockpit.dispatch.value?.needsPickupCode == true) {
+            askForCode(HandoverKind.PICKUP, null)
+        } else {
+            cockpit.startTrip { result ->
+                result
+                    .onSuccess { showStartedTrip() }
+                    .onFailure { if (it.isHandoverRefusal()) askForCode(HandoverKind.PICKUP, null) }
+            }
+            tab = ShiftTab.MAP
+            say(R.string.toast_trip_started)
+        }
+    }
+    // Ending a delivery takes the customer's code; anything else ends as it did.
+    val endTrip: () -> Unit = {
+        if (cockpit.dispatch.value?.needsDeliveryCode == true) {
+            askForCode(HandoverKind.DELIVERY, null)
+        } else {
+            cockpit.completeTrip { result ->
+                result
+                    .onSuccess { say(R.string.toast_trip_ended) }
+                    .onFailure {
+                        if (it.isHandoverRefusal()) askForCode(HandoverKind.DELIVERY, null)
+                        else toast = it.message ?: context.getString(R.string.trips_problem)
+                    }
+            }
+        }
+    }
+    val submitCode: (String) -> Unit = { code ->
+        val asked = handover
+        if (asked != null) {
+            handoverBusy = true
+            handoverError = null
+            val done: (Result<Unit>) -> Unit = { result ->
+                handoverBusy = false
+                result
+                    .onSuccess {
+                        handover = null
+                        if (asked.kind == HandoverKind.PICKUP) {
+                            tab = ShiftTab.MAP
+                            say(R.string.toast_trip_started)
+                            showStartedTrip()
+                        } else {
+                            say(R.string.toast_trip_ended)
+                        }
+                    }
+                    .onFailure {
+                        // A wrong code stays on the sheet; anything else closes it and says why.
+                        if (it.isHandoverRefusal()) {
+                            handoverError = it.message
+                        } else {
+                            handover = null
+                            toast = it.message ?: context.getString(R.string.trips_problem)
+                        }
+                    }
+            }
+            if (asked.kind == HandoverKind.PICKUP) cockpit.startTrip(asked.tripId, code, done)
+            else cockpit.completeTrip(code, done)
+        }
     }
 
     BackHandler(enabled = overlay == Overlay.NONE && tab != ShiftTab.HOME) { tab = ShiftTab.HOME }
@@ -226,10 +303,7 @@ fun ShiftShell(
                                 ),
                                 shift = ShiftCardActions(
                                     startTrip = startTrip,
-                                    endTrip = {
-                                        cockpit.completeTrip()
-                                        say(R.string.toast_trip_ended)
-                                    },
+                                    endTrip = endTrip,
                                     signOff = { overlay = Overlay.SIGN_OFF },
                                 ),
                             ),
@@ -375,13 +449,21 @@ fun ShiftShell(
             action = stringResource(R.string.trips_stop_confirm),
             onConfirm = {
                 overlay = Overlay.NONE
-                cockpit.completeTrip { result ->
-                    result
-                        .onSuccess { say(R.string.toast_trip_ended) }
-                        .onFailure { toast = it.message ?: context.getString(R.string.trips_problem) }
-                }
+                endTrip()
             },
             onDismiss = { overlay = Overlay.NONE },
+        )
+        HandoverCodeSheet(
+            kind = handover?.kind,
+            busy = handoverBusy,
+            error = handoverError,
+            onSubmit = submitCode,
+            onDismiss = {
+                if (!handoverBusy) {
+                    handover = null
+                    handoverError = null
+                }
+            },
         )
         ConfirmSheet(
             visible = overlay == Overlay.REMOVE_TRIP,

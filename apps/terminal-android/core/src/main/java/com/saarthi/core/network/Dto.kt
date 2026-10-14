@@ -472,6 +472,20 @@ data class TripEventRequest(
     val note: String? = null,
     /** Start this one of the driver's trips rather than whichever holds the vehicle. `/trip/start` only. */
     val tripId: String? = null,
+    /** The customer's 4-digit code: finishes a delivery on Complete, starts a booked ride on Start. */
+    val handoverCode: String? = null,
+)
+
+/**
+ * A customer's code still waiting on a trip. Mirrors `TerminalHandoverView` —
+ * the purpose and the tries left, never the code: the driver gets it from the
+ * customer, in person.
+ */
+@Serializable
+data class HandoverDto(
+    /** DELIVERY (asked at Complete) or PICKUP (asked at Start). */
+    val purpose: String = "",
+    val attemptsLeft: Int = 0,
 )
 
 @Serializable
@@ -540,7 +554,15 @@ data class TerminalTripDto(
     val driverCreated: Boolean = false,
     /** `GOOGLE_MAPS` while the driver follows this trip there; null on Saarthi's own navigation. */
     val navigationHandoff: String? = null,
+    /** The customer's codes still to be entered on this trip. */
+    val pendingHandovers: List<HandoverDto> = emptyList(),
 ) {
+    /** Completing this trip needs the customer's delivery code. */
+    val needsDeliveryCode: Boolean get() = pendingHandovers.any { it.purpose == "DELIVERY" }
+
+    /** Starting this trip needs the passenger's pickup code. */
+    val needsPickupCode: Boolean get() = pendingHandovers.any { it.purpose == "PICKUP" }
+
     /** The trip's destination stop, which the arrival prompt is about. */
     val destinationStop: TerminalTripStopDto? get() = stops.lastOrNull { it.type == "DESTINATION" }
 

@@ -473,7 +473,7 @@ class TerminalRepository(
     suspend fun dispatchedTrip(): Result<TerminalTripDto?> = runCatchingApi { api.currentTrip() }
 
     /** Start the trip holding the vehicle — or, given [tripId], that one of the driver's trips. */
-    suspend fun startTrip(tripId: String? = null): Result<Unit> = runCatchingApi {
+    suspend fun startTrip(tripId: String? = null, handoverCode: String? = null): Result<Unit> = runCatchingApi {
         val position = telemetry.snapshot.value.position
         api.startTrip(
             TripEventRequest(
@@ -481,18 +481,20 @@ class TerminalRepository(
                 longitude = position?.longitude,
                 odometerKm = telemetry.snapshot.value.value(Metric.ODOMETER),
                 tripId = tripId,
+                handoverCode = handoverCode,
             ),
         )
         refresh()
     }
 
-    suspend fun completeTrip(): Result<Unit> = runCatchingApi {
+    suspend fun completeTrip(handoverCode: String? = null): Result<Unit> = runCatchingApi {
         val position = telemetry.snapshot.value.position
         api.completeTrip(
             TripEventRequest(
                 latitude = position?.latitude,
                 longitude = position?.longitude,
                 odometerKm = telemetry.snapshot.value.value(Metric.ODOMETER),
+                handoverCode = handoverCode,
             ),
         )
         refresh()

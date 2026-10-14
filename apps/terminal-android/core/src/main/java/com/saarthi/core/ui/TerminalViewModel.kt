@@ -665,8 +665,8 @@ class TerminalViewModel(application: Application) : AndroidViewModel(application
      * than at the next poll.
      */
     /** Start the trip holding the vehicle, or [tripId] — one of the driver's own, picked from the Trips tab. */
-    fun startTrip(tripId: String? = null, onDone: (Result<Unit>) -> Unit = {}) = viewModelScope.launch {
-        val result = repository.startTrip(tripId)
+    fun startTrip(tripId: String? = null, handoverCode: String? = null, onDone: (Result<Unit>) -> Unit = {}) = viewModelScope.launch {
+        val result = repository.startTrip(tripId, handoverCode)
         afterTripMoved()
         onDone(result)
     }
@@ -676,8 +676,8 @@ class TerminalViewModel(application: Application) : AndroidViewModel(application
      * driver's next trip on its own, so the dispatch, the list and the queue
      * are all re-read.
      */
-    fun completeTrip(onDone: (Result<Unit>) -> Unit = {}) = viewModelScope.launch {
-        val result = repository.completeTrip()
+    fun completeTrip(handoverCode: String? = null, onDone: (Result<Unit>) -> Unit = {}) = viewModelScope.launch {
+        val result = repository.completeTrip(handoverCode)
         afterTripMoved()
         onDone(result)
     }

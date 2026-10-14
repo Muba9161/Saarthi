@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="handover_delivery_title">ગ્રાહકનો ડિલિવરી કોડ</string>
+    <string name="handover_pickup_title">મુસાફરનો પિકઅપ કોડ</string>
+    <string name="handover_delivery_lead">ગ્રાહક પાસેથી તેમની Saarthi એપ અથવા SMSમાં આવેલો 4 અંકનો કોડ માગો. કોડ નાખતાં જ ડિલિવરી પૂરી થશે.</string>
+    <string name="handover_pickup_lead">મુસાફર પાસેથી તેમની Saarthi એપ અથવા SMSમાં આવેલો 4 અંકનો કોડ માગો. કોડ નાખતાં જ સવારી શરૂ થશે.</string>
+    <string name="handover_field">4 અંકનો કોડ</string>
+    <string name="handover_confirm_delivery">ડિલિવરી પાકી કરો</string>
+    <string name="handover_confirm_pickup">સવારી શરૂ કરો</string>
+    <string name="handover_no_code">કોડ નથી? માલિકને Saarthi એપથી પાકું કરવા કહો.</string>
+</resources>
