@@ -1,7 +1,8 @@
 # Contributing to Saarthi
 
-How code moves from your machine to production. Everyone follows these rules, the lead
-included. GitHub enforces most of them and rejects anything that breaks them.
+How code moves from your machine to production. GitHub enforces most of these rules and rejects
+anything that breaks them. The lead pushes directly instead of opening pull requests; see
+[Lead workflow](#lead-workflow). Everything else, commit messages included, applies to everyone.
 
 ## The short version
 
@@ -12,7 +13,7 @@ included. GitHub enforces most of them and rejects anything that breaks them.
 5. @Muba9161 reviews it. Address every comment.
 6. It is **squash-merged** and the branch is deleted automatically.
 
-Never push directly to `main` or `develop`; GitHub rejects it.
+Never push directly to `main` or `develop`; GitHub rejects it. Only the lead can.
 
 ---
 
@@ -196,30 +197,57 @@ Versions follow [Semantic Versioning](https://semver.org/), written `vMAJOR.MINO
 | MINOR | A new, backward-compatible feature                                            | `v1.4.2 → v1.5.0` |
 | PATCH | A backward-compatible bug fix                                                 | `v1.4.2 → v1.4.3` |
 
+## Lead workflow
+
+The lead is the repository admin and bypasses the branch rules: no pull request, no approval.
+Commit messages still follow [the format](#commit-messages), because interns learn from the
+history.
+
+Daily work happens on `develop`, so it always holds both the lead's work and the interns' merged
+pull requests:
+
+```bash
+git checkout develop
+git pull origin develop
+# work, then
+git add <files>
+git commit -m "feat(web): add expense page"
+git push origin develop
+```
+
+The automatic checks still run after every push. A red run means `develop` is broken; fix it
+before anything else.
+
 ## Releases (lead)
 
-1. On a `chore/release-vX.Y.Z` branch from `develop`, compile [`CHANGELOG.md`](CHANGELOG.md) from
-   the PR titles merged since the last tag (`feat` → Added, `fix` → Fixed,
-   `refactor`/`perf` → Changed). Bump `version` in the root `package.json`, then merge into
-   `develop`.
-2. Open a PR `develop → main` titled `chore(release): vX.Y.Z` and merge it with
-   **Create a merge commit**, not squash. Squashing would give `main` a different history from
-   `develop`, and every later release PR would conflict.
-3. Tag the merge commit on `main` and push the tag:
+1. Check that the latest automatic-check run on `develop` is green.
+2. On `develop`, compile [`CHANGELOG.md`](CHANGELOG.md) from the commits since the last tag
+   (`git log --oneline vX.Y.Z..develop`: `feat` → Added, `fix` → Fixed, `refactor`/`perf` →
+   Changed), bump `version` in the root `package.json`, then commit
+   `chore(release): vX.Y.Z` and push.
+3. Merge `develop` into `main`, tag it and push both:
    ```bash
-   git checkout main && git pull origin main
+   git checkout main
+   git pull origin main
+   git merge develop
    git tag -a vX.Y.Z -m "Release vX.Y.Z"
-   git push origin vX.Y.Z
+   git push origin main vX.Y.Z
+   git checkout develop
    ```
+   A plain merge, never a squash, keeps every commit, so `main` and `develop` share one history.
 4. Create a GitHub Release from the tag, using the changelog section as release notes.
 5. Deploy: `bash deploy.sh --pull` on the server (see [`deploy/README.md`](../deploy/README.md)).
 
 ## Hotfixes (lead)
 
-1. Branch `hotfix/<issue>-<description>` from `main`.
-2. Open a PR into `main`, squash-merge it, then tag and deploy a PATCH version.
-3. Open a PR `main → develop`, titled for example `chore(release): merge v1.4.3 into develop`,
-   and merge it with a merge commit, so the fix is not lost from the next release.
+1. Fix on `main` (`git checkout main && git pull origin main`), commit as `fix(...)`, then tag,
+   push and deploy a PATCH version.
+2. Bring the fix into `develop` so the next release keeps it:
+   ```bash
+   git checkout develop && git pull origin develop
+   git merge main
+   git push origin develop
+   ```
 
 ## Database migrations
 
@@ -245,7 +273,7 @@ commit later does not undo the leak.
 
 ## Never
 
-- Push directly to `main` or `develop`.
+- Push directly to `main` or `develop` (only the lead can).
 - Force-push a shared branch.
 - Merge your own pull request.
 - Commit `node_modules`, build output (`dist/`, `build/`, APKs), logs or uploads.
