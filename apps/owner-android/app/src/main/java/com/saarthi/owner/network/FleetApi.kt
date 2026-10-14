@@ -61,7 +61,38 @@ class FleetApi(private val api: OwnerApi) {
     )
 
     @Serializable
-    data class ApprovalDriver(val name: String = "", val experienceYears: Int = 0, val totalTrips: Int = 0)
+    data class ApprovalDriver(
+        val name: String = "",
+        val experienceYears: Int = 0,
+        val totalTrips: Int = 0,
+        val licenseClass: String? = null,
+        /** VALID, EXPIRING_SOON, EXPIRED or UNKNOWN. */
+        val licenseValidity: String = "UNKNOWN",
+        val verificationStatus: String = "",
+        val scoreBand: String? = null,
+    )
+
+    @Serializable
+    data class PastAssignment(val id: String = "", val registrationNumber: String = "", val status: String = "", val requestedAt: String = "", val sameVehicle: Boolean = false)
+
+    @Serializable
+    data class ApprovalEvent(val id: String = "", val eventType: String = "", val description: String? = null, val createdAt: String = "")
+
+    /** A waiting driver in full: who they are, their history with this truck, and what has happened so far. */
+    @Serializable
+    data class ApprovalDetail(
+        val id: String,
+        val status: String = "",
+        val driver: ApprovalDriver? = null,
+        val registrationNumber: String = "",
+        val requestedAt: String? = null,
+        val secondsUntilEscalation: Long? = null,
+        val selfieUrl: String? = null,
+        val recentAssignments: List<PastAssignment> = emptyList(),
+        val events: List<ApprovalEvent> = emptyList(),
+    )
+
+    suspend fun approvalDetail(id: String): ApprovalDetail? = api.get("/terminal/assignments/$id", ApprovalDetail.serializer())
 
     /** A driver at a vehicle, waiting for somebody to say yes. */
     @Serializable
@@ -137,6 +168,8 @@ class AlertsApi(private val api: OwnerApi) {
         val title: String = "",
         val body: String? = null,
         val priority: String = "NORMAL",
+        /** Where the alert points, as a web path ("/orders/…"); the app opens the ones it has a screen for. */
+        val actionUrl: String? = null,
         val readAt: String? = null,
         val createdAt: String = "",
     )

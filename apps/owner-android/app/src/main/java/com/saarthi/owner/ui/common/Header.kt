@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
@@ -41,7 +42,10 @@ import com.saarthi.owner.ui.design.BrandLockup
 import com.saarthi.owner.ui.design.CircleButton
 import com.saarthi.owner.ui.design.Ease
 import com.saarthi.owner.ui.design.Eyebrow
+import com.saarthi.owner.ui.design.LineIcon
 import com.saarthi.owner.ui.design.Lucide
+import com.saarthi.owner.ui.design.brandGradient
+import com.saarthi.owner.ui.design.pressable
 import com.saarthi.owner.ui.design.SType
 import com.saarthi.owner.ui.design.Saarthi
 import com.saarthi.owner.ui.design.rememberLoop
@@ -76,6 +80,7 @@ fun OwnerHeader(
     unread: Int,
     onBell: () -> Unit,
     modifier: Modifier = Modifier,
+    onAssistant: (() -> Unit)? = null,
 ) {
     val c = Saarthi.colors
     Row(
@@ -114,6 +119,17 @@ fun OwnerHeader(
             stroke = 2f,
         ) {
             if (unread > 0) UnreadBadge(unread)
+        }
+        onAssistant?.let { open ->
+            Box(
+                Modifier
+                    .size(44.dp)
+                    .brandGradient(CircleShape)
+                    .pressable(scale = 0.92f, label = "Ask Saarthi", onClick = open),
+                contentAlignment = Alignment.Center,
+            ) {
+                LineIcon(Lucide.sparkles, size = 20.dp, color = Color.White, stroke = 1.8f, description = "Ask Saarthi")
+            }
         }
     }
 }

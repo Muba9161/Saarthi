@@ -61,6 +61,8 @@ import com.saarthi.owner.ui.design.Saarthi
 import com.saarthi.owner.ui.design.SegmentedControl
 import com.saarthi.owner.ui.design.StatusPill
 import com.saarthi.owner.ui.design.card
+import com.saarthi.owner.ui.design.pressable
+import com.saarthi.owner.ui.shell.LocalNavigator
 import com.saarthi.owner.ui.design.rise
 import com.saarthi.owner.ui.design.stagger
 import kotlinx.coroutines.delay
@@ -77,6 +79,7 @@ fun FleetListScreen(app: OwnerApp, account: SessionStore.Account) {
     val state by model.state.collectAsStateWithLifecycle()
     var showDrivers by rememberSaveable { mutableStateOf(false) }
     var filter by rememberSaveable { mutableStateOf<VehicleClass?>(null) }
+    val navigator = LocalNavigator.current
 
     LaunchedEffect(Unit) {
         while (true) {
@@ -143,7 +146,11 @@ fun FleetListScreen(app: OwnerApp, account: SessionStore.Account) {
                     if (vehicles.isEmpty()) {
                         item(key = "empty") { EmptyLine("No vehicles here yet.") }
                     }
-                    items(vehicles, key = { it.id }) { vehicle -> VehicleRow(vehicle) }
+                    items(vehicles, key = { it.id }) { vehicle ->
+                        VehicleRow(vehicle) {
+                            navigator.push("vehicle-${vehicle.id}") { VehicleScreen(app, account, vehicle) }
+                        }
+                    }
                 } else {
                     if (lists.drivers.isEmpty()) {
                         item(key = "empty-drivers") { EmptyLine("No drivers on this account.") }
@@ -156,13 +163,14 @@ fun FleetListScreen(app: OwnerApp, account: SessionStore.Account) {
 }
 
 @Composable
-private fun VehicleRow(vehicle: VehiclesApi.Vehicle) {
+private fun VehicleRow(vehicle: VehiclesApi.Vehicle, onOpen: () -> Unit) {
     val c = Saarthi.colors
     val photo = vehiclePhotoOf(vehicle.artType)
     Row(
         Modifier
             .fillMaxWidth()
             .card(radius = 22.dp)
+            .pressable(scale = 0.98f, onClick = onOpen)
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -204,7 +212,7 @@ private fun VehicleRow(vehicle: VehiclesApi.Vehicle) {
 
 /** "● 62 km/h", "Idle 18m", "Offline", "In service". */
 @Composable
-private fun MotionPill(vehicle: VehiclesApi.Vehicle) {
+internal fun MotionPill(vehicle: VehiclesApi.Vehicle) {
     val c = Saarthi.colors
     when (vehicle.motion()) {
         VehiclesApi.Motion.MOVING -> StatusPill(

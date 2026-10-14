@@ -30,7 +30,6 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.saarthi.owner.R
 
 /** How a full-width button is painted. */
 enum class ButtonTone { PRIMARY, SECONDARY, BRAND, WHITE, GHOST, DANGER_OUTLINE, MAP }

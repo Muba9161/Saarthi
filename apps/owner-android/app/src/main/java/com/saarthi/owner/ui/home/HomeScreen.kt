@@ -33,6 +33,7 @@ import com.saarthi.owner.data.AccountType
 import com.saarthi.owner.data.SessionStore
 import com.saarthi.owner.network.AlertsApi
 import com.saarthi.owner.ui.alerts.look
+import com.saarthi.owner.ui.common.FacesAlignment
 import com.saarthi.owner.ui.common.FailedCard
 import com.saarthi.owner.ui.common.Loadable
 import com.saarthi.owner.ui.common.SkeletonCards
@@ -50,16 +51,23 @@ import com.saarthi.owner.ui.design.bottomRule
 import com.saarthi.owner.ui.design.card
 import com.saarthi.owner.ui.design.rise
 import com.saarthi.owner.ui.design.stagger
-import com.saarthi.owner.ui.fleet.FleetHomeScreen
+import com.saarthi.owner.ui.design.Lucide
+import com.saarthi.owner.ui.shell.TabHeader
+import com.saarthi.owner.ui.shell.TabSpec
 
-/** Each kind of business opens on its own home. */
-@Composable
-fun HomeScreen(app: OwnerApp, account: SessionStore.Account, onOpenAlerts: () -> Unit) {
-    when (account.accountType) {
-        AccountType.FLEET -> FleetHomeScreen(app, account, onOpenAlerts)
-        else -> BusinessHomeScreen(app.alerts, account, onOpenAlerts)
-    }
-}
+/**
+ * The tabs of a business whose own screens are still to come: its home, with
+ * who it is and the latest of what Saarthi has told it.
+ */
+fun businessTabs(app: OwnerApp, account: SessionStore.Account): List<TabSpec> = listOf(
+    TabSpec(
+        key = "home",
+        label = "Home",
+        icon = Lucide.home,
+        header = TabHeader(account.organizationName, "Hi, ${account.firstName}"),
+        content = { actions -> BusinessHomeScreen(app.alerts, account, actions.openAlerts) },
+    ),
+)
 
 /** What each business is, in a photograph and a line. */
 private data class Intro(@DrawableRes val photo: Int, val eyebrow: String, val line: String)
@@ -108,6 +116,7 @@ private fun BusinessHomeScreen(alerts: AlertsApi, account: SessionStore.Account,
                 painter = painterResource(intro.photo),
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
+                alignment = FacesAlignment,
                 modifier = Modifier.fillMaxSize(),
             )
             Column(

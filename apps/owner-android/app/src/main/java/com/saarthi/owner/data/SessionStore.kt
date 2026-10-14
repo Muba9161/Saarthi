@@ -41,9 +41,16 @@ class SessionStore(context: Context) {
         /** The business is archived or the person suspended: everything is kept, nothing opens. */
         val paused: Boolean,
         val permissions: Set<String>,
+        /** Every business this person belongs to, so they can move between them. */
+        val businesses: List<Business> = emptyList(),
+        /** The one this session is acting for. */
+        val organizationId: String = "",
     ) {
         fun can(permission: String): Boolean = permission in permissions
     }
+
+    /** A business the person is a member of. */
+    data class Business(val id: String, val name: String, val type: String)
 
     private val _account = MutableStateFlow(readAccount())
     val account: StateFlow<Account?> = _account.asStateFlow()
@@ -77,6 +84,8 @@ class SessionStore(context: Context) {
             putString(KEY_PLAN, account.planName)
             putBoolean(KEY_PAUSED, account.paused)
             putStringSet(KEY_PERMISSIONS, account.permissions)
+            putString(KEY_ORGANIZATION_ID, account.organizationId)
+            putString(KEY_BUSINESSES, account.businesses.joinToString(RECORD) { listOf(it.id, it.name, it.type).joinToString(FIELD) })
             if (refreshToken != null) putString(KEY_REFRESH, refreshToken)
         }.apply()
         _account.value = account
@@ -106,6 +115,10 @@ class SessionStore(context: Context) {
             planName = preferences.getString(KEY_PLAN, null),
             paused = preferences.getBoolean(KEY_PAUSED, false),
             permissions = preferences.getStringSet(KEY_PERMISSIONS, null).orEmpty(),
+            businesses = preferences.getString(KEY_BUSINESSES, null).orEmpty()
+                .split(RECORD)
+                .mapNotNull { record -> record.split(FIELD).takeIf { it.size == 3 }?.let { Business(it[0], it[1], it[2]) } },
+            organizationId = preferences.getString(KEY_ORGANIZATION_ID, null).orEmpty(),
         )
     }
 
@@ -121,6 +134,12 @@ class SessionStore(context: Context) {
         const val KEY_PLAN = "plan_name"
         const val KEY_PAUSED = "paused"
         const val KEY_PERMISSIONS = "permissions"
+        const val KEY_ORGANIZATION_ID = "organization_id"
+        const val KEY_BUSINESSES = "businesses"
+
+        /** Separators no business name contains: the unit and record separators. */
+        const val FIELD = "\u001F"
+        const val RECORD = "\u001E"
         const val KEY_REFRESH = "refresh_token"
 
         /** Refresh a minute early, so a request never leaves with a token that dies in flight. */

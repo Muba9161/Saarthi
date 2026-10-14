@@ -12,8 +12,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -32,6 +30,9 @@ import com.saarthi.owner.ui.design.SType
 import com.saarthi.owner.ui.design.Saarthi
 import com.saarthi.owner.ui.design.StatusPill
 import com.saarthi.owner.ui.design.Toast
+import com.saarthi.owner.ui.shell.LocalNavigator
+import com.saarthi.owner.ui.sos.SosAlertScreen
+import com.saarthi.owner.ui.sos.SosCard
 import com.saarthi.owner.ui.design.rise
 import com.saarthi.owner.ui.design.stagger
 import kotlinx.coroutines.delay
@@ -46,12 +47,12 @@ private const val REFRESH_MS = 30_000L
  * morning. Scrolls under the shell's header and tab bar.
  */
 @Composable
-fun FleetHomeScreen(app: OwnerApp, account: SessionStore.Account, onOpenAlerts: () -> Unit) {
-    val model = viewModel { FleetHomeModel(app.fleet, app.alerts, account) }
+fun FleetHomeScreen(app: OwnerApp, account: SessionStore.Account, onOpenAlerts: () -> Unit, onOpenMap: () -> Unit) {
+    val model = viewModel { FleetHomeModel(app.fleet, app.alerts, app.returnLoads, app.sos, account) }
     val state by model.state.collectAsStateWithLifecycle()
     val acting by model.acting.collectAsStateWithLifecycle()
     val message by model.message.collectAsStateWithLifecycle()
-    var reviewing by rememberSaveable { mutableStateOf<String?>(null) }
+    val navigator = LocalNavigator.current
     val c = Saarthi.colors
 
     LaunchedEffect(Unit) {
@@ -67,7 +68,6 @@ fun FleetHomeScreen(app: OwnerApp, account: SessionStore.Account, onOpenAlerts: 
         }
     }
 
-    val home = (state as? Loadable.Ready)?.value
     val bottom = tabBarClearance()
 
     Box(Modifier.fillMaxSize()) {
@@ -102,16 +102,30 @@ fun FleetHomeScreen(app: OwnerApp, account: SessionStore.Account, onOpenAlerts: 
                             maxLines = 1,
                         )
                     }
-                    FleetNowCard(data, modifier = Modifier.rise(stagger(1)))
+                    data.sos.forEach { incident ->
+                        SosCard(incident, Modifier.rise()) {
+                            navigator.push("sos-${incident.id}") { SosAlertScreen(app.sos, incident) }
+                        }
+                    }
+                    FleetNowCard(data, modifier = Modifier.rise(stagger(1)), onOpenMap = onOpenMap)
                     NeedsYouNow(
                         home = data,
                         acting = acting,
                         onApprove = model::approve,
-                        onReview = { reviewing = it },
+                        onReview = { id ->
+                            data.approvals.firstOrNull { it.id == id }?.let { waiting ->
+                                navigator.push("approval-$id") { DriverApprovalScreen(app, waiting) { model.refresh(silent = true) } }
+                            }
+                        },
                         onOpenAlerts = onOpenAlerts,
                         modifier = Modifier.rise(stagger(2)),
                     )
                     MorningTiles(data, modifier = Modifier.rise(stagger(3)))
+                    if (data.emptySoon.isNotEmpty()) {
+                        BackhaulCard(data.emptySoon, Modifier.rise(stagger(4))) {
+                            navigator.push("return-loads") { ReturnLoadsScreen(app) }
+                        }
+                    }
                 }
             }
         }
@@ -124,19 +138,5 @@ fun FleetHomeScreen(app: OwnerApp, account: SessionStore.Account, onOpenAlerts: 
                     .padding(start = 20.dp, end = 20.dp, bottom = bottom),
             )
         }
-
-        ReviewSheet(
-            approval = home?.approvals?.firstOrNull { it.id == reviewing },
-            busy = acting != null,
-            onApprove = { id ->
-                model.approve(id)
-                reviewing = null
-            },
-            onReject = { id, reason ->
-                model.reject(id, reason)
-                reviewing = null
-            },
-            onDismiss = { reviewing = null },
-        )
     }
 }

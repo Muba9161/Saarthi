@@ -91,6 +91,7 @@ class OwnerApi(
 
     @Serializable
     private data class SessionOrganization(
+        val id: String = "",
         val name: String = "",
         val type: String? = null,
         val membershipRole: String = "",
@@ -105,6 +106,7 @@ class OwnerApi(
     private data class SessionDto(
         val user: SessionUser? = null,
         val organization: SessionOrganization? = null,
+        val organizations: List<SessionOrganization> = emptyList(),
         val subscription: SessionSubscription? = null,
         val driver: JsonObject? = null,
         val permissions: List<String> = emptyList(),
@@ -184,6 +186,29 @@ class OwnerApi(
         val raw = send("POST", path, body, authenticated = false)
         val auth = json.decodeFromString(Envelope.serializer(AuthDto.serializer()), raw).data
             ?: throw Failure.Refused(200, "Saarthi answered but sent nothing back.")
+        return adopt(auth)
+    }
+
+    @Serializable
+    private data class SwitchRequest(val organizationId: String)
+
+    /**
+     * Act for another of this person's businesses. The server moves the
+     * session itself, so the choice survives a restart and a refresh.
+     */
+    suspend fun switchOrganization(organizationId: String): SessionStore.Account {
+        val raw = send(
+            "POST",
+            "/api/v1/auth/switch-organization",
+            json.encodeToString(SwitchRequest.serializer(), SwitchRequest(organizationId)),
+        )
+        val auth = json.decodeFromString(Envelope.serializer(AuthDto.serializer()), raw).data
+            ?: throw Failure.Refused(200, "Saarthi answered but sent nothing back.")
+        // Only the access token changes hands here; the refresh token stays as it was.
+        return if (auth.session != null) adopt(auth) else restore() ?: throw Failure.SignedOut
+    }
+
+    private fun adopt(auth: AuthDto): SessionStore.Account {
         val payload = auth.session ?: throw Failure.Refused(200, "Saarthi did not say who signed in.")
         val user = payload.user ?: throw Failure.Refused(200, "Saarthi did not say who signed in.")
         val organization = payload.organization
@@ -206,6 +231,10 @@ class OwnerApi(
             planName = payload.subscription?.planName,
             paused = user.status != "ACTIVE" || organization?.billingArchivedAt != null,
             permissions = payload.permissions.toSet(),
+            businesses = payload.organizations
+                .filter { it.id.isNotBlank() && it.type != null }
+                .map { SessionStore.Business(it.id, it.name, it.type.orEmpty()) },
+            organizationId = organization?.id.orEmpty(),
         )
         session.store(account, auth.accessToken, auth.expiresIn, auth.refreshToken)
         return account
@@ -225,6 +254,30 @@ class OwnerApi(
     suspend fun <T> post(path: String, body: String, serializer: KSerializer<T>): T? {
         val raw = send("POST", "/api/v1$path", body)
         return json.decodeFromString(Envelope.serializer(serializer), raw).data
+    }
+
+    /** A signed-in PATCH — a partial change to something already there. */
+    suspend fun <T> patch(path: String, body: String, serializer: KSerializer<T>): T? {
+        val raw = send("PATCH", "/api/v1$path", body)
+        return json.decodeFromString(Envelope.serializer(serializer), raw).data
+    }
+
+    /**
+     * The bytes behind a URL the API itself handed out — an arrival photo.
+     * Only Saarthi's own addresses are followed, so the token never leaves it.
+     */
+    suspend fun image(url: String): ByteArray? = withContext(Dispatchers.IO) {
+        val full = if (url.startsWith("/")) "$baseUrl$url" else url
+        if (!full.startsWith(baseUrl)) return@withContext null
+        val request = Request.Builder().url(full).header("Authorization", "Bearer ${bearer()}").build()
+        runCatching {
+            client.newCall(request).execute().use { response -> if (response.isSuccessful) response.body?.bytes() else null }
+        }.getOrNull()
+    }
+
+    /** A signed-in DELETE. */
+    suspend fun delete(path: String) {
+        send("DELETE", "/api/v1$path", null)
     }
 
     /** A valid access token, refreshing once if the held one is stale. */
@@ -249,6 +302,7 @@ class OwnerApi(
             "GET" -> builder.get()
             "POST" -> builder.post((body ?: "{}").toRequestBody(JSON_MEDIA))
             "PATCH" -> builder.patch((body ?: "{}").toRequestBody(JSON_MEDIA))
+            "DELETE" -> builder.delete()
             else -> throw IllegalArgumentException("Unsupported method $method")
         }
         if (authenticated) builder.header("Authorization", "Bearer ${bearer()}")

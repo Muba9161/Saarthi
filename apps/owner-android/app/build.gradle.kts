@@ -44,12 +44,32 @@ val saarthiMapStyleUrl: String = setting("saarthiMapStyleUrl") ?: "https://tiles
 val saarthiMapStyleUrlLight: String =
     setting("saarthiMapStyleUrlLight") ?: "https://tiles.openfreemap.org/styles/liberty"
 
+/**
+ * The release (Play upload) key, kept outside the repository and named from
+ * the command line or local.properties, as the driver app does. A build with
+ * no key named still succeeds and simply produces an unsigned APK.
+ */
+val releaseStoreFile: String? = setting("releaseStoreFile")
+
 val appVersionCode = 1
 val appVersionName = "0.1.0"
 
 android {
     namespace = "com.saarthi.owner"
     compileSdk = 36
+
+    signingConfigs {
+        if (releaseStoreFile != null) {
+            create("release") {
+                storeFile = file(releaseStoreFile)
+                storePassword = setting("releaseStorePassword")
+                keyAlias = setting("releaseKeyAlias")
+                keyPassword = setting("releaseKeyPassword")
+                enableV1Signing = true
+                enableV2Signing = true
+            }
+        }
+    }
 
     defaultConfig {
         applicationId = "com.saarthi.owner"
@@ -69,6 +89,7 @@ android {
             versionNameSuffix = "-debug"
         }
         release {
+            signingConfig = signingConfigs.findByName("release")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
@@ -119,6 +140,7 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.maplibre.android)
+    implementation(libs.androidx.biometric)
 
     debugImplementation(libs.androidx.compose.ui.tooling)
 

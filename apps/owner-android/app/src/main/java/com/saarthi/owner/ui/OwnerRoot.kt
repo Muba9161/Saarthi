@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -81,13 +82,17 @@ fun OwnerRoot(app: OwnerApp) {
                     when {
                         current.paused -> PausedScreen(
                             account = current,
+                            api = app.api,
                             onCheckAgain = { runCatching { app.api.restore() } },
                             onSignOut = signOut,
                         )
                         current.accountType == AccountType.DRIVER_ONLY ||
                             current.accountType == AccountType.UNSUPPORTED ->
-                            NotForThisAppScreen(account = current, onSignOut = signOut)
-                        else -> HomeShell(app = app, account = current, onSignOut = signOut)
+                            NotForThisAppScreen(account = current, api = app.api, onSignOut = signOut)
+                        // A different business is a different app: nothing of the last one carries over.
+                        else -> key(current.userId, current.organizationId) {
+                            HomeShell(app = app, account = current, onSignOut = signOut)
+                        }
                     }
                 }
             }

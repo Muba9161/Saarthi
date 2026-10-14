@@ -35,9 +35,9 @@ import androidx.compose.ui.unit.dp
 import com.saarthi.owner.R
 import com.saarthi.owner.data.AccountType
 import com.saarthi.owner.data.SessionStore
+import com.saarthi.owner.network.OwnerApi
 import com.saarthi.owner.ui.design.AlwaysDark
 import com.saarthi.owner.ui.design.BrandLockup
-import com.saarthi.owner.ui.design.ButtonRow
 import com.saarthi.owner.ui.design.ButtonTone
 import com.saarthi.owner.ui.design.Eyebrow
 import com.saarthi.owner.ui.design.IconWell
@@ -58,6 +58,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun PausedScreen(
     account: SessionStore.Account,
+    api: OwnerApi,
     onCheckAgain: suspend () -> Unit,
     onSignOut: () -> Unit,
 ) {
@@ -86,13 +87,22 @@ fun PausedScreen(
             busy = checking,
             leading = Lucide.refresh,
         )
+        OtherBusinesses(account, api)
         SaarthiButton("Sign out", onClick = onSignOut, tone = ButtonTone.SECONDARY)
     }
 }
 
+/** Another business on the same login: the way out of a paused or unsupported one. */
+@Composable
+private fun OtherBusinesses(account: SessionStore.Account, api: OwnerApi) {
+    if (account.businesses.size <= 1) return
+    Eyebrow("Switch business", modifier = Modifier.padding(top = 8.dp))
+    BusinessSwitcher(account, api)
+}
+
 /** A driver, or platform staff, who signed in to the app made for businesses. */
 @Composable
-fun NotForThisAppScreen(account: SessionStore.Account, onSignOut: () -> Unit) {
+fun NotForThisAppScreen(account: SessionStore.Account, api: OwnerApi, onSignOut: () -> Unit) {
     val driver = account.accountType == AccountType.DRIVER_ONLY
     GateScreen(
         eyebrow = account.fullName,
@@ -100,11 +110,14 @@ fun NotForThisAppScreen(account: SessionStore.Account, onSignOut: () -> Unit) {
         title = if (driver) "Drivers have their own app" else "This app is for businesses",
         lead = if (driver) {
             "Humsafar by VorldX Saarthi is made for driving — trips, papers and the road. Sign in there with this same account."
+        } else if (account.businesses.size > 1) {
+            "${account.organizationName.ifBlank { "This business" }} is run from Saarthi on the web. Switch to one of your other businesses below."
         } else {
             "This account has no fleet, travel, customer, seller or association business to show here. Use Saarthi on the web."
         },
         kept = emptyList(),
     ) {
+        OtherBusinesses(account, api)
         SaarthiButton("Sign out", onClick = onSignOut, tone = ButtonTone.SECONDARY)
     }
 }

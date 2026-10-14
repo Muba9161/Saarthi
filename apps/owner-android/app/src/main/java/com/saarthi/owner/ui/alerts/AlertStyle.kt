@@ -18,7 +18,7 @@ enum class AlertFilter(val label: String) {
 fun AlertsApi.Alert.isUrgent(): Boolean = priority == "CRITICAL" || priority == "HIGH"
 
 private fun AlertsApi.Alert.isMoney(): Boolean =
-    type.startsWith("PAYMENT") || type.startsWith("FASTAG") || type.startsWith("WALLET") ||
+    type.startsWith("PAYMENT") || type.startsWith("FASTAG") || type.startsWith("WALLET") || type.startsWith("LOAN") ||
         type == "ORDER_QUOTED" || type == "LISTING_OFFER_RECEIVED" || type == "LISTING_SOLD"
 
 private fun AlertsApi.Alert.isPapers(): Boolean =

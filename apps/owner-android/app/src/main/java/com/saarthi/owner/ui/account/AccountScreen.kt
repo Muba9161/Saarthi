@@ -24,6 +24,7 @@ import com.saarthi.owner.BuildConfig
 import com.saarthi.owner.data.OwnerPreferences
 import com.saarthi.owner.data.SessionStore
 import com.saarthi.owner.data.roleLabel
+import com.saarthi.owner.network.OwnerApi
 import com.saarthi.owner.ui.common.headerClearance
 import com.saarthi.owner.ui.common.tabBarClearance
 import com.saarthi.owner.ui.design.Appearance
@@ -39,6 +40,11 @@ import com.saarthi.owner.ui.design.StatusPill
 import com.saarthi.owner.ui.design.card
 import com.saarthi.owner.ui.design.rise
 import com.saarthi.owner.ui.design.stagger
+import com.saarthi.owner.ui.lock.confirmPerson
+import com.saarthi.owner.ui.lock.canLockApp
+import com.saarthi.owner.ui.design.SaarthiSwitch
+import com.saarthi.owner.ui.design.IconWell
+import androidx.compose.ui.platform.LocalContext
 
 /**
  * Who is signed in, how the app looks, and the way out.
@@ -50,6 +56,7 @@ import com.saarthi.owner.ui.design.stagger
 fun AccountScreen(
     account: SessionStore.Account,
     preferences: OwnerPreferences,
+    api: OwnerApi,
     onSignOut: () -> Unit,
 ) {
     val c = Saarthi.colors
@@ -86,7 +93,7 @@ fun AccountScreen(
                 )
                 account.planName?.let {
                     StatusPill(
-                        "$it · Active",
+                        "${it.replace("Supplier", "Seller")} · Active",
                         background = c.successBg,
                         ink = c.success,
                         modifier = Modifier.padding(top = 4.dp),
@@ -103,6 +110,14 @@ fun AccountScreen(
             onSelect = { preferences.setAppearance(Appearance.entries[it]) },
             modifier = Modifier.rise(stagger(1)),
         )
+
+        if (account.businesses.size > 1) {
+            GroupLabel("Your businesses")
+            BusinessSwitcher(account, api)
+        }
+
+        GroupLabel("Security")
+        AppLockRow(preferences)
 
         GroupLabel("Session")
         SaarthiButton(
@@ -126,6 +141,52 @@ fun AccountScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 8.dp),
+        )
+    }
+}
+
+/**
+ * App lock: fingerprint, face or the phone's screen lock before the app opens.
+ *
+ * Switching it on asks once first — a switch that says the app is locked
+ * should not be believable until the phone has recognised its owner.
+ */
+@Composable
+private fun AppLockRow(preferences: OwnerPreferences) {
+    val c = Saarthi.colors
+    val context = LocalContext.current
+    val on by preferences.appLock.collectAsStateWithLifecycle()
+    val available = remember { canLockApp(context) }
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .card(radius = 22.dp)
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        IconWell(Lucide.fingerprint, well = c.primarySoft, ink = c.primary, size = 40.dp, radius = 12.dp, iconSize = 18.dp)
+        Column(Modifier.weight(1f)) {
+            Text("App lock", style = SType.bodyStrong, color = c.fg)
+            Text(
+                if (available) "Fingerprint, face or screen lock to open" else "Set up a screen lock on this phone first",
+                style = SType.caption,
+                color = c.muted,
+            )
+        }
+        SaarthiSwitch(
+            checked = on,
+            enabled = available,
+            label = "App lock",
+            onCheckedChange = { wanted ->
+                if (!wanted) {
+                    preferences.setAppLock(false)
+                } else {
+                    confirmPerson(context, "Turn on App lock", "Confirm it's you") { ok ->
+                        if (ok) preferences.setAppLock(true)
+                    }
+                }
+            },
         )
     }
 }

@@ -12,3 +12,7 @@
 -keepclasseswithmembers class com.saarthi.owner.network.** {
     kotlinx.serialization.KSerializer serializer(...);
 }
+
+# Tink (under androidx.security.crypto, which encrypts the saved sign-in) names
+# Error Prone's annotations. They are build-time checks with no code to ship.
+-dontwarn com.google.errorprone.annotations.**

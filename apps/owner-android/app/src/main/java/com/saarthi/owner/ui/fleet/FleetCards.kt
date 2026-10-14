@@ -38,6 +38,7 @@ import com.saarthi.owner.ui.design.SType
 import com.saarthi.owner.ui.design.Saarthi
 import com.saarthi.owner.ui.design.SaarthiButton
 import com.saarthi.owner.ui.design.card
+import com.saarthi.owner.ui.design.pressable
 import kotlinx.coroutines.delay
 
 /**
@@ -265,5 +266,41 @@ private fun Tile(
         Eyebrow(label, color = c.muted, maxLines = 1)
         Text(value, style = SType.headerTitle.copy(fontSize = 19.sp), color = valueColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
         Text(caption, style = SType.caption, color = c.subtle, maxLines = 2, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+/** "2 trucks would run home empty" — the way into Return loads. */
+@Composable
+fun BackhaulCard(risks: List<com.saarthi.owner.network.ReturnLoadsApi.EmptyRisk>, modifier: Modifier = Modifier, onOpen: () -> Unit) {
+    val c = Saarthi.colors
+    val first = risks.first()
+    Row(
+        modifier
+            .fillMaxWidth()
+            .card(radius = 22.dp, ring = c.successGlow)
+            .pressable(scale = 0.98f, onClick = onOpen)
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        IconWell(Lucide.refresh, well = c.successSoft, ink = c.success, size = 44.dp, radius = 14.dp)
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                if (risks.size == 1) "${com.saarthi.owner.ui.common.formatPlate(first.truckRegistration)} would run home empty"
+                else "${risks.size} trucks would run home empty",
+                style = SType.bodyStrong,
+                color = c.fg,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                "${first.emptyReturnKm?.toInt() ?: "—"} km from ${first.destinationAddress.substringBefore(',')} · find a return load",
+                style = SType.small,
+                color = c.muted,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        com.saarthi.owner.ui.design.LineIcon(Lucide.chevronRight, size = 18.dp, color = c.subtle)
     }
 }

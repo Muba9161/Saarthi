@@ -52,9 +52,9 @@ import com.saarthi.owner.ui.design.pressable
  */
 @Composable
 fun OwnerTabBar(
-    tabs: List<Tab>,
-    active: Tab,
-    onSelect: (Tab) -> Unit,
+    tabs: List<TabSpec>,
+    active: TabSpec,
+    onSelect: (TabSpec) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val dark = Saarthi.colors.dark
@@ -85,7 +85,7 @@ fun OwnerTabBar(
         ) {
             val cell = maxWidth / tabs.size
             val x by animateDpAsState(
-                cell * tabs.indexOf(active).coerceAtLeast(0),
+                cell * tabs.indexOfFirst { it.key == active.key }.coerceAtLeast(0),
                 if (reduced) tween(0) else tween(550, easing = Ease.out),
                 label = "tab-indicator",
             )
@@ -99,7 +99,7 @@ fun OwnerTabBar(
             )
             Row(Modifier.fillMaxWidth()) {
                 tabs.forEach { tab ->
-                    val on = tab == active
+                    val on = tab.key == active.key
                     val ink by animateColorAsState(if (on) primary else muted, tween(300), label = "tab-ink")
                     val pop = remember { Animatable(1f) }
                     LaunchedEffect(on) {

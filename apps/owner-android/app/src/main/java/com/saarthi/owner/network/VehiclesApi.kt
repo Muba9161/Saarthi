@@ -23,6 +23,9 @@ class VehiclesApi(private val api: OwnerApi) {
     data class DocumentHealth(val total: Int = 0, val expired: Int = 0, val expiringSoon: Int = 0)
 
     @Serializable
+    data class Ownership(val status: String = "", val verifiedAt: String? = null, val note: String? = null)
+
+    @Serializable
     data class Vehicle(
         val id: String,
         val registrationNumber: String = "",
@@ -38,7 +41,14 @@ class VehiclesApi(private val api: OwnerApi) {
         val currentTripId: String? = null,
         val lastLocation: LastLocation? = null,
         val documentHealth: DocumentHealth = DocumentHealth(),
+        val odometerKm: Double? = null,
+        val capacityTons: Double? = null,
+        val passengerCapacity: Int? = null,
+        /** Whether the owner has shown it is theirs — sharing waits for it. */
+        val ownership: Ownership? = null,
     ) {
+        val ownershipConfirmed: Boolean get() = ownership?.status == "VERIFIED"
+
         /** The most specific word for its shape — the web app's `vehicleArtType`. */
         val artType: String
             get() = when {
@@ -67,6 +77,8 @@ class VehiclesApi(private val api: OwnerApi) {
     }
 
     enum class Motion { MOVING, IDLE, OFFLINE, SERVICE }
+
+    suspend fun get(id: String): Vehicle? = api.get("/fleet/vehicles/$id", Vehicle.serializer())
 
     suspend fun list(): List<Vehicle> =
         api.get("/fleet/vehicles?pageSize=200", Page.serializer(Vehicle.serializer()))?.items.orEmpty()

@@ -56,10 +56,11 @@ import java.time.format.DateTimeFormatter
 /**
  * Everything Saarthi has told this person, newest first, grouped by day.
  *
- * Opening an alert marks it read; "Mark all read" clears the bell in one go.
+ * Opening an alert marks it read and, when it points at something this app
+ * shows, opens that; "Mark all read" clears the bell in one go.
  */
 @Composable
-fun AlertsScreen(api: AlertsApi, onBack: () -> Unit) {
+fun AlertsScreen(api: AlertsApi, onBack: () -> Unit, onFollow: (AlertsApi.Alert) -> Unit = {}) {
     val model = viewModel { AlertsModel(api) }
     val state by model.state.collectAsStateWithLifecycle()
     var filter by rememberSaveable { mutableStateOf(AlertFilter.ALL) }
@@ -100,7 +101,10 @@ fun AlertsScreen(api: AlertsApi, onBack: () -> Unit) {
             is Loadable.Ready -> AlertFeed(
                 list = shown.value,
                 filter = filter,
-                onOpen = model::open,
+                onOpen = { alert ->
+                    model.open(alert.id)
+                    onFollow(alert)
+                },
                 onLoadMore = model::loadMore,
             )
         }
@@ -111,7 +115,7 @@ fun AlertsScreen(api: AlertsApi, onBack: () -> Unit) {
 private fun AlertFeed(
     list: AlertList,
     filter: AlertFilter,
-    onOpen: (String) -> Unit,
+    onOpen: (AlertsApi.Alert) -> Unit,
     onLoadMore: () -> Unit,
 ) {
     val shown = list.items.filter { it.matches(filter) }
@@ -136,7 +140,7 @@ private fun AlertFeed(
                         .card(radius = 22.dp),
                 ) {
                     alerts.forEachIndexed { index, alert ->
-                        AlertRow(alert, divider = index < alerts.lastIndex, onOpen = { onOpen(alert.id) })
+                        AlertRow(alert, divider = index < alerts.lastIndex, onOpen = { onOpen(alert) })
                     }
                 }
             }

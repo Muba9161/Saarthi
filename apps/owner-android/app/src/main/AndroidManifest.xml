@@ -2,15 +2,35 @@
 <!--
   Saarthi for owners and businesses.
 
-  Reads a business, never reports from a vehicle: no location, camera,
-  microphone, Bluetooth or self-update permissions. Each of those is a question
-  Google Play asks before it lists an app, and none of them is needed here.
+  Reads a business, never reports from a vehicle: no background location,
+  camera, Bluetooth or self-update permissions. Each of those is a question
+  Google Play asks before it lists an app. Two exceptions, each asked for only
+  on the tap that needs it: the microphone, to ask Saarthi a question out loud,
+  and a one-time location, to fill a place with where the person stands.
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+
+    <!-- Cashfree's checkout hands a UPI payment to the payer's own UPI app. -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="upi" />
+        </intent>
+        <!-- The phone's speech recogniser and voice, for asking Saarthi out loud. -->
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE" />
+        </intent>
+    </queries>
 
     <application
         android:name=".OwnerApp"
@@ -27,11 +47,23 @@
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.SaarthiOwner"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboard|keyboardHidden|navigation|uiMode|density|fontScale|locale|layoutDirection"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Payment receipts, shared from the app's cache on phones older than Android 10. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.receipts"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/receipt_paths" />
+        </provider>
     </application>
 </manifest>

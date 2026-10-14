@@ -23,8 +23,19 @@ class OwnerPreferences(context: Context) {
         _appearance.value = appearance
     }
 
+    private val _appLock = MutableStateFlow(preferences.getBoolean(KEY_APP_LOCK, false))
+
+    /** Ask for a fingerprint, face or the phone's screen lock before the app opens. */
+    val appLock: StateFlow<Boolean> = _appLock.asStateFlow()
+
+    fun setAppLock(on: Boolean) {
+        preferences.edit().putBoolean(KEY_APP_LOCK, on).apply()
+        _appLock.value = on
+    }
+
     private companion object {
         const val FILE = "saarthi-owner-preferences"
         const val KEY_APPEARANCE = "appearance"
+        const val KEY_APP_LOCK = "app_lock"
     }
 }

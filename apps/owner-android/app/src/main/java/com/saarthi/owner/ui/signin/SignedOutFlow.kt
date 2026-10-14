@@ -33,10 +33,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.saarthi.owner.network.OwnerApi
+import com.saarthi.owner.ui.common.RevealedNotice
 import com.saarthi.owner.ui.design.BrandSpinner
 import com.saarthi.owner.ui.design.Ease
 import com.saarthi.owner.ui.design.Eyebrow
-import com.saarthi.owner.ui.design.NoticeCard
 import com.saarthi.owner.ui.design.NoticeTone
 import com.saarthi.owner.ui.design.SType
 import com.saarthi.owner.ui.design.Saarthi
@@ -184,11 +184,14 @@ internal fun AuthStepFrame(
     }
 }
 
-/** A sign-in error, in the server's words, on the step it belongs to. */
+/**
+ * A sign-in error, in the server's words, on the step it belongs to — scrolled
+ * into sight once the keyboard settles, so it never hides behind it.
+ */
 @Composable
 internal fun AuthError(message: String?, modifier: Modifier = Modifier) {
     if (message.isNullOrBlank()) return
-    NoticeCard(message, NoticeTone.DANGER, modifier.padding(top = 16.dp))
+    RevealedNotice(message, NoticeTone.DANGER, modifier.padding(top = 16.dp))
 }
 
 /** "Signing you in…" — the spinning brand ring while the request is out. */

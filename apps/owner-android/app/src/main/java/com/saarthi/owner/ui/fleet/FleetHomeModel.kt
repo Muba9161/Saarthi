@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.saarthi.owner.data.SessionStore
 import com.saarthi.owner.network.AlertsApi
 import com.saarthi.owner.network.FleetApi
+import com.saarthi.owner.network.ReturnLoadsApi
+import com.saarthi.owner.network.SosApi
 import com.saarthi.owner.ui.common.Loadable
 import com.saarthi.owner.ui.common.readable
 import kotlinx.coroutines.async
@@ -22,6 +24,10 @@ data class FleetHome(
     val fastags: List<FleetApi.Fastag>,
     /** The most pressing unread alert, when no driver is waiting. */
     val topAlert: AlertsApi.Alert?,
+    /** Trucks arriving soon with nothing lined up for the way home. */
+    val emptySoon: List<ReturnLoadsApi.EmptyRisk> = emptyList(),
+    /** A driver's open SOS — before anything else on the screen. */
+    val sos: List<SosApi.Incident> = emptyList(),
 ) {
     val total: Int get() = dashboard?.fleet?.totalTrucks?.takeIf { it > 0 } ?: positions.size
     val reporting: Int get() = positions.count { !it.stale }
@@ -43,6 +49,8 @@ private const val MOVING_KPH = 3.0
 class FleetHomeModel(
     private val fleet: FleetApi,
     private val alerts: AlertsApi,
+    private val returnLoads: ReturnLoadsApi,
+    private val sosApi: SosApi,
     private val account: SessionStore.Account,
 ) : ViewModel() {
 
@@ -79,14 +87,19 @@ class FleetHomeModel(
         val approvals = async { optional { if (account.can("terminal.approve")) fleet.waitingApprovals() else null } }
         val fastags = async { optional { if (account.can("toll.read")) fleet.fastags() else null } }
         val page = async { optional { alerts.page(pageSize = 20) } }
+        val risks = async { optional { if (account.can("returnloads.read")) returnLoads.emptyRisk() else null } }
+        val emergencies = async { optional { if (account.can("sos.read")) sosApi.active() else null } }
         FleetHome(
             dashboard = dashboard.await(),
             positions = positions.await(),
             approvals = approvals.await().orEmpty(),
             fastags = fastags.await().orEmpty(),
+            // An open SOS has its own card above; a closed one needs nobody.
             topAlert = page.await()?.items
-                ?.filter { it.readAt == null }
+                ?.filter { it.readAt == null && !it.type.startsWith("SOS") }
                 ?.minByOrNull { priorityRank(it.priority) },
+            emptySoon = risks.await().orEmpty().filter { !it.hasReturnLoad && (it.emptyReturnKm ?: 0.0) >= 20 },
+            sos = emergencies.await().orEmpty(),
         )
     }
 

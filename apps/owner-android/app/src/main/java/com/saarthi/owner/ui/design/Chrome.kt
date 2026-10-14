@@ -234,6 +234,8 @@ fun BottomSheet(
                         onClick = {},
                     )
                     .windowInsetsPadding(WindowInsets.navigationBars)
+                    // A sheet with a field rides up on the keyboard, so what is typed and its button stay in sight.
+                    .imePadding()
                     .padding(padding),
             ) {
                 Box(
