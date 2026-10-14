@@ -1,13 +1,21 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { ok, parseParams } from '../../lib/http';
+import { ok, parseParams, parseQuery } from '../../lib/http';
 import { requireAuth } from '../../server/guards';
 import { handleCashfreeWebhook } from './cashfree-webhook.service';
+import { listReceipts } from './payment-receipt.service';
 import { paymentStatusFor, settlePayment } from './payment-settlement.service';
 
 const referenceParamSchema = z.object({
   reference: z.string().min(3).max(64).regex(/^[A-Za-z0-9_-]+$/),
 });
+
+/** Receipts are asked for by what was paid for: exactly one booking or one order. */
+const receiptQuerySchema = z
+  .object({ bookingId: z.string().uuid().optional(), orderId: z.string().uuid().optional() })
+  .refine((query) => Boolean(query.bookingId) !== Boolean(query.orderId), {
+    message: 'Give either a bookingId or an orderId.',
+  });
 
 /**
  * A payment as the payer sees it after checkout.
@@ -19,6 +27,13 @@ const referenceParamSchema = z.object({
  */
 export async function paymentRoutes(app: FastifyInstance): Promise<void> {
   app.addHook('preHandler', app.authenticate);
+
+  /** The caller's own settled payments on one booking or order, as a receipt prints them. */
+  app.get('/receipts', async (request, reply) => {
+    const auth = requireAuth(request);
+    const query = parseQuery(receiptQuerySchema, request.query);
+    return ok(reply, await listReceipts(auth.organizationId, query));
+  });
 
   app.get('/:reference', async (request, reply) => {
     const auth = requireAuth(request);

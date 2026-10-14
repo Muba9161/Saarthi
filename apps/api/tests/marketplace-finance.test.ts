@@ -161,8 +161,18 @@ describe('marketplace finance', () => {
     return { orderId: award.body.data.orderId, tripId: award.body.data.tripId };
   }
 
-  const trip = (tripId: string, status: string) =>
-    request({ method: 'POST', url: `/api/v1/trips/${tripId}/transition`, user: fleetOwner, payload: { status } });
+  /** Move the trip on; a delivery is finished with the customer's code, as at the site. */
+  const trip = async (tripId: string, status: string) => {
+    const handover = status === 'COMPLETED'
+      ? await prisma.handoverCode.findFirst({ where: { tripId, purpose: 'DELIVERY' } })
+      : null;
+    return request({
+      method: 'POST',
+      url: `/api/v1/trips/${tripId}/transition`,
+      user: fleetOwner,
+      payload: { status, ...(handover ? { handoverCode: handover.code } : {}) },
+    });
+  };
 
   async function driveToDelivery(tripId: string): Promise<void> {
     for (const status of ['LOADING', 'STARTED', 'IN_TRANSIT', 'ARRIVED', 'COMPLETED']) {

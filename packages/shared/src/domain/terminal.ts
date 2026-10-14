@@ -1278,6 +1278,18 @@ export interface TerminalTripView {
   driverCreated: boolean;
   /** The navigation app the driver handed this trip to, while they follow it there. */
   navigationHandoff: ExternalNavigationApp | null;
+  /**
+   * The customer's codes still to be entered on this trip — never the codes
+   * themselves. DELIVERY is asked for at Complete, PICKUP at Start.
+   */
+  pendingHandovers: TerminalHandoverView[];
+}
+
+/** A handover code still waiting on this trip, as the driver's app needs it. */
+export interface TerminalHandoverView {
+  purpose: 'DELIVERY' | 'PICKUP';
+  /** Wrong entries left before only the owner's override can clear it. */
+  attemptsLeft: number;
 }
 
 /** One of the driver's own trips waiting to start, in their order. */

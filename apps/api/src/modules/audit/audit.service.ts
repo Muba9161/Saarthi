@@ -203,6 +203,10 @@ export const AuditAction = {
 
   TRIP_CREATED: 'trip.created',
   TRIP_STATUS_CHANGED: 'trip.status_changed',
+  /** The driver entered the customer's handover code (delivery or pickup). */
+  HANDOVER_CODE_VERIFIED: 'trip.handover_verified',
+  /** The owner cleared a handover without the code, with a written reason. */
+  HANDOVER_CODE_OVERRIDDEN: 'trip.handover_overridden',
   TRIP_UPDATED: 'trip.updated',
 
   MAINTENANCE_CREATED: 'maintenance.created',

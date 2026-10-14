@@ -6,6 +6,7 @@ import {
   CANCELLABLE_BOOKING_STATUSES,
   CancelledBy,
   DEFAULT_CANCELLATION_POLICY,
+  HandoverPurpose,
   NotificationPriority,
   NotificationType,
   PaymentPurpose,
@@ -28,6 +29,7 @@ import {
   type Paginated,
   type PayBookingInput,
   type RateBookingInput,
+  type StartBookingInput,
   type VehicleType,
 } from '@saarthi/shared';
 import { type Prisma, prisma } from '../../database/prisma';
@@ -45,6 +47,7 @@ import {
   type SettledPayment,
 } from '../payments/payment-settlement.service';
 import { notify, notifyOrganization } from '../notifications/notification.service';
+import { clearHandover, issuePickupCode } from '../trips/handover.service';
 import { broadcastBooking } from '../../realtime/realtime.service';
 import type { AuthContext } from '../../auth/context';
 import { recalculatePackageRating } from './package.service';
@@ -1053,6 +1056,9 @@ export async function confirmBooking(
     auth.user.id,
   );
 
+  // The passenger's pickup code: the driver enters it to start the ride.
+  if (updated.tripId) await issuePickupCode(booking.id);
+
   void notify({
     userId: booking.bookedByUserId,
     organizationId: booking.customerOrganizationId,
@@ -1136,6 +1142,7 @@ export async function declineBooking(
 export async function startBooking(
   auth: AuthContext,
   bookingId: string,
+  input: StartBookingInput = {},
 ): Promise<BookingSummary> {
   const booking = await loadBooking(auth, bookingId);
 
@@ -1151,11 +1158,12 @@ export async function startBooking(
   );
   if (!check.allowed) throw errors.invalidTransition(check.reason!);
 
-  const updated = await prisma.travelBooking.update({
-    where: { id: booking.id },
-    data: { status: BookingStatus.IN_PROGRESS, startedAt: new Date() },
-    include: bookingInclude,
-  });
+  // The ride starts only with the passenger's pickup code, or the owner's override.
+  if (booking.tripId) {
+    await clearHandover(booking.tripId, HandoverPurpose.PICKUP, input.handoverCode, auth.user.id);
+  }
+
+  const updated = await markBookingStarted(booking, auth.user.id);
 
   if (booking.tripId) {
     await prisma.trip.update({
@@ -1164,19 +1172,6 @@ export async function startBooking(
     });
   }
 
-  await recordEvent(booking.id, BookingEventType.STARTED, 'Trip started.', auth.user.id);
-
-  void notify({
-    userId: booking.bookedByUserId,
-    organizationId: booking.customerOrganizationId,
-    type: NotificationType.TRIP_STARTED,
-    title: 'Your trip has started',
-    body: 'You can follow the vehicle live from your booking.',
-    priority: NotificationPriority.NORMAL,
-    actionUrl: `/travel/bookings/${booking.id}`,
-  });
-
-  await publish(updated, false);
   return toSummary(updated);
 }
 
@@ -1198,11 +1193,7 @@ export async function completeBooking(
   );
   if (!check.allowed) throw errors.invalidTransition(check.reason!);
 
-  const updated = await prisma.travelBooking.update({
-    where: { id: booking.id },
-    data: { status: BookingStatus.COMPLETED, completedAt: new Date() },
-    include: bookingInclude,
-  });
+  const updated = await markBookingCompleted(booking, auth.user.id);
 
   if (booking.tripId) {
     await prisma.trip.update({
@@ -1211,12 +1202,62 @@ export async function completeBooking(
     });
   }
 
+  return toSummary(updated);
+}
+
+/**
+ * A ride's trip was started or finished from the driver's app: the booking
+ * follows, with the same events and messages as when the operator does it.
+ * Only a step the booking can take is taken; anything else is left alone.
+ */
+export async function followTrip(tripId: string, status: TripStatus, actorUserId: string): Promise<void> {
+  const booking = await prisma.travelBooking.findFirst({ where: { tripId }, include: bookingInclude });
+  if (!booking) return;
+  if (status === TripStatus.STARTED && booking.status === BookingStatus.CONFIRMED) {
+    await markBookingStarted(booking, actorUserId);
+  } else if (status === TripStatus.COMPLETED && booking.status === BookingStatus.IN_PROGRESS) {
+    await markBookingCompleted(booking, actorUserId);
+  }
+}
+
+/** The booking under way: status, event, the customer told. The trip is the caller's to move. */
+async function markBookingStarted(booking: BookingRecord, actorUserId: string): Promise<BookingRecord> {
+  const updated = await prisma.travelBooking.update({
+    where: { id: booking.id },
+    data: { status: BookingStatus.IN_PROGRESS, startedAt: new Date() },
+    include: bookingInclude,
+  });
+
+  await recordEvent(booking.id, BookingEventType.STARTED, 'Trip started.', actorUserId);
+
+  void notify({
+    userId: booking.bookedByUserId,
+    organizationId: booking.customerOrganizationId,
+    type: NotificationType.TRIP_STARTED,
+    title: 'Your trip has started',
+    body: 'You can follow the vehicle live from your booking.',
+    priority: NotificationPriority.NORMAL,
+    actionUrl: `/travel/bookings/${booking.id}`,
+  });
+
+  await publish(updated, false);
+  return updated;
+}
+
+/** The booking finished: status, the operator's tally, event, requirement closed, the customer asked to rate. */
+async function markBookingCompleted(booking: BookingRecord, actorUserId: string): Promise<BookingRecord> {
+  const updated = await prisma.travelBooking.update({
+    where: { id: booking.id },
+    data: { status: BookingStatus.COMPLETED, completedAt: new Date() },
+    include: bookingInclude,
+  });
+
   await prisma.serviceProviderProfile.updateMany({
     where: { organizationId: booking.providerOrganizationId },
     data: { bookingsCompleted: { increment: 1 }, bookingsTotal: { increment: 1 } },
   });
 
-  await recordEvent(booking.id, BookingEventType.COMPLETED, 'Trip completed.', auth.user.id);
+  await recordEvent(booking.id, BookingEventType.COMPLETED, 'Trip completed.', actorUserId);
 
   // A booking raised from a requirement closes that requirement out, so the
   // customer's requirement list reflects the journey that actually happened.
@@ -1236,7 +1277,7 @@ export async function completeBooking(
   });
 
   await publish(updated, false);
-  return toSummary(updated);
+  return updated;
 }
 
 // ---------------------------------------------------------------------------

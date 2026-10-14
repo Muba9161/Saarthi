@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { handoverCodeSchema } from './operations';
 import {
   BookingStatus,
   CancelledBy,
@@ -329,6 +330,12 @@ export const declineBookingSchema = z.object({
   reason: trimmedString(3, 1000),
 });
 export type DeclineBookingInput = z.infer<typeof declineBookingSchema>;
+
+/** Starting a booked ride: the passenger's pickup code, once they give it. */
+export const startBookingSchema = z.object({
+  handoverCode: handoverCodeSchema.optional(),
+});
+export type StartBookingInput = z.infer<typeof startBookingSchema>;
 
 export const cancelBookingSchema = z.object({
   reason: trimmedString(3, 1000),

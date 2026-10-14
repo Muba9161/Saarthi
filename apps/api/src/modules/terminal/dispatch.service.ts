@@ -15,6 +15,7 @@ import { type Prisma, prisma } from '../../database/prisma';
 import { logger } from '../../lib/logger';
 import { transitionTrip } from '../trips/trip.service';
 import type { SessionRecord } from './session.view';
+import { MAX_HANDOVER_ATTEMPTS } from '../trips/handover.service';
 
 /**
  * The work the fleet gave this vehicle, delivered to the vehicle.
@@ -123,6 +124,7 @@ function pathTo(from: TripStatus, to: TripStatus): TripStatus[] | null {
 const dispatchInclude = {
   stops: { orderBy: { sequence: 'asc' } },
   order: { select: { reference: true } },
+  handoverCodes: { select: { purpose: true, attempts: true, verifiedAt: true, overriddenAt: true } },
 } satisfies Prisma.TripInclude;
 
 type DispatchRecord = Prisma.TripGetPayload<{ include: typeof dispatchInclude }>;
@@ -198,6 +200,12 @@ function toView(trip: DispatchRecord, signedInDriverId: string): TerminalTripVie
     assignedToSignedInDriver: trip.driverId === signedInDriverId,
     driverCreated: trip.driverCreated,
     navigationHandoff: trip.externalNavigation,
+    pendingHandovers: trip.handoverCodes
+      .filter((code) => !code.verifiedAt && !code.overriddenAt)
+      .map((code) => ({
+        purpose: code.purpose,
+        attemptsLeft: Math.max(0, MAX_HANDOVER_ATTEMPTS - code.attempts),
+      })),
   };
 }
 

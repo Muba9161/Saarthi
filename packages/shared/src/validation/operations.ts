@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { NearbyCategory, SosStatus, SosType, TrackingSource, TripStatus } from '../domain/enums';
+import { HandoverPurpose, NearbyCategory, SosStatus, SosType, TrackingSource, TripStatus } from '../domain/enums';
 import {
   addressSchema,
   csvEnum,
@@ -54,12 +54,30 @@ export const updateTripSchema = z.object({
 });
 export type UpdateTripInput = z.infer<typeof updateTripSchema>;
 
+/** The customer's 4-digit handover code, as the driver types it. */
+export const handoverCodeSchema = z
+  .string()
+  .trim()
+  .regex(/^\d{4}$/, 'The code is 4 digits.');
+
 export const tripTransitionSchema = z.object({
   status: z.nativeEnum(TripStatus),
   note: optionalTrimmedString(500),
   latitude: latitudeSchema.optional(),
   longitude: longitudeSchema.optional(),
+  /** Needed to complete a delivery, or start a ride, that has a handover code. */
+  handoverCode: handoverCodeSchema.optional(),
 });
+
+/**
+ * The fleet owner clearing a handover without the customer's code — only
+ * when the customer cannot give it, and never without a reason on record.
+ */
+export const handoverOverrideSchema = z.object({
+  purpose: z.nativeEnum(HandoverPurpose),
+  reason: trimmedString(10, 500),
+});
+export type HandoverOverrideInput = z.infer<typeof handoverOverrideSchema>;
 export type TripTransitionInput = z.infer<typeof tripTransitionSchema>;
 
 export const tripListQuerySchema = paginationSchema.extend({

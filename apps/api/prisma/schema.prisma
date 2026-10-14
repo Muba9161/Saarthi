@@ -2453,6 +2453,7 @@ model Trip {
   events            TripEvent[]
   stops             TripStop[]
   hazardAlerts      TripHazardAlert[]
+  handoverCodes     HandoverCode[]
 
   @@index([organizationId, status, createdAt])
   @@index([truckId, status])
@@ -2520,6 +2521,44 @@ model TripStop {
   @@unique([tripId, sequence])
   @@index([tripId, status])
   @@map("trip_stops")
+}
+
+/// What a handover code confirms: goods reaching the customer, or a passenger being picked up.
+enum HandoverPurpose {
+  DELIVERY
+  PICKUP
+}
+
+/// The customer's 4-digit code the driver enters at the handover, like a ride app's OTP.
+///
+/// The customer sees it in their app (and by SMS); the driver types it in
+/// Humsafar to finish a delivery or start a ride. If the customer cannot give
+/// it, the fleet owner may override with a written reason, kept here and in the
+/// audit log. Only the customer's organization can ever read `code`.
+model HandoverCode {
+  id                     String          @id @default(uuid()) @db.Uuid
+  tripId                 String          @db.Uuid
+  purpose                HandoverPurpose
+  orderId                String?         @db.Uuid
+  bookingId              String?         @db.Uuid
+  customerOrganizationId String          @db.Uuid
+  code                   String
+  /// Wrong entries so far; at the limit only an override clears it.
+  attempts               Int             @default(0)
+  verifiedAt             DateTime?
+  verifiedByUserId       String?         @db.Uuid
+  overriddenAt           DateTime?
+  overriddenByUserId     String?         @db.Uuid
+  overrideReason         String?
+  createdAt              DateTime        @default(now())
+  updatedAt              DateTime        @updatedAt
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@unique([tripId, purpose])
+  @@index([orderId])
+  @@index([bookingId])
+  @@map("handover_codes")
 }
 
 // ===========================================================================

@@ -665,7 +665,7 @@ describe('Mobility expansion', () => {
 
     /** Create a booking starting a fortnight out, so lead-time rules pass. */
     async function book(passengers = 4) {
-      return request<{ id: string; status: string; totalAmount: number; subtotal: number; platformFee: number }>({
+      return request<{ id: string; status: string; totalAmount: number; subtotal: number; platformFee: number; reference: string }>({
         method: 'POST',
         url: '/api/v1/travel/bookings',
         user: customer,
@@ -894,11 +894,32 @@ describe('Mobility expansion', () => {
       // existing tracking pipeline.
       expect(confirmed.body.data.tripId).not.toBeNull();
 
-      await request({
+      // The ride starts only with the passenger's pickup code, sent to them on confirmation.
+      const withoutCode = await request({
         method: 'POST',
         url: `/api/v1/travel/bookings/${bookingId}/start`,
         user: provider,
       });
+      expect(withoutCode.status).toBe(422);
+      expect(withoutCode.body.error?.code).toBe('HANDOVER_CODE_REQUIRED');
+
+      const pickup = await request<{ purpose: string; status: string; code: string | null }>({
+        method: 'GET',
+        url: `/api/v1/handover/bookings/${bookingId}`,
+        user: customer,
+      });
+      expect(pickup.body.data.purpose).toBe('PICKUP');
+      expect(pickup.body.data.code).toMatch(/^\d{4}$/);
+
+      const started = await request<{ status: string }>({
+        method: 'POST',
+        url: `/api/v1/travel/bookings/${bookingId}/start`,
+        user: provider,
+        payload: { handoverCode: pickup.body.data.code },
+      });
+      expect(started.status).toBe(200);
+      expect(started.body.data.status).toBe(BookingStatus.IN_PROGRESS);
+
       const completed = await request<{ status: string }>({
         method: 'POST',
         url: `/api/v1/travel/bookings/${bookingId}/complete`,
@@ -918,6 +939,46 @@ describe('Mobility expansion', () => {
       const pkg = await prisma.travelPackage.findUniqueOrThrow({ where: { id: packageId } });
       expect(pkg.ratingCount).toBe(1);
       expect(pkg.ratingAverage).toBe(5);
+    });
+
+    it('gives the payer a receipt for a paid booking, and nobody else', async () => {
+      const booking = await book();
+      const bookingId = booking.body.data.id;
+      await request({
+        method: 'POST',
+        url: `/api/v1/travel/bookings/${bookingId}/pay`,
+        user: customer,
+        payload: { method: 'MOCK' },
+      });
+
+      const receipts = await request<
+        Array<{ amount: number; status: string; forReference: string | null; payeeName: string | null; payerName: string | null }>
+      >({
+        method: 'GET',
+        url: `/api/v1/payments/receipts?bookingId=${bookingId}`,
+        user: customer,
+      });
+      expect(receipts.status).toBe(200);
+      expect(receipts.body.data).toHaveLength(1);
+      expect(receipts.body.data[0]!.status).toBe('SUCCEEDED');
+      expect(receipts.body.data[0]!.amount).toBe(booking.body.data.totalAmount);
+      expect(receipts.body.data[0]!.forReference).toBe(booking.body.data.reference);
+      expect(receipts.body.data[0]!.payeeName).not.toBeNull();
+
+      // The operator was paid, but the payment is the customer's; it is not theirs to print.
+      const theirs = await request<unknown[]>({
+        method: 'GET',
+        url: `/api/v1/payments/receipts?bookingId=${bookingId}`,
+        user: provider,
+      });
+      expect(theirs.body.data).toHaveLength(0);
+
+      const both = await request({
+        method: 'GET',
+        url: `/api/v1/payments/receipts?bookingId=${bookingId}&orderId=${bookingId}`,
+        user: customer,
+      });
+      expect(both.status).toBe(400);
     });
 
     it('refunds in full when the provider declines', async () => {

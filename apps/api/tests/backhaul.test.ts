@@ -471,9 +471,22 @@ describe('a backhaul won and paid', () => {
       user: owner,
       payload: {},
     });
-    for (const status of ['LOADING', 'STARTED', 'IN_TRANSIT', 'ARRIVED', 'COMPLETED']) {
+    for (const status of ['LOADING', 'STARTED', 'IN_TRANSIT', 'ARRIVED']) {
       expect((await transition(tripId, status)).status).toBe(200);
     }
+    // The delivery is finished with the customer's code, as it would be at the site.
+    const handover = await request<{ code: string | null }>({
+      method: 'GET',
+      url: `/api/v1/handover/orders/${orderId}`,
+      user: customer,
+    });
+    const delivered = await request({
+      method: 'POST',
+      url: `/api/v1/trips/${tripId}/transition`,
+      user: owner,
+      payload: { status: 'COMPLETED', handoverCode: handover.body.data.code },
+    });
+    expect(delivered.status).toBe(200);
     // The return leg delivered completes its backhaul — and is not itself offered one.
     expect(
       (await prisma.returnLoadRequest.findUniqueOrThrow({ where: { id: requestId } })).status,

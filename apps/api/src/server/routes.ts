@@ -29,6 +29,7 @@ import { requirementRoutes } from '../modules/requirements/requirement.routes';
 import { commerceRoutes } from '../modules/commerce/commerce.routes';
 import { commerceAdminRoutes } from '../modules/commerce/commerce-admin.routes';
 import { tripRoutes } from '../modules/trips/trip.routes';
+import { handoverRoutes } from '../modules/trips/handover.routes';
 import { trackingRoutes } from '../modules/tracking/tracking.routes';
 import { nearbyRoutes } from '../modules/nearby/nearby.routes';
 import { petrolStationRoutes } from '../modules/petrol-stations/petrol-station.routes';
@@ -145,6 +146,8 @@ export async function registerApiRoutes(app: FastifyInstance): Promise<void> {
   // customer entry, and seller matching for fleet owners.
   await app.register(commerceRoutes, { prefix: '/commerce' });
   await app.register(tripRoutes, { prefix: '/trips' });
+  // The customer's delivery / pickup code, and the owner's written override.
+  await app.register(handoverRoutes, { prefix: '/handover' });
   await app.register(trackingRoutes, { prefix: '/tracking' });
   await app.register(nearbyRoutes, { prefix: '/nearby' });
   await app.register(petrolStationRoutes, { prefix: '/petrol-stations' });

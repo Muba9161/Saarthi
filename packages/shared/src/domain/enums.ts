@@ -1158,6 +1158,13 @@ export const TravelPackageStatus = asEnum({
 });
 export type TravelPackageStatus = EnumValue<typeof TravelPackageStatus>;
 
+/** What a trip's handover code confirms: goods reaching the customer, or a passenger picked up. */
+export const HandoverPurpose = asEnum({
+  DELIVERY: 'DELIVERY',
+  PICKUP: 'PICKUP',
+});
+export type HandoverPurpose = EnumValue<typeof HandoverPurpose>;
+
 export const BookingStatus = asEnum({
   DRAFT: 'DRAFT',
   PENDING_PAYMENT: 'PENDING_PAYMENT',

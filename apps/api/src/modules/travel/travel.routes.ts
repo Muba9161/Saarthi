@@ -17,6 +17,7 @@ import {
   travelSearchQuerySchema,
   updateTravelPackageSchema,
   upsertProviderProfileSchema,
+  startBookingSchema,
 } from '@saarthi/shared';
 import { created, ok, paginated, parseBody, parseParams, parseQuery } from '../../lib/http';
 import {
@@ -232,7 +233,9 @@ export async function travelRoutes(app: FastifyInstance): Promise<void> {
     async (request, reply) => {
       const auth = requireAuth(request);
       const { id } = parseParams(idParamSchema, request.params);
-      return ok(reply, await bookingService.startBooking(auth, id));
+      // The passenger's pickup code, when the ride has one; an empty body is fine.
+      const input = parseBody(startBookingSchema, request.body ?? {});
+      return ok(reply, await bookingService.startBooking(auth, id, input));
     },
   );
 

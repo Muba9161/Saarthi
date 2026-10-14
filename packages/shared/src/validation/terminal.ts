@@ -16,7 +16,7 @@ import {
   trimmedString,
   uuidSchema,
 } from './common';
-import { aiHistorySchema } from './operations';
+import { aiHistorySchema, handoverCodeSchema } from './operations';
 
 /**
  * The Saarthi Terminal wire contract.
@@ -315,6 +315,8 @@ export const terminalTripEventSchema = z.object({
   longitude: longitudeSchema.optional(),
   odometerKm: z.coerce.number().min(0).max(5_000_000).optional(),
   note: optionalTrimmedString(300),
+  /** The customer's code: finishes a delivery on `/trip/complete`, starts a ride on `/trip/start`. */
+  handoverCode: handoverCodeSchema.optional(),
   /**
    * Start this trip rather than whichever holds the vehicle — a driver's own
    * queued trip, picked from the Trips tab. Absent means the trip holding the

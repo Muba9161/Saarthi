@@ -125,12 +125,19 @@ export async function tripRoutes(app: FastifyInstance): Promise<void> {
       async (request, reply) => {
         const auth = requireAuth(request);
         const { id } = parseParams(idParamSchema, request.params);
-        const body = (request.body ?? {}) as { note?: string; latitude?: number; longitude?: number };
+        const body = (request.body ?? {}) as {
+          note?: string;
+          latitude?: number;
+          longitude?: number;
+          handoverCode?: unknown;
+        };
         const trip = await tripService.transitionTrip(auth, id, {
           status,
           ...(body.note ? { note: body.note } : {}),
           ...(body.latitude !== undefined ? { latitude: body.latitude } : {}),
           ...(body.longitude !== undefined ? { longitude: body.longitude } : {}),
+          // The customer's code, where completing a delivery or starting a ride needs it.
+          ...(typeof body.handoverCode === 'string' ? { handoverCode: body.handoverCode.trim() } : {}),
         });
 
         await auditFromRequest(request, {

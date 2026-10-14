@@ -20,6 +20,7 @@ import {
   type TripTransitionInput,
   type UpdateTripInput,
   TerminalSessionStatus,
+  HandoverPurpose,
 } from '@saarthi/shared';
 import { type Prisma, prisma } from '../../database/prisma';
 import { errors } from '../../lib/errors';
@@ -37,6 +38,8 @@ import {
 } from './trip-queue.service';
 import type { AuthContext } from '../../auth/context';
 import { loadingBlockedReason } from '../marketplace-finance/order-finance.service';
+import { clearHandover, deliveryCodeChannels, issueDeliveryCode } from './handover.service';
+import { followTrip } from '../travel/booking.service';
 import { onTripCompleted } from '../return-loads/backhaul.service';
 import {
   decorate,
@@ -582,6 +585,16 @@ export async function transitionTrip(
     if (blocked) throw errors.businessRule(blocked);
   }
 
+  // The customer's code: a delivery is finished, and a ride started, only with
+  // it — or after the owner's written override. Only an order's trip has a
+  // delivery code and only a ride's a pickup code; trips without one pass.
+  if (input.status === TripStatus.COMPLETED) {
+    await clearHandover(tripId, HandoverPurpose.DELIVERY, input.handoverCode, auth.user.id);
+  }
+  if (input.status === TripStatus.STARTED) {
+    await clearHandover(tripId, HandoverPurpose.PICKUP, input.handoverCode, auth.user.id);
+  }
+
   const now = new Date();
   const isStart = input.status === TripStatus.STARTED;
   const isArrival = input.status === TripStatus.ARRIVED;
@@ -833,6 +846,9 @@ export async function transitionTrip(
     });
   }
 
+  // As the goods set off, the customer gets the code the driver will ask for.
+  const deliveryCode = isStart && trip.order ? await issueDeliveryCode(tripId) : null;
+
   // Keep the customer informed at the moments that matter to them.
   if (trip.order && (isStart || isComplete || isArrival)) {
     void notifyOrganization(trip.order.customerOrganizationId, {
@@ -846,11 +862,17 @@ export async function transitionTrip(
         : isArrival
           ? 'Your delivery has arrived'
           : 'Delivery completed',
-      body: `${trip.order.reference}: ${trip.originAddress} → ${trip.destinationAddress}`,
-      priority: NotificationPriority.NORMAL,
+      body: deliveryCode
+        ? `${trip.order.reference}: delivery code ${deliveryCode}. Give it to the driver only when the goods reach you.`
+        : `${trip.order.reference}: ${trip.originAddress} → ${trip.destinationAddress}`,
+      priority: deliveryCode ? NotificationPriority.HIGH : NotificationPriority.NORMAL,
       actionUrl: `/orders/${trip.order.id}`,
+      ...(deliveryCode ? { channels: deliveryCodeChannels } : {}),
     });
   }
+
+  // A ride's trip moved — from the driver's app as much as anywhere — and its booking follows.
+  if (isStart || isComplete) await followTrip(tripId, input.status, auth.user.id);
 
   // The owner is offered a backhaul for the way home, or a return leg closes
   // its backhaul. Never throws, so it cannot undo a completion.

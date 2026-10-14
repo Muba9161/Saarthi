@@ -705,10 +705,17 @@ describe('Operations end-to-end', () => {
       });
       await request({ method: 'POST', url: `/api/v1/trips/${tripId}/arrive`, user: driver });
 
+      // The customer reads out their delivery code; the driver enters it.
+      const handover = await request<{ code: string | null }>({
+        method: 'GET',
+        url: `/api/v1/handover/orders/${orderId}`,
+        user: customer,
+      });
       const completed = await request<{ status: TripStatus }>({
         method: 'POST',
         url: `/api/v1/trips/${tripId}/complete`,
         user: driver,
+        payload: { handoverCode: handover.body.data.code },
       });
       expect(completed.status).toBe(200);
       expect(completed.body.data.status).toBe(TripStatus.COMPLETED);
@@ -747,6 +754,155 @@ describe('Operations end-to-end', () => {
         payload: { rating: 5, punctuality: 5, comment: 'Delivered on time.' },
       });
       expect(rated.status).toBe(200);
+    });
+
+    describe('the customer\'s delivery code', () => {
+      /** An order's truck on the road and at the customer's site — where the code is asked for. */
+      async function underway(): Promise<{ orderId: string; tripId: string }> {
+        const arranged = await arrangeTrip();
+        await request({ method: 'POST', url: `/api/v1/trips/${arranged.tripId}/start`, user: driver });
+        const moving = await request({
+          method: 'POST',
+          url: `/api/v1/trips/${arranged.tripId}/transition`,
+          user: owner,
+          payload: { status: TripStatus.IN_TRANSIT },
+        });
+        expect(moving.status).toBe(200);
+        const arrived = await request({ method: 'POST', url: `/api/v1/trips/${arranged.tripId}/arrive`, user: driver });
+        expect(arrived.status).toBe(200);
+        return arranged;
+      }
+
+      async function customerCode(orderId: string) {
+        return request<{ status: string; code: string | null; attemptsLeft: number }>({
+          method: 'GET',
+          url: `/api/v1/handover/orders/${orderId}`,
+          user: customer,
+        });
+      }
+
+      it('gives the customer a code as the goods set off, and shows the fleet only whether it was entered', async () => {
+        const { orderId, tripId } = await underway();
+
+        const mine = await customerCode(orderId);
+        expect(mine.status).toBe(200);
+        expect(mine.body.data.status).toBe('PENDING');
+        expect(mine.body.data.code).toMatch(/^\d{4}$/);
+
+        const fleetView = await request<Array<Record<string, unknown>>>({
+          method: 'GET',
+          url: `/api/v1/handover/trips/${tripId}`,
+          user: owner,
+        });
+        expect(fleetView.status).toBe(200);
+        expect(fleetView.body.data).toHaveLength(1);
+        expect(fleetView.body.data[0]!.purpose).toBe('DELIVERY');
+        expect(fleetView.body.data[0]!.status).toBe('PENDING');
+        // The fleet never sees the code itself.
+        expect(fleetView.body.data[0]).not.toHaveProperty('code');
+      });
+
+      it('finishes a delivery only with the right code', async () => {
+        const { orderId, tripId } = await underway();
+        const { code } = (await customerCode(orderId)).body.data;
+
+        const missing = await request({ method: 'POST', url: `/api/v1/trips/${tripId}/complete`, user: driver });
+        expect(missing.status).toBe(422);
+        expect(missing.body.error?.code).toBe('HANDOVER_CODE_REQUIRED');
+
+        const wrongCode = code === '0000' ? '1111' : '0000';
+        const wrong = await request({
+          method: 'POST',
+          url: `/api/v1/trips/${tripId}/complete`,
+          user: driver,
+          payload: { handoverCode: wrongCode },
+        });
+        expect(wrong.status).toBe(422);
+        expect(wrong.body.error?.code).toBe('HANDOVER_CODE_WRONG');
+        expect((await customerCode(orderId)).body.data.attemptsLeft).toBe(4);
+
+        const right = await request<{ status: TripStatus }>({
+          method: 'POST',
+          url: `/api/v1/trips/${tripId}/complete`,
+          user: driver,
+          payload: { handoverCode: code },
+        });
+        expect(right.status).toBe(200);
+        expect(right.body.data.status).toBe(TripStatus.COMPLETED);
+
+        // Once used, the code is no longer shown, and the check is on record.
+        const after = (await customerCode(orderId)).body.data;
+        expect(after.status).toBe('VERIFIED');
+        expect(after.code).toBeNull();
+        const audit = await prisma.auditLog.findFirst({ where: { action: 'trip.handover_verified', entityId: tripId } });
+        expect(audit).not.toBeNull();
+      });
+
+      it('locks after five wrong codes, leaving only the owner\'s override', async () => {
+        const { orderId, tripId } = await underway();
+        const { code } = (await customerCode(orderId)).body.data;
+        const wrongCode = code === '0000' ? '1111' : '0000';
+
+        let last = '';
+        for (let attempt = 0; attempt < 5; attempt += 1) {
+          const wrong = await request({
+            method: 'POST',
+            url: `/api/v1/trips/${tripId}/complete`,
+            user: driver,
+            payload: { handoverCode: wrongCode },
+          });
+          last = wrong.body.error?.code ?? '';
+        }
+        expect(last).toBe('HANDOVER_CODE_LOCKED');
+
+        // Even the right code is refused now.
+        const right = await request({
+          method: 'POST',
+          url: `/api/v1/trips/${tripId}/complete`,
+          user: driver,
+          payload: { handoverCode: code },
+        });
+        expect(right.body.error?.code).toBe('HANDOVER_CODE_LOCKED');
+      });
+
+      it('lets only the owner clear a delivery without the code, with the reason on record', async () => {
+        const { orderId, tripId } = await underway();
+
+        const byDriver = await request({
+          method: 'POST',
+          url: `/api/v1/handover/trips/${tripId}/override`,
+          user: driver,
+          payload: { purpose: 'DELIVERY', reason: 'Customer phone switched off at the site.' },
+        });
+        expect(byDriver.status).toBe(403);
+
+        const noReason = await request({
+          method: 'POST',
+          url: `/api/v1/handover/trips/${tripId}/override`,
+          user: owner,
+          payload: { purpose: 'DELIVERY', reason: 'ok' },
+        });
+        expect(noReason.status).toBe(400);
+
+        const reason = 'Customer phone switched off; site manager signed the challan.';
+        const cleared = await request<{ status: string; overrideReason: string | null }>({
+          method: 'POST',
+          url: `/api/v1/handover/trips/${tripId}/override`,
+          user: owner,
+          payload: { purpose: 'DELIVERY', reason },
+        });
+        expect(cleared.status).toBe(200);
+        expect(cleared.body.data.status).toBe('OVERRIDDEN');
+
+        const completed = await request({ method: 'POST', url: `/api/v1/trips/${tripId}/complete`, user: driver });
+        expect(completed.status).toBe(200);
+
+        const audit = await prisma.auditLog.findFirst({ where: { action: 'trip.handover_overridden', entityId: tripId } });
+        expect(audit?.actorUserId).toBe(owner.id);
+        const seen = (await customerCode(orderId)).body.data as { status: string; overrideReason?: string | null };
+        expect(seen.status).toBe('OVERRIDDEN');
+        expect(seen.overrideReason).toBe(reason);
+      });
     });
   });
 

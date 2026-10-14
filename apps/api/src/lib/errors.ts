@@ -112,6 +112,13 @@ export const errors = {
   businessRule: (message: string, details?: Record<string, unknown>) =>
     new AppError(422, ErrorCode.BUSINESS_RULE_VIOLATION, message, { details }),
 
+  /** A handover code refusal, with its own code so a driver's app can ask for the code again. */
+  handover: (
+    code: typeof ErrorCode.HANDOVER_CODE_REQUIRED | typeof ErrorCode.HANDOVER_CODE_WRONG | typeof ErrorCode.HANDOVER_CODE_LOCKED,
+    message: string,
+    details?: Record<string, unknown>,
+  ) => new AppError(422, code, message, { details }),
+
   payloadTooLarge: (message = 'The uploaded file is larger than the allowed limit.') =>
     new AppError(413, ErrorCode.PAYLOAD_TOO_LARGE, message),
 

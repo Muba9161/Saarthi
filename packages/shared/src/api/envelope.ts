@@ -85,6 +85,12 @@ export const ErrorCode = {
   DUPLICATE_RESOURCE: 'DUPLICATE_RESOURCE',
   INVALID_STATE_TRANSITION: 'INVALID_STATE_TRANSITION',
   BUSINESS_RULE_VIOLATION: 'BUSINESS_RULE_VIOLATION',
+  /** A delivery or ride needs the customer's 4-digit handover code. */
+  HANDOVER_CODE_REQUIRED: 'HANDOVER_CODE_REQUIRED',
+  /** The handover code entered was not the customer's. */
+  HANDOVER_CODE_WRONG: 'HANDOVER_CODE_WRONG',
+  /** Too many wrong codes: only the owner's override clears it now. */
+  HANDOVER_CODE_LOCKED: 'HANDOVER_CODE_LOCKED',
   RATE_LIMITED: 'RATE_LIMITED',
   PAYLOAD_TOO_LARGE: 'PAYLOAD_TOO_LARGE',
   UNSUPPORTED_MEDIA_TYPE: 'UNSUPPORTED_MEDIA_TYPE',

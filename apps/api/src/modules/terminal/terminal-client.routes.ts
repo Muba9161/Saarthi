@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import {
   DocumentOwnerType,
+  HandoverPurpose,
   TripStatus,
   documentListQuerySchema,
   endTerminalSessionSchema,
@@ -85,6 +86,7 @@ import {
 } from './driver-extras.service';
 import { ask } from './assistant.service';
 import { terminalLimit } from './terminal-http';
+import { clearHandover } from '../trips/handover.service';
 
 /**
  * The Saarthi Terminal client surface.
@@ -259,6 +261,11 @@ export async function terminalClientRoutes(app: FastifyInstance): Promise<void> 
     // refusal ("stop the trip you are on first") leaves the shift as it was.
     if (input.tripId) await assertTripStartable(session, input.tripId);
 
+    // A booked ride starts only with the passenger's pickup code. Checked here,
+    // before anything moves, because the trip walk below only logs a refusal.
+    const starting = input.tripId ?? (await dispatchedTripForSession(session))?.id;
+    if (starting) await clearHandover(starting, HandoverPurpose.PICKUP, input.handoverCode, auth.user.id);
+
     // The session first: it enforces the safety check, and a driver who has not
     // completed one must not be able to move the fleet's trip by pressing Start.
     const view = await startTrip(session.id, input);
@@ -308,6 +315,9 @@ export async function terminalClientRoutes(app: FastifyInstance): Promise<void> 
     // its own when a dispatcher closes the same trip from the web. Doing the
     // trip first would have the session service refuse a driver's own Complete.
     const finishing = await dispatchedTripForSession(session);
+    // A delivery is finished only with the customer's code — checked before the
+    // session closes, so a wrong or missing code leaves the shift as it was.
+    if (finishing) await clearHandover(finishing.id, HandoverPurpose.DELIVERY, input.handoverCode, auth.user.id);
     const view = await completeTrip(session.id, input);
     await completeDispatchedTrip(session, auth, {
       latitude: input.latitude,
