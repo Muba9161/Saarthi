@@ -15,6 +15,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import java.io.File
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 
@@ -280,6 +281,50 @@ class OwnerApi(
         send("DELETE", "/api/v1$path", null)
     }
 
+    /**
+     * Save the file behind a signed-in GET into [into] — a paper, or the RC
+     * certificate — for a viewer app to open.
+     *
+     * A refusal throws with the server's own reason, as every other call does,
+     * so "enter your Secure PIN" reaches the screen rather than an empty file.
+     * Written beside the target and moved into place, so a dropped connection
+     * never leaves half a PDF where a whole one is expected.
+     */
+    suspend fun download(path: String, into: File, retryAfterRefresh: Boolean = true) {
+        try {
+            withContext(Dispatchers.IO) {
+                val request = Request.Builder()
+                    .url("$baseUrl/api/v1$path")
+                    .header("Authorization", "Bearer ${bearer()}")
+                    .header("X-Saarthi-Client", "owner/$clientVersion")
+                    .build()
+                val response = try {
+                    client.newCall(request).execute()
+                } catch (error: IOException) {
+                    throw Failure.Offline(error)
+                }
+                response.use { raw ->
+                    if (!raw.isSuccessful) refuse(raw.code, raw.body?.string().orEmpty(), request, authenticated = true)
+                    val body = raw.body ?: throw Failure.Refused(raw.code, "Saarthi sent an empty file.")
+                    into.parentFile?.mkdirs()
+                    val partial = File(into.parentFile, "${into.name}.part")
+                    try {
+                        body.byteStream().use { input -> partial.outputStream().use { input.copyTo(it) } }
+                    } catch (error: IOException) {
+                        partial.delete()
+                        throw Failure.Offline(error)
+                    }
+                    into.delete()
+                    if (!partial.renameTo(into)) throw IOException("Could not save ${into.name}")
+                }
+            }
+        } catch (error: Failure.SignedOut) {
+            if (!retryAfterRefresh) throw error
+            refreshLock.withLock { restore() } ?: throw error
+            download(path, into, retryAfterRefresh = false)
+        }
+    }
+
     /** A valid access token, refreshing once if the held one is stale. */
     private suspend fun bearer(): String {
         if (session.hasUsableAccessToken()) return session.accessToken!!
@@ -330,21 +375,25 @@ class OwnerApi(
         response.use { raw ->
             val payload = raw.body?.string().orEmpty()
             if (raw.isSuccessful) return payload
-
-            val parsed = runCatching {
-                json.decodeFromString(Envelope.serializer(NoData.serializer()), payload).error
-            }.getOrNull()
-
-            // On a signed-in call a 401 means the session is over; on sign-in
-            // itself it means the email or password is wrong, and says so.
-            if (raw.code == 401) {
-                if (authenticated) throw Failure.SignedOut
-                throw Failure.Refused(raw.code, parsed?.message ?: "The email address or password is incorrect.")
-            }
-            // The path and status only — a sign-in body carries the password.
-            Log.w(TAG, "${raw.code} ${request.method} ${request.url.encodedPath}")
-            throw Failure.Refused(raw.code, parsed?.message ?: "Saarthi refused that request.", parsed?.code)
+            refuse(raw.code, payload, request, authenticated)
         }
+    }
+
+    /** A refused response, as the [Failure] a screen can act on. */
+    private fun refuse(status: Int, payload: String, request: Request, authenticated: Boolean): Nothing {
+        val parsed = runCatching {
+            json.decodeFromString(Envelope.serializer(NoData.serializer()), payload).error
+        }.getOrNull()
+
+        // On a signed-in call a 401 means the session is over; on sign-in
+        // itself it means the email or password is wrong, and says so.
+        if (status == 401) {
+            if (authenticated) throw Failure.SignedOut
+            throw Failure.Refused(status, parsed?.message ?: "The email address or password is incorrect.")
+        }
+        // The path and status only — a sign-in body carries the password.
+        Log.w(TAG, "$status ${request.method} ${request.url.encodedPath}")
+        throw Failure.Refused(status, parsed?.message ?: "Saarthi refused that request.", parsed?.code)
     }
 
     @Serializable

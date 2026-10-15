@@ -46,6 +46,7 @@ import {
 import { expenseRoutes } from '../modules/expenses/expense.routes';
 import { adminRoutes } from '../modules/admin/admin.routes';
 import { vehicleRoutes } from '../modules/vehicles/vehicle.routes';
+import { vehiclePapersRoutes } from '../modules/vehicles/vehicle-papers.routes';
 import { secureAccessRoutes } from '../modules/secure-access/secure-access.routes';
 import { vehicleSharingRoutes } from '../modules/vehicle-sharing/vehicle-sharing.routes';
 import { associationRoutes } from '../modules/associations/association.routes';
@@ -209,6 +210,8 @@ export async function registerApiRoutes(app: FastifyInstance): Promise<void> {
   await app.register(vehicleLoanRoutes, { prefix: '/fleet/vehicles' });
   await app.register(vehicleServiceRoutes, { prefix: '/fleet/vehicles' });
   await app.register(vehicleCameraRoutes, { prefix: '/fleet/vehicles' });
+  // A vehicle's papers, filed into folders with its virtual RC, for the owner app.
+  await app.register(vehiclePapersRoutes, { prefix: '/fleet/vehicles' });
   // Vehicle → Hardware → Add Device. Issuing the QR belongs beside the vehicle
   // it connects something to, not under /devices.
   await app.register(vehiclePairingRoutes, { prefix: '/fleet/vehicles' });

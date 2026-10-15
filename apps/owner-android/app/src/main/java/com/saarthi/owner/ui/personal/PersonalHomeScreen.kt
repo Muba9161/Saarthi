@@ -46,6 +46,7 @@ import com.saarthi.owner.ui.common.SkeletonCards
 import com.saarthi.owner.ui.common.ago
 import com.saarthi.owner.ui.common.formatPlate
 import com.saarthi.owner.ui.common.headerClearance
+import com.saarthi.owner.ui.common.readable
 import com.saarthi.owner.ui.common.rememberPhoto
 import com.saarthi.owner.ui.common.tabBarClearance
 import com.saarthi.owner.ui.common.vehiclePhotoOf
@@ -65,11 +66,17 @@ import com.saarthi.owner.ui.design.rise
 import com.saarthi.owner.ui.design.stagger
 import com.saarthi.owner.ui.fleet.FleetListModel
 import com.saarthi.owner.ui.fleet.VehicleLiveScreen
+import com.saarthi.owner.ui.papers.INSURANCE_FOLDER
+import com.saarthi.owner.ui.papers.daysLeft
+import com.saarthi.owner.ui.papers.standing
 import com.saarthi.owner.ui.shell.LocalNavigator
 import com.saarthi.owner.ui.shell.ShellActions
 import kotlinx.coroutines.delay
 
 private const val REFRESH_MS = 30_000L
+
+/** The platform's "expiring soon" window: thirty days, as the web colours it. */
+private const val DUE_SOON_DAYS = 30
 
 /**
  * Home for somebody running their own vehicles — the design's Personal · Home.
@@ -82,7 +89,8 @@ fun PersonalHomeScreen(app: OwnerApp, account: SessionStore.Account, actions: Sh
     val model = viewModel { FleetListModel(app.vehicles, app.drivers, account) }
     val state by model.state.collectAsStateWithLifecycle()
     var picked by rememberSaveable { mutableStateOf<String?>(null) }
-    var papers by remember { mutableStateOf<List<PapersApi.Paper>>(emptyList()) }
+    // The tiles say "loading" or "could not load" rather than a misleading "None".
+    var wallet by remember { mutableStateOf<Loadable<PapersApi.Wallet>>(Loadable.Loading) }
     var shares by remember { mutableStateOf<List<PapersApi.Share>>(emptyList()) }
     val navigator = LocalNavigator.current
     val c = Saarthi.colors
@@ -98,7 +106,12 @@ fun PersonalHomeScreen(app: OwnerApp, account: SessionStore.Account, actions: Sh
     val vehicle = vehicles.firstOrNull { it.id == picked } ?: vehicles.firstOrNull()
     LaunchedEffect(vehicle?.id) {
         val id = vehicle?.id ?: return@LaunchedEffect
-        papers = runCatching { app.papers.forVehicle(id) }.getOrDefault(emptyList())
+        wallet = Loadable.Loading
+        wallet = try {
+            Loadable.Ready(app.papers.wallet(id))
+        } catch (failure: Exception) {
+            Loadable.Failed(failure.readable())
+        }
         shares = runCatching { app.papers.shares(id) }.getOrDefault(emptyList())
     }
 
@@ -133,24 +146,40 @@ fun PersonalHomeScreen(app: OwnerApp, account: SessionStore.Account, actions: Sh
                 }
 
                 Row(Modifier.fillMaxWidth().rise(stagger(2)), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    val insurance = papers.firstOrNull { it.documentType == "INSURANCE" }
-                    val due = papers.count { it.expired || it.dueSoon }
+                    // From the wallet, so a date the RTO register holds counts as much as a scan.
+                    val held = (wallet as? Loadable.Ready)?.value
+                    val unreadable = wallet is Loadable.Failed
+                    val insuranceFolder = held?.folders?.firstOrNull { it.id == INSURANCE_FOLDER }
+                    val insuranceDays = insuranceFolder?.let { held.daysLeft(it) }
+                    val standing = held?.standing()
                     Tile(
                         Lucide.fileText, c.warningSoft, c.warning, "Insurance",
-                        insurance?.daysRemaining?.let { if (it < 0) "Expired" else "$it days" } ?: "—",
-                        if (insurance == null) "not on file" else "left",
+                        insuranceDays?.let { if (it < 0) "Expired" else "$it days" } ?: "—",
+                        when {
+                            unreadable -> "could not load"
+                            held == null -> "loading"
+                            insuranceDays == null -> "not on file"
+                            else -> "left"
+                        },
                         Modifier.weight(1f),
-                        if ((insurance?.daysRemaining ?: 999) <= PapersApi.DUE_SOON_DAYS) c.warning else c.fg,
+                        if ((insuranceDays ?: Int.MAX_VALUE) <= DUE_SOON_DAYS) c.warning else c.fg,
                     ) { actions.selectTab("papers") }
                     Tile(
                         Lucide.shieldCheck, c.primarySoft, c.primary, "Papers",
-                        // Nothing on file is not "all set" — there is simply nothing to check yet.
+                        // Nothing on file is not "all set": there is simply nothing to check yet.
                         when {
-                            papers.isEmpty() -> "None"
-                            due == 0 -> "All set"
-                            else -> "$due due"
+                            standing == null -> "—"
+                            standing.onFile == 0 -> "None"
+                            standing.attention == 0 -> "All set"
+                            else -> "${standing.attention} due"
                         },
-                        "${papers.size} on file", Modifier.weight(1f), if (due > 0) c.warning else c.fg,
+                        when {
+                            unreadable -> "could not load"
+                            standing == null -> "loading"
+                            else -> "${standing.onFile} on file"
+                        },
+                        Modifier.weight(1f),
+                        if ((standing?.attention ?: 0) > 0) c.warning else c.fg,
                     ) {
                         actions.selectTab("papers")
                     }

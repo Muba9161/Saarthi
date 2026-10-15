@@ -47,7 +47,8 @@ import com.saarthi.owner.ui.design.IconWell
 import androidx.compose.ui.platform.LocalContext
 
 /**
- * Who is signed in, how the app looks, and the way out.
+ * Who is signed in, the plan, verification and profile the web holds for
+ * them, how the app looks, where to get help, and the way out.
  *
  * The plan is named so the owner can see what the business is on; changing
  * it happens on the web, and this screen does not offer it.
@@ -92,8 +93,9 @@ fun AccountScreen(
                     overflow = TextOverflow.Ellipsis,
                 )
                 account.planName?.let {
+                    // The plan's real status is in the Plan card below; this only names it.
                     StatusPill(
-                        "${it.replace("Supplier", "Seller")} · Active",
+                        it.replace("Supplier", "Seller"),
                         background = c.successBg,
                         ink = c.success,
                         modifier = Modifier.padding(top = 4.dp),
@@ -102,6 +104,8 @@ fun AccountScreen(
                 Text(account.email, style = SType.caption, color = c.subtle, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
+
+        AccountDetails(account, api)
 
         GroupLabel("Appearance")
         SegmentedControl(
@@ -118,6 +122,8 @@ fun AccountScreen(
 
         GroupLabel("Security")
         AppLockRow(preferences)
+
+        HelpLinks()
 
         GroupLabel("Session")
         SaarthiButton(

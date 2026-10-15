@@ -31,13 +31,22 @@ class OrdersApi(private val api: OwnerApi) {
         val transportPrice: Double? = null,
         val totalPrice: Double? = null,
         val originAddress: String? = null,
+        val originLatitude: Double? = null,
+        val originLongitude: Double? = null,
         val destinationAddress: String? = null,
+        val destinationLatitude: Double? = null,
+        val destinationLongitude: Double? = null,
         val distanceKm: Double? = null,
+        val requiredCapacityTons: Double? = null,
+        val requiredTruckType: String? = null,
         val pickupAt: String? = null,
         val deliverBy: String? = null,
         val assignedTruck: Ref? = null,
         val assignedDriver: Ref? = null,
         val tripId: String? = null,
+        /** The customer's own words on the requirement. */
+        val notes: String? = null,
+        val cancellationReason: String? = null,
         val createdAt: String = "",
     ) {
         val what: String

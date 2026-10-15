@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Only the receipts folder is ever handed to another app. -->
+<!-- Only these folders are ever handed to another app: receipts the app makes,
+     and papers downloaded so a viewer can open them. -->
 <paths>
     <cache-path name="receipts" path="receipts/" />
+    <cache-path name="papers" path="papers/" />
 </paths>

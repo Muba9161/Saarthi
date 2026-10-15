@@ -72,9 +72,12 @@ private const val REFRESH_MS = 30_000L
 /**
  * "Your fleet" — every vehicle with where it stands right now, and every
  * driver with what they are doing. The design's Fleet · Vehicles board.
+ *
+ * A personal account opens the same board with [withDrivers] off: it runs its
+ * own vehicles and has no drivers to switch to.
  */
 @Composable
-fun FleetListScreen(app: OwnerApp, account: SessionStore.Account) {
+fun FleetListScreen(app: OwnerApp, account: SessionStore.Account, withDrivers: Boolean = true) {
     val model = viewModel { FleetListModel(app.vehicles, app.drivers, account) }
     val state by model.state.collectAsStateWithLifecycle()
     var showDrivers by rememberSaveable { mutableStateOf(false) }
@@ -104,15 +107,17 @@ fun FleetListScreen(app: OwnerApp, account: SessionStore.Account) {
                 contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = top, bottom = bottom),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                item(key = "switch") {
-                    SegmentedControl(
-                        options = listOf("Vehicles · ${lists.vehicles.size}", "Drivers · ${lists.drivers.size}"),
-                        selected = if (showDrivers) 1 else 0,
-                        onSelect = { showDrivers = it == 1 },
-                        modifier = Modifier.rise(),
-                    )
+                if (withDrivers) {
+                    item(key = "switch") {
+                        SegmentedControl(
+                            options = listOf("Vehicles · ${lists.vehicles.size}", "Drivers · ${lists.drivers.size}"),
+                            selected = if (showDrivers) 1 else 0,
+                            onSelect = { showDrivers = it == 1 },
+                            modifier = Modifier.rise(),
+                        )
+                    }
                 }
-                if (!showDrivers) {
+                if (!withDrivers || !showDrivers) {
                     if (classes.size > 1) {
                         item(key = "chips") {
                             Row(
@@ -136,7 +141,7 @@ fun FleetListScreen(app: OwnerApp, account: SessionStore.Account) {
                     if (papersDue > 0) {
                         item(key = "papers") {
                             NoticeCard(
-                                "${plural(papersDue, "paper")} due or expired across the fleet. Renew them before a check post stops a vehicle.",
+                                "${plural(papersDue, "paper")} due or expired across ${if (withDrivers) "the fleet" else "your vehicles"}. Renew them before a check post stops a vehicle.",
                                 NoticeTone.WARNING,
                                 Modifier.rise(stagger(2)),
                                 icon = Lucide.alertTriangle,

@@ -3,6 +3,10 @@ package com.saarthi.owner.ui.common
 import java.text.NumberFormat
 import java.time.Duration
 import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 import java.util.Locale
 
 private val PlateParts = Regex("^([A-Z]{2})(\\d{1,2})([A-Z]{0,3})(\\d{1,4})$")
@@ -42,6 +46,16 @@ fun ago(iso: String?, now: Instant = Instant.now()): String {
     }
 }
 
+/** A span of minutes the way a journey is told: "45 min", "2 h 10 min", "1 d 3 h". */
+fun minutesSpan(minutes: Int?): String? {
+    val total = minutes?.takeIf { it >= 0 } ?: return null
+    return when {
+        total < 60 -> "$total min"
+        total < 60 * 24 -> "${total / 60} h" + if (total % 60 > 0) " ${total % 60} min" else ""
+        else -> "${total / (60 * 24)} d" + if (total % (60 * 24) >= 60) " ${total % (60 * 24) / 60} h" else ""
+    }
+}
+
 /** A countdown as mm:ss, for an approval that escalates. */
 fun countdown(seconds: Long): String {
     val clamped = seconds.coerceAtLeast(0)
@@ -57,3 +71,14 @@ fun shortCount(value: Double): String = when {
     value >= 100_000 -> "${(value / 1_000).toLong()}k"
     else -> "%,d".format(value.toLong())
 }
+
+/** A date the API sent, as either "2027-03-12" or a full instant; null for nothing or nonsense. */
+fun parseDate(value: String?): LocalDate? {
+    if (value.isNullOrBlank()) return null
+    return runCatching { LocalDate.parse(value.take(10)) }.getOrNull()
+        ?: runCatching { Instant.parse(value).atZone(ZoneId.systemDefault()).toLocalDate() }.getOrNull()
+}
+
+/** "12 Mar 2027" in the phone's own date style; null for nothing or nonsense. */
+fun prettyDate(value: String?): String? =
+    parseDate(value)?.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))

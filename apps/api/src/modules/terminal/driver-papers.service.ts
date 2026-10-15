@@ -217,12 +217,32 @@ async function virtualRcFor(
   });
   if (!lookup?.responseData) return null;
 
-  const record = maskRcRecord(lookup.responseData as unknown as VehicleRcRecord);
+  return virtualRcFromRecord(
+    maskRcRecord(lookup.responseData as unknown as VehicleRcRecord),
+    plate,
+    lookup.fetchedAt.toISOString(),
+    vehicle.verificationStatus === 'VERIFIED',
+  );
+}
+
+/**
+ * An RC record, flattened into the card both phone apps draw.
+ *
+ * Takes the record already cut to what the reader may see — masked for a
+ * driver, or as the web's access rules present it to an owner — so this only
+ * reshapes it and never decides what is shown.
+ */
+export function virtualRcFromRecord(
+  record: VehicleRcRecord,
+  plate: string,
+  retrievedAt: string,
+  verified: boolean,
+): DriverVirtualRc {
   return {
     registrationNumber: record.registrationNumber ?? plate,
-    retrievedAt: lookup.fetchedAt.toISOString(),
+    retrievedAt,
     dataAsOf: record.dataAsOf,
-    verified: vehicle.verificationStatus === 'VERIFIED',
+    verified,
     registrationDate: record.registrationDate,
     registrationStatus: record.registrationStatus,
     ownerName: record.owner?.name ?? null,
@@ -338,7 +358,7 @@ export interface DriverVehiclePhoto {
 
 const PHOTO_LIMIT = 24;
 
-async function vehiclePhotos(vehicleId: string): Promise<DriverVehiclePhoto[]> {
+export async function vehiclePhotos(vehicleId: string): Promise<DriverVehiclePhoto[]> {
   const rows = await prisma.mediaAsset.findMany({
     where: {
       ownerType: MediaOwnerType.VEHICLE,
@@ -488,7 +508,7 @@ function folderStatus(
   return mandatory ? 'MISSING' : 'OPTIONAL';
 }
 
-function paperFolders(
+export function paperFolders(
   ownerType: 'TRUCK' | 'DRIVER',
   documents: DriverDocument[],
   rc: DriverVirtualRc | null,
@@ -520,6 +540,52 @@ function paperFolders(
   });
 
   return { folders, others: owned.filter((document) => !codes.has(document.documentType)) };
+}
+
+/** The vehicle's photographs and its QR sticker, which sit beside its papers. */
+export function photoAndQrFolders(photoCount: number): PaperFolder[] {
+  return [
+    {
+      id: 'PHOTOS',
+      kind: 'PHOTOS',
+      ownerType: 'TRUCK',
+      label: 'Photos',
+      mandatory: false,
+      status: null,
+      documentIds: [],
+      count: photoCount,
+      registerValidUntil: null,
+    },
+    {
+      id: 'QR',
+      kind: 'QR',
+      ownerType: 'TRUCK',
+      label: 'QR sticker',
+      mandatory: false,
+      status: null,
+      documentIds: [],
+      count: 0,
+      registerValidUntil: null,
+    },
+  ];
+}
+
+/** Files of a type no longer offered keep a home rather than vanishing; none, no folder. */
+export function otherFilesFolder(others: DriverDocument[]): PaperFolder[] {
+  if (others.length === 0) return [];
+  return [
+    {
+      id: 'OTHER',
+      kind: 'OTHER',
+      ownerType: 'TRUCK',
+      label: 'Other files',
+      mandatory: false,
+      status: null,
+      documentIds: others.map((document) => document.id),
+      count: others.length,
+      registerValidUntil: null,
+    },
+  ];
 }
 
 /**
@@ -575,45 +641,9 @@ export async function driverPapersWallet(
 
   const folders: PaperFolder[] = [
     ...vehiclePapers.folders,
-    {
-      id: 'PHOTOS',
-      kind: 'PHOTOS',
-      ownerType: 'TRUCK',
-      label: 'Photos',
-      mandatory: false,
-      status: null,
-      documentIds: [],
-      count: photos.length,
-      registerValidUntil: null,
-    },
-    {
-      id: 'QR',
-      kind: 'QR',
-      ownerType: 'TRUCK',
-      label: 'QR sticker',
-      mandatory: false,
-      status: null,
-      documentIds: [],
-      count: 0,
-      registerValidUntil: null,
-    },
+    ...photoAndQrFolders(photos.length),
     ...driverPapers.folders,
-    // Files of a type no longer offered keep a home rather than vanishing.
-    ...(others.length > 0
-      ? [
-          {
-            id: 'OTHER',
-            kind: 'OTHER' as const,
-            ownerType: 'TRUCK' as const,
-            label: 'Other files',
-            mandatory: false,
-            status: null,
-            documentIds: others.map((document) => document.id),
-            count: others.length,
-            registerValidUntil: null,
-          },
-        ]
-      : []),
+    ...otherFilesFolder(others),
   ];
 
   return { folders, documents, rc, licence, photos };

@@ -47,16 +47,50 @@ data class MapVehicle(
 
 enum class MarkerState { MOVING, IDLE, OFFLINE, ALERT }
 
+/** A fixed place marked on the map: where a trip picks up, and where it drops. */
+@Immutable
+data class MapPin(val id: String, val latitude: Double, val longitude: Double, val kind: PinKind)
+
+/** Drawn as the route markers beside an address are: a ringed start, a solid end. */
+enum class PinKind { PICKUP, DROP }
+
+/**
+ * How a stretch of driven road stood against the plan: the route state the
+ * server stores on each fix, drawn in the colours the web app's trail uses.
+ */
+enum class TrailTone { ON_ROUTE, OFF_ROUTE, ALTERNATE, NO_TRIP }
+
+/** One unbroken stretch of driven road, all of one tone. */
+@Immutable
+data class TrailRun(val points: List<Pair<Double, Double>>, val tone: TrailTone)
+
+/**
+ * The overlay colours as ARGB, shared by the map and by any key that names
+ * them, so the two never drift apart. The trail's are the web trail's.
+ */
+internal object OverlayInk {
+    val ROUTE: Int = 0xFF727FF3.toInt()
+    val DROP: Int = 0xFFF49434.toInt()
+
+    fun tone(tone: TrailTone): Int = when (tone) {
+        TrailTone.ON_ROUTE -> 0xFF16A34A.toInt()
+        TrailTone.OFF_ROUTE -> 0xFFDC2626.toInt()
+        TrailTone.ALTERNATE -> 0xFFD97706.toInt()
+        TrailTone.NO_TRIP -> 0xFF2563EB.toInt()
+    }
+}
+
 /**
  * The fleet on one map — the driver app's MapLibre map against the same
  * OpenFreeMap styles the web app draws, for a whole fleet rather than one cab.
  *
  * Each vehicle is a ringed disc coloured by what it is doing; the picked one
  * is larger, haloed and labelled with its plate. A tap on a disc picks it, a
- * tap anywhere else lets go. The basemap follows the app's light or dark
- * theme. The camera moves only when asked — by [frameAllRequest] or
- * [focusRequest] — never on a refresh, so a person reading the map is not
- * yanked about every time the positions arrive.
+ * tap anywhere else lets go. Under them a planned [route] can be drawn, the
+ * road already driven over it as a [trail], and [pins] at its ends. The
+ * basemap follows the app's light or dark theme. The camera moves only when
+ * asked — by [frameAllRequest] or [focusRequest] — never on a refresh, so a
+ * person reading the map is not yanked about every time the positions arrive.
  */
 @Composable
 fun VehicleMap(
@@ -66,7 +100,11 @@ fun VehicleMap(
     modifier: Modifier = Modifier,
     /** A route to draw, as (latitude, longitude) pairs. */
     route: List<Pair<Double, Double>> = emptyList(),
-    /** Bumped to fit every vehicle in view once. */
+    /** Road already driven, drawn over [route] stretch by stretch in its tone. */
+    trail: List<TrailRun> = emptyList(),
+    /** Places to mark under the vehicles, such as a pickup and a drop. */
+    pins: List<MapPin> = emptyList(),
+    /** Bumped to fit everything drawn in view once: vehicles, route, trail and pins. */
     frameAllRequest: Int = 0,
     /** Bumped to fly to the picked vehicle once. */
     focusRequest: Int = 0,
@@ -87,9 +125,13 @@ fun VehicleMap(
     val currentVehicles by rememberUpdatedState(vehicles)
     val currentSelected by rememberUpdatedState(selectedId)
     val currentRoute by rememberUpdatedState(route)
+    val currentTrail by rememberUpdatedState(trail)
+    val currentPins by rememberUpdatedState(pins)
     val select by rememberUpdatedState(onSelect)
     val vehiclesJson = remember(vehicles, selectedId) { vehiclesJson(vehicles, selectedId) }
     val routeJson = remember(route) { routeJson(route) }
+    val trailJson = remember(trail) { trailJson(trail) }
+    val pinsJson = remember(pins) { pinsJson(pins) }
 
     // MapView has its own lifecycle that must be driven by hand; missing any of
     // these leaks the GL surface.
@@ -124,20 +166,29 @@ fun VehicleMap(
     LaunchedEffect(map, routeJson) {
         map?.style?.takeIf { it.isFullyLoaded }?.let { setSource(it, ROUTE_SOURCE, routeJson) }
     }
+    LaunchedEffect(map, trailJson) {
+        map?.style?.takeIf { it.isFullyLoaded }?.let { setSource(it, TRAIL_SOURCE, trailJson) }
+    }
+    LaunchedEffect(map, pinsJson) {
+        map?.style?.takeIf { it.isFullyLoaded }?.let { setSource(it, PINS_SOURCE, pinsJson) }
+    }
 
     // The theme changed: restyle in place and draw everything onto it again.
     LaunchedEffect(map, styleUrl) {
         val current = map ?: return@LaunchedEffect
         if (loadedStyle[0] == null || loadedStyle[0] == styleUrl) return@LaunchedEffect
         loadedStyle[0] = styleUrl
-        current.setStyle(styleUrl) { style -> drawAll(style, currentVehicles, currentSelected, currentRoute) }
+        current.setStyle(styleUrl) { style ->
+            drawAll(style, currentVehicles, currentSelected, currentRoute, currentTrail, currentPins)
+        }
     }
 
     LaunchedEffect(map, frameAllRequest) {
         val current = map ?: return@LaunchedEffect
         if (frameAllRequest == 0) return@LaunchedEffect
         val points = currentVehicles.map { LatLng(it.latitude, it.longitude) } +
-            currentRoute.map { (lat, lng) -> LatLng(lat, lng) }
+            (currentRoute + currentTrail.flatMap { it.points }).map { (lat, lng) -> LatLng(lat, lng) } +
+            currentPins.map { LatLng(it.latitude, it.longitude) }
         frame(current, points, topPaddingPx, bottomPaddingPx, reduced)
     }
 
@@ -161,7 +212,9 @@ fun VehicleMap(
                     // Saarthi runs in India: before anything is framed, the map opens on it, not on the world.
                     ready.cameraPosition = CameraPosition.Builder().target(LatLng(INDIA_LAT, INDIA_LNG)).zoom(INDIA_ZOOM).build()
                     loadedStyle[0] = styleUrl
-                    ready.setStyle(styleUrl) { style -> drawAll(style, currentVehicles, currentSelected, currentRoute) }
+                    ready.setStyle(styleUrl) { style ->
+                        drawAll(style, currentVehicles, currentSelected, currentRoute, currentTrail, currentPins)
+                    }
                     ready.uiSettings.apply {
                         isRotateGesturesEnabled = false
                         isTiltGesturesEnabled = false
@@ -184,7 +237,14 @@ fun VehicleMap(
     )
 }
 
-private fun drawAll(style: Style, vehicles: List<MapVehicle>, selectedId: String?, route: List<Pair<Double, Double>>) {
+private fun drawAll(
+    style: Style,
+    vehicles: List<MapVehicle>,
+    selectedId: String?,
+    route: List<Pair<Double, Double>>,
+    trail: List<TrailRun>,
+    pins: List<MapPin>,
+) {
     setSource(style, ROUTE_SOURCE, routeJson(route)) {
         style.addLayer(
             LineLayer(ROUTE_CASING_LAYER, ROUTE_SOURCE).withProperties(
@@ -196,10 +256,57 @@ private fun drawAll(style: Style, vehicles: List<MapVehicle>, selectedId: String
         )
         style.addLayer(
             LineLayer(ROUTE_LAYER, ROUTE_SOURCE).withProperties(
-                PropertyFactory.lineColor(Color.parseColor("#727FF3")),
+                PropertyFactory.lineColor(OverlayInk.ROUTE),
                 PropertyFactory.lineWidth(4.5f),
                 PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
                 PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
+            ),
+        )
+    }
+    // Over the route and under everything else: the road already driven, on
+    // one shared dark casing so each tone stays distinct from the basemap's
+    // own coloured roads, parks and water.
+    setSource(style, TRAIL_SOURCE, trailJson(trail)) {
+        style.addLayer(
+            LineLayer(TRAIL_CASING_LAYER, TRAIL_SOURCE).withProperties(
+                PropertyFactory.lineColor(Color.parseColor("#B30F172A")),
+                PropertyFactory.lineWidth(8f),
+                PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
+                PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
+            ),
+        )
+        style.addLayer(
+            LineLayer(TRAIL_LAYER, TRAIL_SOURCE).withProperties(
+                PropertyFactory.lineColor(byTone()),
+                PropertyFactory.lineWidth(4.5f),
+                PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
+                PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
+            ),
+        )
+    }
+    // The ends of the route, as the address rows beside a route draw them:
+    // the pickup a ringed disc, the drop a solid one in the accent.
+    setSource(style, PINS_SOURCE, pinsJson(pins)) {
+        style.addLayer(
+            CircleLayer(PIN_LAYER, PINS_SOURCE).withProperties(
+                PropertyFactory.circleRadius(7f),
+                PropertyFactory.circleColor(
+                    Expression.match(
+                        Expression.get(KIND),
+                        Expression.color(Color.WHITE),
+                        Expression.stop(PinKind.DROP.name, Expression.color(OverlayInk.DROP)),
+                    ),
+                ),
+                PropertyFactory.circleStrokeWidth(
+                    Expression.match(Expression.get(KIND), Expression.literal(4f), Expression.stop(PinKind.DROP.name, 3f)),
+                ),
+                PropertyFactory.circleStrokeColor(
+                    Expression.match(
+                        Expression.get(KIND),
+                        Expression.color(OverlayInk.ROUTE),
+                        Expression.stop(PinKind.DROP.name, Expression.color(Color.WHITE)),
+                    ),
+                ),
             ),
         )
     }
@@ -245,6 +352,15 @@ private fun byState(): Expression = Expression.match(
     Expression.stop(MarkerState.ALERT.name, Expression.color(Color.parseColor("#DF494E"))),
 )
 
+/** The web app's trail colours, by tone. */
+private fun byTone(): Expression = Expression.match(
+    Expression.get(TONE),
+    Expression.color(OverlayInk.tone(TrailTone.ON_ROUTE)),
+    Expression.stop(TrailTone.OFF_ROUTE.name, Expression.color(OverlayInk.tone(TrailTone.OFF_ROUTE))),
+    Expression.stop(TrailTone.ALTERNATE.name, Expression.color(OverlayInk.tone(TrailTone.ALTERNATE))),
+    Expression.stop(TrailTone.NO_TRIP.name, Expression.color(OverlayInk.tone(TrailTone.NO_TRIP))),
+)
+
 /** Update a source in place, or add it with its layers the first time. */
 private fun setSource(style: Style, id: String, json: String, addLayers: (() -> Unit)? = null) {
     val existing = style.getSourceAs<GeoJsonSource>(id)
@@ -279,6 +395,41 @@ private fun vehiclesJson(vehicles: List<MapVehicle>, selectedId: String?): Strin
                     JSONObject()
                         .put("type", "Point")
                         .put("coordinates", JSONArray().put(vehicle.longitude).put(vehicle.latitude)),
+                ),
+        )
+    }
+    return JSONObject().put("type", "FeatureCollection").put("features", features).toString()
+}
+
+/** The trail as a FeatureCollection of lines, one per run, each carrying its tone. */
+private fun trailJson(trail: List<TrailRun>): String {
+    val features = JSONArray()
+    trail.filter { it.points.size >= 2 }.forEach { run ->
+        val coordinates = JSONArray()
+        run.points.forEach { (lat, lng) -> coordinates.put(JSONArray().put(lng).put(lat)) }
+        features.put(
+            JSONObject()
+                .put("type", "Feature")
+                .put("properties", JSONObject().put(TONE, run.tone.name))
+                .put("geometry", JSONObject().put("type", "LineString").put("coordinates", coordinates)),
+        )
+    }
+    return JSONObject().put("type", "FeatureCollection").put("features", features).toString()
+}
+
+/** The pins as a FeatureCollection of points, each carrying its kind. */
+private fun pinsJson(pins: List<MapPin>): String {
+    val features = JSONArray()
+    pins.forEach { pin ->
+        features.put(
+            JSONObject()
+                .put("type", "Feature")
+                .put("properties", JSONObject().put(ID, pin.id).put(KIND, pin.kind.name))
+                .put(
+                    "geometry",
+                    JSONObject()
+                        .put("type", "Point")
+                        .put("coordinates", JSONArray().put(pin.longitude).put(pin.latitude)),
                 ),
         )
     }
@@ -329,15 +480,22 @@ private const val INDIA_ZOOM = 3.6
 
 private const val VEHICLES_SOURCE = "owner-vehicles"
 private const val ROUTE_SOURCE = "owner-route"
+private const val TRAIL_SOURCE = "owner-trail"
+private const val PINS_SOURCE = "owner-pins"
 private const val HALO_LAYER = "owner-vehicles-halo"
 private const val DISC_LAYER = "owner-vehicles-disc"
 private const val LABEL_LAYER = "owner-vehicles-label"
 private const val ROUTE_CASING_LAYER = "owner-route-casing"
 private const val ROUTE_LAYER = "owner-route-line"
+private const val TRAIL_CASING_LAYER = "owner-trail-casing"
+private const val TRAIL_LAYER = "owner-trail-line"
+private const val PIN_LAYER = "owner-pins-disc"
 private const val ID = "id"
 private const val STATE = "state"
 private const val LABEL = "label"
 private const val PICKED = "picked"
+private const val KIND = "kind"
+private const val TONE = "tone"
 
 /** A bold face the OpenFreeMap styles ship glyphs for. */
 private const val LABEL_FONT = "Noto Sans Bold"

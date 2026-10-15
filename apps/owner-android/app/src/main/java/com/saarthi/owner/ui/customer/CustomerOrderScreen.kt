@@ -37,16 +37,14 @@ import com.saarthi.owner.network.OrdersApi.Companion.STAGE_70_REQUIRED
 import com.saarthi.owner.network.PaymentsApi
 import com.saarthi.owner.network.TripsApi
 import com.saarthi.owner.ui.common.DetailScreen
-import com.saarthi.owner.ui.common.PlateChip
 import com.saarthi.owner.ui.common.RevealedNotice
 import com.saarthi.owner.ui.common.clockOf
-import com.saarthi.owner.ui.common.formatPlate
-import com.saarthi.owner.ui.common.km
 import com.saarthi.owner.ui.common.readable
 import com.saarthi.owner.ui.common.rupees
 import com.saarthi.owner.ui.design.Brand
 import com.saarthi.owner.ui.design.Eyebrow
 import com.saarthi.owner.ui.design.Lucide
+import com.saarthi.owner.ui.design.NoticeCard
 import com.saarthi.owner.ui.design.NoticeTone
 import com.saarthi.owner.ui.design.SType
 import com.saarthi.owner.ui.design.Saarthi
@@ -57,15 +55,13 @@ import com.saarthi.owner.ui.design.brandGradient
 import com.saarthi.owner.ui.design.card
 import com.saarthi.owner.ui.design.rise
 import com.saarthi.owner.ui.design.stagger
-import com.saarthi.owner.ui.map.MapVehicle
-import com.saarthi.owner.ui.map.MarkerState
-import com.saarthi.owner.ui.map.VehicleMap
 import com.saarthi.owner.ui.orders.CustomerCodeCard
 import com.saarthi.owner.ui.orders.orderStatusLook
 import com.saarthi.owner.ui.payments.PaymentOutcome
 import com.saarthi.owner.ui.payments.ReceiptsCard
 import com.saarthi.owner.ui.payments.rememberCheckout
 import com.saarthi.owner.ui.payments.sentence
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -75,9 +71,9 @@ private const val REFRESH_MS = 20_000L
  * One order from the customer's side — the design's Confirm & pay and
  * Track boards in one place, following the order through its life.
  *
- * Pay 30% and the order is confirmed; follow the truck on the map; say what
- * arrived; pay the 70% balance. Only the fleet is ever named — the customer
- * deals with nobody else.
+ * Pay 30% and the order is confirmed; follow the vehicle along its road on
+ * the map; say what arrived; pay the 70% balance. Only the fleet is ever
+ * named — the customer deals with nobody else.
  */
 @Composable
 fun CustomerOrderScreen(app: OwnerApp, initial: OrdersApi.Order, onChanged: () -> Unit) {
@@ -87,6 +83,7 @@ fun CustomerOrderScreen(app: OwnerApp, initial: OrdersApi.Order, onChanged: () -
     var order by remember { mutableStateOf(initial) }
     var finance by remember { mutableStateOf<OrdersApi.Finance?>(null) }
     var trip by remember { mutableStateOf<TripsApi.Trip?>(null) }
+    var tripError by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf<Pair<String, NoticeTone>?>(null) }
     var reload by remember { mutableIntStateOf(0) }
@@ -104,7 +101,12 @@ fun CustomerOrderScreen(app: OwnerApp, initial: OrdersApi.Order, onChanged: () -
             if (settled != receipts.size) {
                 receipts = runCatching { app.payments.receipts(orderId = initial.id) }.getOrDefault(receipts)
             }
-            trip = order.tripId?.let { id -> runCatching { app.trips.get(id) }.getOrNull() }
+            // A failed read keeps the last trip on the map and says so only when there is none.
+            order.tripId?.let { id ->
+                runCatching { app.trips.get(id) }
+                    .onSuccess { trip = it ?: trip; tripError = null }
+                    .onFailure { if (it is CancellationException) throw it else tripError = it.readable() }
+            }
             // The delivery code exists once the goods set off.
             if (order.tripId != null) handover = runCatching { app.handover.forOrder(initial.id) }.getOrNull() ?: handover
             delay(REFRESH_MS)
@@ -179,7 +181,7 @@ fun CustomerOrderScreen(app: OwnerApp, initial: OrdersApi.Order, onChanged: () -
             }
             awaitingDeliveryWord -> {
                 {
-                    SaarthiButton("It arrived — confirm", onClick = ::confirmArrived, busy = busy, enabled = (arrivedText.toDoubleOrNull() ?: 0.0) > 0)
+                    SaarthiButton("Confirm it arrived", onClick = ::confirmArrived, busy = busy, enabled = (arrivedText.toDoubleOrNull() ?: 0.0) > 0)
                 }
             }
             else -> null
@@ -190,11 +192,20 @@ fun CustomerOrderScreen(app: OwnerApp, initial: OrdersApi.Order, onChanged: () -
         }
         message?.let { (text, tone) -> RevealedNotice(text, tone) }
 
+        if (order.status == "CANCELLED" || order.status == "FAILED") {
+            NoticeCard(
+                listOfNotNull("This order was cancelled.", order.cancellationReason?.ifBlank { null }).joinToString(" "),
+                NoticeTone.DANGER,
+                icon = Lucide.ban,
+                modifier = Modifier.rise(),
+            )
+        }
+
         OrderSummary(order, finance, Modifier.rise(stagger(1)))
 
         handover?.let { CustomerCodeCard(it, Modifier.rise(stagger(1))) }
 
-        trip?.let { current -> TrackPanel(order, current, Modifier.rise(stagger(1))) }
+        OrderRouteCard(order, trip, tripError, Modifier.rise(stagger(1)))
 
         if (awaitingDeliveryWord) {
             Column(Modifier.fillMaxWidth().card(radius = 22.dp).padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -214,7 +225,11 @@ fun CustomerOrderScreen(app: OwnerApp, initial: OrdersApi.Order, onChanged: () -
             }
         }
 
-        Timeline(order, finance, Modifier.rise(stagger(2)))
+        OrderVehicleCard(order, trip, Modifier.rise(stagger(2)))
+
+        Timeline(order, finance, trip, Modifier.rise(stagger(2)))
+
+        OrderDetailsCard(order, finance, Modifier.rise(stagger(3)))
 
         ReceiptsCard(receipts, forWhat = order.what, modifier = Modifier.rise(stagger(3))) { receipt ->
             when (finance?.payments?.firstOrNull { it.reference == receipt.reference }?.stage) {
@@ -254,46 +269,6 @@ private fun PayPanel(order: OrdersApi.Order, finance: OrdersApi.Finance, advance
     }
 }
 
-/** The truck on a map, and how far it has to come. */
-@Composable
-private fun TrackPanel(order: OrdersApi.Order, trip: TripsApi.Trip, modifier: Modifier = Modifier) {
-    val c = Saarthi.colors
-    Column(modifier.fillMaxWidth().card(radius = 24.dp), verticalArrangement = Arrangement.spacedBy(0.dp)) {
-        val route = trip.plannedRoute.map { it.latitude to it.longitude }
-        val here = trip.currentLocation
-        Box(Modifier.fillMaxWidth().height(200.dp).clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))) {
-            VehicleMap(
-                vehicles = here?.let {
-                    listOf(MapVehicle(trip.id, it.latitude, it.longitude, MarkerState.MOVING, formatPlate(trip.truck?.registrationNumber.orEmpty())))
-                }.orEmpty(),
-                selectedId = trip.id,
-                onSelect = {},
-                route = route,
-                frameAllRequest = 1,
-                modifier = Modifier.fillMaxWidth().height(200.dp),
-            )
-        }
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                trip.truck?.registrationNumber?.let { PlateChip(it, size = 12.sp) }
-                val look = orderStatusLook(order.status)
-                Text(look.word, style = SType.captionStrong, color = look.ink)
-            }
-            Text(
-                listOfNotNull(
-                    order.fleetName,
-                    trip.driver?.name?.ifBlank { null }?.let { "driver ${it.substringBefore(' ')}" },
-                    trip.remainingKm?.let { "${km(it)} to go" },
-                    clockOf(trip.etaAt)?.let { "arrives about $it" },
-                ).joinToString(" · "),
-                style = SType.small,
-                color = c.muted,
-            )
-        }
-    }
-}
-
-/** Where the order stands, step by step. */
 /** What was ordered, between where, for how much, and which fleet has it. */
 @Composable
 private fun OrderSummary(order: OrdersApi.Order, finance: OrdersApi.Finance?, modifier: Modifier = Modifier) {
@@ -321,8 +296,9 @@ private fun OrderSummary(order: OrdersApi.Order, finance: OrdersApi.Finance?, mo
     }
 }
 
+/** Where the order stands, step by step, with the trip's own times where it has them. */
 @Composable
-private fun Timeline(order: OrdersApi.Order, finance: OrdersApi.Finance?, modifier: Modifier = Modifier) {
+private fun Timeline(order: OrdersApi.Order, finance: OrdersApi.Finance?, trip: TripsApi.Trip?, modifier: Modifier = Modifier) {
     val c = Saarthi.colors
     val stage = finance?.stage
     // An order with no payment plan in the app was confirmed when it was placed.
@@ -332,12 +308,28 @@ private fun Timeline(order: OrdersApi.Order, finance: OrdersApi.Finance?, modifi
     val delivered = order.status in setOf("DELIVERED", "COMPLETED")
     val steps = buildList {
         add(Triple(if (finance == null) "Confirmed" else "Confirmed · 30% paid", finance?.confirmationAmount?.let { rupees(it) }, paid30))
-        add(Triple("Material loaded", clockOf(order.pickupAt)?.let { if (loaded) it else "Planned for $it" }, loaded))
-        add(Triple("On the way to your site", null, moving || delivered))
+        add(
+            Triple(
+                "Material loaded",
+                clockOf(trip?.actualStartAt)?.let { "Left the pickup at $it" }
+                    ?: clockOf(order.pickupAt)?.let { if (loaded) it else "Planned for $it" },
+                loaded,
+            ),
+        )
+        add(
+            Triple(
+                "On the way to your site",
+                clockOf(trip?.etaAt)?.takeIf { moving && trip?.underway == true }?.let { "Arriving about $it" },
+                moving || delivered,
+            ),
+        )
         add(
             Triple(
                 if (finance == null) "Delivered" else "Delivered, then pay 70%",
-                finance?.balanceDue?.takeIf { it > 0 }?.let { "${rupees(it)} once you confirm it arrived" },
+                listOfNotNull(
+                    clockOf(trip?.actualArrivalAt)?.takeIf { delivered }?.let { "Arrived $it" },
+                    finance?.balanceDue?.takeIf { it > 0 }?.let { "${rupees(it)} once you confirm it arrived" },
+                ).joinToString(" · ").ifBlank { null },
                 delivered,
             ),
         )

@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -29,6 +30,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
@@ -62,8 +64,12 @@ import com.saarthi.owner.ui.design.card
 import com.saarthi.owner.ui.design.pressable
 import com.saarthi.owner.ui.design.rise
 import com.saarthi.owner.ui.design.stagger
+import com.saarthi.owner.ui.papers.PapersStanding
 import com.saarthi.owner.ui.papers.VehiclePapersScreen
+import com.saarthi.owner.ui.papers.standing
 import com.saarthi.owner.ui.shell.LocalNavigator
+import com.saarthi.owner.ui.trips.VehicleTripsCard
+import com.saarthi.owner.ui.trips.VehicleTripsScreen
 import kotlinx.coroutines.delay
 
 private const val REFRESH_MS = 15_000L
@@ -80,12 +86,19 @@ fun VehicleScreen(app: OwnerApp, account: SessionStore.Account, initial: Vehicle
     val context = LocalContext.current
     val c = Saarthi.colors
 
+    // The papers' standing, from the wallet so register dates count as much as
+    // scans. Null until read; the card falls back to the upload counts until then.
+    var papers by remember { mutableStateOf<PapersStanding?>(null) }
+
     LaunchedEffect(initial.id) {
         while (true) {
             runCatching { app.vehicles.get(initial.id) }.getOrNull()?.let { vehicle = it }
             trip = vehicle.currentTripId?.let { id -> runCatching { app.trips.get(id) }.getOrNull() }
             delay(REFRESH_MS)
         }
+    }
+    LaunchedEffect(initial.id) {
+        papers = runCatching { app.papers.wallet(initial.id).standing() }.getOrNull()
     }
 
     val phone = trip?.driver?.phone
@@ -122,8 +135,14 @@ fun VehicleScreen(app: OwnerApp, account: SessionStore.Account, initial: Vehicle
 
         trip?.let { TripCard(it, Modifier.rise(stagger(2))) }
 
+        VehicleTripsCard(
+            onOpen = { navigator.push("vehicle-trips-${vehicle.id}") { VehicleTripsScreen(app, vehicle) } },
+            modifier = Modifier.rise(stagger(3)),
+        )
+
         PapersCard(
             vehicle.documentHealth,
+            papers,
             onOpen = { navigator.push("vehicle-papers-${vehicle.id}") { VehiclePapersScreen(app, vehicle) } },
             modifier = Modifier.rise(stagger(3)),
         )
@@ -309,16 +328,38 @@ fun RouteStops(from: String, fromNote: String?, to: String, toNote: String?, eta
                     Text(to.ifBlank { "Destination" }, style = SType.rowTitle, color = c.fg, maxLines = 2, overflow = TextOverflow.Ellipsis)
                     toNote?.let { Text(it, style = SType.caption, color = c.muted) }
                 }
-                eta?.let { Text(it, style = SType.headerTitle.copy(fontSize = 22.sp), color = c.fg) }
+                // A clock reads large; once it carries a date ("31 Aug, 18:12") it
+                // steps down and stays narrow, so the address keeps its width.
+                eta?.let {
+                    val withDate = it.length > 5
+                    Text(
+                        it,
+                        style = if (withDate) SType.bodyStrong else SType.headerTitle.copy(fontSize = 22.sp),
+                        color = c.fg,
+                        textAlign = TextAlign.End,
+                        modifier = Modifier.widthIn(max = 112.dp),
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-private fun PapersCard(health: VehiclesApi.DocumentHealth, onOpen: () -> Unit, modifier: Modifier = Modifier) {
+private fun PapersCard(
+    health: VehiclesApi.DocumentHealth,
+    standing: PapersStanding?,
+    onOpen: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val c = Saarthi.colors
     val look = when {
+        standing != null -> when {
+            standing.expired > 0 -> PapersLook(Lucide.alertTriangle, c.dangerSoft, c.danger, "${plural(standing.expired, "paper")} expired or turned down")
+            standing.attention > 0 -> PapersLook(Lucide.fileText, c.warningSoft, c.warning, "${plural(standing.attention, "paper")} due soon")
+            standing.onFile > 0 -> PapersLook(Lucide.check, c.successSoft, c.success, "${plural(standing.onFile, "paper")} on file, all in order")
+            else -> PapersLook(Lucide.fileText, c.sunken, c.muted, "No papers on file yet")
+        }
         health.expired > 0 -> PapersLook(Lucide.alertTriangle, c.dangerSoft, c.danger, "${plural(health.expired, "paper")} expired")
         health.expiringSoon > 0 -> PapersLook(Lucide.fileText, c.warningSoft, c.warning, "${plural(health.expiringSoon, "paper")} due soon")
         health.total > 0 -> PapersLook(Lucide.check, c.successSoft, c.success, "All ${health.total} papers valid")
