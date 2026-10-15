@@ -95,7 +95,7 @@ export function DriverAppCard() {
         const url = URL.createObjectURL(new Blob(chunks));
         const anchor = window.document.createElement('a');
         anchor.href = url;
-        anchor.download = `saarthi-driver-${app.versionName}.apk`;
+        anchor.download = `humsafar-${app.versionName}.apk`;
         anchor.click();
         window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
       } catch (error) {
@@ -116,7 +116,7 @@ export function DriverAppCard() {
             <Smartphone className="size-5" />
           </div>
           <div className="min-w-0 space-y-1">
-            <p className="font-medium">Saarthi on your phone</p>
+            <p className="font-medium">Humsafar on your phone</p>
             <p className="text-sm text-muted-foreground">
               Sign on to a vehicle, complete your safety check and run trips from the cab -
               without opening this dashboard.

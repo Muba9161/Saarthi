@@ -28,6 +28,7 @@ import { Textarea } from '@/components/ui/textarea';
 
 interface TerminalRelease {
   id: string;
+  applicationId: string;
   versionCode: number;
   versionName: string;
   status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
@@ -40,6 +41,13 @@ interface TerminalRelease {
   createdAt: string;
   terminalsOnThisVersion: number;
 }
+
+/** Which app a build is, from the package the API read out of the APK. */
+const APP_NAMES: Record<string, string> = {
+  'com.saarthi.terminal': 'Terminal',
+  'com.saarthi.driver': 'Humsafar (driver)',
+  'com.saarthi.owner': 'VorldX Saarthi (owner)',
+};
 
 export function AdminTerminalReleasesPage() {
   const { can } = useAuth();
@@ -110,7 +118,7 @@ export function AdminTerminalReleasesPage() {
         <div className="min-w-0">
           <p className="truncate font-medium">{row.versionName}</p>
           <p className="truncate text-xs text-muted-foreground">
-            build {row.versionCode} · Android {row.minSdk}+
+            {`${APP_NAMES[row.applicationId] ?? row.applicationId} · build ${row.versionCode} · Android ${row.minSdk}+`}
           </p>
         </div>
       ),
@@ -177,7 +185,7 @@ export function AdminTerminalReleasesPage() {
     <div className="space-y-5">
       <PageHeader
         title="Terminal releases"
-        description="Ship a new Saarthi Terminal build to fitted vehicles over the air."
+        description="Ship a new Saarthi Terminal, Humsafar or VorldX Saarthi build over the air."
       />
 
       <Card>

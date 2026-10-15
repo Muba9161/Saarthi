@@ -32,7 +32,7 @@ import {
   vehiclePairingForDriver,
 } from './terminal-pairing.service';
 import { latestDriverApp } from './release.service';
-import { sendLatestDriverApp } from './driver-app.routes';
+import { DRIVER_APP, sendLatestApp } from './app-download.routes';
 import { listTerminals } from './terminal.service';
 import * as sessions from './session.service';
 import * as checklist from './checklist.service';
@@ -205,14 +205,14 @@ export async function terminalRoutes(app: FastifyInstance): Promise<void> {
    *
    * Streamed through the API rather than handed out as a link to storage, like
    * every other Saarthi download. The same build is also offered publicly by
-   * `publicDriverAppRoutes`; this route stays for the dashboard card.
+   * `publicAppRoutes`; this route stays for the dashboard card.
    */
   app.get(
     '/driver-app/download',
     { preHandler: requirePermission(Permission.TERMINAL_DRIVE) },
     // The bytes for a version never change, so this is safe to hold. It
     // matters on a phone tethered to a yard's connection.
-    async (_request, reply) => sendLatestDriverApp(reply, 'private, max-age=86400, immutable'),
+    async (_request, reply) => sendLatestApp(reply, DRIVER_APP, 'private, max-age=86400, immutable'),
   );
 
   /**

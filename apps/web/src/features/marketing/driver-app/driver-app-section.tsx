@@ -7,7 +7,8 @@ import { Reveal } from '../motion-extras';
 import { STAGE } from '../imagery';
 import { cn } from '@/lib/utils';
 import { DRIVER_APP_MOMENTS, type DriverAppMoment } from './moments';
-import { DriverAppDownload } from './driver-app-download';
+import { AppDownload } from '../app-downloads/app-download';
+import { DRIVER_APP } from '../app-downloads/public-apps';
 import { PhoneFrame } from './phone-frame';
 
 const EASE = [0.16, 1, 0.3, 1] as const;
@@ -82,7 +83,7 @@ export function DriverAppSection() {
             title="Every driver gets a humsafar"
             body="Humsafar means fellow traveller, and that is the job: one app that walks a driver from the yard gate to the last kilometre, while the office sees every step of it."
           />
-          <DriverAppDownload className="mt-8" />
+          <AppDownload app={DRIVER_APP} onDark className="mt-8" />
         </div>
 
         <Reveal

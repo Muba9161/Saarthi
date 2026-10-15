@@ -10,6 +10,7 @@ import { Sheet, SheetClose, SheetContent, SheetTrigger } from '@/components/ui/s
 import { SaarthiLogo } from '@/components/common/logo';
 import { AnimatePresence, motion } from '@/components/motion';
 import { useTheme } from '@/features/theme/theme-context';
+import { AppDownloadLinks } from './app-downloads/app-download-links';
 import { Reveal, WordsReveal } from './motion-extras';
 import { cn } from '@/lib/utils';
 
@@ -374,7 +375,9 @@ export function MarketingNav() {
                 <Menu className="size-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-72 p-0">
+            {/* Scrolls rather than clips: with the app downloads added, the
+                menu is taller than a 568px phone, or any phone held sideways. */}
+            <SheetContent side="right" className="w-72 overflow-y-auto p-0">
               {/* SheetContent supplies its own close button — `pr-12` keeps
                   this label clear of it. */}
               <div className="border-b border-border px-5 py-4 pr-12">
@@ -394,6 +397,10 @@ export function MarketingNav() {
                   </SheetClose>
                 ))}
               </nav>
+
+              {/* Below `lg` this menu is the phone's whole header, so it is
+                  where a visitor on the device the apps install on finds them. */}
+              <AppDownloadLinks className="border-t border-border p-4" />
 
               <div className="space-y-2 border-t border-border p-4">
                 <Button variant="outline" className="w-full" asChild>

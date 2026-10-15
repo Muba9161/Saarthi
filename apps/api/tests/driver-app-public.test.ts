@@ -95,9 +95,35 @@ describe('public driver app download', () => {
     expect(download.status).toBe(200);
     expect(download.headers['content-type']).toBe('application/vnd.android.package-archive');
     expect(download.headers['content-disposition']).toBe(
-      'attachment; filename="saarthi-driver-1.7.0.apk"',
+      'attachment; filename="humsafar-1.7.0.apk"',
     );
     expect(download.body.equals(bytes)).toBe(true);
+  });
+
+  it('serves the owner app on its own address, never in place of the driver app', async () => {
+    const ownerBytes = apk({ versionCode: 1, versionName: '0.1.0', packageName: 'com.saarthi.owner' });
+    const { id } = await createRelease({
+      bytes: ownerBytes,
+      fileName: 'saarthi-owner.apk',
+      notes: null,
+      mandatory: false,
+      uploadedById: uploaderId,
+    });
+    await publishRelease(id, uploaderId);
+
+    const lookup = await request({ method: 'GET', url: '/api/v1/owner-app/public' });
+    expect(lookup.body.data).toMatchObject({ versionName: '0.1.0', versionCode: 1 });
+
+    const download = await requestRaw({ method: 'GET', url: '/api/v1/owner-app/public/download' });
+    expect(download.status).toBe(200);
+    expect(download.headers['content-disposition']).toBe(
+      'attachment; filename="vorldx-saarthi-0.1.0.apk"',
+    );
+    expect(download.body.equals(ownerBytes)).toBe(true);
+
+    // A published owner build must not make the driver button appear.
+    const driverLookup = await request({ method: 'GET', url: '/api/v1/driver-app/public' });
+    expect(driverLookup.body.data).toBeNull();
   });
 
   it("keeps the dashboard's signed-in download serving the same build", async () => {

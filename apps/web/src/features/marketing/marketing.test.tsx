@@ -12,6 +12,7 @@ import { RoleShowcaseSection } from './role-showcase';
 import { WordsReveal } from './motion-extras';
 import { DriverAppSection } from './driver-app/driver-app-section';
 import { DRIVER_APP_MOMENTS } from './driver-app/moments';
+import { AppDownloadLinks } from './app-downloads/app-download-links';
 import { SAARTHI_IN_SCRIPT } from './brush-name/saarthi-in-script';
 import { INK_ART } from './brush-name/ink-art.generated';
 import { erasedIn, planInk, reverseBeat } from '@/components/ink/ink-timeline';
@@ -234,6 +235,51 @@ describe('driver app band', () => {
 
     await vi.waitFor(() => expect(fetch).toHaveBeenCalled());
     expect(screen.queryByRole('link', { name: 'Download for Android' })).not.toBeInTheDocument();
+  });
+
+  it('offers both apps in the mobile menu, and only the ones published', async () => {
+    // The owner app is published, the driver app is not.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const owner = String(input).includes('/owner-app/public');
+        const data = owner
+          ? { versionName: '0.1.0', versionCode: 1, sizeBytes: 47_400_000, publishedAt: null }
+          : null;
+        return new Response(JSON.stringify({ success: true, data }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        });
+      }),
+    );
+    renderWithProviders(<AppDownloadLinks />);
+
+    // Each app goes by the name its icon carries once installed.
+    const link = await screen.findByRole('link', { name: /Download VorldX Saarthi/ });
+    expect(link.getAttribute('href')).toMatch(/\/api\/v1\/owner-app\/public\/download$/);
+    expect(within(link).getByText('Owner app · 47 MB')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Humsafar/ })).not.toBeInTheDocument();
+  });
+
+  it('offers VorldX Saarthi beside the account types it serves', async () => {
+    publishDriverApp({
+      versionName: '0.1.0',
+      versionCode: 1,
+      sizeBytes: 15_712_318,
+      publishedAt: null,
+    });
+    renderWithProviders(<RoleShowcaseSection />);
+
+    const link = await screen.findByRole('link', { name: 'Download VorldX Saarthi' });
+    expect(link.getAttribute('href')).toMatch(/\/api\/v1\/owner-app\/public\/download$/);
+    expect(screen.getByText('Version 0.1.0 · 16 MB · Android 8 and later')).toBeInTheDocument();
+  });
+
+  it('draws no app block in the menu when nothing is published', async () => {
+    const { container } = renderWithProviders(<AppDownloadLinks />);
+
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+    await vi.waitFor(() => expect(container).toBeEmptyDOMElement());
   });
 
   it('offers every moment of the shift as a tab', () => {

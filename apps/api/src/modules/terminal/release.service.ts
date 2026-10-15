@@ -30,24 +30,35 @@ import { ApkInspectionError, inspectApk, type ApkInfo } from './apk-inspector';
 const releaseLogger = logger.child({ module: 'terminal-release' });
 
 /**
- * The two apps this pipeline ships.
+ * The three apps this pipeline ships.
  *
- * Saarthi has a fitted-tablet app and a driver's-phone app. They share most of
- * their code but are separate packages with separate version numbers, and a
- * release of one must never be offered to the other — a phone that installed
+ * Saarthi has a fitted-tablet app, a driver's-phone app and the owner app for
+ * every account that is not a driver. The first two share most of their code,
+ * but all three are separate packages with separate version numbers, and a
+ * release of one must never be offered to another — a phone that installed
  * the terminal build would lose its sign-in, and a tablet that installed the
  * driver build would lose its kiosk.
  *
- * A debug build has `.debug` appended and so matches neither, which is the
+ * A debug build has `.debug` appended and so matches none of them, which is the
  * intent: a debug APK carries the developer tools and is signed with a
  * throwaway key that nothing in the field will accept.
  */
-const SHIPPABLE_APPLICATION_IDS = ['com.saarthi.terminal', 'com.saarthi.driver'] as const;
+const SHIPPABLE_APPLICATION_IDS = [
+  'com.saarthi.terminal',
+  'com.saarthi.driver',
+  'com.saarthi.owner',
+] as const;
 
-/** Which app an application id belongs to, for messages a person reads. */
+/**
+ * Which app an application id belongs to, for messages a person reads.
+ *
+ * The phone apps go by the names their icons carry: the driver app installs as
+ * Humsafar and the owner app as VorldX Saarthi.
+ */
 const APP_NAMES: Record<string, string> = {
   'com.saarthi.terminal': 'Saarthi Terminal',
-  'com.saarthi.driver': 'Saarthi Driver',
+  'com.saarthi.driver': 'Humsafar (driver app)',
+  'com.saarthi.owner': 'VorldX Saarthi (owner app)',
 };
 
 /** Where release binaries live within the storage provider. */
@@ -357,6 +368,19 @@ export async function openPublishedRelease(
 /** The application id of the app a driver installs on their own phone. */
 export const DRIVER_APPLICATION_ID = 'com.saarthi.driver';
 
+/** The application id of the app owners, customers, sellers and associations install. */
+export const OWNER_APPLICATION_ID = 'com.saarthi.owner';
+
+/** The newest published build of one phone app, as a person is told about it. */
+export interface PublishedApp {
+  versionName: string;
+  versionCode: number;
+  sizeBytes: number;
+  sha256: string;
+  notes: string | null;
+  publishedAt: Date | null;
+}
+
 /**
  * The newest published driver app, for a signed-in driver to install.
  *
@@ -365,21 +389,21 @@ export const DRIVER_APPLICATION_ID = 'com.saarthi.driver';
  * just registered on the web has no phone app yet, so they have no device
  * credential either; the thing they need is exactly the thing they cannot yet
  * ask for as a device.
+ */
+export function latestDriverApp(): Promise<PublishedApp | null> {
+  return latestPublishedApp(DRIVER_APPLICATION_ID);
+}
+
+/**
+ * The newest published build of a phone app.
  *
- * Returns null rather than throwing when nothing is published. A dashboard that
+ * Returns null rather than throwing when nothing is published. A page that
  * showed a broken download button would be worse than one that shows none.
  */
-export async function latestDriverApp(): Promise<{
-  versionName: string;
-  versionCode: number;
-  sizeBytes: number;
-  sha256: string;
-  notes: string | null;
-  publishedAt: Date | null;
-} | null> {
+export async function latestPublishedApp(applicationId: string): Promise<PublishedApp | null> {
   const release = await prisma.terminalRelease.findFirst({
     where: {
-      applicationId: DRIVER_APPLICATION_ID,
+      applicationId,
       status: TerminalReleaseStatus.PUBLISHED,
     },
     orderBy: { versionCode: 'desc' },

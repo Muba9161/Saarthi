@@ -118,6 +118,22 @@ android {
         buildConfig = true
     }
 
+    /**
+     * Per-architecture APKs, as the driver app builds them.
+     *
+     * MapLibre ships a native renderer per architecture, so the universal APK
+     * carries four of them. An owner downloads this over mobile data, and the
+     * arm64 split is the one nearly every phone in use can run.
+     */
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("arm64-v8a", "armeabi-v7a", "x86_64")
+            isUniversalApk = true
+        }
+    }
+
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"

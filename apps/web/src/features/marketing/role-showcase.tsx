@@ -6,6 +6,8 @@ import { AnimatePresence, motion, useReducedMotion } from '@/components/motion';
 import { Section, SectionHeading } from './marketing-chrome';
 import { ROLE_PORTRAIT } from './imagery';
 import { ROLE_SHOWCASE, type RoleShowcase } from './feature-catalogue';
+import { AppDownload } from './app-downloads/app-download';
+import { OWNER_APP } from './app-downloads/public-apps';
 import { cn } from '@/lib/utils';
 
 const EASE = [0.16, 1, 0.3, 1] as const;
@@ -176,6 +178,16 @@ export function RoleShowcaseSection() {
         eyebrow="Who it is for"
         title={`One platform, ${COUNT_WORD[total] ?? total} points of view`}
         body="A haul touches a fleet owner, a driver, a supplier and a customer - and often an association too. Each opens their own screens over the same record, so nobody re-enters what somebody else already typed."
+      />
+
+      {/* Every account in this band except the driver signs in to the owner
+          app, so its download sits here, as Humsafar's sits in the next band. */}
+      <AppDownload
+        app={OWNER_APP}
+        label="Download VorldX Saarthi"
+        audience="For fleet owners, customers, sellers, travel operators and associations. Drivers use Humsafar, just below."
+        align="center"
+        className="mt-8"
       />
 
       {/* The step rail. Scrolls sideways on a phone rather than wrapping, so
