@@ -8,6 +8,7 @@ import {
   verifyVoterIdSchema,
 } from './identity-verification';
 import { registryVerifySchema } from './documents';
+import { lookupRegistrationNumberSchema } from './vehicle-lookup';
 
 /**
  * Pay & Verify.
@@ -34,6 +35,21 @@ const vehicleRcCheckSchema = z.object({
   refresh: z.boolean().default(false),
 });
 
+/**
+ * The paid full RC record (₹20), through the same Pay & Verify flow.
+ *
+ * Two subjects. While a vehicle is being added it does not exist yet, so the
+ * account pays and names the plate; for a vehicle already on the account the
+ * plate is read from the vehicle, and `registrationNumber` is ignored.
+ */
+const vehicleRcDetailsCheckSchema = z.object({
+  kind: z.literal(VerificationCheckType.VEHICLE_RC_DETAILS),
+  subjectType: z.enum([VerificationSubjectType.ORGANIZATION, VerificationSubjectType.TRUCK]),
+  subjectId: uuidSchema,
+  registrationNumber: lookupRegistrationNumberSchema.optional(),
+  refresh: z.boolean().default(false),
+});
+
 export const startVerificationSchema = z.discriminatedUnion('kind', [
   verifyAadhaarSchema,
   verifyPanSchema,
@@ -41,11 +57,13 @@ export const startVerificationSchema = z.discriminatedUnion('kind', [
   verifyGstSchema,
   drivingLicenceCheckSchema,
   vehicleRcCheckSchema,
+  vehicleRcDetailsCheckSchema,
 ]);
 export type StartVerificationInput = z.infer<typeof startVerificationSchema>;
 export type RegistryCheckInput =
   | z.infer<typeof drivingLicenceCheckSchema>
   | z.infer<typeof vehicleRcCheckSchema>;
+export type VehicleRcDetailsCheckInput = z.infer<typeof vehicleRcDetailsCheckSchema>;
 
 export const verificationChargeParamsSchema = z.object({ id: uuidSchema });
 

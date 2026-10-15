@@ -2,8 +2,10 @@ import {
   Permission,
   RcDetailAccess,
   VehicleOwnershipStatus,
+  VehicleRcService,
   hasPermission,
   maskRcRecord,
+  rcDetailLevel,
   vehicleDraftFromRc,
   type VehicleLookupInput,
   type VehicleLookupResult,
@@ -15,9 +17,15 @@ import { config } from '../../config/env';
 import { prisma } from '../../database/prisma';
 import { errors } from '../../lib/errors';
 import { logger } from '../../lib/logger';
+import type { ProviderCallGate } from '../../lib/provider-call-gate';
 import { storageProvider } from '../../providers/storage';
-import { maskRegistration, requireVehicleRcProvider } from '../../providers/vehicle-rc';
+import {
+  maskRegistration,
+  requireVehicleRcProvider,
+  type VehicleRcPlan,
+} from '../../providers/vehicle-rc';
 import { AuditAction, recordAudit } from '../audit/audit.service';
+import { mergeRcRecords } from './rc-record-merge';
 import { evaluateOwnership } from '../vehicles/vehicle-ownership.service';
 import { assertUnlocked, isUnlocked } from '../secure-access/secure-access.service';
 import type { AuthContext } from '../../auth/context';
@@ -271,28 +279,16 @@ export async function getStoredLookup(
 ): Promise<VehicleLookupResult | null> {
   const vehicle = await assertVehicleBelongsToCaller(auth, registrationNumber);
 
-  const stored = await prisma.vehicleLookup.findFirst({
-    where: { registrationNumber, organizationId: auth.organizationId ?? null },
-    orderBy: { fetchedAt: 'desc' },
-  });
+  const stored = await bestStoredRow(auth.organizationId ?? null, registrationNumber);
   if (!stored) return null;
 
   const access = await rcAccess(auth, vehicle?.ownershipStatus);
-  return {
-    lookupId: stored.id,
-    registrationNumber,
-    vehicle: presentRecord(stored.responseData as unknown as VehicleRcRecord, access),
-    cached: true,
-    retrievedAt: stored.fetchedAt.toISOString(),
-    expiresAt: stored.expiresAt.toISOString(),
-    pdfAvailable: Boolean(stored.pdfStorageKey),
-    access,
-    providerReference: stored.providerReference,
-  };
+  const raw = rawResultFromRow(stored, registrationNumber);
+  return { ...raw, vehicle: presentRecord(raw.vehicle, access), access };
 }
 
 /** A lookup before anyone has decided what the caller may see of it. */
-type RawLookupResult = Omit<VehicleLookupResult, 'access'>;
+export type RawLookupResult = Omit<VehicleLookupResult, 'access'>;
 
 export interface VehicleLookupOutcome<Result = VehicleLookupResult> {
   result: Result;
@@ -308,14 +304,19 @@ export interface VehicleLookupOutcome<Result = VehicleLookupResult> {
   };
 }
 
+/**
+ * A lookup for a vehicle on the caller's fleet. The free buttons ask the
+ * `BASIC` tier; the ₹10 RC verification, `STANDARD`.
+ */
 export async function lookupVehicle(
   auth: AuthContext,
   input: VehicleLookupInput,
+  plan: VehicleRcPlan,
 ): Promise<VehicleLookupOutcome> {
   // Checked before the cache as well as the provider: a plate that left the
   // fleet must stop returning its owner's details from a warm cache entry.
   const vehicle = await assertVehicleBelongsToCaller(auth, input.registrationNumber);
-  const outcome = await fetchLookup(auth, input);
+  const outcome = await fetchLookup(auth, input, plan);
 
   // A fresh record is the evidence ownership waits on, so settle it before
   // deciding what this answer may show.
@@ -354,6 +355,40 @@ export async function prefillVehicleFromRc(
   auth: AuthContext,
   registrationNumber: string,
 ): Promise<{ prefill: VehicleRcPrefill; outcome: VehicleLookupOutcome<RawLookupResult> }> {
+  await assertPlateAddable(auth, registrationNumber);
+  // Free to the customer, so the free tier: RC Details Lite.
+  const outcome = await fetchLookup(auth, { registrationNumber, refresh: false }, 'BASIC');
+  return { prefill: prefillFrom(outcome.result), outcome };
+}
+
+/**
+ * The add-vehicle draft from what Saarthi already holds for this account.
+ *
+ * How the form is filled after full details are paid for: the payment settles
+ * on the server, so the browser reads the stored record back here rather than
+ * from the payment's reply. Never contacts the provider.
+ */
+export async function getStoredPrefill(
+  auth: AuthContext,
+  registrationNumber: string,
+): Promise<VehicleRcPrefill | null> {
+  await assertPlateAddable(auth, registrationNumber);
+  const row = await bestStoredRow(auth.organizationId ?? null, registrationNumber);
+  return row ? prefillFrom(rawResultFromRow(row, registrationNumber)) : null;
+}
+
+/**
+ * May this account add this plate? Asked before anything is spent on it.
+ *
+ * Registration numbers are unique across Saarthi. Another account's
+ * unconfirmed hold does not stop the owner: the draft carries no personal data,
+ * and saving the vehicle is where they must prove the plate is theirs — see
+ * `resolveRegistrationClaim`.
+ */
+export async function assertPlateAddable(
+  auth: AuthContext,
+  registrationNumber: string,
+): Promise<void> {
   if (!auth.organizationId) {
     throw errors.organizationRequired('Your account is not linked to an organization, so it cannot add vehicles.');
   }
@@ -362,9 +397,6 @@ export async function prefillVehicleFromRc(
     where: { registrationNumber },
     select: { organizationId: true, ownershipStatus: true },
   });
-  // Another account's unconfirmed hold does not stop the owner: the draft
-  // carries no personal data, and saving the vehicle is where they must prove
-  // the plate is theirs — see `resolveRegistrationClaim`.
   const claimable =
     existing?.organizationId !== auth.organizationId &&
     existing?.ownershipStatus !== VehicleOwnershipStatus.VERIFIED;
@@ -375,15 +407,15 @@ export async function prefillVehicleFromRc(
         : `${registrationNumber} is already registered on Saarthi by another account. If it is yours, contact support.`,
     );
   }
+}
 
-  const outcome = await fetchLookup(auth, { registrationNumber, refresh: false });
+/** The add-vehicle form's draft: vehicle details only, never the owner's. */
+function prefillFrom(result: RawLookupResult): VehicleRcPrefill {
   return {
-    prefill: {
-      lookupId: outcome.result.lookupId,
-      registrationNumber,
-      draft: vehicleDraftFromRc(outcome.result.vehicle),
-    },
-    outcome,
+    lookupId: result.lookupId,
+    registrationNumber: result.registrationNumber,
+    draft: vehicleDraftFromRc(result.vehicle),
+    detailLevel: result.detailLevel,
   };
 }
 
@@ -401,7 +433,8 @@ export async function fetchRcForOwnershipClaim(
   auth: AuthContext,
   registrationNumber: string,
 ): Promise<void> {
-  const outcome = await fetchLookup(auth, { registrationNumber, refresh: false });
+  // The claim needs only the owner's name, which the free tier carries.
+  const outcome = await fetchLookup(auth, { registrationNumber, refresh: false }, 'BASIC');
 
   await recordAudit({
     action: AuditAction.VEHICLE_RC_LOOKUP,
@@ -419,18 +452,122 @@ export async function fetchRcForOwnershipClaim(
   });
 }
 
+/** Stored records that hold full details: paid for, or from a ₹10 RC verification. */
+const FULL_SERVICES = [VehicleRcService.TEXT_PDF, VehicleRcService.ADVANCED];
+
+/** No payment stands in front of this lookup. */
+const openGate: ProviderCallGate = async () => undefined;
+
+/**
+ * The record to show for a vehicle: the newest one with full details, else the
+ * newest of any kind. Full details, once bought, are never hidden by a later
+ * free basic fetch.
+ */
+async function bestStoredRow(organizationId: string | null, registrationNumber: string) {
+  return (
+    (await prisma.vehicleLookup.findFirst({
+      where: { registrationNumber, organizationId, service: { in: FULL_SERVICES } },
+      orderBy: { fetchedAt: 'desc' },
+    })) ??
+    (await prisma.vehicleLookup.findFirst({
+      where: { registrationNumber, organizationId },
+      orderBy: { fetchedAt: 'desc' },
+    }))
+  );
+}
+
+type LookupRow = NonNullable<Awaited<ReturnType<typeof bestStoredRow>>>;
+
+function rawResultFromRow(row: LookupRow, registrationNumber: string): RawLookupResult {
+  return {
+    lookupId: row.id,
+    registrationNumber,
+    vehicle: row.responseData as unknown as VehicleRcRecord,
+    cached: true,
+    retrievedAt: row.fetchedAt.toISOString(),
+    expiresAt: row.expiresAt.toISOString(),
+    pdfAvailable: Boolean(row.pdfStorageKey),
+    detailLevel: rcDetailLevel(row.service),
+    providerReference: row.providerReference,
+  };
+}
+
+function cachedOutcome(
+  row: LookupRow,
+  registrationNumber: string,
+): VehicleLookupOutcome<RawLookupResult> {
+  return {
+    result: rawResultFromRow(row, registrationNumber),
+    // A cache hit costs nothing, so it neither consumes nor reports budget.
+    budgetRemaining: null,
+    audit: {
+      lookupId: row.id,
+      registrationNumber,
+      cached: true,
+      pdfStored: Boolean(row.pdfStorageKey),
+      providerReference: row.providerReference,
+    },
+  };
+}
+
+/**
+ * Fill what the paid record left blank from the free one: the newest record
+ * Saarthi holds for this vehicle, else an RC Details Lite lookup now. Never
+ * fails the paid lookup; without a basic record the paid one stands alone.
+ * See `mergeRcRecords` for why both are needed.
+ */
+async function withBasicFields(
+  organizationId: string | null,
+  registrationNumber: string,
+  record: VehicleRcRecord,
+): Promise<VehicleRcRecord> {
+  const stored = await prisma.vehicleLookup.findFirst({
+    where: { registrationNumber, organizationId },
+    orderBy: { fetchedAt: 'desc' },
+    select: { responseData: true },
+  });
+  if (stored) return mergeRcRecords(record, stored.responseData as unknown as VehicleRcRecord);
+
+  try {
+    await reserveProviderCall();
+    const basic = await requireVehicleRcProvider().lookup({ registrationNumber, plan: 'BASIC' });
+    return mergeRcRecords(record, basic.record);
+  } catch (error) {
+    serviceLogger.warn(
+      { err: error, plate: maskRegistration(registrationNumber) },
+      'Basic RC lookup to complete the full record failed — keeping the full record alone',
+    );
+    return record;
+  }
+}
+
 /**
  * The lookup itself — cache, budget, provider, stored copy — for a plate
  * already cleared to be looked up. The record comes back unredacted; each
  * caller narrows it for whoever asked.
+ *
+ * `plan` is the tier (`VehicleRcPlan`). The paid one passes Pay & Verify's
+ * `gate`, which stops the preflight just before anything is spent and lets the
+ * call through once the customer has paid.
  */
-async function fetchLookup(
+export async function fetchLookup(
   auth: AuthContext,
   input: VehicleLookupInput,
+  plan: VehicleRcPlan,
+  options: { gate?: ProviderCallGate } = {},
 ): Promise<VehicleLookupOutcome<RawLookupResult>> {
   const registrationNumber = input.registrationNumber;
   const organizationId = auth.organizationId ?? null;
   const ttlSeconds = config.vehicleRc.cacheTtlSeconds;
+
+  // --- A free fetch never replaces full details ---------------------------
+  if (plan === 'BASIC') {
+    const full = await prisma.vehicleLookup.findFirst({
+      where: { registrationNumber, organizationId, service: { in: FULL_SERVICES } },
+      orderBy: { fetchedAt: 'desc' },
+    });
+    if (full) return cachedOutcome(full, registrationNumber);
+  }
 
   // --- Cache -------------------------------------------------------------
   if (!input.refresh && ttlSeconds > 0) {
@@ -439,41 +576,24 @@ async function fetchLookup(
         registrationNumber,
         organizationId,
         expiresAt: { gt: new Date() },
+        // Full details are served only from a record that has them.
+        ...(plan === 'FULL' ? { service: { in: FULL_SERVICES } } : {}),
       },
       orderBy: { fetchedAt: 'desc' },
     });
-
-    if (cached) {
-      const record = cached.responseData as unknown as VehicleRcRecord;
-      return {
-        result: {
-          lookupId: cached.id,
-          registrationNumber,
-          vehicle: record,
-          cached: true,
-          retrievedAt: cached.fetchedAt.toISOString(),
-          expiresAt: cached.expiresAt.toISOString(),
-          pdfAvailable: Boolean(cached.pdfStorageKey),
-          providerReference: cached.providerReference,
-        },
-        // A cache hit costs nothing, so it neither consumes nor reports budget.
-        budgetRemaining: null,
-        audit: {
-          lookupId: cached.id,
-          registrationNumber,
-          cached: true,
-          pdfStored: Boolean(cached.pdfStorageKey),
-          providerReference: cached.providerReference,
-        },
-      };
-    }
+    if (cached) return cachedOutcome(cached, registrationNumber);
   }
 
   // --- Provider ----------------------------------------------------------
+  await (options.gate ?? openGate)();
   const provider = requireVehicleRcProvider();
   // Checked before the call, never after — the point is to not spend it.
   const budgetRemaining = await reserveProviderCall();
-  const lookup = await provider.lookup({ registrationNumber });
+  const lookup = await provider.lookup({ registrationNumber, plan });
+  const record =
+    plan === 'FULL'
+      ? await withBasicFields(organizationId, registrationNumber, lookup.record)
+      : lookup.record;
 
   const pdf = lookup.pdfUrl
     ? await storeRcDocument(lookup.pdfUrl, registrationNumber, organizationId)
@@ -495,8 +615,9 @@ async function fetchLookup(
       organizationId,
       requestedById: auth.user.id,
       provider: provider.name,
+      service: lookup.service,
       providerReference: lookup.providerReference,
-      responseData: lookup.record as unknown as object,
+      responseData: record as unknown as object,
       pdfStorageKey: pdf?.storageKey ?? null,
       pdfFileName: pdf?.fileName ?? null,
       pdfMimeType: pdf?.mimeType ?? null,
@@ -510,11 +631,12 @@ async function fetchLookup(
     result: {
       lookupId: stored.id,
       registrationNumber,
-      vehicle: lookup.record,
+      vehicle: record,
       cached: false,
       retrievedAt: fetchedAt.toISOString(),
       expiresAt: expiresAt.toISOString(),
       pdfAvailable: Boolean(pdf),
+      detailLevel: rcDetailLevel(lookup.service),
       providerReference: lookup.providerReference,
     },
     budgetRemaining,

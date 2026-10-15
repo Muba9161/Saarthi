@@ -3,10 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { AlertTriangle, BadgeCheck, Cpu, Gauge, IdCard, Plus, Search, Truck } from 'lucide-react';
+import { AlertTriangle, Cpu, Gauge, IdCard, Plus, Search, Truck } from 'lucide-react';
 import { toast } from 'sonner';
 import {
-  Feature,
   FuelType,
   Permission,
   TruckStatus,
@@ -387,6 +386,7 @@ function AddTruckDialog({
             {rc.prefill ? (
               <RcPrefilledNotice
                 registrationNumber={rc.prefill.registrationNumber}
+                detailLevel={rc.prefill.detailLevel}
                 typeWarning={rcTypeWarning}
                 onRestart={() => {
                   setRcTypeWarning(null);
@@ -435,7 +435,7 @@ function AddTruckDialog({
 }
 
 export function TrucksPage() {
-  const { can, hasFeature } = useAuth();
+  const { can } = useAuth();
   const navigate = useNavigate();
   const [page, setPage] = React.useState(1);
   const [search, setSearch] = React.useState('');
@@ -444,16 +444,6 @@ export function TrucksPage() {
   /** The truck just added, held while its QR is shown. */
   const [added, setAdded] = React.useState<TruckSummary | null>(null);
 
-  /*
-    The RC lookup used to have a sidebar entry of its own, which only repeated
-    the Registration tab every vehicle already carries. What it uniquely does is
-    read the RTO record for a plate that is *not* in this fleet - a
-    subcontractor's truck before a load is assigned, or one being bought - so it
-    belongs here, beside Add truck, rather than in a menu an operator scrolls
-    past every day. Gated on exactly what the removed menu item required, so the
-    button never leads to a locked screen.
-  */
-  const canLookUpPlate = can(Permission.VEHICLE_LOOKUP) && hasFeature(Feature.FLEET_BASIC);
   const canAddTruck = can(Permission.TRUCKS_CREATE);
 
   // Debounce so typing does not fire a request per keystroke.
@@ -586,21 +576,11 @@ export function TrucksPage() {
         title="Trucks"
         description="Every vehicle in your fleet, with live status and document health."
         actions={
-          canLookUpPlate || canAddTruck ? (
-            <>
-              {canLookUpPlate ? (
-                <Button variant="outline" onClick={() => navigate('/fleet/rc-lookup')}>
-                  <BadgeCheck className="size-4" />
-                  Look up a plate
-                </Button>
-              ) : null}
-              {canAddTruck ? (
-                <Button onClick={() => setAddOpen(true)}>
-                  <Plus className="size-4" />
-                  Add truck
-                </Button>
-              ) : null}
-            </>
+          canAddTruck ? (
+            <Button onClick={() => setAddOpen(true)}>
+              <Plus className="size-4" />
+              Add truck
+            </Button>
           ) : null
         }
       />

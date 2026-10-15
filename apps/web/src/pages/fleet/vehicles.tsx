@@ -3,7 +3,6 @@ import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Activity, AlertTriangle, BadgeCheck, Car, Cpu, Truck } from 'lucide-react';
 import {
-  Feature,
   OrganizationType,
   Permission,
   PlanTier,
@@ -66,11 +65,7 @@ const STATUS_FILTERS = [
 
 export function VehiclesPage() {
   const navigate = useNavigate();
-  const { can, hasFeature, session } = useAuth();
-  // Same reasoning as the Trucks screen: the RC lookup lost its sidebar entry
-  // because it repeated each vehicle's own Registration tab, and this is where
-  // a plate from outside the fleet gets looked up.
-  const canLookUpPlate = can(Permission.VEHICLE_LOOKUP) && hasFeature(Feature.FLEET_BASIC);
+  const { can, session } = useAuth();
   const canAddVehicle = can(Permission.VEHICLES_CREATE);
   /*
    * Mine / Shared with me. Kept in the URL so the notification that says a
@@ -359,26 +354,14 @@ export function VehiclesPage() {
               : 'Trucks, taxis, buses and vans across the whole organization.'
         }
         actions={
-          canLookUpPlate || canAddVehicle ? (
-            <>
-              {canLookUpPlate ? (
-                <Button variant="outline" onClick={() => navigate('/fleet/rc-lookup')}>
-                  <BadgeCheck className="size-4" />
-                  Look up a plate
-                </Button>
-              ) : null}
-              {canAddVehicle ? (
-                // A travel operator has no other way in — there is no Trucks screen
-                // for them — so the type list is narrowed rather than hidden.
-                <AddVehicleDialog
-                  {...addableTypeProps}
-                  defaultType={
-                    isTravelOperator || isPersonalSeat ? VehicleType.CAR : VehicleType.TRUCK
-                  }
-                  onAdded={setAdded}
-                />
-              ) : null}
-            </>
+          canAddVehicle ? (
+            // A travel operator has no other way in — there is no Trucks screen
+            // for them — so the type list is narrowed rather than hidden.
+            <AddVehicleDialog
+              {...addableTypeProps}
+              defaultType={isTravelOperator || isPersonalSeat ? VehicleType.CAR : VehicleType.TRUCK}
+              onAdded={setAdded}
+            />
           ) : null
         }
       />

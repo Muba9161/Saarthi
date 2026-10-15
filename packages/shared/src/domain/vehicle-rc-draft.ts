@@ -1,5 +1,5 @@
 import { FuelType, TruckType, VehicleCapability, VehicleCategory, VehicleType } from './enums';
-import type { VehicleRcRecord } from './vehicle-rc';
+import type { RcDetailLevel, VehicleRcRecord } from './vehicle-rc';
 import { vehicleSupports } from './vehicles';
 
 /**
@@ -241,4 +241,6 @@ export interface VehicleRcPrefill {
   lookupId: string;
   registrationNumber: string;
   draft: VehicleRcDraft;
+  /** Whether the form was filled from the free basic record or the paid full one. */
+  detailLevel: RcDetailLevel;
 }

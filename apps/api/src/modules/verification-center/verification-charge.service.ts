@@ -106,6 +106,16 @@ function outcomeState(outcome: CheckRunOutcome): VerificationStepState {
 
 /** The same permissions the direct verify routes require. */
 function assertMayRun(auth: AuthContext, input: StartVerificationInput): void {
+  // Full vehicle details are an RC lookup, so they are gated like the free one.
+  if (input.kind === VerificationCheckType.VEHICLE_RC_DETAILS) {
+    if (!auth.isPlatformAdmin && !hasPermission(auth.permissions, Permission.VEHICLE_LOOKUP)) {
+      throw errors.forbidden('Your role cannot look up vehicle registrations.');
+    }
+    if (!hasFeature(auth, Feature.FLEET_BASIC)) {
+      throw errors.featureNotAvailable(Feature.FLEET_BASIC);
+    }
+    return;
+  }
   if (identityKindForCheckType(input.kind)) {
     if (!auth.isPlatformAdmin && !hasPermission(auth.permissions, Permission.IDENTITY_VERIFY)) {
       throw errors.forbidden('Your role cannot run identity checks.');

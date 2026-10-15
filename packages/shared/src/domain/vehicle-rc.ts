@@ -147,6 +147,33 @@ export const RcDetailAccess = {
 } as const;
 export type RcDetailAccess = (typeof RcDetailAccess)[keyof typeof RcDetailAccess];
 
+/** The Way2API service a stored RC record came from. */
+export const VehicleRcService = {
+  /** RC Details Lite: the record only, often thin. The free tier. */
+  LITE: 'LITE',
+  /** Vehicle RC Text + PDF: one registry source plus the certificate. */
+  TEXT_PDF: 'TEXT_PDF',
+  /** RC Details Advanced, merged with Lite: the paid tier, with the certificate. */
+  ADVANCED: 'ADVANCED',
+} as const;
+export type VehicleRcService = (typeof VehicleRcService)[keyof typeof VehicleRcService];
+
+/**
+ * How much of a vehicle a record describes: `BASIC` is the free tier, `FULL`
+ * the paid one. A Text + PDF record counts as full: it is a complete record
+ * with its certificate, bought by a ₹10 RC verification or held from before
+ * the tiers existed.
+ */
+export const RcDetailLevel = {
+  BASIC: 'BASIC',
+  FULL: 'FULL',
+} as const;
+export type RcDetailLevel = (typeof RcDetailLevel)[keyof typeof RcDetailLevel];
+
+export function rcDetailLevel(service: VehicleRcService): RcDetailLevel {
+  return service === VehicleRcService.LITE ? RcDetailLevel.BASIC : RcDetailLevel.FULL;
+}
+
 /** `Jagatsinghapur, 754119` → `PIN 754119`: the area, never the house. */
 function pinCodeOnly(address: string | null): string | null {
   const pin = address?.match(/\b\d{6}\b/g)?.pop();
@@ -190,6 +217,8 @@ export interface VehicleLookupResult {
   expiresAt: string | null;
   /** A stored RC PDF exists. Downloading it takes `FULL` access. */
   pdfAvailable: boolean;
+  /** Free basic record, or the paid full one; decides whether to offer full details. */
+  detailLevel: RcDetailLevel;
   /** How much of `vehicle` this caller was shown — see `RcDetailAccess`. */
   access: RcDetailAccess;
   /** Provider order reference, useful when raising a support ticket. */

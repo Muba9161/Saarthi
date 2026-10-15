@@ -1,4 +1,4 @@
-import type { VehicleRcRecord } from '@saarthi/shared';
+import type { VehicleRcRecord, VehicleRcService } from '@saarthi/shared';
 
 /**
  * Vehicle RC provider contract.
@@ -9,9 +9,19 @@ import type { VehicleRcRecord } from '@saarthi/shared';
  * file in this folder and one line in the factory.
  */
 
+/**
+ * Which RC lookup to run, and so which services answer it, in order.
+ *
+ *  - `BASIC`: the free tier. RC Details Lite, and nothing else.
+ *  - `FULL`: the paid tier. RC Details Advanced, or Text + PDF when it is down.
+ *  - `STANDARD`: the ₹10 RC verification. Text + PDF, or Lite when it is down.
+ */
+export type VehicleRcPlan = 'BASIC' | 'FULL' | 'STANDARD';
+
 export interface VehicleRcLookup {
   /** Already normalised, e.g. `UP32AB1234`. */
   registrationNumber: string;
+  plan: VehicleRcPlan;
 }
 
 export interface VehicleRcPdfDocument {
@@ -29,6 +39,8 @@ export interface VehicleRcLookupResult {
   pdfUrl: string | null;
   /** Provider-side order/reference id, for support and billing queries. */
   providerReference: string | null;
+  /** The service that answered: the plan's first, or its fallback. */
+  service: VehicleRcService;
 }
 
 export interface VehicleRcProvider {

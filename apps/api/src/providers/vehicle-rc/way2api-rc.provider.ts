@@ -1,4 +1,4 @@
-import type { VehicleRcRecord } from '@saarthi/shared';
+import { VehicleRcService, type VehicleRcRecord } from '@saarthi/shared';
 import { config } from '../../config/env';
 import { errors } from '../../lib/errors';
 import { logger } from '../../lib/logger';
@@ -8,15 +8,16 @@ import {
   type VehicleRcLookup,
   type VehicleRcLookupResult,
   type VehicleRcPdfDocument,
+  type VehicleRcPlan,
   type VehicleRcProvider,
 } from './vehicle-rc.provider';
 
 /**
- * Way2API vehicle RC adapter: "Vehicle RC Text + PDF", falling back to
- * "RC Details Lite" when Text + PDF is down.
+ * Way2API vehicle RC adapter: "RC Details Lite", "Vehicle RC Text + PDF" and
+ * "RC Details Advanced", asked in the order the lookup's plan sets.
  *
  * Contract notes that shape this file:
- *  * The two services take the same request and return the same record and
+ *  * The three services take the same request and return the same record and
  *    message codes. Lite has no `pdf_url`, so a lookup it answers stores no
  *    certificate and the UI says none was produced.
  *  * Every response is HTTP-shaped *and* body-shaped. A 200 does not mean the
@@ -30,19 +31,31 @@ import {
  *    error, or included in anything that reaches a client.
  */
 
-const TEXT_PDF_PATH = '/api/v1/rc/text-pdf';
-const LITE_PATH = '/api/v1/rc/lite';
 const PROVIDER_NAME = 'way2api';
 
+const SERVICES: Record<VehicleRcService, { path: string; label: string }> = {
+  [VehicleRcService.LITE]: { path: '/api/v1/rc/lite', label: 'RC Details Lite' },
+  [VehicleRcService.TEXT_PDF]: { path: '/api/v1/rc/text-pdf', label: 'Vehicle RC Text + PDF' },
+  [VehicleRcService.ADVANCED]: { path: '/api/v1/rc/advanced', label: 'RC Details Advanced' },
+};
+
+/** The services a plan asks, first to last; see `VehicleRcPlan`. */
+const PLAN_SERVICES: Record<VehicleRcPlan, readonly VehicleRcService[]> = {
+  BASIC: [VehicleRcService.LITE],
+  FULL: [VehicleRcService.ADVANCED, VehicleRcService.TEXT_PDF],
+  STANDARD: [VehicleRcService.TEXT_PDF, VehicleRcService.LITE],
+};
+
 /**
- * Text + PDF failures that send the lookup on to RC Details Lite.
+ * Failures that send a lookup on to the plan's next service.
  *
  * Only failures Way2API does not charge for, and that say nothing about the
  * vehicle: the service is down, broken, or not on this account. A "no record"
- * is an answer Lite would repeat and charge for; a timeout or a pending order
- * may still be billed, so asking again could pay twice for one vehicle.
+ * is an answer the next service would repeat and charge for; a timeout or a
+ * pending order may still be billed, so asking again could pay twice for one
+ * vehicle.
  */
-const LITE_FALLBACK_CODES: ReadonlySet<string> = new Set([
+const FALLBACK_CODES: ReadonlySet<string> = new Set([
   'REQUEST_FAILED',
   'PROVIDER_UNAVAILABLE',
   'INTERNAL_ERROR',
@@ -263,18 +276,20 @@ function providerMessage(body: Way2ApiEnvelope): string | undefined {
   return message.replace(PLATE_PATTERN, maskRegistration).slice(0, 200);
 }
 
+/** A lookup result before `lookup` adds which service gave it. */
+type ServiceAnswer = Omit<VehicleRcLookupResult, 'service'>;
+
 /** What one RC service sent back. */
 interface RcAnswer {
   response: Response;
   body: Way2ApiEnvelope;
 }
 
-/** Whether Text + PDF's answer means "down" rather than anything about the vehicle. */
-function shouldAskLite(answer: RcAnswer | null): boolean {
+/** Whether an answer means the service is down, rather than anything about the vehicle. */
+function isServiceDown(answer: RcAnswer | null): boolean {
   if (!answer) return true;
   return (
-    answer.response.status >= 500 ||
-    LITE_FALLBACK_CODES.has(String(answer.body.message_code ?? ''))
+    answer.response.status >= 500 || FALLBACK_CODES.has(String(answer.body.message_code ?? ''))
   );
 }
 
@@ -302,23 +317,30 @@ export class Way2ApiRcProvider implements VehicleRcProvider {
     return true;
   }
 
-  /** Text + PDF first, for the certificate; RC Details Lite when it is down. */
+  /** The plan's services in order, moving on only when one is down. */
   async lookup(input: VehicleRcLookup): Promise<VehicleRcLookupResult> {
     const plate = maskRegistration(input.registrationNumber);
-    const primary = await this.ask(TEXT_PDF_PATH, input.registrationNumber, plate);
-    if (!shouldAskLite(primary)) return this.settle(primary, plate);
+    const [first, ...fallbacks] = PLAN_SERVICES[input.plan];
+    if (!first) throw new Error(`No RC service for plan ${input.plan}.`);
 
-    logger.warn(
-      {
-        provider: this.name,
-        plate,
-        status: primary?.response.status ?? null,
-        messageCode: primary ? String(primary.body.message_code ?? '') : null,
-        providerMessage: primary ? providerMessage(primary.body) : undefined,
-      },
-      'Vehicle RC Text + PDF failed; asking RC Details Lite',
-    );
-    return this.settle(await this.ask(LITE_PATH, input.registrationNumber, plate), plate);
+    let service = first;
+    let answer = await this.ask(SERVICES[service].path, input.registrationNumber, plate);
+    for (const next of fallbacks) {
+      if (!isServiceDown(answer)) break;
+      logger.warn(
+        {
+          provider: this.name,
+          plate,
+          status: answer?.response.status ?? null,
+          messageCode: answer ? String(answer.body.message_code ?? '') : null,
+          providerMessage: answer ? providerMessage(answer.body) : undefined,
+        },
+        `${SERVICES[service].label} failed; asking ${SERVICES[next].label}`,
+      );
+      service = next;
+      answer = await this.ask(SERVICES[service].path, input.registrationNumber, plate);
+    }
+    return { ...this.settle(answer, plate), service };
   }
 
   /**
@@ -368,7 +390,7 @@ export class Way2ApiRcProvider implements VehicleRcProvider {
   }
 
   /** An answer as a record, or as the error it amounts to. */
-  private settle(answer: RcAnswer | null, plate: string): VehicleRcLookupResult {
+  private settle(answer: RcAnswer | null, plate: string): ServiceAnswer {
     if (!answer) {
       throw errors.providerUnavailable(
         this.name,
@@ -496,7 +518,7 @@ export class Way2ApiRcProvider implements VehicleRcProvider {
   }
 
   /** Verification outcome and payload extraction. */
-  private toResult(body: Way2ApiEnvelope, plate: string): VehicleRcLookupResult {
+  private toResult(body: Way2ApiEnvelope, plate: string): ServiceAnswer {
     const code = String(body.message_code ?? '');
     const reference = body.data?.order_id ?? body.order_id ?? null;
 

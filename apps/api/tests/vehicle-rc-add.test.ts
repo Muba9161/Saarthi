@@ -99,9 +99,10 @@ function rcEnvelope() {
   };
 }
 
+/** Answers whichever RC service is asked: adding a vehicle fetches the free tier, RC Details Lite. */
 function stubProvider() {
   const fetchMock = vi.fn(async (input: unknown) => {
-    if (String(input).includes('/api/v1/rc/text-pdf')) {
+    if (String(input).includes('/api/v1/rc/')) {
       return new Response(JSON.stringify(rcEnvelope()), {
         status: 200,
         headers: { 'content-type': 'application/json' },
@@ -114,7 +115,7 @@ function stubProvider() {
 }
 
 const rcCalls = (fetchMock: ReturnType<typeof stubProvider>) =>
-  fetchMock.mock.calls.filter(([input]) => String(input).includes('/api/v1/rc/text-pdf')).length;
+  fetchMock.mock.calls.filter(([input]) => String(input).includes('/api/v1/rc/')).length;
 
 describe('adding a vehicle from its RC number', () => {
   let fleet: TestOrganization;

@@ -212,8 +212,11 @@ export const router = createBrowserRouter([
                 element: lazyPage(() => import('@/pages/fleet/driver-detail')),
               },
               {
+                // Retired: RC details live on each vehicle's page, with the free
+                // basic fetch and the ₹20 full details. Kept as a redirect so an
+                // old bookmark lands on the vehicles list, not a 404.
                 path: '/fleet/rc-lookup',
-                element: lazyPage(() => import('@/pages/fleet/rc-lookup')),
+                element: <Navigate to="/fleet/vehicles" replace />,
               },
               {
                 path: '/fleet/maintenance',

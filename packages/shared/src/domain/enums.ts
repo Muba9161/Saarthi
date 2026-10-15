@@ -1247,6 +1247,8 @@ export const VerificationCheckType = asEnum({
   GST: 'GST',
   DRIVING_LICENCE: 'DRIVING_LICENCE',
   VEHICLE_RC: 'VEHICLE_RC',
+  /** Not a verification: the paid full RC record (RC Details Advanced). */
+  VEHICLE_RC_DETAILS: 'VEHICLE_RC_DETAILS',
 });
 export type VerificationCheckType = EnumValue<typeof VerificationCheckType>;
 

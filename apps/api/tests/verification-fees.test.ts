@@ -204,7 +204,7 @@ afterEach(() => {
 // ---------------------------------------------------------------------------
 
 describe('verification pricing', () => {
-  it('prices every billable check at ₹10 and never shows the provider cost', async () => {
+  it('prices every verification at ₹10, full vehicle details at ₹20, and never shows the provider cost', async () => {
     const response = await request<Record<string, unknown>[]>({
       method: 'GET',
       url: '/api/v1/verification-center/prices',
@@ -213,9 +213,17 @@ describe('verification pricing', () => {
 
     expect(response.status).toBe(200);
     const types = response.body.data.map((row) => row.checkType).sort();
-    expect(types).toEqual(['AADHAAR', 'DRIVING_LICENCE', 'GST', 'PAN', 'VEHICLE_RC', 'VOTER_ID']);
+    expect(types).toEqual([
+      'AADHAAR',
+      'DRIVING_LICENCE',
+      'GST',
+      'PAN',
+      'VEHICLE_RC',
+      'VEHICLE_RC_DETAILS',
+      'VOTER_ID',
+    ]);
     for (const row of response.body.data) {
-      expect(row.amount).toBe(10);
+      expect(row.amount).toBe(row.checkType === 'VEHICLE_RC_DETAILS' ? 20 : 10);
       expect(row.currency).toBe('INR');
       expect(row).not.toHaveProperty('providerCost');
       expect(row).not.toHaveProperty('provider');

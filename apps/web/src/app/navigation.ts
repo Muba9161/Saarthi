@@ -246,13 +246,11 @@ export const FLEET_NAVIGATION: NavSection[] = [
       // page — so a menu row pointing at a fleet-wide list of codes only asked
       // the operator to match registration numbers by eye. `/qr` still exists
       // as the register of every code, reached from a vehicle or driver.
-      // There is deliberately no "Vehicle registration" entry. That screen is
-      // nothing but `RcLookupPanel`, which every vehicle already carries on its
-      // own Registration tab - the same arrangement as the driver licence
-      // lookup, which lives on the driver's page and has never had a menu entry
-      // of its own. `/fleet/rc-lookup` still exists for the one case a vehicle
-      // page cannot serve, a plate that is not in the fleet at all, and is
-      // reached from the button on the Trucks screen.
+      // There is deliberately no "Vehicle registration" entry. A vehicle's RC
+      // lives on its own page, with the free basic fetch and the ₹20 full
+      // details - the same arrangement as the driver licence lookup, which
+      // lives on the driver's page. The separate lookup screen was retired on
+      // 2026-10-15; `/fleet/rc-lookup` now redirects to the vehicles list.
     ],
   },
   {

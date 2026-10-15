@@ -50,7 +50,12 @@ export function providerAvailable(
   if (provider !== VerificationProviderName.WAY2API) return false;
   if (identityKindForCheckType(checkType)) return identityProviderConfigured;
   if (checkType === VerificationCheckType.DRIVING_LICENCE) return drivingLicenceProvider !== null;
-  if (checkType === VerificationCheckType.VEHICLE_RC) return vehicleRcProvider !== null;
+  if (
+    checkType === VerificationCheckType.VEHICLE_RC ||
+    checkType === VerificationCheckType.VEHICLE_RC_DETAILS
+  ) {
+    return vehicleRcProvider !== null;
+  }
   return false;
 }
 

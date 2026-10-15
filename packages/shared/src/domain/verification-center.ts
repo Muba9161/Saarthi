@@ -30,6 +30,7 @@ export const VERIFICATION_CHECK_LABELS: Record<VerificationCheckType, string> = 
   [VerificationCheckType.GST]: 'GST',
   [VerificationCheckType.DRIVING_LICENCE]: 'Driving licence',
   [VerificationCheckType.VEHICLE_RC]: 'Vehicle RC',
+  [VerificationCheckType.VEHICLE_RC_DETAILS]: 'Full vehicle details',
 };
 
 /** The billable check an identity kind is charged as. */

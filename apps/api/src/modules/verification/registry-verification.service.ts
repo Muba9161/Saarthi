@@ -264,10 +264,12 @@ async function verifyTruck(
   await gate();
 
   try {
-    const { result } = await vehicleLookupService.lookupVehicle(auth, {
-      registrationNumber: plate,
-      refresh: input.refresh,
-    });
+    // The ₹10 check keeps its own services: Text + PDF, then Lite.
+    const { result } = await vehicleLookupService.lookupVehicle(
+      auth,
+      { registrationNumber: plate, refresh: input.refresh },
+      'STANDARD',
+    );
 
     return settle(auth, {
       subjectType: VerificationSubjectType.TRUCK,

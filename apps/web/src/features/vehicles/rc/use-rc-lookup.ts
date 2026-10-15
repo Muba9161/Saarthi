@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import {
   ErrorCode,
   RcDetailAccess,
+  RcDetailLevel,
   isPlausibleIndianRegistration,
   normalizeRegistrationNumber,
   type VehicleLookupResult,
@@ -200,7 +201,9 @@ export function useRcLookup(fixedPlate?: string) {
   );
 
   const downloadTitle = !result?.pdfAvailable
-    ? 'The provider did not produce a document for this vehicle'
+    ? result?.detailLevel === RcDetailLevel.BASIC
+      ? 'The RC certificate comes with full details'
+      : 'The provider did not produce a document for this vehicle'
     : result.access === RcDetailAccess.OWNERSHIP_REQUIRED
       ? 'Available once this account has confirmed it owns the vehicle'
       : 'Download the RC certificate';
@@ -235,6 +238,11 @@ export function useRcLookup(fixedPlate?: string) {
     /** A failure other than "no such vehicle". */
     failure: lookup.error && !notFound ? lookup.error : null,
     submit,
+    /** Read the stored record again, e.g. once full details have been bought. */
+    reload: () => {
+      const plate = fixedPlate ?? result?.registrationNumber;
+      if (plate) void reloadRecord(plate);
+    },
     downloading,
     canDownload,
     downloadTitle,

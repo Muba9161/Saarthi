@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Car, Download, RefreshCw, Search } from 'lucide-react';
-import { RcDetailAccess, formatRegistrationNumber } from '@saarthi/shared';
+import { RcDetailAccess, RcDetailLevel, formatRegistrationNumber } from '@saarthi/shared';
 import { EmptyState, ErrorState, LoadingState } from '@/components/common/states';
 import { SecureUnlockDialog } from '@/features/secure-access/secure-unlock-dialog';
 import { useSubjectQrCode } from '@/features/qr/subject-qr-panel';
@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { Panel } from '../detail/panel';
 import { SWITCH_LIST_CLASS, SWITCH_TRIGGER_CLASS } from '../detail/section-switch';
+import { FullDetailsOffer } from './full-details-offer';
 import { MASKED_REASON, useRcLookup } from './use-rc-lookup';
 import { VirtualRcPaper, type RcSide } from './virtual-rc-paper';
 
@@ -18,8 +19,13 @@ import { VirtualRcPaper, type RcSide } from './virtual-rc-paper';
  * The Virtual RC tab: the vehicle's RTO record, printed as a certificate.
  *
  * Every behaviour is the RC lookup's own (`useRcLookup`) — the free stored
- * record on open, a paid lookup only when asked, Refresh to bypass the cache,
- * the PDF download and the secure-PIN unlock. Only the presentation is new.
+ * record on open, a lookup only when asked, Refresh to bypass the cache, the
+ * PDF download and the secure-PIN unlock. Only the presentation is new.
+ *
+ * Free lookups fetch basic details. While the vehicle has only those, or none,
+ * the ₹20 full details are offered beside them (`FullDetailsOffer`); once it
+ * has full details there is no free Refresh, since a basic fetch never
+ * replaces a full one.
  */
 
 function printedDate(value: string): string {
@@ -60,19 +66,27 @@ export function VirtualRc({
     if (rc.failure) return <ErrorState error={rc.failure} onRetry={() => rc.submit(false)} />;
     if (!result) {
       return (
-        <Panel className="flex flex-col items-center gap-3 py-12 text-center">
-          <p className="text-[15px] font-semibold">No RC on file yet</p>
-          <p className="max-w-md text-sm text-muted-foreground">
-            Pull the record from the RTO and it is printed here as this vehicle&rsquo;s Virtual RC.
-            Repeat views are served from Saarthi&rsquo;s cache.
-          </p>
-          <Button className="mt-1 rounded-[12px]" onClick={() => rc.submit(false)}>
-            <Search className="size-4" />
-            Get details from the RTO
-          </Button>
-        </Panel>
+        <div className="space-y-4">
+          <Panel className="flex flex-col items-center gap-3 py-12 text-center">
+            <p className="text-[15px] font-semibold">No RC on file yet</p>
+            <p className="max-w-md text-sm text-muted-foreground">
+              Pull the record from the RTO and it is printed here as this vehicle&rsquo;s Virtual
+              RC. Repeat views are served from Saarthi&rsquo;s cache.
+            </p>
+            <Button
+              variant="outline"
+              className="mt-1 rounded-[12px]"
+              onClick={() => rc.submit(false)}
+            >
+              <Search className="size-4" />
+              <span>Get basic details · Free</span>
+            </Button>
+          </Panel>
+          <FullDetailsOffer vehicleId={vehicleId} onFetched={rc.reload} />
+        </div>
       );
     }
+    const basic = result.detailLevel === RcDetailLevel.BASIC;
 
     const asOf = printedDate(result.vehicle.dataAsOf ?? result.retrievedAt);
     const paper = (paperSide: RcSide) => (
@@ -104,22 +118,29 @@ export function VirtualRc({
             <span className="text-[13px] text-muted-foreground">
               Fetched from the RTO register · {printedDate(result.retrievedAt)}
             </span>
+            <Badge variant={basic ? 'muted' : 'success'} size="sm">
+              {basic ? 'Basic details' : 'Full details'}
+            </Badge>
             {result.cached ? (
               <Badge variant="muted" size="sm">
                 From Saarthi cache
               </Badge>
             ) : null}
-            <Button
-              variant="outline"
-              size="sm"
-              className="rounded-[12px]"
-              disabled={rc.lookup.isPending}
-              onClick={() => rc.submit(true)}
-              title="Bypass the cached record and query the RTO again"
-            >
-              <RefreshCw className={cn('size-4', rc.lookup.isPending && 'animate-spin')} />
-              Refresh
-            </Button>
+            {/* Free refreshes fetch basic details, which never replace full
+                ones, so a full record offers no free Refresh. */}
+            {basic ? (
+              <Button
+                variant="outline"
+                size="sm"
+                className="rounded-[12px]"
+                disabled={rc.lookup.isPending}
+                onClick={() => rc.submit(true)}
+                title="Bypass the cached record and query the RTO again"
+              >
+                <RefreshCw className={cn('size-4', rc.lookup.isPending && 'animate-spin')} />
+                <span>Refresh</span>
+              </Button>
+            ) : null}
             <Button
               size="sm"
               className="rounded-[12px]"
@@ -132,6 +153,8 @@ export function VirtualRc({
             </Button>
           </div>
         </div>
+
+        {basic ? <FullDetailsOffer vehicleId={vehicleId} onFetched={rc.reload} /> : null}
 
         {result.access !== RcDetailAccess.FULL ? (
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-[14px] bg-warning/10 py-2.5 pl-4 pr-3 text-sm">
@@ -155,9 +178,11 @@ export function VirtualRc({
           RTO record retrieved {new Date(result.retrievedAt).toLocaleString('en-IN')}
           {result.vehicle.dataAsOf ? ` · provider data as of ${result.vehicle.dataAsOf}` : ''}
           {result.providerReference ? ` · reference ${result.providerReference}` : ''}
-          {!result.pdfAvailable
-            ? ' · No RC document was produced for this lookup; use Refresh to ask the provider again.'
-            : ''}
+          {result.pdfAvailable
+            ? ''
+            : basic
+              ? ' · The RC certificate comes with full details.'
+              : ' · No RC document was produced for this lookup.'}
         </p>
       </Tabs>
     );

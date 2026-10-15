@@ -1,4 +1,5 @@
 import {
+  ErrorCode,
   IdentityVerificationOutcome,
   VerificationCheckType,
   VerificationSubjectType,
@@ -6,10 +7,14 @@ import {
   maskIdentityNumber,
   normalizeIdentityNumber,
   type StartVerificationInput,
+  type VehicleRcDetailsCheckInput,
   type VerifyIdentityInput,
 } from '@saarthi/shared';
+import { AppError } from '../../lib/errors';
 import { hashIdentityNumber } from '../../lib/identity-crypto';
 import type { ProviderCallGate } from '../../lib/provider-call-gate';
+import { maskRegistration } from '../../providers/vehicle-rc';
+import { fetchFullDetails } from '../vehicle-lookup/rc-full-details.service';
 import { AuditAction, recordAudit } from '../audit/audit.service';
 import {
   canSeeIdentityHolderData,
@@ -103,6 +108,8 @@ export async function runVerificationCheck(
     };
   }
 
+  if (input.kind === VerificationCheckType.VEHICLE_RC_DETAILS) return runFullDetails(auth, input, gate);
+
   const subjectType =
     input.kind === VerificationCheckType.VEHICLE_RC
       ? VerificationSubjectType.TRUCK
@@ -154,4 +161,49 @@ export async function runVerificationCheck(
     resultId: result.case.id,
     detail: result,
   };
+}
+
+/**
+ * The paid full RC record. Not a verification, but sold and settled like one.
+ *
+ * "Verified" here means the record was obtained. The RTO having no record is a
+ * definite answer the provider bills for, so it uses the attempt up, exactly
+ * as it does for the ₹10 RC check; an outage throws, and Pay & Verify keeps the
+ * fee as a free retry. The record itself is read back from where it was stored,
+ * so `detail` is empty.
+ */
+async function runFullDetails(
+  auth: AuthContext,
+  input: VehicleRcDetailsCheckInput,
+  gate: ProviderCallGate,
+): Promise<CheckRunOutcome> {
+  try {
+    const { registrationNumber, outcome } = await fetchFullDetails(auth, input, gate);
+    return {
+      verified: true,
+      alreadyVerified: false,
+      underReview: false,
+      providerBilled: !outcome.audit.cached,
+      reason: null,
+      maskedNumber: maskRegistration(registrationNumber),
+      providerReference: outcome.audit.providerReference,
+      resultId: outcome.audit.lookupId,
+      detail: null,
+    };
+  } catch (error) {
+    if (!(error instanceof AppError) || error.statusCode !== 404 || error.code !== ErrorCode.VEHICLE_NOT_FOUND) {
+      throw error;
+    }
+    return {
+      verified: false,
+      alreadyVerified: false,
+      underReview: false,
+      providerBilled: true,
+      reason: 'The RTO has no record for this registration number. Check it against the RC.',
+      maskedNumber: null,
+      providerReference: null,
+      resultId: null,
+      detail: null,
+    };
+  }
 }

@@ -2824,13 +2824,16 @@ model PetrolStation {
 /// explicit `expiresAt` and is deleted by the retention sweep. Nothing here is
 /// kept indefinitely and nothing here is the only copy of a fact.
 model VehicleLookup {
-  id                 String   @id @default(uuid()) @db.Uuid
+  id                 String           @id @default(uuid()) @db.Uuid
   /// Normalised plate, e.g. UP32AB1234 — the cache key.
   registrationNumber String
   /// Tenant the lookup was performed for; scopes every subsequent read.
-  organizationId     String?  @db.Uuid
-  requestedById      String?  @db.Uuid
-  provider           String   @default("way2api")
+  organizationId     String?          @db.Uuid
+  requestedById      String?          @db.Uuid
+  provider           String           @default("way2api")
+  /// Which RC service answered: Lite is the free basic tier, Advanced the paid
+  /// full one. The default is what every lookup was before the tiers existed.
+  service            VehicleRcService @default(TEXT_PDF)
   /// The provider's order id, for support tickets and billing queries.
   providerReference  String?
   /// Saarthi's normalised RC record, before per-caller redaction.
@@ -2840,10 +2843,10 @@ model VehicleLookup {
   pdfFileName        String?
   pdfMimeType        String?
   pdfSize            Int?
-  fetchedAt          DateTime @default(now())
+  fetchedAt          DateTime         @default(now())
   expiresAt          DateTime
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
 
   @@index([registrationNumber, expiresAt])
   @@index([organizationId, createdAt])
@@ -8033,6 +8036,15 @@ enum VerificationCheckType {
   GST
   DRIVING_LICENCE
   VEHICLE_RC
+  /// The paid full RC record (RC Details Advanced), sold through Pay & Verify.
+  VEHICLE_RC_DETAILS
+}
+
+/// The Way2API RC service a stored record came from.
+enum VehicleRcService {
+  LITE
+  TEXT_PDF
+  ADVANCED
 }
 
 enum VerificationChargeStatus {

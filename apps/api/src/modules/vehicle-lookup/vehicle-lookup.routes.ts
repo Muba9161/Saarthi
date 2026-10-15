@@ -67,9 +67,12 @@ export async function vehicleLookupRoutes(app: FastifyInstance): Promise<void> {
     async (request, reply) => {
       const auth = requireAuth(request);
       const input = parseBody(vehicleLookupSchema, request.body);
+      // Free to the customer, so the free tier. Full details are the ₹20
+      // Pay & Verify check (`VEHICLE_RC_DETAILS`).
       const { result, audit, budgetRemaining } = await vehicleLookupService.lookupVehicle(
         auth,
         input,
+        'BASIC',
       );
 
       await auditFromRequest(request, {
@@ -97,11 +100,32 @@ export async function vehicleLookupRoutes(app: FastifyInstance): Promise<void> {
   );
 
   /**
+   * The add-vehicle draft from a record already fetched for this account.
+   *
+   * Free and never calls the provider: it is how the form is filled once full
+   * details have been paid for, since that payment settles on the server.
+   */
+  app.get(
+    '/rc-prefill/stored',
+    {
+      preHandler: [
+        requirePermission(Permission.VEHICLE_LOOKUP),
+        requireFeature(Feature.FLEET_BASIC),
+      ],
+    },
+    async (request, reply) => {
+      const auth = requireAuth(request);
+      const { registrationNumber } = parseQuery(storedLookupQuerySchema, request.query);
+      return ok(reply, await vehicleLookupService.getStoredPrefill(auth, registrationNumber));
+    },
+  );
+
+  /**
    * Adding a vehicle by its RC number: the details to fill the form with.
    *
    * Free to the customer — Saarthi carries the lookup when a vehicle is being
-   * added — and gated like every other lookup: the same permission, plan
-   * entitlement, rate limit and audit entry.
+   * added — so the free tier, RC Details Lite. Gated like every other lookup:
+   * the same permission, plan entitlement, rate limit and audit entry.
    */
   app.post(
     '/rc-prefill',

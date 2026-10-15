@@ -768,6 +768,7 @@ export function VehicleDialog({
             {rc.prefill ? (
               <RcPrefilledNotice
                 registrationNumber={rc.prefill.registrationNumber}
+                detailLevel={rc.prefill.detailLevel}
                 typeWarning={rcTypeWarning}
                 onRestart={() => {
                   setRcTypeWarning(null);
