@@ -12,6 +12,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -101,7 +102,12 @@ class OwnerApi(
     )
 
     @Serializable
-    private data class SessionSubscription(val planTier: String? = null, val planName: String? = null)
+    private data class SessionSubscription(
+        val planTier: String? = null,
+        val planName: String? = null,
+        /** The plan's feature keys, as the server's `requireFeature` checks them. */
+        val features: List<String> = emptyList(),
+    )
 
     @Serializable
     private data class SessionDto(
@@ -225,7 +231,6 @@ class OwnerApi(
             accountType = AccountType.of(
                 organizationType = organization?.type,
                 personalSeat = organization?.isPersonalSeat == true,
-                planTier = payload.subscription?.planTier,
                 isDriver = payload.driver != null,
             ),
             membershipRole = organization?.membershipRole.orEmpty(),
@@ -236,6 +241,8 @@ class OwnerApi(
                 .filter { it.id.isNotBlank() && it.type != null }
                 .map { SessionStore.Business(it.id, it.name, it.type.orEmpty()) },
             organizationId = organization?.id.orEmpty(),
+            // No subscription at all (a driver-only seat) includes no plan features.
+            features = payload.subscription?.features?.toSet() ?: emptySet(),
         )
         session.store(account, auth.accessToken, auth.expiresIn, auth.refreshToken)
         return account
@@ -263,6 +270,12 @@ class OwnerApi(
         return json.decodeFromString(Envelope.serializer(serializer), raw).data
     }
 
+    /** A signed-in PUT — replacing a stored setting whole. */
+    suspend fun <T> put(path: String, body: String, serializer: KSerializer<T>): T? {
+        val raw = send("PUT", "/api/v1$path", body)
+        return json.decodeFromString(Envelope.serializer(serializer), raw).data
+    }
+
     /**
      * The bytes behind a URL the API itself handed out — an arrival photo.
      * Only Saarthi's own addresses are followed, so the token never leaves it.
@@ -279,6 +292,53 @@ class OwnerApi(
     /** A signed-in DELETE. */
     suspend fun delete(path: String) {
         send("DELETE", "/api/v1$path", null)
+    }
+
+    /** A file to send in a multipart upload: a paper, or a photograph. */
+    class Upload(val fileName: String, val mimeType: String, val bytes: ByteArray)
+
+    /**
+     * A signed-in multipart POST: [fields] as form fields and [file] under
+     * [fileField], answered like any other POST. The server inspects the bytes
+     * itself, so the type sent here is only a label.
+     */
+    suspend fun <T> upload(
+        path: String,
+        fields: Map<String, String>,
+        fileField: String,
+        file: Upload,
+        serializer: KSerializer<T>,
+        retryAfterRefresh: Boolean = true,
+    ): T? {
+        try {
+            val raw = withContext(Dispatchers.IO) {
+                val body = MultipartBody.Builder()
+                    .setType(MultipartBody.FORM)
+                    .apply {
+                        fields.forEach { (name, value) -> addFormDataPart(name, value) }
+                        addFormDataPart(fileField, file.fileName, file.bytes.toRequestBody(file.mimeType.toMediaType()))
+                    }
+                    .build()
+                val request = Request.Builder()
+                    .url("$baseUrl/api/v1$path")
+                    .post(body)
+                    .header("Authorization", "Bearer ${bearer()}")
+                    .header("Accept", "application/json")
+                    .header("X-Saarthi-Client", "owner/$clientVersion")
+                    .build()
+                execute(request, authenticated = true)
+            }
+            return json.decodeFromString(Envelope.serializer(serializer), raw).data
+        } catch (error: Failure.SignedOut) {
+            if (!retryAfterRefresh) throw error
+            refreshLock.withLock { restore() } ?: throw error
+            return upload(path, fields, fileField, file, serializer, retryAfterRefresh = false)
+        }
+    }
+
+    /** A signed-in POST to a route that answers with no body (204), such as accepting an invitation. */
+    suspend fun postNoReply(path: String, body: String = "{}") {
+        send("POST", "/api/v1$path", body)
     }
 
     /**
@@ -347,6 +407,7 @@ class OwnerApi(
             "GET" -> builder.get()
             "POST" -> builder.post((body ?: "{}").toRequestBody(JSON_MEDIA))
             "PATCH" -> builder.patch((body ?: "{}").toRequestBody(JSON_MEDIA))
+            "PUT" -> builder.put((body ?: "{}").toRequestBody(JSON_MEDIA))
             "DELETE" -> builder.delete()
             else -> throw IllegalArgumentException("Unsupported method $method")
         }

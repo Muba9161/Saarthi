@@ -34,6 +34,7 @@ import com.saarthi.owner.network.HandoverApi
 import com.saarthi.owner.network.OrdersApi
 import com.saarthi.owner.network.OrdersApi.Companion.STAGE_30_REQUIRED
 import com.saarthi.owner.network.OrdersApi.Companion.STAGE_70_REQUIRED
+import com.saarthi.owner.network.OrdersApi.Companion.STAGE_PROCUREMENT_PAID
 import com.saarthi.owner.network.PaymentsApi
 import com.saarthi.owner.network.TripsApi
 import com.saarthi.owner.ui.common.DetailScreen
@@ -116,10 +117,14 @@ fun CustomerOrderScreen(app: OwnerApp, initial: OrdersApi.Order, onChanged: () -
     val stage = finance?.stage
     val payNow: Double? = when (stage) {
         STAGE_30_REQUIRED -> finance?.confirmationAmount
-        STAGE_70_REQUIRED -> finance?.balanceDue
+        // Never "Pay ₹0": a balance the delivered quantity has already covered needs nothing.
+        STAGE_70_REQUIRED -> finance?.balanceDue?.takeIf { it > 0 }
         else -> null
     }
-    val awaitingDeliveryWord = order.status == "DELIVERED" && stage != STAGE_70_REQUIRED && finance?.deliveredQuantity == null
+    // The web's rule exactly: only a marketplace order whose seller has been paid
+    // takes the delivered quantity. A freight-only order has no finance plan at
+    // all, and the server refuses the step anywhere else.
+    val awaitingDeliveryWord = order.status == "DELIVERED" && stage == STAGE_PROCUREMENT_PAID
 
     fun pay() {
         busy = true
@@ -310,7 +315,8 @@ private fun Timeline(order: OrdersApi.Order, finance: OrdersApi.Finance?, trip: 
         add(Triple(if (finance == null) "Confirmed" else "Confirmed · 30% paid", finance?.confirmationAmount?.let { rupees(it) }, paid30))
         add(
             Triple(
-                "Material loaded",
+                // A freight order carries the customer's own goods, not material bought through Saarthi.
+                if (order.materialName != null) "Material loaded" else "Loaded at pickup",
                 clockOf(trip?.actualStartAt)?.let { "Left the pickup at $it" }
                     ?: clockOf(order.pickupAt)?.let { if (loaded) it else "Planned for $it" },
                 loaded,

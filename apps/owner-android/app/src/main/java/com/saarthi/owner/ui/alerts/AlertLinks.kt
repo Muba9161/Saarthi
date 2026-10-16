@@ -14,8 +14,10 @@ import com.saarthi.owner.ui.jobs.BidScreen
 import com.saarthi.owner.ui.orders.FleetOrderScreen
 import com.saarthi.owner.ui.seller.SellerOrder
 import com.saarthi.owner.ui.seller.SellerOrderScreen
+import com.saarthi.owner.ui.sharing.SharedScopeRequest
 import com.saarthi.owner.ui.sos.SosAlertScreen
 import com.saarthi.owner.ui.travel.TravelBookingScreen
+import com.saarthi.owner.ui.trips.TripScreen
 
 /** Where tapping an alert takes the person. */
 sealed interface AlertTarget {
@@ -44,7 +46,7 @@ suspend fun resolveAlertLink(app: OwnerApp, account: SessionStore.Account, link:
         when {
             // SOS, raised by one of the fleet's drivers.
             path.startsWith("sos/") || path.startsWith("driver/sos/") ->
-                app.sos.get(id)?.let { incident -> AlertTarget.Screen("sos-$id") { SosAlertScreen(app.sos, incident) } }
+                app.sos.get(id)?.let { incident -> AlertTarget.Screen("sos-$id") { SosAlertScreen(app.sos, account, incident) } }
 
             // A nearby SOS an association is asked to answer.
             path.startsWith("association/alerts/") ->
@@ -76,19 +78,45 @@ suspend fun resolveAlertLink(app: OwnerApp, account: SessionStore.Account, link:
             path.startsWith("fleet/vehicles/") && parts.size >= 3 ->
                 app.vehicles.get(parts[2])?.let { vehicle -> AlertTarget.Screen("vehicle-${vehicle.id}") { VehicleScreen(app, account, vehicle) } }
 
-            path.startsWith("trips/") ->
-                app.trips.get(id)?.truck?.id?.let { truckId -> app.vehicles.get(truckId) }
-                    ?.let { vehicle -> AlertTarget.Screen("vehicle-${vehicle.id}") { VehicleScreen(app, account, vehicle) } }
+            // A trip: for a customer or seller, the order it carries (the trip itself is the
+            // fleet's, figures and all); for whoever runs the vehicle, the trip and its map.
+            path.startsWith("trips/") -> {
+                val trip = app.trips.get(id)
+                when (type) {
+                    AccountType.CUSTOMER, AccountType.SELLER ->
+                        trip?.order?.id?.takeIf { it.isNotBlank() }?.let { orderId -> openOrder(app, account, orderId) }
+                    else -> trip?.let { AlertTarget.Screen("trip-$id") { TripScreen(app, it) } }
+                }
+            }
 
             path == "fleet/terminal-approvals" -> {
                 val session = query.split('&').firstOrNull { it.startsWith("session=") }?.substringAfter('=')
                 app.fleet.waitingApprovals().firstOrNull { it.id == session }
-                    ?.let { approval -> AlertTarget.Screen("approval-${approval.id}") { DriverApprovalScreen(app, approval) {} } }
+                    ?.let { approval -> AlertTarget.Screen("approval-${approval.id}") { DriverApprovalScreen(app, approval, canApprove = account.can("terminal.approve")) {} } }
                     ?: AlertTarget.Tab("home")
             }
 
-            path.startsWith("fleet/documents") || path == "fleet/vehicles" ->
-                if (type == AccountType.PERSONAL) AlertTarget.Tab("papers") else AlertTarget.Tab("fleet")
+            // A vehicle shared with this account, or the vehicles list (the web adds ?view=shared,
+            // which opens the list on Shared with me).
+            path.startsWith("fleet/shared") || path == "fleet/vehicles" -> {
+                if (path.startsWith("fleet/shared") || query.contains("view=shared")) SharedScopeRequest.open.value = true
+                vehiclesTab(type)
+            }
+
+            path.startsWith("fleet/documents") -> when (type) {
+                AccountType.PERSONAL -> AlertTarget.Tab("papers")
+                AccountType.FLEET -> AlertTarget.Tab("fleet")
+                else -> null
+            }
+
+            // Lists whose live items sit on Home: the SOS queue, the command centre, the desk.
+            path == "sos" || path == "dashboard" || path == "association" -> AlertTarget.Tab("home")
+
+            path == "travel/provider/bookings" || path == "travel/bookings" -> when (type) {
+                AccountType.TRAVEL -> AlertTarget.Tab("bookings")
+                AccountType.CUSTOMER -> AlertTarget.Tab("orders")
+                else -> null
+            }
 
             else -> null
         }
@@ -106,6 +134,14 @@ private suspend fun openOrder(app: OwnerApp, account: SessionStore.Account, id: 
         }
         else -> AlertTarget.Screen("order-$id") { FleetOrderScreen(app, order) }
     }
+}
+
+/** Where an account keeps its vehicles; a travel operator finds them on the map. */
+private fun vehiclesTab(type: AccountType): AlertTarget? = when (type) {
+    AccountType.FLEET -> AlertTarget.Tab("fleet")
+    AccountType.PERSONAL -> AlertTarget.Tab("vehicles")
+    AccountType.TRAVEL -> AlertTarget.Tab("map")
+    else -> null
 }
 
 private fun jobsTab(type: AccountType): AlertTarget? = when (type) {

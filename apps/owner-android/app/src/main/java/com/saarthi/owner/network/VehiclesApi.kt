@@ -83,7 +83,7 @@ class VehiclesApi(private val api: OwnerApi) {
     suspend fun list(): List<Vehicle> =
         api.get("/fleet/vehicles?pageSize=200", Page.serializer(Vehicle.serializer()))?.items.orEmpty()
 
-    private companion object {
+    companion object {
         /** Older than this, a vehicle is shown offline rather than idle. */
         const val OFFLINE_AFTER_MINUTES = 15L
         const val MOVING_KPH = 3.0

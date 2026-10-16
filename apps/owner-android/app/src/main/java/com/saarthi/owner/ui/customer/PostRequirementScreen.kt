@@ -1,6 +1,7 @@
 package com.saarthi.owner.ui.customer
 
 import android.app.DatePickerDialog
+import android.app.TimePickerDialog
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
@@ -73,6 +74,24 @@ private val Units = listOf("TON" to "tonnes", "BAG" to "bags", "CUBIC_METER" to 
 private val CabTypes = listOf(null to "Any", "CAR" to "Car", "SUV" to "SUV", "VAN" to "Van", "BUS" to "Bus")
 private val HireBases = listOf("ONE_WAY" to "One way", "ROUND_TRIP" to "Round trip", "DAILY" to "By the day")
 private val DayFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("EEE d MMM")
+private val TimeFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("h:mm a")
+
+/**
+ * The soonest a job may start. The server wants bidding to close at least two
+ * hours from now and before the start, so anything sooner cannot be posted; the
+ * extra quarter hour covers the time spent finishing the form.
+ */
+private val MIN_LEAD: java.time.Duration = java.time.Duration.ofMinutes(135)
+
+/** The first quarter hour on [date] at or after the soonest start; MAX when the day has none left, null when any time works. */
+private fun earliestTimeOn(date: LocalDate): LocalTime? {
+    val soonest = java.time.LocalDateTime.now().plus(MIN_LEAD)
+    if (soonest.toLocalDate().isBefore(date)) return null
+    if (soonest.toLocalDate().isAfter(date)) return LocalTime.MAX
+    val minutes = soonest.hour * 60 + soonest.minute
+    val rounded = (minutes + 14) / 15 * 15
+    return if (rounded >= 24 * 60) LocalTime.MAX else LocalTime.of(rounded / 60, rounded % 60)
+}
 
 /**
  * "What do you need delivered?" — the design's Post board, one page per kind.
@@ -106,6 +125,7 @@ fun PostRequirementScreen(app: OwnerApp, actions: ShellActions) {
     var vehicleType by rememberSaveable { mutableStateOf<String?>(null) }
     var destinationsText by rememberSaveable { mutableStateOf("") }
     var day by rememberSaveable { mutableStateOf(LocalDate.now().plusDays(1).toString()) }
+    var time by rememberSaveable { mutableStateOf("10:00") }
     var from by remember { mutableStateOf<PlacesApi.Place?>(null) }
     var to by remember { mutableStateOf<PlacesApi.Place?>(null) }
     var busy by remember { mutableStateOf(false) }
@@ -115,8 +135,10 @@ fun PostRequirementScreen(app: OwnerApp, actions: ShellActions) {
     val qty = quantity.toDoubleOrNull()
     val people = passengers.toIntOrNull()
     val destinations = destinationsText.split(',', '\n').map { it.trim() }.filter { it.length >= 2 }
+    val startAt = LocalDate.parse(day).atTime(LocalTime.parse(time)).atZone(ZoneId.systemDefault()).toInstant()
+    val tooSoon = startAt.isBefore(java.time.Instant.now().plus(MIN_LEAD))
     // The first thing still to fill in, said under the button so a grey button is never a mystery.
-    val missing: String? = when (kind) {
+    val missing: String? = (when (kind) {
         KIND_MATERIAL -> when {
             material.trim().length < 2 -> "the material"
             catalogue.categoryId == null -> "what kind of material it is"
@@ -145,12 +167,11 @@ fun PostRequirementScreen(app: OwnerApp, actions: ShellActions) {
             destinations.isEmpty() -> "the places to visit"
             else -> null
         }
-    }
+    }) ?: if (tooSoon) "a start time at least 2¼ hours away" else null
     val ready = !busy && missing == null
 
     fun post() {
-        val neededOn = LocalDate.parse(day)
-        val start = neededOn.atTime(LocalTime.of(10, 0)).atZone(ZoneId.systemDefault()).toInstant()
+        val start = startAt
         val title = when (kind) {
             KIND_MATERIAL -> "${quantity.trim()} ${Units.firstOrNull { it.first == unit }?.second ?: ""} ${material.trim()}".trim()
             KIND_FREIGHT -> "${material.trim()} to ${to?.city ?: to?.name}".trim()
@@ -327,29 +348,59 @@ fun PostRequirementScreen(app: OwnerApp, actions: ShellActions) {
             }
         }
 
-        // When it is needed: a date, chosen from the phone's own calendar.
+        // When it is needed: a date and a time, chosen from the phone's own pickers.
+        // Picking today moves the time to the soonest one bidding allows.
         val chosen = LocalDate.parse(day)
+        val chosenTime = LocalTime.parse(time)
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(if (travel) "Travel on" else "Needed by", style = SType.fieldLabel, color = c.muted)
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .card(radius = 16.dp, color = c.elevated, ring = c.input, elevated = false)
-                    .pressable(scale = 0.99f) {
-                        DatePickerDialog(
-                            context,
-                            { _, year, month, dayOfMonth -> day = LocalDate.of(year, month + 1, dayOfMonth).toString() },
-                            chosen.year,
-                            chosen.monthValue - 1,
-                            chosen.dayOfMonth,
-                        ).apply { datePicker.minDate = System.currentTimeMillis() }.show()
-                    }
-                    .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                com.saarthi.owner.ui.design.LineIcon(Lucide.calendar, size = 20.dp, color = c.primary)
-                Text(DayFormat.format(chosen), style = SType.field, color = c.fg)
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(
+                    Modifier
+                        .weight(1.3f)
+                        .card(radius = 16.dp, color = c.elevated, ring = c.input, elevated = false)
+                        .pressable(scale = 0.99f, label = "Choose the date") {
+                            DatePickerDialog(
+                                context,
+                                { _, year, month, dayOfMonth ->
+                                    val picked = LocalDate.of(year, month + 1, dayOfMonth)
+                                    day = picked.toString()
+                                    earliestTimeOn(picked)?.let { earliest ->
+                                        if (earliest != LocalTime.MAX && LocalTime.parse(time).isBefore(earliest)) time = earliest.toString()
+                                    }
+                                },
+                                chosen.year,
+                                chosen.monthValue - 1,
+                                chosen.dayOfMonth,
+                            ).apply { datePicker.minDate = System.currentTimeMillis() }.show()
+                        }
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    com.saarthi.owner.ui.design.LineIcon(Lucide.calendar, size = 20.dp, color = c.primary)
+                    Text(DayFormat.format(chosen), style = SType.field, color = c.fg)
+                }
+                Row(
+                    Modifier
+                        .weight(1f)
+                        .card(radius = 16.dp, color = c.elevated, ring = c.input, elevated = false)
+                        .pressable(scale = 0.99f, label = "Choose the time") {
+                            TimePickerDialog(
+                                context,
+                                { _, hour, minute -> time = LocalTime.of(hour, minute).toString() },
+                                chosenTime.hour,
+                                chosenTime.minute,
+                                false,
+                            ).show()
+                        }
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    com.saarthi.owner.ui.design.LineIcon(Lucide.clock, size = 20.dp, color = c.primary)
+                    Text(TimeFormat.format(chosenTime), style = SType.field, color = if (tooSoon) c.danger else c.fg)
+                }
             }
         }
 

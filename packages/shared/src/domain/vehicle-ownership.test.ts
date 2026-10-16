@@ -45,6 +45,42 @@ describe('ownerNamesMatch', () => {
     expect(ownerNamesMatch('RAJESH KUMAR SHARMA', 'R KUMAR SHARMA')).toBe(true);
     expect(ownerNamesMatch('AMIT KUMAR SHARMA', 'R KUMAR SHARMA')).toBe(false);
   });
+
+  describe('one name romanised two ways', () => {
+    it.each([
+      // The live case of 2026-10-16: the RC and the PAN disagree on one letter
+      // and one inherent vowel, and the owner was told the vehicle was not hers.
+      ['SMT. BHAWNA PANDEY', 'BHAVANA PANDEY'],
+      ['PAWAN KUMAR GUPTA', 'PAVAN KUMAR GUPTA'],
+      ['SOORAJ YADAV', 'SURAJ YADAV'],
+      ['LAXMI DEVI', 'LAKSHMI DEVI'],
+      ['SMT SUNEETA SHARMA', 'SUNITA SHARMA'],
+      ['AMITH KUMAR', 'AMIT KUMAR'],
+      ['SIDDHARTH MISHRA', 'SIDHARTH MISHRA'],
+      ['GOUTAM DAS', 'GAUTAM DAS'],
+      ['AJAY SINGH', 'AJAI SINGH'],
+      ['MAMATA BANERJEE', 'MAMTA BANERJEE'],
+    ])('matches %s with %s', (rcName, verifiedName) => {
+      expect(ownerNamesMatch(rcName, verifiedName)).toBe(true);
+      expect(ownerNamesMatch(verifiedName, rcName)).toBe(true);
+    });
+
+    it.each([
+      // Different people who share a surname: the consonants differ, so the
+      // sound of the name does too. A vehicle must never pass between them.
+      ['BHAWNA PANDEY', 'BHUVAN PANDEY'],
+      ['KAMAL PANDEY', 'KOMAL PANDEY'],
+      ['RAM PANDEY', 'RAMA PANDEY'],
+      ['ANAND KUMAR', 'ANANT KUMAR'],
+      ['SUNITA PANDEY', 'SUNIL PANDEY'],
+      ['AMIT SHARMA', 'SUMIT SHARMA'],
+      // And a romanised variant does not weaken the other rules.
+      ['BHAVANA', 'BHAWNA PANDEY'],
+      ['R BHAVANA PANDEY', 'BHAWNA PANDEY'],
+    ])('does not match %s with %s', (rcName, verifiedName) => {
+      expect(ownerNamesMatch(rcName, verifiedName)).toBe(false);
+    });
+  });
 });
 
 /**

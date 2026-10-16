@@ -5,7 +5,7 @@ package com.saarthi.owner.data
  *
  * Read from the session the server issues, never chosen in the app: the
  * organisation's type decides the business, and a fleet-owner organisation on
- * a personal seat or the Personal plan is somebody running their own vehicles.
+ * a personal seat is somebody running their own vehicles.
  */
 enum class AccountType {
     FLEET,
@@ -22,10 +22,11 @@ enum class AccountType {
     UNSUPPORTED;
 
     companion object {
-        fun of(organizationType: String?, personalSeat: Boolean, planTier: String?, isDriver: Boolean): AccountType =
+        fun of(organizationType: String?, personalSeat: Boolean, isDriver: Boolean): AccountType =
             when (organizationType) {
-                "FLEET_OWNER", "ENTERPRISE" ->
-                    if (personalSeat || planTier == "PERSONAL") PERSONAL else FLEET
+                // The personal seat alone decides, as on the web: a business on the
+                // Personal tier is still a business, with the fleet's screens.
+                "FLEET_OWNER", "ENTERPRISE" -> if (personalSeat) PERSONAL else FLEET
                 "MOBILITY_PROVIDER" -> TRAVEL
                 "CUSTOMER" -> CUSTOMER
                 "SUPPLIER" -> SELLER
@@ -35,6 +36,13 @@ enum class AccountType {
             }
     }
 }
+
+/**
+ * The roles that own an operating business, freight or travel: the server's
+ * `OPERATOR_OWNER_ROLES`. Only they may hand a vehicle over without the
+ * customer's or passenger's code.
+ */
+val OPERATOR_OWNER_ROLES: Set<String> = setOf("FLEET_OWNER", "MOBILITY_PROVIDER")
 
 /** How the account's role reads under its name: "Fleet owner", "Dispatcher". */
 fun roleLabel(membershipRole: String): String = when (membershipRole) {

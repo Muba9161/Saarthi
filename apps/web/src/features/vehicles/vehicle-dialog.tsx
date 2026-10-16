@@ -59,7 +59,7 @@ import { uploadSpinOrWarn } from './spin/spin-api';
 import type { SpinDraft } from './spin/spin-frames';
 import { VehicleConnectionStep, useVehicleOnboarding } from './vehicle-onboarding';
 import { RcPrefillPanel, RcPrefilledNotice, useRcPrefill } from './rc-prefill-panel';
-import { ClaimNameNotice } from './claim-name-notice';
+import { ClaimRefusalNotice } from './claim-refusal-notice';
 import { VehicleKindField, kindOfRecord } from './vehicle-kind-field';
 import {
   FUEL_TYPES,
@@ -173,9 +173,13 @@ export function VehicleDialog({
   const [photo, setPhoto] = React.useState<File | null>(null);
   /** The optional 360° spin, offered once there is a photo; held for the same reason. */
   const [spin, setSpin] = React.useState<SpinDraft | null>(null);
-  // Why a plate another account holds was not handed over, when verifying a
-  // name would fix it. Shown in the dialog, beside the fix; see ClaimNameNotice.
-  const [claimNotice, setClaimNotice] = React.useState<string | null>(null);
+  // Why a plate another account holds was not handed over. Shown in the
+  // dialog, beside the fixes; see ClaimRefusalNotice.
+  const [claimNotice, setClaimNotice] = React.useState<{
+    message: string;
+    registrationNumber: string;
+    needsVerifiedName: boolean;
+  } | null>(null);
 
   /*
    * Re-seed the fields each time the dialog is opened, and only then.
@@ -339,11 +343,15 @@ export function VehicleDialog({
       }
     },
     onMutate: () => setClaimNotice(null),
-    onError: (error) => {
-      // A plate held by an unconfirmed account, refused only because this one
-      // has no verified name to match: shown in the dialog, beside the fix.
-      if (error instanceof ApiError && error.details?.reason === CLAIM_NEEDS_VERIFIED_NAME) {
-        setClaimNotice(error.message);
+    onError: (error, payload) => {
+      // A plate held by an unconfirmed account, refused because the names did
+      // not match: shown in the dialog, beside the fixes (a PAN, or a review).
+      if (error instanceof ApiError && error.details?.reviewable === true) {
+        setClaimNotice({
+          message: error.message,
+          registrationNumber: String(payload.registrationNumber ?? ''),
+          needsVerifiedName: error.details.reason === CLAIM_NEEDS_VERIFIED_NAME,
+        });
         return;
       }
       toast.error(isEdit ? 'Could not save the changes' : 'Could not add the vehicle', {
@@ -779,7 +787,9 @@ export function VehicleDialog({
             ) : null}
 
             {/* Keyed by the message, so a new refusal starts unverified. */}
-            {claimNotice ? <ClaimNameNotice key={claimNotice} message={claimNotice} /> : null}
+            {claimNotice ? (
+              <ClaimRefusalNotice key={claimNotice.message} {...claimNotice} />
+            ) : null}
 
             <FormWizard
               steps={steps}

@@ -84,7 +84,7 @@ class FleetHomeModel(
     private suspend fun load(): FleetHome = coroutineScope {
         val positions = async { if (account.can("tracking.read")) fleet.positions() else emptyList() }
         val dashboard = async { optional { if (account.can("analytics.read")) fleet.dashboard() else null } }
-        val approvals = async { optional { if (account.can("terminal.approve")) fleet.waitingApprovals() else null } }
+        val approvals = async { optional { if (account.can("terminal.read")) fleet.waitingApprovals() else null } }
         val fastags = async { optional { if (account.can("toll.read")) fleet.fastags() else null } }
         val page = async { optional { alerts.page(pageSize = 20) } }
         val risks = async { optional { if (account.can("returnloads.read")) returnLoads.emptyRisk() else null } }

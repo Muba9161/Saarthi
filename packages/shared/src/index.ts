@@ -102,6 +102,7 @@ export * from './validation/route-intelligence';
 export * from './validation/terminal';
 export * from './validation/sales';
 export * from './validation/verification-center';
+export * from './validation/ownership-review';
 
 // Utilities
 export * from './utils/format';

@@ -46,6 +46,10 @@ import {
 import { expenseRoutes } from '../modules/expenses/expense.routes';
 import { adminRoutes } from '../modules/admin/admin.routes';
 import { vehicleRoutes } from '../modules/vehicles/vehicle.routes';
+import {
+  ownershipReviewAdminRoutes,
+  ownershipReviewRoutes,
+} from '../modules/vehicles/ownership-review.routes';
 import { vehiclePapersRoutes } from '../modules/vehicles/vehicle-papers.routes';
 import { secureAccessRoutes } from '../modules/secure-access/secure-access.routes';
 import { vehicleSharingRoutes } from '../modules/vehicle-sharing/vehicle-sharing.routes';
@@ -202,6 +206,10 @@ export async function registerApiRoutes(app: FastifyInstance): Promise<void> {
   // /vehicles is the RC-lookup surface for arbitrary registration numbers.
   // Different resource, different trust level, so different path.
   await app.register(vehicleRoutes, { prefix: '/fleet/vehicles' });
+  // Asking the Saarthi team to confirm a vehicle is the account's, when the RC
+  // owner's name cannot be matched automatically; reviewers decide under /admin.
+  await app.register(ownershipReviewRoutes, { prefix: '/fleet/ownership-reviews' });
+  await app.register(ownershipReviewAdminRoutes, { prefix: '/admin/ownership-reviews' });
   // Another account's vehicle, seen and used through an accepted share.
   await app.register(vehicleSharingRoutes, { prefix: '/fleet/sharing' });
   // Vehicle finance. Mounted under /fleet because it is fleet-owner data, and

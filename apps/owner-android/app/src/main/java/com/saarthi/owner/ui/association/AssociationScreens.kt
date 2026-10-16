@@ -54,6 +54,8 @@ import com.saarthi.owner.ui.design.IconWell
 import com.saarthi.owner.ui.design.LineIcon
 import com.saarthi.owner.ui.design.LinkButton
 import com.saarthi.owner.ui.design.Lucide
+import com.saarthi.owner.ui.design.NoticeCard
+import com.saarthi.owner.ui.design.NoticeTone
 import com.saarthi.owner.ui.design.SType
 import com.saarthi.owner.ui.design.Saarthi
 import com.saarthi.owner.ui.design.StatusPill
@@ -113,11 +115,14 @@ class AssociationModel(private val association: AssociationApi) : ViewModel() {
 
     fun refresh(silent: Boolean = false) {
         if (!silent) _state.value = Loadable.Loading
+        // A silent re-read that loses the profile keeps the last one, so a blip
+        // never turns "Alerts paused" into "All quiet" for twenty seconds.
+        val previous = (_state.value as? Loadable.Ready)?.value
         viewModelScope.launch {
             _state.value = try {
                 coroutineScope {
-                    val me = async { runCatching { association.me() }.getOrNull() }
-                    val overview = async { runCatching { association.overview() }.getOrNull() }
+                    val me = async { runCatching { association.me() }.getOrNull() ?: previous?.association }
+                    val overview = async { runCatching { association.overview() }.getOrNull() ?: previous?.overview }
                     val alerts = async { association.alerts() }
                     Loadable.Ready(AssociationBook(me.await(), overview.await(), alerts.await()))
                 }
@@ -127,6 +132,42 @@ class AssociationModel(private val association: AssociationApi) : ViewModel() {
             }
         }
     }
+}
+
+/**
+ * Re-reads the desk on a slow clock while the calling screen is shown. Silent,
+ * so a refresh never swaps the list for skeletons; a failed one keeps what is
+ * on screen.
+ */
+@Composable
+private fun RefreshWhileShown(model: AssociationModel) {
+    LaunchedEffect(model) {
+        while (true) {
+            delay(REFRESH_MS)
+            model.refresh(silent = true)
+        }
+    }
+}
+
+/** Why this desk receives no new alerts, as the web dashboard's desk status says it. */
+private enum class DeskHold(val pill: String, val explanation: String, val icon: String) {
+    UNVERIFIED(
+        "Verification pending",
+        "Saarthi sends emergencies only to verified associations, so none reach this desk yet. Finish verifying on the Saarthi website.",
+        Lucide.shield,
+    ),
+    PAUSED(
+        "Alerts paused",
+        "Nothing is being routed to this desk. Emergencies in your area are going to the next association instead.",
+        Lucide.pause,
+    ),
+}
+
+/** Verification is asked first, as on the web: a paused, unverified desk is still unverified. */
+private fun AssociationApi.Association.hold(): DeskHold? = when {
+    unverified -> DeskHold.UNVERIFIED
+    !acceptingAlerts -> DeskHold.PAUSED
+    else -> null
 }
 
 /**
@@ -140,12 +181,7 @@ fun AssociationHomeScreen(app: OwnerApp, account: SessionStore.Account, actions:
     val navigator = LocalNavigator.current
     val c = Saarthi.colors
 
-    LaunchedEffect(Unit) {
-        while (true) {
-            delay(REFRESH_MS)
-            model.refresh(silent = true)
-        }
-    }
+    RefreshWhileShown(model)
 
     Column(
         Modifier
@@ -160,6 +196,7 @@ fun AssociationHomeScreen(app: OwnerApp, account: SessionStore.Account, actions:
             is Loadable.Ready -> {
                 val book = shown.value
                 val urgent = book.open.firstOrNull()
+                val hold = book.association?.hold()
                 Box(
                     Modifier
                         .fillMaxWidth()
@@ -194,7 +231,14 @@ fun AssociationHomeScreen(app: OwnerApp, account: SessionStore.Account, actions:
                                 live = true,
                             )
                         } else {
-                            StatusPill("All quiet on your roads", background = Color.White.copy(alpha = 0.16f), ink = Color.White, dotColor = Brand.live, ring = Color.White.copy(alpha = 0.2f))
+                            // "All quiet" only from a desk that can hear: an unverified or paused one would be quiet anyway.
+                            StatusPill(
+                                hold?.pill ?: "All quiet on your roads",
+                                background = Color.White.copy(alpha = 0.16f),
+                                ink = Color.White,
+                                dotColor = if (hold != null) Brand.saffronSoft else Brand.live,
+                                ring = Color.White.copy(alpha = 0.2f),
+                            )
                         }
                         Row(verticalAlignment = Alignment.Bottom) {
                             Column(Modifier.weight(1f)) {
@@ -226,6 +270,9 @@ fun AssociationHomeScreen(app: OwnerApp, account: SessionStore.Account, actions:
                         }
                     }
                 }
+
+                // Said even with an SOS in the hero: the alerts already here still need answering, new ones will not come.
+                hold?.let { NoticeCard(it.explanation, NoticeTone.WARNING, Modifier.rise(stagger(1)), icon = it.icon) }
 
                 Row(Modifier.fillMaxWidth().rise(stagger(1)), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Figure(Lucide.users, c.primarySoft, c.primary, "Members", "%,d".format(book.association?.memberTruckCount ?: 0), "trucks", Modifier.weight(1f))
@@ -259,6 +306,10 @@ fun AssociationAlertsScreen(app: OwnerApp, account: SessionStore.Account) {
     val navigator = LocalNavigator.current
     val c = Saarthi.colors
     val top = headerClearance()
+
+    // The same model and clock as Home, so a new SOS shows up here without leaving the tab.
+    RefreshWhileShown(model)
+
     val bottom = tabBarClearance()
     when (val shown = state) {
         Loadable.Loading -> SkeletonCards(modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = top))

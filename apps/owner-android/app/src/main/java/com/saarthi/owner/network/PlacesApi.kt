@@ -10,6 +10,9 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
@@ -35,7 +38,15 @@ class PlacesApi(private val context: Context, private val clientVersion: String)
         val city: String?,
         val latitude: Double,
         val longitude: Double,
-    )
+    ) {
+        /** The place as the API's `addressSchema` takes it. */
+        fun toAddressJson(): JsonObject = buildJsonObject {
+            put("addressLine", address.take(300))
+            city?.let { put("city", it.take(120)) }
+            put("latitude", latitude)
+            put("longitude", longitude)
+        }
+    }
 
     @Serializable
     private data class Collection(val features: List<Feature> = emptyList())

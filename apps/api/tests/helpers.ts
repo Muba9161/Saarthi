@@ -131,6 +131,7 @@ export async function resetDatabase(): Promise<void> {
     'vehicle_loans',
     'maintenance_records',
     'truck_assignments',
+    'vehicle_ownership_reviews',
     'trucks',
     'driver_achievements',
     'driver_score_events',

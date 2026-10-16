@@ -81,6 +81,9 @@ fun CustomerBidsScreen(app: OwnerApp, request: RequirementsApi.Requirement, onCh
     var withdrawing by remember { mutableStateOf(false) }
     var reason by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
+    // Choosing turns every other bid down, so it is asked once more, with room for a note.
+    var confirming by remember { mutableStateOf<RequirementsApi.Bid?>(null) }
+    var awardNote by remember { mutableStateOf("") }
 
     LaunchedEffect(request.id) {
         bids = try {
@@ -91,11 +94,12 @@ fun CustomerBidsScreen(app: OwnerApp, request: RequirementsApi.Requirement, onCh
     }
 
     fun choose(bid: RequirementsApi.Bid) {
+        confirming = null
         choosing = bid.id
         message = null
         scope.launch {
             try {
-                val result = app.requirements.award(request.id, bid.id)
+                val result = app.requirements.award(request.id, bid.id, awardNote.trim().ifBlank { null })
                 onChanged()
                 // A cab or tour becomes a booking to pay for; open it straight away.
                 result?.bookingId?.let { bookingId ->
@@ -192,7 +196,10 @@ fun CustomerBidsScreen(app: OwnerApp, request: RequirementsApi.Requirement, onCh
                         busy = choosing == bid.id,
                         anyBusy = choosing != null,
                         modifier = Modifier.rise(stagger(index + 1)),
-                    ) { choose(bid) }
+                    ) {
+                        awardNote = ""
+                        confirming = bid
+                    }
                 }
             }
         }
@@ -204,6 +211,27 @@ fun CustomerBidsScreen(app: OwnerApp, request: RequirementsApi.Requirement, onCh
                 enabled = !busy && choosing == null,
                 modifier = Modifier.align(Alignment.CenterHorizontally),
             )
+        }
+    }
+
+    BottomSheet(visible = confirming != null, onDismiss = { confirming = null }) {
+        confirming?.let { bid ->
+            val firstName = bid.bidderName.substringBefore(' ')
+            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                Text("Choose $firstName for ${rupees(bid.price)}?", style = SType.sheetTitle, color = c.fg)
+                Text(
+                    if (material) {
+                        "You pay 30% (${rupees(bid.price * ADVANCE_SHARE)}) to confirm and the rest after delivery. Every other bid on this request is turned down."
+                    } else {
+                        "Every other bid on this request is turned down and those fleets are told."
+                    },
+                    style = SType.body,
+                    color = c.muted,
+                )
+                NotesField(awardNote, { awardNote = it.take(1000) }, label = "A note for $firstName (optional)", minHeight = 72.dp)
+                SaarthiButton("Choose $firstName", onClick = { choose(bid) }, enabled = choosing == null)
+                LinkButton("Not yet", onClick = { confirming = null }, modifier = Modifier.align(Alignment.CenterHorizontally))
+            }
         }
     }
 

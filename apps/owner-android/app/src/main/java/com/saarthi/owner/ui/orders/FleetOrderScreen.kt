@@ -1,5 +1,6 @@
 package com.saarthi.owner.ui.orders
 
+import com.saarthi.owner.data.OPERATOR_OWNER_ROLES
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -78,7 +79,7 @@ fun FleetOrderScreen(app: OwnerApp, initial: OrdersApi.Order) {
     var overriding by remember { mutableStateOf<String?>(null) }
     var overrideBusy by remember { mutableStateOf(false) }
     var overrideError by remember { mutableStateOf<String?>(null) }
-    val canOverride = app.session.account.value?.membershipRole == "FLEET_OWNER"
+    val canOverride = app.session.account.value?.membershipRole in OPERATOR_OWNER_ROLES
 
     LaunchedEffect(initial.id, reload) {
         runCatching { app.orders.get(initial.id) }.getOrNull()?.let { order = it }

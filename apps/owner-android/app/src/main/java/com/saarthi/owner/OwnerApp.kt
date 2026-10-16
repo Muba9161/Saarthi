@@ -15,6 +15,8 @@ import com.saarthi.owner.network.MaterialsApi
 import com.saarthi.owner.network.OrdersApi
 import com.saarthi.owner.network.OwnerApi
 import com.saarthi.owner.network.PapersApi
+import com.saarthi.owner.network.PreferencesApi
+import com.saarthi.owner.network.SharingApi
 import com.saarthi.owner.network.PaymentsApi
 import com.saarthi.owner.network.PlacesApi
 import com.saarthi.owner.network.RequirementsApi
@@ -62,6 +64,8 @@ class OwnerApp : Application() {
     lateinit var association: AssociationApi
         private set
     lateinit var papers: PapersApi
+    lateinit var sharing: SharingApi
+    lateinit var viewPreferences: PreferencesApi
         private set
     lateinit var assistant: AssistantApi
         private set
@@ -93,6 +97,8 @@ class OwnerApp : Application() {
         travel = TravelApi(api)
         association = AssociationApi(api)
         papers = PapersApi(api)
+        sharing = SharingApi(api)
+        viewPreferences = PreferencesApi(api)
         assistant = AssistantApi(api)
         commerce = CommerceApi(api)
         handover = HandoverApi(api)

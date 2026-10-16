@@ -82,6 +82,23 @@ class TravelApi(private val api: OwnerApi) {
 
     suspend fun complete(id: String): Booking? = api.post("/travel/bookings/$id/complete", "{}", Booking.serializer())
 
+    /**
+     * The vehicles a booking for [passengers] can be confirmed with: passenger
+     * vehicles that seat everyone and are free to assign. The server refuses any
+     * other (`confirmBooking`), so they are not offered.
+     */
+    suspend fun assignableVehicles(passengers: Int): List<VehiclesApi.Vehicle> =
+        api.get(
+            "/fleet/vehicles?pageSize=200&capability=PASSENGER&minPassengerCapacity=${passengers.coerceAtLeast(1)}" +
+                "&status=${ASSIGNABLE_VEHICLE_STATUSES.joinToString(",")}",
+            Page.serializer(VehiclesApi.Vehicle.serializer()),
+        )?.items.orEmpty()
+
+    /** Only a verified driver can be put on a passenger trip; the server refuses the rest. */
+    suspend fun assignableDrivers(): List<DriversApi.Driver> =
+        api.get("/drivers?pageSize=200&verificationStatus=VERIFIED", Page.serializer(DriversApi.Driver.serializer()))
+            ?.items.orEmpty()
+
     // --- The customer's side -------------------------------------------------
 
     @Serializable
@@ -104,5 +121,9 @@ class TravelApi(private val api: OwnerApi) {
     companion object {
         /** What a customer may still cancel; the server holds the same list. */
         val CANCELLABLE = setOf("PENDING_PAYMENT", "AWAITING_CONFIRMATION", "CONFIRMED")
+
+        /** Vehicle states a booking can be confirmed with; the server's `ASSIGNABLE_TRUCK_STATUSES`. */
+        private val ASSIGNABLE_VEHICLE_STATUSES = listOf("AVAILABLE", "IDLE", "ASSIGNED")
+
     }
 }

@@ -8,7 +8,12 @@ import { prisma } from '../../database/prisma';
 import { AppError, errors } from '../../lib/errors';
 import { logger } from '../../lib/logger';
 import { fetchRcForOwnershipClaim } from '../vehicle-lookup/vehicle-lookup.service';
-import { storedRcOwnerName, verifiedNamesFor } from './vehicle-ownership.service';
+import {
+  hasApprovedOwnershipReview,
+  hasPendingOwnershipReview,
+  storedRcOwnerName,
+  verifiedNamesFor,
+} from './vehicle-ownership.service';
 
 /**
  * Claiming a plate another account holds.
@@ -33,9 +38,11 @@ const REFUSAL = {
   noRtoOwner:
     'The RTO records name no owner for this number, so ownership cannot be checked. Check the number against the RC.',
   masked:
-    'The RTO record shows the owner’s name masked, so it cannot be matched to your verified name. If the vehicle is yours, contact support.',
+    'The RTO record shows the owner’s name masked, so it cannot be matched to your verified name. If the vehicle is yours, ask the Saarthi team to review it.',
   mismatch:
-    'The owner’s name on the RC does not match a verified name on this account. If the vehicle is yours, contact support.',
+    'The owner’s name on the RC does not match a verified name on this account. If the vehicle is yours, ask the Saarthi team to review it.',
+  reviewPending:
+    'Your request for the Saarthi team to review it is waiting; you will be notified when it is decided.',
 } as const;
 
 /**
@@ -69,13 +76,25 @@ export async function resolveRegistrationClaim(
     );
   }
 
+  // The Saarthi team has confirmed, on review, that the plate is this account's.
+  if (await hasApprovedOwnershipReview(organizationId, registrationNumber)) return existing.id;
+
   const refusal = await claimRefusal(auth, organizationId, registrationNumber);
   if (!refusal) return existing.id;
 
+  // Every refusal here can go to the Saarthi team instead; the client offers it.
+  const reviewPending = await hasPendingOwnershipReview(organizationId, registrationNumber);
   const needsVerifiedName = refusal === REFUSAL.aadhaarOnly || refusal === REFUSAL.noVerifiedName;
   throw errors.duplicate(
-    `${registrationNumber} is held by another account that has not confirmed it owns it. ${refusal}`,
-    needsVerifiedName ? { ...PLATE_TAKEN, reason: CLAIM_NEEDS_VERIFIED_NAME } : PLATE_TAKEN,
+    `${registrationNumber} is held by another account that has not confirmed it owns it. ${
+      reviewPending ? REFUSAL.reviewPending : refusal
+    }`,
+    {
+      ...PLATE_TAKEN,
+      reviewable: true,
+      reviewPending,
+      ...(needsVerifiedName ? { reason: CLAIM_NEEDS_VERIFIED_NAME } : {}),
+    },
   );
 }
 

@@ -714,6 +714,42 @@ enum VehicleOwnershipStatus {
   RELEASED
 }
 
+enum OwnershipReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+/// A request for the Saarthi team to confirm a vehicle belongs to an account,
+/// when the RC owner's name cannot be matched to a verified name automatically.
+/// Either about the account's own vehicle (`truckId` set) or a plate another
+/// account holds unconfirmed (`truckId` null: a claim). The RC upload is
+/// optional; the message is not.
+model VehicleOwnershipReview {
+  id                 String                @id @default(uuid()) @db.Uuid
+  organizationId     String                @db.Uuid
+  requestedById      String                @db.Uuid
+  /// Normalised plate, for both kinds.
+  registrationNumber String
+  truckId            String?               @db.Uuid
+  message            String
+  attachmentKey      String?
+  attachmentName     String?
+  attachmentMimeType String?
+  attachmentSize     Int?
+  status             OwnershipReviewStatus @default(PENDING)
+  reviewedById       String?               @db.Uuid
+  reviewedAt         DateTime?
+  /// The reviewer's reason, shown to the requester. Required on rejection.
+  decisionNote       String?
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+
+  @@index([status, createdAt])
+  @@index([organizationId, registrationNumber])
+  @@map("vehicle_ownership_reviews")
+}
+
 enum VehicleShareStatus {
   PENDING
   ACTIVE

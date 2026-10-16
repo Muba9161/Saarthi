@@ -125,7 +125,8 @@ fun HomeShell(app: OwnerApp, account: SessionStore.Account, onSignOut: () -> Uni
                     title = header.title,
                     unread = unread,
                     onBell = openAlerts,
-                    onAssistant = if (account.can("ai.use")) {
+                    // Both, as the server asks: the role may use the assistant and the plan includes it.
+                    onAssistant = if (account.can("ai.use") && account.hasFeature("ai.copilot")) {
                         { navigator.push("assistant") { AssistantScreen(app.assistant, account) } }
                     } else {
                         null

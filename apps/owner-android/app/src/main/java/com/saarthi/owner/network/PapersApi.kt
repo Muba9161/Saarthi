@@ -1,13 +1,13 @@
 package com.saarthi.owner.network
 
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import java.io.File
+import java.time.LocalDate
 
 /**
- * A vehicle's papers, and the people its owner has shared it with.
+ * A vehicle's papers.
  *
  * The papers arrive as one wallet — `vehicle-papers.service.ts` on the
  * server — filed into the same folders the web's Documents tab and the
@@ -113,11 +113,26 @@ class PapersApi(private val api: OwnerApi) {
     @Serializable
     data class Sticker(val shortLabel: String = "", val imageUrl: String = "")
 
+    /** Whether the vehicle's papers can go to Saarthi's reviewers, and what stands in the way. */
     @Serializable
-    data class SharedWith(val name: String = "", val email: String = "")
+    data class Review(val case: ReviewCase? = null, val readiness: Readiness = Readiness())
 
     @Serializable
-    data class Share(val id: String, val status: String = "", val sharedWith: SharedWith = SharedWith(), val invitedAt: String = "")
+    data class ReviewCase(val status: String = "")
+
+    @Serializable
+    data class Readiness(
+        val ready: Boolean = false,
+        val missing: List<Gap> = emptyList(),
+        val invalid: List<Gap> = emptyList(),
+    )
+
+    /** A required paper that is absent, or present but not usable, and why. */
+    @Serializable
+    data class Gap(val documentType: String = "", val label: String = "", val reason: String? = null)
+
+    @Serializable
+    private data class Created(val id: String = "")
 
     @Serializable
     private data class UnlockRequest(val pin: String)
@@ -142,6 +157,51 @@ class PapersApi(private val api: OwnerApi) {
 
     suspend fun stickerImage(sticker: Sticker): ByteArray? = sticker.imageUrl.takeIf { it.isNotBlank() }?.let { api.image(it) }
 
+    /**
+     * File a paper into its folder. The expiry is required for every vehicle
+     * paper, as on the web; the number and issue date are kept when given.
+     */
+    suspend fun uploadPaper(
+        vehicleId: String,
+        documentType: String,
+        number: String?,
+        issuedOn: LocalDate?,
+        expiresOn: LocalDate,
+        file: OwnerApi.Upload,
+    ) {
+        val fields = buildMap {
+            put("ownerType", "TRUCK")
+            put("ownerId", vehicleId)
+            put("documentType", documentType)
+            put("expiryDate", expiresOn.toString())
+            number?.trim()?.takeIf { it.isNotEmpty() }?.let { put("documentNumber", it.take(80)) }
+            issuedOn?.let { put("issueDate", it.toString()) }
+        }
+        api.upload("/documents", fields, "file", file, Created.serializer())
+    }
+
+    /** Add an outside photograph of the vehicle, shown in its Photos folder. */
+    suspend fun uploadPhoto(vehicleId: String, file: OwnerApi.Upload) {
+        val fields = mapOf("ownerType" to "VEHICLE", "ownerId" to vehicleId, "purpose" to "VEHICLE_EXTERIOR")
+        api.upload("/media", fields, "file", file, Created.serializer())
+    }
+
+    suspend fun deletePhoto(photoId: String) {
+        api.delete("/media/$photoId")
+    }
+
+    /** Where the vehicle's review stands; null when this account cannot read it. */
+    suspend fun review(vehicleId: String): Review? = api.get("/verification/subject/truck/$vehicleId", Review.serializer())
+
+    /** Hand the vehicle's papers to Saarthi's reviewers. */
+    suspend fun sendForReview(vehicleId: String) {
+        val body = buildJsonObject {
+            put("subjectType", "TRUCK")
+            put("subjectId", vehicleId)
+        }
+        api.post("/verification", body.toString(), Created.serializer())
+    }
+
     /** Enter the Secure PIN: the web's own unlock, for this sign-in only. */
     suspend fun unlock(pin: String) {
         api.post(
@@ -151,21 +211,7 @@ class PapersApi(private val api: OwnerApi) {
         )
     }
 
-    suspend fun shares(vehicleId: String): List<Share> =
-        api.get("/fleet/sharing/vehicles/$vehicleId/shares", ListSerializer(Share.serializer())).orEmpty()
-
-    /** Invite somebody by the email their own Saarthi account is on. */
-    suspend fun share(vehicleId: String, email: String) {
-        api.post("/fleet/sharing/vehicles/$vehicleId/shares", buildJsonObject { put("email", email.trim()) }.toString(), Share.serializer())
-    }
-
-    suspend fun unshare(shareId: String) {
-        api.delete("/fleet/sharing/shares/$shareId")
-    }
-
     companion object {
-        const val MAX_SHARES = 3
-
         const val KIND_PAPER = "PAPER"
         const val KIND_PHOTOS = "PHOTOS"
         const val KIND_QR = "QR"
@@ -174,5 +220,13 @@ class PapersApi(private val api: OwnerApi) {
         const val ACCESS_FULL = "FULL"
         const val ACCESS_LOCKED = "LOCKED"
         const val ACCESS_OWNERSHIP_REQUIRED = "OWNERSHIP_REQUIRED"
+
+        /** What the web checks before offering the same buttons. */
+        const val CAN_UPLOAD_PAPERS = "documents.upload"
+        const val CAN_UPLOAD_PHOTOS = "media.upload"
+        const val CAN_DELETE_PHOTOS = "media.delete"
+        const val CAN_SEND_FOR_REVIEW = "verification.submit"
+        const val CAN_READ_REVIEW = "verification.read"
+        const val PHOTOS_FEATURE = "media.library"
     }
 }

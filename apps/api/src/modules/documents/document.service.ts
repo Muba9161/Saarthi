@@ -200,7 +200,8 @@ export interface UploadFileInput {
   declaredMimeType: string;
 }
 
-function validateFile(file: UploadFileInput): string {
+/** Size and real file type, read from the bytes. Shared with ownership-review attachments. */
+export function validateFile(file: UploadFileInput): string {
   if (file.buffer.byteLength === 0) {
     throw errors.validation('The uploaded file is empty.');
   }

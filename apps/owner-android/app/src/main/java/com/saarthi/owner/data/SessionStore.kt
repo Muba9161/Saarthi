@@ -45,8 +45,17 @@ class SessionStore(context: Context) {
         val businesses: List<Business> = emptyList(),
         /** The one this session is acting for. */
         val organizationId: String = "",
+        /**
+         * What the plan includes ("ai.copilot", "tracking.live"…), as the server
+         * checks it. Null for an account saved before the app read it: unknown,
+         * so nothing is hidden on its account until the session is next refreshed.
+         */
+        val features: Set<String>? = null,
     ) {
         fun can(permission: String): Boolean = permission in permissions
+
+        /** The plan includes [feature]; true when the plan has not been read yet. */
+        fun hasFeature(feature: String): Boolean = features?.contains(feature) ?: true
     }
 
     /** A business the person is a member of. */
@@ -84,6 +93,7 @@ class SessionStore(context: Context) {
             putString(KEY_PLAN, account.planName)
             putBoolean(KEY_PAUSED, account.paused)
             putStringSet(KEY_PERMISSIONS, account.permissions)
+            account.features?.let { putStringSet(KEY_FEATURES, it) } ?: remove(KEY_FEATURES)
             putString(KEY_ORGANIZATION_ID, account.organizationId)
             putString(KEY_BUSINESSES, account.businesses.joinToString(RECORD) { listOf(it.id, it.name, it.type).joinToString(FIELD) })
             if (refreshToken != null) putString(KEY_REFRESH, refreshToken)
@@ -119,6 +129,7 @@ class SessionStore(context: Context) {
                 .split(RECORD)
                 .mapNotNull { record -> record.split(FIELD).takeIf { it.size == 3 }?.let { Business(it[0], it[1], it[2]) } },
             organizationId = preferences.getString(KEY_ORGANIZATION_ID, null).orEmpty(),
+            features = preferences.getStringSet(KEY_FEATURES, null)?.toSet(),
         )
     }
 
@@ -134,6 +145,7 @@ class SessionStore(context: Context) {
         const val KEY_PLAN = "plan_name"
         const val KEY_PAUSED = "paused"
         const val KEY_PERMISSIONS = "permissions"
+        const val KEY_FEATURES = "plan_features"
         const val KEY_ORGANIZATION_ID = "organization_id"
         const val KEY_BUSINESSES = "businesses"
 

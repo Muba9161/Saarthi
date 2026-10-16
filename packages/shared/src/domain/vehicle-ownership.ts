@@ -34,6 +34,57 @@ export interface VehicleOwnershipView {
 export const CLAIM_NEEDS_VERIFIED_NAME = 'VERIFIED_NAME_REQUIRED';
 
 // ---------------------------------------------------------------------------
+// Review by the Saarthi team
+// ---------------------------------------------------------------------------
+
+/**
+ * Where a request for a person to confirm ownership stands.
+ *
+ * The fallback when the RC owner's name cannot be matched automatically: a
+ * name spelt beyond what the matcher allows, a married name, a vehicle in a
+ * relative's name, or no RC to hand. An approval confirms the vehicle exactly
+ * as a name match would.
+ */
+export const OwnershipReviewStatus = {
+  PENDING: 'PENDING',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED',
+} as const;
+export type OwnershipReviewStatus = (typeof OwnershipReviewStatus)[keyof typeof OwnershipReviewStatus];
+
+/** A review as the account that asked for it sees it. */
+export interface OwnershipReviewView {
+  id: string;
+  registrationNumber: string;
+  /** The account's own vehicle, or a plate another account holds unconfirmed. */
+  kind: 'OWN_VEHICLE' | 'CLAIM';
+  status: OwnershipReviewStatus;
+  message: string;
+  hasAttachment: boolean;
+  /** The reviewer's reason; always present on a rejection. */
+  decisionNote: string | null;
+  createdAt: string;
+  reviewedAt: string | null;
+}
+
+/** A row in the reviewer's queue. */
+export interface OwnershipReviewSummary extends OwnershipReviewView {
+  organizationName: string | null;
+  requestedByName: string | null;
+}
+
+/** What the reviewer sees on opening one: everything needed to decide, in one place. */
+export interface OwnershipReviewDetail extends OwnershipReviewSummary {
+  vehicleId: string | null;
+  /** The RC owner as the RTO records them. Reviewers are platform staff. */
+  rcOwnerName: string | null;
+  /** The government-verified names on the requesting account. */
+  verifiedNames: string[];
+  /** For a claim, the account holding the plate now. */
+  holder: { organizationName: string | null; ownershipStatus: VehicleOwnershipStatus } | null;
+}
+
+// ---------------------------------------------------------------------------
 // Name matching
 // ---------------------------------------------------------------------------
 
@@ -76,6 +127,48 @@ const EQUIVALENT_WORDS: Record<string, string> = {
 
 /** A match must rest on at least this many whole words agreeing. */
 const MIN_MATCHING_WORDS = 2;
+
+/**
+ * A name word as it sounds rather than as it was romanised.
+ *
+ * RTO and Income Tax records write the same Devanagari name in Latin letters
+ * differently, all the time: the RC says SMT. BHAWNA PANDEY and the PAN says
+ * BHAVANA PANDEY, the same व written W once and V once, with the inherent "a"
+ * kept once and dropped once. Each rule here is one such habit, so two
+ * spellings of one name reduce to one key; different names keep different
+ * consonants and do not. Only ever compared word to word, under every other
+ * rule `ownerNamesMatch` keeps.
+ */
+function soundKey(word: string): string {
+  return (
+    word
+      // LAXMI / LAKSHMI
+      .replace(/X/g, 'KSH')
+      // BHAWNA / BHAVANA, PAWAN / PAVAN
+      .replace(/W/g, 'V')
+      .replace(/PH/g, 'F')
+      // Aspiration written or not: AMITH / AMIT, SIDDHARTH / SIDHARTH, CHHAYA / CHAYA
+      .replace(/([BCDGJKPT])H+/g, '$1')
+      // श and स romanised alike: SHASHI / SASHI, LAKSHMI / LAKSMI
+      .replace(/SH/g, 'S')
+      // Long vowels: SUNEETA / SUNITA, SOORAJ / SURAJ, GOUTAM / GAUTAM
+      .replace(/EE/g, 'I')
+      .replace(/OO/g, 'U')
+      .replace(/OU/g, 'AU')
+      // AJAY / AJAI
+      .replace(/Y$/, 'I')
+      // SIDDHARTH / SIDHARTH, AMEERA / AMIRA
+      .replace(/(.)\1+/g, '$1')
+      // The inherent vowel between consonants: BHAVANA / BHAVNA, MAMATA / MAMTA
+      .replace(/([^AEIOU])A(?=[^AEIOU])/g, '$1')
+      .replace(/(.)\1+/g, '$1')
+  );
+}
+
+/** One word of a name against another: spelt the same, or the same name romanised differently. */
+function sameWord(a: string, b: string): boolean {
+  return a === b || soundKey(a) === soundKey(b);
+}
 
 interface NameParts {
   words: string[];
@@ -122,7 +215,9 @@ function initialsFit(
  * whoever passes it, so a shared surname must never be enough:
  *
  *  * every whole word of the shorter name must appear in the longer one, and
- *    there must be at least two — "KUMAR" alone matches half a state;
+ *    there must be at least two — "KUMAR" alone matches half a state. A word
+ *    "appears" when it is spelt the same or romanised differently — BHAWNA is
+ *    BHAVANA (see `soundKey`);
  *  * the longer name may carry extra words, the middle name one record omits;
  *  * an initial must stand for a word, or an initial, the other side has left
  *    over — "R KUMAR SHARMA" is not "AMIT KUMAR SHARMA".
@@ -137,10 +232,11 @@ export function ownerNamesMatch(first: string, second: string): boolean {
   const [shorter, longer] = a.words.length <= b.words.length ? [a, b] : [b, a];
 
   if (shorter.words.length < MIN_MATCHING_WORDS) return false;
-  if (!shorter.words.every((word) => longer.words.includes(word))) return false;
+  const inLonger = (word: string) => longer.words.some((other) => sameWord(word, other));
+  if (!shorter.words.every(inLonger)) return false;
 
   const unmatchedIn = (side: NameParts, other: NameParts): string[] =>
-    side.words.filter((word) => !other.words.includes(word));
+    side.words.filter((word) => !other.words.some((candidate) => sameWord(word, candidate)));
 
   return (
     initialsFit(a.initials, unmatchedIn(b, a), b.initials) &&

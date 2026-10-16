@@ -49,6 +49,8 @@ import kotlinx.coroutines.delay
 fun NeedsYouNow(
     home: FleetHome,
     acting: String?,
+    /** False for a role that may see a waiting driver but not decide (a dispatcher). */
+    canApprove: Boolean,
     onApprove: (String) -> Unit,
     onReview: (String) -> Unit,
     onOpenAlerts: () -> Unit,
@@ -57,7 +59,7 @@ fun NeedsYouNow(
     val approval = home.approvals.firstOrNull()
     val alert = home.topAlert?.takeIf { it.priority == "CRITICAL" || it.priority == "HIGH" }
     when {
-        approval != null -> ApprovalCard(approval, home.approvals.size - 1, acting, onApprove, onReview, modifier)
+        approval != null -> ApprovalCard(approval, home.approvals.size - 1, acting, canApprove, onApprove, onReview, modifier)
         alert != null -> AlertCard(alert, onOpenAlerts, modifier)
         else -> AllClearCard(modifier)
     }
@@ -68,6 +70,7 @@ private fun ApprovalCard(
     approval: FleetApi.Approval,
     othersWaiting: Int,
     acting: String?,
+    canApprove: Boolean,
     onApprove: (String) -> Unit,
     onReview: (String) -> Unit,
     modifier: Modifier,
@@ -94,21 +97,26 @@ private fun ApprovalCard(
             }
         }
         ButtonRow {
+            if (canApprove) {
+                SaarthiButton(
+                    "Approve",
+                    onClick = { onApprove(approval.id) },
+                    busy = acting == approval.id,
+                    height = 52.dp,
+                    modifier = Modifier.weight(1f),
+                )
+            }
             SaarthiButton(
-                "Approve",
-                onClick = { onApprove(approval.id) },
-                busy = acting == approval.id,
-                height = 52.dp,
-                modifier = Modifier.weight(1f),
-            )
-            SaarthiButton(
-                "Review",
+                if (canApprove) "Review" else "View request",
                 onClick = { onReview(approval.id) },
                 tone = ButtonTone.SECONDARY,
                 enabled = acting == null,
                 height = 52.dp,
                 modifier = Modifier.weight(1f),
             )
+        }
+        if (!canApprove) {
+            Text("An owner or fleet manager approves this. You can see it so you know the vehicle is waiting.", style = SType.small, color = c.muted)
         }
         if (othersWaiting > 0) {
             Text("$othersWaiting more waiting after this one", style = SType.small, color = c.muted)

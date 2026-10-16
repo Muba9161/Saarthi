@@ -3,6 +3,7 @@ import {
   NotificationPriority,
   NotificationType,
   OPERATOR_OWNER_ROLES,
+  OwnershipReviewStatus,
   VehicleOwnershipStatus,
   VerificationSubjectType,
   ownerNamesMatch,
@@ -187,8 +188,12 @@ async function matchOwnerName(
  *
  * Run when a vehicle is added, when its RC is fetched, when the owner presses
  * "Check again", and by the sweep — which is what picks up a PAN verified
- * since. A confirmed or released vehicle is left as it is: ownership, once
- * decided, is not re-decided by a later lookup.
+ * since — and when the Saarthi team approves a review. A confirmed or released
+ * vehicle is left as it is: ownership, once decided, is not re-decided by a
+ * later lookup.
+ *
+ * Two kinds of evidence confirm it: the RC owner's name matching a verified
+ * name on the account, or a reviewer having approved the account's request.
  */
 export async function evaluateOwnership(truckId: string): Promise<VehicleOwnershipView> {
   const truck = await prisma.truck.findUnique({
@@ -199,9 +204,12 @@ export async function evaluateOwnership(truckId: string): Promise<VehicleOwnersh
   if (truck.ownershipStatus !== VehicleOwnershipStatus.PENDING) return ownershipView(truck);
 
   const outcome = await matchOwnerName(truck.organizationId, truck.registrationNumber);
+  const reviewed =
+    !outcome.matched &&
+    (await hasApprovedOwnershipReview(truck.organizationId, truck.registrationNumber));
   const now = new Date();
 
-  if (!outcome.matched) {
+  if (!outcome.matched && !reviewed) {
     const updated = await prisma.truck.update({
       where: { id: truck.id },
       data: { ownershipNote: outcome.note, ownershipCheckedAt: now },
@@ -226,11 +234,35 @@ export async function evaluateOwnership(truckId: string): Promise<VehicleOwnersh
         truckId: truck.id,
         organizationId: truck.organizationId,
         type: 'OWNERSHIP_VERIFIED',
-        description: 'Ownership confirmed: the RC owner matches a verified name on this account.',
+        description: reviewed
+          ? 'Ownership confirmed by the Saarthi team, on review.'
+          : 'Ownership confirmed: the RC owner matches a verified name on this account.',
       },
     }),
   ]);
   return ownershipView(updated);
+}
+
+/** Has the Saarthi team approved this account's request to confirm this plate? */
+export async function hasApprovedOwnershipReview(
+  organizationId: string,
+  registrationNumber: string,
+): Promise<boolean> {
+  const approved = await prisma.vehicleOwnershipReview.count({
+    where: { organizationId, registrationNumber, status: OwnershipReviewStatus.APPROVED },
+  });
+  return approved > 0;
+}
+
+/** Is a request from this account to confirm this plate still waiting for the team? */
+export async function hasPendingOwnershipReview(
+  organizationId: string,
+  registrationNumber: string,
+): Promise<boolean> {
+  const pending = await prisma.vehicleOwnershipReview.count({
+    where: { organizationId, registrationNumber, status: OwnershipReviewStatus.PENDING },
+  });
+  return pending > 0;
 }
 
 /**

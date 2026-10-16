@@ -127,6 +127,8 @@ export const AuditAction = {
   TRUCK_DRIVER_UNASSIGNED: 'truck.driver_unassigned',
 
   VEHICLE_RC_LOOKUP: 'vehicle.rc_lookup',
+  VEHICLE_OWNERSHIP_REVIEW_REQUESTED: 'vehicle.ownership_review_requested',
+  VEHICLE_OWNERSHIP_REVIEW_DECIDED: 'vehicle.ownership_review_decided',
   DRIVER_LICENCE_LOOKUP: 'driver.licence_lookup',
   VEHICLE_RC_PDF_DOWNLOADED: 'vehicle.rc_pdf_downloaded',
 

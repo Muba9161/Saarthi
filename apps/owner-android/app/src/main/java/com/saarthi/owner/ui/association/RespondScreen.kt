@@ -9,12 +9,14 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -31,6 +33,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.saarthi.owner.OwnerApp
@@ -47,6 +50,7 @@ import com.saarthi.owner.ui.design.ButtonRow
 import com.saarthi.owner.ui.design.ButtonTone
 import com.saarthi.owner.ui.design.CircleButton
 import com.saarthi.owner.ui.design.Eyebrow
+import com.saarthi.owner.ui.design.Hint
 import com.saarthi.owner.ui.design.IconWell
 import com.saarthi.owner.ui.design.LinkButton
 import com.saarthi.owner.ui.design.LiveDot
@@ -57,6 +61,7 @@ import com.saarthi.owner.ui.design.NotesField
 import com.saarthi.owner.ui.design.SType
 import com.saarthi.owner.ui.design.Saarthi
 import com.saarthi.owner.ui.design.SaarthiButton
+import com.saarthi.owner.ui.design.SaarthiField
 import com.saarthi.owner.ui.design.card
 import com.saarthi.owner.ui.design.pressable
 import com.saarthi.owner.ui.map.MapVehicle
@@ -72,8 +77,13 @@ private const val REFRESH_MS = 10_000L
  * One member's SOS — the design's Association · Respond.
  *
  * Where they are on the map, who they are, who is already going; and the
- * three answers: I'm going, call them, call 112. Marking it resolved asks
- * what was done, because that line is the association's record.
+ * answers, in the order the server allows them. A fresh alert is taken first
+ * (acknowledged), because that audited act is what unseals the driver's number
+ * and what lets anyone be put down as going. Only then come I'm going, call
+ * them and resolve; call 112 is always there. "I'm going" is offered only after
+ * the case is taken, not folded into the same tap, so each state has exactly
+ * one main action. Marking it resolved asks what was done, because that line
+ * is the association's record.
  */
 @Composable
 fun RespondScreen(app: OwnerApp, account: SessionStore.Account, initial: AssociationApi.Alert, onChanged: () -> Unit) {
@@ -86,6 +96,7 @@ fun RespondScreen(app: OwnerApp, account: SessionStore.Account, initial: Associa
     var message by remember { mutableStateOf<Pair<String, NoticeTone>?>(null) }
     var resolving by remember { mutableStateOf(false) }
     var outcome by remember { mutableStateOf("") }
+    var note by remember { mutableStateOf("") }
     var focus by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(initial.id) {
@@ -100,14 +111,16 @@ fun RespondScreen(app: OwnerApp, account: SessionStore.Account, initial: Associa
         busy = true
         message = null
         scope.launch {
-            try {
+            message = try {
                 call()
-                runCatching { app.association.get(alert.id) }.getOrNull()?.let { alert = it }
-                message = done to NoticeTone.SUCCESS
-                onChanged()
+                done to NoticeTone.SUCCESS
             } catch (failure: Exception) {
-                message = failure.readable() to NoticeTone.DANGER
+                // The server's own words: it knows why it refused.
+                failure.readable() to NoticeTone.DANGER
             }
+            // Re-read either way: a refusal usually means someone else moved the case on.
+            runCatching { app.association.get(alert.id) }.getOrNull()?.let { alert = it }
+            onChanged()
             busy = false
         }
     }
@@ -161,6 +174,8 @@ fun RespondScreen(app: OwnerApp, account: SessionStore.Account, initial: Associa
                 .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
                 .background(c.card)
                 .windowInsetsPadding(WindowInsets.navigationBars)
+                // The note field rides up on the keyboard, so what is typed and its button stay in sight.
+                .imePadding()
                 .verticalScroll(rememberScrollState())
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -185,6 +200,7 @@ fun RespondScreen(app: OwnerApp, account: SessionStore.Account, initial: Associa
                 Text(
                     when {
                         !alert.open -> if (alert.responderCount == 1) "1 member responded" else "${alert.responderCount} members responded"
+                        alert.awaitingAcknowledgement -> "Nobody has taken this case yet"
                         going && alert.responderCount > 1 -> "You and ${alert.responderCount - 1} more are going"
                         going -> "You're going"
                         alert.responderCount > 0 -> "${alert.responderCount} already going"
@@ -197,8 +213,29 @@ fun RespondScreen(app: OwnerApp, account: SessionStore.Account, initial: Associa
             message?.let { (text, tone) -> RevealedNotice(text, tone) }
 
             if (alert.open) {
-                // Once you've said you're going, saying it again would only count you twice.
-                if (!going) {
+                if (alert.awaitingAcknowledgement) {
+                    // The server will not put anyone down as going until a named member has taken the case.
+                    SaarthiField(
+                        note,
+                        { note = it.take(1000) },
+                        label = "Note for the record (optional)",
+                        placeholder = "Two members heading there now",
+                        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+                    )
+                    SaarthiButton(
+                        "Acknowledge and take this case",
+                        onClick = {
+                            act("Case taken. The driver's contact is unlocked.") {
+                                // Shown at once, even if the re-read after it fails: a second tap would only be refused.
+                                app.association.acknowledge(alert.id, note)?.let { alert = it }
+                                note = ""
+                            }
+                        },
+                        busy = busy,
+                        leading = Lucide.shieldCheck,
+                    )
+                } else if (!going) {
+                    // Once you've said you're going, saying it again would only count you twice.
                     SaarthiButton(
                         "I'm going",
                         onClick = { act("You're down as responding. The driver has been told.") { app.association.respond(alert.id, account.userId) } },
@@ -226,10 +263,14 @@ fun RespondScreen(app: OwnerApp, account: SessionStore.Account, initial: Associa
                         Text("Call 112", style = SType.button, color = Color.White)
                     }
                 }
-                if (alert.status == "NOTIFIED") {
-                    LinkButton("Acknowledge without going", { act("Acknowledged.") { app.association.acknowledge(alert.id) } }, style = SType.smallStrong)
+                when {
+                    alert.awaitingAcknowledgement -> Hint("Call driver unlocks once someone takes the case. Until then Saarthi keeps the driver's name and number sealed.")
+                    phone == null -> Hint("No driver number on record.")
                 }
-                LinkButton("Mark as resolved", { resolving = true }, color = c.muted, style = SType.smallStrong)
+                // A case can be resolved only once it has been taken, never straight from NOTIFIED.
+                if (alert.taken) {
+                    LinkButton("Mark as resolved", { resolving = true }, color = c.muted, style = SType.smallStrong)
+                }
             } else {
                 alert.outcome?.let { NoticeCard(it, NoticeTone.SUCCESS, icon = Lucide.check) }
             }

@@ -1,5 +1,6 @@
 package com.saarthi.owner.ui.sos
 
+import com.saarthi.owner.data.SessionStore
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
@@ -80,7 +81,11 @@ private const val REFRESH_MS = 8_000L
  * or marks it resolved with a word on what happened.
  */
 @Composable
-fun SosAlertScreen(sos: SosApi, initial: SosApi.Incident) = AlwaysDark {
+fun SosAlertScreen(sos: SosApi, account: SessionStore.Account, initial: SosApi.Incident) = AlwaysDark {
+    // Offered only where the server will accept them: resolving needs either SOS
+    // permission, widening the circle needs the manage one.
+    val canResolve = account.can("sos.manage") || account.can("sos.trigger")
+    val canWiden = account.can("sos.manage")
     val navigator = LocalNavigator.current
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -220,7 +225,7 @@ fun SosAlertScreen(sos: SosApi, initial: SosApi.Incident) = AlwaysDark {
                             Text(if (responder.status == "ARRIVED") "Arrived" else "Accepted", style = SType.captionStrong, color = Color(0xFF3DAE79))
                         }
                     }
-                    if (incident.active && coming.isEmpty()) {
+                    if (incident.active && coming.isEmpty() && canWiden) {
                         LinkButton("Widen the circle", onClick = {
                             scope.launch {
                                 message = runCatching { sos.expandSearch(incident.id) }
@@ -261,7 +266,7 @@ fun SosAlertScreen(sos: SosApi, initial: SosApi.Incident) = AlwaysDark {
                         modifier = Modifier.weight(1f),
                     )
                 }
-                if (incident.active) {
+                if (incident.active && canResolve) {
                     LinkButton("Mark as resolved", { resolving = true }, color = Color.White.copy(alpha = 0.85f), modifier = Modifier.align(Alignment.CenterHorizontally))
                 }
             }

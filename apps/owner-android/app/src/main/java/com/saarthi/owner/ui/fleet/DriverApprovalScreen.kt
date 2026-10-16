@@ -49,6 +49,7 @@ import com.saarthi.owner.ui.design.ChoiceChip
 import com.saarthi.owner.ui.design.Eyebrow
 import com.saarthi.owner.ui.design.IconWell
 import com.saarthi.owner.ui.design.Lucide
+import com.saarthi.owner.ui.design.NoticeCard
 import com.saarthi.owner.ui.design.NoticeTone
 import com.saarthi.owner.ui.design.NotesField
 import com.saarthi.owner.ui.design.RippleRings
@@ -80,7 +81,7 @@ private val Reasons = listOf("Not assigned to this vehicle", "Vehicle is not rea
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun DriverApprovalScreen(app: OwnerApp, approval: FleetApi.Approval, onDecided: () -> Unit) {
+fun DriverApprovalScreen(app: OwnerApp, approval: FleetApi.Approval, canApprove: Boolean = true, onDecided: () -> Unit) {
     val c = Saarthi.colors
     val navigator = LocalNavigator.current
     val scope = rememberCoroutineScope()
@@ -129,11 +130,19 @@ fun DriverApprovalScreen(app: OwnerApp, approval: FleetApi.Approval, onDecided: 
         eyebrow = "Driver request",
         title = "Approve a driver",
         eyebrowColor = c.warning,
-        footer = {
-            SlideToAct("Slide to approve $first", onConfirm = { decide { app.fleet.approve(approval.id) } }, enabled = !busy)
-            SaarthiButton("Turn this down", onClick = { declining = true }, tone = ButtonTone.DANGER_OUTLINE, enabled = !busy, leading = Lucide.ban, height = 50.dp)
+        // A role that may see the request but not decide it gets the facts and no buttons.
+        footer = if (canApprove) {
+            {
+                SlideToAct("Slide to approve $first", onConfirm = { decide { app.fleet.approve(approval.id) } }, enabled = !busy)
+                SaarthiButton("Turn this down", onClick = { declining = true }, tone = ButtonTone.DANGER_OUTLINE, enabled = !busy, leading = Lucide.ban, height = 50.dp)
+            }
+        } else {
+            null
         },
     ) {
+        if (!canApprove) {
+            NoticeCard("An owner or fleet manager approves or turns down this request.", NoticeTone.INFO, Modifier.rise())
+        }
         Box(
             Modifier
                 .fillMaxWidth()

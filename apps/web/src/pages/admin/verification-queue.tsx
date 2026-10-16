@@ -30,6 +30,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { OwnershipReviewQueue } from '@/features/verification/ownership-review-queue';
 
 /**
  * Verification review queue.
@@ -113,7 +115,8 @@ function ReviewPanel({
       void queryClient.invalidateQueries({ queryKey: ['verification'] });
       onOpenChange(false);
     },
-    onError: (error) => toast.error('Could not submit the review', { description: errorMessage(error) }),
+    onError: (error) =>
+      toast.error('Could not submit the review', { description: errorMessage(error) }),
   });
 
   /** Documents are private, so the token travels with the fetch, not the URL. */
@@ -403,47 +406,60 @@ export function AdminVerificationQueuePage() {
       <PageHeader
         eyebrow="Platform operations"
         title="Verification queue"
-        description="Drivers, trucks and businesses waiting for review."
+        description="Drivers, vehicles and businesses waiting for review, and owners asking to confirm a vehicle is theirs."
       />
 
-      <Select
-        value={status}
-        onValueChange={(value) => {
-          setStatus(value);
-          setPage(1);
-        }}
-      >
-        <SelectTrigger className="sm:w-56">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="pending">Awaiting review</SelectItem>
-          <SelectItem value="all">All submissions</SelectItem>
-          <SelectItem value="VERIFIED">Verified</SelectItem>
-          <SelectItem value="REJECTED">Rejected</SelectItem>
-        </SelectContent>
-      </Select>
+      <Tabs defaultValue="cases" className="space-y-5">
+        <TabsList>
+          <TabsTrigger value="cases">Verification cases</TabsTrigger>
+          <TabsTrigger value="ownership">Vehicle ownership</TabsTrigger>
+        </TabsList>
 
-      {query.data?.items.length === 0 && status === 'pending' ? (
-        <EmptyState
-          icon={ShieldCheck}
-          title="Queue is clear"
-          description="Every submission has been reviewed. Nice."
-        />
-      ) : (
-        <DataTable
-          columns={columns}
-          rows={query.data?.items}
-          rowKey={(row) => row.id}
-          isLoading={query.isLoading || query.isFetching}
-          error={query.error}
-          onRetry={() => void query.refetch()}
-          onRowClick={(row) => setActiveCase(row.id)}
-          {...(query.data?.pagination ? { pagination: query.data.pagination } : {})}
-          onPageChange={setPage}
-          emptyTitle="No submissions"
-        />
-      )}
+        <TabsContent value="ownership" className="mt-0">
+          <OwnershipReviewQueue />
+        </TabsContent>
+
+        <TabsContent value="cases" className="mt-0 space-y-5">
+          <Select
+            value={status}
+            onValueChange={(value) => {
+              setStatus(value);
+              setPage(1);
+            }}
+          >
+            <SelectTrigger className="sm:w-56">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="pending">Awaiting review</SelectItem>
+              <SelectItem value="all">All submissions</SelectItem>
+              <SelectItem value="VERIFIED">Verified</SelectItem>
+              <SelectItem value="REJECTED">Rejected</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {query.data?.items.length === 0 && status === 'pending' ? (
+            <EmptyState
+              icon={ShieldCheck}
+              title="Queue is clear"
+              description="Every submission has been reviewed. Nice."
+            />
+          ) : (
+            <DataTable
+              columns={columns}
+              rows={query.data?.items}
+              rowKey={(row) => row.id}
+              isLoading={query.isLoading || query.isFetching}
+              error={query.error}
+              onRetry={() => void query.refetch()}
+              onRowClick={(row) => setActiveCase(row.id)}
+              {...(query.data?.pagination ? { pagination: query.data.pagination } : {})}
+              onPageChange={setPage}
+              emptyTitle="No submissions"
+            />
+          )}
+        </TabsContent>
+      </Tabs>
 
       <ReviewPanel
         caseId={activeCase}

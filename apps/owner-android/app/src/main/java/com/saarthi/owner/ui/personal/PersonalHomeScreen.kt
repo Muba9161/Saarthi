@@ -39,6 +39,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.saarthi.owner.OwnerApp
 import com.saarthi.owner.data.SessionStore
 import com.saarthi.owner.network.PapersApi
+import com.saarthi.owner.network.SharingApi
 import com.saarthi.owner.network.VehiclesApi
 import com.saarthi.owner.ui.common.FailedCard
 import com.saarthi.owner.ui.common.Loadable
@@ -69,6 +70,7 @@ import com.saarthi.owner.ui.fleet.VehicleLiveScreen
 import com.saarthi.owner.ui.papers.INSURANCE_FOLDER
 import com.saarthi.owner.ui.papers.daysLeft
 import com.saarthi.owner.ui.papers.standing
+import com.saarthi.owner.ui.sharing.InvitationsOnHome
 import com.saarthi.owner.ui.shell.LocalNavigator
 import com.saarthi.owner.ui.shell.ShellActions
 import kotlinx.coroutines.delay
@@ -91,7 +93,7 @@ fun PersonalHomeScreen(app: OwnerApp, account: SessionStore.Account, actions: Sh
     var picked by rememberSaveable { mutableStateOf<String?>(null) }
     // The tiles say "loading" or "could not load" rather than a misleading "None".
     var wallet by remember { mutableStateOf<Loadable<PapersApi.Wallet>>(Loadable.Loading) }
-    var shares by remember { mutableStateOf<List<PapersApi.Share>>(emptyList()) }
+    var shares by remember { mutableStateOf<List<SharingApi.Share>>(emptyList()) }
     val navigator = LocalNavigator.current
     val c = Saarthi.colors
 
@@ -112,7 +114,7 @@ fun PersonalHomeScreen(app: OwnerApp, account: SessionStore.Account, actions: Sh
         } catch (failure: Exception) {
             Loadable.Failed(failure.readable())
         }
-        shares = runCatching { app.papers.shares(id) }.getOrDefault(emptyList())
+        shares = runCatching { app.sharing.shares(id) }.getOrDefault(emptyList())
     }
 
     Column(
@@ -126,6 +128,7 @@ fun PersonalHomeScreen(app: OwnerApp, account: SessionStore.Account, actions: Sh
             Loadable.Loading -> SkeletonCards()
             is Loadable.Failed -> FailedCard(shown.message, { model.refresh() })
             is Loadable.Ready -> {
+                InvitationsOnHome(app, account, Modifier.rise())
                 if (vehicle == null) {
                     Text("No vehicle on this account yet. Add one from Saarthi on the web.", style = SType.body, color = c.muted)
                     return@Column

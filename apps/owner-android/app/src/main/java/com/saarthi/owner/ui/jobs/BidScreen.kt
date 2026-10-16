@@ -52,11 +52,13 @@ import com.saarthi.owner.ui.common.unitPrice
 import com.saarthi.owner.ui.design.ChoiceChip
 import com.saarthi.owner.ui.design.Eyebrow
 import com.saarthi.owner.ui.design.GroupLabel
+import com.saarthi.owner.ui.design.Hint
 import com.saarthi.owner.ui.design.IconWell
 import com.saarthi.owner.ui.design.LineIcon
 import com.saarthi.owner.ui.design.Lucide
 import com.saarthi.owner.ui.design.NoticeCard
 import com.saarthi.owner.ui.design.NoticeTone
+import com.saarthi.owner.ui.design.NotesField
 import com.saarthi.owner.ui.design.SType
 import com.saarthi.owner.ui.design.Saarthi
 import com.saarthi.owner.ui.design.SaarthiButton
@@ -87,6 +89,7 @@ fun BidScreen(app: OwnerApp, account: SessionStore.Account, job: RequirementsApi
     val navigator = LocalNavigator.current
     val scope = rememberCoroutineScope()
     val bidScope = RequirementsApi.scopeFor(job.kind)
+    val travel = bidScope == SCOPE_TRAVEL
     val material = job.kind == KIND_MATERIAL
     val existing = job.myBid
 
@@ -104,6 +107,11 @@ fun BidScreen(app: OwnerApp, account: SessionStore.Account, job: RequirementsApi
     var driverIncluded by rememberSaveable { mutableStateOf(true) }
     var fuelIncluded by rememberSaveable { mutableStateOf(true) }
     var note by rememberSaveable { mutableStateOf("") }
+    // What a cab or tour price covers, as the web's bid dialog collects it: the customer compares bids on these.
+    var priceBreakdown by rememberSaveable { mutableStateOf("") }
+    var inclusionsText by rememberSaveable { mutableStateOf(job.requiredInclusions.joinToString("\n")) }
+    var exclusionsText by rememberSaveable { mutableStateOf("") }
+    var itinerary by rememberSaveable { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
 
@@ -137,9 +145,12 @@ fun BidScreen(app: OwnerApp, account: SessionStore.Account, job: RequirementsApi
     // A vehicle with nobody set on it needs a driver named on the bid; the server refuses it otherwise.
     val needsDriver = existing == null && bidScope != SCOPE_TRAVEL &&
         vehicles.firstOrNull { it.id == vehicleId }?.let { it.currentDriver == null } == true
+    val inclusions = entriesOf(inclusionsText)
+    val exclusions = entriesOf(exclusionsText)
+    val listProblem = if (travel) problemWith(inclusions, "included item") ?: problemWith(exclusions, "excluded item") else null
     val ready = !busy && existing == null && total != null && total > 0 &&
         (bidScope == SCOPE_TRAVEL || vehicleId != null) && (!material || chosenSeller != null) &&
-        (!needsDriver || driverId != null) && (!material || canBePaid != false)
+        (!needsDriver || driverId != null) && (!material || canBePaid != false) && listProblem == null
 
     fun send() {
         val price = total ?: return
@@ -157,6 +168,11 @@ fun BidScreen(app: OwnerApp, account: SessionStore.Account, job: RequirementsApi
                         driverId = driverId.takeIf { needsDriver },
                         sourceMaterialId = if (material) chosenSeller?.materialId else null,
                         offeredVehicleType = if (bidScope == SCOPE_TRAVEL) travelType else null,
+                        // Only a travel bid collects these; placeBid leaves them off any other scope.
+                        priceBreakdown = priceBreakdown.takeIf { travel },
+                        inclusions = inclusions,
+                        exclusions = exclusions,
+                        itinerarySummary = itinerary,
                         driverIncluded = driverIncluded,
                         fuelIncluded = fuelIncluded,
                     ),
@@ -180,7 +196,7 @@ fun BidScreen(app: OwnerApp, account: SessionStore.Account, job: RequirementsApi
         footer = {
             if (existing != null) {
                 NoticeCard(
-                    "You bid ${rupees(existing.price)} — ${existing.status.lowercase().replace('_', ' ')}. The customer has it.",
+                    "You bid ${rupees(existing.price)} (${existing.status.lowercase().replace('_', ' ')}). The customer has it.",
                     NoticeTone.SUCCESS,
                     icon = Lucide.check,
                 )
@@ -240,7 +256,7 @@ fun BidScreen(app: OwnerApp, account: SessionStore.Account, job: RequirementsApi
                 is Loadable.Ready -> {
                     if (list.value.isEmpty()) {
                         NoticeCard(
-                            "No seller near the site lists this in stock yet. You can bid as soon as one does — you'll see them here.",
+                            "No seller near the site lists this in stock yet. You can bid as soon as one does. You'll see them here.",
                             NoticeTone.INFO,
                             icon = Lucide.box,
                         )
@@ -298,6 +314,33 @@ fun BidScreen(app: OwnerApp, account: SessionStore.Account, job: RequirementsApi
                 ToggleRow("Driver included", driverIncluded) { driverIncluded = it }
                 ToggleRow("Fuel included", fuelIncluded) { fuelIncluded = it }
             }
+            if (existing == null) {
+                GroupLabel("What the price includes")
+                NotesField(
+                    inclusionsText,
+                    { inclusionsText = it },
+                    label = "Included, one per line",
+                    placeholder = "Tolls and parking\nDriver allowance",
+                    minHeight = 90.dp,
+                )
+                if (job.requiredInclusions.isNotEmpty()) Hint("Filled in with what the customer asked for.")
+                NotesField(
+                    exclusionsText,
+                    { exclusionsText = it },
+                    label = "Not included, one per line",
+                    placeholder = "Entry tickets\nMeals",
+                    minHeight = 76.dp,
+                )
+                listProblem?.let { Text(it, style = SType.small, color = c.danger) }
+                NotesField(
+                    itinerary,
+                    { itinerary = it.take(RequirementsApi.MAX_ITINERARY_LENGTH) },
+                    label = "Itinerary outline (optional)",
+                    placeholder = "Day 1: pickup, drive to the first stop\nDay 2: sightseeing, return",
+                    minHeight = 110.dp,
+                )
+                Hint("Day by day, if it is a tour. This is what the customer compares on.")
+            }
         }
 
         if (material) {
@@ -330,6 +373,16 @@ fun BidScreen(app: OwnerApp, account: SessionStore.Account, job: RequirementsApi
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 enabled = existing == null,
             )
+            if (travel && existing == null) {
+                SaarthiField(
+                    value = priceBreakdown,
+                    onValueChange = { priceBreakdown = it.take(RequirementsApi.MAX_PRICE_BREAKDOWN_LENGTH) },
+                    label = "What that price covers (optional)",
+                    leading = Lucide.fileText,
+                    placeholder = "All-inclusive: fuel, tolls, driver allowance",
+                    supporting = "A price with a breakdown wins more often than one without.",
+                )
+            }
         }
         if (existing == null) {
             SaarthiField(
@@ -434,6 +487,19 @@ private fun Figure(label: String, value: String, modifier: Modifier = Modifier, 
         Eyebrow(label, maxLines = 1)
         Text(value, style = SType.smallStrong, color = ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
+}
+
+/** A list typed one entry per line (or comma separated), read the way the web's bid dialog reads it. */
+private fun entriesOf(text: String): List<String> = text.split('\n', ',').map(String::trim).filter(String::isNotEmpty)
+
+/** Why the server would refuse a bid's list of [what]s, in words; null when it would be accepted. */
+private fun problemWith(entries: List<String>, what: String): String? = when {
+    entries.size > RequirementsApi.MAX_BID_LIST_ENTRIES -> "List at most ${RequirementsApi.MAX_BID_LIST_ENTRIES} ${what}s."
+    entries.any { it.length < RequirementsApi.MIN_BID_ENTRY_LENGTH } ->
+        "Each $what needs at least ${RequirementsApi.MIN_BID_ENTRY_LENGTH} characters."
+    entries.any { it.length > RequirementsApi.MAX_BID_ENTRY_LENGTH } ->
+        "Keep each $what to ${RequirementsApi.MAX_BID_ENTRY_LENGTH} characters or fewer."
+    else -> null
 }
 
 /** Free to take new work: nothing running on it, and not in the workshop. A driver being attached does not make it busy. */

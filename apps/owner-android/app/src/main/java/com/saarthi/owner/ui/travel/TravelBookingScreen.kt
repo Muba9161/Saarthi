@@ -1,5 +1,6 @@
 package com.saarthi.owner.ui.travel
 
+import com.saarthi.owner.data.OPERATOR_OWNER_ROLES
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -17,6 +18,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -37,10 +39,14 @@ import com.saarthi.owner.network.HandoverApi
 import com.saarthi.owner.network.TravelApi
 import com.saarthi.owner.network.VehiclesApi
 import com.saarthi.owner.ui.common.DetailScreen
+import com.saarthi.owner.ui.common.FailedCard
+import com.saarthi.owner.ui.common.Loadable
 import com.saarthi.owner.ui.common.PlateChip
 import com.saarthi.owner.ui.common.RevealedNotice
 import com.saarthi.owner.ui.common.clockOf
 import com.saarthi.owner.ui.common.dial
+import com.saarthi.owner.ui.common.formatPlate
+import com.saarthi.owner.ui.common.plural
 import com.saarthi.owner.ui.common.readable
 import com.saarthi.owner.ui.common.rememberPhoto
 import com.saarthi.owner.ui.common.rupees
@@ -52,12 +58,15 @@ import com.saarthi.owner.ui.design.ChoiceChip
 import com.saarthi.owner.ui.design.CircleButton
 import com.saarthi.owner.ui.design.Eyebrow
 import com.saarthi.owner.ui.design.GroupLabel
+import com.saarthi.owner.ui.design.LinkButton
 import com.saarthi.owner.ui.design.Lucide
+import com.saarthi.owner.ui.design.NoticeCard
 import com.saarthi.owner.ui.design.NoticeTone
 import com.saarthi.owner.ui.design.NotesField
 import com.saarthi.owner.ui.design.SType
 import com.saarthi.owner.ui.design.Saarthi
 import com.saarthi.owner.ui.design.SaarthiButton
+import com.saarthi.owner.ui.design.Skeleton
 import com.saarthi.owner.ui.design.StatusPill
 import com.saarthi.owner.ui.design.brandGradient
 import com.saarthi.owner.ui.design.card
@@ -67,7 +76,13 @@ import com.saarthi.owner.ui.fleet.RouteStops
 import com.saarthi.owner.ui.orders.FleetHandoverCard
 import com.saarthi.owner.ui.orders.OverrideHandoverSheet
 import com.saarthi.owner.ui.orders.PickupCodeSheet
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
+
+/** What a booking can be confirmed with: only the vehicles and drivers the server will accept. */
+private data class Assignable(val vehicles: List<VehiclesApi.Vehicle>, val drivers: List<DriversApi.Driver>)
 
 /**
  * One booking — the design's Travel · Booking: when, who, where, which
@@ -79,8 +94,8 @@ fun TravelBookingScreen(app: OwnerApp, initial: TravelApi.Booking, onChanged: ()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var booking by remember { mutableStateOf(initial) }
-    var vehicles by remember { mutableStateOf<List<VehiclesApi.Vehicle>>(emptyList()) }
-    var drivers by remember { mutableStateOf<List<DriversApi.Driver>>(emptyList()) }
+    var assignable by remember { mutableStateOf<Loadable<Assignable>>(Loadable.Loading) }
+    var assignableRead by remember { mutableIntStateOf(0) }
     var vehicleId by remember { mutableStateOf(initial.vehicle?.id) }
     var driverId by remember { mutableStateOf(initial.driver?.id) }
     var declining by remember { mutableStateOf(false) }
@@ -88,13 +103,15 @@ fun TravelBookingScreen(app: OwnerApp, initial: TravelApi.Booking, onChanged: ()
     var busy by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf<Pair<String, NoticeTone>?>(null) }
     val awaiting = booking.status == "AWAITING_CONFIRMATION"
+    val seats = booking.passengers ?: 1
     // The passenger's pickup code: asked for to start the ride, or the owner's override.
     var handovers by remember { mutableStateOf<List<HandoverApi.Handover>>(emptyList()) }
     var askingCode by remember { mutableStateOf(false) }
     var codeError by remember { mutableStateOf<String?>(null) }
     var overriding by remember { mutableStateOf<String?>(null) }
     var overrideError by remember { mutableStateOf<String?>(null) }
-    val canOverride = app.session.account.value?.membershipRole == "FLEET_OWNER"
+    // Every owner of the business, a travel operator included; the server allows the same roles.
+    val canOverride = app.session.account.value?.membershipRole in OPERATOR_OWNER_ROLES
     val pickupPending = handovers.any { it.purpose == HandoverApi.PICKUP && it.pending }
 
     suspend fun loadHandovers() {
@@ -104,9 +121,27 @@ fun TravelBookingScreen(app: OwnerApp, initial: TravelApi.Booking, onChanged: ()
     LaunchedEffect(initial.id) {
         runCatching { app.travel.get(initial.id) }.getOrNull()?.let { booking = it }
         loadHandovers()
-        if (awaiting) {
-            vehicles = runCatching { app.vehicles.list() }.getOrDefault(emptyList())
-            drivers = runCatching { app.drivers.list() }.getOrDefault(emptyList()).filter { it.availability != "SUSPENDED" }
+    }
+
+    // Read whenever the confirm step is showing, not only when the screen opened
+    // on it: the refresh above can be what reveals the booking is waiting.
+    LaunchedEffect(awaiting, seats, assignableRead) {
+        if (!awaiting) return@LaunchedEffect
+        assignable = Loadable.Loading
+        assignable = try {
+            coroutineScope {
+                val vehicles = async { app.travel.assignableVehicles(seats) }
+                val drivers = async { app.travel.assignableDrivers() }
+                Loadable.Ready(Assignable(vehicles.await(), drivers.await()))
+            }.also { ready ->
+                // A choice carried in from before that the server would refuse is dropped.
+                vehicleId = vehicleId?.takeIf { id -> ready.value.vehicles.any { it.id == id } }
+                driverId = driverId?.takeIf { id -> ready.value.drivers.any { it.id == id } }
+            }
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (failure: Exception) {
+            Loadable.Failed(failure.readable())
         }
     }
 
@@ -195,24 +230,15 @@ fun TravelBookingScreen(app: OwnerApp, initial: TravelApi.Booking, onChanged: ()
         }
 
         if (awaiting) {
-            GroupLabel("Which vehicle goes")
-            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                vehicles.forEach { vehicle ->
-                    ChoiceChip(
-                        com.saarthi.owner.ui.common.formatPlate(vehicle.registrationNumber),
-                        selected = vehicleId == vehicle.id,
-                        onClick = { vehicleId = vehicle.id },
-                    )
-                }
-            }
-            if (drivers.isNotEmpty()) {
-                GroupLabel("Who drives")
-                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    drivers.forEach { driver ->
-                        ChoiceChip(driver.fullName, selected = driverId == driver.id, onClick = { driverId = driver.id })
-                    }
-                }
-            }
+            ConfirmChoices(
+                assignable,
+                seats = seats,
+                vehicleId = vehicleId,
+                driverId = driverId,
+                onVehicle = { vehicleId = it },
+                onDriver = { driverId = it },
+                onRetry = { assignableRead++ },
+            )
         }
 
         Row(
@@ -306,6 +332,65 @@ fun TravelBookingScreen(app: OwnerApp, initial: TravelApi.Booking, onChanged: ()
                 tone = ButtonTone.DANGER_OUTLINE,
                 enabled = reason.trim().length >= 3,
             )
+        }
+    }
+}
+
+/**
+ * The confirm step's vehicle and driver. Only passenger vehicles that seat the
+ * party and are free, and only verified drivers, are offered: the same rules
+ * the server confirms against. When nothing fits it says why, rather than
+ * showing an empty row.
+ */
+@Composable
+private fun ConfirmChoices(
+    assignable: Loadable<Assignable>,
+    seats: Int,
+    vehicleId: String?,
+    driverId: String?,
+    onVehicle: (String) -> Unit,
+    onDriver: (String) -> Unit,
+    onRetry: () -> Unit,
+) {
+    val c = Saarthi.colors
+    GroupLabel("Which vehicle goes")
+    when (assignable) {
+        Loadable.Loading -> Skeleton(Modifier.fillMaxWidth().height(40.dp), color = c.sunken, shine = c.shine, radius = 20.dp)
+        is Loadable.Failed -> FailedCard(assignable.message, onRetry)
+        is Loadable.Ready -> {
+            val (vehicles, drivers) = assignable.value
+            if (vehicles.isEmpty()) {
+                NoticeCard(
+                    "None of your vehicles can take this booking. It needs a passenger vehicle with at least ${plural(seats, "seat")} that is free now, not on a trip or in service.",
+                    NoticeTone.WARNING,
+                    icon = Lucide.alertTriangle,
+                )
+                LinkButton("Check again", onRetry, style = SType.smallStrong)
+            } else {
+                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    vehicles.forEach { vehicle ->
+                        ChoiceChip(
+                            listOfNotNull(formatPlate(vehicle.registrationNumber), vehicle.passengerCapacity?.let { plural(it, "seat") }).joinToString(" · "),
+                            selected = vehicleId == vehicle.id,
+                            onClick = { onVehicle(vehicle.id) },
+                        )
+                    }
+                }
+            }
+            GroupLabel("Who drives")
+            if (drivers.isEmpty()) {
+                NoticeCard(
+                    "Only a verified driver can take a passenger trip, and none of yours is verified yet. You can confirm with the vehicle alone.",
+                    NoticeTone.INFO,
+                    icon = Lucide.user,
+                )
+            } else {
+                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    drivers.forEach { driver ->
+                        ChoiceChip(driver.fullName, selected = driverId == driver.id, onClick = { onDriver(driver.id) })
+                    }
+                }
+            }
         }
     }
 }

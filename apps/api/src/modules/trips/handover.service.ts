@@ -5,6 +5,7 @@ import {
   NotificationChannel,
   NotificationPriority,
   NotificationType,
+  OPERATOR_OWNER_ROLES,
   type HandoverOverrideInput,
 } from '@saarthi/shared';
 import { prisma } from '../../database/prisma';
@@ -22,7 +23,7 @@ import { notify, notifyOrganization } from '../notifications/notification.servic
  *   ride confirmed → pickup code to the passenger → driver enters it to start
  *
  * The code is made by the server and checked by the server; the apps only
- * carry it. A customer who cannot give it is covered by the fleet owner's
+ * carry it. A customer who cannot give it is covered by the business owner's
  * override, which needs a written reason and is audited. There is no other
  * way past it. Trips that never had a code (older ones) are not held up.
  */
@@ -34,8 +35,13 @@ const MAX_ATTEMPTS = MAX_HANDOVER_ATTEMPTS;
 /** The code goes everywhere the customer might look: the app, the phone's notification, and SMS. */
 const CODE_CHANNELS = [NotificationChannel.IN_APP, NotificationChannel.PUSH, NotificationChannel.SMS];
 
-/** Who may clear a handover without the code. */
-const OVERRIDE_ROLES = new Set(['FLEET_OWNER']);
+/**
+ * Who may clear a handover without the code: whoever owns the operating
+ * business, freight or travel. A taxi or tour owner holds MOBILITY_PROVIDER,
+ * not FLEET_OWNER, so a list naming only the latter left them no way past a
+ * passenger who could not give the code.
+ */
+const OVERRIDE_ROLES: ReadonlySet<string> = new Set(OPERATOR_OWNER_ROLES);
 
 export type HandoverStatus = 'PENDING' | 'VERIFIED' | 'OVERRIDDEN';
 

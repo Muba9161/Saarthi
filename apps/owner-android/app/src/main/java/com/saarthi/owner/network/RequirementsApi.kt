@@ -72,6 +72,8 @@ class RequirementsApi(private val api: OwnerApi) {
         val passengers: Int? = null,
         val preferredVehicleType: String? = null,
         val durationDays: Int? = null,
+        /** What a cab or tour customer wants the price to cover. A travel bid starts from it. */
+        val requiredInclusions: List<String> = emptyList(),
         val bidCount: Int = 0,
         val lowestBid: Double? = null,
         val orderId: String? = null,
@@ -152,12 +154,17 @@ class RequirementsApi(private val api: OwnerApi) {
         val scope: String,
         val price: Double,
         val message: String? = null,
+        /** What the price covers, in the bidder's words. */
+        val priceBreakdown: String? = null,
         val vehicleId: String? = null,
         /** Who drives, when the vehicle has nobody set on it. */
         val driverId: String? = null,
         val sourceMaterialId: String? = null,
         val offeredVehicleType: String? = null,
         val inclusions: List<String> = emptyList(),
+        val exclusions: List<String> = emptyList(),
+        /** A day-by-day outline, for a tour. */
+        val itinerarySummary: String? = null,
         val driverIncluded: Boolean = true,
         val fuelIncluded: Boolean = true,
     )
@@ -166,6 +173,7 @@ class RequirementsApi(private val api: OwnerApi) {
         val body = buildJsonObject {
             put("scope", offer.scope)
             put("price", offer.price)
+            offer.priceBreakdown?.ifBlank { null }?.let { put("priceBreakdown", it) }
             offer.message?.ifBlank { null }?.let { put("message", it) }
             if (offer.scope == SCOPE_TRANSPORT) {
                 offer.vehicleId?.let { put("vehicleId", it) }
@@ -175,6 +183,8 @@ class RequirementsApi(private val api: OwnerApi) {
             if (offer.scope == SCOPE_TRAVEL) {
                 offer.offeredVehicleType?.let { put("offeredVehicleType", it) }
                 put("inclusions", JsonArray(offer.inclusions.map { JsonPrimitive(it) }))
+                put("exclusions", JsonArray(offer.exclusions.map { JsonPrimitive(it) }))
+                offer.itinerarySummary?.ifBlank { null }?.let { put("itinerarySummary", it) }
                 put("driverIncluded", offer.driverIncluded)
                 put("fuelIncluded", offer.fuelIncluded)
             }
@@ -220,18 +230,12 @@ class RequirementsApi(private val api: OwnerApi) {
     )
 
     suspend fun create(input: NewRequirement): Requirement? {
-        fun place(place: PlacesApi.Place) = buildJsonObject {
-            put("addressLine", place.address.take(300))
-            place.city?.let { put("city", it.take(120)) }
-            put("latitude", place.latitude)
-            put("longitude", place.longitude)
-        }
         val body = buildJsonObject {
             put("kind", input.kind)
             put("title", input.title)
             input.description?.ifBlank { null }?.let { put("description", it) }
-            put("origin", place(input.origin))
-            input.destination?.let { put("destination", place(it)) }
+            put("origin", input.origin.toAddressJson())
+            input.destination?.let { put("destination", it.toAddressJson()) }
             put("startAt", input.startAt.toString())
             put("bidsCloseAt", input.bidsCloseAt.toString())
             input.budgetAmount?.let { put("budgetAmount", it) }
@@ -279,11 +283,18 @@ class RequirementsApi(private val api: OwnerApi) {
         return api.post("/requirements", body.toString(), Requirement.serializer())
     }
 
-    /** Choose a bid. Once nothing is outstanding this creates the order or booking. */
-    suspend fun award(requirementId: String, bidId: String): Awarded? =
+    /**
+     * Choose [bidId]; every other bid is turned down. [note] goes on the
+     * timeline and to the winner. Once nothing is outstanding this creates the
+     * order or booking.
+     */
+    suspend fun award(requirementId: String, bidId: String, note: String? = null): Awarded? =
         api.post(
             "/requirements/$requirementId/award",
-            buildJsonObject { put("bidId", bidId) }.toString(),
+            buildJsonObject {
+                put("bidId", bidId)
+                note?.let { put("note", it) }
+            }.toString(),
             Awarded.serializer(),
         )
 
@@ -299,6 +310,13 @@ class RequirementsApi(private val api: OwnerApi) {
         const val SCOPE_TRANSPORT = "TRANSPORT"
         const val SCOPE_TRAVEL = "TRAVEL"
         const val SCOPE_MATERIAL = "MATERIAL"
+
+        // The server's bid limits (`placeBidSchema`): past these a bid is refused.
+        const val MAX_BID_LIST_ENTRIES = 30
+        const val MIN_BID_ENTRY_LENGTH = 2
+        const val MAX_BID_ENTRY_LENGTH = 160
+        const val MAX_ITINERARY_LENGTH = 4000
+        const val MAX_PRICE_BREAKDOWN_LENGTH = 1000
 
         /** The scope a fleet or operator bids with on a kind of job. */
         fun scopeFor(kind: String): String = if (kind == KIND_CAB || kind == KIND_TOUR) SCOPE_TRAVEL else SCOPE_TRANSPORT

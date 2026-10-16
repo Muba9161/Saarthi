@@ -12,7 +12,8 @@ import com.saarthi.owner.ui.shell.TabSpec
  * A personal account's tabs: Home, Vehicles, Map, Papers.
  *
  * Home shows one vehicle at a time; Vehicles is the whole list, the fleet's own
- * board without its drivers, so every vehicle on the account is one tap away.
+ * board with its vehicles and drivers, so every vehicle on the account is one
+ * tap away.
  */
 fun personalTabs(app: OwnerApp, account: SessionStore.Account): List<TabSpec> = listOf(
     TabSpec(
@@ -27,7 +28,7 @@ fun personalTabs(app: OwnerApp, account: SessionStore.Account): List<TabSpec> = 
         label = "Vehicles",
         icon = Lucide.car,
         header = TabHeader("Personal", "Your vehicles"),
-        content = { FleetListScreen(app, account, withDrivers = false) },
+        content = { FleetListScreen(app, account) },
     ),
     TabSpec(
         key = "map",

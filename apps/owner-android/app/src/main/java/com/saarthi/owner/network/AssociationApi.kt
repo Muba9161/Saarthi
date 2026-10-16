@@ -21,9 +21,14 @@ class AssociationApi(private val api: OwnerApi) {
         val emergencyPhone: String? = null,
         val memberTruckCount: Int = 0,
         val acceptingAlerts: Boolean = true,
+        /** PENDING, UNDER_REVIEW, VERIFIED, REJECTED or SUSPENDED. Saarthi routes emergencies only to VERIFIED. */
+        val verificationStatus: String? = null,
         val coverageAreas: List<Area> = emptyList(),
         val stats: Stats = Stats(),
-    )
+    ) {
+        /** Saarthi has said this desk is not verified. A status it did not send is not taken as a no. */
+        val unverified: Boolean get() = verificationStatus != null && verificationStatus != "VERIFIED"
+    }
 
     @Serializable
     data class Overview(
@@ -62,6 +67,16 @@ class AssociationApi(private val api: OwnerApi) {
     ) {
         val open: Boolean get() = status in setOf("NOTIFIED", "ACKNOWLEDGED", "RESPONDING", "ESCALATED")
 
+        /** Nobody has taken the case yet: the driver's contact is sealed and only acknowledging moves it on. */
+        val awaitingAcknowledgement: Boolean get() = status == "NOTIFIED"
+
+        /**
+         * Open and past acknowledgement (ACKNOWLEDGED, RESPONDING or ESCALATED):
+         * the only states in which the server lets a responder be assigned or
+         * the case be resolved.
+         */
+        val taken: Boolean get() = open && !awaitingAcknowledgement
+
         /** Whether [userId] has already said they are on the way. */
         fun isGoing(userId: String): Boolean = responders.any { it.userId == userId && it.completedAt == null }
     }
@@ -78,9 +93,16 @@ class AssociationApi(private val api: OwnerApi) {
 
     suspend fun get(id: String): Alert? = api.get("/associations/alerts/$id", Alert.serializer())
 
-    suspend fun acknowledge(id: String): Alert? = api.post("/associations/alerts/$id/acknowledge", "{}", Alert.serializer())
+    /**
+     * Take the case. This is the audited act that unseals the driver's name and
+     * number; [note], when given, is what goes on the record.
+     */
+    suspend fun acknowledge(id: String, note: String? = null): Alert? {
+        val body = buildJsonObject { note?.trim()?.ifBlank { null }?.let { put("note", it) } }
+        return api.post("/associations/alerts/$id/acknowledge", body.toString(), Alert.serializer())
+    }
 
-    /** "I'm going" — the signed-in member puts themselves down as responding. */
+    /** "I'm going" — the signed-in member puts themselves down as responding. Only once the case is taken. */
     suspend fun respond(id: String, userId: String) {
         val body = buildJsonObject {
             put("kind", "MEMBER")

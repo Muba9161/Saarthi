@@ -20,6 +20,7 @@ import { StatusBadge } from '@/components/common/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { OwnershipReviewRequest } from '../ownership-review-request';
 
 /**
  * Whether this account has shown it owns the vehicle.
@@ -137,6 +138,17 @@ export function VehicleOwnershipCard({
                 Check again
               </Button>
             ) : null}
+          </div>
+        ) : null}
+
+        {/* When the name cannot be matched at all - a married name, a vehicle in
+            a relative's name, no PAN - a person at Saarthi can confirm it. */}
+        {pending && canAct ? (
+          <div className="border-t border-border pt-3">
+            <p className="mb-2 text-xs text-muted-foreground">
+              Still not matching? The Saarthi team can confirm it for you.
+            </p>
+            <OwnershipReviewRequest subject={{ vehicleId }} />
           </div>
         ) : null}
       </CardContent>

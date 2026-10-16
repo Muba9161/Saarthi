@@ -51,11 +51,22 @@ data class SellerBook(
 
     val received: List<SellerOrder> get() = orders.filter { it.order.fleetName != null && it.paid }
 
-    /** Paid this calendar month, as the Money tab's headline. */
+    /**
+     * Paid this calendar month, as the Money tab's headline.
+     *
+     * Counted by when the fleet's payment to the seller went through: a truck
+     * that loads on the 31st and is paid for on the 1st is next month's money.
+     * Orders paid outside Saarthi, which have no payment on record, fall back to
+     * the order's own date.
+     */
     fun receivedThisMonth(now: Instant = Instant.now()): Double {
         val month = now.atZone(ZoneId.systemDefault()).let { it.year * 12 + it.monthValue }
         return received.filter { seller ->
-            runCatching { Instant.parse(seller.order.pickupAt ?: seller.order.createdAt) }.getOrNull()
+            val paidAt = seller.finance?.payments
+                ?.lastOrNull { it.stage == "PROCUREMENT" && it.status == "SUCCEEDED" }
+                ?.at
+                ?.ifBlank { null }
+            runCatching { Instant.parse(paidAt ?: seller.order.pickupAt ?: seller.order.createdAt) }.getOrNull()
                 ?.atZone(ZoneId.systemDefault())?.let { it.year * 12 + it.monthValue } == month
         }.sumOf { it.amount ?: 0.0 }
     }

@@ -30,6 +30,7 @@ import com.saarthi.owner.ui.design.SType
 import com.saarthi.owner.ui.design.Saarthi
 import com.saarthi.owner.ui.design.StatusPill
 import com.saarthi.owner.ui.design.Toast
+import com.saarthi.owner.ui.sharing.InvitationsOnHome
 import com.saarthi.owner.ui.shell.LocalNavigator
 import com.saarthi.owner.ui.sos.SosAlertScreen
 import com.saarthi.owner.ui.sos.SosCard
@@ -102,19 +103,21 @@ fun FleetHomeScreen(app: OwnerApp, account: SessionStore.Account, onOpenAlerts: 
                             maxLines = 1,
                         )
                     }
+                    InvitationsOnHome(app, account, Modifier.rise())
                     data.sos.forEach { incident ->
                         SosCard(incident, Modifier.rise()) {
-                            navigator.push("sos-${incident.id}") { SosAlertScreen(app.sos, incident) }
+                            navigator.push("sos-${incident.id}") { SosAlertScreen(app.sos, account, incident) }
                         }
                     }
                     FleetNowCard(data, modifier = Modifier.rise(stagger(1)), onOpenMap = onOpenMap)
                     NeedsYouNow(
                         home = data,
                         acting = acting,
+                        canApprove = account.can("terminal.approve"),
                         onApprove = model::approve,
                         onReview = { id ->
                             data.approvals.firstOrNull { it.id == id }?.let { waiting ->
-                                navigator.push("approval-$id") { DriverApprovalScreen(app, waiting) { model.refresh(silent = true) } }
+                                navigator.push("approval-$id") { DriverApprovalScreen(app, waiting, canApprove = account.can("terminal.approve")) { model.refresh(silent = true) } }
                             }
                         },
                         onOpenAlerts = onOpenAlerts,

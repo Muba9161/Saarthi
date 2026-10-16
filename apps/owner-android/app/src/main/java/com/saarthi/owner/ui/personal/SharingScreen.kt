@@ -33,7 +33,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.saarthi.owner.OwnerApp
-import com.saarthi.owner.network.PapersApi
+import com.saarthi.owner.network.SharingApi
 import com.saarthi.owner.network.VehiclesApi
 import com.saarthi.owner.ui.common.DetailScreen
 import com.saarthi.owner.ui.common.RevealedNotice
@@ -75,7 +75,7 @@ fun SharingScreen(app: OwnerApp, initial: VehiclesApi.Vehicle) {
     var vehicle by remember { mutableStateOf(initial) }
     var sheetError by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
-    var shares by remember { mutableStateOf<List<PapersApi.Share>>(emptyList()) }
+    var shares by remember { mutableStateOf<List<SharingApi.Share>>(emptyList()) }
     var reload by remember { mutableIntStateOf(0) }
     var inviting by remember { mutableStateOf(false) }
     var email by remember { mutableStateOf("") }
@@ -84,10 +84,10 @@ fun SharingScreen(app: OwnerApp, initial: VehiclesApi.Vehicle) {
 
     LaunchedEffect(initial.id, reload) {
         runCatching { app.vehicles.get(initial.id) }.getOrNull()?.let { vehicle = it }
-        shares = runCatching { app.papers.shares(vehicle.id) }.getOrDefault(emptyList())
+        shares = runCatching { app.sharing.shares(vehicle.id) }.getOrDefault(emptyList())
             .filter { it.status != "REVOKED" && it.status != "DECLINED" }
     }
-    val left = (PapersApi.MAX_SHARES - shares.size).coerceAtLeast(0)
+    val left = (SharingApi.MAX_SHARES - shares.size).coerceAtLeast(0)
 
     DetailScreen(
         eyebrow = "${vehicle.typeLabel.ifBlank { "Vehicle" }} · ${formatPlate(vehicle.registrationNumber)}",
@@ -115,9 +115,9 @@ fun SharingScreen(app: OwnerApp, initial: VehiclesApi.Vehicle) {
                     Canvas(Modifier.size(82.dp)) {
                         val stroke = 8.dp.toPx()
                         drawArc(track, 0f, 360f, false, style = Stroke(stroke))
-                        drawArc(Brand.live, -90f, 360f * shares.size / PapersApi.MAX_SHARES, false, style = Stroke(stroke, cap = StrokeCap.Round))
+                        drawArc(Brand.live, -90f, 360f * shares.size / SharingApi.MAX_SHARES, false, style = Stroke(stroke, cap = StrokeCap.Round))
                     }
-                    Text("${shares.size}/${PapersApi.MAX_SHARES}", style = SType.bodyStrong, color = Color.White)
+                    Text("${shares.size}/${SharingApi.MAX_SHARES}", style = SType.bodyStrong, color = Color.White)
                 }
                 Column {
                     Eyebrow("Shared with", color = Color.White.copy(alpha = 0.75f))
@@ -151,7 +151,7 @@ fun SharingScreen(app: OwnerApp, initial: VehiclesApi.Vehicle) {
                         }
                         LinkButton("Remove", {
                             scope.launch {
-                                runCatching { app.papers.unshare(share.id) }
+                                runCatching { app.sharing.end(share.id) }
                                     .onSuccess { reload++ }
                                     .onFailure { message = it.readable() to NoticeTone.DANGER }
                             }
@@ -185,7 +185,7 @@ fun SharingScreen(app: OwnerApp, initial: VehiclesApi.Vehicle) {
                 onClick = {
                     busy = true
                     scope.launch {
-                        runCatching { app.papers.share(vehicle.id, email) }
+                        runCatching { app.sharing.share(vehicle.id, email) }
                             .onSuccess {
                                 inviting = false
                                 email = ""
