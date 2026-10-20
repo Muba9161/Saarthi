@@ -96,7 +96,10 @@ const addVehicle = (user: TestUser) =>
     },
   });
 
-const holdPlate = (organizationId: string, ownershipStatus = VehicleOwnershipStatus.PENDING) =>
+const holdPlate = (
+  organizationId: string,
+  ownershipStatus: VehicleOwnershipStatus = VehicleOwnershipStatus.PENDING,
+) =>
   prisma.truck.create({
     data: { organizationId, registrationNumber: PLATE, capacityTons: 12, ownershipStatus },
     select: { id: true },
