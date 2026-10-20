@@ -441,7 +441,10 @@ export function FleetMap({
     buildings: true,
     labels: true,
   });
-  /** Bumped on every `style.load`; data effects re-run against the new style. */
+  /**
+   * Bumped on every `style.load`; data effects re-run against the new style.
+   * Reset to 0 while a basemap switch loads, so no overlay draws into it.
+   */
   const [styleEpoch, setStyleEpoch] = React.useState(0);
   const [initError, setInitError] = React.useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = React.useState(false);
@@ -673,7 +676,14 @@ export function FleetMap({
     const map = mapRef.current;
     if (!map || appliedStyleId.current === settings.styleId) return;
     appliedStyleId.current = settings.styleId;
-    map.setStyle(resolveStyleUrl(settings.styleId));
+    // Overlays wait while the new basemap loads: drawing into a style that is
+    // still loading throws "Style is not done loading" and takes the screen
+    // down — which the evening/night auto-switch did whenever a live position
+    // arrived mid-load. `style.load` bumps the epoch and every overlay effect
+    // re-runs; `diff: false` makes that event certain rather than dependent on
+    // whether maplibre manages to diff the two styles.
+    setStyleEpoch(0);
+    map.setStyle(resolveStyleUrl(settings.styleId), { diff: false });
   }, [settings.styleId, ready]);
 
   /**
@@ -1348,7 +1358,7 @@ export function FleetMap({
             <Route className="mx-auto mb-1.5 size-5 text-muted-foreground" />
             <p className="text-sm font-medium">No positions to show</p>
             <p className="text-xs text-muted-foreground">
-              Start a trip or the GPS simulator to see trucks move here.
+              Start a trip or the GPS simulator to see vehicles move here.
             </p>
           </div>
         </div>
