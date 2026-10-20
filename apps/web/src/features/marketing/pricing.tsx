@@ -22,6 +22,7 @@ import { motion, useReducedMotion } from '@/components/motion';
 import { Section, SectionHeading } from './marketing-chrome';
 import { Reveal, RevealGroup, RevealItem, Spotlight, useSpotlight } from './motion-extras';
 import { TRIAL_DAYS } from '@/features/subscriptions/trial-days';
+import { PLAN_LABEL } from '@/features/subscriptions/plan-copy';
 import { cn } from '@/lib/utils';
 
 /**
@@ -47,13 +48,6 @@ import { cn } from '@/lib/utils';
  */
 
 const EASE = [0.16, 1, 0.3, 1] as const;
-
-const TIER_LABEL: Record<PlanTier, string> = {
-  [PlanTier.FREE]: 'Free',
-  [PlanTier.PERSONAL]: 'Personal',
-  [PlanTier.SUPPLIER]: 'Seller',
-  [PlanTier.BUSINESS]: 'Business',
-};
 
 /** Who each plan is for, in the words that let a reader recognise themselves. */
 const TIER_AUDIENCE: Record<PlanTier, string> = {
@@ -235,7 +229,7 @@ function PlanCard({ plan }: { plan: PlanDefinition }) {
       ) : null}
 
       <div className="relative">
-        <h3 className="text-lg font-semibold tracking-[-0.01em]">{TIER_LABEL[plan.tier]}</h3>
+        <h3 className="text-lg font-semibold tracking-[-0.01em]">{PLAN_LABEL[plan.tier]}</h3>
         <p className="mt-1 text-sm text-muted-foreground">{TIER_AUDIENCE[plan.tier]}</p>
 
         {/* The recurring figure, which is the one a customer compares. Only
@@ -390,7 +384,7 @@ function PlanCard({ plan }: { plan: PlanDefinition }) {
                price calculator: vehicles are added in the app, and an extra
                vehicle slot is bought when the second one is. */
             <Link to={`/register?plan=${plan.tier.toLowerCase()}`}>
-              {free ? 'Start for free' : `Subscribe to ${TIER_LABEL[plan.tier]}`}
+              {free ? 'Start for free' : `Subscribe to ${PLAN_LABEL[plan.tier]}`}
             </Link>
           )}
         </Button>

@@ -62,9 +62,9 @@ export interface FormWizardProps {
   aside?: React.ReactNode;
   /** Left-hand footer slot — usually Cancel. */
   footerStart?: React.ReactNode;
-  /** Changing this sends the wizard back to the first step. */
+  /** Changing this sends the wizard back to `initialStepId`, or the first step. */
   resetKey?: unknown;
-  /** Open on this step instead of the first — for a link to one section. */
+  /** Open (and reset) on this step instead of the first — for a link to one section. */
   initialStepId?: string;
   /**
    * Lets any step be opened from the rail without clearing the ones before it.
@@ -114,9 +114,12 @@ export function FormWizard({
   const nextText = nextLabel ?? t('Continue');
   const backText = backLabel ?? t('Back');
 
-  const [index, setIndex] = React.useState(() =>
-    Math.max(0, steps.findIndex((candidate) => candidate.id === initialStepId)),
-  );
+  const openingIndex = Math.max(0, steps.findIndex((candidate) => candidate.id === initialStepId));
+  // Read by the reset below, which must run on `resetKey` alone.
+  const openingIndexRef = React.useRef(openingIndex);
+  openingIndexRef.current = openingIndex;
+
+  const [index, setIndex] = React.useState(openingIndex);
   const [direction, setDirection] = React.useState(1);
   const [checking, setChecking] = React.useState(false);
   /** Steps cleared at least once — these stay reachable by clicking the rail. */
@@ -139,7 +142,7 @@ export function FormWizard({
       firstResetRef.current = false;
       return;
     }
-    setIndex(0);
+    setIndex(openingIndexRef.current);
     setDirection(1);
     setVisited(new Set());
   }, [resetKey]);

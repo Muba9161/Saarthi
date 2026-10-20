@@ -77,3 +77,9 @@ if (!globalThis.IntersectionObserver) {
     }
   } as unknown as typeof IntersectionObserver;
 }
+
+// The wizard's step strip scrolls the current step into view; jsdom has no
+// layout to scroll, so the call simply has nothing to do.
+if (!Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = () => undefined;
+}
