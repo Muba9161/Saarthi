@@ -142,7 +142,7 @@ export function MaintenancePage() {
         {...(jobs.data?.pagination ? { pagination: jobs.data.pagination } : {})}
         onPageChange={setPage}
         emptyTitle="No maintenance recorded"
-        emptyDescription="Schedule preventive work or log a repair against a truck."
+        emptyDescription="Schedule preventive work or log a repair against a vehicle."
       />
       {void Wrench}
     </div>

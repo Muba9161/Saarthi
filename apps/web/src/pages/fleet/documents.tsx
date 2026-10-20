@@ -65,7 +65,7 @@ export function DocumentsPage() {
 
   return (
     <div className="space-y-5">
-      <PageHeader title="Documents" description="Compliance across every truck, driver and business record." />
+      <PageHeader title="Documents" description="Compliance across every vehicle, driver and business record." />
 
       {summary ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -150,7 +150,7 @@ export function DocumentsPage() {
         {...(documents.data?.pagination ? { pagination: documents.data.pagination } : {})}
         onPageChange={setPage}
         emptyTitle="No documents"
-        emptyDescription="Upload documents from a truck or driver profile."
+        emptyDescription="Upload documents from a vehicle or driver profile."
       />
     </div>
   );

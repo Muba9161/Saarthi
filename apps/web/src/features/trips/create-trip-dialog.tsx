@@ -11,6 +11,7 @@ import {
   type CityFuelRate,
 } from '@saarthi/shared';
 import { api, errorMessage } from '@/lib/api-client';
+import { useAuth } from '@/features/auth/auth-context';
 import type { DriverSummary, Paginated } from '@/lib/api-types';
 import type { VehicleSummary } from '@/lib/mobility-types';
 import { Button } from '@/components/ui/button';
@@ -97,6 +98,35 @@ const EMPTY: TripFormState = {
 /** `createTripSchema` stores at most this many planned-route points. */
 const MAX_PLANNED_ROUTE_POINTS = 2000;
 
+/**
+ * The words around the form. A fleet dispatches loads; a Personal account is
+ * somebody planning a drive in their own car, so freight terms are dropped.
+ */
+const TRIP_COPY = {
+  fleet: {
+    title: 'Dispatch a trip',
+    description:
+      'For work that did not come through Saarthi - a load agreed on the phone still needs a vehicle, a driver and tracking.',
+    pickup: 'Collect from',
+    pickupPlaceholder: 'Yard, factory gate, mandi…',
+    dropoff: 'Deliver to',
+    dropoffPlaceholder: 'Site, warehouse, address…',
+    rateHint: 'What the customer is paying. It feeds the earnings reports.',
+    submit: 'Dispatch trip',
+  },
+  personal: {
+    title: 'Plan a trip',
+    description:
+      'Where your vehicle is going, so Saarthi can follow it and count its distance and fuel.',
+    pickup: 'From',
+    pickupPlaceholder: 'Home, office, city…',
+    dropoff: 'To',
+    dropoffPlaceholder: 'Where you are going…',
+    rateHint: 'Optional. Leave it blank for your own trips.',
+    submit: 'Create trip',
+  },
+} as const;
+
 /** `datetime-local` wants `YYYY-MM-DDTHH:mm` in local time, not an ISO string. */
 function localDateTime(date: Date): string {
   const pad = (value: number): string => String(value).padStart(2, '0');
@@ -106,6 +136,8 @@ function localDateTime(date: Date): string {
 export function CreateTripDialog({ trigger }: { trigger?: React.ReactNode }) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const { session } = useAuth();
+  const copy = session?.organization?.isPersonalSeat ? TRIP_COPY.personal : TRIP_COPY.fleet;
   const [open, setOpen] = React.useState(false);
   const [form, setForm] = React.useState<TripFormState>(EMPTY);
   const [errors, setErrors] = React.useState<FieldErrors>({});
@@ -364,10 +396,10 @@ export function CreateTripDialog({ trigger }: { trigger?: React.ReactNode }) {
           }
           onRouteChange={setRoute}
           labels={{
-            pickup: 'Collect from',
-            pickupPlaceholder: 'Yard, factory gate, mandi…',
-            dropoff: 'Deliver to',
-            dropoffPlaceholder: 'Site, warehouse, address…',
+            pickup: copy.pickup,
+            pickupPlaceholder: copy.pickupPlaceholder,
+            dropoff: copy.dropoff,
+            dropoffPlaceholder: copy.dropoffPlaceholder,
             dropoffHint: 'The driver is navigated to this point.',
           }}
         />
@@ -409,7 +441,7 @@ export function CreateTripDialog({ trigger }: { trigger?: React.ReactNode }) {
             label="Trip rate (₹)"
             htmlFor="trip-price"
             error={errors.price}
-            hint="What the customer is paying. It feeds the earnings reports."
+            hint={copy.rateHint}
           >
             <Input
               id="trip-price"
@@ -514,11 +546,8 @@ export function CreateTripDialog({ trigger }: { trigger?: React.ReactNode }) {
 
       <DialogContent className={`${WIZARD_DIALOG_CONTENT} sm:max-w-3xl`}>
         <DialogHeader className={WIZARD_DIALOG_HEADER}>
-          <DialogTitle>Dispatch a trip</DialogTitle>
-          <DialogDescription>
-            For work that did not come through Saarthi - a load agreed on the phone still needs a
-            vehicle, a driver and tracking.
-          </DialogDescription>
+          <DialogTitle>{copy.title}</DialogTitle>
+          <DialogDescription>{copy.description}</DialogDescription>
         </DialogHeader>
 
         <FormWizard
@@ -529,7 +558,7 @@ export function CreateTripDialog({ trigger }: { trigger?: React.ReactNode }) {
           onValidateStep={validateStep}
           onSubmit={submit}
           submitting={create.isPending}
-          submitLabel="Dispatch trip"
+          submitLabel={copy.submit}
           erroredStepIds={erroredStepIds}
           footerStart={
             <Button type="button" variant="ghost" onClick={() => setOpen(false)}>

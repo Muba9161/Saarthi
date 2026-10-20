@@ -497,7 +497,13 @@ export function DashboardPage() {
     <div className="space-y-6">
       <PageHeader
         eyebrow={t('Live operational picture')}
-        title={isMobility ? t('Travel command centre') : t('Fleet command centre')}
+        title={
+          isMobility
+            ? t('Travel command centre')
+            : isPersonalSeat
+              ? t('Command centre')
+              : t('Fleet command centre')
+        }
         description={
           session.organization?.name ??
           (isMobility ? t('Your operation at a glance') : t('Your fleet at a glance'))
@@ -510,7 +516,13 @@ export function DashboardPage() {
         <BentoHero
           span={4}
           eyebrow={t('Start here')}
-          title={isMobility ? t('Find a booking or a vehicle') : t('Find a consignment')}
+          title={
+            isMobility
+              ? t('Find a booking or a vehicle')
+              : isPersonalSeat
+                ? t('Find a trip or a vehicle')
+                : t('Find a consignment')
+          }
           description={t('Enter a reference or a vehicle number and Saarthi opens the record.')}
           lookup={{
             label: t('Search by reference or vehicle number'),
@@ -852,7 +864,9 @@ export function DashboardPage() {
               description={
                 isMobility
                   ? t('Confirmed bookings will appear here once a vehicle is assigned.')
-                  : t('Accepted orders will appear here once a trip is created.')
+                  : isPersonalSeat
+                    ? t('Trips you plan for your vehicle will appear here.')
+                    : t('Accepted orders will appear here once a trip is created.')
               }
               className="min-h-32 border-0 p-6"
             />

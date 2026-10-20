@@ -53,7 +53,7 @@ export function FuelPage() {
   const trends = query.data?.trends;
 
   const columns: Column<FuelRow>[] = [
-    { key: 'truck', header: 'Truck', cell: (row) => <span className="font-medium">{row.registrationNumber}</span> },
+    { key: 'truck', header: 'Vehicle', cell: (row) => <span className="font-medium">{row.registrationNumber}</span> },
     { key: 'station', header: 'Station', hideOnMobile: true, cell: (row) => <span className="text-sm text-muted-foreground">{row.stationName ?? '-'}</span> },
     { key: 'litres', header: 'Litres', numeric: true, cell: (row) => formatNumber(row.quantityLitres, 1) },
     { key: 'rate', header: 'Rate', numeric: true, hideOnMobile: true, cell: (row) => formatCurrency(row.pricePerUnit) },
@@ -109,7 +109,7 @@ export function FuelPage() {
         {...(query.data?.pagination ? { pagination: query.data.pagination } : {})}
         onPageChange={setPage}
         emptyTitle="No fuel records yet"
-        emptyDescription="Drivers and managers can record fill-ups against a truck."
+        emptyDescription="Drivers and managers can record fill-ups against a vehicle."
       />
     </div>
   );

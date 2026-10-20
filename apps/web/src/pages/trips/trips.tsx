@@ -51,6 +51,8 @@ export function TripsPage() {
    * — is the fleet's delivery, which the API does not show it.
    */
   const isSeller = session?.organization?.type === OrganizationType.SUPPLIER;
+  // A Personal account plans its own trips; it never quotes for freight.
+  const isPersonalSeat = Boolean(session?.organization?.isPersonalSeat);
 
   React.useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -272,7 +274,9 @@ export function TripsPage() {
         emptyDescription={
           isSeller
             ? 'A pickup appears here when a fleet sends a vehicle to collect what it bought from you.'
-            : 'Trips are created when a customer accepts a transport quote, or directly from the fleet console.'
+            : isPersonalSeat
+              ? 'Plan a trip with New trip and it appears here, with its path on the map.'
+              : 'Trips are created when a customer accepts a transport quote, or directly from the fleet console.'
         }
       />
     </div>

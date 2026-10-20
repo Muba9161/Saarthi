@@ -70,8 +70,9 @@ export function FleetWelcomeDialog() {
             Welcome to Saarthi{session?.organization?.name ? `, ${session.organization.name}` : ''}!
           </DialogTitle>
           <DialogDescription>
-            Your account is ready. Share this joining code with your drivers — they enter it when
-            they register, or later from their own account, and they work under your fleet.
+            {session?.organization?.isPersonalSeat
+              ? 'Your account is ready. If someone else drives your vehicle, share this joining code with them — they enter it when they register, or later from their own account.'
+              : 'Your account is ready. Share this joining code with your drivers — they enter it when they register, or later from their own account, and they work under your fleet.'}
           </DialogDescription>
         </DialogHeader>
 

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Radio, Search, Truck } from 'lucide-react';
+import { Car, Radio, Search, Truck } from 'lucide-react';
 import {
   Feature,
   OrganizationType,
@@ -39,7 +39,9 @@ export function LiveMapPage() {
   // customer's taxi a truck on the operator's own screen is the kind of
   // detail that makes a product feel borrowed from somebody else's business.
   const isMobility = session?.organization?.type === OrganizationType.MOBILITY_PROVIDER;
-  const noun = isMobility ? 'vehicle' : 'truck';
+  // A Personal account is somebody's own car, never a truck.
+  const isPersonalSeat = Boolean(session?.organization?.isPersonalSeat);
+  const noun = isMobility || isPersonalSeat ? 'vehicle' : 'truck';
   const [search, setSearch] = React.useState('');
   const [selected, setSelected] = React.useState<string | null>(null);
 
@@ -187,11 +189,13 @@ export function LiveMapPage() {
             <div className="max-h-[clamp(320px,60vh,660px)] space-y-2 overflow-y-auto pr-1">
               {filtered.length === 0 ? (
                 <EmptyState
-                  icon={Truck}
+                  icon={isPersonalSeat ? Car : Truck}
                   title={all.length === 0 ? 'No positions yet' : `No matching ${noun}s`}
                   description={
                     all.length === 0
-                      ? 'Start a trip or run the GPS simulator to see live movement.'
+                      ? isPersonalSeat
+                        ? 'Your vehicle shows here once its phone or tracker reports a position.'
+                        : 'Start a trip or run the GPS simulator to see live movement.'
                       : 'Try a different registration number or driver name.'
                   }
                   className="min-h-40"
