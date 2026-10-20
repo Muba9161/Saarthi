@@ -13,6 +13,7 @@ import { errors } from '../../lib/errors';
 import type { AuthContext } from '../../auth/context';
 import { notifyAsync } from '../notifications/notification.service';
 import { resolveSubscription } from '../subscriptions/entitlements.service';
+import { documentHealthFor } from '../vehicles/vehicle.service';
 import { sharedVehicleView, vehicleViewInclude } from './shared-vehicle.view';
 
 /**
@@ -325,6 +326,11 @@ export async function sharedWithMe(auth: AuthContext): Promise<SharedWithMe> {
       entitled.has(share.ownerOrganizationId),
   );
 
+  // How each accepted vehicle's papers stand, read once for the whole list.
+  const health = await documentHealthFor(
+    usable.filter((share) => share.status === VehicleShareStatus.ACTIVE).map((share) => share.vehicleId),
+  );
+
   return {
     invitations: usable
       .filter((share) => share.status === VehicleShareStatus.PENDING)
@@ -341,7 +347,7 @@ export async function sharedWithMe(auth: AuthContext): Promise<SharedWithMe> {
       }),
     vehicles: usable
       .filter((share) => share.status === VehicleShareStatus.ACTIVE)
-      .map((share) => sharedVehicleView(share, ownerName.get(share.ownerOrganizationId) ?? '')),
+      .map((share) => sharedVehicleView(share, ownerName.get(share.ownerOrganizationId) ?? '', health.get(share.vehicleId))),
   };
 }
 

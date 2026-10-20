@@ -16,6 +16,7 @@ import { logger } from '../../lib/logger';
 import { transitionTrip } from '../trips/trip.service';
 import type { SessionRecord } from './session.view';
 import { MAX_HANDOVER_ATTEMPTS } from '../trips/handover.service';
+import { recordNavigationHandoff } from '../trips/navigation-handoff.service';
 
 /**
  * The work the fleet gave this vehicle, delivered to the vehicle.
@@ -388,23 +389,7 @@ export async function setNavigationHandoff(
   if (!trip) return null;
   if (trip.externalNavigation === app) return toView(trip, session.driverId);
 
-  await prisma.$transaction([
-    prisma.trip.update({
-      where: { id: trip.id },
-      data: { externalNavigation: app, externalNavigationSince: app ? new Date() : null },
-    }),
-    prisma.tripEvent.create({
-      data: {
-        tripId: trip.id,
-        type: 'NAVIGATION_HANDOFF',
-        description: app
-          ? 'Driver is navigating with Google Maps. Saarthi keeps recording the route.'
-          : "Driver is back on Saarthi's navigation.",
-        metadata: { app },
-      },
-    }),
-  ]);
-
+  await recordNavigationHandoff({ id: trip.id, externalNavigation: trip.externalNavigation as ExternalNavigationApp | null }, app);
   return dispatchedTripForSession(session);
 }
 

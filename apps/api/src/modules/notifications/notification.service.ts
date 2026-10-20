@@ -7,6 +7,7 @@ import { prisma } from '../../database/prisma';
 import { config } from '../../config/env';
 import { logger } from '../../lib/logger';
 import { LocalNotificationProvider } from '../../providers/notifications/local-notification.provider';
+import { sendPush } from './push.service';
 import type {
   NotificationMessage,
   NotificationProvider,
@@ -36,6 +37,9 @@ export const notificationProvider: NotificationProvider = createProvider();
 
 /** Channels used when the user has expressed no preference. */
 const DEFAULT_CHANNELS: NotificationChannel[] = [NotificationChannel.IN_APP];
+
+/** Important events also reach the phone when the app is closed: push is free. */
+const HIGH_CHANNELS: NotificationChannel[] = [NotificationChannel.IN_APP, NotificationChannel.PUSH];
 
 /** High-signal events additionally go out-of-band. */
 const URGENT_CHANNELS: NotificationChannel[] = [
@@ -74,7 +78,8 @@ async function resolveChannels(
       .map((preference) => preference.channel as NotificationChannel);
   }
 
-  return priority === NotificationPriority.CRITICAL ? URGENT_CHANNELS : DEFAULT_CHANNELS;
+  if (priority === NotificationPriority.CRITICAL) return URGENT_CHANNELS;
+  return priority === NotificationPriority.HIGH ? HIGH_CHANNELS : DEFAULT_CHANNELS;
 }
 
 export async function notify(input: NotifyInput): Promise<void> {
@@ -112,7 +117,7 @@ export async function notify(input: NotifyInput): Promise<void> {
           await notificationProvider.sendSms(recipient, message);
           break;
         case NotificationChannel.PUSH:
-          await notificationProvider.sendPush(recipient, message);
+          await sendPush(recipient, message, notificationProvider);
           break;
       }
     } catch (error) {

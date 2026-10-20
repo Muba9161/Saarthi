@@ -282,7 +282,21 @@ export async function latestReading(
   vehicleId: string,
 ): Promise<TelemetryReadingSummary | null> {
   await assertVehicleAccess(auth, vehicleId);
-  if (hasFeature(auth, Feature.TELEMETRY_LIVE)) return latestReadingForVehicle(vehicleId);
+  return latestReadingOnPlan(vehicleId, hasFeature(auth, Feature.TELEMETRY_LIVE));
+}
+
+/**
+ * The latest reading as a plan shows it: everything with live telemetry,
+ * otherwise only what the driver's phone measured.
+ *
+ * Without a user session, like `latestReadingForVehicle` — the caller decides
+ * whose plan applies (a shared vehicle shows what its owner's plan shows).
+ */
+export async function latestReadingOnPlan(
+  vehicleId: string,
+  liveTelemetry: boolean,
+): Promise<TelemetryReadingSummary | null> {
+  if (liveTelemetry) return latestReadingForVehicle(vehicleId);
 
   const reading = await prisma.telemetryReading.findFirst({
     where: { vehicleId, ...PHONE_READING_FILTER },

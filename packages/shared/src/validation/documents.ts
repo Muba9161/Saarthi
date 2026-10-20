@@ -171,6 +171,15 @@ export const markNotificationsSchema = z.object({
 });
 export type MarkNotificationsInput = z.infer<typeof markNotificationsSchema>;
 
+/** A phone's Firebase push token, sent by the app after sign-in and on every refresh. */
+export const pushDeviceSchema = z.object({
+  token: trimmedString(20, 4096),
+  app: z.enum(['OWNER', 'DRIVER']).default('OWNER'),
+});
+export type PushDeviceInput = z.infer<typeof pushDeviceSchema>;
+
+export const pushDeviceRemoveSchema = z.object({ token: trimmedString(20, 4096) });
+
 export const organizationUpdateSchema = z.object({
   name: trimmedString(2, 160).optional(),
   registrationNumber: optionalTrimmedString(60),

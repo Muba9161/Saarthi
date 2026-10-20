@@ -325,6 +325,13 @@ const envSchema = z.object({
   CASHFREE_PAYOUT_CLIENT_SECRET: blankAsUnset(z.string().min(1)),
   NOTIFICATION_PROVIDER: z.enum(['local', 'production']).default('local'),
   /**
+   * Push notifications to the owner app, through Firebase Cloud Messaging.
+   * The path to the Firebase project's service-account key file (JSON),
+   * downloaded from the Firebase console. Kept out of the repository. Push is
+   * sent only when it is set; otherwise pushes are recorded in the outbox.
+   */
+  FCM_SERVICE_ACCOUNT_PATH: blankAsUnset(z.string().min(1)),
+  /**
    * Outgoing email over SMTP — password resets and Saarthi Rahi signup links.
    * Defaults suit Google (Gmail / Workspace): smtp.gmail.com on 465 with TLS,
    * signed in with the mailbox address and a Google App Password. Email is
@@ -1181,6 +1188,11 @@ export const config = {
     referralRateLimitMax: raw.SALES_REFERRAL_RATE_LIMIT_MAX,
     referralRateLimitWindow: raw.SALES_REFERRAL_RATE_LIMIT_WINDOW,
     onboardingTelemetryGraceMinutes: raw.SALES_ONBOARDING_TELEMETRY_GRACE_MINUTES,
+  },
+
+  push: {
+    /** The Firebase service-account key file; push is sent only when it is set. */
+    serviceAccountPath: raw.FCM_SERVICE_ACCOUNT_PATH ?? null,
   },
 
   email: {

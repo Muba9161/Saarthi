@@ -3,11 +3,14 @@ import {
   buildPaginationMeta,
   markNotificationsSchema,
   notificationListQuerySchema,
+  pushDeviceRemoveSchema,
+  pushDeviceSchema,
 } from '@saarthi/shared';
 import { prisma } from '../../database/prisma';
 import { ok, paginated, parseBody, parseQuery, skipTake } from '../../lib/http';
 import { requireAuth } from '../../server/guards';
 import * as notificationService from './notification.service';
+import * as pushService from './push.service';
 
 /**
  * Notification inbox. A user only ever sees their own notifications, so no
@@ -93,4 +96,20 @@ export async function notificationRoutes(app: FastifyInstance): Promise<void> {
   });
 
   void paginated;
+
+  /** This phone wants the person's push notifications. */
+  app.post('/devices', async (request, reply) => {
+    const auth = requireAuth(request);
+    const { token, app: appName } = parseBody(pushDeviceSchema, request.body);
+    await pushService.registerDevice(auth.user.id, token, appName);
+    return ok(reply, { registered: true });
+  });
+
+  /** Signing out on this phone: no more pushes for this person here. */
+  app.post('/devices/remove', async (request, reply) => {
+    const auth = requireAuth(request);
+    const { token } = parseBody(pushDeviceRemoveSchema, request.body);
+    await pushService.unregisterDevice(auth.user.id, token);
+    return ok(reply, { removed: true });
+  });
 }

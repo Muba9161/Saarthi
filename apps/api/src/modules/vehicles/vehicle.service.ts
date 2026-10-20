@@ -161,7 +161,8 @@ type VehicleRecord = Prisma.TruckGetPayload<{ include: typeof vehicleInclude }>;
 
 type DocumentHealth = VehicleSummary['documentHealth'];
 
-async function documentHealthFor(vehicleIds: string[]): Promise<Map<string, DocumentHealth>> {
+/** Each vehicle's papers rolled up as counts — the owner's cards, and a shared person's. */
+export async function documentHealthFor(vehicleIds: string[]): Promise<Map<string, DocumentHealth>> {
   const map = new Map<string, DocumentHealth>();
   if (vehicleIds.length === 0) return map;
 

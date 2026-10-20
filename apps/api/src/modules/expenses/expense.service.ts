@@ -2,13 +2,18 @@ import {
   ACTIVE_TRIP_STATUSES,
   ExpenseCategory,
   MediaOwnerType,
+  MediaPurpose,
+  MediaVisibility,
   buildPaginationMeta,
   type ExpenseListQuery,
+  type FleetExpenseSlipInput,
   type TripStatus,
 } from '@saarthi/shared';
 import { type Prisma, prisma } from '../../database/prisma';
+import { errors } from '../../lib/errors';
 import { skipTake } from '../../lib/http';
 import type { AuthContext } from '../../auth/context';
+import { uploadMedia, type UploadFilePart } from '../media/media.service';
 
 /**
  * Road expenses — the slips a driver pays and photographs that are not fuel.
@@ -70,6 +75,70 @@ export async function recordExpense(input: ExpenseSlipInput): Promise<{ id: stri
 /** Undo a slip whose photograph could not be stored, so no slip lacks its evidence. */
 export async function discardExpense(id: string): Promise<void> {
   await prisma.expense.deleteMany({ where: { id } });
+}
+
+export const SLIP_PHOTO_REQUIRED =
+  'Saarthi needs a photograph of the slip. It is the evidence for the figures.';
+
+/**
+ * Attach a slip's photograph, or undo the slip if it cannot be attached: a
+ * slip without its evidence, or a photograph with no slip, is a reconciliation
+ * somebody has to unpick by hand.
+ */
+export async function attachSlipPhoto(
+  auth: AuthContext,
+  ownerType: typeof MediaOwnerType.FUEL_RECORD | typeof MediaOwnerType.EXPENSE,
+  ownerId: string,
+  file: UploadFilePart,
+  discard: (id: string) => Promise<void>,
+): Promise<void> {
+  try {
+    await uploadMedia(
+      auth,
+      { ownerType, ownerId, purpose: MediaPurpose.ATTACHMENT, visibility: MediaVisibility.ORGANIZATION },
+      { file },
+    );
+  } catch (error) {
+    await discard(ownerId);
+    throw error;
+  }
+}
+
+/**
+ * A slip filed from a signed-in app: by the vehicle's own driver (an owner who
+ * drives it), or by anyone in its fleet who records fuel. Filed against the
+ * trip under way, exactly as a slip from the cab is, and kept only with its
+ * photograph.
+ */
+export async function fileExpenseSlip(
+  auth: AuthContext,
+  input: FleetExpenseSlipInput,
+  file: UploadFilePart | null,
+): Promise<{ id: string }> {
+  if (!file) throw errors.validation(SLIP_PHOTO_REQUIRED);
+  const truck = await prisma.truck.findUnique({
+    where: { id: input.truckId },
+    select: { id: true, organizationId: true, currentDriverId: true, archivedAt: true },
+  });
+  const drives = auth.driverId !== null && truck?.currentDriverId === auth.driverId;
+  const inFleet = truck?.organizationId === auth.organizationId;
+  if (!truck || truck.archivedAt || (!drives && !inFleet)) throw errors.notFound('Vehicle');
+
+  const record = await recordExpense({
+    organizationId: truck.organizationId,
+    vehicleId: truck.id,
+    // The money was the driver's: the one filing it, or the vehicle's own when the office files it.
+    driverId: drives ? auth.driverId : truck.currentDriverId,
+    createdById: auth.user.id,
+    category: input.category,
+    amount: input.amount,
+    vendorName: input.vendorName ?? null,
+    notes: input.notes ?? null,
+    latitude: input.latitude ?? null,
+    longitude: input.longitude ?? null,
+  });
+  await attachSlipPhoto(auth, MediaOwnerType.EXPENSE, record.id, file, discardExpense);
+  return record;
 }
 
 export interface TripExpenseTotals {

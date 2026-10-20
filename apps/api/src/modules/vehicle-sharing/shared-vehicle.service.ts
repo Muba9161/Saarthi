@@ -13,6 +13,7 @@ import type { AuthContext } from '../../auth/context';
 import { insertFuelRecord, insertMaintenanceRecord } from '../maintenance/maintenance.service';
 import { createTrip } from '../trips/trip.service';
 import { requireActiveShare } from './vehicle-share.service';
+import { documentHealthFor } from '../vehicles/vehicle.service';
 import { sharedVehicleView } from './shared-vehicle.view';
 
 /**
@@ -33,11 +34,14 @@ export async function getSharedVehicle(
   shareId: string,
 ): Promise<SharedVehicleView> {
   const share = await requireActiveShare(auth, shareId);
-  const owner = await prisma.organization.findUnique({
-    where: { id: share.ownerOrganizationId },
-    select: { name: true },
-  });
-  return sharedVehicleView(share, owner?.name ?? '');
+  const [owner, health] = await Promise.all([
+    prisma.organization.findUnique({
+      where: { id: share.ownerOrganizationId },
+      select: { name: true },
+    }),
+    documentHealthFor([share.vehicleId]),
+  ]);
+  return sharedVehicleView(share, owner?.name ?? '', health.get(share.vehicleId));
 }
 
 // ---------------------------------------------------------------------------

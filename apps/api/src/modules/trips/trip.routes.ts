@@ -5,6 +5,7 @@ import {
   TripStatus,
   createTripSchema,
   idParamSchema,
+  terminalNavigationHandoffSchema,
   tripListQuerySchema,
   tripTransitionSchema,
   updateTripSchema,
@@ -19,6 +20,7 @@ import {
 import { AuditAction, auditFromRequest } from '../audit/audit.service';
 import * as tripService from './trip.service';
 import * as trackingService from '../tracking/tracking.service';
+import { handOffTripNavigation } from './navigation-handoff.service';
 
 export async function tripRoutes(app: FastifyInstance): Promise<void> {
   app.addHook('preHandler', app.authenticate);
@@ -93,6 +95,18 @@ export async function tripRoutes(app: FastifyInstance): Promise<void> {
       });
 
       return ok(reply, trip);
+    },
+  );
+
+  // The trip's driver hands navigation to Google Maps, or takes it back ({ app: null }).
+  app.post(
+    '/:id/navigation',
+    { preHandler: requirePermission(Permission.TRIPS_DRIVE) },
+    async (request, reply) => {
+      const auth = requireAuth(request);
+      const { id } = parseParams(idParamSchema, request.params);
+      const { app: navigationApp } = parseBody(terminalNavigationHandoffSchema, request.body ?? {});
+      return ok(reply, await handOffTripNavigation(auth, id, navigationApp));
     },
   );
 

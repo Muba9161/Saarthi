@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import {
   Feature,
   Permission,
@@ -6,14 +7,22 @@ import {
   idParamSchema,
   shareVehicleSchema,
   sharedFuelSchema,
+  sharedLiveQuerySchema,
   sharedMaintenanceSchema,
   sharedTripSchema,
 } from '@saarthi/shared';
-import { created, noContent, ok, parseBody, parseParams } from '../../lib/http';
+import { errors } from '../../lib/errors';
+import { created, noContent, ok, parseBody, parseParams, parseQuery } from '../../lib/http';
+import { storageProvider } from '../../providers/storage';
 import { requireAuth, requireFeature, requirePermission } from '../../server/guards';
 import { AuditAction, auditFromRequest } from '../audit/audit.service';
 import * as shareService from './vehicle-share.service';
 import * as sharedVehicleService from './shared-vehicle.service';
+import * as sharedPapersService from './shared-vehicle-papers.service';
+import * as sharedLiveService from './shared-vehicle-live.service';
+
+const shareFileParamsSchema = z.object({ id: z.string().uuid(), fileId: z.string().uuid() });
+const photoQuerySchema = z.object({ variant: z.enum(['original', 'thumb']).default('original') });
 
 /**
  * Vehicle sharing, mounted at `/fleet/sharing`.
@@ -139,6 +148,14 @@ export async function vehicleSharingRoutes(app: FastifyInstance): Promise<void> 
     );
   });
 
+  // Following it: the trip it is on, the road it has covered, and its readings.
+  // Polled while the screen is open, so `from` asks only for what is new.
+  app.get('/shares/:id/live', async (request, reply) => {
+    const { id } = parseParams(idParamSchema, request.params);
+    const query = parseQuery(sharedLiveQuerySchema, request.query);
+    return ok(reply, await sharedLiveService.sharedVehicleLive(requireAuth(request), id, query));
+  });
+
   app.get('/shares/:id/maintenance', async (request, reply) => {
     const { id } = parseParams(idParamSchema, request.params);
     return ok(reply, await sharedVehicleService.listSharedMaintenance(requireAuth(request), id));
@@ -151,5 +168,52 @@ export async function vehicleSharingRoutes(app: FastifyInstance): Promise<void> 
       reply,
       await sharedVehicleService.createSharedMaintenance(requireAuth(request), id, input),
     );
+  });
+
+  // --- The shared vehicle's papers: to look at, never to change ---------------
+
+  app.get('/shares/:id/papers', async (request, reply) => {
+    const { id } = parseParams(idParamSchema, request.params);
+    return ok(reply, await sharedPapersService.sharedVehiclePapers(requireAuth(request), id));
+  });
+
+  app.get('/shares/:id/papers/:fileId/download', async (request, reply) => {
+    const auth = requireAuth(request);
+    const { id, fileId } = parseParams(shareFileParamsSchema, request.params);
+    const document = await sharedPapersService.sharedPaperForDownload(auth, id, fileId);
+    if (!document) throw errors.notFound('Document');
+
+    await auditFromRequest(request, {
+      action: AuditAction.DOCUMENT_DOWNLOADED,
+      entityType: 'Document',
+      entityId: fileId,
+      after: { viaShareId: id },
+    });
+
+    const download = await storageProvider.download(document.storageKey);
+    return reply
+      .header('content-type', document.mimeType ?? 'application/octet-stream')
+      .header('content-length', download.size)
+      .header('content-disposition', `inline; filename="${document.fileName}"`)
+      // Somebody else's papers: never held in a shared cache.
+      .header('cache-control', 'private, no-store')
+      .header('x-content-type-options', 'nosniff')
+      .send(download.stream);
+  });
+
+  app.get('/shares/:id/papers/photos/:fileId', async (request, reply) => {
+    const { id, fileId } = parseParams(shareFileParamsSchema, request.params);
+    const { variant } = parseQuery(photoQuerySchema, request.query);
+    const photo = await sharedPapersService.sharedPhotoForDownload(requireAuth(request), id, fileId, variant === 'thumb');
+    if (!photo) throw errors.notFound('Photo');
+
+    const download = await storageProvider.download(photo.storageKey);
+    return reply
+      .header('content-type', photo.mimeType)
+      .header('content-length', download.size)
+      .header('content-disposition', 'inline')
+      .header('cache-control', 'private, max-age=3600')
+      .header('x-content-type-options', 'nosniff')
+      .send(download.stream);
   });
 }

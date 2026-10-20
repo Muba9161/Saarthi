@@ -131,6 +131,7 @@ model User {
   roles           UserRole[]
   memberships     Membership[]
   sessions        Session[]
+  pushDevices     PushDevice[]
   passwordResets  PasswordResetToken[]
   auditLogs       AuditLog[]           @relation("AuditActor")
   driverProfile   Driver?              @relation("DriverUser")
@@ -679,6 +680,25 @@ model NotificationPreference {
 
 /// Outbound delivery attempts made by the notification provider abstraction.
 /// Locally this is the "inbox" that proves email/SMS would have been sent.
+/// A phone that wants this person's push notifications: its Firebase
+/// Cloud Messaging token, refreshed by the app and dropped when Firebase says
+/// the app is gone or the person signs out.
+model PushDevice {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @db.Uuid
+  /// FCM registration token. A token belongs to one install, so one owner.
+  token      String   @unique
+  /// Which Saarthi app the token is for: OWNER (driver app later).
+  app        String   @default("OWNER")
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("push_devices")
+}
+
 model NotificationDelivery {
   id             String              @id @default(uuid()) @db.Uuid
   notificationId String?             @db.Uuid

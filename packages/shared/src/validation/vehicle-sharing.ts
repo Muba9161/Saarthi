@@ -48,3 +48,7 @@ export const sharedMaintenanceSchema = z.object({
   scheduledAt: z.coerce.date().optional(),
 });
 export type SharedMaintenanceInput = z.infer<typeof sharedMaintenanceSchema>;
+
+/** Following a shared vehicle; `from` asks only for the road covered since then. */
+export const sharedLiveQuerySchema = z.object({ from: z.coerce.date().optional() });
+export type SharedLiveQuery = z.infer<typeof sharedLiveQuerySchema>;

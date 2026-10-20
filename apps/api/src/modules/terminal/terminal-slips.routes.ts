@@ -1,21 +1,17 @@
 import type { FastifyInstance } from 'fastify';
 import {
   MediaOwnerType,
-  MediaPurpose,
-  MediaVisibility,
   terminalExpenseSlipSchema,
   terminalFuelSlipSchema,
 } from '@saarthi/shared';
 import { errors } from '../../lib/errors';
 import { created, parseBody } from '../../lib/http';
 import { authenticateDeviceRequest } from '../devices/device-auth';
-import { uploadMedia } from '../media/media.service';
-import { discardExpense, recordExpense } from '../expenses/expense.service';
+import { SLIP_PHOTO_REQUIRED, attachSlipPhoto, discardExpense, recordExpense } from '../expenses/expense.service';
 import { driverAuthForSession, requireTerminal } from './terminal.service';
 import { authorizedSessionForTerminal } from './session.service';
 import { discardFuelSlip, recordFuelSlip } from './driver-extras.service';
-import { readTerminalUpload, terminalLimit, type TerminalUploadFile } from './terminal-http';
-import type { AuthContext } from '../../auth/context';
+import { readTerminalUpload, terminalLimit } from './terminal-http';
 
 /**
  * Expense slips from the road: fuel, and everything else a driver pays.
@@ -30,34 +26,6 @@ import type { AuthContext } from '../../auth/context';
  * is removed again, because a slip without its evidence, or a photograph with
  * no slip, is a reconciliation somebody has to unpick by hand.
  */
-
-const PHOTO_REQUIRED =
-  'Saarthi needs a photograph of the slip. It is the evidence for the figures.';
-
-/** Attach the slip's photograph, or undo the slip if it cannot be attached. */
-async function attachPhoto(
-  auth: AuthContext,
-  ownerType: typeof MediaOwnerType.FUEL_RECORD | typeof MediaOwnerType.EXPENSE,
-  ownerId: string,
-  file: TerminalUploadFile,
-  discard: (id: string) => Promise<void>,
-): Promise<void> {
-  try {
-    await uploadMedia(
-      auth,
-      {
-        ownerType,
-        ownerId,
-        purpose: MediaPurpose.ATTACHMENT,
-        visibility: MediaVisibility.ORGANIZATION,
-      },
-      { file },
-    );
-  } catch (error) {
-    await discard(ownerId);
-    throw error;
-  }
-}
 
 export async function terminalSlipRoutes(app: FastifyInstance): Promise<void> {
   /**
@@ -78,7 +46,7 @@ export async function terminalSlipRoutes(app: FastifyInstance): Promise<void> {
       latitude: fields.latitude,
       longitude: fields.longitude,
     });
-    if (!file) throw errors.validation(PHOTO_REQUIRED);
+    if (!file) throw errors.validation(SLIP_PHOTO_REQUIRED);
 
     const record = await recordFuelSlip({
       organizationId: terminal.organizationId,
@@ -92,7 +60,7 @@ export async function terminalSlipRoutes(app: FastifyInstance): Promise<void> {
       latitude: input.latitude ?? null,
       longitude: input.longitude ?? null,
     });
-    await attachPhoto(auth, MediaOwnerType.FUEL_RECORD, record.id, file, discardFuelSlip);
+    await attachSlipPhoto(auth, MediaOwnerType.FUEL_RECORD, record.id, file, discardFuelSlip);
 
     return created(reply, { id: record.id });
   });
@@ -116,7 +84,7 @@ export async function terminalSlipRoutes(app: FastifyInstance): Promise<void> {
       latitude: fields.latitude,
       longitude: fields.longitude,
     });
-    if (!file) throw errors.validation(PHOTO_REQUIRED);
+    if (!file) throw errors.validation(SLIP_PHOTO_REQUIRED);
 
     const record = await recordExpense({
       organizationId: terminal.organizationId,
@@ -130,7 +98,7 @@ export async function terminalSlipRoutes(app: FastifyInstance): Promise<void> {
       latitude: input.latitude ?? null,
       longitude: input.longitude ?? null,
     });
-    await attachPhoto(auth, MediaOwnerType.EXPENSE, record.id, file, discardExpense);
+    await attachSlipPhoto(auth, MediaOwnerType.EXPENSE, record.id, file, discardExpense);
 
     return created(reply, { id: record.id });
   });

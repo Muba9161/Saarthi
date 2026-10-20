@@ -478,6 +478,14 @@ export const terminalExpenseSlipSchema = z.object({
 });
 export type TerminalExpenseSlipInput = z.infer<typeof terminalExpenseSlipSchema>;
 
+/**
+ * The same slip filed from a signed-in app — an owner who drives their own
+ * vehicle, or the fleet's office — which names the vehicle; a paired
+ * terminal's vehicle is simply its own.
+ */
+export const fleetExpenseSlipSchema = terminalExpenseSlipSchema.extend({ truckId: uuidSchema });
+export type FleetExpenseSlipInput = z.infer<typeof fleetExpenseSlipSchema>;
+
 /** One end of a trip a driver adds, as picked from the place search. */
 const terminalTripPlaceSchema = z.object({
   name: trimmedString(2, 160),
