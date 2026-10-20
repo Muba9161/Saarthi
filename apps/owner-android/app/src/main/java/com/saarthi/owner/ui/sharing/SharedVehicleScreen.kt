@@ -1,15 +1,10 @@
 package com.saarthi.owner.ui.sharing
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -22,18 +17,23 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.saarthi.owner.OwnerApp
-import com.saarthi.owner.network.OwnerApi
-import com.saarthi.owner.network.SharingApi
+import com.saarthi.owner.R
+import com.saarthi.owner.ui.trips.tripStatusWord
 import com.saarthi.owner.network.VehiclesApi
+import com.saarthi.owner.network.OwnerApi
+import com.saarthi.owner.network.ServicingApi
+import com.saarthi.owner.network.SharingApi
 import com.saarthi.owner.ui.common.DetailScreen
 import com.saarthi.owner.ui.common.FailedCard
 import com.saarthi.owner.ui.common.Loadable
 import com.saarthi.owner.ui.common.SkeletonCards
+import com.saarthi.owner.ui.common.Words
 import com.saarthi.owner.ui.common.formatPlate
+import com.saarthi.owner.ui.common.km
 import com.saarthi.owner.ui.common.prettyDate
 import com.saarthi.owner.ui.common.readable
 import com.saarthi.owner.ui.common.rupees
@@ -41,7 +41,6 @@ import com.saarthi.owner.ui.design.BottomSheet
 import com.saarthi.owner.ui.design.ButtonTone
 import com.saarthi.owner.ui.design.Eyebrow
 import com.saarthi.owner.ui.design.Hint
-import com.saarthi.owner.ui.design.LineIcon
 import com.saarthi.owner.ui.design.LinkButton
 import com.saarthi.owner.ui.design.Lucide
 import com.saarthi.owner.ui.design.NoticeCard
@@ -54,14 +53,16 @@ import com.saarthi.owner.ui.design.StatusPill
 import com.saarthi.owner.ui.design.card
 import com.saarthi.owner.ui.design.rise
 import com.saarthi.owner.ui.design.stagger
-import com.saarthi.owner.ui.map.MapVehicle
-import com.saarthi.owner.ui.map.MarkerState
-import com.saarthi.owner.ui.map.VehicleMap
+import com.saarthi.owner.ui.fleet.MotionFigures
+import com.saarthi.owner.ui.fleet.TrackingPanel
 import com.saarthi.owner.ui.shell.LocalNavigator
+import com.saarthi.owner.ui.tracking.FollowCard
+import com.saarthi.owner.ui.tracking.FollowScreen
+import com.saarthi.owner.ui.tracking.ReadingsCard
+import com.saarthi.owner.ui.tracking.rememberFollowed
+import com.saarthi.owner.ui.tracking.sharedFollowSource
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.time.Duration
-import java.time.Instant
 
 /** The web refreshes a shared vehicle every 15 seconds; so does this. */
 private const val REFRESH_MS = 15_000L
@@ -69,8 +70,8 @@ private const val REFRESH_MS = 15_000L
 /**
  * A vehicle somebody shared with this account: where it is, who is driving,
  * and the trips, fill-ups and servicing logged against it, with a way to add
- * each and a way to stop using it. Only what the server's shared view carries
- * is shown; costs, finance and papers stay with the owner.
+ * each, its papers to look at, and a way to stop using it. Only what the
+ * server's shared view carries is shown; finance stays with the owner.
  */
 @Composable
 fun SharedVehicleScreen(app: OwnerApp, initial: SharingApi.SharedVehicle, onLeft: () -> Unit) {
@@ -85,6 +86,7 @@ fun SharedVehicleScreen(app: OwnerApp, initial: SharingApi.SharedVehicle, onLeft
     var adding by remember { mutableStateOf<LogKind?>(null) }
     var leaving by remember { mutableStateOf(false) }
     var problem by remember { mutableStateOf<String?>(null) }
+    val followed = rememberFollowed("shared-${initial.shareId}", remember(initial.shareId) { sharedFollowSource(app, initial.shareId) })
 
     LaunchedEffect(initial.shareId) {
         while (true) {
@@ -99,25 +101,39 @@ fun SharedVehicleScreen(app: OwnerApp, initial: SharingApi.SharedVehicle, onLeft
         }
     }
 
-    DetailScreen(eyebrow = "Shared by ${vehicle.ownerName}".takeIf { vehicle.ownerName.isNotBlank() } ?: "Shared with you", title = formatPlate(vehicle.registrationNumber)) {
+    DetailScreen(
+        eyebrow = if (vehicle.ownerName.isNotBlank()) stringResource(R.string.people_shared_by, vehicle.ownerName) else stringResource(R.string.people_shared_with_you),
+        title = formatPlate(vehicle.registrationNumber),
+    ) {
         if (gone) {
-            NoticeCard("This vehicle is no longer shared with you.", NoticeTone.INFO, Modifier.rise())
+            NoticeCard(stringResource(R.string.people_shared_gone), NoticeTone.INFO, Modifier.rise())
             return@DetailScreen
         }
-        Summary(vehicle, Modifier.rise())
-        Where(vehicle, Modifier.rise(stagger(1)))
+        // Drawn as the owner's page draws it: the panel, the figures, then the map with the path it covered.
+        val openLive = { navigator.push("shared-live-${vehicle.shareId}") { SharedLiveScreen(app, vehicle.shareId) } }
+        val asOwner = vehicle.asVehicle()
+        TrackingPanel(asOwner, onLiveView = openLive, modifier = Modifier.rise())
+        MotionFigures(asOwner, Modifier.rise(stagger(1)))
+        Summary(vehicle, Modifier.rise(stagger(1)))
+        FollowCard(followed, onExpand = openLive, modifier = Modifier.rise(stagger(1)))
+        followed?.readings?.let { ReadingsCard(it, Modifier.rise(stagger(1))) }
+        SharedPapersCard(onOpen = { navigator.push("shared-papers-${vehicle.shareId}") { SharedPapersScreen(app, vehicle) } }, modifier = Modifier.rise(stagger(1)))
         SegmentedControl(
-            options = listOf("Trips", "Fuel", "Maintenance"),
+            options = listOf(
+                stringResource(R.string.people_shared_tab_trips),
+                stringResource(R.string.people_shared_tab_fuel),
+                stringResource(R.string.people_shared_tab_maintenance),
+            ),
             selected = tab,
             onSelect = { tab = it },
             modifier = Modifier.rise(stagger(2)),
         )
         val kind = LogKind.entries[tab]
-        SaarthiButton(kind.action, onClick = { adding = kind }, tone = ButtonTone.SECONDARY, leading = Lucide.plus, height = 48.dp)
+        SaarthiButton(stringResource(kind.action), onClick = { adding = kind }, tone = ButtonTone.SECONDARY, leading = Lucide.plus, height = 48.dp)
         Logs(app, vehicle.shareId, kind, reload)
         problem?.let { NoticeCard(it, NoticeTone.DANGER) }
         LinkButton(
-            "Stop using this vehicle",
+            stringResource(R.string.people_shared_stop_using),
             onClick = { leaving = true },
             color = c.danger,
             modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 8.dp),
@@ -137,14 +153,18 @@ fun SharedVehicleScreen(app: OwnerApp, initial: SharingApi.SharedVehicle, onLeft
 
     BottomSheet(visible = leaving, onDismiss = { leaving = false }) {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Text("Stop using this vehicle?", style = SType.sheetTitle, color = c.fg)
+            Text(stringResource(R.string.people_shared_stop_title), style = SType.sheetTitle, color = c.fg)
             Text(
-                "It leaves your Shared with me list. What you logged stays with the vehicle, and ${vehicle.ownerName.ifBlank { "the owner" }} can share it with you again.",
+                if (vehicle.ownerName.isNotBlank()) {
+                    stringResource(R.string.people_shared_stop_body, vehicle.ownerName)
+                } else {
+                    stringResource(R.string.people_shared_stop_body_owner)
+                },
                 style = SType.body,
                 color = c.muted,
             )
             SaarthiButton(
-                "Stop using it",
+                stringResource(R.string.people_shared_stop_confirm),
                 onClick = {
                     leaving = false
                     scope.launch {
@@ -175,20 +195,23 @@ private fun Summary(vehicle: SharingApi.SharedVehicle, modifier: Modifier) {
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
-                listOfNotNull(vehicle.typeLabel.ifBlank { null }, vehicle.makeAndModel).joinToString(" · ").ifBlank { "Vehicle" },
+                listOfNotNull(vehicle.typeLabel.ifBlank { null }, vehicle.makeAndModel).joinToString(" · ").ifBlank { stringResource(R.string.people_vehicle) },
                 style = SType.bodyStrong,
                 color = c.fg,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
             )
-            StatusPill(vehicle.status.lowercase().replace('_', ' ').replaceFirstChar { it.uppercase() }, background = c.sunken, ink = c.muted, dot = false)
+            StatusPill(VehiclesApi.statusWord(vehicle.status), background = c.sunken, ink = c.muted, dot = false)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Fact("Driver", vehicle.currentDriverName ?: "No driver assigned", Modifier.weight(1.3f))
-            Fact("Odometer", "%,d km".format(vehicle.odometerKm.toLong()), Modifier.weight(1f))
+            Fact(stringResource(R.string.people_shared_driver), vehicle.currentDriverName ?: stringResource(R.string.people_shared_no_driver), Modifier.weight(1.3f))
+            Fact(
+                stringResource(if (vehicle.passengerCapacity != null) R.string.fleet_card_seats else R.string.fleet_card_payload),
+                vehicle.passengerCapacity?.toString() ?: vehicle.capacityTons?.let { stringResource(R.string.fleet_tonnes, "%.0f".format(it)) } ?: "—",
+                Modifier.weight(1f),
+            )
         }
-        Text(vehicle.seenLine(), style = SType.caption, color = c.subtle)
     }
 }
 
@@ -200,42 +223,10 @@ private fun Fact(label: String, value: String, modifier: Modifier) {
     }
 }
 
-/** Where it is, on the map; a plain line when it has never reported. */
+/** The shared vehicle over the whole screen, followed on its own while it is open. */
 @Composable
-private fun Where(vehicle: SharingApi.SharedVehicle, modifier: Modifier) {
-    val c = Saarthi.colors
-    val position = vehicle.lastLocation
-    Box(
-        modifier
-            .fillMaxWidth()
-            .height(200.dp)
-            .clip(RoundedCornerShape(22.dp))
-            .background(c.sunken),
-        contentAlignment = Alignment.Center,
-    ) {
-        if (position == null) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                LineIcon(Lucide.mapPin, size = 24.dp, color = c.muted)
-                Text("No position yet", style = SType.small, color = c.muted)
-            }
-        } else {
-            val minutes = runCatching { Duration.between(Instant.parse(position.recordedAt), Instant.now()).toMinutes() }.getOrNull()
-            val state = when {
-                minutes == null || minutes > VehiclesApi.OFFLINE_AFTER_MINUTES -> MarkerState.OFFLINE
-                (position.speedKph ?: 0.0) > VehiclesApi.MOVING_KPH -> MarkerState.MOVING
-                else -> MarkerState.IDLE
-            }
-            var focus by remember { mutableIntStateOf(1) }
-            LaunchedEffect(position.latitude, position.longitude) { focus++ }
-            VehicleMap(
-                vehicles = listOf(MapVehicle(vehicle.vehicleId, position.latitude, position.longitude, state, formatPlate(vehicle.registrationNumber))),
-                selectedId = vehicle.vehicleId,
-                onSelect = {},
-                focusRequest = focus,
-                modifier = Modifier.fillMaxSize(),
-            )
-        }
-    }
+private fun SharedLiveScreen(app: OwnerApp, shareId: String) {
+    FollowScreen(rememberFollowed("shared-full-$shareId", remember(shareId) { sharedFollowSource(app, shareId) }))
 }
 
 /** The chosen log, newest first, read again whenever something is added. */
@@ -263,9 +254,9 @@ private fun Logs(app: OwnerApp, shareId: String, kind: LogKind, reload: Int) {
             if (shown.value.isEmpty()) {
                 Hint(
                     when (kind) {
-                        LogKind.TRIP -> "No trips logged yet."
-                        LogKind.FUEL -> "No fill-ups logged yet."
-                        LogKind.SERVICE -> "No servicing logged yet."
+                        LogKind.TRIP -> stringResource(R.string.people_shared_no_trips)
+                        LogKind.FUEL -> stringResource(R.string.people_shared_no_fuel)
+                        LogKind.SERVICE -> stringResource(R.string.people_shared_no_service)
                     },
                 )
             }
@@ -280,13 +271,13 @@ private data class LogLine(val title: String, val detail: String?, val trailing:
 private fun SharingApi.Trip.line() = LogLine(
     title = "$origin → $destination",
     detail = listOfNotNull(reference.ifBlank { null }, prettyDate(startedAt ?: plannedStartAt ?: createdAt)).joinToString(" · ").ifBlank { null },
-    trailing = (actualDistanceKm ?: plannedDistanceKm)?.let { "%.0f km".format(it) },
-    badge = status.lowercase().replace('_', ' ').replaceFirstChar { it.uppercase() },
+    trailing = (actualDistanceKm ?: plannedDistanceKm)?.let { Words.get(R.string.common_distance_km, "%.0f".format(it)) },
+    badge = tripStatusWord(status),
 )
 
 private fun SharingApi.Fuel.line() = LogLine(
-    title = "%.1f L at %s/L".format(quantityLitres, rupees(pricePerUnit)),
-    detail = listOfNotNull(stationName, odometerKm?.let { "%,d km".format(it.toLong()) }, prettyDate(recordedAt)).joinToString(" · ").ifBlank { null },
+    title = Words.get(R.string.people_shared_fuel_line, "%.1f".format(quantityLitres), rupees(pricePerUnit)),
+    detail = listOfNotNull(stationName, km(odometerKm), prettyDate(recordedAt)).joinToString(" · ").ifBlank { null },
     trailing = rupees(totalCost),
     badge = null,
 )
@@ -294,12 +285,12 @@ private fun SharingApi.Fuel.line() = LogLine(
 private fun SharingApi.Maintenance.line() = LogLine(
     title = title,
     detail = listOfNotNull(
-        SharingApi.MAINTENANCE_TYPES.firstOrNull { it.first == type }?.second,
+        ServicingApi.typeWord(type),
         serviceProvider,
         prettyDate(completedAt ?: scheduledAt ?: createdAt),
     ).joinToString(" · ").ifBlank { null },
     trailing = cost?.let { rupees(it) },
-    badge = status.lowercase().replace('_', ' ').replaceFirstChar { it.uppercase() },
+    badge = ServicingApi.statusWord(status),
 )
 
 @Composable

@@ -30,6 +30,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -37,8 +39,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.saarthi.owner.OwnerApp
 import com.saarthi.owner.R
+import com.saarthi.owner.data.SessionStore
 import com.saarthi.owner.network.TravelApi
 import com.saarthi.owner.network.VehiclesApi
+import com.saarthi.owner.ui.drive.DriveCard
 import com.saarthi.owner.ui.common.FacesAlignment
 import com.saarthi.owner.ui.common.FailedCard
 import com.saarthi.owner.ui.common.Loadable
@@ -69,15 +73,17 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 private const val REFRESH_MS = 45_000L
-private val TimeFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
-private val DayFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM")
+// Made on each use, so the month and day names follow the app\'s language when it changes.
+private val TimeFormat: DateTimeFormatter get() = DateTimeFormatter.ofPattern("HH:mm")
+// Made on each use, so the month and day names follow the app\'s language when it changes.
+private val DayFormat: DateTimeFormatter get() = DateTimeFormatter.ofPattern("d MMM")
 
 /**
  * The travel operator's home — the design's Travel · Home: how many are on
  * the road, today's trips, and what needs confirming.
  */
 @Composable
-fun TravelHomeScreen(app: OwnerApp, actions: ShellActions) {
+fun TravelHomeScreen(app: OwnerApp, account: SessionStore.Account, actions: ShellActions) {
     val model = viewModel { TravelModel(app.travel, app.vehicles) }
     val state by model.state.collectAsStateWithLifecycle()
     val navigator = LocalNavigator.current
@@ -102,6 +108,7 @@ fun TravelHomeScreen(app: OwnerApp, actions: ShellActions) {
             is Loadable.Failed -> FailedCard(shown.message, { model.refresh() })
             is Loadable.Ready -> {
                 val book = shown.value
+                DriveCard(app, account, Modifier.rise())
                 Box(
                     Modifier
                         .fillMaxWidth()
@@ -113,7 +120,7 @@ fun TravelHomeScreen(app: OwnerApp, actions: ShellActions) {
                     Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0x1A021D40), Color(0xF2021D40)))))
                     Column(Modifier.fillMaxSize().padding(18.dp), verticalArrangement = Arrangement.SpaceBetween) {
                         StatusPill(
-                            if (book.onTheRoad > 0) "${book.onTheRoad} on the road" else "Nobody on the road",
+                            if (book.onTheRoad > 0) stringResource(R.string.fleet_travel_on_the_road, book.onTheRoad) else stringResource(R.string.fleet_travel_nobody_on_road),
                             background = Color.White.copy(alpha = 0.16f),
                             ink = Color.White,
                             dotColor = Brand.live,
@@ -122,9 +129,9 @@ fun TravelHomeScreen(app: OwnerApp, actions: ShellActions) {
                         )
                         Row(verticalAlignment = Alignment.Bottom) {
                             Column(Modifier.weight(1f)) {
-                                Eyebrow("Today", color = Color.White.copy(alpha = 0.78f))
+                                Eyebrow(stringResource(R.string.fleet_travel_today), color = Color.White.copy(alpha = 0.78f))
                                 Text(
-                                    "${book.today.size} booking${if (book.today.size == 1) "" else "s"}",
+                                    pluralStringResource(R.plurals.fleet_travel_bookings, book.today.size, book.today.size),
                                     style = SType.title.copy(fontSize = 30.sp),
                                     color = Color.White,
                                 )
@@ -134,12 +141,12 @@ fun TravelHomeScreen(app: OwnerApp, actions: ShellActions) {
                                     .height(44.dp)
                                     .clip(CircleShape)
                                     .background(Color.White)
-                                    .pressable { actions.selectTab("map") }
+                                    .pressable { openFleetMap(navigator, app, account) }
                                     .padding(horizontal = 16.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                             ) {
-                                Text("Map", style = SType.bodyStrong, color = Brand.navy)
+                                Text(stringResource(R.string.fleet_travel_open_map), style = SType.bodyStrong, color = Brand.navy)
                                 LineIcon(Lucide.arrowRight, size = 16.dp, color = Brand.navy, stroke = 2.2f)
                             }
                         }
@@ -148,21 +155,21 @@ fun TravelHomeScreen(app: OwnerApp, actions: ShellActions) {
 
                 Row(Modifier.fillMaxWidth().rise(stagger(1)), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     val running = book.vehicles.count { it.motion() != VehiclesApi.Motion.OFFLINE }
-                    Figure("On duty", "$running", "/${book.vehicles.size}", "vehicles", Modifier.weight(1f))
-                    Figure("Awaiting", "${book.awaitingYou.size}", "", "to confirm", Modifier.weight(1f), if (book.awaitingYou.isNotEmpty()) c.warning else c.fg)
-                    Figure("Rating", book.averageRating?.let { "%.1f".format(it) } ?: "—", "", "from trips", Modifier.weight(1f))
+                    Figure(stringResource(R.string.fleet_travel_on_duty), "$running", "/${book.vehicles.size}", stringResource(R.string.fleet_travel_vehicles_caption), Modifier.weight(1f))
+                    Figure(stringResource(R.string.fleet_travel_awaiting), "${book.awaitingYou.size}", "", stringResource(R.string.fleet_travel_to_confirm), Modifier.weight(1f), if (book.awaitingYou.isNotEmpty()) c.warning else c.fg)
+                    Figure(stringResource(R.string.fleet_travel_rating), book.averageRating?.let { "%.1f".format(it) } ?: "—", "", stringResource(R.string.fleet_travel_from_trips), Modifier.weight(1f))
                 }
 
                 Row(Modifier.fillMaxWidth().padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text("Today's run", style = SType.section, color = c.fg, modifier = Modifier.weight(1f))
-                    LinkButton("All bookings", { actions.selectTab("bookings") }, style = SType.smallStrong)
+                    Text(stringResource(R.string.fleet_travel_todays_run), style = SType.section, color = c.fg, modifier = Modifier.weight(1f))
+                    LinkButton(stringResource(R.string.fleet_travel_all_bookings), { actions.selectTab("bookings") }, style = SType.smallStrong)
                 }
                 val list = book.today.ifEmpty { book.upcoming.take(4) }
                 if (book.today.isEmpty() && list.isNotEmpty()) {
-                    Text("Nothing today. Coming up:", style = SType.small, color = c.muted)
+                    Text(stringResource(R.string.fleet_travel_nothing_today), style = SType.small, color = c.muted)
                 }
                 if (list.isEmpty()) {
-                    Text("No bookings yet. Quote on requests near you to fill the diary.", style = SType.small, color = c.muted)
+                    Text(stringResource(R.string.fleet_travel_no_bookings_hint), style = SType.small, color = c.muted)
                 }
                 list.forEach { booking ->
                     BookingRow(booking) { navigator.push("booking-${booking.id}") { TravelBookingScreen(app, booking) { model.refresh(silent = true) } } }
@@ -192,13 +199,13 @@ fun TravelBookingsScreen(app: OwnerApp) {
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 if (open.isEmpty() && done.isEmpty()) {
-                    item { Text("No bookings yet.", style = SType.small, color = c.muted) }
+                    item { Text(stringResource(R.string.fleet_travel_no_bookings), style = SType.small, color = c.muted) }
                 }
-                if (open.isNotEmpty()) item { GroupLabel("Still to run") }
+                if (open.isNotEmpty()) item { GroupLabel(stringResource(R.string.fleet_travel_still_to_run)) }
                 items(open.sortedBy { it.startDate }, key = { it.id }) { booking ->
                     BookingRow(booking) { navigator.push("booking-${booking.id}") { TravelBookingScreen(app, booking) { model.refresh(silent = true) } } }
                 }
-                if (done.isNotEmpty()) item { GroupLabel("Earlier") }
+                if (done.isNotEmpty()) item { GroupLabel(stringResource(R.string.fleet_travel_earlier)) }
                 items(done, key = { it.id }) { booking ->
                     BookingRow(booking) { navigator.push("booking-${booking.id}") { TravelBookingScreen(app, booking) { model.refresh(silent = true) } } }
                 }
@@ -212,12 +219,12 @@ fun TravelBookingsScreen(app: OwnerApp) {
 internal fun bookingLook(status: String): Triple<String, Color, Color> {
     val c = Saarthi.colors
     return when (status) {
-        "AWAITING_CONFIRMATION" -> Triple("Confirm it", c.warningBg, c.warning)
-        "PENDING_PAYMENT" -> Triple("Awaiting payment", c.sunken, c.muted)
-        "CONFIRMED" -> Triple("Driver assigned", c.primaryWash, c.primary)
-        "IN_PROGRESS" -> Triple("On the way", c.successBg, c.success)
-        "COMPLETED" -> Triple("Completed", c.sunken, c.muted)
-        "DECLINED", "CANCELLED", "REFUNDED" -> Triple("Cancelled", c.dangerBg, c.danger)
+        "AWAITING_CONFIRMATION" -> Triple(stringResource(R.string.fleet_travel_status_confirm_it), c.warningBg, c.warning)
+        "PENDING_PAYMENT" -> Triple(stringResource(R.string.fleet_travel_status_awaiting_payment), c.sunken, c.muted)
+        "CONFIRMED" -> Triple(stringResource(R.string.fleet_travel_status_driver_assigned), c.primaryWash, c.primary)
+        "IN_PROGRESS" -> Triple(stringResource(R.string.fleet_travel_status_on_the_way), c.successBg, c.success)
+        "COMPLETED" -> Triple(stringResource(R.string.fleet_travel_status_completed), c.sunken, c.muted)
+        "DECLINED", "CANCELLED", "REFUNDED" -> Triple(stringResource(R.string.fleet_travel_status_cancelled), c.dangerBg, c.danger)
         else -> Triple(status.lowercase().replace('_', ' '), c.sunken, c.muted)
     }
 }
@@ -243,7 +250,7 @@ internal fun BookingRow(
     ) {
         Column(Modifier.width(54.dp)) {
             Text(start?.let { TimeFormat.format(it) } ?: "—", style = SType.bodyStrong, color = c.fg)
-            Text(start?.let { if (it.toLocalDate() == java.time.LocalDate.now()) "pickup" else DayFormat.format(it) } ?: "", style = SType.caption, color = c.muted)
+            Text(start?.let { if (it.toLocalDate() == java.time.LocalDate.now()) stringResource(R.string.fleet_travel_pickup_today) else DayFormat.format(it) } ?: "", style = SType.caption, color = c.muted)
         }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(booking.title, style = SType.bodyStrong, color = c.fg, maxLines = 2, overflow = TextOverflow.Ellipsis)

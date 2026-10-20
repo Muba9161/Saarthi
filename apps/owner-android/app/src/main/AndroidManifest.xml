@@ -2,11 +2,14 @@
 <!--
   Saarthi for owners and businesses.
 
-  Reads a business, never reports from a vehicle: no background location,
-  camera, Bluetooth or self-update permissions. Each of those is a question
-  Google Play asks before it lists an app. Two exceptions, each asked for only
-  on the tap that needs it: the microphone, to ask Saarthi a question out loud,
-  and a one-time location, to fill a place with where the person stands.
+  Reads a business, and reports from a vehicle only while its owner drives it:
+  no background location ("allow all the time"), Bluetooth or self-update
+  permissions. Each is a question Google Play asks before it lists an app.
+  What is asked for, each only on the tap that needs it: the microphone, to ask
+  Saarthi a question out loud; a one-time location, to fill a place with where
+  the person stands; and, for an owner who drives, location while the Drive
+  screen starts a trip, kept running by a visible "Driving" notification
+  (a location foreground service, which Play asks to be declared).
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
@@ -16,6 +19,8 @@
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
 
     <!-- Cashfree's checkout hands a UPI payment to the payer's own UPI app. -->
     <queries>
@@ -65,5 +70,18 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/receipt_paths" />
         </provider>
+        <!-- An owner driving their own vehicle: the phone's fixes while a trip runs. -->
+        <service
+            android:name=".drive.DrivingService"
+            android:exported="false"
+            android:foregroundServiceType="location" />
+        <!-- Push notifications from Firebase: new tokens and incoming messages. -->
+        <service
+            android:name=".push.OwnerMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
     </application>
 </manifest>

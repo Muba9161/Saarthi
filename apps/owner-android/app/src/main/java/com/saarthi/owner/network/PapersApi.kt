@@ -1,10 +1,19 @@
 package com.saarthi.owner.network
 
+import com.saarthi.owner.R
+import com.saarthi.owner.ui.common.Words
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.put
+import kotlinx.serialization.builtins.ListSerializer
 import java.io.File
 import java.time.LocalDate
+import java.util.Collections
+import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * A vehicle's papers.
@@ -113,24 +122,6 @@ class PapersApi(private val api: OwnerApi) {
     @Serializable
     data class Sticker(val shortLabel: String = "", val imageUrl: String = "")
 
-    /** Whether the vehicle's papers can go to Saarthi's reviewers, and what stands in the way. */
-    @Serializable
-    data class Review(val case: ReviewCase? = null, val readiness: Readiness = Readiness())
-
-    @Serializable
-    data class ReviewCase(val status: String = "")
-
-    @Serializable
-    data class Readiness(
-        val ready: Boolean = false,
-        val missing: List<Gap> = emptyList(),
-        val invalid: List<Gap> = emptyList(),
-    )
-
-    /** A required paper that is absent, or present but not usable, and why. */
-    @Serializable
-    data class Gap(val documentType: String = "", val label: String = "", val reason: String? = null)
-
     @Serializable
     private data class Created(val id: String = "")
 
@@ -152,28 +143,32 @@ class PapersApi(private val api: OwnerApi) {
     suspend fun photo(photoId: String, thumbnail: Boolean): ByteArray? =
         api.image("/api/v1/media/$photoId/file?variant=${if (thumbnail) "thumb" else "original"}")
 
-    /** The vehicle's QR sticker, issued on first ask exactly as the web's panel does. */
-    suspend fun sticker(vehicleId: String): Sticker? = api.get("/qr/subject/VEHICLE/$vehicleId", Sticker.serializer())
+    /** A vehicle's QR sticker or a driver's badge (`VEHICLE`, `DRIVER`), issued on first ask exactly as the web's panel does. */
+    suspend fun sticker(subjectId: String, subjectType: String = "VEHICLE"): Sticker? =
+        api.get("/qr/subject/$subjectType/$subjectId", Sticker.serializer())
 
     suspend fun stickerImage(sticker: Sticker): ByteArray? = sticker.imageUrl.takeIf { it.isNotBlank() }?.let { api.image(it) }
 
     /**
-     * File a paper into its folder. The expiry is required for every vehicle
-     * paper, as on the web; the number and issue date are kept when given.
+     * File a paper for [ownerId] — a vehicle (`TRUCK`) or a driver (`DRIVER`).
+     * Every vehicle paper needs its expiry, as on the web; the number, issue
+     * date and an optional expiry are kept when given. A second upload of the
+     * same paper replaces the first on the server, as a new version.
      */
     suspend fun uploadPaper(
-        vehicleId: String,
+        ownerId: String,
         documentType: String,
         number: String?,
         issuedOn: LocalDate?,
-        expiresOn: LocalDate,
+        expiresOn: LocalDate?,
         file: OwnerApi.Upload,
+        ownerType: String = OWNER_VEHICLE,
     ) {
         val fields = buildMap {
-            put("ownerType", "TRUCK")
-            put("ownerId", vehicleId)
+            put("ownerType", ownerType)
+            put("ownerId", ownerId)
             put("documentType", documentType)
-            put("expiryDate", expiresOn.toString())
+            expiresOn?.let { put("expiryDate", it.toString()) }
             number?.trim()?.takeIf { it.isNotEmpty() }?.let { put("documentNumber", it.take(80)) }
             issuedOn?.let { put("issueDate", it.toString()) }
         }
@@ -190,17 +185,93 @@ class PapersApi(private val api: OwnerApi) {
         api.delete("/media/$photoId")
     }
 
-    /** Where the vehicle's review stands; null when this account cannot read it. */
-    suspend fun review(vehicleId: String): Review? = api.get("/verification/subject/truck/$vehicleId", Review.serializer())
+    /*
+     * The 360° spin: ordinary media, one asset per frame under the vehicle, in
+     * their own purpose, ordered by `sortOrder`, each with a small rendition —
+     * exactly as the web stores it, so either app turns the other's spin.
+     */
 
-    /** Hand the vehicle's papers to Saarthi's reviewers. */
-    suspend fun sendForReview(vehicleId: String) {
-        val body = buildJsonObject {
-            put("subjectType", "TRUCK")
-            put("subjectId", vehicleId)
-        }
-        api.post("/verification", body.toString(), Created.serializer())
+    /** One stored frame of the vehicle's spin. */
+    @Serializable
+    data class SpinFrame(val id: String, val sortOrder: Int = 0, val thumbnailUrl: String? = null)
+
+    /** A frame ready to send: the full rendition, and the small one the viewer turns through. */
+    class SpinUpload(val full: ByteArray, val thumb: ByteArray)
+
+    /** The spin's frames in display order; empty when the vehicle has none. */
+    suspend fun spin(vehicleId: String): List<SpinFrame> =
+        api.get("/media/owner/vehicle/$vehicleId?purpose=$SPIN_PURPOSE", ListSerializer(SpinFrame.serializer()))
+            .orEmpty()
+            .sortedBy { it.sortOrder }
+
+    suspend fun spinFrame(frame: SpinFrame, full: Boolean): ByteArray? =
+        api.image("/api/v1/media/${frame.id}/file?variant=${if (full || frame.thumbnailUrl == null) "original" else "thumb"}")
+
+    /** A spin goes whole or not at all. */
+    suspend fun removeSpin(frameIds: List<String>) = coroutineScope {
+        frameIds.map { id -> async { api.delete("/media/$id") } }.awaitAll()
     }
+
+    /**
+     * Send a spin's frames, a few at a time, each tried again on a dropped
+     * connection. If one finally fails — or the person leaves — whatever
+     * already landed is taken back off, so a vehicle is never left with half a
+     * spin that looks like a broken one.
+     */
+    suspend fun uploadSpin(vehicleId: String, frames: List<SpinUpload>, onProgress: (sent: Int) -> Unit) {
+        val stored = Collections.synchronizedList(mutableListOf<String>())
+        val next = AtomicInteger(0)
+        try {
+            coroutineScope {
+                List(minOf(SPIN_UPLOADS_AT_ONCE, frames.size)) {
+                    async {
+                        while (true) {
+                            val index = next.getAndIncrement()
+                            if (index >= frames.size) break
+                            stored += uploadSpinFrame(vehicleId, frames[index], index)
+                            onProgress(stored.size)
+                        }
+                    }
+                }.awaitAll()
+            }
+        } catch (failure: Throwable) {
+            // The failure being reported matters more than the clean-up's.
+            withContext(NonCancellable) { runCatching { removeSpin(stored.toList()) } }
+            throw failure
+        }
+    }
+
+    private suspend fun uploadSpinFrame(vehicleId: String, frame: SpinUpload, index: Int): String {
+        val name = "spin-%02d.jpg".format(index + 1)
+        val fields = mapOf(
+            "ownerType" to "VEHICLE",
+            "ownerId" to vehicleId,
+            "purpose" to SPIN_PURPOSE,
+            "sortOrder" to index.toString(),
+        )
+        var attempt = 1
+        while (true) {
+            try {
+                return api.upload(
+                    "/media",
+                    fields,
+                    "file",
+                    OwnerApi.Upload(name, "image/jpeg", frame.full),
+                    Created.serializer(),
+                    extraFiles = mapOf("thumbnail" to OwnerApi.Upload("thumb-$name", "image/jpeg", frame.thumb)),
+                )?.id?.takeIf { it.isNotEmpty() } ?: throw OwnerApi.Failure.Refused(200, Words.get(R.string.net_error_spin_frame_not_kept))
+            } catch (failure: OwnerApi.Failure) {
+                if (attempt >= SPIN_UPLOAD_ATTEMPTS || !failure.worthRetrying) throw failure
+                delay(SPIN_RETRY_BASE_MS shl (attempt - 1))
+                attempt++
+            }
+        }
+    }
+
+    /** The network dropped or the server was busy — never a refusal. */
+    private val OwnerApi.Failure.worthRetrying: Boolean
+        get() = this is OwnerApi.Failure.Offline ||
+            (this is OwnerApi.Failure.Refused && (status == 408 || status == 429 || status >= 500))
 
     /** Enter the Secure PIN: the web's own unlock, for this sign-in only. */
     suspend fun unlock(pin: String) {
@@ -212,6 +283,21 @@ class PapersApi(private val api: OwnerApi) {
     }
 
     companion object {
+        const val OWNER_VEHICLE = "TRUCK"
+        const val OWNER_DRIVER = "DRIVER"
+
+        /** The shared catalogue's `VEHICLE_SPIN_FRAMES`: fewer cannot turn, more crowds the photos out. */
+        const val SPIN_MIN_FRAMES = 4
+        const val SPIN_MAX_FRAMES = 24
+
+        /** The catalogue's longest edge for a stored spin frame. */
+        const val SPIN_FRAME_EDGE = 1280
+
+        private const val SPIN_PURPOSE = "VEHICLE_SPIN_FRAME"
+        private const val SPIN_UPLOADS_AT_ONCE = 3
+        private const val SPIN_UPLOAD_ATTEMPTS = 3
+        private const val SPIN_RETRY_BASE_MS = 600L
+
         const val KIND_PAPER = "PAPER"
         const val KIND_PHOTOS = "PHOTOS"
         const val KIND_QR = "QR"
@@ -225,8 +311,6 @@ class PapersApi(private val api: OwnerApi) {
         const val CAN_UPLOAD_PAPERS = "documents.upload"
         const val CAN_UPLOAD_PHOTOS = "media.upload"
         const val CAN_DELETE_PHOTOS = "media.delete"
-        const val CAN_SEND_FOR_REVIEW = "verification.submit"
-        const val CAN_READ_REVIEW = "verification.read"
         const val PHOTOS_FEATURE = "media.library"
     }
 }

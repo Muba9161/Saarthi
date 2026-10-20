@@ -1,5 +1,6 @@
 package com.saarthi.owner.ui.common
 
+import com.saarthi.owner.R
 import java.text.NumberFormat
 import java.time.Duration
 import java.time.Instant
@@ -34,25 +35,35 @@ private val RupeesAndPaise: NumberFormat = NumberFormat.getCurrencyInstance(Loca
 fun unitPrice(amount: Double): String =
     if (amount % 1.0 == 0.0) Rupees.format(amount) else RupeesAndPaise.format(amount)
 
-/** How long ago, the way a person says it: "now", "4 min", "3 h", "2 d". */
+/** How long ago, the way a person says it: "now", "4 min", "3 h", "2 d" — in the app's language. */
 fun ago(iso: String?, now: Instant = Instant.now()): String {
     val then = iso?.let { runCatching { Instant.parse(it) }.getOrNull() } ?: return ""
     val minutes = Duration.between(then, now).toMinutes().coerceAtLeast(0)
     return when {
-        minutes < 1 -> "now"
-        minutes < 60 -> "$minutes min"
-        minutes < 60 * 24 -> "${minutes / 60} h"
-        else -> "${minutes / (60 * 24)} d"
+        minutes < 1 -> Words.get(R.string.common_time_now)
+        minutes < 60 -> Words.get(R.string.common_time_minutes, minutes.toInt())
+        minutes < 60 * 24 -> Words.get(R.string.common_time_hours, (minutes / 60).toInt())
+        else -> Words.get(R.string.common_time_days, (minutes / (60 * 24)).toInt())
     }
+}
+
+/** Whether [ago] said "now", for sentences that read differently then ("reporting now" rather than "… ago"). */
+fun isNow(iso: String?, now: Instant = Instant.now()): Boolean {
+    val then = iso?.let { runCatching { Instant.parse(it) }.getOrNull() } ?: return false
+    return Duration.between(then, now).toMinutes() < 1
 }
 
 /** A span of minutes the way a journey is told: "45 min", "2 h 10 min", "1 d 3 h". */
 fun minutesSpan(minutes: Int?): String? {
     val total = minutes?.takeIf { it >= 0 } ?: return null
     return when {
-        total < 60 -> "$total min"
-        total < 60 * 24 -> "${total / 60} h" + if (total % 60 > 0) " ${total % 60} min" else ""
-        else -> "${total / (60 * 24)} d" + if (total % (60 * 24) >= 60) " ${total % (60 * 24) / 60} h" else ""
+        total < 60 -> Words.get(R.string.common_time_minutes, total)
+        total < 60 * 24 ->
+            if (total % 60 > 0) Words.get(R.string.common_span_hours_minutes, total / 60, total % 60)
+            else Words.get(R.string.common_time_hours, total / 60)
+        else ->
+            if (total % (60 * 24) >= 60) Words.get(R.string.common_span_days_hours, total / (60 * 24), total % (60 * 24) / 60)
+            else Words.get(R.string.common_time_days, total / (60 * 24))
     }
 }
 
@@ -62,13 +73,10 @@ fun countdown(seconds: Long): String {
     return "%d:%02d".format(clamped / 60, clamped % 60)
 }
 
-/** "1 vehicle", "12 vehicles". */
-fun plural(count: Int, one: String, many: String = one + "s"): String = "$count ${if (count == 1) one else many}"
-
 /** 366,045 as "366k", 1,240 as "1,240" — a number that fits a small tile. */
 fun shortCount(value: Double): String = when {
-    value >= 1_000_000 -> "%.1fM".format(value / 1_000_000)
-    value >= 100_000 -> "${(value / 1_000).toLong()}k"
+    value >= 1_000_000 -> Words.get(R.string.ui_count_millions, "%.1f".format(value / 1_000_000))
+    value >= 100_000 -> Words.get(R.string.ui_count_thousands, (value / 1_000).toLong().toString())
     else -> "%,d".format(value.toLong())
 }
 

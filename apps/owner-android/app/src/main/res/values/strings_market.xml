@@ -1,0 +1,359 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Orders: an order's status word (OrderRows). -->
+    <string name="market_order_status_awaiting">Awaiting confirmation</string>
+    <string name="market_order_status_confirmed">Confirmed</string>
+    <string name="market_order_status_assigned">Truck assigned</string>
+    <string name="market_order_status_loading">Loading</string>
+    <string name="market_order_status_on_the_way">On the way</string>
+    <string name="market_order_status_delivered">Delivered</string>
+    <string name="market_order_status_completed">Completed</string>
+    <string name="market_order_status_cancelled">Cancelled</string>
+    <string name="market_order_eyebrow">Order %1$s</string>
+
+    <!-- Orders: Buy & dispatch (FleetOrderScreen). -->
+    <string name="market_fleet_order_override_done">Confirmed without the code. The reason is on record and the customer has been told.</string>
+    <string name="market_fleet_order_seller_paid">Seller paid</string>
+    <string name="market_fleet_order_title">Buy &amp; dispatch</string>
+    <string name="market_fleet_order_pay_seller">Pay %1$s to the seller</string>
+    <string name="market_fleet_order_opening_payment">Opening payment…</string>
+    <string name="market_fleet_order_paid_through">Paid through Cashfree. The seller loads only after it\'s paid.</string>
+    <string name="market_fleet_order_step_material">Material from the seller</string>
+    <string name="market_fleet_order_step_pay">Pay the seller</string>
+    <string name="market_fleet_order_badge_waiting_share">Waiting for %1$d%%</string>
+    <string name="market_fleet_order_badge_due_now">Due now</string>
+    <string name="market_fleet_order_badge_paid">Paid</string>
+    <string name="market_fleet_order_seller_fallback">The seller</string>
+    <string name="market_fleet_order_step_truck">Send a truck to load</string>
+    <string name="market_fleet_order_badge_assigned">Assigned</string>
+    <string name="market_fleet_order_truck_pending">The truck named in your bid goes here once the order is confirmed.</string>
+    <string name="market_fleet_order_seller_yard">Seller\'s yard</string>
+    <string name="market_fleet_order_load_by">Load by %1$s</string>
+    <string name="market_fleet_order_customer_site">Customer\'s site</string>
+    <string name="market_fleet_order_deliver_by">Deliver by %1$s</string>
+    <string name="market_fleet_order_earnings">Your earnings</string>
+    <string name="market_fleet_order_earnings_estimate">Your earnings · estimate</string>
+    <string name="market_fleet_order_agreed">Agreed with the customer</string>
+    <string name="market_fleet_order_paid_to_seller">Paid to the seller</string>
+    <string name="market_fleet_order_commission">Saarthi commission (%1$s%%)</string>
+    <string name="market_fleet_order_you_keep">You keep</string>
+    <string name="market_fleet_order_customer_paid">%1$s paid %2$d%%</string>
+    <string name="market_fleet_order_customer_paid_unnamed">The customer paid %1$d%%</string>
+    <string name="market_fleet_order_customer_waiting">Waiting for %1$s\'s %2$d%%</string>
+    <string name="market_fleet_order_customer_waiting_unnamed">Waiting for the customer\'s %1$d%%</string>
+    <string name="market_fleet_order_received">%1$s received</string>
+    <string name="market_fleet_order_due">%1$s due</string>
+    <string name="market_fleet_order_after_delivery">%1$s after delivery</string>
+
+    <!-- Orders: handover codes (Handover). -->
+    <string name="market_handover_your_delivery_code">Your delivery code</string>
+    <string name="market_handover_your_pickup_code">Your pickup code</string>
+    <string name="market_handover_delivery_give">Give it to the driver only when your goods reach you — it confirms the delivery.</string>
+    <string name="market_handover_pickup_tell">Tell it to the driver when they arrive — the ride starts once they enter it.</string>
+    <string name="market_handover_delivery_verified">The driver confirmed the delivery with your code.</string>
+    <string name="market_handover_pickup_verified">The driver started the ride with your code.</string>
+    <string name="market_handover_delivery_overridden">The operator confirmed the delivery without your code.</string>
+    <string name="market_handover_pickup_overridden">The operator started the ride without your code.</string>
+    <string name="market_handover_reason">Reason: %1$s</string>
+    <string name="market_handover_code_entered">Customer\'s code entered</string>
+    <string name="market_handover_confirmed_without">Confirmed without the customer\'s code</string>
+    <string name="market_handover_waiting_delivery">Waiting for the customer\'s delivery code</string>
+    <string name="market_handover_waiting_pickup">Waiting for the passenger\'s pickup code</string>
+    <string name="market_handover_delivery_code">Delivery code</string>
+    <string name="market_handover_pickup_code">Pickup code</string>
+    <string name="market_handover_driver_enters_drop">The driver enters it at the drop to finish the delivery.</string>
+    <string name="market_handover_driver_enters_pickup">The driver enters it at pickup to start the ride.</string>
+    <string name="market_handover_override_link">Customer can\'t give it? Confirm without the code</string>
+    <string name="market_handover_override_delivery_title">Confirm the delivery without the code?</string>
+    <string name="market_handover_override_pickup_title">Start the ride without the code?</string>
+    <string name="market_handover_override_body">Only when the customer cannot give it. Your reason is kept on record, and the customer is told.</string>
+    <string name="market_handover_override_reason_label">Why? (at least 10 letters)</string>
+    <string name="market_handover_override_delivery_button">Confirm without the code</string>
+    <string name="market_handover_override_pickup_button">Start without the code</string>
+    <string name="market_handover_customer_delivery_code">Customer\'s delivery code</string>
+    <string name="market_handover_passenger_pickup_code">Passenger\'s pickup code</string>
+    <string name="market_handover_ask_customer">Ask the customer for the 4-digit code in their Saarthi app or SMS. The delivery is complete once it is entered.</string>
+    <string name="market_handover_ask_passenger">Ask the passenger for the 4-digit code in their Saarthi app or SMS. The ride starts once it is entered.</string>
+    <string name="market_handover_code_label">4-digit code</string>
+    <string name="market_handover_complete_delivery">Complete the delivery</string>
+    <string name="market_handover_start_ride">Start the ride</string>
+    <string name="market_handover_customer_cant">Customer can\'t give it?</string>
+    <string name="market_handover_passenger_cant">Passenger can\'t give it?</string>
+
+    <!-- Seller: tabs (SellerTabs). -->
+    <string name="market_seller_tab_home">Home</string>
+    <string name="market_seller_tab_greeting">Hi, %1$s</string>
+    <string name="market_seller_what_fleets_see">What fleets see</string>
+    <string name="market_seller_tab_stock_title">Stock &amp; prices</string>
+    <string name="market_seller_tab_loading">Loading</string>
+    <string name="market_seller_tab_loading_eyebrow">Fleets collecting</string>
+    <string name="market_seller_tab_money">Money</string>
+    <string name="market_seller_tab_money_eyebrow">Paid by fleets</string>
+
+    <!-- Seller: home (SellerHomeScreen). -->
+    <string name="market_seller_paid_awaiting">%1$d paid · %2$d awaiting payment</string>
+    <string name="market_seller_coming_to_load">Coming to load</string>
+    <string name="market_seller_no_trucks_due">No trucks due</string>
+    <plurals name="market_seller_trucks">
+        <item quantity="one">%1$d truck</item>
+        <item quantity="other">%1$d trucks</item>
+    </plurals>
+    <string name="market_seller_load">Load</string>
+    <string name="market_seller_orders">Orders</string>
+    <plurals name="market_seller_from_fleets">
+        <item quantity="one">from %1$d fleet</item>
+        <item quantity="other">from %1$d fleets</item>
+    </plurals>
+    <string name="market_seller_received">Received</string>
+    <string name="market_seller_more_due">%1$d more due</string>
+    <string name="market_seller_stock">Stock</string>
+    <string name="market_seller_stock_fine">All fine</string>
+    <string name="market_seller_stock_low">%1$d low</string>
+    <string name="market_seller_see_stock">see stock</string>
+    <string name="market_seller_all_orders">All orders</string>
+    <string name="market_seller_home_empty">When a fleet buys from you, its truck shows up here.</string>
+    <string name="market_seller_home_footnote">Fleets buy from you and send their own trucks. You load; they deliver.</string>
+    <string name="market_seller_a_fleet">A fleet</string>
+    <string name="market_seller_paid_amount">Paid %1$s</string>
+    <string name="market_seller_paid">Paid</string>
+    <string name="market_seller_sold">Sold</string>
+    <string name="market_seller_payment_due">Payment due</string>
+    <string name="market_seller_truck_at">truck at %1$s</string>
+    <string name="market_seller_picked_up">picked up %1$s</string>
+
+    <!-- Seller: loading list and one order at the gate (SellerLoadingScreen). -->
+    <string name="market_seller_loading_empty">When a fleet buys from you, its order shows up here.</string>
+    <string name="market_seller_other_orders">Other orders</string>
+    <string name="market_seller_load_title">Load the truck</string>
+    <string name="market_seller_load_at_gate">At your gate</string>
+    <string name="market_seller_load_collecting">Collecting</string>
+    <string name="market_seller_load_truck_unnamed">Truck to be named</string>
+    <string name="market_seller_load_driver">Driver %1$s</string>
+    <string name="market_seller_load_due">due %1$s</string>
+    <string name="market_seller_load_paid_by">Paid by %1$s</string>
+    <string name="market_seller_load_paid_by_unnamed">Paid by the fleet</string>
+    <string name="market_seller_load_sold_to">Sold to %1$s</string>
+    <string name="market_seller_load_sold_to_unnamed">Sold to the fleet</string>
+    <string name="market_seller_load_waiting_pay">Waiting for %1$s to pay</string>
+    <string name="market_seller_load_waiting_pay_unnamed">Waiting for the fleet to pay</string>
+    <string name="market_seller_load_not_through_saarthi">not paid through Saarthi</string>
+    <string name="market_seller_load_once_paid">load only once it is paid</string>
+    <string name="market_seller_load_truck_collecting">Truck %1$s is collecting</string>
+    <string name="market_seller_load_fleet_names_truck">The fleet names its truck</string>
+    <string name="market_seller_load_check_plate">Check the plate matches before loading</string>
+    <string name="market_seller_load_what">Load %1$s</string>
+    <string name="market_seller_load_at">At %1$s</string>
+    <string name="market_seller_load_fleet_delivers">%1$s handles the delivery from here.</string>
+    <string name="market_seller_load_fleet_delivers_unnamed">The fleet handles the delivery from here.</string>
+
+    <!-- Seller: money (SellerMoneyScreen). -->
+    <string name="market_seller_money_received_in">Received in %1$s</string>
+    <string name="market_seller_money_bank_verified">Bank verified</string>
+    <string name="market_seller_money_bank_not_connected">Bank not connected</string>
+    <string name="market_seller_money_to_bank">to %1$s</string>
+    <plurals name="market_seller_money_orders_from_fleets">
+        <item quantity="one">%1$d orders from %2$d fleet</item>
+        <item quantity="other">%1$d orders from %2$d fleets</item>
+    </plurals>
+    <string name="market_seller_money_connect_bank">Connect the bank account you are paid into from Saarthi on the web.</string>
+    <string name="market_seller_money_awaiting">Awaiting payment</string>
+    <string name="market_seller_money_nothing_owed">Nothing owed right now.</string>
+    <string name="market_seller_money_received_empty">Payments from fleets show up here.</string>
+
+    <!-- Seller: stock and a new listing (SellerStockScreen). -->
+    <string name="market_stock_note">Fleets bidding on jobs near you compare your price and stock. Keep both current to win orders.</string>
+    <string name="market_stock_all">All · %1$d</string>
+    <string name="market_stock_add_listing">Add a listing</string>
+    <string name="market_stock_shown_low">Shown to fleets as \"low stock\"</string>
+    <string name="market_stock_shown">Shown to fleets</string>
+    <string name="market_stock_hidden">Hidden from fleets</string>
+    <string name="market_stock_left">%1$s %2$s left</string>
+    <string name="market_stock_new_listing">New listing</string>
+    <string name="market_stock_show_to_fleets">Show it to fleets</string>
+    <string name="market_stock_name_placeholder">M-sand, plastering grade</string>
+    <string name="market_stock_price">Price (₹)</string>
+    <string name="market_stock_notes_optional">Anything else a buyer should know? (optional)</string>
+    <string name="market_stock_photos_next">Photos are added on the next page, once it is listed.</string>
+    <string name="market_stock_add_field">Add the %1$s to list it.</string>
+
+    <!-- Seller: one listing (ListingScreen). -->
+    <string name="market_listing_unit_tonnes">tonnes</string>
+    <string name="market_listing_unit_bags">bags</string>
+    <string name="market_listing_unit_pieces">pieces</string>
+    <string name="market_listing_unit_litres">litres</string>
+    <string name="market_listing_unit_trips">trips</string>
+    <string name="market_listing_save">Save changes</string>
+    <string name="market_listing_saved">Saved. Fleets see the new details now.</string>
+    <string name="market_listing_saving">Saving…</string>
+    <string name="market_listing_details">Details</string>
+    <string name="market_listing_what_you_sell">What you sell</string>
+    <string name="market_listing_notes">Anything else a buyer should know?</string>
+    <string name="market_listing_notes_placeholder">Grade, size, how it is packed</string>
+    <string name="market_listing_price_per">Price per %1$s (₹)</string>
+    <string name="market_listing_in_stock">In stock</string>
+    <string name="market_listing_min_order">Min. order</string>
+    <string name="market_listing_pickup">Trucks collect from</string>
+    <string name="market_listing_shown_note">Fleets bidding nearby see it.</string>
+    <string name="market_listing_hidden_note">Hidden until you show it again.</string>
+    <string name="market_listing_show_named">Show %1$s to fleets</string>
+    <string name="market_listing_remove_link">Remove this listing</string>
+    <string name="market_listing_photo_unusable">That photo could not be used.</string>
+    <string name="market_listing_photo_added">Photo added.</string>
+    <string name="market_listing_photo_removed">Photo removed.</string>
+    <string name="market_listing_cover_changed">Cover changed.</string>
+    <string name="market_listing_photos">Photos</string>
+    <string name="market_listing_photos_loading">Loading the photos…</string>
+    <string name="market_listing_photo_cover">%1$s · cover</string>
+    <string name="market_listing_make_cover">Make this the cover</string>
+    <string name="market_listing_no_photos_yet">No photos yet. Fleets choose sooner when they can see the goods.</string>
+    <string name="market_listing_no_photos">No photos of this listing.</string>
+    <string name="market_listing_photos_max">%1$d photos is the most a listing holds. Remove one to add another.</string>
+    <string name="market_listing_take_photo">Take a photo</string>
+    <string name="market_listing_gallery">Gallery</string>
+    <string name="market_listing_cover_note">The cover is the photo fleets see first.</string>
+    <string name="market_listing_remove_title">Remove %1$s?</string>
+    <string name="market_listing_remove_body">It comes off sale for good and fleets stop seeing it. To stop selling for a while, hide it instead. A listing with an order still on its way cannot be removed.</string>
+    <string name="market_listing_remove_button">Remove listing</string>
+    <string name="market_listing_removing">Removing…</string>
+
+    <!-- Commerce: category picker and the "What is it?" panel (CategoryPickerScreen, CommerceDetails). -->
+    <string name="market_commerce_choose_category">Choose a category</string>
+    <string name="market_commerce_what_is_it">What is it?</string>
+    <string name="market_commerce_search_placeholder">Sand, cement, bricks…</string>
+    <string name="market_commerce_no_match">Nothing by that name. Try a shorter word.</string>
+    <string name="market_commerce_detected">Detected</string>
+    <string name="market_commerce_reading">Reading what this is…</string>
+    <string name="market_commerce_read_failed">Saarthi could not read that just now. Pick the category.</string>
+    <string name="market_commerce_unknown">Saarthi could not tell what this is. Pick the closest category.</string>
+    <string name="market_commerce_is_this_right">Is this right? Change it if not.</string>
+    <string name="market_commerce_choose">Choose</string>
+    <string name="market_commerce_change">Change</string>
+    <string name="market_commerce_more_details">Add more details (optional)</string>
+    <string name="market_commerce_field_optional">%1$s (optional)</string>
+
+    <!-- Jobs: the board, kinds and orders (JobsScreen). -->
+    <string name="market_jobs_kind_all">All</string>
+    <string name="market_jobs_kind_material">Material</string>
+    <string name="market_jobs_kind_freight">Freight</string>
+    <string name="market_jobs_kind_cab">Cab</string>
+    <string name="market_jobs_kind_tour">Tour</string>
+    <string name="market_jobs_empty_title">No open jobs right now</string>
+    <string name="market_jobs_empty_body">When a customer posts work your vehicles can do, it shows up here.</string>
+    <string name="market_jobs_closes_in">%1$s · closes in %2$s h</string>
+    <string name="market_jobs_bidding_closed">%1$s · bidding closed</string>
+    <string name="market_jobs_needed_lower">needed %1$s</string>
+    <string name="market_jobs_no_bids">No bids yet</string>
+    <plurals name="market_jobs_bids_so_far">
+        <item quantity="one">%1$d bid so far</item>
+        <item quantity="other">%1$d bids so far</item>
+    </plurals>
+    <string name="market_jobs_km_away">%1$d km away</string>
+    <string name="market_jobs_your_bid_amount">Your bid %1$s</string>
+    <string name="market_jobs_see_your_bid">See your bid</string>
+    <string name="market_jobs_check_sellers_bid">Check sellers &amp; bid</string>
+    <string name="market_jobs_bid_freight">Bid for this freight</string>
+    <string name="market_jobs_quote_trip">Quote this trip</string>
+    <string name="market_jobs_section_open">Open jobs</string>
+    <string name="market_jobs_section_orders">Orders</string>
+    <string name="market_jobs_section_trips">Trips</string>
+    <string name="market_jobs_orders_empty">Orders you win show up here — pay the seller and send the truck from each one.</string>
+    <string name="market_jobs_in_progress">In progress</string>
+    <string name="market_jobs_earlier">Earlier</string>
+
+    <!-- Jobs: a bid (BidScreen). -->
+    <string name="market_bid_type_car">Car</string>
+    <string name="market_bid_type_van">Van</string>
+    <string name="market_bid_type_tempo">Tempo</string>
+    <string name="market_bid_type_bus">Bus</string>
+    <string name="market_bid_type_taxi">Taxi</string>
+    <string name="market_bid_eyebrow">Job · %1$s</string>
+    <string name="market_bid_check_sellers">Check sellers</string>
+    <string name="market_bid_your_bid">Your bid</string>
+    <string name="market_bid_hours_left">%1$d h left</string>
+    <string name="market_bid_sent">You bid %1$s (%2$s). The customer has it.</string>
+    <string name="market_bid_to_customer">Bid to the customer</string>
+    <string name="market_bid_one_price">One delivered price</string>
+    <string name="market_bid_send_amount">Send bid · %1$s</string>
+    <string name="market_bid_send">Send bid</string>
+    <string name="market_bid_sending">Sending…</string>
+    <string name="market_bid_connect_bank">Connect and verify your business bank account in Saarthi on the web before bidding on material. The customer\'s %1$d%% is paid into it.</string>
+    <string name="market_bid_seller_hidden">The customer never sees the seller. You buy it, load it and deliver it.</string>
+    <string name="market_bid_no_sellers">No seller near the site lists this in stock yet. You can bid as soon as one does. You\'ll see them here.</string>
+    <plurals name="market_bid_sellers_with_stock">
+        <item quantity="one">%1$d seller with stock near the site</item>
+        <item quantity="other">%1$d sellers with stock near the site</item>
+    </plurals>
+    <string name="market_bid_which_vehicle">Which vehicle goes</string>
+    <string name="market_bid_no_vehicle">No vehicle on this account can be offered right now.</string>
+    <string name="market_bid_who_drives">Who drives it</string>
+    <string name="market_bid_no_driver">No driver on this account can be named yet.</string>
+    <string name="market_bid_vehicle_you_send">Vehicle you will send</string>
+    <string name="market_bid_driver_included">Driver included</string>
+    <string name="market_bid_fuel_included">Fuel included</string>
+    <string name="market_bid_price_includes">What the price includes</string>
+    <string name="market_bid_included_label">Included, one per line</string>
+    <string name="market_bid_included_placeholder">Tolls and parking\nDriver allowance</string>
+    <string name="market_bid_included_prefilled">Filled in with what the customer asked for.</string>
+    <string name="market_bid_excluded_label">Not included, one per line</string>
+    <string name="market_bid_excluded_placeholder">Entry tickets\nMeals</string>
+    <string name="market_bid_itinerary_label">Itinerary outline (optional)</string>
+    <string name="market_bid_itinerary_placeholder">Day 1: pickup, drive to the first stop\nDay 2: sightseeing, return</string>
+    <string name="market_bid_itinerary_hint">Day by day, if it is a tour. This is what the customer compares on.</string>
+    <string name="market_bid_transport_label">Your transport, delivered to site (₹)</string>
+    <string name="market_bid_price_label">Your price for the whole job (₹)</string>
+    <string name="market_bid_breakdown_label">What that price covers (optional)</string>
+    <string name="market_bid_breakdown_placeholder">All-inclusive: fuel, tolls, driver allowance</string>
+    <string name="market_bid_breakdown_supporting">A price with a breakdown wins more often than one without.</string>
+    <string name="market_bid_note_label">A note for the customer (optional)</string>
+    <string name="market_bid_note_placeholder_travel">AC car, tolls and parking included</string>
+    <string name="market_bid_note_placeholder_goods">Loaded by 7, at your gate by 11</string>
+    <string name="market_bid_deliver_to">Deliver to %1$s</string>
+    <string name="market_bid_needed">Needed %1$s</string>
+    <string name="market_bid_km_from_site">%1$d km from site</string>
+    <string name="market_bid_short_on_stock">Short on stock</string>
+    <string name="market_bid_price">Price</string>
+    <string name="market_bid_for_quantity">For %1$s</string>
+    <string name="market_bid_included_too_many">List at most %1$d included items.</string>
+    <string name="market_bid_excluded_too_many">List at most %1$d excluded items.</string>
+    <string name="market_bid_included_too_short">Each included item needs at least %1$d characters.</string>
+    <string name="market_bid_excluded_too_short">Each excluded item needs at least %1$d characters.</string>
+    <string name="market_bid_included_too_long">Keep each included item to %1$d characters or fewer.</string>
+    <string name="market_bid_excluded_too_long">Keep each excluded item to %1$d characters or fewer.</string>
+
+    <!-- Map: a trip's road and its key (TripRouteMap, RouteMapScreen). -->
+    <string name="market_map_trail_on_route">On route</string>
+    <string name="market_map_trail_off_route">Off route</string>
+    <string name="market_map_trail_other_road">Other road</string>
+    <string name="market_map_trail_no_trip">No trip</string>
+    <string name="market_map_planned_route">Planned route</string>
+    <string name="market_map_show_whole_route">Show the whole route</string>
+    <string name="market_map_open_full_screen">Open the map full screen</string>
+    <string name="market_map_pickup">Pickup</string>
+    <string name="market_map_drop">Drop</string>
+
+    <!-- Tracking: a followed vehicle (FollowViews). -->
+    <string name="market_follow_no_position">No position yet</string>
+    <string name="market_follow_show_whole_road">Show the whole road</string>
+    <string name="market_follow_finding">Finding the vehicle…</string>
+    <string name="market_follow_readings">Readings</string>
+    <string name="market_follow_measured_now">measured just now</string>
+    <string name="market_follow_measured_ago">measured %1$s ago</string>
+    <string name="market_follow_start">Start</string>
+    <string name="market_follow_destination">Destination</string>
+    <string name="market_follow_moving">Moving</string>
+    <string name="market_follow_stopped">Stopped</string>
+    <string name="market_follow_not_reporting">Not reporting</string>
+    <string name="market_follow_alert">Alert</string>
+    <string name="market_follow_to">To %1$s</string>
+    <string name="market_follow_never_reported">This vehicle has not reported a position yet.</string>
+    <string name="market_follow_reporting_now">Reporting now</string>
+    <string name="market_follow_last_seen">Last seen %1$s ago</string>
+    <string name="market_follow_speed">Speed</string>
+    <string name="market_follow_engine">Engine</string>
+    <string name="market_follow_load">Load</string>
+    <string name="market_follow_coolant">Coolant</string>
+    <string name="market_follow_fuel">Fuel</string>
+    <string name="market_follow_battery">Battery</string>
+    <string name="market_follow_unit_kph">km/h</string>
+    <string name="market_follow_unit_rpm">rpm</string>
+</resources>

@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.saarthi.owner.OwnerApp
 import com.saarthi.owner.data.AccountType
+import com.saarthi.owner.push.Push
 import com.saarthi.owner.ui.account.NotForThisAppScreen
 import com.saarthi.owner.ui.account.PausedScreen
 import com.saarthi.owner.ui.design.Ease
@@ -56,7 +57,13 @@ fun OwnerRoot(app: OwnerApp) {
         splashDone = true
     }
 
-    val signOut: () -> Unit = { scope.launch { app.api.signOut() } }
+    val signOut: () -> Unit = {
+        scope.launch {
+            // While still signed in: this phone stops getting the pushes first.
+            Push.unregister(app.api)
+            app.api.signOut()
+        }
+    }
 
     val stage = when {
         !splashDone -> Stage.SPLASH

@@ -32,11 +32,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.saarthi.owner.OwnerApp
+import com.saarthi.owner.R
 import com.saarthi.owner.network.PaymentsApi
 import com.saarthi.owner.ui.common.HeaderContentHeight
+import com.saarthi.owner.ui.common.Words
 import com.saarthi.owner.ui.design.CircleButton
 import com.saarthi.owner.ui.design.Eyebrow
 import com.saarthi.owner.ui.design.LineIcon
@@ -105,9 +108,9 @@ fun rememberCheckout(): CheckoutLauncher {
 
 /** The sentence to show for an outcome. */
 fun PaymentOutcome.sentence(paidWhat: String): String = when (this) {
-    PaymentOutcome.SUCCEEDED -> "$paidWhat — payment received."
-    PaymentOutcome.FAILED -> "The payment did not go through. Nothing was charged."
-    PaymentOutcome.PENDING -> "Payment not completed yet. You can finish it any time."
+    PaymentOutcome.SUCCEEDED -> Words.get(R.string.papers_payments_outcome_succeeded, paidWhat)
+    PaymentOutcome.FAILED -> Words.get(R.string.papers_payments_outcome_failed)
+    PaymentOutcome.PENDING -> Words.get(R.string.papers_payments_outcome_pending)
 }
 
 /** Cashfree's own checkout, full screen, with a way out. */
@@ -139,9 +142,9 @@ private fun CheckoutScreen(session: PaymentsApi.CheckoutSession, onFinished: () 
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            CircleButton(Lucide.close, "Close payment", finish, size = 44.dp)
+            CircleButton(Lucide.close, stringResource(R.string.papers_payments_close), finish, size = 44.dp)
             Column(Modifier.weight(1f)) {
-                Eyebrow("Secure payment")
+                Eyebrow(stringResource(R.string.papers_payments_secure))
                 Text("Cashfree", style = SType.headerTitle, color = c.fg)
             }
             LineIcon(Lucide.lock, size = 18.dp, color = c.success)

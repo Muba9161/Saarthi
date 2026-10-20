@@ -1,0 +1,343 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Customer tabs -->
+    <string name="customer_tab_home">முகப்பு</string>
+    <string name="customer_tab_post">போஸ்ட்</string>
+    <string name="customer_tab_orders">ஆர்டர்கள்</string>
+    <string name="customer_tab_home_title">வணக்கம், %1$s</string>
+    <string name="customer_tab_post_eyebrow">தேவையைப் போஸ்ட் செய்யுங்கள்</string>
+    <string name="customer_tab_post_title">பிட்கள் பெறுங்கள்</string>
+    <string name="customer_tab_orders_eyebrow">கோரிக்கைகள் &amp; ஆர்டர்கள்</string>
+    <string name="customer_your_orders">உங்கள் ஆர்டர்கள்</string>
+
+    <!-- Kinds of request: Home tiles and Post chips -->
+    <string name="customer_kind_material">மெட்டீரியல்</string>
+    <string name="customer_kind_freight">சரக்கு</string>
+    <string name="customer_kind_cab">கேப்</string>
+    <string name="customer_kind_tour">டூர்</string>
+    <string name="customer_post_material">மெட்டீரியல் போஸ்ட் செய்</string>
+    <string name="customer_post_freight">சரக்கு போஸ்ட் செய்</string>
+    <string name="customer_post_cab">கேப் போஸ்ட் செய்</string>
+    <string name="customer_post_tour">டூர் போஸ்ட் செய்</string>
+
+    <!-- Customer home -->
+    <string name="customer_home_eyebrow">எல்லாவற்றுக்கும் ஒரே இடம்</string>
+    <string name="customer_home_title">எதைக் கொண்டு செல்ல வேண்டும்?</string>
+    <string name="customer_home_lead">ஒருமுறை போஸ்ட் செய்யுங்கள். சரிபார்க்கப்பட்ட ஃப்ளீட்கள் அதை வாங்கி, டெலிவரி உட்பட ஒரே விலை சொல்லும்.</string>
+    <string name="customer_home_book_ready_trip">ரெடிமேட் ட்ரிப்பை புக் செய்</string>
+    <string name="customer_book_a_trip">ட்ரிப் புக் செய்</string>
+    <string name="customer_home_trips_line">டூர்கள், ஏர்போர்ட் பயணங்கள், வெளியூர் ட்ரிப்கள் — விலை முன்பே தெரியும்</string>
+    <string name="customer_home_all">அனைத்தும் %1$d</string>
+    <string name="customer_home_empty">இன்னும் எதுவும் இல்லை. உங்களுக்குத் தேவையானதைப் போஸ்ட் செய்யுங்கள், அருகிலுள்ள ஃப்ளீட்கள் பிட் செய்யும்.</string>
+
+    <!-- Request rows -->
+    <string name="customer_request_no_bids_taken">பிட் எதுவும் ஏற்கப்படவில்லை</string>
+    <string name="customer_request_awarded">ஒப்படைக்கப்பட்டது</string>
+    <string name="customer_request_done">முடிந்தது</string>
+    <string name="customer_request_waiting">காத்திருக்கிறது</string>
+    <string name="customer_from_price">%1$s முதல்</string>
+    <plurals name="customer_bids">
+        <item quantity="one">%d பிட்</item>
+        <item quantity="other">%d பிட்கள்</item>
+    </plurals>
+
+    <!-- Requests and orders list -->
+    <string name="customer_orders_requests_tab">கோரிக்கைகள் · %1$d</string>
+    <string name="customer_orders_orders_tab">ஆர்டர்கள் · %1$d</string>
+    <string name="customer_orders_no_requests">நீங்கள் இன்னும் எதையும் போஸ்ட் செய்யவில்லை.</string>
+    <string name="customer_orders_collecting_bids">பிட்கள் வருகின்றன</string>
+    <string name="customer_orders_earlier">முன்பு</string>
+    <string name="customer_orders_no_orders">நீங்கள் ஒரு பிட்டைத் தேர்ந்தெடுத்ததும் ஆர்டர் இங்கே காட்டப்படும்.</string>
+    <string name="customer_orders_cabs_tours">கேப்கள் &amp; டூர்கள்</string>
+    <string name="customer_orders_goods">சரக்குகள்</string>
+    <string name="customer_orders_earlier_trips">முந்தைய ட்ரிப்கள்</string>
+
+    <!-- Bids on a request -->
+    <string name="customer_bid_has_job">வேலை %1$s-இடம் உள்ளது.</string>
+    <string name="customer_bids_withdrawn">திரும்பப்பெறப்பட்டது. பிட் செய்த ஒவ்வொரு ஃப்ளீட்டுக்கும் காரணம் தெரிவிக்கப்பட்டது.</string>
+    <string name="customer_bids_hours_left">%1$d மணி நேரம் உள்ளது</string>
+    <string name="customer_bids_material_note">ஒவ்வொரு விலையிலும் மெட்டீரியலும் டெலிவரியும் அடங்கும். உறுதிசெய்ய %1$d%% செலுத்துங்கள், டெலிவரிக்குப் பின் %2$d%%.</string>
+    <string name="customer_bids_job_note">ஒவ்வொரு விலையும் அந்த ஃப்ளீட்டின் முழு வேலைக்கானது. உறுதிசெய்ய ஒன்றைத் தேர்ந்தெடுங்கள்.</string>
+    <string name="customer_bids_none_yet">இன்னும் பிட்கள் இல்லை. இடத்துக்கு அருகிலுள்ள ஃப்ளீட்கள் பார்க்கின்றன — ஒன்று வந்ததும் உங்களுக்கு அறிவிப்பு வரும்.</string>
+    <string name="customer_bids_withdraw_request">இந்தக் கோரிக்கையைத் திரும்பப்பெறு</string>
+    <string name="customer_bids_choose_for">%1$s-ஐ %2$s-க்குத் தேர்ந்தெடுக்கவா?</string>
+    <string name="customer_bids_choose_material_note">உறுதிசெய்ய %1$d%% (%2$s) செலுத்துங்கள், மீதியை டெலிவரிக்குப் பின். இந்தக் கோரிக்கையில் உள்ள மற்ற எல்லா பிட்களும் நிராகரிக்கப்படும்.</string>
+    <string name="customer_bids_choose_note">இந்தக் கோரிக்கையில் உள்ள மற்ற எல்லா பிட்களும் நிராகரிக்கப்படும், அந்த ஃப்ளீட்களுக்குத் தெரிவிக்கப்படும்.</string>
+    <string name="customer_bids_note_for">%1$s-க்கு ஒரு குறிப்பு (விருப்பத்தேர்வு)</string>
+    <string name="customer_bids_choose">%1$s-ஐத் தேர்ந்தெடு</string>
+    <string name="customer_bids_not_yet">இப்போது வேண்டாம்</string>
+    <string name="customer_bids_withdraw_title">இந்தக் கோரிக்கையைத் திரும்பப்பெறவா?</string>
+    <string name="customer_bids_withdraw_note">அதில் உள்ள ஒவ்வொரு ஆஃபரும் நிராகரிக்கப்படும், ஃப்ளீட்களுக்குக் காரணம் தெரிவிக்கப்படும்.</string>
+    <string name="customer_bids_withdraw_reason">ஏன் திரும்பப்பெறுகிறீர்கள்?</string>
+    <string name="customer_bids_withdraw">திரும்பப்பெறு</string>
+    <string name="customer_bid_rating">★ %1$s · %2$d மதிப்பீடுகள்</string>
+    <string name="customer_bid_chosen">தேர்ந்தெடுக்கப்பட்டது</string>
+    <string name="customer_bid_lowest">குறைந்த விலை</string>
+    <string name="customer_bid_delivered_at">%1$s டெலிவரி</string>
+    <string name="customer_bid_arrives_at">%1$s வந்துசேரும்</string>
+    <string name="customer_bid_choose_and_pay">%1$s-ஐத் தேர்ந்தெடு · இப்போது %2$s செலுத்து</string>
+    <string name="customer_bid_confirming">உறுதிசெய்கிறது…</string>
+
+    <!-- Booking states, as the customer reads them -->
+    <string name="customer_status_pay_to_book">புக் செய்ய பணம் செலுத்துங்கள்</string>
+    <string name="customer_status_being_confirmed">உறுதிசெய்யப்படுகிறது</string>
+    <string name="customer_status_confirmed">உறுதிசெய்யப்பட்டது</string>
+    <string name="customer_status_on_the_way">வழியில் உள்ளது</string>
+    <string name="customer_status_completed">முடிந்தது</string>
+    <string name="customer_status_declined">நிராகரிக்கப்பட்டது</string>
+    <string name="customer_status_cancelled">ரத்துசெய்யப்பட்டது</string>
+
+    <!-- Cab or tour booking -->
+    <string name="customer_booking_paid">புக்கிங் பணம் செலுத்தப்பட்டது</string>
+    <string name="customer_booking_cancelled_told">ரத்துசெய்யப்பட்டது. ஆபரேட்டருக்குத் தெரிவிக்கப்பட்டது.</string>
+    <string name="customer_booking_eyebrow">புக்கிங் %1$s</string>
+    <string name="customer_pay_amount">%1$s செலுத்து</string>
+    <string name="customer_pay">செலுத்து</string>
+    <string name="customer_opening_payment">பேமெண்ட் திறக்கப்படுகிறது…</string>
+    <string name="customer_payments_by_cashfree">பேமெண்ட்கள் Cashfree மூலம் பாதுகாப்பாகச் செயல்படுத்தப்படுகின்றன.</string>
+    <string name="customer_booking_declined_reason">ஆபரேட்டரால் இதை ஏற்க முடியவில்லை: %1$s</string>
+    <string name="customer_booking_rate_title">இந்த ட்ரிப்பை மதிப்பிடுங்கள்</string>
+    <string name="customer_booking_rate_prompt">வண்டியும் டிரைவரும் எப்படி இருந்தார்கள்? (விருப்பத்தேர்வு)</string>
+    <string name="customer_booking_rated">இந்த ட்ரிப்புக்கு நீங்கள் %1$d/5 கொடுத்தீர்கள்.</string>
+    <string name="customer_the_operator">ஆபரேட்டர்</string>
+    <string name="customer_booking_call_about">ட்ரிப் பற்றி அவர்களை அழையுங்கள்</string>
+    <string name="customer_booking_number_after_confirm">அவர்கள் உறுதிசெய்ததும் நம்பர் காட்டப்படும்</string>
+    <string name="customer_call">%1$s-ஐ அழை</string>
+    <string name="customer_payment">பேமெண்ட்</string>
+    <string name="customer_booking_pay_to_hold">ஆபரேட்டர் உங்களுக்காக ஒரு வண்டியை வைத்திருக்கப் பணம் செலுத்துங்கள்</string>
+    <string name="customer_paid">செலுத்தப்பட்டது</string>
+    <string name="customer_refunded">பணம் திருப்பித் தரப்பட்டது</string>
+    <string name="customer_not_paid">செலுத்தப்படவில்லை</string>
+    <string name="customer_booking_payment">புக்கிங் பேமெண்ட்</string>
+    <string name="customer_booking_cancel_link">இந்த புக்கிங்கை ரத்துசெய்</string>
+    <string name="customer_booking_cancel_title">இந்த புக்கிங்கை ரத்துசெய்யவா?</string>
+    <string name="customer_booking_cancel_note_paid">ஆபரேட்டருக்குக் காரணம் தெரிவிக்கப்படும். ரத்து விதிமுறைகளின்படி பணம் திருப்பித் தரப்படும்.</string>
+    <string name="customer_booking_cancel_note">ஆபரேட்டருக்குக் காரணம் தெரிவிக்கப்படும்.</string>
+    <string name="customer_booking_cancel_reason">ஏன் ரத்துசெய்கிறீர்கள்?</string>
+    <string name="customer_booking_cancel">புக்கிங்கை ரத்துசெய்</string>
+
+    <!-- One order -->
+    <string name="customer_order_confirmed_paid">ஆர்டர் உறுதிசெய்யப்பட்டது</string>
+    <string name="customer_order_balance_paid">மீதித் தொகை செலுத்தப்பட்டது</string>
+    <string name="customer_order_eyebrow">ஆர்டர் %1$s</string>
+    <string name="customer_order_confirm_pay">உறுதிசெய் &amp; செலுத்து</string>
+    <string name="customer_your_order">உங்கள் ஆர்டர்</string>
+    <string name="customer_order_confirm_arrived">வந்துசேர்ந்ததை உறுதிசெய்</string>
+    <string name="customer_order_cancelled">இந்த ஆர்டர் ரத்துசெய்யப்பட்டது.</string>
+    <string name="customer_order_cancelled_reason">இந்த ஆர்டர் ரத்துசெய்யப்பட்டது. %1$s</string>
+    <string name="customer_order_what_arrived">என்ன வந்துசேர்ந்தது?</string>
+    <string name="customer_order_balance_note">உங்கள் இடத்துக்கு உண்மையில் வந்துசேர்ந்ததை வைத்து மீதித் தொகை கணக்கிடப்படும்.</string>
+    <string name="customer_order_quantity_delivered">டெலிவரி செய்த அளவு (%1$s)</string>
+    <string name="customer_order_rate_title">டெலிவரியை மதிப்பிடுங்கள்</string>
+    <string name="customer_order_rate_prompt">டெலிவரி எப்படி இருந்தது? (விருப்பத்தேர்வு)</string>
+    <string name="customer_order_rated">இந்த டெலிவரிக்கு நீங்கள் %1$d/5 கொடுத்தீர்கள்.</string>
+    <string name="customer_order_receipt_advance">%1$d%% அட்வான்ஸ்</string>
+    <string name="customer_order_balance_after_delivery">டெலிவரிக்குப் பின் மீதி</string>
+    <string name="customer_order_pay_now_advance">இப்போது செலுத்து · %1$d%% அட்வான்ஸ்</string>
+    <string name="customer_order_of_total">மொத்தம் %1$s-இல் · %2$s</string>
+    <string name="customer_order_advance_now">இப்போது %1$d%%</string>
+    <string name="customer_order_balance_now">இப்போது மீதி</string>
+    <string name="customer_order_after_delivery">டெலிவரிக்குப் பின் %1$s</string>
+    <string name="customer_order_no_fleet">இன்னும் எந்த ஃப்ளீட்டும் இதை எடுக்கவில்லை</string>
+    <string name="customer_order_step_confirmed_paid">உறுதிசெய்யப்பட்டது · %1$d%% செலுத்தப்பட்டது</string>
+    <string name="customer_order_step_material_loaded">மெட்டீரியல் லோடு செய்யப்பட்டது</string>
+    <string name="customer_order_step_loaded">பிக்அப்பில் லோடு செய்யப்பட்டது</string>
+    <string name="customer_order_left_pickup_at">%1$s-க்கு பிக்அப்பிலிருந்து புறப்பட்டது</string>
+    <string name="customer_order_planned_for">%1$s-க்குத் திட்டமிடப்பட்டது</string>
+    <string name="customer_order_step_on_the_way">உங்கள் இடத்துக்கு வந்துகொண்டிருக்கிறது</string>
+    <string name="customer_order_arriving_about">சுமார் %1$s-க்கு வந்துசேரும்</string>
+    <string name="customer_order_step_delivered">டெலிவரி ஆனது</string>
+    <string name="customer_order_step_delivered_pay">டெலிவரி ஆனதும் %1$d%% செலுத்துங்கள்</string>
+    <string name="customer_arrived_at">%1$s வந்துசேர்ந்தது</string>
+    <string name="customer_order_balance_once_confirmed">வந்துசேர்ந்ததை நீங்கள் உறுதிசெய்ததும் %1$s</string>
+
+    <!-- Order journey: map, vehicle and details -->
+    <string name="customer_route_planned">திட்டமிட்ட வழி</string>
+    <string name="customer_route_still_to_go">இன்னும் செல்ல வேண்டியது</string>
+    <string name="customer_route_covered">கடந்தது</string>
+    <string name="customer_route_load_failed">ட்ரிப்பை ஏற்ற முடியவில்லை. %1$s</string>
+    <string name="customer_route_left_at">%1$s புறப்பட்டது</string>
+    <string name="customer_route_pickup_planned">பிக்அப் திட்டம் %1$s</string>
+    <string name="customer_route_deliver_by">%1$s-க்குள் டெலிவரி</string>
+    <string name="customer_route_marked">பிக்அப் மற்றும் டிராப் குறிக்கப்பட்டுள்ளன.</string>
+    <string name="customer_route_loading_trip">ட்ரிப்பை ஏற்றுகிறது…</string>
+    <string name="customer_route_marked_waiting">பிக்அப் மற்றும் டிராப் குறிக்கப்பட்டுள்ளன. ஃப்ளீட் வண்டியை அனுப்பியதும் சாலை இங்கே தெரியும்.</string>
+    <string name="customer_route_reporting_now">இப்போது தகவல் அனுப்புகிறது.</string>
+    <string name="customer_route_last_reported">கடைசித் தகவல் %1$s முன்பு.</string>
+    <string name="customer_route_trip_cancelled">இந்த ட்ரிப் ரத்துசெய்யப்பட்டது. அதன் திட்டமிட்ட சாலை காட்டப்படுகிறது.</string>
+    <string name="customer_route_not_planned">இந்த ட்ரிப்புக்கான சாலை இன்னும் திட்டமிடப்படவில்லை. பிக்அப் மற்றும் டிராப் குறிக்கப்பட்டுள்ளன.</string>
+    <string name="customer_route_reached_drop">இந்தச் சாலை வழியாக வண்டி உங்கள் டிராப் இடத்தை அடைந்துவிட்டது.</string>
+    <string name="customer_route_no_position">வண்டி இன்னும் தன் இருப்பிடத்தை அனுப்பவில்லை.</string>
+    <string name="customer_route_shaded">வண்டி வந்த தூரம் வரை நிழலிடப்பட்டுள்ளது.</string>
+    <string name="customer_route_parked_shown">வண்டி இன்னும் புறப்படவில்லை, அது கடைசியாகத் தகவல் அனுப்பிய இடத்தில் காட்டப்படுகிறது.</string>
+    <string name="customer_route_not_set_off">வண்டி இன்னும் புறப்படவில்லை.</string>
+    <string name="customer_fact_distance">தூரம்</string>
+    <string name="customer_fact_to_go">மீதி</string>
+    <string name="customer_fact_on_the_road">சாலையில்</string>
+    <string name="customer_fact_run_time">பயண நேரம்</string>
+    <string name="customer_fact_planned">திட்டமிட்டது</string>
+    <string name="customer_fact_running_late">தாமதமாகிறது</string>
+    <string name="customer_vehicle_and_driver">வண்டி மற்றும் டிரைவர்</string>
+    <string name="customer_run_by">%1$s இயக்குகிறார்</string>
+    <string name="customer_capacity_tonnes">%1$s டன்</string>
+    <string name="customer_order_details">ஆர்டர் விவரங்கள்</string>
+    <string name="customer_fact_load">லோடு</string>
+    <string name="customer_fact_vehicle_needed">தேவையான வண்டி</string>
+    <string name="customer_fact_reference">ரெஃபரன்ஸ்</string>
+    <string name="customer_fact_placed">ஆர்டர் செய்த தேதி</string>
+    <string name="customer_line_material">மெட்டீரியல்</string>
+    <string name="customer_line_transport">போக்குவரத்து</string>
+    <string name="customer_total">மொத்தம்</string>
+    <string name="customer_line_paid_so_far">இதுவரை செலுத்தியது</string>
+    <string name="customer_line_balance_due">செலுத்த வேண்டிய மீதி</string>
+    <string name="customer_your_note">உங்கள் குறிப்பு</string>
+
+    <!-- One ready-made trip -->
+    <string name="customer_package_gone">இந்த ட்ரிப் இப்போது கிடைக்கவில்லை.</string>
+    <string name="customer_travel">பயணம்</string>
+    <string name="customer_trip">ட்ரிப்</string>
+    <string name="customer_package_book">இந்த ட்ரிப்பை புக் செய்</string>
+    <string name="customer_days">நாட்கள்</string>
+    <string name="customer_package_nights">· %1$d இரவுகள்</string>
+    <string name="customer_package_seats">இருக்கைகள்</string>
+    <string name="customer_per_person">ஒருவருக்கு</string>
+    <string name="customer_from">தொடக்க விலை</string>
+    <string name="customer_package_route">வழி</string>
+    <string name="customer_package_about_km">சுமார் %1$s km</string>
+    <string name="customer_package_driver_included">டிரைவர் உட்பட</string>
+    <string name="customer_package_fuel_included">எரிபொருள் உட்பட</string>
+    <string name="customer_package_about">இந்த ட்ரிப் பற்றி</string>
+    <string name="customer_package_day_by_day">நாள் வாரியாக</string>
+    <string name="customer_package_day_title">நாள் %1$d · %2$s</string>
+    <string name="customer_package_night_at">%1$s-இல் இரவு தங்கல்</string>
+    <string name="customer_package_covers">விலையில் அடங்குபவை</string>
+    <string name="customer_package_if_cancel">நீங்கள் ரத்துசெய்தால்</string>
+    <string name="customer_package_refund_tier">%1$d மணி நேரம் அல்லது அதற்கு முன்: %2$d%% திரும்பக் கிடைக்கும்</string>
+    <string name="customer_package_operated_by">இயக்குபவர்</string>
+    <plurals name="customer_package_reviews">
+        <item quantity="one">★ %1$s · %2$d ரிவ்யூ</item>
+        <item quantity="other">★ %1$s · %2$d ரிவ்யூக்கள்</item>
+    </plurals>
+    <string name="customer_package_no_reviews">இன்னும் ரிவ்யூக்கள் இல்லை</string>
+    <string name="customer_package_customers_only">புக்கிங் வாடிக்கையாளர் கணக்குகளுக்கு மட்டும்.</string>
+
+    <!-- Ready-made trips list -->
+    <string name="customer_sort_newest">புதியவை</string>
+    <string name="customer_sort_price">விலை</string>
+    <string name="customer_sort_rating">மதிப்பீடு</string>
+    <string name="customer_sort_shortest">குறுகியவை</string>
+    <string name="customer_packages_where_to">எங்கே போக வேண்டும்?</string>
+    <string name="customer_packages_where_hint">ஒரு நகரம், ஒரு கோயில், ஒரு மலைப் பிரதேசம்</string>
+    <string name="customer_packages_all">எல்லா ட்ரிப்களும்</string>
+    <string name="customer_packages_sort">வரிசைப்படுத்து</string>
+    <string name="customer_packages_none">இன்னும் ட்ரிப்கள் எதுவும் கிடைக்கவில்லை.</string>
+    <string name="customer_packages_no_match">பொருந்தும் ட்ரிப்கள் இல்லை. வேறு இடம் அல்லது வேறு வகை ட்ரிப்பை முயலுங்கள்.</string>
+    <string name="customer_open">%1$s-ஐத் திற</string>
+    <plurals name="customer_trip_days">
+        <item quantity="one">%d நாள்</item>
+        <item quantity="other">%d நாட்கள்</item>
+    </plurals>
+    <string name="customer_up_to">%1$d வரை</string>
+    <string name="customer_from_place">%1$s-இலிருந்து</string>
+    <string name="customer_verified_operator">சரிபார்க்கப்பட்ட ஆபரேட்டர்</string>
+    <string name="customer_from_per_person">ஒருவருக்கு, தொடக்க விலை</string>
+    <string name="customer_no_booking_fee">புக்கிங் கட்டணம் இல்லை</string>
+
+    <!-- Booking a ready-made trip -->
+    <string name="customer_book_for">%1$s-க்கு புக் செய்</string>
+    <string name="customer_book">புக் செய்</string>
+    <string name="customer_booking_busy">புக் செய்கிறது…</string>
+    <string name="customer_book_pay_next">அடுத்த பக்கத்தில் பணம் செலுத்துவீர்கள். பணம் செலுத்தியதும் ஆபரேட்டர் உறுதிசெய்வார்.</string>
+    <string name="customer_book_passengers">பயணிகள் (%1$d–%2$d)</string>
+    <string name="customer_book_party_range">இந்த ட்ரிப்பில் %1$d முதல் %2$d பேர் வரை செல்லலாம்.</string>
+    <string name="customer_book_starts_on">தொடங்கும் தேதி</string>
+    <string name="customer_book_choose_start_time">தொடங்கும் நேரத்தைத் தேர்ந்தெடுங்கள்</string>
+    <string name="customer_book_pickup_time">பிக்அப் நேரம்</string>
+    <string name="customer_book_contact">தொடர்பு</string>
+    <string name="customer_name">பெயர்</string>
+    <string name="customer_mobile_number">மொபைல் நம்பர்</string>
+    <string name="customer_book_phone_invalid">பத்து இலக்க இந்திய மொபைல் நம்பர்.</string>
+    <string name="customer_book_journey">பயணம்</string>
+    <string name="customer_pick_up_from_optional">பிக்அப் இடம் (விருப்பத்தேர்வு)</string>
+    <string name="customer_drop_at">டிராப் இடம்</string>
+    <string name="customer_drop_at_optional">டிராப் இடம் (விருப்பத்தேர்வு)</string>
+    <string name="customer_book_drop_needed">இந்த ட்ரிப்புக்குக் கிலோமீட்டர் கணக்கில் விலை, அதனால் டிராப் இடம் தேவை.</string>
+    <string name="customer_book_operator_notes">ஆபரேட்டர் தெரிந்துகொள்ள வேண்டியது ஏதாவது உள்ளதா? (விருப்பத்தேர்வு)</string>
+    <string name="customer_book_price_for_party">உங்கள் குழுவுக்கான விலை</string>
+    <string name="customer_book_booking_fee">புக்கிங் கட்டணம்</string>
+    <string name="customer_book_lead_hours">ட்ரிப்கள் இப்போதிலிருந்து குறைந்தது %1$d மணி நேரம் கழித்தே தொடங்கும்.</string>
+    <plurals name="customer_book_notice_days">
+        <item quantity="one">ஆபரேட்டருக்கு %d நாள் முன்னறிவிப்பு தேவை.</item>
+        <item quantity="other">ஆபரேட்டருக்கு %d நாட்கள் முன்னறிவிப்பு தேவை.</item>
+    </plurals>
+    <string name="customer_book_runs_from">இந்த ட்ரிப் %1$s முதல் நடக்கும்.</string>
+    <string name="customer_book_runs_until">இந்த ட்ரிப் %1$s வரை நடக்கும்.</string>
+    <string name="customer_book_runs_on">இந்த ட்ரிப் %1$s அன்று மட்டுமே நடக்கும்.</string>
+    <string name="customer_weekday_sundays">ஞாயிற்றுக்கிழமைகள்</string>
+    <string name="customer_weekday_mondays">திங்கட்கிழமைகள்</string>
+    <string name="customer_weekday_tuesdays">செவ்வாய்க்கிழமைகள்</string>
+    <string name="customer_weekday_wednesdays">புதன்கிழமைகள்</string>
+    <string name="customer_weekday_thursdays">வியாழக்கிழமைகள்</string>
+    <string name="customer_weekday_fridays">வெள்ளிக்கிழமைகள்</string>
+    <string name="customer_weekday_saturdays">சனிக்கிழமைகள்</string>
+
+    <!-- Post a need -->
+    <string name="customer_unit_tonnes">டன்</string>
+    <string name="customer_unit_bags">மூட்டைகள்</string>
+    <string name="customer_unit_pieces">பீஸ்</string>
+    <string name="customer_cab_any">ஏதேனும்</string>
+    <string name="customer_cab_car">கார்</string>
+    <string name="customer_cab_suv">SUV</string>
+    <string name="customer_cab_van">வேன்</string>
+    <string name="customer_cab_bus">பஸ்</string>
+    <string name="customer_hire_one_way">ஒரு வழி</string>
+    <string name="customer_hire_round_trip">போய் வர</string>
+    <string name="customer_hire_daily">நாள் கணக்கில்</string>
+    <string name="customer_post_add_material">போஸ்ட் செய்ய மெட்டீரியலைச் சேருங்கள்.</string>
+    <string name="customer_post_add_material_kind">போஸ்ட் செய்ய மெட்டீரியல் வகையைச் சேருங்கள்.</string>
+    <string name="customer_post_add_detail">போஸ்ட் செய்ய %1$s-ஐச் சேருங்கள்.</string>
+    <string name="customer_post_add_quantity">போஸ்ட் செய்ய அளவைச் சேருங்கள்.</string>
+    <string name="customer_post_add_deliver_to">போஸ்ட் செய்ய டெலிவரி இடத்தைச் சேருங்கள்.</string>
+    <string name="customer_post_add_goods">போஸ்ட் செய்ய சரக்கைச் சேருங்கள்.</string>
+    <string name="customer_post_add_truck_size">போஸ்ட் செய்ய லாரியின் அளவைச் சேருங்கள்.</string>
+    <string name="customer_post_add_pickup">போஸ்ட் செய்ய பிக்அப் இடத்தைச் சேருங்கள்.</string>
+    <string name="customer_post_add_drop">போஸ்ட் செய்ய டிராப் இடத்தைச் சேருங்கள்.</string>
+    <string name="customer_post_add_people">போஸ்ட் செய்ய எத்தனை பேர் என்று சேருங்கள்.</string>
+    <string name="customer_post_add_places">போஸ்ட் செய்ய பார்க்க வேண்டிய இடங்களைச் சேருங்கள்.</string>
+    <string name="customer_post_add_start_time">போஸ்ட் செய்ய குறைந்தது 2¼ மணி நேரம் கழித்து ஒரு தொடக்க நேரத்தைச் சேருங்கள்.</string>
+    <string name="customer_post_title_material">உங்களுக்கு என்ன டெலிவரி வேண்டும்?</string>
+    <string name="customer_post_title_freight">எதைக் கொண்டு செல்ல வேண்டும்?</string>
+    <string name="customer_post_title_cab">எங்கே போகிறீர்கள்?</string>
+    <string name="customer_post_title_tour">எங்கே போக விரும்புகிறீர்கள்?</string>
+    <string name="customer_post_goods">சரக்கு</string>
+    <string name="customer_post_material_hint">M-sand, பூச்சு கிரேடு</string>
+    <string name="customer_post_goods_hint">சிமெண்ட் மூட்டைகள்</string>
+    <string name="customer_post_quantity">அளவு</string>
+    <string name="customer_post_truck_size">லாரி அளவு (டன்)</string>
+    <string name="customer_post_grade">கிரேடு அல்லது பிராண்ட் (விருப்பத்தேர்வு)</string>
+    <string name="customer_post_grade_hint">எந்த கிரேடும் · கழுவியது</string>
+    <string name="customer_post_people">நபர்கள்</string>
+    <string name="customer_post_places">பார்க்க வேண்டிய இடங்கள்</string>
+    <string name="customer_post_travel_on">பயண தேதி</string>
+    <string name="customer_post_needed_by">தேவைப்படும் தேதி</string>
+    <string name="customer_post_choose_date">தேதியைத் தேர்ந்தெடுங்கள்</string>
+    <string name="customer_post_choose_time">நேரத்தைத் தேர்ந்தெடுங்கள்</string>
+    <string name="customer_pick_up_from">பிக்அப் இடம்</string>
+    <string name="customer_post_deliver_to">டெலிவரி இடம்</string>
+    <string name="customer_post_tour_ends">டூர் முடியும் இடம் (விருப்பத்தேர்வு)</string>
+    <string name="customer_post_going_to">செல்லும் இடம்</string>
+    <string name="customer_post_one_price">டெலிவரியுடன் ஒரே விலை</string>
+    <string name="customer_post_one_price_note">சரிபார்க்கப்பட்ட ஒரு ஃப்ளீட் மெட்டீரியலை வாங்கி, லோடு செய்து, உங்கள் இடத்துக்குக் கொண்டுவரும். நீங்கள் அந்த ஃப்ளீட்டுடன் மட்டுமே பேசுவீர்கள்.</string>
+    <string name="customer_post_submit">போஸ்ட் செய்து பிட்கள் பெறு</string>
+    <string name="customer_post_posting">போஸ்ட் செய்கிறது…</string>
+    <string name="customer_post_material_footer">உங்கள் இடத்துக்கு அருகிலுள்ள ஃப்ளீட்கள் விற்பனையாளர்களின் ஸ்டாக்கைப் பார்த்து பிட் செய்யும்.</string>
+    <string name="customer_post_footer">உங்கள் அருகிலுள்ள ஃப்ளீட்களும் ஆபரேட்டர்களும் சில மணி நேரங்களில் பிட் செய்வார்கள்.</string>
+
+    <!-- Rating a trip or a delivery -->
+    <string name="customer_rate_send">மதிப்பீட்டை அனுப்பு</string>
+    <string name="customer_rate_sending">அனுப்புகிறது…</string>
+    <plurals name="customer_rate_stars">
+        <item quantity="one">%d நட்சத்திரம்</item>
+        <item quantity="other">%d நட்சத்திரங்கள்</item>
+    </plurals>
+</resources>

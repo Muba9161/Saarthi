@@ -2,12 +2,16 @@ package com.saarthi.owner.ui.fleet
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.saarthi.owner.R
 import com.saarthi.owner.data.SessionStore
 import com.saarthi.owner.network.AlertsApi
 import com.saarthi.owner.network.FleetApi
+import com.saarthi.owner.network.FuelApi
 import com.saarthi.owner.network.ReturnLoadsApi
 import com.saarthi.owner.network.SosApi
+import com.saarthi.owner.network.TollApi
 import com.saarthi.owner.ui.common.Loadable
+import com.saarthi.owner.ui.common.Words
 import com.saarthi.owner.ui.common.readable
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -16,12 +20,17 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+/** The window the Expenses tile adds up, as the web's cost cards do. */
+private const val SPEND_DAYS = 30
+
 /** Everything the fleet's home shows, read in one go. */
 data class FleetHome(
     val dashboard: FleetApi.Dashboard?,
     val positions: List<FleetApi.Position>,
     val approvals: List<FleetApi.Approval>,
-    val fastags: List<FleetApi.Fastag>,
+    val fastags: List<TollApi.Tag>,
+    /** Fuel, road slips and tolls over the last 30 days; null when none of them may be read. */
+    val spent30: Double? = null,
     /** The most pressing unread alert, when no driver is waiting. */
     val topAlert: AlertsApi.Alert?,
     /** Trucks arriving soon with nothing lined up for the way home. */
@@ -48,6 +57,8 @@ private const val MOVING_KPH = 3.0
  */
 class FleetHomeModel(
     private val fleet: FleetApi,
+    private val toll: TollApi,
+    private val fuel: FuelApi,
     private val alerts: AlertsApi,
     private val returnLoads: ReturnLoadsApi,
     private val sosApi: SosApi,
@@ -85,11 +96,16 @@ class FleetHomeModel(
         val positions = async { if (account.can("tracking.read")) fleet.positions() else emptyList() }
         val dashboard = async { optional { if (account.can("analytics.read")) fleet.dashboard() else null } }
         val approvals = async { optional { if (account.can("terminal.read")) fleet.waitingApprovals() else null } }
-        val fastags = async { optional { if (account.can("toll.read")) fleet.fastags() else null } }
+        val fastags = async { optional { if (account.can(TollApi.CAN_READ) && account.hasFeature(TollApi.FEATURE)) toll.tags() else null } }
         val page = async { optional { alerts.page(pageSize = 20) } }
         val risks = async { optional { if (account.can("returnloads.read")) returnLoads.emptyRisk() else null } }
         val emergencies = async { optional { if (account.can("sos.read")) sosApi.active() else null } }
+        val monthAgo = java.time.Instant.now().minus(java.time.Duration.ofDays(SPEND_DAYS.toLong())).toString()
+        val roadSpend = async { optional { if (account.can(FuelApi.CAN_READ)) fuel.spentSince(monthAgo) else null } }
+        val tollSpend = async { optional { if (account.can(TollApi.CAN_READ) && account.hasFeature(TollApi.FEATURE)) toll.summary(null, SPEND_DAYS).total else null } }
+        val spends = listOfNotNull(roadSpend.await(), tollSpend.await())
         FleetHome(
+            spent30 = spends.takeIf { it.isNotEmpty() }?.sum(),
             dashboard = dashboard.await(),
             positions = positions.await(),
             approvals = approvals.await().orEmpty(),
@@ -103,9 +119,9 @@ class FleetHomeModel(
         )
     }
 
-    fun approve(id: String) = act(id, "Approved. They can start the shift.") { fleet.approve(id) }
+    fun approve(id: String) = act(id, Words.get(R.string.fleet_model_approved)) { fleet.approve(id) }
 
-    fun reject(id: String, reason: String) = act(id, "Turned down. The driver has been told why.") {
+    fun reject(id: String, reason: String) = act(id, Words.get(R.string.fleet_model_rejected)) {
         fleet.reject(id, reason)
     }
 

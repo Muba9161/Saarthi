@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Brand: who the app is for, under the logo on the splash and welcome screens. -->
+    <string name="ui_app_for">For owners &amp; businesses</string>
+
+    <!-- Small numbers on a tile: 366k, 1.2M. -->
+    <string name="ui_count_thousands">%1$sk</string>
+    <string name="ui_count_millions">%1$sM</string>
+
+    <!-- Shared: a failed read, and lists read a page at a time. -->
+    <string name="ui_error_reading">Something went wrong reading from Saarthi.</string>
+    <string name="ui_try_again">Try again</string>
+    <string name="ui_show_more">Show more</string>
+    <string name="ui_loading">Loading…</string>
+
+    <!-- Header over every tab: the bell and the assistant. -->
+    <string name="ui_alerts">Alerts</string>
+    <plurals name="ui_alerts_unread">
+        <item quantity="one">Alerts, %d new</item>
+        <item quantity="other">Alerts, %d new</item>
+    </plurals>
+    <string name="ui_ask_saarthi">Ask Saarthi</string>
+
+    <!-- Day field. -->
+    <string name="ui_day_choose">Choose</string>
+
+    <!-- Language list: the row that follows the phone. -->
+    <string name="ui_language_phone_default">Phone default</string>
+    <string name="ui_language_follows_phone">Follows the phone\'s language</string>
+
+    <!-- Place field and place search. -->
+    <string name="ui_place_search_address">Search an address</string>
+    <string name="ui_place_choose">Choose a place</string>
+    <string name="ui_place_query_placeholder">Area, landmark or address</string>
+    <string name="ui_place_nothing_found">Nothing found. Try a nearby landmark or the area\'s name.</string>
+    <string name="ui_place_type_three">Type at least three letters.</string>
+
+    <!-- Use my current location. -->
+    <string name="ui_location_use_current">Use my current location</string>
+    <string name="ui_location_finding">Finding where you are…</string>
+    <string name="ui_location_fills_in">Fills in where you are standing</string>
+    <string name="ui_location_settings">Settings</string>
+    <string name="ui_location_error_no_street">Couldn\'t name the street you are on. Search for the place instead.</string>
+    <string name="ui_location_error_lookup">Couldn\'t look up the address here. Check the internet and try again, or search for the place instead.</string>
+    <string name="ui_location_error_allow">Allow location to use where you are, or search for the place instead.</string>
+    <string name="ui_location_error_blocked">Location is blocked for Saarthi. Allow it in Settings, or search for the place instead.</string>
+
+    <!-- Vehicle filter chips. -->
+    <string name="ui_vehicle_class_trucks">Trucks</string>
+    <string name="ui_vehicle_class_buses">Buses</string>
+    <string name="ui_vehicle_class_cars">Cars</string>
+    <string name="ui_vehicle_class_autos">Autos</string>
+    <string name="ui_vehicle_class_other">Other</string>
+
+    <!-- Alerts screen. -->
+    <string name="ui_alerts_filter_all">All</string>
+    <string name="ui_alerts_filter_urgent">Urgent</string>
+    <string name="ui_alerts_filter_money">Money</string>
+    <string name="ui_alerts_filter_papers">Papers</string>
+    <plurals name="ui_alerts_new_count">
+        <item quantity="one">%d new</item>
+        <item quantity="other">%d new</item>
+    </plurals>
+    <string name="ui_alerts_all_read">All read</string>
+    <string name="ui_alerts_mark_all_read">Mark all read</string>
+    <string name="ui_alerts_show_older">Show older</string>
+    <string name="ui_alerts_empty">No alerts yet</string>
+    <string name="ui_alerts_empty_filter">Nothing under %1$s</string>
+    <string name="ui_alerts_empty_hint">When something needs you, it shows up here.</string>
+    <string name="ui_alerts_day_today">Today</string>
+    <string name="ui_alerts_day_yesterday">Yesterday</string>
+    <string name="ui_alerts_day_earlier">Earlier</string>
+
+    <!-- Association tabs. -->
+    <string name="ui_association_tab_home">Home</string>
+    <string name="ui_association_sos">SOS</string>
+    <string name="ui_association_namaste">Namaste, %1$s</string>
+    <string name="ui_association_members_on_road">Members on the road</string>
+
+    <!-- Association home: why the desk gets no new alerts. -->
+    <string name="ui_association_hold_unverified">Verification pending</string>
+    <string name="ui_association_hold_unverified_explanation">Saarthi sends emergencies only to verified associations, so none reach this desk yet. Finish verifying on the Saarthi website.</string>
+    <string name="ui_association_hold_paused">Alerts paused</string>
+    <string name="ui_association_hold_paused_explanation">Nothing is being routed to this desk. Emergencies in your area are going to the next association instead.</string>
+
+    <!-- Association home. -->
+    <string name="ui_association_sos_km_away">SOS · %1$s km away</string>
+    <string name="ui_association_all_quiet">All quiet on your roads</string>
+    <string name="ui_association_member_needs_help">A member needs help</string>
+    <string name="ui_association_covering">Covering</string>
+    <string name="ui_association_respond">Respond</string>
+    <string name="ui_association_figure_members">Members</string>
+    <string name="ui_association_figure_trucks">trucks</string>
+    <string name="ui_association_figure_going">Going</string>
+    <string name="ui_association_figure_right_now">right now</string>
+    <string name="ui_association_figure_open_sos">Open SOS</string>
+    <plurals name="ui_association_closed_today">
+        <item quantity="one">%d closed today</item>
+        <item quantity="other">%d closed today</item>
+    </plurals>
+    <string name="ui_association_on_the_roads">On the roads</string>
+    <string name="ui_association_all_alerts">All alerts</string>
+    <string name="ui_association_no_sos">No member has raised an SOS on your roads.</string>
+    <string name="ui_association_avg_response">Your average response: %1$s min</string>
+
+    <!-- Association SOS list and its rows. -->
+    <string name="ui_association_no_alerts">No alerts yet.</string>
+    <string name="ui_association_needs_responder">Needs a responder</string>
+    <string name="ui_association_group_earlier">Earlier</string>
+    <plurals name="ui_association_going_count">
+        <item quantity="one">%d going</item>
+        <item quantity="other">%d going</item>
+    </plurals>
+    <string name="ui_association_no_one_yet">No one yet</string>
+    <string name="ui_association_age_just_now">just now</string>
+    <string name="ui_association_age_minutes">%1$d min ago</string>
+    <string name="ui_association_age_hours">%1$d h ago</string>
+    <string name="ui_association_age_days">%1$d d ago</string>
+
+    <!-- Respond to an SOS. -->
+    <string name="ui_association_resolved">Resolved</string>
+    <string name="ui_association_raised">Raised %1$s</string>
+    <string name="ui_association_raised_unanswered">Raised %1$s · not answered yet</string>
+    <plurals name="ui_association_members_responded">
+        <item quantity="one">%d member responded</item>
+        <item quantity="other">%d members responded</item>
+    </plurals>
+    <string name="ui_association_nobody_taken">Nobody has taken this case yet</string>
+    <plurals name="ui_association_you_and_more_going">
+        <item quantity="one">You and %d more are going</item>
+        <item quantity="other">You and %d more are going</item>
+    </plurals>
+    <string name="ui_association_you_are_going">You\'re going</string>
+    <plurals name="ui_association_already_going">
+        <item quantity="one">%d already going</item>
+        <item quantity="other">%d already going</item>
+    </plurals>
+    <string name="ui_association_nobody_going">Nobody is going yet</string>
+    <string name="ui_association_note_label">Note for the record (optional)</string>
+    <string name="ui_association_note_placeholder">Two members heading there now</string>
+    <string name="ui_association_acknowledge">Acknowledge and take this case</string>
+    <string name="ui_association_case_taken">Case taken. The driver\'s contact is unlocked.</string>
+    <string name="ui_association_im_going">I\'m going</string>
+    <string name="ui_association_down_as_responding">You\'re down as responding. The driver has been told.</string>
+    <string name="ui_association_call_driver">Call driver</string>
+    <string name="ui_association_call_112">Call 112</string>
+    <string name="ui_association_hint_sealed">Call driver unlocks once someone takes the case. Until then Saarthi keeps the driver\'s name and number sealed.</string>
+    <string name="ui_association_hint_no_number">No driver number on record.</string>
+    <string name="ui_association_mark_as_resolved">Mark as resolved</string>
+    <string name="ui_association_what_was_done">What was done?</string>
+    <string name="ui_association_record_label">This is the association\'s record</string>
+    <string name="ui_association_mark_resolved">Mark resolved</string>
+    <string name="ui_association_resolved_done">Resolved.</string>
+</resources>

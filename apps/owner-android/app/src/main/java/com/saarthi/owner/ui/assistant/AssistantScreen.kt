@@ -45,13 +45,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import com.saarthi.owner.R
 import com.saarthi.owner.data.AccountType
 import com.saarthi.owner.data.SessionStore
 import com.saarthi.owner.network.AssistantApi
 import com.saarthi.owner.ui.common.HeaderContentHeight
+import com.saarthi.owner.ui.common.Words
 import com.saarthi.owner.ui.common.readable
 import com.saarthi.owner.ui.design.ChoiceChip
 import com.saarthi.owner.ui.design.CircleButton
@@ -72,13 +75,22 @@ import java.time.LocalTime
 
 /** Questions worth asking, by the kind of business asking them. */
 private fun suggestionsFor(type: AccountType): List<String> = when (type) {
-    AccountType.FLEET -> listOf("What needs my attention today?", "Which trucks are idle?", "Papers due this month", "Fuel spend this week")
-    AccountType.TRAVEL -> listOf("What's on today?", "Which vehicles are free?", "Papers due this month")
-    AccountType.CUSTOMER -> listOf("Where are my orders?", "What have I spent this month?")
-    AccountType.SELLER -> listOf("Which orders are waiting for payment?", "What is low on stock?")
-    AccountType.PERSONAL -> listOf("Which papers expire soon?", "When is my next service?")
-    else -> listOf("What needs my attention today?")
-}
+    AccountType.FLEET -> listOf(
+        R.string.people_assistant_suggest_attention,
+        R.string.people_assistant_suggest_idle,
+        R.string.people_assistant_suggest_papers_due,
+        R.string.people_assistant_suggest_fuel,
+    )
+    AccountType.TRAVEL -> listOf(
+        R.string.people_assistant_suggest_today,
+        R.string.people_assistant_suggest_free,
+        R.string.people_assistant_suggest_papers_due,
+    )
+    AccountType.CUSTOMER -> listOf(R.string.people_assistant_suggest_orders, R.string.people_assistant_suggest_spent)
+    AccountType.SELLER -> listOf(R.string.people_assistant_suggest_payment, R.string.people_assistant_suggest_stock)
+    AccountType.PERSONAL -> listOf(R.string.people_assistant_suggest_expiring, R.string.people_assistant_suggest_service)
+    else -> listOf(R.string.people_assistant_suggest_attention)
+}.map { Words.get(it) }
 
 /**
  * "Ask Saarthi" — the design's assistant, answering from the business's own
@@ -121,7 +133,7 @@ fun AssistantScreen(assistant: AssistantApi, account: SessionStore.Account) {
             try {
                 val reply = assistant.ask(text, history, conversationId)
                 conversationId = reply?.conversationId ?: conversationId
-                val answer = reply?.answer?.ifBlank { null } ?: "I couldn't find an answer to that in your records."
+                val answer = reply?.answer?.ifBlank { null } ?: Words.get(R.string.people_assistant_no_answer)
                 turns.add(AssistantApi.Turn("assistant", answer))
                 if (spoken) voice.speak(answer)
             } catch (failure: Exception) {
@@ -133,7 +145,7 @@ fun AssistantScreen(assistant: AssistantApi, account: SessionStore.Account) {
 
     fun listen() {
         if (!voice.available) {
-            error = "This phone has no speech recogniser. You can type the question instead."
+            error = Words.get(R.string.people_assistant_no_recogniser)
             return
         }
         error = null
@@ -141,7 +153,7 @@ fun AssistantScreen(assistant: AssistantApi, account: SessionStore.Account) {
     }
 
     val microphone = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        if (granted) listen() else error = "Saarthi needs the microphone to hear you. You can still type the question."
+        if (granted) listen() else error = Words.get(R.string.people_assistant_mic_needed)
     }
 
     fun startVoice() {
@@ -158,9 +170,9 @@ fun AssistantScreen(assistant: AssistantApi, account: SessionStore.Account) {
     val voiceActive = voiceState != VoiceState.IDLE
 
     val greeting = when (LocalTime.now().hour) {
-        in 5..11 -> "Good morning"
-        in 12..16 -> "Good afternoon"
-        else -> "Good evening"
+        in 5..11 -> R.string.people_assistant_morning
+        in 12..16 -> R.string.people_assistant_afternoon
+        else -> R.string.people_assistant_evening
     }
 
     Column(
@@ -176,10 +188,10 @@ fun AssistantScreen(assistant: AssistantApi, account: SessionStore.Account) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            CircleButton(Lucide.chevronLeft, "Back", navigator::pop, size = 44.dp)
+            CircleButton(Lucide.chevronLeft, stringResource(R.string.action_back), navigator::pop, size = 44.dp)
             Column(Modifier.weight(1f)) {
-                Eyebrow("From your own records")
-                Text("Ask Saarthi", style = SType.headerTitle, color = c.fg)
+                Eyebrow(stringResource(R.string.people_assistant_from_records))
+                Text(stringResource(R.string.people_assistant_title), style = SType.headerTitle, color = c.fg)
             }
         }
 
@@ -197,8 +209,8 @@ fun AssistantScreen(assistant: AssistantApi, account: SessionStore.Account) {
                         diameter = 56.dp,
                     )
                     Column {
-                        Text("$greeting, ${account.firstName}", style = SType.cardTitle, color = c.fg)
-                        Text("Ask about vehicles, trips, papers or money.", style = SType.small, color = c.muted)
+                        Text(stringResource(greeting, account.firstName), style = SType.cardTitle, color = c.fg)
+                        Text(stringResource(R.string.people_assistant_intro), style = SType.small, color = c.muted)
                     }
                 }
             }
@@ -225,7 +237,7 @@ fun AssistantScreen(assistant: AssistantApi, account: SessionStore.Account) {
                 item(key = "thinking") {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         RingSpinner(track = c.track, head = c.primary, size = 20.dp, stroke = 2.5.dp)
-                        Text("Looking through your records…", style = SType.small, color = c.muted)
+                        Text(stringResource(R.string.people_assistant_looking), style = SType.small, color = c.muted)
                     }
                 }
             }
@@ -242,7 +254,7 @@ fun AssistantScreen(assistant: AssistantApi, account: SessionStore.Account) {
                 SaarthiBlob(
                     voiceState,
                     voice.amplitude,
-                    Modifier.pressable(scale = 0.96f, label = "Stop") {
+                    Modifier.pressable(scale = 0.96f, label = stringResource(R.string.people_assistant_stop)) {
                         voice.stopListening()
                         voice.stopSpeaking()
                     },
@@ -250,9 +262,9 @@ fun AssistantScreen(assistant: AssistantApi, account: SessionStore.Account) {
                 )
                 Text(
                     when (voiceState) {
-                        VoiceState.LISTENING -> voice.heard.ifBlank { "Listening…" }
-                        VoiceState.THINKING -> "Looking through your records…"
-                        else -> "Tap Saarthi to stop"
+                        VoiceState.LISTENING -> voice.heard.ifBlank { stringResource(R.string.people_assistant_listening) }
+                        VoiceState.THINKING -> stringResource(R.string.people_assistant_looking)
+                        else -> stringResource(R.string.people_assistant_tap_to_stop)
                     },
                     style = SType.bodyStrong,
                     color = c.fg,
@@ -262,7 +274,7 @@ fun AssistantScreen(assistant: AssistantApi, account: SessionStore.Account) {
             }
         } else if (turns.isEmpty()) {
             Column(Modifier.padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Eyebrow("Try asking")
+                Eyebrow(stringResource(R.string.people_assistant_try_asking))
                 Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     suggestionsFor(account.accountType).forEach { suggestion ->
                         ChoiceChip(suggestion, selected = false, onClick = { ask(suggestion) })
@@ -284,7 +296,7 @@ fun AssistantScreen(assistant: AssistantApi, account: SessionStore.Account) {
                     .padding(horizontal = 20.dp),
                 contentAlignment = Alignment.CenterStart,
             ) {
-                if (draft.isEmpty()) Text("Ask about your business…", style = SType.body, color = c.subtle)
+                if (draft.isEmpty()) Text(stringResource(R.string.people_assistant_placeholder), style = SType.body, color = c.subtle)
                 BasicTextField(
                     value = draft,
                     onValueChange = { draft = it.take(2000) },
@@ -307,9 +319,9 @@ fun AssistantScreen(assistant: AssistantApi, account: SessionStore.Account) {
                     .pressable(
                         enabled = (typed && !thinking) || canSpeak,
                         label = when {
-                            voice.listening -> "Stop listening"
-                            canSpeak -> "Ask out loud"
-                            else -> "Send"
+                            voice.listening -> stringResource(R.string.people_assistant_stop_listening)
+                            canSpeak -> stringResource(R.string.people_assistant_ask_aloud)
+                            else -> stringResource(R.string.people_assistant_send)
                         },
                     ) {
                         when {

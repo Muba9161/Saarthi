@@ -17,10 +17,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
+import com.saarthi.owner.R
 import com.saarthi.owner.ui.design.AlwaysDark
 import com.saarthi.owner.ui.design.BrandSpinner
 import com.saarthi.owner.ui.design.Lucide
@@ -73,8 +75,10 @@ fun confirmPerson(context: Context, title: String, subtitle: String, onResult: (
 fun LockScreen(onUnlocked: () -> Unit) = AlwaysDark {
     val c = Saarthi.colors
     val context = LocalContext.current
+    val promptTitle = stringResource(R.string.people_lock_prompt_title)
+    val promptSubtitle = stringResource(R.string.people_lock_prompt_subtitle)
     val ask = {
-        confirmPerson(context, "Unlock VorldX Saarthi", "Use your fingerprint, face or screen lock") { ok ->
+        confirmPerson(context, promptTitle, promptSubtitle) { ok ->
             if (ok) onUnlocked()
         }
     }
@@ -86,15 +90,15 @@ fun LockScreen(onUnlocked: () -> Unit) = AlwaysDark {
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
             BrandSpinner(size = 136.dp)
-            Text("Locked", style = SType.sheetTitle, color = c.fg, modifier = Modifier.rise(stagger(1)))
+            Text(stringResource(R.string.people_lock_locked), style = SType.sheetTitle, color = c.fg, modifier = Modifier.rise(stagger(1)))
             Text(
-                "Your business is behind your fingerprint, face or screen lock.",
+                stringResource(R.string.people_lock_body),
                 style = SType.body,
                 color = c.muted,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.rise(stagger(2)),
             )
-            SaarthiButton("Unlock", onClick = ask, leading = Lucide.fingerprint, modifier = Modifier.rise(stagger(3)))
+            SaarthiButton(stringResource(R.string.people_lock_unlock), onClick = ask, leading = Lucide.fingerprint, modifier = Modifier.rise(stagger(3)))
         }
     }
 }

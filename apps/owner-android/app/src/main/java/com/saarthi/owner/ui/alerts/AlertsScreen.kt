@@ -26,14 +26,18 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.saarthi.owner.R
 import com.saarthi.owner.network.AlertsApi
 import com.saarthi.owner.ui.common.FailedCard
 import com.saarthi.owner.ui.common.Loadable
 import com.saarthi.owner.ui.common.SkeletonCards
+import com.saarthi.owner.ui.common.Words
 import com.saarthi.owner.ui.common.ago
 import com.saarthi.owner.ui.design.ButtonTone
 import com.saarthi.owner.ui.design.CircleButton
@@ -78,13 +82,17 @@ fun AlertsScreen(api: AlertsApi, onBack: () -> Unit, onFollow: (AlertsApi.Alert)
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                CircleButton(Lucide.chevronLeft, "Back", onBack, size = 48.dp)
+                CircleButton(Lucide.chevronLeft, stringResource(R.string.action_back), onBack, size = 48.dp)
                 Column(Modifier.weight(1f)) {
-                    Eyebrow(list?.let { if (it.unread > 0) "${it.unread} new" else "All read" } ?: "Alerts")
-                    Text("Alerts", style = SType.headerTitle.copy(fontSize = SType.section.fontSize), color = c.fg)
+                    Eyebrow(
+                        list?.let {
+                            if (it.unread > 0) pluralStringResource(R.plurals.ui_alerts_new_count, it.unread, it.unread) else stringResource(R.string.ui_alerts_all_read)
+                        } ?: stringResource(R.string.ui_alerts),
+                    )
+                    Text(stringResource(R.string.ui_alerts), style = SType.headerTitle.copy(fontSize = SType.section.fontSize), color = c.fg)
                 }
                 if ((list?.unread ?: 0) > 0) {
-                    LinkButton("Mark all read", model::markAllRead, style = SType.smallStrong)
+                    LinkButton(stringResource(R.string.ui_alerts_mark_all_read), model::markAllRead, style = SType.smallStrong)
                 }
             }
             SegmentedControl(
@@ -148,7 +156,7 @@ private fun AlertFeed(
         if (list.hasMore) {
             item(key = "more") {
                 SaarthiButton(
-                    "Show older",
+                    stringResource(R.string.ui_alerts_show_older),
                     onClick = onLoadMore,
                     busy = list.loadingMore,
                     tone = ButtonTone.SECONDARY,
@@ -214,25 +222,26 @@ private fun EmptyAlerts(filter: AlertFilter) {
     ) {
         IconWell(Lucide.bell, well = c.sunken, ink = c.muted, size = 64.dp, shape = CircleShape, iconSize = 26.dp)
         Text(
-            if (filter == AlertFilter.ALL) "No alerts yet" else "Nothing under ${filter.label}",
+            if (filter == AlertFilter.ALL) stringResource(R.string.ui_alerts_empty) else stringResource(R.string.ui_alerts_empty_filter, filter.label),
             style = SType.cardTitle,
             color = c.fg,
         )
-        Text("When something needs you, it shows up here.", style = SType.small, color = c.muted)
+        Text(stringResource(R.string.ui_alerts_empty_hint), style = SType.small, color = c.muted)
     }
 }
 
-private val DayFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM")
+// Made on each use, so the month and day names follow the app\'s language when it changes.
+private val DayFormat: DateTimeFormatter get() = DateTimeFormatter.ofPattern("d MMM")
 
 /** "Today", "Yesterday", or the date. */
 private fun dayLabel(iso: String): String {
     val day = runCatching {
         java.time.Instant.parse(iso).atZone(ZoneId.systemDefault()).toLocalDate()
-    }.getOrNull() ?: return "Earlier"
+    }.getOrNull() ?: return Words.get(R.string.ui_alerts_day_earlier)
     val today = LocalDate.now()
     return when (day) {
-        today -> "Today"
-        today.minusDays(1) -> "Yesterday"
+        today -> Words.get(R.string.ui_alerts_day_today)
+        today.minusDays(1) -> Words.get(R.string.ui_alerts_day_yesterday)
         else -> DayFormat.format(day)
     }
 }

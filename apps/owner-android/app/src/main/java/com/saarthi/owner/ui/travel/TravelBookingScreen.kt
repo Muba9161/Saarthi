@@ -29,6 +29,8 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -43,10 +45,10 @@ import com.saarthi.owner.ui.common.FailedCard
 import com.saarthi.owner.ui.common.Loadable
 import com.saarthi.owner.ui.common.PlateChip
 import com.saarthi.owner.ui.common.RevealedNotice
+import com.saarthi.owner.ui.common.Words
 import com.saarthi.owner.ui.common.clockOf
 import com.saarthi.owner.ui.common.dial
 import com.saarthi.owner.ui.common.formatPlate
-import com.saarthi.owner.ui.common.plural
 import com.saarthi.owner.ui.common.readable
 import com.saarthi.owner.ui.common.rememberPhoto
 import com.saarthi.owner.ui.common.rupees
@@ -75,7 +77,7 @@ import com.saarthi.owner.ui.design.stagger
 import com.saarthi.owner.ui.fleet.RouteStops
 import com.saarthi.owner.ui.orders.FleetHandoverCard
 import com.saarthi.owner.ui.orders.OverrideHandoverSheet
-import com.saarthi.owner.ui.orders.PickupCodeSheet
+import com.saarthi.owner.ui.orders.HandoverCodeSheet
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -161,33 +163,33 @@ fun TravelBookingScreen(app: OwnerApp, initial: TravelApi.Booking, onChanged: ()
     }
 
     DetailScreen(
-        eyebrow = "Booking ${booking.reference}",
+        eyebrow = stringResource(R.string.fleet_travel_booking_reference, booking.reference),
         title = booking.title,
         footer = {
             when (booking.status) {
                 "AWAITING_CONFIRMATION" -> {
                     SaarthiButton(
-                        "Confirm this booking",
-                        onClick = { act("Confirmed. The customer has been told.") { app.travel.confirm(booking.id, vehicleId, driverId) } },
+                        stringResource(R.string.fleet_travel_confirm),
+                        onClick = { act(Words.get(R.string.fleet_travel_confirmed)) { app.travel.confirm(booking.id, vehicleId, driverId) } },
                         busy = busy,
                         enabled = vehicleId != null,
                     )
-                    SaarthiButton("Decline", onClick = { declining = true }, tone = ButtonTone.DANGER_OUTLINE, enabled = !busy, height = 48.dp)
+                    SaarthiButton(stringResource(R.string.fleet_travel_decline), onClick = { declining = true }, tone = ButtonTone.DANGER_OUTLINE, enabled = !busy, height = 48.dp)
                 }
                 "CONFIRMED" -> SaarthiButton(
-                    "Start the trip",
+                    stringResource(R.string.fleet_travel_start),
                     onClick = {
                         if (pickupPending) {
                             codeError = null
                             askingCode = true
                         } else {
-                            act("Trip started.") { app.travel.start(booking.id) }
+                            act(Words.get(R.string.fleet_travel_trip_started)) { app.travel.start(booking.id) }
                         }
                     },
                     busy = busy,
                     leading = Lucide.play,
                 )
-                "IN_PROGRESS" -> SaarthiButton("Finish the trip", onClick = { act("Trip finished.") { app.travel.complete(booking.id) } }, busy = busy, leading = Lucide.flag)
+                "IN_PROGRESS" -> SaarthiButton(stringResource(R.string.fleet_travel_finish), onClick = { act(Words.get(R.string.fleet_travel_trip_finished)) { app.travel.complete(booking.id) } }, busy = busy, leading = Lucide.flag)
                 else -> Unit
             }
         },
@@ -202,11 +204,11 @@ fun TravelBookingScreen(app: OwnerApp, initial: TravelApi.Booking, onChanged: ()
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Avatar(booking.contactName ?: "Customer", size = 44.dp, background = c.primarySoft, ink = c.primary)
+            Avatar(booking.contactName ?: stringResource(R.string.fleet_travel_customer), size = 44.dp, background = c.primarySoft, ink = c.primary)
             Column(Modifier.weight(1f)) {
-                Text(booking.contactName ?: "Customer", style = SType.bodyStrong, color = c.fg)
+                Text(booking.contactName ?: stringResource(R.string.fleet_travel_customer), style = SType.bodyStrong, color = c.fg)
                 Text(
-                    listOfNotNull(booking.passengers?.let { "$it people" }, booking.specialRequests?.take(40)).joinToString(" · "),
+                    listOfNotNull(booking.passengers?.let { pluralStringResource(R.plurals.fleet_travel_people, it, it) }, booking.specialRequests?.take(40)).joinToString(" · "),
                     style = SType.caption,
                     color = c.muted,
                     maxLines = 2,
@@ -214,7 +216,13 @@ fun TravelBookingScreen(app: OwnerApp, initial: TravelApi.Booking, onChanged: ()
                 )
             }
             booking.contactPhone?.let { phone ->
-                CircleButton(Lucide.phone, "Call ${booking.contactName ?: "the customer"}", { context.dial(phone) }, size = 44.dp, iconSize = 18.dp)
+                CircleButton(
+                    Lucide.phone,
+                    booking.contactName?.let { stringResource(R.string.fleet_travel_call_named, it) } ?: stringResource(R.string.fleet_travel_call_customer),
+                    { context.dial(phone) },
+                    size = 44.dp,
+                    iconSize = 18.dp,
+                )
             }
         }
 
@@ -246,13 +254,13 @@ fun TravelBookingScreen(app: OwnerApp, initial: TravelApi.Booking, onChanged: ()
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(Modifier.weight(1f)) {
-                Text("Payment", style = SType.cardTitle, color = c.fg)
+                Text(stringResource(R.string.fleet_travel_payment), style = SType.cardTitle, color = c.fg)
                 val payment = booking.paymentStatus
                 Text(
                     when (payment) {
-                        "SUCCEEDED" -> "Paid by the customer"
-                        "PENDING", null -> "Not paid yet"
-                        "FAILED" -> "The customer's payment failed"
+                        "SUCCEEDED" -> stringResource(R.string.fleet_travel_paid)
+                        "PENDING", null -> stringResource(R.string.fleet_travel_not_paid)
+                        "FAILED" -> stringResource(R.string.fleet_travel_payment_failed)
                         else -> payment.lowercase().replace('_', ' ')
                     },
                     style = SType.caption,
@@ -263,19 +271,20 @@ fun TravelBookingScreen(app: OwnerApp, initial: TravelApi.Booking, onChanged: ()
         }
     }
 
-    PickupCodeSheet(
+    HandoverCodeSheet(
+        purpose = HandoverApi.PICKUP,
         visible = askingCode,
         busy = busy,
         error = codeError,
         canOverride = canOverride,
-        onStart = { code ->
+        onSubmit = { code ->
             busy = true
             codeError = null
             scope.launch {
                 try {
                     app.travel.start(booking.id, code)?.let { booking = it }
                     askingCode = false
-                    message = "Trip started." to NoticeTone.SUCCESS
+                    message = Words.get(R.string.fleet_travel_trip_started) to NoticeTone.SUCCESS
                     loadHandovers()
                     onChanged()
                 } catch (failure: Exception) {
@@ -306,7 +315,7 @@ fun TravelBookingScreen(app: OwnerApp, initial: TravelApi.Booking, onChanged: ()
                         app.handover.override(tripId, HandoverApi.PICKUP, why)
                         app.travel.start(booking.id)?.let { booking = it }
                         overriding = null
-                        message = "Started without the code. The reason is on record and the passenger has been told." to NoticeTone.SUCCESS
+                        message = Words.get(R.string.fleet_travel_started_without_code) to NoticeTone.SUCCESS
                         loadHandovers()
                         onChanged()
                     } catch (failure: Exception) {
@@ -321,13 +330,13 @@ fun TravelBookingScreen(app: OwnerApp, initial: TravelApi.Booking, onChanged: ()
 
     BottomSheet(visible = declining, onDismiss = { declining = false }) {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Text("Why can't you take it?", style = SType.sheetTitle, color = c.fg)
-            NotesField(reason, { reason = it.take(500) }, label = "The customer sees this", minHeight = 90.dp)
+            Text(stringResource(R.string.fleet_travel_why_decline), style = SType.sheetTitle, color = c.fg)
+            NotesField(reason, { reason = it.take(500) }, label = stringResource(R.string.fleet_travel_customer_sees), minHeight = 90.dp)
             SaarthiButton(
-                "Decline booking",
+                stringResource(R.string.fleet_travel_decline_booking),
                 onClick = {
                     declining = false
-                    act("Declined. The customer has been told.") { app.travel.decline(booking.id, reason.trim()) }
+                    act(Words.get(R.string.fleet_travel_declined)) { app.travel.decline(booking.id, reason.trim()) }
                 },
                 tone = ButtonTone.DANGER_OUTLINE,
                 enabled = reason.trim().length >= 3,
@@ -353,7 +362,7 @@ private fun ConfirmChoices(
     onRetry: () -> Unit,
 ) {
     val c = Saarthi.colors
-    GroupLabel("Which vehicle goes")
+    GroupLabel(stringResource(R.string.fleet_travel_which_vehicle))
     when (assignable) {
         Loadable.Loading -> Skeleton(Modifier.fillMaxWidth().height(40.dp), color = c.sunken, shine = c.shine, radius = 20.dp)
         is Loadable.Failed -> FailedCard(assignable.message, onRetry)
@@ -361,26 +370,26 @@ private fun ConfirmChoices(
             val (vehicles, drivers) = assignable.value
             if (vehicles.isEmpty()) {
                 NoticeCard(
-                    "None of your vehicles can take this booking. It needs a passenger vehicle with at least ${plural(seats, "seat")} that is free now, not on a trip or in service.",
+                    pluralStringResource(R.plurals.fleet_travel_no_vehicle_fits, seats, seats),
                     NoticeTone.WARNING,
                     icon = Lucide.alertTriangle,
                 )
-                LinkButton("Check again", onRetry, style = SType.smallStrong)
+                LinkButton(stringResource(R.string.fleet_travel_check_again), onRetry, style = SType.smallStrong)
             } else {
                 Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     vehicles.forEach { vehicle ->
                         ChoiceChip(
-                            listOfNotNull(formatPlate(vehicle.registrationNumber), vehicle.passengerCapacity?.let { plural(it, "seat") }).joinToString(" · "),
+                            listOfNotNull(formatPlate(vehicle.registrationNumber), vehicle.passengerCapacity?.let { pluralStringResource(R.plurals.fleet_travel_seats, it, it) }).joinToString(" · "),
                             selected = vehicleId == vehicle.id,
                             onClick = { onVehicle(vehicle.id) },
                         )
                     }
                 }
             }
-            GroupLabel("Who drives")
+            GroupLabel(stringResource(R.string.fleet_travel_who_drives))
             if (drivers.isEmpty()) {
                 NoticeCard(
-                    "Only a verified driver can take a passenger trip, and none of yours is verified yet. You can confirm with the vehicle alone.",
+                    stringResource(R.string.fleet_travel_no_verified_driver),
                     NoticeTone.INFO,
                     icon = Lucide.user,
                 )
@@ -412,19 +421,19 @@ internal fun BookingHero(booking: TravelApi.Booking, word: String, modifier: Mod
         }
         Column(Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.SpaceBetween) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Eyebrow(start ?: "Booked", Modifier.weight(1f), color = Color.White.copy(alpha = 0.75f))
+                Eyebrow(start ?: stringResource(R.string.fleet_travel_booked), Modifier.weight(1f), color = Color.White.copy(alpha = 0.75f))
                 StatusPill(word, background = Color.White.copy(alpha = 0.14f), ink = Color.White, live = booking.status == "IN_PROGRESS", ring = Color.White.copy(alpha = 0.2f))
             }
             Text(
                 listOfNotNull(
-                    booking.passengers?.let { "$it people" },
-                    booking.durationDays?.let { "$it day${if (it == 1) "" else "s"}" },
+                    booking.passengers?.let { pluralStringResource(R.plurals.fleet_travel_people, it, it) },
+                    booking.durationDays?.let { pluralStringResource(R.plurals.fleet_travel_days, it, it) },
                 ).joinToString(" · ").ifBlank { booking.title },
                 style = SType.title.copy(fontSize = 24.sp),
                 modifier = Modifier.fillMaxWidth(0.58f),
                 color = Color.White,
             )
-            booking.distanceKm?.let { Text("${it.toInt()} km", style = SType.small, color = Color.White.copy(alpha = 0.8f)) }
+            booking.distanceKm?.let { Text(stringResource(R.string.fleet_travel_km, it.toInt()), style = SType.small, color = Color.White.copy(alpha = 0.8f)) }
         }
     }
 }
@@ -436,13 +445,13 @@ internal fun BookingRouteCard(booking: TravelApi.Booking, modifier: Modifier = M
     val start = clockOf(booking.startDate)
     Column(modifier.fillMaxWidth().card(radius = 22.dp).padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         RouteStops(
-            from = booking.pickupAddress ?: "Pickup",
-            fromNote = start?.let { "Pick up $it" },
-            to = booking.dropoffAddress ?: booking.destinations.joinToString(", ").ifBlank { "Destination" },
-            toNote = clockOf(booking.endDate)?.let { "Back $it" },
+            from = booking.pickupAddress ?: stringResource(R.string.fleet_travel_pickup),
+            fromNote = start?.let { stringResource(R.string.fleet_travel_pick_up_at, it) },
+            to = booking.dropoffAddress ?: booking.destinations.joinToString(", ").ifBlank { stringResource(R.string.fleet_travel_destination) },
+            toNote = clockOf(booking.endDate)?.let { stringResource(R.string.fleet_travel_back_at, it) },
         )
         if (booking.vehicle != null || booking.driver != null) {
-            Eyebrow("Vehicle & driver")
+            Eyebrow(stringResource(R.string.fleet_travel_vehicle_driver))
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 booking.vehicle?.registrationNumber?.let { PlateChip(it, size = 12.sp) }
                 Text(

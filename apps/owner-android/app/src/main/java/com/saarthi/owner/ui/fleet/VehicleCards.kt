@@ -18,13 +18,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.saarthi.owner.R
 import com.saarthi.owner.network.PreferencesApi
 import com.saarthi.owner.network.VehiclesApi
 import com.saarthi.owner.ui.common.PlateChip
-import com.saarthi.owner.ui.common.plural
 import com.saarthi.owner.ui.common.rememberPhoto
 import com.saarthi.owner.ui.common.vehiclePhotoOf
 import com.saarthi.owner.ui.design.Eyebrow
@@ -69,7 +71,7 @@ internal fun LayoutToggle(cards: Boolean, onChange: (Boolean) -> Unit, modifier:
                     .size(34.dp)
                     .clip(RoundedCornerShape(9.dp))
                     .background(if (on) c.segmentOn else c.segment)
-                    .pressable(scale = 0.94f, label = if (isCards) "Show as cards" else "Show as a list") { onChange(isCards) },
+                    .pressable(scale = 0.94f, label = stringResource(if (isCards) R.string.fleet_card_show_cards else R.string.fleet_card_show_list)) { onChange(isCards) },
                 contentAlignment = Alignment.Center,
             ) {
                 LineIcon(icon, size = 16.dp, color = if (on) c.fg else c.muted)
@@ -78,16 +80,16 @@ internal fun LayoutToggle(cards: Boolean, onChange: (Boolean) -> Unit, modifier:
     }
 }
 
-/** One vehicle as a card: its picture, plate, where it stands, and the figures under it. */
+/** One vehicle as a card: its picture, plate, where it stands, and the figures under it; [note] as under a row. */
 @Composable
-internal fun VehicleCard(vehicle: VehiclesApi.Vehicle, onOpen: () -> Unit) {
+internal fun VehicleCard(vehicle: VehiclesApi.Vehicle, onOpen: () -> Unit, note: String? = null) {
     val c = Saarthi.colors
     val photo = vehiclePhotoOf(vehicle.artType)
     Column(
         Modifier
             .fillMaxWidth()
             .card(radius = 24.dp)
-            .pressable(scale = 0.98f, label = "Open ${vehicle.registrationNumber}", onClick = onOpen),
+            .pressable(scale = 0.98f, label = stringResource(R.string.fleet_open_named, vehicle.registrationNumber), onClick = onOpen),
     ) {
         Box(
             Modifier
@@ -117,14 +119,15 @@ internal fun VehicleCard(vehicle: VehiclesApi.Vehicle, onOpen: () -> Unit) {
                     modifier = Modifier.weight(1f),
                 )
             }
+            note?.let { Text(it, style = SType.small, color = c.muted, maxLines = 1, overflow = TextOverflow.Ellipsis) }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Fact(
-                    if (vehicle.passengerCapacity != null) "Seats" else "Payload",
-                    vehicle.passengerCapacity?.toString() ?: vehicle.capacityTons?.let { "%.0f t".format(it) } ?: "—",
+                    stringResource(if (vehicle.passengerCapacity != null) R.string.fleet_card_seats else R.string.fleet_card_payload),
+                    vehicle.passengerCapacity?.toString() ?: vehicle.capacityTons?.let { stringResource(R.string.fleet_tonnes, "%.0f".format(it)) } ?: "—",
                     Modifier.weight(1f),
                 )
-                Fact("Odometer", vehicle.odometerKm?.let { "%,d km".format(it.toLong()) } ?: "—", Modifier.weight(1f))
-                Fact("Driver", vehicle.currentDriver?.name?.ifBlank { null } ?: "None", Modifier.weight(1.2f))
+                Fact(stringResource(R.string.fleet_card_odometer), vehicle.odometerKm?.let { stringResource(R.string.fleet_card_km, "%,d".format(it.toLong())) } ?: "—", Modifier.weight(1f))
+                Fact(stringResource(R.string.fleet_card_driver), vehicle.currentDriver?.name?.ifBlank { null } ?: stringResource(R.string.fleet_card_none), Modifier.weight(1.2f))
             }
             PapersHealth(vehicle.documentHealth)
         }
@@ -145,10 +148,10 @@ private fun Fact(label: String, value: String, modifier: Modifier) {
 private fun PapersHealth(health: VehiclesApi.DocumentHealth) {
     val c = Saarthi.colors
     val (text, ground, ink) = when {
-        health.expired > 0 -> Triple("${plural(health.expired, "paper")} expired", c.dangerBg, c.danger)
-        health.expiringSoon > 0 -> Triple("${plural(health.expiringSoon, "paper")} expiring", c.warningBg, c.warning)
-        health.total > 0 -> Triple("Papers valid", c.successBg, c.success)
-        else -> Triple("No papers uploaded", c.sunken, c.muted)
+        health.expired > 0 -> Triple(pluralStringResource(R.plurals.fleet_papers_expired, health.expired, health.expired), c.dangerBg, c.danger)
+        health.expiringSoon > 0 -> Triple(pluralStringResource(R.plurals.fleet_card_papers_expiring, health.expiringSoon, health.expiringSoon), c.warningBg, c.warning)
+        health.total > 0 -> Triple(stringResource(R.string.fleet_card_papers_valid), c.successBg, c.success)
+        else -> Triple(stringResource(R.string.fleet_card_no_papers), c.sunken, c.muted)
     }
     StatusPill(text, background = ground, ink = ink, dot = false)
 }

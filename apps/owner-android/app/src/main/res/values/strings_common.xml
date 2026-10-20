@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- How long ago, and how long a journey takes, as the shared formatters say it. -->
+    <string name="common_time_now">now</string>
+    <string name="common_time_minutes">%1$d min</string>
+    <string name="common_time_hours">%1$d h</string>
+    <string name="common_time_days">%1$d d</string>
+    <string name="common_span_hours_minutes">%1$d h %2$d min</string>
+    <string name="common_span_days_hours">%1$d d %2$d h</string>
+    <string name="common_distance_km">%1$s km</string>
+</resources>

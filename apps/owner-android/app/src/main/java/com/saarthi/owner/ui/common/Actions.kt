@@ -1,5 +1,6 @@
 package com.saarthi.owner.ui.common
 
+import com.saarthi.owner.R
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -12,9 +13,12 @@ fun Context.dial(phone: String) {
     runCatching { startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:${phone.filter { it.isDigit() || it == '+' }}"))) }
 }
 
-private val ClockFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
-private val DayClockFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM, HH:mm")
-private val DayFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM")
+// Made on each use, so the month and day names follow the app\'s language when it changes.
+private val ClockFormat: DateTimeFormatter get() = DateTimeFormatter.ofPattern("HH:mm")
+// Made on each use, so the month and day names follow the app\'s language when it changes.
+private val DayClockFormat: DateTimeFormatter get() = DateTimeFormatter.ofPattern("d MMM, HH:mm")
+// Made on each use, so the month and day names follow the app\'s language when it changes.
+private val DayFormat: DateTimeFormatter get() = DateTimeFormatter.ofPattern("d MMM")
 
 /** "18 Aug" — the day alone, for things already done where the minute no longer matters. */
 fun dayOf(iso: String?): String? =
@@ -28,4 +32,4 @@ fun clockOf(iso: String?): String? {
 }
 
 /** "62 km", "1,240 km". */
-fun km(value: Double?): String? = value?.let { "%,d km".format(it.toLong()) }
+fun km(value: Double?): String? = value?.let { Words.get(R.string.common_distance_km, "%,d".format(it.toLong())) }

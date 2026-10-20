@@ -17,12 +17,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.saarthi.owner.OwnerApp
+import com.saarthi.owner.R
 import com.saarthi.owner.ui.common.FailedCard
 import com.saarthi.owner.ui.common.Loadable
 import com.saarthi.owner.ui.common.SkeletonCards
@@ -69,7 +72,7 @@ fun SellerMoneyScreen(app: OwnerApp) {
             is Loadable.Failed -> FailedCard(shown.message, { model.refresh() })
             is Loadable.Ready -> {
                 val book = shown.value
-                val month = LocalDate.now().month.getDisplayName(TextStyle.FULL, Locale.ENGLISH)
+                val month = LocalDate.now().month.getDisplayName(TextStyle.FULL, Locale.getDefault())
                 val payout = book.payout
                 Column(
                     Modifier
@@ -81,9 +84,9 @@ fun SellerMoneyScreen(app: OwnerApp) {
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Eyebrow("Received in $month", Modifier.weight(1f), color = Color.White.copy(alpha = 0.75f))
+                        Eyebrow(stringResource(R.string.market_seller_money_received_in, month), Modifier.weight(1f), color = Color.White.copy(alpha = 0.75f))
                         StatusPill(
-                            if (payout?.usable == true) "Bank verified" else "Bank not connected",
+                            if (payout?.usable == true) stringResource(R.string.market_seller_money_bank_verified) else stringResource(R.string.market_seller_money_bank_not_connected),
                             background = Color.White.copy(alpha = 0.14f),
                             ink = Color.White,
                             dotColor = if (payout?.usable == true) Color(0xFF4ADE80) else Color(0xFFF2952C),
@@ -93,9 +96,9 @@ fun SellerMoneyScreen(app: OwnerApp) {
                     Text(rupees(book.receivedThisMonth()), style = SType.figure.copy(fontSize = 40.sp, lineHeight = 44.sp), color = Color.White)
                     Text(
                         listOfNotNull(
-                            payout?.let { listOfNotNull(it.bankName, it.maskedAccount).joinToString(" ").ifBlank { null } }?.let { "to $it" },
+                            payout?.let { listOfNotNull(it.bankName, it.maskedAccount).joinToString(" ").ifBlank { null } }?.let { stringResource(R.string.market_seller_money_to_bank, it) },
                             book.received.mapNotNull { it.order.fleetName }.distinct().size.let { fleets ->
-                                "${book.received.size} orders from $fleets fleet${if (fleets == 1) "" else "s"}"
+                                pluralStringResource(R.plurals.market_seller_money_orders_from_fleets, fleets, book.received.size, fleets)
                             },
                         ).joinToString(" · "),
                         style = SType.small,
@@ -103,7 +106,7 @@ fun SellerMoneyScreen(app: OwnerApp) {
                     )
                     if (payout?.usable != true) {
                         Text(
-                            "Connect the bank account you are paid into from Saarthi on the web.",
+                            stringResource(R.string.market_seller_money_connect_bank),
                             style = SType.caption,
                             color = Color(0xFFFE8A4B),
                         )
@@ -112,18 +115,18 @@ fun SellerMoneyScreen(app: OwnerApp) {
 
                 val awaiting = book.awaitingPayment
                 Row(Modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.Bottom) {
-                    Text("Awaiting payment", style = SType.section, color = c.fg, modifier = Modifier.weight(1f))
+                    Text(stringResource(R.string.market_seller_money_awaiting), style = SType.section, color = c.fg, modifier = Modifier.weight(1f))
                     Text(rupees(awaiting.sumOf { it.amount ?: 0.0 }), style = SType.section, color = c.fg)
                 }
                 if (awaiting.isEmpty()) {
-                    Text("Nothing owed right now.", style = SType.small, color = c.muted)
+                    Text(stringResource(R.string.market_seller_money_nothing_owed), style = SType.small, color = c.muted)
                 } else {
                     MoneyList(awaiting, paid = false, modifier = Modifier.rise(stagger(1)))
                 }
 
-                Text("Received", style = SType.section, color = c.fg, modifier = Modifier.padding(top = 4.dp))
+                Text(stringResource(R.string.market_seller_received), style = SType.section, color = c.fg, modifier = Modifier.padding(top = 4.dp))
                 if (book.received.isEmpty()) {
-                    Text("Payments from fleets show up here.", style = SType.small, color = c.muted)
+                    Text(stringResource(R.string.market_seller_money_received_empty), style = SType.small, color = c.muted)
                 } else {
                     MoneyList(book.received, paid = true, modifier = Modifier.rise(stagger(2)))
                 }
@@ -154,7 +157,7 @@ private fun MoneyList(orders: List<SellerOrder>, paid: Boolean, modifier: Modifi
                     iconSize = 16.dp,
                 )
                 Column(Modifier.weight(1f)) {
-                    Text(seller.order.fleetName ?: "A fleet", style = SType.bodyStrong, color = c.fg, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(seller.order.fleetName ?: stringResource(R.string.market_seller_a_fleet), style = SType.bodyStrong, color = c.fg, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text(
                         listOfNotNull(seller.order.what, clockOf(seller.order.pickupAt)).joinToString(" · "),
                         style = SType.caption,

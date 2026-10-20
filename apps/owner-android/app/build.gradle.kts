@@ -40,6 +40,14 @@ val productionApiUrl = "https://vorldxsaarthi.com"
  */
 val saarthiApiUrl: String = setting("saarthiApiUrl") ?: "http://localhost:4000"
 
+/**
+ * The Firebase project push notifications come through: its Android app id,
+ * web API key, project id and sender number, from the Firebase console.
+ * Not secrets — every Firebase app carries them — but each build names them
+ * rather than the repository, and with none named push is simply off.
+ */
+fun firebase(name: String): String = setting(name) ?: ""
+
 val saarthiMapStyleUrl: String = setting("saarthiMapStyleUrl") ?: "https://tiles.openfreemap.org/styles/dark"
 val saarthiMapStyleUrlLight: String =
     setting("saarthiMapStyleUrlLight") ?: "https://tiles.openfreemap.org/styles/liberty"
@@ -81,6 +89,10 @@ android {
         buildConfigField("String", "SAARTHI_API_URL", "\"$saarthiApiUrl\"")
         buildConfigField("String", "MAP_STYLE_URL", "\"$saarthiMapStyleUrl\"")
         buildConfigField("String", "MAP_STYLE_URL_LIGHT", "\"$saarthiMapStyleUrlLight\"")
+        buildConfigField("String", "FIREBASE_APP_ID", "\"${firebase("firebaseAppId")}\"")
+        buildConfigField("String", "FIREBASE_API_KEY", "\"${firebase("firebaseApiKey")}\"")
+        buildConfigField("String", "FIREBASE_PROJECT_ID", "\"${firebase("firebaseProjectId")}\"")
+        buildConfigField("String", "FIREBASE_SENDER_ID", "\"${firebase("firebaseSenderId")}\"")
     }
 
     buildTypes {
@@ -157,6 +169,9 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.maplibre.android)
     implementation(libs.androidx.biometric)
+    implementation(libs.mlkit.text.recognition)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.messaging)
 
     debugImplementation(libs.androidx.compose.ui.tooling)
 

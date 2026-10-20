@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -37,10 +38,12 @@ import com.saarthi.owner.ui.common.Loadable
 import com.saarthi.owner.ui.common.SkeletonCards
 import com.saarthi.owner.ui.common.headerClearance
 import com.saarthi.owner.ui.common.tabBarClearance
+import com.saarthi.owner.network.TravelPackagesApi
 import com.saarthi.owner.ui.design.Eyebrow
 import com.saarthi.owner.ui.design.IconWell
 import com.saarthi.owner.ui.design.LinkButton
 import com.saarthi.owner.ui.design.Lucide
+import com.saarthi.owner.ui.design.LineIcon
 import com.saarthi.owner.ui.design.SType
 import com.saarthi.owner.ui.design.Saarthi
 import com.saarthi.owner.ui.design.card
@@ -107,10 +110,10 @@ fun CustomerHomeScreen(app: OwnerApp, actions: ShellActions) {
                     .background(Brush.horizontalGradient(listOf(Color(0xF2021D40), Color(0xB3021D40), Color(0x33021D40)))),
             )
             Column(Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Eyebrow("One front door", color = Color(0xFFFE8A4B))
-                Text("What do you need moved?", style = SType.title, color = Color.White)
+                Eyebrow(stringResource(R.string.customer_home_eyebrow), color = Color(0xFFFE8A4B))
+                Text(stringResource(R.string.customer_home_title), style = SType.title, color = Color.White)
                 Text(
-                    "Post once. Verified fleets source it and quote one delivered price.",
+                    stringResource(R.string.customer_home_lead),
                     style = SType.small,
                     color = Color.White.copy(alpha = 0.82f),
                     modifier = Modifier.padding(end = 60.dp),
@@ -119,16 +122,40 @@ fun CustomerHomeScreen(app: OwnerApp, actions: ShellActions) {
         }
 
         Row(Modifier.fillMaxWidth().rise(stagger(1)), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            KindTile("Material", Lucide.box, c.accentSoft, c.accent, Modifier.weight(1f)) { post(RequirementsApi.KIND_MATERIAL) }
-            KindTile("Freight", Lucide.truck, c.primarySoft, c.primary, Modifier.weight(1f)) { post(RequirementsApi.KIND_FREIGHT) }
-            KindTile("Cab", Lucide.car, c.infoSoft, c.info, Modifier.weight(1f)) { post(RequirementsApi.KIND_CAB) }
-            KindTile("Tour", Lucide.bus, c.successSoft, c.success, Modifier.weight(1f)) { post(RequirementsApi.KIND_TOUR) }
+            KindTile(stringResource(R.string.customer_kind_material), stringResource(R.string.customer_post_material), Lucide.box, c.accentSoft, c.accent, Modifier.weight(1f)) { post(RequirementsApi.KIND_MATERIAL) }
+            KindTile(stringResource(R.string.customer_kind_freight), stringResource(R.string.customer_post_freight), Lucide.truck, c.primarySoft, c.primary, Modifier.weight(1f)) { post(RequirementsApi.KIND_FREIGHT) }
+            KindTile(stringResource(R.string.customer_kind_cab), stringResource(R.string.customer_post_cab), Lucide.car, c.infoSoft, c.info, Modifier.weight(1f)) { post(RequirementsApi.KIND_CAB) }
+            KindTile(stringResource(R.string.customer_kind_tour), stringResource(R.string.customer_post_tour), Lucide.bus, c.successSoft, c.success, Modifier.weight(1f)) { post(RequirementsApi.KIND_TOUR) }
+        }
+
+        // Ready-made trips from travel operators, where the plan and role allow it.
+        val account = app.session.account.value
+        if (account != null && account.can(TravelPackagesApi.CAN_BROWSE) && account.hasFeature(TravelPackagesApi.FEATURE)) {
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .rise(stagger(1))
+                    .card(radius = 22.dp)
+                    .pressable(scale = 0.99f, label = stringResource(R.string.customer_home_book_ready_trip)) {
+                        navigator.push("packages") { PackagesScreen(app) { model.refresh(silent = true) } }
+                    }
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                IconWell(Lucide.bus, well = c.successSoft, ink = c.success, size = 40.dp, radius = 12.dp, iconSize = 18.dp)
+                Column(Modifier.weight(1f)) {
+                    Eyebrow(stringResource(R.string.customer_book_a_trip))
+                    Text(stringResource(R.string.customer_home_trips_line), style = SType.rowTitle, color = c.fg)
+                }
+                LineIcon(Lucide.chevronRight, size = 18.dp, color = c.subtle)
+            }
         }
 
         Row(Modifier.fillMaxWidth().padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("Your orders", style = SType.section, color = c.fg, modifier = Modifier.weight(1f))
+            Text(stringResource(R.string.customer_your_orders), style = SType.section, color = c.fg, modifier = Modifier.weight(1f))
             (state as? Loadable.Ready)?.value?.let { book ->
-                LinkButton("All ${book.requests.size + book.orders.size}", { actions.selectTab("orders") }, style = SType.smallStrong)
+                LinkButton(stringResource(R.string.customer_home_all, book.requests.size + book.orders.size), { actions.selectTab("orders") }, style = SType.smallStrong)
             }
         }
 
@@ -139,7 +166,7 @@ fun CustomerHomeScreen(app: OwnerApp, actions: ShellActions) {
                 val book = shown.value
                 if (book.openRequests.isEmpty() && book.orders.isEmpty()) {
                     Text(
-                        "Nothing yet. Post what you need and fleets near you will bid.",
+                        stringResource(R.string.customer_home_empty),
                         style = SType.small,
                         color = c.muted,
                     )
@@ -160,12 +187,12 @@ fun CustomerHomeScreen(app: OwnerApp, actions: ShellActions) {
 }
 
 @Composable
-private fun KindTile(label: String, icon: String, well: Color, ink: Color, modifier: Modifier, onClick: () -> Unit) {
+private fun KindTile(label: String, actionLabel: String, icon: String, well: Color, ink: Color, modifier: Modifier, onClick: () -> Unit) {
     val c = Saarthi.colors
     Column(
         modifier
             .card(radius = 20.dp)
-            .pressable(scale = 0.95f, label = "Post $label", onClick = onClick)
+            .pressable(scale = 0.95f, label = actionLabel, onClick = onClick)
             .padding(vertical = 14.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp),

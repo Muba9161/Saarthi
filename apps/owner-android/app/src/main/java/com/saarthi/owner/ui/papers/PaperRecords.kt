@@ -18,12 +18,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.saarthi.owner.OwnerApp
+import com.saarthi.owner.R
 import com.saarthi.owner.network.PapersApi
 import com.saarthi.owner.ui.common.formatPlate
 import com.saarthi.owner.ui.common.parseDate
@@ -83,8 +85,8 @@ internal fun RegisterLine(validUntil: String, modifier: Modifier = Modifier) {
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Column(Modifier.weight(1f)) {
-            Text("RTO register", style = SType.caption, color = c.muted)
-            Text("Valid till $shown", style = SType.bodyStrong, color = c.fg)
+            Text(stringResource(R.string.papers_rc_register), style = SType.caption, color = c.muted)
+            Text(stringResource(R.string.papers_valid_till, shown), style = SType.bodyStrong, color = c.fg)
         }
         validityOf(validUntil)?.let { StatusTag(it) }
     }
@@ -109,10 +111,10 @@ internal fun VirtualRcCard(rc: PapersApi.VirtualRc, modifier: Modifier = Modifie
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Eyebrow("Virtual RC", color = Color.White.copy(alpha = 0.75f))
+                Eyebrow(stringResource(R.string.papers_rc_virtual), color = Color.White.copy(alpha = 0.75f))
                 Spacer(Modifier.weight(1f))
                 if (rc.verified) {
-                    StatusPill("Verified", background = Color.White.copy(alpha = 0.16f), ink = Color.White, dot = false)
+                    StatusPill(stringResource(R.string.papers_rc_verified), background = Color.White.copy(alpha = 0.16f), ink = Color.White, dot = false)
                 }
             }
             Text(formatPlate(rc.registrationNumber), style = SType.plate(28.sp, 0.04.em), color = Color.White)
@@ -120,38 +122,39 @@ internal fun VirtualRcCard(rc: PapersApi.VirtualRc, modifier: Modifier = Modifie
                 Text(it, style = SType.bodyStrong, color = Color.White.copy(alpha = 0.9f))
             }
             Text(
-                "From the RTO register · as of ${prettyDate(rc.dataAsOf ?: rc.retrievedAt) ?: "an unknown date"}",
+                prettyDate(rc.dataAsOf ?: rc.retrievedAt)?.let { stringResource(R.string.papers_rc_as_of, it) }
+                    ?: stringResource(R.string.papers_rc_as_of_unknown),
                 style = SType.caption,
                 color = Color.White.copy(alpha = 0.7f),
             )
         }
 
-        RecordSection("Validity") {
-            ValidityRow("Insurance", rc.insuranceValidUntil, listOfNotNull(rc.insurer, rc.insurancePolicyNumber))
-            ValidityRow("Pollution (PUC)", rc.puccValidUntil, listOfNotNull(rc.puccNumber))
-            ValidityRow("Fitness", rc.fitnessValidUntil, emptyList())
-            ValidityRow("Road tax", rc.taxValidUntil, emptyList())
-            ValidityRow("Permit", rc.permitValidUntil, listOfNotNull(rc.permitType, rc.permitNumber))
+        RecordSection(stringResource(R.string.papers_rc_validity)) {
+            ValidityRow(stringResource(R.string.papers_rc_insurance), rc.insuranceValidUntil, listOfNotNull(rc.insurer, rc.insurancePolicyNumber))
+            ValidityRow(stringResource(R.string.papers_rc_pollution), rc.puccValidUntil, listOfNotNull(rc.puccNumber))
+            ValidityRow(stringResource(R.string.papers_rc_fitness), rc.fitnessValidUntil, emptyList())
+            ValidityRow(stringResource(R.string.papers_rc_road_tax), rc.taxValidUntil, emptyList())
+            ValidityRow(stringResource(R.string.papers_rc_permit), rc.permitValidUntil, listOfNotNull(rc.permitType, rc.permitNumber))
             if (rc.nationalPermitValidUntil != null) {
-                ValidityRow("National permit", rc.nationalPermitValidUntil, emptyList())
+                ValidityRow(stringResource(R.string.papers_rc_national_permit), rc.nationalPermitValidUntil, emptyList())
             }
         }
 
-        RecordSection("Details") {
-            Field("Owner", rc.ownerName)
-            Field("Registered", prettyDate(rc.registrationDate))
-            Field("Status", rc.registrationStatus)
-            Field("Class", listOfNotNull(rc.vehicleClass, rc.bodyType).joinToString(" · ").ifBlank { null })
-            Field("Fuel", listOfNotNull(rc.fuelType, rc.emissionNorms).joinToString(" · ").ifBlank { null })
-            Field("Colour", rc.color)
-            Field("Made", rc.manufacturedOn)
-            Field("Chassis", rc.chassisNumber)
-            Field("Engine", rc.engineNumber)
-            Field("RTO", rc.rto)
-            Field("Seats", rc.seatingCapacity?.toString())
-            Field("Gross weight", rc.grossVehicleWeight?.let { "%,.0f kg".format(it) })
-            Field("Financer", rc.financer)
-            Field("Blacklist", rc.blacklistStatus)
+        RecordSection(stringResource(R.string.papers_rc_details)) {
+            Field(stringResource(R.string.papers_rc_owner), rc.ownerName)
+            Field(stringResource(R.string.papers_rc_registered), prettyDate(rc.registrationDate))
+            Field(stringResource(R.string.papers_rc_status), rc.registrationStatus)
+            Field(stringResource(R.string.papers_rc_class), listOfNotNull(rc.vehicleClass, rc.bodyType).joinToString(" · ").ifBlank { null })
+            Field(stringResource(R.string.papers_rc_fuel), listOfNotNull(rc.fuelType, rc.emissionNorms).joinToString(" · ").ifBlank { null })
+            Field(stringResource(R.string.papers_rc_colour), rc.color)
+            Field(stringResource(R.string.papers_rc_made), rc.manufacturedOn)
+            Field(stringResource(R.string.papers_rc_chassis), rc.chassisNumber)
+            Field(stringResource(R.string.papers_rc_engine), rc.engineNumber)
+            Field(stringResource(R.string.papers_rc_rto), rc.rto)
+            Field(stringResource(R.string.papers_rc_seats), rc.seatingCapacity?.toString())
+            Field(stringResource(R.string.papers_rc_gross_weight), rc.grossVehicleWeight?.let { stringResource(R.string.papers_rc_weight_kg, "%,.0f".format(it)) })
+            Field(stringResource(R.string.papers_rc_financer), rc.financer)
+            Field(stringResource(R.string.papers_rc_blacklist), rc.blacklistStatus)
         }
     }
 }
@@ -167,14 +170,12 @@ internal fun RcAccessPanel(app: OwnerApp, rc: PapersApi.VirtualRc, onUnlocked: s
         PapersApi.ACCESS_FULL -> Unit
         PapersApi.ACCESS_LOCKED -> PinUnlock(app, onUnlocked)
         PapersApi.ACCESS_OWNERSHIP_REQUIRED -> NoticeCard(
-            "Owner details are masked because this account has not confirmed it owns the vehicle. " +
-                "The RC owner's name has to match a verified PAN, Voter ID or business GSTIN on the account. " +
-                "The vehicle's Ownership card on the Saarthi website shows where it stands.",
+            stringResource(R.string.papers_rc_masked_ownership),
             NoticeTone.INFO,
             icon = Lucide.lock,
         )
         else -> NoticeCard(
-            "Owner details, engine number and chassis number are hidden. Your role does not include access to personal vehicle data.",
+            stringResource(R.string.papers_rc_masked_role),
             NoticeTone.INFO,
             icon = Lucide.lock,
         )
@@ -197,20 +198,20 @@ private fun PinUnlock(app: OwnerApp, onUnlocked: suspend () -> Unit) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text("Owner details are masked", style = SType.bodyStrong, color = c.fg)
+        Text(stringResource(R.string.papers_pin_title), style = SType.bodyStrong, color = c.fg)
         Text(
-            "Enter your Secure PIN to see them in full and download the certificate. It is the same 4-digit PIN you use on the Saarthi website.",
+            stringResource(R.string.papers_pin_body),
             style = SType.small,
             color = c.muted,
         )
         PasswordField(
             value = pin,
             onValueChange = { typed -> pin = typed.filter(Char::isDigit).take(PIN_LENGTH) },
-            label = "Secure PIN",
+            label = stringResource(R.string.papers_pin_label),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
         )
         SaarthiButton(
-            "Show full RC",
+            stringResource(R.string.papers_pin_show),
             onClick = {
                 busy = true
                 problem = null
@@ -228,7 +229,7 @@ private fun PinUnlock(app: OwnerApp, onUnlocked: suspend () -> Unit) {
             },
             enabled = pin.length == PIN_LENGTH,
             busy = busy,
-            busyText = "Checking…",
+            busyText = stringResource(R.string.papers_checking),
             leading = Lucide.lock,
             tone = ButtonTone.SECONDARY,
         )
@@ -287,9 +288,9 @@ private fun ValidityRow(label: String, validUntil: String?, detail: List<String>
         Text(
             // The register sometimes holds words rather than a date: "LTT" is a
             // tax paid for the vehicle's lifetime, which never lapses.
-            prettyDate(validUntil)?.let { "Till $it" }
-                ?: validUntil?.takeIf { it.isNotBlank() }?.let { if (it.equals("LTT", ignoreCase = true)) "Lifetime tax" else it }
-                ?: "Not published",
+            prettyDate(validUntil)?.let { stringResource(R.string.papers_rc_till, it) }
+                ?: validUntil?.takeIf { it.isNotBlank() }?.let { if (it.equals("LTT", ignoreCase = true)) stringResource(R.string.papers_rc_lifetime_tax) else it }
+                ?: stringResource(R.string.papers_rc_not_published),
             style = SType.smallStrong,
             color = when (validityOf(validUntil)) {
                 FolderStatus.EXPIRED -> c.danger

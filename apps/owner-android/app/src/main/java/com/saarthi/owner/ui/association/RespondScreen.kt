@@ -33,14 +33,18 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.saarthi.owner.OwnerApp
+import com.saarthi.owner.R
 import com.saarthi.owner.data.SessionStore
 import com.saarthi.owner.network.AssociationApi
 import com.saarthi.owner.ui.common.PlateChip
 import com.saarthi.owner.ui.common.RevealedNotice
+import com.saarthi.owner.ui.common.Words
 import com.saarthi.owner.ui.common.dial
 import com.saarthi.owner.ui.common.formatPlate
 import com.saarthi.owner.ui.common.readable
@@ -134,7 +138,7 @@ fun RespondScreen(app: OwnerApp, account: SessionStore.Account, initial: Associa
         val lng = alert.longitude
         if (lat != null && lng != null) {
             VehicleMap(
-                vehicles = listOf(MapVehicle(alert.id, lat, lng, MarkerState.ALERT, alert.vehicleRegistration?.let(::formatPlate) ?: "SOS")),
+                vehicles = listOf(MapVehicle(alert.id, lat, lng, MarkerState.ALERT, alert.vehicleRegistration?.let(::formatPlate) ?: stringResource(R.string.ui_association_sos))),
                 selectedId = alert.id,
                 onSelect = {},
                 focusRequest = focus,
@@ -149,7 +153,7 @@ fun RespondScreen(app: OwnerApp, account: SessionStore.Account, initial: Associa
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            CircleButton(Lucide.chevronLeft, "Back", navigator::pop, size = 46.dp)
+            CircleButton(Lucide.chevronLeft, stringResource(R.string.action_back), navigator::pop, size = 46.dp)
             Row(
                 Modifier
                     .clip(RoundedCornerShape(23.dp))
@@ -160,7 +164,10 @@ fun RespondScreen(app: OwnerApp, account: SessionStore.Account, initial: Associa
             ) {
                 LiveDot(if (alert.open) c.danger else c.success, breathing = alert.open)
                 Text(
-                    listOfNotNull(if (alert.open) "SOS" else "Resolved", alert.distanceKm?.let { "%.1f km".format(it) }).joinToString(" · "),
+                    listOfNotNull(
+                        stringResource(if (alert.open) R.string.ui_association_sos else R.string.ui_association_resolved),
+                        alert.distanceKm?.let { stringResource(R.string.common_distance_km, "%.1f".format(it)) },
+                    ).joinToString(" · "),
                     style = SType.bodyStrong,
                     color = c.fg,
                 )
@@ -181,7 +188,10 @@ fun RespondScreen(app: OwnerApp, account: SessionStore.Account, initial: Associa
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Eyebrow(
-                "Raised ${ageWords(alert.ageMinutes)}${if (alert.overdue && alert.open) " · not answered yet" else ""}",
+                stringResource(
+                    if (alert.overdue && alert.open) R.string.ui_association_raised_unanswered else R.string.ui_association_raised,
+                    ageWords(alert.ageMinutes),
+                ),
                 color = if (alert.open) c.danger else c.muted,
             )
             alert.vehicleRegistration?.let { PlateChip(it, size = 18.sp) }
@@ -199,12 +209,13 @@ fun RespondScreen(app: OwnerApp, account: SessionStore.Account, initial: Associa
                 IconWell(Lucide.users, well = c.successSoft, ink = c.success, size = 36.dp, radius = 12.dp, iconSize = 16.dp)
                 Text(
                     when {
-                        !alert.open -> if (alert.responderCount == 1) "1 member responded" else "${alert.responderCount} members responded"
-                        alert.awaitingAcknowledgement -> "Nobody has taken this case yet"
-                        going && alert.responderCount > 1 -> "You and ${alert.responderCount - 1} more are going"
-                        going -> "You're going"
-                        alert.responderCount > 0 -> "${alert.responderCount} already going"
-                        else -> "Nobody is going yet"
+                        !alert.open -> pluralStringResource(R.plurals.ui_association_members_responded, alert.responderCount, alert.responderCount)
+                        alert.awaitingAcknowledgement -> stringResource(R.string.ui_association_nobody_taken)
+                        going && alert.responderCount > 1 ->
+                            pluralStringResource(R.plurals.ui_association_you_and_more_going, alert.responderCount - 1, alert.responderCount - 1)
+                        going -> stringResource(R.string.ui_association_you_are_going)
+                        alert.responderCount > 0 -> pluralStringResource(R.plurals.ui_association_already_going, alert.responderCount, alert.responderCount)
+                        else -> stringResource(R.string.ui_association_nobody_going)
                     },
                     style = SType.bodyStrong,
                     color = c.fg,
@@ -218,14 +229,14 @@ fun RespondScreen(app: OwnerApp, account: SessionStore.Account, initial: Associa
                     SaarthiField(
                         note,
                         { note = it.take(1000) },
-                        label = "Note for the record (optional)",
-                        placeholder = "Two members heading there now",
+                        label = stringResource(R.string.ui_association_note_label),
+                        placeholder = stringResource(R.string.ui_association_note_placeholder),
                         keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
                     )
                     SaarthiButton(
-                        "Acknowledge and take this case",
+                        stringResource(R.string.ui_association_acknowledge),
                         onClick = {
-                            act("Case taken. The driver's contact is unlocked.") {
+                            act(Words.get(R.string.ui_association_case_taken)) {
                                 // Shown at once, even if the re-read after it fails: a second tap would only be refused.
                                 app.association.acknowledge(alert.id, note)?.let { alert = it }
                                 note = ""
@@ -237,15 +248,15 @@ fun RespondScreen(app: OwnerApp, account: SessionStore.Account, initial: Associa
                 } else if (!going) {
                     // Once you've said you're going, saying it again would only count you twice.
                     SaarthiButton(
-                        "I'm going",
-                        onClick = { act("You're down as responding. The driver has been told.") { app.association.respond(alert.id, account.userId) } },
+                        stringResource(R.string.ui_association_im_going),
+                        onClick = { act(Words.get(R.string.ui_association_down_as_responding)) { app.association.respond(alert.id, account.userId) } },
                         busy = busy,
                         leading = Lucide.navigation,
                     )
                 }
                 ButtonRow {
                     SaarthiButton(
-                        "Call driver",
+                        stringResource(R.string.ui_association_call_driver),
                         onClick = { phone?.let { context.dial(it) } },
                         tone = ButtonTone.SECONDARY,
                         enabled = phone != null,
@@ -260,16 +271,16 @@ fun RespondScreen(app: OwnerApp, account: SessionStore.Account, initial: Associa
                             .pressable(scale = 0.985f) { context.dial("112") },
                         contentAlignment = Alignment.Center,
                     ) {
-                        Text("Call 112", style = SType.button, color = Color.White)
+                        Text(stringResource(R.string.ui_association_call_112), style = SType.button, color = Color.White)
                     }
                 }
                 when {
-                    alert.awaitingAcknowledgement -> Hint("Call driver unlocks once someone takes the case. Until then Saarthi keeps the driver's name and number sealed.")
-                    phone == null -> Hint("No driver number on record.")
+                    alert.awaitingAcknowledgement -> Hint(stringResource(R.string.ui_association_hint_sealed))
+                    phone == null -> Hint(stringResource(R.string.ui_association_hint_no_number))
                 }
                 // A case can be resolved only once it has been taken, never straight from NOTIFIED.
                 if (alert.taken) {
-                    LinkButton("Mark as resolved", { resolving = true }, color = c.muted, style = SType.smallStrong)
+                    LinkButton(stringResource(R.string.ui_association_mark_as_resolved), { resolving = true }, color = c.muted, style = SType.smallStrong)
                 }
             } else {
                 alert.outcome?.let { NoticeCard(it, NoticeTone.SUCCESS, icon = Lucide.check) }
@@ -278,13 +289,13 @@ fun RespondScreen(app: OwnerApp, account: SessionStore.Account, initial: Associa
 
         BottomSheet(visible = resolving, onDismiss = { resolving = false }) {
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                Text("What was done?", style = SType.sheetTitle, color = c.fg)
-                NotesField(outcome, { outcome = it.take(2000) }, label = "This is the association's record", minHeight = 90.dp)
+                Text(stringResource(R.string.ui_association_what_was_done), style = SType.sheetTitle, color = c.fg)
+                NotesField(outcome, { outcome = it.take(2000) }, label = stringResource(R.string.ui_association_record_label), minHeight = 90.dp)
                 SaarthiButton(
-                    "Mark resolved",
+                    stringResource(R.string.ui_association_mark_resolved),
                     onClick = {
                         resolving = false
-                        act("Resolved.") { app.association.resolve(alert.id, outcome.trim()) }
+                        act(Words.get(R.string.ui_association_resolved_done)) { app.association.resolve(alert.id, outcome.trim()) }
                     },
                     enabled = outcome.trim().length >= 3,
                 )

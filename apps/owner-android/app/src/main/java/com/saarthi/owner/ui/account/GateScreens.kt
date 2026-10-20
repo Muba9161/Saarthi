@@ -31,6 +31,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.saarthi.owner.R
 import com.saarthi.owner.data.AccountType
@@ -65,18 +66,18 @@ fun PausedScreen(
     val scope = rememberCoroutineScope()
     var checking by remember { mutableStateOf(false) }
     GateScreen(
-        eyebrow = account.organizationName.ifBlank { "Your account" },
+        eyebrow = account.organizationName.ifBlank { stringResource(R.string.people_your_account) },
         icon = Lucide.pause,
-        title = "This account is paused",
-        lead = "Nothing has been lost. When the account is active again, everything opens exactly where you left it.",
+        title = stringResource(R.string.people_gate_paused_title),
+        lead = stringResource(R.string.people_gate_paused_lead),
         kept = listOf(
-            "Vehicles and their papers",
-            "Every trip, route and expense",
-            "Drivers, orders and settlements",
+            stringResource(R.string.people_gate_kept_vehicles),
+            stringResource(R.string.people_gate_kept_trips),
+            stringResource(R.string.people_gate_kept_drivers),
         ),
     ) {
         SaarthiButton(
-            "Check again",
+            stringResource(R.string.people_gate_check_again),
             onClick = {
                 checking = true
                 scope.launch {
@@ -88,7 +89,7 @@ fun PausedScreen(
             leading = Lucide.refresh,
         )
         OtherBusinesses(account, api)
-        SaarthiButton("Sign out", onClick = onSignOut, tone = ButtonTone.SECONDARY)
+        SaarthiButton(stringResource(R.string.people_sign_out), onClick = onSignOut, tone = ButtonTone.SECONDARY)
     }
 }
 
@@ -96,7 +97,7 @@ fun PausedScreen(
 @Composable
 private fun OtherBusinesses(account: SessionStore.Account, api: OwnerApi) {
     if (account.businesses.size <= 1) return
-    Eyebrow("Switch business", modifier = Modifier.padding(top = 8.dp))
+    Eyebrow(stringResource(R.string.people_gate_switch_business), modifier = Modifier.padding(top = 8.dp))
     BusinessSwitcher(account, api)
 }
 
@@ -107,18 +108,22 @@ fun NotForThisAppScreen(account: SessionStore.Account, api: OwnerApi, onSignOut:
     GateScreen(
         eyebrow = account.fullName,
         icon = if (driver) Lucide.truck else Lucide.briefcase,
-        title = if (driver) "Drivers have their own app" else "This app is for businesses",
+        title = stringResource(if (driver) R.string.people_gate_drivers_title else R.string.people_gate_business_title),
         lead = if (driver) {
-            "Humsafar by VorldX Saarthi is made for driving — trips, papers and the road. Sign in there with this same account."
+            stringResource(R.string.people_gate_drivers_lead)
         } else if (account.businesses.size > 1) {
-            "${account.organizationName.ifBlank { "This business" }} is run from Saarthi on the web. Switch to one of your other businesses below."
+            if (account.organizationName.isNotBlank()) {
+                stringResource(R.string.people_gate_other_business_lead, account.organizationName)
+            } else {
+                stringResource(R.string.people_gate_this_business_lead)
+            }
         } else {
-            "This account has no fleet, travel, customer, seller or association business to show here. Use Saarthi on the web."
+            stringResource(R.string.people_gate_no_business_lead)
         },
         kept = emptyList(),
     ) {
         OtherBusinesses(account, api)
-        SaarthiButton("Sign out", onClick = onSignOut, tone = ButtonTone.SECONDARY)
+        SaarthiButton(stringResource(R.string.people_sign_out), onClick = onSignOut, tone = ButtonTone.SECONDARY)
     }
 }
 

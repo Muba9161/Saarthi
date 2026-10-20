@@ -1,0 +1,444 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Shared by the fleet, personal, travel and business tabs and screens. -->
+    <string name="fleet_tab_home">होम</string>
+    <string name="fleet_tab_map">मॅप</string>
+    <string name="fleet_tab_fleet">फ्लीट</string>
+    <string name="fleet_tab_jobs">कामे</string>
+    <string name="fleet_greeting">नमस्कार, %1$s</string>
+    <string name="fleet_tab_header_vehicles_drivers">गाड्या आणि ड्रायव्हर</string>
+    <string name="fleet_tab_header_your_fleet">तुमचा फ्लीट</string>
+    <string name="fleet_tab_header_on_your_routes">तुमच्या मार्गांवर</string>
+    <string name="fleet_tab_header_bid_on_work">कामावर बोली लावा</string>
+    <string name="fleet_a_driver">एक ड्रायव्हर</string>
+    <string name="fleet_open_named">%1$s उघडा</string>
+    <string name="fleet_tonnes">%1$s टन</string>
+    <plurals name="fleet_trips">
+        <item quantity="one">%d ट्रिप</item>
+        <item quantity="other">%d ट्रिप</item>
+    </plurals>
+    <plurals name="fleet_papers_expired">
+        <item quantity="one">%d कागदपत्राची मुदत संपली</item>
+        <item quantity="other">%d कागदपत्रांची मुदत संपली</item>
+    </plurals>
+
+    <!-- Fleet home: the reporting line over the cards. -->
+    <string name="fleet_main_live">लाइव्ह</string>
+    <string name="fleet_main_quiet">शांत</string>
+    <plurals name="fleet_main_reporting">
+        <item quantity="one">%d गाडी तुम्हाला रिपोर्ट करत आहे</item>
+        <item quantity="other">%d गाड्या तुम्हाला रिपोर्ट करत आहेत</item>
+    </plurals>
+    <string name="fleet_main_none_reported">अलीकडे कोणत्याही गाडीने रिपोर्ट केलेले नाही</string>
+
+    <!-- Fleet home: approving or turning down a driver, as the toast says it. -->
+    <string name="fleet_model_approved">मंजुरी दिली. ते शिफ्ट सुरू करू शकतात.</string>
+    <string name="fleet_model_rejected">नाकारले. ड्रायव्हरला कारण कळवले आहे.</string>
+
+    <!-- Fleet home: "Fleet right now" card. -->
+    <string name="fleet_now_title">फ्लीट आत्ता</string>
+    <string name="fleet_now_moving">%1$d चालू</string>
+    <string name="fleet_now_on_the_road">रस्त्यावर</string>
+    <string name="fleet_now_idle_offline">%1$d उभ्या · %2$d ऑफलाइन</string>
+    <string name="fleet_now_open_map">मॅप उघडा</string>
+
+    <!-- Fleet home: "Needs you now", the morning tiles and the return-load card. -->
+    <string name="fleet_cards_needs_you_now">आत्ता तुमची गरज आहे</string>
+    <string name="fleet_cards_wants_to_drive">%1$s ला गाडी चालवायची आहे</string>
+    <string name="fleet_cards_approve">मंजुरी द्या</string>
+    <string name="fleet_cards_review">तपासा</string>
+    <string name="fleet_cards_view_request">विनंती पाहा</string>
+    <string name="fleet_cards_cannot_approve">याला मालक किंवा फ्लीट मॅनेजर मंजुरी देतात. गाडी थांबली आहे हे तुम्हाला कळावे म्हणून ते इथे दिसते.</string>
+    <plurals name="fleet_cards_more_waiting">
+        <item quantity="one">याच्यानंतर आणखी %d वाट पाहत आहे</item>
+        <item quantity="other">याच्यानंतर आणखी %d वाट पाहत आहेत</item>
+    </plurals>
+    <string name="fleet_cards_overdue">मुदत उलटली</string>
+    <string name="fleet_cards_time_left">%1$s बाकी</string>
+    <string name="fleet_cards_open_alerts">अलर्ट उघडा</string>
+    <string name="fleet_cards_all_clear_title">आत्ता तुमची गरज असलेले काही नाही</string>
+    <string name="fleet_cards_all_clear_body">मंजुरीची वाट पाहणारे ड्रायव्हर आणि तातडीचे अलर्ट इथे दिसतात.</string>
+    <string name="fleet_cards_trips">ट्रिप</string>
+    <string name="fleet_cards_on_the_road">रस्त्यावर</string>
+    <string name="fleet_cards_late">%1$d उशिरा</string>
+    <string name="fleet_cards_all_on_time">सर्व वेळेवर</string>
+    <string name="fleet_cards_papers">कागदपत्रे</string>
+    <string name="fleet_cards_all_set">सर्व ठीक</string>
+    <string name="fleet_cards_due">%1$d मुदत जवळ</string>
+    <string name="fleet_cards_not_shared">शेअर केलेले नाही</string>
+    <string name="fleet_cards_expired">%1$d मुदत संपली</string>
+    <string name="fleet_cards_nothing_due">काहीही बाकी नाही</string>
+    <string name="fleet_cards_renew_soon">लवकर रिन्यू करा</string>
+    <string name="fleet_cards_backhaul_one">%1$s रिकामी परत येईल</string>
+    <plurals name="fleet_cards_backhaul_trucks">
+        <item quantity="one">%d ट्रक रिकामा परत येईल</item>
+        <item quantity="other">%d ट्रक रिकामे परत येतील</item>
+    </plurals>
+    <string name="fleet_cards_backhaul_line">%2$s पासून %1$s km · परतीचा माल शोधा</string>
+
+    <!-- Approve a driver. -->
+    <string name="fleet_approval_reason_not_assigned">या गाडीवर नेमलेला नाही</string>
+    <string name="fleet_approval_reason_not_ready">गाडी तयार नाही</string>
+    <string name="fleet_approval_reason_unknown_driver">मी या ड्रायव्हरला ओळखत नाही</string>
+    <string name="fleet_approval_eyebrow">ड्रायव्हरची विनंती</string>
+    <string name="fleet_approval_title">ड्रायव्हरला मंजुरी द्या</string>
+    <string name="fleet_approval_slide">%1$s ला मंजुरी देण्यासाठी स्लाइड करा</string>
+    <string name="fleet_approval_turn_this_down">हे नाकारा</string>
+    <string name="fleet_approval_cannot_decide">या विनंतीला मालक किंवा फ्लीट मॅनेजर मंजुरी देतात किंवा नाकारतात.</string>
+    <string name="fleet_approval_left_to_decide">निर्णयासाठी %1$s बाकी</string>
+    <string name="fleet_approval_waiting_for_you">तुमची वाट पाहत आहे</string>
+    <string name="fleet_approval_photo_description">%1$s ने पोहोचल्यावर घेतलेला फोटो</string>
+    <string name="fleet_approval_licence_class">लायसन्स %1$s</string>
+    <string name="fleet_approval_licence_valid">लायसन्स वैध</string>
+    <string name="fleet_approval_licence_expiring">लायसन्सची मुदत लवकरच संपणार</string>
+    <string name="fleet_approval_licence_expired">लायसन्सची मुदत संपली</string>
+    <plurals name="fleet_approval_driven_times">
+        <item quantity="one">हा ट्रक %d वेळा चालवला आहे</item>
+        <item quantity="other">हा ट्रक %d वेळा चालवला आहे</item>
+    </plurals>
+    <string name="fleet_approval_first_time">या ट्रकवर पहिल्यांदाच</string>
+    <plurals name="fleet_approval_years">
+        <item quantity="one">%d वर्ष</item>
+        <item quantity="other">%d वर्षे</item>
+    </plurals>
+    <!-- %1$s is how many years (e.g. "4 years"), %2$s how many trips (e.g. "120 trips"). -->
+    <string name="fleet_approval_experience">%1$s ड्रायव्हिंग · %2$s</string>
+    <string name="fleet_approval_vehicle">गाडी</string>
+    <string name="fleet_approval_awaiting_you">तुमची वाट</string>
+    <string name="fleet_approval_never_automatic">कोणालाही आपोआप मंजुरी मिळत नाही — हे तुमची वाट पाहते.</string>
+    <string name="fleet_approval_why_title">का? %1$s ला हे दिसेल</string>
+    <string name="fleet_approval_own_words">किंवा तुमच्या शब्दांत सांगा</string>
+    <string name="fleet_approval_turn_down">नाकारा</string>
+
+    <!-- Your fleet: vehicles and drivers list. -->
+    <string name="fleet_list_invitation_accepted">%1$s आता माझ्यासोबत शेअर केलेल्या गाड्यांमध्ये आहे.</string>
+    <string name="fleet_list_invitation_declined">आमंत्रण नाकारले.</string>
+    <string name="fleet_list_tab_vehicles">गाड्या · %1$d</string>
+    <string name="fleet_list_tab_drivers">ड्रायव्हर · %1$d</string>
+    <string name="fleet_list_mine">माझ्या</string>
+    <string name="fleet_list_shared">माझ्यासोबत शेअर केलेल्या</string>
+    <string name="fleet_list_shared_count">माझ्यासोबत शेअर केलेल्या · %1$d</string>
+    <string name="fleet_list_open_map">मॅप उघडा</string>
+    <string name="fleet_list_all_count">सर्व · %1$d</string>
+    <plurals name="fleet_list_papers_due_personal">
+        <item quantity="one">तुमच्या गाड्यांमध्ये %d कागदपत्राची मुदत जवळ आली आहे किंवा संपली आहे. चेक पोस्टवर गाडी अडवण्याआधी ते रिन्यू करा.</item>
+        <item quantity="other">तुमच्या गाड्यांमध्ये %d कागदपत्रांची मुदत जवळ आली आहे किंवा संपली आहे. चेक पोस्टवर गाडी अडवण्याआधी ती रिन्यू करा.</item>
+    </plurals>
+    <plurals name="fleet_list_papers_due_fleet">
+        <item quantity="one">फ्लीटमध्ये %d कागदपत्राची मुदत जवळ आली आहे किंवा संपली आहे. चेक पोस्टवर गाडी अडवण्याआधी ते रिन्यू करा.</item>
+        <item quantity="other">फ्लीटमध्ये %d कागदपत्रांची मुदत जवळ आली आहे किंवा संपली आहे. चेक पोस्टवर गाडी अडवण्याआधी ती रिन्यू करा.</item>
+    </plurals>
+    <string name="fleet_list_no_vehicles">इथे अजून गाड्या नाहीत.</string>
+    <string name="fleet_list_add_driver">ड्रायव्हर जोडा</string>
+    <string name="fleet_list_no_drivers">या खात्यावर ड्रायव्हर नाहीत.</string>
+    <string name="fleet_list_speed">%1$d km/h</string>
+    <string name="fleet_list_idle_minutes">उभी %1$d मि</string>
+    <string name="fleet_list_idle">उभी</string>
+    <string name="fleet_list_offline">ऑफलाइन</string>
+    <string name="fleet_list_service">सर्व्हिस</string>
+    <string name="fleet_list_score">स्कोअर %1$d</string>
+
+    <!-- Your fleet: a vehicle as a card, and the rows-or-cards switch. -->
+    <string name="fleet_card_show_cards">कार्ड म्हणून दाखवा</string>
+    <string name="fleet_card_show_list">यादी म्हणून दाखवा</string>
+    <string name="fleet_card_seats">सीट</string>
+    <string name="fleet_card_payload">भार क्षमता</string>
+    <string name="fleet_card_odometer">ओडोमीटर</string>
+    <string name="fleet_card_km">%1$s km</string>
+    <string name="fleet_card_driver">ड्रायव्हर</string>
+    <string name="fleet_card_none">नाही</string>
+    <plurals name="fleet_card_papers_expiring">
+        <item quantity="one">%d कागदपत्राची मुदत संपत आहे</item>
+        <item quantity="other">%d कागदपत्रांची मुदत संपत आहे</item>
+    </plurals>
+    <string name="fleet_card_papers_valid">कागदपत्रे वैध</string>
+    <string name="fleet_card_no_papers">कागदपत्रे अपलोड केलेली नाहीत</string>
+
+    <!-- A vehicle to choose for a bid or a trip. -->
+    <string name="fleet_choice_no_driver">ड्रायव्हर नाही</string>
+    <string name="fleet_choice_free_now">आत्ता मोकळी</string>
+
+    <!-- Live map. -->
+    <string name="fleet_map_filter_all">सर्व</string>
+    <string name="fleet_map_filter_moving">चालू</string>
+    <string name="fleet_map_filter_idle">उभ्या</string>
+    <string name="fleet_map_filter_offline">ऑफलाइन</string>
+    <string name="fleet_map_back">मागे</string>
+    <string name="fleet_map_show_all">संपूर्ण फ्लीट दाखवा</string>
+    <string name="fleet_map_no_vehicles">या खात्यावर अजून गाड्या नाहीत.</string>
+    <string name="fleet_map_no_positions">अजून कोणत्याही गाडीने ठिकाण कळवलेले नाही. ट्रॅकर किंवा फोनने ठिकाण पाठवल्यावर गाडी इथे दिसेल.</string>
+    <string name="fleet_map_search_hint">गाडी नंबर किंवा ड्रायव्हर</string>
+    <string name="fleet_map_clear_search">शोध पुसा</string>
+    <string name="fleet_map_reporting_now">आत्ता रिपोर्ट करत आहे</string>
+    <string name="fleet_map_seen_ago">%1$s पूर्वी दिसली</string>
+    <string name="fleet_map_close">बंद करा</string>
+    <string name="fleet_map_open_vehicle">गाडी उघडा</string>
+
+    <!-- One vehicle's page. -->
+    <string name="fleet_vehicle_title">गाडी</string>
+    <string name="fleet_vehicle_call">%1$s ला फोन करा</string>
+    <string name="fleet_vehicle_follow_map">मॅपवर फॉलो करा</string>
+    <string name="fleet_vehicle_speed">स्पीड</string>
+    <string name="fleet_vehicle_kmh">km/h</string>
+    <string name="fleet_vehicle_seen">दिसली</string>
+    <string name="fleet_vehicle_ago">पूर्वी</string>
+    <string name="fleet_vehicle_odometer">ओडोमीटर</string>
+    <string name="fleet_vehicle_km">km</string>
+    <string name="fleet_vehicle_open_trip">सध्याची ट्रिप उघडा</string>
+    <string name="fleet_vehicle_new_trip">या गाडीने नवीन ट्रिप</string>
+    <string name="fleet_vehicle_driver_removed">ड्रायव्हरला या गाडीवरून काढले.</string>
+    <string name="fleet_vehicle_assigned_you">तुम्हाला या गाडीवर नेमले आहे.</string>
+    <string name="fleet_vehicle_assigned_driver">ड्रायव्हरला या गाडीवर नेमले आहे.</string>
+    <string name="fleet_vehicle_assigned_named">%1$s ला या गाडीवर नेमले आहे.</string>
+    <string name="fleet_vehicle_open_sharing">शेअरिंग उघडा</string>
+    <string name="fleet_vehicle_sharing">शेअरिंग</string>
+    <string name="fleet_vehicle_share_up_to">जास्तीत जास्त %1$d लोकांशी शेअर करा</string>
+    <string name="fleet_vehicle_in_transit">प्रवासात</string>
+    <string name="fleet_vehicle_moving">चालू आहे</string>
+    <string name="fleet_vehicle_stopped">थांबली</string>
+    <string name="fleet_vehicle_not_reporting">रिपोर्ट नाही</string>
+    <string name="fleet_vehicle_in_service">सर्व्हिसमध्ये</string>
+    <string name="fleet_vehicle_current_tracking">सध्याचे ट्रॅकिंग</string>
+    <string name="fleet_vehicle_live_view">लाइव्ह व्ह्यू</string>
+    <string name="fleet_vehicle_current_trip">सध्याची ट्रिप</string>
+    <string name="fleet_vehicle_min_late">%1$d मि उशीर</string>
+    <string name="fleet_vehicle_on_time">वेळेवर</string>
+    <string name="fleet_vehicle_left_at">%1$s ला निघाली</string>
+    <string name="fleet_vehicle_to_go">अजून %1$s बाकी</string>
+    <plurals name="fleet_vehicle_papers_expired_or_declined">
+        <item quantity="one">%d कागदपत्राची मुदत संपली किंवा नामंजूर</item>
+        <item quantity="other">%d कागदपत्रांची मुदत संपली किंवा नामंजूर</item>
+    </plurals>
+    <plurals name="fleet_vehicle_papers_due_soon">
+        <item quantity="one">%d कागदपत्राची मुदत लवकरच</item>
+        <item quantity="other">%d कागदपत्रांची मुदत लवकरच</item>
+    </plurals>
+    <plurals name="fleet_vehicle_papers_in_order">
+        <item quantity="one">%d कागदपत्र नोंदीत, सर्व ठीक</item>
+        <item quantity="other">%d कागदपत्रे नोंदीत, सर्व ठीक</item>
+    </plurals>
+    <plurals name="fleet_vehicle_all_papers_valid">
+        <item quantity="one">सर्व %d कागदपत्र वैध</item>
+        <item quantity="other">सर्व %d कागदपत्रे वैध</item>
+    </plurals>
+    <string name="fleet_vehicle_no_papers">अजून कोणतेही कागदपत्र नोंदीत नाही</string>
+    <string name="fleet_vehicle_open_papers">कागदपत्रे उघडा</string>
+    <string name="fleet_vehicle_papers">कागदपत्रे</string>
+
+    <!-- A from → to pair, when an end has no address. -->
+    <string name="fleet_route_start">सुरुवात</string>
+    <string name="fleet_route_destination">पोहोचायचे ठिकाण</string>
+
+    <!-- Who drives this vehicle, and adding yourself as its driver. -->
+    <string name="fleet_assign_driving">चालवत आहे</string>
+    <string name="fleet_assign_no_driver">ड्रायव्हर नाही</string>
+    <string name="fleet_assign_nobody">ही गाडी चालवण्यासाठी कोणालाही नेमलेले नाही</string>
+    <string name="fleet_assign_take_off_confirm">%1$s ला या गाडीवरून काढायचे?</string>
+    <string name="fleet_assign_keep">ठेवा</string>
+    <string name="fleet_assign_remove">काढा</string>
+    <string name="fleet_assign_change_driver">ड्रायव्हर बदला</string>
+    <string name="fleet_assign_assign_driver">ड्रायव्हर नेमा</string>
+    <string name="fleet_assign_sheet_title">%1$s कोण चालवणार?</string>
+    <string name="fleet_assign_sheet_hint">फक्त पडताळलेले आणि दुसऱ्या गाडीवर नसलेले ड्रायव्हरच निवडता येतात.</string>
+    <string name="fleet_assign_myself">मी स्वतः</string>
+    <string name="fleet_assign_score">स्कोअर %1$d</string>
+    <string name="fleet_assign_none_free">आत्ता कोणताही पडताळलेला ड्रायव्हर मोकळा नाही.</string>
+    <string name="fleet_assign_assign">नेमा</string>
+    <string name="fleet_assign_assigning">नेमत आहे…</string>
+    <string name="fleet_assign_self_adds">तुम्हाला तुमच्याच ड्रायव्हर यादीत जोडते</string>
+    <string name="fleet_assign_self_unverified">तुमच्या लायसन्सची पडताळणी अजून चालू आहे</string>
+    <string name="fleet_assign_self_elsewhere">तुम्ही दुसऱ्या गाडीवर आहात</string>
+    <string name="fleet_assign_self_licence">लायसन्स %1$s</string>
+    <string name="fleet_assign_photo_unusable">तो फोटो वापरता आला नाही.</string>
+    <string name="fleet_assign_licence_unreadable">त्यातून लायसन्स नंबर वाचता आला नाही. अधिक स्पष्ट फोटो घ्या, किंवा नंबर टाइप करा.</string>
+    <string name="fleet_assign_photo_hint">तुमच्या ड्रायव्हिंग लायसन्सचा फोटो घ्या, त्यातून नंबर आपोआप वाचला जाईल.</string>
+    <string name="fleet_assign_scan_licence">लायसन्स स्कॅन करा</string>
+    <string name="fleet_assign_choose_file">फाइल निवडा</string>
+    <string name="fleet_assign_reading">लायसन्स वाचत आहे…</string>
+    <string name="fleet_assign_licence_number">ड्रायव्हिंग लायसन्स नंबर</string>
+    <string name="fleet_assign_add_me">मला जोडा आणि नेमा</string>
+    <string name="fleet_assign_added_unverified">तुम्ही तुमच्या ड्रायव्हर यादीत आहात. लायसन्सची पडताळणी झाल्यावर इथे स्वतःला नेमा.</string>
+    <string name="fleet_assign_adding">जोडत आहे…</string>
+
+    <!-- Return loads. -->
+    <string name="fleet_backhaul_eyebrow">बिझनेस · परतीचा माल</string>
+    <string name="fleet_backhaul_title">परतीचा माल</string>
+    <string name="fleet_backhaul_nothing">कोणताही ट्रक रिकामा परत येणार नाही, आणि परतीच्या रस्त्यावर कोणताही माल वाट पाहत नाही.</string>
+    <string name="fleet_backhaul_no_match">परतीच्या रस्त्याशी अजून काहीही जुळत नाही. ग्राहक नवीन माल पोस्ट करतात तसा तो तपासला जातो.</string>
+    <string name="fleet_backhaul_best_first">सर्वात योग्य आधी</string>
+    <string name="fleet_backhaul_quote_sent">%1$s साठी कोटेशन पाठवले. ग्राहकाला कळवले आहे.</string>
+    <string name="fleet_backhaul_running_empty">लवकरच रिकामी धावणार</string>
+    <string name="fleet_backhaul_drops">ड्रॉप %1$s</string>
+    <!-- %1$s is the drop town, %2$s the empty kilometres back. -->
+    <string name="fleet_backhaul_hero_line">%1$s — %2$s km रिकामी परत येईल</string>
+    <plurals name="fleet_backhaul_loads_match">
+        <item quantity="one">%d लोड परतीच्या रस्त्याशी जुळतो</item>
+        <item quantity="other">%d लोड परतीच्या रस्त्याशी जुळतात</item>
+    </plurals>
+    <string name="fleet_backhaul_watching">परतीच्या रस्त्यावर माल शोधत आहे</string>
+    <string name="fleet_backhaul_risk_line">%1$s · %2$s km रिकामी</string>
+    <string name="fleet_backhaul_best_fit_detour">सर्वात योग्य · %1$d km वळसा</string>
+    <string name="fleet_backhaul_detour">%1$d km वळसा</string>
+    <string name="fleet_backhaul_posted_now">आत्ता पोस्ट केले</string>
+    <string name="fleet_backhaul_posted_ago">%1$s पूर्वी पोस्ट केले</string>
+    <string name="fleet_backhaul_pick_up">पिकअप %1$s</string>
+    <string name="fleet_backhaul_from_drop">ड्रॉपपासून %1$d km</string>
+    <string name="fleet_backhaul_deliver_by">%1$s पर्यंत पोहोचवा</string>
+    <string name="fleet_backhaul_load">लोड</string>
+    <string name="fleet_backhaul_goods">माल</string>
+    <string name="fleet_backhaul_worth">किंमत</string>
+    <string name="fleet_backhaul_quote_sent_button">कोटेशन पाठवले</string>
+    <string name="fleet_backhaul_quote_this">या लोडसाठी कोटेशन द्या</string>
+    <string name="fleet_backhaul_quote_for">%1$s साठी कोटेशन</string>
+    <!-- %1$s from, %2$s to, %3$s the truck's plate. -->
+    <string name="fleet_backhaul_quote_route">%3$s च्या परतीच्या रस्त्यावर %1$s → %2$s.</string>
+    <string name="fleet_backhaul_your_price">तुमची किंमत (₹)</string>
+    <string name="fleet_backhaul_note">टीप (ऐच्छिक)</string>
+    <string name="fleet_backhaul_send_quote">कोटेशन पाठवा</string>
+
+    <!-- Business home (accounts whose own screens are still to come). -->
+    <string name="fleet_home_intro_personal_eyebrow">पर्सनल</string>
+    <string name="fleet_home_intro_personal_line">तुमच्या गाड्या, त्यांची कागदपत्रे आणि प्रत्येक ट्रिप.</string>
+    <string name="fleet_home_intro_travel_eyebrow">ट्रॅव्हल</string>
+    <string name="fleet_home_intro_travel_line">बुकिंग, गाड्या आणि पुढचा रस्ता.</string>
+    <string name="fleet_home_intro_customer_eyebrow">ग्राहक</string>
+    <string name="fleet_home_intro_customer_line">तुम्हाला काय पोहोचवायचे आहे, आणि ते आत्ता कुठे आहे.</string>
+    <string name="fleet_home_intro_seller_eyebrow">सेलर</string>
+    <string name="fleet_home_intro_seller_line">तुमचा स्टॉक, आणि तो लोड करायला येणारे ट्रक.</string>
+    <string name="fleet_home_intro_association_eyebrow">असोसिएशन</string>
+    <string name="fleet_home_intro_association_line">तुमचे सदस्य, आणि रस्त्यावर मदत हवी असलेले कोणीही.</string>
+    <string name="fleet_home_intro_other_line">Saarthi वरचा तुमचा व्यवसाय.</string>
+    <string name="fleet_home_latest">ताजे</string>
+    <string name="fleet_home_nothing_new">नवीन काही नाही. तुमच्या व्यवसायाबद्दलचे अलर्ट इथे दिसतात.</string>
+    <string name="fleet_home_see_all_alerts">सर्व अलर्ट पाहा</string>
+
+    <!-- Personal: tabs. -->
+    <string name="fleet_personal_tab_vehicles">गाड्या</string>
+    <string name="fleet_personal_tab_papers">कागदपत्रे</string>
+    <string name="fleet_personal_header_personal">पर्सनल</string>
+    <string name="fleet_personal_header_your_vehicles">तुमच्या गाड्या</string>
+    <string name="fleet_personal_header_your_papers">तुमची कागदपत्रे</string>
+
+    <!-- Personal: home and papers. -->
+    <string name="fleet_personal_no_vehicle">या खात्यावर अजून गाडी नाही. वेबवरील Saarthi मधून गाडी जोडा.</string>
+    <string name="fleet_personal_vehicle">गाडी</string>
+    <string name="fleet_personal_insurance">विमा</string>
+    <string name="fleet_personal_expired">मुदत संपली</string>
+    <plurals name="fleet_personal_days">
+        <item quantity="one">%d दिवस</item>
+        <item quantity="other">%d दिवस</item>
+    </plurals>
+    <string name="fleet_personal_could_not_load">लोड झाले नाही</string>
+    <string name="fleet_personal_loading">लोड होत आहे</string>
+    <string name="fleet_personal_not_on_file">नोंदीत नाही</string>
+    <string name="fleet_personal_left">बाकी</string>
+    <string name="fleet_personal_papers">कागदपत्रे</string>
+    <string name="fleet_personal_none">नाही</string>
+    <string name="fleet_personal_all_set">सर्व ठीक</string>
+    <string name="fleet_personal_due">%1$d मुदत जवळ</string>
+    <string name="fleet_personal_on_file">%1$d नोंदीत</string>
+    <string name="fleet_personal_odometer">ओडोमीटर</string>
+    <string name="fleet_personal_km">km</string>
+    <string name="fleet_personal_quick_actions">झटपट कामे</string>
+    <string name="fleet_personal_sharing">शेअरिंग</string>
+    <string name="fleet_personal_map">मॅप</string>
+    <plurals name="fleet_personal_shared_with">
+        <item quantity="one">%d व्यक्तीशी शेअर केली</item>
+        <item quantity="other">%d लोकांशी शेअर केली</item>
+    </plurals>
+    <string name="fleet_personal_moving">चालू आहे</string>
+    <string name="fleet_personal_parked">पार्क केलेली</string>
+    <string name="fleet_personal_not_reporting">रिपोर्ट नाही</string>
+    <string name="fleet_personal_where_it_is">ती कुठे आहे</string>
+    <string name="fleet_personal_reporting_now">आत्ता रिपोर्ट करत आहे</string>
+    <string name="fleet_personal_last_seen">शेवटची %1$s पूर्वी दिसली</string>
+    <string name="fleet_personal_no_position">अजून ठिकाण कळवलेले नाही</string>
+    <!-- %1$s is the kind of vehicle, e.g. "car" or "vehicle". -->
+    <string name="fleet_personal_find_my">माझी %1$s शोधा</string>
+    <string name="fleet_personal_vehicle_lower">गाडी</string>
+
+    <!-- Travel: tabs. -->
+    <string name="fleet_travel_tab_bookings">बुकिंग</string>
+    <string name="fleet_travel_header_trips_you_run">तुम्ही चालवता त्या ट्रिप</string>
+    <string name="fleet_travel_tab_requests">विनंत्या</string>
+    <string name="fleet_travel_header_cabs_tours">तुमच्या जवळच्या कॅब आणि टूर</string>
+
+    <!-- Travel: home and the bookings list. -->
+    <string name="fleet_travel_on_the_road">%1$d रस्त्यावर</string>
+    <string name="fleet_travel_nobody_on_road">रस्त्यावर कोणीही नाही</string>
+    <string name="fleet_travel_today">आज</string>
+    <plurals name="fleet_travel_bookings">
+        <item quantity="one">%d बुकिंग</item>
+        <item quantity="other">%d बुकिंग</item>
+    </plurals>
+    <string name="fleet_travel_open_map">मॅप</string>
+    <string name="fleet_travel_on_duty">ड्युटीवर</string>
+    <string name="fleet_travel_vehicles_caption">गाड्या</string>
+    <string name="fleet_travel_awaiting">बाकी</string>
+    <string name="fleet_travel_to_confirm">निश्चित करायचे</string>
+    <string name="fleet_travel_rating">रेटिंग</string>
+    <string name="fleet_travel_from_trips">ट्रिपमधून</string>
+    <string name="fleet_travel_todays_run">आजच्या ट्रिप</string>
+    <string name="fleet_travel_all_bookings">सर्व बुकिंग</string>
+    <string name="fleet_travel_nothing_today">आज काही नाही. पुढे येणारे:</string>
+    <string name="fleet_travel_no_bookings_hint">अजून बुकिंग नाही. डायरी भरण्यासाठी जवळच्या विनंत्यांवर कोटेशन द्या.</string>
+    <string name="fleet_travel_no_bookings">अजून बुकिंग नाही.</string>
+    <string name="fleet_travel_still_to_run">अजून चालवायच्या</string>
+    <string name="fleet_travel_earlier">आधीच्या</string>
+    <string name="fleet_travel_status_confirm_it">निश्चित करा</string>
+    <string name="fleet_travel_status_awaiting_payment">पेमेंटची वाट</string>
+    <string name="fleet_travel_status_driver_assigned">ड्रायव्हर नेमला</string>
+    <string name="fleet_travel_status_on_the_way">रस्त्यात</string>
+    <string name="fleet_travel_status_completed">पूर्ण</string>
+    <string name="fleet_travel_status_cancelled">रद्द</string>
+    <string name="fleet_travel_pickup_today">पिकअप</string>
+
+    <!-- Travel: one booking. -->
+    <string name="fleet_travel_booking_reference">बुकिंग %1$s</string>
+    <string name="fleet_travel_confirm">हे बुकिंग निश्चित करा</string>
+    <string name="fleet_travel_confirmed">निश्चित केले. ग्राहकाला कळवले आहे.</string>
+    <string name="fleet_travel_decline">नाकारा</string>
+    <string name="fleet_travel_start">ट्रिप सुरू करा</string>
+    <string name="fleet_travel_trip_started">ट्रिप सुरू झाली.</string>
+    <string name="fleet_travel_finish">ट्रिप पूर्ण करा</string>
+    <string name="fleet_travel_trip_finished">ट्रिप पूर्ण झाली.</string>
+    <string name="fleet_travel_customer">ग्राहक</string>
+    <plurals name="fleet_travel_people">
+        <item quantity="one">%d व्यक्ती</item>
+        <item quantity="other">%d लोक</item>
+    </plurals>
+    <string name="fleet_travel_call_named">%1$s ला फोन करा</string>
+    <string name="fleet_travel_call_customer">ग्राहकाला फोन करा</string>
+    <string name="fleet_travel_payment">पेमेंट</string>
+    <string name="fleet_travel_paid">ग्राहकाने पेमेंट केले</string>
+    <string name="fleet_travel_not_paid">अजून पेमेंट नाही</string>
+    <string name="fleet_travel_payment_failed">ग्राहकाचे पेमेंट अयशस्वी झाले</string>
+    <string name="fleet_travel_started_without_code">कोडशिवाय सुरू केले. कारण नोंदीत आहे आणि प्रवाशाला कळवले आहे.</string>
+    <string name="fleet_travel_why_decline">तुम्ही हे का घेऊ शकत नाही?</string>
+    <string name="fleet_travel_customer_sees">ग्राहकाला हे दिसते</string>
+    <string name="fleet_travel_decline_booking">बुकिंग नाकारा</string>
+    <string name="fleet_travel_declined">नाकारले. ग्राहकाला कळवले आहे.</string>
+    <string name="fleet_travel_which_vehicle">कोणती गाडी जाणार</string>
+    <plurals name="fleet_travel_no_vehicle_fits">
+        <item quantity="one">तुमची कोणतीही गाडी हे बुकिंग घेऊ शकत नाही. यासाठी किमान %d सीट असलेली, आत्ता मोकळी, ट्रिपवर किंवा सर्व्हिसमध्ये नसलेली प्रवासी गाडी लागते.</item>
+        <item quantity="other">तुमची कोणतीही गाडी हे बुकिंग घेऊ शकत नाही. यासाठी किमान %d सीट असलेली, आत्ता मोकळी, ट्रिपवर किंवा सर्व्हिसमध्ये नसलेली प्रवासी गाडी लागते.</item>
+    </plurals>
+    <string name="fleet_travel_check_again">पुन्हा तपासा</string>
+    <plurals name="fleet_travel_seats">
+        <item quantity="one">%d सीट</item>
+        <item quantity="other">%d सीट</item>
+    </plurals>
+    <string name="fleet_travel_who_drives">कोण चालवणार</string>
+    <string name="fleet_travel_no_verified_driver">प्रवासी ट्रिप फक्त पडताळलेला ड्रायव्हरच घेऊ शकतो, आणि तुमचा एकही ड्रायव्हर अजून पडताळलेला नाही. तुम्ही फक्त गाडीसह निश्चित करू शकता.</string>
+    <string name="fleet_travel_booked">बुक केले</string>
+    <plurals name="fleet_travel_days">
+        <item quantity="one">%d दिवस</item>
+        <item quantity="other">%d दिवस</item>
+    </plurals>
+    <string name="fleet_travel_km">%1$d km</string>
+    <string name="fleet_travel_pickup">पिकअप</string>
+    <string name="fleet_travel_pick_up_at">पिकअप %1$s</string>
+    <string name="fleet_travel_destination">पोहोचायचे ठिकाण</string>
+    <string name="fleet_travel_back_at">परत %1$s</string>
+    <string name="fleet_travel_vehicle_driver">गाडी आणि ड्रायव्हर</string>
+</resources>

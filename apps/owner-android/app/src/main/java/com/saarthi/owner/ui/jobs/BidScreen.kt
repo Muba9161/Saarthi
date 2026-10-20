@@ -28,24 +28,28 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.saarthi.owner.OwnerApp
+import com.saarthi.owner.R
 import com.saarthi.owner.data.SessionStore
 import com.saarthi.owner.network.DriversApi
 import com.saarthi.owner.network.RequirementsApi
 import com.saarthi.owner.network.RequirementsApi.Companion.KIND_MATERIAL
 import com.saarthi.owner.network.RequirementsApi.Companion.SCOPE_TRAVEL
 import com.saarthi.owner.network.VehiclesApi
+import com.saarthi.owner.ui.fleet.VehicleOption
 import com.saarthi.owner.ui.common.DetailScreen
 import com.saarthi.owner.ui.common.Loadable
 import com.saarthi.owner.ui.common.PlateChip
 import com.saarthi.owner.ui.common.RevealedNotice
 import com.saarthi.owner.ui.common.SkeletonCards
+import com.saarthi.owner.ui.common.Words
 import com.saarthi.owner.ui.common.clockOf
-import com.saarthi.owner.ui.common.plural
 import com.saarthi.owner.ui.common.readable
 import com.saarthi.owner.ui.common.rupees
 import com.saarthi.owner.ui.common.unitPrice
@@ -72,7 +76,15 @@ import com.saarthi.owner.ui.shell.LocalNavigator
 import kotlinx.coroutines.launch
 
 /** Vehicle types an operator can offer on a passenger job. */
-private val TravelTypes = listOf("CAR" to "Car", "SUV" to "SUV", "VAN" to "Van", "TEMPO" to "Tempo", "BUS" to "Bus", "TAXI" to "Taxi")
+private val TravelTypes: List<Pair<String, String>>
+    get() = listOf(
+        "CAR" to Words.get(R.string.market_bid_type_car),
+        "SUV" to "SUV",
+        "VAN" to Words.get(R.string.market_bid_type_van),
+        "TEMPO" to Words.get(R.string.market_bid_type_tempo),
+        "BUS" to Words.get(R.string.market_bid_type_bus),
+        "TAXI" to Words.get(R.string.market_bid_type_taxi),
+    )
 
 /**
  * A bid on one job — the design's "Check sellers" for a material job, and
@@ -117,7 +129,7 @@ fun BidScreen(app: OwnerApp, account: SessionStore.Account, job: RequirementsApi
 
     LaunchedEffect(job.id) {
         if (bidScope != SCOPE_TRAVEL) {
-            vehicles = runCatching { app.vehicles.list() }.getOrDefault(emptyList()).sortedByDescending { it.freeForWork() }
+            vehicles = runCatching { app.vehicles.list() }.getOrDefault(emptyList()).sortedByDescending { it.freeForWork }
             drivers = runCatching { app.drivers.list() }.getOrDefault(emptyList())
                 .filter { it.availability != "SUSPENDED" }
                 .sortedBy { if (it.availability == "AVAILABLE") 0 else 1 }
@@ -147,7 +159,7 @@ fun BidScreen(app: OwnerApp, account: SessionStore.Account, job: RequirementsApi
         vehicles.firstOrNull { it.id == vehicleId }?.let { it.currentDriver == null } == true
     val inclusions = entriesOf(inclusionsText)
     val exclusions = entriesOf(exclusionsText)
-    val listProblem = if (travel) problemWith(inclusions, "included item") ?: problemWith(exclusions, "excluded item") else null
+    val listProblem = if (travel) problemWith(inclusions, included = true) ?: problemWith(exclusions, included = false) else null
     val ready = !busy && existing == null && total != null && total > 0 &&
         (bidScope == SCOPE_TRAVEL || vehicleId != null) && (!material || chosenSeller != null) &&
         (!needsDriver || driverId != null) && (!material || canBePaid != false) && listProblem == null
@@ -188,15 +200,15 @@ fun BidScreen(app: OwnerApp, account: SessionStore.Account, job: RequirementsApi
 
     val hours = job.hoursLeft()
     DetailScreen(
-        eyebrow = "Job · ${job.what}",
-        title = if (material) "Check sellers" else if (existing != null) "Your bid" else "Your bid",
+        eyebrow = stringResource(R.string.market_bid_eyebrow, job.what),
+        title = if (material) stringResource(R.string.market_bid_check_sellers) else if (existing != null) stringResource(R.string.market_bid_your_bid) else stringResource(R.string.market_bid_your_bid),
         trailing = {
-            hours?.let { Pill("$it h left", c.warningBg, c.warning) }
+            hours?.let { Pill(stringResource(R.string.market_bid_hours_left, it), c.warningBg, c.warning) }
         },
         footer = {
             if (existing != null) {
                 NoticeCard(
-                    "You bid ${rupees(existing.price)} (${existing.status.lowercase().replace('_', ' ')}). The customer has it.",
+                    stringResource(R.string.market_bid_sent, rupees(existing.price), existing.status.lowercase().replace('_', ' ')),
                     NoticeTone.SUCCESS,
                     icon = Lucide.check,
                 )
@@ -204,18 +216,18 @@ fun BidScreen(app: OwnerApp, account: SessionStore.Account, job: RequirementsApi
                 Column {
                     Row(verticalAlignment = Alignment.Bottom) {
                         Column(Modifier.weight(1f)) {
-                            Eyebrow("Bid to the customer")
-                            Text("One delivered price", style = SType.caption, color = c.muted)
+                            Eyebrow(stringResource(R.string.market_bid_to_customer))
+                            Text(stringResource(R.string.market_bid_one_price), style = SType.caption, color = c.muted)
                         }
                         Text(total?.let(::rupees) ?: "—", style = SType.figure.copy(fontSize = 30.sp), color = c.fg)
                     }
                 }
                 SaarthiButton(
-                    total?.let { "Send bid · ${rupees(it)}" } ?: "Send bid",
+                    total?.let { stringResource(R.string.market_bid_send_amount, rupees(it)) } ?: stringResource(R.string.market_bid_send),
                     onClick = ::send,
                     enabled = ready,
                     busy = busy,
-                    busyText = "Sending…",
+                    busyText = stringResource(R.string.market_bid_sending),
                 )
             }
         },
@@ -224,7 +236,7 @@ fun BidScreen(app: OwnerApp, account: SessionStore.Account, job: RequirementsApi
 
         if (material && canBePaid == false && existing == null) {
             NoticeCard(
-                "Connect and verify your business bank account in Saarthi on the web before bidding on material. The customer's 30% is paid into it.",
+                stringResource(R.string.market_bid_connect_bank, CUSTOMER_SHARE_PERCENT),
                 NoticeTone.WARNING,
                 Modifier.rise(stagger(1)),
                 icon = Lucide.alertTriangle,
@@ -244,7 +256,7 @@ fun BidScreen(app: OwnerApp, account: SessionStore.Account, job: RequirementsApi
             ) {
                 IconWell(Lucide.lock, well = c.primarySoft, ink = c.primary, size = 36.dp, shape = CircleShape, iconSize = 16.dp)
                 Text(
-                    "The customer never sees the seller. You buy it, load it and deliver it.",
+                    stringResource(R.string.market_bid_seller_hidden),
                     style = SType.body,
                     color = c.fg,
                     modifier = Modifier.weight(1f),
@@ -256,12 +268,12 @@ fun BidScreen(app: OwnerApp, account: SessionStore.Account, job: RequirementsApi
                 is Loadable.Ready -> {
                     if (list.value.isEmpty()) {
                         NoticeCard(
-                            "No seller near the site lists this in stock yet. You can bid as soon as one does. You'll see them here.",
+                            stringResource(R.string.market_bid_no_sellers),
                             NoticeTone.INFO,
                             icon = Lucide.box,
                         )
                     } else {
-                        GroupLabel("${plural(list.value.size, "seller")} with stock near the site")
+                        GroupLabel(pluralStringResource(R.plurals.market_bid_sellers_with_stock, list.value.size, list.value.size))
                     }
                     list.value.forEach { match ->
                         SellerCard(match, job, selected = match.materialId == sellerId) { sellerId = match.materialId }
@@ -271,9 +283,9 @@ fun BidScreen(app: OwnerApp, account: SessionStore.Account, job: RequirementsApi
         }
 
         if (bidScope != SCOPE_TRAVEL) {
-            GroupLabel("Which vehicle goes")
+            GroupLabel(stringResource(R.string.market_bid_which_vehicle))
             if (vehicles.isEmpty()) {
-                Text("No vehicle on this account can be offered right now.", style = SType.small, color = c.muted)
+                Text(stringResource(R.string.market_bid_no_vehicle), style = SType.small, color = c.muted)
             }
             Row(
                 Modifier
@@ -287,9 +299,9 @@ fun BidScreen(app: OwnerApp, account: SessionStore.Account, job: RequirementsApi
                 }
             }
             if (needsDriver) {
-                GroupLabel("Who drives it")
+                GroupLabel(stringResource(R.string.market_bid_who_drives))
                 if (drivers.isEmpty()) {
-                    Text("No driver on this account can be named yet.", style = SType.small, color = c.muted)
+                    Text(stringResource(R.string.market_bid_no_driver), style = SType.small, color = c.muted)
                 } else {
                     Row(
                         Modifier
@@ -304,42 +316,42 @@ fun BidScreen(app: OwnerApp, account: SessionStore.Account, job: RequirementsApi
                 }
             }
         } else {
-            GroupLabel("Vehicle you will send")
+            GroupLabel(stringResource(R.string.market_bid_vehicle_you_send))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 TravelTypes.forEach { (value, label) ->
                     ChoiceChip(label, selected = travelType == value, onClick = { travelType = value })
                 }
             }
             Column(Modifier.fillMaxWidth().card(radius = 20.dp).padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                ToggleRow("Driver included", driverIncluded) { driverIncluded = it }
-                ToggleRow("Fuel included", fuelIncluded) { fuelIncluded = it }
+                ToggleRow(stringResource(R.string.market_bid_driver_included), driverIncluded) { driverIncluded = it }
+                ToggleRow(stringResource(R.string.market_bid_fuel_included), fuelIncluded) { fuelIncluded = it }
             }
             if (existing == null) {
-                GroupLabel("What the price includes")
+                GroupLabel(stringResource(R.string.market_bid_price_includes))
                 NotesField(
                     inclusionsText,
                     { inclusionsText = it },
-                    label = "Included, one per line",
-                    placeholder = "Tolls and parking\nDriver allowance",
+                    label = stringResource(R.string.market_bid_included_label),
+                    placeholder = stringResource(R.string.market_bid_included_placeholder),
                     minHeight = 90.dp,
                 )
-                if (job.requiredInclusions.isNotEmpty()) Hint("Filled in with what the customer asked for.")
+                if (job.requiredInclusions.isNotEmpty()) Hint(stringResource(R.string.market_bid_included_prefilled))
                 NotesField(
                     exclusionsText,
                     { exclusionsText = it },
-                    label = "Not included, one per line",
-                    placeholder = "Entry tickets\nMeals",
+                    label = stringResource(R.string.market_bid_excluded_label),
+                    placeholder = stringResource(R.string.market_bid_excluded_placeholder),
                     minHeight = 76.dp,
                 )
                 listProblem?.let { Text(it, style = SType.small, color = c.danger) }
                 NotesField(
                     itinerary,
                     { itinerary = it.take(RequirementsApi.MAX_ITINERARY_LENGTH) },
-                    label = "Itinerary outline (optional)",
-                    placeholder = "Day 1: pickup, drive to the first stop\nDay 2: sightseeing, return",
+                    label = stringResource(R.string.market_bid_itinerary_label),
+                    placeholder = stringResource(R.string.market_bid_itinerary_placeholder),
                     minHeight = 110.dp,
                 )
-                Hint("Day by day, if it is a tour. This is what the customer compares on.")
+                Hint(stringResource(R.string.market_bid_itinerary_hint))
             }
         }
 
@@ -358,7 +370,7 @@ fun BidScreen(app: OwnerApp, account: SessionStore.Account, job: RequirementsApi
             SaarthiField(
                 value = transportText,
                 onValueChange = { transportText = it.filter(Char::isDigit).take(8) },
-                label = "Your transport, delivered to site (₹)",
+                label = stringResource(R.string.market_bid_transport_label),
                 leading = Lucide.truck,
                 placeholder = "6500",
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -367,7 +379,7 @@ fun BidScreen(app: OwnerApp, account: SessionStore.Account, job: RequirementsApi
             SaarthiField(
                 value = priceText,
                 onValueChange = { priceText = it.filter(Char::isDigit).take(8) },
-                label = "Your price for the whole job (₹)",
+                label = stringResource(R.string.market_bid_price_label),
                 leading = Lucide.receipt,
                 placeholder = job.lowestBid?.toLong()?.toString() ?: "25000",
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -377,10 +389,10 @@ fun BidScreen(app: OwnerApp, account: SessionStore.Account, job: RequirementsApi
                 SaarthiField(
                     value = priceBreakdown,
                     onValueChange = { priceBreakdown = it.take(RequirementsApi.MAX_PRICE_BREAKDOWN_LENGTH) },
-                    label = "What that price covers (optional)",
+                    label = stringResource(R.string.market_bid_breakdown_label),
                     leading = Lucide.fileText,
-                    placeholder = "All-inclusive: fuel, tolls, driver allowance",
-                    supporting = "A price with a breakdown wins more often than one without.",
+                    placeholder = stringResource(R.string.market_bid_breakdown_placeholder),
+                    supporting = stringResource(R.string.market_bid_breakdown_supporting),
                 )
             }
         }
@@ -388,9 +400,9 @@ fun BidScreen(app: OwnerApp, account: SessionStore.Account, job: RequirementsApi
             SaarthiField(
                 value = note,
                 onValueChange = { note = it.take(300) },
-                label = "A note for the customer (optional)",
+                label = stringResource(R.string.market_bid_note_label),
                 leading = Lucide.send,
-                placeholder = if (bidScope == SCOPE_TRAVEL) "AC car, tolls and parking included" else "Loaded by 7, at your gate by 11",
+                placeholder = if (bidScope == SCOPE_TRAVEL) stringResource(R.string.market_bid_note_placeholder_travel) else stringResource(R.string.market_bid_note_placeholder_goods),
             )
         }
         error?.let { RevealedNotice(it, NoticeTone.DANGER) }
@@ -410,15 +422,15 @@ private fun JobSummary(job: RequirementsApi.Requirement, modifier: Modifier = Mo
     ) {
         Text(job.title.ifBlank { job.what }, style = SType.cardTitle, color = c.fg, maxLines = 2, overflow = TextOverflow.Ellipsis)
         Text(
-            if (job.kind == KIND_MATERIAL) "Deliver to ${job.destinationAddress ?: job.originAddress}" else job.route,
+            if (job.kind == KIND_MATERIAL) stringResource(R.string.market_bid_deliver_to, job.destinationAddress ?: job.originAddress) else job.route,
             style = SType.small,
             color = c.muted,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            clockOf(job.startAt)?.let { Pill("Needed $it", c.sunken, c.fg) }
-            Pill(if (job.bidCount == 0) "No bids yet" else "${plural(job.bidCount, "bid")} so far", c.sunken, c.muted)
+            clockOf(job.startAt)?.let { Pill(stringResource(R.string.market_bid_needed, it), c.sunken, c.fg) }
+            Pill(if (job.bidCount == 0) stringResource(R.string.market_jobs_no_bids) else pluralStringResource(R.plurals.market_jobs_bids_so_far, job.bidCount, job.bidCount), c.sunken, c.muted)
         }
     }
 }
@@ -458,19 +470,19 @@ private fun SellerCard(
                 Text(
                     listOfNotNull(
                         match.pickupAddress?.substringBefore(',')?.ifBlank { null },
-                        match.distanceKm?.let { "${it.toInt()} km from site" },
+                        match.distanceKm?.let { stringResource(R.string.market_bid_km_from_site, it.toInt()) },
                     ).joinToString(" · ").ifBlank { match.name },
                     style = SType.caption,
                     color = c.muted,
                     maxLines = 1,
                 )
             }
-            if (short) Pill("Short on stock", c.warningBg, c.warning)
+            if (short) Pill(stringResource(R.string.market_bid_short_on_stock), c.warningBg, c.warning)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Figure("Price", "${unitPrice(match.pricePerUnit)}/${RequirementsApi.unitWord(match.unit).removeSuffix("s")}", Modifier.weight(1f))
-            Figure("In stock", "${match.availableQuantity.toLong()} ${RequirementsApi.unitWord(match.unit)}", Modifier.weight(1f), if (short) c.warning else c.success)
-            Figure("For ${job.quantity?.toLong() ?: ""} ${RequirementsApi.unitWord(job.unit)}".trim(), match.procurementReference?.let(::rupees) ?: "—", Modifier.weight(1f))
+            Figure(stringResource(R.string.market_bid_price), "${unitPrice(match.pricePerUnit)}/${RequirementsApi.unitSingular(match.unit)}", Modifier.weight(1f))
+            Figure(stringResource(R.string.market_listing_in_stock), "${match.availableQuantity.toLong()} ${RequirementsApi.unitWord(match.unit)}", Modifier.weight(1f), if (short) c.warning else c.success)
+            Figure(stringResource(R.string.market_bid_for_quantity, "${job.quantity?.toLong() ?: ""} ${RequirementsApi.unitWord(job.unit)}".trim()), match.procurementReference?.let(::rupees) ?: "—", Modifier.weight(1f))
         }
     }
 }
@@ -492,55 +504,25 @@ private fun Figure(label: String, value: String, modifier: Modifier = Modifier, 
 /** A list typed one entry per line (or comma separated), read the way the web's bid dialog reads it. */
 private fun entriesOf(text: String): List<String> = text.split('\n', ',').map(String::trim).filter(String::isNotEmpty)
 
-/** Why the server would refuse a bid's list of [what]s, in words; null when it would be accepted. */
-private fun problemWith(entries: List<String>, what: String): String? = when {
-    entries.size > RequirementsApi.MAX_BID_LIST_ENTRIES -> "List at most ${RequirementsApi.MAX_BID_LIST_ENTRIES} ${what}s."
-    entries.any { it.length < RequirementsApi.MIN_BID_ENTRY_LENGTH } ->
-        "Each $what needs at least ${RequirementsApi.MIN_BID_ENTRY_LENGTH} characters."
-    entries.any { it.length > RequirementsApi.MAX_BID_ENTRY_LENGTH } ->
-        "Keep each $what to ${RequirementsApi.MAX_BID_ENTRY_LENGTH} characters or fewer."
+/** Why the server would refuse a bid's list of [included] or excluded items, in words; null when it would be accepted. */
+private fun problemWith(entries: List<String>, included: Boolean): String? = when {
+    entries.size > RequirementsApi.MAX_BID_LIST_ENTRIES -> Words.get(
+        if (included) R.string.market_bid_included_too_many else R.string.market_bid_excluded_too_many,
+        RequirementsApi.MAX_BID_LIST_ENTRIES,
+    )
+    entries.any { it.length < RequirementsApi.MIN_BID_ENTRY_LENGTH } -> Words.get(
+        if (included) R.string.market_bid_included_too_short else R.string.market_bid_excluded_too_short,
+        RequirementsApi.MIN_BID_ENTRY_LENGTH,
+    )
+    entries.any { it.length > RequirementsApi.MAX_BID_ENTRY_LENGTH } -> Words.get(
+        if (included) R.string.market_bid_included_too_long else R.string.market_bid_excluded_too_long,
+        RequirementsApi.MAX_BID_ENTRY_LENGTH,
+    )
     else -> null
 }
 
-/** Free to take new work: nothing running on it, and not in the workshop. A driver being attached does not make it busy. */
-private fun VehiclesApi.Vehicle.freeForWork(): Boolean =
-    currentTripId == null && status in setOf("AVAILABLE", "IDLE", "ASSIGNED")
-
-/** Why a vehicle is not free, in a word. */
-private fun VehiclesApi.Vehicle.busyWord(): String = when {
-    status == "MAINTENANCE" -> "in service"
-    status == "SUSPENDED" -> "suspended"
-    currentTripId != null || status in setOf("ON_TRIP", "LOADING", "UNLOADING") -> "on a trip"
-    else -> "busy"
-}
-
-@Composable
-private fun VehicleOption(vehicle: VehiclesApi.Vehicle, selected: Boolean, onPick: () -> Unit) {
-    val c = Saarthi.colors
-    val free = vehicle.freeForWork()
-    Column(
-        Modifier
-            .card(radius = 18.dp, ring = if (selected) c.primary else c.ring, color = if (selected) c.primaryWash else c.card)
-            .pressable(scale = 0.97f, onClick = onPick)
-            .padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        PlateChip(vehicle.registrationNumber, size = 12.sp)
-        Text(
-            listOfNotNull(
-                vehicle.categoryLabel ?: vehicle.typeLabel.ifBlank { null },
-                when {
-                    !free -> vehicle.busyWord()
-                    vehicle.currentDriver == null -> "no driver"
-                    else -> "free now"
-                },
-            ).joinToString(" · "),
-            style = SType.caption,
-            color = if (free) c.muted else c.warning,
-            maxLines = 1,
-        )
-    }
-}
+/** The customer's share paid up front into the fleet's bank account. */
+private const val CUSTOMER_SHARE_PERCENT = 30
 
 @Composable
 private fun ToggleRow(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {

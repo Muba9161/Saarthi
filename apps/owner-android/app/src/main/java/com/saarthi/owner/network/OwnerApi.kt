@@ -1,8 +1,10 @@
 package com.saarthi.owner.network
 
 import android.util.Log
+import com.saarthi.owner.R
 import com.saarthi.owner.data.AccountType
 import com.saarthi.owner.data.SessionStore
+import com.saarthi.owner.ui.common.Words
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -57,14 +59,17 @@ class OwnerApi(
     /** What went wrong, in the shape a screen can act on. */
     sealed class Failure(override val message: String) : Exception(message) {
         /** No usable connection. Wait, do not re-enter a password. */
-        class Offline(cause: Throwable) : Failure("No connection to Saarthi. Check the internet and try again.") {
+        class Offline(cause: Throwable) : Failure(Words.get(R.string.net_error_offline)) {
             init {
                 initCause(cause)
             }
         }
 
         /** Signed out, or never signed in. The app returns to sign-in. */
-        data object SignedOut : Failure("Please sign in again.") {
+        data object SignedOut : Failure("") {
+            // Read each time: one object lives across language changes.
+            override val message: String get() = Words.get(R.string.net_error_signed_out)
+
             private fun readResolve(): Any = SignedOut
         }
 
@@ -155,7 +160,7 @@ class OwnerApi(
         )
         return json.decodeFromString(Envelope.serializer(ForgotReply.serializer()), raw).data?.message
             ?.ifBlank { null }
-            ?: "If an account exists for that email address, we have emailed it a password reset link."
+            ?: Words.get(R.string.net_forgot_password_sent)
     }
 
     /**
@@ -192,7 +197,7 @@ class OwnerApi(
     private suspend fun authenticate(path: String, body: String): SessionStore.Account {
         val raw = send("POST", path, body, authenticated = false)
         val auth = json.decodeFromString(Envelope.serializer(AuthDto.serializer()), raw).data
-            ?: throw Failure.Refused(200, "Saarthi answered but sent nothing back.")
+            ?: throw Failure.Refused(200, Words.get(R.string.net_error_empty_reply))
         return adopt(auth)
     }
 
@@ -210,14 +215,14 @@ class OwnerApi(
             json.encodeToString(SwitchRequest.serializer(), SwitchRequest(organizationId)),
         )
         val auth = json.decodeFromString(Envelope.serializer(AuthDto.serializer()), raw).data
-            ?: throw Failure.Refused(200, "Saarthi answered but sent nothing back.")
+            ?: throw Failure.Refused(200, Words.get(R.string.net_error_empty_reply))
         // Only the access token changes hands here; the refresh token stays as it was.
         return if (auth.session != null) adopt(auth) else restore() ?: throw Failure.SignedOut
     }
 
     private fun adopt(auth: AuthDto): SessionStore.Account {
-        val payload = auth.session ?: throw Failure.Refused(200, "Saarthi did not say who signed in.")
-        val user = payload.user ?: throw Failure.Refused(200, "Saarthi did not say who signed in.")
+        val payload = auth.session ?: throw Failure.Refused(200, Words.get(R.string.net_error_no_user))
+        val user = payload.user ?: throw Failure.Refused(200, Words.get(R.string.net_error_no_user))
         val organization = payload.organization
 
         val account = SessionStore.Account(
@@ -299,8 +304,10 @@ class OwnerApi(
 
     /**
      * A signed-in multipart POST: [fields] as form fields and [file] under
-     * [fileField], answered like any other POST. The server inspects the bytes
-     * itself, so the type sent here is only a label.
+     * [fileField], answered like any other POST. [extraFiles] go after it under
+     * their own field names (a 360° spin frame's small rendition, as
+     * `thumbnail`). The server inspects the bytes itself, so the type sent here
+     * is only a label.
      */
     suspend fun <T> upload(
         path: String,
@@ -308,6 +315,7 @@ class OwnerApi(
         fileField: String,
         file: Upload,
         serializer: KSerializer<T>,
+        extraFiles: Map<String, Upload> = emptyMap(),
         retryAfterRefresh: Boolean = true,
     ): T? {
         try {
@@ -317,6 +325,9 @@ class OwnerApi(
                     .apply {
                         fields.forEach { (name, value) -> addFormDataPart(name, value) }
                         addFormDataPart(fileField, file.fileName, file.bytes.toRequestBody(file.mimeType.toMediaType()))
+                        extraFiles.forEach { (name, extra) ->
+                            addFormDataPart(name, extra.fileName, extra.bytes.toRequestBody(extra.mimeType.toMediaType()))
+                        }
                     }
                     .build()
                 val request = Request.Builder()
@@ -332,7 +343,7 @@ class OwnerApi(
         } catch (error: Failure.SignedOut) {
             if (!retryAfterRefresh) throw error
             refreshLock.withLock { restore() } ?: throw error
-            return upload(path, fields, fileField, file, serializer, retryAfterRefresh = false)
+            return upload(path, fields, fileField, file, serializer, extraFiles, retryAfterRefresh = false)
         }
     }
 
@@ -365,7 +376,7 @@ class OwnerApi(
                 }
                 response.use { raw ->
                     if (!raw.isSuccessful) refuse(raw.code, raw.body?.string().orEmpty(), request, authenticated = true)
-                    val body = raw.body ?: throw Failure.Refused(raw.code, "Saarthi sent an empty file.")
+                    val body = raw.body ?: throw Failure.Refused(raw.code, Words.get(R.string.net_error_empty_file))
                     into.parentFile?.mkdirs()
                     val partial = File(into.parentFile, "${into.name}.part")
                     try {
@@ -450,11 +461,11 @@ class OwnerApi(
         // itself it means the email or password is wrong, and says so.
         if (status == 401) {
             if (authenticated) throw Failure.SignedOut
-            throw Failure.Refused(status, parsed?.message ?: "The email address or password is incorrect.")
+            throw Failure.Refused(status, parsed?.message ?: Words.get(R.string.net_error_wrong_password))
         }
         // The path and status only — a sign-in body carries the password.
         Log.w(TAG, "$status ${request.method} ${request.url.encodedPath}")
-        throw Failure.Refused(status, parsed?.message ?: "Saarthi refused that request.", parsed?.code)
+        throw Failure.Refused(status, parsed?.message ?: Words.get(R.string.net_error_refused), parsed?.code)
     }
 
     @Serializable

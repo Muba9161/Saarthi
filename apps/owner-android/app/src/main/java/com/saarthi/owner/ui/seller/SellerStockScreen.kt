@@ -29,6 +29,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -36,6 +37,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.saarthi.owner.OwnerApp
+import com.saarthi.owner.R
+import com.saarthi.owner.data.SessionStore
 import com.saarthi.owner.network.CommerceApi
 import com.saarthi.owner.network.MaterialsApi
 import com.saarthi.owner.network.PlacesApi
@@ -53,9 +56,9 @@ import com.saarthi.owner.ui.common.readable
 import com.saarthi.owner.ui.common.rupees
 import com.saarthi.owner.ui.common.tabBarClearance
 import com.saarthi.owner.ui.common.unitPrice
-import com.saarthi.owner.ui.design.BottomSheet
 import com.saarthi.owner.ui.design.ChoiceChip
 import com.saarthi.owner.ui.design.CompactField
+import com.saarthi.owner.ui.design.NotesField
 import com.saarthi.owner.ui.design.IconWell
 import com.saarthi.owner.ui.design.Lucide
 import com.saarthi.owner.ui.design.NoticeTone
@@ -69,7 +72,6 @@ import com.saarthi.owner.ui.design.pressable
 import com.saarthi.owner.ui.design.rise
 import com.saarthi.owner.ui.jobs.Pill
 import com.saarthi.owner.ui.shell.LocalNavigator
-import com.saarthi.owner.ui.shell.ShellOverlay
 import kotlinx.coroutines.launch
 
 /**
@@ -77,12 +79,16 @@ import kotlinx.coroutines.launch
  * current here: the price, the stock, and whether a listing is shown at all.
  */
 @Composable
-fun SellerStockScreen(app: OwnerApp) {
+fun SellerStockScreen(app: OwnerApp, account: SessionStore.Account) {
     val model = viewModel { SellerModel(app.orders, app.materials) }
     val state by model.state.collectAsStateWithLifecycle()
     var category by rememberSaveable { mutableStateOf<String?>(null) }
-    var editing by remember { mutableStateOf<MaterialsApi.Listing?>(null) }
     val navigator = LocalNavigator.current
+    val openListing: (MaterialsApi.Listing) -> Unit = { listing ->
+        navigator.push("listing-${listing.id}") {
+            ListingScreen(app, account, listing) { changed -> if (changed == null) model.dropListing(listing.id) else model.replaceListing(changed) }
+        }
+    }
     val scope = rememberCoroutineScope()
     val c = Saarthi.colors
     val top = headerClearance()
@@ -115,7 +121,7 @@ fun SellerStockScreen(app: OwnerApp) {
                         ) {
                             IconWell(Lucide.eye, well = c.primarySoft, ink = c.primary, size = 36.dp, shape = CircleShape, iconSize = 16.dp)
                             Text(
-                                "Fleets bidding on jobs near you compare your price and stock. Keep both current to win orders.",
+                                stringResource(R.string.market_stock_note),
                                 style = SType.body,
                                 color = c.fg,
                                 modifier = Modifier.weight(1f),
@@ -125,7 +131,7 @@ fun SellerStockScreen(app: OwnerApp) {
                     if (categories.size > 1) {
                         item(key = "chips") {
                             Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                ChoiceChip("All · ${listings.size}", selected = category == null, onClick = { category = null })
+                                ChoiceChip(stringResource(R.string.market_stock_all, listings.size), selected = category == null, onClick = { category = null })
                                 categories.forEach { name ->
                                     ChoiceChip(name, selected = category == name, onClick = { category = name })
                                 }
@@ -134,8 +140,18 @@ fun SellerStockScreen(app: OwnerApp) {
                     }
                     item(key = "add") {
                         SaarthiButton(
-                            "Add a listing",
-                            onClick = { navigator.push("new-listing") { NewListingScreen(app) { model.replaceListing(it) } } },
+                            stringResource(R.string.market_stock_add_listing),
+                            onClick = {
+                                navigator.push("new-listing") {
+                                    NewListingScreen(app) { created ->
+                                        model.replaceListing(created)
+                                        // Straight on to its photos, in the listing's own page.
+                                        navigator.replace("listing-${created.id}") {
+                                            ListingScreen(app, account, created) { changed -> if (changed == null) model.dropListing(created.id) else model.replaceListing(changed) }
+                                        }
+                                    }
+                                }
+                            },
                             leading = Lucide.plus,
                             height = 50.dp,
                             tone = com.saarthi.owner.ui.design.ButtonTone.SECONDARY,
@@ -144,7 +160,7 @@ fun SellerStockScreen(app: OwnerApp) {
                     items(listed, key = { it.id }) { listing ->
                         ListingCard(
                             listing,
-                            onOpen = { editing = listing },
+                            onOpen = { openListing(listing) },
                             onShownChange = { shownNow ->
                                 scope.launch {
                                     runCatching { app.materials.update(listing.id, shown = shownNow) }
@@ -157,20 +173,6 @@ fun SellerStockScreen(app: OwnerApp) {
             }
         }
 
-        val open = editing
-        ShellOverlay("stock-edit") {
-            EditSheet(listing = open, onDismiss = { editing = null }) { listing, price, stock, done ->
-                scope.launch {
-                    runCatching { app.materials.update(listing.id, price = price, stock = stock) }
-                        .onSuccess { updated ->
-                            updated?.let(model::replaceListing)
-                            editing = null
-                            done(null)
-                        }
-                        .onFailure { done(it.readable()) }
-                }
-            }
-        }
     }
 }
 
@@ -190,19 +192,21 @@ private fun ListingCard(listing: MaterialsApi.Listing, onOpen: () -> Unit, onSho
             Column(Modifier.weight(1f)) {
                 Text(listing.name, style = SType.bodyStrong, color = c.fg, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(
-                    if (listing.shown) (if (listing.low) "Shown to fleets as \"low stock\"" else "Shown to fleets") else "Hidden from fleets",
+                    if (listing.shown) (if (listing.low) stringResource(R.string.market_stock_shown_low) else stringResource(R.string.market_stock_shown)) else stringResource(R.string.market_stock_hidden),
                     style = SType.caption,
                     color = c.muted,
                 )
             }
-            SaarthiSwitch(checked = listing.shown, onCheckedChange = onShownChange, label = "Show ${listing.name} to fleets")
+            SaarthiSwitch(checked = listing.shown, onCheckedChange = onShownChange, label = stringResource(R.string.market_listing_show_named, listing.name))
         }
         Row(verticalAlignment = Alignment.Bottom) {
             Text(unitPrice(listing.pricePerUnit), style = SType.headerTitle.copy(fontSize = 22.sp), color = c.fg)
             Text(" / ${RequirementsApi.unitSingular(listing.unit)}", style = SType.small, color = c.muted, modifier = Modifier.padding(bottom = 3.dp))
             Box(Modifier.weight(1f))
             Pill(
-                "${listing.availableQuantity.let { if (it % 1.0 == 0.0) "%,d".format(it.toLong()) else it.toString() }} $unit${if (listing.low) " left" else ""}",
+                listing.availableQuantity.let { if (it % 1.0 == 0.0) "%,d".format(it.toLong()) else it.toString() }.let { quantity ->
+                    if (listing.low) stringResource(R.string.market_stock_left, quantity, unit) else "$quantity $unit"
+                },
                 if (listing.low) c.warningBg else c.successBg,
                 if (listing.low) c.warning else c.success,
             )
@@ -213,65 +217,6 @@ private fun ListingCard(listing: MaterialsApi.Listing, onOpen: () -> Unit, onSho
         }
     }
 }
-
-/** Price and stock, changed in one place. */
-@Composable
-private fun EditSheet(
-    listing: MaterialsApi.Listing?,
-    onDismiss: () -> Unit,
-    onSave: (MaterialsApi.Listing, Double, Double, (String?) -> Unit) -> Unit,
-) {
-    val c = Saarthi.colors
-    var shown by remember { mutableStateOf(listing) }
-    if (listing != null) shown = listing
-    var price by remember(listing?.id) { mutableStateOf(listing?.pricePerUnit?.let { if (it % 1.0 == 0.0) it.toLong().toString() else it.toString() }.orEmpty()) }
-    var stock by remember(listing?.id) { mutableStateOf(listing?.availableQuantity?.let { if (it % 1.0 == 0.0) it.toLong().toString() else it.toString() }.orEmpty()) }
-    var busy by remember(listing?.id) { mutableStateOf(false) }
-    var error by remember(listing?.id) { mutableStateOf<String?>(null) }
-
-    BottomSheet(visible = listing != null, onDismiss = onDismiss) {
-        val current = shown ?: return@BottomSheet
-        val unit = RequirementsApi.unitWord(current.unit).ifBlank { "unit" }
-        val one = RequirementsApi.unitSingular(current.unit)
-        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Text(current.name, style = SType.sheetTitle, color = c.fg)
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                CompactField(
-                    value = price,
-                    onValueChange = { price = it.filter { ch -> ch.isDigit() || ch == '.' }.take(10) },
-                    label = "Price per $one (₹)",
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.weight(1f),
-                )
-                CompactField(
-                    value = stock,
-                    onValueChange = { stock = it.filter { ch -> ch.isDigit() || ch == '.' }.take(10) },
-                    label = "In stock ($unit)",
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.weight(1f),
-                )
-            }
-            error?.let { RevealedNotice(it, NoticeTone.DANGER) }
-            SaarthiButton(
-                "Save",
-                onClick = {
-                    val p = price.toDoubleOrNull() ?: return@SaarthiButton
-                    val s = stock.toDoubleOrNull() ?: return@SaarthiButton
-                    busy = true
-                    error = null
-                    onSave(current, p, s) { problem ->
-                        busy = false
-                        error = problem
-                    }
-                },
-                enabled = (price.toDoubleOrNull() ?: 0.0) > 0 && stock.toDoubleOrNull() != null,
-                busy = busy,
-            )
-        }
-    }
-}
-
-private val ListingUnits = listOf("TON" to "tonnes", "BAG" to "bags", "CUBIC_METER" to "m³", "PIECE" to "pieces", "KG" to "kg", "LITRE" to "litres")
 
 /** A new listing: what it is, its price and stock, and where trucks collect it. */
 @Composable
@@ -285,17 +230,18 @@ private fun NewListingScreen(app: OwnerApp, onCreated: (MaterialsApi.Listing) ->
     var stock by rememberSaveable { mutableStateOf("") }
     var minimum by rememberSaveable { mutableStateOf("1") }
     var pickup by remember { mutableStateOf<PlacesApi.Place?>(null) }
+    var description by rememberSaveable { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     // The category is what fleets' searches find it by, so it is needed like the price is.
     val ready = !busy && name.trim().length >= 2 && entry.ready && (price.toDoubleOrNull() ?: 0.0) > 0 && stock.toDoubleOrNull() != null
 
     DetailScreen(
-        eyebrow = "What fleets see",
-        title = "New listing",
+        eyebrow = stringResource(R.string.market_seller_what_fleets_see),
+        title = stringResource(R.string.market_stock_new_listing),
         footer = {
             SaarthiButton(
-                "Show it to fleets",
+                stringResource(R.string.market_stock_show_to_fleets),
                 onClick = {
                     busy = true
                     error = null
@@ -312,9 +258,9 @@ private fun NewListingScreen(app: OwnerApp, onCreated: (MaterialsApi.Listing) ->
                                     stock = stock.toDouble(),
                                     minimumOrder = minimum.toDoubleOrNull() ?: 1.0,
                                     pickup = pickup,
+                                    description = description.trim(),
                                 ),
-                            )?.let(onCreated)
-                            navigator.pop()
+                            )?.let(onCreated) ?: navigator.pop()
                         } catch (failure: Exception) {
                             busy = false
                             error = failure.readable()
@@ -326,19 +272,21 @@ private fun NewListingScreen(app: OwnerApp, onCreated: (MaterialsApi.Listing) ->
             )
         },
     ) {
-        SaarthiField(value = name, onValueChange = { name = it.take(120) }, label = "What you sell", leading = Lucide.box, placeholder = "M-sand, plastering grade")
+        SaarthiField(value = name, onValueChange = { name = it.take(120) }, label = stringResource(R.string.market_listing_what_you_sell), leading = Lucide.box, placeholder = stringResource(R.string.market_stock_name_placeholder))
         CommerceDetails(entry, name, app.commerce)
         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             ListingUnits.forEach { (value, label) -> ChoiceChip(label, selected = unit == value, onClick = { unit = value }, height = 36.dp) }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            CompactField(price, { price = it.filter { ch -> ch.isDigit() || ch == '.' }.take(10) }, "Price (₹)", Modifier.weight(1f), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal))
-            CompactField(stock, { stock = it.filter { ch -> ch.isDigit() || ch == '.' }.take(10) }, "In stock", Modifier.weight(1f), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal))
-            CompactField(minimum, { minimum = it.filter { ch -> ch.isDigit() || ch == '.' }.take(8) }, "Min. order", Modifier.weight(1f), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal))
+            CompactField(price, { price = it.filter { ch -> ch.isDigit() || ch == '.' }.take(10) }, stringResource(R.string.market_stock_price), Modifier.weight(1f), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal))
+            CompactField(stock, { stock = it.filter { ch -> ch.isDigit() || ch == '.' }.take(10) }, stringResource(R.string.market_listing_in_stock), Modifier.weight(1f), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal))
+            CompactField(minimum, { minimum = it.filter { ch -> ch.isDigit() || ch == '.' }.take(8) }, stringResource(R.string.market_listing_min_order), Modifier.weight(1f), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal))
         }
-        PlaceField(label = "Trucks collect from", place = pickup, places = app.places, onPick = { pickup = it })
+        PlaceField(label = stringResource(R.string.market_listing_pickup), place = pickup, places = app.places, onPick = { pickup = it })
+        NotesField(description, { description = it.take(2000) }, label = stringResource(R.string.market_stock_notes_optional), minHeight = 80.dp)
+        Text(stringResource(R.string.market_stock_photos_next), style = SType.caption, color = Saarthi.colors.subtle)
         entry.missing.firstOrNull()?.let { field ->
-            Text("Add the ${field.label.lowercase()} to list it.", style = SType.caption, color = Saarthi.colors.subtle)
+            Text(stringResource(R.string.market_stock_add_field, field.label.lowercase()), style = SType.caption, color = Saarthi.colors.subtle)
         }
         error?.let { RevealedNotice(it, NoticeTone.DANGER) }
     }

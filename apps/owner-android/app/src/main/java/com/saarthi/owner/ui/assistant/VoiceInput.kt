@@ -19,6 +19,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
+import com.saarthi.owner.R
+import com.saarthi.owner.ui.common.Words
 import java.util.Locale
 
 /**
@@ -86,11 +88,11 @@ class VoiceInput(private val context: Context) {
                 // Stopping it ourselves ends in an error too; that is not a problem to show.
                 if (stoppedOnPurpose) return
                 problem = when (error) {
-                    SpeechRecognizer.ERROR_NO_MATCH, SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "I didn't catch that. Tap the mic and try again."
-                    SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "Saarthi needs the microphone to hear you. Allow it in the phone's settings."
-                    SpeechRecognizer.ERROR_NETWORK, SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "Voice needs the internet. Check the connection and try again."
-                    SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> "The phone is still busy with the last one. Try again in a moment."
-                    else -> "Voice isn't working right now. You can type the question instead."
+                    SpeechRecognizer.ERROR_NO_MATCH, SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> Words.get(R.string.people_voice_not_caught)
+                    SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> Words.get(R.string.people_voice_permission)
+                    SpeechRecognizer.ERROR_NETWORK, SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> Words.get(R.string.people_voice_network)
+                    SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> Words.get(R.string.people_voice_busy)
+                    else -> Words.get(R.string.people_voice_unavailable)
                 }
             }
 
@@ -99,7 +101,7 @@ class VoiceInput(private val context: Context) {
                 amplitude = 0f
                 val words = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()?.trim().orEmpty()
                 heard = words
-                if (words.length >= 2) onHeard(words) else problem = "I didn't catch that. Tap the mic and try again."
+                if (words.length >= 2) onHeard(words) else problem = Words.get(R.string.people_voice_not_caught)
             }
 
             override fun onPartialResults(partialResults: Bundle?) {
@@ -116,7 +118,7 @@ class VoiceInput(private val context: Context) {
         listening = true
         runCatching { engine.startListening(intent) }.onFailure {
             listening = false
-            problem = "Voice isn't working right now. You can type the question instead."
+            problem = Words.get(R.string.people_voice_unavailable)
         }
     }
 

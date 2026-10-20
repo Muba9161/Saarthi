@@ -1,5 +1,6 @@
 package com.saarthi.owner.ui.jobs
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -15,12 +16,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -29,6 +32,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
@@ -49,7 +54,6 @@ import com.saarthi.owner.ui.common.Loadable
 import com.saarthi.owner.ui.common.SkeletonCards
 import com.saarthi.owner.ui.common.clockOf
 import com.saarthi.owner.ui.common.headerClearance
-import com.saarthi.owner.ui.common.plural
 import com.saarthi.owner.ui.common.readable
 import com.saarthi.owner.ui.common.rememberPhoto
 import com.saarthi.owner.ui.common.rupees
@@ -69,6 +73,7 @@ import com.saarthi.owner.ui.design.card
 import com.saarthi.owner.ui.design.rise
 import com.saarthi.owner.ui.design.stagger
 import com.saarthi.owner.ui.shell.LocalNavigator
+import com.saarthi.owner.ui.trips.TripsListContent
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -111,12 +116,12 @@ class JobsModel(private val requirements: RequirementsApi, private val ordersApi
 }
 
 /** What a kind of job is called on a chip, and drawn as. */
-private enum class JobKind(val kind: String?, val label: String) {
-    ALL(null, "All"),
-    MATERIAL(KIND_MATERIAL, "Material"),
-    FREIGHT(KIND_FREIGHT, "Freight"),
-    CAB(KIND_CAB, "Cab"),
-    TOUR(KIND_TOUR, "Tour"),
+private enum class JobKind(val kind: String?, @StringRes val label: Int) {
+    ALL(null, R.string.market_jobs_kind_all),
+    MATERIAL(KIND_MATERIAL, R.string.market_jobs_kind_material),
+    FREIGHT(KIND_FREIGHT, R.string.market_jobs_kind_freight),
+    CAB(KIND_CAB, R.string.market_jobs_kind_cab),
+    TOUR(KIND_TOUR, R.string.market_jobs_kind_tour),
 }
 
 /**
@@ -132,7 +137,7 @@ fun JobsScreen(app: OwnerApp, account: SessionStore.Account, withOrders: Boolean
     val model = viewModel { JobsModel(app.requirements, app.orders) }
     val state by model.state.collectAsStateWithLifecycle()
     val orders by model.orders.collectAsStateWithLifecycle()
-    var showOrders by rememberSaveable { mutableStateOf(false) }
+    var section by rememberSaveable { mutableIntStateOf(SECTION_JOBS) }
     var filter by rememberSaveable { mutableStateOf(JobKind.ALL) }
     val navigator = LocalNavigator.current
 
@@ -145,10 +150,23 @@ fun JobsScreen(app: OwnerApp, account: SessionStore.Account, withOrders: Boolean
 
     val top = headerClearance()
     val bottom = tabBarClearance()
-    if (showOrders) {
+    if (section == SECTION_TRIPS) {
+        Column(
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(start = 20.dp, end = 20.dp, top = top, bottom = bottom),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            JobsSwitch(section) { section = it }
+            TripsListContent(app, account)
+        }
+        return
+    }
+    if (section == SECTION_ORDERS) {
         OrdersList(
             orders = orders,
-            switcher = { JobsSwitch(showOrders) { showOrders = it } },
+            switcher = { JobsSwitch(section) { section = it } },
             onRetry = { model.refresh() },
             onOpen = { order -> navigator.push("order-${order.id}") { FleetOrderScreen(app, order) } },
             top = top,
@@ -168,7 +186,7 @@ fun JobsScreen(app: OwnerApp, account: SessionStore.Account, withOrders: Boolean
                 contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = top, bottom = bottom),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                if (withOrders) item(key = "switch") { JobsSwitch(showOrders) { showOrders = it } }
+                if (withOrders) item(key = "switch") { JobsSwitch(section) { section = it } }
                 if (counts.size > 1) item(key = "chips") {
                     Row(
                         Modifier
@@ -180,7 +198,7 @@ fun JobsScreen(app: OwnerApp, account: SessionStore.Account, withOrders: Boolean
                         JobKind.entries.forEach { kind ->
                             val count = if (kind.kind == null) jobs.size else counts[kind.kind] ?: 0
                             if (kind.kind == null || count > 0) {
-                                ChoiceChip("${kind.label} · $count", selected = filter == kind, onClick = { filter = kind })
+                                ChoiceChip("${stringResource(kind.label)} · $count", selected = filter == kind, onClick = { filter = kind })
                             }
                         }
                     }
@@ -195,9 +213,9 @@ fun JobsScreen(app: OwnerApp, account: SessionStore.Account, withOrders: Boolean
                             verticalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
                             IconWell(Lucide.briefcase, well = Saarthi.colors.sunken, ink = Saarthi.colors.muted, size = 64.dp, shape = CircleShape, iconSize = 26.dp)
-                            Text("No open jobs right now", style = SType.cardTitle, color = Saarthi.colors.fg)
+                            Text(stringResource(R.string.market_jobs_empty_title), style = SType.cardTitle, color = Saarthi.colors.fg)
                             Text(
-                                "When a customer posts work your vehicles can do, it shows up here.",
+                                stringResource(R.string.market_jobs_empty_body),
                                 style = SType.small,
                                 color = Saarthi.colors.muted,
                             )
@@ -219,10 +237,10 @@ fun JobsScreen(app: OwnerApp, account: SessionStore.Account, withOrders: Boolean
 private fun kindLook(kind: String): Triple<String, Color, Color> {
     val c = Saarthi.colors
     return when (kind) {
-        KIND_MATERIAL -> Triple("Material", c.accentSoft, c.accent)
-        KIND_FREIGHT -> Triple("Freight", c.primarySoft, c.primary)
-        KIND_CAB -> Triple("Cab", c.infoSoft, c.info)
-        else -> Triple("Tour", c.successSoft, c.success)
+        KIND_MATERIAL -> Triple(stringResource(R.string.market_jobs_kind_material), c.accentSoft, c.accent)
+        KIND_FREIGHT -> Triple(stringResource(R.string.market_jobs_kind_freight), c.primarySoft, c.primary)
+        KIND_CAB -> Triple(stringResource(R.string.market_jobs_kind_cab), c.infoSoft, c.info)
+        else -> Triple(stringResource(R.string.market_jobs_kind_tour), c.successSoft, c.success)
     }
 }
 
@@ -255,7 +273,7 @@ private fun JobCard(job: RequirementsApi.Requirement, modifier: Modifier = Modif
                         .padding(horizontal = 10.dp, vertical = 4.dp),
                 ) {
                     Text(
-                        if (hours != null) "$word · closes in ${if (hours < 1) "<1" else hours} h" else "$word · bidding closed",
+                        if (hours != null) stringResource(R.string.market_jobs_closes_in, word, if (hours < 1) "<1" else hours.toString()) else stringResource(R.string.market_jobs_bidding_closed, word),
                         style = SType.captionStrong,
                         color = ink,
                     )
@@ -277,7 +295,7 @@ private fun JobCard(job: RequirementsApi.Requirement, modifier: Modifier = Modif
             listOfNotNull(
                 job.route.takeIf { job.kind != KIND_MATERIAL },
                 job.specification?.ifBlank { null },
-                clockOf(job.startAt)?.let { "needed $it" },
+                clockOf(job.startAt)?.let { stringResource(R.string.market_jobs_needed_lower, it) },
             ).joinToString(" · "),
             style = SType.small,
             color = c.muted,
@@ -285,16 +303,16 @@ private fun JobCard(job: RequirementsApi.Requirement, modifier: Modifier = Modif
             overflow = TextOverflow.Ellipsis,
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Pill(if (job.bidCount == 0) "No bids yet" else "${plural(job.bidCount, "bid")} so far", c.sunken, c.fg)
-            job.distanceToOriginKm?.let { Pill("${it.toInt()} km away", c.sunken, c.muted) }
-            mine?.let { Pill("Your bid ${rupees(it.price)}", c.successBg, c.success) }
+            Pill(if (job.bidCount == 0) stringResource(R.string.market_jobs_no_bids) else pluralStringResource(R.plurals.market_jobs_bids_so_far, job.bidCount, job.bidCount), c.sunken, c.fg)
+            job.distanceToOriginKm?.let { Pill(stringResource(R.string.market_jobs_km_away, it.toInt()), c.sunken, c.muted) }
+            mine?.let { Pill(stringResource(R.string.market_jobs_your_bid_amount, rupees(it.price)), c.successBg, c.success) }
         }
         SaarthiButton(
             text = when {
-                mine != null -> "See your bid"
-                job.kind == KIND_MATERIAL -> "Check sellers & bid"
-                job.kind == KIND_FREIGHT -> "Bid for this freight"
-                else -> "Quote this trip"
+                mine != null -> stringResource(R.string.market_jobs_see_your_bid)
+                job.kind == KIND_MATERIAL -> stringResource(R.string.market_jobs_check_sellers_bid)
+                job.kind == KIND_FREIGHT -> stringResource(R.string.market_jobs_bid_freight)
+                else -> stringResource(R.string.market_jobs_quote_trip)
             },
             onClick = onBid,
             tone = if (mine != null || job.kind != KIND_MATERIAL) ButtonTone.SECONDARY else ButtonTone.PRIMARY,
@@ -304,16 +322,20 @@ private fun JobCard(job: RequirementsApi.Requirement, modifier: Modifier = Modif
     }
 }
 
-/** Open jobs, or the orders already won. */
+/** Open jobs, the orders already won, or the trips running them. */
 @Composable
-private fun JobsSwitch(showOrders: Boolean, onChange: (Boolean) -> Unit) {
+private fun JobsSwitch(section: Int, onChange: (Int) -> Unit) {
     SegmentedControl(
-        options = listOf("Open jobs", "Orders"),
-        selected = if (showOrders) 1 else 0,
-        onSelect = { onChange(it == 1) },
+        options = listOf(stringResource(R.string.market_jobs_section_open), stringResource(R.string.market_jobs_section_orders), stringResource(R.string.market_jobs_section_trips)),
+        selected = section,
+        onSelect = onChange,
         modifier = Modifier.rise(),
     )
 }
+
+private const val SECTION_JOBS = 0
+private const val SECTION_ORDERS = 1
+private const val SECTION_TRIPS = 2
 
 @Composable
 private fun OrdersList(
@@ -338,16 +360,16 @@ private fun OrdersList(
                 if (orders.value.isEmpty()) {
                     item(key = "empty") {
                         Text(
-                            "Orders you win show up here — pay the seller and send the truck from each one.",
+                            stringResource(R.string.market_jobs_orders_empty),
                             style = SType.small,
                             color = Saarthi.colors.muted,
                             modifier = Modifier.padding(top = 24.dp),
                         )
                     }
                 }
-                if (open.isNotEmpty()) item(key = "open-label") { GroupLabel("In progress") }
+                if (open.isNotEmpty()) item(key = "open-label") { GroupLabel(stringResource(R.string.market_jobs_in_progress)) }
                 items(open, key = { it.id }) { order -> OrderRow(order, order.customerName, order.totalPrice, onOpen = { onOpen(order) }) }
-                if (done.isNotEmpty()) item(key = "done-label") { GroupLabel("Earlier") }
+                if (done.isNotEmpty()) item(key = "done-label") { GroupLabel(stringResource(R.string.market_jobs_earlier)) }
                 items(done, key = { it.id }) { order -> OrderRow(order, order.customerName, order.totalPrice, onOpen = { onOpen(order) }) }
             }
         }

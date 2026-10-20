@@ -11,8 +11,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.saarthi.owner.OwnerApp
+import com.saarthi.owner.R
 import com.saarthi.owner.network.PapersApi
 import com.saarthi.owner.network.VehiclesApi
 import com.saarthi.owner.ui.common.DetailScreen
@@ -20,7 +23,6 @@ import com.saarthi.owner.ui.common.FailedCard
 import com.saarthi.owner.ui.common.Loadable
 import com.saarthi.owner.ui.common.SkeletonCards
 import com.saarthi.owner.ui.common.formatPlate
-import com.saarthi.owner.ui.common.plural
 import com.saarthi.owner.ui.common.readable
 import com.saarthi.owner.ui.design.Eyebrow
 import com.saarthi.owner.ui.design.Lucide
@@ -33,7 +35,7 @@ import com.saarthi.owner.ui.shell.LocalNavigator
 /** One vehicle's papers, opened from its Papers card. */
 @Composable
 fun VehiclePapersScreen(app: OwnerApp, vehicle: VehiclesApi.Vehicle) {
-    DetailScreen(eyebrow = formatPlate(vehicle.registrationNumber), title = "Papers", spacing = 12.dp) {
+    DetailScreen(eyebrow = formatPlate(vehicle.registrationNumber), title = stringResource(R.string.papers_title), spacing = 12.dp) {
         PapersWallet(app, vehicle)
     }
 }
@@ -53,11 +55,13 @@ fun PapersWallet(app: OwnerApp, vehicle: VehiclesApi.Vehicle, modifier: Modifier
     var state by remember(vehicle.id) { mutableStateOf<Loadable<PapersApi.Wallet>>(Loadable.Loading) }
 
     LaunchedEffect(vehicle.id, attempt) {
-        state = Loadable.Loading
+        // A re-read after an upload keeps what is on screen until the new answer lands.
+        val shown = state as? Loadable.Ready
+        if (shown == null) state = Loadable.Loading
         state = try {
             Loadable.Ready(app.papers.wallet(vehicle.id))
         } catch (failure: Exception) {
-            Loadable.Failed(failure.readable())
+            shown ?: Loadable.Failed(failure.readable())
         }
     }
 
@@ -71,21 +75,21 @@ fun PapersWallet(app: OwnerApp, vehicle: VehiclesApi.Vehicle, modifier: Modifier
                 if (standing.attention > 0) {
                     NoticeCard(
                         if (standing.expired > 0) {
-                            "${plural(standing.expired, "paper")} expired or turned down. Renew ${if (standing.expired == 1) "it" else "them"} before a check post stops this vehicle."
+                            pluralStringResource(R.plurals.papers_wallet_expired, standing.expired, standing.expired)
                         } else {
-                            "${plural(standing.attention, "paper")} running out soon. Renew before ${if (standing.attention == 1) "it lapses" else "they lapse"}."
+                            pluralStringResource(R.plurals.papers_wallet_expiring, standing.attention, standing.attention)
                         },
                         if (standing.expired > 0) NoticeTone.DANGER else NoticeTone.WARNING,
                         Modifier.rise(),
                         icon = Lucide.alertTriangle,
                     )
                 }
-                Eyebrow("Folders", Modifier.padding(start = 4.dp, top = 4.dp).rise(stagger(1)))
+                Eyebrow(stringResource(R.string.papers_wallet_folders), Modifier.padding(start = 4.dp, top = 4.dp).rise(stagger(1)))
                 FolderGrid(
                     wallet,
                     onOpen = { folder ->
                         navigator.push("paper-folder-${vehicle.id}-${folder.id}") {
-                            PaperFolderScreen(app, vehicle, wallet, folder.id)
+                            PaperFolderScreen(app, vehicle, wallet, folder.id, onChanged = { attempt++ })
                         }
                     },
                     modifier = Modifier.rise(stagger(2)),

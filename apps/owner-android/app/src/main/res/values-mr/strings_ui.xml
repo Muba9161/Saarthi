@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Brand: who the app is for, under the logo on the splash and welcome screens. -->
+    <string name="ui_app_for">मालक आणि व्यवसायांसाठी</string>
+
+    <!-- Small numbers on a tile: 366k, 1.2M. -->
+    <string name="ui_count_thousands">%1$sk</string>
+    <string name="ui_count_millions">%1$sM</string>
+
+    <!-- Shared: a failed read, and lists read a page at a time. -->
+    <string name="ui_error_reading">Saarthi कडून माहिती आणताना काहीतरी चुकले.</string>
+    <string name="ui_try_again">पुन्हा प्रयत्न करा</string>
+    <string name="ui_show_more">अजून दाखवा</string>
+    <string name="ui_loading">लोड होत आहे…</string>
+
+    <!-- Header over every tab: the bell and the assistant. -->
+    <string name="ui_alerts">अलर्ट</string>
+    <plurals name="ui_alerts_unread">
+        <item quantity="one">अलर्ट, %d नवीन</item>
+        <item quantity="other">अलर्ट, %d नवीन</item>
+    </plurals>
+    <string name="ui_ask_saarthi">Saarthi ला विचारा</string>
+
+    <!-- Day field. -->
+    <string name="ui_day_choose">निवडा</string>
+
+    <!-- Language list: the row that follows the phone. -->
+    <string name="ui_language_phone_default">फोनची भाषा</string>
+    <string name="ui_language_follows_phone">फोनच्या भाषेप्रमाणे</string>
+
+    <!-- Place field and place search. -->
+    <string name="ui_place_search_address">पत्ता शोधा</string>
+    <string name="ui_place_choose">ठिकाण निवडा</string>
+    <string name="ui_place_query_placeholder">भाग, लँडमार्क किंवा पत्ता</string>
+    <string name="ui_place_nothing_found">काहीही सापडले नाही. जवळचा लँडमार्क किंवा भागाचे नाव टाकून पाहा.</string>
+    <string name="ui_place_type_three">किमान तीन अक्षरे टाका.</string>
+
+    <!-- Use my current location. -->
+    <string name="ui_location_use_current">माझे सध्याचे लोकेशन वापरा</string>
+    <string name="ui_location_finding">तुम्ही कुठे आहात ते शोधत आहे…</string>
+    <string name="ui_location_fills_in">तुम्ही जिथे उभे आहात तो पत्ता भरतो</string>
+    <string name="ui_location_settings">सेटिंग्ज</string>
+    <string name="ui_location_error_no_street">तुम्ही असलेल्या रस्त्याचे नाव कळले नाही. त्याऐवजी ठिकाण शोधा.</string>
+    <string name="ui_location_error_lookup">इथला पत्ता शोधता आला नाही. इंटरनेट तपासा आणि पुन्हा प्रयत्न करा, किंवा त्याऐवजी ठिकाण शोधा.</string>
+    <string name="ui_location_error_allow">तुमचे ठिकाण वापरण्यासाठी लोकेशनला परवानगी द्या, किंवा त्याऐवजी ठिकाण शोधा.</string>
+    <string name="ui_location_error_blocked">Saarthi साठी लोकेशन बंद आहे. सेटिंग्जमध्ये परवानगी द्या, किंवा त्याऐवजी ठिकाण शोधा.</string>
+
+    <!-- Vehicle filter chips. -->
+    <string name="ui_vehicle_class_trucks">ट्रक</string>
+    <string name="ui_vehicle_class_buses">बस</string>
+    <string name="ui_vehicle_class_cars">कार</string>
+    <string name="ui_vehicle_class_autos">रिक्षा</string>
+    <string name="ui_vehicle_class_other">इतर</string>
+
+    <!-- Alerts screen. -->
+    <string name="ui_alerts_filter_all">सर्व</string>
+    <string name="ui_alerts_filter_urgent">तातडीचे</string>
+    <string name="ui_alerts_filter_money">पैसे</string>
+    <string name="ui_alerts_filter_papers">कागदपत्रे</string>
+    <plurals name="ui_alerts_new_count">
+        <item quantity="one">%d नवीन</item>
+        <item quantity="other">%d नवीन</item>
+    </plurals>
+    <string name="ui_alerts_all_read">सर्व वाचले</string>
+    <string name="ui_alerts_mark_all_read">सर्व वाचले म्हणून खूण करा</string>
+    <string name="ui_alerts_show_older">जुने दाखवा</string>
+    <string name="ui_alerts_empty">अजून कोणतेही अलर्ट नाहीत</string>
+    <string name="ui_alerts_empty_filter">%1$s मध्ये काहीही नाही</string>
+    <string name="ui_alerts_empty_hint">तुमची गरज असलेले काही आले की ते इथे दिसेल.</string>
+    <string name="ui_alerts_day_today">आज</string>
+    <string name="ui_alerts_day_yesterday">काल</string>
+    <string name="ui_alerts_day_earlier">आधीचे</string>
+
+    <!-- Association tabs. -->
+    <string name="ui_association_tab_home">होम</string>
+    <string name="ui_association_sos">SOS</string>
+    <string name="ui_association_namaste">नमस्कार, %1$s</string>
+    <string name="ui_association_members_on_road">रस्त्यावरचे सदस्य</string>
+
+    <!-- Association home: why the desk gets no new alerts. -->
+    <string name="ui_association_hold_unverified">पडताळणी बाकी</string>
+    <string name="ui_association_hold_unverified_explanation">Saarthi फक्त पडताळलेल्या असोसिएशनना इमर्जन्सी पाठवते, त्यामुळे अजून या डेस्कपर्यंत काहीही येत नाही. Saarthi वेबसाइटवर पडताळणी पूर्ण करा.</string>
+    <string name="ui_association_hold_paused">अलर्ट थांबवले आहेत</string>
+    <string name="ui_association_hold_paused_explanation">या डेस्ककडे काहीही पाठवले जात नाही. तुमच्या भागातील इमर्जन्सी त्याऐवजी पुढच्या असोसिएशनकडे जात आहेत.</string>
+
+    <!-- Association home. -->
+    <string name="ui_association_sos_km_away">SOS · %1$s km दूर</string>
+    <string name="ui_association_all_quiet">तुमच्या रस्त्यांवर सगळे शांत आहे</string>
+    <string name="ui_association_member_needs_help">एका सदस्याला मदत हवी आहे</string>
+    <string name="ui_association_covering">कव्हरेज</string>
+    <string name="ui_association_respond">प्रतिसाद द्या</string>
+    <string name="ui_association_figure_members">सदस्य</string>
+    <string name="ui_association_figure_trucks">ट्रक</string>
+    <string name="ui_association_figure_going">जात आहेत</string>
+    <string name="ui_association_figure_right_now">आत्ता</string>
+    <string name="ui_association_figure_open_sos">उघडे SOS</string>
+    <plurals name="ui_association_closed_today">
+        <item quantity="one">आज %d बंद</item>
+        <item quantity="other">आज %d बंद</item>
+    </plurals>
+    <string name="ui_association_on_the_roads">रस्त्यावर</string>
+    <string name="ui_association_all_alerts">सर्व अलर्ट</string>
+    <string name="ui_association_no_sos">तुमच्या रस्त्यांवर कोणत्याही सदस्याने SOS पाठवलेला नाही.</string>
+    <string name="ui_association_avg_response">तुमचा सरासरी प्रतिसाद: %1$s मि</string>
+
+    <!-- Association SOS list and its rows. -->
+    <string name="ui_association_no_alerts">अजून कोणतेही अलर्ट नाहीत.</string>
+    <string name="ui_association_needs_responder">मदतीला कोणीतरी हवे</string>
+    <string name="ui_association_group_earlier">आधीचे</string>
+    <plurals name="ui_association_going_count">
+        <item quantity="one">%d जात आहे</item>
+        <item quantity="other">%d जात आहेत</item>
+    </plurals>
+    <string name="ui_association_no_one_yet">अजून कोणीही नाही</string>
+    <string name="ui_association_age_just_now">आत्ताच</string>
+    <string name="ui_association_age_minutes">%1$d मि पूर्वी</string>
+    <string name="ui_association_age_hours">%1$d ता पूर्वी</string>
+    <string name="ui_association_age_days">%1$d दिवसांपूर्वी</string>
+
+    <!-- Respond to an SOS. -->
+    <string name="ui_association_resolved">सुटले</string>
+    <string name="ui_association_raised">%1$s पाठवले</string>
+    <string name="ui_association_raised_unanswered">%1$s पाठवले · अजून उत्तर नाही</string>
+    <plurals name="ui_association_members_responded">
+        <item quantity="one">%d सदस्याने प्रतिसाद दिला</item>
+        <item quantity="other">%d सदस्यांनी प्रतिसाद दिला</item>
+    </plurals>
+    <string name="ui_association_nobody_taken">अजून कोणीही हे प्रकरण घेतलेले नाही</string>
+    <plurals name="ui_association_you_and_more_going">
+        <item quantity="one">तुम्ही आणि आणखी %d जण जात आहात</item>
+        <item quantity="other">तुम्ही आणि आणखी %d जण जात आहात</item>
+    </plurals>
+    <string name="ui_association_you_are_going">तुम्ही जात आहात</string>
+    <plurals name="ui_association_already_going">
+        <item quantity="one">%d जण आधीच जात आहे</item>
+        <item quantity="other">%d जण आधीच जात आहेत</item>
+    </plurals>
+    <string name="ui_association_nobody_going">अजून कोणीही जात नाही</string>
+    <string name="ui_association_note_label">नोंदीसाठी टीप (ऐच्छिक)</string>
+    <string name="ui_association_note_placeholder">दोन सदस्य आत्ता तिकडे निघाले आहेत</string>
+    <string name="ui_association_acknowledge">स्वीकारा आणि हे प्रकरण घ्या</string>
+    <string name="ui_association_case_taken">प्रकरण घेतले. ड्रायव्हरचा संपर्क आता खुला आहे.</string>
+    <string name="ui_association_im_going">मी जात आहे</string>
+    <string name="ui_association_down_as_responding">मदतीला जाणाऱ्यांमध्ये तुमचे नाव आहे. ड्रायव्हरला कळवले आहे.</string>
+    <string name="ui_association_call_driver">ड्रायव्हरला फोन करा</string>
+    <string name="ui_association_call_112">112 ला फोन करा</string>
+    <string name="ui_association_hint_sealed">कोणीतरी प्रकरण घेतल्यावर ड्रायव्हरला फोन करता येतो. तोपर्यंत Saarthi ड्रायव्हरचे नाव आणि नंबर लपवून ठेवते.</string>
+    <string name="ui_association_hint_no_number">ड्रायव्हरचा नंबर नोंदीत नाही.</string>
+    <string name="ui_association_mark_as_resolved">सुटले म्हणून खूण करा</string>
+    <string name="ui_association_what_was_done">काय केले?</string>
+    <string name="ui_association_record_label">ही असोसिएशनची नोंद आहे</string>
+    <string name="ui_association_mark_resolved">सुटले म्हणून नोंदवा</string>
+    <string name="ui_association_resolved_done">सुटले.</string>
+</resources>

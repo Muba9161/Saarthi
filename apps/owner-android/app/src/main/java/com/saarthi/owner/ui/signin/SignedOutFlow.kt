@@ -28,10 +28,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
+import com.saarthi.owner.R
 import com.saarthi.owner.network.OwnerApi
 import com.saarthi.owner.ui.common.RevealedNotice
 import com.saarthi.owner.ui.design.BrandSpinner
@@ -208,13 +210,13 @@ private fun WorkingScreen() {
     ) {
         BrandSpinner(size = 136.dp)
         Text(
-            "Signing you in…",
+            stringResource(R.string.people_signin_working_title),
             style = SType.sheetTitle.copy(fontSize = 20.sp, letterSpacing = (-0.02).em),
             color = c.fg,
             modifier = Modifier.rise(stagger(2)),
         )
         Text(
-            "Opening your business on this phone.",
+            stringResource(R.string.people_signin_working_body),
             style = SType.body,
             color = c.muted,
             textAlign = TextAlign.Center,

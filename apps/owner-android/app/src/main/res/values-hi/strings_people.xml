@@ -1,0 +1,371 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Words several of these screens share. -->
+    <string name="people_account">खाता</string>
+    <string name="people_your_account">आपका खाता</string>
+    <string name="people_saving">सेव हो रहा है…</string>
+    <string name="people_remove">हटाएँ</string>
+    <string name="people_sign_out">साइन आउट करें</string>
+    <string name="people_papers">काग़ज़ात</string>
+    <string name="people_vehicle">गाड़ी</string>
+    <string name="people_vehicle_lower">गाड़ी</string>
+    <string name="people_choose">चुनें</string>
+    <string name="people_photo_unusable">वह फ़ोटो इस्तेमाल नहीं हो सकी।</string>
+    <string name="people_paper_no_viewer">इस फ़ोन में कोई ऐप यह फ़ाइल नहीं खोल सकता।</string>
+
+    <!-- Sharing · logging a trip, fill-up or servicing on a shared vehicle -->
+    <string name="people_log_trip_title">ट्रिप दर्ज करें</string>
+    <string name="people_log_trip_action">ट्रिप जोड़ें</string>
+    <string name="people_log_fuel_title">फ़्यूल भरवाना दर्ज करें</string>
+    <string name="people_log_fuel_action">फ़्यूल एंट्री जोड़ें</string>
+    <string name="people_log_service_title">सर्विस दर्ज करें</string>
+    <string name="people_log_service_action">सर्विस जोड़ें</string>
+    <string name="people_log_from">कहाँ से</string>
+    <string name="people_log_to">कहाँ तक</string>
+    <string name="people_log_notes_optional">नोट (ज़रूरी नहीं)</string>
+    <string name="people_log_save_trip">ट्रिप सेव करें</string>
+    <string name="people_log_litres">लीटर</string>
+    <string name="people_log_price_per_litre">प्रति लीटर दाम (₹)</string>
+    <string name="people_log_total">कुल %1$s</string>
+    <string name="people_log_odometer_optional">ओडोमीटर km (ज़रूरी नहीं)</string>
+    <string name="people_log_station_optional">पंप (ज़रूरी नहीं)</string>
+    <string name="people_log_save_fuel">फ़्यूल एंट्री सेव करें</string>
+    <string name="people_log_done_already">हो चुकी है</string>
+    <string name="people_log_booked">बुक है</string>
+    <string name="people_log_what_was_done">क्या काम हुआ</string>
+    <string name="people_log_what_was_done_example">जैसे 10,000 km की सर्विस</string>
+    <string name="people_log_choose_date">तारीख़ चुनें</string>
+    <string name="people_log_done_on">%1$s को हुई</string>
+    <string name="people_log_booked_for">%1$s के लिए बुक</string>
+    <string name="people_log_cost_optional">ख़र्च ₹ (ज़रूरी नहीं)</string>
+    <string name="people_log_workshop_optional">वर्कशॉप (ज़रूरी नहीं)</string>
+    <string name="people_log_save_service">सर्विस सेव करें</string>
+
+    <!-- Sharing · a shared vehicle's papers -->
+    <string name="people_shared_papers_open">काग़ज़ात खोलें</string>
+    <string name="people_shared_papers_card_line">बीमा, परमिट, PUC और भी — देखने के लिए</string>
+    <string name="people_shared_papers_notice">आपके साथ देखने के लिए शेयर किए गए हैं। काग़ज़ात सिर्फ़ मालिक जोड़ या बदल सकते हैं।</string>
+    <string name="people_shared_folder_gone">यह फ़ोल्डर अब रिकॉर्ड में नहीं है।</string>
+    <string name="people_shared_folder_empty">यहाँ कुछ नहीं रखा गया है।</string>
+
+    <!-- Sharing · a vehicle shared with this account -->
+    <string name="people_shared_by">%1$s ने शेयर की</string>
+    <string name="people_shared_with_you">आपके साथ शेयर</string>
+    <string name="people_shared_gone">यह गाड़ी अब आपके साथ शेयर नहीं है।</string>
+    <string name="people_shared_tab_trips">ट्रिप</string>
+    <string name="people_shared_tab_fuel">फ़्यूल</string>
+    <string name="people_shared_tab_maintenance">रखरखाव</string>
+    <string name="people_shared_stop_using">यह गाड़ी इस्तेमाल करना बंद करें</string>
+    <string name="people_shared_stop_title">यह गाड़ी इस्तेमाल करना बंद करें?</string>
+    <string name="people_shared_stop_body">यह आपकी \"मेरे साथ शेयर\" लिस्ट से हट जाएगी। आपने जो दर्ज किया है वह गाड़ी के साथ रहेगा, और %1$s इसे फिर से आपके साथ शेयर कर सकते हैं।</string>
+    <string name="people_shared_stop_body_owner">यह आपकी \"मेरे साथ शेयर\" लिस्ट से हट जाएगी। आपने जो दर्ज किया है वह गाड़ी के साथ रहेगा, और मालिक इसे फिर से आपके साथ शेयर कर सकते हैं।</string>
+    <string name="people_shared_stop_confirm">इस्तेमाल बंद करें</string>
+    <string name="people_shared_driver">ड्राइवर</string>
+    <string name="people_shared_no_driver">कोई ड्राइवर नहीं लगा</string>
+    <string name="people_shared_no_trips">अभी तक कोई ट्रिप दर्ज नहीं।</string>
+    <string name="people_shared_no_fuel">अभी तक फ़्यूल भरवाना दर्ज नहीं हुआ।</string>
+    <string name="people_shared_no_service">अभी तक कोई सर्विस दर्ज नहीं।</string>
+    <string name="people_shared_fuel_line">%1$s L, %2$s/L पर</string>
+
+    <!-- Sharing · Shared with me list and invitations -->
+    <string name="people_shared_waiting">आपका इंतज़ार</string>
+    <string name="people_shared_invite_line">%1$s आपके साथ एक %2$s शेयर करना चाहते हैं</string>
+    <string name="people_shared_owned_by">मालिक: %1$s</string>
+    <string name="people_shared_invite_body">आप इसे फ़ॉलो कर सकेंगे, ट्रिप, फ़्यूल और सर्विस दर्ज कर सकेंगे, और इसके काग़ज़ात देख सकेंगे। इसका पैसों का हिसाब मालिक के पास रहता है।</string>
+    <string name="people_shared_accept">मानें</string>
+    <string name="people_shared_decline">मना करें</string>
+    <string name="people_shared_open_vehicle">%1$s खोलें</string>
+    <string name="people_shared_empty_title">आपके साथ कोई गाड़ी शेयर नहीं की गई</string>
+    <string name="people_shared_empty_body">जब Saarthi पर कोई आपके साथ गाड़ी शेयर करेगा, वह यहाँ दिखेगी — उसे ट्रैक करने और उस पर ट्रिप, फ़्यूल और सर्विस दर्ज करने के लिए।</string>
+
+    <!-- Sharing · who the owner's vehicle is shared with -->
+    <string name="people_sharing_title">शेयरिंग</string>
+    <string name="people_sharing_invite">किसी को बुलाएँ</string>
+    <string name="people_sharing_own_account">वे अपने ख़ुद के Saarthi खाते से साइन इन करते हैं।</string>
+    <string name="people_sharing_shared_with">किसके साथ शेयर</string>
+    <plurals name="people_sharing_people">
+        <item quantity="one">%d व्यक्ति</item>
+        <item quantity="other">%d लोग</item>
+    </plurals>
+    <plurals name="people_sharing_places_left">
+        <item quantity="one">%d जगह बाकी</item>
+        <item quantity="other">%d जगहें बाकी</item>
+    </plurals>
+    <string name="people_sharing_confirm_ownership">शेयर करने से पहले पुष्टि करें कि यह गाड़ी आपकी है — वेब पर Saarthi में इसकी RC से मिलान करें।</string>
+    <string name="people_sharing_pending">न्योता भेजा · अभी माना नहीं</string>
+    <string name="people_sharing_can_title">वे क्या कर सकते हैं</string>
+    <string name="people_sharing_can_see">गाड़ी कहाँ है, लाइव देखें</string>
+    <string name="people_sharing_can_add">ट्रिप, फ़्यूल और सर्विस जोड़ें</string>
+    <string name="people_sharing_cannot_change">काग़ज़ात बदलना या गाड़ी हटाना</string>
+    <string name="people_sharing_only_you">सिर्फ़ आप कर सकते हैं</string>
+    <string name="people_sharing_invite_body">वही ईमेल डालें जिस पर उनका Saarthi खाता है। उन्हें मानने के लिए न्योता मिलेगा।</string>
+    <string name="people_sharing_their_email">उनका ईमेल</string>
+    <string name="people_sharing_send">न्योता भेजें</string>
+    <string name="people_sharing_sent">न्योता भेज दिया गया।</string>
+
+    <!-- Drivers · adding a driver -->
+    <string name="people_drivers">ड्राइवर</string>
+    <string name="people_driver_added_title">ड्राइवर जुड़ गया</string>
+    <string name="people_driver_added_notice">%1$s आपके फ़्लीट में हैं।</string>
+    <string name="people_driver_setup_hint">उन्हें अपना पासवर्ड बनाने के लिए यह लिंक भेजें। यह एक ही बार काम करता है।</string>
+    <string name="people_driver_share_setup">सेटअप लिंक शेयर करें</string>
+    <string name="people_driver_setup_message">नमस्ते %1$s, आपको VorldX Saarthi पर ड्राइवर के रूप में जोड़ा गया है। अपना पासवर्ड यहाँ बनाएँ: %2$s</string>
+    <string name="people_driver_open_page">उनका पेज खोलें</string>
+    <string name="people_driver_add_title">ड्राइवर जोड़ें</string>
+    <string name="people_driver_add">ड्राइवर जोड़ें</string>
+    <string name="people_driver_adding">जोड़ रहे हैं…</string>
+    <string name="people_driver_their_licence">उनका लाइसेंस</string>
+    <string name="people_driver_scan_licence">लाइसेंस स्कैन करें</string>
+    <string name="people_driver_choose_file">फ़ाइल चुनें</string>
+    <string name="people_driver_reading_licence">लाइसेंस पढ़ा जा रहा है…</string>
+    <string name="people_driver_licence_read">लाइसेंस से भर दिया गया। जाँच लें, फिर ड्राइवर जोड़ें।</string>
+    <string name="people_driver_licence_unread">लाइसेंस नंबर पढ़ा नहीं जा सका। ज़्यादा साफ़ फ़ोटो लें, या नंबर टाइप करें।</string>
+    <string name="people_driver_licence_number">लाइसेंस नंबर</string>
+    <string name="people_driver_licence_valid_till">लाइसेंस %1$s तक वैध</string>
+    <string name="people_driver_first_name">पहला नाम</string>
+    <string name="people_driver_last_name">आख़िरी नाम</string>
+    <string name="people_driver_mobile">मोबाइल नंबर</string>
+    <string name="people_driver_mobile_invalid">10 अंकों का भारतीय मोबाइल नंबर डालें।</string>
+    <string name="people_driver_email">ईमेल</string>
+    <string name="people_driver_email_invalid">सही ईमेल पता डालें।</string>
+    <string name="people_driver_years_optional">कितने साल से गाड़ी चला रहे हैं (ज़रूरी नहीं)</string>
+
+    <!-- Drivers · the papers a driver carries -->
+    <string name="people_driver_paper_licence">ड्राइविंग लाइसेंस</string>
+    <string name="people_driver_paper_identity">पहचान का सबूत</string>
+    <string name="people_driver_paper_address">पते का सबूत</string>
+    <string name="people_driver_paper_aadhaar">आधार कार्ड</string>
+    <string name="people_driver_paper_pan">PAN कार्ड</string>
+    <string name="people_driver_paper_voter_id">वोटर ID (EPIC)</string>
+    <string name="people_driver_paper_photo">प्रोफ़ाइल फ़ोटो</string>
+    <string name="people_driver_paper_medical">मेडिकल सर्टिफ़िकेट</string>
+    <string name="people_driver_paper_police">पुलिस वेरिफ़िकेशन</string>
+
+    <!-- Drivers · one driver's page -->
+    <string name="people_driver">ड्राइवर</string>
+    <string name="people_driver_call">%1$s को कॉल करें</string>
+    <string name="people_driver_open_vehicle">गाड़ी खोलें</string>
+    <string name="people_driver_drives">चलाते हैं</string>
+    <string name="people_driver_qr_badge">QR बैज</string>
+    <string name="people_driver_badge_caption">इस बैज को स्कैन करने पर पता चलता है कि ड्राइवर कौन है।</string>
+    <string name="people_driver_fleet">फ़्लीट</string>
+    <string name="people_driver_remove_title">%1$s को अपने फ़्लीट से हटाएँ?</string>
+    <string name="people_driver_remove_body">वे किसी भी गाड़ी से हट जाएँगे और आपका काम देखना बंद कर देंगे। उनका अपना खाता, ट्रिप और स्कोर उनके पास रहेंगे।</string>
+    <string name="people_driver_keep">रहने दें</string>
+    <string name="people_driver_remove_from_fleet">फ़्लीट से हटाएँ</string>
+    <string name="people_driver_uploaded">अपलोड हो गया।</string>
+    <string name="people_driver_verified">वेरिफ़ाइड</string>
+    <string name="people_driver_not_verified">अभी वेरिफ़ाइड नहीं</string>
+    <string name="people_driver_on_trip">ट्रिप पर</string>
+    <string name="people_driver_available">ख़ाली</string>
+    <string name="people_driver_off_duty">ड्यूटी पर नहीं</string>
+    <string name="people_driver_on_leave">छुट्टी पर</string>
+    <string name="people_driver_suspended">सस्पेंड है</string>
+    <string name="people_driver_score">स्कोर</string>
+    <string name="people_driver_trips">ट्रिप</string>
+    <string name="people_driver_driven">चलाई दूरी</string>
+    <string name="people_driver_years">साल</string>
+    <string name="people_driver_not_added_yet">अभी नहीं जोड़ा</string>
+    <string name="people_driver_valid_till">%1$s तक वैध</string>
+    <string name="people_driver_paper_missing">नहीं है</string>
+    <string name="people_driver_paper_not_added">नहीं जोड़ा</string>
+    <string name="people_driver_paper_rejected">नामंज़ूर</string>
+    <string name="people_driver_paper_expired">एक्सपायर</string>
+    <string name="people_driver_paper_expiring">जल्द एक्सपायर</string>
+    <string name="people_driver_paper_on_file">रिकॉर्ड में है</string>
+    <string name="people_driver_paper_on_file_till">रिकॉर्ड में है, %1$s तक वैध</string>
+    <string name="people_driver_paper_open">%1$s खोलें</string>
+    <string name="people_driver_paper_upload">अपलोड करें</string>
+    <string name="people_driver_paper_replace">बदलें</string>
+
+    <!-- Account · plan, verification and profile cards -->
+    <string name="people_account_plan">प्लान</string>
+    <string name="people_account_verification">वेरिफ़िकेशन</string>
+    <string name="people_account_profile">प्रोफ़ाइल</string>
+    <string name="people_account_nothing_on_file">अभी कुछ दर्ज नहीं।</string>
+    <string name="people_account_renews_on">%1$s को रिन्यू होगा</string>
+    <string name="people_account_trial_ends_on">ट्रायल %1$s को ख़त्म होगा</string>
+    <string name="people_account_ends_on">%1$s को ख़त्म होगा</string>
+    <plurals name="people_account_plan_vehicles">
+        <item quantity="one">%d गाड़ी</item>
+        <item quantity="other">%d गाड़ियाँ</item>
+    </plurals>
+    <plurals name="people_account_plan_members">
+        <item quantity="one">%d सदस्य</item>
+        <item quantity="other">%d सदस्य</item>
+    </plurals>
+    <plurals name="people_account_plan_drivers">
+        <item quantity="one">%d ड्राइवर</item>
+        <item quantity="other">%d ड्राइवर</item>
+    </plurals>
+    <string name="people_account_plans_on_web">प्लान Saarthi वेबसाइट पर बदले जाते हैं।</string>
+    <string name="people_account_nothing_to_verify">इस खाते के लिए कुछ वेरिफ़ाई नहीं करना है।</string>
+    <string name="people_account_verified_on">%1$s को वेरिफ़ाई हुआ</string>
+    <string name="people_account_finish_verifying">Saarthi वेबसाइट पर वेरिफ़िकेशन पूरा करें। वहाँ हर स्टेप बताता है कि उसे क्या चाहिए।</string>
+    <string name="people_account_profile_complete">%1$d%% पूरा</string>
+    <string name="people_account_edit">बदलें</string>
+    <string name="people_account_nothing_added">अभी कुछ नहीं जोड़ा।</string>
+    <string name="people_account_yes">हाँ</string>
+    <string name="people_account_no">नहीं</string>
+    <string name="people_account_help_legal">मदद और क़ानूनी जानकारी</string>
+    <string name="people_account_email_support">सपोर्ट को ईमेल करें</string>
+    <string name="people_account_terms">सेवा की शर्तें</string>
+    <string name="people_account_privacy">प्राइवेसी पॉलिसी</string>
+    <string name="people_account_status_active">चालू</string>
+    <string name="people_account_status_trialing">ट्रायल पर</string>
+    <string name="people_account_status_verified">वेरिफ़ाइड</string>
+    <string name="people_account_status_failed">फ़ेल</string>
+    <string name="people_account_status_retry_required">फिर से कोशिश ज़रूरी</string>
+    <string name="people_account_status_under_review">जाँच में</string>
+    <string name="people_account_status_verifying">वेरिफ़ाई हो रहा है</string>
+    <string name="people_account_status_payment_processing">पेमेंट प्रोसेस हो रहा है</string>
+    <string name="people_account_status_payment_required">पेमेंट ज़रूरी</string>
+
+    <!-- Account · the Account tab -->
+    <string name="people_account_appearance">दिखावट</string>
+    <string name="people_account_appearance_phone">फ़ोन जैसा</string>
+    <string name="people_account_appearance_light">लाइट</string>
+    <string name="people_account_appearance_dark">डार्क</string>
+    <string name="people_account_language">भाषा</string>
+    <string name="people_account_language_phone_default">फ़ोन की भाषा</string>
+    <string name="people_account_language_detail">यह ऐप इसी भाषा में बोलेगा</string>
+    <string name="people_account_businesses">आपके कारोबार</string>
+    <string name="people_account_security">सुरक्षा</string>
+    <string name="people_account_change_password">पासवर्ड बदलें</string>
+    <string name="people_account_change_password_detail">दूसरे फ़ोन और ब्राउज़र से साइन आउट हो जाएगा</string>
+    <string name="people_account_session">सेशन</string>
+    <string name="people_account_signing_out">साइन आउट हो रहा है…</string>
+    <string name="people_account_app_lock">ऐप लॉक</string>
+    <string name="people_account_app_lock_detail">खोलने के लिए फ़िंगरप्रिंट, चेहरा या स्क्रीन लॉक</string>
+    <string name="people_account_app_lock_unavailable">पहले इस फ़ोन पर स्क्रीन लॉक सेट करें</string>
+    <string name="people_account_app_lock_prompt_title">ऐप लॉक चालू करें</string>
+    <string name="people_account_app_lock_prompt_subtitle">पुष्टि करें कि यह आप ही हैं</string>
+
+    <!-- Account · what kind of business, in a word -->
+    <string name="people_business_fleet">फ़्लीट</string>
+    <string name="people_business_travel">ट्रैवल</string>
+    <string name="people_business_customer">ग्राहक</string>
+    <string name="people_business_seller">सेलर</string>
+    <string name="people_business_association">एसोसिएशन</string>
+    <string name="people_business_team">Saarthi टीम</string>
+
+    <!-- Account · paused and not-for-this-app screens -->
+    <string name="people_gate_paused_title">यह खाता रुका हुआ है</string>
+    <string name="people_gate_paused_lead">कुछ भी खोया नहीं है। खाता फिर से चालू होते ही सब कुछ वहीं से खुलेगा जहाँ आपने छोड़ा था।</string>
+    <string name="people_gate_kept_vehicles">गाड़ियाँ और उनके काग़ज़ात</string>
+    <string name="people_gate_kept_trips">हर ट्रिप, रास्ता और ख़र्च</string>
+    <string name="people_gate_kept_drivers">ड्राइवर, ऑर्डर और हिसाब</string>
+    <string name="people_gate_check_again">फिर से देखें</string>
+    <string name="people_gate_switch_business">कारोबार बदलें</string>
+    <string name="people_gate_drivers_title">ड्राइवरों का अपना ऐप है</string>
+    <string name="people_gate_business_title">यह ऐप कारोबार के लिए है</string>
+    <string name="people_gate_drivers_lead">VorldX Saarthi का Humsafar गाड़ी चलाने के लिए बना है — ट्रिप, काग़ज़ात और सड़क। वहाँ इसी खाते से साइन इन करें।</string>
+    <string name="people_gate_other_business_lead">%1$s वेब पर Saarthi से चलता है। नीचे अपने किसी दूसरे कारोबार पर जाएँ।</string>
+    <string name="people_gate_this_business_lead">यह कारोबार वेब पर Saarthi से चलता है। नीचे अपने किसी दूसरे कारोबार पर जाएँ।</string>
+    <string name="people_gate_no_business_lead">इस खाते में यहाँ दिखाने के लिए कोई फ़्लीट, ट्रैवल, ग्राहक, सेलर या एसोसिएशन कारोबार नहीं है। वेब पर Saarthi इस्तेमाल करें।</string>
+
+    <!-- Account · language -->
+    <string name="people_language_hint">Saarthi के मैसेज, जैसे अलर्ट और असिस्टेंट के जवाब, उसी भाषा में आते हैं जिसमें वे भेजे गए थे।</string>
+
+    <!-- Account · change password -->
+    <string name="people_password_rule_length">कम से कम 10 अक्षर</string>
+    <string name="people_password_rule_lower">एक छोटा अक्षर (a-z)</string>
+    <string name="people_password_rule_upper">एक बड़ा अक्षर (A-Z)</string>
+    <string name="people_password_rule_number">एक अंक</string>
+    <string name="people_password_changed">पासवर्ड बदल गया। दूसरे फ़ोन और ब्राउज़र से साइन आउट कर दिया गया है।</string>
+    <string name="people_password_changing">बदल रहे हैं…</string>
+    <string name="people_password_current">मौजूदा पासवर्ड</string>
+    <string name="people_password_new">नया पासवर्ड</string>
+    <string name="people_password_again">नया पासवर्ड फिर से</string>
+    <string name="people_password_mismatch">दोनों नए पासवर्ड मेल नहीं खाते।</string>
+    <string name="people_password_same">नया पासवर्ड मौजूदा पासवर्ड से अलग होना चाहिए।</string>
+
+    <!-- Account · editing a profile section -->
+    <string name="people_profile_save">सेव करें</string>
+    <string name="people_profile_owner_only">इसे सिर्फ़ कारोबार के मालिक या एडमिन बदल सकते हैं।</string>
+    <string name="people_profile_optional">%1$s (ज़रूरी नहीं)</string>
+    <string name="people_profile_comma_hint">%1$s — कॉमा लगाकर अलग करें</string>
+    <string name="people_profile_photo_updated">%1$s अपडेट हो गया।</string>
+    <string name="people_profile_take_photo">फ़ोटो लें</string>
+    <string name="people_profile_uploading">अपलोड हो रहा है…</string>
+    <string name="people_profile_gallery">गैलरी</string>
+
+    <!-- App lock -->
+    <string name="people_lock_prompt_title">VorldX Saarthi अनलॉक करें</string>
+    <string name="people_lock_prompt_subtitle">अपना फ़िंगरप्रिंट, चेहरा या स्क्रीन लॉक इस्तेमाल करें</string>
+    <string name="people_lock_locked">लॉक है</string>
+    <string name="people_lock_body">आपका कारोबार आपके फ़िंगरप्रिंट, चेहरे या स्क्रीन लॉक से सुरक्षित है।</string>
+    <string name="people_lock_unlock">अनलॉक करें</string>
+
+    <!-- Sign in -->
+    <string name="people_signin_step_bar">%2$d में से स्टेप %1$d</string>
+    <string name="people_signin_step_eyebrow">साइन इन · %2$d में से %1$d</string>
+    <string name="people_signin_welcome_back">फिर से स्वागत है</string>
+    <string name="people_signin_email_lead">वही ईमेल डालें जिस पर आपका Saarthi खाता है।</string>
+    <string name="people_signin_continue">आगे बढ़ें</string>
+    <string name="people_signin_existing_account">अपना मौजूदा Saarthi खाता इस्तेमाल करें।</string>
+    <string name="people_signin_email_label">ईमेल पता</string>
+    <string name="people_signin_your_password">आपका पासवर्ड</string>
+    <string name="people_signin_sign_in">साइन इन करें</string>
+    <string name="people_signin_change">बदलें</string>
+    <string name="people_signin_forgot">पासवर्ड भूल गए?</string>
+    <string name="people_signin_working_title">साइन इन हो रहा है…</string>
+    <string name="people_signin_working_body">इस फ़ोन पर आपका कारोबार खुल रहा है।</string>
+
+    <!-- Welcome carousel -->
+    <string name="people_welcome_fleet_alt">सुबह-सुबह अपने ट्रक यार्ड में खड़े एक फ़्लीट मालिक</string>
+    <string name="people_welcome_fleet_eyebrow">मालिकों · फ़्लीट · कारोबारियों के लिए</string>
+    <string name="people_welcome_fleet_title">ट्रैक करें। मंज़ूरी दें।\nपेमेंट पाएँ।</string>
+    <string name="people_welcome_fleet_body">हर गाड़ी एक ही मैप पर लाइव, ड्राइवरों को फ़ोन से मंज़ूरी, और ट्रक ख़ाली लौटने से पहले वापसी का माल।</string>
+    <string name="people_welcome_customer_alt">अपने फ़ोन पर डिलीवरी देखती एक साइट मैनेजर</string>
+    <string name="people_welcome_customer_eyebrow">ग्राहकों के लिए</string>
+    <string name="people_welcome_customer_title">पोस्ट करें। तुलना करें।\nपहुँचने तक ट्रैक करें।</string>
+    <string name="people_welcome_customer_body">बताएँ कि क्या पहुँचाना है, फ़्लीट की बोलियों में से चुनें, और अपना माल गेट तक पहुँचने तक देखते रहें।</string>
+    <string name="people_welcome_seller_alt">अपने बिल्डिंग मटीरियल यार्ड में दो सेलर</string>
+    <string name="people_welcome_seller_eyebrow">सेलर के लिए</string>
+    <string name="people_welcome_seller_title">ट्रक भर-भरकर\nबेचें।</string>
+    <string name="people_welcome_seller_body">फ़्लीट आपकी लिस्टिंग से माल लेते हैं और आपके गेट से उठाते हैं। आप लोड करते हैं; वे डिलीवर करते हैं।</string>
+    <string name="people_welcome_previous">पिछला</string>
+    <string name="people_welcome_next">अगला</string>
+
+    <!-- Ask Saarthi · suggestions by kind of business -->
+    <string name="people_assistant_suggest_attention">आज किस पर मेरा ध्यान चाहिए?</string>
+    <string name="people_assistant_suggest_idle">कौन से ट्रक खड़े हैं?</string>
+    <string name="people_assistant_suggest_papers_due">इस महीने कौन से काग़ज़ात बाकी हैं</string>
+    <string name="people_assistant_suggest_fuel">इस हफ़्ते फ़्यूल पर कितना ख़र्च</string>
+    <string name="people_assistant_suggest_today">आज क्या है?</string>
+    <string name="people_assistant_suggest_free">कौन सी गाड़ियाँ ख़ाली हैं?</string>
+    <string name="people_assistant_suggest_orders">मेरे ऑर्डर कहाँ हैं?</string>
+    <string name="people_assistant_suggest_spent">इस महीने मैंने कितना ख़र्च किया?</string>
+    <string name="people_assistant_suggest_payment">कौन से ऑर्डर पेमेंट के इंतज़ार में हैं?</string>
+    <string name="people_assistant_suggest_stock">किसका स्टॉक कम है?</string>
+    <string name="people_assistant_suggest_expiring">कौन से काग़ज़ात जल्द एक्सपायर होंगे?</string>
+    <string name="people_assistant_suggest_service">मेरी अगली सर्विस कब है?</string>
+
+    <!-- Ask Saarthi · the conversation -->
+    <string name="people_assistant_no_answer">आपके रिकॉर्ड में इसका जवाब नहीं मिला।</string>
+    <string name="people_assistant_no_recogniser">इस फ़ोन में आवाज़ पहचानने की सुविधा नहीं है। आप सवाल टाइप कर सकते हैं।</string>
+    <string name="people_assistant_mic_needed">आपकी बात सुनने के लिए Saarthi को माइक चाहिए। आप फिर भी सवाल टाइप कर सकते हैं।</string>
+    <string name="people_assistant_morning">सुप्रभात, %1$s</string>
+    <string name="people_assistant_afternoon">नमस्ते, %1$s</string>
+    <string name="people_assistant_evening">शुभ संध्या, %1$s</string>
+    <string name="people_assistant_from_records">आपके अपने रिकॉर्ड से</string>
+    <string name="people_assistant_title">Saarthi से पूछें</string>
+    <string name="people_assistant_intro">गाड़ियों, ट्रिप, काग़ज़ात या पैसों के बारे में पूछें।</string>
+    <string name="people_assistant_looking">आपके रिकॉर्ड देख रहे हैं…</string>
+    <string name="people_assistant_listening">सुन रहे हैं…</string>
+    <string name="people_assistant_tap_to_stop">रोकने के लिए Saarthi पर टैप करें</string>
+    <string name="people_assistant_stop">रोकें</string>
+    <string name="people_assistant_try_asking">ऐसे पूछें</string>
+    <string name="people_assistant_placeholder">अपने कारोबार के बारे में पूछें…</string>
+    <string name="people_assistant_stop_listening">सुनना बंद करें</string>
+    <string name="people_assistant_ask_aloud">बोलकर पूछें</string>
+    <string name="people_assistant_send">भेजें</string>
+
+    <!-- Ask Saarthi · when voice does not work -->
+    <string name="people_voice_not_caught">मैं समझ नहीं पाया। माइक पर टैप करके फिर कोशिश करें।</string>
+    <string name="people_voice_permission">आपकी बात सुनने के लिए Saarthi को माइक चाहिए। फ़ोन की सेटिंग में इसकी अनुमति दें।</string>
+    <string name="people_voice_network">आवाज़ के लिए इंटरनेट चाहिए। कनेक्शन देखें और फिर कोशिश करें।</string>
+    <string name="people_voice_busy">फ़ोन अभी पिछले काम में लगा है। थोड़ी देर में फिर कोशिश करें।</string>
+    <string name="people_voice_unavailable">आवाज़ अभी काम नहीं कर रही। आप सवाल टाइप कर सकते हैं।</string>
+</resources>

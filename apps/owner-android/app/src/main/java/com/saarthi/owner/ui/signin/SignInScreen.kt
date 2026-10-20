@@ -13,11 +13,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.saarthi.owner.R
 import com.saarthi.owner.ui.design.Avatar
 import com.saarthi.owner.ui.design.LinkButton
 import com.saarthi.owner.ui.design.Lucide
@@ -55,21 +57,21 @@ internal fun EmailStep(form: AuthForm, onBack: () -> Unit, onContinue: () -> Uni
     AuthStepFrame(
         total = 2,
         current = 1,
-        barLabel = "Step 1 of 2",
-        eyebrow = "Sign in · 1 of 2",
-        title = "Welcome back",
-        lead = "Use the email address your Saarthi account is on.",
+        barLabel = stringResource(R.string.people_signin_step_bar, 1, 2),
+        eyebrow = stringResource(R.string.people_signin_step_eyebrow, 1, 2),
+        title = stringResource(R.string.people_signin_welcome_back),
+        lead = stringResource(R.string.people_signin_email_lead),
         onBack = onBack,
         footer = {
             SaarthiButton(
-                "Continue",
+                stringResource(R.string.people_signin_continue),
                 onContinue,
                 Modifier.rise(stagger(5)),
                 enabled = ready,
                 trailing = Lucide.arrowRight,
             )
             Text(
-                "Use the Saarthi account you already have.",
+                stringResource(R.string.people_signin_existing_account),
                 style = SType.caption,
                 color = Saarthi.colors.subtle,
                 modifier = Modifier
@@ -83,7 +85,7 @@ internal fun EmailStep(form: AuthForm, onBack: () -> Unit, onContinue: () -> Uni
         SaarthiField(
             value = form.email,
             onValueChange = { form.email = it },
-            label = "Email address",
+            label = stringResource(R.string.people_signin_email_label),
             leading = Lucide.atSign,
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Email,
@@ -115,13 +117,13 @@ internal fun PasswordStep(
     AuthStepFrame(
         total = 2,
         current = 2,
-        barLabel = "Step 2 of 2",
-        eyebrow = "Sign in · 2 of 2",
-        title = "Your password",
+        barLabel = stringResource(R.string.people_signin_step_bar, 2, 2),
+        eyebrow = stringResource(R.string.people_signin_step_eyebrow, 2, 2),
+        title = stringResource(R.string.people_signin_your_password),
         onBack = onBack,
         footer = {
             SaarthiButton(
-                "Sign in",
+                stringResource(R.string.people_signin_sign_in),
                 onSignIn,
                 Modifier.rise(stagger(5)),
                 enabled = ready,
@@ -146,7 +148,7 @@ internal fun PasswordStep(
                 maxLines = 1,
                 modifier = Modifier.weight(1f),
             )
-            LinkButton("Change", onBack, style = SType.body, weight = FontWeight.SemiBold)
+            LinkButton(stringResource(R.string.people_signin_change), onBack, style = SType.body, weight = FontWeight.SemiBold)
         }
         PasswordField(
             value = form.password,
@@ -159,7 +161,7 @@ internal fun PasswordStep(
                 .rise(stagger(4)),
         )
         LinkButton(
-            "Forgot password?",
+            stringResource(R.string.people_signin_forgot),
             onForgot,
             style = SType.body,
             modifier = Modifier

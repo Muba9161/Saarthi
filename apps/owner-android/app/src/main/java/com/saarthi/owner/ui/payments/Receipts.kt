@@ -15,8 +15,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.saarthi.owner.R
 import com.saarthi.owner.network.PaymentsApi
+import com.saarthi.owner.ui.common.Words
 import com.saarthi.owner.ui.common.dayOf
 import com.saarthi.owner.ui.common.rupees
 import com.saarthi.owner.ui.design.Eyebrow
@@ -40,12 +43,12 @@ fun ReceiptsCard(
     receipts: List<PaymentsApi.Receipt>,
     forWhat: String,
     modifier: Modifier = Modifier,
-    labelFor: (PaymentsApi.Receipt) -> String = { "Payment" },
+    labelFor: (PaymentsApi.Receipt) -> String = { Words.get(R.string.papers_payments_receipt_default_label) },
 ) {
     if (receipts.isEmpty()) return
     val c = Saarthi.colors
     Column(modifier.fillMaxWidth().card(radius = 22.dp).padding(vertical = 6.dp)) {
-        Eyebrow("Receipts", Modifier.padding(start = 18.dp, top = 12.dp, bottom = 4.dp))
+        Eyebrow(stringResource(R.string.papers_payments_receipts), Modifier.padding(start = 18.dp, top = 12.dp, bottom = 4.dp))
         receipts.forEachIndexed { index, receipt ->
             ReceiptRow(receipt, labelFor(receipt), forWhat, divider = index < receipts.lastIndex)
         }
@@ -74,8 +77,8 @@ private fun ReceiptRow(receipt: PaymentsApi.Receipt, label: String, forWhat: Str
             Text(label, style = SType.bodyStrong, color = c.fg)
             Text(
                 when {
-                    failed -> "Could not save it. Try again."
-                    saved?.inDownloads == true -> "Saved to Downloads › Saarthi"
+                    failed -> stringResource(R.string.papers_payments_receipt_save_failed)
+                    saved?.inDownloads == true -> stringResource(R.string.papers_payments_receipt_saved)
                     else -> listOfNotNull(rupees(receipt.amount), dayOf(receipt.paidAt)).joinToString(" · ")
                 },
                 style = SType.caption,
@@ -86,11 +89,11 @@ private fun ReceiptRow(receipt: PaymentsApi.Receipt, label: String, forWhat: Str
         when {
             saving -> RingSpinner(track = c.track, head = c.primary, size = 18.dp, stroke = 2.dp)
             done != null -> Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                LinkButton("Open", onClick = { context.openReceipt(done) }, style = SType.smallStrong)
-                LinkButton("Share", onClick = { context.shareReceipt(done) }, style = SType.smallStrong)
+                LinkButton(stringResource(R.string.papers_payments_open), onClick = { context.openReceipt(done) }, style = SType.smallStrong)
+                LinkButton(stringResource(R.string.papers_payments_share), onClick = { context.shareReceipt(done) }, style = SType.smallStrong)
             }
             else -> LinkButton(
-                "Download",
+                stringResource(R.string.papers_payments_download),
                 onClick = {
                     saving = true
                     failed = false

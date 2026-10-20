@@ -1,0 +1,324 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Running costs: the tabs, the card on a home or vehicle page, and the screen. -->
+    <string name="costs_tab_fuel">எரிபொருள்</string>
+    <string name="costs_tab_servicing">சர்வீஸ்</string>
+    <string name="costs_tab_slips">ரசீதுகள்</string>
+    <string name="costs_tab_loans">லோன்கள்</string>
+    <string name="costs_tab_toll">டோல்</string>
+    <string name="costs_running_costs">வண்டிச் செலவுகள்</string>
+    <string name="costs_card_open">வண்டிச் செலவுகளைத் திற</string>
+    <string name="costs_whole_fleet">முழு ஃப்ளீட்</string>
+    <string name="costs_not_in_plan">இந்தக் கணக்கின் பிளான் அல்லது ரோலில் வண்டிச் செலவுகள் இல்லை.</string>
+
+    <!-- Words shared by the cost forms and lists. -->
+    <string name="costs_fuel">எரிபொருள்</string>
+    <string name="costs_servicing">சர்வீஸ்</string>
+    <string name="costs_slips">ரசீதுகள்</string>
+    <string name="costs_loans">லோன்கள்</string>
+    <string name="costs_vehicle">வண்டி</string>
+    <string name="costs_saving">சேமிக்கிறது…</string>
+    <string name="costs_recording">பதிவு செய்கிறது…</string>
+    <string name="costs_done">முடிந்தது</string>
+    <string name="costs_photo_unusable">அந்தப் போட்டோவைப் பயன்படுத்த முடியவில்லை.</string>
+    <string name="costs_reference_optional">ரெஃபரன்ஸ் (விருப்பத்தேர்வு)</string>
+    <string name="costs_odometer_optional">ஓடோமீட்டர் km (விருப்பத்தேர்வு)</string>
+    <string name="costs_outstanding">நிலுவை</string>
+    <string name="costs_overdue">கெடு தாண்டியது</string>
+    <string name="costs_was_due">கெடு %1$s ஆக இருந்தது</string>
+    <string name="costs_slip_other_plate">இந்த ரசீதில் %2$s அல்ல, %1$s என்று உள்ளது. சரியான வண்டியா என்று சரிபாருங்கள்.</string>
+    <string name="costs_bill_other_plate">இந்த பில்லில் %2$s அல்ல, %1$s என்று உள்ளது. சரியான வண்டியா என்று சரிபாருங்கள்.</string>
+
+    <!-- The first step of a form that reads a slip or a bill. -->
+    <string name="costs_slip_step_pump_prompt">பங்க் ரசீதைப் போட்டோ எடுங்கள், அதிலிருந்து விவரங்கள் தானாக நிரம்பும்.</string>
+    <string name="costs_slip_step_pump_scan">பங்க் ரசீதை ஸ்கேன் செய்</string>
+    <string name="costs_slip_step_pump_reading">பங்க் ரசீதைப் படிக்கிறது…</string>
+    <string name="costs_slip_step_bill_prompt">பில்லைப் போட்டோ எடுங்கள், அதிலிருந்து விவரங்கள் தானாக நிரம்பும்.</string>
+    <string name="costs_slip_step_bill_scan">பில்லை ஸ்கேன் செய்</string>
+    <string name="costs_slip_step_bill_reading">பில்லைப் படிக்கிறது…</string>
+    <string name="costs_slip_step_slip_prompt">ரசீதைப் போட்டோ எடுங்கள், அதிலிருந்து விவரங்கள் தானாக நிரம்பும்.</string>
+    <string name="costs_slip_step_slip_scan">ரசீதை ஸ்கேன் செய்</string>
+    <string name="costs_slip_step_slip_reading">ரசீதைப் படிக்கிறது…</string>
+    <string name="costs_slip_step_gallery">கேலரி</string>
+    <string name="costs_slip_step_change">மாற்று</string>
+
+    <!-- Fuel tab and the fill-up form. -->
+    <string name="costs_log_fill_up">எரிபொருள் நிரப்பியதைப் பதிவு செய்</string>
+    <string name="costs_litres">லிட்டர்</string>
+    <string name="costs_fuel_litres_unit">L</string>
+    <string name="costs_fuel_spend">செலவு</string>
+    <string name="costs_fuel_avg_rate">சராசரி விலை</string>
+    <string name="costs_fuel_rate_unit">₹/L</string>
+    <string name="costs_fuel_none">இன்னும் எரிபொருள் பதிவுகள் இல்லை.</string>
+    <string name="costs_fuel_fill_title">%2$s/L விலையில் %1$.1f L</string>
+    <string name="costs_fill_up_save">எரிபொருள் பதிவைச் சேமி</string>
+    <string name="costs_fill_up_slip_lost">எரிபொருள் பதிவு சேமிக்கப்பட்டது, ஆனால் ரசீதை அதனுடன் வைக்க முடியவில்லை. %1$s</string>
+    <string name="costs_fill_up_read_good">ரசீதிலிருந்து நிரப்பப்பட்டது. விவரங்களைச் சரிபார்த்து, பிறகு சேமியுங்கள்.</string>
+    <string name="costs_fill_up_read_none">இந்த ரசீதிலிருந்து எதையும் படிக்க முடியவில்லை. லிட்டரையும் விலையையும் நிரப்புங்கள்.</string>
+    <string name="costs_fill_up_rate">விலை (லிட்டருக்கு ₹)</string>
+    <string name="costs_fill_up_total">மொத்தம் %1$s</string>
+    <string name="costs_fill_up_filled_on">நிரப்பிய தேதி</string>
+    <string name="costs_fill_up_pump">பங்க் (விருப்பத்தேர்வு)</string>
+
+    <!-- Servicing tab and the servicing form. -->
+    <string name="costs_log_servicing">சர்வீஸைப் பதிவு செய்</string>
+    <string name="costs_service_save">சர்வீஸைச் சேமி</string>
+    <string name="costs_service_book">புக் செய்</string>
+    <string name="costs_service_done_already">ஏற்கெனவே முடிந்தது</string>
+    <string name="costs_service_booked">புக் செய்யப்பட்டது</string>
+    <string name="costs_service_read_good">பில்லிலிருந்து நிரப்பப்பட்டது. விவரங்களைச் சரிபார்த்து, பிறகு சேமியுங்கள்.</string>
+    <string name="costs_service_read_none">இந்த பில்லிலிருந்து எதையும் படிக்க முடியவில்லை. என்ன வேலை செய்யப்பட்டது என்று நிரப்புங்கள்.</string>
+    <string name="costs_service_bill_hint">படிவத்தை நிரப்ப பில் இந்த போனிலேயே படிக்கப்படுகிறது; விவரங்கள் மட்டுமே சேமிக்கப்படும்.</string>
+    <string name="costs_service_work">வேலை</string>
+    <string name="costs_service_what">என்ன வேலை செய்யப்பட்டது</string>
+    <string name="costs_service_what_placeholder">எ.கா. 10,000 km சர்வீஸ்</string>
+    <string name="costs_service_done_on">செய்த தேதி</string>
+    <string name="costs_service_booked_for">புக் செய்த தேதி</string>
+    <string name="costs_service_total">மொத்தம் ₹ (விருப்பத்தேர்வு)</string>
+    <string name="costs_service_estimate">எஸ்டிமேட் ₹ (விருப்பத்தேர்வு)</string>
+    <string name="costs_service_workshop">வொர்க்ஷாப் (விருப்பத்தேர்வு)</string>
+    <string name="costs_service_bill_number">பில் நம்பர் (விருப்பத்தேர்வு)</string>
+    <string name="costs_service_work_done">செய்த வேலை</string>
+    <string name="costs_service_none">இன்னும் சர்வீஸ் பதிவுகள் இல்லை.</string>
+    <string name="costs_service_history_unreadable">சர்வீஸ் வரலாற்றைப் படிக்க முடியவில்லை.</string>
+    <string name="costs_service_worth_a_look">ஒருமுறை பார்க்கலாம்</string>
+    <string name="costs_service_needs">சர்வீஸ் தேவை</string>
+    <string name="costs_service_soon">விரைவில் சர்வீஸ்</string>
+    <string name="costs_service_history">சர்வீஸ் வரலாறு</string>
+    <string name="costs_service_due">கெடு %1$s</string>
+    <string name="costs_service_spent">செலவு</string>
+    <string name="costs_service_parts">பார்ட்ஸ்</string>
+    <string name="costs_service_labour">கூலி</string>
+    <string name="costs_service_cost_per_km">பராமரிப்புக்கு ஒரு கிலோமீட்டருக்குச் சுமார் ₹%1$.2f.</string>
+    <string name="costs_service_for">%1$s-க்கு</string>
+    <string name="costs_service_mark_done">முடிந்ததாகக் குறி</string>
+    <string name="costs_service_call_off">ரத்துசெய்</string>
+
+    <!-- Slips tab and the slip form. -->
+    <string name="costs_file_slip">ரசீதைப் பதிவு செய்</string>
+    <string name="costs_slip_file">ரசீதைச் சமர்ப்பி</string>
+    <string name="costs_slip_filing">சமர்ப்பிக்கிறது…</string>
+    <string name="costs_slip_read_good">ரசீதிலிருந்து நிரப்பப்பட்டது. விவரங்களைச் சரிபார்த்து, பிறகு சமர்ப்பியுங்கள்.</string>
+    <string name="costs_slip_read_none">இந்த ரசீதிலிருந்து எதையும் படிக்க முடியவில்லை. எதற்காக, எவ்வளவு என்று நிரப்புங்கள்.</string>
+    <string name="costs_slip_photo_needed">போட்டோதான் ரசீதுக்கான ஆதாரம், அதனால் அது தேவை.</string>
+    <string name="costs_slip_what_for">எதற்காக</string>
+    <string name="costs_slip_amount">தொகை ₹</string>
+    <string name="costs_slip_paid_to">யாருக்குச் செலுத்தியது (விருப்பத்தேர்வு)</string>
+    <string name="costs_slip_note">குறிப்பு (விருப்பத்தேர்வு)</string>
+    <string name="costs_slips_all">அனைத்தும்</string>
+    <string name="costs_slips_none">இன்னும் ரசீதுகள் இல்லை. டிரைவர்கள் Humsafar-இலிருந்து அவற்றைச் சமர்ப்பிப்பார்கள்.</string>
+    <string name="costs_slips_none_kind">இந்த வகை ரசீதுகள் இல்லை.</string>
+    <string name="costs_slips_spent">ரசீதுகளில் செலவு</string>
+    <string name="costs_slips_open">ரசீதைத் திற</string>
+    <string name="costs_slip_filed_against">ட்ரிப் %1$s-க்காகச் சமர்ப்பிக்கப்பட்டது.</string>
+    <string name="costs_slip_filed_between">ட்ரிப்களுக்கு இடையே சமர்ப்பிக்கப்பட்டது.</string>
+    <string name="costs_slip_photo_description">ரசீது</string>
+
+    <!-- Loans tab: the summary, the list, and an installment's or a loan's standing. -->
+    <string name="costs_add_loan">லோன் சேர்</string>
+    <string name="costs_loans_monthly">மாதாந்திர EMI</string>
+    <string name="costs_loans_due_month">இந்த மாதம் கட்ட வேண்டியது</string>
+    <string name="costs_loans_next_30_days">அடுத்த 30 நாட்கள்</string>
+    <string name="costs_loans_vehicle">இந்த வண்டியின் லோன்கள்</string>
+    <string name="costs_loans_none">லோன்கள் எதுவும் பதிவில் இல்லை.</string>
+    <string name="costs_loans_next">அடுத்தது %1$s</string>
+    <string name="costs_loans_overdue_count">%1$d கெடு தாண்டியவை</string>
+    <string name="costs_due">கெடு %1$s</string>
+    <string name="costs_emi">EMI</string>
+    <string name="costs_emi_amount">EMI %1$s</string>
+    <string name="costs_emi_number">EMI %1$d</string>
+    <string name="costs_emi_number_on">EMI %1$d · %2$s</string>
+    <string name="costs_installment_due_soon">விரைவில் கெடு</string>
+    <string name="costs_installment_due_today">இன்று கெடு</string>
+    <string name="costs_installment_part_paid">பகுதி செலுத்தப்பட்டது</string>
+    <string name="costs_installment_paid">செலுத்தப்பட்டது</string>
+    <string name="costs_installment_waived">தள்ளுபடி</string>
+    <string name="costs_installment_unknown">தெரியவில்லை</string>
+    <string name="costs_loan_status_active">நடப்பில்</string>
+    <string name="costs_loan_status_closed">முடிந்தது</string>
+    <string name="costs_loan_status_foreclosed">முன்கூட்டியே முடிக்கப்பட்டது</string>
+    <string name="costs_loan_status_defaulted">தவணை தவறியது</string>
+    <string name="costs_loan_status_on_hold">நிறுத்திவைக்கப்பட்டது</string>
+    <string name="costs_loan_status_cancelled">ரத்துசெய்யப்பட்டது</string>
+    <string name="costs_loan_status_draft">டிராஃப்ட்</string>
+
+    <!-- Add a loan. -->
+    <string name="costs_add_loan_save">லோனைச் சேமி</string>
+    <string name="costs_lender">கடன் கொடுத்தவர்</string>
+    <string name="costs_add_loan_lender_placeholder">எ.கா. Shriram Finance</string>
+    <string name="costs_add_loan_number">லோன் அக்கவுண்ட் நம்பர்</string>
+    <string name="costs_add_loan_principal">கடன் வாங்கியது ₹</string>
+    <string name="costs_add_loan_rate" formatted="false">வருட வட்டி %</string>
+    <string name="costs_add_loan_months">மாதங்கள்</string>
+    <string name="costs_add_loan_debit_day">ஆட்டோ-டெபிட் நாள் (விருப்பத்தேர்வு)</string>
+    <string name="costs_add_loan_reducing">ரெட்யூசிங் பேலன்ஸ்</string>
+    <string name="costs_add_loan_flat">ஃப்ளாட் ரேட்</string>
+    <string name="costs_add_loan_started">லோன் தொடங்கிய தேதி</string>
+    <string name="costs_add_loan_first_emi">முதல் EMI தேதி</string>
+    <string name="costs_add_loan_dates_misfit">லோன் தொடங்கும் முன் முதல் EMI இருக்க முடியாது.</string>
+    <string name="costs_add_loan_schedule_title">இந்த நிபந்தனைகளின்படி தவணை அட்டவணை</string>
+    <plurals name="costs_add_loan_schedule_totals">
+        <item quantity="one">%1$d EMI · வட்டி %2$s · மொத்தம் %3$s</item>
+        <item quantity="other">%1$d EMI-கள் · வட்டி %2$s · மொத்தம் %3$s</item>
+    </plurals>
+
+    <!-- One loan: its figures, schedule, payments and terms. -->
+    <string name="costs_loan">லோன்</string>
+    <string name="costs_loan_not_found">இந்த லோனைக் கண்டுபிடிக்க முடியவில்லை.</string>
+    <string name="costs_loan_record_payment">பேமெண்ட்டைப் பதிவு செய்</string>
+    <plurals name="costs_loan_overdue_notice">
+        <item quantity="one">%1$d EMI கெடு தாண்டியுள்ளது — மொத்தம் %2$s.</item>
+        <item quantity="other">%1$d EMI-கள் கெடு தாண்டியுள்ளன — மொத்தம் %2$s.</item>
+    </plurals>
+    <string name="costs_loan_next_due">அடுத்த கெடு</string>
+    <string name="costs_loan_repaid">திருப்பிச் செலுத்தியது</string>
+    <string name="costs_loan_emis_unit">EMI-கள்</string>
+    <string name="costs_loan_reminders">EMI நினைவூட்டல்கள்</string>
+    <string name="costs_loan_reminders_detail">ஒவ்வொரு EMI கெடுவுக்கும் முன் ஒரு நினைவூட்டல்.</string>
+    <string name="costs_loan_schedule">திருப்பிச் செலுத்தும் அட்டவணை</string>
+    <string name="costs_loan_no_schedule">இந்த லோனுக்கு அட்டவணை எதுவும் பதிவில் இல்லை.</string>
+    <string name="costs_loan_installment_detail">அசல் %1$s · வட்டி %2$s</string>
+    <string name="costs_loan_installment_detail_left">அசல் %1$s · வட்டி %2$s · அதன் பின் %3$s மீதம்</string>
+    <string name="costs_loan_payments">பேமெண்ட்கள்</string>
+    <string name="costs_loan_prepayment">முன்கூட்டிய பேமெண்ட்</string>
+    <string name="costs_loan_reversed">திரும்பப்பெறப்பட்டது</string>
+    <string name="costs_loan_terms">நிபந்தனைகள்</string>
+    <string name="costs_loan_borrowed">கடன் வாங்கியது</string>
+    <string name="costs_loan_interest">வட்டி</string>
+    <string name="costs_loan_rate">வருடத்துக்கு %1$.2f%%</string>
+    <string name="costs_loan_rate_flat">வருடத்துக்கு %1$.2f%%, ஃப்ளாட்</string>
+    <string name="costs_loan_tenure">காலம்</string>
+    <plurals name="costs_loan_tenure_months">
+        <item quantity="one">%1$d மாதம்</item>
+        <item quantity="other">%1$d மாதங்கள்</item>
+    </plurals>
+    <string name="costs_loan_runs">நடக்கும் காலம்</string>
+    <string name="costs_loan_runs_span">%1$s முதல் %2$s வரை</string>
+    <string name="costs_loan_auto_debit">ஆட்டோ-டெபிட்</string>
+    <string name="costs_loan_auto_debit_day">%1$d-ஆம் தேதி</string>
+    <string name="costs_loan_standing">நிலை</string>
+
+    <!-- Recording a loan payment. -->
+    <string name="costs_loan_payment_intro">வங்கியில் செய்த பேமெண்ட்டைக் குறித்து வைக்கும். இது பணத்தை அனுப்பாது.</string>
+    <string name="costs_loan_payment_against">எந்தத் தவணைக்கு</string>
+    <string name="costs_loan_amount_paid">செலுத்திய தொகை ₹</string>
+    <string name="costs_loan_late_fee">தாமதக் கட்டணம் ₹ (விருப்பத்தேர்வு)</string>
+    <string name="costs_loan_paid_on">செலுத்திய தேதி</string>
+    <string name="costs_loan_reference_placeholder">UTR அல்லது செக் நம்பர்</string>
+    <string name="costs_loan_record_payment_button">பேமெண்ட்டைப் பதிவு செய்</string>
+
+    <!-- Toll tab: spend, FASTags, plazas and crossings. -->
+    <string name="costs_toll_window">டோல் · %1$d நாள்</string>
+    <string name="costs_toll_per_crossing">ஒரு கிராசிங்குக்கு</string>
+    <string name="costs_toll_need_a_look">கவனிக்க வேண்டியவை</string>
+    <plurals name="costs_toll_tags_unit">
+        <item quantity="one">டேக்</item>
+        <item quantity="other">டேக்குகள்</item>
+    </plurals>
+    <string name="costs_toll_fastags">FASTag-கள்</string>
+    <string name="costs_toll_none">இன்னும் FASTag எதுவும் பதிவில் இல்லை.</string>
+    <string name="costs_toll_none_vehicle">இந்த வண்டிக்கு FASTag எதுவும் பதிவில் இல்லை.</string>
+    <string name="costs_toll_find">இந்த வண்டியின் FASTag-ஐக் கண்டுபிடி</string>
+    <string name="costs_toll_found">கிடைத்தது.</string>
+    <string name="costs_toll_found_with">%1$s-இல் கிடைத்தது.</string>
+    <string name="costs_toll_not_found">இந்த நம்பர் பிளேட்டுக்கு வங்கியிடம் FASTag இல்லை.</string>
+    <string name="costs_toll_where_money_goes">பணம் எங்கே செல்கிறது</string>
+    <plurals name="costs_toll_crossings">
+        <item quantity="one">%1$d கிராசிங்</item>
+        <item quantity="other">%1$d கிராசிங்குகள்</item>
+    </plurals>
+    <string name="costs_toll_crossings_title">கிராசிங்குகள்</string>
+    <string name="costs_toll_crossings_none">இன்னும் டோல் கிராசிங்குகள் பதிவில் இல்லை.</string>
+    <string name="costs_tag_low_balance">குறைந்த பேலன்ஸ்</string>
+    <string name="costs_tag_blocked">தடுக்கப்பட்டது</string>
+    <string name="costs_tag_expiring">காலாவதியாகிறது</string>
+    <string name="costs_asking_bank">வங்கியிடம் கேட்கிறது…</string>
+
+    <!-- One FASTag, its balance and recharges. -->
+    <string name="costs_fastag_balance_unknown">பேலன்ஸ் தெரியவில்லை</string>
+    <string name="costs_fastag_balance_from">%1$s முன்பு இருந்த பேலன்ஸ்</string>
+    <string name="costs_fastag_balance_now">இப்போதைய பேலன்ஸ்</string>
+    <string name="costs_fastag_warns_below">%1$s-க்குக் கீழே எச்சரிக்கும்</string>
+    <string name="costs_fastag_valid_till">%1$s வரை செல்லும்</string>
+    <string name="costs_fastag_bank_said">வங்கி கடைசியாகச் சொன்னது: %1$s</string>
+    <string name="costs_fastag_ask_bank">வங்கியிடம் மீண்டும் கேள்</string>
+    <string name="costs_fastag_synced">வங்கியின் சமீபத்திய தகவல் காட்டப்படுகிறது.</string>
+    <string name="costs_fastag_balance_updated">பேலன்ஸ் புதுப்பிக்கப்பட்டது.</string>
+    <string name="costs_fastag_recharge_recorded">ரீசார்ஜ் பதிவு செய்யப்பட்டது.</string>
+    <string name="costs_fastag_update_balance">பேலன்ஸைப் புதுப்பி</string>
+    <string name="costs_fastag_balance">பேலன்ஸ் ₹</string>
+    <string name="costs_fastag_when_true">இந்த பேலன்ஸ் எப்போது இருந்தது?</string>
+    <string name="costs_fastag_save_balance">பேலன்ஸைச் சேமி</string>
+    <string name="costs_fastag_record_recharge_title">ரீசார்ஜைப் பதிவு செய்</string>
+    <string name="costs_fastag_amount_added">சேர்த்த தொகை ₹</string>
+    <string name="costs_fastag_balance_after">பின் உள்ள பேலன்ஸ் (விருப்பத்தேர்வு)</string>
+    <string name="costs_fastag_record_recharge">ரீசார்ஜைப் பதிவு செய்</string>
+
+    <!-- Drive: the card on Home. -->
+    <string name="costs_drive_title">டிரைவ்</string>
+    <string name="costs_drive_open">டிரைவைத் திற</string>
+    <string name="costs_drive_you_drive">நீங்கள் %1$s ஓட்டுகிறீர்கள்</string>
+    <string name="costs_drive_card_recording">உங்கள் ட்ரிப் பதிவாகிறது</string>
+    <string name="costs_drive_card_tools">உங்கள் ட்ரிப்கள், எரிபொருள், ரசீதுகள், SOS</string>
+
+    <!-- Drive: whether the phone records the road. -->
+    <string name="costs_drive_gps_recording">உங்கள் ட்ரிப்பின் சாலை பதிவாகிறது</string>
+    <string name="costs_drive_gps_off">Saarthi-க்கு லொகேஷன் ஆஃப் ஆக உள்ளது</string>
+    <string name="costs_drive_gps_paused">உங்கள் லொகேஷனைப் பகிர்வதை நிறுத்திவிட்டீர்கள்</string>
+    <string name="costs_drive_gps_not_yet">இன்னும் பதிவு செய்யவில்லை</string>
+    <string name="costs_drive_gps_idle">ட்ரிப் நடக்கும்போது மட்டுமே உங்கள் லொகேஷன் பகிரப்படும்</string>
+    <string name="costs_drive_gps_recording_detail">இது நடக்கும்போது \"ஓட்டுகிறீர்கள்\" அறிவிப்பு காட்டப்படும்.</string>
+    <string name="costs_drive_gps_off_detail">ட்ரிப் எங்கே இருக்கிறது என்று ஃப்ளீட் பார்க்க அனுமதியுங்கள்.</string>
+    <string name="costs_drive_gps_paused_detail">நீங்கள் மீண்டும் தொடங்கும் வரை ட்ரிப்பின் சாலையில் இடைவெளி இருக்கும்.</string>
+    <string name="costs_drive_gps_idle_detail">ட்ரிப்பைத் தொடங்கினால் இது தானாகவே தொடங்கும்.</string>
+    <string name="costs_drive_allow">அனுமதி</string>
+    <string name="costs_drive_resume">மீண்டும் தொடங்கு</string>
+
+    <!-- Drive: a trip card and the arrival prompt. -->
+    <string name="costs_drive_on_this_trip">இந்த ட்ரிப்பில்</string>
+    <string name="costs_drive_up_next">அடுத்தது</string>
+    <string name="costs_drive_open_trip">ட்ரிப்பைத் திற</string>
+    <string name="costs_drive_to_go">இன்னும் %1$s</string>
+    <string name="costs_drive_eta">சேரும் நேரம் %1$s</string>
+    <string name="costs_drive_slide_start">தொடங்க ஸ்லைடு செய்யுங்கள்</string>
+    <string name="costs_drive_arrived">வந்துவிட்டேன்</string>
+    <string name="costs_drive_saving">சேமிக்கிறது…</string>
+    <string name="costs_drive_end_here">இந்த ட்ரிப்பை இங்கே முடி</string>
+    <string name="costs_drive_slide_complete">முடிக்க ஸ்லைடு செய்யுங்கள்</string>
+    <string name="costs_drive_at">நீங்கள் %1$s-இல் இருக்கிறீர்கள்</string>
+    <string name="costs_drive_confirm_arrival">வாடிக்கையாளருக்கும் ஃப்ளீட்டுக்கும் தெரிய, நீங்கள் வந்துவிட்டதை உறுதிசெய்யுங்கள்.</string>
+    <string name="costs_drive_yes_arrived">ஆம், வந்துவிட்டேன்</string>
+
+    <!-- Drive: the screen. -->
+    <string name="costs_drive_trip_unreadable">இந்த ட்ரிப்பைப் படிக்க முடியவில்லை.</string>
+    <string name="costs_drive_trip_moved_on">இந்த ட்ரிப் அடுத்த நிலைக்குச் சென்றுவிட்டது; அது எங்கே உள்ளது என்று பார்க்கக் கீழே இழுங்கள்.</string>
+    <string name="costs_drive_starts_after_ref">%1$s-ஐ முடித்ததும் தொடங்கும்.</string>
+    <string name="costs_drive_starts_after_this">இந்த ட்ரிப்பை முடித்ததும் தொடங்கும்.</string>
+    <string name="costs_drive_starts_after_above">மேலே உள்ள ட்ரிப்புக்குப் பின் தொடங்கும்.</string>
+    <string name="costs_drive_no_trips">இப்போது உங்களுக்கு ட்ரிப்கள் இல்லை. உங்கள் ஃப்ளீட் தரும் ட்ரிப்கள் இங்கே காட்டப்படும்.</string>
+
+    <!-- Drive: fuel, slips and SOS. -->
+    <string name="costs_drive_log_fuel">எரிபொருளைப் பதிவு செய்</string>
+    <string name="costs_drive_file_slip">ரசீதைப் பதிவு செய்</string>
+    <string name="costs_drive_sos">SOS</string>
+    <string name="costs_drive_sos_accident">விபத்து</string>
+    <string name="costs_drive_sos_medical">மருத்துவம்</string>
+    <string name="costs_drive_sos_breakdown">பிரேக்டவுன்</string>
+    <string name="costs_drive_sos_security">பாதுகாப்பு</string>
+    <string name="costs_drive_sos_tyre">டயர்</string>
+    <string name="costs_drive_sos_fuel">எரிபொருள் தீர்ந்தது</string>
+    <string name="costs_drive_sos_other">மற்றவை</string>
+    <string name="costs_drive_sos_title">SOS அனுப்பு</string>
+    <string name="costs_drive_sos_intro">நீங்கள் இருக்கும் இடத்துடன் உங்கள் ஃப்ளீட்டுக்கும் அருகிலுள்ள உதவிக்கும் தெரிவிக்கப்படும்.</string>
+    <string name="costs_drive_sos_what">என்ன நடந்தது? (விருப்பத்தேர்வு)</string>
+    <string name="costs_drive_sos_slide">SOS அனுப்ப ஸ்லைடு செய்யுங்கள்</string>
+    <string name="costs_drive_sos_no_location">உங்கள் இருப்பிடத்தைக் கண்டுபிடிக்க முடியவில்லை. லொகேஷனை ஆன் செய்யுங்கள், அல்லது 112-ஐ அழையுங்கள்.</string>
+    <string name="costs_drive_sos_sent">SOS அனுப்பப்பட்டது. உங்கள் ஃப்ளீட்டுக்கும் அருகிலுள்ள உதவிக்கும் தெரிவிக்கப்பட்டது.</string>
+
+    <!-- Drive: ending a trip short of its destination. -->
+    <string name="costs_drive_end_title">இந்த ட்ரிப்பை இங்கே முடிக்கவா?</string>
+    <string name="costs_drive_end_body">நீங்கள் இருக்கும் இடத்திலேயே ட்ரிப் முடிக்கப்படும், அது முன்கூட்டியே முடிந்ததை ஃப்ளீட் பார்க்கும்.</string>
+    <string name="costs_drive_end_body_short">%2$s-ஐ அடைய இன்னும் %1$.1f km உள்ளது. நீங்கள் இருக்கும் இடத்திலேயே ட்ரிப் முடிக்கப்படும், அது முன்கூட்டியே முடிந்ததை ஃப்ளீட் பார்க்கும்.</string>
+    <string name="costs_drive_end_confirm">ட்ரிப்பை முடி</string>
+    <string name="costs_drive_ending">முடிக்கிறது…</string>
+</resources>

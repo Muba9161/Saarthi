@@ -1,0 +1,359 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- OwnerApi: failures shown on screen. -->
+    <string name="net_error_offline">No connection to Saarthi. Check the internet and try again.</string>
+    <string name="net_error_signed_out">Please sign in again.</string>
+    <string name="net_forgot_password_sent">If an account exists for that email address, we have emailed it a password reset link.</string>
+    <string name="net_error_empty_reply">Saarthi answered but sent nothing back.</string>
+    <string name="net_error_no_user">Saarthi did not say who signed in.</string>
+    <string name="net_error_empty_file">Saarthi sent an empty file.</string>
+    <string name="net_error_wrong_password">The email address or password is incorrect.</string>
+    <string name="net_error_refused">Saarthi refused that request.</string>
+
+    <!-- PapersApi: a 360° spin upload. -->
+    <string name="net_error_spin_frame_not_kept">Saarthi answered but kept no frame.</string>
+
+    <!-- PlacesApi: address search. -->
+    <string name="net_error_address_search_down">Address search is not answering. Try again.</string>
+
+    <!-- DeviceLocation: why there is no fix. -->
+    <string name="net_location_off">Your phone\'s location is off. Turn it on, or search for the place instead.</string>
+    <string name="net_location_not_found">Couldn\'t find where you are. Try near a window, or search for the place instead.</string>
+
+    <!-- AccountType: the role under the account's name. -->
+    <string name="net_role_owner">Owner</string>
+    <string name="net_role_fleet_manager">Fleet manager</string>
+    <string name="net_role_dispatcher">Dispatcher</string>
+    <string name="net_role_customer">Customer</string>
+    <string name="net_role_seller">Seller</string>
+    <string name="net_role_association_admin">Association admin</string>
+    <string name="net_role_responder">Responder</string>
+    <string name="net_role_travel_operator">Travel operator</string>
+
+    <!-- FuelApi: slip categories. -->
+    <string name="net_slip_toll">Toll</string>
+    <string name="net_slip_parking">Parking</string>
+    <string name="net_slip_repair">Repair</string>
+    <string name="net_slip_food">Food</string>
+    <string name="net_slip_loading">Loading / unloading</string>
+    <string name="net_slip_challan">Challan</string>
+    <string name="net_slip_other">Other</string>
+
+    <!-- LoansApi: how a payment was made. -->
+    <string name="net_loan_method_auto_debit">Auto-debit</string>
+    <string name="net_loan_method_bank_transfer">Bank transfer</string>
+    <string name="net_loan_method_cheque">Cheque</string>
+    <string name="net_loan_method_cash">Cash</string>
+    <string name="net_loan_method_card">Card</string>
+    <string name="net_loan_method_other">Other</string>
+
+    <!-- ServicingApi: kinds of work. -->
+    <string name="net_service_type_preventive">Service</string>
+    <string name="net_service_type_repair">Repair</string>
+    <string name="net_service_type_oil_change">Oil change</string>
+    <string name="net_service_type_tyre">Tyres</string>
+    <string name="net_service_type_brake">Brakes</string>
+    <string name="net_service_type_inspection">Inspection</string>
+    <string name="net_service_type_engine">Engine</string>
+    <string name="net_service_type_electrical">Electrical</string>
+    <string name="net_service_type_bodywork">Bodywork</string>
+    <string name="net_service_type_other">Other</string>
+
+    <!-- TravelPackagesApi: kinds of trip and vehicles. -->
+    <string name="net_travel_kind_sightseeing">Sightseeing</string>
+    <string name="net_travel_kind_intercity">Intercity</string>
+    <string name="net_travel_kind_tours">Tours</string>
+    <string name="net_travel_kind_airport">Airport</string>
+    <string name="net_travel_kind_pilgrimage">Pilgrimage</string>
+    <string name="net_travel_kind_custom">Custom</string>
+    <string name="net_travel_kind_trip">Trip</string>
+    <string name="net_travel_vehicle_taxi">Taxi</string>
+    <string name="net_travel_vehicle_car">Car</string>
+    <string name="net_travel_vehicle_van">Van</string>
+    <string name="net_travel_vehicle_bus">Bus</string>
+    <string name="net_travel_vehicle_tempo">Tempo traveller</string>
+
+    <!-- TollApi: how a crossing was paid. -->
+    <string name="net_toll_mode_cash">Cash</string>
+    <string name="net_toll_mode_card">Card</string>
+    <string name="net_toll_mode_exempt">Exempt</string>
+    <string name="net_toll_mode_unknown">Unknown</string>
+
+    <!-- SosApi: the kind of trouble. -->
+    <string name="net_sos_type_medical">Medical</string>
+    <string name="net_sos_type_accident">Accident</string>
+    <string name="net_sos_type_breakdown">Breakdown</string>
+    <string name="net_sos_type_tyre">Tyre</string>
+    <string name="net_sos_type_fuel">Fuel</string>
+    <string name="net_sos_type_security">Security</string>
+    <string name="net_sos_type_other">Other</string>
+
+    <!-- VehiclesApi: why a vehicle is not free. -->
+    <string name="net_vehicle_busy_service">in service</string>
+    <string name="net_vehicle_busy_suspended">suspended</string>
+    <string name="net_vehicle_busy_on_trip">on a trip</string>
+    <string name="net_vehicle_busy">busy</string>
+
+    <!-- RequirementsApi: units, as amounts ("20 t") and as one ("per tonne"). -->
+    <string name="net_unit_ton">t</string>
+    <string name="net_unit_kg">kg</string>
+    <string name="net_unit_bags">bags</string>
+    <string name="net_unit_cubic_meter">m³</string>
+    <string name="net_unit_pieces">pieces</string>
+    <string name="net_unit_litre">L</string>
+    <string name="net_unit_trips">trips</string>
+    <string name="net_unit_one_ton">tonne</string>
+    <string name="net_unit_one_kg">kg</string>
+    <string name="net_unit_one_bag">bag</string>
+    <string name="net_unit_one_cubic_meter">m³</string>
+    <string name="net_unit_one_piece">piece</string>
+    <string name="net_unit_one_litre">litre</string>
+    <string name="net_unit_one_trip">trip</string>
+    <string name="net_unit_one_unit">unit</string>
+
+    <!-- RequirementsApi and OrdersApi: what a job or an order is, in a line. -->
+    <string name="net_quantity_unit">%1$s %2$s</string>
+    <string name="net_quantity_goods">%1$s %2$s</string>
+    <string name="net_truck_size_goods">%1$s t truck · %2$s</string>
+    <string name="net_people_count">%1$d people</string>
+
+    <!-- Push: notification channels. -->
+    <string name="net_push_channel_urgent">Urgent</string>
+    <string name="net_push_channel_urgent_about">SOS, drivers waiting at a vehicle, and anything else that cannot wait</string>
+    <string name="net_push_channel_updates">Updates</string>
+    <string name="net_push_channel_updates_about">Bookings, bids, orders and papers</string>
+
+    <!-- DrivingService: the notification while a trip is recorded. -->
+    <string name="net_driving_title">Driving</string>
+    <string name="net_driving_title_plate">Driving %1$s</string>
+    <string name="net_driving_text">Saarthi is recording this trip\'s road.</string>
+    <string name="net_driving_stop">Stop sharing</string>
+    <string name="net_driving_channel">Driving</string>
+    <string name="net_driving_channel_about">Shown while Saarthi records a trip you are driving.</string>
+
+    <!-- Trips: list and filters. -->
+    <string name="net_trips_trips">Trips</string>
+    <string name="net_trips_fleet">Fleet</string>
+    <string name="net_trips_new_trip">New trip</string>
+    <string name="net_trips_search_placeholder">Trip number or place</string>
+    <string name="net_trips_filter_running">In progress</string>
+    <string name="net_trips_filter_completed">Completed</string>
+    <string name="net_trips_filter_cancelled">Cancelled</string>
+    <string name="net_trips_filter_all">All</string>
+    <string name="net_trips_no_match">No trip matches \"%1$s\".</string>
+    <string name="net_trips_none_running">No trip is running right now.</string>
+    <string name="net_trips_none_yet">No trips here yet.</string>
+    <string name="net_trips_show_more">Show more</string>
+
+    <!-- Trips: a vehicle's trips. -->
+    <plurals name="net_trips_count">
+        <item quantity="one">%d trip</item>
+        <item quantity="other">%d trips</item>
+    </plurals>
+    <string name="net_trips_vehicle_empty">No trips yet. Every trip this vehicle runs is listed here, with its path on the map.</string>
+    <string name="net_trips_older_failed">Couldn\'t load older trips. %1$s</string>
+    <string name="net_trips_show_older">Show older trips</string>
+    <string name="net_trips_loading">Loading…</string>
+
+    <!-- Trips: rows and status words. -->
+    <string name="net_trips_status_draft">Draft</string>
+    <string name="net_trips_status_assigned">Assigned</string>
+    <string name="net_trips_status_loading">Loading</string>
+    <string name="net_trips_status_on_the_way">On the way</string>
+    <string name="net_trips_status_delayed">Delayed</string>
+    <string name="net_trips_status_paused">Paused</string>
+    <string name="net_trips_status_emergency">Emergency</string>
+    <string name="net_trips_status_arrived">Arrived</string>
+    <string name="net_trips_status_unloading">Unloading</string>
+    <string name="net_trips_status_completed">Completed</string>
+    <string name="net_trips_status_cancelled">Cancelled</string>
+    <string name="net_trips_open_trip">Open trip %1$s</string>
+    <string name="net_trips_open_trips">Open trips</string>
+    <string name="net_trips_every_trip_path">Every trip, with its path on the map</string>
+
+    <!-- Trips: a new trip. -->
+    <string name="net_trips_create">Create trip</string>
+    <string name="net_trips_creating">Creating…</string>
+    <string name="net_trips_vehicle">Vehicle</string>
+    <string name="net_trips_driver">Driver</string>
+    <string name="net_trips_no_free_vehicle">Every vehicle is on a trip or in the workshop right now.</string>
+    <string name="net_trips_driver_this_vehicle">%1$s (this vehicle\'s)</string>
+    <string name="net_trips_no_free_driver_assign">No verified driver is free. Assign one to the vehicle first.</string>
+    <string name="net_trips_pick_up_from">Pick up from</string>
+    <string name="net_trips_drop_at">Drop at</string>
+    <string name="net_trips_leaves">Leaves</string>
+    <string name="net_trips_arrives_by">Arrives by</string>
+    <string name="net_trips_arrival_before_leaving">The arrival has to be after it leaves.</string>
+    <string name="net_trips_rate_field">Rate for the trip, ₹ (optional)</string>
+    <string name="net_trips_rate_not_number">Enter the rate as a number.</string>
+    <string name="net_trips_notes_field">Notes for the driver (optional)</string>
+    <string name="net_trips_optional">%1$s (optional)</string>
+    <string name="net_trips_clear">Clear</string>
+    <string name="net_trips_choose">Choose</string>
+
+    <!-- Trips: moving a trip on. -->
+    <string name="net_trips_step_assigned">Confirm the plan</string>
+    <string name="net_trips_step_loading">Start loading</string>
+    <string name="net_trips_step_started">Start the trip</string>
+    <string name="net_trips_step_in_transit">Mark on the way</string>
+    <string name="net_trips_step_delayed">Mark delayed</string>
+    <string name="net_trips_step_suspended">Pause the trip</string>
+    <string name="net_trips_step_arrived">Mark arrived</string>
+    <string name="net_trips_step_unloading">Start unloading</string>
+    <string name="net_trips_step_completed">Complete the trip</string>
+    <string name="net_trips_done_assigned">Plan confirmed.</string>
+    <string name="net_trips_done_loading">Loading started.</string>
+    <string name="net_trips_done_started">Trip started.</string>
+    <string name="net_trips_done_in_transit">Marked on the way.</string>
+    <string name="net_trips_done_delayed">Marked delayed.</string>
+    <string name="net_trips_done_suspended">Trip paused.</string>
+    <string name="net_trips_done_arrived">Marked arrived.</string>
+    <string name="net_trips_done_unloading">Unloading started.</string>
+    <string name="net_trips_done_completed">Trip completed.</string>
+    <string name="net_trips_done_cancelled">Trip cancelled.</string>
+    <string name="net_trips_done_other">Trip updated.</string>
+    <string name="net_trips_move_on">Move this trip on</string>
+    <string name="net_trips_cancel_confirm">Cancel this trip? It cannot be undone.</string>
+    <string name="net_trips_keep">Keep it</string>
+    <string name="net_trips_cancel">Cancel trip</string>
+    <string name="net_trips_change_crew">Change vehicle or driver</string>
+    <string name="net_trips_no_free_driver">No verified driver is free right now.</string>
+    <string name="net_trips_save">Save</string>
+    <string name="net_trips_saving">Saving…</string>
+
+    <!-- Trips: one trip's screen. -->
+    <string name="net_trips_crew_updated">Vehicle and driver updated.</string>
+    <string name="net_trips_trip">Trip</string>
+    <string name="net_trips_trip_reference">Trip %1$s</string>
+    <string name="net_trips_late">Late</string>
+    <string name="net_trips_service_run">Service run</string>
+    <string name="net_trips_added_by_driver">Added by driver</string>
+    <string name="net_trips_showing_last_update">Showing the last update. %1$s</string>
+    <string name="net_trips_still_to_go">Still to go</string>
+    <string name="net_trips_planned_route">Planned route</string>
+    <string name="net_trips_covered">Covered</string>
+    <string name="net_trips_to_place">To %1$s</string>
+    <string name="net_trips_path_loading">Loading the driven path…</string>
+    <string name="net_trips_path_gps">The driven path from the vehicle\'s GPS.</string>
+    <string name="net_trips_path_gps_recorded">The driven path from the vehicle\'s GPS, %1$s recorded.</string>
+    <string name="net_trips_path_after_start">The driven path appears here once the trip starts.</string>
+    <string name="net_trips_path_ends_only">No route or GPS path is stored for this trip. Only its ends are marked.</string>
+    <string name="net_trips_path_planned_only">No GPS path is stored for this trip, so the planned route is shown.</string>
+    <string name="net_trips_path_unavailable">%1$s The planned route is shown instead.</string>
+    <string name="net_trips_path_failed">Couldn\'t load the driven path. %1$s</string>
+    <string name="net_trips_retry">Retry</string>
+    <string name="net_trips_left_at">Left %1$s</string>
+    <string name="net_trips_arrived_at">Arrived %1$s</string>
+    <string name="net_trips_km_to_go">%1$s to go</string>
+    <string name="net_trips_journey">Journey</string>
+    <string name="net_trips_notes">Notes</string>
+
+    <!-- Trips: the journey's figures. -->
+    <string name="net_trips_fact_driven">Driven</string>
+    <string name="net_trips_of_planned">of %1$s planned</string>
+    <string name="net_trips_fact_distance">Distance</string>
+    <string name="net_trips_planned">planned</string>
+    <string name="net_trips_fact_on_road">On the road</string>
+    <string name="net_trips_span_planned">%1$s planned</string>
+    <string name="net_trips_fact_run_time">Run time</string>
+    <string name="net_trips_fact_started">Started</string>
+    <string name="net_trips_fact_starts">Starts</string>
+    <string name="net_trips_fact_arrived">Arrived</string>
+    <string name="net_trips_fact_arriving">Arriving</string>
+    <string name="net_trips_estimated">estimated</string>
+    <string name="net_trips_fact_arrival">Arrival</string>
+    <string name="net_trips_fact_running_late">Running late</string>
+    <string name="net_trips_fact_progress">Progress</string>
+    <string name="net_trips_percent">%1$d%%</string>
+    <string name="net_trips_of_planned_distance">of the planned distance</string>
+
+    <!-- Trips: money, driving and crew cards. -->
+    <string name="net_trips_money">Money</string>
+    <string name="net_trips_trip_value">Trip value</string>
+    <string name="net_trips_not_set">Not set</string>
+    <string name="net_trips_expenses">Expenses</string>
+    <string name="net_trips_none_recorded">None recorded</string>
+    <string name="net_trips_beyond_fuel">beyond fuel</string>
+    <string name="net_trips_net">Net</string>
+    <string name="net_trips_driving">Driving</string>
+    <string name="net_trips_top_speed">Top speed</string>
+    <string name="net_trips_speed_kmh">%1$d km/h</string>
+    <string name="net_trips_average_speed">Average speed</string>
+    <string name="net_trips_while_moving">while moving</string>
+    <string name="net_trips_harsh_braking">Harsh braking</string>
+    <string name="net_trips_harsh_starts">Harsh starts</string>
+    <string name="net_trips_odometer">Odometer</string>
+    <string name="net_trips_odometer_added">+%1$s this trip</string>
+    <string name="net_trips_on_this_trip">On this trip</string>
+    <string name="net_trips_order">Order</string>
+    <string name="net_trips_score">Score %1$d of 100</string>
+    <string name="net_trips_call">Call %1$s</string>
+    <string name="net_trips_capacity_tons">%1$s t</string>
+
+    <!-- Trips: vehicle kinds. -->
+    <string name="net_trips_truck_open_body">Open body</string>
+    <string name="net_trips_truck_closed_container">Closed container</string>
+    <string name="net_trips_truck_tipper">Tipper</string>
+    <string name="net_trips_truck_trailer">Trailer</string>
+    <string name="net_trips_truck_tanker">Tanker</string>
+    <string name="net_trips_truck_flatbed">Flatbed</string>
+    <string name="net_trips_truck_refrigerated">Refrigerated</string>
+    <string name="net_trips_truck_mini_truck">Mini truck</string>
+    <string name="net_trips_truck_multi_axle">Multi axle</string>
+
+    <!-- Trips: stops. -->
+    <string name="net_trips_stops">Stops</string>
+    <string name="net_trips_stop_arrived">arrived %1$s</string>
+    <string name="net_trips_stop_reached_gps">reached by GPS %1$s</string>
+    <string name="net_trips_stop_planned">planned %1$s</string>
+    <string name="net_trips_stop_left">left %1$s</string>
+    <string name="net_trips_stop_type_origin">Origin</string>
+    <string name="net_trips_stop_type_destination">Destination</string>
+    <string name="net_trips_stop_type_waypoint">Waypoint</string>
+    <string name="net_trips_stop_type_rest">Rest</string>
+    <string name="net_trips_stop_type_fuel">Fuel</string>
+    <string name="net_trips_stop_type_checkpoint">Checkpoint</string>
+
+    <!-- Trips: the trip's own record. -->
+    <string name="net_trips_timeline">Timeline</string>
+    <string name="net_trips_events_capped">Showing the latest %1$d of %2$d events.</string>
+    <string name="net_trips_event_created">Created</string>
+    <string name="net_trips_event_assigned">Assigned</string>
+    <string name="net_trips_event_status_changed">Status changed</string>
+    <string name="net_trips_event_loading_started">Loading started</string>
+    <string name="net_trips_event_departed">Departed</string>
+    <string name="net_trips_event_location_update">Location update</string>
+    <string name="net_trips_event_stop_started">Stop started</string>
+    <string name="net_trips_event_stop_ended">Stop ended</string>
+    <string name="net_trips_event_route_deviation">Route deviation</string>
+    <string name="net_trips_event_speed_violation">Speed violation</string>
+    <string name="net_trips_event_harsh_braking">Harsh braking</string>
+    <string name="net_trips_event_harsh_acceleration">Harsh acceleration</string>
+    <string name="net_trips_event_delay_detected">Delay detected</string>
+    <string name="net_trips_event_arrived">Arrived</string>
+    <string name="net_trips_event_unloading_started">Unloading started</string>
+    <string name="net_trips_event_completed">Completed</string>
+    <string name="net_trips_event_cancelled">Cancelled</string>
+    <string name="net_trips_event_emergency">Emergency</string>
+    <string name="net_trips_event_note">Note</string>
+    <string name="net_trips_event_navigation_handoff">Navigation handoff</string>
+    <string name="net_trips_event_alternate_route">Alternate route</string>
+    <string name="net_trips_event_stop_reached">Stop reached</string>
+    <string name="net_trips_event_stop_left">Stop left</string>
+
+    <!-- A servicing job's standing, and a vehicle's status, in a word. -->
+    <string name="net_servicing_status_scheduled">Booked</string>
+    <string name="net_servicing_status_in_progress">In the workshop</string>
+    <string name="net_servicing_status_completed">Done</string>
+    <string name="net_servicing_status_cancelled">Called off</string>
+    <string name="net_vehicle_status_available">Available</string>
+    <string name="net_vehicle_status_assigned">Assigned</string>
+    <string name="net_vehicle_status_on_trip">On a trip</string>
+    <string name="net_vehicle_status_loading">Loading</string>
+    <string name="net_vehicle_status_unloading">Unloading</string>
+    <string name="net_vehicle_status_idle">Idle</string>
+    <string name="net_vehicle_status_offline">Offline</string>
+    <string name="net_vehicle_status_maintenance">In service</string>
+    <string name="net_vehicle_status_emergency">Emergency</string>
+    <string name="net_vehicle_status_suspended">Suspended</string>
+</resources>

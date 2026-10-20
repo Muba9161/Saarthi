@@ -1,15 +1,19 @@
 package com.saarthi.owner.ui.common
 
 import androidx.annotation.DrawableRes
+import androidx.annotation.StringRes
 import com.saarthi.owner.R
 
 /** The vehicle kinds a filter chip groups by. */
-enum class VehicleClass(val label: String) {
-    TRUCKS("Trucks"),
-    BUSES("Buses"),
-    CARS("Cars"),
-    AUTOS("Autos"),
-    OTHER("Other"),
+enum class VehicleClass(@StringRes private val labelRes: Int) {
+    TRUCKS(R.string.ui_vehicle_class_trucks),
+    BUSES(R.string.ui_vehicle_class_buses),
+    CARS(R.string.ui_vehicle_class_cars),
+    AUTOS(R.string.ui_vehicle_class_autos),
+    OTHER(R.string.ui_vehicle_class_other),
+    ;
+
+    val label: String get() = Words.get(labelRes)
 }
 
 /**

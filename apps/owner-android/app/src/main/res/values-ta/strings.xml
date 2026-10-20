@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">VorldX Saarthi</string>
+
+    <!-- Words the shared design components draw themselves. -->
+    <string name="action_back">பின்செல்</string>
+    <string name="field_password">பாஸ்வேர்டு</string>
+    <string name="password_show">பாஸ்வேர்டைக் காட்டு</string>
+    <string name="password_hide">பாஸ்வேர்டை மறை</string>
+</resources>

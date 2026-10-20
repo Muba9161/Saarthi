@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Brand: who the app is for, under the logo on the splash and welcome screens. -->
+    <string name="ui_app_for">உரிமையாளர்கள் &amp; வணிகங்களுக்கு</string>
+
+    <!-- Small numbers on a tile: 366k, 1.2M. -->
+    <string name="ui_count_thousands">%1$sk</string>
+    <string name="ui_count_millions">%1$sM</string>
+
+    <!-- Shared: a failed read, and lists read a page at a time. -->
+    <string name="ui_error_reading">Saarthi-இலிருந்து தகவலைப் பெறும்போது ஏதோ தவறு நடந்தது.</string>
+    <string name="ui_try_again">மீண்டும் முயலவும்</string>
+    <string name="ui_show_more">மேலும் காட்டு</string>
+    <string name="ui_loading">ஏற்றுகிறது…</string>
+
+    <!-- Header over every tab: the bell and the assistant. -->
+    <string name="ui_alerts">அறிவிப்புகள்</string>
+    <plurals name="ui_alerts_unread">
+        <item quantity="one">அறிவிப்புகள், %d புதியது</item>
+        <item quantity="other">அறிவிப்புகள், %d புதியவை</item>
+    </plurals>
+    <string name="ui_ask_saarthi">Saarthi-இடம் கேளுங்கள்</string>
+
+    <!-- Day field. -->
+    <string name="ui_day_choose">தேர்ந்தெடு</string>
+
+    <!-- Language list: the row that follows the phone. -->
+    <string name="ui_language_phone_default">போனின் இயல்பு மொழி</string>
+    <string name="ui_language_follows_phone">போனின் மொழியைப் பின்பற்றும்</string>
+
+    <!-- Place field and place search. -->
+    <string name="ui_place_search_address">முகவரியைத் தேடுங்கள்</string>
+    <string name="ui_place_choose">ஒரு இடத்தைத் தேர்ந்தெடுங்கள்</string>
+    <string name="ui_place_query_placeholder">பகுதி, அடையாளம் அல்லது முகவரி</string>
+    <string name="ui_place_nothing_found">எதுவும் கிடைக்கவில்லை. அருகிலுள்ள அடையாளம் அல்லது பகுதியின் பெயரை முயலுங்கள்.</string>
+    <string name="ui_place_type_three">குறைந்தது மூன்று எழுத்துகளை டைப் செய்யுங்கள்.</string>
+
+    <!-- Use my current location. -->
+    <string name="ui_location_use_current">என் தற்போதைய இருப்பிடத்தைப் பயன்படுத்து</string>
+    <string name="ui_location_finding">நீங்கள் எங்கே இருக்கிறீர்கள் என்று தேடுகிறது…</string>
+    <string name="ui_location_fills_in">நீங்கள் நிற்கும் இடத்தை நிரப்பும்</string>
+    <string name="ui_location_settings">செட்டிங்ஸ்</string>
+    <string name="ui_location_error_no_street">நீங்கள் இருக்கும் தெருவின் பெயரைக் கண்டுபிடிக்க முடியவில்லை. பதிலாக இடத்தைத் தேடுங்கள்.</string>
+    <string name="ui_location_error_lookup">இங்கே முகவரியைக் கண்டுபிடிக்க முடியவில்லை. இன்டர்நெட்டைச் சரிபார்த்து மீண்டும் முயலுங்கள், அல்லது பதிலாக இடத்தைத் தேடுங்கள்.</string>
+    <string name="ui_location_error_allow">நீங்கள் இருக்கும் இடத்தைப் பயன்படுத்த லொகேஷனை அனுமதியுங்கள், அல்லது பதிலாக இடத்தைத் தேடுங்கள்.</string>
+    <string name="ui_location_error_blocked">Saarthi-க்கு லொகேஷன் தடுக்கப்பட்டுள்ளது. செட்டிங்ஸில் அனுமதியுங்கள், அல்லது பதிலாக இடத்தைத் தேடுங்கள்.</string>
+
+    <!-- Vehicle filter chips. -->
+    <string name="ui_vehicle_class_trucks">லாரிகள்</string>
+    <string name="ui_vehicle_class_buses">பஸ்கள்</string>
+    <string name="ui_vehicle_class_cars">கார்கள்</string>
+    <string name="ui_vehicle_class_autos">ஆட்டோக்கள்</string>
+    <string name="ui_vehicle_class_other">மற்றவை</string>
+
+    <!-- Alerts screen. -->
+    <string name="ui_alerts_filter_all">அனைத்தும்</string>
+    <string name="ui_alerts_filter_urgent">அவசரம்</string>
+    <string name="ui_alerts_filter_money">பணம்</string>
+    <string name="ui_alerts_filter_papers">ஆவணங்கள்</string>
+    <plurals name="ui_alerts_new_count">
+        <item quantity="one">%d புதியது</item>
+        <item quantity="other">%d புதியவை</item>
+    </plurals>
+    <string name="ui_alerts_all_read">அனைத்தும் படிக்கப்பட்டன</string>
+    <string name="ui_alerts_mark_all_read">அனைத்தையும் படித்ததாகக் குறி</string>
+    <string name="ui_alerts_show_older">பழையவற்றைக் காட்டு</string>
+    <string name="ui_alerts_empty">இன்னும் அறிவிப்புகள் இல்லை</string>
+    <string name="ui_alerts_empty_filter">%1$s-இல் எதுவும் இல்லை</string>
+    <string name="ui_alerts_empty_hint">உங்கள் கவனம் தேவைப்படும் எதுவும் இங்கே காட்டப்படும்.</string>
+    <string name="ui_alerts_day_today">இன்று</string>
+    <string name="ui_alerts_day_yesterday">நேற்று</string>
+    <string name="ui_alerts_day_earlier">முன்பு</string>
+
+    <!-- Association tabs. -->
+    <string name="ui_association_tab_home">முகப்பு</string>
+    <string name="ui_association_sos">SOS</string>
+    <string name="ui_association_namaste">வணக்கம், %1$s</string>
+    <string name="ui_association_members_on_road">சாலையில் உள்ள உறுப்பினர்கள்</string>
+
+    <!-- Association home: why the desk gets no new alerts. -->
+    <string name="ui_association_hold_unverified">சரிபார்ப்பு நிலுவையில்</string>
+    <string name="ui_association_hold_unverified_explanation">சரிபார்க்கப்பட்ட சங்கங்களுக்கு மட்டுமே Saarthi அவசர அலர்ட்களை அனுப்பும், அதனால் இன்னும் இங்கே எதுவும் வராது. Saarthi இணையதளத்தில் சரிபார்ப்பை முடியுங்கள்.</string>
+    <string name="ui_association_hold_paused">அலர்ட்கள் நிறுத்தப்பட்டுள்ளன</string>
+    <string name="ui_association_hold_paused_explanation">இப்போது எதுவும் இங்கே அனுப்பப்படுவதில்லை. உங்கள் பகுதியின் அவசர அலர்ட்கள் அடுத்த சங்கத்துக்குச் செல்கின்றன.</string>
+
+    <!-- Association home. -->
+    <string name="ui_association_sos_km_away">SOS · %1$s km தொலைவில்</string>
+    <string name="ui_association_all_quiet">உங்கள் சாலைகளில் எல்லாம் அமைதி</string>
+    <string name="ui_association_member_needs_help">ஒரு உறுப்பினருக்கு உதவி தேவை</string>
+    <string name="ui_association_covering">கவனிக்கும் பகுதி</string>
+    <string name="ui_association_respond">பதிலளி</string>
+    <string name="ui_association_figure_members">உறுப்பினர்கள்</string>
+    <string name="ui_association_figure_trucks">லாரிகள்</string>
+    <string name="ui_association_figure_going">செல்கிறார்கள்</string>
+    <string name="ui_association_figure_right_now">இப்போது</string>
+    <string name="ui_association_figure_open_sos">திறந்த SOS</string>
+    <plurals name="ui_association_closed_today">
+        <item quantity="one">இன்று %d மூடப்பட்டது</item>
+        <item quantity="other">இன்று %d மூடப்பட்டன</item>
+    </plurals>
+    <string name="ui_association_on_the_roads">சாலைகளில்</string>
+    <string name="ui_association_all_alerts">எல்லா அலர்ட்களும்</string>
+    <string name="ui_association_no_sos">உங்கள் சாலைகளில் எந்த உறுப்பினரும் SOS அனுப்பவில்லை.</string>
+    <string name="ui_association_avg_response">உங்கள் சராசரி பதில் நேரம்: %1$s நிமி</string>
+
+    <!-- Association SOS list and its rows. -->
+    <string name="ui_association_no_alerts">இன்னும் அலர்ட்கள் இல்லை.</string>
+    <string name="ui_association_needs_responder">உதவ ஒருவர் தேவை</string>
+    <string name="ui_association_group_earlier">முன்பு</string>
+    <plurals name="ui_association_going_count">
+        <item quantity="one">%d பேர் செல்கிறார்</item>
+        <item quantity="other">%d பேர் செல்கிறார்கள்</item>
+    </plurals>
+    <string name="ui_association_no_one_yet">இன்னும் யாரும் இல்லை</string>
+    <string name="ui_association_age_just_now">இப்போதுதான்</string>
+    <string name="ui_association_age_minutes">%1$d நிமி முன்பு</string>
+    <string name="ui_association_age_hours">%1$d மணி முன்பு</string>
+    <string name="ui_association_age_days">%1$d நாள் முன்பு</string>
+
+    <!-- Respond to an SOS. -->
+    <string name="ui_association_resolved">தீர்க்கப்பட்டது</string>
+    <string name="ui_association_raised">%1$s அனுப்பப்பட்டது</string>
+    <string name="ui_association_raised_unanswered">%1$s அனுப்பப்பட்டது · இன்னும் பதில் இல்லை</string>
+    <plurals name="ui_association_members_responded">
+        <item quantity="one">%d உறுப்பினர் பதிலளித்தார்</item>
+        <item quantity="other">%d உறுப்பினர்கள் பதிலளித்தனர்</item>
+    </plurals>
+    <string name="ui_association_nobody_taken">இன்னும் யாரும் இந்த கேஸை எடுக்கவில்லை</string>
+    <plurals name="ui_association_you_and_more_going">
+        <item quantity="one">நீங்களும் இன்னும் %d பேரும் செல்கிறீர்கள்</item>
+        <item quantity="other">நீங்களும் இன்னும் %d பேரும் செல்கிறீர்கள்</item>
+    </plurals>
+    <string name="ui_association_you_are_going">நீங்கள் செல்கிறீர்கள்</string>
+    <plurals name="ui_association_already_going">
+        <item quantity="one">ஏற்கெனவே %d பேர் செல்கிறார்</item>
+        <item quantity="other">ஏற்கெனவே %d பேர் செல்கிறார்கள்</item>
+    </plurals>
+    <string name="ui_association_nobody_going">இன்னும் யாரும் செல்லவில்லை</string>
+    <string name="ui_association_note_label">பதிவுக்கான குறிப்பு (விருப்பத்தேர்வு)</string>
+    <string name="ui_association_note_placeholder">இரண்டு உறுப்பினர்கள் இப்போது அங்கே செல்கிறார்கள்</string>
+    <string name="ui_association_acknowledge">ஏற்றுக்கொண்டு இந்த கேஸை எடு</string>
+    <string name="ui_association_case_taken">கேஸ் எடுக்கப்பட்டது. டிரைவரின் தொடர்பு விவரம் திறக்கப்பட்டது.</string>
+    <string name="ui_association_im_going">நான் செல்கிறேன்</string>
+    <string name="ui_association_down_as_responding">நீங்கள் உதவச் செல்வதாகப் பதிவாகியுள்ளது. டிரைவருக்குத் தெரிவிக்கப்பட்டது.</string>
+    <string name="ui_association_call_driver">டிரைவரை அழை</string>
+    <string name="ui_association_call_112">112-ஐ அழை</string>
+    <string name="ui_association_hint_sealed">யாராவது கேஸை எடுத்த பிறகே டிரைவரை அழைக்க முடியும். அதுவரை டிரைவரின் பெயரையும் நம்பரையும் Saarthi மறைத்து வைக்கும்.</string>
+    <string name="ui_association_hint_no_number">பதிவில் டிரைவர் நம்பர் இல்லை.</string>
+    <string name="ui_association_mark_as_resolved">தீர்க்கப்பட்டதாகக் குறி</string>
+    <string name="ui_association_what_was_done">என்ன செய்யப்பட்டது?</string>
+    <string name="ui_association_record_label">இது சங்கத்தின் பதிவு</string>
+    <string name="ui_association_mark_resolved">தீர்க்கப்பட்டதாகக் குறி</string>
+    <string name="ui_association_resolved_done">தீர்க்கப்பட்டது.</string>
+</resources>

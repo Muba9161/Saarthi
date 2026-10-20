@@ -25,6 +25,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.saarthi.owner.OwnerApp
@@ -37,6 +38,7 @@ import com.saarthi.owner.ui.common.FacesAlignment
 import com.saarthi.owner.ui.common.FailedCard
 import com.saarthi.owner.ui.common.Loadable
 import com.saarthi.owner.ui.common.SkeletonCards
+import com.saarthi.owner.ui.common.Words
 import com.saarthi.owner.ui.common.headerClearance
 import com.saarthi.owner.ui.common.tabBarClearance
 import com.saarthi.owner.ui.common.ago
@@ -62,9 +64,9 @@ import com.saarthi.owner.ui.shell.TabSpec
 fun businessTabs(app: OwnerApp, account: SessionStore.Account): List<TabSpec> = listOf(
     TabSpec(
         key = "home",
-        label = "Home",
+        label = Words.get(R.string.fleet_tab_home),
         icon = Lucide.home,
-        header = TabHeader(account.organizationName, "Hi, ${account.firstName}"),
+        header = TabHeader(account.organizationName, Words.get(R.string.fleet_greeting, account.firstName)),
         content = { actions -> BusinessHomeScreen(app.alerts, account, actions.openAlerts) },
     ),
 )
@@ -73,12 +75,12 @@ fun businessTabs(app: OwnerApp, account: SessionStore.Account): List<TabSpec> = 
 private data class Intro(@DrawableRes val photo: Int, val eyebrow: String, val line: String)
 
 private fun introFor(type: AccountType): Intro = when (type) {
-    AccountType.PERSONAL -> Intro(R.drawable.photo_cta_dusk, "Personal", "Your vehicles, their papers and every trip.")
-    AccountType.TRAVEL -> Intro(R.drawable.photo_role_travel, "Travel", "Bookings, vehicles and the road ahead.")
-    AccountType.CUSTOMER -> Intro(R.drawable.photo_role_customer, "Customer", "What you need moved, and where it is now.")
-    AccountType.SELLER -> Intro(R.drawable.photo_role_seller, "Seller", "Your stock, and the trucks coming to load it.")
-    AccountType.ASSOCIATION -> Intro(R.drawable.photo_role_association, "Association", "Your members, and anyone who needs help on the road.")
-    else -> Intro(R.drawable.photo_role_fleet, "Saarthi", "Your business on Saarthi.")
+    AccountType.PERSONAL -> Intro(R.drawable.photo_cta_dusk, Words.get(R.string.fleet_home_intro_personal_eyebrow), Words.get(R.string.fleet_home_intro_personal_line))
+    AccountType.TRAVEL -> Intro(R.drawable.photo_role_travel, Words.get(R.string.fleet_home_intro_travel_eyebrow), Words.get(R.string.fleet_home_intro_travel_line))
+    AccountType.CUSTOMER -> Intro(R.drawable.photo_role_customer, Words.get(R.string.fleet_home_intro_customer_eyebrow), Words.get(R.string.fleet_home_intro_customer_line))
+    AccountType.SELLER -> Intro(R.drawable.photo_role_seller, Words.get(R.string.fleet_home_intro_seller_eyebrow), Words.get(R.string.fleet_home_intro_seller_line))
+    AccountType.ASSOCIATION -> Intro(R.drawable.photo_role_association, Words.get(R.string.fleet_home_intro_association_eyebrow), Words.get(R.string.fleet_home_intro_association_line))
+    else -> Intro(R.drawable.photo_role_fleet, "Saarthi", Words.get(R.string.fleet_home_intro_other_line))
 }
 
 /**
@@ -131,7 +133,7 @@ private fun BusinessHomeScreen(alerts: AlertsApi, account: SessionStore.Account,
             }
         }
 
-        GroupLabel("Latest")
+        GroupLabel(stringResource(R.string.fleet_home_latest))
         when (val shown = state) {
             Loadable.Loading -> SkeletonCards(count = 1)
             is Loadable.Failed -> FailedCard(shown.message, onRetry = onOpenAlerts)
@@ -145,7 +147,7 @@ private fun BusinessHomeScreen(alerts: AlertsApi, account: SessionStore.Account,
                 ) {
                     if (items.isEmpty()) {
                         Text(
-                            "Nothing new. Alerts about your business show up here.",
+                            stringResource(R.string.fleet_home_nothing_new),
                             style = SType.small,
                             color = c.muted,
                             modifier = Modifier.padding(18.dp),
@@ -172,7 +174,7 @@ private fun BusinessHomeScreen(alerts: AlertsApi, account: SessionStore.Account,
                         }
                     }
                 }
-                LinkButton("See all alerts", onOpenAlerts, style = SType.smallStrong)
+                LinkButton(stringResource(R.string.fleet_home_see_all_alerts), onOpenAlerts, style = SType.smallStrong)
             }
         }
     }

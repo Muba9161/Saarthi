@@ -32,12 +32,15 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.saarthi.owner.R
 import com.saarthi.owner.ui.design.BrandLockup
 import com.saarthi.owner.ui.design.CircleButton
 import com.saarthi.owner.ui.design.Ease
@@ -113,7 +116,7 @@ fun OwnerHeader(
         }
         CircleButton(
             Lucide.bell,
-            if (unread > 0) "Alerts, $unread new" else "Alerts",
+            if (unread > 0) pluralStringResource(R.plurals.ui_alerts_unread, unread, unread) else stringResource(R.string.ui_alerts),
             onBell,
             iconSize = 20.dp,
             stroke = 2f,
@@ -121,14 +124,15 @@ fun OwnerHeader(
             if (unread > 0) UnreadBadge(unread)
         }
         onAssistant?.let { open ->
+            val ask = stringResource(R.string.ui_ask_saarthi)
             Box(
                 Modifier
                     .size(44.dp)
                     .brandGradient(CircleShape)
-                    .pressable(scale = 0.92f, label = "Ask Saarthi", onClick = open),
+                    .pressable(scale = 0.92f, label = ask, onClick = open),
                 contentAlignment = Alignment.Center,
             ) {
-                LineIcon(Lucide.sparkles, size = 20.dp, color = Color.White, stroke = 1.8f, description = "Ask Saarthi")
+                LineIcon(Lucide.sparkles, size = 20.dp, color = Color.White, stroke = 1.8f, description = ask)
             }
         }
     }

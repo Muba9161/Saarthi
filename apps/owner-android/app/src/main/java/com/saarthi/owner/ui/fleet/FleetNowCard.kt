@@ -36,10 +36,12 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.saarthi.owner.R
 import com.saarthi.owner.ui.design.Brand
 import com.saarthi.owner.ui.design.Ease
 import com.saarthi.owner.ui.design.Eyebrow
@@ -163,9 +165,9 @@ fun FleetNowCard(home: FleetHome, modifier: Modifier = Modifier, onOpenMap: (() 
             verticalArrangement = Arrangement.SpaceBetween,
         ) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Eyebrow("Fleet right now", Modifier.weight(1f), color = Color.White.copy(alpha = 0.72f))
+                Eyebrow(stringResource(R.string.fleet_now_title), Modifier.weight(1f), color = Color.White.copy(alpha = 0.72f))
                 StatusPill(
-                    "${home.moving} moving",
+                    stringResource(R.string.fleet_now_moving, home.moving),
                     background = Color.White.copy(alpha = 0.14f),
                     ink = Color.White,
                     dotColor = Brand.live,
@@ -193,9 +195,9 @@ fun FleetNowCard(home: FleetHome, modifier: Modifier = Modifier, onOpenMap: (() 
                         modifier = Modifier.padding(bottom = 7.dp),
                     )
                 }
-                Text("on the road", style = SType.bodyStrong, color = Color.White)
+                Text(stringResource(R.string.fleet_now_on_the_road), style = SType.bodyStrong, color = Color.White)
                 Text(
-                    "${home.idle} idle · ${home.offline} offline",
+                    stringResource(R.string.fleet_now_idle_offline, home.idle, home.offline),
                     style = SType.small,
                     color = Color.White.copy(alpha = 0.72f),
                 )
@@ -210,7 +212,7 @@ fun FleetNowCard(home: FleetHome, modifier: Modifier = Modifier, onOpenMap: (() 
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
-                        Text("Open map", style = SType.smallStrong, color = Brand.navy)
+                        Text(stringResource(R.string.fleet_now_open_map), style = SType.smallStrong, color = Brand.navy)
                         LineIcon(
                             Lucide.arrowRight,
                             size = 16.dp,

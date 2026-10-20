@@ -23,6 +23,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -33,6 +35,7 @@ import com.saarthi.owner.ui.common.DetailScreen
 import com.saarthi.owner.ui.common.Loadable
 import com.saarthi.owner.ui.common.RevealedNotice
 import com.saarthi.owner.ui.common.SkeletonCards
+import com.saarthi.owner.ui.common.Words
 import com.saarthi.owner.ui.common.clockOf
 import com.saarthi.owner.ui.common.readable
 import com.saarthi.owner.ui.common.rememberPhoto
@@ -59,6 +62,10 @@ import kotlinx.coroutines.launch
 
 /** The share of a delivered price paid up front to confirm. */
 private const val ADVANCE_SHARE = 0.30
+
+/** The advance and the balance as whole percentages, for the words that name them. */
+internal const val ADVANCE_PERCENT = 30
+internal const val BALANCE_PERCENT = 70
 
 /**
  * The bids on one request — the design's Customer · Bids.
@@ -118,7 +125,7 @@ fun CustomerBidsScreen(app: OwnerApp, request: RequirementsApi.Requirement, onCh
                     }
                 }
                 choosing = null
-                message = (result?.nextStep?.ifBlank { null } ?: "${bid.bidderName} has the job.") to NoticeTone.SUCCESS
+                message = (result?.nextStep?.ifBlank { null } ?: Words.get(R.string.customer_bid_has_job, bid.bidderName)) to NoticeTone.SUCCESS
             } catch (failure: Exception) {
                 choosing = null
                 message = failure.readable() to NoticeTone.DANGER
@@ -136,7 +143,7 @@ fun CustomerBidsScreen(app: OwnerApp, request: RequirementsApi.Requirement, onCh
                 app.requirements.cancel(request.id, reason.trim())
                 status = "CANCELLED"
                 onChanged()
-                message = "Withdrawn. Every fleet that bid has been told why." to NoticeTone.SUCCESS
+                message = Words.get(R.string.customer_bids_withdrawn) to NoticeTone.SUCCESS
             } catch (failure: Exception) {
                 message = failure.readable() to NoticeTone.DANGER
             }
@@ -148,8 +155,8 @@ fun CustomerBidsScreen(app: OwnerApp, request: RequirementsApi.Requirement, onCh
     val count = (bids as? Loadable.Ready)?.value?.size ?: request.bidCount
     DetailScreen(
         eyebrow = listOfNotNull(request.what, request.destinationAddress?.substringBefore(',')).joinToString(" · "),
-        title = if (count == 1) "1 bid" else "$count bids",
-        trailing = { hours?.let { Pill("$it h left", c.warningBg, c.warning) } },
+        title = pluralStringResource(R.plurals.customer_bids, count, count),
+        trailing = { hours?.let { Pill(stringResource(R.string.customer_bids_hours_left, it), c.warningBg, c.warning) } },
     ) {
         Row(
             Modifier
@@ -165,9 +172,9 @@ fun CustomerBidsScreen(app: OwnerApp, request: RequirementsApi.Requirement, onCh
             IconWell(Lucide.shieldCheck, well = c.successSoft, ink = c.success, size = 36.dp, shape = CircleShape, iconSize = 16.dp)
             Text(
                 if (material) {
-                    "Each price includes the material and delivery. Pay 30% to confirm, 70% after delivery."
+                    stringResource(R.string.customer_bids_material_note, ADVANCE_PERCENT, BALANCE_PERCENT)
                 } else {
-                    "Each price is the whole job from that fleet. Choose one to confirm it."
+                    stringResource(R.string.customer_bids_job_note)
                 },
                 style = SType.body,
                 color = c.fg,
@@ -182,7 +189,7 @@ fun CustomerBidsScreen(app: OwnerApp, request: RequirementsApi.Requirement, onCh
             is Loadable.Ready -> {
                 if (shown.value.isEmpty() && awardable) {
                     NoticeCard(
-                        "No bids yet. Fleets near the site are checking — you'll get an alert when one arrives.",
+                        stringResource(R.string.customer_bids_none_yet),
                         NoticeTone.INFO,
                         icon = Lucide.clock,
                     )
@@ -205,7 +212,7 @@ fun CustomerBidsScreen(app: OwnerApp, request: RequirementsApi.Requirement, onCh
         }
         if (awardable) {
             LinkButton(
-                "Withdraw this request",
+                stringResource(R.string.customer_bids_withdraw_request),
                 onClick = { withdrawing = true },
                 color = c.danger,
                 enabled = !busy && choosing == null,
@@ -218,30 +225,30 @@ fun CustomerBidsScreen(app: OwnerApp, request: RequirementsApi.Requirement, onCh
         confirming?.let { bid ->
             val firstName = bid.bidderName.substringBefore(' ')
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                Text("Choose $firstName for ${rupees(bid.price)}?", style = SType.sheetTitle, color = c.fg)
+                Text(stringResource(R.string.customer_bids_choose_for, firstName, rupees(bid.price)), style = SType.sheetTitle, color = c.fg)
                 Text(
                     if (material) {
-                        "You pay 30% (${rupees(bid.price * ADVANCE_SHARE)}) to confirm and the rest after delivery. Every other bid on this request is turned down."
+                        stringResource(R.string.customer_bids_choose_material_note, ADVANCE_PERCENT, rupees(bid.price * ADVANCE_SHARE))
                     } else {
-                        "Every other bid on this request is turned down and those fleets are told."
+                        stringResource(R.string.customer_bids_choose_note)
                     },
                     style = SType.body,
                     color = c.muted,
                 )
-                NotesField(awardNote, { awardNote = it.take(1000) }, label = "A note for $firstName (optional)", minHeight = 72.dp)
-                SaarthiButton("Choose $firstName", onClick = { choose(bid) }, enabled = choosing == null)
-                LinkButton("Not yet", onClick = { confirming = null }, modifier = Modifier.align(Alignment.CenterHorizontally))
+                NotesField(awardNote, { awardNote = it.take(1000) }, label = stringResource(R.string.customer_bids_note_for, firstName), minHeight = 72.dp)
+                SaarthiButton(stringResource(R.string.customer_bids_choose, firstName), onClick = { choose(bid) }, enabled = choosing == null)
+                LinkButton(stringResource(R.string.customer_bids_not_yet), onClick = { confirming = null }, modifier = Modifier.align(Alignment.CenterHorizontally))
             }
         }
     }
 
     BottomSheet(visible = withdrawing, onDismiss = { withdrawing = false }) {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Text("Withdraw this request?", style = SType.sheetTitle, color = c.fg)
-            Text("Every offer on it will be turned down and the fleets told why.", style = SType.body, color = c.muted)
-            NotesField(reason, { reason = it.take(500) }, label = "Why are you withdrawing it?", minHeight = 80.dp)
+            Text(stringResource(R.string.customer_bids_withdraw_title), style = SType.sheetTitle, color = c.fg)
+            Text(stringResource(R.string.customer_bids_withdraw_note), style = SType.body, color = c.muted)
+            NotesField(reason, { reason = it.take(500) }, label = stringResource(R.string.customer_bids_withdraw_reason), minHeight = 80.dp)
             SaarthiButton(
-                "Withdraw",
+                stringResource(R.string.customer_bids_withdraw),
                 onClick = ::withdraw,
                 tone = ButtonTone.DANGER_OUTLINE,
                 enabled = reason.trim().length >= 5 && !busy,
@@ -278,19 +285,19 @@ private fun BidCard(
                     if (bid.bidderVerified) LineIcon(Lucide.shieldCheck, size = 15.dp, color = c.success)
                 }
                 bid.bidderRating?.let {
-                    Text("★ ${"%.1f".format(it)} · ${bid.bidderRatingCount} ratings", style = SType.caption, color = c.muted)
+                    Text(stringResource(R.string.customer_bid_rating, "%.1f".format(it), bid.bidderRatingCount), style = SType.caption, color = c.muted)
                 }
             }
             when {
-                won -> Pill("Chosen", c.successBg, c.success)
-                lowest -> Pill("Lowest", c.primaryWash, c.primary)
+                won -> Pill(stringResource(R.string.customer_bid_chosen), c.successBg, c.success)
+                lowest -> Pill(stringResource(R.string.customer_bid_lowest), c.primaryWash, c.primary)
             }
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(rupees(bid.price), style = SType.figure.copy(fontSize = 30.sp), color = c.fg)
                 Text(
-                    clockOf(bid.estimatedArrivalAt)?.let { "${if (material) "Delivered" else "Arrives"} $it" } ?: bid.message?.take(60) ?: "",
+                    clockOf(bid.estimatedArrivalAt)?.let { stringResource(if (material) R.string.customer_bid_delivered_at else R.string.customer_bid_arrives_at, it) } ?: bid.message?.take(60) ?: "",
                     style = SType.caption,
                     color = c.muted,
                     maxLines = 2,
@@ -303,11 +310,15 @@ private fun BidCard(
         }
         if (awardable) {
             SaarthiButton(
-                if (material) "Choose ${bid.bidderName.substringBefore(' ')} · pay ${rupees(bid.price * ADVANCE_SHARE)} now" else "Choose ${bid.bidderName.substringBefore(' ')}",
+                if (material) {
+                    stringResource(R.string.customer_bid_choose_and_pay, bid.bidderName.substringBefore(' '), rupees(bid.price * ADVANCE_SHARE))
+                } else {
+                    stringResource(R.string.customer_bids_choose, bid.bidderName.substringBefore(' '))
+                },
                 onClick = onChoose,
                 tone = if (lowest) ButtonTone.PRIMARY else ButtonTone.SECONDARY,
                 busy = busy,
-                busyText = "Confirming…",
+                busyText = stringResource(R.string.customer_bid_confirming),
                 enabled = !anyBusy,
                 height = 52.dp,
             )

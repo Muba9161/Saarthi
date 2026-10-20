@@ -26,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -38,6 +39,7 @@ import com.saarthi.owner.network.OrdersApi.Companion.STAGE_30_REQUIRED
 import com.saarthi.owner.ui.common.DetailScreen
 import com.saarthi.owner.ui.common.PlateChip
 import com.saarthi.owner.ui.common.RevealedNotice
+import com.saarthi.owner.ui.common.Words
 import com.saarthi.owner.ui.common.clockOf
 import com.saarthi.owner.ui.common.readable
 import com.saarthi.owner.ui.common.rememberPhoto
@@ -96,7 +98,7 @@ fun FleetOrderScreen(app: OwnerApp, initial: OrdersApi.Order) {
             try {
                 app.handover.override(tripId, overriding ?: HandoverApi.DELIVERY, reason)
                 overriding = null
-                message = "Confirmed without the code. The reason is on record and the customer has been told." to NoticeTone.SUCCESS
+                message = Words.get(R.string.market_fleet_order_override_done) to NoticeTone.SUCCESS
                 reload++
             } catch (failure: Exception) {
                 overrideError = failure.readable()
@@ -117,7 +119,7 @@ fun FleetOrderScreen(app: OwnerApp, initial: OrdersApi.Order) {
                 val session = app.orders.payProcurement(order.id)
                 checkout.pay(session) { outcome ->
                     busy = false
-                    message = outcome.sentence("Seller paid") to if (outcome == PaymentOutcome.SUCCEEDED) NoticeTone.SUCCESS else NoticeTone.WARNING
+                    message = outcome.sentence(Words.get(R.string.market_fleet_order_seller_paid)) to if (outcome == PaymentOutcome.SUCCEEDED) NoticeTone.SUCCESS else NoticeTone.WARNING
                     reload++
                 }
             } catch (failure: Exception) {
@@ -128,20 +130,20 @@ fun FleetOrderScreen(app: OwnerApp, initial: OrdersApi.Order) {
     }
 
     DetailScreen(
-        eyebrow = "Order ${order.reference}",
-        title = "Buy & dispatch",
+        eyebrow = stringResource(R.string.market_order_eyebrow, order.reference),
+        title = stringResource(R.string.market_fleet_order_title),
         eyebrowColor = c.success,
         footer = if (canPaySeller) {
             {
                 SaarthiButton(
-                    "Pay ${rupees(sellerCost ?: 0.0)} to the seller",
+                    stringResource(R.string.market_fleet_order_pay_seller, rupees(sellerCost ?: 0.0)),
                     onClick = ::paySeller,
                     busy = busy || checkout.confirming,
-                    busyText = "Opening payment…",
+                    busyText = stringResource(R.string.market_fleet_order_opening_payment),
                     leading = Lucide.lock,
                 )
                 Text(
-                    "Paid through Cashfree. The seller loads only after it's paid.",
+                    stringResource(R.string.market_fleet_order_paid_through),
                     style = SType.caption,
                     color = c.subtle,
                     modifier = Modifier.fillMaxWidth(),
@@ -158,12 +160,12 @@ fun FleetOrderScreen(app: OwnerApp, initial: OrdersApi.Order) {
         Step(
             number = 1,
             // An order from before the 30/70 plan has nothing to pay here — only who supplies it.
-            title = if (stage == null) "Material from the seller" else "Pay the seller",
+            title = if (stage == null) stringResource(R.string.market_fleet_order_step_material) else stringResource(R.string.market_fleet_order_step_pay),
             badge = when (stage) {
-                STAGE_30_REQUIRED -> "Waiting for 30%"
-                STAGE_30_PAID -> "Due now"
+                STAGE_30_REQUIRED -> stringResource(R.string.market_fleet_order_badge_waiting_share, CUSTOMER_SHARE_PERCENT)
+                STAGE_30_PAID -> stringResource(R.string.market_fleet_order_badge_due_now)
                 null -> null
-                else -> "Paid"
+                else -> stringResource(R.string.market_fleet_order_badge_paid)
             },
             badgeTone = if (stage == STAGE_30_PAID) NoticeTone.WARNING else if (stage == STAGE_30_REQUIRED) NoticeTone.INFO else NoticeTone.SUCCESS,
             modifier = Modifier.rise(stagger(1)),
@@ -177,7 +179,7 @@ fun FleetOrderScreen(app: OwnerApp, initial: OrdersApi.Order) {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(Modifier.weight(1f)) {
-                    Text(order.supplierName ?: "The seller", style = SType.bodyStrong, color = c.fg, maxLines = 2)
+                    Text(order.supplierName ?: stringResource(R.string.market_fleet_order_seller_fallback), style = SType.bodyStrong, color = c.fg, maxLines = 2)
                     Text(order.what, style = SType.caption, color = c.muted)
                 }
                 sellerCost?.let { Text(rupees(it), style = SType.bodyStrong, color = c.fg) }
@@ -186,8 +188,8 @@ fun FleetOrderScreen(app: OwnerApp, initial: OrdersApi.Order) {
 
         Step(
             number = 2,
-            title = "Send a truck to load",
-            badge = order.assignedTruck?.let { "Assigned" },
+            title = stringResource(R.string.market_fleet_order_step_truck),
+            badge = order.assignedTruck?.let { stringResource(R.string.market_fleet_order_badge_assigned) },
             badgeTone = NoticeTone.SUCCESS,
             modifier = Modifier.rise(stagger(2)),
         ) {
@@ -204,12 +206,12 @@ fun FleetOrderScreen(app: OwnerApp, initial: OrdersApi.Order) {
                         }
                     }
                 }
-            } ?: Text("The truck named in your bid goes here once the order is confirmed.", style = SType.small, color = c.muted)
+            } ?: Text(stringResource(R.string.market_fleet_order_truck_pending), style = SType.small, color = c.muted)
             RouteStops(
-                from = order.originAddress ?: "Seller's yard",
-                fromNote = clockOf(order.pickupAt)?.let { "Load by $it" },
-                to = order.destinationAddress ?: "Customer's site",
-                toNote = clockOf(order.deliverBy)?.let { "Deliver by $it" },
+                from = order.originAddress ?: stringResource(R.string.market_fleet_order_seller_yard),
+                fromNote = clockOf(order.pickupAt)?.let { stringResource(R.string.market_fleet_order_load_by, it) },
+                to = order.destinationAddress ?: stringResource(R.string.market_fleet_order_customer_site),
+                toNote = clockOf(order.deliverBy)?.let { stringResource(R.string.market_fleet_order_deliver_by, it) },
             )
         }
 
@@ -234,11 +236,11 @@ fun FleetOrderScreen(app: OwnerApp, initial: OrdersApi.Order) {
                     .padding(18.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Eyebrow(if (money.final) "Your earnings" else "Your earnings · estimate")
-                MoneyLine("Agreed with the customer", finance?.agreedAmount)
-                MoneyLine("Paid to the seller", money.procurementAmount ?: money.procurementReference)
-                MoneyLine("Saarthi commission (${(money.commissionRate * 100).let { if (it % 1.0 == 0.0) it.toInt().toString() else "%.1f".format(it) }}%)", money.commissionAmount)
-                MoneyLine("You keep", money.netAfterCommission, strong = true)
+                Eyebrow(if (money.final) stringResource(R.string.market_fleet_order_earnings) else stringResource(R.string.market_fleet_order_earnings_estimate))
+                MoneyLine(stringResource(R.string.market_fleet_order_agreed), finance?.agreedAmount)
+                MoneyLine(stringResource(R.string.market_fleet_order_paid_to_seller), money.procurementAmount ?: money.procurementReference)
+                MoneyLine(stringResource(R.string.market_fleet_order_commission, (money.commissionRate * 100).let { if (it % 1.0 == 0.0) it.toInt().toString() else "%.1f".format(it) }), money.commissionAmount)
+                MoneyLine(stringResource(R.string.market_fleet_order_you_keep), money.netAfterCommission, strong = true)
             }
         }
     }
@@ -251,6 +253,9 @@ fun FleetOrderScreen(app: OwnerApp, initial: OrdersApi.Order) {
         onDismiss = { overriding = null },
     )
 }
+
+/** The customer's share paid up front, as the order's banner names it. */
+private const val CUSTOMER_SHARE_PERCENT = 30
 
 @Composable
 private fun CustomerPaidBanner(order: OrdersApi.Order, finance: OrdersApi.Finance?, modifier: Modifier = Modifier) {
@@ -268,15 +273,24 @@ private fun CustomerPaidBanner(order: OrdersApi.Order, finance: OrdersApi.Financ
     ) {
         IconWell(if (paid) Lucide.check else Lucide.clock, well = if (paid) c.successSoft else c.warningSoft, ink = if (paid) c.success else c.warning, size = 36.dp, shape = CircleShape, iconSize = 16.dp)
         Column(Modifier.weight(1f)) {
+            val customer = order.customerName
             Text(
-                if (paid) "${order.customerName ?: "The customer"} paid 30%" else "Waiting for ${order.customerName ?: "the customer"}'s 30%",
+                when {
+                    paid && customer != null -> stringResource(R.string.market_fleet_order_customer_paid, customer, CUSTOMER_SHARE_PERCENT)
+                    paid -> stringResource(R.string.market_fleet_order_customer_paid_unnamed, CUSTOMER_SHARE_PERCENT)
+                    customer != null -> stringResource(R.string.market_fleet_order_customer_waiting, customer, CUSTOMER_SHARE_PERCENT)
+                    else -> stringResource(R.string.market_fleet_order_customer_waiting_unnamed, CUSTOMER_SHARE_PERCENT)
+                },
                 style = SType.bodyStrong,
                 color = c.fg,
             )
             val received = finance?.confirmationAmount
             val after = finance?.agreedAmount?.let { agreed -> received?.let { agreed - it } }
             Text(
-                listOfNotNull(received?.let { "${rupees(it)} ${if (paid) "received" else "due"}" }, after?.let { "${rupees(it)} after delivery" }).joinToString(" · "),
+                listOfNotNull(
+                    received?.let { stringResource(if (paid) R.string.market_fleet_order_received else R.string.market_fleet_order_due, rupees(it)) },
+                    after?.let { stringResource(R.string.market_fleet_order_after_delivery, rupees(it)) },
+                ).joinToString(" · "),
                 style = SType.caption,
                 color = c.muted,
             )

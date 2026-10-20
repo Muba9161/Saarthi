@@ -1,0 +1,359 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Orders: an order's status word (OrderRows). -->
+    <string name="market_order_status_awaiting">પાકું થવાની રાહ</string>
+    <string name="market_order_status_confirmed">પાકું</string>
+    <string name="market_order_status_assigned">ટ્રક સોંપાયો</string>
+    <string name="market_order_status_loading">લોડિંગ</string>
+    <string name="market_order_status_on_the_way">રસ્તામાં</string>
+    <string name="market_order_status_delivered">ડિલિવર થયું</string>
+    <string name="market_order_status_completed">પૂરું</string>
+    <string name="market_order_status_cancelled">રદ</string>
+    <string name="market_order_eyebrow">ઑર્ડર %1$s</string>
+
+    <!-- Orders: Buy & dispatch (FleetOrderScreen). -->
+    <string name="market_fleet_order_override_done">કોડ વગર પાકું કર્યું. કારણ રેકોર્ડમાં છે અને ગ્રાહકને જાણ કરી દેવાઈ છે.</string>
+    <string name="market_fleet_order_seller_paid">સેલરને ચૂકવ્યું</string>
+    <string name="market_fleet_order_title">ખરીદો &amp; રવાના કરો</string>
+    <string name="market_fleet_order_pay_seller">સેલરને %1$s ચૂકવો</string>
+    <string name="market_fleet_order_opening_payment">પેમેન્ટ ખુલી રહ્યું છે…</string>
+    <string name="market_fleet_order_paid_through">Cashfree દ્વારા ચૂકવ્યું. ચુકવણી થાય પછી જ સેલર લોડ કરે છે.</string>
+    <string name="market_fleet_order_step_material">સેલર પાસેથી મટીરિયલ</string>
+    <string name="market_fleet_order_step_pay">સેલરને ચૂકવો</string>
+    <string name="market_fleet_order_badge_waiting_share">%1$d%% ની રાહ</string>
+    <string name="market_fleet_order_badge_due_now">હમણાં ભરવાનું</string>
+    <string name="market_fleet_order_badge_paid">ચૂકવ્યું</string>
+    <string name="market_fleet_order_seller_fallback">સેલર</string>
+    <string name="market_fleet_order_step_truck">લોડ કરવા ટ્રક મોકલો</string>
+    <string name="market_fleet_order_badge_assigned">સોંપાયું</string>
+    <string name="market_fleet_order_truck_pending">ઑર્ડર પાકો થાય એટલે તમારી બિડમાં લખેલો ટ્રક અહીં આવશે.</string>
+    <string name="market_fleet_order_seller_yard">સેલરનું યાર્ડ</string>
+    <string name="market_fleet_order_load_by">%1$s સુધીમાં લોડ</string>
+    <string name="market_fleet_order_customer_site">ગ્રાહકની સાઇટ</string>
+    <string name="market_fleet_order_deliver_by">%1$s સુધીમાં ડિલિવરી</string>
+    <string name="market_fleet_order_earnings">તમારી કમાણી</string>
+    <string name="market_fleet_order_earnings_estimate">તમારી કમાણી · અંદાજ</string>
+    <string name="market_fleet_order_agreed">ગ્રાહક સાથે નક્કી થયેલું</string>
+    <string name="market_fleet_order_paid_to_seller">સેલરને ચૂકવ્યા</string>
+    <string name="market_fleet_order_commission">Saarthi કમિશન (%1$s%%)</string>
+    <string name="market_fleet_order_you_keep">તમને મળે</string>
+    <string name="market_fleet_order_customer_paid">%1$s એ %2$d%% ચૂકવ્યા</string>
+    <string name="market_fleet_order_customer_paid_unnamed">ગ્રાહકે %1$d%% ચૂકવ્યા</string>
+    <string name="market_fleet_order_customer_waiting">%1$s ના %2$d%% ની રાહ</string>
+    <string name="market_fleet_order_customer_waiting_unnamed">ગ્રાહકના %1$d%% ની રાહ</string>
+    <string name="market_fleet_order_received">%1$s મળ્યા</string>
+    <string name="market_fleet_order_due">%1$s બાકી</string>
+    <string name="market_fleet_order_after_delivery">ડિલિવરી પછી %1$s</string>
+
+    <!-- Orders: handover codes (Handover). -->
+    <string name="market_handover_your_delivery_code">તમારો ડિલિવરી કોડ</string>
+    <string name="market_handover_your_pickup_code">તમારો પિકઅપ કોડ</string>
+    <string name="market_handover_delivery_give">તમારો માલ તમારા સુધી પહોંચે ત્યારે જ ડ્રાઇવરને આપો — તેનાથી ડિલિવરી પાકી થાય છે.</string>
+    <string name="market_handover_pickup_tell">ડ્રાઇવર આવે ત્યારે તેને કહો — તે કોડ નાખે એટલે સવારી શરૂ થાય છે.</string>
+    <string name="market_handover_delivery_verified">ડ્રાઇવરે તમારા કોડથી ડિલિવરી પાકી કરી.</string>
+    <string name="market_handover_pickup_verified">ડ્રાઇવરે તમારા કોડથી સવારી શરૂ કરી.</string>
+    <string name="market_handover_delivery_overridden">ઑપરેટરે તમારા કોડ વગર ડિલિવરી પાકી કરી.</string>
+    <string name="market_handover_pickup_overridden">ઑપરેટરે તમારા કોડ વગર સવારી શરૂ કરી.</string>
+    <string name="market_handover_reason">કારણ: %1$s</string>
+    <string name="market_handover_code_entered">ગ્રાહકનો કોડ નાખ્યો</string>
+    <string name="market_handover_confirmed_without">ગ્રાહકના કોડ વગર પાકું કર્યું</string>
+    <string name="market_handover_waiting_delivery">ગ્રાહકના ડિલિવરી કોડની રાહ</string>
+    <string name="market_handover_waiting_pickup">મુસાફરના પિકઅપ કોડની રાહ</string>
+    <string name="market_handover_delivery_code">ડિલિવરી કોડ</string>
+    <string name="market_handover_pickup_code">પિકઅપ કોડ</string>
+    <string name="market_handover_driver_enters_drop">ડિલિવરી પૂરી કરવા ડ્રાઇવર ડ્રૉપ પર તે નાખે છે.</string>
+    <string name="market_handover_driver_enters_pickup">સવારી શરૂ કરવા ડ્રાઇવર પિકઅપ પર તે નાખે છે.</string>
+    <string name="market_handover_override_link">ગ્રાહક કોડ નથી આપી શકતા? કોડ વગર પાકું કરો</string>
+    <string name="market_handover_override_delivery_title">કોડ વગર ડિલિવરી પાકી કરશો?</string>
+    <string name="market_handover_override_pickup_title">કોડ વગર સવારી શરૂ કરશો?</string>
+    <string name="market_handover_override_body">ફક્ત ત્યારે જ, જ્યારે ગ્રાહક કોડ આપી ન શકે. તમારું કારણ રેકોર્ડમાં રહે છે, અને ગ્રાહકને જાણ કરાય છે.</string>
+    <string name="market_handover_override_reason_label">કેમ? (ઓછામાં ઓછા 10 અક્ષર)</string>
+    <string name="market_handover_override_delivery_button">કોડ વગર પાકું કરો</string>
+    <string name="market_handover_override_pickup_button">કોડ વગર શરૂ કરો</string>
+    <string name="market_handover_customer_delivery_code">ગ્રાહકનો ડિલિવરી કોડ</string>
+    <string name="market_handover_passenger_pickup_code">મુસાફરનો પિકઅપ કોડ</string>
+    <string name="market_handover_ask_customer">ગ્રાહક પાસેથી તેમની Saarthi ઍપ અથવા SMS માં આવેલો 4 અંકનો કોડ માગો. કોડ નાખતાં જ ડિલિવરી પૂરી થશે.</string>
+    <string name="market_handover_ask_passenger">મુસાફર પાસેથી તેમની Saarthi ઍપ અથવા SMS માં આવેલો 4 અંકનો કોડ માગો. કોડ નાખતાં જ સવારી શરૂ થશે.</string>
+    <string name="market_handover_code_label">4 અંકનો કોડ</string>
+    <string name="market_handover_complete_delivery">ડિલિવરી પૂરી કરો</string>
+    <string name="market_handover_start_ride">સવારી શરૂ કરો</string>
+    <string name="market_handover_customer_cant">ગ્રાહક કોડ નથી આપી શકતા?</string>
+    <string name="market_handover_passenger_cant">મુસાફર કોડ નથી આપી શકતા?</string>
+
+    <!-- Seller: tabs (SellerTabs). -->
+    <string name="market_seller_tab_home">હોમ</string>
+    <string name="market_seller_tab_greeting">નમસ્તે, %1$s</string>
+    <string name="market_seller_what_fleets_see">ફ્લીટ શું જુએ છે</string>
+    <string name="market_seller_tab_stock_title">સ્ટૉક &amp; ભાવ</string>
+    <string name="market_seller_tab_loading">લોડિંગ</string>
+    <string name="market_seller_tab_loading_eyebrow">ફ્લીટ લેવા આવે છે</string>
+    <string name="market_seller_tab_money">પૈસા</string>
+    <string name="market_seller_tab_money_eyebrow">ફ્લીટે ચૂકવેલા</string>
+
+    <!-- Seller: home (SellerHomeScreen). -->
+    <string name="market_seller_paid_awaiting">%1$d ચૂકવ્યા · %2$d ની ચુકવણી બાકી</string>
+    <string name="market_seller_coming_to_load">લોડ કરવા આવે છે</string>
+    <string name="market_seller_no_trucks_due">કોઈ ટ્રક આવવાનો નથી</string>
+    <plurals name="market_seller_trucks">
+        <item quantity="one">%1$d ટ્રક</item>
+        <item quantity="other">%1$d ટ્રક</item>
+    </plurals>
+    <string name="market_seller_load">લોડ</string>
+    <string name="market_seller_orders">ઑર્ડર</string>
+    <plurals name="market_seller_from_fleets">
+        <item quantity="one">%1$d ફ્લીટ પાસેથી</item>
+        <item quantity="other">%1$d ફ્લીટ પાસેથી</item>
+    </plurals>
+    <string name="market_seller_received">મળ્યા</string>
+    <string name="market_seller_more_due">હજી %1$d બાકી</string>
+    <string name="market_seller_stock">સ્ટૉક</string>
+    <string name="market_seller_stock_fine">બધું બરાબર</string>
+    <string name="market_seller_stock_low">%1$d ઓછા</string>
+    <string name="market_seller_see_stock">સ્ટૉક જુઓ</string>
+    <string name="market_seller_all_orders">બધા ઑર્ડર</string>
+    <string name="market_seller_home_empty">કોઈ ફ્લીટ તમારી પાસેથી ખરીદે, ત્યારે તેનો ટ્રક અહીં દેખાશે.</string>
+    <string name="market_seller_home_footnote">ફ્લીટ તમારી પાસેથી ખરીદે છે અને પોતાના ટ્રક મોકલે છે. તમે લોડ કરો; તેઓ ડિલિવરી કરે.</string>
+    <string name="market_seller_a_fleet">એક ફ્લીટ</string>
+    <string name="market_seller_paid_amount">%1$s ચૂકવ્યા</string>
+    <string name="market_seller_paid">ચૂકવ્યું</string>
+    <string name="market_seller_sold">વેચ્યું</string>
+    <string name="market_seller_payment_due">ચુકવણી બાકી</string>
+    <string name="market_seller_truck_at">ટ્રક %1$s એ</string>
+    <string name="market_seller_picked_up">%1$s એ લઈ ગયા</string>
+
+    <!-- Seller: loading list and one order at the gate (SellerLoadingScreen). -->
+    <string name="market_seller_loading_empty">કોઈ ફ્લીટ તમારી પાસેથી ખરીદે, ત્યારે તેનો ઑર્ડર અહીં દેખાશે.</string>
+    <string name="market_seller_other_orders">બીજા ઑર્ડર</string>
+    <string name="market_seller_load_title">ટ્રક લોડ કરો</string>
+    <string name="market_seller_load_at_gate">તમારા ગેટ પર</string>
+    <string name="market_seller_load_collecting">લેવા આવે છે</string>
+    <string name="market_seller_load_truck_unnamed">ટ્રક હજી નક્કી નથી</string>
+    <string name="market_seller_load_driver">ડ્રાઇવર %1$s</string>
+    <string name="market_seller_load_due">%1$s એ આવશે</string>
+    <string name="market_seller_load_paid_by">%1$s એ ચૂકવ્યું</string>
+    <string name="market_seller_load_paid_by_unnamed">ફ્લીટે ચૂકવ્યું</string>
+    <string name="market_seller_load_sold_to">%1$s ને વેચ્યું</string>
+    <string name="market_seller_load_sold_to_unnamed">ફ્લીટને વેચ્યું</string>
+    <string name="market_seller_load_waiting_pay">%1$s ની ચુકવણીની રાહ</string>
+    <string name="market_seller_load_waiting_pay_unnamed">ફ્લીટની ચુકવણીની રાહ</string>
+    <string name="market_seller_load_not_through_saarthi">Saarthi દ્વારા ચૂકવ્યું નથી</string>
+    <string name="market_seller_load_once_paid">ચુકવણી થાય પછી જ લોડ કરો</string>
+    <string name="market_seller_load_truck_collecting">ટ્રક %1$s લેવા આવે છે</string>
+    <string name="market_seller_load_fleet_names_truck">ફ્લીટ તેનો ટ્રક જણાવશે</string>
+    <string name="market_seller_load_check_plate">લોડ કરતાં પહેલાં નંબર મેળ ખાય છે તે તપાસો</string>
+    <string name="market_seller_load_what">%1$s લોડ કરો</string>
+    <string name="market_seller_load_at">%1$s એ</string>
+    <string name="market_seller_load_fleet_delivers">અહીંથી ડિલિવરી %1$s સંભાળે છે.</string>
+    <string name="market_seller_load_fleet_delivers_unnamed">અહીંથી ડિલિવરી ફ્લીટ સંભાળે છે.</string>
+
+    <!-- Seller: money (SellerMoneyScreen). -->
+    <string name="market_seller_money_received_in">%1$s માં મળ્યા</string>
+    <string name="market_seller_money_bank_verified">બૅન્ક ચકાસાયેલ</string>
+    <string name="market_seller_money_bank_not_connected">બૅન્ક જોડાયેલ નથી</string>
+    <string name="market_seller_money_to_bank">%1$s માં</string>
+    <plurals name="market_seller_money_orders_from_fleets">
+        <item quantity="one">%2$d ફ્લીટ પાસેથી %1$d ઑર્ડર</item>
+        <item quantity="other">%2$d ફ્લીટ પાસેથી %1$d ઑર્ડર</item>
+    </plurals>
+    <string name="market_seller_money_connect_bank">જે બૅન્ક ખાતામાં પૈસા આવે છે તે વેબ પર Saarthi માંથી જોડો.</string>
+    <string name="market_seller_money_awaiting">ચુકવણીની રાહ</string>
+    <string name="market_seller_money_nothing_owed">અત્યારે કંઈ લેવાનું બાકી નથી.</string>
+    <string name="market_seller_money_received_empty">ફ્લીટ તરફથી આવેલી ચુકવણી અહીં દેખાશે.</string>
+
+    <!-- Seller: stock and a new listing (SellerStockScreen). -->
+    <string name="market_stock_note">તમારી નજીકના કામ પર બિડ કરતા ફ્લીટ તમારો ભાવ અને સ્ટૉક સરખાવે છે. ઑર્ડર મેળવવા બંને અપડેટ રાખો.</string>
+    <string name="market_stock_all">બધા · %1$d</string>
+    <string name="market_stock_add_listing">લિસ્ટિંગ ઉમેરો</string>
+    <string name="market_stock_shown_low">ફ્લીટને \"ઓછો સ્ટૉક\" તરીકે દેખાય છે</string>
+    <string name="market_stock_shown">ફ્લીટને દેખાય છે</string>
+    <string name="market_stock_hidden">ફ્લીટથી છુપાયેલું</string>
+    <string name="market_stock_left">%1$s %2$s બાકી</string>
+    <string name="market_stock_new_listing">નવું લિસ્ટિંગ</string>
+    <string name="market_stock_show_to_fleets">ફ્લીટને બતાવો</string>
+    <string name="market_stock_name_placeholder">M-sand, પ્લાસ્ટર ગ્રેડ</string>
+    <string name="market_stock_price">ભાવ (₹)</string>
+    <string name="market_stock_notes_optional">ખરીદનારે બીજું કંઈ જાણવું જોઈએ? (વૈકલ્પિક)</string>
+    <string name="market_stock_photos_next">લિસ્ટ થઈ જાય પછી આગલા પેજ પર ફોટા ઉમેરાય છે.</string>
+    <string name="market_stock_add_field">લિસ્ટ કરવા %1$s ઉમેરો.</string>
+
+    <!-- Seller: one listing (ListingScreen). -->
+    <string name="market_listing_unit_tonnes">ટન</string>
+    <string name="market_listing_unit_bags">બેગ</string>
+    <string name="market_listing_unit_pieces">નંગ</string>
+    <string name="market_listing_unit_litres">લિટર</string>
+    <string name="market_listing_unit_trips">ટ્રિપ</string>
+    <string name="market_listing_save">ફેરફાર સેવ કરો</string>
+    <string name="market_listing_saved">સેવ થયું. ફ્લીટને હવે નવી વિગતો દેખાય છે.</string>
+    <string name="market_listing_saving">સેવ થઈ રહ્યું છે…</string>
+    <string name="market_listing_details">વિગતો</string>
+    <string name="market_listing_what_you_sell">તમે શું વેચો છો</string>
+    <string name="market_listing_notes">ખરીદનારે બીજું કંઈ જાણવું જોઈએ?</string>
+    <string name="market_listing_notes_placeholder">ગ્રેડ, સાઇઝ, કેવી રીતે પૅક કરેલું છે</string>
+    <string name="market_listing_price_per">%1$s દીઠ ભાવ (₹)</string>
+    <string name="market_listing_in_stock">સ્ટૉકમાં</string>
+    <string name="market_listing_min_order">ઓછામાં ઓછો ઑર્ડર</string>
+    <string name="market_listing_pickup">ટ્રક અહીંથી લઈ જાય છે</string>
+    <string name="market_listing_shown_note">નજીકમાં બિડ કરતા ફ્લીટ તેને જુએ છે.</string>
+    <string name="market_listing_hidden_note">તમે ફરી બતાવો ત્યાં સુધી છુપાયેલું.</string>
+    <string name="market_listing_show_named">ફ્લીટને %1$s બતાવો</string>
+    <string name="market_listing_remove_link">આ લિસ્ટિંગ કાઢી નાખો</string>
+    <string name="market_listing_photo_unusable">એ ફોટો વાપરી શકાયો નહીં.</string>
+    <string name="market_listing_photo_added">ફોટો ઉમેર્યો.</string>
+    <string name="market_listing_photo_removed">ફોટો કાઢ્યો.</string>
+    <string name="market_listing_cover_changed">કવર બદલાયું.</string>
+    <string name="market_listing_photos">ફોટા</string>
+    <string name="market_listing_photos_loading">ફોટા લોડ થઈ રહ્યા છે…</string>
+    <string name="market_listing_photo_cover">%1$s · કવર</string>
+    <string name="market_listing_make_cover">આને કવર બનાવો</string>
+    <string name="market_listing_no_photos_yet">હજી કોઈ ફોટો નથી. માલ દેખાય તો ફ્લીટ જલદી પસંદ કરે છે.</string>
+    <string name="market_listing_no_photos">આ લિસ્ટિંગના કોઈ ફોટા નથી.</string>
+    <string name="market_listing_photos_max">એક લિસ્ટિંગમાં વધુમાં વધુ %1$d ફોટા રહી શકે. બીજો ઉમેરવા એક કાઢો.</string>
+    <string name="market_listing_take_photo">ફોટો પાડો</string>
+    <string name="market_listing_gallery">ગૅલરી</string>
+    <string name="market_listing_cover_note">કવર એ ફોટો છે જે ફ્લીટને સૌથી પહેલાં દેખાય છે.</string>
+    <string name="market_listing_remove_title">%1$s કાઢી નાખશો?</string>
+    <string name="market_listing_remove_body">તે હંમેશ માટે વેચાણમાંથી નીકળી જશે અને ફ્લીટને દેખાવાનું બંધ થશે. થોડા સમય માટે વેચાણ બંધ કરવું હોય તો તેના બદલે છુપાવો. જે લિસ્ટિંગનો ઑર્ડર હજી રસ્તામાં હોય તે કાઢી શકાતું નથી.</string>
+    <string name="market_listing_remove_button">લિસ્ટિંગ કાઢી નાખો</string>
+    <string name="market_listing_removing">કાઢી રહ્યા છીએ…</string>
+
+    <!-- Commerce: category picker and the "What is it?" panel (CategoryPickerScreen, CommerceDetails). -->
+    <string name="market_commerce_choose_category">કૅટેગરી પસંદ કરો</string>
+    <string name="market_commerce_what_is_it">આ શું છે?</string>
+    <string name="market_commerce_search_placeholder">રેતી, સિમેન્ટ, ઈંટો…</string>
+    <string name="market_commerce_no_match">એ નામનું કંઈ નથી. નાનો શબ્દ અજમાવો.</string>
+    <string name="market_commerce_detected">ઓળખાયું</string>
+    <string name="market_commerce_reading">આ શું છે તે વાંચી રહ્યા છીએ…</string>
+    <string name="market_commerce_read_failed">Saarthi અત્યારે તે વાંચી શક્યું નહીં. કૅટેગરી પસંદ કરો.</string>
+    <string name="market_commerce_unknown">Saarthi ઓળખી શક્યું નહીં કે આ શું છે. સૌથી નજીકની કૅટેગરી પસંદ કરો.</string>
+    <string name="market_commerce_is_this_right">આ સાચું છે? ન હોય તો બદલો.</string>
+    <string name="market_commerce_choose">પસંદ કરો</string>
+    <string name="market_commerce_change">બદલો</string>
+    <string name="market_commerce_more_details">વધુ વિગતો ઉમેરો (વૈકલ્પિક)</string>
+    <string name="market_commerce_field_optional">%1$s (વૈકલ્પિક)</string>
+
+    <!-- Jobs: the board, kinds and orders (JobsScreen). -->
+    <string name="market_jobs_kind_all">બધાં</string>
+    <string name="market_jobs_kind_material">મટીરિયલ</string>
+    <string name="market_jobs_kind_freight">માલ પરિવહન</string>
+    <string name="market_jobs_kind_cab">કૅબ</string>
+    <string name="market_jobs_kind_tour">ટૂર</string>
+    <string name="market_jobs_empty_title">અત્યારે કોઈ ખુલ્લું કામ નથી</string>
+    <string name="market_jobs_empty_body">તમારાં વાહનો કરી શકે એવું કામ કોઈ ગ્રાહક પોસ્ટ કરશે, ત્યારે તે અહીં દેખાશે.</string>
+    <string name="market_jobs_closes_in">%1$s · %2$s કલાકમાં બંધ</string>
+    <string name="market_jobs_bidding_closed">%1$s · બિડિંગ બંધ</string>
+    <string name="market_jobs_needed_lower">%1$s એ જોઈએ</string>
+    <string name="market_jobs_no_bids">હજી કોઈ બિડ નથી</string>
+    <plurals name="market_jobs_bids_so_far">
+        <item quantity="one">અત્યાર સુધી %1$d બિડ</item>
+        <item quantity="other">અત્યાર સુધી %1$d બિડ</item>
+    </plurals>
+    <string name="market_jobs_km_away">%1$d km દૂર</string>
+    <string name="market_jobs_your_bid_amount">તમારી બિડ %1$s</string>
+    <string name="market_jobs_see_your_bid">તમારી બિડ જુઓ</string>
+    <string name="market_jobs_check_sellers_bid">સેલર તપાસો &amp; બિડ કરો</string>
+    <string name="market_jobs_bid_freight">આ માલ પરિવહન માટે બિડ કરો</string>
+    <string name="market_jobs_quote_trip">આ ટ્રિપ માટે ભાવ આપો</string>
+    <string name="market_jobs_section_open">ખુલ્લાં કામ</string>
+    <string name="market_jobs_section_orders">ઑર્ડર</string>
+    <string name="market_jobs_section_trips">ટ્રિપ</string>
+    <string name="market_jobs_orders_empty">તમે જીતેલા ઑર્ડર અહીં દેખાશે — દરેકમાંથી સેલરને ચૂકવો અને ટ્રક મોકલો.</string>
+    <string name="market_jobs_in_progress">ચાલુ</string>
+    <string name="market_jobs_earlier">પહેલાંનાં</string>
+
+    <!-- Jobs: a bid (BidScreen). -->
+    <string name="market_bid_type_car">કાર</string>
+    <string name="market_bid_type_van">વૅન</string>
+    <string name="market_bid_type_tempo">ટેમ્પો</string>
+    <string name="market_bid_type_bus">બસ</string>
+    <string name="market_bid_type_taxi">ટૅક્સી</string>
+    <string name="market_bid_eyebrow">કામ · %1$s</string>
+    <string name="market_bid_check_sellers">સેલર તપાસો</string>
+    <string name="market_bid_your_bid">તમારી બિડ</string>
+    <string name="market_bid_hours_left">%1$d કલાક બાકી</string>
+    <string name="market_bid_sent">તમે %1$s (%2$s) ની બિડ કરી. ગ્રાહકને તે મળી ગઈ છે.</string>
+    <string name="market_bid_to_customer">ગ્રાહકને બિડ</string>
+    <string name="market_bid_one_price">ડિલિવરી સાથે એક જ ભાવ</string>
+    <string name="market_bid_send_amount">બિડ મોકલો · %1$s</string>
+    <string name="market_bid_send">બિડ મોકલો</string>
+    <string name="market_bid_sending">મોકલી રહ્યા છીએ…</string>
+    <string name="market_bid_connect_bank">મટીરિયલ પર બિડ કરતાં પહેલાં વેબ પર Saarthi માં તમારું બિઝનેસ બૅન્ક ખાતું જોડો અને ચકાસો. ગ્રાહકના %1$d%% તેમાં જમા થાય છે.</string>
+    <string name="market_bid_seller_hidden">ગ્રાહકને સેલર ક્યારેય દેખાતો નથી. તમે ખરીદો, લોડ કરો અને ડિલિવરી કરો.</string>
+    <string name="market_bid_no_sellers">સાઇટની નજીકના કોઈ સેલર પાસે હજી આ સ્ટૉકમાં નથી. કોઈ લિસ્ટ કરે કે તરત તમે બિડ કરી શકશો. તે તમને અહીં દેખાશે.</string>
+    <plurals name="market_bid_sellers_with_stock">
+        <item quantity="one">સાઇટની નજીક સ્ટૉકવાળો %1$d સેલર</item>
+        <item quantity="other">સાઇટની નજીક સ્ટૉકવાળા %1$d સેલર</item>
+    </plurals>
+    <string name="market_bid_which_vehicle">કયું વાહન જશે</string>
+    <string name="market_bid_no_vehicle">આ એકાઉન્ટનું કોઈ વાહન અત્યારે આપી શકાય તેમ નથી.</string>
+    <string name="market_bid_who_drives">કોણ ચલાવશે</string>
+    <string name="market_bid_no_driver">આ એકાઉન્ટનો કોઈ ડ્રાઇવર હજી નક્કી કરી શકાય તેમ નથી.</string>
+    <string name="market_bid_vehicle_you_send">તમે મોકલશો તે વાહન</string>
+    <string name="market_bid_driver_included">ડ્રાઇવર સાથે</string>
+    <string name="market_bid_fuel_included">ઈંધણ સામેલ</string>
+    <string name="market_bid_price_includes">ભાવમાં શું સામેલ છે</string>
+    <string name="market_bid_included_label">સામેલ, એક લીટીમાં એક</string>
+    <string name="market_bid_included_placeholder">ટોલ અને પાર્કિંગ\nડ્રાઇવર ભથ્થું</string>
+    <string name="market_bid_included_prefilled">ગ્રાહકે જે માગ્યું હતું તે ભરી દીધું છે.</string>
+    <string name="market_bid_excluded_label">સામેલ નથી, એક લીટીમાં એક</string>
+    <string name="market_bid_excluded_placeholder">એન્ટ્રી ટિકિટ\nજમવાનું</string>
+    <string name="market_bid_itinerary_label">પ્રવાસનો કાર્યક્રમ (વૈકલ્પિક)</string>
+    <string name="market_bid_itinerary_placeholder">દિવસ 1: પિકઅપ, પહેલા સ્ટૉપ સુધી\nદિવસ 2: ફરવાનું, પાછા</string>
+    <string name="market_bid_itinerary_hint">ટૂર હોય તો દિવસ પ્રમાણે. ગ્રાહક આના પરથી સરખામણી કરે છે.</string>
+    <string name="market_bid_transport_label">તમારું ટ્રાન્સપોર્ટ, સાઇટ સુધી (₹)</string>
+    <string name="market_bid_price_label">આખા કામનો તમારો ભાવ (₹)</string>
+    <string name="market_bid_breakdown_label">એ ભાવમાં શું આવે છે (વૈકલ્પિક)</string>
+    <string name="market_bid_breakdown_placeholder">બધું સામેલ: ઈંધણ, ટોલ, ડ્રાઇવર ભથ્થું</string>
+    <string name="market_bid_breakdown_supporting">વિગત સાથેનો ભાવ વિગત વગરના ભાવ કરતાં વધુ વાર જીતે છે.</string>
+    <string name="market_bid_note_label">ગ્રાહક માટે નોંધ (વૈકલ્પિક)</string>
+    <string name="market_bid_note_placeholder_travel">AC કાર, ટોલ અને પાર્કિંગ સામેલ</string>
+    <string name="market_bid_note_placeholder_goods">7 વાગ્યે લોડ, 11 વાગ્યે તમારા ગેટ પર</string>
+    <string name="market_bid_deliver_to">%1$s પર ડિલિવરી</string>
+    <string name="market_bid_needed">%1$s એ જોઈએ</string>
+    <string name="market_bid_km_from_site">સાઇટથી %1$d km</string>
+    <string name="market_bid_short_on_stock">સ્ટૉક ઓછો</string>
+    <string name="market_bid_price">ભાવ</string>
+    <string name="market_bid_for_quantity">%1$s માટે</string>
+    <string name="market_bid_included_too_many">વધુમાં વધુ %1$d સામેલ વસ્તુઓ લખો.</string>
+    <string name="market_bid_excluded_too_many">વધુમાં વધુ %1$d બાકાત વસ્તુઓ લખો.</string>
+    <string name="market_bid_included_too_short">દરેક સામેલ વસ્તુમાં ઓછામાં ઓછા %1$d અક્ષર જોઈએ.</string>
+    <string name="market_bid_excluded_too_short">દરેક બાકાત વસ્તુમાં ઓછામાં ઓછા %1$d અક્ષર જોઈએ.</string>
+    <string name="market_bid_included_too_long">દરેક સામેલ વસ્તુ %1$d અક્ષર કે તેથી ઓછી રાખો.</string>
+    <string name="market_bid_excluded_too_long">દરેક બાકાત વસ્તુ %1$d અક્ષર કે તેથી ઓછી રાખો.</string>
+
+    <!-- Map: a trip's road and its key (TripRouteMap, RouteMapScreen). -->
+    <string name="market_map_trail_on_route">રૂટ પર</string>
+    <string name="market_map_trail_off_route">રૂટથી બહાર</string>
+    <string name="market_map_trail_other_road">બીજો રસ્તો</string>
+    <string name="market_map_trail_no_trip">ટ્રિપ નથી</string>
+    <string name="market_map_planned_route">પ્લાન કરેલો રૂટ</string>
+    <string name="market_map_show_whole_route">આખો રૂટ બતાવો</string>
+    <string name="market_map_open_full_screen">મૅપ ફુલ સ્ક્રીનમાં ખોલો</string>
+    <string name="market_map_pickup">પિકઅપ</string>
+    <string name="market_map_drop">ડ્રૉપ</string>
+
+    <!-- Tracking: a followed vehicle (FollowViews). -->
+    <string name="market_follow_no_position">હજી લોકેશન નથી</string>
+    <string name="market_follow_show_whole_road">આખો રસ્તો બતાવો</string>
+    <string name="market_follow_finding">વાહન શોધી રહ્યા છીએ…</string>
+    <string name="market_follow_readings">રીડિંગ</string>
+    <string name="market_follow_measured_now">હમણાં માપ્યું</string>
+    <string name="market_follow_measured_ago">%1$s પહેલાં માપ્યું</string>
+    <string name="market_follow_start">શરૂઆત</string>
+    <string name="market_follow_destination">મંઝિલ</string>
+    <string name="market_follow_moving">ચાલે છે</string>
+    <string name="market_follow_stopped">ઊભું છે</string>
+    <string name="market_follow_not_reporting">રિપોર્ટ નથી કરતું</string>
+    <string name="market_follow_alert">ઍલર્ટ</string>
+    <string name="market_follow_to">%1$s તરફ</string>
+    <string name="market_follow_never_reported">આ વાહને હજી લોકેશન મોકલ્યું નથી.</string>
+    <string name="market_follow_reporting_now">હમણાં રિપોર્ટ કરે છે</string>
+    <string name="market_follow_last_seen">છેલ્લે %1$s પહેલાં દેખાયું</string>
+    <string name="market_follow_speed">સ્પીડ</string>
+    <string name="market_follow_engine">એન્જિન</string>
+    <string name="market_follow_load">લોડ</string>
+    <string name="market_follow_coolant">કૂલન્ટ</string>
+    <string name="market_follow_fuel">ઈંધણ</string>
+    <string name="market_follow_battery">બૅટરી</string>
+    <string name="market_follow_unit_kph">km/h</string>
+    <string name="market_follow_unit_rpm">rpm</string>
+</resources>

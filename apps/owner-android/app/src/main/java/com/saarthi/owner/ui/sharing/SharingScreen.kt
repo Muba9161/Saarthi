@@ -1,4 +1,4 @@
-package com.saarthi.owner.ui.personal
+package com.saarthi.owner.ui.sharing
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
@@ -29,14 +29,18 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.saarthi.owner.OwnerApp
+import com.saarthi.owner.R
 import com.saarthi.owner.network.SharingApi
 import com.saarthi.owner.network.VehiclesApi
 import com.saarthi.owner.ui.common.DetailScreen
 import com.saarthi.owner.ui.common.RevealedNotice
+import com.saarthi.owner.ui.common.Words
 import com.saarthi.owner.ui.common.formatPlate
 import com.saarthi.owner.ui.common.readable
 import com.saarthi.owner.ui.common.rememberPhoto
@@ -90,11 +94,11 @@ fun SharingScreen(app: OwnerApp, initial: VehiclesApi.Vehicle) {
     val left = (SharingApi.MAX_SHARES - shares.size).coerceAtLeast(0)
 
     DetailScreen(
-        eyebrow = "${vehicle.typeLabel.ifBlank { "Vehicle" }} · ${formatPlate(vehicle.registrationNumber)}",
-        title = "Sharing",
+        eyebrow = "${vehicle.typeLabel.ifBlank { stringResource(R.string.people_vehicle) }} · ${formatPlate(vehicle.registrationNumber)}",
+        title = stringResource(R.string.people_sharing_title),
         footer = {
-            SaarthiButton("Invite someone", onClick = { inviting = true }, leading = Lucide.users, enabled = left > 0 && vehicle.ownershipConfirmed)
-            Text("They sign in with their own Saarthi account.", style = SType.caption, color = c.subtle, modifier = Modifier.fillMaxWidth())
+            SaarthiButton(stringResource(R.string.people_sharing_invite), onClick = { inviting = true }, leading = Lucide.users, enabled = left > 0 && vehicle.ownershipConfirmed)
+            Text(stringResource(R.string.people_sharing_own_account), style = SType.caption, color = c.subtle, modifier = Modifier.fillMaxWidth())
         },
     ) {
         Box(
@@ -120,16 +124,16 @@ fun SharingScreen(app: OwnerApp, initial: VehiclesApi.Vehicle) {
                     Text("${shares.size}/${SharingApi.MAX_SHARES}", style = SType.bodyStrong, color = Color.White)
                 }
                 Column {
-                    Eyebrow("Shared with", color = Color.White.copy(alpha = 0.75f))
-                    Text(if (shares.size == 1) "1 person" else "${shares.size} people", style = SType.title.copy(fontSize = 26.sp), color = Color.White)
-                    Text(if (left == 1) "1 place left" else "$left places left", style = SType.small, color = Color.White.copy(alpha = 0.8f))
+                    Eyebrow(stringResource(R.string.people_sharing_shared_with), color = Color.White.copy(alpha = 0.75f))
+                    Text(pluralStringResource(R.plurals.people_sharing_people, shares.size, shares.size), style = SType.title.copy(fontSize = 26.sp), color = Color.White)
+                    Text(pluralStringResource(R.plurals.people_sharing_places_left, left, left), style = SType.small, color = Color.White.copy(alpha = 0.8f))
                 }
             }
         }
 
         if (!vehicle.ownershipConfirmed) {
             NoticeCard(
-                "Confirm that you own this vehicle before sharing it — check it against its RC in Saarthi on the web.",
+                stringResource(R.string.people_sharing_confirm_ownership),
                 NoticeTone.WARNING,
                 icon = Lucide.shieldCheck,
             )
@@ -147,9 +151,9 @@ fun SharingScreen(app: OwnerApp, initial: VehiclesApi.Vehicle) {
                         Avatar(share.sharedWith.name.ifBlank { share.sharedWith.email }, size = 44.dp, background = c.primarySoft, ink = c.primary)
                         Column(Modifier.weight(1f)) {
                             Text(share.sharedWith.name.ifBlank { share.sharedWith.email }, style = SType.bodyStrong, color = c.fg)
-                            Text(if (share.status == "PENDING") "Invited · not accepted yet" else share.sharedWith.email, style = SType.caption, color = c.muted)
+                            Text(if (share.status == "PENDING") stringResource(R.string.people_sharing_pending) else share.sharedWith.email, style = SType.caption, color = c.muted)
                         }
-                        LinkButton("Remove", {
+                        LinkButton(stringResource(R.string.people_remove), {
                             scope.launch {
                                 runCatching { app.sharing.end(share.id) }
                                     .onSuccess { reload++ }
@@ -161,27 +165,27 @@ fun SharingScreen(app: OwnerApp, initial: VehiclesApi.Vehicle) {
             }
         }
 
-        GroupLabel("What they can do")
+        GroupLabel(stringResource(R.string.people_sharing_can_title))
         Column(Modifier.fillMaxWidth().rise(stagger(2)).card(radius = 22.dp)) {
-            Can(true, "See where it is, live", divider = true)
-            Can(true, "Add trips, fuel and service", divider = true)
-            Can(false, "Change papers or remove it", note = "Only you can", divider = false)
+            Can(true, stringResource(R.string.people_sharing_can_see), divider = true)
+            Can(true, stringResource(R.string.people_sharing_can_add), divider = true)
+            Can(false, stringResource(R.string.people_sharing_cannot_change), note = stringResource(R.string.people_sharing_only_you), divider = false)
         }
     }
 
     BottomSheet(visible = inviting, onDismiss = { inviting = false }) {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Text("Invite someone", style = SType.sheetTitle, color = c.fg)
-            Text("Use the email their Saarthi account is on. They get an invitation to accept.", style = SType.body, color = c.muted)
+            Text(stringResource(R.string.people_sharing_invite), style = SType.sheetTitle, color = c.fg)
+            Text(stringResource(R.string.people_sharing_invite_body), style = SType.body, color = c.muted)
             SaarthiField(
                 value = email,
                 onValueChange = { email = it.take(160) },
-                label = "Their email",
+                label = stringResource(R.string.people_sharing_their_email),
                 leading = Lucide.mail,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
             )
             SaarthiButton(
-                "Send invitation",
+                stringResource(R.string.people_sharing_send),
                 onClick = {
                     busy = true
                     scope.launch {
@@ -190,7 +194,7 @@ fun SharingScreen(app: OwnerApp, initial: VehiclesApi.Vehicle) {
                                 inviting = false
                                 email = ""
                                 sheetError = null
-                                message = "Invitation sent." to NoticeTone.SUCCESS
+                                message = Words.get(R.string.people_sharing_sent) to NoticeTone.SUCCESS
                                 reload++
                             }
                             // Said in the sheet, where the person is looking — not behind it.

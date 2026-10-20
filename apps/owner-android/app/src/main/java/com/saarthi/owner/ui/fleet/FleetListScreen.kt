@@ -30,12 +30,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.saarthi.owner.OwnerApp
+import com.saarthi.owner.R
 import com.saarthi.owner.data.AccountType
 import com.saarthi.owner.data.SessionStore
 import com.saarthi.owner.network.DriversApi
@@ -47,9 +50,9 @@ import com.saarthi.owner.ui.common.Loadable
 import com.saarthi.owner.ui.common.PlateChip
 import com.saarthi.owner.ui.common.SkeletonCards
 import com.saarthi.owner.ui.common.VehicleClass
+import com.saarthi.owner.ui.common.Words
 import com.saarthi.owner.ui.common.formatPlate
 import com.saarthi.owner.ui.common.headerClearance
-import com.saarthi.owner.ui.common.plural
 import com.saarthi.owner.ui.common.readable
 import com.saarthi.owner.ui.common.rememberPhoto
 import com.saarthi.owner.ui.common.tabBarClearance
@@ -57,6 +60,11 @@ import com.saarthi.owner.ui.common.vehicleClassOf
 import com.saarthi.owner.ui.common.vehiclePhotoOf
 import com.saarthi.owner.ui.design.Avatar
 import com.saarthi.owner.ui.design.ChoiceChip
+import com.saarthi.owner.ui.design.SaarthiButton
+import com.saarthi.owner.ui.drivers.availabilityLook
+import com.saarthi.owner.ui.drivers.DriverScreen
+import com.saarthi.owner.ui.drivers.AddDriverScreen
+import com.saarthi.owner.ui.design.CircleButton
 import com.saarthi.owner.ui.design.IconWell
 import com.saarthi.owner.ui.design.LineIcon
 import com.saarthi.owner.ui.design.Lucide
@@ -91,7 +99,7 @@ private const val REFRESH_MS = 30_000L
  * it) and in two layouts, rows or cards, the choice saved on the server.
  */
 @Composable
-fun FleetListScreen(app: OwnerApp, account: SessionStore.Account) {
+fun FleetListScreen(app: OwnerApp, account: SessionStore.Account, onOpenMap: (() -> Unit)? = null) {
     val model = viewModel { FleetListModel(app.vehicles, app.drivers, account) }
     val state by model.state.collectAsStateWithLifecycle()
     var showDrivers by rememberSaveable { mutableStateOf(false) }
@@ -157,7 +165,7 @@ fun FleetListScreen(app: OwnerApp, account: SessionStore.Account) {
             notice = try {
                 app.sharing.respond(invitation.shareId, accept)
                 loadShared(silent = true)
-                (if (accept) "${formatPlate(invitation.registrationNumber)} is now in Shared with me." else "Invitation declined.") to NoticeTone.SUCCESS
+                (if (accept) Words.get(R.string.fleet_list_invitation_accepted, formatPlate(invitation.registrationNumber)) else Words.get(R.string.fleet_list_invitation_declined)) to NoticeTone.SUCCESS
             } catch (failure: Exception) {
                 failure.readable() to NoticeTone.DANGER
             }
@@ -183,7 +191,10 @@ fun FleetListScreen(app: OwnerApp, account: SessionStore.Account) {
             ) {
                 item(key = "switch") {
                     SegmentedControl(
-                        options = listOf("Vehicles · ${lists.vehicles.size}", "Drivers · ${lists.drivers.size}"),
+                        options = listOf(
+                            stringResource(R.string.fleet_list_tab_vehicles, lists.vehicles.size),
+                            stringResource(R.string.fleet_list_tab_drivers, lists.drivers.size),
+                        ),
                         selected = if (showDrivers) 1 else 0,
                         onSelect = { showDrivers = it == 1 },
                         modifier = Modifier.rise(),
@@ -198,15 +209,18 @@ fun FleetListScreen(app: OwnerApp, account: SessionStore.Account) {
                         ) {
                             if (sharing) {
                                 val waiting = (shared as? Loadable.Ready)?.value?.invitations?.size ?: 0
-                                ChoiceChip("Mine", selected = !sharedScope, onClick = { sharedScope = false })
+                                ChoiceChip(stringResource(R.string.fleet_list_mine), selected = !sharedScope, onClick = { sharedScope = false })
                                 ChoiceChip(
-                                    if (waiting > 0) "Shared with me · $waiting" else "Shared with me",
+                                    if (waiting > 0) stringResource(R.string.fleet_list_shared_count, waiting) else stringResource(R.string.fleet_list_shared),
                                     selected = sharedScope,
                                     onClick = { sharedScope = true },
                                 )
                             }
                             Box(Modifier.weight(1f))
-                            if (!sharedScope) LayoutToggle(cards = layout.isCards(), onChange = ::chooseLayout)
+                            // Where the account has no Map tab of its own, the map opens from here.
+                            onOpenMap?.let { CircleButton(Lucide.map, stringResource(R.string.fleet_list_open_map), it, size = 40.dp, iconSize = 18.dp, elevated = false) }
+                            // Shared vehicles are drawn as the owner's are, in whichever layout is chosen.
+                            LayoutToggle(cards = layout.isCards(), onChange = ::chooseLayout)
                         }
                     }
                     notice?.let { (text, tone) -> item(key = "notice") { NoticeCard(text, tone) } }
@@ -214,6 +228,7 @@ fun FleetListScreen(app: OwnerApp, account: SessionStore.Account) {
                 if (!showDrivers && sharedScope) {
                     sharedWithMeItems(
                         state = shared,
+                        cards = layout.isCards(),
                         answering = answering,
                         onAnswer = ::answer,
                         onOpen = { vehicle ->
@@ -233,7 +248,7 @@ fun FleetListScreen(app: OwnerApp, account: SessionStore.Account) {
                                     .rise(stagger(1)),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                             ) {
-                                ChoiceChip("All · ${lists.vehicles.size}", selected = filter == null, onClick = { filter = null })
+                                ChoiceChip(stringResource(R.string.fleet_list_all_count, lists.vehicles.size), selected = filter == null, onClick = { filter = null })
                                 VehicleClass.entries.filter { it in classes }.forEach { kind ->
                                     ChoiceChip(
                                         "${kind.label} · ${classes[kind]}",
@@ -247,7 +262,11 @@ fun FleetListScreen(app: OwnerApp, account: SessionStore.Account) {
                     if (papersDue > 0) {
                         item(key = "papers") {
                             NoticeCard(
-                                "${plural(papersDue, "paper")} due or expired across ${if (account.accountType == AccountType.PERSONAL) "your vehicles" else "the fleet"}. Renew them before a check post stops a vehicle.",
+                                pluralStringResource(
+                                    if (account.accountType == AccountType.PERSONAL) R.plurals.fleet_list_papers_due_personal else R.plurals.fleet_list_papers_due_fleet,
+                                    papersDue,
+                                    papersDue,
+                                ),
                                 NoticeTone.WARNING,
                                 Modifier.rise(stagger(2)),
                                 icon = Lucide.alertTriangle,
@@ -255,25 +274,40 @@ fun FleetListScreen(app: OwnerApp, account: SessionStore.Account) {
                         }
                     }
                     if (vehicles.isEmpty()) {
-                        item(key = "empty") { EmptyLine("No vehicles here yet.") }
+                        item(key = "empty") { EmptyLine(stringResource(R.string.fleet_list_no_vehicles)) }
                     }
                     items(vehicles, key = { it.id }) { vehicle ->
                         val open = { navigator.push("vehicle-${vehicle.id}") { VehicleScreen(app, account, vehicle) } }
                         if (layout.isCards()) VehicleCard(vehicle, open) else VehicleRow(vehicle, open)
                     }
                 } else {
-                    if (lists.drivers.isEmpty()) {
-                        item(key = "empty-drivers") { EmptyLine("No drivers on this account.") }
+                    if (account.can(DriversApi.CAN_MANAGE)) {
+                        item(key = "add-driver") {
+                            SaarthiButton(
+                                stringResource(R.string.fleet_list_add_driver),
+                                onClick = { navigator.push("add-driver") { AddDriverScreen(app, account) { model.refresh(silent = true) } } },
+                                leading = Lucide.plus,
+                                modifier = Modifier.rise(stagger(1)),
+                            )
+                        }
                     }
-                    items(lists.drivers, key = { it.id }) { driver -> DriverRow(driver) }
+                    if (lists.drivers.isEmpty()) {
+                        item(key = "empty-drivers") { EmptyLine(stringResource(R.string.fleet_list_no_drivers)) }
+                    }
+                    items(lists.drivers, key = { it.id }) { driver ->
+                        DriverRow(driver) {
+                            navigator.push("driver-${driver.id}") { DriverScreen(app, account, driver) { model.refresh(silent = true) } }
+                        }
+                    }
                 }
             }
         }
     }
 }
 
+/** One vehicle as a row; [note] is a line of its own under it — "Shared by …" on a shared one. */
 @Composable
-private fun VehicleRow(vehicle: VehiclesApi.Vehicle, onOpen: () -> Unit) {
+internal fun VehicleRow(vehicle: VehiclesApi.Vehicle, onOpen: () -> Unit, note: String? = null) {
     val c = Saarthi.colors
     val photo = vehiclePhotoOf(vehicle.artType)
     Row(
@@ -316,6 +350,7 @@ private fun VehicleRow(vehicle: VehiclesApi.Vehicle, onOpen: () -> Unit) {
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
+            note?.let { Text(it, style = SType.caption, color = c.subtle, maxLines = 1, overflow = TextOverflow.Ellipsis) }
         }
     }
 }
@@ -326,36 +361,30 @@ internal fun MotionPill(vehicle: VehiclesApi.Vehicle) {
     val c = Saarthi.colors
     when (vehicle.motion()) {
         VehiclesApi.Motion.MOVING -> StatusPill(
-            "${(vehicle.lastLocation?.speedKph ?: 0.0).toInt()} km/h",
+            stringResource(R.string.fleet_list_speed, (vehicle.lastLocation?.speedKph ?: 0.0).toInt()),
             background = c.successBg,
             ink = c.success,
             live = true,
         )
         VehiclesApi.Motion.IDLE -> StatusPill(
-            vehicle.minutesSinceReport()?.let { "Idle ${it}m" } ?: "Idle",
+            vehicle.minutesSinceReport()?.let { stringResource(R.string.fleet_list_idle_minutes, it) } ?: stringResource(R.string.fleet_list_idle),
             background = c.warningBg,
             ink = c.warning,
         )
-        VehiclesApi.Motion.OFFLINE -> StatusPill("Offline", background = c.sunken, ink = c.muted)
-        VehiclesApi.Motion.SERVICE -> StatusPill("Service", background = c.warningBg, ink = c.warning)
+        VehiclesApi.Motion.OFFLINE -> StatusPill(stringResource(R.string.fleet_list_offline), background = c.sunken, ink = c.muted)
+        VehiclesApi.Motion.SERVICE -> StatusPill(stringResource(R.string.fleet_list_service), background = c.warningBg, ink = c.warning)
     }
 }
 
 @Composable
-private fun DriverRow(driver: DriversApi.Driver) {
+private fun DriverRow(driver: DriversApi.Driver, onOpen: () -> Unit) {
     val c = Saarthi.colors
-    val (word, ground, ink) = when (driver.availability) {
-        "ON_TRIP" -> Triple("On trip", c.successBg, c.success)
-        "AVAILABLE" -> Triple("Available", c.primaryWash, c.primary)
-        "OFF_DUTY" -> Triple("Off duty", c.sunken, c.muted)
-        "ON_LEAVE" -> Triple("On leave", c.sunken, c.muted)
-        "SUSPENDED" -> Triple("Suspended", c.dangerBg, c.danger)
-        else -> Triple(driver.availability.lowercase().replaceFirstChar { it.uppercase() }, c.sunken, c.muted)
-    }
+    val (word, ground, ink) = availabilityLook(driver.availability)
     Row(
         Modifier
             .fillMaxWidth()
             .card(radius = 22.dp)
+            .pressable(scale = 0.98f, label = stringResource(R.string.fleet_open_named, driver.fullName), onClick = onOpen)
             .padding(14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp),
@@ -366,8 +395,8 @@ private fun DriverRow(driver: DriversApi.Driver) {
             Text(
                 listOfNotNull(
                     driver.currentTruck?.registrationNumber?.ifBlank { null }?.let(::formatPlate),
-                    "${plural(driver.totalTrips, "trip")}",
-                    driver.overallScore?.let { "score $it" },
+                    pluralStringResource(R.plurals.fleet_trips, driver.totalTrips, driver.totalTrips),
+                    driver.overallScore?.let { stringResource(R.string.fleet_list_score, it) },
                 ).joinToString(" · "),
                 style = SType.small,
                 color = c.muted,

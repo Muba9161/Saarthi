@@ -1,5 +1,7 @@
 package com.saarthi.owner.network
 
+import com.saarthi.owner.R
+import com.saarthi.owner.ui.common.Words
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
@@ -57,6 +59,21 @@ class SosApi(private val api: OwnerApi) {
 
     suspend fun get(id: String): Incident? = api.get("/sos/$id", Incident.serializer())
 
+    /**
+     * Raise an SOS as the vehicle's driver, from where the phone is. The server
+     * names the vehicle and trip from the driver, and hands back the SOS already
+     * open rather than starting a second.
+     */
+    suspend fun raise(type: String, latitude: Double, longitude: Double, description: String?): Incident? {
+        val body = buildJsonObject {
+            put("type", type)
+            put("latitude", latitude)
+            put("longitude", longitude)
+            description?.ifBlank { null }?.let { put("description", it.take(1000)) }
+        }
+        return api.post("/sos", body.toString(), Incident.serializer())
+    }
+
     suspend fun resolve(id: String, note: String) {
         api.post("/sos/$id/resolve", buildJsonObject { put("resolutionNote", note) }.toString(), Incident.serializer())
     }
@@ -69,6 +86,15 @@ class SosApi(private val api: OwnerApi) {
         val ACTIVE = listOf("TRIGGERED", "BROADCASTING", "ACKNOWLEDGED", "HELP_ASSIGNED", "ASSISTANCE_ARRIVED")
 
         /** "Tyre", "Breakdown" — the kind of trouble, as a word. */
-        fun typeWord(type: String): String = type.lowercase().replace('_', ' ').replaceFirstChar { it.uppercase() }
+        fun typeWord(type: String): String = when (type) {
+            "MEDICAL" -> Words.get(R.string.net_sos_type_medical)
+            "ACCIDENT" -> Words.get(R.string.net_sos_type_accident)
+            "BREAKDOWN" -> Words.get(R.string.net_sos_type_breakdown)
+            "TYRE" -> Words.get(R.string.net_sos_type_tyre)
+            "FUEL" -> Words.get(R.string.net_sos_type_fuel)
+            "SECURITY" -> Words.get(R.string.net_sos_type_security)
+            "OTHER" -> Words.get(R.string.net_sos_type_other)
+            else -> type.lowercase().replace('_', ' ').replaceFirstChar { it.uppercase() }
+        }
     }
 }

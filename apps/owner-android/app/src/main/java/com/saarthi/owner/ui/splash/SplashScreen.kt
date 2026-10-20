@@ -37,6 +37,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -153,12 +154,13 @@ private fun Lockup(progress: Float, dark: Boolean) {
     val reveal = ((elapsed - FLOOD_START_MS) / FLOOD_MS).coerceIn(0f, 1f).let(Ease.inOut::transform)
     val traceAlpha = 1f - ((elapsed - TRACE_FADE_START_MS) / 300f).coerceIn(0f, 1f)
     val navy = if (dark) Color(0xFF9DB7E6) else Brand.ink
+    val appName = stringResource(R.string.app_name)
 
     Box(
         Modifier
             .width(226.dp)
             .aspectRatio(900f / 813f)
-            .semantics { contentDescription = "VorldX Saarthi" },
+            .semantics { contentDescription = appName },
     ) {
         if (dark) {
             // The pale plate the design lays under the logo on a dark ground.

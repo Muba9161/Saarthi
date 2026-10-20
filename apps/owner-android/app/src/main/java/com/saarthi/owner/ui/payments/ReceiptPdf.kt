@@ -20,6 +20,7 @@ import android.text.TextPaint
 import androidx.core.content.FileProvider
 import com.saarthi.owner.R
 import com.saarthi.owner.network.PaymentsApi
+import com.saarthi.owner.ui.common.Words
 import java.io.File
 import java.io.OutputStream
 import java.text.NumberFormat
@@ -90,7 +91,7 @@ fun Context.shareReceipt(saved: SavedReceipt) {
         .setType(PDF)
         .putExtra(Intent.EXTRA_STREAM, saved.uri)
         .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-    runCatching { startActivity(Intent.createChooser(send, "Share receipt").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+    runCatching { startActivity(Intent.createChooser(send, Words.get(R.string.papers_payments_share_receipt)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
 }
 
 private const val PDF = "application/pdf"
@@ -107,7 +108,8 @@ private val Paid = 0xFF15803D.toInt()
 private val PaidWash = 0xFFDCFCE7.toInt()
 
 private val Money: NumberFormat = NumberFormat.getCurrencyInstance(Locale.Builder().setLanguage("en").setRegion("IN").build())
-private val When: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM yyyy, h:mm a", Locale.ENGLISH)
+// Made on each use, in the app's language like the rest of the receipt.
+private val When: DateTimeFormatter get() = DateTimeFormatter.ofPattern("d MMM yyyy, h:mm a")
 
 private fun drawReceipt(context: Context, receipt: PaymentsApi.Receipt, label: String, forWhat: String): PdfDocument {
     val document = PdfDocument()
@@ -127,7 +129,7 @@ private fun drawReceipt(context: Context, receipt: PaymentsApi.Receipt, label: S
         y += height + 18f
     }
 
-    y = text(canvas, "Payment receipt", MARGIN, y, size = 20f, bold = true)
+    y = text(canvas, Words.get(R.string.papers_payments_receipt_title), MARGIN, y, size = 20f, bold = true)
     y = text(canvas, label, MARGIN, y + 2f, size = 10.5f, color = Muted)
     y += 16f
 
@@ -136,9 +138,9 @@ private fun drawReceipt(context: Context, receipt: PaymentsApi.Receipt, label: S
     val amountText = Money.format(receipt.amount)
     y = text(canvas, amountText, MARGIN, y, size = 26f, bold = true)
     val stateWord = when {
-        receipt.status == "REFUNDED" -> "Refunded"
-        refunded -> "Paid · ${Money.format(receipt.refundedAmount)} refunded"
-        else -> "Paid"
+        receipt.status == "REFUNDED" -> Words.get(R.string.papers_payments_receipt_refunded)
+        refunded -> Words.get(R.string.papers_payments_receipt_partly_refunded, Money.format(receipt.refundedAmount))
+        else -> Words.get(R.string.papers_payments_receipt_paid)
     }
     val pill = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { textSize = 10f; typeface = Typeface.DEFAULT_BOLD; color = Paid }
     val pillWidth = pill.measureText(stateWord) + 16f
@@ -149,23 +151,28 @@ private fun drawReceipt(context: Context, receipt: PaymentsApi.Receipt, label: S
     canvas.drawLine(MARGIN, y, PAGE_W - MARGIN, y, Paint().apply { color = Rule; strokeWidth = 1f })
     y += 14f
 
-    val paidAt = runCatching { Instant.parse(receipt.paidAt).atZone(ZoneId.of("Asia/Kolkata")).format(When) + " IST" }.getOrDefault(receipt.paidAt)
+    val paidAt = runCatching {
+        Words.get(R.string.papers_payments_receipt_time_ist, Instant.parse(receipt.paidAt).atZone(ZoneId.of("Asia/Kolkata")).format(When))
+    }.getOrDefault(receipt.paidAt)
     val rows = listOfNotNull(
-        "Receipt no." to receipt.reference,
-        "Paid on" to paidAt,
-        receipt.payerName?.let { "Paid by" to it },
-        receipt.payeeName?.let { "Paid to" to it },
-        "For" to listOfNotNull(receipt.forReference, forWhat.ifBlank { null }).joinToString(" · "),
-        "Method" to if (receipt.provider == "cashfree") "Online, through Cashfree" else receipt.method.lowercase().replaceFirstChar { it.uppercase() },
-        receipt.providerReference?.takeIf { it != receipt.reference }?.let { "Transaction reference" to it },
+        Words.get(R.string.papers_payments_receipt_number) to receipt.reference,
+        Words.get(R.string.papers_payments_receipt_paid_on) to paidAt,
+        receipt.payerName?.let { Words.get(R.string.papers_payments_receipt_paid_by) to it },
+        receipt.payeeName?.let { Words.get(R.string.papers_payments_receipt_paid_to) to it },
+        Words.get(R.string.papers_payments_receipt_for) to listOfNotNull(receipt.forReference, forWhat.ifBlank { null }).joinToString(" · "),
+        Words.get(R.string.papers_payments_receipt_method) to
+            if (receipt.provider == "cashfree") Words.get(R.string.papers_payments_receipt_method_cashfree) else receipt.method.lowercase().replaceFirstChar { it.uppercase() },
+        receipt.providerReference?.takeIf { it != receipt.reference }?.let { Words.get(R.string.papers_payments_receipt_transaction) to it },
     )
     rows.forEach { (name, value) ->
         text(canvas, name, MARGIN, y, size = 10f, color = Muted, width = 120)
         y = maxOf(y + 14f, text(canvas, value, MARGIN + 128f, y, size = 10.5f, width = PAGE_W - (MARGIN * 2).toInt() - 128)) + 8f
     }
 
-    val footer = "This receipt confirms a payment made through VorldX Saarthi. It is not a tax invoice.\n" +
-        "Generated on ${java.time.ZonedDateTime.now(ZoneId.of("Asia/Kolkata")).format(When)} IST."
+    val footer = Words.get(
+        R.string.papers_payments_receipt_footer,
+        java.time.ZonedDateTime.now(ZoneId.of("Asia/Kolkata")).format(When),
+    )
     text(canvas, footer, MARGIN, PAGE_H - MARGIN - 30f, size = 8.5f, color = Muted, width = PAGE_W - (MARGIN * 2).toInt())
 
     document.finishPage(page)

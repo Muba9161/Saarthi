@@ -37,15 +37,19 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.saarthi.owner.R
 import com.saarthi.owner.network.SosApi
 import com.saarthi.owner.ui.common.PlateChip
+import com.saarthi.owner.ui.common.Words
 import com.saarthi.owner.ui.common.ago
 import com.saarthi.owner.ui.common.dial
-import com.saarthi.owner.ui.common.plural
+import com.saarthi.owner.ui.common.isNow
 import com.saarthi.owner.ui.common.readable
 import com.saarthi.owner.ui.design.AlwaysDark
 import com.saarthi.owner.ui.design.BottomSheet
@@ -103,7 +107,7 @@ fun SosAlertScreen(sos: SosApi, account: SessionStore.Account, initial: SosApi.I
         }
     }
 
-    val name = incident.driver?.name?.ifBlank { null } ?: "Your driver"
+    val name = incident.driver?.name?.ifBlank { null } ?: stringResource(R.string.papers_sos_driver_fallback)
     val phone = incident.driver?.phone ?: incident.contactPhone
     val coming = incident.responders.filter { it.status in setOf("ACKNOWLEDGED", "ASSIGNED", "ARRIVED") }
 
@@ -124,12 +128,16 @@ fun SosAlertScreen(sos: SosApi, account: SessionStore.Account, initial: SosApi.I
             ) {
                 LineIcon(Lucide.siren, size = 18.dp, color = Color.White, stroke = 2.2f)
                 Text(
-                    if (incident.active) "SOS · raised ${ago(incident.triggeredAt).let { if (it == "now") "just now" else "$it ago" }}" else "SOS · resolved",
+                    when {
+                        !incident.active -> stringResource(R.string.papers_sos_resolved_banner)
+                        isNow(incident.triggeredAt) -> stringResource(R.string.papers_sos_raised_now)
+                        else -> stringResource(R.string.papers_sos_raised_ago, ago(incident.triggeredAt))
+                    },
                     style = SType.bodyStrong.copy(letterSpacing = 0.06.sp),
                     color = Color.White,
                     modifier = Modifier.weight(1f),
                 )
-                CircleButton(Lucide.close, "Close", navigator::pop, size = 36.dp, iconSize = 14.dp, elevated = false, background = Color.White.copy(alpha = 0.16f), ink = Color.White)
+                CircleButton(Lucide.close, stringResource(R.string.papers_sos_close), navigator::pop, size = 36.dp, iconSize = 14.dp, elevated = false, background = Color.White.copy(alpha = 0.16f), ink = Color.White)
             }
 
             Column(
@@ -162,7 +170,7 @@ fun SosAlertScreen(sos: SosApi, account: SessionStore.Account, initial: SosApi.I
                         }
                     }
                 }
-                Eyebrow(if (incident.active) "Your driver needs help" else "Resolved", color = Color(0xFFFE8A4B))
+                Eyebrow(if (incident.active) stringResource(R.string.papers_sos_needs_help) else stringResource(R.string.papers_sos_resolved), color = Color(0xFFFE8A4B))
                 Text(name, style = SType.display.copy(fontSize = 34.sp), color = Color.White, textAlign = TextAlign.Center)
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     incident.truck?.registrationNumber?.let { PlateChip(it, size = 12.sp) }
@@ -191,14 +199,20 @@ fun SosAlertScreen(sos: SosApi, account: SessionStore.Account, initial: SosApi.I
                         IconWell(Lucide.users, well = Color(0x2E3DAE79), ink = Color(0xFF3DAE79), size = 40.dp, shape = CircleShape, iconSize = 18.dp)
                         Column(Modifier.weight(1f)) {
                             Text(
-                                "${plural(incident.responderCount, "Saarthi truck")} ${if (incident.active) "alerted" else if (incident.responderCount == 1) "was alerted" else "were alerted"} nearby",
+                                pluralStringResource(
+                                    if (incident.active) R.plurals.papers_sos_trucks_alerted else R.plurals.papers_sos_trucks_were_alerted,
+                                    incident.responderCount,
+                                    incident.responderCount,
+                                ),
                                 style = SType.bodyStrong,
                                 color = Color.White,
                             )
                             Text(
                                 when {
-                                    !incident.active -> incident.searchRadiusMeters?.let { "Within ${it / 1000} km" } ?: "Nearby"
-                                    else -> incident.searchRadiusMeters?.let { "Within ${it / 1000} km · the circle widens if nobody answers" } ?: "The circle widens if nobody answers"
+                                    !incident.active -> incident.searchRadiusMeters?.let { stringResource(R.string.papers_sos_within_km, it / 1000) }
+                                        ?: stringResource(R.string.papers_sos_nearby)
+                                    else -> incident.searchRadiusMeters?.let { stringResource(R.string.papers_sos_within_km_widens, it / 1000) }
+                                        ?: stringResource(R.string.papers_sos_widens)
                                 },
                                 style = SType.caption,
                                 color = Color.White.copy(alpha = 0.65f),
@@ -217,19 +231,20 @@ fun SosAlertScreen(sos: SosApi, account: SessionStore.Account, initial: SosApi.I
                         ) {
                             PlateChip(responder.registrationNumber, size = 11.sp)
                             Text(
-                                listOfNotNull("coming", responder.distanceKm?.let { "%.1f km".format(it) }).joinToString(" · "),
+                                responder.distanceKm?.let { stringResource(R.string.papers_sos_coming_distance, "%.1f".format(it)) }
+                                    ?: stringResource(R.string.papers_sos_coming),
                                 style = SType.small,
                                 color = Color.White.copy(alpha = 0.8f),
                                 modifier = Modifier.weight(1f),
                             )
-                            Text(if (responder.status == "ARRIVED") "Arrived" else "Accepted", style = SType.captionStrong, color = Color(0xFF3DAE79))
+                            Text(if (responder.status == "ARRIVED") stringResource(R.string.papers_sos_arrived) else stringResource(R.string.papers_sos_accepted), style = SType.captionStrong, color = Color(0xFF3DAE79))
                         }
                     }
                     if (incident.active && coming.isEmpty() && canWiden) {
-                        LinkButton("Widen the circle", onClick = {
+                        LinkButton(stringResource(R.string.papers_sos_widen), onClick = {
                             scope.launch {
                                 message = runCatching { sos.expandSearch(incident.id) }
-                                    .fold({ if (it) "More trucks are being asked." else "The circle is already as wide as it goes." }, { it.readable() })
+                                    .fold({ Words.get(if (it) R.string.papers_sos_widened else R.string.papers_sos_widest) }, { it.readable() })
                             }
                         }, color = Color(0xFFFE8A4B), style = SType.smallStrong)
                     }
@@ -246,13 +261,13 @@ fun SosAlertScreen(sos: SosApi, account: SessionStore.Account, initial: SosApi.I
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 if (phone != null) {
-                    SaarthiButton("Call ${name.substringBefore(' ')} now", onClick = { context.dial(phone) }, tone = ButtonTone.WHITE, leading = Lucide.phone, leadingTint = Brand.sosBanner)
+                    SaarthiButton(stringResource(R.string.papers_sos_call_driver, name.substringBefore(' ')), onClick = { context.dial(phone) }, tone = ButtonTone.WHITE, leading = Lucide.phone, leadingTint = Brand.sosBanner)
                 }
                 ButtonRow {
                     // Once it is resolved there is no emergency left to ring 112 about.
-                    if (incident.active) EmergencyButton("Call 112", Modifier.weight(1f)) { context.dial("112") }
+                    if (incident.active) EmergencyButton(stringResource(R.string.papers_sos_call_112), Modifier.weight(1f)) { context.dial("112") }
                     SaarthiButton(
-                        "Open on map",
+                        stringResource(R.string.papers_sos_open_map),
                         onClick = {
                             val lat = incident.latitude
                             val lng = incident.longitude
@@ -267,17 +282,17 @@ fun SosAlertScreen(sos: SosApi, account: SessionStore.Account, initial: SosApi.I
                     )
                 }
                 if (incident.active && canResolve) {
-                    LinkButton("Mark as resolved", { resolving = true }, color = Color.White.copy(alpha = 0.85f), modifier = Modifier.align(Alignment.CenterHorizontally))
+                    LinkButton(stringResource(R.string.papers_sos_mark_resolved_link), { resolving = true }, color = Color.White.copy(alpha = 0.85f), modifier = Modifier.align(Alignment.CenterHorizontally))
                 }
             }
         }
 
         BottomSheet(visible = resolving, onDismiss = { resolving = false }) {
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                Text("What happened?", style = SType.sheetTitle, color = Color.White)
-                NotesField(note, { note = it.take(1000) }, label = "A line for the record — it goes to everyone who answered", minHeight = 90.dp)
+                Text(stringResource(R.string.papers_sos_what_happened), style = SType.sheetTitle, color = Color.White)
+                NotesField(note, { note = it.take(1000) }, label = stringResource(R.string.papers_sos_note_label), minHeight = 90.dp)
                 SaarthiButton(
-                    "Mark resolved",
+                    stringResource(R.string.papers_sos_mark_resolved),
                     onClick = {
                         busy = true
                         scope.launch {
@@ -339,14 +354,19 @@ fun SosCard(incident: SosApi.Incident, modifier: Modifier = Modifier, onOpen: ()
         }
         Column(Modifier.weight(1f)) {
             Text(
-                "SOS · ${incident.driver?.name?.substringBefore(' ') ?: "A driver"} needs help",
+                incident.driver?.name?.substringBefore(' ')?.let { stringResource(R.string.papers_sos_card_title, it) }
+                    ?: stringResource(R.string.papers_sos_card_title_unknown),
                 style = SType.bodyStrong,
                 color = Color.White,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                listOfNotNull(SosApi.typeWord(incident.type), incident.address?.substringBefore(','), ago(incident.triggeredAt).let { if (it == "now") "just now" else "$it ago" })
+                listOfNotNull(
+                    SosApi.typeWord(incident.type),
+                    incident.address?.substringBefore(','),
+                    if (isNow(incident.triggeredAt)) stringResource(R.string.papers_sos_just_now) else stringResource(R.string.papers_sos_ago, ago(incident.triggeredAt)),
+                )
                     .joinToString(" · "),
                 style = SType.caption,
                 color = Color.White.copy(alpha = 0.85f),

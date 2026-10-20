@@ -26,6 +26,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -110,7 +112,7 @@ fun SellerHomeScreen(app: OwnerApp, actions: ShellActions) {
                     Column(Modifier.fillMaxSize().padding(18.dp), verticalArrangement = Arrangement.SpaceBetween) {
                         if (coming.isNotEmpty()) {
                             StatusPill(
-                                "$paidCount paid · ${coming.size - paidCount} awaiting payment",
+                                stringResource(R.string.market_seller_paid_awaiting, paidCount, coming.size - paidCount),
                                 background = Color.White.copy(alpha = 0.16f),
                                 ink = Color.White,
                                 dotColor = Brand.live,
@@ -122,9 +124,9 @@ fun SellerHomeScreen(app: OwnerApp, actions: ShellActions) {
                         }
                         Row(verticalAlignment = Alignment.Bottom) {
                             Column(Modifier.weight(1f)) {
-                                Eyebrow("Coming to load", color = Color.White.copy(alpha = 0.78f))
+                                Eyebrow(stringResource(R.string.market_seller_coming_to_load), color = Color.White.copy(alpha = 0.78f))
                                 Text(
-                                    if (coming.isEmpty()) "No trucks due" else "${coming.size} truck${if (coming.size == 1) "" else "s"}",
+                                    if (coming.isEmpty()) stringResource(R.string.market_seller_no_trucks_due) else pluralStringResource(R.plurals.market_seller_trucks, coming.size, coming.size),
                                     style = SType.title.copy(fontSize = 30.sp),
                                     color = Color.White,
                                 )
@@ -140,7 +142,7 @@ fun SellerHomeScreen(app: OwnerApp, actions: ShellActions) {
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                                 ) {
-                                    Text("Load", style = SType.bodyStrong, color = Brand.navy)
+                                    Text(stringResource(R.string.market_seller_load), style = SType.bodyStrong, color = Brand.navy)
                                     LineIcon(Lucide.arrowRight, size = 16.dp, color = Brand.navy, stroke = 2.2f)
                                 }
                             }
@@ -150,10 +152,10 @@ fun SellerHomeScreen(app: OwnerApp, actions: ShellActions) {
 
                 Row(Modifier.fillMaxWidth().rise(stagger(1)), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     val fleets = book.orders.filter { it.order.open }.mapNotNull { it.order.fleetName }.distinct().size
-                    Tile(Lucide.box, c.primarySoft, c.primary, "Orders", book.orders.count { it.order.open }.toString(), "from $fleets fleet${if (fleets == 1) "" else "s"}", Modifier.weight(1f)) {
+                    Tile(Lucide.box, c.primarySoft, c.primary, stringResource(R.string.market_seller_orders), book.orders.count { it.order.open }.toString(), pluralStringResource(R.plurals.market_seller_from_fleets, fleets, fleets), Modifier.weight(1f)) {
                         actions.selectTab("loading")
                     }
-                    Tile(Lucide.receipt, c.successSoft, c.success, "Received", rupeesShort(book.receivedThisMonth()), "${book.awaitingPayment.size} more due", Modifier.weight(1f)) {
+                    Tile(Lucide.receipt, c.successSoft, c.success, stringResource(R.string.market_seller_received), rupeesShort(book.receivedThisMonth()), stringResource(R.string.market_seller_more_due, book.awaitingPayment.size), Modifier.weight(1f)) {
                         actions.selectTab("money")
                     }
                     val low = book.listings.count { it.low }
@@ -161,9 +163,9 @@ fun SellerHomeScreen(app: OwnerApp, actions: ShellActions) {
                         if (low > 0) Lucide.alertTriangle else Lucide.check,
                         if (low > 0) c.warningSoft else c.successSoft,
                         if (low > 0) c.warning else c.success,
-                        "Stock",
-                        if (low == 0) "All fine" else "$low low",
-                        "see stock",
+                        stringResource(R.string.market_seller_stock),
+                        if (low == 0) stringResource(R.string.market_seller_stock_fine) else stringResource(R.string.market_seller_stock_low, low),
+                        stringResource(R.string.market_seller_see_stock),
                         Modifier.weight(1f),
                         if (low > 0) c.warning else c.fg,
                     ) {
@@ -172,17 +174,17 @@ fun SellerHomeScreen(app: OwnerApp, actions: ShellActions) {
                 }
 
                 Row(Modifier.fillMaxWidth().padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text("Coming to load", style = SType.section, color = c.fg, modifier = Modifier.weight(1f))
-                    LinkButton("All orders", { actions.selectTab("loading") }, style = SType.smallStrong)
+                    Text(stringResource(R.string.market_seller_coming_to_load), style = SType.section, color = c.fg, modifier = Modifier.weight(1f))
+                    LinkButton(stringResource(R.string.market_seller_all_orders), { actions.selectTab("loading") }, style = SType.smallStrong)
                 }
                 if (coming.isEmpty()) {
-                    Text("When a fleet buys from you, its truck shows up here.", style = SType.small, color = c.muted)
+                    Text(stringResource(R.string.market_seller_home_empty), style = SType.small, color = c.muted)
                 }
                 coming.take(4).forEach { seller ->
                     LoadRow(seller) { navigator.push("load-${seller.order.id}") { SellerOrderScreen(app, seller) { model.refresh(silent = true) } } }
                 }
                 Text(
-                    "Fleets buy from you and send their own trucks. You load; they deliver.",
+                    stringResource(R.string.market_seller_home_footnote),
                     style = SType.caption,
                     color = c.subtle,
                     modifier = Modifier.padding(top = 4.dp),
@@ -247,14 +249,14 @@ internal fun LoadRow(seller: SellerOrder, onOpen: () -> Unit) {
         }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(order.what, style = SType.bodyStrong, color = c.fg, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(order.fleetName ?: "A fleet", style = SType.caption, color = c.muted, maxLines = 1)
+            Text(order.fleetName ?: stringResource(R.string.market_seller_a_fleet), style = SType.caption, color = c.muted, maxLines = 1)
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 when {
-                    seller.paid -> Pill("Paid ${seller.amount?.let(::rupees) ?: ""}".trim(), c.successBg, c.success)
-                    seller.outsideApp -> Pill(seller.amount?.let(::rupees) ?: "Sold", c.sunken, c.muted)
-                    else -> Pill("Payment due", c.warningBg, c.warning)
+                    seller.paid -> Pill(seller.amount?.let { stringResource(R.string.market_seller_paid_amount, rupees(it)) } ?: stringResource(R.string.market_seller_paid), c.successBg, c.success)
+                    seller.outsideApp -> Pill(seller.amount?.let(::rupees) ?: stringResource(R.string.market_seller_sold), c.sunken, c.muted)
+                    else -> Pill(stringResource(R.string.market_seller_payment_due), c.warningBg, c.warning)
                 }
-                (if (seller.comingToLoad) clockOf(order.pickupAt)?.let { "truck at $it" } else dayOf(order.pickupAt)?.let { "picked up $it" })?.let {
+                (if (seller.comingToLoad) clockOf(order.pickupAt)?.let { stringResource(R.string.market_seller_truck_at, it) } else dayOf(order.pickupAt)?.let { stringResource(R.string.market_seller_picked_up, it) })?.let {
                     Text(it, style = SType.caption, color = c.muted, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
                 }
             }

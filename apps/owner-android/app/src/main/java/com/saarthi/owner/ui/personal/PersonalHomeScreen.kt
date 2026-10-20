@@ -30,6 +30,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
@@ -37,6 +39,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.saarthi.owner.OwnerApp
+import com.saarthi.owner.R
 import com.saarthi.owner.data.SessionStore
 import com.saarthi.owner.network.PapersApi
 import com.saarthi.owner.network.SharingApi
@@ -47,6 +50,7 @@ import com.saarthi.owner.ui.common.SkeletonCards
 import com.saarthi.owner.ui.common.ago
 import com.saarthi.owner.ui.common.formatPlate
 import com.saarthi.owner.ui.common.headerClearance
+import com.saarthi.owner.ui.common.isNow
 import com.saarthi.owner.ui.common.readable
 import com.saarthi.owner.ui.common.rememberPhoto
 import com.saarthi.owner.ui.common.tabBarClearance
@@ -71,7 +75,9 @@ import com.saarthi.owner.ui.papers.INSURANCE_FOLDER
 import com.saarthi.owner.ui.papers.daysLeft
 import com.saarthi.owner.ui.papers.standing
 import com.saarthi.owner.ui.sharing.InvitationsOnHome
+import com.saarthi.owner.ui.drive.DriveCard
 import com.saarthi.owner.ui.shell.LocalNavigator
+import com.saarthi.owner.ui.sharing.SharingScreen
 import com.saarthi.owner.ui.shell.ShellActions
 import kotlinx.coroutines.delay
 
@@ -129,15 +135,16 @@ fun PersonalHomeScreen(app: OwnerApp, account: SessionStore.Account, actions: Sh
             is Loadable.Failed -> FailedCard(shown.message, { model.refresh() })
             is Loadable.Ready -> {
                 InvitationsOnHome(app, account, Modifier.rise())
+                DriveCard(app, account, Modifier.rise())
                 if (vehicle == null) {
-                    Text("No vehicle on this account yet. Add one from Saarthi on the web.", style = SType.body, color = c.muted)
+                    Text(stringResource(R.string.fleet_personal_no_vehicle), style = SType.body, color = c.muted)
                     return@Column
                 }
                 if (vehicles.size > 1) {
                     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).rise(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         vehicles.forEach { each ->
                             ChoiceChip(
-                                "${each.typeLabel.ifBlank { "Vehicle" }} · ${each.registrationNumber.takeLast(6).let(::formatPlate)}",
+                                "${each.typeLabel.ifBlank { stringResource(R.string.fleet_personal_vehicle) }} · ${each.registrationNumber.takeLast(6).let(::formatPlate)}",
                                 selected = each.id == vehicle.id,
                                 onClick = { picked = each.id },
                             )
@@ -145,7 +152,7 @@ fun PersonalHomeScreen(app: OwnerApp, account: SessionStore.Account, actions: Sh
                     }
                 }
                 WhereItIs(vehicle, Modifier.rise(stagger(1))) {
-                    navigator.push("vehicle-map-${vehicle.id}") { VehicleLiveScreen(app, vehicle, null) }
+                    navigator.push("vehicle-map-${vehicle.id}") { VehicleLiveScreen(app, vehicle.id) }
                 }
 
                 Row(Modifier.fillMaxWidth().rise(stagger(2)), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -156,46 +163,46 @@ fun PersonalHomeScreen(app: OwnerApp, account: SessionStore.Account, actions: Sh
                     val insuranceDays = insuranceFolder?.let { held.daysLeft(it) }
                     val standing = held?.standing()
                     Tile(
-                        Lucide.fileText, c.warningSoft, c.warning, "Insurance",
-                        insuranceDays?.let { if (it < 0) "Expired" else "$it days" } ?: "—",
+                        Lucide.fileText, c.warningSoft, c.warning, stringResource(R.string.fleet_personal_insurance),
+                        insuranceDays?.let { if (it < 0) stringResource(R.string.fleet_personal_expired) else pluralStringResource(R.plurals.fleet_personal_days, it, it) } ?: "—",
                         when {
-                            unreadable -> "could not load"
-                            held == null -> "loading"
-                            insuranceDays == null -> "not on file"
-                            else -> "left"
+                            unreadable -> stringResource(R.string.fleet_personal_could_not_load)
+                            held == null -> stringResource(R.string.fleet_personal_loading)
+                            insuranceDays == null -> stringResource(R.string.fleet_personal_not_on_file)
+                            else -> stringResource(R.string.fleet_personal_left)
                         },
                         Modifier.weight(1f),
                         if ((insuranceDays ?: Int.MAX_VALUE) <= DUE_SOON_DAYS) c.warning else c.fg,
                     ) { actions.selectTab("papers") }
                     Tile(
-                        Lucide.shieldCheck, c.primarySoft, c.primary, "Papers",
+                        Lucide.shieldCheck, c.primarySoft, c.primary, stringResource(R.string.fleet_personal_papers),
                         // Nothing on file is not "all set": there is simply nothing to check yet.
                         when {
                             standing == null -> "—"
-                            standing.onFile == 0 -> "None"
-                            standing.attention == 0 -> "All set"
-                            else -> "${standing.attention} due"
+                            standing.onFile == 0 -> stringResource(R.string.fleet_personal_none)
+                            standing.attention == 0 -> stringResource(R.string.fleet_personal_all_set)
+                            else -> stringResource(R.string.fleet_personal_due, standing.attention)
                         },
                         when {
-                            unreadable -> "could not load"
-                            standing == null -> "loading"
-                            else -> "${standing.onFile} on file"
+                            unreadable -> stringResource(R.string.fleet_personal_could_not_load)
+                            standing == null -> stringResource(R.string.fleet_personal_loading)
+                            else -> stringResource(R.string.fleet_personal_on_file, standing.onFile)
                         },
                         Modifier.weight(1f),
                         if ((standing?.attention ?: 0) > 0) c.warning else c.fg,
                     ) {
                         actions.selectTab("papers")
                     }
-                    Tile(Lucide.gauge, c.accentSoft, c.accent, "Odometer", vehicle.odometerKm?.let { "%,d".format(it.toLong()) } ?: "—", "km", Modifier.weight(1f)) {}
+                    Tile(Lucide.gauge, c.accentSoft, c.accent, stringResource(R.string.fleet_personal_odometer), vehicle.odometerKm?.let { "%,d".format(it.toLong()) } ?: "—", stringResource(R.string.fleet_personal_km), Modifier.weight(1f)) {}
                 }
 
-                Text("Quick actions", style = SType.section, color = c.fg, modifier = Modifier.padding(top = 6.dp))
+                Text(stringResource(R.string.fleet_personal_quick_actions), style = SType.section, color = c.fg, modifier = Modifier.padding(top = 6.dp))
                 Row(Modifier.fillMaxWidth().rise(stagger(3)), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Action(Lucide.fileText, c.primarySoft, c.primary, "Papers", Modifier.weight(1f)) { actions.selectTab("papers") }
-                    Action(Lucide.users, c.successSoft, c.success, "Sharing", Modifier.weight(1f)) {
+                    Action(Lucide.fileText, c.primarySoft, c.primary, stringResource(R.string.fleet_personal_papers), Modifier.weight(1f)) { actions.selectTab("papers") }
+                    Action(Lucide.users, c.successSoft, c.success, stringResource(R.string.fleet_personal_sharing), Modifier.weight(1f)) {
                         navigator.push("sharing-${vehicle.id}") { SharingScreen(app, vehicle) }
                     }
-                    Action(Lucide.map, c.infoSoft, c.info, "Map", Modifier.weight(1f)) { actions.selectTab("map") }
+                    Action(Lucide.map, c.infoSoft, c.info, stringResource(R.string.fleet_personal_map), Modifier.weight(1f)) { actions.selectTab("map") }
                 }
                 if (shares.isNotEmpty()) {
                     Row(
@@ -208,7 +215,7 @@ fun PersonalHomeScreen(app: OwnerApp, account: SessionStore.Account, actions: Sh
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         IconWell(Lucide.users, well = c.successSoft, ink = c.success, size = 36.dp, shape = CircleShape, iconSize = 16.dp)
-                        Text("Shared with ${shares.size} ${if (shares.size == 1) "person" else "people"}", style = SType.bodyStrong, color = c.fg, modifier = Modifier.weight(1f))
+                        Text(pluralStringResource(R.plurals.fleet_personal_shared_with, shares.size, shares.size), style = SType.bodyStrong, color = c.fg, modifier = Modifier.weight(1f))
                         LineIcon(Lucide.chevronRight, size = 16.dp, color = c.subtle)
                     }
                 }
@@ -221,9 +228,9 @@ fun PersonalHomeScreen(app: OwnerApp, account: SessionStore.Account, actions: Sh
 @Composable
 private fun WhereItIs(vehicle: VehiclesApi.Vehicle, modifier: Modifier, onFind: () -> Unit) {
     val (word, dot) = when (vehicle.motion()) {
-        VehiclesApi.Motion.MOVING -> "Moving" to Brand.live
-        VehiclesApi.Motion.IDLE, VehiclesApi.Motion.SERVICE -> "Parked" to Color(0xFFF2952C)
-        VehiclesApi.Motion.OFFLINE -> "Not reporting" to Color(0xFF9F9FA8)
+        VehiclesApi.Motion.MOVING -> stringResource(R.string.fleet_personal_moving) to Brand.live
+        VehiclesApi.Motion.IDLE, VehiclesApi.Motion.SERVICE -> stringResource(R.string.fleet_personal_parked) to Color(0xFFF2952C)
+        VehiclesApi.Motion.OFFLINE -> stringResource(R.string.fleet_personal_not_reporting) to Color(0xFF9F9FA8)
     }
     Box(
         modifier
@@ -238,8 +245,8 @@ private fun WhereItIs(vehicle: VehiclesApi.Vehicle, modifier: Modifier, onFind: 
         }
         Column(Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Eyebrow("Where it is", Modifier.weight(1f), color = Color.White.copy(alpha = 0.75f))
-                StatusPill(word, background = Color.White.copy(alpha = 0.14f), ink = Color.White, dotColor = dot, live = word == "Moving", ring = Color.White.copy(alpha = 0.2f))
+                Eyebrow(stringResource(R.string.fleet_personal_where_it_is), Modifier.weight(1f), color = Color.White.copy(alpha = 0.75f))
+                StatusPill(word, background = Color.White.copy(alpha = 0.14f), ink = Color.White, dotColor = dot, live = vehicle.motion() == VehiclesApi.Motion.MOVING, ring = Color.White.copy(alpha = 0.2f))
             }
             Box(
                 Modifier
@@ -250,7 +257,9 @@ private fun WhereItIs(vehicle: VehiclesApi.Vehicle, modifier: Modifier, onFind: 
                 Text(formatPlate(vehicle.registrationNumber), style = SType.plate(24.sp, 0.06.em), color = Color(0xFF18181B))
             }
             Text(
-                vehicle.lastLocation?.recordedAt?.let { at -> ago(at).let { if (it == "now") "Reporting now" else "Last seen $it ago" } } ?: "No position reported yet",
+                vehicle.lastLocation?.recordedAt?.let { at ->
+                    if (isNow(at)) stringResource(R.string.fleet_personal_reporting_now) else stringResource(R.string.fleet_personal_last_seen, ago(at))
+                } ?: stringResource(R.string.fleet_personal_no_position),
                 style = SType.small,
                 color = Color.White.copy(alpha = 0.82f),
             )
@@ -265,7 +274,7 @@ private fun WhereItIs(vehicle: VehiclesApi.Vehicle, modifier: Modifier, onFind: 
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                Text("Find my ${vehicle.typeLabel.ifBlank { "vehicle" }.let { if (it == it.uppercase()) it else it.lowercase() }}", style = SType.bodyStrong, color = Brand.navy)
+                Text(stringResource(R.string.fleet_personal_find_my, vehicle.typeLabel.ifBlank { stringResource(R.string.fleet_personal_vehicle_lower) }.let { if (it == it.uppercase()) it else it.lowercase() }), style = SType.bodyStrong, color = Brand.navy)
                 LineIcon(Lucide.arrowRight, size = 16.dp, color = Brand.navy, stroke = 2.2f)
             }
         }

@@ -1,0 +1,280 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Papers wallet (Papers.kt) -->
+    <string name="papers_title">कागज़</string>
+    <string name="papers_wallet_folders">फ़ोल्डर</string>
+    <plurals name="papers_wallet_expired">
+        <item quantity="one">%d कागज़ दी मियाद मुक्की गेई ऐ जां ओह् नामंज़ूर होई गेआ ऐ. चेक पोस्ट पर एह् गड्डी रुकने शा पैह्लें इसगी रिन्यू करो.</item>
+        <item quantity="other">%d कागज़ें दी मियाद मुक्की गेई ऐ जां ओह् नामंज़ूर होई गे न. चेक पोस्ट पर एह् गड्डी रुकने शा पैह्लें इनेंगी रिन्यू करो.</item>
+    </plurals>
+    <plurals name="papers_wallet_expiring">
+        <item quantity="one">%d कागज़ दी मियाद जल्दी मुक्कने आह्ली ऐ. मियाद मुक्कने शा पैह्लें रिन्यू करो.</item>
+        <item quantity="other">%d कागज़ें दी मियाद जल्दी मुक्कने आह्ली ऐ. मियाद मुक्कने शा पैह्लें रिन्यू करो.</item>
+    </plurals>
+
+    <!-- Folder tiles and status tags (PaperFolders.kt) -->
+    <string name="papers_status_valid">वैध</string>
+    <string name="papers_status_expiring">मियाद मुक्कने आह्ली</string>
+    <string name="papers_status_expired">मियाद मुक्की</string>
+    <string name="papers_status_rejected">नामंज़ूर</string>
+    <string name="papers_status_missing">नेईं ऐ</string>
+    <string name="papers_status_optional">जरूरी नेईं</string>
+    <string name="papers_status_on_file">रिकॉर्ड च ऐ</string>
+    <plurals name="papers_folder_photos">
+        <item quantity="one">%d फ़ोटो</item>
+        <item quantity="other">%d फ़ोटो</item>
+    </plurals>
+    <plurals name="papers_folder_files">
+        <item quantity="one">%d फ़ाइल</item>
+        <item quantity="other">%d फ़ाइलां</item>
+    </plurals>
+    <string name="papers_folder_qr_meta">एह् गड्डी खोह्लने आस्तै स्कैन करो</string>
+    <string name="papers_folder_from_register">RTO रजिस्टर थमां</string>
+    <!-- A folder tile's accessibility name: the folder, then what it holds. -->
+    <string name="papers_folder_tile_label">%1$s, %2$s</string>
+
+    <!-- One folder, opened (PaperFolderScreen.kt) -->
+    <string name="papers_folder_gone">एह् फ़ोल्डर हून रिकॉर्ड च नेईं ऐ.</string>
+    <string name="papers_folder_no_rc_record">इस गड्डी दा अजें कोई RTO रिकॉर्ड नेईं मंगवाया गेआ. Saarthi वेबसाइट पर गड्डी दे रजिस्ट्रेशन टैब थमां इसगी मंगवाओ, फ्ही वर्चुअल RC इत्थै दिसग.</string>
+    <string name="papers_folder_uploaded">अपलोड होई गेआ ते इस फ़ोल्डर च रक्खी दित्ता.</string>
+    <string name="papers_folder_photo_removed">फ़ोटो हटाई दित्ती.</string>
+    <string name="papers_files_register_only">कोई स्कैन अपलोड नेईं. उप्पर दियां तरीकां RTO रजिस्टर थमां न.</string>
+    <string name="papers_files_empty_can_upload">अजें इत्थै किश नेईं रक्खेआ.</string>
+    <string name="papers_files_empty">किश बी अपलोड नेईं होआ.</string>
+    <string name="papers_files_upload_first">एह् कागज़ अपलोड करो</string>
+    <string name="papers_files_upload_renewed">रिन्यू होए दा कागज़ अपलोड करो</string>
+    <string name="papers_files_upload_new_copy">नमीं कॉपी अपलोड करो</string>
+    <string name="papers_files_no_viewer">इस फ़ोन पर कोई ऐप एह् फ़ाइल नेईं खोह्ली सकदा.</string>
+    <string name="papers_file_open_label">%1$s खोह्लो</string>
+    <string name="papers_valid_till">%1$s तगर वैध</string>
+    <string name="papers_file_rejected">नामंज़ूर, फ्ही अपलोड करो</string>
+    <string name="papers_rc_certificate_open">RC सर्टिफ़िकेट खोह्लो</string>
+    <string name="papers_rc_certificate_no_viewer">इस फ़ोन पर कोई ऐप PDF नेईं खोह्ली सकदा.</string>
+    <string name="papers_opening">खुल्ला करदा ऐ…</string>
+
+    <!-- QR sticker (PaperFolderScreen.kt) -->
+    <string name="papers_sticker_vehicle_caption">इस स्टिकर गी स्कैन करने पर Saarthi च एह् गड्डी खुलदी ऐ. इसगी वेब पर Saarthi थमां प्रिंट करो.</string>
+    <string name="papers_sticker_not_issued">अजें कोई QR कोड जारी नेईं होआ.</string>
+    <string name="papers_sticker_load_failed">QR स्टिकर लोड नेईं होई सकेआ.</string>
+    <string name="papers_sticker_description">QR स्टिकर</string>
+
+    <!-- Vehicle photographs (PaperPhotos.kt) -->
+    <string name="papers_photo_unusable">ओह् फ़ोटो नेईं बरतोई सकी.</string>
+    <string name="papers_photo_added">फ़ोटो जुड़ी गेई.</string>
+    <string name="papers_photos_empty_can_add">अजें कोई फ़ोटो नेईं. अगला पास्सा, पिछला पास्सा ते दोऐ बक्खियां जोड़ो.</string>
+    <string name="papers_photos_empty">इस गड्डी दी अजें कोई फ़ोटो नेईं.</string>
+    <string name="papers_photos_view_only">तुंदा रोल एह् फ़ोटो दिक्खी सकदा ऐ, पर जोड़ी जां हटाई नेईं सकदा.</string>
+    <string name="papers_photos_not_in_plan">फ़ोटो जोड़ना इस कारोबार दे प्लान च शामल नेईं ऐ.</string>
+    <string name="papers_photos_full">इक गड्डी च बद्धो-बद्ध %1$d फ़ोटो होई सकदियां न. होर जोड़ने आस्तै इक हटाओ.</string>
+    <string name="papers_take_photo">फ़ोटो खिच्चो</string>
+    <string name="papers_photo_adding">जोड़ी जा करदी ऐ…</string>
+    <string name="papers_photo_choose">फ़ोटो चुनो</string>
+    <string name="papers_photo_remove_title">एह् फ़ोटो हटानी ऐ?</string>
+    <string name="papers_removed_for_everyone">खाते दे सारें लोकें आस्तै एह् इस गड्डी थमां हटी जंदी ऐ.</string>
+    <string name="papers_photo_remove_button">फ़ोटो हटाओ</string>
+    <string name="papers_removing">हटाया जा करदा ऐ…</string>
+    <string name="papers_photo_label">गड्डी दी फ़ोटो</string>
+    <string name="papers_photo_close">फ़ोटो बंद करो</string>
+    <string name="papers_photo_remove_link">एह् फ़ोटो हटाओ</string>
+
+    <!-- Virtual RC and the register (PaperRecords.kt) -->
+    <string name="papers_rc_register">RTO रजिस्टर</string>
+    <string name="papers_rc_virtual">वर्चुअल RC</string>
+    <string name="papers_rc_verified">पक्की होई</string>
+    <string name="papers_rc_as_of">RTO रजिस्टर थमां · %1$s दे मताबक</string>
+    <string name="papers_rc_as_of_unknown">RTO रजिस्टर थमां · तरीक पता नेईं</string>
+    <string name="papers_rc_validity">मियाद</string>
+    <string name="papers_rc_insurance">बीमा</string>
+    <string name="papers_rc_pollution">प्रदूषण (PUC)</string>
+    <string name="papers_rc_fitness">फ़िटनेस</string>
+    <string name="papers_rc_road_tax">रोड टैक्स</string>
+    <string name="papers_rc_permit">परमिट</string>
+    <string name="papers_rc_national_permit">नेशनल परमिट</string>
+    <string name="papers_rc_details">जानकारी</string>
+    <string name="papers_rc_owner">मालक</string>
+    <string name="papers_rc_registered">रजिस्ट्रेशन दी तरीक</string>
+    <string name="papers_rc_status">स्थिति</string>
+    <string name="papers_rc_class">क्लास</string>
+    <string name="papers_rc_fuel">तेल</string>
+    <string name="papers_rc_colour">रंग</string>
+    <string name="papers_rc_made">बनने दी तरीक</string>
+    <string name="papers_rc_chassis">चेसिस</string>
+    <string name="papers_rc_engine">इंजन</string>
+    <string name="papers_rc_rto">RTO</string>
+    <string name="papers_rc_seats">सीटां</string>
+    <string name="papers_rc_gross_weight">कुल भार</string>
+    <string name="papers_rc_weight_kg">%1$s kg</string>
+    <string name="papers_rc_financer">फ़ाइनेंस करने आह्ला</string>
+    <string name="papers_rc_blacklist">ब्लैकलिस्ट</string>
+    <string name="papers_rc_till">%1$s तगर</string>
+    <string name="papers_rc_lifetime_tax">लाइफ़टाइम टैक्स</string>
+    <string name="papers_rc_not_published">दर्ज नेईं</string>
+    <string name="papers_rc_masked_ownership">मालक दी जानकारी छपाई गेदी ऐ, कीजे इस खाते नै अजें पक्का नेईं कीता जे गड्डी इसदी ऐ. RC मालक दा नां खाते पर वेरिफ़ाई होए दे PAN, वोटर ID जां बिज़नेस GSTIN कन्नै मेल खाना चाहिदा. Saarthi वेबसाइट पर गड्डी दा मालकी कार्ड दस्सदा ऐ जे गल्ल कुत्थें तगर पुज्जी ऐ.</string>
+    <string name="papers_rc_masked_role">मालक दी जानकारी, इंजन नंबर ते चेसिस नंबर छपाए गेदे न. तुंदे रोल च गड्डी दी निजी जानकारी दिक्खने दी इजाज़त नेईं.</string>
+
+    <!-- Secure PIN unlock (PaperRecords.kt) -->
+    <string name="papers_pin_title">मालक दी जानकारी छपाई गेदी ऐ</string>
+    <string name="papers_pin_body">पूरी जानकारी दिक्खने ते सर्टिफ़िकेट डाउनलोड करने आस्तै अपना Secure PIN पाओ. एह् ओह्ये 4 अंकें दा PIN ऐ जेह्ड़ा तुस Saarthi वेबसाइट पर बरतदे ओ.</string>
+    <string name="papers_pin_label">Secure PIN</string>
+    <string name="papers_pin_show">पूरी RC दिक्खो</string>
+    <string name="papers_checking">जांच होआ करदी ऐ…</string>
+
+    <!-- Uploading a paper (PaperUpload.kt) -->
+    <string name="papers_upload_file_unreadable">ओह् फ़ाइल नेईं पढ़ोई सकी.</string>
+    <string name="papers_upload_pdf_too_large">ओह् PDF 10 MB शा बड्डी ऐ. इसगी घट्ट क्वालिटी पर स्कैन करो जां इसदी बजाए कागज़ दी फ़ोटो खिच्चो.</string>
+    <string name="papers_upload_wrong_type">PDF जां फ़ोटो चुनो.</string>
+    <string name="papers_upload_photo_unreadable">ओह् फ़ोटो नेईं पढ़ोई सकी.</string>
+    <string name="papers_upload_file_unusable">ओह् फ़ाइल नेईं बरतोई सकी.</string>
+    <string name="papers_upload_title">%1$s अपलोड करो</string>
+    <string name="papers_upload_intro">कागज़ दी साफ़ फ़ोटो, जां 10 MB तगर दी PDF.</string>
+    <string name="papers_upload_choose_file">फ़ाइल चुनो</string>
+    <string name="papers_upload_change">बदलो</string>
+    <string name="papers_upload_reading">कागज़ पढ़ेआ जा करदा ऐ…</string>
+    <string name="papers_upload_number">कागज़ पर लिखे दा नंबर (जरूरी नेईं)</string>
+    <string name="papers_upload_valid_till">कदूं तगर वैध</string>
+    <string name="papers_upload_valid_till_optional">कदूं तगर वैध (जरूरी नेईं)</string>
+    <string name="papers_upload_issued_optional">जारी होने दी तरीक (जरूरी नेईं)</string>
+    <string name="papers_upload_button">अपलोड करो</string>
+    <string name="papers_uploading">अपलोड होआ करदा ऐ…</string>
+    <string name="papers_upload_choose_date">चुनो</string>
+    <string name="papers_upload_other_plate">इस कागज़ पर %1$s लिखे दा ऐ, एह् गड्डी नेईं. पक्का करो जे कागज़ ठीक ऐ.</string>
+    <string name="papers_upload_ran_out">इस कागज़ दी मियाद %1$s गी मुक्की गेई ही. जेकर रिन्यू होए दा कागज़ तुंदे कोल ऐ तां ओह् अपलोड करो.</string>
+    <string name="papers_upload_filled">कागज़ थमां भरेआ गेआ. जानकारी जांचो, फ्ही अपलोड करो.</string>
+    <string name="papers_upload_filled_need_expiry">जेह्ड़ा पढ़ोई सकेआ, ओह् भरी दित्ता. कागज़ कदूं तगर वैध ऐ, ओह् तरीक चुनो.</string>
+    <string name="papers_upload_nothing_read_optional">इस कागज़ थमां किश नेईं पढ़ोई सकेआ. तुस फ्ही बी इसगी अपलोड करी सकदे ओ.</string>
+    <string name="papers_upload_nothing_read">इस कागज़ थमां जानकारी नेईं पढ़ोई सकी. कागज़ कदूं तगर वैध ऐ, ओह् तरीक चुनो.</string>
+    <string name="papers_size_kb">%1$d KB</string>
+    <string name="papers_size_mb">%1$s MB</string>
+
+    <!-- Preparing a 360° spin (SpinMaker.kt) -->
+    <string name="papers_spin_video_unreadable">ओह् वीडियो नेईं पढ़ोई सकी. फ़ोन दे कैमरे कन्नै फ्ही रिकॉर्ड करो, जां इसदी बजाए फ़ोटो चुनो.</string>
+    <string name="papers_spin_video_no_length">उस वीडियो दी लंबाई नेईं पढ़ोई सकी. फ्ही रिकॉर्ड करियै दिक्खो.</string>
+    <string name="papers_spin_video_too_short">ओह् वीडियो %1$d सकिंटें शा छोटी ऐ. गड्डी दे चौनें पास्सै होली-होली पूरा चक्कर लाओ.</string>
+    <string name="papers_spin_video_too_little">उस वीडियो दा मता हिस्सा नेईं पढ़ोई सकेआ. फ़ोन दे आम फ़ॉर्मेट च फ्ही रिकॉर्ड करो.</string>
+    <string name="papers_spin_photos_too_few">घट्टो-घट्ट %1$d फ़ोटो चुनो — घट्टो-घट्ट अगला पास्सा, दोऐ बक्खियां ते पिछला पास्सा.</string>
+    <string name="papers_spin_photo_unreadable">उनें चों इक फ़ोटो नेईं पढ़ोई सकी. फ़ोटो फ्ही चुनो.</string>
+    <string name="papers_spin_photo_bad_format">उनें चों इक फ़ोटो नेईं पढ़ोई सकी. JPEG जां PNG फ़ोटो बरतो.</string>
+
+    <!-- 360° spin section (SpinPanel.kt) -->
+    <string name="papers_spin_title">360° व्यू</string>
+    <string name="papers_spin_prepare_failed">इस थमां 360° व्यू तैयार नेईं होई सकेआ. छोटी वीडियो अजमाओ, जां इसदी बजाए फ़ोटो.</string>
+    <string name="papers_spin_saved">360° व्यू सेव होई गेआ.</string>
+    <string name="papers_spin_replaced">360° व्यू बदली गेआ.</string>
+    <string name="papers_spin_save_failed">360° व्यू सेव नेईं होई सकेआ. %1$s</string>
+    <string name="papers_spin_save_failed_cleared">360° व्यू सेव नेईं होई सकेआ. %1$s जगह बनाने आस्तै पैह्लें आह्ला व्यू पैह्लें गै हटाई दित्ता गेआ हा.</string>
+    <string name="papers_spin_removed">360° व्यू हटाई दित्ता.</string>
+    <string name="papers_try_again">फ्ही कोशश करो</string>
+    <string name="papers_spin_remove_link">360° व्यू हटाओ</string>
+    <string name="papers_spin_empty">इस गड्डी दा अजें कोई 360° व्यू नेईं.</string>
+    <string name="papers_spin_choosing_frames">चक्कर आह्ली वीडियो चों सब्भनें शा साफ़ फ़्रेम चुने जा करदे न…</string>
+    <string name="papers_spin_preparing_photos">फ़ोटो तैयार होआ करदियां न…</string>
+    <string name="papers_spin_saving">360° व्यू सेव होआ करदा ऐ… %2$d चों %1$d फ़्रेम</string>
+    <string name="papers_spin_record_new">नमां चक्कर रिकॉर्ड करो</string>
+    <string name="papers_spin_record">गड्डी दे चौनें पास्सै चक्कर रिकॉर्ड करो</string>
+    <string name="papers_spin_choose_video">वीडियो चुनो</string>
+    <string name="papers_spin_choose_photos">फ़ोटो चुनो</string>
+    <string name="papers_spin_guide_title">किस चाल्ली खिच्चना ऐ</string>
+    <string name="papers_spin_guide_park_title">खुल्ली जगह खड़ेरो</string>
+    <string name="papers_spin_guide_park_body">चौनें पास्सै घुम्मने दी जगह होऐ, ते दिनै दी इक बराबर लोई होऐ.</string>
+    <string name="papers_spin_guide_stand_title">लगभग दो मीटर दूर खड़ोओ</string>
+    <string name="papers_spin_guide_stand_body">पूरी गड्डी फ़्रेम च होऐ, फ़ोन छाती दी उंचाई पर फड़ो.</string>
+    <string name="papers_spin_guide_walk_title">होली-होली इक चक्कर लाओ</string>
+    <string name="papers_spin_guide_walk_body">20–40 सकिंटें दी वीडियो, जां हर किश कदमें पर इक फ़ोटो — कुल %1$d थमां %2$d.</string>
+    <string name="papers_spin_guide_centre_title">गड्डी गी बिच्च रक्खो</string>
+    <string name="papers_spin_guide_centre_body">उत्थै गै खत्म करो जित्थुआं शुरू कीता हा, तां जे चक्कर बिना झटके दे पूरा होऐ.</string>
+    <string name="papers_percent">%1$d%%</string>
+    <string name="papers_spin_remove_title">360° व्यू हटाना ऐ?</string>
+    <string name="papers_spin_keep">रैह्न देओ</string>
+    <string name="papers_spin_remove">हटाओ</string>
+    <plurals name="papers_spin_draft_summary">
+        <item quantity="one">%d फ़्रेम. घुमाने आस्तै खिच्चो, फ्ही सेव करो.</item>
+        <item quantity="other">%d फ़्रेम. घुमाने आस्तै खिच्चो, फ्ही सेव करो.</item>
+    </plurals>
+    <plurals name="papers_spin_draft_summary_trimmed">
+        <item quantity="one">%d फ़्रेम · जित्थै चक्कर शुरू आह्ली जगह पर परतेआ, उत्थै कट्टेआ. घुमाने आस्तै खिच्चो, फ्ही सेव करो.</item>
+        <item quantity="other">%d फ़्रेम · जित्थै चक्कर शुरू आह्ली जगह पर परतेआ, उत्थै कट्टेआ. घुमाने आस्तै खिच्चो, फ्ही सेव करो.</item>
+    </plurals>
+    <string name="papers_spin_start_here">इत्थुआं शुरू करो</string>
+    <string name="papers_spin_reverse">उल्टा करो</string>
+    <string name="papers_spin_drop_frame">एह् फ़्रेम हटाओ</string>
+    <string name="papers_spin_save">360° व्यू सेव करो</string>
+    <string name="papers_spin_discard">छोड़ो</string>
+    <string name="papers_spin_view_description">360° व्यू, %2$d चों %1$d कोण</string>
+    <string name="papers_spin_turn_left">खब्बे घुमाओ</string>
+    <string name="papers_spin_turn_right">सज्जे घुमाओ</string>
+    <string name="papers_spin_drag_hint">घुमाने आस्तै खिच्चो · %1$d/%2$d</string>
+
+    <!-- Payment outcome and checkout (payments/Checkout.kt) -->
+    <string name="papers_payments_outcome_succeeded">%1$s — पेमेंट मिली गेई.</string>
+    <string name="papers_payments_outcome_failed">पेमेंट नेईं होई. कोई पैसा नेईं कट्टेआ गेआ.</string>
+    <string name="papers_payments_outcome_pending">पेमेंट अजें पूरी नेईं होई. तुस इसगी कदें बी पूरा करी सकदे ओ.</string>
+    <string name="papers_payments_close">पेमेंट बंद करो</string>
+    <string name="papers_payments_secure">सुरक्खत पेमेंट</string>
+
+    <!-- Receipt PDF drawn on the phone (payments/ReceiptPdf.kt) -->
+    <string name="papers_payments_share_receipt">रसीद शेयर करो</string>
+    <string name="papers_payments_receipt_title">पेमेंट दी रसीद</string>
+    <string name="papers_payments_receipt_refunded">पैसे वापस</string>
+    <string name="papers_payments_receipt_partly_refunded">दित्ता गेआ · %1$s वापस</string>
+    <string name="papers_payments_receipt_paid">दित्ता गेआ</string>
+    <string name="papers_payments_receipt_time_ist">%1$s IST</string>
+    <string name="papers_payments_receipt_number">रसीद नंबर</string>
+    <string name="papers_payments_receipt_paid_on">पेमेंट दी तरीक</string>
+    <string name="papers_payments_receipt_paid_by">पेमेंट करने आह्ला</string>
+    <string name="papers_payments_receipt_paid_to">कुसगी दित्ता</string>
+    <string name="papers_payments_receipt_for">किस आस्तै</string>
+    <string name="papers_payments_receipt_method">तरीका</string>
+    <string name="papers_payments_receipt_method_cashfree">ऑनलाइन, Cashfree राहें</string>
+    <string name="papers_payments_receipt_transaction">ट्रांज़ैक्शन रेफ़रेंस</string>
+    <string name="papers_payments_receipt_footer">एह् रसीद VorldX Saarthi राहें कीती गेदी पेमेंट गी पक्का करदी ऐ. एह् टैक्स इनवॉइस नेईं ऐ.\n%1$s IST गी बनाई गेई.</string>
+
+    <!-- Receipts card (payments/Receipts.kt) -->
+    <string name="papers_payments_receipt_default_label">पेमेंट</string>
+    <string name="papers_payments_receipts">रसीदां</string>
+    <string name="papers_payments_receipt_save_failed">सेव नेईं होई सकी. फ्ही कोशश करो.</string>
+    <string name="papers_payments_receipt_saved">Downloads › Saarthi च सेव होई गेई</string>
+    <string name="papers_payments_open">खोह्लो</string>
+    <string name="papers_payments_share">शेयर करो</string>
+    <string name="papers_payments_download">डाउनलोड करो</string>
+
+    <!-- SOS alert screen (sos/SosAlertScreen.kt) -->
+    <string name="papers_sos_driver_fallback">तुंदा ड्राइवर</string>
+    <string name="papers_sos_raised_now">SOS · हुनै भेजेआ</string>
+    <string name="papers_sos_raised_ago">SOS · %1$s पैह्लें भेजेआ</string>
+    <string name="papers_sos_resolved_banner">SOS · हल होई गेआ</string>
+    <string name="papers_sos_close">बंद करो</string>
+    <string name="papers_sos_needs_help">तुंदे ड्राइवर गी मदद चाहिदी ऐ</string>
+    <string name="papers_sos_resolved">हल होई गेआ</string>
+    <plurals name="papers_sos_trucks_alerted">
+        <item quantity="one">नेड़ै दे %d Saarthi ट्रक गी अलर्ट भेजेआ</item>
+        <item quantity="other">नेड़ै दे %d Saarthi ट्रकें गी अलर्ट भेजेआ</item>
+    </plurals>
+    <plurals name="papers_sos_trucks_were_alerted">
+        <item quantity="one">नेड़ै दे %d Saarthi ट्रक गी अलर्ट भेजेआ गेआ हा</item>
+        <item quantity="other">नेड़ै दे %d Saarthi ट्रकें गी अलर्ट भेजेआ गेआ हा</item>
+    </plurals>
+    <string name="papers_sos_within_km">%1$d km दे अंदर</string>
+    <string name="papers_sos_nearby">नेड़ै</string>
+    <string name="papers_sos_within_km_widens">%1$d km दे अंदर · जेकर कोई जवाब नेईं दिंदा तां घेरा बधदा ऐ</string>
+    <string name="papers_sos_widens">जेकर कोई जवाब नेईं दिंदा तां घेरा बधदा ऐ</string>
+    <string name="papers_sos_coming">आवा करदा</string>
+    <string name="papers_sos_coming_distance">आवा करदा · %1$s km</string>
+    <string name="papers_sos_arrived">पुज्जी गेआ</string>
+    <string name="papers_sos_accepted">मन्नी लेआ</string>
+    <string name="papers_sos_widen">घेरा बधाओ</string>
+    <string name="papers_sos_widened">होर ट्रकें शा पुच्छेआ जा करदा ऐ.</string>
+    <string name="papers_sos_widest">घेरा पैह्लें गै जिन्ना बड्डा होई सकदा ऐ, उन्ना ऐ.</string>
+    <string name="papers_sos_call_driver">%1$s गी हून फ़ोन करो</string>
+    <string name="papers_sos_call_112">112 पर फ़ोन करो</string>
+    <string name="papers_sos_open_map">मैप पर खोह्लो</string>
+    <string name="papers_sos_mark_resolved_link">हल होई गेआ मार्क करो</string>
+    <string name="papers_sos_what_happened">केह् होआ?</string>
+    <string name="papers_sos_note_label">रिकॉर्ड आस्तै इक लाइन — एह् जवाब देने आह्ले हर इक गी जंदी ऐ</string>
+    <string name="papers_sos_mark_resolved">हल मार्क करो</string>
+
+    <!-- SOS card on Home (sos/SosAlertScreen.kt) -->
+    <string name="papers_sos_card_title">SOS · %1$s गी मदद चाहिदी ऐ</string>
+    <string name="papers_sos_card_title_unknown">SOS · इक ड्राइवर गी मदद चाहिदी ऐ</string>
+    <string name="papers_sos_just_now">हुनै</string>
+    <string name="papers_sos_ago">%1$s पैह्लें</string>
+</resources>

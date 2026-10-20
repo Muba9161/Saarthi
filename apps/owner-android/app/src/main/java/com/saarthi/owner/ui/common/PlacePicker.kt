@@ -18,9 +18,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.saarthi.owner.R
 import com.saarthi.owner.network.PlacesApi
 import com.saarthi.owner.ui.design.IconWell
 import com.saarthi.owner.ui.design.LineIcon
@@ -50,7 +52,7 @@ fun PlaceField(
     places: PlacesApi,
     onPick: (PlacesApi.Place) -> Unit,
     modifier: Modifier = Modifier,
-    placeholder: String = "Search an address",
+    placeholder: String = stringResource(R.string.ui_place_search_address),
     icon: String = Lucide.mapPin,
 ) {
     val c = Saarthi.colors
@@ -117,13 +119,13 @@ fun PlaceSearchScreen(title: String, places: PlacesApi, onPick: (PlacesApi.Place
         searching = false
     }
 
-    DetailScreen(eyebrow = "Choose a place", title = title) {
+    DetailScreen(eyebrow = stringResource(R.string.ui_place_choose), title = title) {
         CurrentLocationRow(places, onPick)
         SaarthiField(
             value = query,
             onValueChange = { query = it },
             leading = Lucide.search,
-            placeholder = "Area, landmark or address",
+            placeholder = stringResource(R.string.ui_place_query_placeholder),
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
             // Results come as the place is typed; the key only puts the keyboard away to read them.
             keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
@@ -156,9 +158,9 @@ fun PlaceSearchScreen(title: String, places: PlacesApi, onPick: (PlacesApi.Place
                 }
             }
         } else if (query.trim().length >= 3 && !searching && error == null) {
-            Text("Nothing found. Try a nearby landmark or the area's name.", style = SType.small, color = c.muted)
+            Text(stringResource(R.string.ui_place_nothing_found), style = SType.small, color = c.muted)
         } else if (query.isBlank()) {
-            Text("Type at least three letters.", style = SType.small, color = c.subtle)
+            Text(stringResource(R.string.ui_place_type_three), style = SType.small, color = c.subtle)
         }
     }
 }

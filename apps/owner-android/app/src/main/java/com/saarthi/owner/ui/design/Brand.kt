@@ -39,6 +39,7 @@ import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.sin
 import com.saarthi.owner.R
+import com.saarthi.owner.ui.common.Words
 
 /**
  * The brand ground: deep navy, a saffron glow bottom-right and a green one top-right.
@@ -143,7 +144,7 @@ private const val LOCKUP_RATIO = 900f / 813f
 /** What this app is called, and who it is for. */
 object AppName {
     const val APP = "VorldX Saarthi"
-    const val FOR = "For owners & businesses"
+    val FOR: String get() = Words.get(R.string.ui_app_for)
 }
 
 /** Two letters for a person, from their name — "Ravi Kumar" is RK. */

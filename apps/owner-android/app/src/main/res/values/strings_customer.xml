@@ -1,0 +1,346 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Customer tabs -->
+    <string name="customer_tab_home">Home</string>
+    <string name="customer_tab_post">Post</string>
+    <string name="customer_tab_orders">Orders</string>
+    <string name="customer_tab_home_title">Hi, %1$s</string>
+    <string name="customer_tab_post_eyebrow">Post a need</string>
+    <string name="customer_tab_post_title">Get bids</string>
+    <string name="customer_tab_orders_eyebrow">Requests &amp; orders</string>
+    <string name="customer_your_orders">Your orders</string>
+
+    <!-- Kinds of request: Home tiles and Post chips -->
+    <string name="customer_kind_material">Material</string>
+    <string name="customer_kind_freight">Freight</string>
+    <string name="customer_kind_cab">Cab</string>
+    <string name="customer_kind_tour">Tour</string>
+    <string name="customer_post_material">Post Material</string>
+    <string name="customer_post_freight">Post Freight</string>
+    <string name="customer_post_cab">Post Cab</string>
+    <string name="customer_post_tour">Post Tour</string>
+
+    <!-- Customer home -->
+    <string name="customer_home_eyebrow">One front door</string>
+    <string name="customer_home_title">What do you need moved?</string>
+    <string name="customer_home_lead">Post once. Verified fleets source it and quote one delivered price.</string>
+    <string name="customer_home_book_ready_trip">Book a ready-made trip</string>
+    <string name="customer_book_a_trip">Book a trip</string>
+    <string name="customer_home_trips_line">Tours, airport runs and outstation trips, priced up front</string>
+    <string name="customer_home_all">All %1$d</string>
+    <string name="customer_home_empty">Nothing yet. Post what you need and fleets near you will bid.</string>
+
+    <!-- Request rows -->
+    <string name="customer_request_no_bids_taken">No bids taken</string>
+    <string name="customer_request_awarded">Awarded</string>
+    <string name="customer_request_done">Done</string>
+    <string name="customer_request_waiting">Waiting</string>
+    <string name="customer_from_price">from %1$s</string>
+    <plurals name="customer_bids">
+        <item quantity="one">%d bid</item>
+        <item quantity="other">%d bids</item>
+    </plurals>
+
+    <!-- Requests and orders list -->
+    <string name="customer_orders_requests_tab">Requests · %1$d</string>
+    <string name="customer_orders_orders_tab">Orders · %1$d</string>
+    <string name="customer_orders_no_requests">You have not posted anything yet.</string>
+    <string name="customer_orders_collecting_bids">Collecting bids</string>
+    <string name="customer_orders_earlier">Earlier</string>
+    <string name="customer_orders_no_orders">When you choose a bid, the order shows up here.</string>
+    <string name="customer_orders_cabs_tours">Cabs &amp; tours</string>
+    <string name="customer_orders_goods">Goods</string>
+    <string name="customer_orders_earlier_trips">Earlier trips</string>
+
+    <!-- Bids on a request -->
+    <string name="customer_bid_has_job">%1$s has the job.</string>
+    <string name="customer_bids_withdrawn">Withdrawn. Every fleet that bid has been told why.</string>
+    <string name="customer_bids_hours_left">%1$d h left</string>
+    <string name="customer_bids_material_note">Each price includes the material and delivery. Pay %1$d%% to confirm, %2$d%% after delivery.</string>
+    <string name="customer_bids_job_note">Each price is the whole job from that fleet. Choose one to confirm it.</string>
+    <string name="customer_bids_none_yet">No bids yet. Fleets near the site are checking — you\'ll get an alert when one arrives.</string>
+    <string name="customer_bids_withdraw_request">Withdraw this request</string>
+    <string name="customer_bids_choose_for">Choose %1$s for %2$s?</string>
+    <string name="customer_bids_choose_material_note">You pay %1$d%% (%2$s) to confirm and the rest after delivery. Every other bid on this request is turned down.</string>
+    <string name="customer_bids_choose_note">Every other bid on this request is turned down and those fleets are told.</string>
+    <string name="customer_bids_note_for">A note for %1$s (optional)</string>
+    <string name="customer_bids_choose">Choose %1$s</string>
+    <string name="customer_bids_not_yet">Not yet</string>
+    <string name="customer_bids_withdraw_title">Withdraw this request?</string>
+    <string name="customer_bids_withdraw_note">Every offer on it will be turned down and the fleets told why.</string>
+    <string name="customer_bids_withdraw_reason">Why are you withdrawing it?</string>
+    <string name="customer_bids_withdraw">Withdraw</string>
+    <string name="customer_bid_rating">★ %1$s · %2$d ratings</string>
+    <string name="customer_bid_chosen">Chosen</string>
+    <string name="customer_bid_lowest">Lowest</string>
+    <string name="customer_bid_delivered_at">Delivered %1$s</string>
+    <string name="customer_bid_arrives_at">Arrives %1$s</string>
+    <string name="customer_bid_choose_and_pay">Choose %1$s · pay %2$s now</string>
+    <string name="customer_bid_confirming">Confirming…</string>
+
+    <!-- Booking states, as the customer reads them -->
+    <string name="customer_status_pay_to_book">Pay to book</string>
+    <string name="customer_status_being_confirmed">Being confirmed</string>
+    <string name="customer_status_confirmed">Confirmed</string>
+    <string name="customer_status_on_the_way">On the way</string>
+    <string name="customer_status_completed">Completed</string>
+    <string name="customer_status_declined">Declined</string>
+    <string name="customer_status_cancelled">Cancelled</string>
+
+    <!-- Cab or tour booking -->
+    <string name="customer_booking_paid">Booking paid</string>
+    <string name="customer_booking_cancelled_told">Cancelled. The operator has been told.</string>
+    <string name="customer_booking_eyebrow">Booking %1$s</string>
+    <string name="customer_pay_amount">Pay %1$s</string>
+    <string name="customer_pay">Pay</string>
+    <string name="customer_opening_payment">Opening payment…</string>
+    <string name="customer_payments_by_cashfree">Payments are processed securely by Cashfree.</string>
+    <string name="customer_booking_declined_reason">The operator could not take it: %1$s</string>
+    <string name="customer_booking_rate_title">Rate this trip</string>
+    <string name="customer_booking_rate_prompt">How was the vehicle and the driver? (optional)</string>
+    <string name="customer_booking_rated">You rated this trip %1$d/5.</string>
+    <string name="customer_the_operator">The operator</string>
+    <string name="customer_booking_call_about">Call them about the trip</string>
+    <string name="customer_booking_number_after_confirm">Their number shows once they confirm</string>
+    <string name="customer_call">Call %1$s</string>
+    <string name="customer_payment">Payment</string>
+    <string name="customer_booking_pay_to_hold">Pay to have the operator hold a vehicle for you</string>
+    <string name="customer_paid">Paid</string>
+    <string name="customer_refunded">Refunded</string>
+    <string name="customer_not_paid">Not paid</string>
+    <string name="customer_booking_payment">Booking payment</string>
+    <string name="customer_booking_cancel_link">Cancel this booking</string>
+    <string name="customer_booking_cancel_title">Cancel this booking?</string>
+    <string name="customer_booking_cancel_note_paid">The operator is told why. A refund follows the cancellation terms.</string>
+    <string name="customer_booking_cancel_note">The operator is told why.</string>
+    <string name="customer_booking_cancel_reason">Why are you cancelling?</string>
+    <string name="customer_booking_cancel">Cancel booking</string>
+
+    <!-- One order -->
+    <string name="customer_order_confirmed_paid">Order confirmed</string>
+    <string name="customer_order_balance_paid">Balance paid</string>
+    <string name="customer_order_eyebrow">Order %1$s</string>
+    <string name="customer_order_confirm_pay">Confirm &amp; pay</string>
+    <string name="customer_your_order">Your order</string>
+    <string name="customer_order_confirm_arrived">Confirm it arrived</string>
+    <string name="customer_order_cancelled">This order was cancelled.</string>
+    <string name="customer_order_cancelled_reason">This order was cancelled. %1$s</string>
+    <string name="customer_order_what_arrived">What arrived?</string>
+    <string name="customer_order_balance_note">The balance is worked out from what actually reached your site.</string>
+    <string name="customer_order_quantity_delivered">Quantity delivered (%1$s)</string>
+    <string name="customer_order_rate_title">Rate the delivery</string>
+    <string name="customer_order_rate_prompt">How did the delivery go? (optional)</string>
+    <string name="customer_order_rated">You rated this delivery %1$d/5.</string>
+    <string name="customer_order_receipt_advance">%1$d%% advance</string>
+    <string name="customer_order_balance_after_delivery">Balance after delivery</string>
+    <string name="customer_order_pay_now_advance">Pay now · %1$d%% advance</string>
+    <string name="customer_order_of_total">of %1$s · %2$s</string>
+    <string name="customer_order_advance_now">%1$d%% now</string>
+    <string name="customer_order_balance_now">Balance now</string>
+    <string name="customer_order_after_delivery">%1$s after delivery</string>
+    <string name="customer_order_no_fleet">No fleet has taken it yet</string>
+    <string name="customer_order_step_confirmed_paid">Confirmed · %1$d%% paid</string>
+    <string name="customer_order_step_material_loaded">Material loaded</string>
+    <string name="customer_order_step_loaded">Loaded at pickup</string>
+    <string name="customer_order_left_pickup_at">Left the pickup at %1$s</string>
+    <string name="customer_order_planned_for">Planned for %1$s</string>
+    <string name="customer_order_step_on_the_way">On the way to your site</string>
+    <string name="customer_order_arriving_about">Arriving about %1$s</string>
+    <string name="customer_order_step_delivered">Delivered</string>
+    <string name="customer_order_step_delivered_pay">Delivered, then pay %1$d%%</string>
+    <string name="customer_arrived_at">Arrived %1$s</string>
+    <string name="customer_order_balance_once_confirmed">%1$s once you confirm it arrived</string>
+
+    <!-- Order journey: map, vehicle and details -->
+    <string name="customer_route_planned">Planned route</string>
+    <string name="customer_route_still_to_go">Still to go</string>
+    <string name="customer_route_covered">Covered</string>
+    <string name="customer_route_load_failed">Couldn\'t load the trip. %1$s</string>
+    <string name="customer_route_left_at">Left %1$s</string>
+    <string name="customer_route_pickup_planned">Pickup planned %1$s</string>
+    <string name="customer_route_deliver_by">Deliver by %1$s</string>
+    <string name="customer_route_marked">Pickup and drop are marked.</string>
+    <string name="customer_route_loading_trip">Loading the trip…</string>
+    <string name="customer_route_marked_waiting">Pickup and drop are marked. The road appears here once the fleet sends a vehicle.</string>
+    <string name="customer_route_reporting_now">Reporting now.</string>
+    <string name="customer_route_last_reported">Last reported %1$s ago.</string>
+    <string name="customer_route_trip_cancelled">This trip was cancelled. Its planned road is shown.</string>
+    <string name="customer_route_not_planned">The road for this trip has not been planned yet. Pickup and drop are marked.</string>
+    <string name="customer_route_reached_drop">The vehicle has reached your drop along this road.</string>
+    <string name="customer_route_no_position">The vehicle has not reported its position yet.</string>
+    <string name="customer_route_shaded">Shaded as far as the vehicle has come.</string>
+    <string name="customer_route_parked_shown">The vehicle has not set off yet and is shown where it last reported.</string>
+    <string name="customer_route_not_set_off">The vehicle has not set off yet.</string>
+    <string name="customer_fact_distance">Distance</string>
+    <string name="customer_fact_to_go">To go</string>
+    <string name="customer_fact_on_the_road">On the road</string>
+    <string name="customer_fact_run_time">Run time</string>
+    <string name="customer_fact_planned">planned</string>
+    <string name="customer_fact_running_late">Running late</string>
+    <string name="customer_vehicle_and_driver">Vehicle and driver</string>
+    <string name="customer_run_by">Run by %1$s</string>
+    <string name="customer_capacity_tonnes">%1$s t</string>
+    <string name="customer_order_details">Order details</string>
+    <string name="customer_fact_load">Load</string>
+    <string name="customer_fact_vehicle_needed">Vehicle needed</string>
+    <string name="customer_fact_reference">Reference</string>
+    <string name="customer_fact_placed">Placed</string>
+    <string name="customer_line_material">Material</string>
+    <string name="customer_line_transport">Transport</string>
+    <string name="customer_total">Total</string>
+    <string name="customer_line_paid_so_far">Paid so far</string>
+    <string name="customer_line_balance_due">Balance due</string>
+    <string name="customer_your_note">Your note</string>
+
+    <!-- One ready-made trip -->
+    <string name="customer_package_gone">This trip is no longer on offer.</string>
+    <string name="customer_travel">Travel</string>
+    <string name="customer_trip">Trip</string>
+    <string name="customer_package_book">Book this trip</string>
+    <string name="customer_days">Days</string>
+    <string name="customer_package_nights">· %1$d nights</string>
+    <string name="customer_package_seats">Seats</string>
+    <string name="customer_per_person">Per person</string>
+    <string name="customer_from">From</string>
+    <string name="customer_package_route">Route</string>
+    <string name="customer_package_about_km">about %1$s km</string>
+    <string name="customer_package_driver_included">driver included</string>
+    <string name="customer_package_fuel_included">fuel included</string>
+    <string name="customer_package_about">About this trip</string>
+    <string name="customer_package_day_by_day">Day by day</string>
+    <string name="customer_package_day_title">Day %1$d · %2$s</string>
+    <string name="customer_package_night_at">Night at %1$s</string>
+    <string name="customer_package_covers">What the price covers</string>
+    <string name="customer_package_if_cancel">If you cancel</string>
+    <string name="customer_package_refund_tier">%1$d hours or more before: %2$d%% back</string>
+    <string name="customer_package_operated_by">Operated by</string>
+    <plurals name="customer_package_reviews">
+        <item quantity="one">★ %1$s from %2$d review</item>
+        <item quantity="other">★ %1$s from %2$d reviews</item>
+    </plurals>
+    <string name="customer_package_no_reviews">No reviews yet</string>
+    <string name="customer_package_customers_only">Booking is for customer accounts.</string>
+
+    <!-- Ready-made trips list -->
+    <string name="customer_sort_newest">Newest</string>
+    <string name="customer_sort_price">Price</string>
+    <string name="customer_sort_rating">Rating</string>
+    <string name="customer_sort_shortest">Shortest</string>
+    <string name="customer_packages_where_to">Where to?</string>
+    <string name="customer_packages_where_hint">A city, a temple, a hill station</string>
+    <string name="customer_packages_all">All trips</string>
+    <string name="customer_packages_sort">Sort</string>
+    <string name="customer_packages_none">No trips are on offer yet.</string>
+    <string name="customer_packages_no_match">No trips match. Try another place or kind of trip.</string>
+    <string name="customer_open">Open %1$s</string>
+    <plurals name="customer_trip_days">
+        <item quantity="one">%d day</item>
+        <item quantity="other">%d days</item>
+    </plurals>
+    <string name="customer_up_to">up to %1$d</string>
+    <string name="customer_from_place">from %1$s</string>
+    <string name="customer_verified_operator">Verified operator</string>
+    <string name="customer_from_per_person">From, per person</string>
+    <string name="customer_no_booking_fee">No booking fee</string>
+
+    <!-- Booking a ready-made trip -->
+    <string name="customer_book_for">Book for %1$s</string>
+    <string name="customer_book">Book</string>
+    <string name="customer_booking_busy">Booking…</string>
+    <string name="customer_book_pay_next">You pay on the next page. The operator confirms once it is paid.</string>
+    <string name="customer_book_passengers">Passengers (%1$d–%2$d)</string>
+    <string name="customer_book_party_range">This trip takes %1$d to %2$d people.</string>
+    <string name="customer_book_starts_on">Starts on</string>
+    <string name="customer_book_choose_start_time">Choose the start time</string>
+    <string name="customer_book_pickup_time">Pickup time</string>
+    <string name="customer_book_contact">Contact</string>
+    <string name="customer_name">Name</string>
+    <string name="customer_mobile_number">Mobile number</string>
+    <string name="customer_book_phone_invalid">An Indian mobile number, ten digits.</string>
+    <string name="customer_book_journey">Journey</string>
+    <string name="customer_pick_up_from_optional">Pick up from (optional)</string>
+    <string name="customer_drop_at">Drop at</string>
+    <string name="customer_drop_at_optional">Drop at (optional)</string>
+    <string name="customer_book_drop_needed">This trip is priced by the kilometre, so the drop is needed.</string>
+    <string name="customer_book_operator_notes">Anything the operator should know? (optional)</string>
+    <string name="customer_book_price_for_party">Price for your party</string>
+    <string name="customer_book_booking_fee">Booking fee</string>
+    <string name="customer_book_lead_hours">Trips start at least %1$d hours from now.</string>
+    <plurals name="customer_book_notice_days">
+        <item quantity="one">The operator needs %d day\' notice.</item>
+        <item quantity="other">The operator needs %d days\' notice.</item>
+    </plurals>
+    <string name="customer_book_runs_from">This trip runs from %1$s.</string>
+    <string name="customer_book_runs_until">This trip runs until %1$s.</string>
+    <string name="customer_book_runs_on">This trip runs on %1$s only.</string>
+    <string name="customer_weekday_sundays">Sundays</string>
+    <string name="customer_weekday_mondays">Mondays</string>
+    <string name="customer_weekday_tuesdays">Tuesdays</string>
+    <string name="customer_weekday_wednesdays">Wednesdays</string>
+    <string name="customer_weekday_thursdays">Thursdays</string>
+    <string name="customer_weekday_fridays">Fridays</string>
+    <string name="customer_weekday_saturdays">Saturdays</string>
+
+    <!-- Post a need -->
+    <string name="customer_unit_tonnes">tonnes</string>
+    <string name="customer_unit_bags">bags</string>
+    <string name="customer_unit_pieces">pieces</string>
+    <string name="customer_cab_any">Any</string>
+    <string name="customer_cab_car">Car</string>
+    <string name="customer_cab_suv">SUV</string>
+    <string name="customer_cab_van">Van</string>
+    <string name="customer_cab_bus">Bus</string>
+    <string name="customer_hire_one_way">One way</string>
+    <string name="customer_hire_round_trip">Round trip</string>
+    <string name="customer_hire_daily">By the day</string>
+    <string name="customer_post_add_material">Add the material to post.</string>
+    <string name="customer_post_add_material_kind">Add what kind of material it is to post.</string>
+    <string name="customer_post_add_detail">Add the %1$s to post.</string>
+    <string name="customer_post_add_quantity">Add the quantity to post.</string>
+    <string name="customer_post_add_deliver_to">Add where to deliver to post.</string>
+    <string name="customer_post_add_goods">Add the goods to post.</string>
+    <string name="customer_post_add_truck_size">Add the truck size to post.</string>
+    <string name="customer_post_add_pickup">Add where to pick up to post.</string>
+    <string name="customer_post_add_drop">Add where to drop to post.</string>
+    <string name="customer_post_add_people">Add how many people to post.</string>
+    <string name="customer_post_add_places">Add the places to visit to post.</string>
+    <string name="customer_post_add_start_time">Add a start time at least 2¼ hours away to post.</string>
+    <string name="customer_post_title_material">What do you need delivered?</string>
+    <string name="customer_post_title_freight">What needs moving?</string>
+    <string name="customer_post_title_cab">Where are you going?</string>
+    <string name="customer_post_title_tour">Where would you like to go?</string>
+    <string name="customer_post_goods">Goods</string>
+    <string name="customer_post_material_hint">M-sand, plastering grade</string>
+    <string name="customer_post_goods_hint">Cement bags</string>
+    <string name="customer_post_quantity">Quantity</string>
+    <string name="customer_post_truck_size">Truck size (t)</string>
+    <string name="customer_post_grade">Grade or brand (optional)</string>
+    <string name="customer_post_grade_hint">Any grade · washed</string>
+    <string name="customer_post_people">People</string>
+    <string name="customer_post_places">Places to visit</string>
+    <string name="customer_post_travel_on">Travel on</string>
+    <string name="customer_post_needed_by">Needed by</string>
+    <string name="customer_post_choose_date">Choose the date</string>
+    <string name="customer_post_choose_time">Choose the time</string>
+    <string name="customer_pick_up_from">Pick up from</string>
+    <string name="customer_post_deliver_to">Deliver to</string>
+    <string name="customer_post_tour_ends">Tour ends at (optional)</string>
+    <string name="customer_post_going_to">Going to</string>
+    <string name="customer_post_one_price">One price, delivered</string>
+    <string name="customer_post_one_price_note">A verified fleet buys the material, loads it and brings it to your site. You deal only with that fleet.</string>
+    <string name="customer_post_submit">Post and get bids</string>
+    <string name="customer_post_posting">Posting…</string>
+    <string name="customer_post_material_footer">Fleets near your site check sellers\' stock and bid.</string>
+    <string name="customer_post_footer">Fleets and operators near you bid within hours.</string>
+
+    <!-- Rating a trip or a delivery -->
+    <string name="customer_rate_send">Send rating</string>
+    <string name="customer_rate_sending">Sending…</string>
+    <plurals name="customer_rate_stars">
+        <item quantity="one">%d star</item>
+        <item quantity="other">%d stars</item>
+    </plurals>
+    <string name="customer_scan_weigh_prompt">Take a photo of the weighbridge slip (kanta parchi) and the weight fills in from it.</string>
+    <string name="customer_scan_weigh">Scan the weighbridge slip</string>
+    <string name="customer_scan_weigh_reading">Reading the weighbridge slip…</string>
+</resources>

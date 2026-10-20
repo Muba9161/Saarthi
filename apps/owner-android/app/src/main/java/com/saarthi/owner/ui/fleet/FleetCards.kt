@@ -18,9 +18,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.saarthi.owner.R
 import com.saarthi.owner.network.AlertsApi
 import com.saarthi.owner.network.FleetApi
 import com.saarthi.owner.ui.common.PlateChip
@@ -76,7 +79,7 @@ private fun ApprovalCard(
     modifier: Modifier,
 ) {
     val c = Saarthi.colors
-    val name = approval.driver?.name?.ifBlank { null } ?: "A driver"
+    val name = approval.driver?.name?.ifBlank { null } ?: stringResource(R.string.fleet_a_driver)
     Column(
         modifier
             .fillMaxWidth()
@@ -86,20 +89,20 @@ private fun ApprovalCard(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             LiveDot(c.warning)
-            Eyebrow("Needs you now", color = c.warning, modifier = Modifier.weight(1f))
+            Eyebrow(stringResource(R.string.fleet_cards_needs_you_now), color = c.warning, modifier = Modifier.weight(1f))
             approval.secondsUntilEscalation?.let { EscalationPill(it) }
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
             Avatar(name, size = 56.dp, background = c.sunken, ink = c.fg)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("$name wants to drive", style = SType.cardTitle, color = c.fg, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(stringResource(R.string.fleet_cards_wants_to_drive, name), style = SType.cardTitle, color = c.fg, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 PlateChip(approval.registrationNumber)
             }
         }
         ButtonRow {
             if (canApprove) {
                 SaarthiButton(
-                    "Approve",
+                    stringResource(R.string.fleet_cards_approve),
                     onClick = { onApprove(approval.id) },
                     busy = acting == approval.id,
                     height = 52.dp,
@@ -107,7 +110,7 @@ private fun ApprovalCard(
                 )
             }
             SaarthiButton(
-                if (canApprove) "Review" else "View request",
+                stringResource(if (canApprove) R.string.fleet_cards_review else R.string.fleet_cards_view_request),
                 onClick = { onReview(approval.id) },
                 tone = ButtonTone.SECONDARY,
                 enabled = acting == null,
@@ -116,10 +119,10 @@ private fun ApprovalCard(
             )
         }
         if (!canApprove) {
-            Text("An owner or fleet manager approves this. You can see it so you know the vehicle is waiting.", style = SType.small, color = c.muted)
+            Text(stringResource(R.string.fleet_cards_cannot_approve), style = SType.small, color = c.muted)
         }
         if (othersWaiting > 0) {
-            Text("$othersWaiting more waiting after this one", style = SType.small, color = c.muted)
+            Text(pluralStringResource(R.plurals.fleet_cards_more_waiting, othersWaiting, othersWaiting), style = SType.small, color = c.muted)
         }
     }
 }
@@ -142,7 +145,7 @@ private fun EscalationPill(secondsAtRead: Long) {
             .padding(horizontal = 10.dp, vertical = 4.dp),
     ) {
         Text(
-            if (late) "Overdue" else "${countdown(left)} left",
+            if (late) stringResource(R.string.fleet_cards_overdue) else stringResource(R.string.fleet_cards_time_left, countdown(left)),
             style = SType.captionStrong,
             color = if (late) c.danger else c.warning,
         )
@@ -163,13 +166,13 @@ private fun AlertCard(alert: AlertsApi.Alert, onOpenAlerts: () -> Unit, modifier
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             LiveDot(ink)
-            Eyebrow("Needs you now", color = ink)
+            Eyebrow(stringResource(R.string.fleet_cards_needs_you_now), color = ink)
         }
         Text(alert.title, style = SType.cardTitle, color = c.fg)
         alert.body?.takeIf { it.isNotBlank() }?.let {
             Text(it, style = SType.small, color = c.muted, maxLines = 3, overflow = TextOverflow.Ellipsis)
         }
-        LinkButton("Open alerts", onOpenAlerts, style = SType.smallStrong)
+        LinkButton(stringResource(R.string.fleet_cards_open_alerts), onOpenAlerts, style = SType.smallStrong)
     }
 }
 
@@ -186,20 +189,19 @@ private fun AllClearCard(modifier: Modifier) {
     ) {
         IconWell(Lucide.check, well = c.successSoft, ink = c.success, shape = CircleShape)
         Column(Modifier.weight(1f)) {
-            Text("Nothing needs you right now", style = SType.bodyStrong, color = c.fg)
-            Text("Drivers waiting for approval and urgent alerts show up here.", style = SType.small, color = c.muted)
+            Text(stringResource(R.string.fleet_cards_all_clear_title), style = SType.bodyStrong, color = c.fg)
+            Text(stringResource(R.string.fleet_cards_all_clear_body), style = SType.small, color = c.muted)
         }
     }
 }
 
-/** Trips, papers and FASTag — the three numbers an owner checks every morning. */
+/** Trips, papers and FASTag — the three numbers an owner checks every morning. Trips opens the list behind it. */
 @Composable
-fun MorningTiles(home: FleetHome, modifier: Modifier = Modifier) {
+fun MorningTiles(home: FleetHome, modifier: Modifier = Modifier, onTrips: (() -> Unit)? = null, onExpenses: (() -> Unit)? = null) {
     val c = Saarthi.colors
     val trips = home.dashboard?.trips
     val compliance = home.dashboard?.compliance
     val due = compliance?.let { it.documentsExpiringSoon + it.documentsExpired }
-    val balances = home.fastags.mapNotNull { it.balance }
     val tagsLow = home.fastags.count { it.needsAttention }
 
     Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -207,47 +209,50 @@ fun MorningTiles(home: FleetHome, modifier: Modifier = Modifier) {
             icon = Lucide.route,
             well = c.primarySoft,
             ink = c.primary,
-            label = "Trips",
+            label = stringResource(R.string.fleet_cards_trips),
             value = (trips?.active ?: home.onTrip).toString(),
             caption = when {
-                trips == null -> "on the road"
-                trips.delayed > 0 -> "${trips.delayed} late"
-                else -> "all on time"
+                trips == null -> stringResource(R.string.fleet_cards_on_the_road)
+                trips.delayed > 0 -> stringResource(R.string.fleet_cards_late, trips.delayed)
+                else -> stringResource(R.string.fleet_cards_all_on_time)
             },
             modifier = Modifier.weight(1f),
+            onOpen = onTrips,
         )
         Tile(
             icon = Lucide.fileText,
             well = c.warningSoft,
             ink = c.warning,
-            label = "Papers",
+            label = stringResource(R.string.fleet_cards_papers),
             value = when {
                 due == null -> "—"
-                due == 0 -> "All set"
-                else -> "$due due"
+                due == 0 -> stringResource(R.string.fleet_cards_all_set)
+                else -> stringResource(R.string.fleet_cards_due, due)
             },
             valueColor = if ((due ?: 0) > 0) c.warning else c.fg,
             caption = when {
-                compliance == null -> "not shared"
-                compliance.documentsExpired > 0 -> "${compliance.documentsExpired} expired"
-                due == 0 -> "nothing due"
-                else -> "renew soon"
+                compliance == null -> stringResource(R.string.fleet_cards_not_shared)
+                compliance.documentsExpired > 0 -> stringResource(R.string.fleet_cards_expired, compliance.documentsExpired)
+                due == 0 -> stringResource(R.string.fleet_cards_nothing_due)
+                else -> stringResource(R.string.fleet_cards_renew_soon)
             },
             modifier = Modifier.weight(1f),
         )
+        // What the road costs: fuel, slips and tolls over 30 days; a FASTag that needs a look says so.
         Tile(
-            icon = Lucide.creditCard,
+            icon = Lucide.calculator,
             well = c.accentSoft,
             ink = c.accent,
-            label = "FASTag",
-            value = balances.minOrNull()?.let(::rupees) ?: "—",
-            valueColor = if (tagsLow > 0) c.warning else c.fg,
-            caption = when {
-                home.fastags.isEmpty() -> "no tags"
-                tagsLow > 0 -> "$tagsLow need attention"
-                else -> "lowest balance"
+            label = stringResource(R.string.fleet_cards_expenses),
+            value = home.spent30?.let(::rupees) ?: "—",
+            caption = if (tagsLow > 0) {
+                pluralStringResource(R.plurals.fleet_cards_fastags_need_attention, tagsLow, tagsLow)
+            } else {
+                stringResource(R.string.fleet_cards_last_30_days)
             },
+            captionColor = if (tagsLow > 0) c.warning else null,
             modifier = Modifier.weight(1f),
+            onOpen = onExpenses,
         )
     }
 }
@@ -262,18 +267,21 @@ private fun Tile(
     caption: String,
     modifier: Modifier = Modifier,
     valueColor: Color = Saarthi.colors.fg,
+    captionColor: Color? = null,
+    onOpen: (() -> Unit)? = null,
 ) {
     val c = Saarthi.colors
     Column(
         modifier
             .card()
+            .then(if (onOpen != null) Modifier.pressable(scale = 0.97f, label = stringResource(R.string.fleet_open_named, label), onClick = onOpen) else Modifier)
             .padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         IconWell(icon, well = well, ink = ink, size = 30.dp, radius = 10.dp, iconSize = 16.dp)
         Eyebrow(label, color = c.muted, maxLines = 1)
         Text(value, style = SType.headerTitle.copy(fontSize = 19.sp), color = valueColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Text(caption, style = SType.caption, color = c.subtle, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        Text(caption, style = SType.caption, color = captionColor ?: c.subtle, maxLines = 2, overflow = TextOverflow.Ellipsis)
     }
 }
 
@@ -294,15 +302,15 @@ fun BackhaulCard(risks: List<com.saarthi.owner.network.ReturnLoadsApi.EmptyRisk>
         IconWell(Lucide.refresh, well = c.successSoft, ink = c.success, size = 44.dp, radius = 14.dp)
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(
-                if (risks.size == 1) "${com.saarthi.owner.ui.common.formatPlate(first.truckRegistration)} would run home empty"
-                else "${risks.size} trucks would run home empty",
+                if (risks.size == 1) stringResource(R.string.fleet_cards_backhaul_one, com.saarthi.owner.ui.common.formatPlate(first.truckRegistration))
+                else pluralStringResource(R.plurals.fleet_cards_backhaul_trucks, risks.size, risks.size),
                 style = SType.bodyStrong,
                 color = c.fg,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                "${first.emptyReturnKm?.toInt() ?: "—"} km from ${first.destinationAddress.substringBefore(',')} · find a return load",
+                stringResource(R.string.fleet_cards_backhaul_line, first.emptyReturnKm?.toInt()?.toString() ?: "—", first.destinationAddress.substringBefore(',')),
                 style = SType.small,
                 color = c.muted,
                 maxLines = 1,

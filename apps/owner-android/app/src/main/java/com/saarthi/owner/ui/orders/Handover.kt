@@ -17,11 +17,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
+import com.saarthi.owner.R
 import com.saarthi.owner.network.HandoverApi
 import com.saarthi.owner.ui.design.BottomSheet
 import com.saarthi.owner.ui.design.ButtonTone
@@ -60,7 +62,7 @@ fun CustomerCodeCard(handover: HandoverApi.Handover, modifier: Modifier = Modifi
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Eyebrow(if (delivery) "Your delivery code" else "Your pickup code", color = Color.White.copy(alpha = 0.78f))
+            Eyebrow(if (delivery) stringResource(R.string.market_handover_your_delivery_code) else stringResource(R.string.market_handover_your_pickup_code), color = Color.White.copy(alpha = 0.78f))
             Text(
                 code.toCharArray().joinToString(" "),
                 style = SType.display.copy(fontSize = 40.sp, letterSpacing = 0.12.em),
@@ -68,24 +70,24 @@ fun CustomerCodeCard(handover: HandoverApi.Handover, modifier: Modifier = Modifi
             )
             Text(
                 if (delivery) {
-                    "Give it to the driver only when your goods reach you — it confirms the delivery."
+                    stringResource(R.string.market_handover_delivery_give)
                 } else {
-                    "Tell it to the driver when they arrive — the ride starts once they enter it."
+                    stringResource(R.string.market_handover_pickup_tell)
                 },
                 style = SType.small,
                 color = Color.White.copy(alpha = 0.85f),
             )
         }
         handover.status == "VERIFIED" -> NoticeCard(
-            if (delivery) "The driver confirmed the delivery with your code." else "The driver started the ride with your code.",
+            if (delivery) stringResource(R.string.market_handover_delivery_verified) else stringResource(R.string.market_handover_pickup_verified),
             NoticeTone.SUCCESS,
             modifier,
             icon = Lucide.check,
         )
         handover.status == "OVERRIDDEN" -> NoticeCard(
             listOfNotNull(
-                if (delivery) "The operator confirmed the delivery without your code." else "The operator started the ride without your code.",
-                handover.overrideReason?.let { "Reason: $it" },
+                if (delivery) stringResource(R.string.market_handover_delivery_overridden) else stringResource(R.string.market_handover_pickup_overridden),
+                handover.overrideReason?.let { stringResource(R.string.market_handover_reason, it) },
             ).joinToString(" "),
             NoticeTone.WARNING,
             modifier,
@@ -108,28 +110,28 @@ fun FleetHandoverCard(
     val c = Saarthi.colors
     val delivery = handover.purpose == HandoverApi.DELIVERY
     val (icon, well, ink, line) = when (handover.status) {
-        "VERIFIED" -> Look(Lucide.check, c.successSoft, c.success, "Customer's code entered")
-        "OVERRIDDEN" -> Look(Lucide.alertTriangle, c.warningSoft, c.warning, "Confirmed without the customer's code")
-        else -> Look(Lucide.key, c.primarySoft, c.primary, if (delivery) "Waiting for the customer's delivery code" else "Waiting for the passenger's pickup code")
+        "VERIFIED" -> Look(Lucide.check, c.successSoft, c.success, stringResource(R.string.market_handover_code_entered))
+        "OVERRIDDEN" -> Look(Lucide.alertTriangle, c.warningSoft, c.warning, stringResource(R.string.market_handover_confirmed_without))
+        else -> Look(Lucide.key, c.primarySoft, c.primary, if (delivery) stringResource(R.string.market_handover_waiting_delivery) else stringResource(R.string.market_handover_waiting_pickup))
     }
     Column(modifier.fillMaxWidth().card(radius = 22.dp).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             IconWell(icon, well = well, ink = ink, size = 40.dp, shape = CircleShape, iconSize = 18.dp)
             Column(Modifier.weight(1f)) {
-                Eyebrow(if (delivery) "Delivery code" else "Pickup code")
+                Eyebrow(if (delivery) stringResource(R.string.market_handover_delivery_code) else stringResource(R.string.market_handover_pickup_code))
                 Text(line, style = SType.bodyStrong, color = c.fg)
                 when {
                     handover.pending -> Text(
-                        if (delivery) "The driver enters it at the drop to finish the delivery." else "The driver enters it at pickup to start the ride.",
+                        if (delivery) stringResource(R.string.market_handover_driver_enters_drop) else stringResource(R.string.market_handover_driver_enters_pickup),
                         style = SType.caption,
                         color = c.muted,
                     )
-                    handover.overrideReason != null -> Text("Reason: ${handover.overrideReason}", style = SType.caption, color = c.muted)
+                    handover.overrideReason != null -> Text(stringResource(R.string.market_handover_reason, handover.overrideReason), style = SType.caption, color = c.muted)
                 }
             }
         }
         if (handover.pending && canOverride) {
-            LinkButton("Customer can't give it? Confirm without the code", onOverride, style = SType.smallStrong, color = c.warning)
+            LinkButton(stringResource(R.string.market_handover_override_link), onOverride, style = SType.smallStrong, color = c.warning)
         }
     }
 }
@@ -154,19 +156,19 @@ fun OverrideHandoverSheet(
         val delivery = purpose == HandoverApi.DELIVERY
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Text(
-                if (delivery) "Confirm the delivery without the code?" else "Start the ride without the code?",
+                if (delivery) stringResource(R.string.market_handover_override_delivery_title) else stringResource(R.string.market_handover_override_pickup_title),
                 style = SType.sheetTitle,
                 color = c.fg,
             )
             Text(
-                "Only when the customer cannot give it. Your reason is kept on record, and the customer is told.",
+                stringResource(R.string.market_handover_override_body),
                 style = SType.body,
                 color = c.muted,
             )
-            NotesField(reason, { reason = it.take(500) }, label = "Why? (at least 10 letters)", minHeight = 90.dp)
+            NotesField(reason, { reason = it.take(500) }, label = stringResource(R.string.market_handover_override_reason_label), minHeight = 90.dp)
             error?.let { NoticeCard(it, NoticeTone.DANGER) }
             SaarthiButton(
-                if (delivery) "Confirm without the code" else "Start without the code",
+                if (delivery) stringResource(R.string.market_handover_override_delivery_button) else stringResource(R.string.market_handover_override_pickup_button),
                 onClick = { onConfirm(reason.trim()) },
                 tone = ButtonTone.DANGER_OUTLINE,
                 enabled = reason.trim().length >= 10 && !busy,
@@ -177,30 +179,41 @@ fun OverrideHandoverSheet(
 }
 
 /**
- * The operator starting a booked ride from this app: the passenger's pickup
- * code, as the driver would enter it — or, when they cannot give it, the
+ * The customer's code as the driver would enter it, typed in this app instead:
+ * the passenger's pickup code to start a booked ride, or the customer's
+ * delivery code to finish a delivery — or, when they cannot give it, the
  * owner's override.
  */
 @Composable
-fun PickupCodeSheet(
+fun HandoverCodeSheet(
+    purpose: String,
     visible: Boolean,
     busy: Boolean,
     error: String?,
     canOverride: Boolean,
-    onStart: (String) -> Unit,
+    onSubmit: (String) -> Unit,
     onNoCode: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     val c = Saarthi.colors
+    val delivery = purpose == HandoverApi.DELIVERY
     var code by remember(visible) { mutableStateOf("") }
     BottomSheet(visible = visible, onDismiss = { if (!busy) onDismiss() }) {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Text("Passenger's pickup code", style = SType.sheetTitle, color = c.fg)
-            Text("Ask the passenger for the 4-digit code in their Saarthi app or SMS. The ride starts once it is entered.", style = SType.body, color = c.muted)
+            Text(if (delivery) stringResource(R.string.market_handover_customer_delivery_code) else stringResource(R.string.market_handover_passenger_pickup_code), style = SType.sheetTitle, color = c.fg)
+            Text(
+                if (delivery) {
+                    stringResource(R.string.market_handover_ask_customer)
+                } else {
+                    stringResource(R.string.market_handover_ask_passenger)
+                },
+                style = SType.body,
+                color = c.muted,
+            )
             SaarthiField(
                 value = code,
                 onValueChange = { typed -> code = typed.filter(Char::isDigit).take(4) },
-                label = "4-digit code",
+                label = stringResource(R.string.market_handover_code_label),
                 leading = Lucide.key,
                 error = error != null,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
@@ -208,9 +221,21 @@ fun PickupCodeSheet(
                 height = 68.dp,
             )
             error?.let { Text(it, style = SType.small, color = c.danger) }
-            SaarthiButton("Start the ride", onClick = { onStart(code) }, enabled = code.length == 4 && !busy, busy = busy, leading = Lucide.play)
+            SaarthiButton(
+                if (delivery) stringResource(R.string.market_handover_complete_delivery) else stringResource(R.string.market_handover_start_ride),
+                onClick = { onSubmit(code) },
+                enabled = code.length == 4 && !busy,
+                busy = busy,
+                leading = if (delivery) Lucide.check else Lucide.play,
+            )
             if (canOverride) {
-                LinkButton("Passenger can't give it?", onNoCode, Modifier.align(Alignment.CenterHorizontally), style = SType.smallStrong, color = c.warning)
+                LinkButton(
+                    if (delivery) stringResource(R.string.market_handover_customer_cant) else stringResource(R.string.market_handover_passenger_cant),
+                    onNoCode,
+                    Modifier.align(Alignment.CenterHorizontally),
+                    style = SType.smallStrong,
+                    color = c.warning,
+                )
             }
         }
     }

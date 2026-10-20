@@ -19,8 +19,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.saarthi.owner.R
 import com.saarthi.owner.network.CommerceApi
 import com.saarthi.owner.ui.design.ChoiceChip
 import com.saarthi.owner.ui.design.Eyebrow
@@ -178,26 +180,26 @@ fun CommerceDetails(entry: CommerceEntry, text: String, api: CommerceApi, modifi
                     LineIcon(Lucide.sparkles, size = 14.dp, color = c.primary)
                     Eyebrow(
                         when {
-                            entry.failed -> "Choose a category"
-                            direct -> "What is it?"
-                            else -> "Detected"
+                            entry.failed -> stringResource(R.string.market_commerce_choose_category)
+                            direct -> stringResource(R.string.market_commerce_what_is_it)
+                            else -> stringResource(R.string.market_commerce_detected)
                         },
                     )
                 }
                 when {
-                    entry.reading && !entry.read -> Text("Reading what this is…", style = SType.small, color = c.muted)
+                    entry.reading && !entry.read -> Text(stringResource(R.string.market_commerce_reading), style = SType.small, color = c.muted)
                     !direct -> Text(entry.path, style = SType.bodyStrong, color = c.fg)
-                    entry.failed -> Text("Saarthi could not read that just now. Pick the category.", style = SType.small, color = c.muted)
-                    else -> Text("Saarthi could not tell what this is. Pick the closest category.", style = SType.small, color = c.muted)
+                    entry.failed -> Text(stringResource(R.string.market_commerce_read_failed), style = SType.small, color = c.muted)
+                    else -> Text(stringResource(R.string.market_commerce_unknown), style = SType.small, color = c.muted)
                 }
                 if (!direct && entry.confidence == "MEDIUM") {
-                    Text("Is this right? Change it if not.", style = SType.caption, color = c.subtle)
+                    Text(stringResource(R.string.market_commerce_is_this_right), style = SType.caption, color = c.subtle)
                 }
             }
             if (entry.reading) {
                 RingSpinner(track = c.track, head = c.primary, size = 18.dp, stroke = 2.dp)
             } else {
-                LinkButton(if (direct) "Choose" else "Change", onClick = openPicker, style = SType.smallStrong)
+                LinkButton(if (direct) stringResource(R.string.market_commerce_choose) else stringResource(R.string.market_commerce_change), onClick = openPicker, style = SType.smallStrong)
             }
         }
 
@@ -216,7 +218,7 @@ fun CommerceDetails(entry: CommerceEntry, text: String, api: CommerceApi, modifi
             if (showOptional || optional.any { entry.attributes[it.key] != null }) {
                 optional.forEach { field -> AttributeField(field, entry) }
             } else {
-                LinkButton("Add more details (optional)", onClick = { showOptional = true }, style = SType.smallStrong)
+                LinkButton(stringResource(R.string.market_commerce_more_details), onClick = { showOptional = true }, style = SType.smallStrong)
             }
         }
     }
@@ -227,7 +229,8 @@ fun CommerceDetails(entry: CommerceEntry, text: String, api: CommerceApi, modifi
 @Composable
 private fun AttributeField(field: CommerceApi.Field, entry: CommerceEntry) {
     val c = Saarthi.colors
-    val label = listOfNotNull(field.label, field.unit?.let { "($it)" }).joinToString(" ") + if (field.required) "" else " (optional)"
+    val named = listOfNotNull(field.label, field.unit?.let { "($it)" }).joinToString(" ")
+    val label = if (field.required) named else stringResource(R.string.market_commerce_field_optional, named)
     val current = entry.attributes[field.key]
     when (field.type) {
         "SELECT" -> Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {

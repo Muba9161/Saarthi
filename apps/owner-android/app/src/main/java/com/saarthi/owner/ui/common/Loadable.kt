@@ -6,7 +6,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.saarthi.owner.R
 import com.saarthi.owner.network.OwnerApi
 import com.saarthi.owner.ui.design.ButtonTone
 import com.saarthi.owner.ui.design.Lucide
@@ -26,7 +28,7 @@ sealed interface Loadable<out T> {
 /** The words a screen shows for a failed read. */
 fun Throwable.readable(): String = when (this) {
     is OwnerApi.Failure -> message
-    else -> "Something went wrong reading from Saarthi."
+    else -> Words.get(R.string.ui_error_reading)
 }
 
 /** Grey blocks where cards will be, shimmering while they load. */
@@ -52,6 +54,6 @@ fun SkeletonCards(count: Int = 3, modifier: Modifier = Modifier) {
 fun FailedCard(message: String, onRetry: () -> Unit, modifier: Modifier = Modifier) {
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         NoticeCard(message, NoticeTone.WARNING, icon = Lucide.cloudOff)
-        SaarthiButton("Try again", onRetry, tone = ButtonTone.SECONDARY, leading = Lucide.refresh, height = 50.dp)
+        SaarthiButton(stringResource(R.string.ui_try_again), onRetry, tone = ButtonTone.SECONDARY, leading = Lucide.refresh, height = 50.dp)
     }
 }

@@ -19,8 +19,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -29,31 +31,45 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.saarthi.owner.OwnerApp
+import com.saarthi.owner.R
 import com.saarthi.owner.data.SessionStore
+import com.saarthi.owner.network.SharingApi
 import com.saarthi.owner.network.TripsApi
 import com.saarthi.owner.network.VehiclesApi
 import com.saarthi.owner.ui.common.DetailScreen
+import com.saarthi.owner.ui.costs.CostAccess
+import com.saarthi.owner.ui.costs.RunningCostsCard
+import com.saarthi.owner.ui.costs.RunningCostsScreen
+import com.saarthi.owner.ui.common.FigureRow
+import com.saarthi.owner.ui.common.FigureTile
+import com.saarthi.owner.ui.common.Words
 import com.saarthi.owner.ui.common.ago
 import com.saarthi.owner.ui.common.clockOf
 import com.saarthi.owner.ui.common.dial
 import com.saarthi.owner.ui.common.formatPlate
+import com.saarthi.owner.ui.common.isNow
 import com.saarthi.owner.ui.common.km
-import com.saarthi.owner.ui.common.plural
+import com.saarthi.owner.ui.common.readable
 import com.saarthi.owner.ui.common.shortCount
 import com.saarthi.owner.ui.common.rememberPhoto
 import com.saarthi.owner.ui.common.vehiclePhotoOf
 import com.saarthi.owner.ui.design.Brand
+import com.saarthi.owner.ui.design.ButtonTone
 import com.saarthi.owner.ui.design.CircleButton
 import com.saarthi.owner.ui.design.Eyebrow
 import com.saarthi.owner.ui.design.IconWell
 import com.saarthi.owner.ui.design.LineIcon
 import com.saarthi.owner.ui.design.Lucide
+import com.saarthi.owner.ui.design.NoticeCard
+import com.saarthi.owner.ui.design.NoticeTone
 import com.saarthi.owner.ui.design.SType
 import com.saarthi.owner.ui.design.Saarthi
 import com.saarthi.owner.ui.design.SaarthiButton
@@ -67,9 +83,18 @@ import com.saarthi.owner.ui.design.stagger
 import com.saarthi.owner.ui.papers.PapersStanding
 import com.saarthi.owner.ui.papers.VehiclePapersScreen
 import com.saarthi.owner.ui.papers.standing
+import com.saarthi.owner.ui.sharing.SharingScreen
 import com.saarthi.owner.ui.shell.LocalNavigator
 import com.saarthi.owner.ui.trips.VehicleTripsCard
+import com.saarthi.owner.ui.trips.NewTripScreen
+import com.saarthi.owner.ui.trips.TripScreen
 import com.saarthi.owner.ui.trips.VehicleTripsScreen
+import com.saarthi.owner.ui.tracking.Readings
+import com.saarthi.owner.ui.tracking.ReadingsCard
+import com.saarthi.owner.ui.tracking.attempt
+import com.saarthi.owner.ui.tracking.readings
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 
 private const val REFRESH_MS = 15_000L
@@ -84,16 +109,23 @@ fun VehicleScreen(app: OwnerApp, account: SessionStore.Account, initial: Vehicle
     var trip by remember { mutableStateOf<TripsApi.Trip?>(null) }
     val navigator = LocalNavigator.current
     val context = LocalContext.current
-    val c = Saarthi.colors
+    val scope = rememberCoroutineScope()
+    var reload by remember { mutableIntStateOf(0) }
+    var assigning by remember { mutableStateOf(false) }
+    var driverBusy by remember { mutableStateOf(false) }
+    var driverNotice by remember { mutableStateOf<Pair<String, NoticeTone>?>(null) }
 
     // The papers' standing, from the wallet so register dates count as much as
     // scans. Null until read; the card falls back to the upload counts until then.
     var papers by remember { mutableStateOf<PapersStanding?>(null) }
+    // What it measured last; none without a reading the plan shows.
+    var readings by remember { mutableStateOf<Readings?>(null) }
 
-    LaunchedEffect(initial.id) {
+    LaunchedEffect(initial.id, reload) {
         while (true) {
             runCatching { app.vehicles.get(initial.id) }.getOrNull()?.let { vehicle = it }
             trip = vehicle.currentTripId?.let { id -> runCatching { app.trips.get(id) }.getOrNull() }
+            readings = attempt { app.vehicles.reading(initial.id) }?.readings()?.takeIf { it.any }
             delay(REFRESH_MS)
         }
     }
@@ -104,41 +136,60 @@ fun VehicleScreen(app: OwnerApp, account: SessionStore.Account, initial: Vehicle
     val phone = trip?.driver?.phone
     val driverName = vehicle.currentDriver?.name?.ifBlank { null } ?: trip?.driver?.name?.ifBlank { null }
     val openMap = {
-        navigator.push("vehicle-map-${vehicle.id}") { VehicleLiveScreen(app, vehicle, trip) }
+        navigator.push("vehicle-map-${vehicle.id}") { VehicleLiveScreen(app, vehicle.id) }
     }
 
     DetailScreen(
         eyebrow = listOfNotNull(
             vehicle.categoryLabel?.ifBlank { null } ?: vehicle.typeLabel.ifBlank { null },
-            vehicle.capacityTons?.let { "${it.toInt()} t" },
+            vehicle.capacityTons?.let { stringResource(R.string.fleet_tonnes, it.toInt().toString()) },
             driverName,
         ).joinToString(" · "),
-        title = "Vehicle",
+        title = stringResource(R.string.fleet_vehicle_title),
         footer = {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (phone != null) {
-                    CircleButton(Lucide.phone, "Call $driverName", { context.dial(phone) }, size = 56.dp, iconSize = 20.dp)
+                    CircleButton(Lucide.phone, stringResource(R.string.fleet_vehicle_call, driverName.orEmpty()), { context.dial(phone) }, size = 56.dp, iconSize = 20.dp)
                 }
-                SaarthiButton("Follow on map", onClick = openMap, leading = Lucide.map, modifier = Modifier.weight(1f))
+                SaarthiButton(stringResource(R.string.fleet_vehicle_follow_map), onClick = openMap, leading = Lucide.map, modifier = Modifier.weight(1f))
             }
         },
     ) {
         TrackingPanel(vehicle, onLiveView = openMap, modifier = Modifier.rise())
 
-        Row(Modifier.fillMaxWidth().rise(stagger(1)), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            val moving = vehicle.motion() == VehiclesApi.Motion.MOVING
-            Figure("Speed", if (moving) "${(vehicle.lastLocation?.speedKph ?: 0.0).toInt()}" else "0", "km/h", Modifier.weight(1f))
-            val seen = vehicle.lastLocation?.recordedAt?.let { ago(it) }
-            Figure("Seen", seen ?: "—", if (seen == null || seen == "now") "" else "ago", Modifier.weight(1f))
-            Figure("Odometer", vehicle.odometerKm?.let(::shortCount) ?: "—", "km", Modifier.weight(1f))
-        }
+        MotionFigures(vehicle, Modifier.rise(stagger(1)))
+        readings?.let { ReadingsCard(it, Modifier.rise(stagger(1))) }
 
-        trip?.let { TripCard(it, Modifier.rise(stagger(2))) }
+        trip?.let { current ->
+            TripCard(
+                current,
+                Modifier
+                    .rise(stagger(2))
+                    .pressable(scale = 0.98f, label = stringResource(R.string.fleet_vehicle_open_trip)) { navigator.push("trip-${current.id}") { TripScreen(app, current) } },
+            )
+        }
 
         VehicleTripsCard(
             onOpen = { navigator.push("vehicle-trips-${vehicle.id}") { VehicleTripsScreen(app, vehicle) } },
             modifier = Modifier.rise(stagger(3)),
         )
+
+        if (account.can(TripsApi.CAN_MANAGE) && vehicle.freeForWork) {
+            SaarthiButton(
+                stringResource(R.string.fleet_vehicle_new_trip),
+                onClick = {
+                    navigator.push("new-trip-${vehicle.id}") {
+                        NewTripScreen(app, account, vehicle) { created ->
+                            reload++
+                            navigator.replace("trip-${created.id}") { TripScreen(app, created) }
+                        }
+                    }
+                },
+                tone = ButtonTone.SECONDARY,
+                leading = Lucide.plus,
+                modifier = Modifier.rise(stagger(3)),
+            )
+        }
 
         PapersCard(
             vehicle.documentHealth,
@@ -147,36 +198,115 @@ fun VehicleScreen(app: OwnerApp, account: SessionStore.Account, initial: Vehicle
             modifier = Modifier.rise(stagger(3)),
         )
 
-        if (driverName != null) {
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .rise(stagger(4))
-                    .card(radius = 22.dp)
-                    .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
-            ) {
-                com.saarthi.owner.ui.design.Avatar(driverName, size = 44.dp, background = c.primarySoft, ink = c.primary)
-                Column(Modifier.weight(1f)) {
-                    Eyebrow("Driving")
-                    Text(driverName, style = SType.rowTitle, color = c.fg, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                }
-            }
+        RunningCostsCard(
+            remember(account) { CostAccess(account) },
+            onOpen = { navigator.push("costs-${vehicle.id}") { RunningCostsScreen(app, account, vehicle) } },
+            modifier = Modifier.rise(stagger(3)),
+        )
+
+        // Personal and Business plans share; the server checks both the plan and the right to edit vehicles.
+        if (account.can(SharingApi.CAN_SHARE) && account.hasFeature(SharingApi.FEATURE)) {
+            SharingCard(
+                onOpen = { navigator.push("sharing-${vehicle.id}") { SharingScreen(app, vehicle) } },
+                modifier = Modifier.rise(stagger(3)),
+            )
         }
+
+        DriverCard(
+            driverName = vehicle.currentDriver?.name?.ifBlank { null },
+            canAssign = account.can(VehiclesApi.CAN_ASSIGN_DRIVER),
+            busy = driverBusy,
+            onAssign = { assigning = true },
+            onRemove = {
+                driverBusy = true
+                driverNotice = null
+                scope.launch {
+                    driverNotice = try {
+                        app.vehicles.unassignDriver(vehicle.id)
+                        reload++
+                        Words.get(R.string.fleet_vehicle_driver_removed) to NoticeTone.SUCCESS
+                    } catch (failure: Exception) {
+                        if (failure is CancellationException) throw failure
+                        failure.readable() to NoticeTone.DANGER
+                    } finally {
+                        driverBusy = false
+                    }
+                }
+            },
+            modifier = Modifier.rise(stagger(4)),
+        )
+        driverNotice?.let { (text, tone) -> NoticeCard(text, tone) }
+    }
+
+    // Beside the page, not in it, so it rises over the whole screen.
+    AssignDriverSheet(
+        app,
+        account,
+        vehicle,
+        visible = assigning,
+        onDismiss = { assigning = false },
+        onAssigned = { who ->
+            assigning = false
+            // "You" is the sheet's word for the owner themself; an empty name, a driver it could not name.
+            driverNotice = when {
+                who == "You" -> Words.get(R.string.fleet_vehicle_assigned_you)
+                who.isEmpty() -> Words.get(R.string.fleet_vehicle_assigned_driver)
+                else -> Words.get(R.string.fleet_vehicle_assigned_named, who)
+            } to NoticeTone.SUCCESS
+            reload++
+        },
+    )
+}
+
+/** The way from a vehicle to who it is shared with. */
+@Composable
+private fun SharingCard(onOpen: () -> Unit, modifier: Modifier = Modifier) {
+    val c = Saarthi.colors
+    Row(
+        modifier
+            .fillMaxWidth()
+            .card(radius = 22.dp)
+            .pressable(scale = 0.99f, label = stringResource(R.string.fleet_vehicle_open_sharing), onClick = onOpen)
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        IconWell(Lucide.users, well = c.successSoft, ink = c.success, size = 40.dp, radius = 12.dp, iconSize = 18.dp)
+        Column(Modifier.weight(1f)) {
+            Eyebrow(stringResource(R.string.fleet_vehicle_sharing))
+            Text(stringResource(R.string.fleet_vehicle_share_up_to, SharingApi.MAX_SHARES), style = SType.rowTitle, color = c.fg)
+        }
+        LineIcon(Lucide.chevronRight, size = 18.dp, color = c.subtle)
     }
 }
 
+/** How fast it is going, when it last reported, and how far it has run — the owner's and a shared person's alike. */
+@Composable
+internal fun MotionFigures(vehicle: VehiclesApi.Vehicle, modifier: Modifier = Modifier) {
+    FigureRow(modifier) {
+        val moving = vehicle.motion() == VehiclesApi.Motion.MOVING
+        FigureTile(stringResource(R.string.fleet_vehicle_speed), if (moving) "${(vehicle.lastLocation?.speedKph ?: 0.0).toInt()}" else "0", stringResource(R.string.fleet_vehicle_kmh), Modifier.weight(1f))
+        val seenAt = vehicle.lastLocation?.recordedAt
+        val seen = seenAt?.let { ago(it) }
+        FigureTile(stringResource(R.string.fleet_vehicle_seen), seen ?: "—", if (seen == null || isNow(seenAt)) "" else stringResource(R.string.fleet_vehicle_ago), Modifier.weight(1f))
+        FigureTile(stringResource(R.string.fleet_vehicle_odometer), vehicle.odometerKm?.let(::odometerShort) ?: "—", stringResource(R.string.fleet_vehicle_km), Modifier.weight(1f))
+    }
+}
+
+/** An odometer that fits a third of the screen: "84.5k", "290k", "9,820". */
+private fun odometerShort(km: Double): String =
+    if (km in 10_000.0..<100_000.0) Words.get(R.string.ui_count_thousands, "%.1f".format(km / 1_000).removeSuffix(".0")) else shortCount(km)
+
 /** The brand panel: the plate as the headline, what it is doing, and the way to the map. */
 @Composable
-private fun TrackingPanel(vehicle: VehiclesApi.Vehicle, onLiveView: () -> Unit, modifier: Modifier = Modifier) {
+internal fun TrackingPanel(vehicle: VehiclesApi.Vehicle, onLiveView: () -> Unit, modifier: Modifier = Modifier) {
     val shape = RoundedCornerShape(28.dp)
     val photo = vehiclePhotoOf(vehicle.artType)
     val (word, dot) = when (vehicle.motion()) {
-        VehiclesApi.Motion.MOVING -> (if (vehicle.currentTripId != null) "In transit" else "Moving") to Brand.live
-        VehiclesApi.Motion.IDLE -> "Stopped" to Color(0xFFF2952C)
-        VehiclesApi.Motion.OFFLINE -> "Not reporting" to Color(0xFF9F9FA8)
-        VehiclesApi.Motion.SERVICE -> "In service" to Color(0xFFF2952C)
+        VehiclesApi.Motion.MOVING -> stringResource(if (vehicle.currentTripId != null) R.string.fleet_vehicle_in_transit else R.string.fleet_vehicle_moving) to Brand.live
+        VehiclesApi.Motion.IDLE -> stringResource(R.string.fleet_vehicle_stopped) to Color(0xFFF2952C)
+        VehiclesApi.Motion.OFFLINE -> stringResource(R.string.fleet_vehicle_not_reporting) to Color(0xFF9F9FA8)
+        VehiclesApi.Motion.SERVICE -> stringResource(R.string.fleet_vehicle_in_service) to Color(0xFFF2952C)
     }
     Box(
         modifier
@@ -200,7 +330,7 @@ private fun TrackingPanel(vehicle: VehiclesApi.Vehicle, onLiveView: () -> Unit, 
         }
         Column(Modifier.fillMaxSize().padding(22.dp), verticalArrangement = Arrangement.SpaceBetween) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Eyebrow("Current tracking", Modifier.weight(1f), color = Color.White.copy(alpha = 0.72f))
+                Eyebrow(stringResource(R.string.fleet_vehicle_current_tracking), Modifier.weight(1f), color = Color.White.copy(alpha = 0.72f))
                 StatusPill(
                     word,
                     background = Color.White.copy(alpha = 0.14f),
@@ -227,25 +357,8 @@ private fun TrackingPanel(vehicle: VehiclesApi.Vehicle, onLiveView: () -> Unit, 
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 LineIcon(Lucide.map, size = 18.dp, color = Brand.navy)
-                Text("Live view", style = SType.bodyStrong, color = Brand.navy)
+                Text(stringResource(R.string.fleet_vehicle_live_view), style = SType.bodyStrong, color = Brand.navy)
             }
-        }
-    }
-}
-
-@Composable
-private fun Figure(label: String, value: String, unit: String, modifier: Modifier = Modifier) {
-    val c = Saarthi.colors
-    Column(
-        modifier
-            .card(radius = 18.dp)
-            .padding(14.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        Eyebrow(label, maxLines = 1)
-        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-            Text(value, style = SType.headerTitle.copy(fontSize = 18.sp), color = c.fg, maxLines = 1)
-            if (unit.isNotEmpty()) Text(unit, style = SType.caption, color = c.muted, modifier = Modifier.padding(bottom = 2.dp))
         }
     }
 }
@@ -256,9 +369,9 @@ private fun TripCard(trip: TripsApi.Trip, modifier: Modifier = Modifier) {
     val c = Saarthi.colors
     SaarthiCard(modifier = modifier.fillMaxWidth(), padding = androidx.compose.foundation.layout.PaddingValues(18.dp), spacing = 14.dp) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Current trip", style = SType.cardTitle, color = c.fg, modifier = Modifier.weight(1f))
+            Text(stringResource(R.string.fleet_vehicle_current_trip), style = SType.cardTitle, color = c.fg, modifier = Modifier.weight(1f))
             StatusPill(
-                if (trip.late) "${trip.delayMinutes} min late" else "On time",
+                if (trip.late) stringResource(R.string.fleet_vehicle_min_late, trip.delayMinutes) else stringResource(R.string.fleet_vehicle_on_time),
                 background = if (trip.late) c.warningBg else c.successBg,
                 ink = if (trip.late) c.warning else c.success,
                 dot = false,
@@ -266,9 +379,9 @@ private fun TripCard(trip: TripsApi.Trip, modifier: Modifier = Modifier) {
         }
         RouteStops(
             from = trip.originAddress,
-            fromNote = clockOf(trip.actualStartAt)?.let { "Left $it" },
+            fromNote = clockOf(trip.actualStartAt)?.let { stringResource(R.string.fleet_vehicle_left_at, it) },
             to = trip.destinationAddress,
-            toNote = trip.remainingKm?.let { "${km(it)} to go" },
+            toNote = trip.remainingKm?.let { km(it) }?.let { stringResource(R.string.fleet_vehicle_to_go, it) },
             eta = clockOf(trip.etaAt ?: trip.plannedArrivalAt),
         )
         Box(
@@ -320,12 +433,12 @@ fun RouteStops(from: String, fromNote: String?, to: String, toNote: String?, eta
         }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Column {
-                Text(from.ifBlank { "Start" }, style = SType.rowTitle, color = c.fg, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(from.ifBlank { stringResource(R.string.fleet_route_start) }, style = SType.rowTitle, color = c.fg, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 fromNote?.let { Text(it, style = SType.caption, color = c.muted) }
             }
             Row(verticalAlignment = Alignment.Bottom) {
                 Column(Modifier.weight(1f)) {
-                    Text(to.ifBlank { "Destination" }, style = SType.rowTitle, color = c.fg, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    Text(to.ifBlank { stringResource(R.string.fleet_route_destination) }, style = SType.rowTitle, color = c.fg, maxLines = 2, overflow = TextOverflow.Ellipsis)
                     toNote?.let { Text(it, style = SType.caption, color = c.muted) }
                 }
                 // A clock reads large; once it carries a date ("31 Aug, 18:12") it
@@ -355,28 +468,28 @@ private fun PapersCard(
     val c = Saarthi.colors
     val look = when {
         standing != null -> when {
-            standing.expired > 0 -> PapersLook(Lucide.alertTriangle, c.dangerSoft, c.danger, "${plural(standing.expired, "paper")} expired or turned down")
-            standing.attention > 0 -> PapersLook(Lucide.fileText, c.warningSoft, c.warning, "${plural(standing.attention, "paper")} due soon")
-            standing.onFile > 0 -> PapersLook(Lucide.check, c.successSoft, c.success, "${plural(standing.onFile, "paper")} on file, all in order")
-            else -> PapersLook(Lucide.fileText, c.sunken, c.muted, "No papers on file yet")
+            standing.expired > 0 -> PapersLook(Lucide.alertTriangle, c.dangerSoft, c.danger, pluralStringResource(R.plurals.fleet_vehicle_papers_expired_or_declined, standing.expired, standing.expired))
+            standing.attention > 0 -> PapersLook(Lucide.fileText, c.warningSoft, c.warning, pluralStringResource(R.plurals.fleet_vehicle_papers_due_soon, standing.attention, standing.attention))
+            standing.onFile > 0 -> PapersLook(Lucide.check, c.successSoft, c.success, pluralStringResource(R.plurals.fleet_vehicle_papers_in_order, standing.onFile, standing.onFile))
+            else -> PapersLook(Lucide.fileText, c.sunken, c.muted, stringResource(R.string.fleet_vehicle_no_papers))
         }
-        health.expired > 0 -> PapersLook(Lucide.alertTriangle, c.dangerSoft, c.danger, "${plural(health.expired, "paper")} expired")
-        health.expiringSoon > 0 -> PapersLook(Lucide.fileText, c.warningSoft, c.warning, "${plural(health.expiringSoon, "paper")} due soon")
-        health.total > 0 -> PapersLook(Lucide.check, c.successSoft, c.success, "All ${health.total} papers valid")
-        else -> PapersLook(Lucide.fileText, c.sunken, c.muted, "No papers on file yet")
+        health.expired > 0 -> PapersLook(Lucide.alertTriangle, c.dangerSoft, c.danger, pluralStringResource(R.plurals.fleet_papers_expired, health.expired, health.expired))
+        health.expiringSoon > 0 -> PapersLook(Lucide.fileText, c.warningSoft, c.warning, pluralStringResource(R.plurals.fleet_vehicle_papers_due_soon, health.expiringSoon, health.expiringSoon))
+        health.total > 0 -> PapersLook(Lucide.check, c.successSoft, c.success, pluralStringResource(R.plurals.fleet_vehicle_all_papers_valid, health.total, health.total))
+        else -> PapersLook(Lucide.fileText, c.sunken, c.muted, stringResource(R.string.fleet_vehicle_no_papers))
     }
     Row(
         modifier
             .fillMaxWidth()
             .card(radius = 22.dp)
-            .pressable(scale = 0.99f, label = "Open papers", onClick = onOpen)
+            .pressable(scale = 0.99f, label = stringResource(R.string.fleet_vehicle_open_papers), onClick = onOpen)
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         IconWell(look.icon, well = look.well, ink = look.ink, size = 40.dp, radius = 12.dp, iconSize = 18.dp)
         Column(Modifier.weight(1f)) {
-            Eyebrow("Papers")
+            Eyebrow(stringResource(R.string.fleet_vehicle_papers))
             Text(look.line, style = SType.rowTitle, color = c.fg)
         }
         LineIcon(Lucide.chevronRight, size = 18.dp, color = c.subtle)

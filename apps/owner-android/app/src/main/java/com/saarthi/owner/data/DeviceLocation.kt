@@ -11,6 +11,8 @@ import android.os.CancellationSignal
 import android.os.SystemClock
 import androidx.core.content.ContextCompat
 import androidx.core.location.LocationManagerCompat
+import com.saarthi.owner.R
+import com.saarthi.owner.ui.common.Words
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.coroutines.resume
@@ -36,10 +38,10 @@ object DeviceLocation {
     suspend fun current(context: Context): Location {
         val manager = context.getSystemService(LocationManager::class.java)
         if (manager == null || !LocationManagerCompat.isLocationEnabled(manager)) {
-            throw Unavailable("Your phone's location is off. Turn it on, or search for the place instead.")
+            throw Unavailable(Words.get(R.string.net_location_off))
         }
         val provider = provider(context, manager)
-            ?: throw Unavailable("Your phone's location is off. Turn it on, or search for the place instead.")
+            ?: throw Unavailable(Words.get(R.string.net_location_off))
 
         val fresh = withTimeoutOrNull(FIX_TIMEOUT_MS) {
             suspendCancellableCoroutine { waiting ->
@@ -52,7 +54,7 @@ object DeviceLocation {
         }
         // Indoors a new fix can take too long; a few minutes' old one still names the right street.
         return fresh ?: lastKnown(manager)
-            ?: throw Unavailable("Couldn't find where you are. Try near a window, or search for the place instead.")
+            ?: throw Unavailable(Words.get(R.string.net_location_not_found))
     }
 
     /** The phone's blended source where it has one; otherwise whatever answers fastest. */

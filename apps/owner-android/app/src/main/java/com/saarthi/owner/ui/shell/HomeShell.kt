@@ -1,6 +1,11 @@
 package com.saarthi.owner.ui.shell
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
@@ -26,7 +31,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
@@ -34,6 +42,7 @@ import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import com.saarthi.owner.OwnerApp
 import com.saarthi.owner.data.SessionStore
 import com.saarthi.owner.network.AlertsApi
+import com.saarthi.owner.push.Push
 import com.saarthi.owner.ui.alerts.AlertTarget
 import com.saarthi.owner.ui.alerts.AlertsScreen
 import com.saarthi.owner.ui.alerts.resolveAlertLink
@@ -74,18 +83,40 @@ fun HomeShell(app: OwnerApp, account: SessionStore.Account, onSignOut: () -> Uni
     val c = Saarthi.colors
 
     val scope = rememberCoroutineScope()
-    val followAlert: (AlertsApi.Alert) -> Unit = { alert ->
-        alert.actionUrl?.let { link ->
-            scope.launch {
-                when (val target = resolveAlertLink(app, account, link)) {
-                    is AlertTarget.Tab -> {
-                        navigator.popAll()
-                        current = target.key
-                    }
-                    is AlertTarget.Screen -> navigator.push(target.key, target.content)
-                    null -> Unit
+    /** Open what an alert or a tapped push is about: a tab, or a screen over it. */
+    val followLink: (String) -> Unit = { link ->
+        scope.launch {
+            when (val target = resolveAlertLink(app, account, link)) {
+                is AlertTarget.Tab -> {
+                    navigator.popAll()
+                    current = target.key
                 }
+                is AlertTarget.Screen -> navigator.push(target.key, target.content)
+                null -> Unit
             }
+        }
+    }
+    val followAlert: (AlertsApi.Alert) -> Unit = { alert -> alert.actionUrl?.let(followLink) }
+
+    // Push: this phone gets this person's news while signed in, and a tapped
+    // notification opens what it is about.
+    val context = LocalContext.current
+    val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
+    LaunchedEffect(account.userId) {
+        if (!Push.enabled) return@LaunchedEffect
+        runCatching { Push.register(app.api) }
+        val missing = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        if (missing && !app.preferences.notificationsAsked) {
+            app.preferences.notificationsAsked = true
+            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
+    val pendingLink by Push.pendingLink.collectAsStateWithLifecycle()
+    LaunchedEffect(pendingLink) {
+        pendingLink?.let { link ->
+            Push.consumeLink()
+            followLink(link)
         }
     }
     val openAlerts = {

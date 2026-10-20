@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
@@ -79,13 +80,13 @@ fun SellerLoadingScreen(app: OwnerApp) {
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 if (coming.isEmpty() && rest.isEmpty()) {
-                    item { Text("When a fleet buys from you, its order shows up here.", style = SType.small, color = c.muted) }
+                    item { Text(stringResource(R.string.market_seller_loading_empty), style = SType.small, color = c.muted) }
                 }
-                if (coming.isNotEmpty()) item { GroupLabel("Coming to load") }
+                if (coming.isNotEmpty()) item { GroupLabel(stringResource(R.string.market_seller_coming_to_load)) }
                 items(coming, key = { it.order.id }) { seller ->
                     LoadRow(seller) { navigator.push("load-${seller.order.id}") { SellerOrderScreen(app, seller) { model.refresh(silent = true) } } }
                 }
-                if (rest.isNotEmpty()) item { GroupLabel("Other orders") }
+                if (rest.isNotEmpty()) item { GroupLabel(stringResource(R.string.market_seller_other_orders)) }
                 items(rest, key = { it.order.id }) { seller ->
                     LoadRow(seller) { navigator.push("load-${seller.order.id}") { SellerOrderScreen(app, seller) { model.refresh(silent = true) } } }
                 }
@@ -106,8 +107,8 @@ fun SellerOrderScreen(app: OwnerApp, seller: SellerOrder, onChanged: () -> Unit)
     val order = seller.order
     val look = orderStatusLook(order.status)
     DetailScreen(
-        eyebrow = listOfNotNull("Order ${order.reference}", order.fleetName).joinToString(" · "),
-        title = "Load the truck",
+        eyebrow = listOfNotNull(stringResource(R.string.market_order_eyebrow, order.reference), order.fleetName).joinToString(" · "),
+        title = stringResource(R.string.market_seller_load_title),
     ) {
         Box(
             Modifier
@@ -123,17 +124,20 @@ fun SellerOrderScreen(app: OwnerApp, seller: SellerOrder, onChanged: () -> Unit)
             }
             Column(Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.SpaceBetween) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Eyebrow(if (order.status == "PICKUP") "At your gate" else "Collecting", Modifier.weight(1f), color = Color.White.copy(alpha = 0.75f))
+                    Eyebrow(if (order.status == "PICKUP") stringResource(R.string.market_seller_load_at_gate) else stringResource(R.string.market_seller_load_collecting), Modifier.weight(1f), color = Color.White.copy(alpha = 0.75f))
                     StatusPill(look.word, background = Color.White.copy(alpha = 0.14f), ink = Color.White, ring = Color.White.copy(alpha = 0.2f))
                 }
                 Text(
-                    order.assignedTruck?.registrationNumber?.let(::formatPlate) ?: "Truck to be named",
+                    order.assignedTruck?.registrationNumber?.let(::formatPlate) ?: stringResource(R.string.market_seller_load_truck_unnamed),
                     style = SType.plate(30.sp, 0.03.em),
                     color = Color.White,
                     maxLines = 1,
                 )
                 Text(
-                    listOfNotNull(order.assignedDriver?.name?.let { "Driver $it" }, clockOf(order.pickupAt)?.let { "due $it" }).joinToString(" · "),
+                    listOfNotNull(
+                        order.assignedDriver?.name?.let { stringResource(R.string.market_seller_load_driver, it) },
+                        clockOf(order.pickupAt)?.let { stringResource(R.string.market_seller_load_due, it) },
+                    ).joinToString(" · "),
                     style = SType.small,
                     color = Color.White.copy(alpha = 0.8f),
                 )
@@ -141,39 +145,39 @@ fun SellerOrderScreen(app: OwnerApp, seller: SellerOrder, onChanged: () -> Unit)
         }
 
         Column(Modifier.fillMaxWidth().rise(stagger(1)).card(radius = 22.dp)) {
-            val fleet = order.fleetName ?: "the fleet"
+            val fleet = order.fleetName
             Check(
                 done = seller.paid || seller.outsideApp,
                 title = when {
-                    seller.paid -> "Paid by $fleet"
-                    seller.outsideApp -> "Sold to $fleet"
-                    else -> "Waiting for $fleet to pay"
+                    seller.paid -> if (fleet != null) stringResource(R.string.market_seller_load_paid_by, fleet) else stringResource(R.string.market_seller_load_paid_by_unnamed)
+                    seller.outsideApp -> if (fleet != null) stringResource(R.string.market_seller_load_sold_to, fleet) else stringResource(R.string.market_seller_load_sold_to_unnamed)
+                    else -> if (fleet != null) stringResource(R.string.market_seller_load_waiting_pay, fleet) else stringResource(R.string.market_seller_load_waiting_pay_unnamed)
                 },
                 note = listOfNotNull(
                     seller.amount?.let(::rupees),
                     when {
                         seller.paid -> null
-                        seller.outsideApp -> "not paid through Saarthi"
-                        else -> "load only once it is paid"
+                        seller.outsideApp -> stringResource(R.string.market_seller_load_not_through_saarthi)
+                        else -> stringResource(R.string.market_seller_load_once_paid)
                     },
                 ).joinToString(" · "),
                 divider = true,
             )
             Check(
                 done = order.assignedTruck != null,
-                title = order.assignedTruck?.let { "Truck ${formatPlate(it.registrationNumber)} is collecting" } ?: "The fleet names its truck",
-                note = "Check the plate matches before loading",
+                title = order.assignedTruck?.let { stringResource(R.string.market_seller_load_truck_collecting, formatPlate(it.registrationNumber)) } ?: stringResource(R.string.market_seller_load_fleet_names_truck),
+                note = stringResource(R.string.market_seller_load_check_plate),
                 divider = true,
             )
             Check(
                 done = order.status in setOf("IN_TRANSIT", "DELIVERED", "COMPLETED"),
-                title = "Load ${order.what}",
-                note = order.originAddress?.let { "At $it" },
+                title = stringResource(R.string.market_seller_load_what, order.what),
+                note = order.originAddress?.let { stringResource(R.string.market_seller_load_at, it) },
                 divider = false,
             )
         }
         Text(
-            "${order.fleetName ?: "The fleet"} handles the delivery from here.",
+            order.fleetName?.let { stringResource(R.string.market_seller_load_fleet_delivers, it) } ?: stringResource(R.string.market_seller_load_fleet_delivers_unnamed),
             style = SType.caption,
             color = c.subtle,
         )

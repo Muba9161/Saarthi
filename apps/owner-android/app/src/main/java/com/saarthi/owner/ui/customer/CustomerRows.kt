@@ -13,11 +13,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.saarthi.owner.R
 import com.saarthi.owner.network.OrdersApi
 import com.saarthi.owner.network.RequirementsApi
-import com.saarthi.owner.ui.common.plural
 import com.saarthi.owner.ui.common.rupees
 import com.saarthi.owner.ui.design.IconWell
 import com.saarthi.owner.ui.design.LineIcon
@@ -48,10 +50,10 @@ fun RequestRow(request: RequirementsApi.Requirement, modifier: Modifier = Modifi
     val hasBids = request.bidCount > 0
     // A closed request says how it ended; an open one, how many bids it has.
     val ended = when (request.status) {
-        "CANCELLED" -> "Cancelled"
-        "EXPIRED" -> "No bids taken"
-        "AWARDED", "PARTIALLY_AWARDED" -> "Awarded"
-        "FULFILLED" -> "Done"
+        "CANCELLED" -> stringResource(R.string.customer_status_cancelled)
+        "EXPIRED" -> stringResource(R.string.customer_request_no_bids_taken)
+        "AWARDED", "PARTIALLY_AWARDED" -> stringResource(R.string.customer_request_awarded)
+        "FULFILLED" -> stringResource(R.string.customer_request_done)
         else -> null
     }
     Row(
@@ -74,7 +76,7 @@ fun RequestRow(request: RequirementsApi.Requirement, modifier: Modifier = Modifi
                         .padding(horizontal = 8.dp, vertical = 2.dp),
                 ) {
                     Text(
-                        ended ?: if (hasBids) plural(request.bidCount, "bid") else "Waiting",
+                        ended ?: if (hasBids) pluralStringResource(R.plurals.customer_bids, request.bidCount, request.bidCount) else stringResource(R.string.customer_request_waiting),
                         style = SType.captionStrong,
                         color = if (hasBids && ended == null) c.primary else c.muted,
                     )
@@ -83,7 +85,7 @@ fun RequestRow(request: RequirementsApi.Requirement, modifier: Modifier = Modifi
             Text(
                 listOfNotNull(
                     request.destinationAddress?.substringBefore(',') ?: request.originAddress.substringBefore(','),
-                    request.lowestBid?.let { "from ${rupees(it)}" },
+                    request.lowestBid?.let { stringResource(R.string.customer_from_price, rupees(it)) },
                 ).joinToString(" · "),
                 style = SType.caption,
                 color = c.muted,

@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Brand: who the app is for, under the logo on the splash and welcome screens. -->
+    <string name="ui_app_for">मालकें ते कारोबारें आस्तै</string>
+
+    <!-- Small numbers on a tile: 366k, 1.2M. -->
+    <string name="ui_count_thousands">%1$sk</string>
+    <string name="ui_count_millions">%1$sM</string>
+
+    <!-- Shared: a failed read, and lists read a page at a time. -->
+    <string name="ui_error_reading">Saarthi थमां जानकारी लैंदे बेलै किश गड़बड़ होई गेई.</string>
+    <string name="ui_try_again">फ्ही कोशश करो</string>
+    <string name="ui_show_more">होर दस्सो</string>
+    <string name="ui_loading">लोड होआ करदा ऐ…</string>
+
+    <!-- Header over every tab: the bell and the assistant. -->
+    <string name="ui_alerts">अलर्ट</string>
+    <plurals name="ui_alerts_unread">
+        <item quantity="one">अलर्ट, %d नमां</item>
+        <item quantity="other">अलर्ट, %d नमें</item>
+    </plurals>
+    <string name="ui_ask_saarthi">Saarthi शा पुच्छो</string>
+
+    <!-- Day field. -->
+    <string name="ui_day_choose">चुनो</string>
+
+    <!-- Language list: the row that follows the phone. -->
+    <string name="ui_language_phone_default">फ़ोन दी भाशा</string>
+    <string name="ui_language_follows_phone">फ़ोन दी भाशा मताबक</string>
+
+    <!-- Place field and place search. -->
+    <string name="ui_place_search_address">पता लब्भो</string>
+    <string name="ui_place_choose">जगह चुनो</string>
+    <string name="ui_place_query_placeholder">इलाका, लैंडमार्क जां पता</string>
+    <string name="ui_place_nothing_found">किश नेईं लब्भा. नेड़ै दा कोई लैंडमार्क जां इलाके दा नां अजमाओ.</string>
+    <string name="ui_place_type_three">घट्टो-घट्ट त्रै अक्खर लिखो.</string>
+
+    <!-- Use my current location. -->
+    <string name="ui_location_use_current">मेरी मौजूदा लोकेशन बरतो</string>
+    <string name="ui_location_finding">तुंदी जगह लब्भा करदे आं…</string>
+    <string name="ui_location_fills_in">जित्थै तुस खड़ोते दे ओ, ओह् जगह भरी दिंदा ऐ</string>
+    <string name="ui_location_settings">सेटिंग</string>
+    <string name="ui_location_error_no_street">तुस जिस सड़का पर ओ, उसदा नां नेईं लब्भी सकेआ. इसदी बजाए जगह लब्भो.</string>
+    <string name="ui_location_error_lookup">इत्थै दा पता नेईं लब्भी सकेआ. इंटरनेट दिक्खो ते फ्ही कोशश करो, जां इसदी बजाए जगह लब्भो.</string>
+    <string name="ui_location_error_allow">अपनी मौजूदा जगह बरतने आस्तै लोकेशन दी इजाज़त देओ, जां इसदी बजाए जगह लब्भो.</string>
+    <string name="ui_location_error_blocked">Saarthi आस्तै लोकेशन बंद ऐ. सेटिंग च इसदी इजाज़त देओ, जां इसदी बजाए जगह लब्भो.</string>
+
+    <!-- Vehicle filter chips. -->
+    <string name="ui_vehicle_class_trucks">ट्रक</string>
+    <string name="ui_vehicle_class_buses">बसां</string>
+    <string name="ui_vehicle_class_cars">कारां</string>
+    <string name="ui_vehicle_class_autos">ऑटो</string>
+    <string name="ui_vehicle_class_other">होर</string>
+
+    <!-- Alerts screen. -->
+    <string name="ui_alerts_filter_all">सब</string>
+    <string name="ui_alerts_filter_urgent">जरूरी</string>
+    <string name="ui_alerts_filter_money">पैसे</string>
+    <string name="ui_alerts_filter_papers">कागज़</string>
+    <plurals name="ui_alerts_new_count">
+        <item quantity="one">%d नमां</item>
+        <item quantity="other">%d नमें</item>
+    </plurals>
+    <string name="ui_alerts_all_read">सब पढ़े गेदे</string>
+    <string name="ui_alerts_mark_all_read">सब पढ़े दे मार्क करो</string>
+    <string name="ui_alerts_show_older">पुराने दस्सो</string>
+    <string name="ui_alerts_empty">अजें कोई अलर्ट नेईं</string>
+    <string name="ui_alerts_empty_filter">%1$s च किश नेईं</string>
+    <string name="ui_alerts_empty_hint">जिसलै कुसै कम्मै च तुंदी लोड़ होग, ओह् इत्थै दिसग.</string>
+    <string name="ui_alerts_day_today">अज्ज</string>
+    <string name="ui_alerts_day_yesterday">कल्ल</string>
+    <string name="ui_alerts_day_earlier">पैह्लें दे</string>
+
+    <!-- Association tabs. -->
+    <string name="ui_association_tab_home">होम</string>
+    <string name="ui_association_sos">SOS</string>
+    <string name="ui_association_namaste">नमस्ते, %1$s</string>
+    <string name="ui_association_members_on_road">सड़का पर मेंबर</string>
+
+    <!-- Association home: why the desk gets no new alerts. -->
+    <string name="ui_association_hold_unverified">वेरिफ़िकेशन बाकी</string>
+    <string name="ui_association_hold_unverified_explanation">Saarthi एमरजेंसी सिर्फ वेरिफ़ाई होई दियें एसोसिएशनें गी भेजदा ऐ, इस आस्तै अजें इस डेस्क तगर कोई नेईं पुज्जदी. Saarthi वेबसाइट पर वेरिफ़िकेशन पूरी करो.</string>
+    <string name="ui_association_hold_paused">अलर्ट रुके दे न</string>
+    <string name="ui_association_hold_paused_explanation">इस डेस्क पर किश नेईं भेजेआ जा करदा. तुंदे इलाके दियां एमरजेंसियां इसदी बजाए अगली एसोसिएशन गी जा करदियां न.</string>
+
+    <!-- Association home. -->
+    <string name="ui_association_sos_km_away">SOS · %1$s km दूर</string>
+    <string name="ui_association_all_quiet">तुंदी सड़कें पर सब ठीक-ठाक ऐ</string>
+    <string name="ui_association_member_needs_help">इक मेंबर गी मदद चाहिदी ऐ</string>
+    <string name="ui_association_covering">कवर करदे</string>
+    <string name="ui_association_respond">जवाब देओ</string>
+    <string name="ui_association_figure_members">मेंबर</string>
+    <string name="ui_association_figure_trucks">ट्रक</string>
+    <string name="ui_association_figure_going">जा करदे</string>
+    <string name="ui_association_figure_right_now">इस बेलै</string>
+    <string name="ui_association_figure_open_sos">खुल्ले SOS</string>
+    <plurals name="ui_association_closed_today">
+        <item quantity="one">%d अज्ज बंद होआ</item>
+        <item quantity="other">%d अज्ज बंद होए</item>
+    </plurals>
+    <string name="ui_association_on_the_roads">सड़कें पर</string>
+    <string name="ui_association_all_alerts">सारे अलर्ट</string>
+    <string name="ui_association_no_sos">तुंदी सड़कें पर कुसै मेंबर नै SOS नेईं भेजेआ.</string>
+    <string name="ui_association_avg_response">तुंदा औसत जवाब टाइम: %1$s मिनट</string>
+
+    <!-- Association SOS list and its rows. -->
+    <string name="ui_association_no_alerts">अजें कोई अलर्ट नेईं.</string>
+    <string name="ui_association_needs_responder">मदद आस्तै कोई जाने आह्ला चाहिदा</string>
+    <string name="ui_association_group_earlier">पैह्लें दे</string>
+    <plurals name="ui_association_going_count">
+        <item quantity="one">%d जा करदा</item>
+        <item quantity="other">%d जा करदे</item>
+    </plurals>
+    <string name="ui_association_no_one_yet">अजें कोई नेईं</string>
+    <string name="ui_association_age_just_now">हुनै</string>
+    <string name="ui_association_age_minutes">%1$d मिनट पैह्लें</string>
+    <string name="ui_association_age_hours">%1$d घैंटे पैह्लें</string>
+    <string name="ui_association_age_days">%1$d दिन पैह्लें</string>
+
+    <!-- Respond to an SOS. -->
+    <string name="ui_association_resolved">हल होई गेआ</string>
+    <string name="ui_association_raised">%1$s भेजेआ गेआ</string>
+    <string name="ui_association_raised_unanswered">%1$s भेजेआ गेआ · अजें जवाब नेईं</string>
+    <plurals name="ui_association_members_responded">
+        <item quantity="one">%d मेंबर नै जवाब दित्ता</item>
+        <item quantity="other">%d मेंबरें जवाब दित्ता</item>
+    </plurals>
+    <string name="ui_association_nobody_taken">अजें कुसै नै एह् केस नेईं लेआ</string>
+    <plurals name="ui_association_you_and_more_going">
+        <item quantity="one">तुस ते %d होर जा करदे ओ</item>
+        <item quantity="other">तुस ते %d होर जा करदे ओ</item>
+    </plurals>
+    <string name="ui_association_you_are_going">तुस जा करदे ओ</string>
+    <plurals name="ui_association_already_going">
+        <item quantity="one">%d पैह्लें गै जा करदा ऐ</item>
+        <item quantity="other">%d पैह्लें गै जा करदे न</item>
+    </plurals>
+    <string name="ui_association_nobody_going">अजें कोई नेईं जा करदा</string>
+    <string name="ui_association_note_label">रिकॉर्ड आस्तै नोट (जरूरी नेईं)</string>
+    <string name="ui_association_note_placeholder">दो मेंबर हून उत्थै जा करदे न</string>
+    <string name="ui_association_acknowledge">मन्नो ते एह् केस लैओ</string>
+    <string name="ui_association_case_taken">केस लेई लेआ. ड्राइवर दा नंबर खुल्ली गेआ ऐ.</string>
+    <string name="ui_association_im_going">मैं जा करदा आं</string>
+    <string name="ui_association_down_as_responding">तुस मदद आस्तै जाने आह्लें च दर्ज ओ. ड्राइवर गी दस्सी दित्ता गेआ ऐ.</string>
+    <string name="ui_association_call_driver">ड्राइवर गी फ़ोन करो</string>
+    <string name="ui_association_call_112">112 पर फ़ोन करो</string>
+    <string name="ui_association_hint_sealed">कोई केस लैग तां ड्राइवर गी फ़ोन करने दा बटन खुल्ली जाग. उसलै तगर Saarthi ड्राइवर दा नां ते नंबर छपाइयै रखदा ऐ.</string>
+    <string name="ui_association_hint_no_number">रिकॉर्ड च ड्राइवर दा कोई नंबर नेईं.</string>
+    <string name="ui_association_mark_as_resolved">हल होई गेआ मार्क करो</string>
+    <string name="ui_association_what_was_done">केह् कीता गेआ?</string>
+    <string name="ui_association_record_label">एह् एसोसिएशन दा रिकॉर्ड ऐ</string>
+    <string name="ui_association_mark_resolved">हल मार्क करो</string>
+    <string name="ui_association_resolved_done">हल होई गेआ.</string>
+</resources>

@@ -1,0 +1,450 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Shared by the fleet, personal, travel and business tabs and screens. -->
+    <string name="fleet_tab_home">Home</string>
+    <string name="fleet_tab_map">Map</string>
+    <string name="fleet_tab_fleet">Fleet</string>
+    <string name="fleet_tab_jobs">Jobs</string>
+    <string name="fleet_greeting">Hi, %1$s</string>
+    <string name="fleet_tab_header_vehicles_drivers">Vehicles &amp; drivers</string>
+    <string name="fleet_tab_header_your_fleet">Your fleet</string>
+    <string name="fleet_tab_header_on_your_routes">On your routes</string>
+    <string name="fleet_tab_header_bid_on_work">Bid on work</string>
+    <string name="fleet_a_driver">A driver</string>
+    <string name="fleet_open_named">Open %1$s</string>
+    <string name="fleet_tonnes">%1$s t</string>
+    <plurals name="fleet_trips">
+        <item quantity="one">%d trip</item>
+        <item quantity="other">%d trips</item>
+    </plurals>
+    <plurals name="fleet_papers_expired">
+        <item quantity="one">%d paper expired</item>
+        <item quantity="other">%d papers expired</item>
+    </plurals>
+
+    <!-- Fleet home: the reporting line over the cards. -->
+    <string name="fleet_main_live">Live</string>
+    <string name="fleet_main_quiet">Quiet</string>
+    <plurals name="fleet_main_reporting">
+        <item quantity="one">%d vehicle reporting to you</item>
+        <item quantity="other">%d vehicles reporting to you</item>
+    </plurals>
+    <string name="fleet_main_none_reported">No vehicle has reported lately</string>
+
+    <!-- Fleet home: approving or turning down a driver, as the toast says it. -->
+    <string name="fleet_model_approved">Approved. They can start the shift.</string>
+    <string name="fleet_model_rejected">Turned down. The driver has been told why.</string>
+
+    <!-- Fleet home: "Fleet right now" card. -->
+    <string name="fleet_now_title">Fleet right now</string>
+    <string name="fleet_now_moving">%1$d moving</string>
+    <string name="fleet_now_on_the_road">on the road</string>
+    <string name="fleet_now_idle_offline">%1$d idle · %2$d offline</string>
+    <string name="fleet_now_open_map">Open map</string>
+
+    <!-- Fleet home: "Needs you now", the morning tiles and the return-load card. -->
+    <string name="fleet_cards_needs_you_now">Needs you now</string>
+    <string name="fleet_cards_wants_to_drive">%1$s wants to drive</string>
+    <string name="fleet_cards_approve">Approve</string>
+    <string name="fleet_cards_review">Review</string>
+    <string name="fleet_cards_view_request">View request</string>
+    <string name="fleet_cards_cannot_approve">An owner or fleet manager approves this. You can see it so you know the vehicle is waiting.</string>
+    <plurals name="fleet_cards_more_waiting">
+        <item quantity="one">%d more waiting after this one</item>
+        <item quantity="other">%d more waiting after this one</item>
+    </plurals>
+    <string name="fleet_cards_overdue">Overdue</string>
+    <string name="fleet_cards_time_left">%1$s left</string>
+    <string name="fleet_cards_open_alerts">Open alerts</string>
+    <string name="fleet_cards_all_clear_title">Nothing needs you right now</string>
+    <string name="fleet_cards_all_clear_body">Drivers waiting for approval and urgent alerts show up here.</string>
+    <string name="fleet_cards_trips">Trips</string>
+    <string name="fleet_cards_on_the_road">on the road</string>
+    <string name="fleet_cards_late">%1$d late</string>
+    <string name="fleet_cards_all_on_time">all on time</string>
+    <string name="fleet_cards_papers">Papers</string>
+    <string name="fleet_cards_all_set">All set</string>
+    <string name="fleet_cards_due">%1$d due</string>
+    <string name="fleet_cards_not_shared">not shared</string>
+    <string name="fleet_cards_expired">%1$d expired</string>
+    <string name="fleet_cards_nothing_due">nothing due</string>
+    <string name="fleet_cards_renew_soon">renew soon</string>
+    <string name="fleet_cards_expenses">Expenses</string>
+    <string name="fleet_cards_last_30_days">last 30 days</string>
+    <plurals name="fleet_cards_fastags_need_attention">
+        <item quantity="one">%1$d FASTag needs a look</item>
+        <item quantity="other">%1$d FASTags need a look</item>
+    </plurals>
+    <string name="fleet_cards_backhaul_one">%1$s would run home empty</string>
+    <plurals name="fleet_cards_backhaul_trucks">
+        <item quantity="one">%d truck would run home empty</item>
+        <item quantity="other">%d trucks would run home empty</item>
+    </plurals>
+    <string name="fleet_cards_backhaul_line">%1$s km from %2$s · find a return load</string>
+
+    <!-- Approve a driver. -->
+    <string name="fleet_approval_reason_not_assigned">Not assigned to this vehicle</string>
+    <string name="fleet_approval_reason_not_ready">Vehicle is not ready</string>
+    <string name="fleet_approval_reason_unknown_driver">I don\'t know this driver</string>
+    <string name="fleet_approval_eyebrow">Driver request</string>
+    <string name="fleet_approval_title">Approve a driver</string>
+    <string name="fleet_approval_slide">Slide to approve %1$s</string>
+    <string name="fleet_approval_turn_this_down">Turn this down</string>
+    <string name="fleet_approval_cannot_decide">An owner or fleet manager approves or turns down this request.</string>
+    <string name="fleet_approval_left_to_decide">%1$s left to decide</string>
+    <string name="fleet_approval_waiting_for_you">Waiting for you</string>
+    <string name="fleet_approval_photo_description">Photo %1$s took on arrival</string>
+    <string name="fleet_approval_licence_class">Licence %1$s</string>
+    <string name="fleet_approval_licence_valid">Licence valid</string>
+    <string name="fleet_approval_licence_expiring">Licence expiring soon</string>
+    <string name="fleet_approval_licence_expired">Licence expired</string>
+    <plurals name="fleet_approval_driven_times">
+        <item quantity="one">Has driven this truck %d time</item>
+        <item quantity="other">Has driven this truck %d times</item>
+    </plurals>
+    <string name="fleet_approval_first_time">First time on this truck</string>
+    <plurals name="fleet_approval_years">
+        <item quantity="one">%d year</item>
+        <item quantity="other">%d years</item>
+    </plurals>
+    <!-- %1$s is how many years (e.g. "4 years"), %2$s how many trips (e.g. "120 trips"). -->
+    <string name="fleet_approval_experience">%1$s driving · %2$s</string>
+    <string name="fleet_approval_vehicle">Vehicle</string>
+    <string name="fleet_approval_awaiting_you">Awaiting you</string>
+    <string name="fleet_approval_never_automatic">Nobody is approved automatically — this waits for you.</string>
+    <string name="fleet_approval_why_title">Why? %1$s will see this</string>
+    <string name="fleet_approval_own_words">Or say it in your words</string>
+    <string name="fleet_approval_turn_down">Turn down</string>
+
+    <!-- Your fleet: vehicles and drivers list. -->
+    <string name="fleet_list_invitation_accepted">%1$s is now in Shared with me.</string>
+    <string name="fleet_list_invitation_declined">Invitation declined.</string>
+    <string name="fleet_list_tab_vehicles">Vehicles · %1$d</string>
+    <string name="fleet_list_tab_drivers">Drivers · %1$d</string>
+    <string name="fleet_list_mine">Mine</string>
+    <string name="fleet_list_shared">Shared with me</string>
+    <string name="fleet_list_shared_count">Shared with me · %1$d</string>
+    <string name="fleet_list_open_map">Open the map</string>
+    <string name="fleet_list_all_count">All · %1$d</string>
+    <plurals name="fleet_list_papers_due_personal">
+        <item quantity="one">%d paper due or expired across your vehicles. Renew them before a check post stops a vehicle.</item>
+        <item quantity="other">%d papers due or expired across your vehicles. Renew them before a check post stops a vehicle.</item>
+    </plurals>
+    <plurals name="fleet_list_papers_due_fleet">
+        <item quantity="one">%d paper due or expired across the fleet. Renew them before a check post stops a vehicle.</item>
+        <item quantity="other">%d papers due or expired across the fleet. Renew them before a check post stops a vehicle.</item>
+    </plurals>
+    <string name="fleet_list_no_vehicles">No vehicles here yet.</string>
+    <string name="fleet_list_add_driver">Add a driver</string>
+    <string name="fleet_list_no_drivers">No drivers on this account.</string>
+    <string name="fleet_list_speed">%1$d km/h</string>
+    <string name="fleet_list_idle_minutes">Idle %1$dm</string>
+    <string name="fleet_list_idle">Idle</string>
+    <string name="fleet_list_offline">Offline</string>
+    <string name="fleet_list_service">Service</string>
+    <string name="fleet_list_score">score %1$d</string>
+
+    <!-- Your fleet: a vehicle as a card, and the rows-or-cards switch. -->
+    <string name="fleet_card_show_cards">Show as cards</string>
+    <string name="fleet_card_show_list">Show as a list</string>
+    <string name="fleet_card_seats">Seats</string>
+    <string name="fleet_card_payload">Payload</string>
+    <string name="fleet_card_odometer">Odometer</string>
+    <string name="fleet_card_km">%1$s km</string>
+    <string name="fleet_card_driver">Driver</string>
+    <string name="fleet_card_none">None</string>
+    <plurals name="fleet_card_papers_expiring">
+        <item quantity="one">%d paper expiring</item>
+        <item quantity="other">%d papers expiring</item>
+    </plurals>
+    <string name="fleet_card_papers_valid">Papers valid</string>
+    <string name="fleet_card_no_papers">No papers uploaded</string>
+
+    <!-- A vehicle to choose for a bid or a trip. -->
+    <string name="fleet_choice_no_driver">no driver</string>
+    <string name="fleet_choice_free_now">free now</string>
+
+    <!-- Live map. -->
+    <string name="fleet_map_filter_all">All</string>
+    <string name="fleet_map_filter_moving">Moving</string>
+    <string name="fleet_map_filter_idle">Idle</string>
+    <string name="fleet_map_filter_offline">Offline</string>
+    <string name="fleet_map_back">Back</string>
+    <string name="fleet_map_show_all">Show the whole fleet</string>
+    <string name="fleet_map_no_vehicles">No vehicles on this account yet.</string>
+    <string name="fleet_map_no_positions">No vehicle has reported a position yet. It shows here once its tracker or phone sends one.</string>
+    <string name="fleet_map_search_hint">Plate or driver</string>
+    <string name="fleet_map_clear_search">Clear search</string>
+    <string name="fleet_map_reporting_now">reporting now</string>
+    <string name="fleet_map_seen_ago">seen %1$s ago</string>
+    <string name="fleet_map_close">Close</string>
+    <string name="fleet_map_open_vehicle">Open vehicle</string>
+
+    <!-- One vehicle's page. -->
+    <string name="fleet_vehicle_title">Vehicle</string>
+    <string name="fleet_vehicle_call">Call %1$s</string>
+    <string name="fleet_vehicle_follow_map">Follow on map</string>
+    <string name="fleet_vehicle_speed">Speed</string>
+    <string name="fleet_vehicle_kmh">km/h</string>
+    <string name="fleet_vehicle_seen">Seen</string>
+    <string name="fleet_vehicle_ago">ago</string>
+    <string name="fleet_vehicle_odometer">Odometer</string>
+    <string name="fleet_vehicle_km">km</string>
+    <string name="fleet_vehicle_open_trip">Open the current trip</string>
+    <string name="fleet_vehicle_new_trip">New trip with this vehicle</string>
+    <string name="fleet_vehicle_driver_removed">Driver taken off this vehicle.</string>
+    <string name="fleet_vehicle_assigned_you">You are assigned to this vehicle.</string>
+    <string name="fleet_vehicle_assigned_driver">The driver is assigned to this vehicle.</string>
+    <string name="fleet_vehicle_assigned_named">%1$s is assigned to this vehicle.</string>
+    <string name="fleet_vehicle_open_sharing">Open sharing</string>
+    <string name="fleet_vehicle_sharing">Sharing</string>
+    <string name="fleet_vehicle_share_up_to">Share with up to %1$d people</string>
+    <string name="fleet_vehicle_in_transit">In transit</string>
+    <string name="fleet_vehicle_moving">Moving</string>
+    <string name="fleet_vehicle_stopped">Stopped</string>
+    <string name="fleet_vehicle_not_reporting">Not reporting</string>
+    <string name="fleet_vehicle_in_service">In service</string>
+    <string name="fleet_vehicle_current_tracking">Current tracking</string>
+    <string name="fleet_vehicle_live_view">Live view</string>
+    <string name="fleet_vehicle_current_trip">Current trip</string>
+    <string name="fleet_vehicle_min_late">%1$d min late</string>
+    <string name="fleet_vehicle_on_time">On time</string>
+    <string name="fleet_vehicle_left_at">Left %1$s</string>
+    <string name="fleet_vehicle_to_go">%1$s to go</string>
+    <plurals name="fleet_vehicle_papers_expired_or_declined">
+        <item quantity="one">%d paper expired or turned down</item>
+        <item quantity="other">%d papers expired or turned down</item>
+    </plurals>
+    <plurals name="fleet_vehicle_papers_due_soon">
+        <item quantity="one">%d paper due soon</item>
+        <item quantity="other">%d papers due soon</item>
+    </plurals>
+    <plurals name="fleet_vehicle_papers_in_order">
+        <item quantity="one">%d paper on file, all in order</item>
+        <item quantity="other">%d papers on file, all in order</item>
+    </plurals>
+    <plurals name="fleet_vehicle_all_papers_valid">
+        <item quantity="one">All %d papers valid</item>
+        <item quantity="other">All %d papers valid</item>
+    </plurals>
+    <string name="fleet_vehicle_no_papers">No papers on file yet</string>
+    <string name="fleet_vehicle_open_papers">Open papers</string>
+    <string name="fleet_vehicle_papers">Papers</string>
+
+    <!-- A from → to pair, when an end has no address. -->
+    <string name="fleet_route_start">Start</string>
+    <string name="fleet_route_destination">Destination</string>
+
+    <!-- Who drives this vehicle, and adding yourself as its driver. -->
+    <string name="fleet_assign_driving">Driving</string>
+    <string name="fleet_assign_no_driver">No driver</string>
+    <string name="fleet_assign_nobody">Nobody is set to drive this vehicle</string>
+    <string name="fleet_assign_take_off_confirm">Take %1$s off this vehicle?</string>
+    <string name="fleet_assign_keep">Keep</string>
+    <string name="fleet_assign_remove">Remove</string>
+    <string name="fleet_assign_change_driver">Change driver</string>
+    <string name="fleet_assign_assign_driver">Assign a driver</string>
+    <string name="fleet_assign_sheet_title">Who drives %1$s?</string>
+    <string name="fleet_assign_sheet_hint">Only verified drivers who are not on another vehicle can be chosen.</string>
+    <string name="fleet_assign_myself">Myself</string>
+    <string name="fleet_assign_score">Score %1$d</string>
+    <string name="fleet_assign_none_free">No verified driver is free right now.</string>
+    <string name="fleet_assign_assign">Assign</string>
+    <string name="fleet_assign_assigning">Assigning…</string>
+    <string name="fleet_assign_self_adds">Adds you to your own driver list</string>
+    <string name="fleet_assign_self_unverified">Your licence is still being verified</string>
+    <string name="fleet_assign_self_elsewhere">You are on another vehicle</string>
+    <string name="fleet_assign_self_licence">Licence %1$s</string>
+    <string name="fleet_assign_photo_unusable">That photo could not be used.</string>
+    <string name="fleet_assign_licence_unreadable">The licence number could not be read off that. Try a sharper photo, or type it.</string>
+    <string name="fleet_assign_photo_hint">Photograph your driving licence and its number is read off it.</string>
+    <string name="fleet_assign_scan_licence">Scan licence</string>
+    <string name="fleet_assign_choose_file">Choose file</string>
+    <string name="fleet_assign_reading">Reading the licence…</string>
+    <string name="fleet_assign_licence_number">Driving licence number</string>
+    <string name="fleet_assign_add_me">Add me and assign</string>
+    <string name="fleet_assign_added_unverified">You are on your driver list. Once your licence is verified, assign yourself here.</string>
+    <string name="fleet_assign_adding">Adding…</string>
+
+    <!-- Return loads. -->
+    <string name="fleet_backhaul_eyebrow">Business · backhaul</string>
+    <string name="fleet_backhaul_title">Return loads</string>
+    <string name="fleet_backhaul_nothing">No truck is about to run empty, and nothing is waiting on the way back.</string>
+    <string name="fleet_backhaul_no_match">Nothing matches the way back yet. New loads are checked as customers post them.</string>
+    <string name="fleet_backhaul_best_first">Best match first</string>
+    <string name="fleet_backhaul_quote_sent">Quote sent for %1$s. The customer has been told.</string>
+    <string name="fleet_backhaul_running_empty">Running empty soon</string>
+    <string name="fleet_backhaul_drops">Drops %1$s</string>
+    <!-- %1$s is the drop town, %2$s the empty kilometres back. -->
+    <string name="fleet_backhaul_hero_line">%1$s — would run %2$s km back empty</string>
+    <plurals name="fleet_backhaul_loads_match">
+        <item quantity="one">%d load match the way back</item>
+        <item quantity="other">%d loads match the way back</item>
+    </plurals>
+    <string name="fleet_backhaul_watching">Watching for loads on the way back</string>
+    <string name="fleet_backhaul_risk_line">%1$s · %2$s km empty</string>
+    <string name="fleet_backhaul_best_fit_detour">Best fit · %1$d km detour</string>
+    <string name="fleet_backhaul_detour">%1$d km detour</string>
+    <string name="fleet_backhaul_posted_now">Posted now</string>
+    <string name="fleet_backhaul_posted_ago">Posted %1$s ago</string>
+    <string name="fleet_backhaul_pick_up">Pick up %1$s</string>
+    <string name="fleet_backhaul_from_drop">%1$d km from drop</string>
+    <string name="fleet_backhaul_deliver_by">Deliver by %1$s</string>
+    <string name="fleet_backhaul_load">Load</string>
+    <string name="fleet_backhaul_goods">Goods</string>
+    <string name="fleet_backhaul_worth">Worth</string>
+    <string name="fleet_backhaul_quote_sent_button">Quote sent</string>
+    <string name="fleet_backhaul_quote_this">Quote for this load</string>
+    <string name="fleet_backhaul_quote_for">Quote for %1$s</string>
+    <!-- %1$s from, %2$s to, %3$s the truck's plate. -->
+    <string name="fleet_backhaul_quote_route">%1$s → %2$s on %3$s\'s way back.</string>
+    <string name="fleet_backhaul_your_price">Your price (₹)</string>
+    <string name="fleet_backhaul_note">A note (optional)</string>
+    <string name="fleet_backhaul_send_quote">Send quote</string>
+
+    <!-- Business home (accounts whose own screens are still to come). -->
+    <string name="fleet_home_intro_personal_eyebrow">Personal</string>
+    <string name="fleet_home_intro_personal_line">Your vehicles, their papers and every trip.</string>
+    <string name="fleet_home_intro_travel_eyebrow">Travel</string>
+    <string name="fleet_home_intro_travel_line">Bookings, vehicles and the road ahead.</string>
+    <string name="fleet_home_intro_customer_eyebrow">Customer</string>
+    <string name="fleet_home_intro_customer_line">What you need moved, and where it is now.</string>
+    <string name="fleet_home_intro_seller_eyebrow">Seller</string>
+    <string name="fleet_home_intro_seller_line">Your stock, and the trucks coming to load it.</string>
+    <string name="fleet_home_intro_association_eyebrow">Association</string>
+    <string name="fleet_home_intro_association_line">Your members, and anyone who needs help on the road.</string>
+    <string name="fleet_home_intro_other_line">Your business on Saarthi.</string>
+    <string name="fleet_home_latest">Latest</string>
+    <string name="fleet_home_nothing_new">Nothing new. Alerts about your business show up here.</string>
+    <string name="fleet_home_see_all_alerts">See all alerts</string>
+
+    <!-- Personal: tabs. -->
+    <string name="fleet_personal_tab_vehicles">Vehicles</string>
+    <string name="fleet_personal_tab_papers">Papers</string>
+    <string name="fleet_personal_header_personal">Personal</string>
+    <string name="fleet_personal_header_your_vehicles">Your vehicles</string>
+    <string name="fleet_personal_header_your_papers">Your papers</string>
+
+    <!-- Personal: home and papers. -->
+    <string name="fleet_personal_no_vehicle">No vehicle on this account yet. Add one from Saarthi on the web.</string>
+    <string name="fleet_personal_vehicle">Vehicle</string>
+    <string name="fleet_personal_insurance">Insurance</string>
+    <string name="fleet_personal_expired">Expired</string>
+    <plurals name="fleet_personal_days">
+        <item quantity="one">%d days</item>
+        <item quantity="other">%d days</item>
+    </plurals>
+    <string name="fleet_personal_could_not_load">could not load</string>
+    <string name="fleet_personal_loading">loading</string>
+    <string name="fleet_personal_not_on_file">not on file</string>
+    <string name="fleet_personal_left">left</string>
+    <string name="fleet_personal_papers">Papers</string>
+    <string name="fleet_personal_none">None</string>
+    <string name="fleet_personal_all_set">All set</string>
+    <string name="fleet_personal_due">%1$d due</string>
+    <string name="fleet_personal_on_file">%1$d on file</string>
+    <string name="fleet_personal_odometer">Odometer</string>
+    <string name="fleet_personal_km">km</string>
+    <string name="fleet_personal_quick_actions">Quick actions</string>
+    <string name="fleet_personal_sharing">Sharing</string>
+    <string name="fleet_personal_map">Map</string>
+    <plurals name="fleet_personal_shared_with">
+        <item quantity="one">Shared with %d person</item>
+        <item quantity="other">Shared with %d people</item>
+    </plurals>
+    <string name="fleet_personal_moving">Moving</string>
+    <string name="fleet_personal_parked">Parked</string>
+    <string name="fleet_personal_not_reporting">Not reporting</string>
+    <string name="fleet_personal_where_it_is">Where it is</string>
+    <string name="fleet_personal_reporting_now">Reporting now</string>
+    <string name="fleet_personal_last_seen">Last seen %1$s ago</string>
+    <string name="fleet_personal_no_position">No position reported yet</string>
+    <!-- %1$s is the kind of vehicle, e.g. "car" or "vehicle". -->
+    <string name="fleet_personal_find_my">Find my %1$s</string>
+    <string name="fleet_personal_vehicle_lower">vehicle</string>
+
+    <!-- Travel: tabs. -->
+    <string name="fleet_travel_tab_bookings">Bookings</string>
+    <string name="fleet_travel_header_trips_you_run">Trips you run</string>
+    <string name="fleet_travel_tab_requests">Requests</string>
+    <string name="fleet_travel_header_cabs_tours">Cabs &amp; tours near you</string>
+
+    <!-- Travel: home and the bookings list. -->
+    <string name="fleet_travel_on_the_road">%1$d on the road</string>
+    <string name="fleet_travel_nobody_on_road">Nobody on the road</string>
+    <string name="fleet_travel_today">Today</string>
+    <plurals name="fleet_travel_bookings">
+        <item quantity="one">%d booking</item>
+        <item quantity="other">%d bookings</item>
+    </plurals>
+    <string name="fleet_travel_open_map">Map</string>
+    <string name="fleet_travel_on_duty">On duty</string>
+    <string name="fleet_travel_vehicles_caption">vehicles</string>
+    <string name="fleet_travel_awaiting">Awaiting</string>
+    <string name="fleet_travel_to_confirm">to confirm</string>
+    <string name="fleet_travel_rating">Rating</string>
+    <string name="fleet_travel_from_trips">from trips</string>
+    <string name="fleet_travel_todays_run">Today\'s run</string>
+    <string name="fleet_travel_all_bookings">All bookings</string>
+    <string name="fleet_travel_nothing_today">Nothing today. Coming up:</string>
+    <string name="fleet_travel_no_bookings_hint">No bookings yet. Quote on requests near you to fill the diary.</string>
+    <string name="fleet_travel_no_bookings">No bookings yet.</string>
+    <string name="fleet_travel_still_to_run">Still to run</string>
+    <string name="fleet_travel_earlier">Earlier</string>
+    <string name="fleet_travel_status_confirm_it">Confirm it</string>
+    <string name="fleet_travel_status_awaiting_payment">Awaiting payment</string>
+    <string name="fleet_travel_status_driver_assigned">Driver assigned</string>
+    <string name="fleet_travel_status_on_the_way">On the way</string>
+    <string name="fleet_travel_status_completed">Completed</string>
+    <string name="fleet_travel_status_cancelled">Cancelled</string>
+    <string name="fleet_travel_pickup_today">pickup</string>
+
+    <!-- Travel: one booking. -->
+    <string name="fleet_travel_booking_reference">Booking %1$s</string>
+    <string name="fleet_travel_confirm">Confirm this booking</string>
+    <string name="fleet_travel_confirmed">Confirmed. The customer has been told.</string>
+    <string name="fleet_travel_decline">Decline</string>
+    <string name="fleet_travel_start">Start the trip</string>
+    <string name="fleet_travel_trip_started">Trip started.</string>
+    <string name="fleet_travel_finish">Finish the trip</string>
+    <string name="fleet_travel_trip_finished">Trip finished.</string>
+    <string name="fleet_travel_customer">Customer</string>
+    <plurals name="fleet_travel_people">
+        <item quantity="one">%d people</item>
+        <item quantity="other">%d people</item>
+    </plurals>
+    <string name="fleet_travel_call_named">Call %1$s</string>
+    <string name="fleet_travel_call_customer">Call the customer</string>
+    <string name="fleet_travel_payment">Payment</string>
+    <string name="fleet_travel_paid">Paid by the customer</string>
+    <string name="fleet_travel_not_paid">Not paid yet</string>
+    <string name="fleet_travel_payment_failed">The customer\'s payment failed</string>
+    <string name="fleet_travel_started_without_code">Started without the code. The reason is on record and the passenger has been told.</string>
+    <string name="fleet_travel_why_decline">Why can\'t you take it?</string>
+    <string name="fleet_travel_customer_sees">The customer sees this</string>
+    <string name="fleet_travel_decline_booking">Decline booking</string>
+    <string name="fleet_travel_declined">Declined. The customer has been told.</string>
+    <string name="fleet_travel_which_vehicle">Which vehicle goes</string>
+    <plurals name="fleet_travel_no_vehicle_fits">
+        <item quantity="one">None of your vehicles can take this booking. It needs a passenger vehicle with at least %d seat that is free now, not on a trip or in service.</item>
+        <item quantity="other">None of your vehicles can take this booking. It needs a passenger vehicle with at least %d seats that is free now, not on a trip or in service.</item>
+    </plurals>
+    <string name="fleet_travel_check_again">Check again</string>
+    <plurals name="fleet_travel_seats">
+        <item quantity="one">%d seat</item>
+        <item quantity="other">%d seats</item>
+    </plurals>
+    <string name="fleet_travel_who_drives">Who drives</string>
+    <string name="fleet_travel_no_verified_driver">Only a verified driver can take a passenger trip, and none of yours is verified yet. You can confirm with the vehicle alone.</string>
+    <string name="fleet_travel_booked">Booked</string>
+    <plurals name="fleet_travel_days">
+        <item quantity="one">%d day</item>
+        <item quantity="other">%d days</item>
+    </plurals>
+    <string name="fleet_travel_km">%1$d km</string>
+    <string name="fleet_travel_pickup">Pickup</string>
+    <string name="fleet_travel_pick_up_at">Pick up %1$s</string>
+    <string name="fleet_travel_destination">Destination</string>
+    <string name="fleet_travel_back_at">Back %1$s</string>
+    <string name="fleet_travel_vehicle_driver">Vehicle &amp; driver</string>
+</resources>

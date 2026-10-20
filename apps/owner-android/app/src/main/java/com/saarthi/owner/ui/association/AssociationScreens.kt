@@ -1,5 +1,6 @@
 package com.saarthi.owner.ui.association
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -28,6 +29,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -44,6 +47,7 @@ import com.saarthi.owner.ui.common.FacesAlignment
 import com.saarthi.owner.ui.common.FailedCard
 import com.saarthi.owner.ui.common.Loadable
 import com.saarthi.owner.ui.common.SkeletonCards
+import com.saarthi.owner.ui.common.Words
 import com.saarthi.owner.ui.common.headerClearance
 import com.saarthi.owner.ui.common.readable
 import com.saarthi.owner.ui.common.tabBarClearance
@@ -82,16 +86,16 @@ private const val REFRESH_MS = 20_000L
 fun associationTabs(app: OwnerApp, account: SessionStore.Account): List<TabSpec> = listOf(
     TabSpec(
         key = "home",
-        label = "Home",
+        label = Words.get(R.string.ui_association_tab_home),
         icon = Lucide.home,
-        header = TabHeader(account.organizationName, "Namaste, ${account.firstName}"),
+        header = TabHeader(account.organizationName, Words.get(R.string.ui_association_namaste, account.firstName)),
         content = { actions -> AssociationHomeScreen(app, account, actions) },
     ),
     TabSpec(
         key = "sos",
-        label = "SOS",
+        label = Words.get(R.string.ui_association_sos),
         icon = Lucide.siren,
-        header = TabHeader("Members on the road", "SOS"),
+        header = TabHeader(Words.get(R.string.ui_association_members_on_road), Words.get(R.string.ui_association_sos)),
         content = { AssociationAlertsScreen(app, account) },
     ),
 )
@@ -150,15 +154,15 @@ private fun RefreshWhileShown(model: AssociationModel) {
 }
 
 /** Why this desk receives no new alerts, as the web dashboard's desk status says it. */
-private enum class DeskHold(val pill: String, val explanation: String, val icon: String) {
+private enum class DeskHold(@StringRes val pill: Int, @StringRes val explanation: Int, val icon: String) {
     UNVERIFIED(
-        "Verification pending",
-        "Saarthi sends emergencies only to verified associations, so none reach this desk yet. Finish verifying on the Saarthi website.",
+        R.string.ui_association_hold_unverified,
+        R.string.ui_association_hold_unverified_explanation,
         Lucide.shield,
     ),
     PAUSED(
-        "Alerts paused",
-        "Nothing is being routed to this desk. Emergencies in your area are going to the next association instead.",
+        R.string.ui_association_hold_paused,
+        R.string.ui_association_hold_paused_explanation,
         Lucide.pause,
     ),
 }
@@ -224,7 +228,8 @@ fun AssociationHomeScreen(app: OwnerApp, account: SessionStore.Account, actions:
                     Column(Modifier.fillMaxSize().padding(18.dp), verticalArrangement = Arrangement.SpaceBetween) {
                         if (urgent != null) {
                             StatusPill(
-                                listOfNotNull("SOS", urgent.distanceKm?.let { "%.1f km away".format(it) }).joinToString(" · "),
+                                urgent.distanceKm?.let { stringResource(R.string.ui_association_sos_km_away, "%.1f".format(it)) }
+                                    ?: stringResource(R.string.ui_association_sos),
                                 background = Brand.sosBanner,
                                 ink = Color.White,
                                 dotColor = Color.White,
@@ -233,7 +238,7 @@ fun AssociationHomeScreen(app: OwnerApp, account: SessionStore.Account, actions:
                         } else {
                             // "All quiet" only from a desk that can hear: an unverified or paused one would be quiet anyway.
                             StatusPill(
-                                hold?.pill ?: "All quiet on your roads",
+                                hold?.let { stringResource(it.pill) } ?: stringResource(R.string.ui_association_all_quiet),
                                 background = Color.White.copy(alpha = 0.16f),
                                 ink = Color.White,
                                 dotColor = if (hold != null) Brand.saffronSoft else Brand.live,
@@ -242,7 +247,7 @@ fun AssociationHomeScreen(app: OwnerApp, account: SessionStore.Account, actions:
                         }
                         Row(verticalAlignment = Alignment.Bottom) {
                             Column(Modifier.weight(1f)) {
-                                Eyebrow(if (urgent != null) "A member needs help" else "Covering", color = Color.White.copy(alpha = 0.8f))
+                                Eyebrow(stringResource(if (urgent != null) R.string.ui_association_member_needs_help else R.string.ui_association_covering), color = Color.White.copy(alpha = 0.8f))
                                 Text(
                                     urgent?.address?.substringBefore(',')
                                         ?: book.association?.coverageAreas?.firstOrNull()?.label
@@ -263,7 +268,7 @@ fun AssociationHomeScreen(app: OwnerApp, account: SessionStore.Account, actions:
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                                 ) {
-                                    Text("Respond", style = SType.bodyStrong, color = Brand.sosBanner)
+                                    Text(stringResource(R.string.ui_association_respond), style = SType.bodyStrong, color = Brand.sosBanner)
                                     LineIcon(Lucide.arrowRight, size = 16.dp, color = Brand.sosBanner, stroke = 2.2f)
                                 }
                             }
@@ -272,26 +277,27 @@ fun AssociationHomeScreen(app: OwnerApp, account: SessionStore.Account, actions:
                 }
 
                 // Said even with an SOS in the hero: the alerts already here still need answering, new ones will not come.
-                hold?.let { NoticeCard(it.explanation, NoticeTone.WARNING, Modifier.rise(stagger(1)), icon = it.icon) }
+                hold?.let { NoticeCard(stringResource(it.explanation), NoticeTone.WARNING, Modifier.rise(stagger(1)), icon = it.icon) }
 
                 Row(Modifier.fillMaxWidth().rise(stagger(1)), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Figure(Lucide.users, c.primarySoft, c.primary, "Members", "%,d".format(book.association?.memberTruckCount ?: 0), "trucks", Modifier.weight(1f))
-                    Figure(Lucide.shieldCheck, c.successSoft, c.success, "Going", "${book.overview?.responding ?: 0}", "right now", Modifier.weight(1f))
-                    Figure(Lucide.siren, c.dangerSoft, c.danger, "Open SOS", "${book.overview?.open ?: book.open.size}", "${book.overview?.resolvedToday ?: 0} closed today", Modifier.weight(1f))
+                    val resolvedToday = book.overview?.resolvedToday ?: 0
+                    Figure(Lucide.users, c.primarySoft, c.primary, stringResource(R.string.ui_association_figure_members), "%,d".format(book.association?.memberTruckCount ?: 0), stringResource(R.string.ui_association_figure_trucks), Modifier.weight(1f))
+                    Figure(Lucide.shieldCheck, c.successSoft, c.success, stringResource(R.string.ui_association_figure_going), "${book.overview?.responding ?: 0}", stringResource(R.string.ui_association_figure_right_now), Modifier.weight(1f))
+                    Figure(Lucide.siren, c.dangerSoft, c.danger, stringResource(R.string.ui_association_figure_open_sos), "${book.overview?.open ?: book.open.size}", pluralStringResource(R.plurals.ui_association_closed_today, resolvedToday, resolvedToday), Modifier.weight(1f))
                 }
 
                 Row(Modifier.fillMaxWidth().padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text("On the roads", style = SType.section, color = c.fg, modifier = Modifier.weight(1f))
-                    LinkButton("All alerts", { actions.selectTab("sos") }, style = SType.smallStrong)
+                    Text(stringResource(R.string.ui_association_on_the_roads), style = SType.section, color = c.fg, modifier = Modifier.weight(1f))
+                    LinkButton(stringResource(R.string.ui_association_all_alerts), { actions.selectTab("sos") }, style = SType.smallStrong)
                 }
                 if (book.alerts.isEmpty()) {
-                    Text("No member has raised an SOS on your roads.", style = SType.small, color = c.muted)
+                    Text(stringResource(R.string.ui_association_no_sos), style = SType.small, color = c.muted)
                 }
                 book.alerts.sortedBy { if (it.open) 0 else 1 }.take(4).forEach { alert ->
                     AlertRow(alert) { navigator.push("respond-${alert.id}") { RespondScreen(app, account, alert) { model.refresh(silent = true) } } }
                 }
                 book.association?.stats?.avgResponseMinutes?.let {
-                    Text("Your average response: ${"%.0f".format(it.coerceAtLeast(1.0))} min", style = SType.caption, color = c.subtle)
+                    Text(stringResource(R.string.ui_association_avg_response, "%.0f".format(it.coerceAtLeast(1.0))), style = SType.caption, color = c.subtle)
                 }
             }
         }
@@ -321,12 +327,12 @@ fun AssociationAlertsScreen(app: OwnerApp, account: SessionStore.Account) {
                 contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = top, bottom = bottom),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                if (open.isEmpty() && closed.isEmpty()) item { Text("No alerts yet.", style = SType.small, color = c.muted) }
-                if (open.isNotEmpty()) item { GroupLabel("Needs a responder") }
+                if (open.isEmpty() && closed.isEmpty()) item { Text(stringResource(R.string.ui_association_no_alerts), style = SType.small, color = c.muted) }
+                if (open.isNotEmpty()) item { GroupLabel(stringResource(R.string.ui_association_needs_responder)) }
                 items(open, key = { it.id }) { alert ->
                     AlertRow(alert) { navigator.push("respond-${alert.id}") { RespondScreen(app, account, alert) { model.refresh(silent = true) } } }
                 }
-                if (closed.isNotEmpty()) item { GroupLabel("Earlier") }
+                if (closed.isNotEmpty()) item { GroupLabel(stringResource(R.string.ui_association_group_earlier)) }
                 items(closed, key = { it.id }) { alert ->
                     AlertRow(alert) { navigator.push("respond-${alert.id}") { RespondScreen(app, account, alert) { model.refresh(silent = true) } } }
                 }
@@ -363,22 +369,32 @@ internal fun AlertRow(alert: AssociationApi.Alert, onOpen: () -> Unit) {
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                listOfNotNull(alert.fleetName, alert.distanceKm?.let { "%.1f km".format(it) }, ageWords(alert.ageMinutes)).joinToString(" · "),
+                listOfNotNull(alert.fleetName, alert.distanceKm?.let { stringResource(R.string.common_distance_km, "%.1f".format(it)) }, ageWords(alert.ageMinutes)).joinToString(" · "),
                 style = SType.caption,
                 color = c.muted,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        if (alert.open) Pill(if (alert.responderCount > 0) "${alert.responderCount} going" else "No one yet", c.dangerBg, c.danger)
+        if (alert.open) {
+            Pill(
+                if (alert.responderCount > 0) {
+                    pluralStringResource(R.plurals.ui_association_going_count, alert.responderCount, alert.responderCount)
+                } else {
+                    stringResource(R.string.ui_association_no_one_yet)
+                },
+                c.dangerBg,
+                c.danger,
+            )
+        }
     }
 }
 
 internal fun ageWords(minutes: Long): String = when {
-    minutes < 1 -> "just now"
-    minutes < 60 -> "$minutes min ago"
-    minutes < 60 * 24 -> "${minutes / 60} h ago"
-    else -> "${minutes / (60 * 24)} d ago"
+    minutes < 1 -> Words.get(R.string.ui_association_age_just_now)
+    minutes < 60 -> Words.get(R.string.ui_association_age_minutes, minutes)
+    minutes < 60 * 24 -> Words.get(R.string.ui_association_age_hours, minutes / 60)
+    else -> Words.get(R.string.ui_association_age_days, minutes / (60 * 24))
 }
 
 @Composable

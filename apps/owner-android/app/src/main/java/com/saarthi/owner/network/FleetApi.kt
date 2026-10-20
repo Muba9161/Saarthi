@@ -105,23 +105,6 @@ class FleetApi(private val api: OwnerApi) {
         val secondsUntilEscalation: Long? = null,
     )
 
-    /** One vehicle's FASTag, as far as its bank has told Saarthi. */
-    @Serializable
-    data class Fastag(
-        val id: String,
-        val registrationNumber: String = "",
-        val status: String = "",
-        val balance: Double? = null,
-        val lowBalanceThreshold: Double = 0.0,
-    ) {
-        /** Blocked, or below the line the owner set. */
-        val needsAttention: Boolean
-            get() = status != "ACTIVE" || (balance != null && balance < lowBalanceThreshold)
-    }
-
-    suspend fun fastags(): List<Fastag> =
-        api.get("/fleet/toll/fastag?pageSize=100", Page.serializer(Fastag.serializer()))?.items.orEmpty()
-
     suspend fun dashboard(): Dashboard = api.get("/analytics/dashboard", Dashboard.serializer()) ?: Dashboard()
 
     suspend fun positions(): List<Position> =

@@ -1,0 +1,371 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Words several of these screens share. -->
+    <string name="people_account">Account</string>
+    <string name="people_your_account">Your account</string>
+    <string name="people_saving">Saving…</string>
+    <string name="people_remove">Remove</string>
+    <string name="people_sign_out">Sign out</string>
+    <string name="people_papers">Papers</string>
+    <string name="people_vehicle">Vehicle</string>
+    <string name="people_vehicle_lower">vehicle</string>
+    <string name="people_choose">Choose</string>
+    <string name="people_photo_unusable">That photo could not be used.</string>
+    <string name="people_paper_no_viewer">No app on this phone can open this file.</string>
+
+    <!-- Sharing · logging a trip, fill-up or servicing on a shared vehicle -->
+    <string name="people_log_trip_title">Log a trip</string>
+    <string name="people_log_trip_action">Add trip</string>
+    <string name="people_log_fuel_title">Log a fill-up</string>
+    <string name="people_log_fuel_action">Add fill-up</string>
+    <string name="people_log_service_title">Log servicing</string>
+    <string name="people_log_service_action">Add servicing</string>
+    <string name="people_log_from">From</string>
+    <string name="people_log_to">To</string>
+    <string name="people_log_notes_optional">Notes (optional)</string>
+    <string name="people_log_save_trip">Save trip</string>
+    <string name="people_log_litres">Litres</string>
+    <string name="people_log_price_per_litre">Price per litre (₹)</string>
+    <string name="people_log_total">Total %1$s</string>
+    <string name="people_log_odometer_optional">Odometer km (optional)</string>
+    <string name="people_log_station_optional">Station (optional)</string>
+    <string name="people_log_save_fuel">Save fill-up</string>
+    <string name="people_log_done_already">Done already</string>
+    <string name="people_log_booked">Booked</string>
+    <string name="people_log_what_was_done">What was done</string>
+    <string name="people_log_what_was_done_example">e.g. 10,000 km service</string>
+    <string name="people_log_choose_date">Choose the date</string>
+    <string name="people_log_done_on">Done on %1$s</string>
+    <string name="people_log_booked_for">Booked for %1$s</string>
+    <string name="people_log_cost_optional">Cost ₹ (optional)</string>
+    <string name="people_log_workshop_optional">Workshop (optional)</string>
+    <string name="people_log_save_service">Save servicing</string>
+
+    <!-- Sharing · a shared vehicle's papers -->
+    <string name="people_shared_papers_open">Open papers</string>
+    <string name="people_shared_papers_card_line">Insurance, permit, PUC and more — to look at</string>
+    <string name="people_shared_papers_notice">Shared with you to look at. Only the owner can add or change papers.</string>
+    <string name="people_shared_folder_gone">This folder is no longer on file.</string>
+    <string name="people_shared_folder_empty">Nothing has been filed here.</string>
+
+    <!-- Sharing · a vehicle shared with this account -->
+    <string name="people_shared_by">Shared by %1$s</string>
+    <string name="people_shared_with_you">Shared with you</string>
+    <string name="people_shared_gone">This vehicle is no longer shared with you.</string>
+    <string name="people_shared_tab_trips">Trips</string>
+    <string name="people_shared_tab_fuel">Fuel</string>
+    <string name="people_shared_tab_maintenance">Maintenance</string>
+    <string name="people_shared_stop_using">Stop using this vehicle</string>
+    <string name="people_shared_stop_title">Stop using this vehicle?</string>
+    <string name="people_shared_stop_body">It leaves your Shared with me list. What you logged stays with the vehicle, and %1$s can share it with you again.</string>
+    <string name="people_shared_stop_body_owner">It leaves your Shared with me list. What you logged stays with the vehicle, and the owner can share it with you again.</string>
+    <string name="people_shared_stop_confirm">Stop using it</string>
+    <string name="people_shared_driver">Driver</string>
+    <string name="people_shared_no_driver">No driver assigned</string>
+    <string name="people_shared_no_trips">No trips logged yet.</string>
+    <string name="people_shared_no_fuel">No fill-ups logged yet.</string>
+    <string name="people_shared_no_service">No servicing logged yet.</string>
+    <string name="people_shared_fuel_line">%1$s L at %2$s/L</string>
+
+    <!-- Sharing · Shared with me list and invitations -->
+    <string name="people_shared_waiting">Waiting for you</string>
+    <string name="people_shared_invite_line">%1$s wants to share a %2$s with you</string>
+    <string name="people_shared_owned_by">Owned by %1$s</string>
+    <string name="people_shared_invite_body">You will be able to follow it, log trips, fuel and servicing, and look at its papers. Its finance stays with the owner.</string>
+    <string name="people_shared_accept">Accept</string>
+    <string name="people_shared_decline">Decline</string>
+    <string name="people_shared_open_vehicle">Open %1$s</string>
+    <string name="people_shared_empty_title">No vehicles shared with you</string>
+    <string name="people_shared_empty_body">When someone on Saarthi shares a vehicle with you, it appears here to track and log trips, fuel and servicing against.</string>
+
+    <!-- Sharing · who the owner's vehicle is shared with -->
+    <string name="people_sharing_title">Sharing</string>
+    <string name="people_sharing_invite">Invite someone</string>
+    <string name="people_sharing_own_account">They sign in with their own Saarthi account.</string>
+    <string name="people_sharing_shared_with">Shared with</string>
+    <plurals name="people_sharing_people">
+        <item quantity="one">%d person</item>
+        <item quantity="other">%d people</item>
+    </plurals>
+    <plurals name="people_sharing_places_left">
+        <item quantity="one">%d place left</item>
+        <item quantity="other">%d places left</item>
+    </plurals>
+    <string name="people_sharing_confirm_ownership">Confirm that you own this vehicle before sharing it — check it against its RC in Saarthi on the web.</string>
+    <string name="people_sharing_pending">Invited · not accepted yet</string>
+    <string name="people_sharing_can_title">What they can do</string>
+    <string name="people_sharing_can_see">See where it is, live</string>
+    <string name="people_sharing_can_add">Add trips, fuel and service</string>
+    <string name="people_sharing_cannot_change">Change papers or remove it</string>
+    <string name="people_sharing_only_you">Only you can</string>
+    <string name="people_sharing_invite_body">Use the email their Saarthi account is on. They get an invitation to accept.</string>
+    <string name="people_sharing_their_email">Their email</string>
+    <string name="people_sharing_send">Send invitation</string>
+    <string name="people_sharing_sent">Invitation sent.</string>
+
+    <!-- Drivers · adding a driver -->
+    <string name="people_drivers">Drivers</string>
+    <string name="people_driver_added_title">Driver added</string>
+    <string name="people_driver_added_notice">%1$s is on your fleet.</string>
+    <string name="people_driver_setup_hint">Send them this link to set their own password. It works once.</string>
+    <string name="people_driver_share_setup">Share the setup link</string>
+    <string name="people_driver_setup_message">Hello %1$s, you have been added as a driver on VorldX Saarthi. Set your password here: %2$s</string>
+    <string name="people_driver_open_page">Open their page</string>
+    <string name="people_driver_add_title">Add a driver</string>
+    <string name="people_driver_add">Add driver</string>
+    <string name="people_driver_adding">Adding…</string>
+    <string name="people_driver_their_licence">Their licence</string>
+    <string name="people_driver_scan_licence">Scan licence</string>
+    <string name="people_driver_choose_file">Choose file</string>
+    <string name="people_driver_reading_licence">Reading the licence…</string>
+    <string name="people_driver_licence_read">Filled in from the licence. Check it, then add the driver.</string>
+    <string name="people_driver_licence_unread">The licence number could not be read. Try a sharper photo, or type it.</string>
+    <string name="people_driver_licence_number">Licence number</string>
+    <string name="people_driver_licence_valid_till">Licence valid till %1$s</string>
+    <string name="people_driver_first_name">First name</string>
+    <string name="people_driver_last_name">Last name</string>
+    <string name="people_driver_mobile">Mobile number</string>
+    <string name="people_driver_mobile_invalid">Enter a 10-digit Indian mobile number.</string>
+    <string name="people_driver_email">Email</string>
+    <string name="people_driver_email_invalid">Enter a valid email address.</string>
+    <string name="people_driver_years_optional">Years of driving (optional)</string>
+
+    <!-- Drivers · the papers a driver carries -->
+    <string name="people_driver_paper_licence">Driving licence</string>
+    <string name="people_driver_paper_identity">Identity proof</string>
+    <string name="people_driver_paper_address">Address proof</string>
+    <string name="people_driver_paper_aadhaar">Aadhaar card</string>
+    <string name="people_driver_paper_pan">PAN card</string>
+    <string name="people_driver_paper_voter_id">Voter ID (EPIC)</string>
+    <string name="people_driver_paper_photo">Profile photograph</string>
+    <string name="people_driver_paper_medical">Medical certificate</string>
+    <string name="people_driver_paper_police">Police verification</string>
+
+    <!-- Drivers · one driver's page -->
+    <string name="people_driver">Driver</string>
+    <string name="people_driver_call">Call %1$s</string>
+    <string name="people_driver_open_vehicle">Open the vehicle</string>
+    <string name="people_driver_drives">Drives</string>
+    <string name="people_driver_qr_badge">QR badge</string>
+    <string name="people_driver_badge_caption">A scan of this badge shows who the driver is.</string>
+    <string name="people_driver_fleet">Fleet</string>
+    <string name="people_driver_remove_title">Take %1$s off your fleet?</string>
+    <string name="people_driver_remove_body">They come off any vehicle and stop seeing your work. Their own account, trips and score stay with them.</string>
+    <string name="people_driver_keep">Keep</string>
+    <string name="people_driver_remove_from_fleet">Remove from fleet</string>
+    <string name="people_driver_uploaded">Uploaded.</string>
+    <string name="people_driver_verified">Verified</string>
+    <string name="people_driver_not_verified">Not verified yet</string>
+    <string name="people_driver_on_trip">On trip</string>
+    <string name="people_driver_available">Available</string>
+    <string name="people_driver_off_duty">Off duty</string>
+    <string name="people_driver_on_leave">On leave</string>
+    <string name="people_driver_suspended">Suspended</string>
+    <string name="people_driver_score">Score</string>
+    <string name="people_driver_trips">Trips</string>
+    <string name="people_driver_driven">Driven</string>
+    <string name="people_driver_years">Years</string>
+    <string name="people_driver_not_added_yet">Not added yet</string>
+    <string name="people_driver_valid_till">Valid till %1$s</string>
+    <string name="people_driver_paper_missing">Missing</string>
+    <string name="people_driver_paper_not_added">Not added</string>
+    <string name="people_driver_paper_rejected">Rejected</string>
+    <string name="people_driver_paper_expired">Expired</string>
+    <string name="people_driver_paper_expiring">Expiring</string>
+    <string name="people_driver_paper_on_file">On file</string>
+    <string name="people_driver_paper_on_file_till">On file, valid till %1$s</string>
+    <string name="people_driver_paper_open">Open %1$s</string>
+    <string name="people_driver_paper_upload">Upload</string>
+    <string name="people_driver_paper_replace">Replace</string>
+
+    <!-- Account · plan, verification and profile cards -->
+    <string name="people_account_plan">Plan</string>
+    <string name="people_account_verification">Verification</string>
+    <string name="people_account_profile">Profile</string>
+    <string name="people_account_nothing_on_file">Nothing on file yet.</string>
+    <string name="people_account_renews_on">Renews on %1$s</string>
+    <string name="people_account_trial_ends_on">Trial ends on %1$s</string>
+    <string name="people_account_ends_on">Ends on %1$s</string>
+    <plurals name="people_account_plan_vehicles">
+        <item quantity="one">%d vehicle</item>
+        <item quantity="other">%d vehicles</item>
+    </plurals>
+    <plurals name="people_account_plan_members">
+        <item quantity="one">%d member</item>
+        <item quantity="other">%d members</item>
+    </plurals>
+    <plurals name="people_account_plan_drivers">
+        <item quantity="one">%d driver</item>
+        <item quantity="other">%d drivers</item>
+    </plurals>
+    <string name="people_account_plans_on_web">Plans are changed on the Saarthi website.</string>
+    <string name="people_account_nothing_to_verify">Nothing to verify for this account.</string>
+    <string name="people_account_verified_on">verified %1$s</string>
+    <string name="people_account_finish_verifying">Finish verifying on the Saarthi website. Each step there says what it needs.</string>
+    <string name="people_account_profile_complete">%1$d%% complete</string>
+    <string name="people_account_edit">Edit</string>
+    <string name="people_account_nothing_added">Nothing added yet.</string>
+    <string name="people_account_yes">Yes</string>
+    <string name="people_account_no">No</string>
+    <string name="people_account_help_legal">Help and legal</string>
+    <string name="people_account_email_support">Email support</string>
+    <string name="people_account_terms">Terms of service</string>
+    <string name="people_account_privacy">Privacy policy</string>
+    <string name="people_account_status_active">Active</string>
+    <string name="people_account_status_trialing">Trialing</string>
+    <string name="people_account_status_verified">Verified</string>
+    <string name="people_account_status_failed">Failed</string>
+    <string name="people_account_status_retry_required">Retry required</string>
+    <string name="people_account_status_under_review">Under review</string>
+    <string name="people_account_status_verifying">Verifying</string>
+    <string name="people_account_status_payment_processing">Payment processing</string>
+    <string name="people_account_status_payment_required">Payment required</string>
+
+    <!-- Account · the Account tab -->
+    <string name="people_account_appearance">Appearance</string>
+    <string name="people_account_appearance_phone">Phone</string>
+    <string name="people_account_appearance_light">Light</string>
+    <string name="people_account_appearance_dark">Dark</string>
+    <string name="people_account_language">Language</string>
+    <string name="people_account_language_phone_default">Phone default</string>
+    <string name="people_account_language_detail">The language this app speaks</string>
+    <string name="people_account_businesses">Your businesses</string>
+    <string name="people_account_security">Security</string>
+    <string name="people_account_change_password">Change password</string>
+    <string name="people_account_change_password_detail">Other phones and browsers are signed out</string>
+    <string name="people_account_session">Session</string>
+    <string name="people_account_signing_out">Signing out…</string>
+    <string name="people_account_app_lock">App lock</string>
+    <string name="people_account_app_lock_detail">Fingerprint, face or screen lock to open</string>
+    <string name="people_account_app_lock_unavailable">Set up a screen lock on this phone first</string>
+    <string name="people_account_app_lock_prompt_title">Turn on App lock</string>
+    <string name="people_account_app_lock_prompt_subtitle">Confirm it\'s you</string>
+
+    <!-- Account · what kind of business, in a word -->
+    <string name="people_business_fleet">Fleet</string>
+    <string name="people_business_travel">Travel</string>
+    <string name="people_business_customer">Customer</string>
+    <string name="people_business_seller">Seller</string>
+    <string name="people_business_association">Association</string>
+    <string name="people_business_team">Saarthi team</string>
+
+    <!-- Account · paused and not-for-this-app screens -->
+    <string name="people_gate_paused_title">This account is paused</string>
+    <string name="people_gate_paused_lead">Nothing has been lost. When the account is active again, everything opens exactly where you left it.</string>
+    <string name="people_gate_kept_vehicles">Vehicles and their papers</string>
+    <string name="people_gate_kept_trips">Every trip, route and expense</string>
+    <string name="people_gate_kept_drivers">Drivers, orders and settlements</string>
+    <string name="people_gate_check_again">Check again</string>
+    <string name="people_gate_switch_business">Switch business</string>
+    <string name="people_gate_drivers_title">Drivers have their own app</string>
+    <string name="people_gate_business_title">This app is for businesses</string>
+    <string name="people_gate_drivers_lead">Humsafar by VorldX Saarthi is made for driving — trips, papers and the road. Sign in there with this same account.</string>
+    <string name="people_gate_other_business_lead">%1$s is run from Saarthi on the web. Switch to one of your other businesses below.</string>
+    <string name="people_gate_this_business_lead">This business is run from Saarthi on the web. Switch to one of your other businesses below.</string>
+    <string name="people_gate_no_business_lead">This account has no fleet, travel, customer, seller or association business to show here. Use Saarthi on the web.</string>
+
+    <!-- Account · language -->
+    <string name="people_language_hint">Messages from Saarthi, such as alerts and the assistant\'s answers, come in the language they were sent in.</string>
+
+    <!-- Account · change password -->
+    <string name="people_password_rule_length">At least 10 characters</string>
+    <string name="people_password_rule_lower">A lowercase letter</string>
+    <string name="people_password_rule_upper">An uppercase letter</string>
+    <string name="people_password_rule_number">A number</string>
+    <string name="people_password_changed">Password changed. Other phones and browsers have been signed out.</string>
+    <string name="people_password_changing">Changing…</string>
+    <string name="people_password_current">Current password</string>
+    <string name="people_password_new">New password</string>
+    <string name="people_password_again">New password again</string>
+    <string name="people_password_mismatch">The two new passwords do not match.</string>
+    <string name="people_password_same">The new password must be different from the current one.</string>
+
+    <!-- Account · editing a profile section -->
+    <string name="people_profile_save">Save</string>
+    <string name="people_profile_owner_only">Only the business\'s owner or an admin can change this.</string>
+    <string name="people_profile_optional">%1$s (optional)</string>
+    <string name="people_profile_comma_hint">%1$s — separate with commas</string>
+    <string name="people_profile_photo_updated">%1$s updated.</string>
+    <string name="people_profile_take_photo">Take photo</string>
+    <string name="people_profile_uploading">Uploading…</string>
+    <string name="people_profile_gallery">Gallery</string>
+
+    <!-- App lock -->
+    <string name="people_lock_prompt_title">Unlock VorldX Saarthi</string>
+    <string name="people_lock_prompt_subtitle">Use your fingerprint, face or screen lock</string>
+    <string name="people_lock_locked">Locked</string>
+    <string name="people_lock_body">Your business is behind your fingerprint, face or screen lock.</string>
+    <string name="people_lock_unlock">Unlock</string>
+
+    <!-- Sign in -->
+    <string name="people_signin_step_bar">Step %1$d of %2$d</string>
+    <string name="people_signin_step_eyebrow">Sign in · %1$d of %2$d</string>
+    <string name="people_signin_welcome_back">Welcome back</string>
+    <string name="people_signin_email_lead">Use the email address your Saarthi account is on.</string>
+    <string name="people_signin_continue">Continue</string>
+    <string name="people_signin_existing_account">Use the Saarthi account you already have.</string>
+    <string name="people_signin_email_label">Email address</string>
+    <string name="people_signin_your_password">Your password</string>
+    <string name="people_signin_sign_in">Sign in</string>
+    <string name="people_signin_change">Change</string>
+    <string name="people_signin_forgot">Forgot password?</string>
+    <string name="people_signin_working_title">Signing you in…</string>
+    <string name="people_signin_working_body">Opening your business on this phone.</string>
+
+    <!-- Welcome carousel -->
+    <string name="people_welcome_fleet_alt">A fleet owner standing in his truck yard at sunrise</string>
+    <string name="people_welcome_fleet_eyebrow">For owners · fleets · businesses</string>
+    <string name="people_welcome_fleet_title">Track. Approve.\nGet paid.</string>
+    <string name="people_welcome_fleet_body">Every vehicle live on one map, drivers approved from your phone, and return loads before a truck drives back empty.</string>
+    <string name="people_welcome_customer_alt">A site manager checking a delivery on her phone</string>
+    <string name="people_welcome_customer_eyebrow">For customers</string>
+    <string name="people_welcome_customer_title">Post. Compare.\nTrack it in.</string>
+    <string name="people_welcome_customer_body">Say what you need moved, choose between fleet bids, and follow your load all the way to your gate.</string>
+    <string name="people_welcome_seller_alt">Two sellers in their building-materials yard</string>
+    <string name="people_welcome_seller_eyebrow">For sellers</string>
+    <string name="people_welcome_seller_title">Sell by the\ntruckload.</string>
+    <string name="people_welcome_seller_body">Fleets source from your listing and collect from your gate. You load; they deliver.</string>
+    <string name="people_welcome_previous">Previous</string>
+    <string name="people_welcome_next">Next</string>
+
+    <!-- Ask Saarthi · suggestions by kind of business -->
+    <string name="people_assistant_suggest_attention">What needs my attention today?</string>
+    <string name="people_assistant_suggest_idle">Which trucks are idle?</string>
+    <string name="people_assistant_suggest_papers_due">Papers due this month</string>
+    <string name="people_assistant_suggest_fuel">Fuel spend this week</string>
+    <string name="people_assistant_suggest_today">What\'s on today?</string>
+    <string name="people_assistant_suggest_free">Which vehicles are free?</string>
+    <string name="people_assistant_suggest_orders">Where are my orders?</string>
+    <string name="people_assistant_suggest_spent">What have I spent this month?</string>
+    <string name="people_assistant_suggest_payment">Which orders are waiting for payment?</string>
+    <string name="people_assistant_suggest_stock">What is low on stock?</string>
+    <string name="people_assistant_suggest_expiring">Which papers expire soon?</string>
+    <string name="people_assistant_suggest_service">When is my next service?</string>
+
+    <!-- Ask Saarthi · the conversation -->
+    <string name="people_assistant_no_answer">I couldn\'t find an answer to that in your records.</string>
+    <string name="people_assistant_no_recogniser">This phone has no speech recogniser. You can type the question instead.</string>
+    <string name="people_assistant_mic_needed">Saarthi needs the microphone to hear you. You can still type the question.</string>
+    <string name="people_assistant_morning">Good morning, %1$s</string>
+    <string name="people_assistant_afternoon">Good afternoon, %1$s</string>
+    <string name="people_assistant_evening">Good evening, %1$s</string>
+    <string name="people_assistant_from_records">From your own records</string>
+    <string name="people_assistant_title">Ask Saarthi</string>
+    <string name="people_assistant_intro">Ask about vehicles, trips, papers or money.</string>
+    <string name="people_assistant_looking">Looking through your records…</string>
+    <string name="people_assistant_listening">Listening…</string>
+    <string name="people_assistant_tap_to_stop">Tap Saarthi to stop</string>
+    <string name="people_assistant_stop">Stop</string>
+    <string name="people_assistant_try_asking">Try asking</string>
+    <string name="people_assistant_placeholder">Ask about your business…</string>
+    <string name="people_assistant_stop_listening">Stop listening</string>
+    <string name="people_assistant_ask_aloud">Ask out loud</string>
+    <string name="people_assistant_send">Send</string>
+
+    <!-- Ask Saarthi · when voice does not work -->
+    <string name="people_voice_not_caught">I didn\'t catch that. Tap the mic and try again.</string>
+    <string name="people_voice_permission">Saarthi needs the microphone to hear you. Allow it in the phone\'s settings.</string>
+    <string name="people_voice_network">Voice needs the internet. Check the connection and try again.</string>
+    <string name="people_voice_busy">The phone is still busy with the last one. Try again in a moment.</string>
+    <string name="people_voice_unavailable">Voice isn\'t working right now. You can type the question instead.</string>
+</resources>

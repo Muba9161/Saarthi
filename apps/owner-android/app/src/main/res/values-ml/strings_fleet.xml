@@ -1,0 +1,444 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Shared by the fleet, personal, travel and business tabs and screens. -->
+    <string name="fleet_tab_home">ഹോം</string>
+    <string name="fleet_tab_map">മാപ്പ്</string>
+    <string name="fleet_tab_fleet">ഫ്ലീറ്റ്</string>
+    <string name="fleet_tab_jobs">ജോലികൾ</string>
+    <string name="fleet_greeting">നമസ്കാരം, %1$s</string>
+    <string name="fleet_tab_header_vehicles_drivers">വാഹനങ്ങളും ഡ്രൈവർമാരും</string>
+    <string name="fleet_tab_header_your_fleet">നിങ്ങളുടെ ഫ്ലീറ്റ്</string>
+    <string name="fleet_tab_header_on_your_routes">നിങ്ങളുടെ റൂട്ടുകളിൽ</string>
+    <string name="fleet_tab_header_bid_on_work">ജോലിക്ക് ബിഡ് ചെയ്യുക</string>
+    <string name="fleet_a_driver">ഒരു ഡ്രൈവർ</string>
+    <string name="fleet_open_named">%1$s തുറക്കുക</string>
+    <string name="fleet_tonnes">%1$s ടൺ</string>
+    <plurals name="fleet_trips">
+        <item quantity="one">%d ട്രിപ്പ്</item>
+        <item quantity="other">%d ട്രിപ്പുകൾ</item>
+    </plurals>
+    <plurals name="fleet_papers_expired">
+        <item quantity="one">%d പേപ്പറിന്റെ കാലാവധി കഴിഞ്ഞു</item>
+        <item quantity="other">%d പേപ്പറുകളുടെ കാലാവധി കഴിഞ്ഞു</item>
+    </plurals>
+
+    <!-- Fleet home: the reporting line over the cards. -->
+    <string name="fleet_main_live">ലൈവ്</string>
+    <string name="fleet_main_quiet">അനക്കമില്ല</string>
+    <plurals name="fleet_main_reporting">
+        <item quantity="one">%d വാഹനം നിങ്ങൾക്ക് റിപ്പോർട്ട് ചെയ്യുന്നു</item>
+        <item quantity="other">%d വാഹനങ്ങൾ നിങ്ങൾക്ക് റിപ്പോർട്ട് ചെയ്യുന്നു</item>
+    </plurals>
+    <string name="fleet_main_none_reported">അടുത്തിടെ ഒരു വാഹനവും റിപ്പോർട്ട് ചെയ്തിട്ടില്ല</string>
+
+    <!-- Fleet home: approving or turning down a driver, as the toast says it. -->
+    <string name="fleet_model_approved">അംഗീകരിച്ചു. അവർക്ക് ഷിഫ്റ്റ് തുടങ്ങാം.</string>
+    <string name="fleet_model_rejected">നിരസിച്ചു. ഡ്രൈവറെ കാരണം അറിയിച്ചു.</string>
+
+    <!-- Fleet home: "Fleet right now" card. -->
+    <string name="fleet_now_title">ഫ്ലീറ്റ് ഇപ്പോൾ</string>
+    <string name="fleet_now_moving">%1$d ഓടുന്നു</string>
+    <string name="fleet_now_on_the_road">റോഡിൽ</string>
+    <string name="fleet_now_idle_offline">%1$d ഐഡിൽ · %2$d ഓഫ്‌ലൈൻ</string>
+    <string name="fleet_now_open_map">മാപ്പ് തുറക്കുക</string>
+
+    <!-- Fleet home: "Needs you now", the morning tiles and the return-load card. -->
+    <string name="fleet_cards_needs_you_now">ഇപ്പോൾ നിങ്ങളെ ആവശ്യമുണ്ട്</string>
+    <string name="fleet_cards_wants_to_drive">%1$s ഓടിക്കാൻ ആഗ്രഹിക്കുന്നു</string>
+    <string name="fleet_cards_approve">അംഗീകരിക്കുക</string>
+    <string name="fleet_cards_review">പരിശോധിക്കുക</string>
+    <string name="fleet_cards_view_request">അഭ്യർത്ഥന കാണുക</string>
+    <string name="fleet_cards_cannot_approve">ഇത് ഒരു ഉടമയോ ഫ്ലീറ്റ് മാനേജറോ ആണ് അംഗീകരിക്കുന്നത്. വാഹനം കാത്തിരിക്കുന്നുണ്ടെന്ന് അറിയാനാണ് നിങ്ങൾക്ക് ഇത് കാണിക്കുന്നത്.</string>
+    <plurals name="fleet_cards_more_waiting">
+        <item quantity="one">ഇതിനു ശേഷം %d പേർ കൂടി കാത്തിരിക്കുന്നു</item>
+        <item quantity="other">ഇതിനു ശേഷം %d പേർ കൂടി കാത്തിരിക്കുന്നു</item>
+    </plurals>
+    <string name="fleet_cards_overdue">സമയം കഴിഞ്ഞു</string>
+    <string name="fleet_cards_time_left">%1$s ബാക്കി</string>
+    <string name="fleet_cards_open_alerts">അലേർട്ടുകൾ തുറക്കുക</string>
+    <string name="fleet_cards_all_clear_title">ഇപ്പോൾ നിങ്ങൾ ഒന്നും ചെയ്യേണ്ടതില്ല</string>
+    <string name="fleet_cards_all_clear_body">അംഗീകാരത്തിനായി കാത്തിരിക്കുന്ന ഡ്രൈവർമാരും അടിയന്തര അലേർട്ടുകളും ഇവിടെ കാണാം.</string>
+    <string name="fleet_cards_trips">ട്രിപ്പുകൾ</string>
+    <string name="fleet_cards_on_the_road">റോഡിൽ</string>
+    <string name="fleet_cards_late">%1$d വൈകി</string>
+    <string name="fleet_cards_all_on_time">എല്ലാം കൃത്യസമയത്ത്</string>
+    <string name="fleet_cards_papers">പേപ്പറുകൾ</string>
+    <string name="fleet_cards_all_set">എല്ലാം ശരി</string>
+    <string name="fleet_cards_due">%1$d പുതുക്കണം</string>
+    <string name="fleet_cards_not_shared">ഷെയർ ചെയ്തിട്ടില്ല</string>
+    <string name="fleet_cards_expired">%1$d കാലാവധി കഴിഞ്ഞു</string>
+    <string name="fleet_cards_nothing_due">ഒന്നും ബാക്കിയില്ല</string>
+    <string name="fleet_cards_renew_soon">ഉടൻ പുതുക്കുക</string>
+    <string name="fleet_cards_backhaul_one">%1$s കാലിയായി തിരിച്ചു വരും</string>
+    <plurals name="fleet_cards_backhaul_trucks">
+        <item quantity="one">%d ട്രക്ക് കാലിയായി തിരിച്ചു വരും</item>
+        <item quantity="other">%d ട്രക്കുകൾ കാലിയായി തിരിച്ചു വരും</item>
+    </plurals>
+    <string name="fleet_cards_backhaul_line">%2$s-ൽ നിന്ന് %1$s km · റിട്ടേൺ ലോഡ് കണ്ടെത്തുക</string>
+
+    <!-- Approve a driver. -->
+    <string name="fleet_approval_reason_not_assigned">ഈ വാഹനത്തിന് ഏൽപ്പിച്ചിട്ടില്ല</string>
+    <string name="fleet_approval_reason_not_ready">വാഹനം തയ്യാറല്ല</string>
+    <string name="fleet_approval_reason_unknown_driver">എനിക്ക് ഈ ഡ്രൈവറെ അറിയില്ല</string>
+    <string name="fleet_approval_eyebrow">ഡ്രൈവർ അഭ്യർത്ഥന</string>
+    <string name="fleet_approval_title">ഡ്രൈവറെ അംഗീകരിക്കുക</string>
+    <string name="fleet_approval_slide">%1$s-നെ അംഗീകരിക്കാൻ സ്ലൈഡ് ചെയ്യുക</string>
+    <string name="fleet_approval_turn_this_down">ഇത് നിരസിക്കുക</string>
+    <string name="fleet_approval_cannot_decide">ഈ അഭ്യർത്ഥന ഒരു ഉടമയോ ഫ്ലീറ്റ് മാനേജറോ ആണ് അംഗീകരിക്കുകയോ നിരസിക്കുകയോ ചെയ്യുന്നത്.</string>
+    <string name="fleet_approval_left_to_decide">തീരുമാനിക്കാൻ %1$s ബാക്കി</string>
+    <string name="fleet_approval_waiting_for_you">നിങ്ങൾക്കായി കാത്തിരിക്കുന്നു</string>
+    <string name="fleet_approval_photo_description">എത്തിയപ്പോൾ %1$s എടുത്ത ഫോട്ടോ</string>
+    <string name="fleet_approval_licence_class">ലൈസൻസ് %1$s</string>
+    <string name="fleet_approval_licence_valid">ലൈസൻസ് സാധുവാണ്</string>
+    <string name="fleet_approval_licence_expiring">ലൈസൻസ് കാലാവധി ഉടൻ തീരും</string>
+    <string name="fleet_approval_licence_expired">ലൈസൻസ് കാലാവധി കഴിഞ്ഞു</string>
+    <plurals name="fleet_approval_driven_times">
+        <item quantity="one">ഈ ട്രക്ക് %d തവണ ഓടിച്ചിട്ടുണ്ട്</item>
+        <item quantity="other">ഈ ട്രക്ക് %d തവണ ഓടിച്ചിട്ടുണ്ട്</item>
+    </plurals>
+    <string name="fleet_approval_first_time">ഈ ട്രക്കിൽ ആദ്യമായാണ്</string>
+    <plurals name="fleet_approval_years">
+        <item quantity="one">%d വർഷം</item>
+        <item quantity="other">%d വർഷം</item>
+    </plurals>
+    <!-- %1$s is how many years (e.g. "4 years"), %2$s how many trips (e.g. "120 trips"). -->
+    <string name="fleet_approval_experience">%1$s ഡ്രൈവിംഗ് · %2$s</string>
+    <string name="fleet_approval_vehicle">വാഹനം</string>
+    <string name="fleet_approval_awaiting_you">നിങ്ങൾക്കായി കാത്തിരിക്കുന്നു</string>
+    <string name="fleet_approval_never_automatic">ആരെയും തനിയെ അംഗീകരിക്കില്ല — ഇത് നിങ്ങൾക്കായി കാത്തിരിക്കും.</string>
+    <string name="fleet_approval_why_title">എന്തുകൊണ്ട്? %1$s ഇത് കാണും</string>
+    <string name="fleet_approval_own_words">അല്ലെങ്കിൽ നിങ്ങളുടെ വാക്കുകളിൽ പറയുക</string>
+    <string name="fleet_approval_turn_down">നിരസിക്കുക</string>
+
+    <!-- Your fleet: vehicles and drivers list. -->
+    <string name="fleet_list_invitation_accepted">%1$s ഇപ്പോൾ \"എനിക്ക് ഷെയർ ചെയ്തവ\"-ൽ ഉണ്ട്.</string>
+    <string name="fleet_list_invitation_declined">ക്ഷണം നിരസിച്ചു.</string>
+    <string name="fleet_list_tab_vehicles">വാഹനങ്ങൾ · %1$d</string>
+    <string name="fleet_list_tab_drivers">ഡ്രൈവർമാർ · %1$d</string>
+    <string name="fleet_list_mine">എന്റേത്</string>
+    <string name="fleet_list_shared">എനിക്ക് ഷെയർ ചെയ്തവ</string>
+    <string name="fleet_list_shared_count">എനിക്ക് ഷെയർ ചെയ്തവ · %1$d</string>
+    <string name="fleet_list_open_map">മാപ്പ് തുറക്കുക</string>
+    <string name="fleet_list_all_count">എല്ലാം · %1$d</string>
+    <plurals name="fleet_list_papers_due_personal">
+        <item quantity="one">നിങ്ങളുടെ വാഹനങ്ങളിൽ %d പേപ്പർ പുതുക്കാനുണ്ട് അല്ലെങ്കിൽ കാലാവധി കഴിഞ്ഞു. ചെക്ക് പോസ്റ്റിൽ വാഹനം തടയുന്നതിന് മുമ്പ് പുതുക്കുക.</item>
+        <item quantity="other">നിങ്ങളുടെ വാഹനങ്ങളിൽ %d പേപ്പറുകൾ പുതുക്കാനുണ്ട് അല്ലെങ്കിൽ കാലാവധി കഴിഞ്ഞു. ചെക്ക് പോസ്റ്റിൽ വാഹനം തടയുന്നതിന് മുമ്പ് പുതുക്കുക.</item>
+    </plurals>
+    <plurals name="fleet_list_papers_due_fleet">
+        <item quantity="one">ഫ്ലീറ്റിൽ %d പേപ്പർ പുതുക്കാനുണ്ട് അല്ലെങ്കിൽ കാലാവധി കഴിഞ്ഞു. ചെക്ക് പോസ്റ്റിൽ വാഹനം തടയുന്നതിന് മുമ്പ് പുതുക്കുക.</item>
+        <item quantity="other">ഫ്ലീറ്റിൽ %d പേപ്പറുകൾ പുതുക്കാനുണ്ട് അല്ലെങ്കിൽ കാലാവധി കഴിഞ്ഞു. ചെക്ക് പോസ്റ്റിൽ വാഹനം തടയുന്നതിന് മുമ്പ് പുതുക്കുക.</item>
+    </plurals>
+    <string name="fleet_list_no_vehicles">ഇവിടെ ഇതുവരെ വാഹനങ്ങളില്ല.</string>
+    <string name="fleet_list_add_driver">ഡ്രൈവറെ ചേർക്കുക</string>
+    <string name="fleet_list_no_drivers">ഈ അക്കൗണ്ടിൽ ഡ്രൈവർമാരില്ല.</string>
+    <string name="fleet_list_speed">%1$d km/h</string>
+    <string name="fleet_list_idle_minutes">ഐഡിൽ %1$d മി</string>
+    <string name="fleet_list_idle">ഐഡിൽ</string>
+    <string name="fleet_list_offline">ഓഫ്‌ലൈൻ</string>
+    <string name="fleet_list_service">സർവീസ്</string>
+    <string name="fleet_list_score">സ്കോർ %1$d</string>
+
+    <!-- Your fleet: a vehicle as a card, and the rows-or-cards switch. -->
+    <string name="fleet_card_show_cards">കാർഡുകളായി കാണിക്കുക</string>
+    <string name="fleet_card_show_list">ലിസ്റ്റായി കാണിക്കുക</string>
+    <string name="fleet_card_seats">സീറ്റുകൾ</string>
+    <string name="fleet_card_payload">പേലോഡ്</string>
+    <string name="fleet_card_odometer">ഓഡോമീറ്റർ</string>
+    <string name="fleet_card_km">%1$s km</string>
+    <string name="fleet_card_driver">ഡ്രൈവർ</string>
+    <string name="fleet_card_none">ഇല്ല</string>
+    <plurals name="fleet_card_papers_expiring">
+        <item quantity="one">%d പേപ്പറിന്റെ കാലാവധി തീരാറായി</item>
+        <item quantity="other">%d പേപ്പറുകളുടെ കാലാവധി തീരാറായി</item>
+    </plurals>
+    <string name="fleet_card_papers_valid">പേപ്പറുകൾ സാധുവാണ്</string>
+    <string name="fleet_card_no_papers">പേപ്പറുകൾ അപ്‌ലോഡ് ചെയ്തിട്ടില്ല</string>
+
+    <!-- A vehicle to choose for a bid or a trip. -->
+    <string name="fleet_choice_no_driver">ഡ്രൈവർ ഇല്ല</string>
+    <string name="fleet_choice_free_now">ഇപ്പോൾ ഫ്രീ</string>
+
+    <!-- Live map. -->
+    <string name="fleet_map_filter_all">എല്ലാം</string>
+    <string name="fleet_map_filter_moving">ഓടുന്നവ</string>
+    <string name="fleet_map_filter_idle">ഐഡിൽ</string>
+    <string name="fleet_map_filter_offline">ഓഫ്‌ലൈൻ</string>
+    <string name="fleet_map_back">പിന്നോട്ട്</string>
+    <string name="fleet_map_show_all">മുഴുവൻ ഫ്ലീറ്റും കാണിക്കുക</string>
+    <string name="fleet_map_no_vehicles">ഈ അക്കൗണ്ടിൽ ഇതുവരെ വാഹനങ്ങളില്ല.</string>
+    <string name="fleet_map_no_positions">ഇതുവരെ ഒരു വാഹനവും സ്ഥാനം റിപ്പോർട്ട് ചെയ്തിട്ടില്ല. ട്രാക്കറോ ഫോണോ സ്ഥാനം അയച്ചാലുടൻ അത് ഇവിടെ കാണാം.</string>
+    <string name="fleet_map_search_hint">നമ്പർ പ്ലേറ്റ് അല്ലെങ്കിൽ ഡ്രൈവർ</string>
+    <string name="fleet_map_clear_search">തിരയൽ മായ്ക്കുക</string>
+    <string name="fleet_map_reporting_now">ഇപ്പോൾ റിപ്പോർട്ട് ചെയ്യുന്നു</string>
+    <string name="fleet_map_seen_ago">%1$s മുമ്പ് കണ്ടു</string>
+    <string name="fleet_map_close">അടയ്ക്കുക</string>
+    <string name="fleet_map_open_vehicle">വാഹനം തുറക്കുക</string>
+
+    <!-- One vehicle's page. -->
+    <string name="fleet_vehicle_title">വാഹനം</string>
+    <string name="fleet_vehicle_call">%1$s-നെ വിളിക്കുക</string>
+    <string name="fleet_vehicle_follow_map">മാപ്പിൽ പിന്തുടരുക</string>
+    <string name="fleet_vehicle_speed">വേഗത</string>
+    <string name="fleet_vehicle_kmh">km/h</string>
+    <string name="fleet_vehicle_seen">കണ്ടത്</string>
+    <string name="fleet_vehicle_ago">മുമ്പ്</string>
+    <string name="fleet_vehicle_odometer">ഓഡോമീറ്റർ</string>
+    <string name="fleet_vehicle_km">km</string>
+    <string name="fleet_vehicle_open_trip">ഇപ്പോഴത്തെ ട്രിപ്പ് തുറക്കുക</string>
+    <string name="fleet_vehicle_new_trip">ഈ വാഹനവുമായി പുതിയ ട്രിപ്പ്</string>
+    <string name="fleet_vehicle_driver_removed">ഡ്രൈവറെ ഈ വാഹനത്തിൽ നിന്ന് മാറ്റി.</string>
+    <string name="fleet_vehicle_assigned_you">നിങ്ങളെ ഈ വാഹനത്തിന് ഏൽപ്പിച്ചിരിക്കുന്നു.</string>
+    <string name="fleet_vehicle_assigned_driver">ഡ്രൈവറെ ഈ വാഹനത്തിന് ഏൽപ്പിച്ചിരിക്കുന്നു.</string>
+    <string name="fleet_vehicle_assigned_named">%1$s-നെ ഈ വാഹനത്തിന് ഏൽപ്പിച്ചിരിക്കുന്നു.</string>
+    <string name="fleet_vehicle_open_sharing">ഷെയറിംഗ് തുറക്കുക</string>
+    <string name="fleet_vehicle_sharing">ഷെയറിംഗ്</string>
+    <string name="fleet_vehicle_share_up_to">%1$d പേരുമായി വരെ ഷെയർ ചെയ്യാം</string>
+    <string name="fleet_vehicle_in_transit">യാത്രയിൽ</string>
+    <string name="fleet_vehicle_moving">ഓടുന്നു</string>
+    <string name="fleet_vehicle_stopped">നിർത്തിയിരിക്കുന്നു</string>
+    <string name="fleet_vehicle_not_reporting">റിപ്പോർട്ട് ചെയ്യുന്നില്ല</string>
+    <string name="fleet_vehicle_in_service">സർവീസിൽ</string>
+    <string name="fleet_vehicle_current_tracking">നിലവിലെ ട്രാക്കിംഗ്</string>
+    <string name="fleet_vehicle_live_view">ലൈവ് വ്യൂ</string>
+    <string name="fleet_vehicle_current_trip">ഇപ്പോഴത്തെ ട്രിപ്പ്</string>
+    <string name="fleet_vehicle_min_late">%1$d മിനിറ്റ് വൈകി</string>
+    <string name="fleet_vehicle_on_time">കൃത്യസമയത്ത്</string>
+    <string name="fleet_vehicle_left_at">പുറപ്പെട്ടത് %1$s</string>
+    <string name="fleet_vehicle_to_go">ഇനി %1$s</string>
+    <plurals name="fleet_vehicle_papers_expired_or_declined">
+        <item quantity="one">%d പേപ്പർ കാലാവധി കഴിഞ്ഞു അല്ലെങ്കിൽ നിരസിച്ചു</item>
+        <item quantity="other">%d പേപ്പറുകൾ കാലാവധി കഴിഞ്ഞു അല്ലെങ്കിൽ നിരസിച്ചു</item>
+    </plurals>
+    <plurals name="fleet_vehicle_papers_due_soon">
+        <item quantity="one">%d പേപ്പർ ഉടൻ പുതുക്കണം</item>
+        <item quantity="other">%d പേപ്പറുകൾ ഉടൻ പുതുക്കണം</item>
+    </plurals>
+    <plurals name="fleet_vehicle_papers_in_order">
+        <item quantity="one">%d പേപ്പർ ഫയലിൽ, എല്ലാം ശരിയാണ്</item>
+        <item quantity="other">%d പേപ്പറുകൾ ഫയലിൽ, എല്ലാം ശരിയാണ്</item>
+    </plurals>
+    <plurals name="fleet_vehicle_all_papers_valid">
+        <item quantity="one">%d പേപ്പറും സാധുവാണ്</item>
+        <item quantity="other">എല്ലാ %d പേപ്പറുകളും സാധുവാണ്</item>
+    </plurals>
+    <string name="fleet_vehicle_no_papers">ഇതുവരെ പേപ്പറുകളൊന്നും ഫയലിൽ ഇല്ല</string>
+    <string name="fleet_vehicle_open_papers">പേപ്പറുകൾ തുറക്കുക</string>
+    <string name="fleet_vehicle_papers">പേപ്പറുകൾ</string>
+
+    <!-- A from → to pair, when an end has no address. -->
+    <string name="fleet_route_start">തുടക്കം</string>
+    <string name="fleet_route_destination">ലക്ഷ്യസ്ഥാനം</string>
+
+    <!-- Who drives this vehicle, and adding yourself as its driver. -->
+    <string name="fleet_assign_driving">ഓടിക്കുന്നത്</string>
+    <string name="fleet_assign_no_driver">ഡ്രൈവർ ഇല്ല</string>
+    <string name="fleet_assign_nobody">ഈ വാഹനം ഓടിക്കാൻ ആരെയും നിശ്ചയിച്ചിട്ടില്ല</string>
+    <string name="fleet_assign_take_off_confirm">%1$s-നെ ഈ വാഹനത്തിൽ നിന്ന് മാറ്റണോ?</string>
+    <string name="fleet_assign_keep">നിലനിർത്തുക</string>
+    <string name="fleet_assign_remove">മാറ്റുക</string>
+    <string name="fleet_assign_change_driver">ഡ്രൈവറെ മാറ്റുക</string>
+    <string name="fleet_assign_assign_driver">ഡ്രൈവറെ ഏൽപ്പിക്കുക</string>
+    <string name="fleet_assign_sheet_title">%1$s ആര് ഓടിക്കും?</string>
+    <string name="fleet_assign_sheet_hint">വെരിഫൈ ചെയ്ത, മറ്റൊരു വാഹനത്തിൽ ഇല്ലാത്ത ഡ്രൈവർമാരെ മാത്രമേ തിരഞ്ഞെടുക്കാനാകൂ.</string>
+    <string name="fleet_assign_myself">ഞാൻ തന്നെ</string>
+    <string name="fleet_assign_score">സ്കോർ %1$d</string>
+    <string name="fleet_assign_none_free">ഇപ്പോൾ വെരിഫൈ ചെയ്ത ഒരു ഡ്രൈവറും ഫ്രീ അല്ല.</string>
+    <string name="fleet_assign_assign">ഏൽപ്പിക്കുക</string>
+    <string name="fleet_assign_assigning">ഏൽപ്പിക്കുന്നു…</string>
+    <string name="fleet_assign_self_adds">നിങ്ങളെ നിങ്ങളുടെ ഡ്രൈവർ ലിസ്റ്റിൽ ചേർക്കും</string>
+    <string name="fleet_assign_self_unverified">നിങ്ങളുടെ ലൈസൻസ് ഇപ്പോഴും വെരിഫൈ ചെയ്യുന്നു</string>
+    <string name="fleet_assign_self_elsewhere">നിങ്ങൾ മറ്റൊരു വാഹനത്തിലാണ്</string>
+    <string name="fleet_assign_self_licence">ലൈസൻസ് %1$s</string>
+    <string name="fleet_assign_photo_unusable">ആ ഫോട്ടോ ഉപയോഗിക്കാനായില്ല.</string>
+    <string name="fleet_assign_licence_unreadable">അതിൽ നിന്ന് ലൈസൻസ് നമ്പർ വായിക്കാനായില്ല. കൂടുതൽ വ്യക്തമായ ഫോട്ടോ എടുക്കുക, അല്ലെങ്കിൽ ടൈപ്പ് ചെയ്യുക.</string>
+    <string name="fleet_assign_photo_hint">നിങ്ങളുടെ ഡ്രൈവിംഗ് ലൈസൻസിന്റെ ഫോട്ടോ എടുക്കുക, നമ്പർ അതിൽ നിന്ന് വായിക്കും.</string>
+    <string name="fleet_assign_scan_licence">ലൈസൻസ് സ്കാൻ ചെയ്യുക</string>
+    <string name="fleet_assign_choose_file">ഫയൽ തിരഞ്ഞെടുക്കുക</string>
+    <string name="fleet_assign_reading">ലൈസൻസ് വായിക്കുന്നു…</string>
+    <string name="fleet_assign_licence_number">ഡ്രൈവിംഗ് ലൈസൻസ് നമ്പർ</string>
+    <string name="fleet_assign_add_me">എന്നെ ചേർത്ത് ഏൽപ്പിക്കുക</string>
+    <string name="fleet_assign_added_unverified">നിങ്ങൾ ഡ്രൈവർ ലിസ്റ്റിലുണ്ട്. ലൈസൻസ് വെരിഫൈ ചെയ്താൽ ഇവിടെ നിങ്ങളെത്തന്നെ ഏൽപ്പിക്കുക.</string>
+    <string name="fleet_assign_adding">ചേർക്കുന്നു…</string>
+
+    <!-- Return loads. -->
+    <string name="fleet_backhaul_eyebrow">ബിസിനസ് · റിട്ടേൺ ലോഡ്</string>
+    <string name="fleet_backhaul_title">റിട്ടേൺ ലോഡുകൾ</string>
+    <string name="fleet_backhaul_nothing">ഒരു ട്രക്കും കാലിയായി ഓടാൻ പോകുന്നില്ല, തിരിച്ചുള്ള വഴിയിൽ ഒന്നും കാത്തിരിക്കുന്നുമില്ല.</string>
+    <string name="fleet_backhaul_no_match">തിരിച്ചുള്ള വഴിക്ക് യോജിക്കുന്നത് ഇതുവരെ ഒന്നുമില്ല. കസ്റ്റമർമാർ പോസ്റ്റ് ചെയ്യുമ്പോൾ പുതിയ ലോഡുകൾ പരിശോധിക്കും.</string>
+    <string name="fleet_backhaul_best_first">ഏറ്റവും യോജിച്ചത് ആദ്യം</string>
+    <string name="fleet_backhaul_quote_sent">%1$s-ന് ക്വോട്ട് അയച്ചു. കസ്റ്റമറെ അറിയിച്ചു.</string>
+    <string name="fleet_backhaul_running_empty">ഉടൻ കാലിയായി ഓടും</string>
+    <string name="fleet_backhaul_drops">%1$s-ൽ ഇറക്കുന്നു</string>
+    <!-- %1$s is the drop town, %2$s the empty kilometres back. -->
+    <string name="fleet_backhaul_hero_line">%1$s — %2$s km കാലിയായി തിരിച്ചു വരും</string>
+    <plurals name="fleet_backhaul_loads_match">
+        <item quantity="one">%d ലോഡ് തിരിച്ചുള്ള വഴിക്ക് യോജിക്കുന്നു</item>
+        <item quantity="other">%d ലോഡുകൾ തിരിച്ചുള്ള വഴിക്ക് യോജിക്കുന്നു</item>
+    </plurals>
+    <string name="fleet_backhaul_watching">തിരിച്ചുള്ള വഴിയിലെ ലോഡുകൾക്കായി നോക്കുന്നു</string>
+    <string name="fleet_backhaul_risk_line">%1$s · %2$s km കാലി</string>
+    <string name="fleet_backhaul_best_fit_detour">ഏറ്റവും യോജിച്ചത് · %1$d km വഴിമാറ്റം</string>
+    <string name="fleet_backhaul_detour">%1$d km വഴിമാറ്റം</string>
+    <string name="fleet_backhaul_posted_now">ഇപ്പോൾ പോസ്റ്റ് ചെയ്തു</string>
+    <string name="fleet_backhaul_posted_ago">%1$s മുമ്പ് പോസ്റ്റ് ചെയ്തു</string>
+    <string name="fleet_backhaul_pick_up">പിക്കപ്പ് %1$s</string>
+    <string name="fleet_backhaul_from_drop">ഡ്രോപ്പിൽ നിന്ന് %1$d km</string>
+    <string name="fleet_backhaul_deliver_by">%1$s-നുള്ളിൽ എത്തിക്കണം</string>
+    <string name="fleet_backhaul_load">ലോഡ്</string>
+    <string name="fleet_backhaul_goods">സാധനങ്ങൾ</string>
+    <string name="fleet_backhaul_worth">മൂല്യം</string>
+    <string name="fleet_backhaul_quote_sent_button">ക്വോട്ട് അയച്ചു</string>
+    <string name="fleet_backhaul_quote_this">ഈ ലോഡിന് ക്വോട്ട് ചെയ്യുക</string>
+    <string name="fleet_backhaul_quote_for">%1$s-ന് ക്വോട്ട്</string>
+    <!-- %1$s from, %2$s to, %3$s the truck's plate. -->
+    <string name="fleet_backhaul_quote_route">%3$s-ന്റെ മടക്കയാത്രയിൽ %1$s → %2$s.</string>
+    <string name="fleet_backhaul_your_price">നിങ്ങളുടെ വില (₹)</string>
+    <string name="fleet_backhaul_note">ഒരു കുറിപ്പ് (ഓപ്ഷണൽ)</string>
+    <string name="fleet_backhaul_send_quote">ക്വോട്ട് അയയ്ക്കുക</string>
+
+    <!-- Business home (accounts whose own screens are still to come). -->
+    <string name="fleet_home_intro_personal_eyebrow">പേഴ്സണൽ</string>
+    <string name="fleet_home_intro_personal_line">നിങ്ങളുടെ വാഹനങ്ങൾ, അവയുടെ പേപ്പറുകൾ, എല്ലാ ട്രിപ്പുകളും.</string>
+    <string name="fleet_home_intro_travel_eyebrow">ട്രാവൽ</string>
+    <string name="fleet_home_intro_travel_line">ബുക്കിംഗുകൾ, വാഹനങ്ങൾ, മുന്നിലുള്ള യാത്ര.</string>
+    <string name="fleet_home_intro_customer_eyebrow">കസ്റ്റമർ</string>
+    <string name="fleet_home_intro_customer_line">നിങ്ങൾക്ക് എത്തിക്കേണ്ടത്, അത് ഇപ്പോൾ എവിടെയാണ്.</string>
+    <string name="fleet_home_intro_seller_eyebrow">സെല്ലർ</string>
+    <string name="fleet_home_intro_seller_line">നിങ്ങളുടെ സ്റ്റോക്ക്, അത് ലോഡ് ചെയ്യാൻ വരുന്ന ട്രക്കുകൾ.</string>
+    <string name="fleet_home_intro_association_eyebrow">അസോസിയേഷൻ</string>
+    <string name="fleet_home_intro_association_line">നിങ്ങളുടെ അംഗങ്ങൾ, റോഡിൽ സഹായം വേണ്ട ആരും.</string>
+    <string name="fleet_home_intro_other_line">Saarthi-യിൽ നിങ്ങളുടെ ബിസിനസ്.</string>
+    <string name="fleet_home_latest">പുതിയവ</string>
+    <string name="fleet_home_nothing_new">പുതിയതായി ഒന്നുമില്ല. നിങ്ങളുടെ ബിസിനസിനെക്കുറിച്ചുള്ള അലേർട്ടുകൾ ഇവിടെ കാണാം.</string>
+    <string name="fleet_home_see_all_alerts">എല്ലാ അലേർട്ടുകളും കാണുക</string>
+
+    <!-- Personal: tabs. -->
+    <string name="fleet_personal_tab_vehicles">വാഹനങ്ങൾ</string>
+    <string name="fleet_personal_tab_papers">പേപ്പറുകൾ</string>
+    <string name="fleet_personal_header_personal">പേഴ്സണൽ</string>
+    <string name="fleet_personal_header_your_vehicles">നിങ്ങളുടെ വാഹനങ്ങൾ</string>
+    <string name="fleet_personal_header_your_papers">നിങ്ങളുടെ പേപ്പറുകൾ</string>
+
+    <!-- Personal: home and papers. -->
+    <string name="fleet_personal_no_vehicle">ഈ അക്കൗണ്ടിൽ ഇതുവരെ വാഹനമില്ല. വെബിലെ Saarthi-യിൽ നിന്ന് ഒന്ന് ചേർക്കുക.</string>
+    <string name="fleet_personal_vehicle">വാഹനം</string>
+    <string name="fleet_personal_insurance">ഇൻഷുറൻസ്</string>
+    <string name="fleet_personal_expired">കാലാവധി കഴിഞ്ഞു</string>
+    <plurals name="fleet_personal_days">
+        <item quantity="one">%d ദിവസം</item>
+        <item quantity="other">%d ദിവസം</item>
+    </plurals>
+    <string name="fleet_personal_could_not_load">ലോഡ് ചെയ്യാനായില്ല</string>
+    <string name="fleet_personal_loading">ലോഡ് ചെയ്യുന്നു</string>
+    <string name="fleet_personal_not_on_file">ഫയലിൽ ഇല്ല</string>
+    <string name="fleet_personal_left">ബാക്കി</string>
+    <string name="fleet_personal_papers">പേപ്പറുകൾ</string>
+    <string name="fleet_personal_none">ഇല്ല</string>
+    <string name="fleet_personal_all_set">എല്ലാം ശരി</string>
+    <string name="fleet_personal_due">%1$d പുതുക്കണം</string>
+    <string name="fleet_personal_on_file">%1$d ഫയലിൽ</string>
+    <string name="fleet_personal_odometer">ഓഡോമീറ്റർ</string>
+    <string name="fleet_personal_km">km</string>
+    <string name="fleet_personal_quick_actions">ക്വിക്ക് ആക്ഷനുകൾ</string>
+    <string name="fleet_personal_sharing">ഷെയറിംഗ്</string>
+    <string name="fleet_personal_map">മാപ്പ്</string>
+    <plurals name="fleet_personal_shared_with">
+        <item quantity="one">%d ആളുമായി ഷെയർ ചെയ്തു</item>
+        <item quantity="other">%d പേരുമായി ഷെയർ ചെയ്തു</item>
+    </plurals>
+    <string name="fleet_personal_moving">ഓടുന്നു</string>
+    <string name="fleet_personal_parked">പാർക്ക് ചെയ്തിരിക്കുന്നു</string>
+    <string name="fleet_personal_not_reporting">റിപ്പോർട്ട് ചെയ്യുന്നില്ല</string>
+    <string name="fleet_personal_where_it_is">അത് എവിടെയാണ്</string>
+    <string name="fleet_personal_reporting_now">ഇപ്പോൾ റിപ്പോർട്ട് ചെയ്യുന്നു</string>
+    <string name="fleet_personal_last_seen">അവസാനം കണ്ടത് %1$s മുമ്പ്</string>
+    <string name="fleet_personal_no_position">ഇതുവരെ സ്ഥാനം റിപ്പോർട്ട് ചെയ്തിട്ടില്ല</string>
+    <!-- %1$s is the kind of vehicle, e.g. "car" or "vehicle". -->
+    <string name="fleet_personal_find_my">എന്റെ %1$s കണ്ടെത്തുക</string>
+    <string name="fleet_personal_vehicle_lower">വാഹനം</string>
+
+    <!-- Travel: tabs. -->
+    <string name="fleet_travel_tab_bookings">ബുക്കിംഗുകൾ</string>
+    <string name="fleet_travel_header_trips_you_run">നിങ്ങൾ നടത്തുന്ന ട്രിപ്പുകൾ</string>
+    <string name="fleet_travel_tab_requests">അഭ്യർത്ഥനകൾ</string>
+    <string name="fleet_travel_header_cabs_tours">നിങ്ങളുടെ അടുത്തുള്ള ക്യാബുകളും ടൂറുകളും</string>
+
+    <!-- Travel: home and the bookings list. -->
+    <string name="fleet_travel_on_the_road">%1$d റോഡിൽ</string>
+    <string name="fleet_travel_nobody_on_road">ആരും റോഡിലില്ല</string>
+    <string name="fleet_travel_today">ഇന്ന്</string>
+    <plurals name="fleet_travel_bookings">
+        <item quantity="one">%d ബുക്കിംഗ്</item>
+        <item quantity="other">%d ബുക്കിംഗുകൾ</item>
+    </plurals>
+    <string name="fleet_travel_open_map">മാപ്പ്</string>
+    <string name="fleet_travel_on_duty">ഡ്യൂട്ടിയിൽ</string>
+    <string name="fleet_travel_vehicles_caption">വാഹനങ്ങൾ</string>
+    <string name="fleet_travel_awaiting">കാത്തിരിക്കുന്നു</string>
+    <string name="fleet_travel_to_confirm">ഉറപ്പിക്കാൻ</string>
+    <string name="fleet_travel_rating">റേറ്റിംഗ്</string>
+    <string name="fleet_travel_from_trips">ട്രിപ്പുകളിൽ നിന്ന്</string>
+    <string name="fleet_travel_todays_run">ഇന്നത്തെ ഓട്ടം</string>
+    <string name="fleet_travel_all_bookings">എല്ലാ ബുക്കിംഗുകളും</string>
+    <string name="fleet_travel_nothing_today">ഇന്ന് ഒന്നുമില്ല. വരാനിരിക്കുന്നവ:</string>
+    <string name="fleet_travel_no_bookings_hint">ഇതുവരെ ബുക്കിംഗുകളില്ല. ഡയറി നിറയ്ക്കാൻ അടുത്തുള്ള അഭ്യർത്ഥനകൾക്ക് ക്വോട്ട് ചെയ്യുക.</string>
+    <string name="fleet_travel_no_bookings">ഇതുവരെ ബുക്കിംഗുകളില്ല.</string>
+    <string name="fleet_travel_still_to_run">ഇനി ഓടാനുള്ളവ</string>
+    <string name="fleet_travel_earlier">മുമ്പുള്ളവ</string>
+    <string name="fleet_travel_status_confirm_it">ഉറപ്പിക്കുക</string>
+    <string name="fleet_travel_status_awaiting_payment">പേയ്‌മെന്റ് കാത്തിരിക്കുന്നു</string>
+    <string name="fleet_travel_status_driver_assigned">ഡ്രൈവറെ ഏൽപ്പിച്ചു</string>
+    <string name="fleet_travel_status_on_the_way">വഴിയിലാണ്</string>
+    <string name="fleet_travel_status_completed">പൂർത്തിയായി</string>
+    <string name="fleet_travel_status_cancelled">റദ്ദാക്കി</string>
+    <string name="fleet_travel_pickup_today">പിക്കപ്പ്</string>
+
+    <!-- Travel: one booking. -->
+    <string name="fleet_travel_booking_reference">ബുക്കിംഗ് %1$s</string>
+    <string name="fleet_travel_confirm">ഈ ബുക്കിംഗ് ഉറപ്പിക്കുക</string>
+    <string name="fleet_travel_confirmed">ഉറപ്പിച്ചു. കസ്റ്റമറെ അറിയിച്ചു.</string>
+    <string name="fleet_travel_decline">നിരസിക്കുക</string>
+    <string name="fleet_travel_start">ട്രിപ്പ് തുടങ്ങുക</string>
+    <string name="fleet_travel_trip_started">ട്രിപ്പ് തുടങ്ങി.</string>
+    <string name="fleet_travel_finish">ട്രിപ്പ് പൂർത്തിയാക്കുക</string>
+    <string name="fleet_travel_trip_finished">ട്രിപ്പ് പൂർത്തിയായി.</string>
+    <string name="fleet_travel_customer">കസ്റ്റമർ</string>
+    <plurals name="fleet_travel_people">
+        <item quantity="one">%d ആൾ</item>
+        <item quantity="other">%d പേർ</item>
+    </plurals>
+    <string name="fleet_travel_call_named">%1$s-നെ വിളിക്കുക</string>
+    <string name="fleet_travel_call_customer">കസ്റ്റമറെ വിളിക്കുക</string>
+    <string name="fleet_travel_payment">പേയ്‌മെന്റ്</string>
+    <string name="fleet_travel_paid">കസ്റ്റമർ പണമടച്ചു</string>
+    <string name="fleet_travel_not_paid">ഇതുവരെ അടച്ചിട്ടില്ല</string>
+    <string name="fleet_travel_payment_failed">കസ്റ്റമറുടെ പേയ്‌മെന്റ് പരാജയപ്പെട്ടു</string>
+    <string name="fleet_travel_started_without_code">കോഡ് ഇല്ലാതെ തുടങ്ങി. കാരണം രേഖയിലുണ്ട്, യാത്രക്കാരനെ അറിയിച്ചു.</string>
+    <string name="fleet_travel_why_decline">എന്തുകൊണ്ട് ഏറ്റെടുക്കാനാവില്ല?</string>
+    <string name="fleet_travel_customer_sees">കസ്റ്റമർ ഇത് കാണും</string>
+    <string name="fleet_travel_decline_booking">ബുക്കിംഗ് നിരസിക്കുക</string>
+    <string name="fleet_travel_declined">നിരസിച്ചു. കസ്റ്റമറെ അറിയിച്ചു.</string>
+    <string name="fleet_travel_which_vehicle">ഏത് വാഹനം പോകും</string>
+    <plurals name="fleet_travel_no_vehicle_fits">
+        <item quantity="one">നിങ്ങളുടെ ഒരു വാഹനത്തിനും ഈ ബുക്കിംഗ് ഏറ്റെടുക്കാനാവില്ല. ട്രിപ്പിലോ സർവീസിലോ അല്ലാതെ ഇപ്പോൾ ഫ്രീ ആയ, കുറഞ്ഞത് %d സീറ്റുള്ള ഒരു പാസഞ്ചർ വാഹനം വേണം.</item>
+        <item quantity="other">നിങ്ങളുടെ ഒരു വാഹനത്തിനും ഈ ബുക്കിംഗ് ഏറ്റെടുക്കാനാവില്ല. ട്രിപ്പിലോ സർവീസിലോ അല്ലാതെ ഇപ്പോൾ ഫ്രീ ആയ, കുറഞ്ഞത് %d സീറ്റുകളുള്ള ഒരു പാസഞ്ചർ വാഹനം വേണം.</item>
+    </plurals>
+    <string name="fleet_travel_check_again">വീണ്ടും നോക്കുക</string>
+    <plurals name="fleet_travel_seats">
+        <item quantity="one">%d സീറ്റ്</item>
+        <item quantity="other">%d സീറ്റുകൾ</item>
+    </plurals>
+    <string name="fleet_travel_who_drives">ആര് ഓടിക്കും</string>
+    <string name="fleet_travel_no_verified_driver">വെരിഫൈ ചെയ്ത ഡ്രൈവർക്ക് മാത്രമേ പാസഞ്ചർ ട്രിപ്പ് എടുക്കാനാകൂ, നിങ്ങളുടെ ആരെയും ഇതുവരെ വെരിഫൈ ചെയ്തിട്ടില്ല. വാഹനം മാത്രം വെച്ച് നിങ്ങൾക്ക് ഉറപ്പിക്കാം.</string>
+    <string name="fleet_travel_booked">ബുക്ക് ചെയ്തത്</string>
+    <plurals name="fleet_travel_days">
+        <item quantity="one">%d ദിവസം</item>
+        <item quantity="other">%d ദിവസം</item>
+    </plurals>
+    <string name="fleet_travel_km">%1$d km</string>
+    <string name="fleet_travel_pickup">പിക്കപ്പ്</string>
+    <string name="fleet_travel_pick_up_at">പിക്കപ്പ് %1$s</string>
+    <string name="fleet_travel_destination">ലക്ഷ്യസ്ഥാനം</string>
+    <string name="fleet_travel_back_at">തിരിച്ചെത്തുന്നത് %1$s</string>
+    <string name="fleet_travel_vehicle_driver">വാഹനവും ഡ്രൈവറും</string>
+</resources>

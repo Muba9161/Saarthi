@@ -28,6 +28,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -41,9 +43,10 @@ import com.saarthi.owner.ui.common.Loadable
 import com.saarthi.owner.ui.common.PlateChip
 import com.saarthi.owner.ui.common.RevealedNotice
 import com.saarthi.owner.ui.common.SkeletonCards
+import com.saarthi.owner.ui.common.Words
 import com.saarthi.owner.ui.common.ago
 import com.saarthi.owner.ui.common.clockOf
-import com.saarthi.owner.ui.common.plural
+import com.saarthi.owner.ui.common.isNow
 import com.saarthi.owner.ui.common.readable
 import com.saarthi.owner.ui.common.rupees
 import com.saarthi.owner.ui.design.BottomSheet
@@ -93,7 +96,7 @@ fun ReturnLoadsScreen(app: OwnerApp) {
     }
 
     Box(Modifier.fillMaxSize()) {
-        DetailScreen(eyebrow = "Business · backhaul", title = "Return loads", eyebrowColor = c.success) {
+        DetailScreen(eyebrow = stringResource(R.string.fleet_backhaul_eyebrow), title = stringResource(R.string.fleet_backhaul_title), eyebrowColor = c.success) {
             when (val shown = state) {
                 Loadable.Loading -> SkeletonCards()
                 is Loadable.Failed -> NoticeCard(shown.message, NoticeTone.WARNING, icon = Lucide.cloudOff)
@@ -104,15 +107,15 @@ fun ReturnLoadsScreen(app: OwnerApp) {
                     if (shown.value.loads.isEmpty()) {
                         NoticeCard(
                             if (shown.value.risks.isEmpty()) {
-                                "No truck is about to run empty, and nothing is waiting on the way back."
+                                stringResource(R.string.fleet_backhaul_nothing)
                             } else {
-                                "Nothing matches the way back yet. New loads are checked as customers post them."
+                                stringResource(R.string.fleet_backhaul_no_match)
                             },
                             NoticeTone.INFO,
                             icon = Lucide.refresh,
                         )
                     } else {
-                        GroupLabel("Best match first")
+                        GroupLabel(stringResource(R.string.fleet_backhaul_best_first))
                         shown.value.loads.forEachIndexed { index, load ->
                             LoadCard(load, best = index == 0, modifier = Modifier.rise(stagger(index + 1))) { quoting = load }
                         }
@@ -127,7 +130,7 @@ fun ReturnLoadsScreen(app: OwnerApp) {
             onQuote = { load, price, note, finish ->
                 app.returnLoads.runCatching { quote(load.id, price, note) }
                     .onSuccess {
-                        done = "Quote sent for ${load.materialName}. The customer has been told."
+                        done = Words.get(R.string.fleet_backhaul_quote_sent, load.materialName)
                         quoting = null
                         reload++
                     }
@@ -159,12 +162,12 @@ private fun EmptySoonHero(risk: ReturnLoadsApi.EmptyRisk, matches: Int, modifier
         )
         Column(Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.SpaceBetween) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Eyebrow("Running empty soon", color = Color.White.copy(alpha = 0.78f))
+                Eyebrow(stringResource(R.string.fleet_backhaul_running_empty), color = Color.White.copy(alpha = 0.78f))
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     PlateChip(risk.truckRegistration, size = 12.sp)
                     // When it drops comes first: on a narrow phone the driver's name is what gets cut.
                     Text(
-                        listOfNotNull(clockOf(risk.arrivingAt)?.let { "Drops $it" }, risk.driverName).joinToString(" · "),
+                        listOfNotNull(clockOf(risk.arrivingAt)?.let { stringResource(R.string.fleet_backhaul_drops, it) }, risk.driverName).joinToString(" · "),
                         style = SType.caption,
                         color = Color.White.copy(alpha = 0.85f),
                         maxLines = 1,
@@ -174,14 +177,14 @@ private fun EmptySoonHero(risk: ReturnLoadsApi.EmptyRisk, matches: Int, modifier
                 }
             }
             Text(
-                "${risk.destinationAddress.substringBefore(',')} — would run ${risk.emptyReturnKm?.toInt() ?: "—"} km back empty",
+                stringResource(R.string.fleet_backhaul_hero_line, risk.destinationAddress.substringBefore(','), risk.emptyReturnKm?.toInt()?.toString() ?: "—"),
                 style = SType.title.copy(fontSize = 22.sp, lineHeight = 26.sp),
                 color = Color.White,
                 maxLines = 3,
                 overflow = TextOverflow.Ellipsis,
             )
             StatusPill(
-                if (matches > 0) "${plural(matches, "load")} match the way back" else "Watching for loads on the way back",
+                if (matches > 0) pluralStringResource(R.plurals.fleet_backhaul_loads_match, matches, matches) else stringResource(R.string.fleet_backhaul_watching),
                 background = Color.White.copy(alpha = 0.14f),
                 ink = Color.White,
                 dotColor = if (matches > 0) Color(0xFF4ADE80) else Color(0xFFF2952C),
@@ -205,7 +208,7 @@ private fun RiskRow(risk: ReturnLoadsApi.EmptyRisk) {
     ) {
         PlateChip(risk.truckRegistration, size = 12.sp)
         Text(
-            "${risk.destinationAddress.substringBefore(',')} · ${risk.emptyReturnKm?.toInt() ?: "—"} km empty",
+            stringResource(R.string.fleet_backhaul_risk_line, risk.destinationAddress.substringBefore(','), risk.emptyReturnKm?.toInt()?.toString() ?: "—"),
             style = SType.small,
             color = c.muted,
             modifier = Modifier.weight(1f),
@@ -227,23 +230,26 @@ private fun LoadCard(load: ReturnLoadsApi.Opportunity, best: Boolean, modifier: 
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Pill(if (best) "Best fit · ${load.detourKm.toInt()} km detour" else "${load.detourKm.toInt()} km detour", if (best) c.successBg else c.sunken, if (best) c.success else c.muted)
+            Pill(stringResource(if (best) R.string.fleet_backhaul_best_fit_detour else R.string.fleet_backhaul_detour, load.detourKm.toInt()), if (best) c.successBg else c.sunken, if (best) c.success else c.muted)
             Box(Modifier.weight(1f))
-            Text("Posted ${ago(load.createdAt)}${if (ago(load.createdAt) == "now") "" else " ago"}", style = SType.caption, color = c.subtle)
+            Text(if (isNow(load.createdAt)) stringResource(R.string.fleet_backhaul_posted_now) else stringResource(R.string.fleet_backhaul_posted_ago, ago(load.createdAt)), style = SType.caption, color = c.subtle)
         }
         RouteStops(
             from = load.originAddress,
-            fromNote = listOfNotNull(clockOf(load.pickupAt)?.let { "Pick up $it" }, "${load.distanceToPickupKm.toInt()} km from drop").joinToString(" · "),
+            fromNote = listOfNotNull(
+                clockOf(load.pickupAt)?.let { stringResource(R.string.fleet_backhaul_pick_up, it) },
+                stringResource(R.string.fleet_backhaul_from_drop, load.distanceToPickupKm.toInt()),
+            ).joinToString(" · "),
             to = load.destinationAddress,
-            toNote = clockOf(load.deliverBy)?.let { "Deliver by $it" },
+            toNote = clockOf(load.deliverBy)?.let { stringResource(R.string.fleet_backhaul_deliver_by, it) },
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Figure("Load", "${load.quantity.let { if (it % 1.0 == 0.0) it.toLong() else it }} ${RequirementsApi.unitWord(load.unit)}", Modifier.weight(1f))
-            Figure("Goods", load.materialName, Modifier.weight(1f))
-            Figure("Worth", load.estimatedRevenue?.let(::rupees) ?: "—", Modifier.weight(1f))
+            Figure(stringResource(R.string.fleet_backhaul_load), "${load.quantity.let { if (it % 1.0 == 0.0) it.toLong() else it }} ${RequirementsApi.unitWord(load.unit)}", Modifier.weight(1f))
+            Figure(stringResource(R.string.fleet_backhaul_goods), load.materialName, Modifier.weight(1f))
+            Figure(stringResource(R.string.fleet_backhaul_worth), load.estimatedRevenue?.let(::rupees) ?: "—", Modifier.weight(1f))
         }
         SaarthiButton(
-            if (quoted) "Quote sent" else "Quote for this load",
+            stringResource(if (quoted) R.string.fleet_backhaul_quote_sent_button else R.string.fleet_backhaul_quote_this),
             onClick = onQuote,
             enabled = !quoted,
             height = 52.dp,
@@ -284,23 +290,28 @@ private fun QuoteSheet(
     BottomSheet(visible = load != null, onDismiss = onDismiss) {
         val current = shown ?: return@BottomSheet
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Text("Quote for ${current.materialName}", style = SType.sheetTitle, color = c.fg)
+            Text(stringResource(R.string.fleet_backhaul_quote_for, current.materialName), style = SType.sheetTitle, color = c.fg)
             Text(
-                "${current.originAddress.substringBefore(',')} → ${current.destinationAddress.substringBefore(',')} on ${current.truckRegistration}'s way back.",
+                stringResource(
+                    R.string.fleet_backhaul_quote_route,
+                    current.originAddress.substringBefore(','),
+                    current.destinationAddress.substringBefore(','),
+                    current.truckRegistration,
+                ),
                 style = SType.body,
                 color = c.muted,
             )
             SaarthiField(
                 value = price,
                 onValueChange = { price = it.filter(Char::isDigit).take(8) },
-                label = "Your price (₹)",
+                label = stringResource(R.string.fleet_backhaul_your_price),
                 leading = Lucide.receipt,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             )
-            SaarthiField(value = note, onValueChange = { note = it.take(300) }, label = "A note (optional)", leading = Lucide.send)
+            SaarthiField(value = note, onValueChange = { note = it.take(300) }, label = stringResource(R.string.fleet_backhaul_note), leading = Lucide.send)
             error?.let { RevealedNotice(it, NoticeTone.DANGER) }
             SaarthiButton(
-                "Send quote",
+                stringResource(R.string.fleet_backhaul_send_quote),
                 onClick = {
                     val amount = price.toDoubleOrNull() ?: return@SaarthiButton
                     busy = true

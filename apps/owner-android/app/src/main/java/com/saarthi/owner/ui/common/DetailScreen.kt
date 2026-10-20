@@ -23,9 +23,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.saarthi.owner.R
 import com.saarthi.owner.ui.design.CircleButton
 import com.saarthi.owner.ui.design.Eyebrow
 import com.saarthi.owner.ui.design.Lucide
@@ -73,7 +75,7 @@ fun DetailScreen(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            CircleButton(Lucide.chevronLeft, "Back", back, size = 44.dp)
+            CircleButton(Lucide.chevronLeft, stringResource(R.string.action_back), back, size = 44.dp)
             Column(Modifier.weight(1f)) {
                 Eyebrow(eyebrow, Modifier.rise(), color = eyebrowColor, maxLines = 1)
                 Text(

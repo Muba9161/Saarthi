@@ -1,0 +1,343 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Running costs: the tabs, the card on a home or vehicle page, and the screen. -->
+    <string name="costs_tab_fuel">Fuel</string>
+    <string name="costs_tab_servicing">Service</string>
+    <string name="costs_tab_slips">Slips</string>
+    <string name="costs_tab_loans">Loans</string>
+    <string name="costs_tab_toll">Toll</string>
+    <string name="costs_running_costs">Running costs</string>
+    <string name="costs_card_open">Open running costs</string>
+    <string name="costs_whole_fleet">Whole fleet</string>
+    <string name="costs_not_in_plan">Running costs are not part of this account\'s plan or role.</string>
+
+    <!-- Words shared by the cost forms and lists. -->
+    <string name="costs_fuel">Fuel</string>
+    <string name="costs_servicing">Servicing</string>
+    <string name="costs_slips">Slips</string>
+    <string name="costs_loans">Loans</string>
+    <string name="costs_vehicle">Vehicle</string>
+    <string name="costs_saving">Saving…</string>
+    <string name="costs_recording">Recording…</string>
+    <string name="costs_done">Done</string>
+    <string name="costs_photo_unusable">That photo could not be used.</string>
+    <string name="costs_reference_optional">Reference (optional)</string>
+    <string name="costs_odometer_optional">Odometer km (optional)</string>
+    <string name="costs_outstanding">Outstanding</string>
+    <string name="costs_overdue">Overdue</string>
+    <string name="costs_was_due">was due %1$s</string>
+    <string name="costs_slip_other_plate">This slip names %1$s, not %2$s. Check it is the right vehicle.</string>
+    <string name="costs_bill_other_plate">This bill names %1$s, not %2$s. Check it is the right vehicle.</string>
+
+    <!-- The first step of a form that reads a slip or a bill. -->
+    <string name="costs_slip_step_pump_prompt">Take a photo of the pump slip and the details fill in from it.</string>
+    <string name="costs_slip_step_pump_scan">Scan the pump slip</string>
+    <string name="costs_slip_step_pump_reading">Reading the pump slip…</string>
+    <string name="costs_slip_step_bill_prompt">Take a photo of the bill and the details fill in from it.</string>
+    <string name="costs_slip_step_bill_scan">Scan the bill</string>
+    <string name="costs_slip_step_bill_reading">Reading the bill…</string>
+    <string name="costs_slip_step_slip_prompt">Take a photo of the slip and the details fill in from it.</string>
+    <string name="costs_slip_step_slip_scan">Scan the slip</string>
+    <string name="costs_slip_step_slip_reading">Reading the slip…</string>
+    <string name="costs_slip_step_loan_prompt">Take a photo of the sanction letter or EMI schedule and the loan fills in from it.</string>
+    <string name="costs_slip_step_loan_scan">Scan the loan letter</string>
+    <string name="costs_slip_step_loan_reading">Reading the loan letter…</string>
+    <string name="costs_slip_step_receipt_prompt">Take a photo of the receipt, or pick a screenshot of the bank\'s message, and the details fill in from it.</string>
+    <string name="costs_slip_step_receipt_scan">Scan the receipt</string>
+    <string name="costs_slip_step_receipt_reading">Reading the receipt…</string>
+    <string name="costs_slip_step_balance_prompt">Pick a screenshot of the balance from the bank\'s app or message, or take a photo of it, and it fills in.</string>
+    <string name="costs_slip_step_balance_scan">Scan the balance</string>
+    <string name="costs_slip_step_balance_reading">Reading the balance…</string>
+    <string name="costs_slip_step_estimate_prompt">Take a photo of the workshop\'s estimate or job card and the details fill in from it.</string>
+    <string name="costs_slip_step_estimate_scan">Scan the estimate</string>
+    <string name="costs_slip_step_estimate_reading">Reading the estimate…</string>
+    <string name="costs_receipt_read_good">Filled in from it. Check the details, then save.</string>
+    <string name="costs_receipt_read_none">Nothing could be read off this. Fill in the details.</string>
+    <string name="costs_slip_step_gallery">Gallery</string>
+    <string name="costs_slip_step_change">Change</string>
+
+    <!-- Fuel tab and the fill-up form. -->
+    <string name="costs_log_fill_up">Log a fill-up</string>
+    <string name="costs_litres">Litres</string>
+    <string name="costs_fuel_litres_unit">L</string>
+    <string name="costs_fuel_spend">Spend</string>
+    <string name="costs_fuel_avg_rate">Avg rate</string>
+    <string name="costs_fuel_rate_unit">₹/L</string>
+    <string name="costs_fuel_none">No fill-ups logged yet.</string>
+    <string name="costs_fuel_fill_title">%1$.1f L at %2$s/L</string>
+    <string name="costs_fill_up_save">Save fill-up</string>
+    <string name="costs_fill_up_slip_lost">The fill-up is saved, but the slip could not be kept with it. %1$s</string>
+    <string name="costs_fill_up_read_good">Filled in from the slip. Check the details, then save.</string>
+    <string name="costs_fill_up_read_none">Nothing could be read off this slip. Fill in the litres and rate.</string>
+    <string name="costs_fill_up_rate">Rate (₹ per litre)</string>
+    <string name="costs_fill_up_total">Total %1$s</string>
+    <string name="costs_fill_up_filled_on">Filled on</string>
+    <string name="costs_fill_up_pump">Pump (optional)</string>
+
+    <!-- Servicing tab and the servicing form. -->
+    <string name="costs_log_servicing">Log servicing</string>
+    <string name="costs_service_save">Save servicing</string>
+    <string name="costs_service_book">Book it</string>
+    <string name="costs_service_done_already">Done already</string>
+    <string name="costs_service_booked">Booked</string>
+    <string name="costs_service_read_good">Filled in from the bill. Check the details, then save.</string>
+    <string name="costs_service_read_none">Nothing could be read off this bill. Fill in what was done.</string>
+    <string name="costs_service_bill_hint">The bill is read on this phone to fill the form; only the details are saved.</string>
+    <string name="costs_service_work">Work</string>
+    <string name="costs_service_what">What was done</string>
+    <string name="costs_service_what_placeholder">e.g. 10,000 km service</string>
+    <string name="costs_service_done_on">Done on</string>
+    <string name="costs_service_booked_for">Booked for</string>
+    <string name="costs_service_total">Total ₹ (optional)</string>
+    <string name="costs_service_estimate">Estimate ₹ (optional)</string>
+    <string name="costs_service_workshop">Workshop (optional)</string>
+    <string name="costs_service_bill_number">Bill number (optional)</string>
+    <string name="costs_service_work_done">Work done</string>
+    <string name="costs_service_none">No servicing recorded yet.</string>
+    <string name="costs_service_history_unreadable">The service history could not be read.</string>
+    <string name="costs_service_worth_a_look">Worth a look</string>
+    <string name="costs_service_needs">Needs service</string>
+    <string name="costs_service_soon">Service soon</string>
+    <string name="costs_service_history">Service history</string>
+    <string name="costs_service_due">Due %1$s</string>
+    <string name="costs_service_spent">Spent</string>
+    <string name="costs_service_parts">Parts</string>
+    <string name="costs_service_labour">Labour</string>
+    <string name="costs_service_cost_per_km">About ₹%1$.2f a kilometre in upkeep.</string>
+    <string name="costs_service_for">for %1$s</string>
+    <string name="costs_service_mark_done">Mark done</string>
+    <string name="costs_service_call_off">Call off</string>
+
+    <!-- Slips tab and the slip form. -->
+    <string name="costs_file_slip">File a slip</string>
+    <string name="costs_slip_file">File slip</string>
+    <string name="costs_slip_filing">Filing…</string>
+    <string name="costs_slip_read_good">Filled in from the slip. Check the details, then file it.</string>
+    <string name="costs_slip_read_none">Nothing could be read off this slip. Fill in what it was for and the amount.</string>
+    <string name="costs_slip_photo_needed">The photo is the slip\'s evidence, so it is needed.</string>
+    <string name="costs_slip_what_for">What it was for</string>
+    <string name="costs_slip_amount">Amount ₹</string>
+    <string name="costs_slip_paid_to">Paid to (optional)</string>
+    <string name="costs_slip_note">Note (optional)</string>
+    <string name="costs_slips_all">All</string>
+    <string name="costs_slips_none">No slips filed yet. Drivers file them from Humsafar.</string>
+    <string name="costs_slips_none_kind">No slips of this kind.</string>
+    <string name="costs_slips_spent">Spent on slips</string>
+    <string name="costs_slips_open">Open the slip</string>
+    <string name="costs_slip_filed_against">Filed against trip %1$s.</string>
+    <string name="costs_slip_filed_between">Filed between trips.</string>
+    <string name="costs_slip_photo_description">The slip</string>
+
+    <!-- Loans tab: the summary, the list, and an installment's or a loan's standing. -->
+    <string name="costs_add_loan">Add a loan</string>
+    <string name="costs_loans_monthly">EMIs a month</string>
+    <string name="costs_loans_due_month">Due this month</string>
+    <string name="costs_loans_next_30_days">Next 30 days</string>
+    <string name="costs_loans_vehicle">This vehicle\'s loans</string>
+    <string name="costs_loans_none">No loans recorded.</string>
+    <string name="costs_loans_next">next %1$s</string>
+    <string name="costs_loans_overdue_count">%1$d overdue</string>
+    <string name="costs_due">due %1$s</string>
+    <string name="costs_emi">EMI</string>
+    <string name="costs_emi_amount">EMI %1$s</string>
+    <string name="costs_emi_number">EMI %1$d</string>
+    <string name="costs_emi_number_on">EMI %1$d · %2$s</string>
+    <string name="costs_installment_due_soon">Due soon</string>
+    <string name="costs_installment_due_today">Due today</string>
+    <string name="costs_installment_part_paid">Part paid</string>
+    <string name="costs_installment_paid">Paid</string>
+    <string name="costs_installment_waived">Waived</string>
+    <string name="costs_installment_unknown">Not known</string>
+    <string name="costs_loan_status_active">Active</string>
+    <string name="costs_loan_status_closed">Closed</string>
+    <string name="costs_loan_status_foreclosed">Foreclosed</string>
+    <string name="costs_loan_status_defaulted">Defaulted</string>
+    <string name="costs_loan_status_on_hold">On hold</string>
+    <string name="costs_loan_status_cancelled">Cancelled</string>
+    <string name="costs_loan_status_draft">Draft</string>
+
+    <!-- Add a loan. -->
+    <string name="costs_add_loan_save">Save loan</string>
+    <string name="costs_lender">Lender</string>
+    <string name="costs_add_loan_lender_placeholder">e.g. Shriram Finance</string>
+    <string name="costs_add_loan_number">Loan account number</string>
+    <string name="costs_add_loan_principal">Borrowed ₹</string>
+    <string name="costs_add_loan_rate" formatted="false">Interest % a year</string>
+    <string name="costs_add_loan_months">Months</string>
+    <string name="costs_add_loan_debit_day">Auto-debit day (optional)</string>
+    <string name="costs_add_loan_reducing">Reducing balance</string>
+    <string name="costs_add_loan_flat">Flat rate</string>
+    <string name="costs_add_loan_started">Loan started</string>
+    <string name="costs_add_loan_first_emi">First EMI on</string>
+    <string name="costs_add_loan_dates_misfit">The first EMI cannot be before the loan started.</string>
+    <string name="costs_add_loan_read_good">Filled in from the letter. Check each figure, then save.</string>
+    <string name="costs_add_loan_read_none">Nothing could be read off this letter. Fill in the loan below.</string>
+    <string name="costs_letter_other_plate">This letter names %1$s, not %2$s. Check it is the right vehicle.</string>
+    <string name="costs_add_loan_lender_emi">Lender\'s EMI, if it differs (₹)</string>
+    <string name="costs_add_loan_emi_differs">That is %1$s away from the worked-out EMI. Check the rate and months against the letter.</string>
+    <string name="costs_add_loan_schedule_title">The schedule these terms make</string>
+    <plurals name="costs_add_loan_schedule_totals">
+        <item quantity="one">%1$d EMI · interest %2$s · %3$s in all</item>
+        <item quantity="other">%1$d EMIs · interest %2$s · %3$s in all</item>
+    </plurals>
+
+    <!-- One loan: its figures, schedule, payments and terms. -->
+    <string name="costs_loan">Loan</string>
+    <string name="costs_loan_not_found">This loan could not be found.</string>
+    <string name="costs_loan_record_payment">Record a payment</string>
+    <plurals name="costs_loan_overdue_notice">
+        <item quantity="one">%1$d EMI is overdue — %2$s in all.</item>
+        <item quantity="other">%1$d EMIs are overdue — %2$s in all.</item>
+    </plurals>
+    <string name="costs_loan_next_due">Next due</string>
+    <string name="costs_loan_repaid">Repaid</string>
+    <string name="costs_loan_emis_unit">EMIs</string>
+    <string name="costs_loan_reminders">EMI reminders</string>
+    <string name="costs_loan_reminders_detail">A note before each EMI falls due.</string>
+    <string name="costs_loan_schedule">Repayment schedule</string>
+    <string name="costs_loan_no_schedule">No schedule is recorded for this loan.</string>
+    <string name="costs_loan_installment_detail">Principal %1$s · interest %2$s</string>
+    <string name="costs_loan_installment_detail_left">Principal %1$s · interest %2$s · %3$s left after</string>
+    <string name="costs_loan_payments">Payments</string>
+    <string name="costs_loan_prepayment">Prepayment</string>
+    <string name="costs_loan_reversed">Reversed</string>
+    <string name="costs_loan_terms">Terms</string>
+    <string name="costs_loan_borrowed">Borrowed</string>
+    <string name="costs_loan_interest">Interest</string>
+    <string name="costs_loan_rate">%1$.2f%% a year</string>
+    <string name="costs_loan_rate_flat">%1$.2f%% a year, flat</string>
+    <string name="costs_loan_tenure">Tenure</string>
+    <plurals name="costs_loan_tenure_months">
+        <item quantity="one">%1$d month</item>
+        <item quantity="other">%1$d months</item>
+    </plurals>
+    <string name="costs_loan_runs">Runs</string>
+    <string name="costs_loan_runs_span">%1$s to %2$s</string>
+    <string name="costs_loan_auto_debit">Auto-debit</string>
+    <string name="costs_loan_auto_debit_day">on day %1$d</string>
+    <string name="costs_loan_standing">Standing</string>
+
+    <!-- Recording a loan payment. -->
+    <string name="costs_loan_payment_intro">Notes a payment made at the bank. It moves no money.</string>
+    <string name="costs_loan_payment_against">Against</string>
+    <string name="costs_loan_amount_paid">Amount paid ₹</string>
+    <string name="costs_loan_late_fee">Late fee ₹ (optional)</string>
+    <string name="costs_loan_paid_on">Paid on</string>
+    <string name="costs_loan_reference_placeholder">UTR or cheque number</string>
+    <string name="costs_loan_record_payment_button">Record payment</string>
+
+    <!-- Toll tab: spend, FASTags, plazas and crossings. -->
+    <string name="costs_toll_window">Toll · %1$d d</string>
+    <string name="costs_toll_per_crossing">Per crossing</string>
+    <string name="costs_toll_need_a_look">Need a look</string>
+    <plurals name="costs_toll_tags_unit">
+        <item quantity="one">tag</item>
+        <item quantity="other">tags</item>
+    </plurals>
+    <string name="costs_toll_fastags">FASTags</string>
+    <string name="costs_toll_none">No FASTags recorded yet.</string>
+    <string name="costs_toll_none_vehicle">No FASTag recorded for this vehicle.</string>
+    <string name="costs_toll_find">Find this vehicle\'s FASTag</string>
+    <string name="costs_toll_found">Found it.</string>
+    <string name="costs_toll_found_with">Found it with %1$s.</string>
+    <string name="costs_toll_not_found">The bank has no FASTag on this plate.</string>
+    <string name="costs_toll_where_money_goes">Where the money goes</string>
+    <plurals name="costs_toll_crossings">
+        <item quantity="one">%1$d crossing</item>
+        <item quantity="other">%1$d crossings</item>
+    </plurals>
+    <string name="costs_toll_crossings_title">Crossings</string>
+    <string name="costs_toll_crossings_none">No toll crossings recorded yet.</string>
+    <string name="costs_tag_low_balance">Low balance</string>
+    <string name="costs_tag_blocked">Blocked</string>
+    <string name="costs_tag_expiring">Expiring</string>
+    <string name="costs_asking_bank">Asking the bank…</string>
+
+    <!-- One FASTag, its balance and recharges. -->
+    <string name="costs_fastag_balance_unknown">Balance not known</string>
+    <string name="costs_fastag_balance_from">balance from %1$s ago</string>
+    <string name="costs_fastag_balance_now">balance from just now</string>
+    <string name="costs_fastag_warns_below">warns below %1$s</string>
+    <string name="costs_fastag_valid_till">valid till %1$s</string>
+    <string name="costs_fastag_bank_said">The bank last said: %1$s</string>
+    <string name="costs_fastag_ask_bank">Ask the bank again</string>
+    <string name="costs_fastag_synced">The bank\'s latest is shown.</string>
+    <string name="costs_fastag_balance_updated">Balance updated.</string>
+    <string name="costs_fastag_recharge_recorded">Recharge recorded.</string>
+    <string name="costs_fastag_update_balance">Update the balance</string>
+    <string name="costs_fastag_balance">Balance ₹</string>
+    <string name="costs_fastag_when_true">When was this true?</string>
+    <string name="costs_fastag_save_balance">Save balance</string>
+    <string name="costs_fastag_record_recharge_title">Record a recharge</string>
+    <string name="costs_fastag_amount_added">Amount added ₹</string>
+    <string name="costs_fastag_balance_after">Balance after (optional)</string>
+    <string name="costs_fastag_record_recharge">Record recharge</string>
+
+    <!-- Drive: the card on Home. -->
+    <string name="costs_drive_title">Drive</string>
+    <string name="costs_drive_open">Open Drive</string>
+    <string name="costs_drive_you_drive">You drive %1$s</string>
+    <string name="costs_drive_card_recording">Recording your trip</string>
+    <string name="costs_drive_card_tools">Your trips, fuel, slips and SOS</string>
+
+    <!-- Drive: whether the phone records the road. -->
+    <string name="costs_drive_gps_recording">Recording your trip\'s road</string>
+    <string name="costs_drive_gps_off">Location is off for Saarthi</string>
+    <string name="costs_drive_gps_paused">You stopped sharing your location</string>
+    <string name="costs_drive_gps_not_yet">Not recording yet</string>
+    <string name="costs_drive_gps_idle">Your location is shared only while a trip runs</string>
+    <string name="costs_drive_gps_recording_detail">The \"Driving\" notification shows while it runs.</string>
+    <string name="costs_drive_gps_off_detail">Allow it so the fleet sees where the trip is.</string>
+    <string name="costs_drive_gps_paused_detail">The trip\'s road has a gap until you resume.</string>
+    <string name="costs_drive_gps_idle_detail">Start a trip and it begins by itself.</string>
+    <string name="costs_drive_allow">Allow</string>
+    <string name="costs_drive_resume">Resume</string>
+
+    <!-- Drive: a trip card and the arrival prompt. -->
+    <string name="costs_drive_on_this_trip">On this trip</string>
+    <string name="costs_drive_up_next">Up next</string>
+    <string name="costs_drive_open_trip">Open the trip</string>
+    <string name="costs_drive_to_go">%1$s to go</string>
+    <string name="costs_drive_eta">ETA %1$s</string>
+    <string name="costs_drive_slide_start">Slide to start</string>
+    <string name="costs_drive_arrived">Arrived</string>
+    <string name="costs_drive_saving">Saving…</string>
+    <string name="costs_drive_end_here">End this trip here</string>
+    <string name="costs_drive_slide_complete">Slide to complete</string>
+    <string name="costs_drive_at">You\'re at %1$s</string>
+    <string name="costs_drive_confirm_arrival">Confirm you\'ve arrived so the customer and the fleet know.</string>
+    <string name="costs_drive_yes_arrived">Yes, I\'ve arrived</string>
+
+    <!-- Drive: the screen. -->
+    <string name="costs_drive_trip_unreadable">This trip could not be read.</string>
+    <string name="costs_drive_trip_moved_on">This trip has moved on; pull down to see where it stands.</string>
+    <string name="costs_drive_starts_after_ref">Starts when you finish %1$s.</string>
+    <string name="costs_drive_starts_after_this">Starts when you finish this trip.</string>
+    <string name="costs_drive_starts_after_above">Starts after the trip above.</string>
+    <string name="costs_drive_no_trips">No trips for you right now. Trips your fleet gives you show here.</string>
+
+    <!-- Drive: fuel, slips and SOS. -->
+    <string name="costs_drive_log_fuel">Log fuel</string>
+    <string name="costs_drive_file_slip">File a slip</string>
+    <string name="costs_drive_sos">SOS</string>
+    <string name="costs_drive_sos_accident">Accident</string>
+    <string name="costs_drive_sos_medical">Medical</string>
+    <string name="costs_drive_sos_breakdown">Breakdown</string>
+    <string name="costs_drive_sos_security">Security</string>
+    <string name="costs_drive_sos_tyre">Tyre</string>
+    <string name="costs_drive_sos_fuel">Out of fuel</string>
+    <string name="costs_drive_sos_other">Other</string>
+    <string name="costs_drive_sos_title">Raise an SOS</string>
+    <string name="costs_drive_sos_intro">Your fleet and the nearest help are alerted with where you are.</string>
+    <string name="costs_drive_sos_what">What happened? (optional)</string>
+    <string name="costs_drive_sos_slide">Slide to send SOS</string>
+    <string name="costs_drive_sos_no_location">Your location could not be found. Turn it on, or call 112.</string>
+    <string name="costs_drive_sos_sent">SOS sent. Your fleet and the nearest help have been alerted.</string>
+
+    <!-- Drive: ending a trip short of its destination. -->
+    <string name="costs_drive_end_title">End this trip here?</string>
+    <string name="costs_drive_end_body">The trip is completed where you are, and the fleet sees that it ended early.</string>
+    <string name="costs_drive_end_body_short">You are %1$.1f km short of %2$s. The trip is completed where you are, and the fleet sees that it ended early.</string>
+    <string name="costs_drive_end_confirm">End the trip</string>
+    <string name="costs_drive_ending">Ending…</string>
+</resources>

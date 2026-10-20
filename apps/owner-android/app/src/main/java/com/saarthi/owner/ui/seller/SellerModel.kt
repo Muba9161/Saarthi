@@ -103,6 +103,12 @@ class SellerModel(private val orders: OrdersApi, private val materials: Material
     }
 
     /** A listing changed on the server; show the new one without reading everything again. */
+    /** A listing taken off sale leaves the list. */
+    fun dropListing(id: String) {
+        val current = (_state.value as? Loadable.Ready)?.value ?: return
+        _state.value = Loadable.Ready(current.copy(listings = current.listings.filterNot { it.id == id }))
+    }
+
     fun replaceListing(listing: MaterialsApi.Listing) {
         val current = (_state.value as? Loadable.Ready)?.value ?: return
         _state.value = Loadable.Ready(

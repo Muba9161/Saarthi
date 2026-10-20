@@ -1,5 +1,8 @@
 package com.saarthi.owner.data
 
+import com.saarthi.owner.R
+import com.saarthi.owner.ui.common.Words
+
 /**
  * Which home a signed-in account opens on.
  *
@@ -46,13 +49,13 @@ val OPERATOR_OWNER_ROLES: Set<String> = setOf("FLEET_OWNER", "MOBILITY_PROVIDER"
 
 /** How the account's role reads under its name: "Fleet owner", "Dispatcher". */
 fun roleLabel(membershipRole: String): String = when (membershipRole) {
-    "FLEET_OWNER" -> "Owner"
-    "FLEET_MANAGER" -> "Fleet manager"
-    "DISPATCHER" -> "Dispatcher"
-    "CUSTOMER" -> "Customer"
-    "SUPPLIER" -> "Seller"
-    "ASSOCIATION_ADMIN" -> "Association admin"
-    "ASSOCIATION_RESPONDER" -> "Responder"
-    "MOBILITY_PROVIDER" -> "Travel operator"
+    "FLEET_OWNER" -> Words.get(R.string.net_role_owner)
+    "FLEET_MANAGER" -> Words.get(R.string.net_role_fleet_manager)
+    "DISPATCHER" -> Words.get(R.string.net_role_dispatcher)
+    "CUSTOMER" -> Words.get(R.string.net_role_customer)
+    "SUPPLIER" -> Words.get(R.string.net_role_seller)
+    "ASSOCIATION_ADMIN" -> Words.get(R.string.net_role_association_admin)
+    "ASSOCIATION_RESPONDER" -> Words.get(R.string.net_role_responder)
+    "MOBILITY_PROVIDER" -> Words.get(R.string.net_role_travel_operator)
     else -> membershipRole.lowercase().replace('_', ' ').replaceFirstChar { it.uppercase() }
 }

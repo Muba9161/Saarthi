@@ -1,6 +1,7 @@
 package com.saarthi.owner.ui.welcome
 
 import androidx.annotation.DrawableRes
+import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
@@ -44,6 +45,7 @@ import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import com.saarthi.owner.R
@@ -63,39 +65,39 @@ import kotlinx.coroutines.delay
 
 private class Slide(
     @DrawableRes val image: Int,
-    val alt: String,
+    @StringRes val alt: Int,
     /** Where the photo's focus sits, as the design's `object-position`. */
     val focusX: Float,
     val focusY: Float,
-    val eyebrow: String,
-    val title: String,
-    val body: String,
+    @StringRes val eyebrow: Int,
+    @StringRes val title: Int,
+    @StringRes val body: Int,
 )
 
 private val Slides = listOf(
     Slide(
         R.drawable.photo_role_fleet,
-        "A fleet owner standing in his truck yard at sunrise",
+        R.string.people_welcome_fleet_alt,
         0.5f, 0.2f,
-        "For owners · fleets · businesses",
-        "Track. Approve.\nGet paid.",
-        "Every vehicle live on one map, drivers approved from your phone, and return loads before a truck drives back empty.",
+        R.string.people_welcome_fleet_eyebrow,
+        R.string.people_welcome_fleet_title,
+        R.string.people_welcome_fleet_body,
     ),
     Slide(
         R.drawable.photo_role_customer,
-        "A site manager checking a delivery on her phone",
+        R.string.people_welcome_customer_alt,
         0.5f, 0.22f,
-        "For customers",
-        "Post. Compare.\nTrack it in.",
-        "Say what you need moved, choose between fleet bids, and follow your load all the way to your gate.",
+        R.string.people_welcome_customer_eyebrow,
+        R.string.people_welcome_customer_title,
+        R.string.people_welcome_customer_body,
     ),
     Slide(
         R.drawable.photo_role_seller,
-        "Two sellers in their building-materials yard",
+        R.string.people_welcome_seller_alt,
         0.5f, 0.25f,
-        "For sellers",
-        "Sell by the\ntruckload.",
-        "Fleets source from your listing and collect from your gate. You load; they deliver.",
+        R.string.people_welcome_seller_eyebrow,
+        R.string.people_welcome_seller_title,
+        R.string.people_welcome_seller_body,
     ),
 )
 
@@ -154,7 +156,7 @@ fun WelcomeScreen(onSignIn: () -> Unit) {
                 Modifier
                     .weight(0.38f)
                     .fillMaxHeight()
-                    .pressable(scale = 1f, label = "Previous") {
+                    .pressable(scale = 1f, label = stringResource(R.string.people_welcome_previous)) {
                         index = (index + Slides.size - 1) % Slides.size
                         epoch++
                     },
@@ -163,7 +165,7 @@ fun WelcomeScreen(onSignIn: () -> Unit) {
                 Modifier
                     .weight(0.62f)
                     .fillMaxHeight()
-                    .pressable(scale = 1f, label = "Next") {
+                    .pressable(scale = 1f, label = stringResource(R.string.people_welcome_next)) {
                         index = (index + 1) % Slides.size
                         epoch++
                     },
@@ -232,15 +234,15 @@ fun WelcomeScreen(onSignIn: () -> Unit) {
                     Modifier.padding(bottom = 14.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    Eyebrow(slide.eyebrow, Modifier.rise(stagger(1)), color = Color(0xFFFE8A4B))
+                    Eyebrow(stringResource(slide.eyebrow), Modifier.rise(stagger(1)), color = Color(0xFFFE8A4B))
                     Text(
-                        slide.title,
+                        stringResource(slide.title),
                         style = SType.hero,
                         color = Color.White,
                         modifier = Modifier.rise(stagger(2)),
                     )
                     Text(
-                        slide.body,
+                        stringResource(slide.body),
                         style = SType.lead,
                         color = Color.White.copy(alpha = 0.78f),
                         modifier = Modifier.rise(stagger(3)),
@@ -248,7 +250,7 @@ fun WelcomeScreen(onSignIn: () -> Unit) {
                 }
             }
             SaarthiButton(
-                "Sign in",
+                stringResource(R.string.people_signin_sign_in),
                 onSignIn,
                 Modifier.rise(stagger(4)),
                 tone = ButtonTone.WHITE,
@@ -272,7 +274,7 @@ private fun SlideImage(slide: Slide, visible: Boolean, epoch: Int) {
     if (alpha <= 0f) return
     Image(
         painter = painterResource(slide.image),
-        contentDescription = slide.alt,
+        contentDescription = stringResource(slide.alt),
         contentScale = ContentScale.Crop,
         alignment = BiasAlignment(slide.focusX * 2f - 1f, slide.focusY * 2f - 1f),
         modifier = Modifier

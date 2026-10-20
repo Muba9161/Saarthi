@@ -1,5 +1,7 @@
 package com.saarthi.owner.network
 
+import com.saarthi.owner.R
+import com.saarthi.owner.ui.common.Words
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
@@ -47,16 +49,26 @@ class OrdersApi(private val api: OwnerApi) {
         /** The customer's own words on the requirement. */
         val notes: String? = null,
         val cancellationReason: String? = null,
+        /** The customer's rating of the delivery, once given; one per order. */
+        val rating: OrderRating? = null,
         val createdAt: String = "",
     ) {
         val what: String
-            get() = listOfNotNull(
-                quantity?.let { "${if (it % 1.0 == 0.0) it.toLong() else it} ${RequirementsApi.unitWord(unit)}".trim() },
-                materialName,
-            ).joinToString(" ").ifBlank { reference }
+            get() {
+                val amount = quantity?.let {
+                    Words.get(R.string.net_quantity_unit, (if (it % 1.0 == 0.0) it.toLong() else it).toString(), RequirementsApi.unitWord(unit)).trim()
+                }
+                return when {
+                    amount != null && materialName != null -> Words.get(R.string.net_quantity_goods, amount, materialName)
+                    else -> amount ?: materialName.orEmpty()
+                }.ifBlank { reference }
+            }
 
         val open: Boolean get() = status !in setOf("COMPLETED", "CANCELLED", "FAILED")
     }
+
+    @Serializable
+    data class OrderRating(val rating: Int = 0, val comment: String? = null, val createdAt: String = "")
 
     @Serializable
     data class Payment(val stage: String = "", val amount: Double = 0.0, val status: String = "", val reference: String = "", val at: String = "")
@@ -98,6 +110,15 @@ class OrdersApi(private val api: OwnerApi) {
         api.get("/orders?pageSize=50", Page.serializer(Order.serializer()))?.items.orEmpty()
 
     suspend fun get(id: String): Order? = api.get("/orders/$id", Order.serializer())
+
+    /** The customer rates the delivery, once it is delivered: stars, and a few words if they have them. */
+    suspend fun rate(id: String, stars: Int, comment: String?) {
+        val body = buildJsonObject {
+            put("rating", stars)
+            comment?.ifBlank { null }?.let { put("comment", it.take(1000)) }
+        }
+        api.postNoReply("/orders/$id/rate", body.toString())
+    }
 
     suspend fun finance(id: String): Finance? = api.get("/orders/$id/finance", Finance.serializer())
 

@@ -13,7 +13,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.saarthi.owner.R
 import com.saarthi.owner.network.CommerceApi
 import com.saarthi.owner.ui.common.DetailScreen
 import com.saarthi.owner.ui.common.Loadable
@@ -59,15 +61,15 @@ fun CategoryPickerScreen(api: CommerceApi, current: String?, onPick: (String) ->
         }
     }
 
-    DetailScreen(eyebrow = "Choose a category", title = "What is it?") {
-        SaarthiField(value = query, onValueChange = { query = it.take(60) }, leading = Lucide.search, placeholder = "Sand, cement, bricks…")
+    DetailScreen(eyebrow = stringResource(R.string.market_commerce_choose_category), title = stringResource(R.string.market_commerce_what_is_it)) {
+        SaarthiField(value = query, onValueChange = { query = it.take(60) }, leading = Lucide.search, placeholder = stringResource(R.string.market_commerce_search_placeholder))
         when (val shown = state) {
             Loadable.Loading -> SkeletonCards()
             is Loadable.Failed -> NoticeCard(shown.message, NoticeTone.WARNING)
             is Loadable.Ready -> {
                 val needle = query.trim().lowercase()
                 val listed = shown.value.filter { needle.isEmpty() || it.path.lowercase().contains(needle) }
-                if (listed.isEmpty()) Text("Nothing by that name. Try a shorter word.", style = SType.small, color = c.muted)
+                if (listed.isEmpty()) Text(stringResource(R.string.market_commerce_no_match), style = SType.small, color = c.muted)
                 if (listed.isNotEmpty()) {
                     Column(Modifier.fillMaxWidth().card(radius = 20.dp)) {
                         listed.forEachIndexed { index, category ->

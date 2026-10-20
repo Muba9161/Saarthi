@@ -5,6 +5,10 @@ import com.saarthi.owner.OwnerApp
 import com.saarthi.owner.data.AccountType
 import com.saarthi.owner.data.SessionStore
 import com.saarthi.owner.ui.association.RespondScreen
+import com.saarthi.owner.ui.costs.CostAccess
+import com.saarthi.owner.ui.costs.CostTab
+import com.saarthi.owner.ui.costs.LoanScreen
+import com.saarthi.owner.ui.costs.RunningCostsScreen
 import com.saarthi.owner.ui.customer.CustomerBidsScreen
 import com.saarthi.owner.ui.customer.CustomerBookingScreen
 import com.saarthi.owner.ui.customer.CustomerOrderScreen
@@ -33,8 +37,8 @@ sealed interface AlertTarget {
  *
  * The server writes its links for the web ("/orders/…", "/sos/…"); each one
  * this app has a screen for is fetched fresh and opened. Anything else —
- * loans, FASTag top-ups, settings — has no screen here, so the alert is only
- * marked read. Null means nothing to open, or it could not be loaded.
+ * settings, say — has no screen here, so the alert is only marked read. Null
+ * means nothing to open, or it could not be loaded.
  */
 suspend fun resolveAlertLink(app: OwnerApp, account: SessionStore.Account, link: String): AlertTarget? {
     val path = link.substringBefore('?').trim('/')
@@ -89,6 +93,14 @@ suspend fun resolveAlertLink(app: OwnerApp, account: SessionStore.Account, link:
                 }
             }
 
+            // Running costs: an EMI falling due, a FASTag running low, servicing due.
+            path.startsWith("fleet/loans/") && CostTab.LOANS in CostAccess(account).tabs ->
+                AlertTarget.Screen("loan-$id") { LoanScreen(app, CostAccess(account), id) {} }
+            costTabOf(path)?.takeIf { it in CostAccess(account).tabs } != null -> {
+                val tab = costTabOf(path)
+                AlertTarget.Screen("costs-$tab") { RunningCostsScreen(app, account, start = tab) }
+            }
+
             path == "fleet/terminal-approvals" -> {
                 val session = query.split('&').firstOrNull { it.startsWith("session=") }?.substringAfter('=')
                 app.fleet.waitingApprovals().firstOrNull { it.id == session }
@@ -121,6 +133,16 @@ suspend fun resolveAlertLink(app: OwnerApp, account: SessionStore.Account, link:
             else -> null
         }
     }.getOrNull()
+}
+
+/** The Running costs tab a web link names, if it names one. */
+private fun costTabOf(path: String): CostTab? = when {
+    path.startsWith("fleet/loans") -> CostTab.LOANS
+    path.startsWith("fleet/maintenance") || path.startsWith("telemetry/maintenance") -> CostTab.SERVICING
+    path.startsWith("fleet/toll") -> CostTab.TOLL
+    path.startsWith("fleet/fuel") -> CostTab.FUEL
+    path.startsWith("fleet/expenses") -> CostTab.SLIPS
+    else -> null
 }
 
 /** An order, from whichever side this account is on. */

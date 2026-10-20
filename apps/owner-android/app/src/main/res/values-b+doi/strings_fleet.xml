@@ -1,0 +1,444 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Shared by the fleet, personal, travel and business tabs and screens. -->
+    <string name="fleet_tab_home">होम</string>
+    <string name="fleet_tab_map">मैप</string>
+    <string name="fleet_tab_fleet">फ़्लीट</string>
+    <string name="fleet_tab_jobs">कम्म</string>
+    <string name="fleet_greeting">नमस्ते, %1$s</string>
+    <string name="fleet_tab_header_vehicles_drivers">गड्डियां ते ड्राइवर</string>
+    <string name="fleet_tab_header_your_fleet">तुंदी फ़्लीट</string>
+    <string name="fleet_tab_header_on_your_routes">तुंदे रूटें पर</string>
+    <string name="fleet_tab_header_bid_on_work">कम्मै पर बोली लाओ</string>
+    <string name="fleet_a_driver">इक ड्राइवर</string>
+    <string name="fleet_open_named">%1$s खोह्लो</string>
+    <string name="fleet_tonnes">%1$s टन</string>
+    <plurals name="fleet_trips">
+        <item quantity="one">%d ट्रिप</item>
+        <item quantity="other">%d ट्रिपां</item>
+    </plurals>
+    <plurals name="fleet_papers_expired">
+        <item quantity="one">%d कागज़ दी मियाद मुक्की</item>
+        <item quantity="other">%d कागज़ें दी मियाद मुक्की</item>
+    </plurals>
+
+    <!-- Fleet home: the reporting line over the cards. -->
+    <string name="fleet_main_live">लाइव</string>
+    <string name="fleet_main_quiet">चुप</string>
+    <plurals name="fleet_main_reporting">
+        <item quantity="one">%d गड्डी तुसेंगी रिपोर्ट करा करदी ऐ</item>
+        <item quantity="other">%d गड्डियां तुसेंगी रिपोर्ट करा करदियां न</item>
+    </plurals>
+    <string name="fleet_main_none_reported">हाल च कुसै गड्डी नै रिपोर्ट नेईं कीती</string>
+
+    <!-- Fleet home: approving or turning down a driver, as the toast says it. -->
+    <string name="fleet_model_approved">मंज़ूर. ओह् शिफ्ट शुरू करी सकदे न.</string>
+    <string name="fleet_model_rejected">नामंज़ूर. ड्राइवर गी कारण दस्सी दित्ता गेआ ऐ.</string>
+
+    <!-- Fleet home: "Fleet right now" card. -->
+    <string name="fleet_now_title">इस बेलै फ़्लीट</string>
+    <string name="fleet_now_moving">%1$d चला करदियां</string>
+    <string name="fleet_now_on_the_road">सड़का पर</string>
+    <string name="fleet_now_idle_offline">%1$d खड़ोतियां · %2$d ऑफ़लाइन</string>
+    <string name="fleet_now_open_map">मैप खोह्लो</string>
+
+    <!-- Fleet home: "Needs you now", the morning tiles and the return-load card. -->
+    <string name="fleet_cards_needs_you_now">हून तुंदी लोड़ ऐ</string>
+    <string name="fleet_cards_wants_to_drive">%1$s गड्डी चलाना चांह्दा ऐ</string>
+    <string name="fleet_cards_approve">मंज़ूर करो</string>
+    <string name="fleet_cards_review">दिक्खो</string>
+    <string name="fleet_cards_view_request">मंग दिक्खो</string>
+    <string name="fleet_cards_cannot_approve">इसगी मालक जां फ़्लीट मैनेजर मंज़ूर करदा ऐ. तुसेंगी एह् इस आस्तै दिसदा ऐ तां जे पता रौह् जे गड्डी इंतज़ार करा करदी ऐ.</string>
+    <plurals name="fleet_cards_more_waiting">
+        <item quantity="one">इसदे बाद %d होर इंतज़ार च</item>
+        <item quantity="other">इसदे बाद %d होर इंतज़ार च</item>
+    </plurals>
+    <string name="fleet_cards_overdue">तरीक लंघी गेई</string>
+    <string name="fleet_cards_time_left">%1$s बाकी</string>
+    <string name="fleet_cards_open_alerts">अलर्ट खोह्लो</string>
+    <string name="fleet_cards_all_clear_title">इस बेलै तुंदी कोई लोड़ नेईं</string>
+    <string name="fleet_cards_all_clear_body">मंज़ूरी दा इंतज़ार करदे ड्राइवर ते जरूरी अलर्ट इत्थै दिसदे न.</string>
+    <string name="fleet_cards_trips">ट्रिपां</string>
+    <string name="fleet_cards_on_the_road">सड़का पर</string>
+    <string name="fleet_cards_late">%1$d लेट</string>
+    <string name="fleet_cards_all_on_time">सब टाइम पर</string>
+    <string name="fleet_cards_papers">कागज़</string>
+    <string name="fleet_cards_all_set">सब ठीक</string>
+    <string name="fleet_cards_due">%1$d बाकी</string>
+    <string name="fleet_cards_not_shared">शेयर नेईं कीते</string>
+    <string name="fleet_cards_expired">%1$d दी मियाद मुक्की</string>
+    <string name="fleet_cards_nothing_due">किश बाकी नेईं</string>
+    <string name="fleet_cards_renew_soon">जल्दी रिन्यू करो</string>
+    <string name="fleet_cards_backhaul_one">%1$s खाली वापस परतग</string>
+    <plurals name="fleet_cards_backhaul_trucks">
+        <item quantity="one">%d ट्रक खाली वापस परतग</item>
+        <item quantity="other">%d ट्रक खाली वापस परतङन</item>
+    </plurals>
+    <string name="fleet_cards_backhaul_line">%2$s थमां %1$s km · वापसी दा लोड लब्भो</string>
+
+    <!-- Approve a driver. -->
+    <string name="fleet_approval_reason_not_assigned">इस गड्डी पर नेईं लाया गेदा</string>
+    <string name="fleet_approval_reason_not_ready">गड्डी तैयार नेईं</string>
+    <string name="fleet_approval_reason_unknown_driver">मैं इस ड्राइवर गी नेईं जानदा</string>
+    <string name="fleet_approval_eyebrow">ड्राइवर दी मंग</string>
+    <string name="fleet_approval_title">ड्राइवर गी मंज़ूरी देओ</string>
+    <string name="fleet_approval_slide">%1$s गी मंज़ूरी देने आस्तै स्लाइड करो</string>
+    <string name="fleet_approval_turn_this_down">एह् नामंज़ूर करो</string>
+    <string name="fleet_approval_cannot_decide">इस मंग गी मालक जां फ़्लीट मैनेजर मंज़ूर जां नामंज़ूर करदा ऐ.</string>
+    <string name="fleet_approval_left_to_decide">फैसले आस्तै %1$s बाकी</string>
+    <string name="fleet_approval_waiting_for_you">तुंदा इंतज़ार ऐ</string>
+    <string name="fleet_approval_photo_description">पुज्जने पर %1$s दी खिच्ची दी फ़ोटो</string>
+    <string name="fleet_approval_licence_class">लाइसेंस %1$s</string>
+    <string name="fleet_approval_licence_valid">लाइसेंस वैध ऐ</string>
+    <string name="fleet_approval_licence_expiring">लाइसेंस दी मियाद जल्दी मुक्कने आह्ली</string>
+    <string name="fleet_approval_licence_expired">लाइसेंस दी मियाद मुक्की गेई</string>
+    <plurals name="fleet_approval_driven_times">
+        <item quantity="one">एह् ट्रक %d बारी चलाई चुके दा ऐ</item>
+        <item quantity="other">एह् ट्रक %d बारी चलाई चुके दा ऐ</item>
+    </plurals>
+    <string name="fleet_approval_first_time">इस ट्रक पर पैह्ली बारी</string>
+    <plurals name="fleet_approval_years">
+        <item quantity="one">%d साल</item>
+        <item quantity="other">%d साल</item>
+    </plurals>
+    <!-- %1$s is how many years (e.g. "4 years"), %2$s how many trips (e.g. "120 trips"). -->
+    <string name="fleet_approval_experience">%1$s दा तजरबा · %2$s</string>
+    <string name="fleet_approval_vehicle">गड्डी</string>
+    <string name="fleet_approval_awaiting_you">तुंदा इंतज़ार</string>
+    <string name="fleet_approval_never_automatic">कुसै गी अपने आप मंज़ूरी नेईं मिलदी — एह् तुंदा इंतज़ार करदा ऐ.</string>
+    <string name="fleet_approval_why_title">कीं? %1$s एह् दिक्खग</string>
+    <string name="fleet_approval_own_words">जां अपने लफ़्ज़ें च दस्सो</string>
+    <string name="fleet_approval_turn_down">नामंज़ूर करो</string>
+
+    <!-- Your fleet: vehicles and drivers list. -->
+    <string name="fleet_list_invitation_accepted">%1$s हून मेरे कन्नै शेयर कीतियां च ऐ.</string>
+    <string name="fleet_list_invitation_declined">न्योता नामंज़ूर.</string>
+    <string name="fleet_list_tab_vehicles">गड्डियां · %1$d</string>
+    <string name="fleet_list_tab_drivers">ड्राइवर · %1$d</string>
+    <string name="fleet_list_mine">मेरियां</string>
+    <string name="fleet_list_shared">मेरे कन्नै शेयर कीतियां</string>
+    <string name="fleet_list_shared_count">मेरे कन्नै शेयर कीतियां · %1$d</string>
+    <string name="fleet_list_open_map">मैप खोह्लो</string>
+    <string name="fleet_list_all_count">सब · %1$d</string>
+    <plurals name="fleet_list_papers_due_personal">
+        <item quantity="one">तुंदियें गड्डियें दा %d कागज़ बाकी ऐ जां उसदी मियाद मुक्की गेई ऐ. चेक पोस्ट पर गड्डी रुकने शा पैह्लें इसगी रिन्यू करो.</item>
+        <item quantity="other">तुंदियें गड्डियें दे %d कागज़ बाकी न जां उंदी मियाद मुक्की गेई ऐ. चेक पोस्ट पर गड्डी रुकने शा पैह्लें इनेंगी रिन्यू करो.</item>
+    </plurals>
+    <plurals name="fleet_list_papers_due_fleet">
+        <item quantity="one">पूरी फ़्लीट च %d कागज़ बाकी ऐ जां उसदी मियाद मुक्की गेई ऐ. चेक पोस्ट पर गड्डी रुकने शा पैह्लें इसगी रिन्यू करो.</item>
+        <item quantity="other">पूरी फ़्लीट च %d कागज़ बाकी न जां उंदी मियाद मुक्की गेई ऐ. चेक पोस्ट पर गड्डी रुकने शा पैह्लें इनेंगी रिन्यू करो.</item>
+    </plurals>
+    <string name="fleet_list_no_vehicles">अजें इत्थै कोई गड्डी नेईं.</string>
+    <string name="fleet_list_add_driver">ड्राइवर जोड़ो</string>
+    <string name="fleet_list_no_drivers">इस खाते च कोई ड्राइवर नेईं.</string>
+    <string name="fleet_list_speed">%1$d km/h</string>
+    <string name="fleet_list_idle_minutes">खड़ोती %1$d मिनट</string>
+    <string name="fleet_list_idle">खड़ोती</string>
+    <string name="fleet_list_offline">ऑफ़लाइन</string>
+    <string name="fleet_list_service">सर्विस</string>
+    <string name="fleet_list_score">स्कोर %1$d</string>
+
+    <!-- Your fleet: a vehicle as a card, and the rows-or-cards switch. -->
+    <string name="fleet_card_show_cards">कार्ड बनाइयै दस्सो</string>
+    <string name="fleet_card_show_list">लिस्ट बनाइयै दस्सो</string>
+    <string name="fleet_card_seats">सीटां</string>
+    <string name="fleet_card_payload">लोड क्षमता</string>
+    <string name="fleet_card_odometer">ओडोमीटर</string>
+    <string name="fleet_card_km">%1$s km</string>
+    <string name="fleet_card_driver">ड्राइवर</string>
+    <string name="fleet_card_none">कोई नेईं</string>
+    <plurals name="fleet_card_papers_expiring">
+        <item quantity="one">%d कागज़ दी मियाद मुक्कने आह्ली</item>
+        <item quantity="other">%d कागज़ें दी मियाद मुक्कने आह्ली</item>
+    </plurals>
+    <string name="fleet_card_papers_valid">कागज़ वैध न</string>
+    <string name="fleet_card_no_papers">कोई कागज़ अपलोड नेईं</string>
+
+    <!-- A vehicle to choose for a bid or a trip. -->
+    <string name="fleet_choice_no_driver">कोई ड्राइवर नेईं</string>
+    <string name="fleet_choice_free_now">हून खाली</string>
+
+    <!-- Live map. -->
+    <string name="fleet_map_filter_all">सब</string>
+    <string name="fleet_map_filter_moving">चला करदियां</string>
+    <string name="fleet_map_filter_idle">खड़ोतियां</string>
+    <string name="fleet_map_filter_offline">ऑफ़लाइन</string>
+    <string name="fleet_map_back">पिच्छें</string>
+    <string name="fleet_map_show_all">पूरी फ़्लीट दस्सो</string>
+    <string name="fleet_map_no_vehicles">इस खाते च अजें कोई गड्डी नेईं.</string>
+    <string name="fleet_map_no_positions">अजें कुसै गड्डी नै अपनी जगह नेईं दस्सी. जिसलै उसदा ट्रैकर जां फ़ोन जगह भेजग, ओह् इत्थै दिसग.</string>
+    <string name="fleet_map_search_hint">नंबर प्लेट जां ड्राइवर</string>
+    <string name="fleet_map_clear_search">खोज साफ़ करो</string>
+    <string name="fleet_map_reporting_now">हून रिपोर्ट करा करदी</string>
+    <string name="fleet_map_seen_ago">%1$s पैह्लें दिक्खी</string>
+    <string name="fleet_map_close">बंद करो</string>
+    <string name="fleet_map_open_vehicle">गड्डी खोह्लो</string>
+
+    <!-- One vehicle's page. -->
+    <string name="fleet_vehicle_title">गड्डी</string>
+    <string name="fleet_vehicle_call">%1$s गी फ़ोन करो</string>
+    <string name="fleet_vehicle_follow_map">मैप पर फ़ॉलो करो</string>
+    <string name="fleet_vehicle_speed">रफ़्तार</string>
+    <string name="fleet_vehicle_kmh">km/h</string>
+    <string name="fleet_vehicle_seen">दिक्खी</string>
+    <string name="fleet_vehicle_ago">पैह्लें</string>
+    <string name="fleet_vehicle_odometer">ओडोमीटर</string>
+    <string name="fleet_vehicle_km">km</string>
+    <string name="fleet_vehicle_open_trip">मौजूदा ट्रिप खोह्लो</string>
+    <string name="fleet_vehicle_new_trip">इस गड्डी कन्नै नमीं ट्रिप</string>
+    <string name="fleet_vehicle_driver_removed">ड्राइवर गी इस गड्डी थमां हटाई दित्ता.</string>
+    <string name="fleet_vehicle_assigned_you">तुसेंगी इस गड्डी पर लाया गेदा ऐ.</string>
+    <string name="fleet_vehicle_assigned_driver">ड्राइवर गी इस गड्डी पर लाया गेदा ऐ.</string>
+    <string name="fleet_vehicle_assigned_named">%1$s गी इस गड्डी पर लाया गेदा ऐ.</string>
+    <string name="fleet_vehicle_open_sharing">शेयरिंग खोह्लो</string>
+    <string name="fleet_vehicle_sharing">शेयरिंग</string>
+    <string name="fleet_vehicle_share_up_to">%1$d लोकें तगर कन्नै शेयर करो</string>
+    <string name="fleet_vehicle_in_transit">रस्ते च</string>
+    <string name="fleet_vehicle_moving">चला करदी</string>
+    <string name="fleet_vehicle_stopped">रुकी दी</string>
+    <string name="fleet_vehicle_not_reporting">रिपोर्ट नेईं करा करदी</string>
+    <string name="fleet_vehicle_in_service">सर्विस च</string>
+    <string name="fleet_vehicle_current_tracking">मौजूदा ट्रैकिंग</string>
+    <string name="fleet_vehicle_live_view">लाइव व्यू</string>
+    <string name="fleet_vehicle_current_trip">मौजूदा ट्रिप</string>
+    <string name="fleet_vehicle_min_late">%1$d मिनट लेट</string>
+    <string name="fleet_vehicle_on_time">टाइम पर</string>
+    <string name="fleet_vehicle_left_at">%1$s निकली</string>
+    <string name="fleet_vehicle_to_go">%1$s बाकी</string>
+    <plurals name="fleet_vehicle_papers_expired_or_declined">
+        <item quantity="one">%d कागज़ दी मियाद मुक्की जां नामंज़ूर</item>
+        <item quantity="other">%d कागज़ें दी मियाद मुक्की जां नामंज़ूर</item>
+    </plurals>
+    <plurals name="fleet_vehicle_papers_due_soon">
+        <item quantity="one">%d कागज़ दी मियाद जल्दी मुक्कग</item>
+        <item quantity="other">%d कागज़ें दी मियाद जल्दी मुक्कग</item>
+    </plurals>
+    <plurals name="fleet_vehicle_papers_in_order">
+        <item quantity="one">%d कागज़ दर्ज, सब ठीक</item>
+        <item quantity="other">%d कागज़ दर्ज, सब ठीक</item>
+    </plurals>
+    <plurals name="fleet_vehicle_all_papers_valid">
+        <item quantity="one">सारे %d कागज़ वैध</item>
+        <item quantity="other">सारे %d कागज़ वैध</item>
+    </plurals>
+    <string name="fleet_vehicle_no_papers">अजें कोई कागज़ दर्ज नेईं</string>
+    <string name="fleet_vehicle_open_papers">कागज़ खोह्लो</string>
+    <string name="fleet_vehicle_papers">कागज़</string>
+
+    <!-- A from → to pair, when an end has no address. -->
+    <string name="fleet_route_start">शुरू</string>
+    <string name="fleet_route_destination">मंज़िल</string>
+
+    <!-- Who drives this vehicle, and adding yourself as its driver. -->
+    <string name="fleet_assign_driving">चला करदा</string>
+    <string name="fleet_assign_no_driver">कोई ड्राइवर नेईं</string>
+    <string name="fleet_assign_nobody">इस गड्डी गी चलाने आस्तै कोई तै नेईं</string>
+    <string name="fleet_assign_take_off_confirm">%1$s गी इस गड्डी थमां हटाना ऐ?</string>
+    <string name="fleet_assign_keep">रक्खो</string>
+    <string name="fleet_assign_remove">हटाओ</string>
+    <string name="fleet_assign_change_driver">ड्राइवर बदलो</string>
+    <string name="fleet_assign_assign_driver">ड्राइवर लाओ</string>
+    <string name="fleet_assign_sheet_title">%1$s कुन चलाग?</string>
+    <string name="fleet_assign_sheet_hint">सिर्फ ओह् वेरिफ़ाई होए दे ड्राइवर चुने जाई सकदे न जेह्ड़े कुसै होर गड्डी पर नेईं न.</string>
+    <string name="fleet_assign_myself">मैं आपूं</string>
+    <string name="fleet_assign_score">स्कोर %1$d</string>
+    <string name="fleet_assign_none_free">इस बेलै कोई वेरिफ़ाई होए दा ड्राइवर खाली नेईं.</string>
+    <string name="fleet_assign_assign">लाओ</string>
+    <string name="fleet_assign_assigning">लाया जा करदा ऐ…</string>
+    <string name="fleet_assign_self_adds">तुसेंगी तुंदी अपनी ड्राइवर लिस्ट च जोड़दा ऐ</string>
+    <string name="fleet_assign_self_unverified">तुंदा लाइसेंस अजें वेरिफ़ाई होआ करदा ऐ</string>
+    <string name="fleet_assign_self_elsewhere">तुस कुसै होर गड्डी पर ओ</string>
+    <string name="fleet_assign_self_licence">लाइसेंस %1$s</string>
+    <string name="fleet_assign_photo_unusable">ओह् फ़ोटो नेईं बरतोई सकी.</string>
+    <string name="fleet_assign_licence_unreadable">उस थमां लाइसेंस नंबर नेईं पढ़ोई सकेआ. साफ़ फ़ोटो अजमाओ, जां नंबर टाइप करो.</string>
+    <string name="fleet_assign_photo_hint">अपने ड्राइविंग लाइसेंस दी फ़ोटो खिच्चो, उसदा नंबर अपने आप पढ़ोई जाग.</string>
+    <string name="fleet_assign_scan_licence">लाइसेंस स्कैन करो</string>
+    <string name="fleet_assign_choose_file">फ़ाइल चुनो</string>
+    <string name="fleet_assign_reading">लाइसेंस पढ़ेआ जा करदा ऐ…</string>
+    <string name="fleet_assign_licence_number">ड्राइविंग लाइसेंस नंबर</string>
+    <string name="fleet_assign_add_me">मिगी जोड़ो ते लाओ</string>
+    <string name="fleet_assign_added_unverified">तुस अपनी ड्राइवर लिस्ट च ओ. लाइसेंस वेरिफ़ाई होने पर अपने आप गी इत्थुआं लाओ.</string>
+    <string name="fleet_assign_adding">जोड़ेआ जा करदा ऐ…</string>
+
+    <!-- Return loads. -->
+    <string name="fleet_backhaul_eyebrow">बिज़नेस · वापसी दा लोड</string>
+    <string name="fleet_backhaul_title">वापसी दे लोड</string>
+    <string name="fleet_backhaul_nothing">कोई ट्रक खाली चलने आह्ला नेईं, ते वापसी दे रस्ते पर कोई लोड इंतज़ार नेईं करा करदा.</string>
+    <string name="fleet_backhaul_no_match">वापसी दे रस्ते कन्नै अजें किश मेल नेईं खंदा. ग्राहकें दे पोस्ट करदे गै नमें लोड जांचे जंदे न.</string>
+    <string name="fleet_backhaul_best_first">सब्भनें शा बधिया मेल पैह्लें</string>
+    <string name="fleet_backhaul_quote_sent">%1$s आस्तै रेट भेजी दित्ता. ग्राहक गी दस्सी दित्ता गेआ ऐ.</string>
+    <string name="fleet_backhaul_running_empty">जल्दी खाली चलङन</string>
+    <string name="fleet_backhaul_drops">%1$s ड्रॉप</string>
+    <!-- %1$s is the drop town, %2$s the empty kilometres back. -->
+    <string name="fleet_backhaul_hero_line">%1$s — %2$s km खाली वापस परतग</string>
+    <plurals name="fleet_backhaul_loads_match">
+        <item quantity="one">%d लोड वापसी दे रस्ते कन्नै मेल खंदा ऐ</item>
+        <item quantity="other">%d लोड वापसी दे रस्ते कन्नै मेल खंदे न</item>
+    </plurals>
+    <string name="fleet_backhaul_watching">वापसी दे रस्ते पर लोड दिक्खे जा करदे न</string>
+    <string name="fleet_backhaul_risk_line">%1$s · %2$s km खाली</string>
+    <string name="fleet_backhaul_best_fit_detour">सब्भनें शा बधिया · %1$d km दा चक्कर</string>
+    <string name="fleet_backhaul_detour">%1$d km दा चक्कर</string>
+    <string name="fleet_backhaul_posted_now">हुनै पोस्ट होआ</string>
+    <string name="fleet_backhaul_posted_ago">%1$s पैह्लें पोस्ट होआ</string>
+    <string name="fleet_backhaul_pick_up">%1$s पिकअप</string>
+    <string name="fleet_backhaul_from_drop">ड्रॉप थमां %1$d km</string>
+    <string name="fleet_backhaul_deliver_by">%1$s तगर डिलीवरी</string>
+    <string name="fleet_backhaul_load">लोड</string>
+    <string name="fleet_backhaul_goods">माल</string>
+    <string name="fleet_backhaul_worth">कीमत</string>
+    <string name="fleet_backhaul_quote_sent_button">रेट भेजी दित्ता</string>
+    <string name="fleet_backhaul_quote_this">इस लोड आस्तै रेट देओ</string>
+    <string name="fleet_backhaul_quote_for">%1$s आस्तै रेट</string>
+    <!-- %1$s from, %2$s to, %3$s the truck's plate. -->
+    <string name="fleet_backhaul_quote_route">%1$s → %2$s, %3$s दी वापसी दे रस्ते पर.</string>
+    <string name="fleet_backhaul_your_price">तुंदा रेट (₹)</string>
+    <string name="fleet_backhaul_note">नोट (जरूरी नेईं)</string>
+    <string name="fleet_backhaul_send_quote">रेट भेजो</string>
+
+    <!-- Business home (accounts whose own screens are still to come). -->
+    <string name="fleet_home_intro_personal_eyebrow">पर्सनल</string>
+    <string name="fleet_home_intro_personal_line">तुंदियां गड्डियां, उंदे कागज़ ते हर ट्रिप.</string>
+    <string name="fleet_home_intro_travel_eyebrow">ट्रैवल</string>
+    <string name="fleet_home_intro_travel_line">बुकिंग, गड्डियां ते अग्गें दा रस्ता.</string>
+    <string name="fleet_home_intro_customer_eyebrow">ग्राहक</string>
+    <string name="fleet_home_intro_customer_line">तुसेंगी केह् पजाना ऐ, ते ओह् हून कुत्थें ऐ.</string>
+    <string name="fleet_home_intro_seller_eyebrow">सेलर</string>
+    <string name="fleet_home_intro_seller_line">तुंदा स्टॉक, ते उसगी लोड करने औने आह्ले ट्रक.</string>
+    <string name="fleet_home_intro_association_eyebrow">एसोसिएशन</string>
+    <string name="fleet_home_intro_association_line">तुंदे मेंबर, ते सड़का पर जिसगी बी मदद चाहिदी.</string>
+    <string name="fleet_home_intro_other_line">Saarthi पर तुंदा कारोबार.</string>
+    <string name="fleet_home_latest">ताज़ा</string>
+    <string name="fleet_home_nothing_new">किश नमां नेईं. तुंदे कारोबार दे अलर्ट इत्थै दिसदे न.</string>
+    <string name="fleet_home_see_all_alerts">सारे अलर्ट दिक्खो</string>
+
+    <!-- Personal: tabs. -->
+    <string name="fleet_personal_tab_vehicles">गड्डियां</string>
+    <string name="fleet_personal_tab_papers">कागज़</string>
+    <string name="fleet_personal_header_personal">पर्सनल</string>
+    <string name="fleet_personal_header_your_vehicles">तुंदियां गड्डियां</string>
+    <string name="fleet_personal_header_your_papers">तुंदे कागज़</string>
+
+    <!-- Personal: home and papers. -->
+    <string name="fleet_personal_no_vehicle">इस खाते च अजें कोई गड्डी नेईं. वेब पर Saarthi थमां इक जोड़ो.</string>
+    <string name="fleet_personal_vehicle">गड्डी</string>
+    <string name="fleet_personal_insurance">बीमा</string>
+    <string name="fleet_personal_expired">मियाद मुक्की</string>
+    <plurals name="fleet_personal_days">
+        <item quantity="one">%d दिन</item>
+        <item quantity="other">%d दिन</item>
+    </plurals>
+    <string name="fleet_personal_could_not_load">लोड नेईं होई सकेआ</string>
+    <string name="fleet_personal_loading">लोड होआ करदा ऐ</string>
+    <string name="fleet_personal_not_on_file">दर्ज नेईं</string>
+    <string name="fleet_personal_left">बाकी</string>
+    <string name="fleet_personal_papers">कागज़</string>
+    <string name="fleet_personal_none">कोई नेईं</string>
+    <string name="fleet_personal_all_set">सब ठीक</string>
+    <string name="fleet_personal_due">%1$d बाकी</string>
+    <string name="fleet_personal_on_file">%1$d दर्ज</string>
+    <string name="fleet_personal_odometer">ओडोमीटर</string>
+    <string name="fleet_personal_km">km</string>
+    <string name="fleet_personal_quick_actions">फटाफट कम्म</string>
+    <string name="fleet_personal_sharing">शेयरिंग</string>
+    <string name="fleet_personal_map">मैप</string>
+    <plurals name="fleet_personal_shared_with">
+        <item quantity="one">%d माह्नू कन्नै शेयर</item>
+        <item quantity="other">%d लोकें कन्नै शेयर</item>
+    </plurals>
+    <string name="fleet_personal_moving">चला करदी</string>
+    <string name="fleet_personal_parked">खड़ोती दी</string>
+    <string name="fleet_personal_not_reporting">रिपोर्ट नेईं करा करदी</string>
+    <string name="fleet_personal_where_it_is">एह् कुत्थें ऐ</string>
+    <string name="fleet_personal_reporting_now">हून रिपोर्ट करा करदी</string>
+    <string name="fleet_personal_last_seen">आखरी बारी %1$s पैह्लें दिक्खी</string>
+    <string name="fleet_personal_no_position">अजें कोई जगह रिपोर्ट नेईं होई</string>
+    <!-- %1$s is the kind of vehicle, e.g. "car" or "vehicle". -->
+    <string name="fleet_personal_find_my">मेरी %1$s लब्भो</string>
+    <string name="fleet_personal_vehicle_lower">गड्डी</string>
+
+    <!-- Travel: tabs. -->
+    <string name="fleet_travel_tab_bookings">बुकिंग</string>
+    <string name="fleet_travel_header_trips_you_run">तुंदियां चलाइयां ट्रिपां</string>
+    <string name="fleet_travel_tab_requests">मंगां</string>
+    <string name="fleet_travel_header_cabs_tours">तुंदे नेड़ै कैब ते टूर</string>
+
+    <!-- Travel: home and the bookings list. -->
+    <string name="fleet_travel_on_the_road">%1$d सड़का पर</string>
+    <string name="fleet_travel_nobody_on_road">सड़का पर कोई नेईं</string>
+    <string name="fleet_travel_today">अज्ज</string>
+    <plurals name="fleet_travel_bookings">
+        <item quantity="one">%d बुकिंग</item>
+        <item quantity="other">%d बुकिंग</item>
+    </plurals>
+    <string name="fleet_travel_open_map">मैप</string>
+    <string name="fleet_travel_on_duty">ड्यूटी पर</string>
+    <string name="fleet_travel_vehicles_caption">गड्डियां</string>
+    <string name="fleet_travel_awaiting">इंतज़ार च</string>
+    <string name="fleet_travel_to_confirm">पक्का करना</string>
+    <string name="fleet_travel_rating">रेटिंग</string>
+    <string name="fleet_travel_from_trips">ट्रिपें थमां</string>
+    <string name="fleet_travel_todays_run">अज्ज दियां ट्रिपां</string>
+    <string name="fleet_travel_all_bookings">सारियां बुकिंग</string>
+    <string name="fleet_travel_nothing_today">अज्ज किश नेईं. अग्गें औने आह्लियां:</string>
+    <string name="fleet_travel_no_bookings_hint">अजें कोई बुकिंग नेईं. अपनी डायरी भरने आस्तै नेड़ै दियें मंगें पर रेट देओ.</string>
+    <string name="fleet_travel_no_bookings">अजें कोई बुकिंग नेईं.</string>
+    <string name="fleet_travel_still_to_run">अजें चलनियां</string>
+    <string name="fleet_travel_earlier">पैह्लें दियां</string>
+    <string name="fleet_travel_status_confirm_it">पक्का करो</string>
+    <string name="fleet_travel_status_awaiting_payment">पेमेंट दा इंतज़ार</string>
+    <string name="fleet_travel_status_driver_assigned">ड्राइवर लाया गेआ</string>
+    <string name="fleet_travel_status_on_the_way">रस्ते च</string>
+    <string name="fleet_travel_status_completed">पूरी होई गेई</string>
+    <string name="fleet_travel_status_cancelled">रद्द</string>
+    <string name="fleet_travel_pickup_today">पिकअप</string>
+
+    <!-- Travel: one booking. -->
+    <string name="fleet_travel_booking_reference">बुकिंग %1$s</string>
+    <string name="fleet_travel_confirm">एह् बुकिंग पक्की करो</string>
+    <string name="fleet_travel_confirmed">पक्की होई गेई. ग्राहक गी दस्सी दित्ता गेआ ऐ.</string>
+    <string name="fleet_travel_decline">नामंज़ूर करो</string>
+    <string name="fleet_travel_start">ट्रिप शुरू करो</string>
+    <string name="fleet_travel_trip_started">ट्रिप शुरू होई गेई.</string>
+    <string name="fleet_travel_finish">ट्रिप पूरी करो</string>
+    <string name="fleet_travel_trip_finished">ट्रिप पूरी होई गेई.</string>
+    <string name="fleet_travel_customer">ग्राहक</string>
+    <plurals name="fleet_travel_people">
+        <item quantity="one">%d माह्नू</item>
+        <item quantity="other">%d लोक</item>
+    </plurals>
+    <string name="fleet_travel_call_named">%1$s गी फ़ोन करो</string>
+    <string name="fleet_travel_call_customer">ग्राहक गी फ़ोन करो</string>
+    <string name="fleet_travel_payment">पेमेंट</string>
+    <string name="fleet_travel_paid">ग्राहक नै पेमेंट करी दित्ती</string>
+    <string name="fleet_travel_not_paid">अजें पेमेंट नेईं होई</string>
+    <string name="fleet_travel_payment_failed">ग्राहक दी पेमेंट फ़ेल होई गेई</string>
+    <string name="fleet_travel_started_without_code">कोड दे बगैर शुरू कीती. कारण रिकॉर्ड च ऐ ते सवारी गी दस्सी दित्ता गेआ ऐ.</string>
+    <string name="fleet_travel_why_decline">तुस एह् कीं नेईं लेई सकदे?</string>
+    <string name="fleet_travel_customer_sees">ग्राहक एह् दिक्खग</string>
+    <string name="fleet_travel_decline_booking">बुकिंग नामंज़ूर करो</string>
+    <string name="fleet_travel_declined">नामंज़ूर. ग्राहक गी दस्सी दित्ता गेआ ऐ.</string>
+    <string name="fleet_travel_which_vehicle">केह्ड़ी गड्डी जाग</string>
+    <plurals name="fleet_travel_no_vehicle_fits">
+        <item quantity="one">तुंदी कोई बी गड्डी एह् बुकिंग नेईं लेई सकदी. इसगी घट्टो-घट्ट %d सीट आह्ली सवारी गड्डी चाहिदी जेह्ड़ी हून खाली होऐ, न ट्रिप पर होऐ ते न सर्विस च.</item>
+        <item quantity="other">तुंदी कोई बी गड्डी एह् बुकिंग नेईं लेई सकदी. इसगी घट्टो-घट्ट %d सीटें आह्ली सवारी गड्डी चाहिदी जेह्ड़ी हून खाली होऐ, न ट्रिप पर होऐ ते न सर्विस च.</item>
+    </plurals>
+    <string name="fleet_travel_check_again">फ्ही जांचो</string>
+    <plurals name="fleet_travel_seats">
+        <item quantity="one">%d सीट</item>
+        <item quantity="other">%d सीटां</item>
+    </plurals>
+    <string name="fleet_travel_who_drives">कुन चलाग</string>
+    <string name="fleet_travel_no_verified_driver">सवारी आह्ली ट्रिप सिर्फ वेरिफ़ाई होए दा ड्राइवर गै लेई सकदा ऐ, ते तुंदा अजें कोई बी वेरिफ़ाई नेईं. तुस सिर्फ गड्डी कन्नै बी पक्का करी सकदे ओ.</string>
+    <string name="fleet_travel_booked">बुक होई दी</string>
+    <plurals name="fleet_travel_days">
+        <item quantity="one">%d दिन</item>
+        <item quantity="other">%d दिन</item>
+    </plurals>
+    <string name="fleet_travel_km">%1$d km</string>
+    <string name="fleet_travel_pickup">पिकअप</string>
+    <string name="fleet_travel_pick_up_at">%1$s पिकअप</string>
+    <string name="fleet_travel_destination">मंज़िल</string>
+    <string name="fleet_travel_back_at">%1$s वापसी</string>
+    <string name="fleet_travel_vehicle_driver">गड्डी ते ड्राइवर</string>
+</resources>

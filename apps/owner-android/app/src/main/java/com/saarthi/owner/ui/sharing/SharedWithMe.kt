@@ -18,31 +18,32 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.saarthi.owner.OwnerApp
+import com.saarthi.owner.R
 import com.saarthi.owner.data.SessionStore
 import com.saarthi.owner.network.SharingApi
 import com.saarthi.owner.ui.common.FailedCard
 import com.saarthi.owner.ui.common.Loadable
 import com.saarthi.owner.ui.common.PlateChip
 import com.saarthi.owner.ui.common.SkeletonCards
-import com.saarthi.owner.ui.common.ago
+import com.saarthi.owner.ui.common.Words
 import com.saarthi.owner.ui.common.readable
 import com.saarthi.owner.ui.design.ButtonRow
 import com.saarthi.owner.ui.design.ButtonTone
 import com.saarthi.owner.ui.design.Eyebrow
 import com.saarthi.owner.ui.design.IconWell
-import com.saarthi.owner.ui.design.LineIcon
 import com.saarthi.owner.ui.design.NoticeCard
 import com.saarthi.owner.ui.design.NoticeTone
 import com.saarthi.owner.ui.design.Lucide
 import com.saarthi.owner.ui.design.SType
 import com.saarthi.owner.ui.design.Saarthi
 import com.saarthi.owner.ui.design.SaarthiButton
-import com.saarthi.owner.ui.design.StatusPill
 import com.saarthi.owner.ui.design.card
-import com.saarthi.owner.ui.design.pressable
+import com.saarthi.owner.ui.fleet.VehicleCard
+import com.saarthi.owner.ui.fleet.VehicleRow
 import com.saarthi.owner.ui.shell.LocalNavigator
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -61,13 +62,10 @@ object SharedScopeRequest {
     val open = mutableStateOf(false)
 }
 
-/** "Last seen 5 min ago", or that it has never reported. */
-internal fun SharingApi.SharedVehicle.seenLine(): String =
-    lastLocation?.recordedAt?.let { at -> ago(at).let { if (it == "now") "Reporting now" else "Last seen $it ago" } } ?: "No position yet"
-
 /** The shared-with-me list as items of the Vehicles list. */
 internal fun LazyListScope.sharedWithMeItems(
     state: Loadable<SharingApi.SharedWithMe>,
+    cards: Boolean,
     answering: String?,
     onAnswer: (SharingApi.Invitation, Boolean) -> Unit,
     onOpen: (SharingApi.SharedVehicle) -> Unit,
@@ -79,7 +77,7 @@ internal fun LazyListScope.sharedWithMeItems(
         is Loadable.Ready -> {
             val data = state.value
             if (data.invitations.isNotEmpty()) {
-                item(key = "invitations-label") { Eyebrow("Waiting for you", Modifier.padding(start = 4.dp, top = 4.dp)) }
+                item(key = "invitations-label") { Eyebrow(stringResource(R.string.people_shared_waiting), Modifier.padding(start = 4.dp, top = 4.dp)) }
                 items(data.invitations, key = { "invite-${it.shareId}" }) { invitation ->
                     InvitationCard(invitation, busy = answering == invitation.shareId, anyBusy = answering != null, onAnswer = onAnswer)
                 }
@@ -88,8 +86,13 @@ internal fun LazyListScope.sharedWithMeItems(
                 item(key = "shared-empty") { SharedEmpty() }
             }
             if (data.vehicles.isNotEmpty()) {
-                item(key = "shared-label") { Eyebrow("Shared with you", Modifier.padding(start = 4.dp, top = 4.dp)) }
-                items(data.vehicles, key = { "shared-${it.shareId}" }) { vehicle -> SharedVehicleRow(vehicle) { onOpen(vehicle) } }
+                item(key = "shared-label") { Eyebrow(stringResource(R.string.people_shared_with_you), Modifier.padding(start = 4.dp, top = 4.dp)) }
+                items(data.vehicles, key = { "shared-${it.shareId}" }) { vehicle ->
+                    // The owner's card and row, with who shared it under the name.
+                    val sharedBy = vehicle.ownerName.ifBlank { null }?.let { stringResource(R.string.people_shared_by, it) }
+                    if (cards) VehicleCard(vehicle.asVehicle(), { onOpen(vehicle) }, note = sharedBy)
+                    else VehicleRow(vehicle.asVehicle(), { onOpen(vehicle) }, note = sharedBy)
+                }
             }
         }
     }
@@ -168,7 +171,11 @@ private fun InvitationCard(
             IconWell(Lucide.users, well = c.primarySoft, ink = c.primary, size = 40.dp, shape = CircleShape, iconSize = 18.dp)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    "${invitation.invitedBy} wants to share a ${invitation.typeLabel.lowercase().ifBlank { "vehicle" }} with you",
+                    stringResource(
+                        R.string.people_shared_invite_line,
+                        invitation.invitedBy,
+                        invitation.typeLabel.lowercase().ifBlank { stringResource(R.string.people_vehicle_lower) },
+                    ),
                     style = SType.bodyStrong,
                     color = c.fg,
                     maxLines = 2,
@@ -176,18 +183,18 @@ private fun InvitationCard(
                 )
                 PlateChip(invitation.registrationNumber)
                 if (invitation.ownerName.isNotBlank() && invitation.ownerName != invitation.invitedBy) {
-                    Text("Owned by ${invitation.ownerName}", style = SType.caption, color = c.muted)
+                    Text(stringResource(R.string.people_shared_owned_by, invitation.ownerName), style = SType.caption, color = c.muted)
                 }
             }
         }
         Text(
-            "You will be able to follow it and log trips, fuel and servicing. You never see its costs, finance or papers.",
+            stringResource(R.string.people_shared_invite_body),
             style = SType.small,
             color = c.muted,
         )
         ButtonRow {
             SaarthiButton(
-                "Accept",
+                stringResource(R.string.people_shared_accept),
                 onClick = { onAnswer(invitation, true) },
                 busy = busy,
                 enabled = !anyBusy,
@@ -195,7 +202,7 @@ private fun InvitationCard(
                 modifier = Modifier.weight(1f),
             )
             SaarthiButton(
-                "Decline",
+                stringResource(R.string.people_shared_decline),
                 onClick = { onAnswer(invitation, false) },
                 tone = ButtonTone.SECONDARY,
                 enabled = !anyBusy,
@@ -203,37 +210,6 @@ private fun InvitationCard(
                 modifier = Modifier.weight(1f),
             )
         }
-    }
-}
-
-@Composable
-private fun SharedVehicleRow(vehicle: SharingApi.SharedVehicle, onOpen: () -> Unit) {
-    val c = Saarthi.colors
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .card(radius = 22.dp)
-            .pressable(scale = 0.98f, label = "Open ${vehicle.registrationNumber}", onClick = onOpen)
-            .padding(14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        IconWell(Lucide.car, well = c.sunken, ink = c.fg, size = 46.dp, radius = 14.dp)
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                PlateChip(vehicle.registrationNumber)
-                StatusPill(vehicle.typeLabel.ifBlank { "Vehicle" }, background = c.sunken, ink = c.muted, dot = false)
-            }
-            Text(
-                listOfNotNull(vehicle.makeAndModel, "Shared by ${vehicle.ownerName}".takeIf { vehicle.ownerName.isNotBlank() }).joinToString(" · "),
-                style = SType.small,
-                color = c.muted,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(vehicle.seenLine(), style = SType.caption, color = c.subtle)
-        }
-        LineIcon(Lucide.chevronRight, size = 18.dp, color = c.subtle)
     }
 }
 
@@ -248,9 +224,9 @@ private fun SharedEmpty() {
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         IconWell(Lucide.users, well = c.sunken, ink = c.muted, size = 64.dp, shape = CircleShape, iconSize = 26.dp)
-        Text("No vehicles shared with you", style = SType.bodyStrong, color = c.fg)
+        Text(stringResource(R.string.people_shared_empty_title), style = SType.bodyStrong, color = c.fg)
         Text(
-            "When someone on Saarthi shares a vehicle with you, it appears here to track and log trips, fuel and servicing against.",
+            stringResource(R.string.people_shared_empty_body),
             style = SType.small,
             color = c.muted,
         )

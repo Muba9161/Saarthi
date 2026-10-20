@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.saarthi.owner.R
@@ -37,14 +38,14 @@ data class StatusLook(val word: String, val ground: Color, val ink: Color)
 fun orderStatusLook(status: String): StatusLook {
     val c = Saarthi.colors
     return when (status) {
-        "DRAFT", "REQUESTED", "QUOTED" -> StatusLook("Awaiting confirmation", c.warningBg, c.warning)
-        "CONFIRMED" -> StatusLook("Confirmed", c.primaryWash, c.primary)
-        "ASSIGNED" -> StatusLook("Truck assigned", c.primaryWash, c.primary)
-        "PICKUP" -> StatusLook("Loading", c.warningBg, c.warning)
-        "IN_TRANSIT" -> StatusLook("On the way", c.successBg, c.success)
-        "DELIVERED" -> StatusLook("Delivered", c.successBg, c.success)
-        "COMPLETED" -> StatusLook("Completed", c.sunken, c.muted)
-        "CANCELLED", "FAILED" -> StatusLook("Cancelled", c.dangerBg, c.danger)
+        "DRAFT", "REQUESTED", "QUOTED" -> StatusLook(stringResource(R.string.market_order_status_awaiting), c.warningBg, c.warning)
+        "CONFIRMED" -> StatusLook(stringResource(R.string.market_order_status_confirmed), c.primaryWash, c.primary)
+        "ASSIGNED" -> StatusLook(stringResource(R.string.market_order_status_assigned), c.primaryWash, c.primary)
+        "PICKUP" -> StatusLook(stringResource(R.string.market_order_status_loading), c.warningBg, c.warning)
+        "IN_TRANSIT" -> StatusLook(stringResource(R.string.market_order_status_on_the_way), c.successBg, c.success)
+        "DELIVERED" -> StatusLook(stringResource(R.string.market_order_status_delivered), c.successBg, c.success)
+        "COMPLETED" -> StatusLook(stringResource(R.string.market_order_status_completed), c.sunken, c.muted)
+        "CANCELLED", "FAILED" -> StatusLook(stringResource(R.string.market_order_status_cancelled), c.dangerBg, c.danger)
         else -> StatusLook(status.lowercase().replace('_', ' ').replaceFirstChar { it.uppercase() }, c.sunken, c.muted)
     }
 }

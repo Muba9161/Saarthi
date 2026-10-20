@@ -26,10 +26,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.saarthi.owner.OwnerApp
+import com.saarthi.owner.R
 import com.saarthi.owner.network.HandoverApi
 import com.saarthi.owner.network.OrdersApi
 import com.saarthi.owner.network.OrdersApi.Companion.STAGE_30_REQUIRED
@@ -39,6 +41,7 @@ import com.saarthi.owner.network.PaymentsApi
 import com.saarthi.owner.network.TripsApi
 import com.saarthi.owner.ui.common.DetailScreen
 import com.saarthi.owner.ui.common.RevealedNotice
+import com.saarthi.owner.ui.common.Words
 import com.saarthi.owner.ui.common.clockOf
 import com.saarthi.owner.ui.common.readable
 import com.saarthi.owner.ui.common.rupees
@@ -58,6 +61,10 @@ import com.saarthi.owner.ui.design.rise
 import com.saarthi.owner.ui.design.stagger
 import com.saarthi.owner.ui.orders.CustomerCodeCard
 import com.saarthi.owner.ui.orders.orderStatusLook
+import com.saarthi.owner.ui.papers.SlipKind
+import com.saarthi.owner.ui.papers.SlipStep
+import com.saarthi.owner.ui.papers.WeighSlipText
+import com.saarthi.owner.ui.papers.rememberSlipReader
 import com.saarthi.owner.ui.payments.PaymentOutcome
 import com.saarthi.owner.ui.payments.ReceiptsCard
 import com.saarthi.owner.ui.payments.rememberCheckout
@@ -125,6 +132,11 @@ fun CustomerOrderScreen(app: OwnerApp, initial: OrdersApi.Order, onChanged: () -
     // takes the delivered quantity. A freight-only order has no finance plan at
     // all, and the server refuses the step anywhere else.
     val awaitingDeliveryWord = order.status == "DELIVERED" && stage == STAGE_PROCUREMENT_PAID
+    // A load sold by weight is read off the weighbridge slip, in the order's own unit.
+    val weighed = order.unit == "TON" || order.unit == "KG"
+    val weighSlip = rememberSlipReader(WeighSlipText::netKg, null, onProblem = { message = it to NoticeTone.DANGER }) { kg ->
+        kg?.let { arrivedText = weightIn(it, order.unit).take(8) }
+    }
 
     fun pay() {
         busy = true
@@ -134,7 +146,7 @@ fun CustomerOrderScreen(app: OwnerApp, initial: OrdersApi.Order, onChanged: () -
                 val session = if (stage == STAGE_30_REQUIRED) app.orders.payConfirmation(order.id) else app.orders.payFinal(order.id)
                 checkout.pay(session) { outcome ->
                     busy = false
-                    message = outcome.sentence(if (stage == STAGE_30_REQUIRED) "Order confirmed" else "Balance paid") to
+                    message = outcome.sentence(Words.get(if (stage == STAGE_30_REQUIRED) R.string.customer_order_confirmed_paid else R.string.customer_order_balance_paid)) to
                         if (outcome == PaymentOutcome.SUCCEEDED) NoticeTone.SUCCESS else NoticeTone.WARNING
                     onChanged()
                     reload++
@@ -164,20 +176,20 @@ fun CustomerOrderScreen(app: OwnerApp, initial: OrdersApi.Order, onChanged: () -
     }
 
     DetailScreen(
-        eyebrow = listOfNotNull("Order ${order.reference}", order.fleetName).joinToString(" · "),
-        title = if (stage == STAGE_30_REQUIRED) "Confirm & pay" else "Your order",
+        eyebrow = listOfNotNull(stringResource(R.string.customer_order_eyebrow, order.reference), order.fleetName).joinToString(" · "),
+        title = stringResource(if (stage == STAGE_30_REQUIRED) R.string.customer_order_confirm_pay else R.string.customer_your_order),
         footer = when {
             payNow != null -> {
                 {
                     SaarthiButton(
-                        "Pay ${rupees(payNow)}",
+                        stringResource(R.string.customer_pay_amount, rupees(payNow)),
                         onClick = ::pay,
                         busy = busy || checkout.confirming,
-                        busyText = "Opening payment…",
+                        busyText = stringResource(R.string.customer_opening_payment),
                         leading = Lucide.lock,
                     )
                     Text(
-                        "Payments are processed securely by Cashfree.",
+                        stringResource(R.string.customer_payments_by_cashfree),
                         style = SType.caption,
                         color = c.subtle,
                         modifier = Modifier.fillMaxWidth(),
@@ -186,7 +198,7 @@ fun CustomerOrderScreen(app: OwnerApp, initial: OrdersApi.Order, onChanged: () -
             }
             awaitingDeliveryWord -> {
                 {
-                    SaarthiButton("Confirm it arrived", onClick = ::confirmArrived, busy = busy, enabled = (arrivedText.toDoubleOrNull() ?: 0.0) > 0)
+                    SaarthiButton(stringResource(R.string.customer_order_confirm_arrived), onClick = ::confirmArrived, busy = busy, enabled = (arrivedText.toDoubleOrNull() ?: 0.0) > 0)
                 }
             }
             else -> null
@@ -199,7 +211,8 @@ fun CustomerOrderScreen(app: OwnerApp, initial: OrdersApi.Order, onChanged: () -
 
         if (order.status == "CANCELLED" || order.status == "FAILED") {
             NoticeCard(
-                listOfNotNull("This order was cancelled.", order.cancellationReason?.ifBlank { null }).joinToString(" "),
+                order.cancellationReason?.ifBlank { null }?.let { stringResource(R.string.customer_order_cancelled_reason, it) }
+                    ?: stringResource(R.string.customer_order_cancelled),
                 NoticeTone.DANGER,
                 icon = Lucide.ban,
                 modifier = Modifier.rise(),
@@ -214,19 +227,40 @@ fun CustomerOrderScreen(app: OwnerApp, initial: OrdersApi.Order, onChanged: () -
 
         if (awaitingDeliveryWord) {
             Column(Modifier.fillMaxWidth().card(radius = 22.dp).padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("What arrived?", style = SType.cardTitle, color = c.fg)
+                Text(stringResource(R.string.customer_order_what_arrived), style = SType.cardTitle, color = c.fg)
                 Text(
-                    "The balance is worked out from what actually reached your site.",
+                    stringResource(R.string.customer_order_balance_note),
                     style = SType.small,
                     color = c.muted,
                 )
+                if (weighed) SlipStep(weighSlip, SlipKind.WEIGH_SLIP, good = { it != null })
                 SaarthiField(
                     value = arrivedText,
                     onValueChange = { arrivedText = it.filter { ch -> ch.isDigit() || ch == '.' }.take(8) },
-                    label = "Quantity delivered (${com.saarthi.owner.network.RequirementsApi.unitWord(order.unit)})",
+                    label = stringResource(R.string.customer_order_quantity_delivered, com.saarthi.owner.network.RequirementsApi.unitWord(order.unit)),
                     leading = Lucide.box,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 )
+            }
+        }
+
+        // A delivered order is rated once, by the customer — and it counts towards the driver's score.
+        if (order.status == "DELIVERED" || order.status == "COMPLETED") {
+            val given = order.rating
+            if (given == null) {
+                RateCard(
+                    title = stringResource(R.string.customer_order_rate_title),
+                    prompt = stringResource(R.string.customer_order_rate_prompt),
+                    maxWords = 1000,
+                    onRate = { stars, words ->
+                        app.orders.rate(order.id, stars, words)
+                        app.orders.get(order.id)?.let { order = it }
+                        onChanged()
+                    },
+                    modifier = Modifier.rise(stagger(2)),
+                )
+            } else {
+                RatedLine(stringResource(R.string.customer_order_rated, given.rating), given.rating, given.comment, Modifier.rise(stagger(2)))
             }
         }
 
@@ -238,9 +272,9 @@ fun CustomerOrderScreen(app: OwnerApp, initial: OrdersApi.Order, onChanged: () -
 
         ReceiptsCard(receipts, forWhat = order.what, modifier = Modifier.rise(stagger(3))) { receipt ->
             when (finance?.payments?.firstOrNull { it.reference == receipt.reference }?.stage) {
-                "CONFIRMATION_30" -> "30% advance"
-                "FINAL_70" -> "Balance after delivery"
-                else -> "Payment"
+                "CONFIRMATION_30" -> Words.get(R.string.customer_order_receipt_advance, ADVANCE_PERCENT)
+                "FINAL_70" -> Words.get(R.string.customer_order_balance_after_delivery)
+                else -> Words.get(R.string.customer_payment)
             }
         }
     }
@@ -260,16 +294,24 @@ private fun PayPanel(order: OrdersApi.Order, finance: OrdersApi.Finance, advance
             .padding(22.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Eyebrow(if (advance) "Pay now · 30% advance" else "Balance after delivery", color = Color.White.copy(alpha = 0.78f))
+        Eyebrow(
+            if (advance) stringResource(R.string.customer_order_pay_now_advance, ADVANCE_PERCENT) else stringResource(R.string.customer_order_balance_after_delivery),
+            color = Color.White.copy(alpha = 0.78f),
+        )
         Text(rupees(now), style = SType.figure.copy(fontSize = 44.sp, lineHeight = 48.sp), color = Color.White)
-        Text("of ${rupees(total)} · ${order.what}", style = SType.small, color = Color.White.copy(alpha = 0.85f))
+        Text(stringResource(R.string.customer_order_of_total, rupees(total), order.what), style = SType.small, color = Color.White.copy(alpha = 0.85f))
         Row(Modifier.fillMaxWidth().padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             Box(Modifier.weight(share.coerceAtLeast(0.05f)).height(6.dp).clip(CircleShape).background(Brand.saffron))
             Box(Modifier.weight((1f - share).coerceAtLeast(0.05f)).height(6.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.3f)))
         }
         Row(Modifier.fillMaxWidth()) {
-            Text(if (advance) "30% now" else "Balance now", style = SType.captionStrong, color = Color.White, modifier = Modifier.weight(1f))
-            if (advance) Text("${rupees(total - now)} after delivery", style = SType.caption, color = Color.White.copy(alpha = 0.8f))
+            Text(
+                if (advance) stringResource(R.string.customer_order_advance_now, ADVANCE_PERCENT) else stringResource(R.string.customer_order_balance_now),
+                style = SType.captionStrong,
+                color = Color.White,
+                modifier = Modifier.weight(1f),
+            )
+            if (advance) Text(stringResource(R.string.customer_order_after_delivery, rupees(total - now)), style = SType.caption, color = Color.White.copy(alpha = 0.8f))
         }
     }
 }
@@ -291,7 +333,7 @@ private fun OrderSummary(order: OrdersApi.Order, finance: OrdersApi.Finance?, mo
             ?.let { Text(it.joinToString(" → "), style = SType.small, color = c.muted) }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                order.fleetName ?: "No fleet has taken it yet",
+                order.fleetName ?: stringResource(R.string.customer_order_no_fleet),
                 style = SType.small,
                 color = if (order.fleetName != null) c.fg else c.muted,
                 modifier = Modifier.weight(1f),
@@ -312,29 +354,35 @@ private fun Timeline(order: OrdersApi.Order, finance: OrdersApi.Finance?, trip: 
     val moving = order.status == "IN_TRANSIT"
     val delivered = order.status in setOf("DELIVERED", "COMPLETED")
     val steps = buildList {
-        add(Triple(if (finance == null) "Confirmed" else "Confirmed · 30% paid", finance?.confirmationAmount?.let { rupees(it) }, paid30))
+        add(
+            Triple(
+                if (finance == null) stringResource(R.string.customer_status_confirmed) else stringResource(R.string.customer_order_step_confirmed_paid, ADVANCE_PERCENT),
+                finance?.confirmationAmount?.let { rupees(it) },
+                paid30,
+            ),
+        )
         add(
             Triple(
                 // A freight order carries the customer's own goods, not material bought through Saarthi.
-                if (order.materialName != null) "Material loaded" else "Loaded at pickup",
-                clockOf(trip?.actualStartAt)?.let { "Left the pickup at $it" }
-                    ?: clockOf(order.pickupAt)?.let { if (loaded) it else "Planned for $it" },
+                stringResource(if (order.materialName != null) R.string.customer_order_step_material_loaded else R.string.customer_order_step_loaded),
+                clockOf(trip?.actualStartAt)?.let { stringResource(R.string.customer_order_left_pickup_at, it) }
+                    ?: clockOf(order.pickupAt)?.let { if (loaded) it else stringResource(R.string.customer_order_planned_for, it) },
                 loaded,
             ),
         )
         add(
             Triple(
-                "On the way to your site",
-                clockOf(trip?.etaAt)?.takeIf { moving && trip?.underway == true }?.let { "Arriving about $it" },
+                stringResource(R.string.customer_order_step_on_the_way),
+                clockOf(trip?.etaAt)?.takeIf { moving && trip?.underway == true }?.let { stringResource(R.string.customer_order_arriving_about, it) },
                 moving || delivered,
             ),
         )
         add(
             Triple(
-                if (finance == null) "Delivered" else "Delivered, then pay 70%",
+                if (finance == null) stringResource(R.string.customer_order_step_delivered) else stringResource(R.string.customer_order_step_delivered_pay, BALANCE_PERCENT),
                 listOfNotNull(
-                    clockOf(trip?.actualArrivalAt)?.takeIf { delivered }?.let { "Arrived $it" },
-                    finance?.balanceDue?.takeIf { it > 0 }?.let { "${rupees(it)} once you confirm it arrived" },
+                    clockOf(trip?.actualArrivalAt)?.takeIf { delivered }?.let { stringResource(R.string.customer_arrived_at, it) },
+                    finance?.balanceDue?.takeIf { it > 0 }?.let { stringResource(R.string.customer_order_balance_once_confirmed, rupees(it)) },
                 ).joinToString(" · ").ifBlank { null },
                 delivered,
             ),
@@ -358,3 +406,8 @@ private fun Timeline(order: OrdersApi.Order, finance: OrdersApi.Finance?, trip: 
         }
     }
 }
+
+/** A weighed load in the order's unit — tonnes to three places, kilograms whole. */
+private fun weightIn(kg: Double, unit: String?): String =
+    if (unit == "TON") java.math.BigDecimal(kg / 1000).setScale(3, java.math.RoundingMode.HALF_UP).stripTrailingZeros().toPlainString()
+    else kg.toLong().toString()

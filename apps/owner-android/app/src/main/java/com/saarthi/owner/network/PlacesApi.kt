@@ -4,6 +4,8 @@ import android.content.Context
 import android.location.Address
 import android.location.Geocoder
 import android.os.Build
+import com.saarthi.owner.R
+import com.saarthi.owner.ui.common.Words
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
@@ -143,7 +145,7 @@ class PlacesApi(private val context: Context, private val clientVersion: String)
         val request = Request.Builder().url(url).header("User-Agent", "VorldX-Saarthi-Owner/$clientVersion").build()
         val body = try {
             client.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) throw OwnerApi.Failure.Refused(response.code, "Address search is not answering. Try again.")
+                if (!response.isSuccessful) throw OwnerApi.Failure.Refused(response.code, Words.get(R.string.net_error_address_search_down))
                 response.body?.string().orEmpty()
             }
         } catch (error: IOException) {

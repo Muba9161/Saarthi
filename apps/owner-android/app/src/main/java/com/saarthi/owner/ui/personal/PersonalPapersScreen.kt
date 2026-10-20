@@ -19,8 +19,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.saarthi.owner.OwnerApp
+import com.saarthi.owner.R
 import com.saarthi.owner.network.VehiclesApi
 import com.saarthi.owner.ui.common.FailedCard
 import com.saarthi.owner.ui.common.Loadable
@@ -70,7 +72,7 @@ fun PersonalPapersScreen(app: OwnerApp) {
                 val vehicles = shown.value
                 val vehicle = vehicles.firstOrNull { it.id == picked } ?: vehicles.firstOrNull()
                 if (vehicle == null) {
-                    Text("No vehicle on this account yet. Add one from Saarthi on the web.", style = SType.body, color = c.muted)
+                    Text(stringResource(R.string.fleet_personal_no_vehicle), style = SType.body, color = c.muted)
                     return@Column
                 }
                 if (vehicles.size > 1) {

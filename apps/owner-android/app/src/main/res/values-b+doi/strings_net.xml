@@ -1,0 +1,359 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- OwnerApi: failures shown on screen. -->
+    <string name="net_error_offline">Saarthi कन्नै कनेक्शन नेईं. इंटरनेट दिक्खो ते फ्ही कोशश करो.</string>
+    <string name="net_error_signed_out">किरपा करियै फ्ही साइन इन करो.</string>
+    <string name="net_forgot_password_sent">जेकर उस ईमेल पर कोई खाता ऐ, तां असें उसगी पासवर्ड रीसेट करने दा लिंक भेजी दित्ता ऐ.</string>
+    <string name="net_error_empty_reply">Saarthi नै जवाब दित्ता पर किश बी वापस नेईं भेजेआ.</string>
+    <string name="net_error_no_user">Saarthi नै नेईं दस्सेआ जे कुन साइन इन होआ.</string>
+    <string name="net_error_empty_file">Saarthi नै खाली फ़ाइल भेजी.</string>
+    <string name="net_error_wrong_password">ईमेल जां पासवर्ड गलत ऐ.</string>
+    <string name="net_error_refused">Saarthi नै एह् मंग नामंज़ूर करी दित्ती.</string>
+
+    <!-- PapersApi: a 360° spin upload. -->
+    <string name="net_error_spin_frame_not_kept">Saarthi नै जवाब दित्ता पर कोई फ़्रेम नेईं रक्खेआ.</string>
+
+    <!-- PlacesApi: address search. -->
+    <string name="net_error_address_search_down">पता लब्भने आह्ली सेवा जवाब नेईं देआ करदी. फ्ही कोशश करो.</string>
+
+    <!-- DeviceLocation: why there is no fix. -->
+    <string name="net_location_off">तुंदे फ़ोन दी लोकेशन बंद ऐ. इसगी चालू करो, जां इसदी बजाए जगह लब्भो.</string>
+    <string name="net_location_not_found">तुंदी जगह नेईं लब्भी सकी. बारी दे नेड़ै जाइयै अजमाओ, जां इसदी बजाए जगह लब्भो.</string>
+
+    <!-- AccountType: the role under the account's name. -->
+    <string name="net_role_owner">मालक</string>
+    <string name="net_role_fleet_manager">फ़्लीट मैनेजर</string>
+    <string name="net_role_dispatcher">डिस्पैचर</string>
+    <string name="net_role_customer">ग्राहक</string>
+    <string name="net_role_seller">सेलर</string>
+    <string name="net_role_association_admin">एसोसिएशन एडमिन</string>
+    <string name="net_role_responder">मददगार</string>
+    <string name="net_role_travel_operator">ट्रैवल ऑपरेटर</string>
+
+    <!-- FuelApi: slip categories. -->
+    <string name="net_slip_toll">टोल</string>
+    <string name="net_slip_parking">पार्किंग</string>
+    <string name="net_slip_repair">मरम्मत</string>
+    <string name="net_slip_food">खाना</string>
+    <string name="net_slip_loading">लोडिंग / अनलोडिंग</string>
+    <string name="net_slip_challan">चालान</string>
+    <string name="net_slip_other">होर</string>
+
+    <!-- LoansApi: how a payment was made. -->
+    <string name="net_loan_method_auto_debit">ऑटो-डेबिट</string>
+    <string name="net_loan_method_bank_transfer">बैंक ट्रांसफ़र</string>
+    <string name="net_loan_method_cheque">चेक</string>
+    <string name="net_loan_method_cash">नकद</string>
+    <string name="net_loan_method_card">कार्ड</string>
+    <string name="net_loan_method_other">होर</string>
+
+    <!-- ServicingApi: kinds of work. -->
+    <string name="net_service_type_preventive">सर्विस</string>
+    <string name="net_service_type_repair">मरम्मत</string>
+    <string name="net_service_type_oil_change">तेल बदली</string>
+    <string name="net_service_type_tyre">टायर</string>
+    <string name="net_service_type_brake">ब्रेक</string>
+    <string name="net_service_type_inspection">जांच</string>
+    <string name="net_service_type_engine">इंजन</string>
+    <string name="net_service_type_electrical">बिजली दा कम्म</string>
+    <string name="net_service_type_bodywork">बॉडी दा कम्म</string>
+    <string name="net_service_type_other">होर</string>
+
+    <!-- TravelPackagesApi: kinds of trip and vehicles. -->
+    <string name="net_travel_kind_sightseeing">घुम्मना-फिरना</string>
+    <string name="net_travel_kind_intercity">इक शैह्र थमां दूए शैह्र</string>
+    <string name="net_travel_kind_tours">टूर</string>
+    <string name="net_travel_kind_airport">एयरपोर्ट</string>
+    <string name="net_travel_kind_pilgrimage">तीर्थ यात्रा</string>
+    <string name="net_travel_kind_custom">अपनी मरज़ी दी</string>
+    <string name="net_travel_kind_trip">ट्रिप</string>
+    <string name="net_travel_vehicle_taxi">टैक्सी</string>
+    <string name="net_travel_vehicle_car">कार</string>
+    <string name="net_travel_vehicle_van">वैन</string>
+    <string name="net_travel_vehicle_bus">बस</string>
+    <string name="net_travel_vehicle_tempo">टैम्पो ट्रैवलर</string>
+
+    <!-- TollApi: how a crossing was paid. -->
+    <string name="net_toll_mode_cash">नकद</string>
+    <string name="net_toll_mode_card">कार्ड</string>
+    <string name="net_toll_mode_exempt">छूट</string>
+    <string name="net_toll_mode_unknown">पता नेईं</string>
+
+    <!-- SosApi: the kind of trouble. -->
+    <string name="net_sos_type_medical">मेडिकल</string>
+    <string name="net_sos_type_accident">हादसा</string>
+    <string name="net_sos_type_breakdown">गड्डी खराब</string>
+    <string name="net_sos_type_tyre">टायर</string>
+    <string name="net_sos_type_fuel">तेल</string>
+    <string name="net_sos_type_security">सुरक्षा</string>
+    <string name="net_sos_type_other">होर</string>
+
+    <!-- VehiclesApi: why a vehicle is not free. -->
+    <string name="net_vehicle_busy_service">सर्विस च</string>
+    <string name="net_vehicle_busy_suspended">सस्पेंड</string>
+    <string name="net_vehicle_busy_on_trip">ट्रिप पर</string>
+    <string name="net_vehicle_busy">बिज़ी</string>
+
+    <!-- RequirementsApi: units, as amounts ("20 t") and as one ("per tonne"). -->
+    <string name="net_unit_ton">t</string>
+    <string name="net_unit_kg">kg</string>
+    <string name="net_unit_bags">बोरियां</string>
+    <string name="net_unit_cubic_meter">m³</string>
+    <string name="net_unit_pieces">पीस</string>
+    <string name="net_unit_litre">L</string>
+    <string name="net_unit_trips">ट्रिपां</string>
+    <string name="net_unit_one_ton">टन</string>
+    <string name="net_unit_one_kg">kg</string>
+    <string name="net_unit_one_bag">बोरी</string>
+    <string name="net_unit_one_cubic_meter">m³</string>
+    <string name="net_unit_one_piece">पीस</string>
+    <string name="net_unit_one_litre">लीटर</string>
+    <string name="net_unit_one_trip">ट्रिप</string>
+    <string name="net_unit_one_unit">यूनिट</string>
+
+    <!-- RequirementsApi and OrdersApi: what a job or an order is, in a line. -->
+    <string name="net_quantity_unit">%1$s %2$s</string>
+    <string name="net_quantity_goods">%1$s %2$s</string>
+    <string name="net_truck_size_goods">%1$s t ट्रक · %2$s</string>
+    <string name="net_people_count">%1$d लोक</string>
+
+    <!-- Push: notification channels. -->
+    <string name="net_push_channel_urgent">जरूरी</string>
+    <string name="net_push_channel_urgent_about">SOS, गड्डी कोल इंतज़ार करदे ड्राइवर, ते होर हर ओह् गल्ल जेह्ड़ी रुकी नेईं सकदी</string>
+    <string name="net_push_channel_updates">अपडेट</string>
+    <string name="net_push_channel_updates_about">बुकिंग, बोलियां, ऑर्डर ते कागज़</string>
+
+    <!-- DrivingService: the notification while a trip is recorded. -->
+    <string name="net_driving_title">ड्राइविंग</string>
+    <string name="net_driving_title_plate">%1$s चला करदे ओ</string>
+    <string name="net_driving_text">Saarthi इस ट्रिप दा रस्ता दर्ज करा करदा ऐ.</string>
+    <string name="net_driving_stop">शेयर करना बंद करो</string>
+    <string name="net_driving_channel">ड्राइविंग</string>
+    <string name="net_driving_channel_about">जिसलै Saarthi तुंदी चलाई जा करदी ट्रिप दर्ज करदा ऐ, उसलै दिसदा ऐ.</string>
+
+    <!-- Trips: list and filters. -->
+    <string name="net_trips_trips">ट्रिपां</string>
+    <string name="net_trips_fleet">फ़्लीट</string>
+    <string name="net_trips_new_trip">नमीं ट्रिप</string>
+    <string name="net_trips_search_placeholder">ट्रिप नंबर जां जगह</string>
+    <string name="net_trips_filter_running">चला करदियां</string>
+    <string name="net_trips_filter_completed">पूरियां</string>
+    <string name="net_trips_filter_cancelled">रद्द</string>
+    <string name="net_trips_filter_all">सब</string>
+    <string name="net_trips_no_match">\"%1$s\" कन्नै कोई ट्रिप मेल नेईं खंदी.</string>
+    <string name="net_trips_none_running">इस बेलै कोई ट्रिप नेईं चला करदी.</string>
+    <string name="net_trips_none_yet">अजें इत्थै कोई ट्रिप नेईं.</string>
+    <string name="net_trips_show_more">होर दस्सो</string>
+
+    <!-- Trips: a vehicle's trips. -->
+    <plurals name="net_trips_count">
+        <item quantity="one">%d ट्रिप</item>
+        <item quantity="other">%d ट्रिपां</item>
+    </plurals>
+    <string name="net_trips_vehicle_empty">अजें कोई ट्रिप नेईं. इस गड्डी दी हर ट्रिप इत्थै दिसग, मैप पर उसदे रस्ते कन्नै.</string>
+    <string name="net_trips_older_failed">पुरानियां ट्रिपां लोड नेईं होई सकियां. %1$s</string>
+    <string name="net_trips_show_older">पुरानियां ट्रिपां दस्सो</string>
+    <string name="net_trips_loading">लोड होआ करदा ऐ…</string>
+
+    <!-- Trips: rows and status words. -->
+    <string name="net_trips_status_draft">ड्राफ़्ट</string>
+    <string name="net_trips_status_assigned">सौंपी गेई</string>
+    <string name="net_trips_status_loading">लोडिंग</string>
+    <string name="net_trips_status_on_the_way">रस्ते च</string>
+    <string name="net_trips_status_delayed">लेट</string>
+    <string name="net_trips_status_paused">रुकी दी</string>
+    <string name="net_trips_status_emergency">एमरजेंसी</string>
+    <string name="net_trips_status_arrived">पुज्जी गेई</string>
+    <string name="net_trips_status_unloading">अनलोडिंग</string>
+    <string name="net_trips_status_completed">पूरी होई</string>
+    <string name="net_trips_status_cancelled">रद्द</string>
+    <string name="net_trips_open_trip">ट्रिप %1$s खोह्लो</string>
+    <string name="net_trips_open_trips">ट्रिपां खोह्लो</string>
+    <string name="net_trips_every_trip_path">हर ट्रिप, मैप पर उसदे रस्ते कन्नै</string>
+
+    <!-- Trips: a new trip. -->
+    <string name="net_trips_create">ट्रिप बनाओ</string>
+    <string name="net_trips_creating">बनाई जा करदी ऐ…</string>
+    <string name="net_trips_vehicle">गड्डी</string>
+    <string name="net_trips_driver">ड्राइवर</string>
+    <string name="net_trips_no_free_vehicle">इस बेलै हर गड्डी ट्रिप पर ऐ जां वर्कशॉप च ऐ.</string>
+    <string name="net_trips_driver_this_vehicle">%1$s (इस गड्डी दा)</string>
+    <string name="net_trips_no_free_driver_assign">कोई वेरिफ़ाई होए दा ड्राइवर खाली नेईं. पैह्लें गड्डी पर इक ड्राइवर लाओ.</string>
+    <string name="net_trips_pick_up_from">पिकअप कुत्थुआं</string>
+    <string name="net_trips_drop_at">ड्रॉप कुत्थें</string>
+    <string name="net_trips_leaves">निकलने दा टाइम</string>
+    <string name="net_trips_arrives_by">पुज्जने दा टाइम</string>
+    <string name="net_trips_arrival_before_leaving">पुज्जने दा टाइम निकलने दे बाद दा होना चाहिदा.</string>
+    <string name="net_trips_rate_field">ट्रिप दा रेट, ₹ (जरूरी नेईं)</string>
+    <string name="net_trips_rate_not_number">रेट अंकें च लिखो.</string>
+    <string name="net_trips_notes_field">ड्राइवर आस्तै नोट (जरूरी नेईं)</string>
+    <string name="net_trips_optional">%1$s (जरूरी नेईं)</string>
+    <string name="net_trips_clear">साफ़ करो</string>
+    <string name="net_trips_choose">चुनो</string>
+
+    <!-- Trips: moving a trip on. -->
+    <string name="net_trips_step_assigned">प्लान पक्का करो</string>
+    <string name="net_trips_step_loading">लोडिंग शुरू करो</string>
+    <string name="net_trips_step_started">ट्रिप शुरू करो</string>
+    <string name="net_trips_step_in_transit">रस्ते च मार्क करो</string>
+    <string name="net_trips_step_delayed">लेट मार्क करो</string>
+    <string name="net_trips_step_suspended">ट्रिप रोको</string>
+    <string name="net_trips_step_arrived">पुज्जी गेई मार्क करो</string>
+    <string name="net_trips_step_unloading">अनलोडिंग शुरू करो</string>
+    <string name="net_trips_step_completed">ट्रिप पूरी करो</string>
+    <string name="net_trips_done_assigned">प्लान पक्का होई गेआ.</string>
+    <string name="net_trips_done_loading">लोडिंग शुरू होई गेई.</string>
+    <string name="net_trips_done_started">ट्रिप शुरू होई गेई.</string>
+    <string name="net_trips_done_in_transit">रस्ते च मार्क होई गेई.</string>
+    <string name="net_trips_done_delayed">लेट मार्क होई गेई.</string>
+    <string name="net_trips_done_suspended">ट्रिप रोकी दित्ती.</string>
+    <string name="net_trips_done_arrived">पुज्जी गेई मार्क होई गेई.</string>
+    <string name="net_trips_done_unloading">अनलोडिंग शुरू होई गेई.</string>
+    <string name="net_trips_done_completed">ट्रिप पूरी होई गेई.</string>
+    <string name="net_trips_done_cancelled">ट्रिप रद्द होई गेई.</string>
+    <string name="net_trips_done_other">ट्रिप अपडेट होई गेई.</string>
+    <string name="net_trips_move_on">इस ट्रिप गी अग्गें बधाओ</string>
+    <string name="net_trips_cancel_confirm">एह् ट्रिप रद्द करनी ऐ? एह् वापस नेईं होई सकदा.</string>
+    <string name="net_trips_keep">रैह्न देओ</string>
+    <string name="net_trips_cancel">ट्रिप रद्द करो</string>
+    <string name="net_trips_change_crew">गड्डी जां ड्राइवर बदलो</string>
+    <string name="net_trips_no_free_driver">इस बेलै कोई वेरिफ़ाई होए दा ड्राइवर खाली नेईं.</string>
+    <string name="net_trips_save">सेव करो</string>
+    <string name="net_trips_saving">सेव होआ करदा ऐ…</string>
+
+    <!-- Trips: one trip's screen. -->
+    <string name="net_trips_crew_updated">गड्डी ते ड्राइवर अपडेट होई गे.</string>
+    <string name="net_trips_trip">ट्रिप</string>
+    <string name="net_trips_trip_reference">ट्रिप %1$s</string>
+    <string name="net_trips_late">लेट</string>
+    <string name="net_trips_service_run">सर्विस आस्तै ट्रिप</string>
+    <string name="net_trips_added_by_driver">ड्राइवर नै जोड़ी</string>
+    <string name="net_trips_showing_last_update">आखरी अपडेट दस्सेआ जा करदा ऐ. %1$s</string>
+    <string name="net_trips_still_to_go">अजें बाकी</string>
+    <string name="net_trips_planned_route">प्लान कीता दा रूट</string>
+    <string name="net_trips_covered">तै कीता</string>
+    <string name="net_trips_to_place">%1$s आह्ली बक्खी</string>
+    <string name="net_trips_path_loading">चलेआ गेदा रस्ता लोड होआ करदा ऐ…</string>
+    <string name="net_trips_path_gps">गड्डी दे GPS थमां चलेआ गेदा रस्ता.</string>
+    <string name="net_trips_path_gps_recorded">गड्डी दे GPS थमां चलेआ गेदा रस्ता, %1$s दर्ज.</string>
+    <string name="net_trips_path_after_start">ट्रिप शुरू होने पर चलेआ गेदा रस्ता इत्थै दिसग.</string>
+    <string name="net_trips_path_ends_only">इस ट्रिप दा कोई रूट जां GPS रस्ता सेव नेईं. सिर्फ शुरू ते आखर मार्क कीते गेदे न.</string>
+    <string name="net_trips_path_planned_only">इस ट्रिप दा कोई GPS रस्ता सेव नेईं, इस आस्तै प्लान कीता दा रूट दस्सेआ गेदा ऐ.</string>
+    <string name="net_trips_path_unavailable">%1$s इसदी बजाए प्लान कीता दा रूट दस्सेआ गेदा ऐ.</string>
+    <string name="net_trips_path_failed">चलेआ गेदा रस्ता लोड नेईं होई सकेआ. %1$s</string>
+    <string name="net_trips_retry">फ्ही कोशश करो</string>
+    <string name="net_trips_left_at">%1$s निकली</string>
+    <string name="net_trips_arrived_at">%1$s पुज्जी</string>
+    <string name="net_trips_km_to_go">%1$s बाकी</string>
+    <string name="net_trips_journey">सफ़र</string>
+    <string name="net_trips_notes">नोट</string>
+
+    <!-- Trips: the journey's figures. -->
+    <string name="net_trips_fact_driven">चलाई</string>
+    <string name="net_trips_of_planned">प्लान कीते दे %1$s चों</string>
+    <string name="net_trips_fact_distance">दूरी</string>
+    <string name="net_trips_planned">प्लान</string>
+    <string name="net_trips_fact_on_road">सड़का पर</string>
+    <string name="net_trips_span_planned">%1$s प्लान</string>
+    <string name="net_trips_fact_run_time">चलने दा टाइम</string>
+    <string name="net_trips_fact_started">शुरू होई</string>
+    <string name="net_trips_fact_starts">शुरू होग</string>
+    <string name="net_trips_fact_arrived">पुज्जी</string>
+    <string name="net_trips_fact_arriving">पुज्जग</string>
+    <string name="net_trips_estimated">अंदाज़न</string>
+    <string name="net_trips_fact_arrival">पुज्जना</string>
+    <string name="net_trips_fact_running_late">लेट चला करदी ऐ</string>
+    <string name="net_trips_fact_progress">तरक्की</string>
+    <string name="net_trips_percent">%1$d%%</string>
+    <string name="net_trips_of_planned_distance">प्लान कीती दी दूरी दा</string>
+
+    <!-- Trips: money, driving and crew cards. -->
+    <string name="net_trips_money">पैसे</string>
+    <string name="net_trips_trip_value">ट्रिप दी कीमत</string>
+    <string name="net_trips_not_set">तै नेईं</string>
+    <string name="net_trips_expenses">खर्चे</string>
+    <string name="net_trips_none_recorded">कोई दर्ज नेईं</string>
+    <string name="net_trips_beyond_fuel">तेल दे अलावा</string>
+    <string name="net_trips_net">बचत</string>
+    <string name="net_trips_driving">ड्राइविंग</string>
+    <string name="net_trips_top_speed">सब्भनें शा तेज़ रफ़्तार</string>
+    <string name="net_trips_speed_kmh">%1$d km/h</string>
+    <string name="net_trips_average_speed">औसत रफ़्तार</string>
+    <string name="net_trips_while_moving">चलदे बेलै</string>
+    <string name="net_trips_harsh_braking">ज़ोरै दी ब्रेक</string>
+    <string name="net_trips_harsh_starts">झटके कन्नै स्टार्ट</string>
+    <string name="net_trips_odometer">ओडोमीटर</string>
+    <string name="net_trips_odometer_added">इस ट्रिप च +%1$s</string>
+    <string name="net_trips_on_this_trip">इस ट्रिप पर</string>
+    <string name="net_trips_order">ऑर्डर</string>
+    <string name="net_trips_score">100 चों %1$d स्कोर</string>
+    <string name="net_trips_call">%1$s गी फ़ोन करो</string>
+    <string name="net_trips_capacity_tons">%1$s टन</string>
+
+    <!-- Trips: vehicle kinds. -->
+    <string name="net_trips_truck_open_body">ओपन बॉडी</string>
+    <string name="net_trips_truck_closed_container">बंद कंटेनर</string>
+    <string name="net_trips_truck_tipper">टिप्पर</string>
+    <string name="net_trips_truck_trailer">ट्रेलर</string>
+    <string name="net_trips_truck_tanker">टैंकर</string>
+    <string name="net_trips_truck_flatbed">फ़्लैटबेड</string>
+    <string name="net_trips_truck_refrigerated">रेफ़्रिजरेटेड</string>
+    <string name="net_trips_truck_mini_truck">मिनी ट्रक</string>
+    <string name="net_trips_truck_multi_axle">मल्टी एक्सल</string>
+
+    <!-- Trips: stops. -->
+    <string name="net_trips_stops">स्टॉप</string>
+    <string name="net_trips_stop_arrived">%1$s पुज्जी</string>
+    <string name="net_trips_stop_reached_gps">GPS मताबक %1$s पुज्जी</string>
+    <string name="net_trips_stop_planned">%1$s प्लान</string>
+    <string name="net_trips_stop_left">%1$s निकली</string>
+    <string name="net_trips_stop_type_origin">शुरू दी जगह</string>
+    <string name="net_trips_stop_type_destination">मंज़िल</string>
+    <string name="net_trips_stop_type_waypoint">रस्ते दा पड़ाऽ</string>
+    <string name="net_trips_stop_type_rest">आराम</string>
+    <string name="net_trips_stop_type_fuel">तेल</string>
+    <string name="net_trips_stop_type_checkpoint">चेकपोस्ट</string>
+
+    <!-- Trips: the trip's own record. -->
+    <string name="net_trips_timeline">टाइमलाइन</string>
+    <string name="net_trips_events_capped">%2$d चों ताज़ा %1$d घटनां दस्सियां जा करदियां न.</string>
+    <string name="net_trips_event_created">बनाई गेई</string>
+    <string name="net_trips_event_assigned">सौंपी गेई</string>
+    <string name="net_trips_event_status_changed">स्थिति बदली</string>
+    <string name="net_trips_event_loading_started">लोडिंग शुरू होई</string>
+    <string name="net_trips_event_departed">निकली</string>
+    <string name="net_trips_event_location_update">लोकेशन अपडेट</string>
+    <string name="net_trips_event_stop_started">स्टॉप शुरू होआ</string>
+    <string name="net_trips_event_stop_ended">स्टॉप खत्म होआ</string>
+    <string name="net_trips_event_route_deviation">रूट थमां हटी</string>
+    <string name="net_trips_event_speed_violation">रफ़्तार हद्द शा मती</string>
+    <string name="net_trips_event_harsh_braking">ज़ोरै दी ब्रेक</string>
+    <string name="net_trips_event_harsh_acceleration">झटके कन्नै रफ़्तार</string>
+    <string name="net_trips_event_delay_detected">देरी दा पता लग्गा</string>
+    <string name="net_trips_event_arrived">पुज्जी गेई</string>
+    <string name="net_trips_event_unloading_started">अनलोडिंग शुरू होई</string>
+    <string name="net_trips_event_completed">पूरी होई</string>
+    <string name="net_trips_event_cancelled">रद्द होई</string>
+    <string name="net_trips_event_emergency">एमरजेंसी</string>
+    <string name="net_trips_event_note">नोट</string>
+    <string name="net_trips_event_navigation_handoff">नेविगेशन दूए ऐप गी दित्ता</string>
+    <string name="net_trips_event_alternate_route">दूआ रूट</string>
+    <string name="net_trips_event_stop_reached">स्टॉप पर पुज्जी</string>
+    <string name="net_trips_event_stop_left">स्टॉप थमां निकली</string>
+
+    <!-- A servicing job's standing, and a vehicle's status, in a word. -->
+    <string name="net_servicing_status_scheduled">बुक</string>
+    <string name="net_servicing_status_in_progress">वर्कशॉप च</string>
+    <string name="net_servicing_status_completed">होई गेआ</string>
+    <string name="net_servicing_status_cancelled">रद्द</string>
+    <string name="net_vehicle_status_available">खाली</string>
+    <string name="net_vehicle_status_assigned">सौंपी गेई</string>
+    <string name="net_vehicle_status_on_trip">ट्रिप पर</string>
+    <string name="net_vehicle_status_loading">लोडिंग</string>
+    <string name="net_vehicle_status_unloading">अनलोडिंग</string>
+    <string name="net_vehicle_status_idle">खड़ोती</string>
+    <string name="net_vehicle_status_offline">ऑफ़लाइन</string>
+    <string name="net_vehicle_status_maintenance">सर्विस च</string>
+    <string name="net_vehicle_status_emergency">एमरजेंसी</string>
+    <string name="net_vehicle_status_suspended">सस्पेंड</string>
+</resources>

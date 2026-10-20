@@ -1,7 +1,9 @@
 package com.saarthi.owner.ui.seller
 
 import com.saarthi.owner.OwnerApp
+import com.saarthi.owner.R
 import com.saarthi.owner.data.SessionStore
+import com.saarthi.owner.ui.common.Words
 import com.saarthi.owner.ui.design.Lucide
 import com.saarthi.owner.ui.shell.TabHeader
 import com.saarthi.owner.ui.shell.TabSpec
@@ -10,30 +12,30 @@ import com.saarthi.owner.ui.shell.TabSpec
 fun sellerTabs(app: OwnerApp, account: SessionStore.Account): List<TabSpec> = listOf(
     TabSpec(
         key = "home",
-        label = "Home",
+        label = Words.get(R.string.market_seller_tab_home),
         icon = Lucide.home,
-        header = TabHeader(account.organizationName, "Hi, ${account.firstName}"),
+        header = TabHeader(account.organizationName, Words.get(R.string.market_seller_tab_greeting, account.firstName)),
         content = { actions -> SellerHomeScreen(app, actions) },
     ),
     TabSpec(
         key = "stock",
-        label = "Stock",
+        label = Words.get(R.string.market_seller_stock),
         icon = Lucide.box,
-        header = TabHeader("What fleets see", "Stock & prices"),
-        content = { SellerStockScreen(app) },
+        header = TabHeader(Words.get(R.string.market_seller_what_fleets_see), Words.get(R.string.market_seller_tab_stock_title)),
+        content = { SellerStockScreen(app, account) },
     ),
     TabSpec(
         key = "loading",
-        label = "Loading",
+        label = Words.get(R.string.market_seller_tab_loading),
         icon = Lucide.truck,
-        header = TabHeader("Fleets collecting", "Loading"),
+        header = TabHeader(Words.get(R.string.market_seller_tab_loading_eyebrow), Words.get(R.string.market_seller_tab_loading)),
         content = { SellerLoadingScreen(app) },
     ),
     TabSpec(
         key = "money",
-        label = "Money",
+        label = Words.get(R.string.market_seller_tab_money),
         icon = Lucide.receipt,
-        header = TabHeader("Paid by fleets", "Money"),
+        header = TabHeader(Words.get(R.string.market_seller_tab_money_eyebrow), Words.get(R.string.market_seller_tab_money)),
         content = { SellerMoneyScreen(app) },
     ),
 )

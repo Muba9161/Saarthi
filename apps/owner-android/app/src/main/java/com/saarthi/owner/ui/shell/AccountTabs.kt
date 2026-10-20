@@ -2,10 +2,12 @@ package com.saarthi.owner.ui.shell
 
 import androidx.compose.runtime.Composable
 import com.saarthi.owner.OwnerApp
+import com.saarthi.owner.R
 import com.saarthi.owner.data.AccountType
 import com.saarthi.owner.data.SessionStore
 import com.saarthi.owner.ui.account.AccountScreen
 import com.saarthi.owner.ui.association.associationTabs
+import com.saarthi.owner.ui.common.Words
 import com.saarthi.owner.ui.customer.customerTabs
 import com.saarthi.owner.ui.design.Lucide
 import com.saarthi.owner.ui.fleet.fleetTabs
@@ -33,8 +35,8 @@ fun tabsFor(app: OwnerApp, account: SessionStore.Account): List<TabSpec> = when 
 /** The last tab of every account: who is signed in, how the app looks, the way out. */
 fun accountTab(app: OwnerApp, account: SessionStore.Account, onSignOut: () -> Unit) = TabSpec(
     key = "account",
-    label = "Account",
+    label = Words.get(R.string.people_account),
     icon = Lucide.user,
-    header = TabHeader("Your account", "Account"),
-    content = { AccountScreen(account = account, preferences = app.preferences, api = app.api, onSignOut = onSignOut) },
+    header = TabHeader(Words.get(R.string.people_your_account), Words.get(R.string.people_account)),
+    content = { AccountScreen(account = account, preferences = app.preferences, api = app.api, places = app.places, onSignOut = onSignOut) },
 )

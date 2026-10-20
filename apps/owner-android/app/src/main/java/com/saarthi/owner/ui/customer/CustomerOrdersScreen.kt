@@ -13,10 +13,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.saarthi.owner.OwnerApp
+import com.saarthi.owner.R
 import com.saarthi.owner.ui.common.FailedCard
 import com.saarthi.owner.ui.common.Loadable
 import com.saarthi.owner.ui.common.SkeletonCards
@@ -53,7 +55,10 @@ fun CustomerOrdersScreen(app: OwnerApp) {
             ) {
                 item(key = "switch") {
                     SegmentedControl(
-                        options = listOf("Requests · ${book.requests.size}", "Orders · ${book.orders.size + book.bookings.size}"),
+                        options = listOf(
+                            stringResource(R.string.customer_orders_requests_tab, book.requests.size),
+                            stringResource(R.string.customer_orders_orders_tab, book.orders.size + book.bookings.size),
+                        ),
                         selected = if (showOrders) 1 else 0,
                         onSelect = { showOrders = it == 1 },
                         modifier = Modifier.rise(),
@@ -62,15 +67,15 @@ fun CustomerOrdersScreen(app: OwnerApp) {
                 if (!showOrders) {
                     val (open, closed) = book.requests.partition { it in book.openRequests }
                     if (book.requests.isEmpty()) {
-                        item(key = "empty") { Text("You have not posted anything yet.", style = SType.small, color = c.muted, modifier = Modifier.padding(top = 20.dp)) }
+                        item(key = "empty") { Text(stringResource(R.string.customer_orders_no_requests), style = SType.small, color = c.muted, modifier = Modifier.padding(top = 20.dp)) }
                     }
-                    if (open.isNotEmpty()) item(key = "open") { GroupLabel("Collecting bids") }
+                    if (open.isNotEmpty()) item(key = "open") { GroupLabel(stringResource(R.string.customer_orders_collecting_bids)) }
                     items(open, key = { it.id }) { request ->
                         RequestRow(request) {
                             navigator.push("bids-${request.id}") { CustomerBidsScreen(app, request) { model.refresh(silent = true) } }
                         }
                     }
-                    if (closed.isNotEmpty()) item(key = "closed") { GroupLabel("Earlier") }
+                    if (closed.isNotEmpty()) item(key = "closed") { GroupLabel(stringResource(R.string.customer_orders_earlier)) }
                     items(closed, key = { it.id }) { request ->
                         RequestRow(request) {
                             navigator.push("bids-${request.id}") { CustomerBidsScreen(app, request) { model.refresh(silent = true) } }
@@ -79,24 +84,24 @@ fun CustomerOrdersScreen(app: OwnerApp) {
                 } else {
                     if (book.orders.isEmpty() && book.bookings.isEmpty()) {
                         item(key = "empty-orders") {
-                            Text("When you choose a bid, the order shows up here.", style = SType.small, color = c.muted, modifier = Modifier.padding(top = 20.dp))
+                            Text(stringResource(R.string.customer_orders_no_orders), style = SType.small, color = c.muted, modifier = Modifier.padding(top = 20.dp))
                         }
                     }
                     // A cab or tour still to happen comes first; finished ones wait below the goods.
                     val (upcoming, pastTrips) = book.bookings.partition { it.open }
-                    if (upcoming.isNotEmpty()) item(key = "trips-open") { GroupLabel("Cabs & tours") }
+                    if (upcoming.isNotEmpty()) item(key = "trips-open") { GroupLabel(stringResource(R.string.customer_orders_cabs_tours)) }
                     items(upcoming, key = { it.id }) { booking ->
                         BookingRow(booking, look = customerBookingLook(booking.status)) {
                             navigator.push("booking-${booking.id}") { CustomerBookingScreen(app, booking) { model.refresh(silent = true) } }
                         }
                     }
-                    if (book.bookings.isNotEmpty() && book.orders.isNotEmpty()) item(key = "goods") { GroupLabel("Goods") }
+                    if (book.bookings.isNotEmpty() && book.orders.isNotEmpty()) item(key = "goods") { GroupLabel(stringResource(R.string.customer_orders_goods)) }
                     items(book.orders, key = { it.id }) { order ->
                         CustomerOrderRow(order) {
                             navigator.push("order-${order.id}") { CustomerOrderScreen(app, order) { model.refresh(silent = true) } }
                         }
                     }
-                    if (pastTrips.isNotEmpty()) item(key = "trips-past") { GroupLabel(if (upcoming.isEmpty()) "Cabs & tours" else "Earlier trips") }
+                    if (pastTrips.isNotEmpty()) item(key = "trips-past") { GroupLabel(stringResource(if (upcoming.isEmpty()) R.string.customer_orders_cabs_tours else R.string.customer_orders_earlier_trips)) }
                     items(pastTrips, key = { it.id }) { booking ->
                         BookingRow(booking, look = customerBookingLook(booking.status)) {
                             navigator.push("booking-${booking.id}") { CustomerBookingScreen(app, booking) { model.refresh(silent = true) } }

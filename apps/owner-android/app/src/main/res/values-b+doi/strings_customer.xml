@@ -1,0 +1,343 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Customer tabs -->
+    <string name="customer_tab_home">होम</string>
+    <string name="customer_tab_post">पोस्ट</string>
+    <string name="customer_tab_orders">ऑर्डर</string>
+    <string name="customer_tab_home_title">नमस्ते, %1$s</string>
+    <string name="customer_tab_post_eyebrow">अपनी लोड़ पोस्ट करो</string>
+    <string name="customer_tab_post_title">बोलियां लैओ</string>
+    <string name="customer_tab_orders_eyebrow">मंगां ते ऑर्डर</string>
+    <string name="customer_your_orders">तुंदे ऑर्डर</string>
+
+    <!-- Kinds of request: Home tiles and Post chips -->
+    <string name="customer_kind_material">माल</string>
+    <string name="customer_kind_freight">भाड़ा</string>
+    <string name="customer_kind_cab">कैब</string>
+    <string name="customer_kind_tour">टूर</string>
+    <string name="customer_post_material">माल पोस्ट करो</string>
+    <string name="customer_post_freight">भाड़ा पोस्ट करो</string>
+    <string name="customer_post_cab">कैब पोस्ट करो</string>
+    <string name="customer_post_tour">टूर पोस्ट करो</string>
+
+    <!-- Customer home -->
+    <string name="customer_home_eyebrow">इक्कै दरवाज़ा</string>
+    <string name="customer_home_title">तुसेंगी केह् पजाना ऐ?</string>
+    <string name="customer_home_lead">इक बारी पोस्ट करो. वेरिफ़ाई होई दियां फ़्लीटां माल जुटांदियां न ते पुज्जने तगर दा इक्कै रेट दिंदियां न.</string>
+    <string name="customer_home_book_ready_trip">तैयार ट्रिप बुक करो</string>
+    <string name="customer_book_a_trip">ट्रिप बुक करो</string>
+    <string name="customer_home_trips_line">टूर, एयरपोर्ट ते बाह्रले शैह्रें दियां ट्रिपां, रेट पैह्लें गै तै</string>
+    <string name="customer_home_all">सब %1$d</string>
+    <string name="customer_home_empty">अजें किश नेईं. जेह्ड़ा चाहिदा ओह् पोस्ट करो ते तुंदे नेड़ै दियां फ़्लीटां बोली लाङन.</string>
+
+    <!-- Request rows -->
+    <string name="customer_request_no_bids_taken">कोई बोली नेईं चुनी</string>
+    <string name="customer_request_awarded">दित्ता गेआ</string>
+    <string name="customer_request_done">होई गेआ</string>
+    <string name="customer_request_waiting">इंतज़ार च</string>
+    <string name="customer_from_price">%1$s थमां</string>
+    <plurals name="customer_bids">
+        <item quantity="one">%d बोली</item>
+        <item quantity="other">%d बोलियां</item>
+    </plurals>
+
+    <!-- Requests and orders list -->
+    <string name="customer_orders_requests_tab">मंगां · %1$d</string>
+    <string name="customer_orders_orders_tab">ऑर्डर · %1$d</string>
+    <string name="customer_orders_no_requests">तुसें अजें किश पोस्ट नेईं कीता.</string>
+    <string name="customer_orders_collecting_bids">बोलियां आवा करदियां न</string>
+    <string name="customer_orders_earlier">पैह्लें दे</string>
+    <string name="customer_orders_no_orders">जिसलै तुस कोई बोली चुनगे ओ, ऑर्डर इत्थै दिसग.</string>
+    <string name="customer_orders_cabs_tours">कैब ते टूर</string>
+    <string name="customer_orders_goods">माल</string>
+    <string name="customer_orders_earlier_trips">पैह्लें दियां ट्रिपां</string>
+
+    <!-- Bids on a request -->
+    <string name="customer_bid_has_job">कम्म %1$s गी मिलेआ ऐ.</string>
+    <string name="customer_bids_withdrawn">वापस लेई लेआ. बोली लाने आह्ली हर फ़्लीट गी कारण दस्सी दित्ता गेआ ऐ.</string>
+    <string name="customer_bids_hours_left">%1$d घैंटे बाकी</string>
+    <string name="customer_bids_material_note">हर रेट च माल ते डिलीवरी दोऐ शामल न. पक्का करने आस्तै %1$d%% देओ, डिलीवरी दे बाद %2$d%%.</string>
+    <string name="customer_bids_job_note">हर रेट उस फ़्लीट दा पूरे कम्म दा रेट ऐ. पक्का करने आस्तै इक चुनो.</string>
+    <string name="customer_bids_none_yet">अजें कोई बोली नेईं. साइट दे नेड़ै दियां फ़्लीटां दिक्खा करदियां न — बोली औंदे गै तुसेंगी अलर्ट मिलग.</string>
+    <string name="customer_bids_withdraw_request">एह् मंग वापस लैओ</string>
+    <string name="customer_bids_choose_for">%1$s गी %2$s च चुनना ऐ?</string>
+    <string name="customer_bids_choose_material_note">पक्का करने आस्तै तुस %1$d%% (%2$s) देगे ओ ते बाकी डिलीवरी दे बाद. इस मंग पर बाकी सारियां बोलियां नामंज़ूर होई जाङन.</string>
+    <string name="customer_bids_choose_note">इस मंग पर बाकी सारियां बोलियां नामंज़ूर होई जाङन ते उनें फ़्लीटें गी दस्सी दित्ता जाग.</string>
+    <string name="customer_bids_note_for">%1$s आस्तै नोट (जरूरी नेईं)</string>
+    <string name="customer_bids_choose">%1$s चुनो</string>
+    <string name="customer_bids_not_yet">हून नेईं</string>
+    <string name="customer_bids_withdraw_title">एह् मंग वापस लैनी ऐ?</string>
+    <string name="customer_bids_withdraw_note">इस पर हर बोली नामंज़ूर होई जाग ते फ़्लीटें गी कारण दस्सेआ जाग.</string>
+    <string name="customer_bids_withdraw_reason">तुस एह् कीं वापस लेआ करदे ओ?</string>
+    <string name="customer_bids_withdraw">वापस लैओ</string>
+    <string name="customer_bid_rating">★ %1$s · %2$d रेटिंग</string>
+    <string name="customer_bid_chosen">चुनी गेई</string>
+    <string name="customer_bid_lowest">सब्भनें शा घट्ट</string>
+    <string name="customer_bid_delivered_at">%1$s डिलीवरी</string>
+    <string name="customer_bid_arrives_at">%1$s पुज्जग</string>
+    <string name="customer_bid_choose_and_pay">%1$s चुनो · हून %2$s देओ</string>
+    <string name="customer_bid_confirming">पक्का होआ करदा ऐ…</string>
+
+    <!-- Booking states, as the customer reads them -->
+    <string name="customer_status_pay_to_book">बुक करने आस्तै पेमेंट करो</string>
+    <string name="customer_status_being_confirmed">पक्का होआ करदा ऐ</string>
+    <string name="customer_status_confirmed">पक्का</string>
+    <string name="customer_status_on_the_way">रस्ते च</string>
+    <string name="customer_status_completed">पूरा होई गेआ</string>
+    <string name="customer_status_declined">नामंज़ूर</string>
+    <string name="customer_status_cancelled">रद्द</string>
+
+    <!-- Cab or tour booking -->
+    <string name="customer_booking_paid">बुकिंग दी पेमेंट होई गेई</string>
+    <string name="customer_booking_cancelled_told">रद्द होई गेई. ऑपरेटर गी दस्सी दित्ता गेआ ऐ.</string>
+    <string name="customer_booking_eyebrow">बुकिंग %1$s</string>
+    <string name="customer_pay_amount">%1$s देओ</string>
+    <string name="customer_pay">पेमेंट करो</string>
+    <string name="customer_opening_payment">पेमेंट खुल्ला करदा ऐ…</string>
+    <string name="customer_payments_by_cashfree">पेमेंट Cashfree राहें सुरक्खत तरीके कन्नै होंदी ऐ.</string>
+    <string name="customer_booking_declined_reason">ऑपरेटर एह् नेईं लेई सकेआ: %1$s</string>
+    <string name="customer_booking_rate_title">इस ट्रिप गी रेटिंग देओ</string>
+    <string name="customer_booking_rate_prompt">गड्डी ते ड्राइवर कनेहे हे? (जरूरी नेईं)</string>
+    <string name="customer_booking_rated">तुसें इस ट्रिप गी %1$d/5 रेटिंग दित्ती.</string>
+    <string name="customer_the_operator">ऑपरेटर</string>
+    <string name="customer_booking_call_about">ट्रिप बारै उनेंगी फ़ोन करो</string>
+    <string name="customer_booking_number_after_confirm">पक्का करने दे बाद उंदा नंबर दिसग</string>
+    <string name="customer_call">%1$s गी फ़ोन करो</string>
+    <string name="customer_payment">पेमेंट</string>
+    <string name="customer_booking_pay_to_hold">पेमेंट करो तां जे ऑपरेटर तुंदे आस्तै गड्डी रक्खी लै</string>
+    <string name="customer_paid">दित्ता गेआ</string>
+    <string name="customer_refunded">पैसे वापस</string>
+    <string name="customer_not_paid">नेईं दित्ता</string>
+    <string name="customer_booking_payment">बुकिंग पेमेंट</string>
+    <string name="customer_booking_cancel_link">एह् बुकिंग रद्द करो</string>
+    <string name="customer_booking_cancel_title">एह् बुकिंग रद्द करनी ऐ?</string>
+    <string name="customer_booking_cancel_note_paid">ऑपरेटर गी कारण दस्सेआ जंदा ऐ. पैसे वापसी रद्द करने दियें शर्तें मताबक होग.</string>
+    <string name="customer_booking_cancel_note">ऑपरेटर गी कारण दस्सेआ जंदा ऐ.</string>
+    <string name="customer_booking_cancel_reason">तुस कीं रद्द करा करदे ओ?</string>
+    <string name="customer_booking_cancel">बुकिंग रद्द करो</string>
+
+    <!-- One order -->
+    <string name="customer_order_confirmed_paid">ऑर्डर पक्का होई गेआ</string>
+    <string name="customer_order_balance_paid">बाकी पेमेंट होई गेई</string>
+    <string name="customer_order_eyebrow">ऑर्डर %1$s</string>
+    <string name="customer_order_confirm_pay">पक्का करो ते पेमेंट करो</string>
+    <string name="customer_your_order">तुंदा ऑर्डर</string>
+    <string name="customer_order_confirm_arrived">पक्का करो जे माल पुज्जी गेआ</string>
+    <string name="customer_order_cancelled">एह् ऑर्डर रद्द होई गेआ हा.</string>
+    <string name="customer_order_cancelled_reason">एह् ऑर्डर रद्द होई गेआ हा. %1$s</string>
+    <string name="customer_order_what_arrived">केह् पुज्जेआ?</string>
+    <string name="customer_order_balance_note">बाकी रकम उस माल दे हिसाबें लगदी ऐ जेह्ड़ा सच्चें गै तुंदी साइट पर पुज्जेआ.</string>
+    <string name="customer_order_quantity_delivered">पुज्जी दी मात्रा (%1$s)</string>
+    <string name="customer_order_rate_title">डिलीवरी गी रेटिंग देओ</string>
+    <string name="customer_order_rate_prompt">डिलीवरी कनेही रेही? (जरूरी नेईं)</string>
+    <string name="customer_order_rated">तुसें इस डिलीवरी गी %1$d/5 रेटिंग दित्ती.</string>
+    <string name="customer_order_receipt_advance">%1$d%% एडवांस</string>
+    <string name="customer_order_balance_after_delivery">डिलीवरी दे बाद बाकी</string>
+    <string name="customer_order_pay_now_advance">हून देओ · %1$d%% एडवांस</string>
+    <string name="customer_order_of_total">%1$s चों · %2$s</string>
+    <string name="customer_order_advance_now">हून %1$d%%</string>
+    <string name="customer_order_balance_now">बाकी हून</string>
+    <string name="customer_order_after_delivery">डिलीवरी दे बाद %1$s</string>
+    <string name="customer_order_no_fleet">अजें कुसै फ़्लीट नै एह् नेईं लेआ</string>
+    <string name="customer_order_step_confirmed_paid">पक्का · %1$d%% दित्ता</string>
+    <string name="customer_order_step_material_loaded">माल लोड होई गेआ</string>
+    <string name="customer_order_step_loaded">पिकअप पर लोड होआ</string>
+    <string name="customer_order_left_pickup_at">%1$s बजे पिकअप थमां निकली</string>
+    <string name="customer_order_planned_for">%1$s आस्तै प्लान</string>
+    <string name="customer_order_step_on_the_way">तुंदी साइट आह्ले रस्ते च</string>
+    <string name="customer_order_arriving_about">लगभग %1$s पुज्जग</string>
+    <string name="customer_order_step_delivered">पुज्जी गेआ</string>
+    <string name="customer_order_step_delivered_pay">पुज्जने दे बाद %1$d%% देओ</string>
+    <string name="customer_arrived_at">%1$s पुज्जेआ</string>
+    <string name="customer_order_balance_once_confirmed">माल पुज्जने दी पुश्टी करने पर %1$s</string>
+
+    <!-- Order journey: map, vehicle and details -->
+    <string name="customer_route_planned">प्लान कीता दा रूट</string>
+    <string name="customer_route_still_to_go">अजें बाकी</string>
+    <string name="customer_route_covered">तै कीता</string>
+    <string name="customer_route_load_failed">ट्रिप लोड नेईं होई सकी. %1$s</string>
+    <string name="customer_route_left_at">%1$s निकली</string>
+    <string name="customer_route_pickup_planned">पिकअप प्लान %1$s</string>
+    <string name="customer_route_deliver_by">%1$s तगर डिलीवरी</string>
+    <string name="customer_route_marked">पिकअप ते ड्रॉप मार्क कीते गेदे न.</string>
+    <string name="customer_route_loading_trip">ट्रिप लोड होआ करदी ऐ…</string>
+    <string name="customer_route_marked_waiting">पिकअप ते ड्रॉप मार्क कीते गेदे न. फ़्लीट दे गड्डी भेजने पर रस्ता इत्थै दिसग.</string>
+    <string name="customer_route_reporting_now">हून रिपोर्ट होआ करदी ऐ.</string>
+    <string name="customer_route_last_reported">आखरी रिपोर्ट %1$s पैह्लें.</string>
+    <string name="customer_route_trip_cancelled">एह् ट्रिप रद्द होई गेई ही. इसदा प्लान कीता दा रस्ता दस्सेआ गेदा ऐ.</string>
+    <string name="customer_route_not_planned">इस ट्रिप दा रस्ता अजें प्लान नेईं होआ. पिकअप ते ड्रॉप मार्क कीते गेदे न.</string>
+    <string name="customer_route_reached_drop">गड्डी इस रस्ते राहें तुंदे ड्रॉप पर पुज्जी गेई ऐ.</string>
+    <string name="customer_route_no_position">गड्डी नै अजें अपनी जगह नेईं दस्सी.</string>
+    <string name="customer_route_shaded">गड्डी जित्थै तगर आई ऐ, उत्थै तगर रंगेआ गेदा ऐ.</string>
+    <string name="customer_route_parked_shown">गड्डी अजें नेईं निकली ते उत्थै दस्सी गेदी ऐ जित्थुआं उसनै आखरी बारी रिपोर्ट कीती ही.</string>
+    <string name="customer_route_not_set_off">गड्डी अजें नेईं निकली.</string>
+    <string name="customer_fact_distance">दूरी</string>
+    <string name="customer_fact_to_go">बाकी</string>
+    <string name="customer_fact_on_the_road">सड़का पर</string>
+    <string name="customer_fact_run_time">चलने दा टाइम</string>
+    <string name="customer_fact_planned">प्लान</string>
+    <string name="customer_fact_running_late">लेट चला करदी ऐ</string>
+    <string name="customer_vehicle_and_driver">गड्डी ते ड्राइवर</string>
+    <string name="customer_run_by">%1$s चलांदा ऐ</string>
+    <string name="customer_capacity_tonnes">%1$s टन</string>
+    <string name="customer_order_details">ऑर्डर दी जानकारी</string>
+    <string name="customer_fact_load">लोड</string>
+    <string name="customer_fact_vehicle_needed">चाहिदी गड्डी</string>
+    <string name="customer_fact_reference">रेफ़रेंस</string>
+    <string name="customer_fact_placed">ऑर्डर दी तरीक</string>
+    <string name="customer_line_material">माल</string>
+    <string name="customer_line_transport">ट्रांसपोर्ट</string>
+    <string name="customer_total">कुल</string>
+    <string name="customer_line_paid_so_far">हून तगर दित्ता</string>
+    <string name="customer_line_balance_due">बाकी देना</string>
+    <string name="customer_your_note">तुंदा नोट</string>
+
+    <!-- One ready-made trip -->
+    <string name="customer_package_gone">एह् ट्रिप हून उपलब्ध नेईं.</string>
+    <string name="customer_travel">सफ़र</string>
+    <string name="customer_trip">ट्रिप</string>
+    <string name="customer_package_book">एह् ट्रिप बुक करो</string>
+    <string name="customer_days">दिन</string>
+    <string name="customer_package_nights">· %1$d रातां</string>
+    <string name="customer_package_seats">सीटां</string>
+    <string name="customer_per_person">प्रति माह्नू</string>
+    <string name="customer_from">थमां</string>
+    <string name="customer_package_route">रूट</string>
+    <string name="customer_package_about_km">लगभग %1$s km</string>
+    <string name="customer_package_driver_included">ड्राइवर शामल</string>
+    <string name="customer_package_fuel_included">तेल शामल</string>
+    <string name="customer_package_about">इस ट्रिप बारै</string>
+    <string name="customer_package_day_by_day">दिन-ब-दिन</string>
+    <string name="customer_package_day_title">दिन %1$d · %2$s</string>
+    <string name="customer_package_night_at">रात %1$s च</string>
+    <string name="customer_package_covers">रेट च केह्-केह् शामल ऐ</string>
+    <string name="customer_package_if_cancel">जेकर तुस रद्द करो</string>
+    <string name="customer_package_refund_tier">%1$d घैंटे जां इस शा मता पैह्लें: %2$d%% वापस</string>
+    <string name="customer_package_operated_by">चलाने आह्ला</string>
+    <plurals name="customer_package_reviews">
+        <item quantity="one">★ %1$s, %2$d रिव्यू थमां</item>
+        <item quantity="other">★ %1$s, %2$d रिव्यू थमां</item>
+    </plurals>
+    <string name="customer_package_no_reviews">अजें कोई रिव्यू नेईं</string>
+    <string name="customer_package_customers_only">बुकिंग सिर्फ ग्राहक खातें आस्तै ऐ.</string>
+
+    <!-- Ready-made trips list -->
+    <string name="customer_sort_newest">सब्भनें शा नमें</string>
+    <string name="customer_sort_price">रेट</string>
+    <string name="customer_sort_rating">रेटिंग</string>
+    <string name="customer_sort_shortest">सब्भनें शा छोटियां</string>
+    <string name="customer_packages_where_to">कुत्थें जाना ऐ?</string>
+    <string name="customer_packages_where_hint">कोई शैह्र, मंदर, जां पहाड़ी जगह</string>
+    <string name="customer_packages_all">सारियां ट्रिपां</string>
+    <string name="customer_packages_sort">क्रम</string>
+    <string name="customer_packages_none">अजें कोई ट्रिप उपलब्ध नेईं.</string>
+    <string name="customer_packages_no_match">कोई ट्रिप मेल नेईं खंदी. कोई होर जगह जां ट्रिप दी किस्म अजमाओ.</string>
+    <string name="customer_open">%1$s खोह्लो</string>
+    <plurals name="customer_trip_days">
+        <item quantity="one">%d दिन</item>
+        <item quantity="other">%d दिन</item>
+    </plurals>
+    <string name="customer_up_to">%1$d तगर</string>
+    <string name="customer_from_place">%1$s थमां</string>
+    <string name="customer_verified_operator">वेरिफ़ाई होए दा ऑपरेटर</string>
+    <string name="customer_from_per_person">थमां, प्रति माह्नू</string>
+    <string name="customer_no_booking_fee">कोई बुकिंग फ़ीस नेईं</string>
+
+    <!-- Booking a ready-made trip -->
+    <string name="customer_book_for">%1$s आस्तै बुक करो</string>
+    <string name="customer_book">बुक करो</string>
+    <string name="customer_booking_busy">बुक होआ करदा ऐ…</string>
+    <string name="customer_book_pay_next">पेमेंट अगले पेज पर होग. पेमेंट होने पर ऑपरेटर पक्का करदा ऐ.</string>
+    <string name="customer_book_passengers">सवारियां (%1$d–%2$d)</string>
+    <string name="customer_book_party_range">इस ट्रिप च %1$d थमां %2$d लोक जाई सकदे न.</string>
+    <string name="customer_book_starts_on">शुरू होने दी तरीक</string>
+    <string name="customer_book_choose_start_time">शुरू होने दा टाइम चुनो</string>
+    <string name="customer_book_pickup_time">पिकअप टाइम</string>
+    <string name="customer_book_contact">राबता</string>
+    <string name="customer_name">नां</string>
+    <string name="customer_mobile_number">मोबाइल नंबर</string>
+    <string name="customer_book_phone_invalid">भारती मोबाइल नंबर, दस अंकें दा.</string>
+    <string name="customer_book_journey">सफ़र</string>
+    <string name="customer_pick_up_from_optional">पिकअप कुत्थुआं (जरूरी नेईं)</string>
+    <string name="customer_drop_at">ड्रॉप कुत्थें</string>
+    <string name="customer_drop_at_optional">ड्रॉप कुत्थें (जरूरी नेईं)</string>
+    <string name="customer_book_drop_needed">इस ट्रिप दा रेट किलोमीटर दे हिसाबें ऐ, इस आस्तै ड्रॉप जरूरी ऐ.</string>
+    <string name="customer_book_operator_notes">ऑपरेटर गी किश दस्सना ऐ? (जरूरी नेईं)</string>
+    <string name="customer_book_price_for_party">तुंदे ग्रुप आस्तै रेट</string>
+    <string name="customer_book_booking_fee">बुकिंग फ़ीस</string>
+    <string name="customer_book_lead_hours">ट्रिपां हून थमां घट्टो-घट्ट %1$d घैंटे बाद शुरू होंदियां न.</string>
+    <plurals name="customer_book_notice_days">
+        <item quantity="one">ऑपरेटर गी %d दिन पैह्लें दस्सना जरूरी ऐ.</item>
+        <item quantity="other">ऑपरेटर गी %d दिन पैह्लें दस्सना जरूरी ऐ.</item>
+    </plurals>
+    <string name="customer_book_runs_from">एह् ट्रिप %1$s थमां चलदी ऐ.</string>
+    <string name="customer_book_runs_until">एह् ट्रिप %1$s तगर चलदी ऐ.</string>
+    <string name="customer_book_runs_on">एह् ट्रिप सिर्फ %1$s गी चलदी ऐ.</string>
+    <string name="customer_weekday_sundays">ऐतवार</string>
+    <string name="customer_weekday_mondays">सोमवार</string>
+    <string name="customer_weekday_tuesdays">मंगलवार</string>
+    <string name="customer_weekday_wednesdays">बुधवार</string>
+    <string name="customer_weekday_thursdays">बीरवार</string>
+    <string name="customer_weekday_fridays">शुक्करवार</string>
+    <string name="customer_weekday_saturdays">शनिवार</string>
+
+    <!-- Post a need -->
+    <string name="customer_unit_tonnes">टन</string>
+    <string name="customer_unit_bags">बोरियां</string>
+    <string name="customer_unit_pieces">पीस</string>
+    <string name="customer_cab_any">कोई बी</string>
+    <string name="customer_cab_car">कार</string>
+    <string name="customer_cab_suv">SUV</string>
+    <string name="customer_cab_van">वैन</string>
+    <string name="customer_cab_bus">बस</string>
+    <string name="customer_hire_one_way">इक पास्सै</string>
+    <string name="customer_hire_round_trip">आना-जाना</string>
+    <string name="customer_hire_daily">दिन दे हिसाबें</string>
+    <string name="customer_post_add_material">पोस्ट करने आस्तै माल लिखो.</string>
+    <string name="customer_post_add_material_kind">पोस्ट करने आस्तै लिखो जे माल केह्ड़ी किस्म दा ऐ.</string>
+    <string name="customer_post_add_detail">पोस्ट करने आस्तै %1$s लिखो.</string>
+    <string name="customer_post_add_quantity">पोस्ट करने आस्तै मात्रा लिखो.</string>
+    <string name="customer_post_add_deliver_to">पोस्ट करने आस्तै लिखो जे कुत्थें पजाना ऐ.</string>
+    <string name="customer_post_add_goods">पोस्ट करने आस्तै माल लिखो.</string>
+    <string name="customer_post_add_truck_size">पोस्ट करने आस्तै ट्रक दा साइज़ लिखो.</string>
+    <string name="customer_post_add_pickup">पोस्ट करने आस्तै पिकअप दी जगह लिखो.</string>
+    <string name="customer_post_add_drop">पोस्ट करने आस्तै ड्रॉप दी जगह लिखो.</string>
+    <string name="customer_post_add_people">पोस्ट करने आस्तै लिखो जे कितने लोक न.</string>
+    <string name="customer_post_add_places">पोस्ट करने आस्तै घुम्मने आह्लियां जगहां लिखो.</string>
+    <string name="customer_post_add_start_time">पोस्ट करने आस्तै घट्टो-घट्ट 2¼ घैंटे बाद दा शुरू होने दा टाइम पाओ.</string>
+    <string name="customer_post_title_material">तुसेंगी केह् मंगवाना ऐ?</string>
+    <string name="customer_post_title_freight">केह् पजाना ऐ?</string>
+    <string name="customer_post_title_cab">तुस कुत्थें जा करदे ओ?</string>
+    <string name="customer_post_title_tour">तुस कुत्थें जाना चांह्दे ओ?</string>
+    <string name="customer_post_goods">माल</string>
+    <string name="customer_post_material_hint">M-sand, प्लस्तर आह्ली</string>
+    <string name="customer_post_goods_hint">सीमेंट दियां बोरियां</string>
+    <string name="customer_post_quantity">मात्रा</string>
+    <string name="customer_post_truck_size">ट्रक साइज़ (t)</string>
+    <string name="customer_post_grade">ग्रेड जां ब्रांड (जरूरी नेईं)</string>
+    <string name="customer_post_grade_hint">कोई बी ग्रेड · धोती दी</string>
+    <string name="customer_post_people">लोक</string>
+    <string name="customer_post_places">घुम्मने आह्लियां जगहां</string>
+    <string name="customer_post_travel_on">सफ़र दी तरीक</string>
+    <string name="customer_post_needed_by">कदूं तगर चाहिदा</string>
+    <string name="customer_post_choose_date">तरीक चुनो</string>
+    <string name="customer_post_choose_time">टाइम चुनो</string>
+    <string name="customer_pick_up_from">पिकअप कुत्थुआं</string>
+    <string name="customer_post_deliver_to">कुत्थें पजाना</string>
+    <string name="customer_post_tour_ends">टूर कुत्थें खत्म होग (जरूरी नेईं)</string>
+    <string name="customer_post_going_to">कुत्थें जाना</string>
+    <string name="customer_post_one_price">इक्कै रेट, घर तगर</string>
+    <string name="customer_post_one_price_note">वेरिफ़ाई होई दी फ़्लीट माल खरीददी ऐ, लोड करदी ऐ ते तुंदी साइट पर पजांदी ऐ. तुसें सिर्फ उस फ़्लीट कन्नै गै गल्ल करनी ऐ.</string>
+    <string name="customer_post_submit">पोस्ट करो ते बोलियां लैओ</string>
+    <string name="customer_post_posting">पोस्ट होआ करदा ऐ…</string>
+    <string name="customer_post_material_footer">तुंदी साइट दे नेड़ै दियां फ़्लीटां सेलरें दा स्टॉक दिक्खियै बोली लांदियां न.</string>
+    <string name="customer_post_footer">तुंदे नेड़ै दियां फ़्लीटां ते ऑपरेटर किश घैंटें च बोली लांदे न.</string>
+
+    <!-- Rating a trip or a delivery -->
+    <string name="customer_rate_send">रेटिंग भेजो</string>
+    <string name="customer_rate_sending">भेजेआ जा करदा ऐ…</string>
+    <plurals name="customer_rate_stars">
+        <item quantity="one">%d तारा</item>
+        <item quantity="other">%d तारे</item>
+    </plurals>
+</resources>

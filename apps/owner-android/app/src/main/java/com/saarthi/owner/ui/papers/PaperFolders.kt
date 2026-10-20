@@ -1,5 +1,6 @@
 package com.saarthi.owner.ui.papers
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -16,10 +17,12 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.saarthi.owner.R
 import com.saarthi.owner.network.PapersApi
-import com.saarthi.owner.ui.common.plural
 import com.saarthi.owner.ui.common.parseDate
 import com.saarthi.owner.ui.design.SType
 import com.saarthi.owner.ui.design.Saarthi
@@ -37,14 +40,14 @@ import java.time.temporal.ChronoUnit
  */
 
 /** How a folder stands, in the same words the web's folder tags use. */
-internal enum class FolderStatus(val word: String) {
-    VALID("Valid"),
-    EXPIRING_SOON("Expiring"),
-    EXPIRED("Expired"),
-    REJECTED("Rejected"),
-    MISSING("Missing"),
-    OPTIONAL("Optional"),
-    ON_FILE("On file"),
+internal enum class FolderStatus(@StringRes val word: Int) {
+    VALID(R.string.papers_status_valid),
+    EXPIRING_SOON(R.string.papers_status_expiring),
+    EXPIRED(R.string.papers_status_expired),
+    REJECTED(R.string.papers_status_rejected),
+    MISSING(R.string.papers_status_missing),
+    OPTIONAL(R.string.papers_status_optional),
+    ON_FILE(R.string.papers_status_on_file),
     ;
 
     /** Lapsed, about to, or refused: the ones an owner has to act on. */
@@ -118,16 +121,16 @@ internal fun FolderGrid(
 private fun FolderTile(folder: PapersApi.Folder, fromRegister: Boolean, onOpen: () -> Unit, modifier: Modifier) {
     val c = Saarthi.colors
     val meta = when {
-        folder.kind == PapersApi.KIND_PHOTOS -> plural(folder.count, "photo")
-        folder.kind == PapersApi.KIND_QR -> "Scan to open this vehicle"
-        folder.count == 0 && fromRegister -> "From the RTO register"
-        else -> plural(folder.count, "file")
+        folder.kind == PapersApi.KIND_PHOTOS -> pluralStringResource(R.plurals.papers_folder_photos, folder.count, folder.count)
+        folder.kind == PapersApi.KIND_QR -> stringResource(R.string.papers_folder_qr_meta)
+        folder.count == 0 && fromRegister -> stringResource(R.string.papers_folder_from_register)
+        else -> pluralStringResource(R.plurals.papers_folder_files, folder.count, folder.count)
     }
     Column(
         modifier
             .heightIn(min = 132.dp)
             .card(radius = 20.dp)
-            .pressable(scale = 0.97f, label = "${folder.label}, $meta", onClick = onOpen)
+            .pressable(scale = 0.97f, label = stringResource(R.string.papers_folder_tile_label, folder.label, meta), onClick = onOpen)
             .padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
@@ -149,7 +152,7 @@ internal fun StatusTag(status: FolderStatus, modifier: Modifier = Modifier) {
         FolderStatus.OPTIONAL -> c.sunken to c.muted
         FolderStatus.ON_FILE -> c.infoSoft to c.info
     }
-    StatusPill(status.word, background = ground, ink = ink, modifier = modifier, dot = false)
+    StatusPill(stringResource(status.word), background = ground, ink = ink, modifier = modifier, dot = false)
 }
 
 /** The web's folder colours: the brand for papers, teal for photos, slate for the sticker and the rest. */

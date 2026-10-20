@@ -20,11 +20,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.saarthi.owner.R
 import com.saarthi.owner.network.TripsApi
 import com.saarthi.owner.ui.common.PlateChip
+import com.saarthi.owner.ui.common.Words
 import com.saarthi.owner.ui.common.clockOf
 import com.saarthi.owner.ui.common.dial
 import com.saarthi.owner.ui.common.km
@@ -85,22 +88,38 @@ fun wordOf(value: String): String = value.lowercase().replace('_', ' ').replaceF
 fun tripFacts(trip: TripsApi.Trip): List<Fact> = buildList {
     val driven = trip.actualDistanceKm?.takeIf { it > 0 }
     when {
-        driven != null -> add(Fact("Driven", km(driven)!!, km(trip.plannedDistanceKm)?.let { "of $it planned" }))
-        trip.plannedDistanceKm != null -> add(Fact("Distance", km(trip.plannedDistanceKm)!!, "planned"))
+        driven != null -> add(
+            Fact(Words.get(R.string.net_trips_fact_driven), km(driven)!!, km(trip.plannedDistanceKm)?.let { Words.get(R.string.net_trips_of_planned, it) }),
+        )
+        trip.plannedDistanceKm != null -> add(Fact(Words.get(R.string.net_trips_fact_distance), km(trip.plannedDistanceKm)!!, Words.get(R.string.net_trips_planned)))
     }
     when {
-        trip.actualDurationMin != null -> add(Fact("On the road", minutesSpan(trip.actualDurationMin)!!, minutesSpan(trip.plannedDurationMin)?.let { "$it planned" }))
-        trip.plannedDurationMin != null -> add(Fact("Run time", minutesSpan(trip.plannedDurationMin)!!, "planned"))
+        trip.actualDurationMin != null -> add(
+            Fact(
+                Words.get(R.string.net_trips_fact_on_road),
+                minutesSpan(trip.actualDurationMin)!!,
+                minutesSpan(trip.plannedDurationMin)?.let { Words.get(R.string.net_trips_span_planned, it) },
+            ),
+        )
+        trip.plannedDurationMin != null -> add(Fact(Words.get(R.string.net_trips_fact_run_time), minutesSpan(trip.plannedDurationMin)!!, Words.get(R.string.net_trips_planned)))
     }
-    clockOf(trip.actualStartAt)?.let { add(Fact("Started", it)) }
-        ?: clockOf(trip.plannedStartAt)?.let { add(Fact("Starts", it, "planned")) }
+    clockOf(trip.actualStartAt)?.let { add(Fact(Words.get(R.string.net_trips_fact_started), it)) }
+        ?: clockOf(trip.plannedStartAt)?.let { add(Fact(Words.get(R.string.net_trips_fact_starts), it, Words.get(R.string.net_trips_planned))) }
     when {
-        trip.actualArrivalAt != null -> add(Fact("Arrived", clockOf(trip.actualArrivalAt)!!))
-        trip.underway && trip.etaAt != null -> add(Fact("Arriving", clockOf(trip.etaAt)!!, "estimated"))
-        trip.plannedArrivalAt != null -> add(Fact("Arrival", clockOf(trip.plannedArrivalAt)!!, "planned"))
+        trip.actualArrivalAt != null -> add(Fact(Words.get(R.string.net_trips_fact_arrived), clockOf(trip.actualArrivalAt)!!))
+        trip.underway && trip.etaAt != null -> add(Fact(Words.get(R.string.net_trips_fact_arriving), clockOf(trip.etaAt)!!, Words.get(R.string.net_trips_estimated)))
+        trip.plannedArrivalAt != null -> add(Fact(Words.get(R.string.net_trips_fact_arrival), clockOf(trip.plannedArrivalAt)!!, Words.get(R.string.net_trips_planned)))
     }
-    if (trip.late && !trip.closed) add(Fact("Running late", minutesSpan(trip.delayMinutes)!!))
-    if (trip.underway) add(Fact("Progress", "${trip.progressPercent.coerceIn(0, 100)}%", "of the planned distance"))
+    if (trip.late && !trip.closed) add(Fact(Words.get(R.string.net_trips_fact_running_late), minutesSpan(trip.delayMinutes)!!))
+    if (trip.underway) {
+        add(
+            Fact(
+                Words.get(R.string.net_trips_fact_progress),
+                Words.get(R.string.net_trips_percent, trip.progressPercent.coerceIn(0, 100)),
+                Words.get(R.string.net_trips_of_planned_distance),
+            ),
+        )
+    }
 }
 
 /** What the trip earned against what it cost beyond fuel. */
@@ -108,13 +127,17 @@ fun tripFacts(trip: TripsApi.Trip): List<Fact> = buildList {
 fun TripMoneyCard(trip: TripsApi.Trip, modifier: Modifier = Modifier) {
     val price = trip.price
     val expenses = trip.expenses
-    TripSection("Money", modifier) {
+    TripSection(stringResource(R.string.net_trips_money), modifier) {
         Facts(
             listOfNotNull(
-                Fact("Trip value", price?.let(::rupees) ?: "Not set"),
+                Fact(stringResource(R.string.net_trips_trip_value), price?.let(::rupees) ?: stringResource(R.string.net_trips_not_set)),
                 // Null is "not logged", never "nothing spent".
-                Fact("Expenses", expenses?.let(::rupees) ?: "None recorded", "beyond fuel"),
-                if (price != null && expenses != null) Fact("Net", rupees(price - expenses)) else null,
+                Fact(
+                    stringResource(R.string.net_trips_expenses),
+                    expenses?.let(::rupees) ?: stringResource(R.string.net_trips_none_recorded),
+                    stringResource(R.string.net_trips_beyond_fuel),
+                ),
+                if (price != null && expenses != null) Fact(stringResource(R.string.net_trips_net), rupees(price - expenses)) else null,
             ),
         )
     }
@@ -125,16 +148,18 @@ fun TripMoneyCard(trip: TripsApi.Trip, modifier: Modifier = Modifier) {
 fun TripDrivingCard(trip: TripsApi.Trip, modifier: Modifier = Modifier) {
     val odometer = trip.endOdometerKm ?: trip.startOdometerKm
     val facts = listOfNotNull(
-        trip.topSpeedKph?.let { Fact("Top speed", "${it.toInt()} km/h") },
-        trip.averageSpeedKph?.let { Fact("Average speed", "${it.toInt()} km/h", "while moving") },
-        Fact("Harsh braking", trip.harshBrakingCount.toString()),
-        Fact("Harsh starts", trip.harshAccelerationCount.toString()),
+        trip.topSpeedKph?.let { Fact(stringResource(R.string.net_trips_top_speed), stringResource(R.string.net_trips_speed_kmh, it.toInt())) },
+        trip.averageSpeedKph?.let {
+            Fact(stringResource(R.string.net_trips_average_speed), stringResource(R.string.net_trips_speed_kmh, it.toInt()), stringResource(R.string.net_trips_while_moving))
+        },
+        Fact(stringResource(R.string.net_trips_harsh_braking), trip.harshBrakingCount.toString()),
+        Fact(stringResource(R.string.net_trips_harsh_starts), trip.harshAccelerationCount.toString()),
         odometer?.let {
             val run = trip.startOdometerKm?.let { start -> trip.endOdometerKm?.let { end -> (end - start).coerceAtLeast(0.0) } }
-            Fact("Odometer", km(it)!!, run?.let { added -> "+${km(added)} this trip" })
+            Fact(stringResource(R.string.net_trips_odometer), km(it)!!, run?.let { added -> stringResource(R.string.net_trips_odometer_added, km(added).orEmpty()) })
         },
     )
-    TripSection("Driving", modifier) { Facts(facts) }
+    TripSection(stringResource(R.string.net_trips_driving), modifier) { Facts(facts) }
 }
 
 /** Whether a trip has any driving record worth a card. */
@@ -146,14 +171,14 @@ val TripsApi.Trip.hasDrivingRecord: Boolean
 fun TripCrewCard(trip: TripsApi.Trip, modifier: Modifier = Modifier) {
     val c = Saarthi.colors
     val context = LocalContext.current
-    TripSection("On this trip", modifier) {
+    TripSection(stringResource(R.string.net_trips_on_this_trip), modifier) {
         trip.truck?.let { truck -> VehicleLine(truck) }
         trip.driver?.takeIf { it.name.isNotBlank() }?.let { driver ->
             DriverLine(driver.name, driver.overallScore, onCall = driver.phone?.let { phone -> { context.dial(phone) } })
         }
         trip.order?.let { order ->
             Column {
-                Eyebrow("Order")
+                Eyebrow(stringResource(R.string.net_trips_order))
                 Text(
                     listOfNotNull(order.reference.ifBlank { null }, order.materialName.ifBlank { null }).joinToString(" · "),
                     style = SType.rowTitle,
@@ -172,11 +197,11 @@ fun DriverLine(name: String, score: Int?, modifier: Modifier = Modifier, onCall:
     Row(modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Avatar(name, size = 40.dp, background = c.primarySoft, ink = c.primary)
         Column(Modifier.weight(1f)) {
-            Eyebrow("Driver")
+            Eyebrow(stringResource(R.string.net_trips_driver))
             Text(name, style = SType.rowTitle, color = c.fg, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            score?.let { Text("Score $it of 100", style = SType.caption, color = c.muted) }
+            score?.let { Text(stringResource(R.string.net_trips_score, it), style = SType.caption, color = c.muted) }
         }
-        onCall?.let { CircleButton(Lucide.phone, "Call $name", it, size = 44.dp) }
+        onCall?.let { CircleButton(Lucide.phone, stringResource(R.string.net_trips_call, name), it, size = 44.dp) }
     }
 }
 
@@ -192,8 +217,8 @@ fun VehicleLine(truck: TripsApi.TripTruck, modifier: Modifier = Modifier) {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             PlateChip(truck.registrationNumber, size = 12.sp)
             listOfNotNull(
-                truck.truckType?.takeIf { it.isNotBlank() && it != "OTHER" }?.let(::wordOf),
-                truck.capacityTons?.takeIf { it > 0 }?.let { "${if (it % 1.0 == 0.0) it.toInt() else it} t" },
+                truck.truckType?.takeIf { it.isNotBlank() && it != "OTHER" }?.let(::truckWord),
+                truck.capacityTons?.takeIf { it > 0 }?.let { stringResource(R.string.net_trips_capacity_tons, (if (it % 1.0 == 0.0) it.toInt() else it).toString()) },
             ).takeIf { it.isNotEmpty() }?.let { Text(it.joinToString(" · "), style = SType.caption, color = c.muted) }
         }
     }
@@ -203,7 +228,7 @@ fun VehicleLine(truck: TripsApi.TripTruck, modifier: Modifier = Modifier) {
 @Composable
 fun TripStopsCard(stops: List<TripsApi.Stop>, modifier: Modifier = Modifier) {
     val c = Saarthi.colors
-    TripSection("Stops", modifier) {
+    TripSection(stringResource(R.string.net_trips_stops), modifier) {
         stops.sortedBy { it.sequence }.forEach { stop ->
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Box(
@@ -214,14 +239,14 @@ fun TripStopsCard(stops: List<TripsApi.Stop>, modifier: Modifier = Modifier) {
                         .background(if (stop.actualArrival != null || stop.reachedAt != null) c.success else c.track),
                 )
                 Column(Modifier.weight(1f)) {
-                    Text(stop.name.ifBlank { stop.address ?: wordOf(stop.type) }, style = SType.bodyStrong, color = c.fg, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    Text(stop.name.ifBlank { stop.address ?: stopWord(stop.type) }, style = SType.bodyStrong, color = c.fg, maxLines = 2, overflow = TextOverflow.Ellipsis)
                     Text(
                         listOfNotNull(
-                            wordOf(stop.type),
-                            clockOf(stop.actualArrival)?.let { "arrived $it" }
-                                ?: clockOf(stop.reachedAt)?.let { "reached by GPS $it" }
-                                ?: clockOf(stop.plannedArrival)?.let { "planned $it" },
-                            clockOf(stop.leftAt)?.let { "left $it" },
+                            stopWord(stop.type),
+                            clockOf(stop.actualArrival)?.let { stringResource(R.string.net_trips_stop_arrived, it) }
+                                ?: clockOf(stop.reachedAt)?.let { stringResource(R.string.net_trips_stop_reached_gps, it) }
+                                ?: clockOf(stop.plannedArrival)?.let { stringResource(R.string.net_trips_stop_planned, it) },
+                            clockOf(stop.leftAt)?.let { stringResource(R.string.net_trips_stop_left, it) },
                         ).joinToString(" · "),
                         style = SType.caption,
                         color = c.muted,
@@ -237,7 +262,7 @@ fun TripStopsCard(stops: List<TripsApi.Stop>, modifier: Modifier = Modifier) {
 fun TripEventsCard(events: List<TripsApi.Event>, modifier: Modifier = Modifier) {
     val c = Saarthi.colors
     val shown = events.asReversed().take(EVENTS_SHOWN)
-    TripSection("Timeline", modifier) {
+    TripSection(stringResource(R.string.net_trips_timeline), modifier) {
         shown.forEach { event ->
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Box(
@@ -248,16 +273,69 @@ fun TripEventsCard(events: List<TripsApi.Event>, modifier: Modifier = Modifier) 
                         .background(c.primary),
                 )
                 Column(Modifier.weight(1f)) {
-                    Text(event.description?.ifBlank { null } ?: wordOf(event.type), style = SType.body, color = c.fg)
-                    Text(listOfNotNull(wordOf(event.type), clockOf(event.createdAt)).joinToString(" · "), style = SType.caption, color = c.muted)
+                    Text(event.description?.ifBlank { null } ?: eventWord(event.type), style = SType.body, color = c.fg)
+                    Text(listOfNotNull(eventWord(event.type), clockOf(event.createdAt)).joinToString(" · "), style = SType.caption, color = c.muted)
                 }
             }
         }
         if (events.size > shown.size) {
             Box(Modifier.fillMaxWidth().height(1.dp).background(c.border))
-            Text("Showing the latest ${shown.size} of ${events.size} events.", style = SType.caption, color = c.subtle)
+            Text(stringResource(R.string.net_trips_events_capped, shown.size, events.size), style = SType.caption, color = c.subtle)
         }
     }
 }
 
 private const val EVENTS_SHOWN = 40
+
+/** A vehicle kind in words; a kind the app has no word for reads as its code. */
+private fun truckWord(type: String): String = when (type) {
+    "OPEN_BODY" -> Words.get(R.string.net_trips_truck_open_body)
+    "CLOSED_CONTAINER" -> Words.get(R.string.net_trips_truck_closed_container)
+    "TIPPER" -> Words.get(R.string.net_trips_truck_tipper)
+    "TRAILER" -> Words.get(R.string.net_trips_truck_trailer)
+    "TANKER" -> Words.get(R.string.net_trips_truck_tanker)
+    "FLATBED" -> Words.get(R.string.net_trips_truck_flatbed)
+    "REFRIGERATED" -> Words.get(R.string.net_trips_truck_refrigerated)
+    "MINI_TRUCK" -> Words.get(R.string.net_trips_truck_mini_truck)
+    "MULTI_AXLE" -> Words.get(R.string.net_trips_truck_multi_axle)
+    else -> wordOf(type)
+}
+
+/** A planned stop's kind in words. */
+private fun stopWord(type: String): String = when (type) {
+    "ORIGIN" -> Words.get(R.string.net_trips_stop_type_origin)
+    "DESTINATION" -> Words.get(R.string.net_trips_stop_type_destination)
+    "WAYPOINT" -> Words.get(R.string.net_trips_stop_type_waypoint)
+    "REST" -> Words.get(R.string.net_trips_stop_type_rest)
+    "FUEL" -> Words.get(R.string.net_trips_stop_type_fuel)
+    "CHECKPOINT" -> Words.get(R.string.net_trips_stop_type_checkpoint)
+    else -> wordOf(type)
+}
+
+/** A line of the trip's record in words, by the server's `TripEventType`. */
+private fun eventWord(type: String): String = when (type) {
+    "CREATED" -> Words.get(R.string.net_trips_event_created)
+    "ASSIGNED" -> Words.get(R.string.net_trips_event_assigned)
+    "STATUS_CHANGED" -> Words.get(R.string.net_trips_event_status_changed)
+    "LOADING_STARTED" -> Words.get(R.string.net_trips_event_loading_started)
+    "DEPARTED" -> Words.get(R.string.net_trips_event_departed)
+    "LOCATION_UPDATE" -> Words.get(R.string.net_trips_event_location_update)
+    "STOP_STARTED" -> Words.get(R.string.net_trips_event_stop_started)
+    "STOP_ENDED" -> Words.get(R.string.net_trips_event_stop_ended)
+    "ROUTE_DEVIATION" -> Words.get(R.string.net_trips_event_route_deviation)
+    "SPEED_VIOLATION" -> Words.get(R.string.net_trips_event_speed_violation)
+    "HARSH_BRAKING" -> Words.get(R.string.net_trips_event_harsh_braking)
+    "HARSH_ACCELERATION" -> Words.get(R.string.net_trips_event_harsh_acceleration)
+    "DELAY_DETECTED" -> Words.get(R.string.net_trips_event_delay_detected)
+    "ARRIVED" -> Words.get(R.string.net_trips_event_arrived)
+    "UNLOADING_STARTED" -> Words.get(R.string.net_trips_event_unloading_started)
+    "COMPLETED" -> Words.get(R.string.net_trips_event_completed)
+    "CANCELLED" -> Words.get(R.string.net_trips_event_cancelled)
+    "EMERGENCY" -> Words.get(R.string.net_trips_event_emergency)
+    "NOTE" -> Words.get(R.string.net_trips_event_note)
+    "NAVIGATION_HANDOFF" -> Words.get(R.string.net_trips_event_navigation_handoff)
+    "ALTERNATE_ROUTE" -> Words.get(R.string.net_trips_event_alternate_route)
+    "STOP_REACHED" -> Words.get(R.string.net_trips_event_stop_reached)
+    "STOP_LEFT" -> Words.get(R.string.net_trips_event_stop_left)
+    else -> wordOf(type)
+}

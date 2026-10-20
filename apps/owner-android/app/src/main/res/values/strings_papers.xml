@@ -1,0 +1,286 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Papers wallet (Papers.kt) -->
+    <string name="papers_title">Papers</string>
+    <string name="papers_wallet_folders">Folders</string>
+    <plurals name="papers_wallet_expired">
+        <item quantity="one">%d paper expired or turned down. Renew it before a check post stops this vehicle.</item>
+        <item quantity="other">%d papers expired or turned down. Renew them before a check post stops this vehicle.</item>
+    </plurals>
+    <plurals name="papers_wallet_expiring">
+        <item quantity="one">%d paper running out soon. Renew before it lapses.</item>
+        <item quantity="other">%d papers running out soon. Renew before they lapse.</item>
+    </plurals>
+
+    <!-- Folder tiles and status tags (PaperFolders.kt) -->
+    <string name="papers_status_valid">Valid</string>
+    <string name="papers_status_expiring">Expiring</string>
+    <string name="papers_status_expired">Expired</string>
+    <string name="papers_status_rejected">Rejected</string>
+    <string name="papers_status_missing">Missing</string>
+    <string name="papers_status_optional">Optional</string>
+    <string name="papers_status_on_file">On file</string>
+    <plurals name="papers_folder_photos">
+        <item quantity="one">%d photo</item>
+        <item quantity="other">%d photos</item>
+    </plurals>
+    <plurals name="papers_folder_files">
+        <item quantity="one">%d file</item>
+        <item quantity="other">%d files</item>
+    </plurals>
+    <string name="papers_folder_qr_meta">Scan to open this vehicle</string>
+    <string name="papers_folder_from_register">From the RTO register</string>
+    <!-- A folder tile's accessibility name: the folder, then what it holds. -->
+    <string name="papers_folder_tile_label">%1$s, %2$s</string>
+
+    <!-- One folder, opened (PaperFolderScreen.kt) -->
+    <string name="papers_folder_gone">This folder is no longer on file.</string>
+    <string name="papers_folder_no_rc_record">No RTO record has been fetched for this vehicle yet. Fetch it from the vehicle\'s Registration tab on the Saarthi website and the virtual RC appears here.</string>
+    <string name="papers_folder_uploaded">Uploaded and filed in this folder.</string>
+    <string name="papers_folder_photo_removed">Photo removed.</string>
+    <string name="papers_files_register_only">No scan uploaded. The dates above come from the RTO register.</string>
+    <string name="papers_files_empty_can_upload">Nothing filed here yet.</string>
+    <string name="papers_files_empty">Nothing has been uploaded.</string>
+    <string name="papers_files_upload_first">Upload this paper</string>
+    <string name="papers_files_upload_renewed">Upload the renewed paper</string>
+    <string name="papers_files_upload_new_copy">Upload a new copy</string>
+    <string name="papers_files_no_viewer">No app on this phone can open this file.</string>
+    <string name="papers_file_open_label">Open %1$s</string>
+    <string name="papers_valid_till">Valid till %1$s</string>
+    <string name="papers_file_rejected">Rejected, upload again</string>
+    <string name="papers_rc_certificate_open">Open RC certificate</string>
+    <string name="papers_rc_certificate_no_viewer">No app on this phone can open a PDF.</string>
+    <string name="papers_opening">Opening…</string>
+
+    <!-- QR sticker (PaperFolderScreen.kt) -->
+    <string name="papers_sticker_vehicle_caption">A scan of this sticker opens this vehicle in Saarthi. Print it from Saarthi on the web.</string>
+    <string name="papers_sticker_not_issued">No QR code has been issued yet.</string>
+    <string name="papers_sticker_load_failed">The QR sticker could not be loaded.</string>
+    <string name="papers_sticker_description">QR sticker</string>
+
+    <!-- Vehicle photographs (PaperPhotos.kt) -->
+    <string name="papers_photo_unusable">That photo could not be used.</string>
+    <string name="papers_photo_added">Photo added.</string>
+    <string name="papers_photos_empty_can_add">No photos yet. Add the front, the back and both sides.</string>
+    <string name="papers_photos_empty">No photos of this vehicle yet.</string>
+    <string name="papers_photos_view_only">Your role can view these photos but not add or remove them.</string>
+    <string name="papers_photos_not_in_plan">Adding photos is not part of this business\'s plan.</string>
+    <string name="papers_photos_full">%1$d photos is the most a vehicle holds. Remove one to add another.</string>
+    <string name="papers_take_photo">Take a photo</string>
+    <string name="papers_photo_adding">Adding…</string>
+    <string name="papers_photo_choose">Choose a photo</string>
+    <string name="papers_photo_remove_title">Remove this photo?</string>
+    <string name="papers_removed_for_everyone">It is taken off this vehicle for everyone on the account.</string>
+    <string name="papers_photo_remove_button">Remove photo</string>
+    <string name="papers_removing">Removing…</string>
+    <string name="papers_photo_label">Vehicle photograph</string>
+    <string name="papers_photo_close">Close photograph</string>
+    <string name="papers_photo_remove_link">Remove this photo</string>
+
+    <!-- Virtual RC and the register (PaperRecords.kt) -->
+    <string name="papers_rc_register">RTO register</string>
+    <string name="papers_rc_virtual">Virtual RC</string>
+    <string name="papers_rc_verified">Verified</string>
+    <string name="papers_rc_as_of">From the RTO register · as of %1$s</string>
+    <string name="papers_rc_as_of_unknown">From the RTO register · as of an unknown date</string>
+    <string name="papers_rc_validity">Validity</string>
+    <string name="papers_rc_insurance">Insurance</string>
+    <string name="papers_rc_pollution">Pollution (PUC)</string>
+    <string name="papers_rc_fitness">Fitness</string>
+    <string name="papers_rc_road_tax">Road tax</string>
+    <string name="papers_rc_permit">Permit</string>
+    <string name="papers_rc_national_permit">National permit</string>
+    <string name="papers_rc_details">Details</string>
+    <string name="papers_rc_owner">Owner</string>
+    <string name="papers_rc_registered">Registered</string>
+    <string name="papers_rc_status">Status</string>
+    <string name="papers_rc_class">Class</string>
+    <string name="papers_rc_fuel">Fuel</string>
+    <string name="papers_rc_colour">Colour</string>
+    <string name="papers_rc_made">Made</string>
+    <string name="papers_rc_chassis">Chassis</string>
+    <string name="papers_rc_engine">Engine</string>
+    <string name="papers_rc_rto">RTO</string>
+    <string name="papers_rc_seats">Seats</string>
+    <string name="papers_rc_gross_weight">Gross weight</string>
+    <string name="papers_rc_weight_kg">%1$s kg</string>
+    <string name="papers_rc_financer">Financer</string>
+    <string name="papers_rc_blacklist">Blacklist</string>
+    <string name="papers_rc_till">Till %1$s</string>
+    <string name="papers_rc_lifetime_tax">Lifetime tax</string>
+    <string name="papers_rc_not_published">Not published</string>
+    <string name="papers_rc_masked_ownership">Owner details are masked because this account has not confirmed it owns the vehicle. The RC owner\'s name has to match a verified PAN, Voter ID or business GSTIN on the account. The vehicle\'s Ownership card on the Saarthi website shows where it stands.</string>
+    <string name="papers_rc_masked_role">Owner details, engine number and chassis number are hidden. Your role does not include access to personal vehicle data.</string>
+
+    <!-- Secure PIN unlock (PaperRecords.kt) -->
+    <string name="papers_pin_title">Owner details are masked</string>
+    <string name="papers_pin_body">Enter your Secure PIN to see them in full and download the certificate. It is the same 4-digit PIN you use on the Saarthi website.</string>
+    <string name="papers_pin_label">Secure PIN</string>
+    <string name="papers_pin_show">Show full RC</string>
+    <string name="papers_checking">Checking…</string>
+
+    <!-- Uploading a paper (PaperUpload.kt) -->
+    <string name="papers_upload_file_unreadable">That file could not be read.</string>
+    <string name="papers_upload_pdf_too_large">That PDF is larger than 10 MB. Scan it at a lower quality or photograph the paper instead.</string>
+    <string name="papers_upload_wrong_type">Choose a PDF or a photo.</string>
+    <string name="papers_upload_photo_unreadable">That photo could not be read.</string>
+    <string name="papers_upload_file_unusable">That file could not be used.</string>
+    <string name="papers_upload_title">Upload %1$s</string>
+    <string name="papers_upload_intro">A clear photo of the paper, or a PDF of up to 10 MB.</string>
+    <string name="papers_upload_choose_file">Choose a file</string>
+    <string name="papers_upload_change">Change</string>
+    <string name="papers_upload_reading">Reading the paper…</string>
+    <string name="papers_upload_number">Number on the paper (optional)</string>
+    <string name="papers_upload_valid_till">Valid till</string>
+    <string name="papers_upload_valid_till_optional">Valid till (optional)</string>
+    <string name="papers_upload_issued_optional">Issued on (optional)</string>
+    <string name="papers_upload_button">Upload</string>
+    <string name="papers_uploading">Uploading…</string>
+    <string name="papers_upload_choose_date">Choose</string>
+    <string name="papers_upload_other_plate">This paper names %1$s, not this vehicle. Check it is the right one.</string>
+    <string name="papers_upload_ran_out">This paper ran out on %1$s. Upload the renewed one if you have it.</string>
+    <string name="papers_upload_filled">Filled in from the paper. Check the details, then upload.</string>
+    <string name="papers_upload_filled_need_expiry">Filled in what could be read. Choose the date it is valid till.</string>
+    <string name="papers_upload_nothing_read_optional">Nothing could be read off this paper. You can still upload it.</string>
+    <string name="papers_upload_nothing_read">The details could not be read off this paper. Choose the date it is valid till.</string>
+    <string name="papers_size_kb">%1$d KB</string>
+    <string name="papers_size_mb">%1$s MB</string>
+
+    <!-- Preparing a 360° spin (SpinMaker.kt) -->
+    <string name="papers_spin_video_unreadable">That video could not be read. Record it again with the phone\'s camera, or choose photos instead.</string>
+    <string name="papers_spin_video_no_length">That video has no readable length. Try recording it again.</string>
+    <string name="papers_spin_video_too_short">That video is under %1$d seconds. Walk slowly all the way round the vehicle.</string>
+    <string name="papers_spin_video_too_little">Not enough of that video could be read. Record it again in the phone\'s standard format.</string>
+    <string name="papers_spin_photos_too_few">Choose at least %1$d photos — the front, both sides and the back at the very least.</string>
+    <string name="papers_spin_photo_unreadable">One of those photos could not be read. Choose them again.</string>
+    <string name="papers_spin_photo_bad_format">One of those photos could not be read. Use JPEG or PNG photos.</string>
+
+    <!-- 360° spin section (SpinPanel.kt) -->
+    <string name="papers_spin_title">360° spin</string>
+    <string name="papers_spin_prepare_failed">The spin could not be prepared from that. Try a shorter video, or photos instead.</string>
+    <string name="papers_spin_saved">360° spin saved.</string>
+    <string name="papers_spin_replaced">360° spin replaced.</string>
+    <string name="papers_spin_save_failed">The 360° spin could not be saved. %1$s</string>
+    <string name="papers_spin_save_failed_cleared">The 360° spin could not be saved. %1$s The earlier spin had already been cleared to make room.</string>
+    <string name="papers_spin_removed">360° spin removed.</string>
+    <string name="papers_try_again">Try again</string>
+    <string name="papers_spin_remove_link">Remove the spin</string>
+    <string name="papers_spin_empty">No 360° spin of this vehicle yet.</string>
+    <string name="papers_spin_choosing_frames">Choosing the sharpest frames from the walk-around…</string>
+    <string name="papers_spin_preparing_photos">Preparing the photos…</string>
+    <string name="papers_spin_saving">Saving the spin… %1$d of %2$d frames</string>
+    <string name="papers_spin_record_new">Record a new walk-around</string>
+    <string name="papers_spin_record">Record a walk-around</string>
+    <string name="papers_spin_choose_video">Choose a video</string>
+    <string name="papers_spin_choose_photos">Choose photos</string>
+    <string name="papers_spin_guide_title">How to shoot it</string>
+    <string name="papers_spin_guide_park_title">Park in the open</string>
+    <string name="papers_spin_guide_park_body">Room to walk all the way round, in even daylight.</string>
+    <string name="papers_spin_guide_stand_title">Stand about two metres away</string>
+    <string name="papers_spin_guide_stand_body">The whole vehicle in frame, phone held at chest height.</string>
+    <string name="papers_spin_guide_walk_title">Walk one slow circle</string>
+    <string name="papers_spin_guide_walk_body">A 20–40 second video, or a photo every few steps — %1$d to %2$d in all.</string>
+    <string name="papers_spin_guide_centre_title">Keep it centred</string>
+    <string name="papers_spin_guide_centre_body">Finish where you started, so the turn closes without a jump.</string>
+    <string name="papers_percent">%1$d%%</string>
+    <string name="papers_spin_remove_title">Remove the 360° spin?</string>
+    <string name="papers_spin_keep">Keep it</string>
+    <string name="papers_spin_remove">Remove</string>
+    <plurals name="papers_spin_draft_summary">
+        <item quantity="one">%d frame. Drag to turn it, then save.</item>
+        <item quantity="other">%d frames. Drag to turn it, then save.</item>
+    </plurals>
+    <plurals name="papers_spin_draft_summary_trimmed">
+        <item quantity="one">%d frame · cut where the walk came back to the start. Drag to turn it, then save.</item>
+        <item quantity="other">%d frames · cut where the walk came back to the start. Drag to turn it, then save.</item>
+    </plurals>
+    <string name="papers_spin_start_here">Start here</string>
+    <string name="papers_spin_reverse">Reverse</string>
+    <string name="papers_spin_drop_frame">Drop this frame</string>
+    <string name="papers_spin_save">Save the spin</string>
+    <string name="papers_spin_discard">Discard</string>
+    <string name="papers_spin_view_description">360° view, angle %1$d of %2$d</string>
+    <string name="papers_spin_turn_left">Turn left</string>
+    <string name="papers_spin_turn_right">Turn right</string>
+    <string name="papers_spin_drag_hint">Drag to turn · %1$d/%2$d</string>
+
+    <!-- Payment outcome and checkout (payments/Checkout.kt) -->
+    <string name="papers_payments_outcome_succeeded">%1$s — payment received.</string>
+    <string name="papers_payments_outcome_failed">The payment did not go through. Nothing was charged.</string>
+    <string name="papers_payments_outcome_pending">Payment not completed yet. You can finish it any time.</string>
+    <string name="papers_payments_close">Close payment</string>
+    <string name="papers_payments_secure">Secure payment</string>
+
+    <!-- Receipt PDF drawn on the phone (payments/ReceiptPdf.kt) -->
+    <string name="papers_payments_share_receipt">Share receipt</string>
+    <string name="papers_payments_receipt_title">Payment receipt</string>
+    <string name="papers_payments_receipt_refunded">Refunded</string>
+    <string name="papers_payments_receipt_partly_refunded">Paid · %1$s refunded</string>
+    <string name="papers_payments_receipt_paid">Paid</string>
+    <string name="papers_payments_receipt_time_ist">%1$s IST</string>
+    <string name="papers_payments_receipt_number">Receipt no.</string>
+    <string name="papers_payments_receipt_paid_on">Paid on</string>
+    <string name="papers_payments_receipt_paid_by">Paid by</string>
+    <string name="papers_payments_receipt_paid_to">Paid to</string>
+    <string name="papers_payments_receipt_for">For</string>
+    <string name="papers_payments_receipt_method">Method</string>
+    <string name="papers_payments_receipt_method_cashfree">Online, through Cashfree</string>
+    <string name="papers_payments_receipt_transaction">Transaction reference</string>
+    <string name="papers_payments_receipt_footer">This receipt confirms a payment made through VorldX Saarthi. It is not a tax invoice.\nGenerated on %1$s IST.</string>
+
+    <!-- Receipts card (payments/Receipts.kt) -->
+    <string name="papers_payments_receipt_default_label">Payment</string>
+    <string name="papers_payments_receipts">Receipts</string>
+    <string name="papers_payments_receipt_save_failed">Could not save it. Try again.</string>
+    <string name="papers_payments_receipt_saved">Saved to Downloads › Saarthi</string>
+    <string name="papers_payments_open">Open</string>
+    <string name="papers_payments_share">Share</string>
+    <string name="papers_payments_download">Download</string>
+
+    <!-- SOS alert screen (sos/SosAlertScreen.kt) -->
+    <string name="papers_sos_driver_fallback">Your driver</string>
+    <string name="papers_sos_raised_now">SOS · raised just now</string>
+    <string name="papers_sos_raised_ago">SOS · raised %1$s ago</string>
+    <string name="papers_sos_resolved_banner">SOS · resolved</string>
+    <string name="papers_sos_close">Close</string>
+    <string name="papers_sos_needs_help">Your driver needs help</string>
+    <string name="papers_sos_resolved">Resolved</string>
+    <plurals name="papers_sos_trucks_alerted">
+        <item quantity="one">%d Saarthi truck alerted nearby</item>
+        <item quantity="other">%d Saarthi trucks alerted nearby</item>
+    </plurals>
+    <plurals name="papers_sos_trucks_were_alerted">
+        <item quantity="one">%d Saarthi truck was alerted nearby</item>
+        <item quantity="other">%d Saarthi trucks were alerted nearby</item>
+    </plurals>
+    <string name="papers_sos_within_km">Within %1$d km</string>
+    <string name="papers_sos_nearby">Nearby</string>
+    <string name="papers_sos_within_km_widens">Within %1$d km · the circle widens if nobody answers</string>
+    <string name="papers_sos_widens">The circle widens if nobody answers</string>
+    <string name="papers_sos_coming">coming</string>
+    <string name="papers_sos_coming_distance">coming · %1$s km</string>
+    <string name="papers_sos_arrived">Arrived</string>
+    <string name="papers_sos_accepted">Accepted</string>
+    <string name="papers_sos_widen">Widen the circle</string>
+    <string name="papers_sos_widened">More trucks are being asked.</string>
+    <string name="papers_sos_widest">The circle is already as wide as it goes.</string>
+    <string name="papers_sos_call_driver">Call %1$s now</string>
+    <string name="papers_sos_call_112">Call 112</string>
+    <string name="papers_sos_open_map">Open on map</string>
+    <string name="papers_sos_mark_resolved_link">Mark as resolved</string>
+    <string name="papers_sos_what_happened">What happened?</string>
+    <string name="papers_sos_note_label">A line for the record — it goes to everyone who answered</string>
+    <string name="papers_sos_mark_resolved">Mark resolved</string>
+
+    <!-- SOS card on Home (sos/SosAlertScreen.kt) -->
+    <string name="papers_sos_card_title">SOS · %1$s needs help</string>
+    <string name="papers_sos_card_title_unknown">SOS · A driver needs help</string>
+    <string name="papers_sos_just_now">just now</string>
+    <string name="papers_sos_ago">%1$s ago</string>
+    <string name="papers_scan_licence_prompt">Take a photo of the driving licence and the details fill in from it.</string>
+    <string name="papers_scan_licence">Scan the licence</string>
+    <string name="papers_scan_licence_reading">Reading the licence…</string>
+    <string name="papers_scan_certificate_prompt">Take a photo of the GST, Udyam or company certificate and the details fill in from it.</string>
+    <string name="papers_scan_certificate">Scan the certificate</string>
+    <string name="papers_scan_certificate_reading">Reading the certificate…</string>
+</resources>

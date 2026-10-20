@@ -1,6 +1,7 @@
 package com.saarthi.owner.network
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
@@ -23,6 +24,8 @@ class MaterialsApi(private val api: OwnerApi) {
         val minimumOrderQty: Double = 0.0,
         val status: String = "ACTIVE",
         val pickupAddress: String? = null,
+        val pickupLatitude: Double? = null,
+        val pickupLongitude: Double? = null,
         val updatedAt: String = "",
     ) {
         /** Shown to fleets bidding nearby. */
@@ -57,6 +60,75 @@ class MaterialsApi(private val api: OwnerApi) {
         return api.patch("/marketplace/materials/$id", body.toString(), Listing.serializer())
     }
 
+    /** A listing's photo in the media library; the cover is what fleets see first. */
+    @Serializable
+    data class Photo(val id: String, val isPrimary: Boolean = false, val sortOrder: Int = 0, val thumbnailUrl: String? = null)
+
+    @Serializable
+    private data class Created(val id: String)
+
+    /** Everything a seller may change about a listing; only what is set is sent. */
+    class Changes(
+        val name: String? = null,
+        val description: String? = null,
+        val unit: String? = null,
+        val price: Double? = null,
+        val stock: Double? = null,
+        val minimumOrder: Double? = null,
+        val shown: Boolean? = null,
+        val pickup: PlacesApi.Place? = null,
+    )
+
+    suspend fun edit(id: String, changes: Changes): Listing? {
+        val body = buildJsonObject {
+            changes.name?.let { put("name", it.take(120)) }
+            // An emptied description is sent empty, which the server reads as "none".
+            changes.description?.let { put("description", it.take(2000)) }
+            changes.unit?.let { put("unit", it) }
+            changes.price?.let { put("pricePerUnit", it) }
+            changes.stock?.let { put("availableQuantity", it) }
+            changes.minimumOrder?.let { put("minimumOrderQty", it) }
+            changes.shown?.let { put("status", if (it) "ACTIVE" else "INACTIVE") }
+            changes.pickup?.let {
+                put("pickupAddress", it.address.take(300))
+                put("pickupLatitude", it.latitude)
+                put("pickupLongitude", it.longitude)
+            }
+        }
+        return api.patch("/marketplace/materials/$id", body.toString(), Listing.serializer())
+    }
+
+    /** Take a listing off sale for good; the server refuses while an order for it is still open. */
+    suspend fun remove(id: String) {
+        api.delete("/marketplace/materials/$id")
+    }
+
+    suspend fun photos(id: String): List<Photo> =
+        api.get("/media/owner/material/$id?purpose=PRODUCT", ListSerializer(Photo.serializer())).orEmpty()
+
+    /** Add a photo; the first one becomes the cover, so a listing is never shown without one. */
+    suspend fun addPhoto(id: String, file: OwnerApi.Upload, cover: Boolean) {
+        val fields = buildMap {
+            put("ownerType", "MATERIAL")
+            put("ownerId", id)
+            put("purpose", "PRODUCT")
+            // Sent only when meant: the server reads any value, "false" too, as yes.
+            if (cover) put("isPrimary", "true")
+        }
+        api.upload("/media", fields, "file", file, Created.serializer())
+    }
+
+    suspend fun removePhoto(photoId: String) {
+        api.delete("/media/$photoId")
+    }
+
+    suspend fun makeCover(photoId: String) {
+        api.postNoReply("/media/$photoId/primary")
+    }
+
+    suspend fun photo(photoId: String, thumbnail: Boolean): ByteArray? =
+        api.image("/api/v1/media/$photoId/file?variant=${if (thumbnail) "thumb" else "original"}")
+
     data class NewListing(
         val name: String,
         val category: String?,
@@ -68,6 +140,7 @@ class MaterialsApi(private val api: OwnerApi) {
         /** The catalogue category it was read as — what customers' needs are matched against. */
         val categoryId: String? = null,
         val attributes: JsonObject? = null,
+        val description: String? = null,
     )
 
     suspend fun create(input: NewListing): Listing? {
@@ -80,6 +153,7 @@ class MaterialsApi(private val api: OwnerApi) {
             put("pricePerUnit", input.price)
             put("availableQuantity", input.stock)
             put("minimumOrderQty", input.minimumOrder)
+            input.description?.ifBlank { null }?.let { put("description", it.take(2000)) }
             input.pickup?.let {
                 put("pickupAddress", it.address.take(300))
                 put("pickupLatitude", it.latitude)
@@ -91,7 +165,14 @@ class MaterialsApi(private val api: OwnerApi) {
 
     suspend fun payoutAccount(): PayoutAccount? = api.get("/finance/payout-account", PayoutAccount.serializer())
 
-    private companion object {
-        const val LOW_STOCK_ORDERS = 10
+    companion object {
+        private const val LOW_STOCK_ORDERS = 10
+
+        /** The server's cap on one listing's photos. */
+        const val MAX_PHOTOS = 24
+
+        const val CAN_UPLOAD_PHOTOS = "media.upload"
+        const val CAN_DELETE_PHOTOS = "media.delete"
+        const val PHOTOS_FEATURE = "media.library"
     }
 }

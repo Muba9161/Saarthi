@@ -9,8 +9,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.saarthi.owner.OwnerApp
+import com.saarthi.owner.R
 import com.saarthi.owner.network.TripsApi
 import com.saarthi.owner.network.VehiclesApi
 import com.saarthi.owner.ui.common.DetailScreen
@@ -18,7 +21,6 @@ import com.saarthi.owner.ui.common.FailedCard
 import com.saarthi.owner.ui.common.Loadable
 import com.saarthi.owner.ui.common.SkeletonCards
 import com.saarthi.owner.ui.common.formatPlate
-import com.saarthi.owner.ui.common.plural
 import com.saarthi.owner.ui.common.readable
 import com.saarthi.owner.ui.design.ButtonTone
 import com.saarthi.owner.ui.design.Lucide
@@ -96,9 +98,9 @@ fun VehicleTripsScreen(app: OwnerApp, vehicle: VehiclesApi.Vehicle) {
     DetailScreen(
         eyebrow = listOfNotNull(
             formatPlate(vehicle.registrationNumber),
-            book?.total?.takeIf { it > 0 }?.let { plural(it, "trip") },
+            book?.total?.takeIf { it > 0 }?.let { pluralStringResource(R.plurals.net_trips_count, it, it) },
         ).joinToString(" · "),
-        title = "Trips",
+        title = stringResource(R.string.net_trips_trips),
     ) {
         when (val shown = state) {
             Loadable.Loading -> SkeletonCards(count = 3, modifier = Modifier.rise())
@@ -107,7 +109,7 @@ fun VehicleTripsScreen(app: OwnerApp, vehicle: VehiclesApi.Vehicle) {
                 val trips = shown.value
                 if (trips.items.isEmpty()) {
                     NoticeCard(
-                        "No trips yet. Every trip this vehicle runs is listed here, with its path on the map.",
+                        stringResource(R.string.net_trips_vehicle_empty),
                         NoticeTone.INFO,
                         icon = Lucide.route,
                         modifier = Modifier.rise(),
@@ -120,13 +122,13 @@ fun VehicleTripsScreen(app: OwnerApp, vehicle: VehiclesApi.Vehicle) {
                         modifier = Modifier.rise(stagger(index.coerceAtMost(4))),
                     )
                 }
-                moreError?.let { NoticeCard("Couldn't load older trips. $it", NoticeTone.WARNING) }
+                moreError?.let { NoticeCard(stringResource(R.string.net_trips_older_failed, it), NoticeTone.WARNING) }
                 if (trips.hasMore) {
                     SaarthiButton(
-                        "Show older trips",
+                        stringResource(R.string.net_trips_show_older),
                         onClick = ::loadMore,
                         busy = trips.loadingMore,
-                        busyText = "Loading…",
+                        busyText = stringResource(R.string.net_trips_loading),
                         tone = ButtonTone.SECONDARY,
                         height = 50.dp,
                     )

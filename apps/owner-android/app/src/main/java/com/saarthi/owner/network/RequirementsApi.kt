@@ -1,5 +1,7 @@
 package com.saarthi.owner.network
 
+import com.saarthi.owner.R
+import com.saarthi.owner.ui.common.Words
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.JsonArray
@@ -95,14 +97,24 @@ class RequirementsApi(private val api: OwnerApi) {
         /** "20 t M-sand", "40 people", the freight's goods — what the job is, in a line. */
         val what: String
             get() = when (kind) {
-                KIND_MATERIAL -> listOfNotNull(quantity?.let { "${it.clean()} ${unitWord(unit)}" }, materialName ?: title).joinToString(" ")
+                KIND_MATERIAL -> {
+                    val name = materialName ?: title
+                    quantity?.let {
+                        Words.get(R.string.net_quantity_goods, Words.get(R.string.net_quantity_unit, it.clean(), unitWord(unit)), name)
+                    } ?: name
+                }
                 // The load itself leads; the truck size stands in only when no amount was given.
-                KIND_FREIGHT -> listOfNotNull(
-                    quantity?.takeIf { it > 0 }?.let { "${it.clean()} ${unitWord(unit)}".trim() }
-                        ?: requiredCapacityTons?.let { "${it.clean()} t truck ·" },
-                    goodsDescription?.ifBlank { null } ?: title,
-                ).joinToString(" ")
-                else -> listOfNotNull(passengers?.let { "$it people" }, preferredVehicleType?.lowercase()?.replace('_', ' ')).joinToString(" · ").ifBlank { title }
+                KIND_FREIGHT -> {
+                    val goods = goodsDescription?.ifBlank { null } ?: title
+                    quantity?.takeIf { it > 0 }
+                        ?.let { Words.get(R.string.net_quantity_goods, Words.get(R.string.net_quantity_unit, it.clean(), unitWord(unit)).trim(), goods) }
+                        ?: requiredCapacityTons?.let { Words.get(R.string.net_truck_size_goods, it.clean(), goods) }
+                        ?: goods
+                }
+                else -> listOfNotNull(
+                    passengers?.let { Words.get(R.string.net_people_count, it) },
+                    preferredVehicleType?.lowercase()?.replace('_', ' '),
+                ).joinToString(" · ").ifBlank { title }
             }
 
         /** "Pune → Mumbai", or the one place when there is no second. */
@@ -322,27 +334,27 @@ class RequirementsApi(private val api: OwnerApi) {
         fun scopeFor(kind: String): String = if (kind == KIND_CAB || kind == KIND_TOUR) SCOPE_TRAVEL else SCOPE_TRANSPORT
 
         fun unitWord(unit: String?): String = when (unit) {
-            "TON" -> "t"
-            "KG" -> "kg"
-            "BAG" -> "bags"
-            "CUBIC_METER" -> "m³"
-            "PIECE" -> "pieces"
-            "LITRE" -> "L"
-            "TRIP" -> "trips"
+            "TON" -> Words.get(R.string.net_unit_ton)
+            "KG" -> Words.get(R.string.net_unit_kg)
+            "BAG" -> Words.get(R.string.net_unit_bags)
+            "CUBIC_METER" -> Words.get(R.string.net_unit_cubic_meter)
+            "PIECE" -> Words.get(R.string.net_unit_pieces)
+            "LITRE" -> Words.get(R.string.net_unit_litre)
+            "TRIP" -> Words.get(R.string.net_unit_trips)
             null -> ""
             else -> unit.lowercase().replace('_', ' ')
         }
 
         /** One of a unit, for "price per …": tonne, bag, piece. */
         fun unitSingular(unit: String?): String = when (unit) {
-            "TON" -> "tonne"
-            "KG" -> "kg"
-            "BAG" -> "bag"
-            "CUBIC_METER" -> "m³"
-            "PIECE" -> "piece"
-            "LITRE" -> "litre"
-            "TRIP" -> "trip"
-            null -> "unit"
+            "TON" -> Words.get(R.string.net_unit_one_ton)
+            "KG" -> Words.get(R.string.net_unit_one_kg)
+            "BAG" -> Words.get(R.string.net_unit_one_bag)
+            "CUBIC_METER" -> Words.get(R.string.net_unit_one_cubic_meter)
+            "PIECE" -> Words.get(R.string.net_unit_one_piece)
+            "LITRE" -> Words.get(R.string.net_unit_one_litre)
+            "TRIP" -> Words.get(R.string.net_unit_one_trip)
+            null -> Words.get(R.string.net_unit_one_unit)
             else -> unit.lowercase().replace('_', ' ')
         }
 

@@ -1,18 +1,24 @@
 package com.saarthi.owner.ui.alerts
 
+import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.graphics.Color
+import com.saarthi.owner.R
 import com.saarthi.owner.network.AlertsApi
+import com.saarthi.owner.ui.common.Words
 import com.saarthi.owner.ui.design.Lucide
 import com.saarthi.owner.ui.design.Saarthi
 
 /** The tabs above the list. */
-enum class AlertFilter(val label: String) {
-    ALL("All"),
-    URGENT("Urgent"),
-    MONEY("Money"),
-    PAPERS("Papers"),
+enum class AlertFilter(@StringRes private val labelRes: Int) {
+    ALL(R.string.ui_alerts_filter_all),
+    URGENT(R.string.ui_alerts_filter_urgent),
+    MONEY(R.string.ui_alerts_filter_money),
+    PAPERS(R.string.ui_alerts_filter_papers),
+    ;
+
+    val label: String get() = Words.get(labelRes)
 }
 
 fun AlertsApi.Alert.isUrgent(): Boolean = priority == "CRITICAL" || priority == "HIGH"

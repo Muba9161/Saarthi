@@ -1,0 +1,280 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Papers wallet (Papers.kt) -->
+    <string name="papers_title">કાગળો</string>
+    <string name="papers_wallet_folders">ફોલ્ડર</string>
+    <plurals name="papers_wallet_expired">
+        <item quantity="one">%d કાગળની મુદત પૂરી થઈ છે કે નામંજૂર થયો છે. ચેક પોસ્ટ પર આ વાહન રોકાય તે પહેલાં રિન્યૂ કરાવો.</item>
+        <item quantity="other">%d કાગળોની મુદત પૂરી થઈ છે કે નામંજૂર થયા છે. ચેક પોસ્ટ પર આ વાહન રોકાય તે પહેલાં રિન્યૂ કરાવો.</item>
+    </plurals>
+    <plurals name="papers_wallet_expiring">
+        <item quantity="one">%d કાગળની મુદત જલદી પૂરી થશે. મુદત વીતે તે પહેલાં રિન્યૂ કરાવો.</item>
+        <item quantity="other">%d કાગળોની મુદત જલદી પૂરી થશે. મુદત વીતે તે પહેલાં રિન્યૂ કરાવો.</item>
+    </plurals>
+
+    <!-- Folder tiles and status tags (PaperFolders.kt) -->
+    <string name="papers_status_valid">માન્ય</string>
+    <string name="papers_status_expiring">મુદત પૂરી થવામાં</string>
+    <string name="papers_status_expired">મુદત પૂરી</string>
+    <string name="papers_status_rejected">નામંજૂર</string>
+    <string name="papers_status_missing">નથી</string>
+    <string name="papers_status_optional">વૈકલ્પિક</string>
+    <string name="papers_status_on_file">રેકોર્ડમાં છે</string>
+    <plurals name="papers_folder_photos">
+        <item quantity="one">%d ફોટો</item>
+        <item quantity="other">%d ફોટા</item>
+    </plurals>
+    <plurals name="papers_folder_files">
+        <item quantity="one">%d ફાઇલ</item>
+        <item quantity="other">%d ફાઇલો</item>
+    </plurals>
+    <string name="papers_folder_qr_meta">આ વાહન ખોલવા સ્કૅન કરો</string>
+    <string name="papers_folder_from_register">RTO રજિસ્ટરમાંથી</string>
+    <!-- A folder tile's accessibility name: the folder, then what it holds. -->
+    <string name="papers_folder_tile_label">%1$s, %2$s</string>
+
+    <!-- One folder, opened (PaperFolderScreen.kt) -->
+    <string name="papers_folder_gone">આ ફોલ્ડર હવે રેકોર્ડમાં નથી.</string>
+    <string name="papers_folder_no_rc_record">આ વાહનનો RTO રેકોર્ડ હજી લાવવામાં આવ્યો નથી. Saarthi વેબસાઇટ પર વાહનના રજિસ્ટ્રેશન ટૅબમાંથી લાવો, પછી વર્ચ્યુઅલ RC અહીં દેખાશે.</string>
+    <string name="papers_folder_uploaded">અપલોડ થયું અને આ ફોલ્ડરમાં મુકાયું.</string>
+    <string name="papers_folder_photo_removed">ફોટો કાઢ્યો.</string>
+    <string name="papers_files_register_only">કોઈ સ્કૅન અપલોડ નથી. ઉપરની તારીખો RTO રજિસ્ટરમાંથી છે.</string>
+    <string name="papers_files_empty_can_upload">હજી અહીં કંઈ મુકાયું નથી.</string>
+    <string name="papers_files_empty">કંઈ અપલોડ થયું નથી.</string>
+    <string name="papers_files_upload_first">આ કાગળ અપલોડ કરો</string>
+    <string name="papers_files_upload_renewed">રિન્યૂ થયેલો કાગળ અપલોડ કરો</string>
+    <string name="papers_files_upload_new_copy">નવી કૉપી અપલોડ કરો</string>
+    <string name="papers_files_no_viewer">આ ફોનમાં આ ફાઇલ ખોલી શકે એવી કોઈ ઍપ નથી.</string>
+    <string name="papers_file_open_label">%1$s ખોલો</string>
+    <string name="papers_valid_till">%1$s સુધી માન્ય</string>
+    <string name="papers_file_rejected">નામંજૂર, ફરી અપલોડ કરો</string>
+    <string name="papers_rc_certificate_open">RC સર્ટિફિકેટ ખોલો</string>
+    <string name="papers_rc_certificate_no_viewer">આ ફોનમાં PDF ખોલી શકે એવી કોઈ ઍપ નથી.</string>
+    <string name="papers_opening">ખુલી રહ્યું છે…</string>
+
+    <!-- QR sticker (PaperFolderScreen.kt) -->
+    <string name="papers_sticker_vehicle_caption">આ સ્ટીકર સ્કૅન કરવાથી Saarthi માં આ વાહન ખૂલે છે. વેબ પર Saarthi માંથી પ્રિન્ટ કરો.</string>
+    <string name="papers_sticker_not_issued">હજી કોઈ QR કોડ આપવામાં આવ્યો નથી.</string>
+    <string name="papers_sticker_load_failed">QR સ્ટીકર લોડ ન થઈ શક્યું.</string>
+    <string name="papers_sticker_description">QR સ્ટીકર</string>
+
+    <!-- Vehicle photographs (PaperPhotos.kt) -->
+    <string name="papers_photo_unusable">એ ફોટો વાપરી શકાયો નહીં.</string>
+    <string name="papers_photo_added">ફોટો ઉમેર્યો.</string>
+    <string name="papers_photos_empty_can_add">હજી કોઈ ફોટો નથી. આગળનો, પાછળનો અને બંને બાજુનો ફોટો ઉમેરો.</string>
+    <string name="papers_photos_empty">આ વાહનના હજી કોઈ ફોટા નથી.</string>
+    <string name="papers_photos_view_only">તમારા રોલમાં આ ફોટા જોઈ શકાય છે, પણ ઉમેરી કે કાઢી શકાતા નથી.</string>
+    <string name="papers_photos_not_in_plan">ફોટા ઉમેરવાનું આ બિઝનેસના પ્લાનમાં સામેલ નથી.</string>
+    <string name="papers_photos_full">એક વાહનમાં વધુમાં વધુ %1$d ફોટા રહી શકે. બીજો ઉમેરવા એક કાઢો.</string>
+    <string name="papers_take_photo">ફોટો પાડો</string>
+    <string name="papers_photo_adding">ઉમેરી રહ્યા છીએ…</string>
+    <string name="papers_photo_choose">ફોટો પસંદ કરો</string>
+    <string name="papers_photo_remove_title">આ ફોટો કાઢી નાખશો?</string>
+    <string name="papers_removed_for_everyone">એકાઉન્ટ પરના બધા માટે તે આ વાહનમાંથી નીકળી જશે.</string>
+    <string name="papers_photo_remove_button">ફોટો કાઢો</string>
+    <string name="papers_removing">કાઢી રહ્યા છીએ…</string>
+    <string name="papers_photo_label">વાહનનો ફોટો</string>
+    <string name="papers_photo_close">ફોટો બંધ કરો</string>
+    <string name="papers_photo_remove_link">આ ફોટો કાઢો</string>
+
+    <!-- Virtual RC and the register (PaperRecords.kt) -->
+    <string name="papers_rc_register">RTO રજિસ્ટર</string>
+    <string name="papers_rc_virtual">વર્ચ્યુઅલ RC</string>
+    <string name="papers_rc_verified">ચકાસાયેલ</string>
+    <string name="papers_rc_as_of">RTO રજિસ્ટરમાંથી · %1$s મુજબ</string>
+    <string name="papers_rc_as_of_unknown">RTO રજિસ્ટરમાંથી · તારીખ ખબર નથી</string>
+    <string name="papers_rc_validity">માન્યતા</string>
+    <string name="papers_rc_insurance">વીમો</string>
+    <string name="papers_rc_pollution">પ્રદૂષણ (PUC)</string>
+    <string name="papers_rc_fitness">ફિટનેસ</string>
+    <string name="papers_rc_road_tax">રોડ ટૅક્સ</string>
+    <string name="papers_rc_permit">પરમિટ</string>
+    <string name="papers_rc_national_permit">નેશનલ પરમિટ</string>
+    <string name="papers_rc_details">વિગતો</string>
+    <string name="papers_rc_owner">માલિક</string>
+    <string name="papers_rc_registered">રજિસ્ટ્રેશનની તારીખ</string>
+    <string name="papers_rc_status">સ્થિતિ</string>
+    <string name="papers_rc_class">વર્ગ</string>
+    <string name="papers_rc_fuel">ઈંધણ</string>
+    <string name="papers_rc_colour">રંગ</string>
+    <string name="papers_rc_made">બન્યાની તારીખ</string>
+    <string name="papers_rc_chassis">ચેસિસ</string>
+    <string name="papers_rc_engine">એન્જિન</string>
+    <string name="papers_rc_rto">RTO</string>
+    <string name="papers_rc_seats">સીટ</string>
+    <string name="papers_rc_gross_weight">કુલ વજન</string>
+    <string name="papers_rc_weight_kg">%1$s kg</string>
+    <string name="papers_rc_financer">ફાઇનાન્સ કરનાર</string>
+    <string name="papers_rc_blacklist">બ્લૅકલિસ્ટ</string>
+    <string name="papers_rc_till">%1$s સુધી</string>
+    <string name="papers_rc_lifetime_tax">લાઇફટાઇમ ટૅક્સ</string>
+    <string name="papers_rc_not_published">નોંધાયેલું નથી</string>
+    <string name="papers_rc_masked_ownership">માલિકની વિગતો છુપાવેલી છે કારણ કે આ એકાઉન્ટે હજી ખાતરી કરી નથી કે વાહન તેનું છે. RC માલિકનું નામ એકાઉન્ટ પરના ચકાસાયેલા PAN, ચૂંટણી કાર્ડ કે બિઝનેસ GSTIN સાથે મેળ ખાવું જોઈએ. Saarthi વેબસાઇટ પર વાહનના માલિકી કાર્ડમાં તેની સ્થિતિ દેખાય છે.</string>
+    <string name="papers_rc_masked_role">માલિકની વિગતો, એન્જિન નંબર અને ચેસિસ નંબર છુપાવેલા છે. તમારા રોલમાં વાહનની અંગત માહિતી જોવાની મંજૂરી નથી.</string>
+
+    <!-- Secure PIN unlock (PaperRecords.kt) -->
+    <string name="papers_pin_title">માલિકની વિગતો છુપાવેલી છે</string>
+    <string name="papers_pin_body">પૂરી વિગતો જોવા અને સર્ટિફિકેટ ડાઉનલોડ કરવા તમારો Secure PIN નાખો. Saarthi વેબસાઇટ પર વાપરો છો તે જ 4 અંકનો PIN.</string>
+    <string name="papers_pin_label">Secure PIN</string>
+    <string name="papers_pin_show">પૂરી RC જુઓ</string>
+    <string name="papers_checking">તપાસી રહ્યા છીએ…</string>
+
+    <!-- Uploading a paper (PaperUpload.kt) -->
+    <string name="papers_upload_file_unreadable">એ ફાઇલ વાંચી શકાઈ નહીં.</string>
+    <string name="papers_upload_pdf_too_large">એ PDF 10 MB થી મોટી છે. ઓછી ક્વૉલિટીમાં સ્કૅન કરો અથવા તેના બદલે કાગળનો ફોટો પાડો.</string>
+    <string name="papers_upload_wrong_type">PDF કે ફોટો પસંદ કરો.</string>
+    <string name="papers_upload_photo_unreadable">એ ફોટો વાંચી શકાયો નહીં.</string>
+    <string name="papers_upload_file_unusable">એ ફાઇલ વાપરી શકાઈ નહીં.</string>
+    <string name="papers_upload_title">%1$s અપલોડ કરો</string>
+    <string name="papers_upload_intro">કાગળનો સ્પષ્ટ ફોટો, અથવા 10 MB સુધીની PDF.</string>
+    <string name="papers_upload_choose_file">ફાઇલ પસંદ કરો</string>
+    <string name="papers_upload_change">બદલો</string>
+    <string name="papers_upload_reading">કાગળ વાંચી રહ્યા છીએ…</string>
+    <string name="papers_upload_number">કાગળ પરનો નંબર (વૈકલ્પિક)</string>
+    <string name="papers_upload_valid_till">ક્યાં સુધી માન્ય</string>
+    <string name="papers_upload_valid_till_optional">ક્યાં સુધી માન્ય (વૈકલ્પિક)</string>
+    <string name="papers_upload_issued_optional">જારી થયાની તારીખ (વૈકલ્પિક)</string>
+    <string name="papers_upload_button">અપલોડ કરો</string>
+    <string name="papers_uploading">અપલોડ થઈ રહ્યું છે…</string>
+    <string name="papers_upload_choose_date">પસંદ કરો</string>
+    <string name="papers_upload_other_plate">આ કાગળ પર %1$s લખ્યું છે, આ વાહન નહીં. તપાસો કે કાગળ સાચો છે.</string>
+    <string name="papers_upload_ran_out">આ કાગળની મુદત %1$s એ પૂરી થઈ. તમારી પાસે રિન્યૂ થયેલો હોય તો તે અપલોડ કરો.</string>
+    <string name="papers_upload_filled">કાગળમાંથી ભરાઈ ગયું. વિગતો તપાસો, પછી અપલોડ કરો.</string>
+    <string name="papers_upload_filled_need_expiry">જે વંચાયું તે ભરી દીધું. ક્યાં સુધી માન્ય છે તે તારીખ પસંદ કરો.</string>
+    <string name="papers_upload_nothing_read_optional">આ કાગળમાંથી કંઈ વંચાયું નહીં. તો પણ તમે તેને અપલોડ કરી શકો છો.</string>
+    <string name="papers_upload_nothing_read">આ કાગળમાંથી વિગતો વંચાઈ નહીં. ક્યાં સુધી માન્ય છે તે તારીખ પસંદ કરો.</string>
+    <string name="papers_size_kb">%1$d KB</string>
+    <string name="papers_size_mb">%1$s MB</string>
+
+    <!-- Preparing a 360° spin (SpinMaker.kt) -->
+    <string name="papers_spin_video_unreadable">એ વીડિયો વાંચી શકાયો નહીં. ફોનના કૅમેરાથી ફરી રેકોર્ડ કરો, અથવા તેના બદલે ફોટા પસંદ કરો.</string>
+    <string name="papers_spin_video_no_length">એ વીડિયોની લંબાઈ વંચાતી નથી. ફરી રેકોર્ડ કરી જુઓ.</string>
+    <string name="papers_spin_video_too_short">એ વીડિયો %1$d સેકન્ડથી ઓછો છે. વાહનની ચારે બાજુ ધીમે ધીમે આખું ચક્કર લગાવો.</string>
+    <string name="papers_spin_video_too_little">એ વીડિયોનો પૂરતો ભાગ વંચાયો નહીં. ફોનના સામાન્ય ફોર્મેટમાં ફરી રેકોર્ડ કરો.</string>
+    <string name="papers_spin_photos_too_few">ઓછામાં ઓછા %1$d ફોટા પસંદ કરો — ઓછામાં ઓછું આગળ, બંને બાજુ અને પાછળનો.</string>
+    <string name="papers_spin_photo_unreadable">એમાંનો એક ફોટો વાંચી શકાયો નહીં. ફરી પસંદ કરો.</string>
+    <string name="papers_spin_photo_bad_format">એમાંનો એક ફોટો વાંચી શકાયો નહીં. JPEG કે PNG ફોટા વાપરો.</string>
+
+    <!-- 360° spin section (SpinPanel.kt) -->
+    <string name="papers_spin_title">360° વ્યૂ</string>
+    <string name="papers_spin_prepare_failed">તેમાંથી 360° વ્યૂ તૈયાર ન થઈ શક્યું. નાનો વીડિયો, અથવા તેના બદલે ફોટા અજમાવો.</string>
+    <string name="papers_spin_saved">360° વ્યૂ સેવ થયું.</string>
+    <string name="papers_spin_replaced">360° વ્યૂ બદલાયું.</string>
+    <string name="papers_spin_save_failed">360° વ્યૂ સેવ ન થઈ શક્યું. %1$s</string>
+    <string name="papers_spin_save_failed_cleared">360° વ્યૂ સેવ ન થઈ શક્યું. %1$s જગ્યા કરવા માટે પહેલાંનું વ્યૂ પહેલેથી કાઢી નખાયું હતું.</string>
+    <string name="papers_spin_removed">360° વ્યૂ કાઢ્યું.</string>
+    <string name="papers_try_again">ફરી પ્રયાસ કરો</string>
+    <string name="papers_spin_remove_link">360° વ્યૂ કાઢો</string>
+    <string name="papers_spin_empty">આ વાહનનું હજી કોઈ 360° વ્યૂ નથી.</string>
+    <string name="papers_spin_choosing_frames">ચક્કરના વીડિયોમાંથી સૌથી સ્પષ્ટ ફ્રેમ પસંદ કરી રહ્યા છીએ…</string>
+    <string name="papers_spin_preparing_photos">ફોટા તૈયાર કરી રહ્યા છીએ…</string>
+    <string name="papers_spin_saving">360° વ્યૂ સેવ થઈ રહ્યું છે… %2$d માંથી %1$d ફ્રેમ</string>
+    <string name="papers_spin_record_new">નવું ચક્કર રેકોર્ડ કરો</string>
+    <string name="papers_spin_record">વાહનની ચારે બાજુ ચક્કર રેકોર્ડ કરો</string>
+    <string name="papers_spin_choose_video">વીડિયો પસંદ કરો</string>
+    <string name="papers_spin_choose_photos">ફોટા પસંદ કરો</string>
+    <string name="papers_spin_guide_title">કેવી રીતે શૂટ કરવું</string>
+    <string name="papers_spin_guide_park_title">ખુલ્લી જગ્યામાં પાર્ક કરો</string>
+    <string name="papers_spin_guide_park_body">ચારે બાજુ ફરી શકાય એટલી જગ્યા, અને દિવસનો એકસરખો પ્રકાશ.</string>
+    <string name="papers_spin_guide_stand_title">આશરે બે મીટર દૂર ઊભા રહો</string>
+    <string name="papers_spin_guide_stand_body">આખું વાહન ફ્રેમમાં, ફોન છાતીની ઊંચાઈએ પકડેલો.</string>
+    <string name="papers_spin_guide_walk_title">ધીમે ધીમે એક ચક્કર લગાવો</string>
+    <string name="papers_spin_guide_walk_body">20–40 સેકન્ડનો વીડિયો, અથવા દર થોડાં પગલે એક ફોટો — કુલ %1$d થી %2$d.</string>
+    <string name="papers_spin_guide_centre_title">વાહન વચ્ચે રાખો</string>
+    <string name="papers_spin_guide_centre_body">જ્યાંથી શરૂ કર્યું ત્યાં જ પૂરું કરો, જેથી ચક્કર ઝટકા વગર પૂરું થાય.</string>
+    <string name="papers_percent">%1$d%%</string>
+    <string name="papers_spin_remove_title">360° વ્યૂ કાઢી નાખશો?</string>
+    <string name="papers_spin_keep">રહેવા દો</string>
+    <string name="papers_spin_remove">કાઢો</string>
+    <plurals name="papers_spin_draft_summary">
+        <item quantity="one">%d ફ્રેમ. ફેરવવા ખેંચો, પછી સેવ કરો.</item>
+        <item quantity="other">%d ફ્રેમ. ફેરવવા ખેંચો, પછી સેવ કરો.</item>
+    </plurals>
+    <plurals name="papers_spin_draft_summary_trimmed">
+        <item quantity="one">%d ફ્રેમ · ચક્કર શરૂઆત પર પાછું આવ્યું ત્યાંથી કાપ્યું. ફેરવવા ખેંચો, પછી સેવ કરો.</item>
+        <item quantity="other">%d ફ્રેમ · ચક્કર શરૂઆત પર પાછું આવ્યું ત્યાંથી કાપ્યું. ફેરવવા ખેંચો, પછી સેવ કરો.</item>
+    </plurals>
+    <string name="papers_spin_start_here">અહીંથી શરૂ કરો</string>
+    <string name="papers_spin_reverse">ઊલટું કરો</string>
+    <string name="papers_spin_drop_frame">આ ફ્રેમ કાઢો</string>
+    <string name="papers_spin_save">360° વ્યૂ સેવ કરો</string>
+    <string name="papers_spin_discard">રદ કરો</string>
+    <string name="papers_spin_view_description">360° વ્યૂ, %2$d માંથી ખૂણો %1$d</string>
+    <string name="papers_spin_turn_left">ડાબે ફેરવો</string>
+    <string name="papers_spin_turn_right">જમણે ફેરવો</string>
+    <string name="papers_spin_drag_hint">ફેરવવા ખેંચો · %1$d/%2$d</string>
+
+    <!-- Payment outcome and checkout (payments/Checkout.kt) -->
+    <string name="papers_payments_outcome_succeeded">%1$s — પેમેન્ટ મળી ગયું.</string>
+    <string name="papers_payments_outcome_failed">પેમેન્ટ થયું નહીં. કોઈ પૈસા કપાયા નથી.</string>
+    <string name="papers_payments_outcome_pending">પેમેન્ટ હજી પૂરું થયું નથી. તમે ગમે ત્યારે પૂરું કરી શકો છો.</string>
+    <string name="papers_payments_close">પેમેન્ટ બંધ કરો</string>
+    <string name="papers_payments_secure">સુરક્ષિત પેમેન્ટ</string>
+
+    <!-- Receipt PDF drawn on the phone (payments/ReceiptPdf.kt) -->
+    <string name="papers_payments_share_receipt">રસીદ શેર કરો</string>
+    <string name="papers_payments_receipt_title">પેમેન્ટની રસીદ</string>
+    <string name="papers_payments_receipt_refunded">રિફંડ થયું</string>
+    <string name="papers_payments_receipt_partly_refunded">ચૂકવ્યું · %1$s રિફંડ થયું</string>
+    <string name="papers_payments_receipt_paid">ચૂકવ્યું</string>
+    <string name="papers_payments_receipt_time_ist">%1$s IST</string>
+    <string name="papers_payments_receipt_number">રસીદ નં.</string>
+    <string name="papers_payments_receipt_paid_on">ચૂકવ્યાની તારીખ</string>
+    <string name="papers_payments_receipt_paid_by">ચૂકવનાર</string>
+    <string name="papers_payments_receipt_paid_to">કોને ચૂકવ્યું</string>
+    <string name="papers_payments_receipt_for">શેના માટે</string>
+    <string name="papers_payments_receipt_method">રીત</string>
+    <string name="papers_payments_receipt_method_cashfree">ઑનલાઇન, Cashfree દ્વારા</string>
+    <string name="papers_payments_receipt_transaction">ટ્રાન્ઝેક્શન રેફરન્સ</string>
+    <string name="papers_payments_receipt_footer">આ રસીદ VorldX Saarthi દ્વારા થયેલા પેમેન્ટની ખાતરી આપે છે. આ ટૅક્સ ઇન્વૉઇસ નથી.\n%1$s IST એ બનાવી.</string>
+
+    <!-- Receipts card (payments/Receipts.kt) -->
+    <string name="papers_payments_receipt_default_label">પેમેન્ટ</string>
+    <string name="papers_payments_receipts">રસીદો</string>
+    <string name="papers_payments_receipt_save_failed">સેવ ન થઈ શક્યું. ફરી પ્રયાસ કરો.</string>
+    <string name="papers_payments_receipt_saved">Downloads › Saarthi માં સેવ થયું</string>
+    <string name="papers_payments_open">ખોલો</string>
+    <string name="papers_payments_share">શેર કરો</string>
+    <string name="papers_payments_download">ડાઉનલોડ કરો</string>
+
+    <!-- SOS alert screen (sos/SosAlertScreen.kt) -->
+    <string name="papers_sos_driver_fallback">તમારો ડ્રાઇવર</string>
+    <string name="papers_sos_raised_now">SOS · હમણાં જ મોકલાયું</string>
+    <string name="papers_sos_raised_ago">SOS · %1$s પહેલાં મોકલાયું</string>
+    <string name="papers_sos_resolved_banner">SOS · ઉકેલાઈ ગયું</string>
+    <string name="papers_sos_close">બંધ કરો</string>
+    <string name="papers_sos_needs_help">તમારા ડ્રાઇવરને મદદ જોઈએ છે</string>
+    <string name="papers_sos_resolved">ઉકેલાઈ ગયું</string>
+    <plurals name="papers_sos_trucks_alerted">
+        <item quantity="one">નજીકના %d Saarthi ટ્રકને જાણ કરી</item>
+        <item quantity="other">નજીકના %d Saarthi ટ્રકને જાણ કરી</item>
+    </plurals>
+    <plurals name="papers_sos_trucks_were_alerted">
+        <item quantity="one">નજીકના %d Saarthi ટ્રકને જાણ કરાઈ હતી</item>
+        <item quantity="other">નજીકના %d Saarthi ટ્રકને જાણ કરાઈ હતી</item>
+    </plurals>
+    <string name="papers_sos_within_km">%1$d km ની અંદર</string>
+    <string name="papers_sos_nearby">નજીકમાં</string>
+    <string name="papers_sos_within_km_widens">%1$d km ની અંદર · કોઈ જવાબ ન આપે તો વિસ્તાર વધે છે</string>
+    <string name="papers_sos_widens">કોઈ જવાબ ન આપે તો વિસ્તાર વધે છે</string>
+    <string name="papers_sos_coming">આવે છે</string>
+    <string name="papers_sos_coming_distance">આવે છે · %1$s km</string>
+    <string name="papers_sos_arrived">પહોંચ્યા</string>
+    <string name="papers_sos_accepted">સ્વીકાર્યું</string>
+    <string name="papers_sos_widen">વિસ્તાર વધારો</string>
+    <string name="papers_sos_widened">વધુ ટ્રકને પૂછવામાં આવી રહ્યું છે.</string>
+    <string name="papers_sos_widest">વિસ્તાર પહેલેથી જ સૌથી મોટો છે.</string>
+    <string name="papers_sos_call_driver">%1$s ને હમણાં ફોન કરો</string>
+    <string name="papers_sos_call_112">112 પર ફોન કરો</string>
+    <string name="papers_sos_open_map">મૅપ પર ખોલો</string>
+    <string name="papers_sos_mark_resolved_link">ઉકેલાઈ ગયું માર્ક કરો</string>
+    <string name="papers_sos_what_happened">શું થયું?</string>
+    <string name="papers_sos_note_label">રેકોર્ડ માટે એક લીટી — જવાબ આપનાર બધાને તે જશે</string>
+    <string name="papers_sos_mark_resolved">ઉકેલાઈ ગયું માર્ક કરો</string>
+
+    <!-- SOS card on Home (sos/SosAlertScreen.kt) -->
+    <string name="papers_sos_card_title">SOS · %1$s ને મદદ જોઈએ છે</string>
+    <string name="papers_sos_card_title_unknown">SOS · એક ડ્રાઇવરને મદદ જોઈએ છે</string>
+    <string name="papers_sos_just_now">હમણાં જ</string>
+    <string name="papers_sos_ago">%1$s પહેલાં</string>
+</resources>

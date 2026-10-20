@@ -1,5 +1,6 @@
 package com.saarthi.owner.ui.fleet
 
+import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -40,10 +41,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -51,12 +54,13 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.saarthi.owner.OwnerApp
+import com.saarthi.owner.R
 import com.saarthi.owner.data.SessionStore
 import com.saarthi.owner.network.VehiclesApi
 import com.saarthi.owner.ui.common.Loadable
 import com.saarthi.owner.ui.common.PlateChip
 import com.saarthi.owner.ui.common.ago
-import com.saarthi.owner.ui.common.formatPlate
+import com.saarthi.owner.ui.common.isNow
 import com.saarthi.owner.ui.common.rememberPhoto
 import com.saarthi.owner.ui.common.tabBarClearance
 import com.saarthi.owner.ui.common.vehiclePhotoOf
@@ -72,8 +76,9 @@ import com.saarthi.owner.ui.design.Saarthi
 import com.saarthi.owner.ui.design.SaarthiButton
 import com.saarthi.owner.ui.design.card
 import com.saarthi.owner.ui.design.pressable
-import com.saarthi.owner.ui.map.MapVehicle
 import com.saarthi.owner.ui.map.MarkerState
+import com.saarthi.owner.ui.map.OverlayInk
+import com.saarthi.owner.ui.tracking.mapMarker
 import com.saarthi.owner.ui.map.VehicleMap
 import com.saarthi.owner.ui.shell.LocalNavigator
 import kotlinx.coroutines.delay
@@ -81,7 +86,12 @@ import kotlinx.coroutines.delay
 private const val REFRESH_MS = 15_000L
 
 /** The chips over the map. */
-private enum class MapFilter(val label: String) { ALL("All"), MOVING("Moving"), IDLE("Idle"), OFFLINE("Offline") }
+private enum class MapFilter(@StringRes val label: Int) {
+    ALL(R.string.fleet_map_filter_all),
+    MOVING(R.string.fleet_map_filter_moving),
+    IDLE(R.string.fleet_map_filter_idle),
+    OFFLINE(R.string.fleet_map_filter_offline),
+}
 
 /**
  * The live map — every vehicle the business runs, where it last reported.
@@ -90,7 +100,7 @@ private enum class MapFilter(val label: String) { ALL("All"), MOVING("Moving"), 
  * card, and open it from there. The design's Fleet · Live map.
  */
 @Composable
-fun FleetMapScreen(app: OwnerApp, account: SessionStore.Account) {
+fun FleetMapScreen(app: OwnerApp, account: SessionStore.Account, onBack: (() -> Unit)? = null) {
     val model = viewModel { FleetListModel(app.vehicles, app.drivers, account) }
     val state by model.state.collectAsStateWithLifecycle()
     var filter by rememberSaveable { mutableStateOf(MapFilter.ALL) }
@@ -125,7 +135,7 @@ fun FleetMapScreen(app: OwnerApp, account: SessionStore.Account) {
 
     Box(Modifier.fillMaxSize()) {
         VehicleMap(
-            vehicles = shown.map { it.toMapVehicle() },
+            vehicles = shown.mapNotNull { it.mapMarker() },
             selectedId = selected?.id,
             onSelect = { id ->
                 selectedId = id
@@ -150,6 +160,8 @@ fun FleetMapScreen(app: OwnerApp, account: SessionStore.Account) {
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
+                // Opened as a page rather than a tab: the way back.
+                onBack?.let { CircleButton(Lucide.chevronLeft, stringResource(R.string.fleet_map_back), it, size = 52.dp, iconSize = 20.dp) }
                 SearchPill(
                     query,
                     { query = it },
@@ -167,8 +179,8 @@ fun FleetMapScreen(app: OwnerApp, account: SessionStore.Account) {
                     modifier = Modifier.weight(1f),
                 )
                 CircleButton(
-                    Lucide.maximize,
-                    "Show the whole fleet",
+                    Lucide.crosshair,
+                    stringResource(R.string.fleet_map_show_all),
                     onClick = {
                         selectedId = null
                         frameAll++
@@ -194,7 +206,7 @@ fun FleetMapScreen(app: OwnerApp, account: SessionStore.Account) {
         // Loaded, and nothing has a position: say so, rather than leave an empty map to puzzle over.
         if (lists != null && all.isEmpty()) {
             NoticeCard(
-                if (lists.vehicles.isEmpty()) "No vehicles on this account yet." else "No vehicle has reported a position yet. It shows here once its tracker or phone sends one.",
+                stringResource(if (lists.vehicles.isEmpty()) R.string.fleet_map_no_vehicles else R.string.fleet_map_no_positions),
                 NoticeTone.INFO,
                 Modifier
                     .align(Alignment.BottomCenter)
@@ -236,18 +248,6 @@ private fun VehiclesApi.Vehicle.matches(query: String): Boolean {
         currentDriver?.name?.lowercase()?.replace(" ", "")?.contains(needle) == true
 }
 
-private fun VehiclesApi.Vehicle.toMapVehicle() = MapVehicle(
-    id = id,
-    latitude = lastLocation?.latitude ?: 0.0,
-    longitude = lastLocation?.longitude ?: 0.0,
-    state = when (motion()) {
-        VehiclesApi.Motion.MOVING -> MarkerState.MOVING
-        VehiclesApi.Motion.IDLE, VehiclesApi.Motion.SERVICE -> MarkerState.IDLE
-        VehiclesApi.Motion.OFFLINE -> MarkerState.OFFLINE
-    },
-    label = formatPlate(registrationNumber),
-)
-
 @Composable
 private fun SearchPill(value: String, onChange: (String) -> Unit, onSearch: () -> Unit, modifier: Modifier) {
     val c = Saarthi.colors
@@ -262,7 +262,7 @@ private fun SearchPill(value: String, onChange: (String) -> Unit, onSearch: () -
     ) {
         LineIcon(Lucide.search, size = 18.dp, color = c.muted)
         Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
-            if (value.isEmpty()) Text("Plate or driver", style = SType.body, color = c.subtle, maxLines = 1)
+            if (value.isEmpty()) Text(stringResource(R.string.fleet_map_search_hint), style = SType.body, color = c.subtle, maxLines = 1)
             BasicTextField(
                 value = value,
                 onValueChange = onChange,
@@ -278,12 +278,13 @@ private fun SearchPill(value: String, onChange: (String) -> Unit, onSearch: () -
             )
         }
         if (value.isNotEmpty()) {
+            val clear = stringResource(R.string.fleet_map_clear_search)
             LineIcon(
                 Lucide.close,
                 size = 16.dp,
                 color = c.muted,
-                description = "Clear search",
-                modifier = Modifier.pressable(label = "Clear search") { onChange("") },
+                description = clear,
+                modifier = Modifier.pressable(label = clear) { onChange("") },
             )
         }
     }
@@ -294,9 +295,10 @@ private fun FilterPill(option: MapFilter, count: Int, selected: Boolean, onClick
     val c = Saarthi.colors
     val dot = when (option) {
         MapFilter.ALL -> null
-        MapFilter.MOVING -> c.success
-        MapFilter.IDLE -> c.warning
-        MapFilter.OFFLINE -> c.subtle
+        // The colours the discs of each kind are drawn in, so the filter reads as a key.
+        MapFilter.MOVING -> Color(OverlayInk.vehicle(MarkerState.MOVING, null))
+        MapFilter.IDLE -> Color(OverlayInk.vehicle(MarkerState.IDLE, null))
+        MapFilter.OFFLINE -> Color(OverlayInk.vehicle(MarkerState.OFFLINE, null))
     }
     Row(
         Modifier
@@ -310,7 +312,7 @@ private fun FilterPill(option: MapFilter, count: Int, selected: Boolean, onClick
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         dot?.let { LiveDot(it, size = 7.dp, breathing = option == MapFilter.MOVING) }
-        Text(option.label, style = SType.chip, color = if (selected) c.canvas else c.fg)
+        Text(stringResource(option.label), style = SType.chip, color = if (selected) c.canvas else c.fg)
         Text(count.toString(), style = SType.chip, color = if (selected) c.canvas.copy(alpha = 0.7f) else c.muted)
     }
 }
@@ -350,7 +352,7 @@ private fun VehicleCard(vehicle: VehiclesApi.Vehicle, onOpen: () -> Unit, onClos
                         vehicle.categoryLabel?.ifBlank { null } ?: vehicle.typeLabel.ifBlank { null },
                         vehicle.currentDriver?.name?.ifBlank { null },
                         vehicle.lastLocation?.recordedAt?.let { at ->
-                            ago(at).let { if (it == "now") "reporting now" else "seen $it ago" }
+                            if (isNow(at)) stringResource(R.string.fleet_map_reporting_now) else stringResource(R.string.fleet_map_seen_ago, ago(at))
                         },
                     ).joinToString(" · "),
                     style = SType.small,
@@ -359,8 +361,8 @@ private fun VehicleCard(vehicle: VehiclesApi.Vehicle, onOpen: () -> Unit, onClos
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            CircleButton(Lucide.close, "Close", onClose, size = 36.dp, iconSize = 14.dp, elevated = false, background = c.sunken)
+            CircleButton(Lucide.close, stringResource(R.string.fleet_map_close), onClose, size = 36.dp, iconSize = 14.dp, elevated = false, background = c.sunken)
         }
-        SaarthiButton("Open vehicle", onClick = onOpen, height = 52.dp, trailing = Lucide.arrowRight)
+        SaarthiButton(stringResource(R.string.fleet_map_open_vehicle), onClick = onOpen, height = 52.dp, trailing = Lucide.arrowRight)
     }
 }

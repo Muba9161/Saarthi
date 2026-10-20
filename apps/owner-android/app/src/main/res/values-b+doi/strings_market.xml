@@ -1,0 +1,359 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Orders: an order's status word (OrderRows). -->
+    <string name="market_order_status_awaiting">पक्का होने दा इंतज़ार</string>
+    <string name="market_order_status_confirmed">पक्का</string>
+    <string name="market_order_status_assigned">ट्रक लाया गेआ</string>
+    <string name="market_order_status_loading">लोड होआ करदा</string>
+    <string name="market_order_status_on_the_way">रस्ते च</string>
+    <string name="market_order_status_delivered">पुज्जी गेआ</string>
+    <string name="market_order_status_completed">पूरा होई गेआ</string>
+    <string name="market_order_status_cancelled">रद्द</string>
+    <string name="market_order_eyebrow">ऑर्डर %1$s</string>
+
+    <!-- Orders: Buy & dispatch (FleetOrderScreen). -->
+    <string name="market_fleet_order_override_done">कोड दे बगैर पक्का कीता. कारण रिकॉर्ड च ऐ ते ग्राहक गी दस्सी दित्ता गेआ ऐ.</string>
+    <string name="market_fleet_order_seller_paid">सेलर गी पेमेंट होई गेई</string>
+    <string name="market_fleet_order_title">खरीदो ते भेजो</string>
+    <string name="market_fleet_order_pay_seller">सेलर गी %1$s देओ</string>
+    <string name="market_fleet_order_opening_payment">पेमेंट खुल्ला करदा ऐ…</string>
+    <string name="market_fleet_order_paid_through">Cashfree राहें पेमेंट. पेमेंट होने दे बाद गै सेलर माल लोड करदा ऐ.</string>
+    <string name="market_fleet_order_step_material">सेलर थमां माल</string>
+    <string name="market_fleet_order_step_pay">सेलर गी पेमेंट करो</string>
+    <string name="market_fleet_order_badge_waiting_share">%1$d%% दा इंतज़ार</string>
+    <string name="market_fleet_order_badge_due_now">हून देना</string>
+    <string name="market_fleet_order_badge_paid">दित्ता गेआ</string>
+    <string name="market_fleet_order_seller_fallback">सेलर</string>
+    <string name="market_fleet_order_step_truck">लोड करने आस्तै ट्रक भेजो</string>
+    <string name="market_fleet_order_badge_assigned">लाया गेआ</string>
+    <string name="market_fleet_order_truck_pending">ऑर्डर पक्का होने पर तुंदी बोली च दस्सेआ गेदा ट्रक इत्थै दिसग.</string>
+    <string name="market_fleet_order_seller_yard">सेलर दा यार्ड</string>
+    <string name="market_fleet_order_load_by">%1$s तगर लोड करो</string>
+    <string name="market_fleet_order_customer_site">ग्राहक दी साइट</string>
+    <string name="market_fleet_order_deliver_by">%1$s तगर डिलीवरी</string>
+    <string name="market_fleet_order_earnings">तुंदी कमाई</string>
+    <string name="market_fleet_order_earnings_estimate">तुंदी कमाई · अंदाज़न</string>
+    <string name="market_fleet_order_agreed">ग्राहक कन्नै तै होआ</string>
+    <string name="market_fleet_order_paid_to_seller">सेलर गी दित्ता</string>
+    <string name="market_fleet_order_commission">Saarthi कमीशन (%1$s%%)</string>
+    <string name="market_fleet_order_you_keep">तुंदे कोल रौह्ग</string>
+    <string name="market_fleet_order_customer_paid">%1$s नै %2$d%% दित्ता</string>
+    <string name="market_fleet_order_customer_paid_unnamed">ग्राहक नै %1$d%% दित्ता</string>
+    <string name="market_fleet_order_customer_waiting">%1$s दे %2$d%% दा इंतज़ार</string>
+    <string name="market_fleet_order_customer_waiting_unnamed">ग्राहक दे %1$d%% दा इंतज़ार</string>
+    <string name="market_fleet_order_received">%1$s मिली गेआ</string>
+    <string name="market_fleet_order_due">%1$s बाकी</string>
+    <string name="market_fleet_order_after_delivery">डिलीवरी दे बाद %1$s</string>
+
+    <!-- Orders: handover codes (Handover). -->
+    <string name="market_handover_your_delivery_code">तुंदा डिलीवरी कोड</string>
+    <string name="market_handover_your_pickup_code">तुंदा पिकअप कोड</string>
+    <string name="market_handover_delivery_give">एह् ड्राइवर गी तां गै देओ जिसलै तुंदा माल तुंदे तगर पुज्जी जा — इस कन्नै डिलीवरी पक्की होंदी ऐ.</string>
+    <string name="market_handover_pickup_tell">ड्राइवर दे औने पर उसगी एह् दस्सो — कोड पांदे गै सफ़र शुरू होई जंदा ऐ.</string>
+    <string name="market_handover_delivery_verified">ड्राइवर नै तुंदे कोड कन्नै डिलीवरी पक्की कीती.</string>
+    <string name="market_handover_pickup_verified">ड्राइवर नै तुंदे कोड कन्नै सफ़र शुरू कीता.</string>
+    <string name="market_handover_delivery_overridden">ऑपरेटर नै तुंदे कोड दे बगैर डिलीवरी पक्की कीती.</string>
+    <string name="market_handover_pickup_overridden">ऑपरेटर नै तुंदे कोड दे बगैर सफ़र शुरू कीता.</string>
+    <string name="market_handover_reason">कारण: %1$s</string>
+    <string name="market_handover_code_entered">ग्राहक दा कोड पाई दित्ता</string>
+    <string name="market_handover_confirmed_without">ग्राहक दे कोड दे बगैर पक्का कीता</string>
+    <string name="market_handover_waiting_delivery">ग्राहक दे डिलीवरी कोड दा इंतज़ार</string>
+    <string name="market_handover_waiting_pickup">सवारी दे पिकअप कोड दा इंतज़ार</string>
+    <string name="market_handover_delivery_code">डिलीवरी कोड</string>
+    <string name="market_handover_pickup_code">पिकअप कोड</string>
+    <string name="market_handover_driver_enters_drop">डिलीवरी पूरी करने आस्तै ड्राइवर ड्रॉप पर एह् पांदा ऐ.</string>
+    <string name="market_handover_driver_enters_pickup">सफ़र शुरू करने आस्तै ड्राइवर पिकअप पर एह् पांदा ऐ.</string>
+    <string name="market_handover_override_link">ग्राहक कोड नेईं देई सकदा? कोड दे बगैर पक्का करो</string>
+    <string name="market_handover_override_delivery_title">कोड दे बगैर डिलीवरी पक्की करनी ऐ?</string>
+    <string name="market_handover_override_pickup_title">कोड दे बगैर सफ़र शुरू करना ऐ?</string>
+    <string name="market_handover_override_body">सिर्फ तां जिसलै ग्राहक कोड नेईं देई सकदा. तुंदा कारण रिकॉर्ड च रक्खेआ जंदा ऐ, ते ग्राहक गी दस्सेआ जंदा ऐ.</string>
+    <string name="market_handover_override_reason_label">कीं? (घट्टो-घट्ट 10 अक्खर)</string>
+    <string name="market_handover_override_delivery_button">कोड दे बगैर पक्का करो</string>
+    <string name="market_handover_override_pickup_button">कोड दे बगैर शुरू करो</string>
+    <string name="market_handover_customer_delivery_code">ग्राहक दा डिलीवरी कोड</string>
+    <string name="market_handover_passenger_pickup_code">सवारी दा पिकअप कोड</string>
+    <string name="market_handover_ask_customer">ग्राहक कोला उंदे Saarthi ऐप जां SMS च आए दा 4 अंकें दा कोड पुच्छो. कोड पांदे गै डिलीवरी पूरी होई जंदी ऐ.</string>
+    <string name="market_handover_ask_passenger">सवारी कोला उंदे Saarthi ऐप जां SMS च आए दा 4 अंकें दा कोड पुच्छो. कोड पांदे गै सफ़र शुरू होई जंदा ऐ.</string>
+    <string name="market_handover_code_label">4 अंकें दा कोड</string>
+    <string name="market_handover_complete_delivery">डिलीवरी पूरी करो</string>
+    <string name="market_handover_start_ride">सफ़र शुरू करो</string>
+    <string name="market_handover_customer_cant">ग्राहक कोड नेईं देई सकदा?</string>
+    <string name="market_handover_passenger_cant">सवारी कोड नेईं देई सकदी?</string>
+
+    <!-- Seller: tabs (SellerTabs). -->
+    <string name="market_seller_tab_home">होम</string>
+    <string name="market_seller_tab_greeting">नमस्ते, %1$s</string>
+    <string name="market_seller_what_fleets_see">फ़्लीटां केह् दिक्खदियां न</string>
+    <string name="market_seller_tab_stock_title">स्टॉक ते रेट</string>
+    <string name="market_seller_tab_loading">लोडिंग</string>
+    <string name="market_seller_tab_loading_eyebrow">माल लैने आह्लियां फ़्लीटां</string>
+    <string name="market_seller_tab_money">पैसे</string>
+    <string name="market_seller_tab_money_eyebrow">फ़्लीटें दी पेमेंट</string>
+
+    <!-- Seller: home (SellerHomeScreen). -->
+    <string name="market_seller_paid_awaiting">%1$d दी पेमेंट होई · %2$d दी पेमेंट बाकी</string>
+    <string name="market_seller_coming_to_load">लोड करने आवा करदे</string>
+    <string name="market_seller_no_trucks_due">कोई ट्रक नेईं औने आह्ला</string>
+    <plurals name="market_seller_trucks">
+        <item quantity="one">%1$d ट्रक</item>
+        <item quantity="other">%1$d ट्रक</item>
+    </plurals>
+    <string name="market_seller_load">लोड</string>
+    <string name="market_seller_orders">ऑर्डर</string>
+    <plurals name="market_seller_from_fleets">
+        <item quantity="one">%1$d फ़्लीट थमां</item>
+        <item quantity="other">%1$d फ़्लीटें थमां</item>
+    </plurals>
+    <string name="market_seller_received">मिली गेआ</string>
+    <string name="market_seller_more_due">%1$d होर बाकी</string>
+    <string name="market_seller_stock">स्टॉक</string>
+    <string name="market_seller_stock_fine">सब ठीक</string>
+    <string name="market_seller_stock_low">%1$d घट्ट</string>
+    <string name="market_seller_see_stock">स्टॉक दिक्खो</string>
+    <string name="market_seller_all_orders">सारे ऑर्डर</string>
+    <string name="market_seller_home_empty">जिसलै कोई फ़्लीट तुंदे शा खरीदग, उसदा ट्रक इत्थै दिसग.</string>
+    <string name="market_seller_home_footnote">फ़्लीटां तुंदे शा खरीददियां न ते अपने ट्रक भेजदियां न. तुस लोड करदे ओ; ओह् डिलीवरी करदियां न.</string>
+    <string name="market_seller_a_fleet">इक फ़्लीट</string>
+    <string name="market_seller_paid_amount">%1$s दित्ते</string>
+    <string name="market_seller_paid">दित्ता गेआ</string>
+    <string name="market_seller_sold">बिकी गेआ</string>
+    <string name="market_seller_payment_due">पेमेंट बाकी</string>
+    <string name="market_seller_truck_at">ट्रक %1$s बजे</string>
+    <string name="market_seller_picked_up">%1$s चुक्केआ</string>
+
+    <!-- Seller: loading list and one order at the gate (SellerLoadingScreen). -->
+    <string name="market_seller_loading_empty">जिसलै कोई फ़्लीट तुंदे शा खरीदग, उसदा ऑर्डर इत्थै दिसग.</string>
+    <string name="market_seller_other_orders">होर ऑर्डर</string>
+    <string name="market_seller_load_title">ट्रक लोड करो</string>
+    <string name="market_seller_load_at_gate">तुंदे गेट पर</string>
+    <string name="market_seller_load_collecting">माल लैने आवा करदा</string>
+    <string name="market_seller_load_truck_unnamed">ट्रक अजें तै नेईं</string>
+    <string name="market_seller_load_driver">ड्राइवर %1$s</string>
+    <string name="market_seller_load_due">%1$s औना ऐ</string>
+    <string name="market_seller_load_paid_by">%1$s नै पेमेंट कीती</string>
+    <string name="market_seller_load_paid_by_unnamed">फ़्लीट नै पेमेंट कीती</string>
+    <string name="market_seller_load_sold_to">%1$s गी बेचेआ</string>
+    <string name="market_seller_load_sold_to_unnamed">फ़्लीट गी बेचेआ</string>
+    <string name="market_seller_load_waiting_pay">%1$s दी पेमेंट दा इंतज़ार</string>
+    <string name="market_seller_load_waiting_pay_unnamed">फ़्लीट दी पेमेंट दा इंतज़ार</string>
+    <string name="market_seller_load_not_through_saarthi">Saarthi राहें पेमेंट नेईं होई</string>
+    <string name="market_seller_load_once_paid">पेमेंट होने दे बाद गै लोड करो</string>
+    <string name="market_seller_load_truck_collecting">ट्रक %1$s माल लैने आवा करदा ऐ</string>
+    <string name="market_seller_load_fleet_names_truck">फ़्लीट अपना ट्रक दस्सदी ऐ</string>
+    <string name="market_seller_load_check_plate">लोड करने शा पैह्लें नंबर प्लेट मिलाई लैओ</string>
+    <string name="market_seller_load_what">%1$s लोड करो</string>
+    <string name="market_seller_load_at">%1$s पर</string>
+    <string name="market_seller_load_fleet_delivers">इत्थुआं अग्गें डिलीवरी %1$s करदा ऐ.</string>
+    <string name="market_seller_load_fleet_delivers_unnamed">इत्थुआं अग्गें डिलीवरी फ़्लीट करदी ऐ.</string>
+
+    <!-- Seller: money (SellerMoneyScreen). -->
+    <string name="market_seller_money_received_in">%1$s च मिले</string>
+    <string name="market_seller_money_bank_verified">बैंक वेरिफ़ाई होआ</string>
+    <string name="market_seller_money_bank_not_connected">बैंक नेईं जुड़े दा</string>
+    <string name="market_seller_money_to_bank">%1$s च</string>
+    <plurals name="market_seller_money_orders_from_fleets">
+        <item quantity="one">%2$d फ़्लीट थमां %1$d ऑर्डर</item>
+        <item quantity="other">%2$d फ़्लीटें थमां %1$d ऑर्डर</item>
+    </plurals>
+    <string name="market_seller_money_connect_bank">जिस बैंक खाते च तुसेंगी पैसे मिलदे न, उसगी वेब पर Saarthi थमां जोड़ो.</string>
+    <string name="market_seller_money_awaiting">पेमेंट दा इंतज़ार</string>
+    <string name="market_seller_money_nothing_owed">इस बेलै किश बाकी नेईं.</string>
+    <string name="market_seller_money_received_empty">फ़्लीटें दियां पेमेंटां इत्थै दिसदियां न.</string>
+
+    <!-- Seller: stock and a new listing (SellerStockScreen). -->
+    <string name="market_stock_note">तुंदे नेड़ै कम्मै पर बोली लाने आह्लियां फ़्लीटां तुंदा रेट ते स्टॉक मिलांदियां न. ऑर्डर लैने आस्तै दोऐ अपडेट रक्खो.</string>
+    <string name="market_stock_all">सब · %1$d</string>
+    <string name="market_stock_add_listing">लिस्टिंग जोड़ो</string>
+    <string name="market_stock_shown_low">फ़्लीटें गी \"घट्ट स्टॉक\" दस्सेआ जंदा ऐ</string>
+    <string name="market_stock_shown">फ़्लीटें गी दिसदा ऐ</string>
+    <string name="market_stock_hidden">फ़्लीटें शा छपाए दा</string>
+    <string name="market_stock_left">%1$s %2$s बाकी</string>
+    <string name="market_stock_new_listing">नमीं लिस्टिंग</string>
+    <string name="market_stock_show_to_fleets">फ़्लीटें गी दस्सो</string>
+    <string name="market_stock_name_placeholder">M-sand, प्लस्तर आह्ली</string>
+    <string name="market_stock_price">रेट (₹)</string>
+    <string name="market_stock_notes_optional">खरीदने आह्ले गी होर किश दस्सना ऐ? (जरूरी नेईं)</string>
+    <string name="market_stock_photos_next">लिस्ट होने दे बाद, फ़ोटो अगले पेज पर जोड़ियां जंदियां न.</string>
+    <string name="market_stock_add_field">लिस्ट करने आस्तै %1$s लिखो.</string>
+
+    <!-- Seller: one listing (ListingScreen). -->
+    <string name="market_listing_unit_tonnes">टन</string>
+    <string name="market_listing_unit_bags">बोरियां</string>
+    <string name="market_listing_unit_pieces">पीस</string>
+    <string name="market_listing_unit_litres">लीटर</string>
+    <string name="market_listing_unit_trips">ट्रिपां</string>
+    <string name="market_listing_save">बदलाव सेव करो</string>
+    <string name="market_listing_saved">सेव होई गेआ. फ़्लीटें गी हून नमीं जानकारी दिसदी ऐ.</string>
+    <string name="market_listing_saving">सेव होआ करदा ऐ…</string>
+    <string name="market_listing_details">जानकारी</string>
+    <string name="market_listing_what_you_sell">तुस केह् बेचदे ओ</string>
+    <string name="market_listing_notes">खरीदने आह्ले गी होर किश दस्सना ऐ?</string>
+    <string name="market_listing_notes_placeholder">ग्रेड, साइज़, किस चाल्ली पैक होंदा ऐ</string>
+    <string name="market_listing_price_per">प्रति %1$s रेट (₹)</string>
+    <string name="market_listing_in_stock">स्टॉक च</string>
+    <string name="market_listing_min_order">घट्टो-घट्ट ऑर्डर</string>
+    <string name="market_listing_pickup">ट्रक इत्थुआं माल लैंदे न</string>
+    <string name="market_listing_shown_note">नेड़ै बोली लाने आह्लियां फ़्लीटां इसगी दिक्खदियां न.</string>
+    <string name="market_listing_hidden_note">जदूं तगर तुस फ्ही नेईं दस्सदे, एह् छपाए दा रौह्ग.</string>
+    <string name="market_listing_show_named">%1$s फ़्लीटें गी दस्सो</string>
+    <string name="market_listing_remove_link">एह् लिस्टिंग हटाओ</string>
+    <string name="market_listing_photo_unusable">ओह् फ़ोटो नेईं बरतोई सकी.</string>
+    <string name="market_listing_photo_added">फ़ोटो जुड़ी गेई.</string>
+    <string name="market_listing_photo_removed">फ़ोटो हटाई दित्ती.</string>
+    <string name="market_listing_cover_changed">कवर बदली गेआ.</string>
+    <string name="market_listing_photos">फ़ोटो</string>
+    <string name="market_listing_photos_loading">फ़ोटो लोड होआ करदियां न…</string>
+    <string name="market_listing_photo_cover">%1$s · कवर</string>
+    <string name="market_listing_make_cover">इसगी कवर बनाओ</string>
+    <string name="market_listing_no_photos_yet">अजें कोई फ़ोटो नेईं. माल दिक्खियै फ़्लीटां जल्दी चुनदियां न.</string>
+    <string name="market_listing_no_photos">इस लिस्टिंग दी कोई फ़ोटो नेईं.</string>
+    <string name="market_listing_photos_max">इक लिस्टिंग च बद्धो-बद्ध %1$d फ़ोटो होई सकदियां न. होर जोड़ने आस्तै इक हटाओ.</string>
+    <string name="market_listing_take_photo">फ़ोटो खिच्चो</string>
+    <string name="market_listing_gallery">गैलरी</string>
+    <string name="market_listing_cover_note">कवर ओह् फ़ोटो ऐ जेह्ड़ी फ़्लीटां सब्भनें शा पैह्लें दिक्खदियां न.</string>
+    <string name="market_listing_remove_title">%1$s हटाना ऐ?</string>
+    <string name="market_listing_remove_body">एह् हमेशा आस्तै बिक्री थमां हटी जाग ते फ़्लीटें गी दिसना बंद होई जाग. किश चिर आस्तै बेचना बंद करना ऐ तां इसदी बजाए इसगी छपाओ. जिस लिस्टिंग दा कोई ऑर्डर अजें रस्ते च ऐ, उसगी हटाया नेईं जाई सकदा.</string>
+    <string name="market_listing_remove_button">लिस्टिंग हटाओ</string>
+    <string name="market_listing_removing">हटाया जा करदा ऐ…</string>
+
+    <!-- Commerce: category picker and the "What is it?" panel (CategoryPickerScreen, CommerceDetails). -->
+    <string name="market_commerce_choose_category">कैटेगरी चुनो</string>
+    <string name="market_commerce_what_is_it">एह् केह् ऐ?</string>
+    <string name="market_commerce_search_placeholder">रेत, सीमेंट, इट्टां…</string>
+    <string name="market_commerce_no_match">इस नां दा किश नेईं. कोई छोटा लफ़्ज़ अजमाओ.</string>
+    <string name="market_commerce_detected">पछानेआ गेआ</string>
+    <string name="market_commerce_reading">पता लाया जा करदा ऐ जे एह् केह् ऐ…</string>
+    <string name="market_commerce_read_failed">Saarthi इस बेलै एह् नेईं पढ़ी सकेआ. कैटेगरी चुनो.</string>
+    <string name="market_commerce_unknown">Saarthi नेईं दस्सी सकेआ जे एह् केह् ऐ. सब्भनें शा नेड़ै दी कैटेगरी चुनो.</string>
+    <string name="market_commerce_is_this_right">केह् एह् ठीक ऐ? नेईं ऐ तां बदलो.</string>
+    <string name="market_commerce_choose">चुनो</string>
+    <string name="market_commerce_change">बदलो</string>
+    <string name="market_commerce_more_details">होर जानकारी जोड़ो (जरूरी नेईं)</string>
+    <string name="market_commerce_field_optional">%1$s (जरूरी नेईं)</string>
+
+    <!-- Jobs: the board, kinds and orders (JobsScreen). -->
+    <string name="market_jobs_kind_all">सब</string>
+    <string name="market_jobs_kind_material">माल</string>
+    <string name="market_jobs_kind_freight">भाड़ा</string>
+    <string name="market_jobs_kind_cab">कैब</string>
+    <string name="market_jobs_kind_tour">टूर</string>
+    <string name="market_jobs_empty_title">इस बेलै कोई खुल्ला कम्म नेईं</string>
+    <string name="market_jobs_empty_body">जिसलै कोई ग्राहक ऐसा कम्म पोस्ट करग जेह्ड़ा तुंदियां गड्डियां करी सकदियां न, ओह् इत्थै दिसग.</string>
+    <string name="market_jobs_closes_in">%1$s · %2$s घैंटे च बंद</string>
+    <string name="market_jobs_bidding_closed">%1$s · बोली बंद</string>
+    <string name="market_jobs_needed_lower">%1$s चाहिदा</string>
+    <string name="market_jobs_no_bids">अजें कोई बोली नेईं</string>
+    <plurals name="market_jobs_bids_so_far">
+        <item quantity="one">हून तगर %1$d बोली</item>
+        <item quantity="other">हून तगर %1$d बोलियां</item>
+    </plurals>
+    <string name="market_jobs_km_away">%1$d km दूर</string>
+    <string name="market_jobs_your_bid_amount">तुंदी बोली %1$s</string>
+    <string name="market_jobs_see_your_bid">अपनी बोली दिक्खो</string>
+    <string name="market_jobs_check_sellers_bid">सेलर दिक्खो ते बोली लाओ</string>
+    <string name="market_jobs_bid_freight">इस भाड़े पर बोली लाओ</string>
+    <string name="market_jobs_quote_trip">इस ट्रिप दा रेट देओ</string>
+    <string name="market_jobs_section_open">खुल्ले कम्म</string>
+    <string name="market_jobs_section_orders">ऑर्डर</string>
+    <string name="market_jobs_section_trips">ट्रिपां</string>
+    <string name="market_jobs_orders_empty">जेह्ड़े ऑर्डर तुस जित्तगे ओ ओह् इत्थै दिसङन — हर इक चों सेलर गी पेमेंट करो ते ट्रक भेजो.</string>
+    <string name="market_jobs_in_progress">चला करदे</string>
+    <string name="market_jobs_earlier">पैह्लें दे</string>
+
+    <!-- Jobs: a bid (BidScreen). -->
+    <string name="market_bid_type_car">कार</string>
+    <string name="market_bid_type_van">वैन</string>
+    <string name="market_bid_type_tempo">टैम्पो</string>
+    <string name="market_bid_type_bus">बस</string>
+    <string name="market_bid_type_taxi">टैक्सी</string>
+    <string name="market_bid_eyebrow">कम्म · %1$s</string>
+    <string name="market_bid_check_sellers">सेलर दिक्खो</string>
+    <string name="market_bid_your_bid">तुंदी बोली</string>
+    <string name="market_bid_hours_left">%1$d घैंटे बाकी</string>
+    <string name="market_bid_sent">तुसें %1$s (%2$s) दी बोली लाई. ग्राहक तगर पुज्जी गेई ऐ.</string>
+    <string name="market_bid_to_customer">ग्राहक गी बोली</string>
+    <string name="market_bid_one_price">पुज्जने तगर इक्कै रेट</string>
+    <string name="market_bid_send_amount">बोली भेजो · %1$s</string>
+    <string name="market_bid_send">बोली भेजो</string>
+    <string name="market_bid_sending">भेजेआ जा करदा ऐ…</string>
+    <string name="market_bid_connect_bank">माल पर बोली लाने शा पैह्लें वेब पर Saarthi च अपना बिज़नेस बैंक खाता जोड़ो ते वेरिफ़ाई करो. ग्राहक दा %1$d%% उस्सै च औंदा ऐ.</string>
+    <string name="market_bid_seller_hidden">ग्राहक सेलर गी कदें नेईं दिक्खदा. तुस माल खरीददे ओ, लोड करदे ओ ते डिलीवरी करदे ओ.</string>
+    <string name="market_bid_no_sellers">साइट दे नेड़ै कुसै सेलर कोल अजें एह् स्टॉक च नेईं. जिसलै गै कोई लिस्ट करग, तुस बोली लाई सकगे ओ. ओह् तुसेंगी इत्थै दिसङन.</string>
+    <plurals name="market_bid_sellers_with_stock">
+        <item quantity="one">साइट दे नेड़ै स्टॉक आह्ला %1$d सेलर</item>
+        <item quantity="other">साइट दे नेड़ै स्टॉक आह्ले %1$d सेलर</item>
+    </plurals>
+    <string name="market_bid_which_vehicle">केह्ड़ी गड्डी जाग</string>
+    <string name="market_bid_no_vehicle">इस बेलै इस खाते दी कोई गड्डी नेईं दित्ती जाई सकदी.</string>
+    <string name="market_bid_who_drives">कुन चलाग</string>
+    <string name="market_bid_no_driver">इस खाते दा कोई ड्राइवर अजें नेईं दस्सेआ जाई सकदा.</string>
+    <string name="market_bid_vehicle_you_send">जेह्ड़ी गड्डी तुस भेजगे ओ</string>
+    <string name="market_bid_driver_included">ड्राइवर शामल</string>
+    <string name="market_bid_fuel_included">तेल शामल</string>
+    <string name="market_bid_price_includes">रेट च केह्-केह् शामल ऐ</string>
+    <string name="market_bid_included_label">शामल, हर लाइन च इक</string>
+    <string name="market_bid_included_placeholder">टोल ते पार्किंग\nड्राइवर भत्ता</string>
+    <string name="market_bid_included_prefilled">ग्राहक नै जेह्ड़ा मंगेआ, ओह् भरेआ गेदा ऐ.</string>
+    <string name="market_bid_excluded_label">शामल नेईं, हर लाइन च इक</string>
+    <string name="market_bid_excluded_placeholder">एंट्री टिकट\nखाना</string>
+    <string name="market_bid_itinerary_label">सफ़र दा खाका (जरूरी नेईं)</string>
+    <string name="market_bid_itinerary_placeholder">दिन 1: पिकअप, पैह्ले स्टॉप तगर सफ़र\nदिन 2: घुम्मना-फिरना, वापसी</string>
+    <string name="market_bid_itinerary_hint">टूर ऐ तां दिन-ब-दिन लिखो. ग्राहक इस्सै गी मिलांदा ऐ.</string>
+    <string name="market_bid_transport_label">तुंदा ट्रांसपोर्ट, साइट तगर (₹)</string>
+    <string name="market_bid_price_label">पूरे कम्म दा तुंदा रेट (₹)</string>
+    <string name="market_bid_breakdown_label">उस रेट च केह् शामल ऐ (जरूरी नेईं)</string>
+    <string name="market_bid_breakdown_placeholder">सब शामल: तेल, टोल, ड्राइवर भत्ता</string>
+    <string name="market_bid_breakdown_supporting">ब्योरे आह्ला रेट बिना ब्योरे आह्ले शा मता जित्तदा ऐ.</string>
+    <string name="market_bid_note_label">ग्राहक आस्तै नोट (जरूरी नेईं)</string>
+    <string name="market_bid_note_placeholder_travel">AC कार, टोल ते पार्किंग शामल</string>
+    <string name="market_bid_note_placeholder_goods">7 बजे तगर लोड, 11 बजे तगर तुंदे गेट पर</string>
+    <string name="market_bid_deliver_to">%1$s पजाना</string>
+    <string name="market_bid_needed">%1$s चाहिदा</string>
+    <string name="market_bid_km_from_site">साइट थमां %1$d km</string>
+    <string name="market_bid_short_on_stock">स्टॉक घट्ट</string>
+    <string name="market_bid_price">रेट</string>
+    <string name="market_bid_for_quantity">%1$s आस्तै</string>
+    <string name="market_bid_included_too_many">बद्धो-बद्ध %1$d शामल चीज़ां लिखो.</string>
+    <string name="market_bid_excluded_too_many">बद्धो-बद्ध %1$d बाहर रक्खी दियां चीज़ां लिखो.</string>
+    <string name="market_bid_included_too_short">हर शामल चीज़ च घट्टो-घट्ट %1$d अक्खर चाहिदे.</string>
+    <string name="market_bid_excluded_too_short">हर बाहर रक्खी दी चीज़ च घट्टो-घट्ट %1$d अक्खर चाहिदे.</string>
+    <string name="market_bid_included_too_long">हर शामल चीज़ %1$d अक्खरें जां इस शा घट्ट च लिखो.</string>
+    <string name="market_bid_excluded_too_long">हर बाहर रक्खी दी चीज़ %1$d अक्खरें जां इस शा घट्ट च लिखो.</string>
+
+    <!-- Map: a trip's road and its key (TripRouteMap, RouteMapScreen). -->
+    <string name="market_map_trail_on_route">रूट पर</string>
+    <string name="market_map_trail_off_route">रूट थमां बाह्र</string>
+    <string name="market_map_trail_other_road">दूई सड़क</string>
+    <string name="market_map_trail_no_trip">कोई ट्रिप नेईं</string>
+    <string name="market_map_planned_route">प्लान कीता दा रूट</string>
+    <string name="market_map_show_whole_route">पूरा रूट दस्सो</string>
+    <string name="market_map_open_full_screen">मैप पूरी स्क्रीन पर खोह्लो</string>
+    <string name="market_map_pickup">पिकअप</string>
+    <string name="market_map_drop">ड्रॉप</string>
+
+    <!-- Tracking: a followed vehicle (FollowViews). -->
+    <string name="market_follow_no_position">अजें कोई जगह नेईं</string>
+    <string name="market_follow_show_whole_road">पूरा रस्ता दस्सो</string>
+    <string name="market_follow_finding">गड्डी लब्भी जा करदी ऐ…</string>
+    <string name="market_follow_readings">रीडिंग</string>
+    <string name="market_follow_measured_now">हुनै नापेआ</string>
+    <string name="market_follow_measured_ago">%1$s पैह्लें नापेआ</string>
+    <string name="market_follow_start">शुरू</string>
+    <string name="market_follow_destination">मंज़िल</string>
+    <string name="market_follow_moving">चला करदी</string>
+    <string name="market_follow_stopped">रुकी दी</string>
+    <string name="market_follow_not_reporting">रिपोर्ट नेईं करा करदी</string>
+    <string name="market_follow_alert">अलर्ट</string>
+    <string name="market_follow_to">%1$s आह्ली बक्खी</string>
+    <string name="market_follow_never_reported">इस गड्डी नै अजें अपनी जगह नेईं दस्सी.</string>
+    <string name="market_follow_reporting_now">हून रिपोर्ट करा करदी</string>
+    <string name="market_follow_last_seen">आखरी बारी %1$s पैह्लें दिक्खी</string>
+    <string name="market_follow_speed">रफ़्तार</string>
+    <string name="market_follow_engine">इंजन</string>
+    <string name="market_follow_load">लोड</string>
+    <string name="market_follow_coolant">कूलेंट</string>
+    <string name="market_follow_fuel">तेल</string>
+    <string name="market_follow_battery">बैटरी</string>
+    <string name="market_follow_unit_kph">km/h</string>
+    <string name="market_follow_unit_rpm">rpm</string>
+</resources>

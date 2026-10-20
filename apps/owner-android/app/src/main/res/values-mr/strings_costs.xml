@@ -1,0 +1,324 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Running costs: the tabs, the card on a home or vehicle page, and the screen. -->
+    <string name="costs_tab_fuel">इंधन</string>
+    <string name="costs_tab_servicing">सर्व्हिस</string>
+    <string name="costs_tab_slips">पावत्या</string>
+    <string name="costs_tab_loans">लोन</string>
+    <string name="costs_tab_toll">टोल</string>
+    <string name="costs_running_costs">रनिंग खर्च</string>
+    <string name="costs_card_open">रनिंग खर्च उघडा</string>
+    <string name="costs_whole_fleet">संपूर्ण फ्लीट</string>
+    <string name="costs_not_in_plan">रनिंग खर्च या खात्याच्या प्लॅनमध्ये किंवा भूमिकेत येत नाही.</string>
+
+    <!-- Words shared by the cost forms and lists. -->
+    <string name="costs_fuel">इंधन</string>
+    <string name="costs_servicing">सर्व्हिसिंग</string>
+    <string name="costs_slips">पावत्या</string>
+    <string name="costs_loans">लोन</string>
+    <string name="costs_vehicle">गाडी</string>
+    <string name="costs_saving">सेव्ह होत आहे…</string>
+    <string name="costs_recording">नोंद होत आहे…</string>
+    <string name="costs_done">झाले</string>
+    <string name="costs_photo_unusable">तो फोटो वापरता आला नाही.</string>
+    <string name="costs_reference_optional">रेफरन्स (ऐच्छिक)</string>
+    <string name="costs_odometer_optional">ओडोमीटर km (ऐच्छिक)</string>
+    <string name="costs_outstanding">बाकी रक्कम</string>
+    <string name="costs_overdue">थकीत</string>
+    <string name="costs_was_due">%1$s ला भरायचे होते</string>
+    <string name="costs_slip_other_plate">या पावतीवर %2$s नाही, %1$s आहे. गाडी बरोबर आहे का ते तपासा.</string>
+    <string name="costs_bill_other_plate">या बिलावर %2$s नाही, %1$s आहे. गाडी बरोबर आहे का ते तपासा.</string>
+
+    <!-- The first step of a form that reads a slip or a bill. -->
+    <string name="costs_slip_step_pump_prompt">पंपाच्या पावतीचा फोटो घ्या, त्यातून माहिती आपोआप भरली जाईल.</string>
+    <string name="costs_slip_step_pump_scan">पंपाची पावती स्कॅन करा</string>
+    <string name="costs_slip_step_pump_reading">पंपाची पावती वाचत आहे…</string>
+    <string name="costs_slip_step_bill_prompt">बिलाचा फोटो घ्या, त्यातून माहिती आपोआप भरली जाईल.</string>
+    <string name="costs_slip_step_bill_scan">बिल स्कॅन करा</string>
+    <string name="costs_slip_step_bill_reading">बिल वाचत आहे…</string>
+    <string name="costs_slip_step_slip_prompt">पावतीचा फोटो घ्या, त्यातून माहिती आपोआप भरली जाईल.</string>
+    <string name="costs_slip_step_slip_scan">पावती स्कॅन करा</string>
+    <string name="costs_slip_step_slip_reading">पावती वाचत आहे…</string>
+    <string name="costs_slip_step_gallery">गॅलरी</string>
+    <string name="costs_slip_step_change">बदला</string>
+
+    <!-- Fuel tab and the fill-up form. -->
+    <string name="costs_log_fill_up">इंधन भरल्याची नोंद करा</string>
+    <string name="costs_litres">लिटर</string>
+    <string name="costs_fuel_litres_unit">L</string>
+    <string name="costs_fuel_spend">खर्च</string>
+    <string name="costs_fuel_avg_rate">सरासरी दर</string>
+    <string name="costs_fuel_rate_unit">₹/L</string>
+    <string name="costs_fuel_none">अजून इंधन भरल्याची नोंद नाही.</string>
+    <string name="costs_fuel_fill_title">%2$s/L दराने %1$.1f L</string>
+    <string name="costs_fill_up_save">इंधन नोंद सेव्ह करा</string>
+    <string name="costs_fill_up_slip_lost">इंधनाची नोंद सेव्ह झाली, पण पावती सोबत ठेवता आली नाही. %1$s</string>
+    <string name="costs_fill_up_read_good">पावतीतून माहिती भरली. तपशील तपासा, मग सेव्ह करा.</string>
+    <string name="costs_fill_up_read_none">या पावतीतून काहीही वाचता आले नाही. लिटर आणि दर भरा.</string>
+    <string name="costs_fill_up_rate">दर (₹ प्रति लिटर)</string>
+    <string name="costs_fill_up_total">एकूण %1$s</string>
+    <string name="costs_fill_up_filled_on">भरल्याची तारीख</string>
+    <string name="costs_fill_up_pump">पंप (ऐच्छिक)</string>
+
+    <!-- Servicing tab and the servicing form. -->
+    <string name="costs_log_servicing">सर्व्हिसिंगची नोंद करा</string>
+    <string name="costs_service_save">सर्व्हिसिंग सेव्ह करा</string>
+    <string name="costs_service_book">बुक करा</string>
+    <string name="costs_service_done_already">आधीच झाले</string>
+    <string name="costs_service_booked">बुक केले</string>
+    <string name="costs_service_read_good">बिलातून माहिती भरली. तपशील तपासा, मग सेव्ह करा.</string>
+    <string name="costs_service_read_none">या बिलातून काहीही वाचता आले नाही. काय काम झाले ते भरा.</string>
+    <string name="costs_service_bill_hint">फॉर्म भरण्यासाठी बिल याच फोनवर वाचले जाते; फक्त तपशील सेव्ह होतात.</string>
+    <string name="costs_service_work">काम</string>
+    <string name="costs_service_what">काय काम झाले</string>
+    <string name="costs_service_what_placeholder">उदा. 10,000 km सर्व्हिस</string>
+    <string name="costs_service_done_on">केल्याची तारीख</string>
+    <string name="costs_service_booked_for">बुकिंगची तारीख</string>
+    <string name="costs_service_total">एकूण ₹ (ऐच्छिक)</string>
+    <string name="costs_service_estimate">अंदाजे ₹ (ऐच्छिक)</string>
+    <string name="costs_service_workshop">गॅरेज (ऐच्छिक)</string>
+    <string name="costs_service_bill_number">बिल नंबर (ऐच्छिक)</string>
+    <string name="costs_service_work_done">झालेले काम</string>
+    <string name="costs_service_none">अजून सर्व्हिसिंगची नोंद नाही.</string>
+    <string name="costs_service_history_unreadable">सर्व्हिस हिस्टरी वाचता आली नाही.</string>
+    <string name="costs_service_worth_a_look">एकदा तपासून घ्या</string>
+    <string name="costs_service_needs">सर्व्हिस करायला हवी</string>
+    <string name="costs_service_soon">लवकरच सर्व्हिस</string>
+    <string name="costs_service_history">सर्व्हिस हिस्टरी</string>
+    <string name="costs_service_due">मुदत %1$s</string>
+    <string name="costs_service_spent">खर्च</string>
+    <string name="costs_service_parts">पार्ट्स</string>
+    <string name="costs_service_labour">मजुरी</string>
+    <string name="costs_service_cost_per_km">देखभालीचा खर्च साधारण ₹%1$.2f प्रति किलोमीटर.</string>
+    <string name="costs_service_for">%1$s साठी</string>
+    <string name="costs_service_mark_done">झाले म्हणून नोंदवा</string>
+    <string name="costs_service_call_off">रद्द करा</string>
+
+    <!-- Slips tab and the slip form. -->
+    <string name="costs_file_slip">पावती नोंदवा</string>
+    <string name="costs_slip_file">पावती नोंदवा</string>
+    <string name="costs_slip_filing">नोंदवत आहे…</string>
+    <string name="costs_slip_read_good">पावतीतून माहिती भरली. तपशील तपासा, मग नोंदवा.</string>
+    <string name="costs_slip_read_none">या पावतीतून काहीही वाचता आले नाही. ती कशासाठी होती आणि रक्कम भरा.</string>
+    <string name="costs_slip_photo_needed">फोटो हाच पावतीचा पुरावा आहे, म्हणून तो लागतो.</string>
+    <string name="costs_slip_what_for">कशासाठी होता</string>
+    <string name="costs_slip_amount">रक्कम ₹</string>
+    <string name="costs_slip_paid_to">कोणाला दिले (ऐच्छिक)</string>
+    <string name="costs_slip_note">टीप (ऐच्छिक)</string>
+    <string name="costs_slips_all">सर्व</string>
+    <string name="costs_slips_none">अजून एकही पावती नोंदवलेली नाही. ड्रायव्हर त्या Humsafar मधून नोंदवतात.</string>
+    <string name="costs_slips_none_kind">या प्रकारच्या पावत्या नाहीत.</string>
+    <string name="costs_slips_spent">पावत्यांवरचा खर्च</string>
+    <string name="costs_slips_open">पावती उघडा</string>
+    <string name="costs_slip_filed_against">ट्रिप %1$s साठी नोंदवली.</string>
+    <string name="costs_slip_filed_between">दोन ट्रिपच्या मध्ये नोंदवली.</string>
+    <string name="costs_slip_photo_description">पावती</string>
+
+    <!-- Loans tab: the summary, the list, and an installment's or a loan's standing. -->
+    <string name="costs_add_loan">लोन जोडा</string>
+    <string name="costs_loans_monthly">दरमहा EMI</string>
+    <string name="costs_loans_due_month">या महिन्यात भरायचे</string>
+    <string name="costs_loans_next_30_days">पुढचे 30 दिवस</string>
+    <string name="costs_loans_vehicle">या गाडीचे लोन</string>
+    <string name="costs_loans_none">लोनची नोंद नाही.</string>
+    <string name="costs_loans_next">पुढचा %1$s</string>
+    <string name="costs_loans_overdue_count">%1$d थकीत</string>
+    <string name="costs_due">%1$s ला भरायचे</string>
+    <string name="costs_emi">EMI</string>
+    <string name="costs_emi_amount">EMI %1$s</string>
+    <string name="costs_emi_number">EMI %1$d</string>
+    <string name="costs_emi_number_on">EMI %1$d · %2$s</string>
+    <string name="costs_installment_due_soon">लवकरच भरायचा</string>
+    <string name="costs_installment_due_today">आज भरायचा</string>
+    <string name="costs_installment_part_paid">थोडा भरला</string>
+    <string name="costs_installment_paid">भरला</string>
+    <string name="costs_installment_waived">माफ</string>
+    <string name="costs_installment_unknown">माहीत नाही</string>
+    <string name="costs_loan_status_active">चालू</string>
+    <string name="costs_loan_status_closed">बंद</string>
+    <string name="costs_loan_status_foreclosed">मुदतपूर्व बंद</string>
+    <string name="costs_loan_status_defaulted">डिफॉल्ट</string>
+    <string name="costs_loan_status_on_hold">थांबवलेले</string>
+    <string name="costs_loan_status_cancelled">रद्द</string>
+    <string name="costs_loan_status_draft">ड्राफ्ट</string>
+
+    <!-- Add a loan. -->
+    <string name="costs_add_loan_save">लोन सेव्ह करा</string>
+    <string name="costs_lender">लोन देणारे</string>
+    <string name="costs_add_loan_lender_placeholder">उदा. Shriram Finance</string>
+    <string name="costs_add_loan_number">लोन खाते नंबर</string>
+    <string name="costs_add_loan_principal">लोन रक्कम ₹</string>
+    <string name="costs_add_loan_rate" formatted="false">वार्षिक व्याज %</string>
+    <string name="costs_add_loan_months">महिने</string>
+    <string name="costs_add_loan_debit_day">ऑटो-डेबिटचा दिवस (ऐच्छिक)</string>
+    <string name="costs_add_loan_reducing">रिड्युसिंग बॅलन्स</string>
+    <string name="costs_add_loan_flat">फ्लॅट रेट</string>
+    <string name="costs_add_loan_started">लोन सुरू झाल्याची तारीख</string>
+    <string name="costs_add_loan_first_emi">पहिला EMI</string>
+    <string name="costs_add_loan_dates_misfit">पहिला EMI लोन सुरू होण्याआधी असू शकत नाही.</string>
+    <string name="costs_add_loan_schedule_title">या अटींनुसार होणारे वेळापत्रक</string>
+    <plurals name="costs_add_loan_schedule_totals">
+        <item quantity="one">%1$d EMI · व्याज %2$s · एकूण %3$s</item>
+        <item quantity="other">%1$d EMI · व्याज %2$s · एकूण %3$s</item>
+    </plurals>
+
+    <!-- One loan: its figures, schedule, payments and terms. -->
+    <string name="costs_loan">लोन</string>
+    <string name="costs_loan_not_found">हे लोन सापडले नाही.</string>
+    <string name="costs_loan_record_payment">पेमेंटची नोंद करा</string>
+    <plurals name="costs_loan_overdue_notice">
+        <item quantity="one">%1$d EMI थकीत आहे — एकूण %2$s.</item>
+        <item quantity="other">%1$d EMI थकीत आहेत — एकूण %2$s.</item>
+    </plurals>
+    <string name="costs_loan_next_due">पुढचा हप्ता</string>
+    <string name="costs_loan_repaid">फेडले</string>
+    <string name="costs_loan_emis_unit">EMI</string>
+    <string name="costs_loan_reminders">EMI रिमाइंडर</string>
+    <string name="costs_loan_reminders_detail">प्रत्येक EMI च्या तारखेआधी एक सूचना.</string>
+    <string name="costs_loan_schedule">परतफेडीचे वेळापत्रक</string>
+    <string name="costs_loan_no_schedule">या लोनचे वेळापत्रक नोंदलेले नाही.</string>
+    <string name="costs_loan_installment_detail">मुद्दल %1$s · व्याज %2$s</string>
+    <string name="costs_loan_installment_detail_left">मुद्दल %1$s · व्याज %2$s · नंतर %3$s बाकी</string>
+    <string name="costs_loan_payments">पेमेंट</string>
+    <string name="costs_loan_prepayment">प्रीपेमेंट</string>
+    <string name="costs_loan_reversed">परत गेले</string>
+    <string name="costs_loan_terms">अटी</string>
+    <string name="costs_loan_borrowed">घेतलेले</string>
+    <string name="costs_loan_interest">व्याज</string>
+    <string name="costs_loan_rate">दरवर्षी %1$.2f%%</string>
+    <string name="costs_loan_rate_flat">दरवर्षी %1$.2f%%, फ्लॅट</string>
+    <string name="costs_loan_tenure">मुदत</string>
+    <plurals name="costs_loan_tenure_months">
+        <item quantity="one">%1$d महिना</item>
+        <item quantity="other">%1$d महिने</item>
+    </plurals>
+    <string name="costs_loan_runs">कालावधी</string>
+    <string name="costs_loan_runs_span">%1$s ते %2$s</string>
+    <string name="costs_loan_auto_debit">ऑटो-डेबिट</string>
+    <string name="costs_loan_auto_debit_day">%1$d तारखेला</string>
+    <string name="costs_loan_standing">स्थिती</string>
+
+    <!-- Recording a loan payment. -->
+    <string name="costs_loan_payment_intro">बँकेत केलेल्या पेमेंटची नोंद करते. यातून पैसे जात नाहीत.</string>
+    <string name="costs_loan_payment_against">कशासाठी</string>
+    <string name="costs_loan_amount_paid">भरलेली रक्कम ₹</string>
+    <string name="costs_loan_late_fee">लेट फी ₹ (ऐच्छिक)</string>
+    <string name="costs_loan_paid_on">भरल्याची तारीख</string>
+    <string name="costs_loan_reference_placeholder">UTR किंवा चेक नंबर</string>
+    <string name="costs_loan_record_payment_button">पेमेंटची नोंद करा</string>
+
+    <!-- Toll tab: spend, FASTags, plazas and crossings. -->
+    <string name="costs_toll_window">टोल · %1$d दिवस</string>
+    <string name="costs_toll_per_crossing">प्रति क्रॉसिंग</string>
+    <string name="costs_toll_need_a_look">लक्ष द्या</string>
+    <plurals name="costs_toll_tags_unit">
+        <item quantity="one">टॅग</item>
+        <item quantity="other">टॅग</item>
+    </plurals>
+    <string name="costs_toll_fastags">FASTag</string>
+    <string name="costs_toll_none">अजून कोणत्याही FASTag ची नोंद नाही.</string>
+    <string name="costs_toll_none_vehicle">या गाडीसाठी FASTag ची नोंद नाही.</string>
+    <string name="costs_toll_find">या गाडीचा FASTag शोधा</string>
+    <string name="costs_toll_found">सापडला.</string>
+    <string name="costs_toll_found_with">%1$s कडे सापडला.</string>
+    <string name="costs_toll_not_found">बँकेकडे या नंबरवर कोणताही FASTag नाही.</string>
+    <string name="costs_toll_where_money_goes">पैसे कुठे जातात</string>
+    <plurals name="costs_toll_crossings">
+        <item quantity="one">%1$d क्रॉसिंग</item>
+        <item quantity="other">%1$d क्रॉसिंग</item>
+    </plurals>
+    <string name="costs_toll_crossings_title">क्रॉसिंग</string>
+    <string name="costs_toll_crossings_none">अजून टोल क्रॉसिंगची नोंद नाही.</string>
+    <string name="costs_tag_low_balance">कमी बॅलन्स</string>
+    <string name="costs_tag_blocked">ब्लॉक</string>
+    <string name="costs_tag_expiring">मुदत संपत आहे</string>
+    <string name="costs_asking_bank">बँकेकडे विचारत आहे…</string>
+
+    <!-- One FASTag, its balance and recharges. -->
+    <string name="costs_fastag_balance_unknown">बॅलन्स माहीत नाही</string>
+    <string name="costs_fastag_balance_from">%1$s पूर्वीचा बॅलन्स</string>
+    <string name="costs_fastag_balance_now">आत्ताचा बॅलन्स</string>
+    <string name="costs_fastag_warns_below">%1$s पेक्षा कमी झाल्यावर अलर्ट</string>
+    <string name="costs_fastag_valid_till">%1$s पर्यंत वैध</string>
+    <string name="costs_fastag_bank_said">बँकेने शेवटी सांगितले: %1$s</string>
+    <string name="costs_fastag_ask_bank">बँकेकडे पुन्हा विचारा</string>
+    <string name="costs_fastag_synced">बँकेची ताजी माहिती दाखवली आहे.</string>
+    <string name="costs_fastag_balance_updated">बॅलन्स अपडेट झाला.</string>
+    <string name="costs_fastag_recharge_recorded">रिचार्जची नोंद झाली.</string>
+    <string name="costs_fastag_update_balance">बॅलन्स अपडेट करा</string>
+    <string name="costs_fastag_balance">बॅलन्स ₹</string>
+    <string name="costs_fastag_when_true">हा बॅलन्स कधीचा आहे?</string>
+    <string name="costs_fastag_save_balance">बॅलन्स सेव्ह करा</string>
+    <string name="costs_fastag_record_recharge_title">रिचार्जची नोंद करा</string>
+    <string name="costs_fastag_amount_added">टाकलेली रक्कम ₹</string>
+    <string name="costs_fastag_balance_after">नंतरचा बॅलन्स (ऐच्छिक)</string>
+    <string name="costs_fastag_record_recharge">रिचार्ज नोंदवा</string>
+
+    <!-- Drive: the card on Home. -->
+    <string name="costs_drive_title">ड्राइव्ह</string>
+    <string name="costs_drive_open">ड्राइव्ह उघडा</string>
+    <string name="costs_drive_you_drive">तुम्ही %1$s चालवता</string>
+    <string name="costs_drive_card_recording">तुमची ट्रिप रेकॉर्ड होत आहे</string>
+    <string name="costs_drive_card_tools">तुमच्या ट्रिप, इंधन, पावत्या आणि SOS</string>
+
+    <!-- Drive: whether the phone records the road. -->
+    <string name="costs_drive_gps_recording">तुमच्या ट्रिपचा रस्ता रेकॉर्ड होत आहे</string>
+    <string name="costs_drive_gps_off">Saarthi साठी लोकेशन बंद आहे</string>
+    <string name="costs_drive_gps_paused">तुम्ही लोकेशन शेअर करणे थांबवले</string>
+    <string name="costs_drive_gps_not_yet">अजून रेकॉर्डिंग नाही</string>
+    <string name="costs_drive_gps_idle">ट्रिप चालू असतानाच तुमचे लोकेशन शेअर होते</string>
+    <string name="costs_drive_gps_recording_detail">हे चालू असताना \"गाडी चालवत आहे\" नोटिफिकेशन दिसते.</string>
+    <string name="costs_drive_gps_off_detail">ट्रिप कुठे आहे हे फ्लीटला दिसावे म्हणून परवानगी द्या.</string>
+    <string name="costs_drive_gps_paused_detail">तुम्ही पुन्हा सुरू करेपर्यंत ट्रिपच्या रस्त्यात खंड राहील.</string>
+    <string name="costs_drive_gps_idle_detail">ट्रिप सुरू करा, हे आपोआप सुरू होईल.</string>
+    <string name="costs_drive_allow">परवानगी द्या</string>
+    <string name="costs_drive_resume">पुन्हा सुरू करा</string>
+
+    <!-- Drive: a trip card and the arrival prompt. -->
+    <string name="costs_drive_on_this_trip">या ट्रिपवर</string>
+    <string name="costs_drive_up_next">पुढची</string>
+    <string name="costs_drive_open_trip">ट्रिप उघडा</string>
+    <string name="costs_drive_to_go">अजून %1$s बाकी</string>
+    <string name="costs_drive_eta">पोहोचणार %1$s</string>
+    <string name="costs_drive_slide_start">सुरू करण्यासाठी स्लाइड करा</string>
+    <string name="costs_drive_arrived">पोहोचलो</string>
+    <string name="costs_drive_saving">सेव्ह होत आहे…</string>
+    <string name="costs_drive_end_here">ही ट्रिप इथेच संपवा</string>
+    <string name="costs_drive_slide_complete">पूर्ण करण्यासाठी स्लाइड करा</string>
+    <string name="costs_drive_at">तुम्ही %1$s येथे आहात</string>
+    <string name="costs_drive_confirm_arrival">तुम्ही पोहोचलात हे निश्चित करा, म्हणजे ग्राहक आणि फ्लीटला कळेल.</string>
+    <string name="costs_drive_yes_arrived">हो, मी पोहोचलो</string>
+
+    <!-- Drive: the screen. -->
+    <string name="costs_drive_trip_unreadable">ही ट्रिप वाचता आली नाही.</string>
+    <string name="costs_drive_trip_moved_on">ही ट्रिप पुढे गेली आहे; ती कुठे आहे ते पाहण्यासाठी खाली ओढा.</string>
+    <string name="costs_drive_starts_after_ref">तुम्ही %1$s पूर्ण केल्यावर सुरू होईल.</string>
+    <string name="costs_drive_starts_after_this">तुम्ही ही ट्रिप पूर्ण केल्यावर सुरू होईल.</string>
+    <string name="costs_drive_starts_after_above">वरची ट्रिप झाल्यावर सुरू होईल.</string>
+    <string name="costs_drive_no_trips">आत्ता तुमच्यासाठी कोणतीही ट्रिप नाही. तुमचा फ्लीट देईल त्या ट्रिप इथे दिसतील.</string>
+
+    <!-- Drive: fuel, slips and SOS. -->
+    <string name="costs_drive_log_fuel">इंधनाची नोंद करा</string>
+    <string name="costs_drive_file_slip">पावती नोंदवा</string>
+    <string name="costs_drive_sos">SOS</string>
+    <string name="costs_drive_sos_accident">अपघात</string>
+    <string name="costs_drive_sos_medical">मेडिकल</string>
+    <string name="costs_drive_sos_breakdown">गाडी बंद पडली</string>
+    <string name="costs_drive_sos_security">सुरक्षा</string>
+    <string name="costs_drive_sos_tyre">टायर</string>
+    <string name="costs_drive_sos_fuel">इंधन संपले</string>
+    <string name="costs_drive_sos_other">इतर</string>
+    <string name="costs_drive_sos_title">SOS पाठवा</string>
+    <string name="costs_drive_sos_intro">तुम्ही कुठे आहात यासह तुमच्या फ्लीटला आणि जवळच्या मदतीला अलर्ट जातो.</string>
+    <string name="costs_drive_sos_what">काय झाले? (ऐच्छिक)</string>
+    <string name="costs_drive_sos_slide">SOS पाठवण्यासाठी स्लाइड करा</string>
+    <string name="costs_drive_sos_no_location">तुमचे लोकेशन सापडले नाही. ते चालू करा, किंवा 112 ला फोन करा.</string>
+    <string name="costs_drive_sos_sent">SOS पाठवला. तुमच्या फ्लीटला आणि जवळच्या मदतीला अलर्ट गेला आहे.</string>
+
+    <!-- Drive: ending a trip short of its destination. -->
+    <string name="costs_drive_end_title">ही ट्रिप इथेच संपवायची?</string>
+    <string name="costs_drive_end_body">तुम्ही आहात तिथेच ट्रिप पूर्ण होईल, आणि ती लवकर संपली हे फ्लीटला दिसेल.</string>
+    <string name="costs_drive_end_body_short">%2$s पर्यंत अजून %1$.1f km बाकी आहे. तुम्ही आहात तिथेच ट्रिप पूर्ण होईल, आणि ती लवकर संपली हे फ्लीटला दिसेल.</string>
+    <string name="costs_drive_end_confirm">ट्रिप संपवा</string>
+    <string name="costs_drive_ending">संपवत आहे…</string>
+</resources>

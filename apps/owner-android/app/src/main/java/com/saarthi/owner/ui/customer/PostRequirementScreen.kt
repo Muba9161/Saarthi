@@ -29,11 +29,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.saarthi.owner.OwnerApp
+import com.saarthi.owner.R
 import com.saarthi.owner.network.CommerceApi
 import com.saarthi.owner.network.PlacesApi
 import com.saarthi.owner.network.RequirementsApi
@@ -45,6 +47,7 @@ import com.saarthi.owner.ui.commerce.CommerceDetails
 import com.saarthi.owner.ui.commerce.CommerceEntry
 import com.saarthi.owner.ui.common.PlaceField
 import com.saarthi.owner.ui.common.RevealedNotice
+import com.saarthi.owner.ui.common.Words
 import com.saarthi.owner.ui.common.headerClearance
 import com.saarthi.owner.ui.common.readable
 import com.saarthi.owner.ui.common.tabBarClearance
@@ -69,12 +72,43 @@ import java.time.LocalTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
-private val Kinds = listOf(KIND_MATERIAL to "Material", KIND_FREIGHT to "Freight", KIND_CAB to "Cab", KIND_TOUR to "Tour")
+private val Kinds: List<Pair<String, String>>
+    get() = listOf(
+        KIND_MATERIAL to Words.get(R.string.customer_kind_material),
+        KIND_FREIGHT to Words.get(R.string.customer_kind_freight),
+        KIND_CAB to Words.get(R.string.customer_kind_cab),
+        KIND_TOUR to Words.get(R.string.customer_kind_tour),
+    )
+
+/** The unit words a request's title is written with; the title is stored on the server, so these stay English. */
 private val Units = listOf("TON" to "tonnes", "BAG" to "bags", "CUBIC_METER" to "m³", "PIECE" to "pieces")
-private val CabTypes = listOf(null to "Any", "CAR" to "Car", "SUV" to "SUV", "VAN" to "Van", "BUS" to "Bus")
-private val HireBases = listOf("ONE_WAY" to "One way", "ROUND_TRIP" to "Round trip", "DAILY" to "By the day")
-private val DayFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("EEE d MMM")
-private val TimeFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("h:mm a")
+
+/** The same units as the chips show them, in the app's language. */
+private val UnitChoices: List<Pair<String, String>>
+    get() = listOf(
+        "TON" to Words.get(R.string.customer_unit_tonnes),
+        "BAG" to Words.get(R.string.customer_unit_bags),
+        "CUBIC_METER" to "m³",
+        "PIECE" to Words.get(R.string.customer_unit_pieces),
+    )
+private val CabTypes: List<Pair<String?, String>>
+    get() = listOf(
+        null to Words.get(R.string.customer_cab_any),
+        "CAR" to Words.get(R.string.customer_cab_car),
+        "SUV" to Words.get(R.string.customer_cab_suv),
+        "VAN" to Words.get(R.string.customer_cab_van),
+        "BUS" to Words.get(R.string.customer_cab_bus),
+    )
+private val HireBases: List<Pair<String, String>>
+    get() = listOf(
+        "ONE_WAY" to Words.get(R.string.customer_hire_one_way),
+        "ROUND_TRIP" to Words.get(R.string.customer_hire_round_trip),
+        "DAILY" to Words.get(R.string.customer_hire_daily),
+    )
+// Made on each use, so the month and day names follow the app\'s language when it changes.
+private val DayFormat: DateTimeFormatter get() = DateTimeFormatter.ofPattern("EEE d MMM")
+// Made on each use, so the month and day names follow the app\'s language when it changes.
+private val TimeFormat: DateTimeFormatter get() = DateTimeFormatter.ofPattern("h:mm a")
 
 /**
  * The soonest a job may start. The server wants bidding to close at least two
@@ -140,34 +174,34 @@ fun PostRequirementScreen(app: OwnerApp, actions: ShellActions) {
     // The first thing still to fill in, said under the button so a grey button is never a mystery.
     val missing: String? = (when (kind) {
         KIND_MATERIAL -> when {
-            material.trim().length < 2 -> "the material"
-            catalogue.categoryId == null -> "what kind of material it is"
-            catalogue.missing.isNotEmpty() -> "the ${catalogue.missing.first().label.lowercase()}"
-            qty == null || qty <= 0 -> "the quantity"
-            to == null -> "where to deliver"
+            material.trim().length < 2 -> stringResource(R.string.customer_post_add_material)
+            catalogue.categoryId == null -> stringResource(R.string.customer_post_add_material_kind)
+            catalogue.missing.isNotEmpty() -> stringResource(R.string.customer_post_add_detail, catalogue.missing.first().label.lowercase())
+            qty == null || qty <= 0 -> stringResource(R.string.customer_post_add_quantity)
+            to == null -> stringResource(R.string.customer_post_add_deliver_to)
             else -> null
         }
         KIND_FREIGHT -> when {
-            material.trim().length < 2 -> "the goods"
-            qty == null || qty <= 0 -> "the quantity"
-            (capacity.toDoubleOrNull() ?: 0.0) <= 0 -> "the truck size"
-            from == null -> "where to pick up"
-            to == null -> "where to drop"
+            material.trim().length < 2 -> stringResource(R.string.customer_post_add_goods)
+            qty == null || qty <= 0 -> stringResource(R.string.customer_post_add_quantity)
+            (capacity.toDoubleOrNull() ?: 0.0) <= 0 -> stringResource(R.string.customer_post_add_truck_size)
+            from == null -> stringResource(R.string.customer_post_add_pickup)
+            to == null -> stringResource(R.string.customer_post_add_drop)
             else -> null
         }
         KIND_CAB -> when {
-            people == null || people <= 0 -> "how many people"
-            from == null -> "where to pick up"
-            to == null -> "where to drop"
+            people == null || people <= 0 -> stringResource(R.string.customer_post_add_people)
+            from == null -> stringResource(R.string.customer_post_add_pickup)
+            to == null -> stringResource(R.string.customer_post_add_drop)
             else -> null
         }
         else -> when {
-            people == null || people <= 0 -> "how many people"
-            from == null -> "where to pick up"
-            destinations.isEmpty() -> "the places to visit"
+            people == null || people <= 0 -> stringResource(R.string.customer_post_add_people)
+            from == null -> stringResource(R.string.customer_post_add_pickup)
+            destinations.isEmpty() -> stringResource(R.string.customer_post_add_places)
             else -> null
         }
-    }) ?: if (tooSoon) "a start time at least 2¼ hours away" else null
+    }) ?: if (tooSoon) stringResource(R.string.customer_post_add_start_time) else null
     val ready = !busy && missing == null
 
     fun post() {
@@ -238,10 +272,10 @@ fun PostRequirementScreen(app: OwnerApp, actions: ShellActions) {
     ) {
         Text(
             when (kind) {
-                KIND_MATERIAL -> "What do you need delivered?"
-                KIND_FREIGHT -> "What needs moving?"
-                KIND_CAB -> "Where are you going?"
-                else -> "Where would you like to go?"
+                KIND_MATERIAL -> stringResource(R.string.customer_post_title_material)
+                KIND_FREIGHT -> stringResource(R.string.customer_post_title_freight)
+                KIND_CAB -> stringResource(R.string.customer_post_title_cab)
+                else -> stringResource(R.string.customer_post_title_tour)
             },
             style = SType.display,
             color = c.fg,
@@ -256,16 +290,16 @@ fun PostRequirementScreen(app: OwnerApp, actions: ShellActions) {
                 SaarthiField(
                     value = material,
                     onValueChange = { material = it.take(160) },
-                    label = if (kind == KIND_MATERIAL) "Material" else "Goods",
+                    label = stringResource(if (kind == KIND_MATERIAL) R.string.customer_kind_material else R.string.customer_post_goods),
                     leading = Lucide.box,
-                    placeholder = if (kind == KIND_MATERIAL) "M-sand, plastering grade" else "Cement bags",
+                    placeholder = stringResource(if (kind == KIND_MATERIAL) R.string.customer_post_material_hint else R.string.customer_post_goods_hint),
                 )
                 if (kind == KIND_MATERIAL) CommerceDetails(catalogue, material, app.commerce)
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     CompactField(
                         value = quantity,
                         onValueChange = { quantity = it.filter { ch -> ch.isDigit() || ch == '.' }.take(8) },
-                        label = "Quantity",
+                        label = stringResource(R.string.customer_post_quantity),
                         placeholder = "20",
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         modifier = Modifier.weight(1f),
@@ -274,7 +308,7 @@ fun PostRequirementScreen(app: OwnerApp, actions: ShellActions) {
                         CompactField(
                             value = capacity,
                             onValueChange = { capacity = it.filter { ch -> ch.isDigit() || ch == '.' }.take(5) },
-                            label = "Truck size (t)",
+                            label = stringResource(R.string.customer_post_truck_size),
                             placeholder = "16",
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                             modifier = Modifier.weight(1f),
@@ -282,15 +316,15 @@ fun PostRequirementScreen(app: OwnerApp, actions: ShellActions) {
                     }
                 }
                 Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Units.forEach { (value, label) -> ChoiceChip(label, selected = unit == value, onClick = { unit = value }, height = 36.dp) }
+                    UnitChoices.forEach { (value, label) -> ChoiceChip(label, selected = unit == value, onClick = { unit = value }, height = 36.dp) }
                 }
                 if (kind == KIND_MATERIAL) {
                     SaarthiField(
                         value = specification,
                         onValueChange = { specification = it.take(300) },
-                        label = "Grade or brand (optional)",
+                        label = stringResource(R.string.customer_post_grade),
                         leading = Lucide.fileText,
-                        placeholder = "Any grade · washed",
+                        placeholder = stringResource(R.string.customer_post_grade_hint),
                     )
                 }
             }
@@ -298,7 +332,7 @@ fun PostRequirementScreen(app: OwnerApp, actions: ShellActions) {
                 CompactField(
                     value = passengers,
                     onValueChange = { passengers = it.filter(Char::isDigit).take(2) },
-                    label = "People",
+                    label = stringResource(R.string.customer_post_people),
                     placeholder = "4",
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 )
@@ -309,7 +343,7 @@ fun PostRequirementScreen(app: OwnerApp, actions: ShellActions) {
                     CompactField(
                         value = days,
                         onValueChange = { days = it.filter(Char::isDigit).take(2) },
-                        label = "Days",
+                        label = stringResource(R.string.customer_days),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     )
                 }
@@ -318,7 +352,7 @@ fun PostRequirementScreen(app: OwnerApp, actions: ShellActions) {
                 SaarthiField(
                     value = destinationsText,
                     onValueChange = { destinationsText = it.take(400) },
-                    label = "Places to visit",
+                    label = stringResource(R.string.customer_post_places),
                     leading = Lucide.flag,
                     placeholder = "Mahabaleshwar, Panchgani",
                 )
@@ -326,7 +360,7 @@ fun PostRequirementScreen(app: OwnerApp, actions: ShellActions) {
                     CompactField(
                         value = passengers,
                         onValueChange = { passengers = it.filter(Char::isDigit).take(2) },
-                        label = "People",
+                        label = stringResource(R.string.customer_post_people),
                         placeholder = "6",
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.weight(1f),
@@ -334,7 +368,7 @@ fun PostRequirementScreen(app: OwnerApp, actions: ShellActions) {
                     CompactField(
                         value = days,
                         onValueChange = { days = it.filter(Char::isDigit).take(2) },
-                        label = "Days",
+                        label = stringResource(R.string.customer_days),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.weight(1f),
                     )
@@ -353,13 +387,13 @@ fun PostRequirementScreen(app: OwnerApp, actions: ShellActions) {
         val chosen = LocalDate.parse(day)
         val chosenTime = LocalTime.parse(time)
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(if (travel) "Travel on" else "Needed by", style = SType.fieldLabel, color = c.muted)
+            Text(stringResource(if (travel) R.string.customer_post_travel_on else R.string.customer_post_needed_by), style = SType.fieldLabel, color = c.muted)
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(
                     Modifier
                         .weight(1.3f)
                         .card(radius = 16.dp, color = c.elevated, ring = c.input, elevated = false)
-                        .pressable(scale = 0.99f, label = "Choose the date") {
+                        .pressable(scale = 0.99f, label = stringResource(R.string.customer_post_choose_date)) {
                             DatePickerDialog(
                                 context,
                                 { _, year, month, dayOfMonth ->
@@ -385,7 +419,7 @@ fun PostRequirementScreen(app: OwnerApp, actions: ShellActions) {
                     Modifier
                         .weight(1f)
                         .card(radius = 16.dp, color = c.elevated, ring = c.input, elevated = false)
-                        .pressable(scale = 0.99f, label = "Choose the time") {
+                        .pressable(scale = 0.99f, label = stringResource(R.string.customer_post_choose_time)) {
                             TimePickerDialog(
                                 context,
                                 { _, hour, minute -> time = LocalTime.of(hour, minute).toString() },
@@ -406,7 +440,7 @@ fun PostRequirementScreen(app: OwnerApp, actions: ShellActions) {
 
         if (kind != KIND_MATERIAL) {
             PlaceField(
-                label = if (travel) "Pick up from" else "Pick up from",
+                label = stringResource(R.string.customer_pick_up_from),
                 place = from,
                 places = app.places,
                 onPick = { from = it },
@@ -415,10 +449,10 @@ fun PostRequirementScreen(app: OwnerApp, actions: ShellActions) {
         }
         PlaceField(
             label = when (kind) {
-                KIND_MATERIAL -> "Deliver to"
-                KIND_TOUR -> "Tour ends at (optional)"
-                KIND_CAB -> "Going to"
-                else -> "Drop at"
+                KIND_MATERIAL -> stringResource(R.string.customer_post_deliver_to)
+                KIND_TOUR -> stringResource(R.string.customer_post_tour_ends)
+                KIND_CAB -> stringResource(R.string.customer_post_going_to)
+                else -> stringResource(R.string.customer_drop_at)
             },
             place = to,
             places = app.places,
@@ -437,9 +471,9 @@ fun PostRequirementScreen(app: OwnerApp, actions: ShellActions) {
             ) {
                 IconWell(Lucide.truck, well = c.successSoft, ink = c.success, size = 36.dp, radius = 12.dp, iconSize = 16.dp)
                 Column(Modifier.weight(1f)) {
-                    Text("One price, delivered", style = SType.bodyStrong, color = c.fg)
+                    Text(stringResource(R.string.customer_post_one_price), style = SType.bodyStrong, color = c.fg)
                     Text(
-                        "A verified fleet buys the material, loads it and brings it to your site. You deal only with that fleet.",
+                        stringResource(R.string.customer_post_one_price_note),
                         style = SType.small,
                         color = c.muted,
                     )
@@ -450,18 +484,18 @@ fun PostRequirementScreen(app: OwnerApp, actions: ShellActions) {
         error?.let { RevealedNotice(it, NoticeTone.DANGER) }
 
         SaarthiButton(
-            "Post and get bids",
+            stringResource(R.string.customer_post_submit),
             onClick = ::post,
             enabled = ready,
             busy = busy,
-            busyText = "Posting…",
+            busyText = stringResource(R.string.customer_post_posting),
             trailing = Lucide.arrowRight,
         )
         Text(
             when {
-                missing != null -> "Add $missing to post."
-                kind == KIND_MATERIAL -> "Fleets near your site check sellers' stock and bid."
-                else -> "Fleets and operators near you bid within hours."
+                missing != null -> missing
+                kind == KIND_MATERIAL -> stringResource(R.string.customer_post_material_footer)
+                else -> stringResource(R.string.customer_post_footer)
             },
             style = SType.caption,
             color = c.subtle,

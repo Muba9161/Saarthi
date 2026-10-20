@@ -17,9 +17,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.saarthi.owner.R
 import com.saarthi.owner.data.SessionStore
 import com.saarthi.owner.network.OwnerApi
 import com.saarthi.owner.ui.common.RevealedNotice
+import com.saarthi.owner.ui.common.Words
 import com.saarthi.owner.ui.common.readable
 import com.saarthi.owner.ui.design.IconWell
 import com.saarthi.owner.ui.design.InlineSpinner
@@ -34,12 +36,12 @@ import kotlinx.coroutines.launch
 
 /** What kind of business an organisation type is, in a word. */
 fun businessKind(type: String): String = when (type) {
-    "FLEET_OWNER", "ENTERPRISE" -> "Fleet"
-    "MOBILITY_PROVIDER" -> "Travel"
-    "CUSTOMER" -> "Customer"
-    "SUPPLIER" -> "Seller"
-    "TRUCK_ASSOCIATION" -> "Association"
-    "PLATFORM" -> "Saarthi team"
+    "FLEET_OWNER", "ENTERPRISE" -> Words.get(R.string.people_business_fleet)
+    "MOBILITY_PROVIDER" -> Words.get(R.string.people_business_travel)
+    "CUSTOMER" -> Words.get(R.string.people_business_customer)
+    "SUPPLIER" -> Words.get(R.string.people_business_seller)
+    "TRUCK_ASSOCIATION" -> Words.get(R.string.people_business_association)
+    "PLATFORM" -> Words.get(R.string.people_business_team)
     else -> type.lowercase().replace('_', ' ')
 }
 

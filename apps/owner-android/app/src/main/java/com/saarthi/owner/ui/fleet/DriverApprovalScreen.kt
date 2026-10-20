@@ -31,16 +31,19 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.saarthi.owner.OwnerApp
+import com.saarthi.owner.R
 import com.saarthi.owner.network.FleetApi
 import com.saarthi.owner.ui.common.DetailScreen
 import com.saarthi.owner.ui.common.PlateChip
 import com.saarthi.owner.ui.common.RevealedNotice
+import com.saarthi.owner.ui.common.Words
 import com.saarthi.owner.ui.common.clockOf
 import com.saarthi.owner.ui.common.countdown
-import com.saarthi.owner.ui.common.plural
 import com.saarthi.owner.ui.common.readable
 import com.saarthi.owner.ui.design.Avatar
 import com.saarthi.owner.ui.design.BottomSheet
@@ -69,7 +72,12 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /** The reasons an owner most often gives; any other is typed. */
-private val Reasons = listOf("Not assigned to this vehicle", "Vehicle is not ready", "I don't know this driver")
+private val Reasons: List<String>
+    get() = listOf(
+        Words.get(R.string.fleet_approval_reason_not_assigned),
+        Words.get(R.string.fleet_approval_reason_not_ready),
+        Words.get(R.string.fleet_approval_reason_unknown_driver),
+    )
 
 /**
  * "Approve a driver" — the design's driver request, full screen.
@@ -107,7 +115,7 @@ fun DriverApprovalScreen(app: OwnerApp, approval: FleetApi.Approval, canApprove:
     }
 
     val driver = detail?.driver ?: approval.driver?.let { FleetApi.ApprovalDriver(it.name, it.experienceYears, it.totalTrips) }
-    val name = driver?.name?.ifBlank { null } ?: "A driver"
+    val name = driver?.name?.ifBlank { null } ?: stringResource(R.string.fleet_a_driver)
     val first = name.substringBefore(' ')
     val timesHere = detail?.recentAssignments?.count { it.sameVehicle && it.status in setOf("APPROVED", "READY", "TRIP_ACTIVE", "COMPLETED") } ?: 0
 
@@ -127,21 +135,21 @@ fun DriverApprovalScreen(app: OwnerApp, approval: FleetApi.Approval, canApprove:
     }
 
     DetailScreen(
-        eyebrow = "Driver request",
-        title = "Approve a driver",
+        eyebrow = stringResource(R.string.fleet_approval_eyebrow),
+        title = stringResource(R.string.fleet_approval_title),
         eyebrowColor = c.warning,
         // A role that may see the request but not decide it gets the facts and no buttons.
         footer = if (canApprove) {
             {
-                SlideToAct("Slide to approve $first", onConfirm = { decide { app.fleet.approve(approval.id) } }, enabled = !busy)
-                SaarthiButton("Turn this down", onClick = { declining = true }, tone = ButtonTone.DANGER_OUTLINE, enabled = !busy, leading = Lucide.ban, height = 50.dp)
+                SlideToAct(stringResource(R.string.fleet_approval_slide, first), onConfirm = { decide { app.fleet.approve(approval.id) } }, enabled = !busy)
+                SaarthiButton(stringResource(R.string.fleet_approval_turn_this_down), onClick = { declining = true }, tone = ButtonTone.DANGER_OUTLINE, enabled = !busy, leading = Lucide.ban, height = 50.dp)
             }
         } else {
             null
         },
     ) {
         if (!canApprove) {
-            NoticeCard("An owner or fleet manager approves or turns down this request.", NoticeTone.INFO, Modifier.rise())
+            NoticeCard(stringResource(R.string.fleet_approval_cannot_decide), NoticeTone.INFO, Modifier.rise())
         }
         Box(
             Modifier
@@ -168,7 +176,7 @@ fun DriverApprovalScreen(app: OwnerApp, approval: FleetApi.Approval, canApprove:
             ) {
                 Box(Modifier.size(8.dp).clip(CircleShape).background(c.warning))
                 Text(
-                    if (left > 0) "${countdown(left)} left to decide" else "Waiting for you",
+                    if (left > 0) stringResource(R.string.fleet_approval_left_to_decide, countdown(left)) else stringResource(R.string.fleet_approval_waiting_for_you),
                     style = SType.smallStrong,
                     color = c.fg,
                 )
@@ -181,26 +189,34 @@ fun DriverApprovalScreen(app: OwnerApp, approval: FleetApi.Approval, canApprove:
         ) {
             val shot = photo
             if (shot != null) {
-                Image(shot, "Photo $first took on arrival", contentScale = ContentScale.Crop, modifier = Modifier.size(width = 84.dp, height = 104.dp).clip(RoundedCornerShape(16.dp)))
+                Image(shot, stringResource(R.string.fleet_approval_photo_description, first), contentScale = ContentScale.Crop, modifier = Modifier.size(width = 84.dp, height = 104.dp).clip(RoundedCornerShape(16.dp)))
             } else {
                 Avatar(name, size = 72.dp, background = c.sunken, ink = c.fg)
             }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(name, style = SType.cardTitle.copy(fontSize = 19.sp), color = c.fg)
-                driver?.licenseClass?.let { Text("Licence $it", style = SType.small, color = c.muted) }
+                driver?.licenseClass?.let { Text(stringResource(R.string.fleet_approval_licence_class, it), style = SType.small, color = c.muted) }
                 when (driver?.licenseValidity) {
-                    "VALID" -> StatusPill("Licence valid", background = c.successBg, ink = c.success)
-                    "EXPIRING_SOON" -> StatusPill("Licence expiring soon", background = c.warningBg, ink = c.warning)
-                    "EXPIRED" -> StatusPill("Licence expired", background = c.dangerBg, ink = c.danger)
+                    "VALID" -> StatusPill(stringResource(R.string.fleet_approval_licence_valid), background = c.successBg, ink = c.success)
+                    "EXPIRING_SOON" -> StatusPill(stringResource(R.string.fleet_approval_licence_expiring), background = c.warningBg, ink = c.warning)
+                    "EXPIRED" -> StatusPill(stringResource(R.string.fleet_approval_licence_expired), background = c.dangerBg, ink = c.danger)
                     else -> Unit
                 }
                 Text(
-                    if (timesHere > 0) "Has driven this truck ${plural(timesHere, "time")}" else "First time on this truck",
+                    if (timesHere > 0) pluralStringResource(R.plurals.fleet_approval_driven_times, timesHere, timesHere) else stringResource(R.string.fleet_approval_first_time),
                     style = SType.small,
                     color = c.muted,
                 )
                 driver?.let {
-                    Text("${plural(it.experienceYears, "year")} driving · ${plural(it.totalTrips, "trip")}", style = SType.caption, color = c.subtle)
+                    Text(
+                        stringResource(
+                            R.string.fleet_approval_experience,
+                            pluralStringResource(R.plurals.fleet_approval_years, it.experienceYears, it.experienceYears),
+                            pluralStringResource(R.plurals.fleet_trips, it.totalTrips, it.totalTrips),
+                        ),
+                        style = SType.caption,
+                        color = c.subtle,
+                    )
                 }
             }
         }
@@ -210,10 +226,10 @@ fun DriverApprovalScreen(app: OwnerApp, approval: FleetApi.Approval, canApprove:
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Eyebrow("Vehicle")
+                Eyebrow(stringResource(R.string.fleet_approval_vehicle))
                 PlateChip(approval.registrationNumber, size = 16.sp)
             }
-            StatusPill("Awaiting you", background = c.warningBg, ink = c.warning, live = true)
+            StatusPill(stringResource(R.string.fleet_approval_awaiting_you), background = c.warningBg, ink = c.warning, live = true)
         }
 
         detail?.events?.takeIf { it.isNotEmpty() }?.let { events ->
@@ -235,19 +251,19 @@ fun DriverApprovalScreen(app: OwnerApp, approval: FleetApi.Approval, canApprove:
                 }
             }
         }
-        Text("Nobody is approved automatically — this waits for you.", style = SType.caption, color = c.subtle, modifier = Modifier.width(300.dp))
+        Text(stringResource(R.string.fleet_approval_never_automatic), style = SType.caption, color = c.subtle, modifier = Modifier.width(300.dp))
         error?.let { RevealedNotice(it, NoticeTone.DANGER) }
     }
 
     BottomSheet(visible = declining, onDismiss = { declining = false }) {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Text("Why? $first will see this", style = SType.sheetTitle, color = c.fg)
+            Text(stringResource(R.string.fleet_approval_why_title, first), style = SType.sheetTitle, color = c.fg)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Reasons.forEach { option -> ChoiceChip(option, selected = reason == option, onClick = { reason = option }) }
             }
-            NotesField(reason, { reason = it.take(500) }, label = "Or say it in your words", minHeight = 80.dp)
+            NotesField(reason, { reason = it.take(500) }, label = stringResource(R.string.fleet_approval_own_words), minHeight = 80.dp)
             SaarthiButton(
-                "Turn down",
+                stringResource(R.string.fleet_approval_turn_down),
                 onClick = {
                     declining = false
                     decide { app.fleet.reject(approval.id, reason.trim()) }

@@ -18,13 +18,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.saarthi.owner.OwnerApp
+import com.saarthi.owner.R
 import com.saarthi.owner.network.HandoverApi
 import com.saarthi.owner.network.PaymentsApi
 import com.saarthi.owner.network.TravelApi
 import com.saarthi.owner.ui.common.DetailScreen
 import com.saarthi.owner.ui.common.RevealedNotice
+import com.saarthi.owner.ui.common.Words
 import com.saarthi.owner.ui.common.dial
 import com.saarthi.owner.ui.common.readable
 import com.saarthi.owner.ui.common.rupees
@@ -57,13 +60,13 @@ import kotlinx.coroutines.launch
 internal fun customerBookingLook(status: String): Triple<String, Color, Color> {
     val c = Saarthi.colors
     return when (status) {
-        "PENDING_PAYMENT" -> Triple("Pay to book", c.warningBg, c.warning)
-        "AWAITING_CONFIRMATION" -> Triple("Being confirmed", c.primaryWash, c.primary)
-        "CONFIRMED" -> Triple("Confirmed", c.successBg, c.success)
-        "IN_PROGRESS" -> Triple("On the way", c.successBg, c.success)
-        "COMPLETED" -> Triple("Completed", c.sunken, c.muted)
-        "DECLINED" -> Triple("Declined", c.dangerBg, c.danger)
-        "CANCELLED", "REFUNDED" -> Triple("Cancelled", c.dangerBg, c.danger)
+        "PENDING_PAYMENT" -> Triple(stringResource(R.string.customer_status_pay_to_book), c.warningBg, c.warning)
+        "AWAITING_CONFIRMATION" -> Triple(stringResource(R.string.customer_status_being_confirmed), c.primaryWash, c.primary)
+        "CONFIRMED" -> Triple(stringResource(R.string.customer_status_confirmed), c.successBg, c.success)
+        "IN_PROGRESS" -> Triple(stringResource(R.string.customer_status_on_the_way), c.successBg, c.success)
+        "COMPLETED" -> Triple(stringResource(R.string.customer_status_completed), c.sunken, c.muted)
+        "DECLINED" -> Triple(stringResource(R.string.customer_status_declined), c.dangerBg, c.danger)
+        "CANCELLED", "REFUNDED" -> Triple(stringResource(R.string.customer_status_cancelled), c.dangerBg, c.danger)
         else -> Triple(status.lowercase().replace('_', ' '), c.sunken, c.muted)
     }
 }
@@ -120,7 +123,7 @@ fun CustomerBookingScreen(app: OwnerApp, initial: TravelApi.Booking, onChanged: 
                 }
                 checkout.pay(session) { outcome ->
                     busy = false
-                    message = outcome.sentence("Booking paid") to
+                    message = outcome.sentence(Words.get(R.string.customer_booking_paid)) to
                         if (outcome == PaymentOutcome.SUCCEEDED) NoticeTone.SUCCESS else NoticeTone.WARNING
                     reload++
                     onChanged()
@@ -139,7 +142,7 @@ fun CustomerBookingScreen(app: OwnerApp, initial: TravelApi.Booking, onChanged: 
         scope.launch {
             try {
                 app.travel.cancel(booking.id, reason.trim())?.let { booking = it }
-                message = "Cancelled. The operator has been told." to NoticeTone.SUCCESS
+                message = Words.get(R.string.customer_booking_cancelled_told) to NoticeTone.SUCCESS
                 onChanged()
             } catch (failure: Exception) {
                 message = failure.readable() to NoticeTone.DANGER
@@ -150,19 +153,19 @@ fun CustomerBookingScreen(app: OwnerApp, initial: TravelApi.Booking, onChanged: 
 
     val due = booking.status == "PENDING_PAYMENT"
     DetailScreen(
-        eyebrow = "Booking ${booking.reference}",
+        eyebrow = stringResource(R.string.customer_booking_eyebrow, booking.reference),
         title = booking.title,
         footer = if (due) {
             {
                 SaarthiButton(
-                    "Pay ${booking.totalAmount?.let(::rupees).orEmpty()}".trim(),
+                    booking.totalAmount?.let { stringResource(R.string.customer_pay_amount, rupees(it)) } ?: stringResource(R.string.customer_pay),
                     onClick = ::pay,
                     busy = busy || checkout.confirming,
-                    busyText = "Opening payment…",
+                    busyText = stringResource(R.string.customer_opening_payment),
                     leading = Lucide.lock,
                 )
                 Text(
-                    "Payments are processed securely by Cashfree.",
+                    stringResource(R.string.customer_payments_by_cashfree),
                     style = SType.caption,
                     color = c.subtle,
                     modifier = Modifier.fillMaxWidth(),
@@ -178,7 +181,26 @@ fun CustomerBookingScreen(app: OwnerApp, initial: TravelApi.Booking, onChanged: 
 
         message?.let { (text, tone) -> RevealedNotice(text, tone) }
         booking.declineReason?.takeIf { booking.status == "DECLINED" }?.let {
-            RevealedNotice("The operator could not take it: $it", NoticeTone.WARNING)
+            RevealedNotice(stringResource(R.string.customer_booking_declined_reason, it), NoticeTone.WARNING)
+        }
+
+        // A finished trip is rated once, by the customer who booked it.
+        if (booking.status == "COMPLETED") {
+            val given = booking.rating
+            if (given == null) {
+                RateCard(
+                    title = stringResource(R.string.customer_booking_rate_title),
+                    prompt = stringResource(R.string.customer_booking_rate_prompt),
+                    maxWords = 2000,
+                    onRate = { stars, words ->
+                        app.travelPackages.rate(booking.id, stars, words)?.let { booking = it }
+                        onChanged()
+                    },
+                    modifier = Modifier.rise(stagger(1)),
+                )
+            } else {
+                RatedLine(stringResource(R.string.customer_booking_rated, given.toInt()), given.toInt(), comment = null, modifier = Modifier.rise(stagger(1)))
+            }
         }
 
         Row(
@@ -186,18 +208,18 @@ fun CustomerBookingScreen(app: OwnerApp, initial: TravelApi.Booking, onChanged: 
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            val operator = booking.providerName ?: "The operator"
+            val operator = booking.providerName ?: stringResource(R.string.customer_the_operator)
             Avatar(operator, size = 44.dp, background = c.primarySoft, ink = c.primary)
             Column(Modifier.weight(1f)) {
                 Text(operator, style = SType.bodyStrong, color = c.fg)
                 Text(
-                    if (booking.providerPhone != null) "Call them about the trip" else "Their number shows once they confirm",
+                    stringResource(if (booking.providerPhone != null) R.string.customer_booking_call_about else R.string.customer_booking_number_after_confirm),
                     style = SType.caption,
                     color = c.muted,
                 )
             }
             booking.providerPhone?.let { phone ->
-                CircleButton(Lucide.phone, "Call $operator", { context.dial(phone) }, size = 44.dp, iconSize = 18.dp)
+                CircleButton(Lucide.phone, stringResource(R.string.customer_call, operator), { context.dial(phone) }, size = 44.dp, iconSize = 18.dp)
             }
         }
 
@@ -208,13 +230,13 @@ fun CustomerBookingScreen(app: OwnerApp, initial: TravelApi.Booking, onChanged: 
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(Modifier.weight(1f)) {
-                Text("Payment", style = SType.cardTitle, color = c.fg)
+                Text(stringResource(R.string.customer_payment), style = SType.cardTitle, color = c.fg)
                 Text(
                     when {
-                        due -> "Pay to have the operator hold a vehicle for you"
-                        booking.paymentStatus == "SUCCEEDED" -> "Paid"
-                        booking.paymentStatus == "REFUNDED" || booking.status == "REFUNDED" -> "Refunded"
-                        else -> "Not paid"
+                        due -> stringResource(R.string.customer_booking_pay_to_hold)
+                        booking.paymentStatus == "SUCCEEDED" -> stringResource(R.string.customer_paid)
+                        booking.paymentStatus == "REFUNDED" || booking.status == "REFUNDED" -> stringResource(R.string.customer_refunded)
+                        else -> stringResource(R.string.customer_not_paid)
                     },
                     style = SType.caption,
                     color = c.muted,
@@ -223,11 +245,11 @@ fun CustomerBookingScreen(app: OwnerApp, initial: TravelApi.Booking, onChanged: 
             Text(booking.totalAmount?.let(::rupees) ?: "—", style = SType.headerTitle, color = c.fg)
         }
 
-        ReceiptsCard(receipts, forWhat = booking.title, modifier = Modifier.rise(stagger(4))) { "Booking payment" }
+        ReceiptsCard(receipts, forWhat = booking.title, modifier = Modifier.rise(stagger(4))) { Words.get(R.string.customer_booking_payment) }
 
         if (booking.status in TravelApi.CANCELLABLE) {
             LinkButton(
-                "Cancel this booking",
+                stringResource(R.string.customer_booking_cancel_link),
                 onClick = { cancelling = true },
                 color = c.danger,
                 enabled = !busy,
@@ -238,14 +260,14 @@ fun CustomerBookingScreen(app: OwnerApp, initial: TravelApi.Booking, onChanged: 
 
     BottomSheet(visible = cancelling, onDismiss = { cancelling = false }) {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Text("Cancel this booking?", style = SType.sheetTitle, color = c.fg)
+            Text(stringResource(R.string.customer_booking_cancel_title), style = SType.sheetTitle, color = c.fg)
             Text(
-                if (booking.paymentStatus == "SUCCEEDED") "The operator is told why. A refund follows the cancellation terms." else "The operator is told why.",
+                stringResource(if (booking.paymentStatus == "SUCCEEDED") R.string.customer_booking_cancel_note_paid else R.string.customer_booking_cancel_note),
                 style = SType.body,
                 color = c.muted,
             )
-            NotesField(reason, { reason = it.take(500) }, label = "Why are you cancelling?", minHeight = 80.dp)
-            SaarthiButton("Cancel booking", onClick = ::cancel, tone = ButtonTone.DANGER_OUTLINE, enabled = reason.trim().length >= 3 && !busy)
+            NotesField(reason, { reason = it.take(500) }, label = stringResource(R.string.customer_booking_cancel_reason), minHeight = 80.dp)
+            SaarthiButton(stringResource(R.string.customer_booking_cancel), onClick = ::cancel, tone = ButtonTone.DANGER_OUTLINE, enabled = reason.trim().length >= 3 && !busy)
         }
     }
 }

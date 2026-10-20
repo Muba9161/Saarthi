@@ -1,0 +1,444 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Shared by the fleet, personal, travel and business tabs and screens. -->
+    <string name="fleet_tab_home">முகப்பு</string>
+    <string name="fleet_tab_map">மேப்</string>
+    <string name="fleet_tab_fleet">ஃப்ளீட்</string>
+    <string name="fleet_tab_jobs">வேலைகள்</string>
+    <string name="fleet_greeting">வணக்கம், %1$s</string>
+    <string name="fleet_tab_header_vehicles_drivers">வண்டிகள் &amp; டிரைவர்கள்</string>
+    <string name="fleet_tab_header_your_fleet">உங்கள் ஃப்ளீட்</string>
+    <string name="fleet_tab_header_on_your_routes">உங்கள் வழித்தடங்களில்</string>
+    <string name="fleet_tab_header_bid_on_work">வேலைக்கு பிட் செய்யுங்கள்</string>
+    <string name="fleet_a_driver">ஒரு டிரைவர்</string>
+    <string name="fleet_open_named">%1$s-ஐத் திற</string>
+    <string name="fleet_tonnes">%1$s டன்</string>
+    <plurals name="fleet_trips">
+        <item quantity="one">%d ட்ரிப்</item>
+        <item quantity="other">%d ட்ரிப்கள்</item>
+    </plurals>
+    <plurals name="fleet_papers_expired">
+        <item quantity="one">%d ஆவணம் காலாவதியானது</item>
+        <item quantity="other">%d ஆவணங்கள் காலாவதியாகின</item>
+    </plurals>
+
+    <!-- Fleet home: the reporting line over the cards. -->
+    <string name="fleet_main_live">லைவ்</string>
+    <string name="fleet_main_quiet">அமைதி</string>
+    <plurals name="fleet_main_reporting">
+        <item quantity="one">%d வண்டி உங்களுக்குத் தகவல் அனுப்புகிறது</item>
+        <item quantity="other">%d வண்டிகள் உங்களுக்குத் தகவல் அனுப்புகின்றன</item>
+    </plurals>
+    <string name="fleet_main_none_reported">சமீபத்தில் எந்த வண்டியும் தகவல் அனுப்பவில்லை</string>
+
+    <!-- Fleet home: approving or turning down a driver, as the toast says it. -->
+    <string name="fleet_model_approved">அனுமதிக்கப்பட்டது. அவர் ஷிஃப்டைத் தொடங்கலாம்.</string>
+    <string name="fleet_model_rejected">நிராகரிக்கப்பட்டது. டிரைவருக்குக் காரணம் தெரிவிக்கப்பட்டது.</string>
+
+    <!-- Fleet home: "Fleet right now" card. -->
+    <string name="fleet_now_title">இப்போது ஃப்ளீட்</string>
+    <string name="fleet_now_moving">%1$d ஓடுகின்றன</string>
+    <string name="fleet_now_on_the_road">சாலையில்</string>
+    <string name="fleet_now_idle_offline">%1$d நிற்கின்றன · %2$d ஆஃப்லைன்</string>
+    <string name="fleet_now_open_map">மேப்பைத் திற</string>
+
+    <!-- Fleet home: "Needs you now", the morning tiles and the return-load card. -->
+    <string name="fleet_cards_needs_you_now">இப்போது உங்கள் கவனம் தேவை</string>
+    <string name="fleet_cards_wants_to_drive">%1$s ஓட்ட விரும்புகிறார்</string>
+    <string name="fleet_cards_approve">அனுமதி</string>
+    <string name="fleet_cards_review">பரிசீலி</string>
+    <string name="fleet_cards_view_request">கோரிக்கையைப் பார்</string>
+    <string name="fleet_cards_cannot_approve">உரிமையாளர் அல்லது ஃப்ளீட் மேனேஜர் இதை அனுமதிப்பார். வண்டி காத்திருப்பது உங்களுக்குத் தெரிய இது காட்டப்படுகிறது.</string>
+    <plurals name="fleet_cards_more_waiting">
+        <item quantity="one">இதற்குப் பின் இன்னும் %d காத்திருக்கிறது</item>
+        <item quantity="other">இதற்குப் பின் இன்னும் %d காத்திருக்கின்றன</item>
+    </plurals>
+    <string name="fleet_cards_overdue">கெடு தாண்டியது</string>
+    <string name="fleet_cards_time_left">%1$s உள்ளது</string>
+    <string name="fleet_cards_open_alerts">அறிவிப்புகளைத் திற</string>
+    <string name="fleet_cards_all_clear_title">இப்போது உங்கள் கவனம் தேவைப்படுவது எதுவும் இல்லை</string>
+    <string name="fleet_cards_all_clear_body">அனுமதிக்காகக் காத்திருக்கும் டிரைவர்களும் அவசர அறிவிப்புகளும் இங்கே காட்டப்படும்.</string>
+    <string name="fleet_cards_trips">ட்ரிப்கள்</string>
+    <string name="fleet_cards_on_the_road">சாலையில்</string>
+    <string name="fleet_cards_late">%1$d தாமதம்</string>
+    <string name="fleet_cards_all_on_time">அனைத்தும் சரியான நேரத்தில்</string>
+    <string name="fleet_cards_papers">ஆவணங்கள்</string>
+    <string name="fleet_cards_all_set">எல்லாம் சரி</string>
+    <string name="fleet_cards_due">%1$d புதுப்பிக்க வேண்டும்</string>
+    <string name="fleet_cards_not_shared">பகிரப்படவில்லை</string>
+    <string name="fleet_cards_expired">%1$d காலாவதி</string>
+    <string name="fleet_cards_nothing_due">எதுவும் நிலுவையில் இல்லை</string>
+    <string name="fleet_cards_renew_soon">விரைவில் புதுப்பியுங்கள்</string>
+    <string name="fleet_cards_backhaul_one">%1$s காலியாகத் திரும்பும்</string>
+    <plurals name="fleet_cards_backhaul_trucks">
+        <item quantity="one">%d லாரி காலியாகத் திரும்பும்</item>
+        <item quantity="other">%d லாரிகள் காலியாகத் திரும்பும்</item>
+    </plurals>
+    <string name="fleet_cards_backhaul_line">%2$s-இலிருந்து %1$s km · ரிட்டர்ன் லோடு தேடுங்கள்</string>
+
+    <!-- Approve a driver. -->
+    <string name="fleet_approval_reason_not_assigned">இந்த வண்டிக்கு ஒதுக்கப்படவில்லை</string>
+    <string name="fleet_approval_reason_not_ready">வண்டி தயாராக இல்லை</string>
+    <string name="fleet_approval_reason_unknown_driver">இந்த டிரைவரை எனக்குத் தெரியாது</string>
+    <string name="fleet_approval_eyebrow">டிரைவர் கோரிக்கை</string>
+    <string name="fleet_approval_title">டிரைவரை அனுமதியுங்கள்</string>
+    <string name="fleet_approval_slide">%1$s-ஐ அனுமதிக்க ஸ்லைடு செய்யுங்கள்</string>
+    <string name="fleet_approval_turn_this_down">இதை நிராகரி</string>
+    <string name="fleet_approval_cannot_decide">உரிமையாளர் அல்லது ஃப்ளீட் மேனேஜர் இந்தக் கோரிக்கையை அனுமதிப்பார் அல்லது நிராகரிப்பார்.</string>
+    <string name="fleet_approval_left_to_decide">முடிவு செய்ய %1$s உள்ளது</string>
+    <string name="fleet_approval_waiting_for_you">உங்களுக்காகக் காத்திருக்கிறது</string>
+    <string name="fleet_approval_photo_description">%1$s வந்தபோது எடுத்த போட்டோ</string>
+    <string name="fleet_approval_licence_class">லைசென்ஸ் %1$s</string>
+    <string name="fleet_approval_licence_valid">லைசென்ஸ் செல்லும்</string>
+    <string name="fleet_approval_licence_expiring">லைசென்ஸ் விரைவில் காலாவதியாகும்</string>
+    <string name="fleet_approval_licence_expired">லைசென்ஸ் காலாவதியானது</string>
+    <plurals name="fleet_approval_driven_times">
+        <item quantity="one">இந்த லாரியை %d முறை ஓட்டியுள்ளார்</item>
+        <item quantity="other">இந்த லாரியை %d முறை ஓட்டியுள்ளார்</item>
+    </plurals>
+    <string name="fleet_approval_first_time">இந்த லாரியில் முதல் முறை</string>
+    <plurals name="fleet_approval_years">
+        <item quantity="one">%d வருடம்</item>
+        <item quantity="other">%d வருடங்கள்</item>
+    </plurals>
+    <!-- %1$s is how many years (e.g. "4 years"), %2$s how many trips (e.g. "120 trips"). -->
+    <string name="fleet_approval_experience">%1$s ஓட்டும் அனுபவம் · %2$s</string>
+    <string name="fleet_approval_vehicle">வண்டி</string>
+    <string name="fleet_approval_awaiting_you">உங்களுக்காகக் காத்திருக்கிறது</string>
+    <string name="fleet_approval_never_automatic">யாரும் தானாக அனுமதிக்கப்படுவதில்லை — இது உங்களுக்காகக் காத்திருக்கும்.</string>
+    <string name="fleet_approval_why_title">ஏன்? %1$s இதைப் பார்ப்பார்</string>
+    <string name="fleet_approval_own_words">அல்லது உங்கள் வார்த்தைகளில் சொல்லுங்கள்</string>
+    <string name="fleet_approval_turn_down">நிராகரி</string>
+
+    <!-- Your fleet: vehicles and drivers list. -->
+    <string name="fleet_list_invitation_accepted">%1$s இப்போது என்னுடன் பகிரப்பட்டவை பகுதியில் உள்ளது.</string>
+    <string name="fleet_list_invitation_declined">அழைப்பு நிராகரிக்கப்பட்டது.</string>
+    <string name="fleet_list_tab_vehicles">வண்டிகள் · %1$d</string>
+    <string name="fleet_list_tab_drivers">டிரைவர்கள் · %1$d</string>
+    <string name="fleet_list_mine">என்னுடையவை</string>
+    <string name="fleet_list_shared">என்னுடன் பகிரப்பட்டவை</string>
+    <string name="fleet_list_shared_count">என்னுடன் பகிரப்பட்டவை · %1$d</string>
+    <string name="fleet_list_open_map">மேப்பைத் திற</string>
+    <string name="fleet_list_all_count">அனைத்தும் · %1$d</string>
+    <plurals name="fleet_list_papers_due_personal">
+        <item quantity="one">உங்கள் வண்டிகளில் %d ஆவணத்துக்குக் கெடு நெருங்கியுள்ளது அல்லது காலாவதியாகிவிட்டது. செக் போஸ்ட்டில் வண்டி நிறுத்தப்படும் முன் புதுப்பியுங்கள்.</item>
+        <item quantity="other">உங்கள் வண்டிகளில் %d ஆவணங்களுக்குக் கெடு நெருங்கியுள்ளது அல்லது காலாவதியாகிவிட்டது. செக் போஸ்ட்டில் வண்டி நிறுத்தப்படும் முன் புதுப்பியுங்கள்.</item>
+    </plurals>
+    <plurals name="fleet_list_papers_due_fleet">
+        <item quantity="one">ஃப்ளீட் முழுவதும் %d ஆவணத்துக்குக் கெடு நெருங்கியுள்ளது அல்லது காலாவதியாகிவிட்டது. செக் போஸ்ட்டில் வண்டி நிறுத்தப்படும் முன் புதுப்பியுங்கள்.</item>
+        <item quantity="other">ஃப்ளீட் முழுவதும் %d ஆவணங்களுக்குக் கெடு நெருங்கியுள்ளது அல்லது காலாவதியாகிவிட்டது. செக் போஸ்ட்டில் வண்டி நிறுத்தப்படும் முன் புதுப்பியுங்கள்.</item>
+    </plurals>
+    <string name="fleet_list_no_vehicles">இங்கே இன்னும் வண்டிகள் இல்லை.</string>
+    <string name="fleet_list_add_driver">டிரைவரைச் சேர்</string>
+    <string name="fleet_list_no_drivers">இந்தக் கணக்கில் டிரைவர்கள் இல்லை.</string>
+    <string name="fleet_list_speed">%1$d km/h</string>
+    <string name="fleet_list_idle_minutes">நிற்கிறது %1$d நிமி</string>
+    <string name="fleet_list_idle">நிற்கிறது</string>
+    <string name="fleet_list_offline">ஆஃப்லைன்</string>
+    <string name="fleet_list_service">சர்வீஸ்</string>
+    <string name="fleet_list_score">ஸ்கோர் %1$d</string>
+
+    <!-- Your fleet: a vehicle as a card, and the rows-or-cards switch. -->
+    <string name="fleet_card_show_cards">கார்டுகளாகக் காட்டு</string>
+    <string name="fleet_card_show_list">பட்டியலாகக் காட்டு</string>
+    <string name="fleet_card_seats">இருக்கைகள்</string>
+    <string name="fleet_card_payload">லோடு திறன்</string>
+    <string name="fleet_card_odometer">ஓடோமீட்டர்</string>
+    <string name="fleet_card_km">%1$s km</string>
+    <string name="fleet_card_driver">டிரைவர்</string>
+    <string name="fleet_card_none">யாரும் இல்லை</string>
+    <plurals name="fleet_card_papers_expiring">
+        <item quantity="one">%d ஆவணம் காலாவதியாகிறது</item>
+        <item quantity="other">%d ஆவணங்கள் காலாவதியாகின்றன</item>
+    </plurals>
+    <string name="fleet_card_papers_valid">ஆவணங்கள் செல்லும்</string>
+    <string name="fleet_card_no_papers">ஆவணங்கள் பதிவேற்றப்படவில்லை</string>
+
+    <!-- A vehicle to choose for a bid or a trip. -->
+    <string name="fleet_choice_no_driver">டிரைவர் இல்லை</string>
+    <string name="fleet_choice_free_now">இப்போது காலி</string>
+
+    <!-- Live map. -->
+    <string name="fleet_map_filter_all">அனைத்தும்</string>
+    <string name="fleet_map_filter_moving">ஓடுகின்றன</string>
+    <string name="fleet_map_filter_idle">நிற்கின்றன</string>
+    <string name="fleet_map_filter_offline">ஆஃப்லைன்</string>
+    <string name="fleet_map_back">பின்செல்</string>
+    <string name="fleet_map_show_all">முழு ஃப்ளீட்டையும் காட்டு</string>
+    <string name="fleet_map_no_vehicles">இந்தக் கணக்கில் இன்னும் வண்டிகள் இல்லை.</string>
+    <string name="fleet_map_no_positions">இன்னும் எந்த வண்டியும் இருப்பிடத்தை அனுப்பவில்லை. அதன் டிராக்கர் அல்லது போன் அனுப்பியதும் இங்கே காட்டப்படும்.</string>
+    <string name="fleet_map_search_hint">நம்பர் பிளேட் அல்லது டிரைவர்</string>
+    <string name="fleet_map_clear_search">தேடலை அழி</string>
+    <string name="fleet_map_reporting_now">இப்போது தகவல் அனுப்புகிறது</string>
+    <string name="fleet_map_seen_ago">%1$s முன்பு பார்க்கப்பட்டது</string>
+    <string name="fleet_map_close">மூடு</string>
+    <string name="fleet_map_open_vehicle">வண்டியைத் திற</string>
+
+    <!-- One vehicle's page. -->
+    <string name="fleet_vehicle_title">வண்டி</string>
+    <string name="fleet_vehicle_call">%1$s-ஐ அழை</string>
+    <string name="fleet_vehicle_follow_map">மேப்பில் பின்தொடர்</string>
+    <string name="fleet_vehicle_speed">வேகம்</string>
+    <string name="fleet_vehicle_kmh">km/h</string>
+    <string name="fleet_vehicle_seen">பார்த்தது</string>
+    <string name="fleet_vehicle_ago">முன்பு</string>
+    <string name="fleet_vehicle_odometer">ஓடோமீட்டர்</string>
+    <string name="fleet_vehicle_km">km</string>
+    <string name="fleet_vehicle_open_trip">தற்போதைய ட்ரிப்பைத் திற</string>
+    <string name="fleet_vehicle_new_trip">இந்த வண்டியுடன் புதிய ட்ரிப்</string>
+    <string name="fleet_vehicle_driver_removed">டிரைவர் இந்த வண்டியிலிருந்து நீக்கப்பட்டார்.</string>
+    <string name="fleet_vehicle_assigned_you">நீங்கள் இந்த வண்டிக்கு ஒதுக்கப்பட்டுள்ளீர்கள்.</string>
+    <string name="fleet_vehicle_assigned_driver">டிரைவர் இந்த வண்டிக்கு ஒதுக்கப்பட்டுள்ளார்.</string>
+    <string name="fleet_vehicle_assigned_named">%1$s இந்த வண்டிக்கு ஒதுக்கப்பட்டுள்ளார்.</string>
+    <string name="fleet_vehicle_open_sharing">பகிர்வைத் திற</string>
+    <string name="fleet_vehicle_sharing">பகிர்வு</string>
+    <string name="fleet_vehicle_share_up_to">%1$d பேர் வரை பகிரலாம்</string>
+    <string name="fleet_vehicle_in_transit">பயணத்தில்</string>
+    <string name="fleet_vehicle_moving">ஓடுகிறது</string>
+    <string name="fleet_vehicle_stopped">நின்றுள்ளது</string>
+    <string name="fleet_vehicle_not_reporting">தகவல் அனுப்பவில்லை</string>
+    <string name="fleet_vehicle_in_service">சர்வீஸில்</string>
+    <string name="fleet_vehicle_current_tracking">தற்போதைய டிராக்கிங்</string>
+    <string name="fleet_vehicle_live_view">லைவ் வியூ</string>
+    <string name="fleet_vehicle_current_trip">தற்போதைய ட்ரிப்</string>
+    <string name="fleet_vehicle_min_late">%1$d நிமி தாமதம்</string>
+    <string name="fleet_vehicle_on_time">சரியான நேரத்தில்</string>
+    <string name="fleet_vehicle_left_at">%1$s புறப்பட்டது</string>
+    <string name="fleet_vehicle_to_go">இன்னும் %1$s</string>
+    <plurals name="fleet_vehicle_papers_expired_or_declined">
+        <item quantity="one">%d ஆவணம் காலாவதியானது அல்லது நிராகரிக்கப்பட்டது</item>
+        <item quantity="other">%d ஆவணங்கள் காலாவதியானவை அல்லது நிராகரிக்கப்பட்டவை</item>
+    </plurals>
+    <plurals name="fleet_vehicle_papers_due_soon">
+        <item quantity="one">%d ஆவணத்துக்கு விரைவில் கெடு</item>
+        <item quantity="other">%d ஆவணங்களுக்கு விரைவில் கெடு</item>
+    </plurals>
+    <plurals name="fleet_vehicle_papers_in_order">
+        <item quantity="one">%d ஆவணம் பதிவில், எல்லாம் சரி</item>
+        <item quantity="other">%d ஆவணங்கள் பதிவில், எல்லாம் சரி</item>
+    </plurals>
+    <plurals name="fleet_vehicle_all_papers_valid">
+        <item quantity="one">அனைத்து %d ஆவணமும் செல்லும்</item>
+        <item quantity="other">அனைத்து %d ஆவணங்களும் செல்லும்</item>
+    </plurals>
+    <string name="fleet_vehicle_no_papers">இன்னும் ஆவணங்கள் பதிவில் இல்லை</string>
+    <string name="fleet_vehicle_open_papers">ஆவணங்களைத் திற</string>
+    <string name="fleet_vehicle_papers">ஆவணங்கள்</string>
+
+    <!-- A from → to pair, when an end has no address. -->
+    <string name="fleet_route_start">தொடக்கம்</string>
+    <string name="fleet_route_destination">சேருமிடம்</string>
+
+    <!-- Who drives this vehicle, and adding yourself as its driver. -->
+    <string name="fleet_assign_driving">ஓட்டுபவர்</string>
+    <string name="fleet_assign_no_driver">டிரைவர் இல்லை</string>
+    <string name="fleet_assign_nobody">இந்த வண்டியை ஓட்ட யாரும் அமைக்கப்படவில்லை</string>
+    <string name="fleet_assign_take_off_confirm">%1$s-ஐ இந்த வண்டியிலிருந்து நீக்கவா?</string>
+    <string name="fleet_assign_keep">வைத்திரு</string>
+    <string name="fleet_assign_remove">நீக்கு</string>
+    <string name="fleet_assign_change_driver">டிரைவரை மாற்று</string>
+    <string name="fleet_assign_assign_driver">டிரைவரை ஒதுக்கு</string>
+    <string name="fleet_assign_sheet_title">%1$s-ஐ யார் ஓட்டுவார்?</string>
+    <string name="fleet_assign_sheet_hint">வேறு வண்டியில் இல்லாத, சரிபார்க்கப்பட்ட டிரைவர்களை மட்டுமே தேர்ந்தெடுக்க முடியும்.</string>
+    <string name="fleet_assign_myself">நானே</string>
+    <string name="fleet_assign_score">ஸ்கோர் %1$d</string>
+    <string name="fleet_assign_none_free">இப்போது சரிபார்க்கப்பட்ட டிரைவர் யாரும் காலியாக இல்லை.</string>
+    <string name="fleet_assign_assign">ஒதுக்கு</string>
+    <string name="fleet_assign_assigning">ஒதுக்குகிறது…</string>
+    <string name="fleet_assign_self_adds">உங்களை உங்கள் டிரைவர் பட்டியலில் சேர்க்கும்</string>
+    <string name="fleet_assign_self_unverified">உங்கள் லைசென்ஸ் இன்னும் சரிபார்க்கப்படுகிறது</string>
+    <string name="fleet_assign_self_elsewhere">நீங்கள் வேறு வண்டியில் உள்ளீர்கள்</string>
+    <string name="fleet_assign_self_licence">லைசென்ஸ் %1$s</string>
+    <string name="fleet_assign_photo_unusable">அந்தப் போட்டோவைப் பயன்படுத்த முடியவில்லை.</string>
+    <string name="fleet_assign_licence_unreadable">அதிலிருந்து லைசென்ஸ் நம்பரைப் படிக்க முடியவில்லை. தெளிவான போட்டோவை முயலுங்கள், அல்லது டைப் செய்யுங்கள்.</string>
+    <string name="fleet_assign_photo_hint">உங்கள் டிரைவிங் லைசென்ஸைப் போட்டோ எடுங்கள், அதன் நம்பர் தானாகப் படிக்கப்படும்.</string>
+    <string name="fleet_assign_scan_licence">லைசென்ஸை ஸ்கேன் செய்</string>
+    <string name="fleet_assign_choose_file">ஃபைலைத் தேர்ந்தெடு</string>
+    <string name="fleet_assign_reading">லைசென்ஸைப் படிக்கிறது…</string>
+    <string name="fleet_assign_licence_number">டிரைவிங் லைசென்ஸ் நம்பர்</string>
+    <string name="fleet_assign_add_me">என்னைச் சேர்த்து ஒதுக்கு</string>
+    <string name="fleet_assign_added_unverified">நீங்கள் உங்கள் டிரைவர் பட்டியலில் உள்ளீர்கள். உங்கள் லைசென்ஸ் சரிபார்க்கப்பட்டதும், இங்கே உங்களை ஒதுக்கிக்கொள்ளுங்கள்.</string>
+    <string name="fleet_assign_adding">சேர்க்கிறது…</string>
+
+    <!-- Return loads. -->
+    <string name="fleet_backhaul_eyebrow">பிசினஸ் · ரிட்டர்ன் லோடு</string>
+    <string name="fleet_backhaul_title">ரிட்டர்ன் லோடுகள்</string>
+    <string name="fleet_backhaul_nothing">எந்த லாரியும் காலியாகத் திரும்பப் போவதில்லை, திரும்பும் வழியில் எதுவும் காத்திருக்கவில்லை.</string>
+    <string name="fleet_backhaul_no_match">திரும்பும் வழிக்குப் பொருந்துவது இன்னும் எதுவும் இல்லை. வாடிக்கையாளர்கள் போஸ்ட் செய்யும்போது புதிய லோடுகள் சரிபார்க்கப்படும்.</string>
+    <string name="fleet_backhaul_best_first">சிறந்த பொருத்தம் முதலில்</string>
+    <string name="fleet_backhaul_quote_sent">%1$s-க்குக் கொட்டேஷன் அனுப்பப்பட்டது. வாடிக்கையாளருக்குத் தெரிவிக்கப்பட்டது.</string>
+    <string name="fleet_backhaul_running_empty">விரைவில் காலியாக ஓடும்</string>
+    <string name="fleet_backhaul_drops">%1$s-இல் இறக்கும்</string>
+    <!-- %1$s is the drop town, %2$s the empty kilometres back. -->
+    <string name="fleet_backhaul_hero_line">%1$s — %2$s km காலியாகத் திரும்பும்</string>
+    <plurals name="fleet_backhaul_loads_match">
+        <item quantity="one">திரும்பும் வழிக்கு %d லோடு பொருந்துகிறது</item>
+        <item quantity="other">திரும்பும் வழிக்கு %d லோடுகள் பொருந்துகின்றன</item>
+    </plurals>
+    <string name="fleet_backhaul_watching">திரும்பும் வழியில் லோடுகளைக் கவனித்து வருகிறது</string>
+    <string name="fleet_backhaul_risk_line">%1$s · %2$s km காலி</string>
+    <string name="fleet_backhaul_best_fit_detour">சிறந்த பொருத்தம் · %1$d km சுற்று</string>
+    <string name="fleet_backhaul_detour">%1$d km சுற்று</string>
+    <string name="fleet_backhaul_posted_now">இப்போது போஸ்ட் செய்யப்பட்டது</string>
+    <string name="fleet_backhaul_posted_ago">%1$s முன்பு போஸ்ட் செய்யப்பட்டது</string>
+    <string name="fleet_backhaul_pick_up">பிக்அப் %1$s</string>
+    <string name="fleet_backhaul_from_drop">டிராப்பிலிருந்து %1$d km</string>
+    <string name="fleet_backhaul_deliver_by">%1$s-க்குள் டெலிவரி</string>
+    <string name="fleet_backhaul_load">லோடு</string>
+    <string name="fleet_backhaul_goods">சரக்கு</string>
+    <string name="fleet_backhaul_worth">மதிப்பு</string>
+    <string name="fleet_backhaul_quote_sent_button">கொட்டேஷன் அனுப்பப்பட்டது</string>
+    <string name="fleet_backhaul_quote_this">இந்த லோடுக்குக் கொட்டேஷன் கொடு</string>
+    <string name="fleet_backhaul_quote_for">%1$s-க்குக் கொட்டேஷன்</string>
+    <!-- %1$s from, %2$s to, %3$s the truck's plate. -->
+    <string name="fleet_backhaul_quote_route">%3$s திரும்பும் வழியில் %1$s → %2$s.</string>
+    <string name="fleet_backhaul_your_price">உங்கள் விலை (₹)</string>
+    <string name="fleet_backhaul_note">குறிப்பு (விருப்பத்தேர்வு)</string>
+    <string name="fleet_backhaul_send_quote">கொட்டேஷன் அனுப்பு</string>
+
+    <!-- Business home (accounts whose own screens are still to come). -->
+    <string name="fleet_home_intro_personal_eyebrow">தனிப்பட்டது</string>
+    <string name="fleet_home_intro_personal_line">உங்கள் வண்டிகள், அவற்றின் ஆவணங்கள், ஒவ்வொரு ட்ரிப்பும்.</string>
+    <string name="fleet_home_intro_travel_eyebrow">டிராவல்</string>
+    <string name="fleet_home_intro_travel_line">புக்கிங்குகள், வண்டிகள், முன்னால் உள்ள பயணம்.</string>
+    <string name="fleet_home_intro_customer_eyebrow">வாடிக்கையாளர்</string>
+    <string name="fleet_home_intro_customer_line">நீங்கள் அனுப்ப வேண்டியது, அது இப்போது எங்கே உள்ளது.</string>
+    <string name="fleet_home_intro_seller_eyebrow">விற்பனையாளர்</string>
+    <string name="fleet_home_intro_seller_line">உங்கள் ஸ்டாக், அதை லோடு செய்ய வரும் லாரிகள்.</string>
+    <string name="fleet_home_intro_association_eyebrow">சங்கம்</string>
+    <string name="fleet_home_intro_association_line">உங்கள் உறுப்பினர்கள், சாலையில் உதவி தேவைப்படும் எவரும்.</string>
+    <string name="fleet_home_intro_other_line">Saarthi-இல் உங்கள் வணிகம்.</string>
+    <string name="fleet_home_latest">சமீபத்தியவை</string>
+    <string name="fleet_home_nothing_new">புதிதாக எதுவும் இல்லை. உங்கள் வணிகம் பற்றிய அறிவிப்புகள் இங்கே காட்டப்படும்.</string>
+    <string name="fleet_home_see_all_alerts">எல்லா அறிவிப்புகளையும் பார்</string>
+
+    <!-- Personal: tabs. -->
+    <string name="fleet_personal_tab_vehicles">வண்டிகள்</string>
+    <string name="fleet_personal_tab_papers">ஆவணங்கள்</string>
+    <string name="fleet_personal_header_personal">தனிப்பட்டது</string>
+    <string name="fleet_personal_header_your_vehicles">உங்கள் வண்டிகள்</string>
+    <string name="fleet_personal_header_your_papers">உங்கள் ஆவணங்கள்</string>
+
+    <!-- Personal: home and papers. -->
+    <string name="fleet_personal_no_vehicle">இந்தக் கணக்கில் இன்னும் வண்டி இல்லை. Saarthi இணையதளத்திலிருந்து ஒன்றைச் சேருங்கள்.</string>
+    <string name="fleet_personal_vehicle">வண்டி</string>
+    <string name="fleet_personal_insurance">இன்சூரன்ஸ்</string>
+    <string name="fleet_personal_expired">காலாவதியானது</string>
+    <plurals name="fleet_personal_days">
+        <item quantity="one">%d நாள்</item>
+        <item quantity="other">%d நாட்கள்</item>
+    </plurals>
+    <string name="fleet_personal_could_not_load">ஏற்ற முடியவில்லை</string>
+    <string name="fleet_personal_loading">ஏற்றுகிறது</string>
+    <string name="fleet_personal_not_on_file">பதிவில் இல்லை</string>
+    <string name="fleet_personal_left">மீதம்</string>
+    <string name="fleet_personal_papers">ஆவணங்கள்</string>
+    <string name="fleet_personal_none">இல்லை</string>
+    <string name="fleet_personal_all_set">எல்லாம் சரி</string>
+    <string name="fleet_personal_due">%1$d கெடு</string>
+    <string name="fleet_personal_on_file">%1$d பதிவில்</string>
+    <string name="fleet_personal_odometer">ஓடோமீட்டர்</string>
+    <string name="fleet_personal_km">km</string>
+    <string name="fleet_personal_quick_actions">விரைவுச் செயல்கள்</string>
+    <string name="fleet_personal_sharing">பகிர்வு</string>
+    <string name="fleet_personal_map">மேப்</string>
+    <plurals name="fleet_personal_shared_with">
+        <item quantity="one">%d நபருடன் பகிரப்பட்டது</item>
+        <item quantity="other">%d பேருடன் பகிரப்பட்டது</item>
+    </plurals>
+    <string name="fleet_personal_moving">ஓடுகிறது</string>
+    <string name="fleet_personal_parked">நிறுத்தப்பட்டுள்ளது</string>
+    <string name="fleet_personal_not_reporting">தகவல் அனுப்பவில்லை</string>
+    <string name="fleet_personal_where_it_is">எங்கே உள்ளது</string>
+    <string name="fleet_personal_reporting_now">இப்போது தகவல் அனுப்புகிறது</string>
+    <string name="fleet_personal_last_seen">கடைசியாக %1$s முன்பு பார்க்கப்பட்டது</string>
+    <string name="fleet_personal_no_position">இன்னும் இருப்பிடம் வரவில்லை</string>
+    <!-- %1$s is the kind of vehicle, e.g. "car" or "vehicle". -->
+    <string name="fleet_personal_find_my">என் %1$s-ஐக் கண்டுபிடி</string>
+    <string name="fleet_personal_vehicle_lower">வண்டி</string>
+
+    <!-- Travel: tabs. -->
+    <string name="fleet_travel_tab_bookings">புக்கிங்குகள்</string>
+    <string name="fleet_travel_header_trips_you_run">நீங்கள் நடத்தும் ட்ரிப்கள்</string>
+    <string name="fleet_travel_tab_requests">கோரிக்கைகள்</string>
+    <string name="fleet_travel_header_cabs_tours">உங்கள் அருகிலுள்ள கேப்கள் &amp; டூர்கள்</string>
+
+    <!-- Travel: home and the bookings list. -->
+    <string name="fleet_travel_on_the_road">%1$d சாலையில்</string>
+    <string name="fleet_travel_nobody_on_road">சாலையில் யாரும் இல்லை</string>
+    <string name="fleet_travel_today">இன்று</string>
+    <plurals name="fleet_travel_bookings">
+        <item quantity="one">%d புக்கிங்</item>
+        <item quantity="other">%d புக்கிங்குகள்</item>
+    </plurals>
+    <string name="fleet_travel_open_map">மேப்</string>
+    <string name="fleet_travel_on_duty">பணியில்</string>
+    <string name="fleet_travel_vehicles_caption">வண்டிகள்</string>
+    <string name="fleet_travel_awaiting">காத்திருப்பவை</string>
+    <string name="fleet_travel_to_confirm">உறுதிசெய்ய</string>
+    <string name="fleet_travel_rating">மதிப்பீடு</string>
+    <string name="fleet_travel_from_trips">ட்ரிப்களிலிருந்து</string>
+    <string name="fleet_travel_todays_run">இன்றைய ஓட்டம்</string>
+    <string name="fleet_travel_all_bookings">எல்லா புக்கிங்குகளும்</string>
+    <string name="fleet_travel_nothing_today">இன்று எதுவும் இல்லை. அடுத்து வருபவை:</string>
+    <string name="fleet_travel_no_bookings_hint">இன்னும் புக்கிங்குகள் இல்லை. டைரியை நிரப்ப உங்கள் அருகிலுள்ள கோரிக்கைகளுக்குக் கொட்டேஷன் கொடுங்கள்.</string>
+    <string name="fleet_travel_no_bookings">இன்னும் புக்கிங்குகள் இல்லை.</string>
+    <string name="fleet_travel_still_to_run">இன்னும் நடக்க வேண்டியவை</string>
+    <string name="fleet_travel_earlier">முன்பு</string>
+    <string name="fleet_travel_status_confirm_it">உறுதிசெய்யுங்கள்</string>
+    <string name="fleet_travel_status_awaiting_payment">பேமெண்ட்டுக்குக் காத்திருக்கிறது</string>
+    <string name="fleet_travel_status_driver_assigned">டிரைவர் ஒதுக்கப்பட்டார்</string>
+    <string name="fleet_travel_status_on_the_way">வழியில்</string>
+    <string name="fleet_travel_status_completed">முடிந்தது</string>
+    <string name="fleet_travel_status_cancelled">ரத்துசெய்யப்பட்டது</string>
+    <string name="fleet_travel_pickup_today">பிக்அப்</string>
+
+    <!-- Travel: one booking. -->
+    <string name="fleet_travel_booking_reference">புக்கிங் %1$s</string>
+    <string name="fleet_travel_confirm">இந்த புக்கிங்கை உறுதிசெய்</string>
+    <string name="fleet_travel_confirmed">உறுதிசெய்யப்பட்டது. வாடிக்கையாளருக்குத் தெரிவிக்கப்பட்டது.</string>
+    <string name="fleet_travel_decline">நிராகரி</string>
+    <string name="fleet_travel_start">ட்ரிப்பைத் தொடங்கு</string>
+    <string name="fleet_travel_trip_started">ட்ரிப் தொடங்கியது.</string>
+    <string name="fleet_travel_finish">ட்ரிப்பை முடி</string>
+    <string name="fleet_travel_trip_finished">ட்ரிப் முடிந்தது.</string>
+    <string name="fleet_travel_customer">வாடிக்கையாளர்</string>
+    <plurals name="fleet_travel_people">
+        <item quantity="one">%d பேர்</item>
+        <item quantity="other">%d பேர்</item>
+    </plurals>
+    <string name="fleet_travel_call_named">%1$s-ஐ அழை</string>
+    <string name="fleet_travel_call_customer">வாடிக்கையாளரை அழை</string>
+    <string name="fleet_travel_payment">பேமெண்ட்</string>
+    <string name="fleet_travel_paid">வாடிக்கையாளர் பணம் செலுத்தினார்</string>
+    <string name="fleet_travel_not_paid">இன்னும் செலுத்தப்படவில்லை</string>
+    <string name="fleet_travel_payment_failed">வாடிக்கையாளரின் பேமெண்ட் தோல்வியடைந்தது</string>
+    <string name="fleet_travel_started_without_code">குறியீடு இல்லாமல் தொடங்கப்பட்டது. காரணம் பதிவில் உள்ளது, பயணிக்குத் தெரிவிக்கப்பட்டது.</string>
+    <string name="fleet_travel_why_decline">ஏன் இதை ஏற்க முடியவில்லை?</string>
+    <string name="fleet_travel_customer_sees">வாடிக்கையாளர் இதைப் பார்ப்பார்</string>
+    <string name="fleet_travel_decline_booking">புக்கிங்கை நிராகரி</string>
+    <string name="fleet_travel_declined">நிராகரிக்கப்பட்டது. வாடிக்கையாளருக்குத் தெரிவிக்கப்பட்டது.</string>
+    <string name="fleet_travel_which_vehicle">எந்த வண்டி செல்லும்</string>
+    <plurals name="fleet_travel_no_vehicle_fits">
+        <item quantity="one">உங்கள் வண்டிகள் எதுவும் இந்த புக்கிங்கை எடுக்க முடியாது. குறைந்தது %d இருக்கை கொண்ட, ட்ரிப்பிலோ சர்வீஸிலோ இல்லாமல் இப்போது காலியாக உள்ள பயணிகள் வண்டி தேவை.</item>
+        <item quantity="other">உங்கள் வண்டிகள் எதுவும் இந்த புக்கிங்கை எடுக்க முடியாது. குறைந்தது %d இருக்கைகள் கொண்ட, ட்ரிப்பிலோ சர்வீஸிலோ இல்லாமல் இப்போது காலியாக உள்ள பயணிகள் வண்டி தேவை.</item>
+    </plurals>
+    <string name="fleet_travel_check_again">மீண்டும் சரிபார்</string>
+    <plurals name="fleet_travel_seats">
+        <item quantity="one">%d இருக்கை</item>
+        <item quantity="other">%d இருக்கைகள்</item>
+    </plurals>
+    <string name="fleet_travel_who_drives">யார் ஓட்டுவார்</string>
+    <string name="fleet_travel_no_verified_driver">சரிபார்க்கப்பட்ட டிரைவர் மட்டுமே பயணிகள் ட்ரிப்பை எடுக்க முடியும், உங்கள் டிரைவர்கள் யாரும் இன்னும் சரிபார்க்கப்படவில்லை. வண்டியை மட்டும் வைத்து உறுதிசெய்யலாம்.</string>
+    <string name="fleet_travel_booked">புக் செய்யப்பட்டது</string>
+    <plurals name="fleet_travel_days">
+        <item quantity="one">%d நாள்</item>
+        <item quantity="other">%d நாட்கள்</item>
+    </plurals>
+    <string name="fleet_travel_km">%1$d km</string>
+    <string name="fleet_travel_pickup">பிக்அப்</string>
+    <string name="fleet_travel_pick_up_at">பிக்அப் %1$s</string>
+    <string name="fleet_travel_destination">சேருமிடம்</string>
+    <string name="fleet_travel_back_at">%1$s திரும்புதல்</string>
+    <string name="fleet_travel_vehicle_driver">வண்டி &amp; டிரைவர்</string>
+</resources>

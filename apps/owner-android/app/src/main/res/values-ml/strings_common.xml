@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- How long ago, and how long a journey takes, as the shared formatters say it. -->
+    <string name="common_time_now">ഇപ്പോൾ</string>
+    <string name="common_time_minutes">%1$d മിനിറ്റ്</string>
+    <string name="common_time_hours">%1$d മണിക്കൂർ</string>
+    <string name="common_time_days">%1$d ദിവസം</string>
+    <string name="common_span_hours_minutes">%1$d മണിക്കൂർ %2$d മിനിറ്റ്</string>
+    <string name="common_span_days_hours">%1$d ദിവസം %2$d മണിക്കൂർ</string>
+    <string name="common_distance_km">%1$s km</string>
+</resources>

@@ -23,8 +23,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
+import com.saarthi.owner.R
 import com.saarthi.owner.data.DeviceLocation
 import com.saarthi.owner.network.OwnerApi
 import com.saarthi.owner.network.PlacesApi
@@ -63,7 +65,7 @@ fun CurrentLocationRow(places: PlacesApi, onPick: (PlacesApi.Place) -> Unit, mod
                 val here = DeviceLocation.current(context)
                 val place = places.nearest(here.latitude, here.longitude)
                 if (place == null) {
-                    error = "Couldn't name the street you are on. Search for the place instead."
+                    error = Words.get(R.string.ui_location_error_no_street)
                 } else {
                     onPick(place)
                 }
@@ -71,10 +73,10 @@ fun CurrentLocationRow(places: PlacesApi, onPick: (PlacesApi.Place) -> Unit, mod
                 error = failure.message
             } catch (failure: OwnerApi.Failure) {
                 // The address lookup, not Saarthi, is what did not answer.
-                error = "Couldn't look up the address here. Check the internet and try again, or search for the place instead."
+                error = Words.get(R.string.ui_location_error_lookup)
             } catch (failure: SecurityException) {
                 // Location was taken away between the check and the fix.
-                error = "Allow location to use where you are, or search for the place instead."
+                error = Words.get(R.string.ui_location_error_allow)
             }
             locating = false
         }
@@ -90,9 +92,9 @@ fun CurrentLocationRow(places: PlacesApi, onPick: (PlacesApi.Place) -> Unit, mod
         blocked = activity != null &&
             DeviceLocation.PERMISSIONS.none { ActivityCompat.shouldShowRequestPermissionRationale(activity, it) }
         error = if (blocked) {
-            "Location is blocked for Saarthi. Allow it in Settings, or search for the place instead."
+            Words.get(R.string.ui_location_error_blocked)
         } else {
-            "Allow location to use where you are, or search for the place instead."
+            Words.get(R.string.ui_location_error_allow)
         }
     }
 
@@ -101,7 +103,7 @@ fun CurrentLocationRow(places: PlacesApi, onPick: (PlacesApi.Place) -> Unit, mod
             Modifier
                 .fillMaxWidth()
                 .card(radius = 20.dp)
-                .pressable(enabled = !locating, scale = 0.99f, label = "Use my current location") {
+                .pressable(enabled = !locating, scale = 0.99f, label = stringResource(R.string.ui_location_use_current)) {
                     if (DeviceLocation.allowed(context)) {
                         blocked = false
                         locate()
@@ -115,9 +117,9 @@ fun CurrentLocationRow(places: PlacesApi, onPick: (PlacesApi.Place) -> Unit, mod
         ) {
             IconWell("${Lucide.crosshair} ${Lucide.crosshairDot}", well = c.primarySoft, ink = c.primary, size = 36.dp, radius = 12.dp, iconSize = 18.dp)
             Column(Modifier.weight(1f)) {
-                Text("Use my current location", style = SType.rowTitle, color = c.fg)
+                Text(stringResource(R.string.ui_location_use_current), style = SType.rowTitle, color = c.fg)
                 Text(
-                    if (locating) "Finding where you are…" else "Fills in where you are standing",
+                    stringResource(if (locating) R.string.ui_location_finding else R.string.ui_location_fills_in),
                     style = SType.caption,
                     color = c.muted,
                 )
@@ -129,7 +131,7 @@ fun CurrentLocationRow(places: PlacesApi, onPick: (PlacesApi.Place) -> Unit, mod
                 message,
                 NoticeTone.WARNING,
                 trailing = if (blocked) {
-                    { LinkButton("Settings", onClick = { context.openAppSettings() }, style = SType.smallStrong) }
+                    { LinkButton(stringResource(R.string.ui_location_settings), onClick = { context.openAppSettings() }, style = SType.smallStrong) }
                 } else {
                     null
                 },
