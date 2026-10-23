@@ -44,6 +44,7 @@ import com.saarthi.owner.ui.sos.SosAlertScreen
 import com.saarthi.owner.ui.sos.SosCard
 import com.saarthi.owner.ui.design.rise
 import com.saarthi.owner.ui.design.stagger
+import com.saarthi.owner.ui.rides.LiveRidesOnHome
 import kotlinx.coroutines.delay
 
 /** How often a fleet's home reads itself again while it is on screen. */
@@ -112,6 +113,7 @@ fun FleetHomeScreen(app: OwnerApp, account: SessionStore.Account, onOpenAlerts: 
                             maxLines = 1,
                         )
                     }
+                    LiveRidesOnHome(app, Modifier.rise())
                     InvitationsOnHome(app, account, Modifier.rise())
                     DriveCard(app, account, Modifier.rise())
                     data.sos.forEach { incident ->

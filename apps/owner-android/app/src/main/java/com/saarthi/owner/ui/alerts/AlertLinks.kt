@@ -16,6 +16,7 @@ import com.saarthi.owner.ui.fleet.DriverApprovalScreen
 import com.saarthi.owner.ui.fleet.VehicleScreen
 import com.saarthi.owner.ui.jobs.BidScreen
 import com.saarthi.owner.ui.orders.FleetOrderScreen
+import com.saarthi.owner.ui.rides.LiveRideScreen
 import com.saarthi.owner.ui.seller.SellerOrder
 import com.saarthi.owner.ui.seller.SellerOrderScreen
 import com.saarthi.owner.ui.sharing.SharedScopeRequest
@@ -57,6 +58,10 @@ suspend fun resolveAlertLink(app: OwnerApp, account: SessionStore.Account, link:
                 app.association.get(id)?.let { alert -> AlertTarget.Screen("respond-$id") { RespondScreen(app, account, alert) {} } }
 
             path.startsWith("orders/") -> openOrder(app, account, id)
+
+            // A ride somebody shares with this person: followed here, not in a browser. The
+            // screen reads the link itself, so one that has gone says so there.
+            path.startsWith("live/") && id.isNotBlank() -> AlertTarget.Screen("live-$id") { LiveRideScreen(app, id) }
 
             path.startsWith("travel/bookings/") || path.startsWith("travel/provider/bookings/") ->
                 app.travel.get(id)?.let { booking ->

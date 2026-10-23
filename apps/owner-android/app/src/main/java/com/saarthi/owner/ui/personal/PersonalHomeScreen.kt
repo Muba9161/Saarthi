@@ -79,6 +79,7 @@ import com.saarthi.owner.ui.drive.DriveCard
 import com.saarthi.owner.ui.shell.LocalNavigator
 import com.saarthi.owner.ui.sharing.SharingScreen
 import com.saarthi.owner.ui.shell.ShellActions
+import com.saarthi.owner.ui.rides.LiveRidesOnHome
 import kotlinx.coroutines.delay
 
 private const val REFRESH_MS = 30_000L
@@ -134,6 +135,7 @@ fun PersonalHomeScreen(app: OwnerApp, account: SessionStore.Account, actions: Sh
             Loadable.Loading -> SkeletonCards()
             is Loadable.Failed -> FailedCard(shown.message, { model.refresh() })
             is Loadable.Ready -> {
+                LiveRidesOnHome(app, Modifier.rise())
                 InvitationsOnHome(app, account, Modifier.rise())
                 DriveCard(app, account, Modifier.rise())
                 if (vehicle == null) {

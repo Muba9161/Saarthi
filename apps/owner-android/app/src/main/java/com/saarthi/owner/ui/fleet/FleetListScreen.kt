@@ -42,6 +42,7 @@ import com.saarthi.owner.R
 import com.saarthi.owner.data.AccountType
 import com.saarthi.owner.data.SessionStore
 import com.saarthi.owner.network.DriversApi
+import com.saarthi.owner.network.LiveRidesApi
 import com.saarthi.owner.network.PreferencesApi
 import com.saarthi.owner.network.SharingApi
 import com.saarthi.owner.network.VehiclesApi
@@ -79,9 +80,12 @@ import com.saarthi.owner.ui.design.pressable
 import com.saarthi.owner.ui.sharing.SharedScopeRequest
 import com.saarthi.owner.ui.sharing.SharedVehicleScreen
 import com.saarthi.owner.ui.sharing.sharedWithMeItems
+import com.saarthi.owner.ui.rides.LiveRideScreen
 import com.saarthi.owner.ui.shell.LocalNavigator
 import com.saarthi.owner.ui.design.rise
 import com.saarthi.owner.ui.design.stagger
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -110,18 +114,23 @@ fun FleetListScreen(app: OwnerApp, account: SessionStore.Account, onOpenMap: (()
     val sharing = account.hasFeature(SharingApi.FEATURE)
     var sharedScope by rememberSaveable { mutableStateOf(false) }
     var shared by remember { mutableStateOf<Loadable<SharingApi.SharedWithMe>>(Loadable.Loading) }
+    var liveRides by remember { mutableStateOf<List<LiveRidesApi.RideSharedWithMe>>(emptyList()) }
     var answering by remember { mutableStateOf<String?>(null) }
     var notice by remember { mutableStateOf<Pair<String, NoticeTone>?>(null) }
 
-    suspend fun loadShared(silent: Boolean) {
-        if (!sharing) return
+    suspend fun loadShared(silent: Boolean) = coroutineScope {
+        if (!sharing) return@coroutineScope
         if (!silent) shared = Loadable.Loading
-        shared = try {
+        // Live rides shared with this person are read alongside but apart: neither read sinks the other,
+        // and a failed read of them keeps the last ones.
+        val rides = async { runCatching { app.liveRides.sharedWithMe() }.getOrNull() }
+        val vehicles = try {
             Loadable.Ready(app.sharing.sharedWithMe())
         } catch (failure: Exception) {
-            if (silent && shared is Loadable.Ready) return
             Loadable.Failed(failure.readable())
         }
+        rides.await()?.let { liveRides = it }
+        if (!(silent && vehicles is Loadable.Failed && shared is Loadable.Ready)) shared = vehicles
     }
 
     LaunchedEffect(Unit) {
@@ -228,6 +237,7 @@ fun FleetListScreen(app: OwnerApp, account: SessionStore.Account, onOpenMap: (()
                 if (!showDrivers && sharedScope) {
                     sharedWithMeItems(
                         state = shared,
+                        liveRides = liveRides,
                         cards = layout.isCards(),
                         answering = answering,
                         onAnswer = ::answer,
@@ -236,6 +246,7 @@ fun FleetListScreen(app: OwnerApp, account: SessionStore.Account, onOpenMap: (()
                                 SharedVehicleScreen(app, vehicle) { scope.launch { loadShared(silent = true) } }
                             }
                         },
+                        onOpenRide = { ride -> navigator.push("live-${ride.token}") { LiveRideScreen(app, ride.token) } },
                         onRetry = { scope.launch { loadShared(silent = false) } },
                     )
                 } else if (!showDrivers) {

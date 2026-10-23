@@ -120,17 +120,25 @@ fun sharedFollowSource(app: OwnerApp, shareId: String): FollowSource = FollowSou
 /** A shared vehicle as its map disc: coloured by its status, grey once it stops reporting. */
 internal fun SharingApi.SharedVehicle.mapMarker(): MapVehicle? {
     val here = lastLocation ?: return null
-    val minutes = runCatching { Duration.between(Instant.parse(here.recordedAt), Instant.now()).toMinutes() }.getOrNull()
     return MapVehicle(
         id = vehicleId,
         latitude = here.latitude,
         longitude = here.longitude,
-        state = when {
-            minutes == null || minutes > VehiclesApi.OFFLINE_AFTER_MINUTES -> MarkerState.OFFLINE
-            (here.speedKph ?: 0.0) > VehiclesApi.MOVING_KPH -> MarkerState.MOVING
-            else -> MarkerState.IDLE
-        },
+        state = markerStateOf(here.recordedAt, here.speedKph),
         label = formatPlate(registrationNumber),
         status = status.ifBlank { null },
     )
+}
+
+/**
+ * How a reported position is drawn: grey once it is too old to trust, moving
+ * above a walking pace, otherwise stopped — the owner's own rule for a vehicle.
+ */
+internal fun markerStateOf(recordedAt: String?, speedKph: Double?, now: Instant = Instant.now()): MarkerState {
+    val minutes = recordedAt?.let { runCatching { Duration.between(Instant.parse(it), now).toMinutes() }.getOrNull() }
+    return when {
+        minutes == null || minutes > VehiclesApi.OFFLINE_AFTER_MINUTES -> MarkerState.OFFLINE
+        (speedKph ?: 0.0) > VehiclesApi.MOVING_KPH -> MarkerState.MOVING
+        else -> MarkerState.IDLE
+    }
 }

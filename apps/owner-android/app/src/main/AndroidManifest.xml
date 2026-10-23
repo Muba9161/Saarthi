@@ -58,6 +58,17 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!--
+                A family member's live-ride link, sent on WhatsApp: opened here
+                rather than in the browser when the app is installed. Verified by
+                apps/web/public/.well-known/assetlinks.json on the site.
+            -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="vorldxsaarthi.com" android:pathPrefix="/live/" />
+            </intent-filter>
         </activity>
 
         <!-- Payment receipts, shared from the app's cache on phones older than Android 10. -->

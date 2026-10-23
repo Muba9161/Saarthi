@@ -8,6 +8,7 @@ import com.saarthi.owner.network.AlertsApi
 import com.saarthi.owner.network.AssistantApi
 import com.saarthi.owner.network.CommerceApi
 import com.saarthi.owner.network.HandoverApi
+import com.saarthi.owner.network.LiveRidesApi
 import com.saarthi.owner.network.AssociationApi
 import com.saarthi.owner.network.DriversApi
 import com.saarthi.owner.network.DrivingApi
@@ -94,6 +95,8 @@ class OwnerApp : Application() {
         private set
     lateinit var driving: DrivingApi
         private set
+    lateinit var liveRides: LiveRidesApi
+        private set
 
     override fun onCreate() {
         super.onCreate()
@@ -131,6 +134,7 @@ class OwnerApp : Application() {
         toll = TollApi(api)
         travelPackages = TravelPackagesApi(api)
         driving = DrivingApi(api)
+        liveRides = LiveRidesApi(api)
         Push.start(this)
     }
 }

@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import com.saarthi.owner.OwnerApp
 import com.saarthi.owner.R
 import com.saarthi.owner.data.SessionStore
+import com.saarthi.owner.network.LiveRidesApi
 import com.saarthi.owner.network.SharingApi
 import com.saarthi.owner.ui.common.FailedCard
 import com.saarthi.owner.ui.common.Loadable
@@ -44,14 +45,16 @@ import com.saarthi.owner.ui.design.SaarthiButton
 import com.saarthi.owner.ui.design.card
 import com.saarthi.owner.ui.fleet.VehicleCard
 import com.saarthi.owner.ui.fleet.VehicleRow
+import com.saarthi.owner.ui.rides.LiveRideRow
 import com.saarthi.owner.ui.shell.LocalNavigator
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /*
- * The "Shared with me" side of the Vehicles list: invitations to answer, then
- * the vehicles other people have shared, each opening to follow it and log
- * trips, fill-ups and servicing against it.
+ * The "Shared with me" side of the Vehicles list: family sharing a live ride
+ * first, then invitations to answer, then the vehicles other people have
+ * shared, each opening to follow it and log trips, fill-ups and servicing
+ * against it.
  */
 
 /**
@@ -62,15 +65,24 @@ object SharedScopeRequest {
     val open = mutableStateOf(false)
 }
 
-/** The shared-with-me list as items of the Vehicles list. */
+/**
+ * The shared-with-me list as items of the Vehicles list. [liveRides] are read
+ * with it but apart, so they show even when the vehicles could not be read.
+ */
 internal fun LazyListScope.sharedWithMeItems(
     state: Loadable<SharingApi.SharedWithMe>,
+    liveRides: List<LiveRidesApi.RideSharedWithMe>,
     cards: Boolean,
     answering: String?,
     onAnswer: (SharingApi.Invitation, Boolean) -> Unit,
     onOpen: (SharingApi.SharedVehicle) -> Unit,
+    onOpenRide: (LiveRidesApi.RideSharedWithMe) -> Unit,
     onRetry: () -> Unit,
 ) {
+    if (liveRides.isNotEmpty()) {
+        item(key = "live-rides-label") { Eyebrow(stringResource(R.string.rides_live_section), Modifier.padding(start = 4.dp, top = 4.dp)) }
+        items(liveRides, key = { "live-ride-${it.id}" }) { ride -> LiveRideRow(ride, onOpen = { onOpenRide(ride) }) }
+    }
     when (state) {
         Loadable.Loading -> item(key = "shared-loading") { SkeletonCards(count = 2) }
         is Loadable.Failed -> item(key = "shared-failed") { FailedCard(state.message, onRetry) }
@@ -82,7 +94,7 @@ internal fun LazyListScope.sharedWithMeItems(
                     InvitationCard(invitation, busy = answering == invitation.shareId, anyBusy = answering != null, onAnswer = onAnswer)
                 }
             }
-            if (data.vehicles.isEmpty() && data.invitations.isEmpty()) {
+            if (data.vehicles.isEmpty() && data.invitations.isEmpty() && liveRides.isEmpty()) {
                 item(key = "shared-empty") { SharedEmpty() }
             }
             if (data.vehicles.isNotEmpty()) {

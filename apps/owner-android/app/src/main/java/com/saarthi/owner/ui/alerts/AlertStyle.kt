@@ -56,6 +56,7 @@ fun AlertsApi.Alert.look(): AlertLook {
         type.startsWith("REQUIREMENT") || type.startsWith("ORDER") -> AlertLook(Lucide.box, c.primarySoft, c.primary)
         type.startsWith("STOCK") || type.startsWith("LISTING") -> AlertLook(Lucide.box, c.accentSoft, c.accent)
         type.startsWith("BOOKING") -> AlertLook(Lucide.calendar, c.primarySoft, c.primary)
+        type == "RIDE_SHARED_WITH_YOU" -> AlertLook(Lucide.navigation, c.successSoft, c.success)
         type.startsWith("DEVICE") || type == "TELEMETRY_ALERT" -> AlertLook(Lucide.cpu, c.warningSoft, c.warning)
         else -> AlertLook(Lucide.bell, c.primarySoft, c.primary)
     }

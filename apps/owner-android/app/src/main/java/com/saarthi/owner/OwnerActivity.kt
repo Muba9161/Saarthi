@@ -44,8 +44,8 @@ class OwnerActivity : FragmentActivity() {
         val app = application as OwnerApp
         // Rebuilt in place (a new language, say): still unlocked if it was, rather than asking again.
         locked = savedInstanceState?.getBoolean(KEY_LOCKED) ?: shouldLock(app)
-        // Opened from a push: the screen it is about opens once signed in (and unlocked).
-        Push.openLink(intent?.getStringExtra(EXTRA_LINK))
+        // Opened from a push or a live-ride link: the screen it is about opens once signed in (and unlocked).
+        Push.openLink(linkIn(intent))
         // The phone's own "remove animations" switch, which the design honours everywhere.
         val reducedMotion = runCatching {
             Settings.Global.getFloat(contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f
@@ -61,7 +61,7 @@ class OwnerActivity : FragmentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        Push.openLink(intent.getStringExtra(EXTRA_LINK))
+        Push.openLink(linkIn(intent))
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -80,6 +80,18 @@ class OwnerActivity : FragmentActivity() {
         if (backgroundedAt > 0 && away > RELOCK_AFTER_MS && shouldLock(application as OwnerApp)) locked = true
     }
 
+    /**
+     * The in-app link an intent carries: a push's `actionUrl`, or the path of a
+     * live-ride link opened from WhatsApp (`https://vorldxsaarthi.com/live/…`),
+     * which resolves exactly as the alert telling the family about it does.
+     */
+    private fun linkIn(intent: Intent?): String? {
+        intent ?: return null
+        intent.getStringExtra(EXTRA_LINK)?.let { return it }
+        val path = intent.data?.takeIf { intent.action == Intent.ACTION_VIEW }?.path ?: return null
+        return path.takeIf { it.startsWith(LIVE_RIDE_PATH) && it.length > LIVE_RIDE_PATH.length }
+    }
+
     private fun shouldLock(app: OwnerApp): Boolean =
         app.preferences.appLock.value && app.session.account.value != null
 
@@ -91,5 +103,8 @@ class OwnerActivity : FragmentActivity() {
         private const val RELOCK_AFTER_MS = 60_000L
 
         private const val KEY_LOCKED = "locked"
+
+        /** Where a live-ride link points on the site — the manifest claims it for this app. */
+        private const val LIVE_RIDE_PATH = "/live/"
     }
 }

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Share my ride: a family member's live ride, shared with this person by mobile number. -->
+    <string name="rides_someone">कोई</string>
+    <string name="rides_live_title">लाइव सफ़र</string>
+    <string name="rides_live_sharing">%1$s अपना लाइव सफ़र शेयर कर रहे हैं</string>
+    <string name="rides_live_ended">%1$s ने इस सफ़र की लोकेशन शेयर करना बंद कर दिया है।</string>
+    <string name="rides_live_waiting">%1$s की पहली लोकेशन का इंतज़ार है…</string>
+    <string name="rides_live_missing">यह लाइव लिंक मौजूद नहीं है या हटा दिया गया है।</string>
+    <string name="rides_live_updated_now">अभी-अभी अपडेट हुआ</string>
+    <string name="rides_live_updated_ago">%1$s पहले अपडेट हुआ</string>
+    <string name="rides_live_recentre">वे अभी कहाँ हैं, दिखाएँ</string>
+    <string name="rides_live_no_location">अभी कोई लोकेशन नहीं</string>
+    <string name="rides_live_open">खोलें</string>
+    <string name="rides_live_section">लाइव सफ़र</string>
+    <string name="rides_live_yours">आपका सफ़र (Humsafar से)</string>
+</resources>

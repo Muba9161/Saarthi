@@ -67,6 +67,7 @@ import com.saarthi.owner.ui.design.stagger
 import com.saarthi.owner.ui.jobs.Pill
 import com.saarthi.owner.ui.shell.LocalNavigator
 import com.saarthi.owner.ui.shell.ShellActions
+import com.saarthi.owner.ui.rides.LiveRidesOnHome
 import kotlinx.coroutines.delay
 import java.time.Instant
 import java.time.ZoneId
@@ -108,6 +109,7 @@ fun TravelHomeScreen(app: OwnerApp, account: SessionStore.Account, actions: Shel
             is Loadable.Failed -> FailedCard(shown.message, { model.refresh() })
             is Loadable.Ready -> {
                 val book = shown.value
+                LiveRidesOnHome(app, Modifier.rise())
                 DriveCard(app, account, Modifier.rise())
                 Box(
                     Modifier
