@@ -45,6 +45,11 @@ export interface RouteSeo {
   description: string;
   /** Whether search engines may index the page. Indexable routes enter the sitemap. */
   indexable: boolean;
+  /**
+   * Whether crawlers may follow the page's links. Defaults to true; only a
+   * page reached through a private link turns it off.
+   */
+  followLinks?: boolean;
 }
 
 const HOME_DESCRIPTION =
@@ -99,6 +104,27 @@ export const ROUTE_SEO: Readonly<Record<string, RouteSeo>> = {
   },
 };
 
+/**
+ * Public pages addressed by a private token, matched by path prefix.
+ *
+ * The token in the URL is the whole of the access — whoever holds the link
+ * sees the page — so these are never indexed or followed, never enter the
+ * sitemap, are disallowed in robots.txt, and share one generic title that
+ * names nobody.
+ */
+export const TOKEN_PAGE_SEO: ReadonlyArray<{ prefix: string; seo: RouteSeo }> = [
+  {
+    // "Share my ride": a rider's live position, sent to family on WhatsApp.
+    prefix: '/live/',
+    seo: {
+      title: 'Live ride · Saarthi',
+      description: 'A live ride location shared with you through VorldX Saarthi.',
+      indexable: false,
+      followLinks: false,
+    },
+  },
+];
+
 export const NOT_FOUND_SEO: RouteSeo = {
   title: 'Page not found | VorldX Saarthi',
   description: 'The page you are looking for does not exist.',
@@ -117,7 +143,12 @@ export function normalizePath(pathname: string): string {
 }
 
 export function resolveRouteSeo(pathname: string): RouteSeo {
-  return ROUTE_SEO[normalizePath(pathname)] ?? PRIVATE_SEO;
+  const path = normalizePath(pathname);
+  return (
+    ROUTE_SEO[path] ??
+    TOKEN_PAGE_SEO.find(({ prefix }) => path.startsWith(prefix))?.seo ??
+    PRIVATE_SEO
+  );
 }
 
 /** The absolute canonical URL for a path — no query, no hash, no trailing slash. */

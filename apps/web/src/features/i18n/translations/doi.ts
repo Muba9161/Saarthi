@@ -346,4 +346,33 @@ export const doi: Catalogue = {
     'मैं हर किस्मै दा सामान बेचना आं ते अपनी थाह्र थमां भेजना आं।',
   'Saarthi connects fleet owners, drivers, sellers and customers on one platform - from posting a load to watching it arrive.':
     'Saarthi बेड़ा मालकें, चालकें, विक्रेताएं ते ग्राहकें गी इक्कै प्लेटफॉर्म पर जोड़दा ऐ - लोड पाने थमां लेइयै उसदे पुज्जने तकर।',
+
+  // --- Live ride: the public "Share my ride" link family open ---------------
+  'Live ride': 'लाइव सफर',
+  '{name} is sharing a live ride': '{name} लाइव सफर शेयर करा करदे न',
+  '{name} has stopped sharing this ride.': '{name} ने इस सफर गी शेयर करना बंद करी दित्ता ऐ।',
+  "Waiting for {name}'s first location…": '{name} दी पैह्ली लोकेशन दा इंतजार ऐ…',
+  "This live link doesn't exist or has been removed.":
+    'एह् लाइव लिंक मौजूद नेईं ऐ जां हटाई दित्ता गेदा ऐ।',
+  'Ask the person who sent it to share a new link.':
+    'जिन्नें एह् भेजेआ ऐ, उंदे शा नमां लिंक शेयर करने आस्तै आखो।',
+  'Opening the live ride…': 'लाइव सफर खुल्ला करदा ऐ…',
+  'Updated just now': 'हुनै गै अपडेट होआ',
+  'Updated {count} s ago': '{count} से. पैह्लें अपडेट होआ',
+  'Updated {count} min ago': '{count} मिंट पैह्लें अपडेट होआ',
+  'Updated {count} h ago': '{count} घंटे पैह्लें अपडेट होआ',
+  'Vehicle number': 'गड्डी दा नंबर',
+  Speed: 'रफ्तार',
+  'Could not reach VorldX Saarthi': 'VorldX Saarthi कन्नै जुड़ी नेईं सके',
+  'Check your connection and try again.': 'अपना कनेक्शन जांचो ते फ्ही कोशिश करो।',
+  'Wait a moment and try again.': 'थोह्ड़ी देर रुकियै फ्ही कोशिश करो।',
+  'Connection lost. Retrying…': 'कनेक्शन टुट्टी गेआ। फ्ही कोशिश होआ करदी ऐ…',
+  'Re-centre map': 'नक्शा फ्ही बश्कार आह्नो',
+  "Map of {name}'s live location": '{name} दी लाइव लोकेशन दा नक्शा',
+  'The map could not load on this device.': 'इस डिवाइस पर नक्शा लोड नेईं होई सकेआ।',
+  Ended: 'खत्म',
+  'Live rides': 'लाइव सफरां',
+  'No location yet': 'अजें कोई लोकेशन नेईं',
+  'This page shows where {name} is only while they are sharing.':
+    'एह् पेज {name} दी थाह्र सिर्फ उसलै तकर दसदा ऐ जिसलै तकर ओह् शेयर करा करदे न।',
 };

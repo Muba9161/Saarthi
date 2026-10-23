@@ -354,4 +354,32 @@ export const raj: Catalogue = {
     'म्हैं हर तरै रो माल बेचूं अर म्हारी खुद री जगां सूं भेजूं।',
   'Saarthi connects fleet owners, drivers, sellers and customers on one platform - from posting a load to watching it arrive.':
     'Saarthi बेड़ै रा मालिकां, ड्राइवरां, बेचणियां अर ग्राहकां नै एक ई प्लेटफॉर्म माथै जोड़ै - लोड चढावण सूं लेय’र उणरै पूगण तांई।',
+
+  // --- Live ride: the public "Share my ride" link family open ---------------
+  'Live ride': 'लाइव सफर',
+  '{name} is sharing a live ride': '{name} लाइव सफर सेयर कर रह्या है',
+  '{name} has stopped sharing this ride.': '{name} ई सफर नै सेयर करणो बंद कर दियो है।',
+  "Waiting for {name}'s first location…": '{name} री पैली लोकेसन री उडीक है…',
+  "This live link doesn't exist or has been removed.": 'ओ लाइव लिंक कोनी या हटा दियो गयो है।',
+  'Ask the person who sent it to share a new link.':
+    'जका ओ भेज्यो, वां सूं नुवो लिंक सेयर करण नै कैवो।',
+  'Opening the live ride…': 'लाइव सफर खुल रह्यो है…',
+  'Updated just now': 'अबार ई अपडेट होयो',
+  'Updated {count} s ago': '{count} से. पैली अपडेट होयो',
+  'Updated {count} min ago': '{count} मिनट पैली अपडेट होयो',
+  'Updated {count} h ago': '{count} घंटा पैली अपडेट होयो',
+  'Vehicle number': 'गाडी रो नंबर',
+  Speed: 'रफ्तार',
+  'Could not reach VorldX Saarthi': 'VorldX Saarthi सूं जुड़ नीं सक्या',
+  'Check your connection and try again.': 'आपरो कनेक्सन जांचो अर फेरूं कोसिस करो।',
+  'Wait a moment and try again.': 'थोड़ी ताळ रुकनै फेरूं कोसिस करो।',
+  'Connection lost. Retrying…': 'कनेक्सन टूटग्यो। फेरूं कोसिस होय रही है…',
+  'Re-centre map': 'नक्सो फेरूं बिचाळै लावो',
+  "Map of {name}'s live location": '{name} री लाइव लोकेसन रो नक्सो',
+  'The map could not load on this device.': 'इण डिवाइस माथै नक्सो लोड नीं होय सक्यो।',
+  Ended: 'पूरो होयो',
+  'Live rides': 'लाइव सफर',
+  'No location yet': 'हाल कोई लोकेसन कोनी',
+  'This page shows where {name} is only while they are sharing.':
+    'ओ पेज {name} री जगां फगत जद तांई दिखावै जद तांई वै सेयर कर रह्या है।',
 };

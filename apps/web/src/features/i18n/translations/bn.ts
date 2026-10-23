@@ -346,4 +346,33 @@ export const bn: Catalogue = {
     'আমি সব ধরনের পণ্য বিক্রি করি এবং নিজের জায়গা থেকে পাঠাই।',
   'Saarthi connects fleet owners, drivers, sellers and customers on one platform - from posting a load to watching it arrive.':
     'Saarthi বহর মালিক, চালক, বিক্রেতা ও গ্রাহককে একই প্ল্যাটফর্মে যুক্ত করে - লোড দেওয়া থেকে তা পৌঁছানো দেখা পর্যন্ত।',
+
+  // --- Live ride: the public "Share my ride" link family open ---------------
+  'Live ride': 'লাইভ রাইড',
+  '{name} is sharing a live ride': '{name} একটি লাইভ রাইড শেয়ার করছেন',
+  '{name} has stopped sharing this ride.': '{name} এই রাইড শেয়ার করা বন্ধ করেছেন।',
+  "Waiting for {name}'s first location…": '{name}-এর প্রথম অবস্থানের অপেক্ষায়…',
+  "This live link doesn't exist or has been removed.":
+    'এই লাইভ লিঙ্কটি নেই বা সরিয়ে দেওয়া হয়েছে।',
+  'Ask the person who sent it to share a new link.':
+    'যিনি এটি পাঠিয়েছেন, তাঁকে একটি নতুন লিঙ্ক শেয়ার করতে বলুন।',
+  'Opening the live ride…': 'লাইভ রাইড খোলা হচ্ছে…',
+  'Updated just now': 'এইমাত্র আপডেট হয়েছে',
+  'Updated {count} s ago': '{count} সে. আগে আপডেট হয়েছে',
+  'Updated {count} min ago': '{count} মিনিট আগে আপডেট হয়েছে',
+  'Updated {count} h ago': '{count} ঘণ্টা আগে আপডেট হয়েছে',
+  'Vehicle number': 'গাড়ির নম্বর',
+  Speed: 'গতি',
+  'Could not reach VorldX Saarthi': 'VorldX Saarthi-এর সঙ্গে যোগাযোগ করা যায়নি',
+  'Check your connection and try again.': 'আপনার সংযোগ দেখে আবার চেষ্টা করুন।',
+  'Wait a moment and try again.': 'একটু অপেক্ষা করে আবার চেষ্টা করুন।',
+  'Connection lost. Retrying…': 'সংযোগ বিচ্ছিন্ন। আবার চেষ্টা করা হচ্ছে…',
+  'Re-centre map': 'ম্যাপ আবার মাঝখানে আনুন',
+  "Map of {name}'s live location": '{name}-এর লাইভ অবস্থানের ম্যাপ',
+  'The map could not load on this device.': 'এই ডিভাইসে ম্যাপ লোড করা যায়নি।',
+  Ended: 'শেষ হয়েছে',
+  'Live rides': 'লাইভ রাইডগুলি',
+  'No location yet': 'এখনও কোনো অবস্থান নেই',
+  'This page shows where {name} is only while they are sharing.':
+    '{name} যতক্ষণ শেয়ার করছেন, শুধু ততক্ষণই এই পেজ তাঁর অবস্থান দেখায়।',
 };

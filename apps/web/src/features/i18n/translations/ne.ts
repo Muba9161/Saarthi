@@ -347,4 +347,32 @@ export const ne: Catalogue = {
     'म सबै किसिमका सामान बेच्छु र आफ्नै ठाउँबाट पठाउँछु।',
   'Saarthi connects fleet owners, drivers, sellers and customers on one platform - from posting a load to watching it arrive.':
     'Saarthi ले बेडा मालिक, चालक, विक्रेता र ग्राहकलाई एउटै प्लेटफर्ममा जोड्छ - लोड राख्नेदेखि त्यो पुग्ने बेलासम्म।',
+
+  // --- Live ride: the public "Share my ride" link family open ---------------
+  'Live ride': 'लाइभ यात्रा',
+  '{name} is sharing a live ride': '{name} लाइभ यात्रा सेयर गर्दै हुनुहुन्छ',
+  '{name} has stopped sharing this ride.': '{name} ले यो यात्रा सेयर गर्न बन्द गर्नुभयो।',
+  "Waiting for {name}'s first location…": '{name} को पहिलो स्थानको प्रतीक्षा गर्दै…',
+  "This live link doesn't exist or has been removed.": 'यो लाइभ लिङ्क अवस्थित छैन वा हटाइएको छ।',
+  'Ask the person who sent it to share a new link.':
+    'यो पठाउने व्यक्तिलाई नयाँ लिङ्क सेयर गर्न भन्नुहोस्।',
+  'Opening the live ride…': 'लाइभ यात्रा खुल्दैछ…',
+  'Updated just now': 'भर्खरै अपडेट भयो',
+  'Updated {count} s ago': '{count} से. अघि अपडेट भयो',
+  'Updated {count} min ago': '{count} मिनेट अघि अपडेट भयो',
+  'Updated {count} h ago': '{count} घण्टा अघि अपडेट भयो',
+  'Vehicle number': 'सवारी नम्बर',
+  Speed: 'गति',
+  'Could not reach VorldX Saarthi': 'VorldX Saarthi सम्म पुग्न सकिएन',
+  'Check your connection and try again.': 'आफ्नो जडान जाँच गरी फेरि प्रयास गर्नुहोस्।',
+  'Wait a moment and try again.': 'केही बेर पर्खेर फेरि प्रयास गर्नुहोस्।',
+  'Connection lost. Retrying…': 'जडान टुट्यो। फेरि प्रयास गर्दै…',
+  'Re-centre map': 'नक्सा फेरि बीचमा ल्याउनुहोस्',
+  "Map of {name}'s live location": '{name} को लाइभ स्थानको नक्सा',
+  'The map could not load on this device.': 'यो उपकरणमा नक्सा लोड हुन सकेन।',
+  Ended: 'समाप्त',
+  'Live rides': 'लाइभ यात्राहरू',
+  'No location yet': 'अहिलेसम्म स्थान छैन',
+  'This page shows where {name} is only while they are sharing.':
+    '{name} ले सेयर गरिरहेसम्म मात्र यो पृष्ठले उहाँको स्थान देखाउँछ।',
 };

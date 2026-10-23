@@ -346,4 +346,32 @@ export const mai: Catalogue = {
     'हम सभ तरहक सामान बेचैत छी आ अपन जगह सँ पठबैत छी।',
   'Saarthi connects fleet owners, drivers, sellers and customers on one platform - from posting a load to watching it arrive.':
     'Saarthi बेड़ा मालिक, चालक, विक्रेता आ ग्राहककेँ एकहि मंच पर जोड़ैत अछि - लोड देबय सँ ओकर पहुँचय धरि।',
+
+  // --- Live ride: the public "Share my ride" link family open ---------------
+  'Live ride': 'लाइव यात्रा',
+  '{name} is sharing a live ride': '{name} लाइव यात्रा शेयर करैत छथि',
+  '{name} has stopped sharing this ride.': '{name} ई यात्रा शेयर करब बंद कऽ देलनि।',
+  "Waiting for {name}'s first location…": '{name}क पहिल लोकेशनक प्रतीक्षा अछि…',
+  "This live link doesn't exist or has been removed.": 'ई लाइव लिंक नै अछि वा हटा देल गेल अछि।',
+  'Ask the person who sent it to share a new link.':
+    'जे ई पठेलनि, हुनकासँ नव लिंक शेयर करबाक लेल कहू।',
+  'Opening the live ride…': 'लाइव यात्रा खुजि रहल अछि…',
+  'Updated just now': 'एखने अपडेट भेल',
+  'Updated {count} s ago': '{count} से. पहिने अपडेट भेल',
+  'Updated {count} min ago': '{count} मिनट पहिने अपडेट भेल',
+  'Updated {count} h ago': '{count} घंटा पहिने अपडेट भेल',
+  'Vehicle number': 'गाड़ीक नंबर',
+  Speed: 'गति',
+  'Could not reach VorldX Saarthi': 'VorldX Saarthi सँ नै जुड़ि सकलहुँ',
+  'Check your connection and try again.': 'अपन कनेक्शन जाँचू आ फेर कोशिश करू।',
+  'Wait a moment and try again.': 'कनी काल रुकि कऽ फेर कोशिश करू।',
+  'Connection lost. Retrying…': 'कनेक्शन टूटि गेल। फेर कोशिश भऽ रहल अछि…',
+  'Re-centre map': 'नक्शा फेर बीचमे आनू',
+  "Map of {name}'s live location": '{name}क लाइव लोकेशनक नक्शा',
+  'The map could not load on this device.': 'एहि डिवाइस पर नक्शा लोड नै भऽ सकल।',
+  Ended: 'समाप्त',
+  'Live rides': 'लाइव यात्रा सभ',
+  'No location yet': 'एखन धरि कोनो लोकेशन नै',
+  'This page shows where {name} is only while they are sharing.':
+    'ई पेज {name}क जगह मात्र ताधरि देखबैत अछि जाधरि ओ शेयर करैत छथि।',
 };

@@ -21,17 +21,18 @@ const meta = (key: 'name' | 'property', id: string, content: string): HeadTag =>
   attrs: { [key]: id, content },
 });
 
+function robotsContent(seo: RouteSeo): string {
+  if (seo.indexable) return 'index, follow, max-image-preview:large';
+  return seo.followLinks === false ? 'noindex, nofollow' : 'noindex, follow';
+}
+
 export function buildHeadTags(pathname: string, seo: RouteSeo): HeadTag[] {
   const url = canonicalUrl(pathname);
   const image = `${SITE.url}${SITE.ogImage.path}`;
 
   const tags: HeadTag[] = [
     meta('name', 'description', seo.description),
-    meta(
-      'name',
-      'robots',
-      seo.indexable ? 'index, follow, max-image-preview:large' : 'noindex, follow',
-    ),
+    meta('name', 'robots', robotsContent(seo)),
   ];
 
   // A canonical on a noindex page sends two opposite signals; leave it off.

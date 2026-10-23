@@ -347,4 +347,32 @@ export const kok: Catalogue = {
     'हांव सगळ्या तरेचो माल विकतां आनी म्हज्या सुवातेर थावन धाडटां.',
   'Saarthi connects fleet owners, drivers, sellers and customers on one platform - from posting a load to watching it arrive.':
     'Saarthi वाहनसमूह मालक, चालक, विकणदार आनी गिरायकांक एकाच मंचा चेर जोडता - लोड घालपा थावन तो पावता मेरेन.',
+
+  // --- Live ride: the public "Share my ride" link family open ---------------
+  'Live ride': 'लायव्ह प्रवास',
+  '{name} is sharing a live ride': '{name} लायव्ह प्रवास शेअर करतात',
+  '{name} has stopped sharing this ride.': '{name} हांणी हो प्रवास शेअर करप बंद केलां.',
+  "Waiting for {name}'s first location…": '{name} हांच्या पयल्या जाग्याची वाट पळयतात…',
+  "This live link doesn't exist or has been removed.": 'ही लायव्ह लिंक ना वा काडून उडयल्या.',
+  'Ask the person who sent it to share a new link.':
+    'जांणी ही धाडल्या तांकां नवी लिंक शेअर करपाक सांगात.',
+  'Opening the live ride…': 'लायव्ह प्रवास उगडटा…',
+  'Updated just now': 'आतांच अपडेट जालें',
+  'Updated {count} s ago': '{count} से. आदीं अपडेट जालें',
+  'Updated {count} min ago': '{count} मिन्टां आदीं अपडेट जालें',
+  'Updated {count} h ago': '{count} वरां आदीं अपडेट जालें',
+  'Vehicle number': 'वाहन क्रमांक',
+  Speed: 'वेग',
+  'Could not reach VorldX Saarthi': 'VorldX Saarthi कडेन जोडूंक जायना',
+  'Check your connection and try again.': 'तुमचें कनेक्शन तपासात आनी परतून यत्न करात.',
+  'Wait a moment and try again.': 'थोडो वेळ राकून परतून यत्न करात.',
+  'Connection lost. Retrying…': 'कनेक्शन तुटलें. परतून यत्न चालू आसा…',
+  'Re-centre map': 'नकाशो परतून मदीं हाडात',
+  "Map of {name}'s live location": '{name} हांच्या लायव्ह जाग्याचो नकाशो',
+  'The map could not load on this device.': 'ह्या डिव्हायसाचेर नकाशो लोड जावंक ना.',
+  Ended: 'सोंपलें',
+  'Live rides': 'लायव्ह प्रवास',
+  'No location yet': 'अजून जागो ना',
+  'This page shows where {name} is only while they are sharing.':
+    'हें पान {name} हांचो जागो फकत ते शेअर करतात तितलो वेळ दाखयता.',
 };

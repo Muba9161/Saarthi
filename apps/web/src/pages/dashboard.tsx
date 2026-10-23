@@ -61,6 +61,7 @@ import { Progress } from '@/components/ui/progress';
 import { FleetMap, type MapTruck } from '@/features/maps/fleet-map';
 import { placeName, tripRouteLabel } from '@/features/trips/trip-route';
 import { DailyBriefCard } from '@/features/ai/daily-brief-card';
+import { RidesSharedWithMeCard } from '@/features/live-ride/rides-shared-with-me';
 
 /**
  * The operator's command centre — freight and passenger alike.
@@ -509,6 +510,10 @@ export function DashboardPage() {
           (isMobility ? t('Your operation at a glance') : t('Your fleet at a glance'))
         }
       />
+
+      {/* Only while somebody is sharing a ride with this account — any plan,
+          any role, so it is not gated like the rest of the board. */}
+      <RidesSharedWithMeCard />
 
       <BentoGrid>
         {/* ---------------------------------------------------- row 1 --- */}

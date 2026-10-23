@@ -347,4 +347,34 @@ export const ta: Catalogue = {
     'நான் எல்லா வகைப் பொருட்களையும் விற்று, என் இடத்திலிருந்தே அனுப்புகிறேன்.',
   'Saarthi connects fleet owners, drivers, sellers and customers on one platform - from posting a load to watching it arrive.':
     'Saarthi வாகன உரிமையாளர்கள், ஓட்டுநர்கள், விற்பனையாளர்கள், வாடிக்கையாளர்களை ஒரே தளத்தில் இணைக்கிறது - சரக்கு இடுவதிலிருந்து அது வந்து சேரும் வரை.',
+
+  // --- Live ride: the public "Share my ride" link family open ---------------
+  'Live ride': 'நேரடி பயணம்',
+  '{name} is sharing a live ride': '{name} நேரடி பயணத்தைப் பகிர்கிறார்',
+  '{name} has stopped sharing this ride.': '{name} இந்தப் பயணத்தைப் பகிர்வதை நிறுத்திவிட்டார்.',
+  "Waiting for {name}'s first location…":
+    '{name} அவர்களின் முதல் இருப்பிடத்திற்காகக் காத்திருக்கிறது…',
+  "This live link doesn't exist or has been removed.":
+    'இந்த நேரடி இணைப்பு இல்லை அல்லது அகற்றப்பட்டது.',
+  'Ask the person who sent it to share a new link.':
+    'இதை அனுப்பியவரிடம் புதிய இணைப்பைப் பகிரச் சொல்லுங்கள்.',
+  'Opening the live ride…': 'நேரடி பயணம் திறக்கப்படுகிறது…',
+  'Updated just now': 'இப்போதுதான் புதுப்பிக்கப்பட்டது',
+  'Updated {count} s ago': '{count} வி. முன் புதுப்பிக்கப்பட்டது',
+  'Updated {count} min ago': '{count} நிமி. முன் புதுப்பிக்கப்பட்டது',
+  'Updated {count} h ago': '{count} மணி. முன் புதுப்பிக்கப்பட்டது',
+  'Vehicle number': 'வாகன எண்',
+  Speed: 'வேகம்',
+  'Could not reach VorldX Saarthi': 'VorldX Saarthi-ஐ அடைய முடியவில்லை',
+  'Check your connection and try again.': 'உங்கள் இணைப்பைச் சரிபார்த்து மீண்டும் முயற்சிக்கவும்.',
+  'Wait a moment and try again.': 'சிறிது நேரம் காத்திருந்து மீண்டும் முயற்சிக்கவும்.',
+  'Connection lost. Retrying…': 'இணைப்பு துண்டிக்கப்பட்டது. மீண்டும் முயற்சிக்கிறது…',
+  'Re-centre map': 'வரைபடத்தை மீண்டும் மையப்படுத்து',
+  "Map of {name}'s live location": '{name} அவர்களின் நேரடி இருப்பிட வரைபடம்',
+  'The map could not load on this device.': 'இந்தச் சாதனத்தில் வரைபடத்தை ஏற்ற முடியவில்லை.',
+  Ended: 'முடிந்தது',
+  'Live rides': 'நேரடி பயணங்கள்',
+  'No location yet': 'இன்னும் இருப்பிடம் இல்லை',
+  'This page shows where {name} is only while they are sharing.':
+    '{name} பகிரும் வரை மட்டுமே இந்தப் பக்கம் அவரது இருப்பிடத்தைக் காட்டும்.',
 };

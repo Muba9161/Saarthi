@@ -350,4 +350,33 @@ export const ml: Catalogue = {
     'ഞാൻ എല്ലാത്തരം സാധനങ്ങളും വിൽക്കുകയും എന്റെ സ്ഥലത്തുനിന്ന് അയക്കുകയും ചെയ്യുന്നു.',
   'Saarthi connects fleet owners, drivers, sellers and customers on one platform - from posting a load to watching it arrive.':
     'Saarthi വാഹന ഉടമകളെയും ഡ്രൈവർമാരെയും വിൽപ്പനക്കാരെയും ഉപഭോക്താക്കളെയും ഒരേ പ്ലാറ്റ്‌ഫോമിൽ ബന്ധിപ്പിക്കുന്നു - ലോഡ് ഇടുന്നത് മുതൽ അത് എത്തുന്നത് കാണുന്നത് വരെ.',
+
+  // --- Live ride: the public "Share my ride" link family open ---------------
+  'Live ride': 'ലൈവ് യാത്ര',
+  '{name} is sharing a live ride': '{name} ഒരു ലൈവ് യാത്ര പങ്കിടുന്നു',
+  '{name} has stopped sharing this ride.': '{name} ഈ യാത്ര പങ്കിടുന്നത് നിർത്തി.',
+  "Waiting for {name}'s first location…": '{name}-ന്റെ ആദ്യ ലൊക്കേഷനായി കാത്തിരിക്കുന്നു…',
+  "This live link doesn't exist or has been removed.":
+    'ഈ ലൈവ് ലിങ്ക് നിലവിലില്ല അല്ലെങ്കിൽ നീക്കം ചെയ്തു.',
+  'Ask the person who sent it to share a new link.':
+    'ഇത് അയച്ചയാളോട് പുതിയ ലിങ്ക് പങ്കിടാൻ ആവശ്യപ്പെടുക.',
+  'Opening the live ride…': 'ലൈവ് യാത്ര തുറക്കുന്നു…',
+  'Updated just now': 'ഇപ്പോൾ അപ്ഡേറ്റ് ചെയ്തു',
+  'Updated {count} s ago': '{count} സെ. മുമ്പ് അപ്ഡേറ്റ് ചെയ്തു',
+  'Updated {count} min ago': '{count} മിനിറ്റ് മുമ്പ് അപ്ഡേറ്റ് ചെയ്തു',
+  'Updated {count} h ago': '{count} മണിക്കൂർ മുമ്പ് അപ്ഡേറ്റ് ചെയ്തു',
+  'Vehicle number': 'വാഹന നമ്പർ',
+  Speed: 'വേഗത',
+  'Could not reach VorldX Saarthi': 'VorldX Saarthi-യിൽ എത്താനായില്ല',
+  'Check your connection and try again.': 'നിങ്ങളുടെ കണക്ഷൻ പരിശോധിച്ച് വീണ്ടും ശ്രമിക്കുക.',
+  'Wait a moment and try again.': 'അൽപ്പം കാത്തിരുന്ന് വീണ്ടും ശ്രമിക്കുക.',
+  'Connection lost. Retrying…': 'കണക്ഷൻ നഷ്ടപ്പെട്ടു. വീണ്ടും ശ്രമിക്കുന്നു…',
+  'Re-centre map': 'മാപ്പ് വീണ്ടും മധ്യത്തിലാക്കുക',
+  "Map of {name}'s live location": '{name}-ന്റെ ലൈവ് ലൊക്കേഷന്റെ മാപ്പ്',
+  'The map could not load on this device.': 'ഈ ഉപകരണത്തിൽ മാപ്പ് ലോഡ് ചെയ്യാനായില്ല.',
+  Ended: 'അവസാനിച്ചു',
+  'Live rides': 'ലൈവ് യാത്രകൾ',
+  'No location yet': 'ഇതുവരെ ലൊക്കേഷൻ ഇല്ല',
+  'This page shows where {name} is only while they are sharing.':
+    '{name} പങ്കിടുന്നിടത്തോളം മാത്രമേ ഈ പേജ് അവരുടെ സ്ഥാനം കാണിക്കൂ.',
 };

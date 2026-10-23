@@ -347,4 +347,33 @@ export const pa: Catalogue = {
     'ਮੈਂ ਹਰ ਕਿਸਮ ਦਾ ਸਮਾਨ ਵੇਚਦਾ ਹਾਂ ਅਤੇ ਆਪਣੀ ਥਾਂ ਤੋਂ ਭੇਜਦਾ ਹਾਂ।',
   'Saarthi connects fleet owners, drivers, sellers and customers on one platform - from posting a load to watching it arrive.':
     'Saarthi ਬੇੜਾ ਮਾਲਕਾਂ, ਡਰਾਈਵਰਾਂ, ਵਿਕਰੇਤਾਵਾਂ ਤੇ ਗਾਹਕਾਂ ਨੂੰ ਇੱਕੋ ਪਲੇਟਫਾਰਮ ਉੱਤੇ ਜੋੜਦਾ ਹੈ - ਲੋਡ ਪਾਉਣ ਤੋਂ ਲੈ ਕੇ ਉਸ ਦੇ ਪਹੁੰਚਣ ਤੱਕ।',
+
+  // --- Live ride: the public "Share my ride" link family open ---------------
+  'Live ride': 'ਲਾਈਵ ਸਫ਼ਰ',
+  '{name} is sharing a live ride': '{name} ਲਾਈਵ ਸਫ਼ਰ ਸਾਂਝਾ ਕਰ ਰਹੇ ਹਨ',
+  '{name} has stopped sharing this ride.': '{name} ਨੇ ਇਹ ਸਫ਼ਰ ਸਾਂਝਾ ਕਰਨਾ ਬੰਦ ਕਰ ਦਿੱਤਾ ਹੈ।',
+  "Waiting for {name}'s first location…": '{name} ਦੀ ਪਹਿਲੀ ਲੋਕੇਸ਼ਨ ਦੀ ਉਡੀਕ ਹੈ…',
+  "This live link doesn't exist or has been removed.":
+    'ਇਹ ਲਾਈਵ ਲਿੰਕ ਮੌਜੂਦ ਨਹੀਂ ਹੈ ਜਾਂ ਹਟਾ ਦਿੱਤਾ ਗਿਆ ਹੈ।',
+  'Ask the person who sent it to share a new link.':
+    'ਜਿਨ੍ਹਾਂ ਨੇ ਇਹ ਭੇਜਿਆ ਹੈ, ਉਨ੍ਹਾਂ ਨੂੰ ਨਵਾਂ ਲਿੰਕ ਸਾਂਝਾ ਕਰਨ ਲਈ ਕਹੋ।',
+  'Opening the live ride…': 'ਲਾਈਵ ਸਫ਼ਰ ਖੁੱਲ੍ਹ ਰਿਹਾ ਹੈ…',
+  'Updated just now': 'ਹੁਣੇ ਅੱਪਡੇਟ ਹੋਇਆ',
+  'Updated {count} s ago': '{count} ਸ. ਪਹਿਲਾਂ ਅੱਪਡੇਟ ਹੋਇਆ',
+  'Updated {count} min ago': '{count} ਮਿੰਟ ਪਹਿਲਾਂ ਅੱਪਡੇਟ ਹੋਇਆ',
+  'Updated {count} h ago': '{count} ਘੰਟੇ ਪਹਿਲਾਂ ਅੱਪਡੇਟ ਹੋਇਆ',
+  'Vehicle number': 'ਵਾਹਨ ਨੰਬਰ',
+  Speed: 'ਰਫ਼ਤਾਰ',
+  'Could not reach VorldX Saarthi': 'VorldX Saarthi ਨਾਲ ਜੁੜ ਨਹੀਂ ਸਕੇ',
+  'Check your connection and try again.': 'ਆਪਣਾ ਕਨੈਕਸ਼ਨ ਜਾਂਚੋ ਅਤੇ ਮੁੜ ਕੋਸ਼ਿਸ਼ ਕਰੋ।',
+  'Wait a moment and try again.': 'ਥੋੜ੍ਹੀ ਦੇਰ ਰੁਕ ਕੇ ਮੁੜ ਕੋਸ਼ਿਸ਼ ਕਰੋ।',
+  'Connection lost. Retrying…': 'ਕਨੈਕਸ਼ਨ ਟੁੱਟ ਗਿਆ। ਮੁੜ ਕੋਸ਼ਿਸ਼ ਹੋ ਰਹੀ ਹੈ…',
+  'Re-centre map': 'ਨਕਸ਼ਾ ਮੁੜ ਵਿਚਕਾਰ ਲਿਆਓ',
+  "Map of {name}'s live location": '{name} ਦੀ ਲਾਈਵ ਲੋਕੇਸ਼ਨ ਦਾ ਨਕਸ਼ਾ',
+  'The map could not load on this device.': 'ਇਸ ਡਿਵਾਈਸ ਉੱਤੇ ਨਕਸ਼ਾ ਲੋਡ ਨਹੀਂ ਹੋ ਸਕਿਆ।',
+  Ended: 'ਸਮਾਪਤ',
+  'Live rides': 'ਲਾਈਵ ਸਫ਼ਰ',
+  'No location yet': 'ਅਜੇ ਕੋਈ ਲੋਕੇਸ਼ਨ ਨਹੀਂ',
+  'This page shows where {name} is only while they are sharing.':
+    'ਇਹ ਪੰਨਾ {name} ਦੀ ਥਾਂ ਸਿਰਫ਼ ਉਦੋਂ ਤੱਕ ਦਿਖਾਉਂਦਾ ਹੈ ਜਦੋਂ ਤੱਕ ਉਹ ਸਾਂਝਾ ਕਰ ਰਹੇ ਹਨ।',
 };

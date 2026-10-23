@@ -5,6 +5,7 @@ import { buildHeadTags, type HeadTag } from '../src/features/seo/head-tags';
 import {
   ROUTE_SEO,
   SITE,
+  TOKEN_PAGE_SEO,
   canonicalUrl,
   indexableRoutes,
   resolveRouteSeo,
@@ -120,6 +121,8 @@ function robotsTxt(): string {
     // The API and QR scan targets: nothing a search result should link to.
     'Disallow: /api/',
     'Disallow: /q/',
+    // Pages opened through a private link, such as a shared live ride.
+    ...TOKEN_PAGE_SEO.map(({ prefix }) => `Disallow: ${prefix}`),
     '',
     `Sitemap: ${SITE.url}/sitemap.xml`,
     '',

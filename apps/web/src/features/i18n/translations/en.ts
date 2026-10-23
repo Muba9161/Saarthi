@@ -386,6 +386,36 @@ export const en = {
     'I sell goods of any kind and dispatch them from my own premises.',
   'Saarthi connects fleet owners, drivers, sellers and customers on one platform - from posting a load to watching it arrive.':
     'Saarthi connects fleet owners, drivers, sellers and customers on one platform - from posting a load to watching it arrive.',
+
+  // --- Live ride: the public "Share my ride" link family open ---------------
+  'Live ride': 'Live ride',
+  '{name} is sharing a live ride': '{name} is sharing a live ride',
+  '{name} has stopped sharing this ride.': '{name} has stopped sharing this ride.',
+  "Waiting for {name}'s first location…": "Waiting for {name}'s first location…",
+  "This live link doesn't exist or has been removed.":
+    "This live link doesn't exist or has been removed.",
+  'Ask the person who sent it to share a new link.':
+    'Ask the person who sent it to share a new link.',
+  'Opening the live ride…': 'Opening the live ride…',
+  'Updated just now': 'Updated just now',
+  'Updated {count} s ago': 'Updated {count} s ago',
+  'Updated {count} min ago': 'Updated {count} min ago',
+  'Updated {count} h ago': 'Updated {count} h ago',
+  'Vehicle number': 'Vehicle number',
+  Speed: 'Speed',
+  'Could not reach VorldX Saarthi': 'Could not reach VorldX Saarthi',
+  'Check your connection and try again.': 'Check your connection and try again.',
+  'Wait a moment and try again.': 'Wait a moment and try again.',
+  'Connection lost. Retrying…': 'Connection lost. Retrying…',
+  'Re-centre map': 'Re-centre map',
+  "Map of {name}'s live location": "Map of {name}'s live location",
+  'The map could not load on this device.': 'The map could not load on this device.',
+  Ended: 'Ended',
+  // Rides shared with a signed-in account: "Shared with me" and the Home card.
+  'Live rides': 'Live rides',
+  'No location yet': 'No location yet',
+  'This page shows where {name} is only while they are sharing.':
+    'This page shows where {name} is only while they are sharing.',
 } as const;
 
 /** Every translatable string. Other locales supply a subset of these. */

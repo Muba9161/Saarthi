@@ -351,4 +351,32 @@ export const sa: Catalogue = {
     'अहं सर्वविधं वस्तु विक्रीणामि स्वस्थानात् प्रेषयामि च।',
   'Saarthi connects fleet owners, drivers, sellers and customers on one platform - from posting a load to watching it arrive.':
     'Saarthi यानसमूहस्वामिनः चालकान् विक्रेतॄन् ग्राहकांश्च एकस्मिन् मञ्चे संयोजयति - भारस्थापनतः तस्य आगमनदर्शनपर्यन्तम्।',
+
+  // --- Live ride: the public "Share my ride" link family open ---------------
+  'Live ride': 'सजीवयात्रा',
+  '{name} is sharing a live ride': '{name} द्वारा सजीवयात्रा साझा क्रियते',
+  '{name} has stopped sharing this ride.': '{name} द्वारा अस्याः यात्रायाः साझाकरणं स्थगितम्।',
+  "Waiting for {name}'s first location…": '{name} इत्यस्य प्रथमस्थानस्य प्रतीक्षा…',
+  "This live link doesn't exist or has been removed.": 'एषः सजीवलिङ्कः नास्ति अथवा अपनीतः।',
+  'Ask the person who sent it to share a new link.':
+    'यः इदं प्रेषितवान्, तं नूतनं लिङ्कं साझां कर्तुं वदतु।',
+  'Opening the live ride…': 'सजीवयात्रा उद्घाट्यते…',
+  'Updated just now': 'अधुना एव अद्यतनम्',
+  'Updated {count} s ago': '{count} से. पूर्वम् अद्यतनम्',
+  'Updated {count} min ago': '{count} निमेषेभ्यः पूर्वम् अद्यतनम्',
+  'Updated {count} h ago': '{count} होराभ्यः पूर्वम् अद्यतनम्',
+  'Vehicle number': 'वाहनसङ्ख्या',
+  Speed: 'वेगः',
+  'Could not reach VorldX Saarthi': 'VorldX Saarthi इत्यनेन सह सम्पर्कः न जातः',
+  'Check your connection and try again.': 'स्वसम्पर्कं परीक्ष्य पुनः प्रयततु।',
+  'Wait a moment and try again.': 'किञ्चित् प्रतीक्ष्य पुनः प्रयततु।',
+  'Connection lost. Retrying…': 'सम्पर्कः विच्छिन्नः। पुनः प्रयत्यते…',
+  'Re-centre map': 'मानचित्रं पुनः मध्ये आनयतु',
+  "Map of {name}'s live location": '{name} इत्यस्य सजीवस्थानस्य मानचित्रम्',
+  'The map could not load on this device.': 'अस्मिन् उपकरणे मानचित्रं न आपूरितम्।',
+  Ended: 'समाप्तम्',
+  'Live rides': 'सजीवयात्राः',
+  'No location yet': 'अद्यापि स्थानं नास्ति',
+  'This page shows where {name} is only while they are sharing.':
+    'यावत् {name} साझां करोति तावत् एव इदं पृष्ठं तस्य स्थानं दर्शयति।',
 };

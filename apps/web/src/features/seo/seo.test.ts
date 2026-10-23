@@ -37,6 +37,22 @@ describe('route SEO', () => {
     expect(indexableRoutes()).toEqual(['/', '/terms', '/privacy']);
   });
 
+  it('keeps a private live-ride link out of search, links unfollowed and untitled by name', () => {
+    const seo = resolveRouteSeo('/live/3f9c2a7b1d');
+    expect(seo.title).toBe('Live ride · Saarthi');
+    expect(seo.indexable).toBe(false);
+    expect(find('/live/3f9c2a7b1d', 'name', 'robots')?.attrs.content).toBe('noindex, nofollow');
+    expect(find('/live/3f9c2a7b1d', 'rel', 'canonical')).toBeUndefined();
+    // A trailing slash is the same link; the bare prefix is no page at all.
+    expect(resolveRouteSeo('/live/3f9c2a7b1d/')).toBe(seo);
+    expect(resolveRouteSeo('/live').title).toBe(APP_TITLE);
+    expect(indexableRoutes()).not.toContain('/live/');
+  });
+
+  it('still lets crawlers follow links from other private pages', () => {
+    expect(find('/login', 'name', 'robots')?.attrs.content).toBe('noindex, follow');
+  });
+
   it('gives every public page its own title and description', () => {
     const pages = Object.values(ROUTE_SEO);
     expect(new Set(pages.map((page) => page.title)).size).toBe(pages.length);

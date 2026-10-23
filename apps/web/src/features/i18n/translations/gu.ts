@@ -346,4 +346,33 @@ export const gu: Catalogue = {
     'હું દરેક પ્રકારનો માલ વેચું છું અને મારી પોતાની જગ્યાએથી મોકલું છું.',
   'Saarthi connects fleet owners, drivers, sellers and customers on one platform - from posting a load to watching it arrive.':
     'Saarthi કાફલા માલિકો, ડ્રાઇવરો, વિક્રેતાઓ અને ગ્રાહકોને એક જ પ્લેટફોર્મ પર જોડે છે - લોડ મૂકવાથી લઈને તે પહોંચે ત્યાં સુધી.',
+
+  // --- Live ride: the public "Share my ride" link family open ---------------
+  'Live ride': 'લાઇવ સવારી',
+  '{name} is sharing a live ride': '{name} લાઇવ સવારી શેર કરી રહ્યા છે',
+  '{name} has stopped sharing this ride.': '{name}એ આ સવારી શેર કરવાનું બંધ કર્યું છે.',
+  "Waiting for {name}'s first location…": '{name}ના પહેલા સ્થાનની રાહ જોવાઈ રહી છે…',
+  "This live link doesn't exist or has been removed.":
+    'આ લાઇવ લિંક અસ્તિત્વમાં નથી અથવા દૂર કરવામાં આવી છે.',
+  'Ask the person who sent it to share a new link.':
+    'જેમણે આ મોકલી છે તેમને નવી લિંક શેર કરવા કહો.',
+  'Opening the live ride…': 'લાઇવ સવારી ખુલી રહી છે…',
+  'Updated just now': 'હમણાં જ અપડેટ થયું',
+  'Updated {count} s ago': '{count} સે. પહેલાં અપડેટ થયું',
+  'Updated {count} min ago': '{count} મિનિટ પહેલાં અપડેટ થયું',
+  'Updated {count} h ago': '{count} કલાક પહેલાં અપડેટ થયું',
+  'Vehicle number': 'વાહન નંબર',
+  Speed: 'ઝડપ',
+  'Could not reach VorldX Saarthi': 'VorldX Saarthi સાથે જોડાઈ શકાયું નહીં',
+  'Check your connection and try again.': 'તમારું કનેક્શન તપાસો અને ફરી પ્રયાસ કરો.',
+  'Wait a moment and try again.': 'થોડી વાર રાહ જોઈને ફરી પ્રયાસ કરો.',
+  'Connection lost. Retrying…': 'કનેક્શન તૂટી ગયું. ફરી પ્રયાસ થઈ રહ્યો છે…',
+  'Re-centre map': 'નકશો ફરી મધ્યમાં લાવો',
+  "Map of {name}'s live location": '{name}ના લાઇવ સ્થાનનો નકશો',
+  'The map could not load on this device.': 'આ ડિવાઇસ પર નકશો લોડ થઈ શક્યો નહીં.',
+  Ended: 'સમાપ્ત',
+  'Live rides': 'લાઇવ સવારીઓ',
+  'No location yet': 'હજી કોઈ સ્થાન નથી',
+  'This page shows where {name} is only while they are sharing.':
+    'આ પેજ {name}નું સ્થાન ફક્ત ત્યાં સુધી બતાવે છે જ્યાં સુધી તેઓ શેર કરી રહ્યા છે.',
 };

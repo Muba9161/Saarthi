@@ -145,6 +145,20 @@ export const router = createBrowserRouter([
     errorElement: <RouteError />,
   },
   /*
+   * The "Share my ride" live link.
+   *
+   * Outside `RequireAuth` for the same reason as `/q/:token` and `/r/:code`:
+   * a rider in a vehicle that is not on Saarthi sends it to family on
+   * WhatsApp, and they follow it with no account. The token is the only key
+   * and the API decides what it shows — a position only while sharing. Never
+   * indexed: `/live/` is marked noindex, nofollow in `features/seo`.
+   */
+  {
+    path: '/live/:token',
+    element: lazyPage(() => import('@/pages/live/live-ride')),
+    errorElement: <RouteError />,
+  },
+  /*
    * The legal documents.
    *
    * Public, and outside `RequireAuth` deliberately. A person deciding whether

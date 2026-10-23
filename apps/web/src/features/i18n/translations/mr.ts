@@ -347,4 +347,33 @@ export const mr: Catalogue = {
     'मी सर्व प्रकारचा माल विकतो आणि माझ्या जागेवरून पाठवतो.',
   'Saarthi connects fleet owners, drivers, sellers and customers on one platform - from posting a load to watching it arrive.':
     'Saarthi ताफा मालक, चालक, विक्रेते आणि ग्राहक यांना एकाच व्यासपीठावर जोडते - लोड टाकण्यापासून तो पोहोचेपर्यंत.',
+
+  // --- Live ride: the public "Share my ride" link family open ---------------
+  'Live ride': 'लाइव्ह राइड',
+  '{name} is sharing a live ride': '{name} लाइव्ह राइड शेअर करत आहेत',
+  '{name} has stopped sharing this ride.': '{name} यांनी ही राइड शेअर करणे थांबवले आहे.',
+  "Waiting for {name}'s first location…": '{name} यांच्या पहिल्या ठिकाणाची प्रतीक्षा आहे…',
+  "This live link doesn't exist or has been removed.":
+    'ही लाइव्ह लिंक अस्तित्वात नाही किंवा काढून टाकली आहे.',
+  'Ask the person who sent it to share a new link.':
+    'ज्यांनी ही पाठवली त्यांना नवीन लिंक शेअर करायला सांगा.',
+  'Opening the live ride…': 'लाइव्ह राइड उघडत आहे…',
+  'Updated just now': 'आत्ताच अपडेट झाले',
+  'Updated {count} s ago': '{count} से. पूर्वी अपडेट झाले',
+  'Updated {count} min ago': '{count} मिनिटांपूर्वी अपडेट झाले',
+  'Updated {count} h ago': '{count} तासांपूर्वी अपडेट झाले',
+  'Vehicle number': 'वाहन क्रमांक',
+  Speed: 'वेग',
+  'Could not reach VorldX Saarthi': 'VorldX Saarthi शी संपर्क होऊ शकला नाही',
+  'Check your connection and try again.': 'तुमचे कनेक्शन तपासा आणि पुन्हा प्रयत्न करा.',
+  'Wait a moment and try again.': 'थोडा वेळ थांबून पुन्हा प्रयत्न करा.',
+  'Connection lost. Retrying…': 'कनेक्शन तुटले. पुन्हा प्रयत्न सुरू आहे…',
+  'Re-centre map': 'नकाशा पुन्हा मध्यभागी आणा',
+  "Map of {name}'s live location": '{name} यांच्या लाइव्ह ठिकाणाचा नकाशा',
+  'The map could not load on this device.': 'या डिव्हाइसवर नकाशा लोड होऊ शकला नाही.',
+  Ended: 'संपले',
+  'Live rides': 'लाइव्ह राइड्स',
+  'No location yet': 'अद्याप ठिकाण नाही',
+  'This page shows where {name} is only while they are sharing.':
+    '{name} शेअर करत असेपर्यंतच हे पान त्यांचे ठिकाण दाखवते.',
 };

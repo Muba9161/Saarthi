@@ -347,4 +347,33 @@ export const kn: Catalogue = {
     'ನಾನು ಎಲ್ಲ ರೀತಿಯ ಸರಕು ಮಾರುತ್ತೇನೆ ಮತ್ತು ನನ್ನ ಸ್ಥಳದಿಂದಲೇ ಕಳುಹಿಸುತ್ತೇನೆ.',
   'Saarthi connects fleet owners, drivers, sellers and customers on one platform - from posting a load to watching it arrive.':
     'Saarthi ವಾಹನ ಮಾಲೀಕರು, ಚಾಲಕರು, ಮಾರಾಟಗಾರರು ಮತ್ತು ಗ್ರಾಹಕರನ್ನು ಒಂದೇ ವೇದಿಕೆಯಲ್ಲಿ ಜೋಡಿಸುತ್ತದೆ - ಲೋಡ್ ಹಾಕುವುದರಿಂದ ಅದು ತಲುಪುವವರೆಗೆ.',
+
+  // --- Live ride: the public "Share my ride" link family open ---------------
+  'Live ride': 'ಲೈವ್ ಸವಾರಿ',
+  '{name} is sharing a live ride': '{name} ಲೈವ್ ಸವಾರಿಯನ್ನು ಹಂಚಿಕೊಳ್ಳುತ್ತಿದ್ದಾರೆ',
+  '{name} has stopped sharing this ride.': '{name} ಈ ಸವಾರಿಯನ್ನು ಹಂಚಿಕೊಳ್ಳುವುದನ್ನು ನಿಲ್ಲಿಸಿದ್ದಾರೆ.',
+  "Waiting for {name}'s first location…": '{name} ಅವರ ಮೊದಲ ಸ್ಥಳಕ್ಕಾಗಿ ಕಾಯಲಾಗುತ್ತಿದೆ…',
+  "This live link doesn't exist or has been removed.":
+    'ಈ ಲೈವ್ ಲಿಂಕ್ ಅಸ್ತಿತ್ವದಲ್ಲಿಲ್ಲ ಅಥವಾ ತೆಗೆದುಹಾಕಲಾಗಿದೆ.',
+  'Ask the person who sent it to share a new link.':
+    'ಇದನ್ನು ಕಳುಹಿಸಿದವರಿಗೆ ಹೊಸ ಲಿಂಕ್ ಹಂಚಿಕೊಳ್ಳಲು ಹೇಳಿ.',
+  'Opening the live ride…': 'ಲೈವ್ ಸವಾರಿ ತೆರೆಯುತ್ತಿದೆ…',
+  'Updated just now': 'ಈಗಷ್ಟೇ ಅಪ್‌ಡೇಟ್ ಆಗಿದೆ',
+  'Updated {count} s ago': '{count} ಸೆ. ಹಿಂದೆ ಅಪ್‌ಡೇಟ್ ಆಗಿದೆ',
+  'Updated {count} min ago': '{count} ನಿಮಿಷ ಹಿಂದೆ ಅಪ್‌ಡೇಟ್ ಆಗಿದೆ',
+  'Updated {count} h ago': '{count} ಗಂಟೆ ಹಿಂದೆ ಅಪ್‌ಡೇಟ್ ಆಗಿದೆ',
+  'Vehicle number': 'ವಾಹನ ಸಂಖ್ಯೆ',
+  Speed: 'ವೇಗ',
+  'Could not reach VorldX Saarthi': 'VorldX Saarthi ಅನ್ನು ತಲುಪಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ',
+  'Check your connection and try again.': 'ನಿಮ್ಮ ಸಂಪರ್ಕವನ್ನು ಪರಿಶೀಲಿಸಿ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.',
+  'Wait a moment and try again.': 'ಸ್ವಲ್ಪ ಕಾದು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.',
+  'Connection lost. Retrying…': 'ಸಂಪರ್ಕ ಕಡಿತಗೊಂಡಿದೆ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಲಾಗುತ್ತಿದೆ…',
+  'Re-centre map': 'ನಕ್ಷೆಯನ್ನು ಮತ್ತೆ ಮಧ್ಯಕ್ಕೆ ತನ್ನಿ',
+  "Map of {name}'s live location": '{name} ಅವರ ಲೈವ್ ಸ್ಥಳದ ನಕ್ಷೆ',
+  'The map could not load on this device.': 'ಈ ಸಾಧನದಲ್ಲಿ ನಕ್ಷೆ ಲೋಡ್ ಆಗಲಿಲ್ಲ.',
+  Ended: 'ಮುಗಿದಿದೆ',
+  'Live rides': 'ಲೈವ್ ಸವಾರಿಗಳು',
+  'No location yet': 'ಇನ್ನೂ ಸ್ಥಳ ಲಭ್ಯವಿಲ್ಲ',
+  'This page shows where {name} is only while they are sharing.':
+    '{name} ಹಂಚಿಕೊಳ್ಳುತ್ತಿರುವವರೆಗೆ ಮಾತ್ರ ಈ ಪುಟ ಅವರ ಸ್ಥಳವನ್ನು ತೋರಿಸುತ್ತದೆ.',
 };

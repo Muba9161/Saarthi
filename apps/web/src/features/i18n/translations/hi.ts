@@ -337,4 +337,33 @@ export const hi: Catalogue = {
     'मैं हर तरह का सामान बेचता हूँ और अपनी जगह से भेजता हूँ।',
   'Saarthi connects fleet owners, drivers, sellers and customers on one platform - from posting a load to watching it arrive.':
     'Saarthi बेड़ा मालिकों, ड्राइवरों, विक्रेताओं और ग्राहकों को एक ही प्लेटफ़ॉर्म पर जोड़ता है - लोड डालने से लेकर उसके पहुँचने तक।',
+
+  // --- Live ride: the public "Share my ride" link family open ---------------
+  'Live ride': 'लाइव राइड',
+  '{name} is sharing a live ride': '{name} लाइव राइड शेयर कर रहे हैं',
+  '{name} has stopped sharing this ride.': '{name} ने इस राइड को शेयर करना बंद कर दिया है।',
+  "Waiting for {name}'s first location…": '{name} की पहली लोकेशन का इंतज़ार है…',
+  "This live link doesn't exist or has been removed.":
+    'यह लाइव लिंक मौजूद नहीं है या हटा दिया गया है।',
+  'Ask the person who sent it to share a new link.':
+    'जिन्होंने यह भेजा है, उनसे नया लिंक शेयर करने को कहें।',
+  'Opening the live ride…': 'लाइव राइड खुल रही है…',
+  'Updated just now': 'अभी-अभी अपडेट हुआ',
+  'Updated {count} s ago': '{count} से. पहले अपडेट हुआ',
+  'Updated {count} min ago': '{count} मिनट पहले अपडेट हुआ',
+  'Updated {count} h ago': '{count} घंटे पहले अपडेट हुआ',
+  'Vehicle number': 'वाहन नंबर',
+  Speed: 'रफ़्तार',
+  'Could not reach VorldX Saarthi': 'VorldX Saarthi से जुड़ नहीं सके',
+  'Check your connection and try again.': 'अपना कनेक्शन जाँचें और फिर कोशिश करें।',
+  'Wait a moment and try again.': 'थोड़ी देर रुककर फिर कोशिश करें।',
+  'Connection lost. Retrying…': 'कनेक्शन टूट गया। फिर से कोशिश हो रही है…',
+  'Re-centre map': 'मैप फिर से बीच में लाएँ',
+  "Map of {name}'s live location": '{name} की लाइव लोकेशन का मैप',
+  'The map could not load on this device.': 'इस डिवाइस पर मैप लोड नहीं हो सका।',
+  Ended: 'समाप्त',
+  'Live rides': 'लाइव राइड्स',
+  'No location yet': 'अभी कोई लोकेशन नहीं',
+  'This page shows where {name} is only while they are sharing.':
+    'यह पेज {name} की जगह सिर्फ़ तब तक दिखाता है जब तक वे शेयर कर रहे हैं।',
 };

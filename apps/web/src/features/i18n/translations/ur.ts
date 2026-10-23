@@ -346,4 +346,33 @@ export const ur: Catalogue = {
     'میں ہر قسم کا سامان بیچتا ہوں اور اپنی جگہ سے بھیجتا ہوں۔',
   'Saarthi connects fleet owners, drivers, sellers and customers on one platform - from posting a load to watching it arrive.':
     'Saarthi بیڑا مالکان، ڈرائیوروں، فروخت کنندگان اور گاہکوں کو ایک ہی پلیٹ فارم پر جوڑتا ہے - لوڈ ڈالنے سے لے کر اس کے پہنچنے تک۔',
+
+  // --- Live ride: the public "Share my ride" link family open ---------------
+  'Live ride': 'لائیو سفر',
+  '{name} is sharing a live ride': '{name} لائیو سفر شیئر کر رہے ہیں',
+  '{name} has stopped sharing this ride.': '{name} نے اس سفر کو شیئر کرنا بند کر دیا ہے۔',
+  "Waiting for {name}'s first location…": '{name} کی پہلی لوکیشن کا انتظار ہے…',
+  "This live link doesn't exist or has been removed.":
+    'یہ لائیو لنک موجود نہیں ہے یا ہٹا دیا گیا ہے۔',
+  'Ask the person who sent it to share a new link.':
+    'جنہوں نے یہ بھیجا ہے، ان سے نیا لنک شیئر کرنے کو کہیں۔',
+  'Opening the live ride…': 'لائیو سفر کھل رہا ہے…',
+  'Updated just now': 'ابھی ابھی اپ ڈیٹ ہوا',
+  'Updated {count} s ago': '{count} سیکنڈ پہلے اپ ڈیٹ ہوا',
+  'Updated {count} min ago': '{count} منٹ پہلے اپ ڈیٹ ہوا',
+  'Updated {count} h ago': '{count} گھنٹے پہلے اپ ڈیٹ ہوا',
+  'Vehicle number': 'گاڑی نمبر',
+  Speed: 'رفتار',
+  'Could not reach VorldX Saarthi': 'VorldX Saarthi سے رابطہ نہیں ہو سکا',
+  'Check your connection and try again.': 'اپنا کنکشن چیک کریں اور دوبارہ کوشش کریں۔',
+  'Wait a moment and try again.': 'تھوڑی دیر رک کر دوبارہ کوشش کریں۔',
+  'Connection lost. Retrying…': 'کنکشن ٹوٹ گیا۔ دوبارہ کوشش ہو رہی ہے…',
+  'Re-centre map': 'نقشہ دوبارہ بیچ میں لائیں',
+  "Map of {name}'s live location": '{name} کی لائیو لوکیشن کا نقشہ',
+  'The map could not load on this device.': 'اس ڈیوائس پر نقشہ لوڈ نہیں ہو سکا۔',
+  Ended: 'ختم',
+  'Live rides': 'لائیو سفر',
+  'No location yet': 'ابھی کوئی لوکیشن نہیں',
+  'This page shows where {name} is only while they are sharing.':
+    'یہ صفحہ {name} کی جگہ صرف تب تک دکھاتا ہے جب تک وہ شیئر کر رہے ہیں۔',
 };

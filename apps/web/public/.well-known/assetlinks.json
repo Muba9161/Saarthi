@@ -1,0 +1,22 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.saarthi.owner",
+      "sha256_cert_fingerprints": [
+        "CD:2D:10:15:5D:CD:FE:74:BD:95:46:C3:4E:1E:B6:8D:1C:F8:6F:8D:FD:C0:E3:3F:DE:C4:75:D4:7D:53:1A:DB"
+      ]
+    }
+  },
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.saarthi.owner.debug",
+      "sha256_cert_fingerprints": [
+        "E1:92:59:8B:46:38:7E:98:AE:D4:4A:02:42:EA:E9:22:72:6F:FF:6B:74:7C:99:A4:9A:8C:F1:97:20:EB:9A:25"
+      ]
+    }
+  }
+]

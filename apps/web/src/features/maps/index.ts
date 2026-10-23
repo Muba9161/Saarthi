@@ -4,6 +4,11 @@
  */
 
 export { FleetMap, type CameraMode, type FleetMapProps, type MapMarkerPoint, type MapTruck } from './fleet-map';
+export {
+  LiveMarkerMap,
+  type LiveMarkerMapProps,
+  type LiveMarkerPosition,
+} from './live-marker-map';
 export { MapSearch, type MapSearchProps } from './map-search';
 export { MapSettingsControl, type MapSettings } from './map-controls';
 export { NavigationPanel, type NavigationPanelProps } from './navigation-panel';

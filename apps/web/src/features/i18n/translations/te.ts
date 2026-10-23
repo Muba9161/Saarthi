@@ -349,4 +349,32 @@ export const te: Catalogue = {
     'నేను అన్ని రకాల సరుకు అమ్ముతాను, నా స్వంత స్థలం నుండి పంపుతాను.',
   'Saarthi connects fleet owners, drivers, sellers and customers on one platform - from posting a load to watching it arrive.':
     'Saarthi వాహన యజమానులు, డ్రైవర్లు, విక్రేతలు, కస్టమర్లను ఒకే వేదికపై కలుపుతుంది - లోడ్ పెట్టడం నుండి అది చేరుకోవడం చూసే వరకు.',
+
+  // --- Live ride: the public "Share my ride" link family open ---------------
+  'Live ride': 'లైవ్ ప్రయాణం',
+  '{name} is sharing a live ride': '{name} లైవ్ ప్రయాణాన్ని షేర్ చేస్తున్నారు',
+  '{name} has stopped sharing this ride.': '{name} ఈ ప్రయాణాన్ని షేర్ చేయడం ఆపేశారు.',
+  "Waiting for {name}'s first location…": '{name} మొదటి లొకేషన్ కోసం వేచి ఉంది…',
+  "This live link doesn't exist or has been removed.": 'ఈ లైవ్ లింక్ లేదు లేదా తీసివేయబడింది.',
+  'Ask the person who sent it to share a new link.':
+    'దీన్ని పంపిన వారిని కొత్త లింక్ షేర్ చేయమని అడగండి.',
+  'Opening the live ride…': 'లైవ్ ప్రయాణం తెరుచుకుంటోంది…',
+  'Updated just now': 'ఇప్పుడే అప్‌డేట్ అయింది',
+  'Updated {count} s ago': '{count} సె. క్రితం అప్‌డేట్ అయింది',
+  'Updated {count} min ago': '{count} నిమి. క్రితం అప్‌డేట్ అయింది',
+  'Updated {count} h ago': '{count} గం. క్రితం అప్‌డేట్ అయింది',
+  'Vehicle number': 'వాహన నంబర్',
+  Speed: 'వేగం',
+  'Could not reach VorldX Saarthi': 'VorldX Saarthiని చేరుకోలేకపోయాం',
+  'Check your connection and try again.': 'మీ కనెక్షన్‌ను తనిఖీ చేసి మళ్లీ ప్రయత్నించండి.',
+  'Wait a moment and try again.': 'కొంచెం ఆగి మళ్లీ ప్రయత్నించండి.',
+  'Connection lost. Retrying…': 'కనెక్షన్ తెగిపోయింది. మళ్లీ ప్రయత్నిస్తోంది…',
+  'Re-centre map': 'మ్యాప్‌ను మళ్లీ మధ్యలోకి తీసుకురండి',
+  "Map of {name}'s live location": '{name} లైవ్ లొకేషన్ మ్యాప్',
+  'The map could not load on this device.': 'ఈ పరికరంలో మ్యాప్ లోడ్ కాలేదు.',
+  Ended: 'ముగిసింది',
+  'Live rides': 'లైవ్ ప్రయాణాలు',
+  'No location yet': 'ఇంకా లొకేషన్ లేదు',
+  'This page shows where {name} is only while they are sharing.':
+    '{name} షేర్ చేస్తున్నంత వరకే ఈ పేజీ వారి లొకేషన్‌ను చూపిస్తుంది.',
 };

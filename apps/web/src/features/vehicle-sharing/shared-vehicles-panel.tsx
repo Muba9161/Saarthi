@@ -8,13 +8,27 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { StatusBadge } from '@/components/common/status-badge';
 import { EmptyState, ErrorState, LoadingState } from '@/components/common/states';
+import { LiveRidesSection } from '@/features/live-ride/rides-shared-with-me';
 import { SHARED_WITH_ME_KEY, respondToShare, useSharedWithMe } from './sharing-api';
 
 /**
- * The "Shared with me" side of the Vehicles screen: invitations to answer,
- * then the vehicles already shared, each opening its own shared view.
+ * The "Shared with me" side of the Vehicles screen: rides being shared live
+ * right now, invitations to answer, then the vehicles already shared, each
+ * opening its own shared view.
+ *
+ * The live rides sit outside the vehicles' loading and error states: they come
+ * from a different endpoint, and a slow vehicle list should not hide them.
  */
 export function SharedVehiclesPanel() {
+  return (
+    <div className="space-y-6">
+      <LiveRidesSection />
+      <SharedVehicles />
+    </div>
+  );
+}
+
+function SharedVehicles() {
   const queryClient = useQueryClient();
   const shared = useSharedWithMe();
 

@@ -346,4 +346,32 @@ export const or: Catalogue = {
     'ମୁଁ ସବୁ ପ୍ରକାରର ସାମଗ୍ରୀ ବିକ୍ରି କରେ ଏବଂ ମୋ ନିଜ ସ୍ଥାନରୁ ପଠାଏ।',
   'Saarthi connects fleet owners, drivers, sellers and customers on one platform - from posting a load to watching it arrive.':
     'Saarthi ଯାନବାହିନୀ ମାଲିକ, ଚାଳକ, ବିକ୍ରେତା ଓ ଗ୍ରାହକଙ୍କୁ ଗୋଟିଏ ପ୍ଲାଟଫର୍ମରେ ଯୋଡ଼େ - ଲୋଡ ଦେବାଠାରୁ ତାହା ପହଞ୍ଚିବା ପର୍ଯ୍ୟନ୍ତ।',
+
+  // --- Live ride: the public "Share my ride" link family open ---------------
+  'Live ride': 'ଲାଇଭ ଯାତ୍ରା',
+  '{name} is sharing a live ride': '{name} ଏକ ଲାଇଭ ଯାତ୍ରା ସେୟାର କରୁଛନ୍ତି',
+  '{name} has stopped sharing this ride.': '{name} ଏହି ଯାତ୍ରା ସେୟାର କରିବା ବନ୍ଦ କରିଛନ୍ତି।',
+  "Waiting for {name}'s first location…": '{name}ଙ୍କ ପ୍ରଥମ ଅବସ୍ଥାନକୁ ଅପେକ୍ଷା କରାଯାଉଛି…',
+  "This live link doesn't exist or has been removed.": 'ଏହି ଲାଇଭ ଲିଙ୍କ ନାହିଁ କିମ୍ବା ହଟାଇ ଦିଆଯାଇଛି।',
+  'Ask the person who sent it to share a new link.':
+    'ଯିଏ ଏହା ପଠାଇଛନ୍ତି, ତାଙ୍କୁ ଏକ ନୂଆ ଲିଙ୍କ ସେୟାର କରିବାକୁ କୁହନ୍ତୁ।',
+  'Opening the live ride…': 'ଲାଇଭ ଯାତ୍ରା ଖୋଲୁଛି…',
+  'Updated just now': 'ଏବେ ଏବେ ଅପଡେଟ ହେଲା',
+  'Updated {count} s ago': '{count} ସେ. ପୂର୍ବରୁ ଅପଡେଟ ହେଲା',
+  'Updated {count} min ago': '{count} ମିନିଟ ପୂର୍ବରୁ ଅପଡେଟ ହେଲା',
+  'Updated {count} h ago': '{count} ଘଣ୍ଟା ପୂର୍ବରୁ ଅପଡେଟ ହେଲା',
+  'Vehicle number': 'ଯାନ ନମ୍ବର',
+  Speed: 'ଗତି',
+  'Could not reach VorldX Saarthi': 'VorldX Saarthi ସହ ଯୋଗାଯୋଗ ହୋଇପାରିଲା ନାହିଁ',
+  'Check your connection and try again.': 'ଆପଣଙ୍କ ସଂଯୋଗ ଯାଞ୍ଚ କରି ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ।',
+  'Wait a moment and try again.': 'ଟିକେ ଅପେକ୍ଷା କରି ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ।',
+  'Connection lost. Retrying…': 'ସଂଯୋଗ ବିଚ୍ଛିନ୍ନ ହେଲା। ପୁଣି ଚେଷ୍ଟା ଚାଲିଛି…',
+  'Re-centre map': 'ମାନଚିତ୍ରକୁ ପୁଣି ମଝିକୁ ଆଣନ୍ତୁ',
+  "Map of {name}'s live location": '{name}ଙ୍କ ଲାଇଭ ଅବସ୍ଥାନର ମାନଚିତ୍ର',
+  'The map could not load on this device.': 'ଏହି ଡିଭାଇସରେ ମାନଚିତ୍ର ଲୋଡ ହୋଇପାରିଲା ନାହିଁ।',
+  Ended: 'ସମାପ୍ତ',
+  'Live rides': 'ଲାଇଭ ଯାତ୍ରାଗୁଡ଼ିକ',
+  'No location yet': 'ଏପର୍ଯ୍ୟନ୍ତ କୌଣସି ଅବସ୍ଥାନ ନାହିଁ',
+  'This page shows where {name} is only while they are sharing.':
+    '{name} ସେୟାର କରୁଥିବା ପର୍ଯ୍ୟନ୍ତ ହିଁ ଏହି ପୃଷ୍ଠା ତାଙ୍କ ଅବସ୍ଥାନ ଦେଖାଏ।',
 };

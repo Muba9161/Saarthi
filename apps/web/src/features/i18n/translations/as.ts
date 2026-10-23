@@ -347,4 +347,32 @@ export const as: Catalogue = {
     'মই সকলো ধৰণৰ সামগ্ৰী বিক্ৰী কৰো আৰু নিজৰ স্থানৰ পৰা পঠিয়াওঁ।',
   'Saarthi connects fleet owners, drivers, sellers and customers on one platform - from posting a load to watching it arrive.':
     'Saarthi-এ বাহিনী মালিক, চালক, বিক্ৰেতা আৰু গ্ৰাহকক একেখন প্লেটফৰ্মত সংযোগ কৰে - লোড দিয়াৰ পৰা সেয়া পোৱালৈকে।',
+
+  // --- Live ride: the public "Share my ride" link family open ---------------
+  'Live ride': 'লাইভ যাত্ৰা',
+  '{name} is sharing a live ride': '{name}এ এটা লাইভ যাত্ৰা শ্বেয়াৰ কৰি আছে',
+  '{name} has stopped sharing this ride.': '{name}এ এই যাত্ৰা শ্বেয়াৰ কৰা বন্ধ কৰিছে।',
+  "Waiting for {name}'s first location…": '{name}ৰ প্ৰথম অৱস্থানৰ বাবে অপেক্ষা কৰি আছে…',
+  "This live link doesn't exist or has been removed.": 'এই লাইভ লিংকটো নাই বা আঁতৰোৱা হৈছে।',
+  'Ask the person who sent it to share a new link.':
+    'যিয়ে এইটো পঠিয়াইছে, তেওঁক নতুন লিংক শ্বেয়াৰ কৰিবলৈ কওক।',
+  'Opening the live ride…': 'লাইভ যাত্ৰা খোলা হৈছে…',
+  'Updated just now': 'এইমাত্ৰ আপডেট হ’ল',
+  'Updated {count} s ago': '{count} ছে. আগতে আপডেট হ’ল',
+  'Updated {count} min ago': '{count} মিনিট আগতে আপডেট হ’ল',
+  'Updated {count} h ago': '{count} ঘণ্টা আগতে আপডেট হ’ল',
+  'Vehicle number': 'বাহনৰ নম্বৰ',
+  Speed: 'গতি',
+  'Could not reach VorldX Saarthi': 'VorldX Saarthiৰ সৈতে সংযোগ কৰিব পৰা নগ’ল',
+  'Check your connection and try again.': 'আপোনাৰ সংযোগ পৰীক্ষা কৰি পুনৰ চেষ্টা কৰক।',
+  'Wait a moment and try again.': 'অলপ অপেক্ষা কৰি পুনৰ চেষ্টা কৰক।',
+  'Connection lost. Retrying…': 'সংযোগ বিচ্ছিন্ন হ’ল। পুনৰ চেষ্টা কৰি আছে…',
+  'Re-centre map': 'মেপ পুনৰ মাজলৈ আনক',
+  "Map of {name}'s live location": '{name}ৰ লাইভ অৱস্থানৰ মেপ',
+  'The map could not load on this device.': 'এই ডিভাইচত মেপ লোড কৰিব পৰা নগ’ল।',
+  Ended: 'সমাপ্ত',
+  'Live rides': 'লাইভ যাত্ৰাসমূহ',
+  'No location yet': 'এতিয়াও কোনো অৱস্থান নাই',
+  'This page shows where {name} is only while they are sharing.':
+    '{name}এ শ্বেয়াৰ কৰি থকালৈকে এই পৃষ্ঠাই তেওঁৰ অৱস্থান দেখুৱায়।',
 };
