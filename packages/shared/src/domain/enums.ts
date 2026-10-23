@@ -132,6 +132,15 @@ export const VehicleShareStatus = asEnum({
 });
 export type VehicleShareStatus = EnumValue<typeof VehicleShareStatus>;
 
+
+/** A journey shared with family from a vehicle that is not on Saarthi. */
+export const RideShareStatus = asEnum({
+  SHARING: 'SHARING',
+  /** Stopped by the rider, or by itself once its time ran out. */
+  ENDED: 'ENDED',
+});
+export type RideShareStatus = EnumValue<typeof RideShareStatus>;
+
 export const DocumentOwnerType = asEnum({
   USER: 'USER',
   DRIVER: 'DRIVER',
@@ -855,6 +864,9 @@ export const NotificationType = asEnum({
   TERMINAL_DRIVER_REQUEST_EXPIRED: 'TERMINAL_DRIVER_REQUEST_EXPIRED',
   TERMINAL_CHECKLIST_FAILED: 'TERMINAL_CHECKLIST_FAILED',
   TERMINAL_ISSUE_REPORTED: 'TERMINAL_ISSUE_REPORTED',
+
+  // A family member sharing a ride
+  RIDE_SHARED_WITH_YOU: 'RIDE_SHARED_WITH_YOU',
 
   // Sales, referrals & commission
   SALES_LEAD_FOLLOW_UP_DUE: 'SALES_LEAD_FOLLOW_UP_DUE',

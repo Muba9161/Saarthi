@@ -320,6 +320,7 @@ export const AuditAction = {
   VEHICLE_SHARE_DECLINED: 'vehicle.share_declined',
   VEHICLE_SHARE_ENDED: 'vehicle.share_ended',
 
+
   RETURN_LOAD_CREATED: 'returnload.created',
   RETURN_LOAD_UPDATED: 'returnload.updated',
   RETURN_LOAD_CANCELLED: 'returnload.cancelled',

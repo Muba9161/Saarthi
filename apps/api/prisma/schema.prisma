@@ -139,6 +139,8 @@ model User {
   viewPreferences UserViewPreference[]
   passkeys        UserPasskey[]
   vehicleShares   VehicleShare[]       @relation("VehicleShareRecipient")
+  rideShares      RideShare[]          @relation("RideShareRider")
+  rideSharesSeen  RideShareViewer[]    @relation("RideShareViewer")
 
   uploadedTerminalReleases  TerminalRelease[] @relation("TerminalReleaseUploader")
   publishedTerminalReleases TerminalRelease[] @relation("TerminalReleasePublisher")
@@ -547,6 +549,9 @@ enum NotificationType {
   TERMINAL_CHECKLIST_FAILED
   TERMINAL_ISSUE_REPORTED
 
+  // A family member sharing a ride
+  RIDE_SHARED_WITH_YOU
+
   // Sales, referrals & commission
   SALES_LEAD_FOLLOW_UP_DUE
   SALES_REFERRAL_CONVERTED
@@ -776,6 +781,7 @@ enum VehicleShareStatus {
   DECLINED
   REVOKED
 }
+
 
 enum DocumentOwnerType {
   USER
@@ -1367,6 +1373,57 @@ model VehicleShare {
   @@index([sharedWithUserId, status])
   @@index([vehicleId, status])
   @@map("vehicle_shares")
+}
+
+
+enum RideShareStatus {
+  SHARING
+  ENDED
+}
+
+/// Somebody sharing their journey with family, in a vehicle that is not on
+/// Saarthi: nobody owns it here, so the rider chooses who sees them — Saarthi
+/// users by mobile number, and anyone holding the live link.
+model RideShare {
+  id                 String          @id @default(uuid()) @db.Uuid
+  riderUserId        String          @db.Uuid
+  /// The vehicle's number as typed — a safety detail, not a Saarthi vehicle.
+  registrationNumber String?
+  status             RideShareStatus @default(SHARING)
+  startedAt          DateTime        @default(now())
+  /// When sharing stops by itself if the rider forgets to.
+  expiresAt          DateTime
+  endedAt            DateTime?
+  lastLatitude       Float?
+  lastLongitude      Float?
+  lastSpeedKph       Float?
+  lastHeading        Float?
+  lastLocationAt     DateTime?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  rider   User              @relation("RideShareRider", fields: [riderUserId], references: [id], onDelete: Cascade)
+  viewers RideShareViewer[]
+
+  @@index([riderUserId, status])
+  @@map("ride_shares")
+}
+
+/// A Saarthi user the rider chose to share a ride with.
+model RideShareViewer {
+  id           String   @id @default(uuid()) @db.Uuid
+  rideShareId  String   @db.Uuid
+  viewerUserId String   @db.Uuid
+  /// The number the rider gave for them, normalised.
+  phone        String
+  createdAt    DateTime @default(now())
+
+  rideShare RideShare @relation(fields: [rideShareId], references: [id], onDelete: Cascade)
+  viewer    User      @relation("RideShareViewer", fields: [viewerUserId], references: [id], onDelete: Cascade)
+
+  @@unique([rideShareId, viewerUserId])
+  @@index([viewerUserId])
+  @@map("ride_share_viewers")
 }
 
 model TruckAssignment {

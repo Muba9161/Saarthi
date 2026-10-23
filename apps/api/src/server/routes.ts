@@ -53,6 +53,12 @@ import {
 import { vehiclePapersRoutes } from '../modules/vehicles/vehicle-papers.routes';
 import { secureAccessRoutes } from '../modules/secure-access/secure-access.routes';
 import { vehicleSharingRoutes } from '../modules/vehicle-sharing/vehicle-sharing.routes';
+import {
+  publicLiveRideRoutes,
+  rideShareReportRoutes,
+  rideShareRoutes,
+  rideShareViewerRoutes,
+} from '../modules/ride-shares/ride-share.routes';
 import { associationRoutes } from '../modules/associations/association.routes';
 import { travelRoutes } from '../modules/travel/travel.routes';
 import { deviceRoutes } from '../modules/devices/device.routes';
@@ -212,6 +218,12 @@ export async function registerApiRoutes(app: FastifyInstance): Promise<void> {
   await app.register(ownershipReviewAdminRoutes, { prefix: '/admin/ownership-reviews' });
   // Another account's vehicle, seen and used through an accepted share.
   await app.register(vehicleSharingRoutes, { prefix: '/fleet/sharing' });
+  // Riding along: a Personal plan account holder shares the ride with family
+  // they choose, and with anyone holding the live link.
+  await app.register(rideShareRoutes, { prefix: '/ride-shares' });
+  await app.register(rideShareReportRoutes, { prefix: '/ride-shares' });
+  await app.register(rideShareViewerRoutes, { prefix: '/ride-shares' });
+  await app.register(publicLiveRideRoutes, { prefix: '/public/live' });
   // Vehicle finance. Mounted under /fleet because it is fleet-owner data, and
   // the per-vehicle panel sits alongside the vehicle it belongs to.
   await app.register(loanRoutes, { prefix: '/fleet/loans' });
