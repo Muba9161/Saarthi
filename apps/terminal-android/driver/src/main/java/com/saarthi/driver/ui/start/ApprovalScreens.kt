@@ -84,56 +84,21 @@ fun AwaitingApprovalScreen(viewModel: DriverViewModel, assignment: DriverApi.Ass
         )
         RadarStage(Modifier.padding(top = 12.dp).rise(stagger(1)))
 
-        SaarthiCard(Modifier.padding(top = 14.dp).rise(stagger(2)), spacing = 8.dp) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Eyebrow(stringResource(R.string.label_vehicle), Modifier.weight(1f))
-                StatusPill(
-                    stringResource(R.string.awaiting_pill),
-                    background = c.warningBg,
-                    ink = c.warning,
-                    live = true,
-                )
-            }
-            plate?.let { Text(it, style = SType.plate(28.sp, tracking = 0.04.em), color = c.fg) }
-            Text(stringResource(R.string.awaiting_body), style = SType.body, color = c.muted)
-        }
+        AwaitingVehicleCard(
+            plate = plate,
+            body = stringResource(R.string.awaiting_body),
+            modifier = Modifier.padding(top = 14.dp).rise(stagger(2)),
+        )
 
-        SaarthiCard(Modifier.padding(top = 12.dp).rise(stagger(3)), spacing = 0.dp) {
-            TimelineStep(
-                marker = { IconWell(Lucide.check, well = c.successSoft, ink = c.success, size = 26.dp, shape = CircleShape, iconSize = 13.dp, stroke = 3f) },
-                line = TimelineLine.SOLID,
-                title = plate?.let { stringResource(R.string.awaiting_step_scanned, it) } ?: stringResource(R.string.awaiting_step_sent),
-                subtitle = stringResource(R.string.awaiting_step_scanned_sub),
-            )
-            TimelineStep(
-                marker = {
-                    Box(
-                        Modifier
-                            .size(26.dp)
-                            .clip(CircleShape)
-                            .background(c.warningBg),
-                        contentAlignment = Alignment.Center,
-                    ) { LiveDot(c.warning, size = 10.dp) }
-                },
-                line = TimelineLine.DASHED,
-                title = stringResource(R.string.awaiting_step_fleet),
-                subtitle = stringResource(R.string.awaiting_step_fleet_sub),
-            )
-            TimelineStep(
-                marker = {
-                    Box(
-                        Modifier
-                            .size(26.dp)
-                            .clip(CircleShape)
-                            .border(2.dp, c.borderStrong, CircleShape),
-                    )
-                },
-                line = TimelineLine.NONE,
-                title = stringResource(R.string.awaiting_step_trip),
-                subtitle = stringResource(R.string.awaiting_step_trip_sub),
-                muted = true,
-            )
-        }
+        AwaitingTimeline(
+            done = TimelineEntry(
+                plate?.let { stringResource(R.string.awaiting_step_scanned, it) } ?: stringResource(R.string.awaiting_step_sent),
+                stringResource(R.string.awaiting_step_scanned_sub),
+            ),
+            deciding = TimelineEntry(stringResource(R.string.awaiting_step_fleet), stringResource(R.string.awaiting_step_fleet_sub)),
+            next = TimelineEntry(stringResource(R.string.awaiting_step_trip), stringResource(R.string.awaiting_step_trip_sub)),
+            modifier = Modifier.padding(top = 12.dp).rise(stagger(3)),
+        )
 
         SaarthiButton(
             stringResource(R.string.awaiting_cancel),
@@ -144,6 +109,78 @@ fun AwaitingApprovalScreen(viewModel: DriverViewModel, assignment: DriverApi.Ass
             tone = ButtonTone.SECONDARY,
             leading = Lucide.ban,
             leadingTint = c.muted,
+        )
+    }
+}
+
+/** The vehicle being waited on, under the amber "Awaiting approval" pill. */
+@Composable
+private fun AwaitingVehicleCard(plate: String?, body: String, modifier: Modifier = Modifier) {
+    val c = Saarthi.colors
+    SaarthiCard(modifier, spacing = 8.dp) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Eyebrow(stringResource(R.string.label_vehicle), Modifier.weight(1f))
+            StatusPill(
+                stringResource(R.string.awaiting_pill),
+                background = c.warningBg,
+                ink = c.warning,
+                live = true,
+            )
+        }
+        plate?.let { Text(it, style = SType.plate(28.sp, tracking = 0.04.em), color = c.fg) }
+        Text(body, style = SType.body, color = c.muted)
+    }
+}
+
+/** One step of a wait: what it says, and the line under it. */
+private class TimelineEntry(val title: String, val subtitle: String)
+
+/**
+ * A wait in three steps: what was done, who is deciding now, and what comes
+ * after — ticked, live and still to come.
+ */
+@Composable
+private fun AwaitingTimeline(
+    done: TimelineEntry,
+    deciding: TimelineEntry,
+    next: TimelineEntry,
+    modifier: Modifier = Modifier,
+) {
+    val c = Saarthi.colors
+    SaarthiCard(modifier, spacing = 0.dp) {
+        TimelineStep(
+            marker = { IconWell(Lucide.check, well = c.successSoft, ink = c.success, size = 26.dp, shape = CircleShape, iconSize = 13.dp, stroke = 3f) },
+            line = TimelineLine.SOLID,
+            title = done.title,
+            subtitle = done.subtitle,
+        )
+        TimelineStep(
+            marker = {
+                Box(
+                    Modifier
+                        .size(26.dp)
+                        .clip(CircleShape)
+                        .background(c.warningBg),
+                    contentAlignment = Alignment.Center,
+                ) { LiveDot(c.warning, size = 10.dp) }
+            },
+            line = TimelineLine.DASHED,
+            title = deciding.title,
+            subtitle = deciding.subtitle,
+        )
+        TimelineStep(
+            marker = {
+                Box(
+                    Modifier
+                        .size(26.dp)
+                        .clip(CircleShape)
+                        .border(2.dp, c.borderStrong, CircleShape),
+                )
+            },
+            line = TimelineLine.NONE,
+            title = next.title,
+            subtitle = next.subtitle,
+            muted = true,
         )
     }
 }

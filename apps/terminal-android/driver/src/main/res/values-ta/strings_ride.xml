@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="role_header">உங்கள் பயணத்தைத் தொடங்குங்கள்</string>
+    <string name="role_title">நீங்கள் எப்படிப் பயணிக்கிறீர்கள்?</string>
+    <string name="role_lead">உங்கள் ஃப்ளீட்டுக்காக வண்டி ஓட்டுங்கள், அல்லது வேறொருவரின் வண்டியில் உடன் பயணியுங்கள்.</string>
+    <string name="role_drive_title">நான் வண்டி ஓட்டுகிறேன்</string>
+    <string name="role_drive_sub">உங்கள் வண்டியின் நம்பரை ஸ்கேன் செய்யுங்கள் அல்லது டைப் செய்யுங்கள். உங்கள் ஃப்ளீட் உங்களுக்கு அனுமதி தரும்.</string>
+    <string name="role_ride_title">நான் உடன் பயணிக்கிறேன்</string>
+    <string name="role_ride_sub">கேப், ஆட்டோ அல்லது வேறொருவரின் வண்டியில் பயணிக்கிறீர்களா? குடும்பத்தினர் உங்களை நேரலையில் பார்க்கலாம்.</string>
+
+    <string name="ride_header">உடன் பயணம்</string>
+    <string name="ride_request_title">நீங்கள் எந்த வண்டியில் இருக்கிறீர்கள்?</string>
+    <string name="ride_request_lead">அதன் நம்பர் பிளேட்டில் உள்ள நம்பரை டைப் செய்யுங்கள்.</string>
+    <string name="ride_request_note">உங்கள் நேரலை லொகேஷனுடன் இந்த நம்பரை உங்கள் குடும்பத்தினர் பார்ப்பார்கள்.</string>
+    <string name="ride_request_action">அடுத்து</string>
+</resources>

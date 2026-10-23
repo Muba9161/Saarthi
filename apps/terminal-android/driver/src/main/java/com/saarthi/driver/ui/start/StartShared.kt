@@ -38,34 +38,48 @@ internal fun withLastPosition(
     }.onFailure { send(null, null) }
 }
 
-/** Whether the camera may be used, and a way to ask. */
-internal class CameraAccess(val granted: Boolean, val request: () -> Unit)
+/** Whether a permission is held, and a way to ask for it. */
+internal class PermissionAccess(val granted: Boolean, val request: () -> Unit)
+
+/** The camera permission — see [rememberPermissionAccess]. */
+@Composable
+internal fun rememberCameraAccess(): PermissionAccess = rememberPermissionAccess(Manifest.permission.CAMERA)
 
 /**
- * The camera permission, re-read whenever the screen resumes.
- *
- * Re-read rather than decided once, so a driver who grants it in the system
- * dialog — or in Settings, after refusing — finds the camera working the
- * moment they come back, without having to leave the screen.
+ * Location, either precision — the approximate grant is a real answer too, as
+ * the terminal service already treats it.
  */
 @Composable
-internal fun rememberCameraAccess(): CameraAccess {
+internal fun rememberLocationAccess(): PermissionAccess = rememberPermissionAccess(
+    Manifest.permission.ACCESS_FINE_LOCATION,
+    Manifest.permission.ACCESS_COARSE_LOCATION,
+)
+
+/**
+ * A permission, re-read whenever the screen resumes; held when any of
+ * [permissions] is granted.
+ *
+ * Re-read rather than decided once, so a driver who grants it in the system
+ * dialog — or in Settings, after refusing — finds it working the moment they
+ * come back, without having to leave the screen.
+ */
+@Composable
+private fun rememberPermissionAccess(vararg permissions: String): PermissionAccess {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-    var granted by remember { mutableStateOf(cameraGranted(context)) }
-    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
-        granted = it
+    var granted by remember { mutableStateOf(anyGranted(context, permissions)) }
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
+        granted = result.values.any { it } || anyGranted(context, permissions)
     }
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) granted = cameraGranted(context)
+            if (event == Lifecycle.Event.ON_RESUME) granted = anyGranted(context, permissions)
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
-    return CameraAccess(granted) { launcher.launch(Manifest.permission.CAMERA) }
+    return PermissionAccess(granted) { launcher.launch(arrayOf(*permissions)) }
 }
 
-private fun cameraGranted(context: Context): Boolean =
-    ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
-        PackageManager.PERMISSION_GRANTED
+private fun anyGranted(context: Context, permissions: Array<out String>): Boolean =
+    permissions.any { ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED }

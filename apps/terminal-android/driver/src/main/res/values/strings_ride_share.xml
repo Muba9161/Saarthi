@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Riding along, step two onwards: who should see where you are, the live share,
+  and its end. Family named by number are told if they use Saarthi; a link
+  reaches the rest. See ui/ride/share and RideLocationService.
+-->
+<resources>
+    <!-- Who should see where you are ================================== -->
+    <string name="share_title">Who should see where you are?</string>
+    <string name="share_lead">Family you choose can follow you live until you stop.</string>
+    <string name="share_contact_label">Family member\'s mobile (optional)</string>
+    <string name="share_contact_add">+ Add another</string>
+    <string name="share_contact_remove">Remove this number</string>
+    <string name="share_note">Those who use Saarthi are told at once. Anyone else - send them the link next.</string>
+    <string name="share_self_title">Also show it on my Saarthi owner app</string>
+    <string name="share_self_sub">Same login - follow this ride live from your owner account.</string>
+    <string name="share_start">Start sharing</string>
+    <string name="share_starting">Starting…</string>
+
+    <!-- Sharing ======================================================= -->
+    <string name="sharing_eyebrow">Sharing your ride</string>
+    <string name="sharing_until">Until %1$s unless you stop</string>
+    <string name="sharing_told">Family you named who use Saarthi are told. The link reaches everyone.</string>
+    <string name="sharing_named">You named %1$s</string>
+    <string name="sharing_self_action">Show on my owner app</string>
+    <string name="sharing_self_on">Showing on your owner app</string>
+    <string name="sharing_send_link">Send the link</string>
+    <string name="sharing_link_message">Follow my ride live on Saarthi: %1$s</string>
+    <string name="sharing_add_family">Add family</string>
+    <string name="sharing_location_off">Location is off, so family cannot see where you are.</string>
+    <string name="sharing_location_allow">Allow</string>
+    <string name="sharing_stop">Slide to stop sharing</string>
+    <string name="share_notice_title">Sharing your ride</string>
+    <string name="share_notice_text">Family can follow you live</string>
+
+    <!-- Adding family while sharing =================================== -->
+    <string name="share_add_title">Add family</string>
+    <string name="share_add_lead">If they use Saarthi, they are told at once. Send them the link too, so they can follow you either way.</string>
+    <string name="share_add_action">Add</string>
+    <string name="share_adding">Adding…</string>
+
+    <!-- The share has ended =========================================== -->
+    <string name="share_over_title">Sharing stopped</string>
+    <string name="share_over_body">Your ride is no longer shared.</string>
+</resources>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="role_header">अपना सफ़र शुरू करो</string>
+    <string name="role_title">तुस कियां सफ़र करा करदे ओ?</string>
+    <string name="role_lead">अपनी फ़्लीट आस्तै गड्डी चलाओ, जां कुसै होर दी गड्डी च कन्नै चलो.</string>
+    <string name="role_drive_title">मैं ड्राइवर आं</string>
+    <string name="role_drive_sub">अपनी गड्डी दा नंबर स्कैन करो जां टाइप करो. तुंदी फ़्लीट तुसेंगी मंज़ूरी दिंदी ऐ.</string>
+    <string name="role_ride_title">मैं सुआरी आं</string>
+    <string name="role_ride_sub">कैब, ऑटो जां कुसै होर दी गड्डी च सफ़र करा करदे ओ? परिवार तुसेंगी लाइव दिक्खी सकदा ऐ.</string>
+
+    <string name="ride_header">कन्नै सफ़र</string>
+    <string name="ride_request_title">तुस कुस गड्डी च ओ?</string>
+    <string name="ride_request_lead">उसदी नंबर प्लेट पर लिखे दा नंबर टाइप करो.</string>
+    <string name="ride_request_note">तुंदा परिवार एह् नंबर तुंदी लाइव लोकेशन कन्नै दिक्खदा ऐ.</string>
+    <string name="ride_request_action">अग्गें</string>
+</resources>

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Riding along: travelling in a vehicle you are not driving, and sharing the
+  ride live with family. "How are you travelling?" and the vehicle step live
+  here; who to tell and the share itself are in strings_ride_share.xml.
+-->
+<resources>
+    <!-- How are you travelling? ======================================= -->
+    <string name="role_header">Start your journey</string>
+    <string name="role_title">How are you travelling?</string>
+    <string name="role_lead">Drive a vehicle for your fleet, or ride along in someone else\'s.</string>
+    <string name="role_drive_title">I\'m driving</string>
+    <string name="role_drive_sub">Scan or type your vehicle\'s number. Your fleet approves you.</string>
+    <string name="role_ride_title">I\'m riding along</string>
+    <string name="role_ride_sub">Travelling in a cab, an auto or someone else\'s vehicle? Family can follow you live.</string>
+
+    <!-- Riding along, step one: the vehicle =========================== -->
+    <string name="ride_header">Ride along</string>
+    <string name="ride_request_title">Which vehicle are you in?</string>
+    <string name="ride_request_lead">Type the number on its number plate.</string>
+    <string name="ride_request_note">Your family sees this number with your live location.</string>
+    <string name="ride_request_action">Next</string>
+</resources>

@@ -24,6 +24,12 @@ import com.saarthi.driver.ui.auth.QuickLoginOfferFlow
 import com.saarthi.driver.ui.auth.SignedOutFlow
 import com.saarthi.driver.ui.auth.UnlockScreen
 import com.saarthi.driver.ui.design.Ease
+import com.saarthi.driver.ui.ride.ChooseRoleScreen
+import com.saarthi.driver.ui.ride.RideReporting
+import com.saarthi.driver.ui.ride.share.ShareOverScreen
+import com.saarthi.driver.ui.ride.share.ShareSetupScreen
+import com.saarthi.driver.ui.ride.share.ShareVehicleScreen
+import com.saarthi.driver.ui.ride.share.SharingScreen
 import com.saarthi.driver.ui.shift.ShiftShell
 import com.saarthi.driver.ui.shift.adapter.AdapterSheet
 import com.saarthi.driver.ui.splash.SplashScreen
@@ -77,7 +83,10 @@ fun DriverRoot(
     LaunchedEffect(stage) {
         when (stage) {
             is DriverViewModel.Stage.AwaitingApproval -> sawWaiting = true
-            is DriverViewModel.Stage.ChooseVehicle, is DriverViewModel.Stage.SignedOut -> sawWaiting = false
+            is DriverViewModel.Stage.ChooseRole,
+            is DriverViewModel.Stage.ChooseVehicle,
+            is DriverViewModel.Stage.SignedOut,
+            -> sawWaiting = false
             else -> Unit
         }
     }
@@ -96,6 +105,24 @@ fun DriverRoot(
             driver.refreshAssignment()
         }
     }
+
+    /*
+     * A shared ride is polled too, slowly. A rider is a person, never a
+     * vehicle's paired device, so nothing reaches them over the realtime
+     * channel — and the only news is that the share ran out of time, since the
+     * position on the rider's own map is the phone's own.
+     */
+    val sharing = stage is DriverViewModel.Stage.Sharing
+    LaunchedEffect(sharing) {
+        if (!sharing) return@LaunchedEffect
+        while (true) {
+            delay(SHARE_POLL_MS)
+            driver.sharing.refresh()
+        }
+    }
+
+    // The rider's phone shares its position for exactly as long as the share is on.
+    RideReporting(stage)
 
     /*
      * Keep connecting while on shift without the vehicle.
@@ -138,8 +165,14 @@ fun DriverRoot(
                 is DriverViewModel.Stage.Locked -> UnlockScreen(driver, current.methods)
                 is DriverViewModel.Stage.OfferQuickLogin ->
                     QuickLoginOfferFlow(driver, current.driver, creatingAccount)
+                is DriverViewModel.Stage.ChooseRole ->
+                    ChooseRoleScreen(driver, current.driver, preferences)
                 is DriverViewModel.Stage.ChooseVehicle ->
                     ChooseVehicleScreen(driver, current.driver, preferences)
+                is DriverViewModel.Stage.ShareVehicle -> ShareVehicleScreen(driver, current.plate)
+                is DriverViewModel.Stage.ShareSetup -> ShareSetupScreen(driver, current.plate)
+                is DriverViewModel.Stage.Sharing -> SharingScreen(driver, current)
+                is DriverViewModel.Stage.ShareOver -> ShareOverScreen(driver, current.share)
                 is DriverViewModel.Stage.Selfie -> ArrivalPhotoScreen(driver, current.assignment)
                 is DriverViewModel.Stage.AwaitingApproval -> AwaitingApprovalScreen(driver, current.assignment)
                 is DriverViewModel.Stage.Rejected -> RejectedScreen(driver, current.assignment)
@@ -170,6 +203,9 @@ private const val SPLASH_MIN_MS = 2_200L
 
 /** How often to ask whether the fleet has decided. */
 private const val APPROVAL_POLL_MS = 5_000L
+
+/** How often a shared ride asks whether it is still on. */
+private const val SHARE_POLL_MS = 30_000L
 
 /**
  * How often an unpaired phone on shift tries the vehicle again. Slower than

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="share_title">तुस कुत्थें ओ, एह् कुन दिक्खै?</string>
+    <string name="share_lead">परिवार दे जिनें लोकें गी तुस चुनो, ओह् तुसेंगी उन्नी देर लाइव दिक्खी सकदे न जिन्नी देर तुस रोको नेईं.</string>
+    <string name="share_contact_label">परिवार दे सदस्य दा मोबाइल (ज़रूरी नेईं)</string>
+    <string name="share_contact_add">+ इक होर जोड़ो</string>
+    <string name="share_contact_remove">एह् नंबर हटाओ</string>
+    <string name="share_note">जेह्ड़े Saarthi बरतदे न, उनेंगी फौरन दस्सेआ जंदा ऐ. बाकी सारें गी - अगले कदम च लिंक भेजो.</string>
+    <string name="share_self_title">इसगी मेरे Saarthi ओनर ऐप पर बी दखाओ</string>
+    <string name="share_self_sub">इक्कै लॉगिन - अपने ओनर अकाउंट थमां एह् सफ़र लाइव दिक्खो.</string>
+    <string name="share_start">शेयर करना शुरू करो</string>
+    <string name="share_starting">शुरू करा करदे आं…</string>
+
+    <string name="sharing_eyebrow">तुंदा सफ़र शेयर होआ करदा ऐ</string>
+    <string name="sharing_until">%1$s तगर, जेकर तुस रोको नेईं</string>
+    <string name="sharing_told">तुंदे दस्से दे परिवार आह्लें चा जेह्ड़े Saarthi बरतदे न, उनेंगी दस्सी दित्ता गेआ ऐ. लिंक सारें तगर पुजदा ऐ.</string>
+    <string name="sharing_named">तुसें एह् नंबर दित्ते: %1$s</string>
+    <string name="sharing_self_action">मेरे ओनर ऐप पर दखाओ</string>
+    <string name="sharing_self_on">तुंदे ओनर ऐप पर लब्भा करदा ऐ</string>
+    <string name="sharing_send_link">लिंक भेजो</string>
+    <string name="sharing_link_message">Saarthi पर मेरा सफ़र लाइव दिक्खो: %1$s</string>
+    <string name="sharing_add_family">परिवार जोड़ो</string>
+    <string name="sharing_location_off">लोकेशन बंद ऐ, इस आस्तै परिवार तुंदी जगह नेईं दिक्खी सकदा.</string>
+    <string name="sharing_location_allow">इजाज़त देओ</string>
+    <string name="sharing_stop">शेयर करना रोकने आस्तै स्लाइड करो</string>
+    <string name="share_notice_title">तुंदा सफ़र शेयर होआ करदा ऐ</string>
+    <string name="share_notice_text">परिवार तुसेंगी लाइव दिक्खी सकदा ऐ</string>
+
+    <string name="share_add_title">परिवार जोड़ो</string>
+    <string name="share_add_lead">जेकर ओह् Saarthi बरतदे न, तां उनेंगी फौरन दस्सेआ जाग. उनेंगी लिंक बी भेजो, तां जे ओह् हर हाल च तुसेंगी दिक्खी सकन.</string>
+    <string name="share_add_action">जोड़ो</string>
+    <string name="share_adding">जोड़ा करदे आं…</string>
+
+    <string name="share_over_title">शेयर करना बंद होई गेआ</string>
+    <string name="share_over_body">तुंदा सफ़र हून शेयर नेईं होआ करदा.</string>
+</resources>

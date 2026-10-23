@@ -1,5 +1,6 @@
 package com.saarthi.driver.ui.start
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -43,7 +44,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -54,8 +54,6 @@ import com.saarthi.driver.R
 import com.saarthi.driver.data.DriverAccountStore
 import com.saarthi.driver.data.DriverPreferences
 import com.saarthi.driver.ui.DriverViewModel
-import com.saarthi.driver.ui.design.AppName
-import com.saarthi.driver.ui.design.Avatar
 import com.saarthi.driver.ui.design.Brand
 import com.saarthi.driver.ui.design.ButtonTone
 import com.saarthi.driver.ui.design.Ease
@@ -83,7 +81,6 @@ import com.saarthi.driver.ui.design.pressable
 import com.saarthi.driver.ui.design.rememberLoop
 import com.saarthi.driver.ui.design.rise
 import com.saarthi.driver.ui.design.stagger
-import com.saarthi.driver.ui.profile.ProfileSheet
 
 /**
  * Choose your vehicle — the screen a driver sees at the start of every shift.
@@ -92,6 +89,9 @@ import com.saarthi.driver.ui.profile.ProfileSheet
  * its number when the sticker is peeling or covered in road film. Neither
  * authorises anything; the fleet still approves, and the sentence under the
  * heading says so before the driver has done either.
+ *
+ * Reached by answering "I'm driving", so Back — the link under the header, or
+ * the phone's own — returns to that question.
  */
 @Composable
 fun ChooseVehicleScreen(
@@ -106,14 +106,14 @@ fun ChooseVehicleScreen(
     val fleet by viewModel.fleet.collectAsState()
     val quickLogin by viewModel.quickLoginMethods.collectAsState()
     val licenceMissing by viewModel.licenceMissing.collectAsState()
+    // Without riding along on this account there is no question to go back to.
+    val rideAlong by viewModel.rideAlong.collectAsState()
 
     var scanMode by rememberSaveable { mutableStateOf(true) }
     var number by rememberSaveable { mutableStateOf("") }
     var refused by remember { mutableStateOf<String?>(null) }
-    var joinOpen by rememberSaveable { mutableStateOf(false) }
-    var licenceOpen by rememberSaveable { mutableStateOf(false) }
-    var profileOpen by rememberSaveable { mutableStateOf(false) }
-    val openProfile = { profileOpen = true }
+    val sheets = rememberStartSheets()
+    val openProfile = { sheets.profile = true }
     var shake by remember { mutableIntStateOf(0) }
 
     // Set when this screen sent a request, so the shared busy flag — which a
@@ -122,6 +122,8 @@ fun ChooseVehicleScreen(
     var requestedPlate by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(busy) { if (!busy) requesting = false }
     LaunchedEffect(error, refused) { if (error != null || refused != null) shake++ }
+    // A sheet over the screen closes first; the profile handles its own Back.
+    BackHandler(enabled = rideAlong && !sheets.anyOpen && !busy, onBack = viewModel::chooseAgain)
 
     val sendScan: (String) -> Unit = { token ->
         refused = null
@@ -147,26 +149,23 @@ fun ChooseVehicleScreen(
         }
         Box(Modifier.fillMaxSize()) {
             StepScreen(scroll = true) {
-                StepHeader(
-                    eyebrow = AppName.APP,
-                    title = stringResource(R.string.choose_header),
-                    modifier = Modifier.rise(),
-                ) {
-                    Avatar(
-                        driver.name,
-                        size = 44.dp,
-                        brand = true,
-                        fontSize = 15.sp,
-                        modifier = Modifier.pressable(scale = 0.94f, label = stringResource(R.string.profile_open), onClick = openProfile),
+                StartHeader(driver, stringResource(R.string.choose_header), openProfile, Modifier.rise())
+                if (rideAlong) {
+                    StartBackLink(
+                        stringResource(R.string.role_title),
+                        viewModel::chooseAgain,
+                        Modifier
+                            .padding(top = 8.dp)
+                            .rise(stagger(1)),
                     )
                 }
-                Column(Modifier.padding(top = 14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(Modifier.padding(top = 6.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(stringResource(R.string.choose_title), style = SType.display, color = c.fg, modifier = Modifier.rise(stagger(1)))
                     Text(stringResource(R.string.choose_lead), style = SType.lead, color = c.muted, modifier = Modifier.rise(stagger(2)))
                 }
 
                 when (fleet?.joined) {
-                    false -> JoinFleetCard(Modifier.padding(top = 16.dp).rise(stagger(3))) { joinOpen = true }
+                    false -> JoinFleetCard(Modifier.padding(top = 16.dp).rise(stagger(3))) { sheets.joinFleet = true }
                     true -> fleet?.name?.let { FleetPill(it, Modifier.padding(top = 14.dp).popIn()) }
                     null -> Unit
                 }
@@ -180,7 +179,7 @@ fun ChooseVehicleScreen(
                             .rise(stagger(3)),
                         icon = Lucide.creditCard,
                         trailing = {
-                            LinkButton(stringResource(R.string.licence_add), { licenceOpen = true }, style = SType.smallStrong)
+                            LinkButton(stringResource(R.string.licence_add), { sheets.licence = true }, style = SType.smallStrong)
                         },
                     )
                 }
@@ -233,7 +232,7 @@ fun ChooseVehicleScreen(
                     ErrorAlert(
                         message = message,
                         shakeKey = shake,
-                        onJoin = if (fleet?.joined == false) ({ joinOpen = true }) else null,
+                        onJoin = if (fleet?.joined == false) ({ sheets.joinFleet = true }) else null,
                         modifier = Modifier.padding(top = 14.dp),
                     )
                 }
@@ -247,30 +246,7 @@ fun ChooseVehicleScreen(
                 )
             }
 
-            ProfileSheet(
-                visible = profileOpen,
-                driver = viewModel,
-                preferences = preferences,
-                onJoinFleet = { joinOpen = true },
-                onAddLicence = { licenceOpen = true },
-                onClose = { profileOpen = false },
-            )
-            JoinFleetSheet(
-                visible = joinOpen,
-                viewModel = viewModel,
-                onDismiss = {
-                    joinOpen = false
-                    viewModel.clearError()
-                },
-            )
-            AddLicenceSheet(
-                visible = licenceOpen,
-                viewModel = viewModel,
-                onDismiss = {
-                    licenceOpen = false
-                    viewModel.clearError()
-                },
-            )
+            StartSheetsHost(sheets, viewModel, preferences)
         }
     }
 }
@@ -454,52 +430,6 @@ private fun BoxScope.NoCamera(onAllow: () -> Unit) {
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
         )
         SaarthiButton(stringResource(R.string.camera_allow), onAllow, tone = ButtonTone.WHITE, leading = Lucide.camera)
-    }
-}
-
-/**
- * A refusal, shaken into view — the wrong truck, a code from another fleet.
- *
- * Offers "Join" when the driver has no fleet yet, because that is what almost
- * every refusal means for them.
- */
-@Composable
-private fun ErrorAlert(message: String, shakeKey: Int, onJoin: (() -> Unit)?, modifier: Modifier = Modifier) {
-    val c = Saarthi.colors
-    val offset = remember { androidx.compose.animation.core.Animatable(0f) }
-    LaunchedEffect(shakeKey) {
-        if (shakeKey == 0) return@LaunchedEffect
-        offset.animateTo(
-            0f,
-            androidx.compose.animation.core.keyframes {
-                durationMillis = 500
-                -2f at 50; 4f at 100; -6f at 150; 6f at 200; -6f at 250; 6f at 300; -6f at 350; 4f at 400; -2f at 450
-            },
-        )
-    }
-    val shape = RoundedCornerShape(16.dp)
-    Row(
-        modifier
-            .graphicsLayer { translationX = offset.value * density }
-            .fillMaxWidth()
-            .clip(shape)
-            .background(c.dangerWash)
-            .border(1.dp, c.dangerRing, shape)
-            .padding(14.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.Top,
-    ) {
-        Box(
-            Modifier
-                .padding(top = 6.dp)
-                .size(8.dp)
-                .clip(CircleShape)
-                .background(c.danger),
-        )
-        Text(message, style = SType.body, color = c.fg, modifier = Modifier.weight(1f))
-        onJoin?.let {
-            LinkButton(stringResource(R.string.join_link), it, style = SType.body, modifier = Modifier.height(32.dp))
-        }
     }
 }
 

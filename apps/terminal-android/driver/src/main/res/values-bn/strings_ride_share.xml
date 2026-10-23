@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="share_title">আপনি কোথায় আছেন, কে দেখবেন?</string>
+    <string name="share_lead">পরিবারের যাঁদের আপনি বেছে নেবেন, আপনি না থামানো পর্যন্ত তাঁরা আপনাকে লাইভ দেখতে পাবেন।</string>
+    <string name="share_contact_label">পরিবারের সদস্যের মোবাইল (ঐচ্ছিক)</string>
+    <string name="share_contact_add">+ আরেকটি যোগ করুন</string>
+    <string name="share_contact_remove">এই নম্বরটি সরান</string>
+    <string name="share_note">যাঁরা Saarthi ব্যবহার করেন, তাঁদের সঙ্গে সঙ্গে জানানো হয়। বাকিদের - পরের ধাপে লিংক পাঠান।</string>
+    <string name="share_self_title">আমার Saarthi ওনার অ্যাপেও এটি দেখান</string>
+    <string name="share_self_sub">একই লগইন - আপনার ওনার অ্যাকাউন্ট থেকে এই যাত্রা লাইভ দেখুন।</string>
+    <string name="share_start">শেয়ার করা শুরু করুন</string>
+    <string name="share_starting">শুরু হচ্ছে…</string>
+
+    <string name="sharing_eyebrow">আপনার যাত্রা শেয়ার হচ্ছে</string>
+    <string name="sharing_until">%1$s পর্যন্ত, যদি না আপনি থামান</string>
+    <string name="sharing_told">আপনার দেওয়া নম্বরের মধ্যে যাঁরা Saarthi ব্যবহার করেন, তাঁদের জানানো হয়েছে। লিংক সবার কাছে পৌঁছায়।</string>
+    <string name="sharing_named">আপনার দেওয়া নম্বর: %1$s</string>
+    <string name="sharing_self_action">আমার ওনার অ্যাপে দেখান</string>
+    <string name="sharing_self_on">আপনার ওনার অ্যাপে দেখা যাচ্ছে</string>
+    <string name="sharing_send_link">লিংক পাঠান</string>
+    <string name="sharing_link_message">Saarthi-তে আমার যাত্রা লাইভ দেখুন: %1$s</string>
+    <string name="sharing_add_family">পরিবারের কাউকে যোগ করুন</string>
+    <string name="sharing_location_off">লোকেশন বন্ধ, তাই পরিবার আপনার অবস্থান দেখতে পাচ্ছে না।</string>
+    <string name="sharing_location_allow">অনুমতি দিন</string>
+    <string name="sharing_stop">শেয়ার বন্ধ করতে স্লাইড করুন</string>
+    <string name="share_notice_title">আপনার যাত্রা শেয়ার হচ্ছে</string>
+    <string name="share_notice_text">পরিবার আপনাকে লাইভ দেখতে পারছে</string>
+
+    <string name="share_add_title">পরিবারের কাউকে যোগ করুন</string>
+    <string name="share_add_lead">তাঁরা Saarthi ব্যবহার করলে সঙ্গে সঙ্গে জানানো হবে। তাঁদের লিংকও পাঠান, যাতে যেভাবেই হোক আপনাকে দেখতে পান।</string>
+    <string name="share_add_action">যোগ করুন</string>
+    <string name="share_adding">যোগ করা হচ্ছে…</string>
+
+    <string name="share_over_title">শেয়ার বন্ধ হয়েছে</string>
+    <string name="share_over_body">আপনার যাত্রা আর শেয়ার হচ্ছে না।</string>
+</resources>

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="share_title">നിങ്ങൾ എവിടെയാണെന്ന് ആര് കാണണം?</string>
+    <string name="share_lead">നിങ്ങൾ തിരഞ്ഞെടുക്കുന്ന കുടുംബാംഗങ്ങൾക്ക്, നിങ്ങൾ നിർത്തുന്നതുവരെ നിങ്ങളെ ലൈവായി കാണാം.</string>
+    <string name="share_contact_label">കുടുംബാംഗത്തിന്റെ മൊബൈൽ (നിർബന്ധമില്ല)</string>
+    <string name="share_contact_add">+ ഒന്നുകൂടി ചേർക്കുക</string>
+    <string name="share_contact_remove">ഈ നമ്പർ നീക്കുക</string>
+    <string name="share_note">Saarthi ഉപയോഗിക്കുന്നവരെ ഉടൻ അറിയിക്കും. മറ്റുള്ളവർക്ക് - അടുത്തതായി ലിങ്ക് അയയ്ക്കുക.</string>
+    <string name="share_self_title">എന്റെ Saarthi ഓണർ ആപ്പിലും ഇത് കാണിക്കുക</string>
+    <string name="share_self_sub">ഒരേ ലോഗിൻ - നിങ്ങളുടെ ഓണർ അക്കൗണ്ടിൽ നിന്ന് ഈ യാത്ര ലൈവായി കാണുക.</string>
+    <string name="share_start">പങ്കിടൽ തുടങ്ങുക</string>
+    <string name="share_starting">തുടങ്ങുന്നു…</string>
+
+    <string name="sharing_eyebrow">നിങ്ങളുടെ യാത്ര പങ്കിടുന്നു</string>
+    <string name="sharing_until">നിങ്ങൾ നിർത്തിയില്ലെങ്കിൽ %1$s വരെ</string>
+    <string name="sharing_told">നിങ്ങൾ നൽകിയ കുടുംബാംഗങ്ങളിൽ Saarthi ഉപയോഗിക്കുന്നവരെ അറിയിച്ചിട്ടുണ്ട്. ലിങ്ക് എല്ലാവരിലും എത്തും.</string>
+    <string name="sharing_named">നിങ്ങൾ നൽകിയ നമ്പറുകൾ: %1$s</string>
+    <string name="sharing_self_action">എന്റെ ഓണർ ആപ്പിൽ കാണിക്കുക</string>
+    <string name="sharing_self_on">നിങ്ങളുടെ ഓണർ ആപ്പിൽ കാണിക്കുന്നു</string>
+    <string name="sharing_send_link">ലിങ്ക് അയയ്ക്കുക</string>
+    <string name="sharing_link_message">Saarthi-യിൽ എന്റെ യാത്ര ലൈവായി കാണുക: %1$s</string>
+    <string name="sharing_add_family">കുടുംബാംഗത്തെ ചേർക്കുക</string>
+    <string name="sharing_location_off">ലൊക്കേഷൻ ഓഫാണ്, അതിനാൽ നിങ്ങൾ എവിടെയാണെന്ന് കുടുംബത്തിന് കാണാനാവില്ല.</string>
+    <string name="sharing_location_allow">അനുവദിക്കുക</string>
+    <string name="sharing_stop">പങ്കിടൽ നിർത്താൻ സ്ലൈഡ് ചെയ്യുക</string>
+    <string name="share_notice_title">നിങ്ങളുടെ യാത്ര പങ്കിടുന്നു</string>
+    <string name="share_notice_text">കുടുംബത്തിന് നിങ്ങളെ ലൈവായി കാണാം</string>
+
+    <string name="share_add_title">കുടുംബാംഗത്തെ ചേർക്കുക</string>
+    <string name="share_add_lead">അവർ Saarthi ഉപയോഗിക്കുന്നുണ്ടെങ്കിൽ ഉടൻ അറിയിക്കും. എങ്ങനെയായാലും അവർക്ക് നിങ്ങളെ കാണാൻ ലിങ്കും അയയ്ക്കുക.</string>
+    <string name="share_add_action">ചേർക്കുക</string>
+    <string name="share_adding">ചേർക്കുന്നു…</string>
+
+    <string name="share_over_title">പങ്കിടൽ നിർത്തി</string>
+    <string name="share_over_body">നിങ്ങളുടെ യാത്ര ഇനി പങ്കിടുന്നില്ല.</string>
+</resources>

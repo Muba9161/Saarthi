@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.saarthi.driver.R
+import com.saarthi.driver.data.IndianMobile
 import com.saarthi.driver.ui.design.ButtonTone
 import com.saarthi.driver.ui.design.Ease
 import com.saarthi.driver.ui.design.Eyebrow
@@ -44,6 +45,7 @@ import com.saarthi.driver.ui.design.IconWell
 import com.saarthi.driver.ui.design.LineIcon
 import com.saarthi.driver.ui.design.LinkButton
 import com.saarthi.driver.ui.design.Lucide
+import com.saarthi.driver.ui.design.MobilePrefix
 import com.saarthi.driver.ui.design.PasswordField
 import com.saarthi.driver.ui.design.PlateMono
 import com.saarthi.driver.ui.design.SType
@@ -58,26 +60,8 @@ import com.saarthi.driver.ui.design.rememberLoop
 import com.saarthi.driver.ui.design.rise
 import com.saarthi.driver.ui.design.stagger
 
-/**
- * The same expression `phoneSchema` uses, minus the +91 the field shows itself.
- *
- * Kept in step with `packages/shared/src/validation/common.ts`; the server
- * stays the authority, this only puts the rejection under the field.
- */
-private val MOBILE = Regex("""^[6-9]\d{9}$""")
-
-/** Ten digits, however the driver typed them — spaces, a pasted +91, a leading 0. */
-internal fun mobileDigits(raw: String): String {
-    val digits = raw.filter(Char::isDigit)
-    return when {
-        digits.length == 12 && digits.startsWith("91") -> digits.drop(2)
-        digits.length == 11 && digits.startsWith("0") -> digits.drop(1)
-        else -> digits
-    }.take(10)
-}
-
 private fun nameReady(form: AuthForm) = form.firstName.trim().length >= 2 && form.lastName.isNotBlank()
-private fun mobileReady(form: AuthForm) = MOBILE.matches(form.phone)
+private fun mobileReady(form: AuthForm) = IndianMobile.isValid(form.phone)
 private fun licenceReady(form: AuthForm) = form.licence.trim().length >= 4
 
 /** A licence typed in full, or none at all — "I'll do it later" leaves it blank. */
@@ -176,7 +160,7 @@ internal fun RegisterStep(
             ) {
                 SaarthiField(
                     value = form.phone,
-                    onValueChange = { form.phone = mobileDigits(it) },
+                    onValueChange = { form.phone = IndianMobile.digits(it) },
                     label = stringResource(R.string.field_mobile),
                     supporting = stringResource(R.string.mobile_rule),
                     error = typed && form.phone.length == 10 && !valid,
@@ -184,18 +168,7 @@ internal fun RegisterStep(
                     textStyle = SType.field.copy(letterSpacing = 0.04.em),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone, imeAction = ImeAction.Done),
                     keyboardActions = KeyboardActions(onDone = { if (valid) onGo(AuthStep.LICENCE, true) }),
-                    prefix = {
-                        Box(
-                            Modifier
-                                .height(42.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(c.sunken)
-                                .padding(horizontal = 12.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Text("+91", style = SType.bodyStrong.copy(fontSize = 16.sp), color = c.fg)
-                        }
-                    },
+                    prefix = { MobilePrefix() },
                     trailing = if (valid) {
                         {
                             IconWell(

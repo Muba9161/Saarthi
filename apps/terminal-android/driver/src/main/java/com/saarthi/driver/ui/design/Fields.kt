@@ -188,6 +188,25 @@ fun PasswordField(
 }
 
 /**
+ * The "+91" at the head of a mobile-number field — the country code every
+ * number is typed without. Pass it as [SaarthiField]'s `prefix`.
+ */
+@Composable
+fun MobilePrefix() {
+    val c = Saarthi.colors
+    Box(
+        Modifier
+            .height(42.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(c.sunken)
+            .padding(horizontal = 12.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text("+91", style = SType.bodyStrong.copy(fontSize = 16.sp), color = c.fg)
+    }
+}
+
+/**
  * The number-plate input: white plate, black edge, blue IND strip.
  *
  * Drawn as the real thing so a driver copying a registration off the truck in

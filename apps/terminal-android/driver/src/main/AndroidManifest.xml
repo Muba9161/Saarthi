@@ -102,6 +102,20 @@
             </intent-filter>
         </service>
 
+        <!--
+          Riding along: a passenger's phone sharing where it is with the
+          vehicle's owner, while — and only while — they ride.
+
+          Its own service rather than the terminal's, because a rider is never
+          the vehicle's paired phone. `location` type, started from the Riding
+          screen with the app in front; there is still no background location
+          permission, and the notification says plainly what is being shared.
+        -->
+        <service
+            android:name=".ride.RideLocationService"
+            android:exported="false"
+            android:foregroundServiceType="location" />
+
         <activity
             android:name=".DriverActivity"
             android:exported="true"

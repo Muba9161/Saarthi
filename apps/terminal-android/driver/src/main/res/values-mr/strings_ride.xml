@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="role_header">तुमचा प्रवास सुरू करा</string>
+    <string name="role_title">तुम्ही कसा प्रवास करत आहात?</string>
+    <string name="role_lead">तुमच्या फ्लीटसाठी गाडी चालवा, किंवा दुसऱ्या कोणाच्या गाडीतून सोबत प्रवास करा.</string>
+    <string name="role_drive_title">मी ड्रायव्हर आहे</string>
+    <string name="role_drive_sub">तुमच्या गाडीचा नंबर स्कॅन करा किंवा टाइप करा. तुमचा फ्लीट तुम्हाला मंजुरी देतो.</string>
+    <string name="role_ride_title">मी प्रवासी आहे</string>
+    <string name="role_ride_sub">कॅब, ऑटो किंवा दुसऱ्या कोणाच्या गाडीतून प्रवास करत आहात? कुटुंब तुम्हाला लाइव्ह पाहू शकते.</string>
+
+    <string name="ride_header">सोबत प्रवास</string>
+    <string name="ride_request_title">तुम्ही कोणत्या गाडीत आहात?</string>
+    <string name="ride_request_lead">तिच्या नंबर प्लेटवरचा नंबर टाइप करा.</string>
+    <string name="ride_request_note">तुमचे कुटुंब हा नंबर तुमच्या लाइव्ह लोकेशनसोबत पाहते.</string>
+    <string name="ride_request_action">पुढे</string>
+</resources>

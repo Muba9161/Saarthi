@@ -13,6 +13,10 @@ import com.saarthi.driver.SaarthiDriverApp
 import com.saarthi.driver.data.DriverAccountStore
 import com.saarthi.driver.data.QuickLoginStore
 import com.saarthi.driver.network.DriverApi
+import com.saarthi.driver.network.RideSharesApi
+import com.saarthi.driver.ride.RideSharePolicy
+import com.saarthi.driver.ui.ride.RideAccess
+import com.saarthi.driver.ui.ride.share.RideShareActions
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -27,7 +31,10 @@ import javax.crypto.Cipher
  * Everything from opening the app to being approved onto a truck. Once approved
  * the phone pairs itself to the vehicle and the shared cockpit takes over — so
  * this class stops where `TerminalViewModel` starts, and deliberately knows
- * nothing about maps, trips or telemetry.
+ * nothing about maps, trips or telemetry. A rider — somebody travelling in a
+ * vehicle without driving it — never reaches the cockpit at all; their whole
+ * journey, from naming the vehicle to stopping the share, is the share stages
+ * below.
  *
  * The states below are the screens, in the order a driver meets them. There is
  * no back stack: a driver cannot press Back out of an approved session into the
@@ -37,6 +44,10 @@ class DriverViewModel(application: Application) : AndroidViewModel(application) 
 
     private val app: SaarthiDriverApp = application as SaarthiDriverApp
     private val api: DriverApi = app.driverApi
+    private val shares = RideSharesApi(api)
+
+    /** Whether this account may ride along — the server decides — and whether it holds an owner account. */
+    private val rideAccess = RideAccess(shares)
 
     /*
      * Declared here, above every `init` block, and that placement is the fix
@@ -64,6 +75,9 @@ class DriverViewModel(application: Application) : AndroidViewModel(application) 
 
     /** The driver registered without a licence and has not added it yet. */
     val licenceMissing: StateFlow<Boolean> = api.licenceMissing
+
+    /** Whether "How are you travelling?" is offered — and so the way back to it from the vehicle screen. */
+    val rideAlong: StateFlow<Boolean> = rideAccess.allowed
 
     /** Where the driver is on the way to a working cockpit. */
     sealed interface Stage {
@@ -94,8 +108,33 @@ class DriverViewModel(application: Application) : AndroidViewModel(application) 
          */
         data class Locked(val methods: QuickLoginStore.Enabled) : Stage
 
-        /** Signed in, no vehicle. The scanner. */
+        /**
+         * Signed in, nothing open: driving, or riding along?
+         *
+         * Asked first because the two are different people to Saarthi. A driver
+         * is approved by their fleet and the phone becomes the vehicle's
+         * terminal; a rider shares their ride with family and is never the
+         * vehicle's driver or its paired phone. Only asked when the server allows it.
+         */
+        data class ChooseRole(val driver: DriverAccountStore.Account) : Stage
+
+        /** Driving, no vehicle yet. The scanner. */
         data class ChooseVehicle(val driver: DriverAccountStore.Account) : Stage
+
+        /**
+         * Riding along, step one: the vehicle's number, typed — no QR, which
+         * names a driver's vehicle — so family know which vehicle to look for.
+         */
+        data class ShareVehicle(val driver: DriverAccountStore.Account, val plate: String = "") : Stage
+
+        /** Riding along, step two: who should see where the rider is. */
+        data class ShareSetup(val driver: DriverAccountStore.Account, val plate: String) : Stage
+
+        /** Shared: family can follow the phone live. [named] are the numbers typed on this phone. */
+        data class Sharing(val share: RideSharesApi.ShareView, val named: List<String> = emptyList()) : Stage
+
+        /** The share ran out of time, and the rider is told so once. */
+        data class ShareOver(val share: RideSharesApi.ShareView) : Stage
 
         /**
          * Named a vehicle, and the fleet needs a photograph before it decides.
@@ -142,6 +181,19 @@ class DriverViewModel(application: Application) : AndroidViewModel(application) 
     fun dismissObdSetup() {
         _obdSetup.value = false
     }
+
+    /** Riding along: naming the vehicle and family, sharing, and stopping. */
+    val sharing = RideShareActions(
+        shares = shares,
+        access = rideAccess,
+        scope = viewModelScope,
+        stage = _stage,
+        busy = _busy,
+        attempt = ::attempt,
+        account = { app.account.account.value },
+        home = ::noOpenWork,
+        notAllowed = ::notAllowed,
+    )
 
     init {
         restore()
@@ -199,12 +251,15 @@ class DriverViewModel(application: Application) : AndroidViewModel(application) 
      * after a session expiry should not ask again about something they have
      * already answered.
      */
-    private suspend fun afterSignIn(driver: DriverAccountStore.Account): Stage =
-        if (quickLogin.enabled.value.any) {
+    private suspend fun afterSignIn(driver: DriverAccountStore.Account): Stage {
+        // A new sign-in may be a different account: ask again whether it may ride along.
+        rideAccess.forget()
+        return if (quickLogin.enabled.value.any) {
             stageForOpenAssignment(driver)
         } else {
             Stage.OfferQuickLogin(driver)
         }
+    }
 
     /** Move on from the offer, whether or not anything was enabled. */
     fun finishQuickLoginSetup() {
@@ -302,8 +357,43 @@ class DriverViewModel(application: Application) : AndroidViewModel(application) 
         attempt {
             api.cancel(assignment.id)
             val driver = app.account.account.value ?: return@attempt
+            // Still driving: back to the vehicle screen, exactly as before riding along existed.
             _stage.value = Stage.ChooseVehicle(driver)
         }
+    }
+
+    // -----------------------------------------------------------------------
+    // Riding along
+    // -----------------------------------------------------------------------
+
+    /** "I'm driving" — on to the scanner, exactly as before riding along existed. */
+    fun chooseDriving() = moveOn(Stage::ChooseVehicle)
+
+    /** "I'm riding along" — on to typing the vehicle's number. */
+    fun chooseRiding() = moveOn { Stage.ShareVehicle(it) }
+
+    /**
+     * Back to "How are you travelling?" — from either branch, or once a share
+     * is over. Straight to the vehicle screen when this account may not ride along.
+     */
+    fun chooseAgain() {
+        val driver = app.account.account.value ?: return
+        _error.value = null
+        viewModelScope.launch { _stage.value = home(driver) }
+    }
+
+    private fun moveOn(next: (DriverAccountStore.Account) -> Stage) {
+        val driver = app.account.account.value ?: return
+        _error.value = null
+        _stage.value = next(driver)
+    }
+
+    /** This account may not ride along (any more): the vehicle screen, with the server's reason. */
+    private fun notAllowed(refused: DriverApi.Failure.Refused) {
+        rideAccess.refused()
+        val driver = app.account.account.value ?: return
+        _stage.value = Stage.ChooseVehicle(driver)
+        _error.value = refused.message
     }
 
     /**
@@ -559,6 +649,7 @@ class DriverViewModel(application: Application) : AndroidViewModel(application) 
 
     /** Sign out of the phone entirely. */
     fun signOut() {
+        rideAccess.forget()
         viewModelScope.launch {
             api.signOut()
             _stage.value = Stage.SignedOut
@@ -571,11 +662,31 @@ class DriverViewModel(application: Application) : AndroidViewModel(application) 
 
     // -----------------------------------------------------------------------
 
-    /** Where a driver belongs, given whatever request they already have open. */
+    /**
+     * Where a driver belongs, given whatever they already have open.
+     *
+     * A request to drive first, as it always was; then a shared ride — always,
+     * so an account no longer allowed to ride along can still see it and stop
+     * it; then [home].
+     */
     private suspend fun stageForOpenAssignment(driver: DriverAccountStore.Account): Stage {
         val open = runCatching { api.myAssignment() }.getOrNull()
-        return if (open == null) Stage.ChooseVehicle(driver) else stageFor(open)
+        if (open != null) return stageFor(open)
+        return sharing.openStage() ?: home(driver)
     }
+
+    /**
+     * Nothing open: "How are you travelling?" when the server allows riding
+     * along, and otherwise the vehicle screen, exactly as before it existed.
+     */
+    private suspend fun home(driver: DriverAccountStore.Account): Stage =
+        when (RideSharePolicy.homeFor(rideAccess.check())) {
+            RideSharePolicy.Home.CHOOSE_ROLE -> Stage.ChooseRole(driver)
+            RideSharePolicy.Home.CHOOSE_VEHICLE -> Stage.ChooseVehicle(driver)
+        }
+
+    /** Nothing open: [home], or sign-in if the account has gone. */
+    private suspend fun noOpenWork(): Stage = app.account.account.value?.let { home(it) } ?: Stage.SignedOut
 
     private suspend fun stageFor(assignment: DriverApi.AssignmentDto): Stage {
         prepareVehicle(assignment)
@@ -623,8 +734,8 @@ class DriverViewModel(application: Application) : AndroidViewModel(application) 
             "DRIVER_IDENTIFIED", "SELFIE_SUBMITTED" -> Stage.Selfie(assignment)
 
             "REJECTED" -> Stage.Rejected(assignment)
-            "CANCELLED", "COMPLETED" ->
-                app.account.account.value?.let(Stage::ChooseVehicle) ?: Stage.SignedOut
+            // A driver whose request or shift is over stays a driver: the vehicle screen, as before.
+            "CANCELLED", "COMPLETED" -> app.account.account.value?.let(Stage::ChooseVehicle) ?: Stage.SignedOut
 
             else -> Stage.AwaitingApproval(assignment)
         }

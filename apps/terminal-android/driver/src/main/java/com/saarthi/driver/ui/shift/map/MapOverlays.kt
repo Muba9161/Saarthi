@@ -48,7 +48,7 @@ import kotlin.math.roundToInt
 
 /** The frosted panel every overlay on the map sits on, in the theme's map ink. */
 @Composable
-private fun Modifier.mapPanel(radius: Dp, fill: Color = MapInk.panel, lifted: Boolean = false): Modifier {
+internal fun Modifier.mapPanel(radius: Dp, fill: Color = MapInk.panel, lifted: Boolean = false): Modifier {
     val shape = RoundedCornerShape(radius)
     val ink = MapInk
     return this

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="share_title">நீங்கள் எங்கே இருக்கிறீர்கள் என்பதை யார் பார்க்க வேண்டும்?</string>
+    <string name="share_lead">நீங்கள் தேர்ந்தெடுக்கும் குடும்பத்தினர், நீங்கள் நிறுத்தும் வரை உங்களை நேரலையில் பார்க்கலாம்.</string>
+    <string name="share_contact_label">குடும்ப உறுப்பினரின் மொபைல் (விருப்பத்தேர்வு)</string>
+    <string name="share_contact_add">+ இன்னொன்றைச் சேர்</string>
+    <string name="share_contact_remove">இந்த நம்பரை நீக்கு</string>
+    <string name="share_note">Saarthi பயன்படுத்துபவர்களுக்கு உடனே தெரிவிக்கப்படும். மற்றவர்களுக்கு - அடுத்து லிங்கை அனுப்புங்கள்.</string>
+    <string name="share_self_title">என் Saarthi ஓனர் ஆப்பிலும் இதைக் காட்டு</string>
+    <string name="share_self_sub">அதே லாகின் - உங்கள் ஓனர் கணக்கிலிருந்து இந்தப் பயணத்தை நேரலையில் பாருங்கள்.</string>
+    <string name="share_start">பகிரத் தொடங்கு</string>
+    <string name="share_starting">தொடங்குகிறது…</string>
+
+    <string name="sharing_eyebrow">உங்கள் பயணம் பகிரப்படுகிறது</string>
+    <string name="sharing_until">நீங்கள் நிறுத்தாவிட்டால் %1$s வரை</string>
+    <string name="sharing_told">நீங்கள் கொடுத்தவர்களில் Saarthi பயன்படுத்தும் குடும்பத்தினருக்குத் தெரிவிக்கப்பட்டது. லிங்க் எல்லோரையும் சென்றடையும்.</string>
+    <string name="sharing_named">நீங்கள் கொடுத்த நம்பர்கள்: %1$s</string>
+    <string name="sharing_self_action">என் ஓனர் ஆப்பில் காட்டு</string>
+    <string name="sharing_self_on">உங்கள் ஓனர் ஆப்பில் தெரிகிறது</string>
+    <string name="sharing_send_link">லிங்கை அனுப்பு</string>
+    <string name="sharing_link_message">Saarthi-இல் என் பயணத்தை நேரலையில் பாருங்கள்: %1$s</string>
+    <string name="sharing_add_family">குடும்பத்தினரைச் சேர்</string>
+    <string name="sharing_location_off">லொகேஷன் ஆஃப் ஆக உள்ளது, அதனால் நீங்கள் எங்கே இருக்கிறீர்கள் என்று குடும்பத்தினரால் பார்க்க முடியாது.</string>
+    <string name="sharing_location_allow">அனுமதி</string>
+    <string name="sharing_stop">பகிர்வதை நிறுத்த ஸ்லைடு செய்யுங்கள்</string>
+    <string name="share_notice_title">உங்கள் பயணம் பகிரப்படுகிறது</string>
+    <string name="share_notice_text">குடும்பத்தினர் உங்களை நேரலையில் பார்க்கலாம்</string>
+
+    <string name="share_add_title">குடும்பத்தினரைச் சேர்</string>
+    <string name="share_add_lead">அவர்கள் Saarthi பயன்படுத்தினால் உடனே தெரிவிக்கப்படும். எப்படியும் அவர்கள் உங்களைப் பார்க்க, லிங்கையும் அனுப்புங்கள்.</string>
+    <string name="share_add_action">சேர்</string>
+    <string name="share_adding">சேர்க்கிறது…</string>
+
+    <string name="share_over_title">பகிர்வு நிறுத்தப்பட்டது</string>
+    <string name="share_over_body">உங்கள் பயணம் இனி பகிரப்படவில்லை.</string>
+</resources>

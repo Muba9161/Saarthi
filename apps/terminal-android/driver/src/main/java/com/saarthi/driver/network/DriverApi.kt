@@ -548,6 +548,16 @@ class DriverApi(
             ?: throw Failure.Refused(200, "Saarthi answered but sent nothing back.")
     }
 
+    /**
+     * A POST that proves itself with [header] rather than the sign-in — a shared ride's
+     * reporting key, which keeps working after the sign-in lapses in a pocket.
+     */
+    internal suspend fun <T> postWith(header: Pair<String, String>, path: String, body: String, serializer: KSerializer<T>): T {
+        val raw = send("POST", path, body, authenticated = false, extraHeader = header)
+        return json.decodeFromString(Envelope.serializer(serializer), raw).data
+            ?: throw Failure.Refused(200, "Saarthi answered but sent nothing back.")
+    }
+
     /** A signed-in GET, likewise. Null when the server answered with nothing. */
     internal suspend fun <T> get(path: String, serializer: KSerializer<T>): T? {
         val raw = send("GET", path, null)
@@ -570,6 +580,7 @@ class DriverApi(
         body: String?,
         authenticated: Boolean = true,
         retryAfterRefresh: Boolean = true,
+        extraHeader: Pair<String, String>? = null,
     ): String = withContext(Dispatchers.IO) {
         val builder = Request.Builder().url("$baseUrl$path")
         when (method) {
@@ -580,6 +591,7 @@ class DriverApi(
         }
 
         if (authenticated) builder.header("Authorization", "Bearer ${bearer()}")
+        extraHeader?.let { (name, value) -> builder.header(name, value) }
         builder.header("Accept", "application/json")
         // The header that makes the server return a refresh token in the body.
         // Without it a driver signs in every time they open the app.

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="share_title">तुम्ही कुठे आहात हे कोणी पाहावे?</string>
+    <string name="share_lead">तुम्ही निवडलेले कुटुंबीय, तुम्ही थांबवेपर्यंत तुम्हाला लाइव्ह पाहू शकतात.</string>
+    <string name="share_contact_label">कुटुंबातील सदस्याचा मोबाइल (ऐच्छिक)</string>
+    <string name="share_contact_add">+ आणखी एक जोडा</string>
+    <string name="share_contact_remove">हा नंबर काढा</string>
+    <string name="share_note">जे Saarthi वापरतात त्यांना लगेच कळवले जाते. इतर सर्वांना - पुढच्या टप्प्यात लिंक पाठवा.</string>
+    <string name="share_self_title">हे माझ्या Saarthi ओनर ॲपवरही दाखवा</string>
+    <string name="share_self_sub">एकच लॉगिन - तुमच्या ओनर खात्यातून हा प्रवास लाइव्ह पाहा.</string>
+    <string name="share_start">शेअर करणे सुरू करा</string>
+    <string name="share_starting">सुरू करत आहोत…</string>
+
+    <string name="sharing_eyebrow">तुमचा प्रवास शेअर होत आहे</string>
+    <string name="sharing_until">तुम्ही थांबवले नाही तर %1$s पर्यंत</string>
+    <string name="sharing_told">तुम्ही दिलेल्या कुटुंबीयांपैकी जे Saarthi वापरतात त्यांना कळवले आहे. लिंक सर्वांपर्यंत पोहोचते.</string>
+    <string name="sharing_named">तुम्ही दिलेले नंबर: %1$s</string>
+    <string name="sharing_self_action">माझ्या ओनर ॲपवर दाखवा</string>
+    <string name="sharing_self_on">तुमच्या ओनर ॲपवर दिसत आहे</string>
+    <string name="sharing_send_link">लिंक पाठवा</string>
+    <string name="sharing_link_message">Saarthi वर माझा प्रवास लाइव्ह पाहा: %1$s</string>
+    <string name="sharing_add_family">कुटुंबीय जोडा</string>
+    <string name="sharing_location_off">लोकेशन बंद आहे, त्यामुळे तुम्ही कुठे आहात ते कुटुंबाला दिसत नाही.</string>
+    <string name="sharing_location_allow">परवानगी द्या</string>
+    <string name="sharing_stop">शेअर करणे थांबवण्यासाठी स्लाइड करा</string>
+    <string name="share_notice_title">तुमचा प्रवास शेअर होत आहे</string>
+    <string name="share_notice_text">कुटुंब तुम्हाला लाइव्ह पाहू शकते</string>
+
+    <string name="share_add_title">कुटुंबीय जोडा</string>
+    <string name="share_add_lead">ते Saarthi वापरत असल्यास त्यांना लगेच कळवले जाईल. त्यांना लिंकही पाठवा, म्हणजे ते कसेही तुम्हाला पाहू शकतील.</string>
+    <string name="share_add_action">जोडा</string>
+    <string name="share_adding">जोडत आहोत…</string>
+
+    <string name="share_over_title">शेअर करणे थांबले</string>
+    <string name="share_over_body">तुमचा प्रवास आता शेअर होत नाही.</string>
+</resources>
