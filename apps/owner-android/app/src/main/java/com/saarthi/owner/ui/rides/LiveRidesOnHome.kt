@@ -58,7 +58,7 @@ fun LiveRidesOnHome(app: OwnerApp, modifier: Modifier = Modifier) {
     if (rides.isEmpty()) return
     Column(modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
         rides.forEach { ride ->
-            LiveRideCard(ride) { navigator.push("live-${ride.token}") { LiveRideScreen(app, ride.token) } }
+            LiveRideCard(ride) { navigator.push("live-${ride.token}") { LiveRideScreen(app, ride.token, ride.mine) } }
         }
     }
 }

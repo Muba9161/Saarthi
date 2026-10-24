@@ -369,6 +369,8 @@ export const pa: Catalogue = {
   'Wait a moment and try again.': 'ਥੋੜ੍ਹੀ ਦੇਰ ਰੁਕ ਕੇ ਮੁੜ ਕੋਸ਼ਿਸ਼ ਕਰੋ।',
   'Connection lost. Retrying…': 'ਕਨੈਕਸ਼ਨ ਟੁੱਟ ਗਿਆ। ਮੁੜ ਕੋਸ਼ਿਸ਼ ਹੋ ਰਹੀ ਹੈ…',
   'Re-centre map': 'ਨਕਸ਼ਾ ਮੁੜ ਵਿਚਕਾਰ ਲਿਆਓ',
+  'Full screen': 'ਪੂਰੀ ਸਕ੍ਰੀਨ',
+  'Exit full screen': 'ਪੂਰੀ ਸਕ੍ਰੀਨ ਬੰਦ ਕਰੋ',
   "Map of {name}'s live location": '{name} ਦੀ ਲਾਈਵ ਲੋਕੇਸ਼ਨ ਦਾ ਨਕਸ਼ਾ',
   'The map could not load on this device.': 'ਇਸ ਡਿਵਾਈਸ ਉੱਤੇ ਨਕਸ਼ਾ ਲੋਡ ਨਹੀਂ ਹੋ ਸਕਿਆ।',
   Ended: 'ਸਮਾਪਤ',

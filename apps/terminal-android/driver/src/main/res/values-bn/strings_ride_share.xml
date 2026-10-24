@@ -2,9 +2,10 @@
 <resources>
     <string name="share_title">আপনি কোথায় আছেন, কে দেখবেন?</string>
     <string name="share_lead">পরিবারের যাঁদের আপনি বেছে নেবেন, আপনি না থামানো পর্যন্ত তাঁরা আপনাকে লাইভ দেখতে পাবেন।</string>
-    <string name="share_contact_label">পরিবারের সদস্যের মোবাইল (ঐচ্ছিক)</string>
+    <string name="share_contact_label">পরিবারের সদস্যের মোবাইল বা ইমেল (ঐচ্ছিক)</string>
+    <string name="share_contact_rule">৬ থেকে ৯ দিয়ে শুরু ১০ অঙ্কের মোবাইল নম্বর, বা ইমেল ঠিকানা।</string>
     <string name="share_contact_add">+ আরেকটি যোগ করুন</string>
-    <string name="share_contact_remove">এই নম্বরটি সরান</string>
+    <string name="share_contact_remove">এঁকে সরান</string>
     <string name="share_note">যাঁরা Saarthi ব্যবহার করেন, তাঁদের সঙ্গে সঙ্গে জানানো হয়। বাকিদের - পরের ধাপে লিংক পাঠান।</string>
     <string name="share_self_title">আমার Saarthi ওনার অ্যাপেও এটি দেখান</string>
     <string name="share_self_sub">একই লগইন - আপনার ওনার অ্যাকাউন্ট থেকে এই যাত্রা লাইভ দেখুন।</string>

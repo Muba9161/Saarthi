@@ -2,9 +2,10 @@
 <resources>
     <string name="share_title">നിങ്ങൾ എവിടെയാണെന്ന് ആര് കാണണം?</string>
     <string name="share_lead">നിങ്ങൾ തിരഞ്ഞെടുക്കുന്ന കുടുംബാംഗങ്ങൾക്ക്, നിങ്ങൾ നിർത്തുന്നതുവരെ നിങ്ങളെ ലൈവായി കാണാം.</string>
-    <string name="share_contact_label">കുടുംബാംഗത്തിന്റെ മൊബൈൽ (നിർബന്ധമില്ല)</string>
+    <string name="share_contact_label">കുടുംബാംഗത്തിന്റെ മൊബൈൽ അല്ലെങ്കിൽ ഇമെയിൽ (നിർബന്ധമില്ല)</string>
+    <string name="share_contact_rule">6 മുതൽ 9 വരെയുള്ള അക്കത്തിൽ തുടങ്ങുന്ന 10 അക്ക മൊബൈൽ നമ്പർ, അല്ലെങ്കിൽ ഇമെയിൽ വിലാസം.</string>
     <string name="share_contact_add">+ ഒന്നുകൂടി ചേർക്കുക</string>
-    <string name="share_contact_remove">ഈ നമ്പർ നീക്കുക</string>
+    <string name="share_contact_remove">ഇവരെ നീക്കുക</string>
     <string name="share_note">Saarthi ഉപയോഗിക്കുന്നവരെ ഉടൻ അറിയിക്കും. മറ്റുള്ളവർക്ക് - അടുത്തതായി ലിങ്ക് അയയ്ക്കുക.</string>
     <string name="share_self_title">എന്റെ Saarthi ഓണർ ആപ്പിലും ഇത് കാണിക്കുക</string>
     <string name="share_self_sub">ഒരേ ലോഗിൻ - നിങ്ങളുടെ ഓണർ അക്കൗണ്ടിൽ നിന്ന് ഈ യാത്ര ലൈവായി കാണുക.</string>

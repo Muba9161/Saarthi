@@ -375,6 +375,8 @@ export const raj: Catalogue = {
   'Wait a moment and try again.': 'थोड़ी ताळ रुकनै फेरूं कोसिस करो।',
   'Connection lost. Retrying…': 'कनेक्सन टूटग्यो। फेरूं कोसिस होय रही है…',
   'Re-centre map': 'नक्सो फेरूं बिचाळै लावो',
+  'Full screen': 'पूरी स्क्रीन',
+  'Exit full screen': 'पूरी स्क्रीन बंद करो',
   "Map of {name}'s live location": '{name} री लाइव लोकेसन रो नक्सो',
   'The map could not load on this device.': 'इण डिवाइस माथै नक्सो लोड नीं होय सक्यो।',
   Ended: 'पूरो होयो',

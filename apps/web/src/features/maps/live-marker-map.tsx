@@ -1,22 +1,26 @@
 import * as React from 'react';
 import maplibregl, { type Map as MapLibreMap } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { LocateFixed, MapPinOff } from 'lucide-react';
+import { LocateFixed, MapPinOff, Maximize2, Minimize2 } from 'lucide-react';
+import type { TrailPoint } from '@saarthi/shared';
 import { useReducedMotion } from '@/components/motion';
 import { Button } from '@/components/ui/button';
 import { useT } from '@/features/i18n';
+import { useElementFullscreen } from '@/hooks/use-element-fullscreen';
 import { cn } from '@/lib/utils';
 import { DEFAULT_STYLE_ID, resolveStyleUrl } from './map-config';
+import { ensureOverlayLayers, isStyleReady, setTrailState } from './map-layers';
 import { buildTruckElement, paintTruckElement, type MapTruck } from './map-markers';
 
 /**
- * One moving point on a map, and nothing else.
+ * One moving point on a map, the road it has covered behind it, and nothing else.
  *
  * For public pages that follow a single live position — the "share my ride"
  * link family open from WhatsApp. `FleetMap` could draw it, but it carries
  * terrain, 3D lighting, routing, place search and turn-by-turn guidance, and
  * this is opened on a phone, often on mobile data. Same basemap, same vehicle
- * marker, none of the rest.
+ * marker and the same covered-path trail, none of the rest. It opens full
+ * screen on a tap, for following on a phone.
  *
  * The camera follows the point until the viewer drags the map; from then on
  * it stays where they put it, and a re-centre button brings it back.
@@ -33,6 +37,8 @@ export interface LiveMarkerMapProps {
   position: LiveMarkerPosition;
   /** Accessible name for the map, e.g. whose position it shows. */
   label: string;
+  /** The road covered so far, drawn in the trail's colours. */
+  trail?: readonly TrailPoint[];
   className?: string;
 }
 
@@ -40,10 +46,15 @@ export interface LiveMarkerMapProps {
 const FOLLOW_ZOOM = 15;
 const EASE_MS = 700;
 
-export function LiveMarkerMap({ position, label, className }: LiveMarkerMapProps) {
+export function LiveMarkerMap({ position, label, trail, className }: LiveMarkerMapProps) {
   const t = useT();
   const reducedMotion = useReducedMotion() ?? false;
+  const regionRef = React.useRef<HTMLDivElement | null>(null);
+  const fullscreen = useElementFullscreen(regionRef);
   const containerRef = React.useRef<HTMLDivElement | null>(null);
+  // The trail as last given, for the style's first load to draw.
+  const trailRef = React.useRef(trail);
+  trailRef.current = trail;
   const mapRef = React.useRef<MapLibreMap | null>(null);
   const markerRef = React.useRef<maplibregl.Marker | null>(null);
   const [following, setFollowing] = React.useState(true);
@@ -89,6 +100,10 @@ export function LiveMarkerMap({ position, label, className }: LiveMarkerMapProps
     });
     // A drag is the viewer choosing where to look; stop pulling the camera back.
     map.on('dragstart', () => setFollowing(false));
+    map.on('load', () => {
+      ensureOverlayLayers(map);
+      setTrailState(map, trailRef.current);
+    });
 
     const element = buildTruckElement();
     element.style.cursor = 'default';
@@ -137,6 +152,11 @@ export function LiveMarkerMap({ position, label, className }: LiveMarkerMapProps
     }
   }, [latitude, longitude, heading, speedKph, following, reducedMotion]);
 
+  React.useEffect(() => {
+    const map = mapRef.current;
+    if (map && isStyleReady(map)) setTrailState(map, trail);
+  }, [trail]);
+
   const recentre = (): void => {
     mapRef.current?.easeTo({
       center: [longitude, latitude],
@@ -147,8 +167,32 @@ export function LiveMarkerMap({ position, label, className }: LiveMarkerMapProps
   };
 
   return (
-    <div role="region" aria-label={label} className={cn('relative overflow-hidden bg-muted', className)}>
+    <div
+      ref={regionRef}
+      role="region"
+      aria-label={label}
+      className={cn(
+        'relative overflow-hidden bg-muted',
+        className,
+        // Where the browser has no full screen for a page element (Safari on iPhone), it covers the window.
+        fullscreen.mode === 'window' && 'fixed inset-0 z-[100] h-auto min-h-0 rounded-none ring-0',
+      )}
+    >
       <div ref={containerRef} className="absolute inset-0" />
+
+      {!failed ? (
+        <Button
+          type="button"
+          size="icon-sm"
+          variant="secondary"
+          onClick={fullscreen.toggle}
+          aria-label={fullscreen.active ? t('Exit full screen') : t('Full screen')}
+          title={fullscreen.active ? t('Exit full screen') : t('Full screen')}
+          className="absolute left-3 top-3 shadow-md"
+        >
+          {fullscreen.active ? <Minimize2 className="size-4" aria-hidden /> : <Maximize2 className="size-4" aria-hidden />}
+        </Button>
+      ) : null}
 
       {failed ? (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-muted p-6 text-center">

@@ -368,6 +368,8 @@ export const ur: Catalogue = {
   'Wait a moment and try again.': 'تھوڑی دیر رک کر دوبارہ کوشش کریں۔',
   'Connection lost. Retrying…': 'کنکشن ٹوٹ گیا۔ دوبارہ کوشش ہو رہی ہے…',
   'Re-centre map': 'نقشہ دوبارہ بیچ میں لائیں',
+  'Full screen': 'فل اسکرین',
+  'Exit full screen': 'فل اسکرین بند کریں',
   "Map of {name}'s live location": '{name} کی لائیو لوکیشن کا نقشہ',
   'The map could not load on this device.': 'اس ڈیوائس پر نقشہ لوڈ نہیں ہو سکا۔',
   Ended: 'ختم',

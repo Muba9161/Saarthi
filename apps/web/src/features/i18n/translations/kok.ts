@@ -368,6 +368,8 @@ export const kok: Catalogue = {
   'Wait a moment and try again.': 'थोडो वेळ राकून परतून यत्न करात.',
   'Connection lost. Retrying…': 'कनेक्शन तुटलें. परतून यत्न चालू आसा…',
   'Re-centre map': 'नकाशो परतून मदीं हाडात',
+  'Full screen': 'पुराय स्क्रीन',
+  'Exit full screen': 'पुराय स्क्रीन बंद करात',
   "Map of {name}'s live location": '{name} हांच्या लायव्ह जाग्याचो नकाशो',
   'The map could not load on this device.': 'ह्या डिव्हायसाचेर नकाशो लोड जावंक ना.',
   Ended: 'सोंपलें',

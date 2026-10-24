@@ -372,6 +372,8 @@ export const sa: Catalogue = {
   'Wait a moment and try again.': 'किञ्चित् प्रतीक्ष्य पुनः प्रयततु।',
   'Connection lost. Retrying…': 'सम्पर्कः विच्छिन्नः। पुनः प्रयत्यते…',
   'Re-centre map': 'मानचित्रं पुनः मध्ये आनयतु',
+  'Full screen': 'पूर्णपटलम्',
+  'Exit full screen': 'पूर्णपटलात् निर्गच्छतु',
   "Map of {name}'s live location": '{name} इत्यस्य सजीवस्थानस्य मानचित्रम्',
   'The map could not load on this device.': 'अस्मिन् उपकरणे मानचित्रं न आपूरितम्।',
   Ended: 'समाप्तम्',

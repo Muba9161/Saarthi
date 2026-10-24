@@ -368,6 +368,8 @@ export const ne: Catalogue = {
   'Wait a moment and try again.': 'केही बेर पर्खेर फेरि प्रयास गर्नुहोस्।',
   'Connection lost. Retrying…': 'जडान टुट्यो। फेरि प्रयास गर्दै…',
   'Re-centre map': 'नक्सा फेरि बीचमा ल्याउनुहोस्',
+  'Full screen': 'पूरा स्क्रिन',
+  'Exit full screen': 'पूरा स्क्रिन बन्द गर्नुहोस्',
   "Map of {name}'s live location": '{name} को लाइभ स्थानको नक्सा',
   'The map could not load on this device.': 'यो उपकरणमा नक्सा लोड हुन सकेन।',
   Ended: 'समाप्त',

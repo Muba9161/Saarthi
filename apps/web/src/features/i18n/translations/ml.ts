@@ -372,6 +372,8 @@ export const ml: Catalogue = {
   'Wait a moment and try again.': 'അൽപ്പം കാത്തിരുന്ന് വീണ്ടും ശ്രമിക്കുക.',
   'Connection lost. Retrying…': 'കണക്ഷൻ നഷ്ടപ്പെട്ടു. വീണ്ടും ശ്രമിക്കുന്നു…',
   'Re-centre map': 'മാപ്പ് വീണ്ടും മധ്യത്തിലാക്കുക',
+  'Full screen': 'പൂർണ്ണ സ്ക്രീൻ',
+  'Exit full screen': 'പൂർണ്ണ സ്ക്രീനിൽ നിന്ന് പുറത്തുകടക്കുക',
   "Map of {name}'s live location": '{name}-ന്റെ ലൈവ് ലൊക്കേഷന്റെ മാപ്പ്',
   'The map could not load on this device.': 'ഈ ഉപകരണത്തിൽ മാപ്പ് ലോഡ് ചെയ്യാനായില്ല.',
   Ended: 'അവസാനിച്ചു',

@@ -368,6 +368,8 @@ export const gu: Catalogue = {
   'Wait a moment and try again.': 'થોડી વાર રાહ જોઈને ફરી પ્રયાસ કરો.',
   'Connection lost. Retrying…': 'કનેક્શન તૂટી ગયું. ફરી પ્રયાસ થઈ રહ્યો છે…',
   'Re-centre map': 'નકશો ફરી મધ્યમાં લાવો',
+  'Full screen': 'ફુલ સ્ક્રીન',
+  'Exit full screen': 'ફુલ સ્ક્રીન બંધ કરો',
   "Map of {name}'s live location": '{name}ના લાઇવ સ્થાનનો નકશો',
   'The map could not load on this device.': 'આ ડિવાઇસ પર નકશો લોડ થઈ શક્યો નહીં.',
   Ended: 'સમાપ્ત',

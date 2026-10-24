@@ -369,6 +369,8 @@ export const mr: Catalogue = {
   'Wait a moment and try again.': 'थोडा वेळ थांबून पुन्हा प्रयत्न करा.',
   'Connection lost. Retrying…': 'कनेक्शन तुटले. पुन्हा प्रयत्न सुरू आहे…',
   'Re-centre map': 'नकाशा पुन्हा मध्यभागी आणा',
+  'Full screen': 'पूर्ण स्क्रीन',
+  'Exit full screen': 'पूर्ण स्क्रीन बंद करा',
   "Map of {name}'s live location": '{name} यांच्या लाइव्ह ठिकाणाचा नकाशा',
   'The map could not load on this device.': 'या डिव्हाइसवर नकाशा लोड होऊ शकला नाही.',
   Ended: 'संपले',

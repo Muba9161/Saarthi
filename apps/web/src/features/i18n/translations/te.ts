@@ -370,6 +370,8 @@ export const te: Catalogue = {
   'Wait a moment and try again.': 'కొంచెం ఆగి మళ్లీ ప్రయత్నించండి.',
   'Connection lost. Retrying…': 'కనెక్షన్ తెగిపోయింది. మళ్లీ ప్రయత్నిస్తోంది…',
   'Re-centre map': 'మ్యాప్‌ను మళ్లీ మధ్యలోకి తీసుకురండి',
+  'Full screen': 'పూర్తి స్క్రీన్',
+  'Exit full screen': 'పూర్తి స్క్రీన్ నుండి నిష్క్రమించండి',
   "Map of {name}'s live location": '{name} లైవ్ లొకేషన్ మ్యాప్',
   'The map could not load on this device.': 'ఈ పరికరంలో మ్యాప్ లోడ్ కాలేదు.',
   Ended: 'ముగిసింది',

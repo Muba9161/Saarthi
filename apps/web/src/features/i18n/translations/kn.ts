@@ -369,6 +369,8 @@ export const kn: Catalogue = {
   'Wait a moment and try again.': 'ಸ್ವಲ್ಪ ಕಾದು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.',
   'Connection lost. Retrying…': 'ಸಂಪರ್ಕ ಕಡಿತಗೊಂಡಿದೆ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಲಾಗುತ್ತಿದೆ…',
   'Re-centre map': 'ನಕ್ಷೆಯನ್ನು ಮತ್ತೆ ಮಧ್ಯಕ್ಕೆ ತನ್ನಿ',
+  'Full screen': 'ಪೂರ್ಣ ಪರದೆ',
+  'Exit full screen': 'ಪೂರ್ಣ ಪರದೆಯಿಂದ ನಿರ್ಗಮಿಸಿ',
   "Map of {name}'s live location": '{name} ಅವರ ಲೈವ್ ಸ್ಥಳದ ನಕ್ಷೆ',
   'The map could not load on this device.': 'ಈ ಸಾಧನದಲ್ಲಿ ನಕ್ಷೆ ಲೋಡ್ ಆಗಲಿಲ್ಲ.',
   Ended: 'ಮುಗಿದಿದೆ',

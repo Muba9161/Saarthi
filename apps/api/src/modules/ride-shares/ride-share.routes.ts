@@ -2,11 +2,12 @@ import type { FastifyInstance } from 'fastify';
 import {
   addRideShareContactSchema,
   idParamSchema,
+  liveRideQuerySchema,
   liveRideTokenParamSchema,
   ridePointsSchema,
   startRideShareSchema,
 } from '@saarthi/shared';
-import { created, ok, parseBody, parseParams } from '../../lib/http';
+import { created, ok, parseBody, parseParams, parseQuery } from '../../lib/http';
 import { requireAuth } from '../../server/guards';
 import * as shares from './ride-share.service';
 import { mayRideAlong } from './ride-access';
@@ -33,8 +34,8 @@ export async function rideShareRoutes(app: FastifyInstance): Promise<void> {
 
   app.post('/:id/contacts', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (request, reply) => {
     const { id } = parseParams(idParamSchema, request.params);
-    const { phone } = parseBody(addRideShareContactSchema, request.body);
-    return ok(reply, await shares.addRideShareContact(requireAuth(request), id, phone));
+    const { contact } = parseBody(addRideShareContactSchema, request.body);
+    return ok(reply, await shares.addRideShareContact(requireAuth(request), id, contact));
   });
 
   /** Show the ride on this login's own owner account, in the owner app. */
@@ -79,6 +80,6 @@ export async function rideShareReportRoutes(app: FastifyInstance): Promise<void>
 export async function publicLiveRideRoutes(app: FastifyInstance): Promise<void> {
   app.get('/:token', { config: { rateLimit: { max: 60, timeWindow: '1 minute' } } }, async (request, reply) => {
     const { token } = parseParams(liveRideTokenParamSchema, request.params);
-    return ok(reply, await shares.publicLiveRide(token));
+    return ok(reply, await shares.publicLiveRide(token, parseQuery(liveRideQuerySchema, request.query)));
   });
 }

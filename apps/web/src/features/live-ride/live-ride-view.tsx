@@ -187,6 +187,7 @@ export function LiveRideDetails({
         <LiveMarkerMap
           position={position}
           label={t("Map of {name}'s live location", { name })}
+          trail={ride.trail}
           className="h-[min(60svh,34rem)] min-h-72 rounded-2xl ring-1 ring-border"
         />
       ) : null}

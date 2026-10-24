@@ -408,6 +408,8 @@ export const en = {
   'Wait a moment and try again.': 'Wait a moment and try again.',
   'Connection lost. Retrying…': 'Connection lost. Retrying…',
   'Re-centre map': 'Re-centre map',
+  'Full screen': 'Full screen',
+  'Exit full screen': 'Exit full screen',
   "Map of {name}'s live location": "Map of {name}'s live location",
   'The map could not load on this device.': 'The map could not load on this device.',
   Ended: 'Ended',

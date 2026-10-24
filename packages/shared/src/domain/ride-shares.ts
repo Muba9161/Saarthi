@@ -2,13 +2,14 @@
  * Share my ride — riding along in a vehicle that is not on Saarthi.
  *
  * Nobody owns that vehicle here, so nobody is asked: the rider chooses who
- * sees them. Saarthi users they name by mobile number are told and can follow
+ * sees them. Saarthi users they name by mobile number or email are told and can follow
  * them; anyone else follows the live link the rider sends on WhatsApp. The
  * typed vehicle number travels with it as a safety detail. Sharing stops when
  * the rider stops it, or by itself after a while if they forget.
  */
 
 import type { RideShareStatus } from './enums';
+import type { TrailPoint } from './route-trail';
 
 /** Fixes in one upload from the rider's phone. */
 export const MAX_RIDE_POINTS = 100;
@@ -19,6 +20,14 @@ export interface RideVehicleLocation {
   longitude: number;
   speedKph: number | null;
   heading: number | null;
+  recordedAt: string;
+}
+
+/**
+ * A point on the road the rider has covered, coloured as any vehicle's trail
+ * is. A ride has no trip, so its `routeState` is always `NO_TRIP`.
+ */
+export interface RideTrailPoint extends TrailPoint {
   recordedAt: string;
 }
 
@@ -38,7 +47,7 @@ export interface RideShareView {
   endedAt: string | null;
   /** The live link to send to family; it stops showing anything once the share ends. */
   link: string;
-  /** The mobile numbers the rider named, as stored. */
+  /** The people named who use Saarthi, by the mobile number or email address the rider gave, as stored. */
   contacts: string[];
   /** Whether it also shows on the rider's own owner account in the owner app. */
   sharedWithSelf: boolean;
@@ -77,4 +86,9 @@ export interface PublicLiveRide {
   endedAt: string | null;
   /** Null once the share has ended: an ended link shows nobody's whereabouts. */
   position: RideVehicleLocation | null;
+  /**
+   * The road covered since sharing began — or, asked `from` a time, only
+   * what was covered after it — thinned on long rides. Empty once ended.
+   */
+  trail: RideTrailPoint[];
 }

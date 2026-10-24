@@ -359,6 +359,8 @@ export const hi: Catalogue = {
   'Wait a moment and try again.': 'थोड़ी देर रुककर फिर कोशिश करें।',
   'Connection lost. Retrying…': 'कनेक्शन टूट गया। फिर से कोशिश हो रही है…',
   'Re-centre map': 'मैप फिर से बीच में लाएँ',
+  'Full screen': 'फ़ुल स्क्रीन',
+  'Exit full screen': 'फ़ुल स्क्रीन बंद करें',
   "Map of {name}'s live location": '{name} की लाइव लोकेशन का मैप',
   'The map could not load on this device.': 'इस डिवाइस पर मैप लोड नहीं हो सका।',
   Ended: 'समाप्त',

@@ -107,7 +107,7 @@ fun rememberFollowed(key: String, source: FollowSource): Followed? {
                 fixes = emptyList()
             }
             if (read != null) {
-                fixes = if (held) merged(fixes, read.fixes) else read.fixes
+                fixes = if (held) mergedFixes(fixes, read.fixes) else read.fixes
                 tripId = read.tripId
                 held = true
                 followed = Followed(
@@ -115,7 +115,7 @@ fun rememberFollowed(key: String, source: FollowSource): Followed? {
                     plate = read.plate,
                     seenAt = read.seenAt,
                     trip = read.trip,
-                    trail = trailRuns(fixes, at = { it.latitude to it.longitude }, toneOf = { trailToneOf(it.routeState) }),
+                    trail = trailOf(fixes),
                     readings = read.readings?.takeIf { it.any },
                 )
             }
@@ -134,8 +134,12 @@ internal suspend fun <T> attempt(read: suspend () -> T): T? = try {
     null
 }
 
+/** The road [fixes] cover, in the trail's colours. */
+internal fun trailOf(fixes: List<Fix>): List<TrailRun> =
+    trailRuns(fixes, at = { it.latitude to it.longitude }, toneOf = { trailToneOf(it.routeState) })
+
 /** The fixes held, with the newer of [fresh] after them; the server's ISO times sort as text. */
-private fun merged(held: List<Fix>, fresh: List<Fix>): List<Fix> {
+internal fun mergedFixes(held: List<Fix>, fresh: List<Fix>): List<Fix> {
     val last = held.lastOrNull()?.recordedAt
     val all = held + fresh.filter { last == null || it.recordedAt > last }
     if (all.size <= MAX_FIXES) return all

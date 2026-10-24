@@ -19,6 +19,7 @@ const RIDE = {
   startedAt: '2026-10-23T09:00:00.000Z',
   endedAt: null,
   position: null,
+  trail: [],
 };
 
 const POSITION = { latitude: 26.85, longitude: 80.95, speedKph: 42.4, heading: 90 };

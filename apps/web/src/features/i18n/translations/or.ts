@@ -367,6 +367,8 @@ export const or: Catalogue = {
   'Wait a moment and try again.': 'ଟିକେ ଅପେକ୍ଷା କରି ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ।',
   'Connection lost. Retrying…': 'ସଂଯୋଗ ବିଚ୍ଛିନ୍ନ ହେଲା। ପୁଣି ଚେଷ୍ଟା ଚାଲିଛି…',
   'Re-centre map': 'ମାନଚିତ୍ରକୁ ପୁଣି ମଝିକୁ ଆଣନ୍ତୁ',
+  'Full screen': 'ପୂର୍ଣ୍ଣ ସ୍କ୍ରିନ୍',
+  'Exit full screen': 'ପୂର୍ଣ୍ଣ ସ୍କ୍ରିନ୍ ବନ୍ଦ କରନ୍ତୁ',
   "Map of {name}'s live location": '{name}ଙ୍କ ଲାଇଭ ଅବସ୍ଥାନର ମାନଚିତ୍ର',
   'The map could not load on this device.': 'ଏହି ଡିଭାଇସରେ ମାନଚିତ୍ର ଲୋଡ ହୋଇପାରିଲା ନାହିଁ।',
   Ended: 'ସମାପ୍ତ',

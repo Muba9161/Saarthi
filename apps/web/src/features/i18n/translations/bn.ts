@@ -368,6 +368,8 @@ export const bn: Catalogue = {
   'Wait a moment and try again.': 'একটু অপেক্ষা করে আবার চেষ্টা করুন।',
   'Connection lost. Retrying…': 'সংযোগ বিচ্ছিন্ন। আবার চেষ্টা করা হচ্ছে…',
   'Re-centre map': 'ম্যাপ আবার মাঝখানে আনুন',
+  'Full screen': 'পূর্ণ স্ক্রিন',
+  'Exit full screen': 'পূর্ণ স্ক্রিন বন্ধ করুন',
   "Map of {name}'s live location": '{name}-এর লাইভ অবস্থানের ম্যাপ',
   'The map could not load on this device.': 'এই ডিভাইসে ম্যাপ লোড করা যায়নি।',
   Ended: 'শেষ হয়েছে',

@@ -368,6 +368,8 @@ export const as: Catalogue = {
   'Wait a moment and try again.': 'অলপ অপেক্ষা কৰি পুনৰ চেষ্টা কৰক।',
   'Connection lost. Retrying…': 'সংযোগ বিচ্ছিন্ন হ’ল। পুনৰ চেষ্টা কৰি আছে…',
   'Re-centre map': 'মেপ পুনৰ মাজলৈ আনক',
+  'Full screen': 'সম্পূৰ্ণ স্ক্ৰীণ',
+  'Exit full screen': 'সম্পূৰ্ণ স্ক্ৰীণ বন্ধ কৰক',
   "Map of {name}'s live location": '{name}ৰ লাইভ অৱস্থানৰ মেপ',
   'The map could not load on this device.': 'এই ডিভাইচত মেপ লোড কৰিব পৰা নগ’ল।',
   Ended: 'সমাপ্ত',

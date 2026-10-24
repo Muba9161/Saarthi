@@ -367,6 +367,8 @@ export const mai: Catalogue = {
   'Wait a moment and try again.': 'कनी काल रुकि कऽ फेर कोशिश करू।',
   'Connection lost. Retrying…': 'कनेक्शन टूटि गेल। फेर कोशिश भऽ रहल अछि…',
   'Re-centre map': 'नक्शा फेर बीचमे आनू',
+  'Full screen': 'पूर्ण स्क्रीन',
+  'Exit full screen': 'पूर्ण स्क्रीन बंद करू',
   "Map of {name}'s live location": '{name}क लाइव लोकेशनक नक्शा',
   'The map could not load on this device.': 'एहि डिवाइस पर नक्शा लोड नै भऽ सकल।',
   Ended: 'समाप्त',

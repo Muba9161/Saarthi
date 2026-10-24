@@ -370,6 +370,8 @@ export const ta: Catalogue = {
   'Wait a moment and try again.': 'சிறிது நேரம் காத்திருந்து மீண்டும் முயற்சிக்கவும்.',
   'Connection lost. Retrying…': 'இணைப்பு துண்டிக்கப்பட்டது. மீண்டும் முயற்சிக்கிறது…',
   'Re-centre map': 'வரைபடத்தை மீண்டும் மையப்படுத்து',
+  'Full screen': 'முழுத் திரை',
+  'Exit full screen': 'முழுத் திரையிலிருந்து வெளியேறு',
   "Map of {name}'s live location": '{name} அவர்களின் நேரடி இருப்பிட வரைபடம்',
   'The map could not load on this device.': 'இந்தச் சாதனத்தில் வரைபடத்தை ஏற்ற முடியவில்லை.',
   Ended: 'முடிந்தது',

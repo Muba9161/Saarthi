@@ -8,9 +8,10 @@
     <!-- Who should see where you are ================================== -->
     <string name="share_title">Who should see where you are?</string>
     <string name="share_lead">Family you choose can follow you live until you stop.</string>
-    <string name="share_contact_label">Family member\'s mobile (optional)</string>
+    <string name="share_contact_label">Family member\'s mobile or email (optional)</string>
+    <string name="share_contact_rule">A 10-digit mobile number starting 6 to 9, or an email address.</string>
     <string name="share_contact_add">+ Add another</string>
-    <string name="share_contact_remove">Remove this number</string>
+    <string name="share_contact_remove">Remove this person</string>
     <string name="share_note">Those who use Saarthi are told at once. Anyone else - send them the link next.</string>
     <string name="share_self_title">Also show it on my Saarthi owner app</string>
     <string name="share_self_sub">Same login - follow this ride live from your owner account.</string>

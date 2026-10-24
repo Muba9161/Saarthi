@@ -368,6 +368,8 @@ export const doi: Catalogue = {
   'Wait a moment and try again.': 'थोह्ड़ी देर रुकियै फ्ही कोशिश करो।',
   'Connection lost. Retrying…': 'कनेक्शन टुट्टी गेआ। फ्ही कोशिश होआ करदी ऐ…',
   'Re-centre map': 'नक्शा फ्ही बश्कार आह्नो',
+  'Full screen': 'पूरी स्क्रीन',
+  'Exit full screen': 'पूरी स्क्रीन बंद करो',
   "Map of {name}'s live location": '{name} दी लाइव लोकेशन दा नक्शा',
   'The map could not load on this device.': 'इस डिवाइस पर नक्शा लोड नेईं होई सकेआ।',
   Ended: 'खत्म',
