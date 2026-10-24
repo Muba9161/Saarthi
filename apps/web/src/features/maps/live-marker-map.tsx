@@ -178,7 +178,9 @@ export function LiveMarkerMap({ position, label, trail, className }: LiveMarkerM
         fullscreen.mode === 'window' && 'fixed inset-0 z-[100] h-auto min-h-0 rounded-none ring-0',
       )}
     >
-      <div ref={containerRef} className="absolute inset-0" />
+      {/* Sized outright, as FleetMap's is: MapLibre's own `.maplibregl-map { position: relative }`
+          overrides an `absolute inset-0` here, and the map collapsed to nothing. */}
+      <div ref={containerRef} className="size-full" />
 
       {!failed ? (
         <Button
