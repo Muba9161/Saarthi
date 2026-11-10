@@ -3,6 +3,8 @@ package com.saarthi.core.network
 import android.os.Build
 import com.saarthi.core.CoreConfig
 import com.saarthi.core.data.TerminalIdentityStore
+import com.saarthi.core.update.UpdateSource
+import com.saarthi.core.update.writeHashed
 import com.saarthi.core.util.DebugLog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
@@ -19,7 +21,6 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
 import java.io.IOException
-import java.security.MessageDigest
 import java.util.concurrent.TimeUnit
 
 /**
@@ -60,7 +61,7 @@ class SaarthiApi(
      * secret before the listener has dropped it.
      */
     private val onSecretRefused: suspend (deviceIdentifier: String) -> Unit,
-) {
+) : UpdateSource {
 
     /** Normalised once: a trailing slash here becomes a double slash everywhere. */
     @Volatile
@@ -235,7 +236,7 @@ class SaarthiApi(
      * offered, because Android would refuse the install and a button that always
      * fails reads as a broken app rather than an old one.
      */
-    suspend fun checkForUpdate(): UpdateOfferDto? = getNullable(
+    override suspend fun checkForUpdate(): UpdateOfferDto? = getNullable(
         "/api/v1/device-gateway/terminal/update" +
             "?versionCode=${CoreConfig.versionCode}&sdk=${Build.VERSION.SDK_INT}" +
             // The app names itself. Nothing on the server can tell a driver's
@@ -258,7 +259,7 @@ class SaarthiApi(
      * against what the server promised. Computed here, over the same stream that
      * produced the file, so there is no window in which the two could differ.
      */
-    suspend fun downloadUpdate(
+    override suspend fun downloadUpdate(
         versionCode: Int,
         target: File,
         onProgress: (downloaded: Long, total: Long) -> Unit,
@@ -286,25 +287,7 @@ class SaarthiApi(
             }
 
             val body = raw.body ?: throw Failure.Refused(502, "UPDATE_EMPTY", "The update download was empty.")
-            val total = body.contentLength().takeIf { it > 0 } ?: 0L
-            val digest = MessageDigest.getInstance("SHA-256")
-            var downloaded = 0L
-
-            body.byteStream().use { input ->
-                target.outputStream().use { output ->
-                    val buffer = ByteArray(DOWNLOAD_BUFFER)
-                    while (true) {
-                        val read = input.read(buffer)
-                        if (read == -1) break
-                        output.write(buffer, 0, read)
-                        digest.update(buffer, 0, read)
-                        downloaded += read
-                        onProgress(downloaded, total)
-                    }
-                }
-            }
-
-            digest.digest().joinToString("") { byte -> "%02x".format(byte) }
+            body.writeHashed(target, onProgress)
         }
     }
 

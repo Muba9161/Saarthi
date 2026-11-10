@@ -2,7 +2,6 @@ package com.saarthi.core.update
 
 import android.content.Context
 import com.saarthi.core.CoreConfig
-import com.saarthi.core.network.SaarthiApi
 import com.saarthi.core.network.UpdateOfferDto
 import com.saarthi.core.util.DebugLog
 import kotlinx.coroutines.CoroutineScope
@@ -14,7 +13,9 @@ import kotlinx.coroutines.launch
 import java.io.File
 
 /**
- * Keeping a fitted terminal current.
+ * Keeping an app current — the fitted terminal, and the phone apps.
+ *
+ * Where the build comes from is an [UpdateSource]; everything below is shared.
  *
  * The whole point is that nobody has to visit the truck. Saarthi publishes a
  * build, the terminal notices, and the driver taps a button at a moment that
@@ -43,6 +44,15 @@ import java.io.File
 class UpdateManager(
     private val context: Context,
     private val scope: CoroutineScope,
+    /**
+     * Install without Android's confirmation where Android allows it.
+     *
+     * A phone app sets this: the person already chose to update by tapping the
+     * button, and asking again is a second dialog for one decision. The fitted
+     * terminal does not — see [UpdateInstaller] for why its installs stay
+     * confirmed.
+     */
+    private val unattended: Boolean = false,
 ) {
 
     /** Where the terminal is in the business of updating itself. */
@@ -82,7 +92,7 @@ class UpdateManager(
      * terminal that cannot reach Saarthi has bigger problems already on screen,
      * and "could not check for updates" on top of "offline" is noise in a cab.
      */
-    fun check(api: SaarthiApi) {
+    fun check(source: UpdateSource) {
         // A download in flight must not be interrupted by a routine check, and
         // a driver looking at a Ready card must not have it swapped underneath
         // them by the same build being re-offered.
@@ -90,7 +100,7 @@ class UpdateManager(
 
         scope.launch {
             val offer = try {
-                api.checkForUpdate()
+                source.checkForUpdate()
             } catch (error: Exception) {
                 DebugLog.debug(TAG, "Update check failed: ${error.message}")
                 return@launch
@@ -128,7 +138,7 @@ class UpdateManager(
      * Only from `Available` or `Failed`: tapping the card twice must not start a
      * second download alongside the first.
      */
-    fun download(api: SaarthiApi) {
+    fun download(source: UpdateSource) {
         val offer = when (val current = _state.value) {
             is State.Available -> current.offer
             is State.Failed -> current.offer
@@ -143,7 +153,7 @@ class UpdateManager(
             val partial = File(target.path + ".part")
 
             try {
-                val digest = api.downloadUpdate(offer.versionCode, partial) { done, total ->
+                val digest = source.downloadUpdate(offer.versionCode, partial) { done, total ->
                     // The server sends a content-length, but a proxy may strip
                     // it. A determinate bar that is a lie is worse than a
                     // spinner, so the fraction stays null when the total is not
@@ -191,7 +201,7 @@ class UpdateManager(
 
         scope.launch {
             _state.value = State.Installing(offer)
-            when (val outcome = UpdateInstaller(context).install(fileFor(offer))) {
+            when (val outcome = UpdateInstaller(context).install(fileFor(offer), unattended)) {
                 is UpdateInstaller.Outcome.AwaitingUser -> Unit
                 is UpdateInstaller.Outcome.Failed ->
                     _state.value = State.Failed(offer, outcome.reason)

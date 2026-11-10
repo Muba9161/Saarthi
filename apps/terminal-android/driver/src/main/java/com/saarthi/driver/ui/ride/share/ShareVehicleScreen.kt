@@ -21,7 +21,6 @@ import com.saarthi.driver.ui.design.AppName
 import com.saarthi.driver.ui.design.Lucide
 import com.saarthi.driver.ui.design.NoticeCard
 import com.saarthi.driver.ui.design.NoticeTone
-import com.saarthi.driver.ui.design.PlateField
 import com.saarthi.driver.ui.design.SType
 import com.saarthi.driver.ui.design.Saarthi
 import com.saarthi.driver.ui.design.SaarthiButton
@@ -29,13 +28,16 @@ import com.saarthi.driver.ui.design.StepHeader
 import com.saarthi.driver.ui.design.StepScreen
 import com.saarthi.driver.ui.design.rise
 import com.saarthi.driver.ui.design.stagger
+import com.saarthi.driver.ui.plate.PlateInput
 import com.saarthi.driver.ui.start.StartBackLink
 
 /**
  * Riding along, step one: "Which vehicle are you in?"
  *
- * Typed only, never scanned — the code on the door is how a driver claims a
- * vehicle, and a rider must never become its driver. Nothing is looked up and
+ * Typed, or read off the number plate with the camera — but never the QR code
+ * on the door: that code is how a driver claims a vehicle, and a rider must
+ * never become its driver. Reading the plate only fills the same field the
+ * rider could have typed into. Nothing is looked up and
  * nobody approves it: the number only tells family which vehicle to look for,
  * which the note under the plate says before the rider moves on.
  */
@@ -63,7 +65,7 @@ fun ShareVehicleScreen(viewModel: DriverViewModel, typed: String) {
             Text(stringResource(R.string.ride_request_lead), style = SType.lead, color = c.muted, modifier = Modifier.rise(stagger(2)))
         }
 
-        PlateField(
+        PlateInput(
             value = plate,
             // Capped at the server's own limit, so a number that fits is never refused.
             onValueChange = { plate = it.take(RideSharePolicy.PLATE_MAX) },

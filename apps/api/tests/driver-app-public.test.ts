@@ -126,6 +126,50 @@ describe('public driver app download', () => {
     expect(driverLookup.body.data).toBeNull();
   });
 
+  it('offers a newer build to the app itself, with the checksum it verifies against', async () => {
+    const { id, bytes } = await uploadDriverApp(9, '1.9.0');
+    await publishRelease(id, uploaderId);
+
+    const behind = await request<Record<string, unknown>>({
+      method: 'GET',
+      url: '/api/v1/driver-app/public/update?versionCode=8&sdk=34',
+    });
+    expect(behind.status).toBe(200);
+    expect(behind.body.data).toMatchObject({ versionCode: 9, versionName: '1.9.0', sizeBytes: bytes.length });
+    expect(behind.body.data).toHaveProperty('sha256');
+
+    // Already current: nothing to offer.
+    const current = await request({ method: 'GET', url: '/api/v1/driver-app/public/update?versionCode=9&sdk=34' });
+    expect(current.body.data).toBeNull();
+
+    // Exactly the build offered, with no session.
+    const download = await requestRaw({ method: 'GET', url: '/api/v1/driver-app/public/update/9/download' });
+    expect(download.status).toBe(200);
+    expect(download.body.equals(bytes)).toBe(true);
+  });
+
+  it("never offers or serves another app's build through the driver app's update path", async () => {
+    const ownerBytes = apk({ versionCode: 50, versionName: '5.0.0', packageName: 'com.saarthi.owner' });
+    const { id } = await createRelease({
+      bytes: ownerBytes,
+      fileName: 'saarthi-owner.apk',
+      notes: null,
+      mandatory: false,
+      uploadedById: uploaderId,
+    });
+    await publishRelease(id, uploaderId);
+
+    // An applicationId in the query is ignored: the route decides which app.
+    const offer = await request({
+      method: 'GET',
+      url: '/api/v1/driver-app/public/update?versionCode=1&applicationId=com.saarthi.owner',
+    });
+    expect(offer.body.data).toBeNull();
+
+    const download = await requestRaw({ method: 'GET', url: '/api/v1/driver-app/public/update/50/download' });
+    expect(download.status).toBe(404);
+  });
+
   it("keeps the dashboard's signed-in download serving the same build", async () => {
     const { id, bytes } = await uploadDriverApp(8, '1.8.0');
     await publishRelease(id, uploaderId);

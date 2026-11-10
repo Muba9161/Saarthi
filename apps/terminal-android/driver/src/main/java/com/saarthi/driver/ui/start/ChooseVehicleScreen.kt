@@ -64,7 +64,6 @@ import com.saarthi.driver.ui.design.LinkButton
 import com.saarthi.driver.ui.design.Lucide
 import com.saarthi.driver.ui.design.NoticeCard
 import com.saarthi.driver.ui.design.NoticeTone
-import com.saarthi.driver.ui.design.PlateField
 import com.saarthi.driver.ui.design.RingSpinner
 import com.saarthi.driver.ui.design.SType
 import com.saarthi.driver.ui.design.SaarthiButton
@@ -81,6 +80,7 @@ import com.saarthi.driver.ui.design.pressable
 import com.saarthi.driver.ui.design.rememberLoop
 import com.saarthi.driver.ui.design.rise
 import com.saarthi.driver.ui.design.stagger
+import com.saarthi.driver.ui.plate.PlateInput
 
 /**
  * Choose your vehicle — the screen a driver sees at the start of every shift.
@@ -214,7 +214,7 @@ fun ChooseVehicleScreen(
                             .rise(stagger(5)),
                         verticalArrangement = Arrangement.spacedBy(14.dp),
                     ) {
-                        PlateField(
+                        PlateInput(
                             value = number,
                             onValueChange = { number = it },
                             keyboardActions = KeyboardActions(onDone = { if (number.trim().length >= 4) sendNumber() }),
@@ -413,8 +413,12 @@ internal fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBrackets(color
     drawPath(path, color, style = Stroke(width, cap = StrokeCap.Round))
 }
 
+/** No camera permission yet: why it is needed, and the one button that grants it. */
 @Composable
-private fun BoxScope.NoCamera(onAllow: () -> Unit) {
+internal fun BoxScope.NoCamera(
+    onAllow: () -> Unit,
+    message: String = stringResource(R.string.camera_needed_scan),
+) {
     Column(
         Modifier
             .align(Alignment.Center)
@@ -424,7 +428,7 @@ private fun BoxScope.NoCamera(onAllow: () -> Unit) {
     ) {
         LineIcon(Lucide.camera, size = 40.dp, color = Color.White.copy(alpha = 0.7f), stroke = 1.8f)
         Text(
-            stringResource(R.string.camera_needed_scan),
+            message,
             style = SType.body,
             color = Color.White.copy(alpha = 0.85f),
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,

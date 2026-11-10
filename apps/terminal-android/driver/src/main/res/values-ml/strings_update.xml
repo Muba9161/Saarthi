@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Humsafar updating itself: the offer, the progress, and the note afterwards. -->
+<resources>
+    <string name="update_available_title">അപ്ഡേറ്റ് ലഭ്യമാണ്</string>
+    <string name="update_available_body">പതിപ്പ് %1$s · %2$s</string>
+    <string name="update_ready_body">പതിപ്പ് %1$s ഡൗൺലോഡ് ചെയ്തു, തയ്യാറാണ്.</string>
+    <string name="update_action">അപ്ഡേറ്റ് ചെയ്യുക</string>
+    <string name="update_dismiss">ഇപ്പോൾ വേണ്ട</string>
+    <string name="update_failed_title">അപ്ഡേറ്റ് പൂർത്തിയായില്ല</string>
+    <string name="update_retry">വീണ്ടും ശ്രമിക്കുക</string>
+    <string name="update_progress_title">ഹംസഫർ അപ്ഡേറ്റ് ചെയ്യുന്നു</string>
+    <string name="update_downloading">പതിപ്പ് %1$s ഡൗൺലോഡ് ചെയ്യുന്നു</string>
+    <string name="update_progress_size">%2$s ൽ %1$s</string>
+    <string name="update_installing">ഇൻസ്റ്റാൾ ചെയ്യുന്നു. ഹംസഫർ അൽപനേരം അടയും, തയ്യാറാകുമ്പോൾ അറിയിക്കും.</string>
+    <string name="update_hide">ആപ്പ് ഉപയോഗിക്കുന്നത് തുടരുക</string>
+    <string name="update_channel_name">ആപ്പ് അപ്ഡേറ്റുകൾ</string>
+    <string name="update_done_title">ഹംസഫർ അപ്ഡേറ്റ് ചെയ്തു</string>
+    <string name="update_done_body">പതിപ്പ് %1$s ഇൻസ്റ്റാൾ ചെയ്തു. തുറക്കാൻ ടാപ്പ് ചെയ്യുക.</string>
+</resources>

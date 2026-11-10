@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Reading a vehicle's number plate with the camera, from the vehicle-number field. -->
+<resources>
+    <string name="plate_scan_action">સ્કૅન</string>
+    <string name="plate_scan_title">નંબર પ્લેટ સ્કૅન કરો</string>
+    <string name="plate_scan_hint">કૅમેરા નંબર પ્લેટ તરફ રાખો. નંબર આપમેળે ભરાઈ જશે.</string>
+    <string name="plate_scan_preparing">પ્લેટ રીડર તૈયાર થઈ રહ્યું છે. થોડી વાર ફોન ઑનલાઇન રાખો.</string>
+    <string name="plate_scan_close">સ્કૅનર બંધ કરો</string>
+    <string name="plate_scan_camera_needed">નંબર પ્લેટ વાંચવા હમસફરને કૅમેરાની જરૂર છે.</string>
+</resources>

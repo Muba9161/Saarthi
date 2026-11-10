@@ -245,6 +245,15 @@ dependencies {
      */
     implementation(libs.androidx.biometric)
 
+    /*
+     * Reading a vehicle's number plate with the camera.
+     *
+     * Driver only: it fills the vehicle-number field when riding along or when
+     * the QR sticker is unreadable. A fitted tablet is paired to one vehicle and
+     * never asks for a number.
+     */
+    implementation(libs.mlkit.text.recognition)
+
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     testImplementation(libs.junit)
