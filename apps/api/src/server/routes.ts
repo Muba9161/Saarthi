@@ -100,6 +100,7 @@ import {
   serviceHistoryRoutes,
   vehicleServiceRoutes,
 } from '../modules/maintenance/service-history.routes';
+import { insuranceRoutes } from '../modules/insurance/insurance.routes';
 
 /**
  * Versioned API surface. Every feature module registers its own route file
@@ -288,6 +289,7 @@ export async function registerApiRoutes(app: FastifyInstance): Promise<void> {
   // person and not a device — the signed ticket it presents is the whole
   // credential, and it is verified inside the route.
   await app.register(videoGatewayRoutes, { prefix: '/video-gateway' });
+  await app.register(insuranceRoutes, { prefix: '/insurance' });
   await app.register(adminRoutes, { prefix: '/admin' });
   await app.register(commerceAdminRoutes, { prefix: '/admin/commerce' });
 }

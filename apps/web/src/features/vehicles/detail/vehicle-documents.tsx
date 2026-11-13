@@ -21,6 +21,7 @@ import { SubjectQrPanel } from '@/features/qr/subject-qr-panel';
 import { cn } from '@/lib/utils';
 import { VehiclePhotosPanel } from './vehicle-photos';
 import { EmptyRows, Panel, PanelHeader } from './panel';
+import { InsuranceFolderPanel } from '../insurance/insurance-folder-panel';
 
 /**
  * The Documents tab: one folder per vehicle paper, plus the photographs and the
@@ -294,6 +295,19 @@ export function VehicleDocuments({
             ))}
           </div>
         </div>
+      );
+    }
+
+    if (open.id === 'INSURANCE') {
+      return (
+        <InsuranceFolderPanel
+          vehicleId={vehicleId}
+          registrationNumber={registrationNumber}
+          onBack={() => onFolderChange(null)}
+          onOpenVirtualRc={canLookupRegistration ? onOpenVirtualRc : undefined}
+          canUpload={canUpload}
+          allDocuments={items}
+        />
       );
     }
 
