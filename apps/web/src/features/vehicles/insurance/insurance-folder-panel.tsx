@@ -469,13 +469,13 @@ export function InsuranceFolderPanel({
               </div>
 
               {/* Sub-grid: Left = Actual Uploaded RC Document / Preview, Right = Upload / Replace Dropzone */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
-                {/* Part A: Actual Uploaded Vehicle RC Document */}
-                <div className="rounded-xl border border-border/80 bg-muted/20 p-4 flex flex-col justify-between">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 items-stretch">
+                {/* Part A: Actual Uploaded Vehicle RC Document Container */}
+                <div className="rounded-xl border border-border bg-card p-4 flex flex-col justify-between shadow-xs">
                   {rcDocument ? (
-                    <div className="flex flex-col h-full justify-between gap-3">
-                      {/* Document Card Visual Representation */}
-                      <div className="relative rounded-lg border border-border bg-white dark:bg-card p-3 shadow-xs overflow-hidden">
+                    <div className="flex flex-col h-full justify-between">
+                      {/* Document Details & Verification Status */}
+                      <div>
                         <div className="flex items-start justify-between gap-2 border-b border-border/50 pb-2">
                           <div className="flex items-center gap-1.5">
                             <span className="text-[10px] font-bold text-primary tracking-wider uppercase">
@@ -486,7 +486,7 @@ export function InsuranceFolderPanel({
                             type="button"
                             onClick={() => void handleDownloadRc(true)}
                             aria-label="View Fullscreen"
-                            className="text-muted-foreground hover:text-foreground transition-colors p-1"
+                            className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-md hover:bg-muted"
                           >
                             <Maximize2 className="size-3.5" />
                           </button>
@@ -527,27 +527,27 @@ export function InsuranceFolderPanel({
                         </div>
                       </div>
 
-                      {/* Action buttons */}
-                      <div className="flex items-center gap-2 pt-2">
+                      {/* Action buttons completely inside the Vehicle RC document container */}
+                      <div className="flex items-center gap-2.5 pt-3 mt-3 border-t border-border/50">
                         <Button
                           type="button"
                           variant="outline"
                           size="sm"
                           onClick={() => void handleDownloadRc(true)}
-                          className="flex-1 rounded-lg text-xs font-medium"
+                          className="flex-1 h-9 rounded-lg text-xs font-medium px-2.5 flex items-center justify-center gap-1.5 border-border/80 hover:bg-muted"
                         >
-                          <Eye className="mr-1.5 size-3.5" />
-                          View Fullscreen
+                          <Eye className="size-3.5 shrink-0" />
+                          <span className="truncate">View Fullscreen</span>
                         </Button>
                         <Button
                           type="button"
                           variant="outline"
                           size="sm"
                           onClick={() => void handleDownloadRc(false)}
-                          className="flex-1 rounded-lg text-xs font-medium"
+                          className="flex-1 h-9 rounded-lg text-xs font-medium px-2.5 flex items-center justify-center gap-1.5 border-border/80 hover:bg-muted"
                         >
-                          <Download className="mr-1.5 size-3.5" />
-                          Download
+                          <Download className="size-3.5 shrink-0" />
+                          <span className="truncate">Download</span>
                         </Button>
                       </div>
                     </div>
