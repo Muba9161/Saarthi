@@ -92,11 +92,22 @@ export function VehicleDetailPage() {
    * overflow menu opens a tab *at* a section or a document folder, and it can
    * only do that if something above the tabs owns all three.
    */
-  const [tab, setTab] = React.useState<VehicleTab>('overview');
+  const searchParams = React.useMemo(() => new URLSearchParams(location.search), [location.search]);
+  const initialTab = searchParams.get('tab') as VehicleTab | null;
+  const initialFolder = searchParams.get('folder');
+
+  const [tab, setTab] = React.useState<VehicleTab>(initialTab || 'overview');
   const [sections, setSections] = React.useState<Partial<Record<VehicleTab, string>>>({});
-  const [folder, setFolder] = React.useState<string | null>(null);
+  const [folder, setFolder] = React.useState<string | null>(initialFolder || null);
   /** The tab strip, so opening a section from the header scrolls to it. */
   const tabsRef = React.useRef<HTMLDivElement | null>(null);
+
+  React.useEffect(() => {
+    const pTab = searchParams.get('tab') as VehicleTab | null;
+    const pFolder = searchParams.get('folder');
+    if (pTab) setTab(pTab);
+    if (pFolder !== null) setFolder(pFolder);
+  }, [searchParams]);
 
   // The generalized endpoint serves both routes: it returns the same row as
   // `/trucks/:id` plus the type, capabilities, hardware and alert roll-up.

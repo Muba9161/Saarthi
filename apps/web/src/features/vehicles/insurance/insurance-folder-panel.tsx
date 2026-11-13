@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AlertCircle,
@@ -198,6 +199,7 @@ export function InsuranceFolderPanel({
   allDocuments,
 }: InsuranceFolderPanelProps) {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = React.useState<InsuranceSubTab>('overview');
   const [fullscreenOpen, setFullscreenOpen] = React.useState(false);
   const [previewBlobUrl, setPreviewBlobUrl] = React.useState<string | null>(null);
@@ -424,7 +426,13 @@ export function InsuranceFolderPanel({
             <button
               key={tab.id}
               type="button"
-              onClick={() => setActiveTab(tab.id as InsuranceSubTab)}
+              onClick={() => {
+                if (tab.id === 'comparison') {
+                  navigate(`/fleet/vehicles/${vehicleId}/insurance/compare`);
+                } else {
+                  setActiveTab(tab.id as InsuranceSubTab);
+                }
+              }}
               className={cn(
                 'relative pb-3 text-sm font-medium transition-colors whitespace-nowrap px-1',
                 isActive
@@ -690,14 +698,14 @@ export function InsuranceFolderPanel({
             <div
               role="button"
               tabIndex={0}
-              onClick={() => setActiveTab('comparison')}
+              onClick={() => navigate(`/fleet/vehicles/${vehicleId}/insurance/compare`)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
-                  setActiveTab('comparison');
+                  navigate(`/fleet/vehicles/${vehicleId}/insurance/compare`);
                 }
               }}
-              className="group relative overflow-hidden rounded-2xl bg-gradient-to-r from-red-600 via-rose-600 to-red-700 p-5 text-white shadow-md hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5 cursor-pointer select-none"
+              className="group relative overflow-hidden rounded-2xl bg-gradient-to-r from-red-600 via-rose-600 to-red-700 p-5 text-white shadow-md hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5 cursor-pointer select-none ring-1 ring-red-500/20"
             >
               <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3.5">
@@ -714,53 +722,54 @@ export function InsuranceFolderPanel({
                   </div>
                 </div>
 
-                <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-white/20 group-hover:bg-white group-hover:text-red-600 text-white transition-all">
-                  <ArrowRight className="size-5 transition-transform group-hover:translate-x-0.5" />
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-white/20 group-hover:bg-white group-hover:text-red-600 text-white transition-all shadow-xs">
+                  <ArrowRight className="size-5 transition-transform group-hover:translate-x-1" />
                 </div>
               </div>
             </div>
 
-            {/* Indian Insurance Companies Grid Card */}
-            <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="text-sm font-semibold text-foreground">Top Vehicle Insurance Providers in India</h3>
-                  <p className="text-[11px] text-muted-foreground">Verified official portals</p>
+            {/* Insurance Guidance & Key Features Card */}
+            <div className="rounded-2xl border border-border bg-card p-5 shadow-sm space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <ShieldCheck className="size-5" />
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('comparison')}
-                  className="text-xs font-semibold text-primary hover:underline"
-                >
-                  View All
-                </button>
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground">Why Compare Before Renewal?</h3>
+                  <p className="text-xs text-muted-foreground">IRDAI-verified insurer network</p>
+                </div>
               </div>
 
-              {/* Grid of the 9 Indian Insurance Companies */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {INDIAN_INSURANCE_COMPANIES.map((company) => (
-                  <a
-                    key={company.id}
-                    href={company.officialUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="group flex flex-col justify-between p-3 rounded-xl border border-border/70 hover:border-primary/50 bg-background/50 hover:bg-muted/40 transition-all duration-200 hover:shadow-sm"
-                  >
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="shrink-0">
-                        {getProviderLogoComponent(company.id, 'size-6')}
-                      </div>
-                      <span className="text-xs font-semibold text-foreground leading-tight line-clamp-1 group-hover:text-primary transition-colors">
-                        {company.shortName}
-                      </span>
-                    </div>
+              <div className="space-y-3 text-xs text-muted-foreground">
+                <div className="flex items-start gap-2.5">
+                  <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                  <span>
+                    Direct access to official portals of <strong className="text-foreground">9 top Indian motor insurers</strong> with zero agent commission or markup.
+                  </span>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                  <span>
+                    Transfer and protect your accrued <strong className="text-foreground">No Claim Bonus (NCB) up to 50%</strong> for substantial discount on Own Damage premium.
+                  </span>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                  <span>
+                    Over <strong className="text-foreground">11,000+ cashless network garages</strong> with instant video inspection and fast-track claim settlement.
+                  </span>
+                </div>
+              </div>
 
-                    <div className="flex items-center justify-between mt-auto pt-2 border-t border-border/40 text-[11px] text-muted-foreground group-hover:text-primary">
-                      <span>Visit Website</span>
-                      <ExternalLink className="size-3 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-                    </div>
-                  </a>
-                ))}
+              <div className="pt-2">
+                <Button
+                  variant="outline"
+                  onClick={() => navigate(`/fleet/vehicles/${vehicleId}/insurance/compare`)}
+                  className="w-full rounded-xl text-xs font-semibold border-primary/30 text-primary hover:bg-primary/5"
+                >
+                  Open Comparison Center
+                  <ArrowRight className="ml-1.5 size-3.5" />
+                </Button>
               </div>
             </div>
           </div>

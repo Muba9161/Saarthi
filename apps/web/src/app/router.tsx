@@ -335,6 +335,18 @@ export const router = createBrowserRouter([
                 element: lazyPage(() => import('@/pages/fleet/vehicle-detail')),
               },
               {
+                path: '/fleet/vehicles/:id/insurance/compare',
+                element: lazyPage(() => import('@/pages/fleet/insurance-compare')),
+              },
+              {
+                path: '/fleet/trucks/:id/insurance/compare',
+                element: lazyPage(() => import('@/pages/fleet/insurance-compare')),
+              },
+              {
+                path: '/insurance/compare',
+                element: lazyPage(() => import('@/pages/fleet/insurance-compare')),
+              },
+              {
                 path: '/fleet/vehicles/:id/telemetry',
                 element: lazyPage(() => import('@/pages/telemetry/vehicle-telemetry')),
               },
