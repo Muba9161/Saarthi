@@ -377,38 +377,68 @@ The backend is structured around modular domain plugins registered in `apps/api/
 
 ### 6.3 Relational Entity-Relationship (ER) Diagram
 
-```text
-+------------------------+             1:N             +-----------------------+
-|     organizations      |<----------------------------|         users         |
-|------------------------|                             |-----------------------|
-| id (PK)                |                             | id (PK)               |
-| name                   |                             | organization_id (FK)  |
-| type                   |                             | email / phone         |
-+------------------------+                             +-----------------------+
-           |
-           | 1:N
-           v
-+------------------------+             1:N             +-----------------------+
-|        vehicles        |<----------------------------|       documents       |
-|------------------------|                             |-----------------------|
-| id (PK)                |                             | id (PK)               |
-| organization_id (FK)   |                             | organization_id (FK)  |
-| registration_number    |                             | owner_type (TRUCK)    |
-| vehicle_type           |                             | owner_id (FK -> veh)  |
-| manufacturer / model   |                             | document_type (RC/INS)|
-| verification_status    |                             | file_name / storage_key
-+------------------------+                             | verification_status   |
-                                                       +-----------------------+
-                                                                   |
-                                                                   | 1:N
-                                                                   v
-                                                       +-----------------------+
-                                                       |    document_checks    |
-                                                       |-----------------------|
-                                                       | id (PK)               |
-                                                       | document_id (FK)      |
-                                                       | status / verified_by  |
-                                                       +-----------------------+
+![Figure 6: Relational Database & Entity-Relationship Architecture](screenshots/fig_er_diagram_architecture.png)
+*Figure 6: Relational Database & Entity-Relationship Architecture: PostgreSQL 17.2 schema mapping organizations, vehicles, users, and the polymorphic compliance document model (owner_type = 'TRUCK', document_type = 'REGISTRATION_CERTIFICATE' | 'INSURANCE') with document verification checks and verified Indian insurance carrier directory.*
+
+```mermaid
+erDiagram
+    ORGANIZATIONS ||--o{ USERS : "has members"
+    ORGANIZATIONS ||--o{ VEHICLES : "owns fleet"
+    VEHICLES ||--o{ DOCUMENTS : "complies via (TRUCK)"
+    DOCUMENTS ||--o{ DOCUMENT_CHECKS : "verified by"
+    INSURANCE_PROVIDERS ||..o{ DOCUMENTS : "policy directory lookup"
+
+    ORGANIZATIONS {
+        string id PK
+        string name
+        enum type
+    }
+    USERS {
+        string id PK
+        string organization_id FK
+        string email
+        string phone
+        string[] roles
+    }
+    VEHICLES {
+        string id PK
+        string organization_id FK
+        string registration_number UK
+        enum vehicle_type
+        string manufacturer
+        string model
+        enum fuel_type
+        enum verification_status
+    }
+    DOCUMENTS {
+        string id PK
+        string organization_id FK
+        enum owner_type
+        string owner_id FK
+        enum document_type
+        string document_number
+        string file_name
+        int file_size
+        string storage_key
+        enum verification_status
+        timestamp expiry_date
+    }
+    DOCUMENT_CHECKS {
+        string id PK
+        string document_id FK
+        enum check_type
+        enum status
+        string verified_by FK
+        timestamp verified_at
+    }
+    INSURANCE_PROVIDERS {
+        string id PK
+        string name
+        string official_url
+        string claim_settlement_ratio
+        int cashless_garages
+        string customer_care
+    }
 ```
 
 ---
