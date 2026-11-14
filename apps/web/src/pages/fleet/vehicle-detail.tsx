@@ -295,19 +295,14 @@ export function VehicleDetailPage() {
               {
                 label: 'Air conditioning',
                 value:
-                  vehicle.airConditioned === null
-                    ? '-'
-                    : vehicle.airConditioned
-                      ? 'Yes'
-                      : 'No',
+                  vehicle.airConditioned === null ? '-' : vehicle.airConditioned ? 'Yes' : 'No',
               },
             ]
           : []),
         { label: 'Fuel', value: humanizeEnum(vehicle.fuelType) },
         {
           label: 'Rated consumption',
-          value:
-            vehicle.fuelEfficiency !== null ? `${vehicle.fuelEfficiency} L/100 km` : '-',
+          value: vehicle.fuelEfficiency !== null ? `${vehicle.fuelEfficiency} L/100 km` : '-',
         },
       ],
     },

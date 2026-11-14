@@ -28,9 +28,7 @@ import type { DocumentSummary } from '@/lib/api-types';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
-import {
-  getProviderLogoComponent,
-} from './insurance-provider-logos';
+import { getProviderLogoComponent } from './insurance-provider-logos';
 
 export interface InsuranceProvider {
   id: string;
@@ -79,7 +77,12 @@ const INDIAN_INSURANCE_COMPANIES: InsuranceProvider[] = [
     customerCare: '1800 2666',
     rating: 4.8,
     description: 'Instant digital policy issuance and video claims approval in minutes.',
-    features: ['Instant policy issuance', 'Video claims approval', '24x7 Roadside Assistance', 'Zero-depreciation add-on'],
+    features: [
+      'Instant policy issuance',
+      'Video claims approval',
+      '24x7 Roadside Assistance',
+      'Zero-depreciation add-on',
+    ],
   },
   {
     id: 'bajaj-general',
@@ -91,7 +94,12 @@ const INDIAN_INSURANCE_COMPANIES: InsuranceProvider[] = [
     customerCare: '1800 209 5858',
     rating: 4.7,
     description: 'Pioneered Motor On The Spot (MOTS) settlements and spot assistance.',
-    features: ['Motor on the Spot', '24x7 spot assistance', 'Engine protector cover', 'Personal accident shield'],
+    features: [
+      'Motor on the Spot',
+      '24x7 spot assistance',
+      'Engine protector cover',
+      'Personal accident shield',
+    ],
   },
   {
     id: 'tata-aig',
@@ -103,7 +111,12 @@ const INDIAN_INSURANCE_COMPANIES: InsuranceProvider[] = [
     customerCare: '1800 266 7780',
     rating: 4.8,
     description: 'Trusted coverage backed by the Tata legacy with high settlement efficiency.',
-    features: ['Auto Secure comprehensive', 'Consumables & tyre cover', 'Emergency transport', 'Warranty protection'],
+    features: [
+      'Auto Secure comprehensive',
+      'Consumables & tyre cover',
+      'Emergency transport',
+      'Warranty protection',
+    ],
   },
   {
     id: 'hdfc-ergo',
@@ -115,7 +128,12 @@ const INDIAN_INSURANCE_COMPANIES: InsuranceProvider[] = [
     customerCare: '022 6234 6234',
     rating: 4.9,
     description: 'Extensive cashless workshop network across India with overnight express repair.',
-    features: ['Overnight vehicle repair', 'Zero paper claim process', 'Unlimited zero dep claims', 'Return to invoice'],
+    features: [
+      'Overnight vehicle repair',
+      'Zero paper claim process',
+      'Unlimited zero dep claims',
+      'Return to invoice',
+    ],
   },
   {
     id: 'new-india-assurance',
@@ -127,7 +145,12 @@ const INDIAN_INSURANCE_COMPANIES: InsuranceProvider[] = [
     customerCare: '1800 209 1415',
     rating: 4.6,
     description: 'India’s largest government general insurer with pan-India network.',
-    features: ['Government-backed reliability', 'Pan-India branch network', 'Commercial fleet support', 'Affordable rates'],
+    features: [
+      'Government-backed reliability',
+      'Pan-India branch network',
+      'Commercial fleet support',
+      'Affordable rates',
+    ],
   },
   {
     id: 'sbi-general',
@@ -139,7 +162,12 @@ const INDIAN_INSURANCE_COMPANIES: InsuranceProvider[] = [
     customerCare: '1800 102 1111',
     rating: 4.6,
     description: 'Trust of State Bank of India with transparent settlements and fleet discounts.',
-    features: ['SBI banking trust', 'Commercial fleet packages', 'No claim bonus protection', 'Fast-track settlement'],
+    features: [
+      'SBI banking trust',
+      'Commercial fleet packages',
+      'No claim bonus protection',
+      'Fast-track settlement',
+    ],
   },
   {
     id: 'digit-insurance',
@@ -151,7 +179,12 @@ const INDIAN_INSURANCE_COMPANIES: InsuranceProvider[] = [
     customerCare: '1800 258 5956',
     rating: 4.9,
     description: '100% paperless motor insurer with smartphone self-inspection in 7 minutes.',
-    features: ['Self-inspection in 7 mins', '100% paperless onboarding', 'Customizable IDV', 'Superfast reimbursement'],
+    features: [
+      'Self-inspection in 7 mins',
+      '100% paperless onboarding',
+      'Customizable IDV',
+      'Superfast reimbursement',
+    ],
   },
   {
     id: 'reliance-general',
@@ -163,7 +196,12 @@ const INDIAN_INSURANCE_COMPANIES: InsuranceProvider[] = [
     customerCare: '1800 3009',
     rating: 4.7,
     description: 'Comprehensive commercial and personal motor packages with doorstep pickup.',
-    features: ['Instant video survey', 'Free pickup & drop repairs', 'Commercial carriage packages', 'Tyre & battery protection'],
+    features: [
+      'Instant video survey',
+      'Free pickup & drop repairs',
+      'Commercial carriage packages',
+      'Tyre & battery protection',
+    ],
   },
   {
     id: 'royal-sundaram',
@@ -175,11 +213,17 @@ const INDIAN_INSURANCE_COMPANIES: InsuranceProvider[] = [
     customerCare: '1860 425 0000',
     rating: 4.5,
     description: 'Dedicated commercial vehicle protection and Car Shield comprehensive plans.',
-    features: ['Car Shield & Heavy Commercial', 'Direct surveyor assignment', 'Lifetime repair warranty', 'Cashless garage network'],
+    features: [
+      'Car Shield & Heavy Commercial',
+      'Direct surveyor assignment',
+      'Lifetime repair warranty',
+      'Cashless garage network',
+    ],
   },
 ];
 
-type InsuranceSubTab = 'overview' | 'policy-details' | 'renewal' | 'claims' | 'comparison' | 'history';
+type InsuranceSubTab =
+  'overview' | 'policy-details' | 'renewal' | 'claims' | 'comparison' | 'history';
 
 interface InsuranceFolderPanelProps {
   vehicleId: string;
@@ -222,7 +266,12 @@ export function InsuranceFolderPanel({
     queryFn: async () => {
       try {
         return await api.get<{
-          vehicle: { registrationNumber: string; manufacturer?: string; model?: string; fuelType?: string };
+          vehicle: {
+            registrationNumber: string;
+            manufacturer?: string;
+            model?: string;
+            fuelType?: string;
+          };
           rcDocument: DocumentSummary | null;
           insuranceDocument: DocumentSummary | null;
           policySummary: {
@@ -297,7 +346,9 @@ export function InsuranceFolderPanel({
     if (!rcDocument) return;
     try {
       const response = await fetch(
-        absoluteApiUrl(`/documents/${rcDocument.id}/download${inline ? '?disposition=inline' : ''}`),
+        absoluteApiUrl(
+          `/documents/${rcDocument.id}/download${inline ? '?disposition=inline' : ''}`,
+        ),
         {
           credentials: 'include',
           headers: { authorization: `Bearer ${getAccessToken() ?? ''}` },
@@ -350,13 +401,20 @@ export function InsuranceFolderPanel({
     return '15-Feb-2027';
   }, [insuranceDocument, insuranceQuery.data]);
 
-  const policyCompany = insuranceDocument?.title || insuranceQuery.data?.policySummary.company || 'ICICI Lombard';
-  const policyNumber = insuranceDocument?.documentNumber || insuranceQuery.data?.policySummary.policyNumber || 'IL-9876543210';
+  const policyCompany =
+    insuranceDocument?.title || insuranceQuery.data?.policySummary.company || 'ICICI Lombard';
+  const policyNumber =
+    insuranceDocument?.documentNumber ||
+    insuranceQuery.data?.policySummary.policyNumber ||
+    'IL-9876543210';
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in-50 duration-200">
       {/* 1. Breadcrumbs */}
-      <nav aria-label="Breadcrumbs" className="flex items-center gap-2 text-sm text-muted-foreground">
+      <nav
+        aria-label="Breadcrumbs"
+        className="flex items-center gap-2 text-sm text-muted-foreground"
+      >
         <button
           type="button"
           onClick={onBack}
@@ -365,7 +423,9 @@ export function InsuranceFolderPanel({
           <Home className="size-4" />
           <span>Home</span>
         </button>
-        <span aria-hidden className="text-muted-foreground/60">/</span>
+        <span aria-hidden className="text-muted-foreground/60">
+          /
+        </span>
         <button
           type="button"
           onClick={onBack}
@@ -374,7 +434,9 @@ export function InsuranceFolderPanel({
           <Folder className="size-4" />
           <span>Documents</span>
         </button>
-        <span aria-hidden className="text-muted-foreground/60">/</span>
+        <span aria-hidden className="text-muted-foreground/60">
+          /
+        </span>
         <span className="font-semibold text-foreground">Insurance</span>
       </nav>
 
@@ -403,7 +465,12 @@ export function InsuranceFolderPanel({
             Back to Documents
           </Button>
           {onOpenVirtualRc ? (
-            <Button variant="ghost" size="sm" onClick={onOpenVirtualRc} className="rounded-xl text-primary hover:text-primary">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onOpenVirtualRc}
+              className="rounded-xl text-primary hover:text-primary"
+            >
               <FileText className="mr-1.5 size-4" />
               Virtual RC
             </Button>
@@ -493,11 +560,17 @@ export function InsuranceFolderPanel({
                         </div>
 
                         <div className="py-2.5">
-                          <p className="text-xs font-semibold text-foreground truncate" title={rcDocument.fileName}>
+                          <p
+                            className="text-xs font-semibold text-foreground truncate"
+                            title={rcDocument.fileName}
+                          >
                             {rcDocument.fileName}
                           </p>
                           <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
-                            <span>Plate: <strong className="text-foreground">{registrationNumber}</strong></span>
+                            <span>
+                              Plate:{' '}
+                              <strong className="text-foreground">{registrationNumber}</strong>
+                            </span>
                             <span>Size: {(rcDocument.fileSize / 1024 / 1024).toFixed(2)} MB</span>
                             <span>v{rcDocument.currentVersion}</span>
                           </div>
@@ -557,9 +630,12 @@ export function InsuranceFolderPanel({
                       <div className="size-12 rounded-full bg-muted flex items-center justify-center text-muted-foreground mb-3">
                         <FileText className="size-6" />
                       </div>
-                      <p className="text-xs font-semibold text-foreground">No physical RC on file</p>
+                      <p className="text-xs font-semibold text-foreground">
+                        No physical RC on file
+                      </p>
                       <p className="text-[11px] text-muted-foreground mt-1 max-w-[190px]">
-                        Upload your vehicle's physical Registration Certificate to keep records compliant.
+                        Upload your vehicle's physical Registration Certificate to keep records
+                        compliant.
                       </p>
                     </div>
                   )}
@@ -646,7 +722,9 @@ export function InsuranceFolderPanel({
                   </div>
                   <div>
                     <h3 className="text-sm font-semibold text-foreground">Policy Summary</h3>
-                    <p className="text-xs text-muted-foreground">Current coverage status and validity</p>
+                    <p className="text-xs text-muted-foreground">
+                      Current coverage status and validity
+                    </p>
                   </div>
                 </div>
 
@@ -664,7 +742,10 @@ export function InsuranceFolderPanel({
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-muted/20 p-3.5 rounded-xl border border-border/60">
                 <div>
                   <p className="text-[11px] text-muted-foreground font-medium">Insurance Company</p>
-                  <p className="text-xs font-semibold text-foreground mt-0.5 truncate" title={policyCompany}>
+                  <p
+                    className="text-xs font-semibold text-foreground mt-0.5 truncate"
+                    title={policyCompany}
+                  >
                     {policyCompany}
                   </p>
                 </div>
@@ -717,7 +798,8 @@ export function InsuranceFolderPanel({
                       Comparison of Insurance Policies
                     </h3>
                     <p className="text-xs text-white/90 mt-1 line-clamp-2 leading-relaxed">
-                      Compare plans from top vehicle insurance companies in India and choose the best for your vehicle.
+                      Compare plans from top vehicle insurance companies in India and choose the
+                      best for your vehicle.
                     </p>
                   </div>
                 </div>
@@ -735,7 +817,9 @@ export function InsuranceFolderPanel({
                   <ShieldCheck className="size-5" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-foreground">Why Compare Before Renewal?</h3>
+                  <h3 className="text-sm font-semibold text-foreground">
+                    Why Compare Before Renewal?
+                  </h3>
                   <p className="text-xs text-muted-foreground">IRDAI-verified insurer network</p>
                 </div>
               </div>
@@ -744,19 +828,25 @@ export function InsuranceFolderPanel({
                 <div className="flex items-start gap-2.5">
                   <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
                   <span>
-                    Direct access to official portals of <strong className="text-foreground">9 top Indian motor insurers</strong> with zero agent commission or markup.
+                    Direct access to official portals of{' '}
+                    <strong className="text-foreground">9 top Indian motor insurers</strong> with
+                    zero agent commission or markup.
                   </span>
                 </div>
                 <div className="flex items-start gap-2.5">
                   <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
                   <span>
-                    Transfer and protect your accrued <strong className="text-foreground">No Claim Bonus (NCB) up to 50%</strong> for substantial discount on Own Damage premium.
+                    Transfer and protect your accrued{' '}
+                    <strong className="text-foreground">No Claim Bonus (NCB) up to 50%</strong> for
+                    substantial discount on Own Damage premium.
                   </span>
                 </div>
                 <div className="flex items-start gap-2.5">
                   <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
                   <span>
-                    Over <strong className="text-foreground">11,000+ cashless network garages</strong> with instant video inspection and fast-track claim settlement.
+                    Over{' '}
+                    <strong className="text-foreground">11,000+ cashless network garages</strong>{' '}
+                    with instant video inspection and fast-track claim settlement.
                   </span>
                 </div>
               </div>
@@ -782,9 +872,12 @@ export function InsuranceFolderPanel({
           <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
               <div>
-                <h2 className="text-lg font-bold text-foreground">Compare Vehicle Insurance Policies</h2>
+                <h2 className="text-lg font-bold text-foreground">
+                  Compare Vehicle Insurance Policies
+                </h2>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Detailed comparison across top Indian general insurers for comprehensive, zero-dep, and commercial protection.
+                  Detailed comparison across top Indian general insurers for comprehensive,
+                  zero-dep, and commercial protection.
                 </p>
               </div>
 
@@ -828,7 +921,9 @@ export function InsuranceFolderPanel({
                           {getProviderLogoComponent(company.id, 'size-7')}
                           <div>
                             <span className="block font-semibold">{company.shortName}</span>
-                            <span className="text-[10px] text-muted-foreground">{company.name}</span>
+                            <span className="text-[10px] text-muted-foreground">
+                              {company.name}
+                            </span>
                           </div>
                         </div>
                       </td>
@@ -879,11 +974,15 @@ export function InsuranceFolderPanel({
       {/* 6. Policy Details Tab Content */}
       {activeTab === 'policy-details' && (
         <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-          <h2 className="text-base font-semibold text-foreground mb-4">Detailed Policy Coverage & Terms</h2>
+          <h2 className="text-base font-semibold text-foreground mb-4">
+            Detailed Policy Coverage & Terms
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="p-4 rounded-xl border border-border bg-muted/20">
               <p className="text-xs text-muted-foreground">Coverage Category</p>
-              <p className="text-sm font-semibold text-foreground mt-1">Comprehensive + Bumper to Bumper</p>
+              <p className="text-sm font-semibold text-foreground mt-1">
+                Comprehensive + Bumper to Bumper
+              </p>
               <p className="text-[11px] text-muted-foreground mt-2">
                 Covers own damage, third-party liability, theft, fire, and natural disasters.
               </p>
@@ -897,7 +996,9 @@ export function InsuranceFolderPanel({
             </div>
             <div className="p-4 rounded-xl border border-border bg-muted/20">
               <p className="text-xs text-muted-foreground">No Claim Bonus (NCB)</p>
-              <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 mt-1">35% Discount Applied</p>
+              <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 mt-1">
+                35% Discount Applied
+              </p>
               <p className="text-[11px] text-muted-foreground mt-2">
                 Accumulated reward for claim-free driving during the preceding policy term.
               </p>
@@ -915,16 +1016,20 @@ export function InsuranceFolderPanel({
             </div>
             <div>
               <h2 className="text-base font-semibold text-foreground">Vehicle Policy Renewal</h2>
-              <p className="text-xs text-muted-foreground">Instant renewal with zero inspection and pre-filled data</p>
+              <p className="text-xs text-muted-foreground">
+                Instant renewal with zero inspection and pre-filled data
+              </p>
             </div>
           </div>
 
           <div className="bg-primary/5 rounded-xl border border-primary/20 p-4 mb-6">
             <p className="text-sm font-medium text-foreground">
-              Your policy is currently <strong className="text-emerald-600">Active</strong> until {policyExpiryDisplay}.
+              Your policy is currently <strong className="text-emerald-600">Active</strong> until{' '}
+              {policyExpiryDisplay}.
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              Renew early up to 90 days prior to expiry without losing your existing NCB accumulated bonus.
+              Renew early up to 90 days prior to expiry without losing your existing NCB accumulated
+              bonus.
             </p>
           </div>
 
@@ -959,8 +1064,12 @@ export function InsuranceFolderPanel({
               <PhoneCall className="size-5" />
             </div>
             <div>
-              <h2 className="text-base font-semibold text-foreground">Cashless Claim Procedure & Helplines</h2>
-              <p className="text-xs text-muted-foreground">Emergency accident support and toll-free assistance</p>
+              <h2 className="text-base font-semibold text-foreground">
+                Cashless Claim Procedure & Helplines
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                Emergency accident support and toll-free assistance
+              </p>
             </div>
           </div>
 
@@ -972,8 +1081,12 @@ export function InsuranceFolderPanel({
                   <span className="text-xs font-semibold text-foreground">{company.shortName}</span>
                 </div>
                 <p className="text-[11px] text-muted-foreground">Toll-Free Helpline:</p>
-                <p className="text-xs font-bold text-primary font-mono mt-0.5">{company.customerCare}</p>
-                <p className="text-[10px] text-muted-foreground mt-1">{company.cashlessGarages.toLocaleString()} Cashless Garages</p>
+                <p className="text-xs font-bold text-primary font-mono mt-0.5">
+                  {company.customerCare}
+                </p>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  {company.cashlessGarages.toLocaleString()} Cashless Garages
+                </p>
               </div>
             ))}
           </div>
@@ -983,12 +1096,18 @@ export function InsuranceFolderPanel({
       {/* 9. History Tab Content */}
       {activeTab === 'history' && (
         <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-          <h2 className="text-base font-semibold text-foreground mb-4">Past Policies & Verified Logs</h2>
+          <h2 className="text-base font-semibold text-foreground mb-4">
+            Past Policies & Verified Logs
+          </h2>
           <div className="rounded-xl border border-border divide-y divide-border text-xs">
             <div className="p-3.5 flex items-center justify-between">
               <div>
-                <p className="font-semibold text-foreground">{policyCompany} - Comprehensive Cover</p>
-                <p className="text-[11px] text-muted-foreground">Term: 15-Feb-2025 to {policyExpiryDisplay}</p>
+                <p className="font-semibold text-foreground">
+                  {policyCompany} - Comprehensive Cover
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  Term: 15-Feb-2025 to {policyExpiryDisplay}
+                </p>
               </div>
               <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-600">
                 Current Term
@@ -996,7 +1115,9 @@ export function InsuranceFolderPanel({
             </div>
             <div className="p-3.5 flex items-center justify-between text-muted-foreground">
               <div>
-                <p className="font-semibold text-foreground">New India Assurance - Commercial Standard</p>
+                <p className="font-semibold text-foreground">
+                  New India Assurance - Commercial Standard
+                </p>
                 <p className="text-[11px]">Term: 15-Feb-2024 to 14-Feb-2025</p>
               </div>
               <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold">
@@ -1054,4 +1175,3 @@ export function InsuranceFolderPanel({
     </div>
   );
 }
-

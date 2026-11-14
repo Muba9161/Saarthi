@@ -18,14 +18,10 @@ export async function insuranceRoutes(app: FastifyInstance): Promise<void> {
   });
 
   // Vehicle-specific insurance details, physical RC status, and policy summary (authenticated)
-  app.get(
-    '/vehicle/:id',
-    { preHandler: app.authenticate },
-    async (request, reply) => {
-      const auth = requireAuth(request);
-      const { id } = parseParams(idParamSchema, request.params);
-      const data = await insuranceService.getVehicleInsurance(auth, id);
-      return ok(reply, data);
-    },
-  );
+  app.get('/vehicle/:id', { preHandler: app.authenticate }, async (request, reply) => {
+    const auth = requireAuth(request);
+    const { id } = parseParams(idParamSchema, request.params);
+    const data = await insuranceService.getVehicleInsurance(auth, id);
+    return ok(reply, data);
+  });
 }

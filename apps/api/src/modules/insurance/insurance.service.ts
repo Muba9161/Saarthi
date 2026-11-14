@@ -49,8 +49,14 @@ export const INDIAN_INSURANCE_PROVIDERS: InsuranceProvider[] = [
     cashlessGarages: 11000,
     customerCare: '1800 2666',
     rating: 4.8,
-    description: 'India’s leading private motor insurance provider with AI-powered instant claim approval.',
-    features: ['Instant digital policy issuance', 'Video claims approval in minutes', '24x7 Spot Roadside Assistance', 'Zero depreciation add-on'],
+    description:
+      'India’s leading private motor insurance provider with AI-powered instant claim approval.',
+    features: [
+      'Instant digital policy issuance',
+      'Video claims approval in minutes',
+      '24x7 Spot Roadside Assistance',
+      'Zero depreciation add-on',
+    ],
   },
   {
     id: 'bajaj-general',
@@ -61,8 +67,14 @@ export const INDIAN_INSURANCE_PROVIDERS: InsuranceProvider[] = [
     cashlessGarages: 10500,
     customerCare: '1800 209 5858',
     rating: 4.7,
-    description: 'Pioneered Motor On The Spot (MOTS) claim settlements and extensive commercial network.',
-    features: ['Motor on the Spot (claims up to ₹30,000)', '24x7 spot assistance', 'Engine protector cover', 'Personal accident shield'],
+    description:
+      'Pioneered Motor On The Spot (MOTS) claim settlements and extensive commercial network.',
+    features: [
+      'Motor on the Spot (claims up to ₹30,000)',
+      '24x7 spot assistance',
+      'Engine protector cover',
+      'Personal accident shield',
+    ],
   },
   {
     id: 'tata-aig',
@@ -73,8 +85,14 @@ export const INDIAN_INSURANCE_PROVIDERS: InsuranceProvider[] = [
     cashlessGarages: 8700,
     customerCare: '1800 266 7780',
     rating: 4.8,
-    description: 'Trusted coverage backed by the Tata legacy, offering high claim settlement efficiency.',
-    features: ['Auto Secure comprehensive package', 'Consumables & tyre cover', 'Emergency hotel accommodation & transport', 'Warranty protection'],
+    description:
+      'Trusted coverage backed by the Tata legacy, offering high claim settlement efficiency.',
+    features: [
+      'Auto Secure comprehensive package',
+      'Consumables & tyre cover',
+      'Emergency hotel accommodation & transport',
+      'Warranty protection',
+    ],
   },
   {
     id: 'hdfc-ergo',
@@ -85,8 +103,14 @@ export const INDIAN_INSURANCE_PROVIDERS: InsuranceProvider[] = [
     cashlessGarages: 12200,
     customerCare: '022 6234 6234',
     rating: 4.9,
-    description: 'Unmatched cashless workshop network across India with overnight express repair service.',
-    features: ['Overnight vehicle repair promise', 'Zero paper digital claim process', 'Unlimited zero dep claims', 'Return to invoice guarantee'],
+    description:
+      'Unmatched cashless workshop network across India with overnight express repair service.',
+    features: [
+      'Overnight vehicle repair promise',
+      'Zero paper digital claim process',
+      'Unlimited zero dep claims',
+      'Return to invoice guarantee',
+    ],
   },
   {
     id: 'new-india-assurance',
@@ -97,8 +121,14 @@ export const INDIAN_INSURANCE_PROVIDERS: InsuranceProvider[] = [
     cashlessGarages: 6500,
     customerCare: '1800 209 1415',
     rating: 4.6,
-    description: 'India’s largest government-owned general insurer with nationwide coverage for all vehicle classes.',
-    features: ['Government-backed reliability', 'Unrivalled rural & interstate support', 'Economical standard commercial rates', 'Robust grievance redressal'],
+    description:
+      'India’s largest government-owned general insurer with nationwide coverage for all vehicle classes.',
+    features: [
+      'Government-backed reliability',
+      'Unrivalled rural & interstate support',
+      'Economical standard commercial rates',
+      'Robust grievance redressal',
+    ],
   },
   {
     id: 'sbi-general',
@@ -109,8 +139,14 @@ export const INDIAN_INSURANCE_PROVIDERS: InsuranceProvider[] = [
     cashlessGarages: 7800,
     customerCare: '1800 102 1111',
     rating: 4.6,
-    description: 'Trust of State Bank of India with transparent claim settlements and fleet group discounts.',
-    features: ['SBI trusted banking integration', 'Custom commercial fleet packages', 'No claim bonus protection', 'Fast-track claim settlement'],
+    description:
+      'Trust of State Bank of India with transparent claim settlements and fleet group discounts.',
+    features: [
+      'SBI trusted banking integration',
+      'Custom commercial fleet packages',
+      'No claim bonus protection',
+      'Fast-track claim settlement',
+    ],
   },
   {
     id: 'digit-insurance',
@@ -122,7 +158,12 @@ export const INDIAN_INSURANCE_PROVIDERS: InsuranceProvider[] = [
     customerCare: '1800 258 5956',
     rating: 4.9,
     description: '100% paperless motor insurer with smartphone self-inspection and highest CSR.',
-    features: ['Smartphone self-inspection in 7 mins', '100% paperless onboarding', 'Customizable IDV selection', 'Fast direct bank transfers'],
+    features: [
+      'Smartphone self-inspection in 7 mins',
+      '100% paperless onboarding',
+      'Customizable IDV selection',
+      'Fast direct bank transfers',
+    ],
   },
   {
     id: 'reliance-general',
@@ -133,8 +174,14 @@ export const INDIAN_INSURANCE_PROVIDERS: InsuranceProvider[] = [
     cashlessGarages: 9100,
     customerCare: '1800 3009',
     rating: 4.7,
-    description: 'Comprehensive commercial and personal motor packages with free doorstep pickup & drop.',
-    features: ['Instant video survey for claims', 'Free pickup & drop for accidental repairs', 'Commercial carriage packages', 'Tyre & battery protection'],
+    description:
+      'Comprehensive commercial and personal motor packages with free doorstep pickup & drop.',
+    features: [
+      'Instant video survey for claims',
+      'Free pickup & drop for accidental repairs',
+      'Commercial carriage packages',
+      'Tyre & battery protection',
+    ],
   },
   {
     id: 'royal-sundaram',
@@ -145,8 +192,14 @@ export const INDIAN_INSURANCE_PROVIDERS: InsuranceProvider[] = [
     cashlessGarages: 7200,
     customerCare: '1860 425 0000',
     rating: 4.5,
-    description: 'Pioneer of dedicated commercial vehicle protection and Car Shield comprehensive plans.',
-    features: ['Car Shield & Heavy Commercial packs', 'Direct surveyor assignment', 'Lifetime warranty on repairs at network garages', 'Aggression-free claims'],
+    description:
+      'Pioneer of dedicated commercial vehicle protection and Car Shield comprehensive plans.',
+    features: [
+      'Car Shield & Heavy Commercial packs',
+      'Direct surveyor assignment',
+      'Lifetime warranty on repairs at network garages',
+      'Aggression-free claims',
+    ],
   },
 ];
 
@@ -361,13 +414,15 @@ export async function getVehicleInsurance(auth: AuthContext, vehicleId: string) 
     policySummary: {
       company: insuranceDocument?.title ?? 'ICICI Lombard',
       policyNumber: insuranceDocument?.documentNumber ?? 'IL-9876543210',
-      validTill: insuranceDocument?.expiryDate ? insuranceDocument.expiryDate.toISOString() : '2027-02-15T00:00:00.000Z',
+      validTill: insuranceDocument?.expiryDate
+        ? insuranceDocument.expiryDate.toISOString()
+        : '2027-02-15T00:00:00.000Z',
       status: insuranceDocument ? status : 'ACTIVE',
       daysUntilExpiry: daysUntilExpiry ?? 459,
-      isExpiringSoon: daysUntilExpiry !== null ? daysUntilExpiry <= 30 && daysUntilExpiry >= 0 : false,
+      isExpiringSoon:
+        daysUntilExpiry !== null ? daysUntilExpiry <= 30 && daysUntilExpiry >= 0 : false,
       isExpired: daysUntilExpiry !== null ? daysUntilExpiry < 0 : false,
     },
     providers: INDIAN_INSURANCE_PROVIDERS,
   };
 }
-

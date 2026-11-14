@@ -108,7 +108,8 @@ export function InsuranceComparePage() {
   const { id = '' } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  const [selectedPlanType, setSelectedPlanType] = React.useState<InsurancePlanType>('COMPREHENSIVE');
+  const [selectedPlanType, setSelectedPlanType] =
+    React.useState<InsurancePlanType>('COMPREHENSIVE');
   const [searchQuery, setSearchQuery] = React.useState('');
   const [filterRating, setFilterRating] = React.useState<'ALL' | 'TOP_RATED'>('ALL');
 
@@ -138,16 +139,16 @@ export function InsuranceComparePage() {
 
   if (providersQuery.error) {
     return (
-      <ErrorState
-        error={providersQuery.error}
-        onRetry={() => void providersQuery.refetch()}
-      />
+      <ErrorState error={providersQuery.error} onRetry={() => void providersQuery.refetch()} />
     );
   }
 
   const providers = providersQuery.data ?? [];
   const vehicle = vehicleQuery.data;
-  const regNo = vehicle?.registrationNumber ?? vehicleInsuranceQuery.data?.vehicle.registrationNumber ?? 'UP63N5670';
+  const regNo =
+    vehicle?.registrationNumber ??
+    vehicleInsuranceQuery.data?.vehicle.registrationNumber ??
+    'UP63N5670';
   const vehicleClass = vehicle?.classLabel ?? vehicle?.categoryLabel ?? 'LMV (Car)';
   const vehicleMakeModel =
     vehicle?.manufacturer && vehicle?.model
@@ -176,7 +177,10 @@ export function InsuranceComparePage() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12 animate-in fade-in-50 duration-200">
       {/* 1. Breadcrumb Navigation */}
-      <nav aria-label="Breadcrumbs" className="flex items-center gap-2 text-sm text-muted-foreground">
+      <nav
+        aria-label="Breadcrumbs"
+        className="flex items-center gap-2 text-sm text-muted-foreground"
+      >
         <Link
           to="/dashboard"
           className="inline-flex items-center gap-1.5 font-medium hover:text-foreground transition-colors"
@@ -184,14 +188,18 @@ export function InsuranceComparePage() {
           <Home className="size-4" />
           <span>Home</span>
         </Link>
-        <span aria-hidden className="text-muted-foreground/60">/</span>
+        <span aria-hidden className="text-muted-foreground/60">
+          /
+        </span>
         <Link
           to="/fleet/vehicles"
           className="inline-flex items-center font-medium hover:text-foreground transition-colors"
         >
           Vehicles
         </Link>
-        <span aria-hidden className="text-muted-foreground/60">/</span>
+        <span aria-hidden className="text-muted-foreground/60">
+          /
+        </span>
         {id ? (
           <Link
             to={`/fleet/vehicles/${id}?tab=documents&folder=INSURANCE`}
@@ -202,7 +210,9 @@ export function InsuranceComparePage() {
         ) : (
           <span className="font-mono">{regNo}</span>
         )}
-        <span aria-hidden className="text-muted-foreground/60">/</span>
+        <span aria-hidden className="text-muted-foreground/60">
+          /
+        </span>
         {id ? (
           <Link
             to={`/fleet/vehicles/${id}?tab=documents&folder=INSURANCE`}
@@ -213,7 +223,9 @@ export function InsuranceComparePage() {
         ) : (
           <span>Documents</span>
         )}
-        <span aria-hidden className="text-muted-foreground/60">/</span>
+        <span aria-hidden className="text-muted-foreground/60">
+          /
+        </span>
         {id ? (
           <Link
             to={`/fleet/vehicles/${id}?tab=documents&folder=INSURANCE`}
@@ -224,7 +236,9 @@ export function InsuranceComparePage() {
         ) : (
           <span>Insurance</span>
         )}
-        <span aria-hidden className="text-muted-foreground/60">/</span>
+        <span aria-hidden className="text-muted-foreground/60">
+          /
+        </span>
         <span className="font-semibold text-foreground">Policy Comparison</span>
       </nav>
 
@@ -244,7 +258,8 @@ export function InsuranceComparePage() {
               </span>
             </div>
             <p className="mt-1 text-sm text-muted-foreground">
-              Compare coverage options and directly access verified official web portals of top Indian vehicle insurance companies.
+              Compare coverage options and directly access verified official web portals of top
+              Indian vehicle insurance companies.
             </p>
           </div>
         </div>
@@ -283,13 +298,12 @@ export function InsuranceComparePage() {
 
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-semibold text-foreground text-sm">
-                  {vehicleMakeModel}
-                </span>
+                <span className="font-semibold text-foreground text-sm">{vehicleMakeModel}</span>
                 <span className="text-xs text-muted-foreground">({year})</span>
               </div>
               <p className="text-xs text-muted-foreground">
-                Class: <span className="font-medium text-foreground">{vehicleClass}</span> · Fuel: <span className="font-medium text-foreground capitalize">{fuelType}</span>
+                Class: <span className="font-medium text-foreground">{vehicleClass}</span> · Fuel:{' '}
+                <span className="font-medium text-foreground capitalize">{fuelType}</span>
               </p>
             </div>
           </div>
@@ -337,7 +351,12 @@ export function InsuranceComparePage() {
                   )}
                 >
                   <div className="flex items-center justify-between w-full mb-1">
-                    <span className={cn('text-sm font-bold', isSelected ? 'text-primary' : 'text-foreground')}>
+                    <span
+                      className={cn(
+                        'text-sm font-bold',
+                        isSelected ? 'text-primary' : 'text-foreground',
+                      )}
+                    >
                       {item.label}
                     </span>
                     <span
@@ -389,7 +408,10 @@ export function InsuranceComparePage() {
           <div className="text-xs text-amber-800 dark:text-amber-200 space-y-0.5">
             <p className="font-semibold">Direct Official Insurer Portals Notice</p>
             <p className="leading-relaxed opacity-90">
-              Under IRDAI compliance guidelines, exact vehicle insurance quotations require chassis number and accurate Insured Declared Value (IDV) calculation. To protect your data and avoid inflated third-party agent brokerage, WorldX Saarthi directs you straight to the verified official quotation and renewal portals of each insurer below.
+              Under IRDAI compliance guidelines, exact vehicle insurance quotations require chassis
+              number and accurate Insured Declared Value (IDV) calculation. To protect your data and
+              avoid inflated third-party agent brokerage, WorldX Saarthi directs you straight to the
+              verified official quotation and renewal portals of each insurer below.
             </p>
           </div>
         </div>
@@ -509,7 +531,10 @@ export function InsuranceComparePage() {
                 </p>
                 <ul className="space-y-1">
                   {provider.features.slice(0, 3).map((feature, idx) => (
-                    <li key={idx} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <li
+                      key={idx}
+                      className="flex items-center gap-1.5 text-xs text-muted-foreground"
+                    >
                       <CheckCircle2 className="size-3.5 text-primary shrink-0" />
                       <span className="truncate">{feature}</span>
                     </li>
@@ -585,7 +610,9 @@ export function InsuranceComparePage() {
                 <th className="py-3 px-3 font-semibold text-foreground">Video Claims</th>
                 <th className="py-3 px-3 font-semibold text-foreground">24x7 RSA</th>
                 <th className="py-3 px-3 font-semibold text-foreground">Zero-Depreciation</th>
-                <th className="py-3 px-3 font-semibold text-foreground text-right">Official Link</th>
+                <th className="py-3 px-3 font-semibold text-foreground text-right">
+                  Official Link
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60">
@@ -593,9 +620,7 @@ export function InsuranceComparePage() {
                 <tr key={p.id} className="hover:bg-muted/20 transition-colors">
                   <td className="py-3 px-3">
                     <div className="flex items-center gap-2.5">
-                      <div className="shrink-0">
-                        {getProviderLogoComponent(p.id, 'size-6')}
-                      </div>
+                      <div className="shrink-0">{getProviderLogoComponent(p.id, 'size-6')}</div>
                       <span className="font-semibold text-foreground">{p.shortName}</span>
                     </div>
                   </td>

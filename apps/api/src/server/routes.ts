@@ -66,10 +66,7 @@ import { vehiclePairingRoutes } from '../modules/devices/pairing.routes';
 import { deviceClientRoutes } from '../modules/devices/device-client.routes';
 import { videoGatewayRoutes } from '../modules/devices/video-gateway.routes';
 import { telemetryRoutes } from '../modules/telemetry/telemetry.routes';
-import {
-  terminalRoutes,
-  vehicleTerminalRoutes,
-} from '../modules/terminal/terminal.routes';
+import { terminalRoutes, vehicleTerminalRoutes } from '../modules/terminal/terminal.routes';
 import { terminalClientRoutes } from '../modules/terminal/terminal-client.routes';
 import { terminalPapersRoutes } from '../modules/terminal/terminal-papers.routes';
 import { terminalTripQueueRoutes } from '../modules/terminal/terminal-trip-queue.routes';
@@ -91,11 +88,7 @@ import {
   cameraStreamRoutes,
   vehicleCameraRoutes,
 } from '../modules/devices/camera.routes';
-import {
-  tollRoutes,
-  tripTollRoutes,
-  vehicleTollRoutes,
-} from '../modules/toll/toll.routes';
+import { tollRoutes, tripTollRoutes, vehicleTollRoutes } from '../modules/toll/toll.routes';
 import {
   serviceHistoryRoutes,
   vehicleServiceRoutes,
