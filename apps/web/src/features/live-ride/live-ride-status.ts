@@ -11,8 +11,8 @@ export function liveRidePath(token: string): string {
   return `/live/${encodeURIComponent(token)}`;
 }
 
-/** How often the page asks for a fresh position while the ride is shared. */
-export const LIVE_RIDE_POLL_MS = 10_000;
+/** How often the page asks for a fresh position while the ride is shared: 2.5s for real-time smoothness. */
+export const LIVE_RIDE_POLL_MS = 2_500;
 
 /** Below this a fix reads as "just now" — also absorbs a phone clock running slightly ahead. */
 const JUST_NOW_SECONDS = 5;

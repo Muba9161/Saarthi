@@ -86,16 +86,18 @@ fun LiveRideScreen(app: OwnerApp, token: String, mine: Boolean = false) {
     var missing by remember(token) { mutableStateOf(false) }
     var attempt by remember(token) { mutableIntStateOf(0) }
     var trail by remember(token) { mutableStateOf<List<TrailRun>>(emptyList()) }
+    var fixes by remember(token) { mutableStateOf<List<Fix>>(emptyList()) }
     val navigator = LocalNavigator.current
 
     LaunchedEffect(token, attempt) {
         // The road is read whole once, then only what is new — as a followed vehicle's is.
-        var fixes = emptyList<Fix>()
+        var currentFixes = emptyList<Fix>()
         while (true) {
             try {
-                val ride = app.liveRides.get(token, from = fixes.lastOrNull()?.recordedAt) ?: error("The live ride could not be read.")
-                fixes = mergedFixes(fixes, ride.fixes())
-                trail = trailOf(fixes)
+                val ride = app.liveRides.get(token, from = currentFixes.lastOrNull()?.recordedAt) ?: error("The live ride could not be read.")
+                currentFixes = mergedFixes(currentFixes, ride.fixes())
+                fixes = currentFixes
+                trail = trailOf(currentFixes)
                 state = Loadable.Ready(ride)
                 if (ride.phase() == LivePhase.ENDED) break
             } catch (failure: Exception) {
@@ -132,7 +134,9 @@ fun LiveRideScreen(app: OwnerApp, token: String, mine: Boolean = false) {
             })
             is Loadable.Ready -> {
                 val phase = current.value.phase()
-                RiderCard(current.value, name, mine, phase, Modifier.rise())
+                if (phase != LivePhase.ENDED) {
+                    RiderCard(current.value, name, mine, phase, Modifier.rise())
+                }
                 when (phase) {
                     LivePhase.LIVE -> {
                         val marker = remember(current.value) { current.value.mapMarker() }
@@ -156,7 +160,15 @@ fun LiveRideScreen(app: OwnerApp, token: String, mine: Boolean = false) {
                         }
                     }
                     LivePhase.WAITING -> WaitingCard(name, mine, Modifier.rise(stagger(1)))
-                    LivePhase.ENDED -> Unit
+                    LivePhase.ENDED -> {
+                        EndedRideSummaryView(
+                            ride = current.value,
+                            trail = trail,
+                            fixes = fixes,
+                            mine = mine,
+                            modifier = Modifier.rise(),
+                        )
+                    }
                 }
             }
         }

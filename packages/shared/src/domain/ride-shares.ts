@@ -77,6 +77,26 @@ export interface RideShareAccess {
   hasOwnerAccount: boolean;
 }
 
+/** Summary of a completed ride share journey. */
+export interface RideShareSummary {
+  /** Total road distance travelled in kilometres */
+  distanceKm: number;
+  /** Total trip duration in minutes */
+  durationMinutes: number;
+  /** Average speed across the journey in km/h */
+  avgSpeedKph: number;
+  /** Maximum speed reached during the journey in km/h */
+  maxSpeedKph: number;
+  /** When sharing/journey started */
+  startedAt: string;
+  /** When sharing/journey ended */
+  endedAt: string;
+  /** Start coordinate */
+  startPoint: { latitude: number; longitude: number } | null;
+  /** Final destination / ended coordinate */
+  endPoint: { latitude: number; longitude: number } | null;
+}
+
 /** What the live link shows — a first name, the vehicle's number, and where they are while sharing. */
 export interface PublicLiveRide {
   riderName: string;
@@ -88,7 +108,9 @@ export interface PublicLiveRide {
   position: RideVehicleLocation | null;
   /**
    * The road covered since sharing began — or, asked `from` a time, only
-   * what was covered after it — thinned on long rides. Empty once ended.
+   * what was covered after it — thinned on long rides.
    */
   trail: RideTrailPoint[];
+  /** Journey summary statistics once ended, or null while still sharing. */
+  summary?: RideShareSummary | null;
 }

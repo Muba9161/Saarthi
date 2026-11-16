@@ -35,6 +35,26 @@ class LiveRidesApi(private val api: OwnerApi) {
         val routeState: String? = null,
     )
 
+    /** Point location for departure and destination in ride summary. */
+    @Serializable
+    data class SummaryPoint(
+        val latitude: Double,
+        val longitude: Double,
+    )
+
+    /** Authoritative journey summary statistics computed when sharing ends. */
+    @Serializable
+    data class Summary(
+        val distanceKm: Double = 0.0,
+        val durationMinutes: Int = 0,
+        val avgSpeedKph: Double = 0.0,
+        val maxSpeedKph: Double = 0.0,
+        val startedAt: String = "",
+        val endedAt: String = "",
+        val startPoint: SummaryPoint? = null,
+        val endPoint: SummaryPoint? = null,
+    )
+
     /** `PublicLiveRide`: what the live link shows. */
     @Serializable
     data class LiveRide(
@@ -50,6 +70,8 @@ class LiveRidesApi(private val api: OwnerApi) {
         val position: Position? = null,
         /** The road covered — after [get]'s `from` when one was given. Empty once ended. */
         val trail: List<TrailPoint> = emptyList(),
+        /** Journey statistics available once sharing has ended. */
+        val summary: Summary? = null,
     )
 
     /**

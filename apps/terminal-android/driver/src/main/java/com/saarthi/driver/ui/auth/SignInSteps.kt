@@ -23,6 +23,8 @@ import com.saarthi.driver.R
 import com.saarthi.driver.ui.design.Avatar
 import com.saarthi.driver.ui.design.LinkButton
 import com.saarthi.driver.ui.design.Lucide
+import com.saarthi.driver.ui.design.NoticeCard
+import com.saarthi.driver.ui.design.NoticeTone
 import com.saarthi.driver.ui.design.PasswordField
 import com.saarthi.driver.ui.design.SType
 import com.saarthi.driver.ui.design.SaarthiButton
@@ -113,8 +115,11 @@ internal fun EmailStep(
 internal fun PasswordStep(
     form: AuthForm,
     error: String?,
+    notice: String? = null,
+    sendingForgot: Boolean = false,
     onBack: () -> Unit,
     onSignIn: () -> Unit,
+    onForgot: () -> Unit = {},
 ) {
     val c = Saarthi.colors
     val focus = rememberAutoFocus()
@@ -170,6 +175,25 @@ internal fun PasswordStep(
                 .padding(top = 20.dp)
                 .rise(stagger(4)),
         )
+        LinkButton(
+            text = if (sendingForgot) stringResource(R.string.signin_forgot_sending) else stringResource(R.string.signin_forgot),
+            onClick = onForgot,
+            enabled = !sendingForgot,
+            style = SType.body,
+            modifier = Modifier
+                .padding(top = 8.dp)
+                .rise(stagger(4)),
+        )
         AuthError(error)
+        notice?.let {
+            NoticeCard(
+                text = it,
+                tone = NoticeTone.INFO,
+                icon = Lucide.mail,
+                modifier = Modifier
+                    .padding(top = 16.dp)
+                    .rise(stagger(4)),
+            )
+        }
     }
 }

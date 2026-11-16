@@ -1,14 +1,21 @@
 package com.saarthi.driver.ui.ride.share
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.saarthi.driver.R
@@ -24,15 +31,29 @@ import com.saarthi.driver.ui.design.StepScreen
 import com.saarthi.driver.ui.design.popIn
 import com.saarthi.driver.ui.design.rise
 import com.saarthi.driver.ui.design.stagger
+import java.time.Duration
+import java.time.Instant
 
 /**
  * The share is over — it ran out of time, or was stopped from elsewhere —
- * said once, so the rider is never left wondering whether family can still
- * see them. The only way on is back to the first question.
+ * said once with a clear journey summary, so the rider is never left wondering
+ * whether family can still see them. The only way on is back to the first question.
  */
 @Composable
 fun ShareOverScreen(viewModel: DriverViewModel, share: RideSharesApi.ShareView) {
     val c = Saarthi.colors
+    val locale = LocalConfiguration.current.locales[0]
+
+    val startInstant = share.startedAt?.let { runCatching { Instant.parse(it) }.getOrNull() }
+    val endInstant = share.endedAt?.let { runCatching { Instant.parse(it) }.getOrNull() } ?: Instant.now()
+    val durationMinutes = if (startInstant != null) {
+        val mins = Duration.between(startInstant, endInstant).toMinutes()
+        maxOf(1L, mins)
+    } else null
+
+    val startTime = clockTime(share.startedAt, locale)
+    val endTime = clockTime(share.endedAt, locale) ?: clockTime(Instant.now().toString(), locale)
+
     StepScreen(scroll = true) {
         StepHeader(eyebrow = stringResource(R.string.sharing_eyebrow), title = stringResource(R.string.share_over_title))
         IconWell(
@@ -43,7 +64,7 @@ fun ShareOverScreen(viewModel: DriverViewModel, share: RideSharesApi.ShareView) 
             radius = 26.dp,
             iconSize = 34.dp,
             modifier = Modifier
-                .padding(top = 30.dp)
+                .padding(top = 28.dp)
                 .popIn(),
         )
         Column(
@@ -57,6 +78,53 @@ fun ShareOverScreen(viewModel: DriverViewModel, share: RideSharesApi.ShareView) 
             }
             Text(stringResource(R.string.share_over_body), style = SType.lead.copy(fontSize = 16.sp), color = c.muted)
         }
+
+        // Summary details card
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .padding(top = 20.dp)
+                .background(c.card, RoundedCornerShape(18.dp))
+                .padding(16.dp)
+                .rise(stagger(3)),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("Sharing Duration", style = SType.small, color = c.muted)
+                Text(
+                    durationMinutes?.let { if (it >= 60) "${it / 60}h ${it % 60}m" else "$it min" } ?: "--",
+                    style = SType.body.copy(fontWeight = FontWeight.SemiBold),
+                    color = c.fg,
+                )
+            }
+            if (startTime != null && endTime != null) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("Time Period", style = SType.small, color = c.muted)
+                    Text(
+                        "$startTime – $endTime",
+                        style = SType.body.copy(fontWeight = FontWeight.SemiBold),
+                        color = c.fg,
+                    )
+                }
+            }
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("Live Tracking Status", style = SType.small, color = c.muted)
+                Text("Stopped", style = SType.body.copy(fontWeight = FontWeight.SemiBold), color = c.primary)
+            }
+        }
+
         Spacer(Modifier.weight(1f).heightIn(min = 24.dp))
         SaarthiButton(stringResource(R.string.action_done), viewModel::chooseAgain, Modifier.rise(stagger(4)))
     }

@@ -56,19 +56,16 @@ function extendTrail(held: readonly RideTrailPoint[], fresh: readonly RideTrailP
 }
 
 /**
- * The ride behind a live link, read again while it lasts. The road covered is
- * read whole once and then only what is new — as a followed vehicle's trail
- * is — so a long ride does not resend its whole road every few seconds.
+ * The ride behind a live link, read again while it lasts.
+ * Delivers the complete, authoritative road-snapped polyline from the server
+ * so there are no client-side timestamp boundary or stitching errors.
  */
 export function useLiveRide(token: string) {
-  const road = React.useRef<{ token: string; points: RideTrailPoint[] }>({ token, points: [] });
   return useQuery({
     queryKey: liveRideQueryKey(token),
     queryFn: async ({ signal }) => {
-      if (road.current.token !== token) road.current = { token, points: [] };
-      const ride = await fetchLiveRide(token, signal, road.current.points.at(-1)?.recordedAt);
-      const points = ride.status === RideShareStatus.SHARING ? extendTrail(road.current.points, ride.trail) : [];
-      road.current = { token, points };
+      const ride = await fetchLiveRide(token, signal);
+      const points = ride.trail ?? [];
       return { ...ride, trail: points };
     },
     enabled: token.length > 0,

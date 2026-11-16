@@ -17,6 +17,7 @@ import { healthRoutes } from '../modules/health/health.routes';
 import { registerApiRoutes } from './routes';
 import { websocketRoutes } from '../realtime/websocket.routes';
 import { deviceWebsocketRoutes } from '../realtime/device-websocket.routes';
+import { liveRideWebsocketRoutes } from '../realtime/live-ride-websocket.routes';
 
 export const API_PREFIX = '/api/v1';
 
@@ -129,6 +130,8 @@ export async function buildApp(): Promise<FastifyInstance> {
   // channel-subscription surface at all — see the file header for why the
   // duplication is the cheaper risk.
   await app.register(deviceWebsocketRoutes);
+  // Public live ride websocket gateway for anonymous family link viewers
+  await app.register(liveRideWebsocketRoutes);
   await app.register(registerApiRoutes, { prefix: API_PREFIX });
 
   return app;

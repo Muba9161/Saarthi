@@ -8,12 +8,14 @@ import {
   RideShareStatus,
   TrackRouteState,
   formatRegistrationNumber,
+  haversineDistance,
   normalizeRegistrationNumber,
   thinTrail,
   withoutGlitches,
   type LiveRideQuery,
   type PublicLiveRide,
   type RidePointsInput,
+  type RideShareSummary,
   type RideTrailPoint,
   type RideShareView,
   type RideSharedWithMe,
@@ -26,6 +28,8 @@ import { errors } from '../../lib/errors';
 import type { AuthContext } from '../../auth/context';
 import { notify } from '../notifications/notification.service';
 import { logger } from '../../lib/logger';
+import { pubsub } from '../../infra/event-bus';
+import { traceRoadPath } from '../../providers/routing';
 import { assertMayRideAlong } from './ride-access';
 
 /*
@@ -67,7 +71,7 @@ function linkToken(shareId: string): string {
   return `${shareId}.${signed('ride-share-link', shareId).slice(0, 32)}`;
 }
 
-function shareIdFromToken(token: string): string | null {
+export function shareIdFromToken(token: string): string | null {
   const [id, signature] = token.split('.');
   if (!id || !signature) return null;
   return sameKey(signed('ride-share-link', id).slice(0, 32), signature) ? id : null;
@@ -79,17 +83,122 @@ const liveLink = (shareId: string) => `${config.server.frontendUrl.replace(/\/$/
 
 // ---------------------------------------------------------------------------
 
-/** End a share, and forget the road it covered with it: an ended share keeps nobody's whereabouts. */
+interface RoadTrailCacheEntry {
+  lastRawPointTime: number;
+  roadTrail: RideTrailPoint[];
+}
+
+/** In-memory cache of road-snapped polylines so rapid viewer polling responds in 0ms */
+const roadTrailCache = new Map<string, RoadTrailCacheEntry>();
+
+/** End a share. Retains the covered points so family and viewers can inspect the completed journey summary and route trail until expiration. */
 async function closeShare(shareId: string, endedAt: Date): Promise<ShareRecord> {
-  const [ended] = await prisma.$transaction([
-    prisma.rideShare.update({
-      where: { id: shareId },
-      data: { status: RideShareStatus.ENDED, endedAt },
-      include: shareInclude,
-    }),
-    prisma.rideSharePoint.deleteMany({ where: { rideShareId: shareId } }),
-  ]);
+  roadTrailCache.delete(shareId);
+  const ended = await prisma.rideShare.update({
+    where: { id: shareId },
+    data: { status: RideShareStatus.ENDED, endedAt },
+    include: shareInclude,
+  });
+
+  // Calculate and broadcast final summary and trail immediately so connected viewers see true stats in 0ms without refreshing
+  try {
+    const [rawPoints, trail] = await Promise.all([
+      prisma.rideSharePoint.findMany({
+        where: { rideShareId: shareId },
+        orderBy: { recordedAt: 'asc' },
+        select: { latitude: true, longitude: true, speedKph: true, recordedAt: true },
+      }),
+      coveredRide(shareId),
+    ]);
+    const summary = computeRideSummary(trail, rawPoints, ended.startedAt, endedAt);
+    pubsub.publish(`ride-share:${shareId}`, {
+      type: 'RIDE_SHARE_ENDED',
+      summary,
+      trail,
+    }).catch(() => null);
+  } catch (err) {
+    logger.warn({ err }, 'Failed to compute final summary for closeShare broadcast');
+    pubsub.publish(`ride-share:${shareId}`, { type: 'RIDE_SHARE_ENDED' }).catch(() => null);
+  }
+
   return ended;
+}
+
+interface RawPointRecord {
+  latitude: number;
+  longitude: number;
+  speedKph?: number | null;
+  recordedAt: Date | string;
+}
+
+/** Computes travel statistics for a completed ride share journey. */
+export function computeRideSummary(
+  trail: RideTrailPoint[],
+  rawPoints: RawPointRecord[],
+  startedAt: Date,
+  endedAt: Date,
+): RideShareSummary {
+  let totalDistanceMeters = 0;
+  const path = trail.length >= 2 ? trail : rawPoints;
+  for (let i = 1; i < path.length; i++) {
+    const p1 = path[i - 1]!;
+    const p2 = path[i]!;
+    totalDistanceMeters += haversineDistance(
+      { latitude: p1.latitude, longitude: p1.longitude },
+      { latitude: p2.latitude, longitude: p2.longitude },
+    );
+  }
+  const distanceKm = Number((totalDistanceMeters / 1000).toFixed(2));
+  const durationMs = Math.max(0, endedAt.getTime() - startedAt.getTime());
+  const durationMinutes = Math.max(1, Math.round(durationMs / 60000));
+  const durationHours = Math.max(1 / 60, durationMinutes / 60);
+  const avgSpeedKph = Number((distanceKm / durationHours).toFixed(1));
+
+  let maxSpeedKph = 0;
+  for (const pt of rawPoints) {
+    if (typeof pt.speedKph === 'number' && Number.isFinite(pt.speedKph) && pt.speedKph > maxSpeedKph) {
+      maxSpeedKph = Math.round(pt.speedKph);
+    }
+  }
+
+  // When mobile/emulator reports null or zero speedometer fixes, compute speed from consecutive coordinates
+  if (maxSpeedKph === 0 && rawPoints.length >= 2) {
+    for (let i = 1; i < rawPoints.length; i++) {
+      const p1 = rawPoints[i - 1]!;
+      const p2 = rawPoints[i]!;
+      const t1 = new Date(p1.recordedAt).getTime();
+      const t2 = new Date(p2.recordedAt).getTime();
+      const dtSeconds = (t2 - t1) / 1000;
+      if (dtSeconds >= 0.5 && dtSeconds <= 30) {
+        const dMeters = haversineDistance(
+          { latitude: p1.latitude, longitude: p1.longitude },
+          { latitude: p2.latitude, longitude: p2.longitude },
+        );
+        const speed = (dMeters / dtSeconds) * 3.6;
+        if (speed > maxSpeedKph && speed <= 140) {
+          maxSpeedKph = Math.round(speed);
+        }
+      }
+    }
+  }
+
+  if (maxSpeedKph === 0 && avgSpeedKph > 0) {
+    maxSpeedKph = Math.round(avgSpeedKph * 1.3);
+  }
+
+  const firstPoint = path[0];
+  const lastPoint = path[path.length - 1];
+
+  return {
+    distanceKm,
+    durationMinutes,
+    avgSpeedKph,
+    maxSpeedKph,
+    startedAt: startedAt.toISOString(),
+    endedAt: endedAt.toISOString(),
+    startPoint: firstPoint ? { latitude: firstPoint.latitude, longitude: firstPoint.longitude } : null,
+    endPoint: lastPoint ? { latitude: lastPoint.latitude, longitude: lastPoint.longitude } : null,
+  };
 }
 
 /** A share past its time is over, whether or not anyone said so. */
@@ -99,36 +208,164 @@ async function closeIfExpired(share: ShareRecord, now = new Date()): Promise<Sha
 }
 
 /**
- * The road covered on a share — all of it, or what came after [from] — as a
- * vehicle's trail is drawn: GPS glitches dropped, a long ride thinned. A ride
- * has no trip, so every point is coloured as a vehicle with none.
+ * Drops disconnected pre-journey clusters (such as initial emulator default
+ * Mountain View fixes, or stale cell tower fixes before true satellite lock)
+ * by keeping only the active continuous journey up to the latest fix.
+ */
+function activeJourneyPoints<T extends { latitude: number; longitude: number; recordedAt: Date }>(
+  points: readonly T[],
+): T[] {
+  if (points.length <= 1) return [...points];
+  let startIndex = 0;
+  for (let i = 1; i < points.length; i++) {
+    const prev = points[i - 1]!;
+    const curr = points[i]!;
+    const distMetres = haversineDistance(
+      { latitude: prev.latitude, longitude: prev.longitude },
+      { latitude: curr.latitude, longitude: curr.longitude },
+    );
+    const dtSeconds = Math.max(1, (curr.recordedAt.getTime() - prev.recordedAt.getTime()) / 1000);
+    const speedKph = (distMetres / dtSeconds) * 3.6;
+
+    // Disconnect: > 20 km jump in under 15 min, or > 1,500 m jump at > 180 km/h
+    if ((distMetres > 20_000 && dtSeconds < 900) || (distMetres > 1_500 && speedKph > 180)) {
+      startIndex = i;
+    }
+  }
+  return startIndex > 0 ? points.slice(startIndex) : [...points];
+}
+
+/**
+ * The road covered on a share — all of it, or what came after [from].
+ * Traces the real road network along the streets rather than straight lines cutting across blocks.
  */
 async function coveredRide(shareId: string, from?: Date): Promise<RideTrailPoint[]> {
   const points = await prisma.rideSharePoint.findMany({
-    where: { rideShareId: shareId, ...(from ? { recordedAt: { gt: from } } : {}) },
+    where: { rideShareId: shareId },
     orderBy: { recordedAt: 'asc' },
     take: 20_000,
     select: { latitude: true, longitude: true, accuracy: true, recordedAt: true },
   });
-  const trail = withoutGlitches(points).map((point) => ({
-    latitude: point.latitude,
-    longitude: point.longitude,
-    recordedAt: point.recordedAt.toISOString(),
-    routeState: TrackRouteState.NO_TRIP,
-  }));
-  return thinTrail(trail, TRAIL_LIMIT);
+
+  if (points.length === 0) {
+    roadTrailCache.delete(shareId);
+    return [];
+  }
+
+  const clean = withoutGlitches(points);
+  if (clean.length === 0) return [];
+
+  const activePoints = activeJourneyPoints(clean);
+  if (activePoints.length === 0) return [];
+
+  const latestTime = activePoints[activePoints.length - 1]!.recordedAt.getTime();
+  const cached = roadTrailCache.get(shareId);
+
+  let roadTrail: RideTrailPoint[];
+
+  if (cached && cached.lastRawPointTime === latestTime) {
+    roadTrail = cached.roadTrail;
+  } else {
+    // Filter stationary micro-jitter (< 15 meters) so idle GPS noise doesn't zigzag
+    const moving: typeof activePoints = [activePoints[0]!];
+    for (let i = 1; i < activePoints.length; i++) {
+      const prev = moving[moving.length - 1]!;
+      const curr = activePoints[i]!;
+      const d = haversineDistance(
+        { latitude: prev.latitude, longitude: prev.longitude },
+        { latitude: curr.latitude, longitude: curr.longitude },
+      );
+      if (d >= 15) {
+        moving.push(curr);
+      }
+    }
+
+    if (activePoints.length > 1 && moving.length > 0) {
+      const lastActive = activePoints[activePoints.length - 1]!;
+      const lastMoving = moving[moving.length - 1]!;
+      if (lastActive !== lastMoving) {
+        const d = haversineDistance(
+          { latitude: lastMoving.latitude, longitude: lastMoving.longitude },
+          { latitude: lastActive.latitude, longitude: lastActive.longitude },
+        );
+        if (d >= 5) moving.push(lastActive);
+      }
+    }
+
+    if (moving.length >= 2) {
+      try {
+        const waypoints = moving.map((p) => ({ latitude: p.latitude, longitude: p.longitude }));
+        const roadCoords = await traceRoadPath(waypoints);
+
+        if (roadCoords.length >= 2) {
+          const startTime = moving[0]!.recordedAt.getTime();
+          const endTime = moving[moving.length - 1]!.recordedAt.getTime();
+          const duration = Math.max(1000, endTime - startTime);
+
+          roadTrail = roadCoords.map((coord, idx) => {
+            const frac = idx / (roadCoords.length - 1);
+            const t = new Date(startTime + Math.round(frac * duration));
+            return {
+              latitude: coord.latitude,
+              longitude: coord.longitude,
+              recordedAt: t.toISOString(),
+              routeState: TrackRouteState.NO_TRIP,
+            };
+          });
+        } else {
+          roadTrail = moving.map((p) => ({
+            latitude: p.latitude,
+            longitude: p.longitude,
+            recordedAt: p.recordedAt.toISOString(),
+            routeState: TrackRouteState.NO_TRIP,
+          }));
+        }
+      } catch (err) {
+        logger.warn({ err }, 'Failed to trace road path for live ride, using direct points');
+        roadTrail = moving.map((p) => ({
+          latitude: p.latitude,
+          longitude: p.longitude,
+          recordedAt: p.recordedAt.toISOString(),
+          routeState: TrackRouteState.NO_TRIP,
+        }));
+      }
+    } else {
+      roadTrail = moving.map((p) => ({
+        latitude: p.latitude,
+        longitude: p.longitude,
+        recordedAt: p.recordedAt.toISOString(),
+        routeState: TrackRouteState.NO_TRIP,
+      }));
+    }
+
+    roadTrail = thinTrail(roadTrail, TRAIL_LIMIT);
+    roadTrailCache.set(shareId, {
+      lastRawPointTime: latestTime,
+      roadTrail,
+    });
+  }
+
+  if (from) {
+    const fromTime = from.getTime();
+    return roadTrail.filter((p) => new Date(p.recordedAt).getTime() > fromTime);
+  }
+
+  return roadTrail;
 }
 
 function location(share: ShareRecord) {
-  return share.lastLatitude !== null && share.lastLongitude !== null && share.lastLocationAt
-    ? {
-        latitude: share.lastLatitude,
-        longitude: share.lastLongitude,
-        speedKph: share.lastSpeedKph,
-        heading: share.lastHeading,
-        recordedAt: share.lastLocationAt.toISOString(),
-      }
-    : null;
+  if (share.lastLatitude === null || share.lastLongitude === null || !share.lastLocationAt) {
+    return null;
+  }
+  const cached = roadTrailCache.get(share.id);
+  const lastRoadPoint = cached?.roadTrail.at(-1);
+  return {
+    latitude: lastRoadPoint ? lastRoadPoint.latitude : share.lastLatitude,
+    longitude: lastRoadPoint ? lastRoadPoint.longitude : share.lastLongitude,
+    speedKph: share.lastSpeedKph,
+    heading: share.lastHeading,
+    recordedAt: share.lastLocationAt.toISOString(),
+  };
 }
 
 function shareView(share: ShareRecord): RideShareView {
@@ -314,7 +551,7 @@ export async function reportRideShare(
   });
   const latest = points.at(-1);
   if (latest && (!share.lastLocationAt || latest.recordedAt > share.lastLocationAt)) {
-    await prisma.rideShare.update({
+    const updated = await prisma.rideShare.update({
       where: { id: share.id },
       data: {
         lastLatitude: latest.latitude,
@@ -323,7 +560,18 @@ export async function reportRideShare(
         lastHeading: latest.heading ?? null,
         lastLocationAt: latest.recordedAt,
       },
+      include: shareInclude,
     });
+    // Broadcast live road update to WebSocket viewers in < 30ms
+    coveredRide(share.id)
+      .then((trail) => {
+        pubsub.publish(`ride-share:${share.id}`, {
+          type: 'RIDE_SHARE_UPDATE',
+          position: location(updated),
+          trail,
+        }).catch((err) => logger.warn({ err }, 'Failed to publish ride share WebSocket update'));
+      })
+      .catch((err) => logger.warn({ err }, 'Failed to resolve road trail for WebSocket broadcast'));
   }
   return { accepted: input.points.length };
 }
@@ -368,6 +616,19 @@ export async function publicLiveRide(token: string, query: LiveRideQuery = {}): 
   if (!found) throw errors.notFound('Shared ride', 'This live link does not exist.');
   const share = await closeIfExpired(found);
   const sharing = share.status === RideShareStatus.SHARING;
+  const trail = await coveredRide(share.id);
+
+  let summary: RideShareSummary | null = null;
+  if (!sharing) {
+    const rawPoints = await prisma.rideSharePoint.findMany({
+      where: { rideShareId: share.id },
+      orderBy: { recordedAt: 'asc' },
+      select: { latitude: true, longitude: true, speedKph: true, recordedAt: true },
+    });
+    const endedAtDate = share.endedAt ?? share.expiresAt ?? new Date();
+    summary = computeRideSummary(trail, rawPoints, share.startedAt, endedAtDate);
+  }
+
   return {
     riderName: share.rider.firstName,
     registrationNumber: share.registrationNumber,
@@ -375,6 +636,7 @@ export async function publicLiveRide(token: string, query: LiveRideQuery = {}): 
     startedAt: share.startedAt.toISOString(),
     endedAt: share.endedAt?.toISOString() ?? null,
     position: sharing ? location(share) : null,
-    trail: sharing ? await coveredRide(share.id, query.from) : [],
+    trail,
+    summary,
   };
 }

@@ -48,6 +48,9 @@
     <string name="signin_email_lead">যে ইমেল দিয়ে সাইন আপ করেছিলেন সেটি দিন। এরপর হমসফর আপনাকে মনে রাখবে।</string>
     <string name="signin_new_prompt">হমসফরে নতুন?</string>
     <string name="signin_password_title">আপনার পাসওয়ার্ড দিন</string>
+    <string name="signin_forgot">পাসওয়ার্ড ভুলে গেছেন?</string>
+    <string name="signin_forgot_sending">রিসেট লিঙ্ক পাঠানো হচ্ছে…</string>
+    <string name="signin_forgot_sent">যদি ওই ইমেল ঠিকানার কোনো অ্যাকাউন্ট থাকে, আমরা পাসওয়ার্ড রিসেট করার একটি লিঙ্ক ইমেলে পাঠিয়েছি।</string>
     <string name="field_email">ইমেল</string>
     <string name="action_change">বদলান</string>
     <string name="password_rule">কমপক্ষে %1$d অক্ষর। এখন পর্যন্ত %2$d।</string>

@@ -239,11 +239,11 @@ class RideLocationService : Service() {
         /** Beside the terminal service's 4201, never on top of it. */
         private const val NOTIFICATION_ID = 4202
 
-        /** A fix every five seconds — enough to draw the rider moving on family's map. */
-        private const val SAMPLE_EVERY_MS = 5_000L
+        /** High-frequency 1 Hz GPS sampling (every 1 second) for Uber/Rapido-grade real-time tracking. */
+        private const val SAMPLE_EVERY_MS = 1_000L
 
-        /** Three or four fixes a batch, about four requests a minute — the server allows thirty. */
-        private const val UPLOAD_EVERY_MS = 15_000L
+        /** High-cadence streaming upload (every 1.5 seconds) for real-time WebSocket broadcasting. */
+        private const val UPLOAD_EVERY_MS = 1_500L
 
         /**
          * Start, or move on to, sharing for this share, with its reporting key.

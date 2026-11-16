@@ -32,9 +32,9 @@ describe('live ride phase', () => {
 });
 
 describe('live ride polling', () => {
-  it('polls every ten seconds while the ride may still move', () => {
+  it('polls at the configured interval while the ride may still move', () => {
     expect(liveRidePollInterval(undefined, false)).toBe(LIVE_RIDE_POLL_MS);
-    expect(liveRidePollInterval({ status: 'SHARING' }, false)).toBe(10_000);
+    expect(liveRidePollInterval({ status: 'SHARING' }, false)).toBe(LIVE_RIDE_POLL_MS);
   });
 
   it('stops for an ended ride or a link that does not exist', () => {

@@ -86,7 +86,7 @@ describe('the public live-ride page', () => {
     renderPage();
 
     expect(
-      await screen.findByRole('heading', { name: 'Asha has stopped sharing this ride.' }),
+      await screen.findByRole('heading', { name: "Asha's Journey Summary" }),
     ).toBeInTheDocument();
     expect(screen.queryByRole('region', { name: /live location/ })).not.toBeInTheDocument();
     expect(screen.queryByText(/^Updated/)).not.toBeInTheDocument();

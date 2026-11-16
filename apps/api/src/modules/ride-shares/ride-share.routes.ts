@@ -65,7 +65,7 @@ export async function rideShareViewerRoutes(app: FastifyInstance): Promise<void>
  * the credential, good for that share only.
  */
 export async function rideShareReportRoutes(app: FastifyInstance): Promise<void> {
-  app.post('/:id/report', { config: { rateLimit: { max: 30, timeWindow: '1 minute' } } }, async (request, reply) => {
+  app.post('/:id/report', { config: { rateLimit: { max: 90, timeWindow: '1 minute' } } }, async (request, reply) => {
     const { id } = parseParams(idParamSchema, request.params);
     const input = parseBody(ridePointsSchema, request.body);
     const key = request.headers['x-ride-token'];
