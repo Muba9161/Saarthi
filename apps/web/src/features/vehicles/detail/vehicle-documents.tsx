@@ -70,7 +70,8 @@ const TAG_TONES: Record<Tag['tone'], string> = {
 /** The one word that says how a folder stands. */
 function folderTag(documents: DocumentSummary[], mandatory: boolean): Tag {
   const latest = documents[0];
-  if (!latest) return mandatory ? { label: 'Missing', tone: 'warning' } : { label: 'Optional', tone: 'muted' };
+  if (!latest)
+    return mandatory ? { label: 'Missing', tone: 'warning' } : { label: 'Optional', tone: 'muted' };
   switch (latest.validity) {
     case 'VALID':
       return { label: 'Valid', tone: 'success' };
@@ -228,7 +229,11 @@ export function VehicleDocuments({
       can(Permission.VERIFICATION_SUBMIT) &&
       caseStatus !== 'SUBMITTED' &&
       caseStatus !== 'UNDER_REVIEW' ? (
-        <Button className="rounded-[12px]" loading={submit.isPending} onClick={() => submit.mutate()}>
+        <Button
+          className="rounded-[12px]"
+          loading={submit.isPending}
+          onClick={() => submit.mutate()}
+        >
           Send for review
         </Button>
       ) : caseStatus ? (
@@ -305,7 +310,10 @@ export function VehicleDocuments({
 
     return (
       <div className="flex flex-col gap-[18px]">
-        <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm text-muted-foreground">
+        <nav
+          aria-label="Breadcrumb"
+          className="flex items-center gap-2 text-sm text-muted-foreground"
+        >
           <button
             type="button"
             onClick={() => onFolderChange(null)}
@@ -354,7 +362,9 @@ export function VehicleDocuments({
             {open.documents.length === 0 ? (
               <EmptyRows
                 title="No files in this folder yet"
-                hint={canUpload ? 'Upload one, then send it for review.' : 'Nothing has been uploaded.'}
+                hint={
+                  canUpload ? 'Upload one, then send it for review.' : 'Nothing has been uploaded.'
+                }
               />
             ) : (
               <ul className="divide-y divide-border border-t border-border">
