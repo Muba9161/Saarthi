@@ -111,8 +111,8 @@ val releaseStoreFile: String? = setting("releaseStoreFile")
 // code are indistinguishable to Android and to the release pipeline: a phone
 // that installed the first is never offered the second, and the upload endpoint
 // refuses the duplicate rather than replacing it silently.
-val appVersionCode = 23
-val appVersionName = "1.8.0"
+val appVersionCode = 24
+val appVersionName = "1.9.0"
 
 android {
     namespace = "com.saarthi.driver"
