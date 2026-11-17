@@ -1,19 +1,12 @@
 import * as React from 'react';
 import { Link } from 'react-router-dom';
+import { Clock, Gauge, MapPin, Route, WifiOff, Zap, type LucideIcon } from 'lucide-react';
 import {
-  Calendar,
-  Clock,
-  Gauge,
-  MapPin,
-  Navigation,
-  ShieldCheck,
-  WifiOff,
-  Zap,
-  type LucideIcon,
-} from 'lucide-react';
-import { formatRegistrationNumber, type PublicLiveRide } from '@saarthi/shared';
+  formatRegistrationNumber,
+  type PublicLiveRide,
+  type RideShareSummary,
+} from '@saarthi/shared';
 import { BRAND_NAME, SaarthiLogo } from '@/components/common/logo';
-import { StatCard } from '@/components/common/stat-card';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { LanguageMenu, useT } from '@/features/i18n';
@@ -140,222 +133,58 @@ function WaitingForFix({ name }: { name: string }) {
   );
 }
 
-function formatTimeOfDay(isoString?: string | null): string {
-  if (!isoString) return '--:--';
-  try {
-    const d = new Date(isoString);
-    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  } catch {
-    return '--:--';
-  }
+function formatDuration(minutes: number): string {
+  const hours = Math.floor(minutes / 60);
+  return hours > 0 ? `${hours} h ${minutes % 60} min` : `${minutes} min`;
 }
 
-function formatDate(isoString?: string | null): string {
-  if (!isoString) return '';
-  try {
-    const d = new Date(isoString);
-    return d.toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' });
-  } catch {
-    return '';
-  }
+/** Whether the moment has not come yet — turning false when it does, without a reload. */
+function useBefore(moment: string): boolean {
+  const [passed, setPassed] = React.useState(() => Date.parse(moment) <= Date.now());
+  React.useEffect(() => {
+    const left = Date.parse(moment) - Date.now();
+    setPassed(left <= 0);
+    if (left <= 0) return undefined;
+    const timer = window.setTimeout(() => setPassed(true), left);
+    return () => window.clearTimeout(timer);
+  }, [moment]);
+  return !passed;
 }
 
-/** Comprehensive, informative Journey Summary displayed when a ride share has ended. */
-export function EndedRideSummary({ ride }: { ride: PublicLiveRide }) {
+/**
+ * What an ended ride came to, for the few minutes it is kept. Figures only —
+ * the road itself is gone with the share — and a top speed the phone never
+ * reported is left out, not estimated. The page stops asking once a ride has
+ * ended, so it removes the summary itself when its time is up.
+ */
+function RideSummary({ summary }: { summary: RideShareSummary }) {
   const t = useT();
-  const name = ride.riderName;
+  const shown = useBefore(summary.shownUntil);
+  if (!shown) return null;
 
-  // Instant summary computation: uses server summary or computes immediately from trail
-  const summary = React.useMemo(() => {
-    if (ride.summary && ride.summary.distanceKm > 0) return ride.summary;
-    const started = new Date(ride.startedAt).getTime();
-    const ended = ride.endedAt ? new Date(ride.endedAt).getTime() : started;
-    const durationMinutes = Math.max(1, Math.round((ended - started) / 60000));
-    const durationHours = Math.max(1 / 60, durationMinutes / 60);
-
-    const trail = ride.trail ?? [];
-    let totalMeters = 0;
-    for (let i = 1; i < trail.length; i++) {
-      const p1 = trail[i - 1]!;
-      const p2 = trail[i]!;
-      const dLat = (p2.latitude - p1.latitude) * 111_132;
-      const dLng = (p2.longitude - p1.longitude) * 111_132 * Math.cos((p1.latitude * Math.PI) / 180);
-      totalMeters += Math.hypot(dLat, dLng);
-    }
-    const computedDistanceKm = Number((totalMeters / 1000).toFixed(2));
-    const computedAvgSpeedKph = Number((computedDistanceKm / durationHours).toFixed(1));
-    const computedMaxSpeedKph = Math.round(computedAvgSpeedKph * 1.3);
-
-    return {
-      distanceKm: ride.summary?.distanceKm && ride.summary.distanceKm > 0 ? ride.summary.distanceKm : computedDistanceKm,
-      durationMinutes: ride.summary?.durationMinutes || durationMinutes,
-      avgSpeedKph: ride.summary?.avgSpeedKph && ride.summary.avgSpeedKph > 0 ? ride.summary.avgSpeedKph : computedAvgSpeedKph,
-      maxSpeedKph: ride.summary?.maxSpeedKph && ride.summary.maxSpeedKph > 0 ? ride.summary.maxSpeedKph : computedMaxSpeedKph,
-      startedAt: ride.startedAt,
-      endedAt: ride.endedAt ?? ride.startedAt,
-      startPoint: trail[0]
-        ? { latitude: trail[0].latitude, longitude: trail[0].longitude }
-        : null,
-      endPoint:
-        trail.length > 0
-          ? {
-              latitude: trail[trail.length - 1]!.latitude,
-              longitude: trail[trail.length - 1]!.longitude,
-            }
-          : null,
-    };
-  }, [ride]);
+  const facts: { label: string; value: string; icon: LucideIcon }[] = [
+    { label: t('Time shared'), value: formatDuration(summary.durationMinutes), icon: Clock },
+    { label: t('Distance covered'), value: `${summary.distanceKm.toFixed(1)} km`, icon: Route },
+  ];
+  if (summary.avgSpeedKph !== null) {
+    facts.push({ label: t('Average speed'), value: `${Math.round(summary.avgSpeedKph)} km/h`, icon: Gauge });
+  }
+  if (summary.maxSpeedKph !== null) {
+    facts.push({ label: t('Top speed'), value: `${Math.round(summary.maxSpeedKph)} km/h`, icon: Zap });
+  }
 
   return (
-    <div className="space-y-6">
-      <section aria-labelledby="ended-ride-title" className="space-y-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="muted" dot>
-            {t('Journey Completed')}
-          </Badge>
-          {ride.registrationNumber ? (
-            <span className="rounded-md bg-background px-2.5 py-0.5 font-mono text-xs font-semibold tracking-wider text-foreground ring-1 ring-border">
-              {formatRegistrationNumber(ride.registrationNumber)}
-            </span>
-          ) : null}
-        </div>
-
-        <div>
-          <h1
-            id="ended-ride-title"
-            className="text-balance text-2xl font-semibold tracking-tight text-foreground sm:text-3xl"
-          >
-            {t("{name}'s Journey Summary", { name })}
-          </h1>
-          <p className="mt-1 flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
-            <Calendar className="size-4 shrink-0 text-muted-foreground/80" aria-hidden />
-            <span>{formatDate(summary.startedAt)}</span>
-            <span>•</span>
-            <Clock className="size-4 shrink-0 text-muted-foreground/80" aria-hidden />
-            <span>
-              {formatTimeOfDay(summary.startedAt)} – {formatTimeOfDay(summary.endedAt)} ({summary.durationMinutes} min)
-            </span>
-          </p>
-        </div>
-      </section>
-
-      {/* 4 StatCards Bento Grid */}
-      <section aria-label={t('Journey statistics')} className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard
-          label={t('Total Distance')}
-          numericValue={summary.distanceKm}
-          format={(v) => `${v.toFixed(1)} km`}
-          hint={t('Road distance')}
-          icon={Navigation}
-          tone="accent"
-        />
-        <StatCard
-          label={t('Trip Duration')}
-          value={
-            summary.durationMinutes >= 60
-              ? `${Math.floor(summary.durationMinutes / 60)}h ${summary.durationMinutes % 60}m`
-              : `${summary.durationMinutes} min`
-          }
-          hint={t('Total time')}
-          icon={Clock}
-          tone="default"
-        />
-        <StatCard
-          label={t('Average Speed')}
-          numericValue={summary.avgSpeedKph}
-          format={(v) => `${v.toFixed(1)} km/h`}
-          hint={t('Across journey')}
-          icon={Gauge}
-          tone="info"
-        />
-        <StatCard
-          label={t('Top Speed')}
-          numericValue={summary.maxSpeedKph}
-          format={(v) => `${Math.round(v)} km/h`}
-          hint={t('Peak speed')}
-          icon={Zap}
-          tone="warning"
-        />
-      </section>
-
-      {/* Origin -> Destination Journey Timeline */}
-      <Card>
-        <CardContent className="p-4 sm:p-5">
-          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            {t('Journey Timeline')}
-          </h2>
-          <div className="relative space-y-4 pl-6 before:absolute before:bottom-2 before:left-2 before:top-2 before:w-0.5 before:bg-border">
-            <div className="relative">
-              <span className="absolute -left-6 top-1 flex size-4 items-center justify-center rounded-full bg-success/20 ring-4 ring-background">
-                <span className="size-2 rounded-full bg-success" />
-              </span>
-              <div className="flex items-baseline justify-between gap-2">
-                <p className="text-sm font-medium text-foreground">{t('Departed')}</p>
-                <time className="text-xs tabular-nums text-muted-foreground">
-                  {formatTimeOfDay(summary.startedAt)}
-                </time>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {summary.startPoint
-                  ? `${summary.startPoint.latitude.toFixed(4)}, ${summary.startPoint.longitude.toFixed(4)}`
-                  : t('Starting location')}
-              </p>
-            </div>
-
-            <div className="relative">
-              <span className="absolute -left-6 top-1 flex size-4 items-center justify-center rounded-full bg-destructive/20 ring-4 ring-background">
-                <span className="size-2 rounded-full bg-destructive" />
-              </span>
-              <div className="flex items-baseline justify-between gap-2">
-                <p className="text-sm font-medium text-foreground">{t('Arrived / Ended')}</p>
-                <time className="text-xs tabular-nums text-muted-foreground">
-                  {formatTimeOfDay(summary.endedAt)}
-                </time>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {summary.endPoint
-                  ? `${summary.endPoint.latitude.toFixed(4)}, ${summary.endPoint.longitude.toFixed(4)}`
-                  : t('Final destination')}
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Completed Route Map */}
-      <section aria-label={t('Completed Route Map')} className="space-y-2">
-        <div className="flex items-center justify-between">
-          <h2 className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
-            <Navigation className="size-4 text-primary" aria-hidden />
-            {t('Completed Route')}
-          </h2>
-          {ride.trail.length > 0 ? (
-            <span className="text-xs text-muted-foreground">
-              {t('{count} waypoints recorded', { count: ride.trail.length })}
-            </span>
-          ) : null}
-        </div>
-        <LiveMarkerMap
-          mode="ended"
-          startPoint={summary.startPoint}
-          endPoint={summary.endPoint}
-          label={t("Map of {name}'s completed route", { name })}
-          trail={ride.trail}
-          className="h-[min(60svh,34rem)] min-h-72 rounded-2xl ring-1 ring-border shadow-sm"
-        />
-      </section>
-
-      {/* Reassuring privacy & safety notice */}
-      <div className="flex items-start gap-2.5 rounded-xl border border-border/60 bg-muted/40 p-3.5 text-xs text-muted-foreground">
-        <ShieldCheck className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
-        <p>
-          {t(
-            'This live location share ended at {time}. Real-time tracking has stopped. The data above reflects the recorded journey history.',
-            { time: formatTimeOfDay(summary.endedAt) },
-          )}
-        </p>
-      </div>
-    </div>
+    <dl className="grid grid-cols-2 gap-3">
+      {facts.map(({ label, value, icon: Icon }) => (
+        <Card key={label} className="space-y-1 p-4">
+          <dt className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Icon className="size-3.5 shrink-0" aria-hidden />
+            {label}
+          </dt>
+          <dd className="text-lg font-semibold tabular-nums tracking-tight">{value}</dd>
+        </Card>
+      ))}
+    </dl>
   );
 }
 
@@ -370,26 +199,29 @@ export function LiveRideDetails({
 }) {
   const t = useT();
   const phase = liveRidePhase(ride);
-
-  if (phase === 'ended') {
-    return <EndedRideSummary ride={ride} />;
-  }
-
   const name = ride.riderName;
   const position = phase === 'live' ? ride.position : null;
 
   return (
     <>
       <section aria-labelledby="live-ride-title" className="space-y-3">
-        <Badge variant="success">
-          <span className="live-dot" aria-hidden />
-          {t('Live')}
-        </Badge>
+        {phase === 'ended' ? (
+          <Badge variant="muted" dot>
+            {t('Ended')}
+          </Badge>
+        ) : (
+          <Badge variant="success">
+            <span className="live-dot" aria-hidden />
+            {t('Live')}
+          </Badge>
+        )}
         <h1
           id="live-ride-title"
           className="text-balance text-2xl font-semibold tracking-tight sm:text-3xl"
         >
-          {t('{name} is sharing a live ride', { name })}
+          {phase === 'ended'
+            ? t('{name} has stopped sharing this ride.', { name })
+            : t('{name} is sharing a live ride', { name })}
         </h1>
         <RideFacts ride={ride} />
         {position ? (
@@ -400,7 +232,7 @@ export function LiveRideDetails({
         ) : null}
       </section>
 
-      {reconnecting ? (
+      {reconnecting && phase !== 'ended' ? (
         <p
           role="status"
           className="flex items-center gap-2 rounded-lg bg-warning/10 px-3 py-2 text-xs font-medium text-warning"
@@ -419,10 +251,13 @@ export function LiveRideDetails({
         />
       ) : null}
       {phase === 'waiting' ? <WaitingForFix name={name} /> : null}
+      {phase === 'ended' && ride.summary ? <RideSummary summary={ride.summary} /> : null}
 
-      <p className="text-xs text-muted-foreground">
-        {t('This page shows where {name} is only while they are sharing.', { name })}
-      </p>
+      {phase !== 'ended' ? (
+        <p className="text-xs text-muted-foreground">
+          {t('This page shows where {name} is only while they are sharing.', { name })}
+        </p>
+      ) : null}
     </>
   );
 }

@@ -1,148 +1,131 @@
 import type { FastifyInstance } from 'fastify';
 import type { WebSocket } from 'ws';
+import { RideShareStatus, type RideShareLiveMessage } from '@saarthi/shared';
 import { logger } from '../lib/logger';
 import { pubsub } from '../infra/event-bus';
-import { publicLiveRide, shareIdFromToken } from '../modules/ride-shares/ride-share.service';
+import {
+  publicLiveRide,
+  rideShareChannel,
+  shareIdFromToken,
+} from '../modules/ride-shares/ride-share.service';
 
 /**
- * Public Live Ride Realtime Gateway.
+ * The live link's socket (`/ws/live?token=…`), for whoever follows a shared
+ * ride without an account. The signed link token is the whole credential, as
+ * it is for `GET /public/live/:token`, and a socket only ever hears the one
+ * share its token names.
  *
- * Dedicated WebSocket endpoint (`/ws/live?token=...`) for anonymous family members
- * following a shared ride via link. Authenticates directly from the cryptographically
- * signed HMAC token in 0ms without requiring user accounts or sessions.
- *
- * Each socket is joined strictly to `ride-share:{shareId}`, receiving sub-30ms
- * coordinate pushes and road trail updates as the vehicle travels.
+ * It is separate from `/ws` for the reason the device gateway is: that one
+ * authenticates a signed-in person and lets them subscribe to channels; this
+ * one must never grow a subscription surface. The page keeps polling beside
+ * it, so a socket that cannot open or is turned away costs nothing but speed.
  */
 
-const liveWsLogger = logger.child({ module: 'realtime:live-ride' });
+/** Sockets held open at once, across all shares and on one share. */
+const MAX_CONNECTIONS = 2_000;
+const MAX_CONNECTIONS_PER_SHARE = 50;
+
+/** RFC 6455 "try again later": the page falls back to polling and retries. */
+const CLOSE_TRY_LATER = 1013;
+const CLOSE_NOT_FOUND = 4404;
 
 interface LiveRideConnection {
   socket: WebSocket;
   shareId: string;
-  token: string;
   alive: boolean;
   unsubscribe: () => void;
 }
 
 const connections = new Set<LiveRideConnection>();
+const liveLogger = logger.child({ module: 'realtime:live-ride' });
 
-function send(socket: WebSocket, message: unknown): void {
+function send(socket: WebSocket, message: RideShareLiveMessage): void {
   if (socket.readyState !== socket.OPEN) return;
   try {
     socket.send(JSON.stringify(message));
   } catch (error) {
-    liveWsLogger.warn({ err: error }, 'Failed to send message over live ride socket');
+    liveLogger.warn({ err: error }, 'Failed to write to live ride socket');
   }
 }
 
-export function liveRideClientCount(): number {
-  return connections.size;
+function drop(connection: LiveRideConnection): void {
+  connection.unsubscribe();
+  connections.delete(connection);
+}
+
+function followersOf(shareId: string): number {
+  let count = 0;
+  for (const connection of connections) if (connection.shareId === shareId) count += 1;
+  return count;
 }
 
 export async function liveRideWebsocketRoutes(app: FastifyInstance): Promise<void> {
   app.get('/ws/live', { websocket: true }, async (socket, request) => {
-    const query = request.query as { token?: string };
-    const token = query.token;
-
-    if (!token) {
-      send(socket, {
-        type: 'ERROR',
-        code: 'BAD_REQUEST',
-        message: 'A valid live ride token is required to open a realtime connection.',
-      });
-      socket.close(4400, 'missing token');
+    const { token } = request.query as { token?: string };
+    const shareId = token ? shareIdFromToken(token) : null;
+    if (!token || !shareId) {
+      socket.close(CLOSE_NOT_FOUND, 'not found');
       return;
     }
-
-    const shareId = shareIdFromToken(token);
-    if (!shareId) {
-      send(socket, {
-        type: 'ERROR',
-        code: 'NOT_FOUND',
-        message: 'This live link does not exist or has expired.',
-      });
-      socket.close(4404, 'invalid token');
+    if (connections.size >= MAX_CONNECTIONS || followersOf(shareId) >= MAX_CONNECTIONS_PER_SHARE) {
+      socket.close(CLOSE_TRY_LATER, 'too many followers');
       return;
     }
-
-    let initialRide;
-    try {
-      initialRide = await publicLiveRide(token);
-    } catch {
-      send(socket, {
-        type: 'ERROR',
-        code: 'NOT_FOUND',
-        message: 'This live link does not exist or has ended.',
-      });
-      socket.close(4404, 'not found');
-      return;
-    }
-
-    // Subscribe socket to this ride's pubsub channel
-    const channel = `ride-share:${shareId}`;
-    const unsubscribe = pubsub.subscribe(channel, (message) => {
-      send(socket, message);
-    });
 
     const connection: LiveRideConnection = {
       socket,
       shareId,
-      token,
       alive: true,
-      unsubscribe,
+      // Joined before the ride is read, so no move between the two is missed.
+      unsubscribe: pubsub.subscribe(rideShareChannel(shareId), (message) => {
+        const update = message as RideShareLiveMessage;
+        send(socket, update);
+        if (update.type === 'RIDE_SHARE_ENDED') socket.close(1000, 'ride ended');
+      }),
     };
     connections.add(connection);
-
-    // Send immediate initial snapshot
-    send(socket, {
-      type: 'RIDE_SHARE_SNAPSHOT',
-      ride: initialRide,
-    });
-
     socket.on('pong', () => {
       connection.alive = true;
     });
-
-    socket.on('close', () => {
-      unsubscribe();
-      connections.delete(connection);
+    socket.on('close', () => drop(connection));
+    socket.on('error', (error: Error) => {
+      liveLogger.debug({ err: error, shareId }, 'Live ride socket error');
+      drop(connection);
     });
 
-    socket.on('error', (err) => {
-      liveWsLogger.debug({ err, shareId }, 'Live ride socket error');
-      unsubscribe();
-      connections.delete(connection);
-    });
+    try {
+      const ride = await publicLiveRide(token);
+      send(socket, { type: 'RIDE_SHARE_SNAPSHOT', ride });
+      if (ride.status !== RideShareStatus.SHARING) socket.close(1000, 'ride ended');
+    } catch {
+      socket.close(CLOSE_NOT_FOUND, 'not found');
+    }
   });
 
-  // Heartbeat check every 25 seconds to terminate dead/half-open mobile sockets
-  const interval = setInterval(() => {
-    for (const conn of connections) {
-      if (!conn.alive) {
-        conn.unsubscribe();
-        conn.socket.terminate();
-        connections.delete(conn);
+  // Drop half-open sockets so a phone that went out of signal does not hold a slot forever.
+  const heartbeat = setInterval(() => {
+    for (const connection of connections) {
+      if (!connection.alive) {
+        connection.socket.terminate();
+        drop(connection);
         continue;
       }
-      conn.alive = false;
+      connection.alive = false;
       try {
-        conn.socket.ping();
+        connection.socket.ping();
       } catch {
-        conn.unsubscribe();
-        conn.socket.terminate();
-        connections.delete(conn);
+        drop(connection);
       }
     }
-  }, 25_000);
+  }, 30_000);
+  heartbeat.unref?.();
 
-  app.addHook('onClose', (_instance, done) => {
-    clearInterval(interval);
-    for (const conn of connections) {
-      conn.unsubscribe();
-      conn.socket.close(1001, 'server shutting down');
+  app.addHook('onClose', async () => {
+    clearInterval(heartbeat);
+    for (const connection of connections) {
+      connection.unsubscribe();
+      connection.socket.close(1001, 'server shutting down');
     }
     connections.clear();
-    done();
   });
 }

@@ -133,12 +133,6 @@ export interface RoutingProvider {
    * guesses and prices fuel from the wrong state.
    */
   reverseGeocode(at: LatLng): Promise<Locality | null>;
-
-  /**
-   * Traces the road geometry connecting a sequence of waypoints along the street network.
-   * Transforms sparse GPS fixes into dense road centerline polylines, eliminating diagonal chords.
-   */
-  routePath?(waypoints: readonly LatLng[]): Promise<LatLng[]>;
 }
 
 /** One result from [RoutingProvider.searchPlaces]. */

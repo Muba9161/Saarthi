@@ -1,6 +1,10 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { OrganizationType, PlanTier, RoleName, type PublicLiveRide, type RideShareView } from '@saarthi/shared';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { OrganizationType, PlanTier, RoleName, type PublicLiveRide,
+  type RideShareLiveMessage,
+  type RideShareView, } from '@saarthi/shared';
+import type { AddressInfo } from 'node:net';
 import { prisma } from '../src/database/prisma';
+import { measureRide, rideSummary } from '../src/modules/ride-shares/ride-summary';
 import { cache } from '../src/infra/cache';
 import { closeApp, createOrganization, createUser, getApp, request, resetDatabase, type TestUser } from './helpers';
 
@@ -167,7 +171,8 @@ describe('share my ride', () => {
     const at = (secondsAgo: number) => new Date(Date.now() - secondsAgo * 1000).toISOString();
     const fixes = [
       { latitude: 26.9, longitude: 81.0, recordedAt: at(90) },
-      { latitude: 26.901, longitude: 81.0, recordedAt: at(60) },
+      // A turn east and back: a bend, so every point is drawn.
+      { latitude: 26.901, longitude: 81.001, recordedAt: at(60) },
       { latitude: 26.902, longitude: 81.0, recordedAt: at(30) },
     ];
     const upload = (points: object[]) =>
@@ -188,8 +193,135 @@ describe('share my ride', () => {
     const since = await app.inject({ method: 'GET', url: `/api/v1/public/live/${tokenOf(share)}?from=${encodeURIComponent(fixes[1]!.recordedAt)}` });
     expect((JSON.parse(since.body) as { data: PublicLiveRide }).data.trail.map((point) => point.latitude)).toEqual([26.902]);
 
+    expect(whole.body.data.summary).toBeNull();
+
     await request({ method: 'POST', url: `/api/v1/ride-shares/${share.id}/end`, user: rider, payload: {} });
-    expect((await live(tokenOf(share))).body.data.trail).toEqual([]);
+    const ended = (await live(tokenOf(share))).body.data;
+    expect(ended.trail).toEqual([]);
+    expect(await prisma.rideSharePoint.count({ where: { rideShareId: share.id } })).toBe(0);
+    // What the ride came to is shown for a few minutes: about 298 m covered, and no top
+    // speed, because the phone reported none — it is never estimated.
+    expect(ended.summary?.distanceKm).toBeCloseTo(0.3, 2);
+    expect(ended.summary?.maxSpeedKph).toBeNull();
+    expect(ended.summary?.avgSpeedKph).not.toBeNull();
+  });
+
+  it('pushes each move to whoever follows the live link, and that it ended', async () => {
+    const share = (await start(rider, {})).body.data;
+    const app = await getApp();
+    const messages: RideShareLiveMessage[] = [];
+    const next = (type: RideShareLiveMessage['type']) =>
+      vi.waitFor(() => {
+        const found = messages.find((message) => message.type === type);
+        if (!found) throw new Error(`no ${type} yet`);
+        return found;
+      });
+
+    // A real listener: the upgrade is the thing under test.
+    await app.listen({ port: 0, host: '127.0.0.1' });
+    const { port } = app.server.address() as AddressInfo;
+    const follow = (token: string) => new WebSocket(`ws://127.0.0.1:${port}/ws/live?token=${token}`);
+    const closeOf = (socket: WebSocket) =>
+      new Promise<number>((resolve) => socket.addEventListener('close', (event) => resolve(event.code)));
+
+    const socket = follow(tokenOf(share));
+    socket.addEventListener('message', (event) =>
+      messages.push(JSON.parse(String(event.data)) as RideShareLiveMessage),
+    );
+    const closed = closeOf(socket);
+    expect(await next('RIDE_SHARE_SNAPSHOT')).toMatchObject({ ride: { status: 'SHARING', trail: [] } });
+
+    await report(share.id, share.reportingToken, 26.9, 81.0);
+    // Only this upload's road is sent, never the whole ride again.
+    expect(await next('RIDE_SHARE_UPDATE')).toMatchObject({
+      position: { latitude: 26.9, longitude: 81.0 },
+      trail: [{ latitude: 26.9 }],
+    });
+
+    await request({ method: 'POST', url: `/api/v1/ride-shares/${share.id}/end`, user: rider, payload: {} });
+    expect(await next('RIDE_SHARE_ENDED')).toMatchObject({ summary: { distanceKm: 0, maxSpeedKph: 40 } });
+    expect(await closed).toBe(1000);
+
+    // A guessed link opens nothing.
+    expect(await closeOf(follow(`${share.id}.forged`))).toBe(4404);
+  });
+
+  it('measures a ride from its fixes, leaving out what was never reported', () => {
+    const fix = (latitude: number, secondsIn: number, speedKph: number | null) => ({
+      latitude,
+      longitude: 81.0,
+      speedKph,
+      accuracy: 10,
+      recordedAt: new Date(Date.UTC(2026, 10, 16, 9, 0, secondsIn)),
+    });
+    expect(measureRide([])).toEqual({ distanceKm: 0, maxSpeedKph: null });
+    expect(measureRide([fix(26.9, 0, 0), fix(26.901, 30, 41.6), fix(26.902, 60, 38)])).toEqual({
+      distanceKm: 0.22,
+      maxSpeedKph: 42,
+    });
+
+    const hour = rideSummary(new Date('2026-11-16T09:00:00Z'), new Date('2026-11-16T10:00:00Z'), {
+      distanceKm: 30,
+      maxSpeedKph: null,
+    });
+    expect(hour).toEqual({
+      distanceKm: 30,
+      durationMinutes: 60,
+      avgSpeedKph: 30,
+      maxSpeedKph: null,
+      startedAt: '2026-11-16T09:00:00.000Z',
+      endedAt: '2026-11-16T10:00:00.000Z',
+      shownUntil: '2026-11-16T10:05:00.000Z',
+    });
+  });
+
+  it('shows what the ride came to for five minutes after it ends, then nothing', async () => {
+    const share = (await start(rider, {})).body.data;
+    await report(share.id, share.reportingToken, 26.9, 81.0);
+    await request({ method: 'POST', url: `/api/v1/ride-shares/${share.id}/end`, user: rider, payload: {} });
+    const justEnded = (await live(tokenOf(share))).body.data;
+    expect(justEnded.summary).toMatchObject({ distanceKm: 0, maxSpeedKph: 40 });
+    expect(Date.parse(justEnded.summary!.shownUntil) - Date.parse(justEnded.endedAt!)).toBe(5 * 60_000);
+
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      vi.setSystemTime(Date.now() + 5 * 60_000 + 1_000);
+      const later = (await live(tokenOf(share))).body.data;
+      expect(later.status).toBe('ENDED');
+      expect(later.summary).toBeNull();
+      expect(later.trail).toEqual([]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('draws a long ride to where the rider is now, past its first hours', async () => {
+    const share = (await start(rider, {})).body.data;
+    // Seven hours of a fix a second, heading north — more than the 20,000
+    // points the trail once stopped reading at.
+    const count = 25_200;
+    const startedAt = Date.now() - count * 1000;
+    const rows = Array.from({ length: count }, (_, second) => ({
+      rideShareId: share.id,
+      latitude: 26.9 + second * 0.00005,
+      longitude: 81.0,
+      recordedAt: new Date(startedAt + second * 1000),
+    }));
+    for (let from = 0; from < rows.length; from += 5_000) {
+      await prisma.rideSharePoint.createMany({ data: rows.slice(from, from + 5_000) });
+    }
+    const trail = (await live(tokenOf(share))).body.data.trail;
+    expect(trail.at(-1)?.latitude).toBeCloseTo(rows.at(-1)!.latitude, 6);
+  });
+
+  it('has no summary for a share first read long after it ran out', async () => {
+    const share = (await start(rider, {})).body.data;
+    await report(share.id, share.reportingToken, 26.9, 81.0);
+    // Ran out ten minutes ago with nobody looking: closed now, its minutes already up.
+    await prisma.rideShare.update({ where: { id: share.id }, data: { expiresAt: new Date(Date.now() - 10 * 60_000) } });
+    const ride = (await live(tokenOf(share))).body.data;
+    expect(ride.status).toBe('ENDED');
+    expect(ride.summary).toBeNull();
     expect(await prisma.rideSharePoint.count({ where: { rideShareId: share.id } })).toBe(0);
   });
 

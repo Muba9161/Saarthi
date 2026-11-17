@@ -1,6 +1,12 @@
-import * as React from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { RideShareStatus, thinTrail, type PublicLiveRide, type RideSharedWithMe, type RideTrailPoint } from '@saarthi/shared';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  RideShareStatus,
+  simplifyTrail,
+  thinTrail,
+  type PublicLiveRide,
+  type RideSharedWithMe,
+  type RideTrailPoint,
+} from '@saarthi/shared';
 import { ApiError, api, apiRequest } from '@/lib/api-client';
 import { liveRidePollInterval } from './live-ride-status';
 
@@ -49,24 +55,29 @@ function fetchLiveRide(token: string, signal: AbortSignal, from?: string): Promi
 }
 
 /** The road held, with what is newer from [fresh] after it; ISO times sort as text. */
-function extendTrail(held: readonly RideTrailPoint[], fresh: readonly RideTrailPoint[]): RideTrailPoint[] {
+export function extendTrail(held: readonly RideTrailPoint[], fresh: readonly RideTrailPoint[]): RideTrailPoint[] {
   const last = held.at(-1)?.recordedAt;
   const road = [...held, ...fresh.filter((point) => last === undefined || point.recordedAt > last)];
-  return road.length > MAX_TRAIL_POINTS ? thinTrail(road, MAX_TRAIL_POINTS) : road;
+  // Over the budget, the straight stretches go first so the turns stay on the road.
+  return road.length > MAX_TRAIL_POINTS ? thinTrail(simplifyTrail(road), MAX_TRAIL_POINTS) : road;
 }
 
 /**
- * The ride behind a live link, read again while it lasts.
- * Delivers the complete, authoritative road-snapped polyline from the server
- * so there are no client-side timestamp boundary or stitching errors.
+ * The ride behind a live link, read again while it lasts. The road covered is
+ * read whole once and then only what is new — as a followed vehicle's trail
+ * is — so a long ride does not resend its whole road every few seconds.
  */
 export function useLiveRide(token: string) {
+  const queryClient = useQueryClient();
   return useQuery({
     queryKey: liveRideQueryKey(token),
-    queryFn: async ({ signal }) => {
-      const ride = await fetchLiveRide(token, signal);
-      const points = ride.trail ?? [];
-      return { ...ride, trail: points };
+    queryFn: async ({ signal }): Promise<PublicLiveRide> => {
+      // The road held is the query's own data, so what the live socket adds
+      // between two reads is held too.
+      const held = queryClient.getQueryData<PublicLiveRide>(liveRideQueryKey(token))?.trail ?? [];
+      const ride = await fetchLiveRide(token, signal, held.at(-1)?.recordedAt);
+      const trail = ride.status === RideShareStatus.SHARING ? extendTrail(held, ride.trail) : [];
+      return { ...ride, trail };
     },
     enabled: token.length > 0,
     // Every answer is a snapshot of a moving phone; none of it is reusable.

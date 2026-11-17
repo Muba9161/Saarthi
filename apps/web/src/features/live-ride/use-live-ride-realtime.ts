@@ -1,163 +1,79 @@
 import * as React from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { RideShareStatus, type PublicLiveRide, type RideTrailPoint } from '@saarthi/shared';
-import { liveRideQueryKey, useLiveRide } from './live-ride-api';
+import { RideShareStatus, type PublicLiveRide, type RideShareLiveMessage } from '@saarthi/shared';
+import { realtimeBase } from '@/lib/api-client';
+import { extendTrail, liveRideQueryKey, useLiveRide } from './live-ride-api';
 
-const sameOriginWs = (): string =>
-  `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}`;
+const FIRST_RETRY_MS = 1_000;
+const MAX_RETRY_MS = 15_000;
+/** Closes that are final: the ride ended, or the link names no ride. */
+const FINAL_CLOSE_CODES = [1000, 4404];
 
-const WS_URL = (() => {
-  const configured = import.meta.env.VITE_WS_URL as string | undefined;
-  if (!configured) return sameOriginWs();
-  return configured.replace(/^http/, 'ws');
-})();
-
-interface RealtimeUpdateMessage {
-  type: 'RIDE_SHARE_UPDATE';
-  position: PublicLiveRide['position'];
-  trail: RideTrailPoint[];
+function applyLiveMessage(ride: PublicLiveRide | undefined, message: RideShareLiveMessage) {
+  if (message.type === 'RIDE_SHARE_SNAPSHOT') return message.ride;
+  // Nothing read yet: the first read brings the whole ride anyway.
+  if (!ride) return ride;
+  if (message.type === 'RIDE_SHARE_UPDATE') {
+    return { ...ride, position: message.position, trail: extendTrail(ride.trail, message.trail) };
+  }
+  return {
+    ...ride,
+    status: RideShareStatus.ENDED,
+    endedAt: message.endedAt,
+    position: null,
+    trail: [],
+    summary: message.summary,
+  };
 }
-
-interface RealtimeSnapshotMessage {
-  type: 'RIDE_SHARE_SNAPSHOT';
-  ride: PublicLiveRide;
-}
-
-interface RealtimeEndedMessage {
-  type: 'RIDE_SHARE_ENDED';
-  summary?: PublicLiveRide['summary'];
-  trail?: RideTrailPoint[];
-}
-
-interface RealtimeErrorMessage {
-  type: 'ERROR';
-  code: string;
-  message: string;
-}
-
-type LiveRideWsMessage =
-  | RealtimeUpdateMessage
-  | RealtimeSnapshotMessage
-  | RealtimeEndedMessage
-  | RealtimeErrorMessage;
 
 /**
- * Real-time WebSocket hook for following a live shared ride.
+ * The ride behind a live link, moved as it moves.
  *
- * Connects directly to `/ws/live?token=...` to receive sub-30ms coordinate pushes
- * and road trail updates, providing an Uber/Rapido-grade instant experience.
- * Automatically falls back to HTTP polling if WebSockets are unavailable or blocked.
+ * The reads of [useLiveRide] stay as they are; a socket on `/ws/live` writes
+ * each move into the same query between them. A browser or network that will
+ * not hold a socket loses nothing but speed: the page still polls.
  */
 export function useLiveRideRealtime(token: string) {
   const queryClient = useQueryClient();
-  const httpQuery = useLiveRide(token);
-  const [realtimeConnected, setRealtimeConnected] = React.useState(false);
-  const socketRef = React.useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = React.useRef<number | null>(null);
-  const backoffRef = React.useRef(1_000);
-
-  const queryKey = React.useMemo(() => liveRideQueryKey(token), [token]);
+  const ride = useLiveRide(token);
 
   React.useEffect(() => {
     if (!token) return undefined;
+    let socket: WebSocket | null = null;
+    let retry: number | undefined;
+    let retryIn = FIRST_RETRY_MS;
+    let stopped = false;
 
-    let unmounted = false;
-
-    function connect() {
-      if (unmounted) return;
-
-      const wsUrl = `${WS_URL}/ws/live?token=${encodeURIComponent(token)}`;
-      let socket: WebSocket;
-
-      try {
-        socket = new WebSocket(wsUrl);
-      } catch {
-        // Fallback to HTTP query
-        setRealtimeConnected(false);
-        return;
-      }
-
-      socketRef.current = socket;
-
+    const connect = (): void => {
+      socket = new WebSocket(`${realtimeBase()}/ws/live?token=${encodeURIComponent(token)}`);
       socket.onopen = () => {
-        if (unmounted) return;
-        setRealtimeConnected(true);
-        backoffRef.current = 1_000;
+        retryIn = FIRST_RETRY_MS;
       };
-
       socket.onmessage = (event) => {
-        if (unmounted) return;
+        let message: RideShareLiveMessage;
         try {
-          const message = JSON.parse(event.data as string) as LiveRideWsMessage;
-
-          if (message.type === 'RIDE_SHARE_SNAPSHOT') {
-            queryClient.setQueryData(queryKey, message.ride);
-          } else if (message.type === 'RIDE_SHARE_UPDATE') {
-            queryClient.setQueryData<PublicLiveRide>(queryKey, (prev) => {
-              if (!prev) return prev;
-              return {
-                ...prev,
-                position: message.position,
-                trail: message.trail,
-              };
-            });
-          } else if (message.type === 'RIDE_SHARE_ENDED') {
-            queryClient.setQueryData<PublicLiveRide>(queryKey, (prev) => {
-              if (!prev) return prev;
-              const trail = message.trail ?? prev.trail ?? [];
-              const summary = message.summary ?? prev.summary ?? null;
-              return {
-                ...prev,
-                status: RideShareStatus.ENDED,
-                position: null,
-                endedAt: prev.endedAt ?? new Date().toISOString(),
-                trail,
-                summary,
-              };
-            });
-            // Re-fetch in background to ensure perfect parity
-            void httpQuery.refetch();
-          }
+          message = JSON.parse(String(event.data)) as RideShareLiveMessage;
         } catch {
-          // Ignore unparseable frames
+          return; // Not ours to read; the next poll corrects anything missed.
         }
+        queryClient.setQueryData<PublicLiveRide>(liveRideQueryKey(token), (held) =>
+          applyLiveMessage(held, message),
+        );
       };
-
       socket.onclose = (event) => {
-        if (unmounted) return;
-        setRealtimeConnected(false);
-        socketRef.current = null;
-
-        // Reconnect if not cleanly closed or ride ended
-        if (event.code !== 1000 && event.code !== 4404) {
-          const delay = Math.min(15_000, backoffRef.current);
-          backoffRef.current = Math.min(15_000, backoffRef.current * 1.5);
-          reconnectTimeoutRef.current = window.setTimeout(connect, delay);
-        }
+        if (stopped || FINAL_CLOSE_CODES.includes(event.code)) return;
+        retry = window.setTimeout(connect, retryIn);
+        retryIn = Math.min(MAX_RETRY_MS, retryIn * 2);
       };
-
-      socket.onerror = () => {
-        // Handled by onclose
-      };
-    }
-
+    };
     connect();
 
     return () => {
-      unmounted = true;
-      if (reconnectTimeoutRef.current !== null) {
-        window.clearTimeout(reconnectTimeoutRef.current);
-        reconnectTimeoutRef.current = null;
-      }
-      if (socketRef.current) {
-        socketRef.current.close(1000, 'unmounted');
-        socketRef.current = null;
-      }
+      stopped = true;
+      window.clearTimeout(retry);
+      socket?.close(1000, 'left the page');
     };
-  }, [token, queryClient, queryKey]);
+  }, [token, queryClient]);
 
-  return {
-    ...httpQuery,
-    isRealtime: realtimeConnected,
-  };
+  return ride;
 }

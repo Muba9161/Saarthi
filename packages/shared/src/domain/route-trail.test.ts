@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { TrackRouteState } from './enums';
-import { destinationPoint } from './geo';
+import { destinationPoint, distanceToPath } from './geo';
 import {
   ALTERNATE_AWAY_METRES,
   GLITCH_ACCURACY_METRES,
   isOffRoute,
+  simplifyTrail,
   nextRouteState,
   stillHeadingThere,
   thinTrail,
@@ -144,5 +145,51 @@ describe('thinning a trail for a map', () => {
     expect(thinned[thinned.length - 1]).toBe(drive[drive.length - 1]);
     expect(thinned).toContain(drive[1_234]);
     expect(thinned).toContain(drive[1_235]);
+  });
+});
+
+describe('keeping the bends of a trail', () => {
+  const at = (position: { latitude: number; longitude: number }, routeState = TrackRouteState.NO_TRIP) => ({
+    ...position,
+    routeState,
+  });
+
+  /**
+   * Round city blocks — 300 m east, 300 m north, over and over — with a fix
+   * every second at 30 km/h, as the rider's phone now takes them.
+   */
+  function blocks(legs: number) {
+    const fixes = [at(start)];
+    const corners: { latitude: number; longitude: number }[] = [];
+    let here = start;
+    for (let leg = 0; leg < legs; leg += 1) {
+      const heading = leg % 2 === 0 ? 90 : 0;
+      for (let second = 0; second < 36; second += 1) {
+        here = destinationPoint(here, heading, 300 / 36);
+        fixes.push(at(here));
+      }
+      corners.push(here);
+    }
+    return { fixes, corners };
+  }
+
+  it('keeps a corner and drops the straight road either side of it', () => {
+    const { fixes } = blocks(2);
+    const simplified = simplifyTrail(fixes);
+    expect(simplified).toEqual([fixes[0], fixes[36], fixes[72]]);
+  });
+
+  it('keeps a colour change on a straight road', () => {
+    const fixes = Array.from({ length: 10 }, (_, step) =>
+      at(destinationPoint(start, 90, step * 10), step >= 5 ? TrackRouteState.ON_ROUTE : TrackRouteState.NO_TRIP),
+    );
+    expect(simplifyTrail(fixes)).toEqual([fixes[0], fixes[4], fixes[5], fixes[9]]);
+  });
+
+  it('draws every turn of a three-hour ride on the road, within the map budget', () => {
+    const { fixes, corners } = blocks(300); // 10,800 fixes, 300 turns
+    const drawn = thinTrail(simplifyTrail(fixes), 1_500);
+    expect(drawn.length).toBeLessThanOrEqual(1_500);
+    for (const corner of corners) expect(distanceToPath(corner, drawn)).toBeLessThan(5);
   });
 });

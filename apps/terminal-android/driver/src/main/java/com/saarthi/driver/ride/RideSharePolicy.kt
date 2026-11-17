@@ -27,6 +27,13 @@ object RideSharePolicy {
     /** Fixes in one upload — the server's own limit. */
     const val MAX_POINTS = 100
 
+    /**
+     * Fixes held while out of signal: ten minutes at one a second. Held to one
+     * upload's worth, a minute and a half without data lost the road taken
+     * in it, and family saw a straight line across it.
+     */
+    const val MAX_HELD_POINTS = 600
+
     /** The server's own limits on a fix. One reading outside them refuses the whole upload. */
     private const val MAX_SPEED_KPH = 200.0
     private const val MAX_ACCURACY_METRES = 5_000.0

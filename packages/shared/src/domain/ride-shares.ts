@@ -77,25 +77,37 @@ export interface RideShareAccess {
   hasOwnerAccount: boolean;
 }
 
-/** Summary of a completed ride share journey. */
+/** How long an ended ride's summary is shown to family before it is removed too. */
+export const RIDE_SUMMARY_MINUTES = 5;
+
+/**
+ * What an ended share came to, shown for [RIDE_SUMMARY_MINUTES] and then
+ * removed. It holds no position: the road covered is deleted when the share
+ * ends, and these figures go a few minutes later.
+ */
 export interface RideShareSummary {
-  /** Total road distance travelled in kilometres */
+  /** Kilometres covered while sharing, along the phone's own fixes. */
   distanceKm: number;
-  /** Total trip duration in minutes */
   durationMinutes: number;
-  /** Average speed across the journey in km/h */
-  avgSpeedKph: number;
-  /** Maximum speed reached during the journey in km/h */
-  maxSpeedKph: number;
-  /** When sharing/journey started */
+  /** Distance over duration; null for a share that lasted no time. */
+  avgSpeedKph: number | null;
+  /** The fastest speed the phone reported; null when it reported none — never estimated. */
+  maxSpeedKph: number | null;
   startedAt: string;
-  /** When sharing/journey ended */
   endedAt: string;
-  /** Start coordinate */
-  startPoint: { latitude: number; longitude: number } | null;
-  /** Final destination / ended coordinate */
-  endPoint: { latitude: number; longitude: number } | null;
+  /** When the summary is removed; not shown after it. */
+  shownUntil: string;
 }
+
+/**
+ * What the live link's socket (`/ws/live`) sends: the whole ride on connecting,
+ * then each move — the new position and only the road covered since the last
+ * one — and, once, that it has ended.
+ */
+export type RideShareLiveMessage =
+  | { type: 'RIDE_SHARE_SNAPSHOT'; ride: PublicLiveRide }
+  | { type: 'RIDE_SHARE_UPDATE'; position: RideVehicleLocation | null; trail: RideTrailPoint[] }
+  | { type: 'RIDE_SHARE_ENDED'; endedAt: string; summary: RideShareSummary | null };
 
 /** What the live link shows — a first name, the vehicle's number, and where they are while sharing. */
 export interface PublicLiveRide {
@@ -108,9 +120,9 @@ export interface PublicLiveRide {
   position: RideVehicleLocation | null;
   /**
    * The road covered since sharing began — or, asked `from` a time, only
-   * what was covered after it — thinned on long rides.
+   * what was covered after it — thinned on long rides. Empty once ended.
    */
   trail: RideTrailPoint[];
-  /** Journey summary statistics once ended, or null while still sharing. */
-  summary?: RideShareSummary | null;
+  /** What the ride came to, once it has ended; null while sharing. */
+  summary: RideShareSummary | null;
 }

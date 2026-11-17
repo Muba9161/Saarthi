@@ -228,9 +228,9 @@ class DriverApi(
      * Send a password reset link to [email].
      *
      * The server never reveals whether an address belongs to an account,
-     * so the sentence it returns is the one to show.
+     * so the sentence it returns is the one to show; null when it sent none.
      */
-    suspend fun forgotPassword(email: String): String {
+    suspend fun forgotPassword(email: String): String? {
         val raw = send(
             "POST",
             "/api/v1/auth/forgot-password",
@@ -239,7 +239,6 @@ class DriverApi(
         )
         return json.decodeFromString(Envelope.serializer(ForgotPasswordResponse.serializer()), raw).data?.message
             ?.ifBlank { null }
-            ?: "If an account exists for that email address, we have emailed it a password reset link."
     }
 
     @Serializable

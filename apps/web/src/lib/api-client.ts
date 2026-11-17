@@ -103,6 +103,22 @@ export function apiBase(): string {
   return API_BASE;
 }
 
+const sameOriginWs = (): string =>
+  `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}`;
+
+const WS_BASE = (() => {
+  const configured = import.meta.env.VITE_WS_URL as string | undefined;
+  if (!configured) return sameOriginWs();
+  // ws:// and wss:// normalise to http/https for the reachability check.
+  const asHttp = configured.replace(/^ws/, 'http');
+  return unreachableFromThisPage(asHttp) ? sameOriginWs() : configured;
+})();
+
+/** The resolved socket origin, under the same reachability rule as [apiBase]. */
+export function realtimeBase(): string {
+  return WS_BASE;
+}
+
 export const API_PREFIX = '/api/v1';
 
 /** What the sign-in, registration and refresh endpoints hand back. */

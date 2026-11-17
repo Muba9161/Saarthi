@@ -339,7 +339,7 @@ class DriverViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch {
             _error.value = null
             try {
-                val message = api.forgotPassword(email)
+                val message = api.forgotPassword(email) ?: text(R.string.signin_forgot_sent)
                 onResult(Result.success(message))
             } catch (failure: DriverApi.Failure) {
                 _error.value = failure.message

@@ -1,5 +1,5 @@
 import { TrackRouteState } from './enums';
-import { distanceToPath, haversineDistance, type LatLng } from './geo';
+import { distanceToPath, distanceToSegment, haversineDistance, type LatLng } from './geo';
 
 /**
  * The covered-path trail: where a vehicle has been, coloured by how it got
@@ -155,6 +155,61 @@ export function thinTrail<T extends TrailPoint>(points: readonly T[], limit: num
       index % stride === 0 ||
       point.routeState !== moved[index - 1]!.routeState,
   );
+}
+
+/** Closer than this to the straight line through its neighbours, a point adds no bend a map can show. */
+export const TRAIL_BEND_METRES = 5;
+
+/**
+ * Drop the points that lie on a straight stretch and keep every bend.
+ *
+ * Thinning at a stride keeps every n-th point wherever it falls, so on a long
+ * ride a turn can land between two kept points and be drawn as a straight
+ * line across the block. Run first, this spends the points on the turns: a
+ * straight road needs only its two ends, a corner keeps its corner. The first
+ * and last points and every colour change are kept. (Ramer–Douglas–Peucker,
+ * iterative, so a long ride cannot overflow the stack.)
+ */
+export function simplifyTrail<T extends TrailPoint>(
+  points: readonly T[],
+  toleranceMetres = TRAIL_BEND_METRES,
+): T[] {
+  if (points.length <= 2) return [...points];
+  const keep = new Uint8Array(points.length);
+  keep[0] = 1;
+  keep[points.length - 1] = 1;
+  for (let index = 1; index < points.length; index += 1) {
+    if (points[index]!.routeState !== points[index - 1]!.routeState) {
+      keep[index - 1] = 1;
+      keep[index] = 1;
+    }
+  }
+
+  const spans: [number, number][] = [];
+  let from = 0;
+  for (let index = 1; index < points.length; index += 1) {
+    if (keep[index]) {
+      spans.push([from, index]);
+      from = index;
+    }
+  }
+  while (spans.length > 0) {
+    const [start, end] = spans.pop()!;
+    let farthest = -1;
+    let farthestMetres = toleranceMetres;
+    for (let index = start + 1; index < end; index += 1) {
+      const metres = distanceToSegment(points[index]!, points[start]!, points[end]!);
+      if (metres > farthestMetres) {
+        farthest = index;
+        farthestMetres = metres;
+      }
+    }
+    if (farthest >= 0) {
+      keep[farthest] = 1;
+      spans.push([start, farthest], [farthest, end]);
+    }
+  }
+  return points.filter((_, index) => keep[index] === 1);
 }
 
 /** The points where the vehicle had moved on from the last one kept, or the trail changed colour. */

@@ -22,9 +22,6 @@
     <string name="rides_live_recentre_you">Show where you are</string>
 
     <!-- Journey summary when sharing has ended -->
-    <string name="rides_summary_completed">Journey Completed</string>
-    <string name="rides_summary_title">%1$s\'s Journey Summary</string>
-    <string name="rides_summary_title_mine">Your Journey Summary</string>
     <string name="rides_summary_distance">Total Distance</string>
     <string name="rides_summary_distance_hint">Road distance</string>
     <string name="rides_summary_duration">Trip Duration</string>
@@ -32,11 +29,5 @@
     <string name="rides_summary_avg_speed">Average Speed</string>
     <string name="rides_summary_avg_speed_hint">Across journey</string>
     <string name="rides_summary_top_speed">Top Speed</string>
-    <string name="rides_summary_top_speed_hint">Peak speed</string>
-    <string name="rides_summary_timeline">Journey Timeline</string>
-    <string name="rides_summary_departed">Departed</string>
-    <string name="rides_summary_arrived">Arrived / Ended</string>
-    <string name="rides_summary_completed_route">Completed Route</string>
-    <string name="rides_summary_waypoints">%1$d waypoints recorded</string>
-    <string name="rides_summary_notice">This live location share ended at %1$s. Real-time tracking has stopped. The data above reflects the recorded journey history.</string>
+    <string name="rides_summary_top_speed_hint">Fastest reported</string>
 </resources>
