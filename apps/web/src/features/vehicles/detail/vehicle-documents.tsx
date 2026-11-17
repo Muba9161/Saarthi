@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   DOCUMENT_TYPES,
@@ -48,6 +48,12 @@ const FOLDER_NAMES: Record<string, string> = {
   ROAD_TAX: 'Road tax',
 };
 
+/**
+ * IRDAI's own list of registered general insurers. Linked rather than copied:
+ * insurers are renamed and merged, and a list kept here would go stale.
+ */
+const IRDAI_INSURERS_URL = 'https://policyholder.gov.in/registered-insurers-non-life';
+
 const ACCEPT = '.pdf,.jpg,.jpeg,.png,.webp,.heic';
 const MAX_SIZE_MB = 10;
 
@@ -64,7 +70,8 @@ const TAG_TONES: Record<Tag['tone'], string> = {
 /** The one word that says how a folder stands. */
 function folderTag(documents: DocumentSummary[], mandatory: boolean): Tag {
   const latest = documents[0];
-  if (!latest) return mandatory ? { label: 'Missing', tone: 'warning' } : { label: 'Optional', tone: 'muted' };
+  if (!latest)
+    return mandatory ? { label: 'Missing', tone: 'warning' } : { label: 'Optional', tone: 'muted' };
   switch (latest.validity) {
     case 'VALID':
       return { label: 'Valid', tone: 'success' };
@@ -222,7 +229,11 @@ export function VehicleDocuments({
       can(Permission.VERIFICATION_SUBMIT) &&
       caseStatus !== 'SUBMITTED' &&
       caseStatus !== 'UNDER_REVIEW' ? (
-        <Button className="rounded-[12px]" loading={submit.isPending} onClick={() => submit.mutate()}>
+        <Button
+          className="rounded-[12px]"
+          loading={submit.isPending}
+          onClick={() => submit.mutate()}
+        >
           Send for review
         </Button>
       ) : caseStatus ? (
@@ -299,7 +310,10 @@ export function VehicleDocuments({
 
     return (
       <div className="flex flex-col gap-[18px]">
-        <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm text-muted-foreground">
+        <nav
+          aria-label="Breadcrumb"
+          className="flex items-center gap-2 text-sm text-muted-foreground"
+        >
           <button
             type="button"
             onClick={() => onFolderChange(null)}
@@ -348,7 +362,9 @@ export function VehicleDocuments({
             {open.documents.length === 0 ? (
               <EmptyRows
                 title="No files in this folder yet"
-                hint={canUpload ? 'Upload one, then send it for review.' : 'Nothing has been uploaded.'}
+                hint={
+                  canUpload ? 'Upload one, then send it for review.' : 'Nothing has been uploaded.'
+                }
               />
             ) : (
               <ul className="divide-y divide-border border-t border-border">
@@ -375,6 +391,25 @@ export function VehicleDocuments({
                 </div>
                 <Button variant="outline" className="rounded-[12px]" onClick={onOpenVirtualRc}>
                   Open Virtual RC
+                </Button>
+              </div>
+            ) : null}
+
+            {open.id === 'INSURANCE' ? (
+              <div className="mt-5 flex flex-wrap items-center justify-between gap-4 rounded-[14px] bg-foreground/[0.04] px-[18px] py-4 dark:bg-white/[0.05]">
+                <div>
+                  <p className="text-sm font-semibold">Renewing or changing insurer?</p>
+                  <p className="text-[13px] text-muted-foreground">
+                    The insurance regulator, IRDAI, lists every registered general insurer with its
+                    official website.
+                  </p>
+                </div>
+                <Button asChild variant="outline" className="rounded-[12px]">
+                  <a href={IRDAI_INSURERS_URL} target="_blank" rel="noopener noreferrer">
+                    Registered insurers
+                    <ExternalLink className="size-4" aria-hidden />
+                    <span className="sr-only">(opens in a new tab)</span>
+                  </a>
                 </Button>
               </div>
             ) : null}
