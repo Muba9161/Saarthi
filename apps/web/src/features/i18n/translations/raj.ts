@@ -195,30 +195,21 @@ export const raj: Catalogue = {
   // Registration: email verification
   'We will email a 6-digit code to this address at the last step, to confirm it is yours. Use an inbox you can open now.':
     'आखरी पगथियै माथै म्हे इण पतै माथै 6 अंकां रो कोड भेजस्यां, जिणसूं पक्को हो जावै कै ओ आपरो है। इस्यो इनबॉक्स बरतो जिको आप अबार खोल सको।',
-  'Verify email':
-    'ईमेल री पुष्टि करो',
-  'The code we emailed you.':
-    'म्हां रो ईमेल करियोड़ो कोड।',
-  'Confirm your email address':
-    'आपरै ईमेल पतै री पुष्टि करो',
+  'Verify email': 'ईमेल री पुष्टि करो',
+  'The code we emailed you.': 'म्हां रो ईमेल करियोड़ो कोड।',
+  'Confirm your email address': 'आपरै ईमेल पतै री पुष्टि करो',
   'We sent a 6-digit code to {email}. Enter it below to finish creating your account.':
     'म्हे {email} माथै 6 अंकां रो कोड भेज्यो है। खातो बणावणो पूरो करण सारू उणनै नीचै भरो।',
-  'We will email a 6-digit code to {email}.':
-    'म्हे {email} माथै 6 अंकां रो कोड ईमेल करस्यां।',
+  'We will email a 6-digit code to {email}.': 'म्हे {email} माथै 6 अंकां रो कोड ईमेल करस्यां।',
   'Enter the code to confirm this email address is yours. It keeps fake accounts out of Saarthi.':
     'ओ ईमेल पतो आपरो है, इणरी पुष्टि सारू कोड भरो। इणसूं Saarthi नकली खातां सूं बच्यो रैवै।',
-  'Verification code':
-    'पुष्टि कोड',
-  'Send code':
-    'कोड भेजो',
-  'Resend code':
-    'कोड पाछो भेजो',
-  'Resend in {seconds}s':
-    '{seconds} सेकंड में पाछो भेजो',
+  'Verification code': 'पुष्टि कोड',
+  'Send code': 'कोड भेजो',
+  'Resend code': 'कोड पाछो भेजो',
+  'Resend in {seconds}s': '{seconds} सेकंड में पाछो भेजो',
   'Not arrived? Check your spam folder. Wrong address? Go back and change it.':
     'कोड कोनी आयो? स्पैम फोल्डर देखो। पतो गलत है? लारै जाय नै बदळो।',
-  'We emailed a verification code to {email}.':
-    'म्हे {email} माथै पुष्टि कोड ईमेल करियो है।',
+  'We emailed a verification code to {email}.': 'म्हे {email} माथै पुष्टि कोड ईमेल करियो है।',
   'The code could not be sent. Please try again.':
     'कोड कोनी भेज सक्या। किरपा कर नै पाछो कोसिस करो।',
   'I own trucks and want to manage my fleet and win loads.':
@@ -231,8 +222,7 @@ export const raj: Catalogue = {
     'म्हैं एक जिला एसोसिएशन रो प्रतिनिधि हूं जिको सड़क किनारै मदद रो तालमेल बिठावै।',
   'I drive for a fleet that already uses Saarthi.':
     'म्हैं इसै बेड़ै खातर गाडी चलावूं जिको पैलां सूं Saarthi बरतै।',
-  'The operating system for your trucking business.':
-    'आपरै ट्रांसपोर्ट धंधै रो ऑपरेटिंग सिस्टम।',
+  'The operating system for your trucking business.': 'आपरै ट्रांसपोर्ट धंधै रो ऑपरेटिंग सिस्टम।',
   'One fleet command centre': 'एक ई फ्लीट कमांड सेंटर',
   'Trucks, drivers, documents, orders and trips in a single operational view.':
     'ट्रक, ड्राइवर, दस्तावेज, ऑर्डर अर ट्रिप - सगळा एक ई नजारै में।',

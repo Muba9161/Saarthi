@@ -66,7 +66,10 @@ type ShareRecord = Prisma.RideShareGetPayload<{ include: typeof shareInclude }>;
 // ---------------------------------------------------------------------------
 
 function signed(purpose: string, shareId: string): string {
-  return crypto.createHmac('sha256', config.auth.accessSecret).update(`${purpose}:${shareId}`).digest('base64url');
+  return crypto
+    .createHmac('sha256', config.auth.accessSecret)
+    .update(`${purpose}:${shareId}`)
+    .digest('base64url');
 }
 
 function sameKey(expected: string, given: string): boolean {
@@ -88,7 +91,8 @@ export function shareIdFromToken(token: string): string | null {
 
 const reportingKey = (shareId: string) => signed('ride-share-report', shareId);
 
-const liveLink = (shareId: string) => `${config.server.frontendUrl.replace(/\/$/, '')}/live/${linkToken(shareId)}`;
+const liveLink = (shareId: string) =>
+  `${config.server.frontendUrl.replace(/\/$/, '')}/live/${linkToken(shareId)}`;
 
 // ---------------------------------------------------------------------------
 
@@ -113,7 +117,10 @@ async function closeShare(shareId: string, endedAt: Date): Promise<ShareRecord> 
       select: { latitude: true, longitude: true, speedKph: true, accuracy: true, recordedAt: true },
     });
     await tx.rideSharePoint.deleteMany({ where: { rideShareId: shareId } });
-    const share = await tx.rideShare.findUniqueOrThrow({ where: { id: shareId }, include: shareInclude });
+    const share = await tx.rideShare.findUniqueOrThrow({
+      where: { id: shareId },
+      include: shareInclude,
+    });
     return { share, measures: measureRide(fixes) };
   });
   if (!closed) return reload(shareId);
@@ -126,7 +133,9 @@ async function closeShare(shareId: string, endedAt: Date): Promise<ShareRecord> 
   if (shown) {
     await cache
       .set(summaryKey(shareId), shown, secondsLeft)
-      .catch((error) => logger.warn({ err: error, rideShareId: shareId }, 'Ride summary was not kept'));
+      .catch((error) =>
+        logger.warn({ err: error, rideShareId: shareId }, 'Ride summary was not kept'),
+      );
   }
   pushLive(shareId, { type: 'RIDE_SHARE_ENDED', endedAt: endedAt.toISOString(), summary: shown });
   return closed.share;
@@ -149,10 +158,16 @@ export const rideShareChannel = (shareId: string) => `ride-share:${shareId}`;
 function pushLive(shareId: string, message: RideShareLiveMessage): void {
   pubsub
     .publish(rideShareChannel(shareId), message)
-    .catch((error) => logger.warn({ err: error, rideShareId: shareId }, 'Ride share live update failed'));
+    .catch((error) =>
+      logger.warn({ err: error, rideShareId: shareId }, 'Ride share live update failed'),
+    );
 }
 
-function trailPoint(fix: { latitude: number; longitude: number; recordedAt: Date }): RideTrailPoint {
+function trailPoint(fix: {
+  latitude: number;
+  longitude: number;
+  recordedAt: Date;
+}): RideTrailPoint {
   return {
     latitude: fix.latitude,
     longitude: fix.longitude,
@@ -206,7 +221,9 @@ function shareView(share: ShareRecord): RideShareView {
     expiresAt: share.expiresAt.toISOString(),
     endedAt: share.endedAt?.toISOString() ?? null,
     link: liveLink(share.id),
-    contacts: share.viewers.filter((viewer) => viewer.viewerUserId !== share.riderUserId).map((viewer) => viewer.contact),
+    contacts: share.viewers
+      .filter((viewer) => viewer.viewerUserId !== share.riderUserId)
+      .map((viewer) => viewer.contact),
     sharedWithSelf: share.viewers.some((viewer) => viewer.viewerUserId === share.riderUserId),
     reportingToken: sharing ? reportingKey(share.id) : null,
     lastLocation: location(share),
@@ -224,7 +241,11 @@ const isEmail = (contact: string) => contact.includes('@');
  * which have one; the live link reaches everybody. A person named both ways is
  * told once, under the contact found first.
  */
-async function tellContacts(share: ShareRecord, contacts: string[], riderUserId: string): Promise<void> {
+async function tellContacts(
+  share: ShareRecord,
+  contacts: string[],
+  riderUserId: string,
+): Promise<void> {
   if (contacts.length === 0) return;
   const emails = contacts.filter(isEmail);
   const phones = contacts.filter((contact) => !isEmail(contact));
@@ -253,7 +274,9 @@ async function tellContacts(share: ShareRecord, contacts: string[], riderUserId:
         : 'Follow them live until they arrive.',
       data: { rideShareId: share.id },
       actionUrl: `/live/${linkToken(share.id)}`,
-    }).catch((error) => logger.error({ err: error, rideShareId: share.id }, 'Ride share notification failed'));
+    }).catch((error) =>
+      logger.error({ err: error, rideShareId: share.id }, 'Ride share notification failed'),
+    );
   }
 }
 
@@ -276,7 +299,11 @@ async function reload(shareId: string): Promise<ShareRecord> {
  * Start sharing — or, already sharing, name the new people on the same share.
  * One share at a time: a rider is in one vehicle.
  */
-export async function startRideShare(auth: AuthContext, input: StartRideShareInput, now = new Date()): Promise<RideShareView> {
+export async function startRideShare(
+  auth: AuthContext,
+  input: StartRideShareInput,
+  now = new Date(),
+): Promise<RideShareView> {
   assertMayRideAlong(auth);
   const existing = await activeShareOf(auth.user.id);
   const share =
@@ -284,7 +311,9 @@ export async function startRideShare(auth: AuthContext, input: StartRideShareInp
     (await prisma.rideShare.create({
       data: {
         riderUserId: auth.user.id,
-        registrationNumber: input.registrationNumber ? normalizeRegistrationNumber(input.registrationNumber) : null,
+        registrationNumber: input.registrationNumber
+          ? normalizeRegistrationNumber(input.registrationNumber)
+          : null,
         startedAt: now,
         expiresAt: new Date(now.getTime() + RIDE_SHARE_HOURS * 60 * 60_000),
       },
@@ -298,7 +327,11 @@ export async function startRideShare(auth: AuthContext, input: StartRideShareInp
 /** Whether this login also holds an owner account — where the owner app would show the ride. */
 export async function hasOwnerAccount(auth: AuthContext): Promise<boolean> {
   const membership = await prisma.membership.findFirst({
-    where: { userId: auth.user.id, status: 'ACTIVE', role: { in: [...OPERATOR_OWNER_ROLES] as never } },
+    where: {
+      userId: auth.user.id,
+      status: 'ACTIVE',
+      role: { in: [...OPERATOR_OWNER_ROLES] as never },
+    },
     select: { id: true },
   });
   return membership !== null;
@@ -310,16 +343,27 @@ export async function hasOwnerAccount(auth: AuthContext): Promise<boolean> {
  * of their own share; nobody else is told.
  */
 async function showOnOwnAccount(auth: AuthContext, shareId: string): Promise<void> {
-  if (!(await hasOwnerAccount(auth))) throw errors.businessRule('This login has no owner account to show the ride on.');
+  if (!(await hasOwnerAccount(auth)))
+    throw errors.businessRule('This login has no owner account to show the ride on.');
   await prisma.rideShareViewer
-    .create({ data: { rideShareId: shareId, viewerUserId: auth.user.id, contact: auth.user.phone ?? auth.user.email } })
+    .create({
+      data: {
+        rideShareId: shareId,
+        viewerUserId: auth.user.id,
+        contact: auth.user.phone ?? auth.user.email,
+      },
+    })
     .catch(() => null); // Already showing there.
 }
 
 /** "Show on my owner app" while sharing. Saying it twice is fine. */
-export async function shareWithOwnAccount(auth: AuthContext, shareId: string): Promise<RideShareView> {
+export async function shareWithOwnAccount(
+  auth: AuthContext,
+  shareId: string,
+): Promise<RideShareView> {
   const share = await ownShare(auth, shareId);
-  if (share.status !== RideShareStatus.SHARING) throw errors.conflict('This ride is no longer being shared.');
+  if (share.status !== RideShareStatus.SHARING)
+    throw errors.conflict('This ride is no longer being shared.');
   await showOnOwnAccount(auth, share.id);
   return shareView(await reload(share.id));
 }
@@ -330,14 +374,22 @@ export async function myRideShare(auth: AuthContext): Promise<RideShareView | nu
 }
 
 async function ownShare(auth: AuthContext, shareId: string): Promise<ShareRecord> {
-  const share = await prisma.rideShare.findUnique({ where: { id: shareId }, include: shareInclude });
+  const share = await prisma.rideShare.findUnique({
+    where: { id: shareId },
+    include: shareInclude,
+  });
   if (!share || share.riderUserId !== auth.user.id) throw errors.notFound('Shared ride');
   return closeIfExpired(share);
 }
 
-export async function addRideShareContact(auth: AuthContext, shareId: string, contact: string): Promise<RideShareView> {
+export async function addRideShareContact(
+  auth: AuthContext,
+  shareId: string,
+  contact: string,
+): Promise<RideShareView> {
   const share = await ownShare(auth, shareId);
-  if (share.status !== RideShareStatus.SHARING) throw errors.conflict('This ride is no longer being shared.');
+  if (share.status !== RideShareStatus.SHARING)
+    throw errors.conflict('This ride is no longer being shared.');
   await tellContacts(share, [contact], auth.user.id);
   return shareView(await reload(share.id));
 }
@@ -356,11 +408,16 @@ export async function reportRideShare(
   input: RidePointsInput,
   now = new Date(),
 ): Promise<{ accepted: number }> {
-  if (!key || !sameKey(reportingKey(shareId), key)) throw errors.unauthenticated('This phone is not sharing that ride.');
-  const found = await prisma.rideShare.findUnique({ where: { id: shareId }, include: shareInclude });
+  if (!key || !sameKey(reportingKey(shareId), key))
+    throw errors.unauthenticated('This phone is not sharing that ride.');
+  const found = await prisma.rideShare.findUnique({
+    where: { id: shareId },
+    include: shareInclude,
+  });
   if (!found) throw errors.unauthenticated('This phone is not sharing that ride.');
   const share = await closeIfExpired(found, now);
-  if (share.status !== RideShareStatus.SHARING) throw errors.conflict('This ride is no longer being shared.');
+  if (share.status !== RideShareStatus.SHARING)
+    throw errors.conflict('This ride is no longer being shared.');
 
   const points = input.points
     .filter((point) => point.recordedAt.getTime() <= now.getTime() + 60_000)
@@ -406,7 +463,10 @@ export async function reportRideShare(
  * account; anyone else named follows from the notification or the live link —
  * and my own ride from Humsafar, shown on my owner account whatever its plan.
  */
-export async function ridesSharedWithMe(auth: AuthContext, now = new Date()): Promise<RideSharedWithMe[]> {
+export async function ridesSharedWithMe(
+  auth: AuthContext,
+  now = new Date(),
+): Promise<RideSharedWithMe[]> {
   const personal = auth.subscription?.planTier === PlanTier.PERSONAL;
   const shares = await prisma.rideShare.findMany({
     where: { status: RideShareStatus.SHARING, viewers: { some: { viewerUserId: auth.user.id } } },
@@ -434,9 +494,14 @@ export async function ridesSharedWithMe(auth: AuthContext, now = new Date()): Pr
  * What the live link shows. A bad token is simply not found; an ended share
  * says so and shows no position.
  */
-export async function publicLiveRide(token: string, query: LiveRideQuery = {}): Promise<PublicLiveRide> {
+export async function publicLiveRide(
+  token: string,
+  query: LiveRideQuery = {},
+): Promise<PublicLiveRide> {
   const shareId = shareIdFromToken(token);
-  const found = shareId ? await prisma.rideShare.findUnique({ where: { id: shareId }, include: shareInclude }) : null;
+  const found = shareId
+    ? await prisma.rideShare.findUnique({ where: { id: shareId }, include: shareInclude })
+    : null;
   if (!found) throw errors.notFound('Shared ride', 'This live link does not exist.');
   const share = await closeIfExpired(found);
   const sharing = share.status === RideShareStatus.SHARING;

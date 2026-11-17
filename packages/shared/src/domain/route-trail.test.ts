@@ -26,7 +26,12 @@ describe('covered-path trail state', () => {
       );
     }
     expect(
-      nextRouteState({ tripUnderway: true, route, position: inBand, previous: TrackRouteState.ON_ROUTE }),
+      nextRouteState({
+        tripUnderway: true,
+        route,
+        position: inBand,
+        previous: TrackRouteState.ON_ROUTE,
+      }),
     ).toBe(TrackRouteState.ON_ROUTE);
   });
 
@@ -106,7 +111,12 @@ describe('a covered path without its GPS glitches', () => {
   });
 
   it('drops a badly placed point and keeps one with no accuracy reported', () => {
-    const points = [fix(0, 0, 8), fix(20, 10, GLITCH_ACCURACY_METRES + 1), fix(40, 20, null), fix(60, 30)];
+    const points = [
+      fix(0, 0, 8),
+      fix(20, 10, GLITCH_ACCURACY_METRES + 1),
+      fix(40, 20, null),
+      fix(60, 30),
+    ];
     expect(withoutGlitches(points)).toEqual([points[0], points[2], points[3]]);
   });
 
@@ -131,7 +141,12 @@ describe('thinning a trail for a map', () => {
   });
 
   it('keeps a colour change even inside a few metres', () => {
-    const points = [point(0), point(2), point(4, TrackRouteState.ON_ROUTE), point(6, TrackRouteState.ON_ROUTE)];
+    const points = [
+      point(0),
+      point(2),
+      point(4, TrackRouteState.ON_ROUTE),
+      point(6, TrackRouteState.ON_ROUTE),
+    ];
     expect(thinTrail(points, 100)).toEqual([points[0], points[2], points[3]]);
   });
 
@@ -149,7 +164,10 @@ describe('thinning a trail for a map', () => {
 });
 
 describe('keeping the bends of a trail', () => {
-  const at = (position: { latitude: number; longitude: number }, routeState = TrackRouteState.NO_TRIP) => ({
+  const at = (
+    position: { latitude: number; longitude: number },
+    routeState = TrackRouteState.NO_TRIP,
+  ) => ({
     ...position,
     routeState,
   });
@@ -181,7 +199,10 @@ describe('keeping the bends of a trail', () => {
 
   it('keeps a colour change on a straight road', () => {
     const fixes = Array.from({ length: 10 }, (_, step) =>
-      at(destinationPoint(start, 90, step * 10), step >= 5 ? TrackRouteState.ON_ROUTE : TrackRouteState.NO_TRIP),
+      at(
+        destinationPoint(start, 90, step * 10),
+        step >= 5 ? TrackRouteState.ON_ROUTE : TrackRouteState.NO_TRIP,
+      ),
     );
     expect(simplifyTrail(fixes)).toEqual([fixes[0], fixes[4], fixes[5], fixes[9]]);
   });

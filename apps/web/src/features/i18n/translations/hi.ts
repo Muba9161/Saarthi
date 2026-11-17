@@ -204,7 +204,8 @@ export const hi: Catalogue = {
   'Not arrived? Check your spam folder. Wrong address? Go back and change it.':
     'कोड नहीं मिला? स्पैम फ़ोल्डर देखें। पता ग़लत है? वापस जाकर उसे बदलें।',
   'We emailed a verification code to {email}.': 'हमने {email} पर सत्यापन कोड ईमेल किया है।',
-  'The code could not be sent. Please try again.': 'कोड भेजा नहीं जा सका। कृपया फिर से प्रयास करें।',
+  'The code could not be sent. Please try again.':
+    'कोड भेजा नहीं जा सका। कृपया फिर से प्रयास करें।',
   'I own trucks and want to manage my fleet and win loads.':
     'मेरे पास ट्रक हैं और मैं अपना बेड़ा चलाना तथा लोड पाना चाहता हूँ।',
   'I need materials, transport, a cab or a tour, and want offers to compare.':

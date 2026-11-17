@@ -55,7 +55,10 @@ function fetchLiveRide(token: string, signal: AbortSignal, from?: string): Promi
 }
 
 /** The road held, with what is newer from [fresh] after it; ISO times sort as text. */
-export function extendTrail(held: readonly RideTrailPoint[], fresh: readonly RideTrailPoint[]): RideTrailPoint[] {
+export function extendTrail(
+  held: readonly RideTrailPoint[],
+  fresh: readonly RideTrailPoint[],
+): RideTrailPoint[] {
   const last = held.at(-1)?.recordedAt;
   const road = [...held, ...fresh.filter((point) => last === undefined || point.recordedAt > last)];
   // Over the budget, the straight stretches go first so the turns stay on the road.

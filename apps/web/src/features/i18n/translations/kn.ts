@@ -188,30 +188,21 @@ export const kn: Catalogue = {
   // Registration: email verification
   'We will email a 6-digit code to this address at the last step, to confirm it is yours. Use an inbox you can open now.':
     'ಕೊನೆಯ ಹಂತದಲ್ಲಿ ಈ ವಿಳಾಸ ನಿಮ್ಮದೇ ಎಂದು ದೃಢೀಕರಿಸಲು ನಾವು ಇದಕ್ಕೆ 6 ಅಂಕಿಯ ಕೋಡ್ ಕಳುಹಿಸುತ್ತೇವೆ. ನೀವು ಈಗಲೇ ತೆರೆಯಬಹುದಾದ ಇನ್‌ಬಾಕ್ಸ್ ಬಳಸಿ.',
-  'Verify email':
-    'ಇಮೇಲ್ ಪರಿಶೀಲಿಸಿ',
-  'The code we emailed you.':
-    'ನಾವು ಇಮೇಲ್ ಮಾಡಿದ ಕೋಡ್.',
-  'Confirm your email address':
-    'ನಿಮ್ಮ ಇಮೇಲ್ ವಿಳಾಸವನ್ನು ದೃಢೀಕರಿಸಿ',
+  'Verify email': 'ಇಮೇಲ್ ಪರಿಶೀಲಿಸಿ',
+  'The code we emailed you.': 'ನಾವು ಇಮೇಲ್ ಮಾಡಿದ ಕೋಡ್.',
+  'Confirm your email address': 'ನಿಮ್ಮ ಇಮೇಲ್ ವಿಳಾಸವನ್ನು ದೃಢೀಕರಿಸಿ',
   'We sent a 6-digit code to {email}. Enter it below to finish creating your account.':
     'ನಾವು {email} ಗೆ 6 ಅಂಕಿಯ ಕೋಡ್ ಕಳುಹಿಸಿದ್ದೇವೆ. ಖಾತೆ ರಚನೆ ಪೂರ್ಣಗೊಳಿಸಲು ಅದನ್ನು ಕೆಳಗೆ ನಮೂದಿಸಿ.',
-  'We will email a 6-digit code to {email}.':
-    'ನಾವು {email} ಗೆ 6 ಅಂಕಿಯ ಕೋಡ್ ಇಮೇಲ್ ಮಾಡುತ್ತೇವೆ.',
+  'We will email a 6-digit code to {email}.': 'ನಾವು {email} ಗೆ 6 ಅಂಕಿಯ ಕೋಡ್ ಇಮೇಲ್ ಮಾಡುತ್ತೇವೆ.',
   'Enter the code to confirm this email address is yours. It keeps fake accounts out of Saarthi.':
     'ಈ ಇಮೇಲ್ ವಿಳಾಸ ನಿಮ್ಮದೇ ಎಂದು ದೃಢೀಕರಿಸಲು ಕೋಡ್ ನಮೂದಿಸಿ. ಇದು Saarthi ಯನ್ನು ನಕಲಿ ಖಾತೆಗಳಿಂದ ಮುಕ್ತವಾಗಿಡುತ್ತದೆ.',
-  'Verification code':
-    'ಪರಿಶೀಲನಾ ಕೋಡ್',
-  'Send code':
-    'ಕೋಡ್ ಕಳುಹಿಸಿ',
-  'Resend code':
-    'ಕೋಡ್ ಮತ್ತೆ ಕಳುಹಿಸಿ',
-  'Resend in {seconds}s':
-    '{seconds} ಸೆಕೆಂಡುಗಳಲ್ಲಿ ಮತ್ತೆ ಕಳುಹಿಸಿ',
+  'Verification code': 'ಪರಿಶೀಲನಾ ಕೋಡ್',
+  'Send code': 'ಕೋಡ್ ಕಳುಹಿಸಿ',
+  'Resend code': 'ಕೋಡ್ ಮತ್ತೆ ಕಳುಹಿಸಿ',
+  'Resend in {seconds}s': '{seconds} ಸೆಕೆಂಡುಗಳಲ್ಲಿ ಮತ್ತೆ ಕಳುಹಿಸಿ',
   'Not arrived? Check your spam folder. Wrong address? Go back and change it.':
     'ಬಂದಿಲ್ಲವೇ? ಸ್ಪ್ಯಾಮ್ ಫೋಲ್ಡರ್ ನೋಡಿ. ವಿಳಾಸ ತಪ್ಪೇ? ಹಿಂದೆ ಹೋಗಿ ಬದಲಿಸಿ.',
-  'We emailed a verification code to {email}.':
-    'ನಾವು {email} ಗೆ ಪರಿಶೀಲನಾ ಕೋಡ್ ಇಮೇಲ್ ಮಾಡಿದ್ದೇವೆ.',
+  'We emailed a verification code to {email}.': 'ನಾವು {email} ಗೆ ಪರಿಶೀಲನಾ ಕೋಡ್ ಇಮೇಲ್ ಮಾಡಿದ್ದೇವೆ.',
   'The code could not be sent. Please try again.':
     'ಕೋಡ್ ಕಳುಹಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.',
   'I own trucks and want to manage my fleet and win loads.':

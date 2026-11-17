@@ -256,7 +256,9 @@ function timeOf(fix: TrailFix): number {
 }
 
 function sharpEnough(fix: TrailFix): boolean {
-  return fix.accuracy === null || fix.accuracy === undefined || fix.accuracy <= GLITCH_ACCURACY_METRES;
+  return (
+    fix.accuracy === null || fix.accuracy === undefined || fix.accuracy <= GLITCH_ACCURACY_METRES
+  );
 }
 
 /** Whether getting from `a` to `b` in the time between them is faster than any vehicle drives. */

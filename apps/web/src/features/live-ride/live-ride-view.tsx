@@ -167,10 +167,18 @@ function RideSummary({ summary }: { summary: RideShareSummary }) {
     { label: t('Distance covered'), value: `${summary.distanceKm.toFixed(1)} km`, icon: Route },
   ];
   if (summary.avgSpeedKph !== null) {
-    facts.push({ label: t('Average speed'), value: `${Math.round(summary.avgSpeedKph)} km/h`, icon: Gauge });
+    facts.push({
+      label: t('Average speed'),
+      value: `${Math.round(summary.avgSpeedKph)} km/h`,
+      icon: Gauge,
+    });
   }
   if (summary.maxSpeedKph !== null) {
-    facts.push({ label: t('Top speed'), value: `${Math.round(summary.maxSpeedKph)} km/h`, icon: Zap });
+    facts.push({
+      label: t('Top speed'),
+      value: `${Math.round(summary.maxSpeedKph)} km/h`,
+      icon: Zap,
+    });
   }
 
   return (

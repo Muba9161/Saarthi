@@ -236,7 +236,11 @@ export function LiveMarkerMap({ position, label, trail, className }: LiveMarkerM
           title={fullscreen.active ? t('Exit full screen') : t('Full screen')}
           className="absolute left-3 top-3 shadow-md"
         >
-          {fullscreen.active ? <Minimize2 className="size-4" aria-hidden /> : <Maximize2 className="size-4" aria-hidden />}
+          {fullscreen.active ? (
+            <Minimize2 className="size-4" aria-hidden />
+          ) : (
+            <Maximize2 className="size-4" aria-hidden />
+          )}
         </Button>
       ) : null}
 

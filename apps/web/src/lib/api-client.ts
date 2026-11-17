@@ -134,8 +134,7 @@ export interface AuthResponse {
  * network) says nothing about the session, which is still good to retry.
  */
 export type RefreshOutcome =
-  | { ok: true; auth: AuthResponse }
-  | { ok: false; rejected: boolean; error: ApiError };
+  { ok: true; auth: AuthResponse } | { ok: false; rejected: boolean; error: ApiError };
 
 let accessToken: string | null = null;
 let onUnauthenticated: (() => void) | null = null;
