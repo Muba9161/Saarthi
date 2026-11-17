@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Humsafar updating itself: the offer, the progress, and the note afterwards. -->
+<resources>
+    <string name="update_available_title">புதுப்பிப்பு உள்ளது</string>
+    <string name="update_available_body">பதிப்பு %1$s · %2$s</string>
+    <string name="update_ready_body">பதிப்பு %1$s பதிவிறக்கப்பட்டு தயாராக உள்ளது.</string>
+    <string name="update_action">புதுப்பி</string>
+    <string name="update_dismiss">இப்போது வேண்டாம்</string>
+    <string name="update_failed_title">புதுப்பிப்பு முடியவில்லை</string>
+    <string name="update_retry">மீண்டும் முயலவும்</string>
+    <string name="update_progress_title">ஹம்சஃபர் புதுப்பிக்கப்படுகிறது</string>
+    <string name="update_downloading">பதிப்பு %1$s பதிவிறக்கப்படுகிறது</string>
+    <string name="update_progress_size">%2$s இல் %1$s</string>
+    <string name="update_installing">நிறுவப்படுகிறது. ஹம்சஃபர் சிறிது நேரம் மூடப்பட்டு, தயாரானதும் தெரிவிக்கும்.</string>
+    <string name="update_hide">ஆப்பைப் பயன்படுத்துங்கள்</string>
+    <string name="update_channel_name">ஆப் புதுப்பிப்புகள்</string>
+    <string name="update_done_title">ஹம்சஃபர் புதுப்பிக்கப்பட்டது</string>
+    <string name="update_done_body">பதிப்பு %1$s நிறுவப்பட்டது. திறக்கத் தட்டவும்.</string>
+</resources>

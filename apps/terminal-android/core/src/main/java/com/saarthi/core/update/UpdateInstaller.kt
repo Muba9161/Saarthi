@@ -48,7 +48,18 @@ class UpdateInstaller(private val context: Context) {
      * so any "it worked" handling would be code that never executes on the happy
      * path. Failure is what arrives back, through the receiver.
      */
-    suspend fun install(apk: File): Outcome = withContext(Dispatchers.IO) {
+    suspend fun install(
+        apk: File,
+        /**
+         * Ask Android to skip its confirmation (Android 12+).
+         *
+         * Granted only for an update of this same app that this app installed
+         * last time; otherwise Android shows its dialog anyway, through the
+         * same `STATUS_PENDING_USER_ACTION` path. Phone apps pass true, where
+         * the tap on Update is the person's decision. The terminal does not.
+         */
+        unattended: Boolean = false,
+    ): Outcome = withContext(Dispatchers.IO) {
         if (!apk.isFile || apk.length() == 0L) {
             return@withContext Outcome.Failed("The downloaded file is missing.")
         }
@@ -72,7 +83,13 @@ class UpdateInstaller(private val context: Context) {
              * behaviour they already have.
              */
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                setRequireUserAction(PackageInstaller.SessionParams.USER_ACTION_UNSPECIFIED)
+                setRequireUserAction(
+                    if (unattended) {
+                        PackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED
+                    } else {
+                        PackageInstaller.SessionParams.USER_ACTION_UNSPECIFIED
+                    },
+                )
             }
         }
 

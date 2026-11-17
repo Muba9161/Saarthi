@@ -70,6 +70,9 @@
     <string name="signin_email_lead">Use the email you signed up with. Humsafar will remember you after this.</string>
     <string name="signin_new_prompt">New to Humsafar?</string>
     <string name="signin_password_title">Enter your password</string>
+    <string name="signin_forgot">Forgot password?</string>
+    <string name="signin_forgot_sending">Sending reset link…</string>
+    <string name="signin_forgot_sent">If an account exists for that email address, we have emailed it a password reset link.</string>
     <string name="field_email">Email</string>
     <string name="action_change">Change</string>
     <string name="password_rule">%1$d characters or more. %2$d so far.</string>

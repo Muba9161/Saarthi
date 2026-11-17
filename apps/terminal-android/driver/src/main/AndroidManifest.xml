@@ -42,6 +42,15 @@
     <uses-permission android:name="androidx.car.app.NAVIGATION_TEMPLATES" />
     <uses-permission android:name="androidx.car.app.ACCESS_SURFACE" />
 
+    <!--
+      Updating Humsafar without a second confirmation (Android 14+ requires it
+      to be declared). Only ever an update of this app, only after the person
+      tapped Update, and only once this app installed the build it replaces;
+      otherwise Android shows its own dialog as before. REQUEST_INSTALL_PACKAGES
+      comes from :core.
+    -->
+    <uses-permission android:name="android.permission.UPDATE_PACKAGES_WITHOUT_USER_ACTION" />
+
     <application
         android:name=".SaarthiDriverApp"
         android:allowBackup="false"
@@ -54,6 +63,15 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.SaarthiDriver"
         tools:targetApi="35">
+
+        <!--
+          The number-plate reader's model, fetched by Play services when the app
+          is installed rather than the first time a rider points the camera at
+          a plate, which may be at a roadside with no signal.
+        -->
+        <meta-data
+            android:name="com.google.mlkit.vision.DEPENDENCIES"
+            android:value="ocr" />
 
         <!--
           Android Auto.
@@ -188,5 +206,14 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/paper_paths" />
         </provider>
+
+        <!-- "Humsafar updated, tap to open" after the app replaced itself. -->
+        <receiver
+            android:name=".update.AppUpdatedReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>

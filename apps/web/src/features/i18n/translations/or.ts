@@ -188,30 +188,21 @@ export const or: Catalogue = {
   // Registration: email verification
   'We will email a 6-digit code to this address at the last step, to confirm it is yours. Use an inbox you can open now.':
     'ଶେଷ ପଦକ୍ଷେପରେ ଏହି ଠିକଣା ଆପଣଙ୍କର ବୋଲି ନିଶ୍ଚିତ କରିବାକୁ ଆମେ ଏଥିକୁ 6 ଅଙ୍କର କୋଡ୍ ପଠାଇବୁ। ଆପଣ ଏବେ ଖୋଲିପାରୁଥିବା ଇନବକ୍ସ ବ୍ୟବହାର କରନ୍ତୁ।',
-  'Verify email':
-    'ଇମେଲ୍ ଯାଞ୍ଚ କରନ୍ତୁ',
-  'The code we emailed you.':
-    'ଆମେ ଇମେଲ୍ କରିଥିବା କୋଡ୍।',
-  'Confirm your email address':
-    'ଆପଣଙ୍କ ଇମେଲ୍ ଠିକଣା ନିଶ୍ଚିତ କରନ୍ତୁ',
+  'Verify email': 'ଇମେଲ୍ ଯାଞ୍ଚ କରନ୍ତୁ',
+  'The code we emailed you.': 'ଆମେ ଇମେଲ୍ କରିଥିବା କୋଡ୍।',
+  'Confirm your email address': 'ଆପଣଙ୍କ ଇମେଲ୍ ଠିକଣା ନିଶ୍ଚିତ କରନ୍ତୁ',
   'We sent a 6-digit code to {email}. Enter it below to finish creating your account.':
     'ଆମେ {email} କୁ 6 ଅଙ୍କର କୋଡ୍ ପଠାଇଛୁ। ଆକାଉଣ୍ଟ ତିଆରି ସମ୍ପୂର୍ଣ୍ଣ କରିବାକୁ ତାହା ତଳେ ଦିଅନ୍ତୁ।',
-  'We will email a 6-digit code to {email}.':
-    'ଆମେ {email} କୁ 6 ଅଙ୍କର କୋଡ୍ ଇମେଲ୍ କରିବୁ।',
+  'We will email a 6-digit code to {email}.': 'ଆମେ {email} କୁ 6 ଅଙ୍କର କୋଡ୍ ଇମେଲ୍ କରିବୁ।',
   'Enter the code to confirm this email address is yours. It keeps fake accounts out of Saarthi.':
     'ଏହି ଇମେଲ୍ ଠିକଣା ଆପଣଙ୍କର ବୋଲି ନିଶ୍ଚିତ କରିବାକୁ କୋଡ୍ ଦିଅନ୍ତୁ। ଏହା Saarthi କୁ ନକଲି ଆକାଉଣ୍ଟରୁ ମୁକ୍ତ ରଖେ।',
-  'Verification code':
-    'ଯାଞ୍ଚ କୋଡ୍',
-  'Send code':
-    'କୋଡ୍ ପଠାନ୍ତୁ',
-  'Resend code':
-    'କୋଡ୍ ପୁଣି ପଠାନ୍ତୁ',
-  'Resend in {seconds}s':
-    '{seconds} ସେକେଣ୍ଡରେ ପୁଣି ପଠାନ୍ତୁ',
+  'Verification code': 'ଯାଞ୍ଚ କୋଡ୍',
+  'Send code': 'କୋଡ୍ ପଠାନ୍ତୁ',
+  'Resend code': 'କୋଡ୍ ପୁଣି ପଠାନ୍ତୁ',
+  'Resend in {seconds}s': '{seconds} ସେକେଣ୍ଡରେ ପୁଣି ପଠାନ୍ତୁ',
   'Not arrived? Check your spam folder. Wrong address? Go back and change it.':
     'ପାଇଲେ ନାହିଁ? ସ୍ପାମ୍ ଫୋଲ୍ଡର ଦେଖନ୍ତୁ। ଠିକଣା ଭୁଲ? ପଛକୁ ଯାଇ ବଦଳାନ୍ତୁ।',
-  'We emailed a verification code to {email}.':
-    'ଆମେ {email} କୁ ଯାଞ୍ଚ କୋଡ୍ ଇମେଲ୍ କରିଛୁ।',
+  'We emailed a verification code to {email}.': 'ଆମେ {email} କୁ ଯାଞ୍ଚ କୋଡ୍ ଇମେଲ୍ କରିଛୁ।',
   'The code could not be sent. Please try again.':
     'କୋଡ୍ ପଠାଯାଇପାରିଲା ନାହିଁ। ଦୟାକରି ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ।',
   'I own trucks and want to manage my fleet and win loads.':
@@ -362,11 +353,17 @@ export const or: Catalogue = {
   'Updated {count} h ago': '{count} ଘଣ୍ଟା ପୂର୍ବରୁ ଅପଡେଟ ହେଲା',
   'Vehicle number': 'ଯାନ ନମ୍ବର',
   Speed: 'ଗତି',
+  'Time shared': 'ସେୟାର୍ କରିଥିବା ସମୟ',
+  'Distance covered': 'ଅତିକ୍ରମ କରିଥିବା ଦୂରତା',
+  'Average speed': 'ହାରାହାରି ଗତି',
+  'Top speed': 'ସର୍ବାଧିକ ଗତି',
   'Could not reach VorldX Saarthi': 'VorldX Saarthi ସହ ଯୋଗାଯୋଗ ହୋଇପାରିଲା ନାହିଁ',
   'Check your connection and try again.': 'ଆପଣଙ୍କ ସଂଯୋଗ ଯାଞ୍ଚ କରି ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ।',
   'Wait a moment and try again.': 'ଟିକେ ଅପେକ୍ଷା କରି ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ।',
   'Connection lost. Retrying…': 'ସଂଯୋଗ ବିଚ୍ଛିନ୍ନ ହେଲା। ପୁଣି ଚେଷ୍ଟା ଚାଲିଛି…',
   'Re-centre map': 'ମାନଚିତ୍ରକୁ ପୁଣି ମଝିକୁ ଆଣନ୍ତୁ',
+  'Full screen': 'ପୂର୍ଣ୍ଣ ସ୍କ୍ରିନ୍',
+  'Exit full screen': 'ପୂର୍ଣ୍ଣ ସ୍କ୍ରିନ୍ ବନ୍ଦ କରନ୍ତୁ',
   "Map of {name}'s live location": '{name}ଙ୍କ ଲାଇଭ ଅବସ୍ଥାନର ମାନଚିତ୍ର',
   'The map could not load on this device.': 'ଏହି ଡିଭାଇସରେ ମାନଚିତ୍ର ଲୋଡ ହୋଇପାରିଲା ନାହିଁ।',
   Ended: 'ସମାପ୍ତ',

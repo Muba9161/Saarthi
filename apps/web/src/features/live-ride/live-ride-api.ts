@@ -1,5 +1,12 @@
-import { useQuery } from '@tanstack/react-query';
-import type { PublicLiveRide, RideSharedWithMe } from '@saarthi/shared';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  RideShareStatus,
+  simplifyTrail,
+  thinTrail,
+  type PublicLiveRide,
+  type RideSharedWithMe,
+  type RideTrailPoint,
+} from '@saarthi/shared';
 import { ApiError, api, apiRequest } from '@/lib/api-client';
 import { liveRidePollInterval } from './live-ride-status';
 
@@ -9,7 +16,7 @@ import { liveRidePollInterval } from './live-ride-status';
  * Two reads. The public one is what the live link opens: no session is needed
  * or assumed, because family follow it from WhatsApp without an account, and
  * the API decides what the token discloses — a first name, the vehicle number,
- * and a position only while the rider is still sharing. The signed-in one
+ * and a position and the road covered only while the rider is still sharing. The signed-in one
  * lists the rides being shared with this account, for "Shared with me" and the
  * Home card; each entry carries the same token, so both open the same page.
  */
@@ -33,8 +40,12 @@ export function isNotFoundError(error: unknown): boolean {
   return error instanceof ApiError && error.isNotFound;
 }
 
-function fetchLiveRide(token: string, signal: AbortSignal): Promise<PublicLiveRide> {
-  return apiRequest<PublicLiveRide>(`/public/live/${encodeURIComponent(token)}`, {
+/** Points kept before the older road is thinned — as many as the server sends for a whole ride, twice over. */
+const MAX_TRAIL_POINTS = 3000;
+
+function fetchLiveRide(token: string, signal: AbortSignal, from?: string): Promise<PublicLiveRide> {
+  const query = from ? `?from=${encodeURIComponent(from)}` : '';
+  return apiRequest<PublicLiveRide>(`/public/live/${encodeURIComponent(token)}${query}`, {
     // An anonymous viewer is not a session-expiry event. Without this a
     // signed-out phone would trip the refresh-and-retry path and be bounced to
     // the sign-in screen — the same reason the QR scan page sets it.
@@ -43,10 +54,34 @@ function fetchLiveRide(token: string, signal: AbortSignal): Promise<PublicLiveRi
   });
 }
 
+/** The road held, with what is newer from [fresh] after it; ISO times sort as text. */
+export function extendTrail(
+  held: readonly RideTrailPoint[],
+  fresh: readonly RideTrailPoint[],
+): RideTrailPoint[] {
+  const last = held.at(-1)?.recordedAt;
+  const road = [...held, ...fresh.filter((point) => last === undefined || point.recordedAt > last)];
+  // Over the budget, the straight stretches go first so the turns stay on the road.
+  return road.length > MAX_TRAIL_POINTS ? thinTrail(simplifyTrail(road), MAX_TRAIL_POINTS) : road;
+}
+
+/**
+ * The ride behind a live link, read again while it lasts. The road covered is
+ * read whole once and then only what is new — as a followed vehicle's trail
+ * is — so a long ride does not resend its whole road every few seconds.
+ */
 export function useLiveRide(token: string) {
+  const queryClient = useQueryClient();
   return useQuery({
     queryKey: liveRideQueryKey(token),
-    queryFn: ({ signal }) => fetchLiveRide(token, signal),
+    queryFn: async ({ signal }): Promise<PublicLiveRide> => {
+      // The road held is the query's own data, so what the live socket adds
+      // between two reads is held too.
+      const held = queryClient.getQueryData<PublicLiveRide>(liveRideQueryKey(token))?.trail ?? [];
+      const ride = await fetchLiveRide(token, signal, held.at(-1)?.recordedAt);
+      const trail = ride.status === RideShareStatus.SHARING ? extendTrail(held, ride.trail) : [];
+      return { ...ride, trail };
+    },
     enabled: token.length > 0,
     // Every answer is a snapshot of a moving phone; none of it is reusable.
     staleTime: 0,

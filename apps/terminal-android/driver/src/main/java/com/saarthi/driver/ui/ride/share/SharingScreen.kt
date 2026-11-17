@@ -225,7 +225,7 @@ private fun ShareCard(
             LineIcon(Lucide.users, size = 14.dp, color = MapInk.primary, modifier = Modifier.padding(top = 3.dp))
             Text(stringResource(R.string.sharing_told), style = SType.small, color = MapInk.muted)
         }
-        NamedNumbers(named, color = MapInk.subtle)
+        NamedContacts(named, color = MapInk.subtle)
         OwnerAppLine(selfShare, busy, onShowSelf)
     }
 }

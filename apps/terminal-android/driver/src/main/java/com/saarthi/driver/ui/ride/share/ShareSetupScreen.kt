@@ -50,10 +50,11 @@ import com.saarthi.driver.ui.start.StartBackLink
 /**
  * Riding along, step two: "Who should see where you are?"
  *
- * Up to five family numbers. Those who use Saarthi are told at once, and
- * everybody else gets the link the next screen offers to send — so a share
- * with no number at all is still worth starting. Every number is checked here,
- * before anything is sent, because one wrong number refuses the whole list.
+ * Up to five family members, each by mobile number or email address. Those
+ * who use Saarthi are told at once, and everybody else gets the link the next
+ * screen offers to send — so a share naming nobody is still worth starting.
+ * Every contact is checked here, before anything is sent, because one wrong
+ * contact refuses the whole list.
  *
  * A login that also holds an owner account is offered its own owner app too,
  * switched on to begin with: one person driving and owning with one login is
@@ -67,8 +68,8 @@ fun ShareSetupScreen(viewModel: DriverViewModel, plate: String) {
     val ownerAccount by viewModel.sharing.hasOwnerAccount.collectAsState()
 
     var withSelf by rememberSaveable { mutableStateOf(true) }
-    val numbers = rememberSaveable(saver = NumbersSaver) { mutableStateListOf("") }
-    // Raised by the first try, so half-typed numbers are marked from then on.
+    val entries = rememberSaveable(saver = EntriesSaver) { mutableStateListOf("") }
+    // Raised by the first try, so half-typed contacts are marked from then on.
     var checked by rememberSaveable { mutableStateOf(false) }
     var shake by remember { mutableIntStateOf(0) }
     LaunchedEffect(error) { if (error != null) shake++ }
@@ -83,7 +84,7 @@ fun ShareSetupScreen(viewModel: DriverViewModel, plate: String) {
 
     val start: () -> Unit = {
         checked = true
-        val contacts = RideSharePolicy.contactsOf(numbers)
+        val contacts = RideSharePolicy.contactsOf(entries)
         if (contacts != null && !busy) viewModel.sharing.start(plate, contacts, withSelf)
     }
 
@@ -115,23 +116,23 @@ fun ShareSetupScreen(viewModel: DriverViewModel, plate: String) {
                 .rise(stagger(4)),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            numbers.forEachIndexed { index, number ->
-                FamilyMobileField(
-                    value = number,
+            entries.forEachIndexed { index, entry ->
+                FamilyContactField(
+                    value = entry,
                     onValueChange = {
-                        numbers[index] = it
+                        entries[index] = it
                         if (error != null) viewModel.clearError()
                     },
                     checked = checked,
-                    onRemove = if (numbers.size > 1) ({ numbers.removeAt(index) }) else null,
-                    focus = if (index == numbers.lastIndex) newest else null,
+                    onRemove = if (entries.size > 1) ({ entries.removeAt(index) }) else null,
+                    focus = if (index == entries.lastIndex) newest else null,
                 )
             }
-            if (numbers.size < RideSharePolicy.MAX_CONTACTS) {
+            if (entries.size < RideSharePolicy.MAX_CONTACTS) {
                 LinkButton(
                     stringResource(R.string.share_contact_add),
                     {
-                        numbers.add("")
+                        entries.add("")
                         added++
                     },
                 )
@@ -189,8 +190,8 @@ private fun VehicleLine(plate: String, onChange: () -> Unit, modifier: Modifier 
     }
 }
 
-/** The typed numbers, kept through a turn of the phone. */
-private val NumbersSaver = listSaver<SnapshotStateList<String>, String>(
+/** The typed contacts, kept through a turn of the phone. */
+private val EntriesSaver = listSaver<SnapshotStateList<String>, String>(
     save = { it.toList() },
     restore = { it.toMutableStateList() },
 )

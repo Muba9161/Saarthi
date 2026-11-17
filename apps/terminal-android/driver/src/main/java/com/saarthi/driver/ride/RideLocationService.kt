@@ -65,7 +65,7 @@ class RideLocationService : Service() {
     /** The share's own reporting key, so uploads carry on after the sign-in lapses. */
     private var reportingKey: String? = null
 
-    /** Fixes taken and not yet accepted, oldest first, never more than one upload's worth. */
+    /** Fixes taken and not yet accepted, oldest first, never more than [RideSharePolicy.MAX_HELD_POINTS]. */
     private val pending = ArrayList<RideSharesApi.Point>()
 
     private var listening = false
@@ -83,8 +83,8 @@ class RideLocationService : Service() {
                     atMillis = fix.time,
                 )
             }
-            // Out of signal for a while: the newest fixes are the ones worth sending.
-            val overflow = pending.size - RideSharePolicy.MAX_POINTS
+            // Out of signal for longer than can be held: the newest fixes are the ones worth sending.
+            val overflow = pending.size - RideSharePolicy.MAX_HELD_POINTS
             if (overflow > 0) pending.subList(0, overflow).clear()
         }
     }
@@ -161,33 +161,41 @@ class RideLocationService : Service() {
         }
     }
 
-    /** Send what has been gathered, and act on the answer. */
+    /**
+     * Send what has been gathered, oldest first, and act on the answer. Back
+     * in signal after a while, the backlog goes up a full upload at a time
+     * until it is cleared, so family's map catches up with the road taken.
+     */
     private suspend fun upload(share: String) {
         val key = reportingKey ?: return
-        if (pending.isEmpty()) return
-        val batch = pending.toList()
-        val refusal = try {
-            shares.report(share, key, batch)
-            null
-        } catch (cancelled: CancellationException) {
-            throw cancelled
-        } catch (failure: DriverApi.Failure) {
-            RideSharePolicy.afterRefusal(statusOf(failure))
-        } catch (failure: Exception) {
-            // An answer this build cannot read. Sending the same fixes again
-            // would only get the same answer.
-            DebugLog.warn(TAG, "Unexpected answer to the fixes: ${failure.message}")
-            RideSharePolicy.Refusal.DISCARD
-        }
-
-        when (refusal) {
-            // Fixes taken during the upload stay for the next one.
-            null, RideSharePolicy.Refusal.DISCARD -> pending.removeAll(batch.toSet())
-            RideSharePolicy.Refusal.RETRY -> Unit
-            RideSharePolicy.Refusal.STOP -> {
-                DebugLog.info(TAG, "The share is no longer on; stopping")
-                stopSelf()
+        while (pending.isNotEmpty()) {
+            val batch = pending.take(RideSharePolicy.MAX_POINTS)
+            val refusal = try {
+                shares.report(share, key, batch)
+                null
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (failure: DriverApi.Failure) {
+                RideSharePolicy.afterRefusal(statusOf(failure))
+            } catch (failure: Exception) {
+                // An answer this build cannot read. Sending the same fixes again
+                // would only get the same answer.
+                DebugLog.warn(TAG, "Unexpected answer to the fixes: ${failure.message}")
+                RideSharePolicy.Refusal.DISCARD
             }
+
+            when (refusal) {
+                // Fixes taken during the upload stay for the next one.
+                null, RideSharePolicy.Refusal.DISCARD -> pending.removeAll(batch.toSet())
+                RideSharePolicy.Refusal.RETRY -> return
+                RideSharePolicy.Refusal.STOP -> {
+                    DebugLog.info(TAG, "The share is no longer on; stopping")
+                    stopSelf()
+                    return
+                }
+            }
+            // Less than a full upload was waiting: the backlog is cleared.
+            if (batch.size < RideSharePolicy.MAX_POINTS) return
         }
     }
 
@@ -239,11 +247,15 @@ class RideLocationService : Service() {
         /** Beside the terminal service's 4201, never on top of it. */
         private const val NOTIFICATION_ID = 4202
 
-        /** A fix every five seconds — enough to draw the rider moving on family's map. */
-        private const val SAMPLE_EVERY_MS = 5_000L
+        /** A fix every second, so family's map shows the rider moving rather than hopping. */
+        private const val SAMPLE_EVERY_MS = 1_000L
 
-        /** Three or four fixes a batch, about four requests a minute — the server allows thirty. */
-        private const val UPLOAD_EVERY_MS = 15_000L
+        /**
+         * Three fixes a batch, twenty requests a minute. The server allows
+         * ninety from one address, and several riders on one mobile carrier
+         * can share an address — so this leaves room for four of them.
+         */
+        private const val UPLOAD_EVERY_MS = 3_000L
 
         /**
          * Start, or move on to, sharing for this share, with its reporting key.

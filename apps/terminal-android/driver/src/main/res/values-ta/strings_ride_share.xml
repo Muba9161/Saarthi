@@ -2,9 +2,10 @@
 <resources>
     <string name="share_title">நீங்கள் எங்கே இருக்கிறீர்கள் என்பதை யார் பார்க்க வேண்டும்?</string>
     <string name="share_lead">நீங்கள் தேர்ந்தெடுக்கும் குடும்பத்தினர், நீங்கள் நிறுத்தும் வரை உங்களை நேரலையில் பார்க்கலாம்.</string>
-    <string name="share_contact_label">குடும்ப உறுப்பினரின் மொபைல் (விருப்பத்தேர்வு)</string>
+    <string name="share_contact_label">குடும்ப உறுப்பினரின் மொபைல் அல்லது மின்னஞ்சல் (விருப்பத்தேர்வு)</string>
+    <string name="share_contact_rule">6 முதல் 9 வரையிலான எண்ணில் தொடங்கும் 10 இலக்க மொபைல் எண், அல்லது மின்னஞ்சல் முகவரி.</string>
     <string name="share_contact_add">+ இன்னொன்றைச் சேர்</string>
-    <string name="share_contact_remove">இந்த நம்பரை நீக்கு</string>
+    <string name="share_contact_remove">இவரை நீக்கு</string>
     <string name="share_note">Saarthi பயன்படுத்துபவர்களுக்கு உடனே தெரிவிக்கப்படும். மற்றவர்களுக்கு - அடுத்து லிங்கை அனுப்புங்கள்.</string>
     <string name="share_self_title">என் Saarthi ஓனர் ஆப்பிலும் இதைக் காட்டு</string>
     <string name="share_self_sub">அதே லாகின் - உங்கள் ஓனர் கணக்கிலிருந்து இந்தப் பயணத்தை நேரலையில் பாருங்கள்.</string>

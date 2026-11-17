@@ -2,9 +2,10 @@
 <resources>
     <string name="share_title">तुम्ही कुठे आहात हे कोणी पाहावे?</string>
     <string name="share_lead">तुम्ही निवडलेले कुटुंबीय, तुम्ही थांबवेपर्यंत तुम्हाला लाइव्ह पाहू शकतात.</string>
-    <string name="share_contact_label">कुटुंबातील सदस्याचा मोबाइल (ऐच्छिक)</string>
+    <string name="share_contact_label">कुटुंबातील सदस्याचा मोबाइल किंवा ईमेल (ऐच्छिक)</string>
+    <string name="share_contact_rule">6 ते 9 ने सुरू होणारा 10 अंकी मोबाइल नंबर, किंवा ईमेल पत्ता.</string>
     <string name="share_contact_add">+ आणखी एक जोडा</string>
-    <string name="share_contact_remove">हा नंबर काढा</string>
+    <string name="share_contact_remove">यांना काढा</string>
     <string name="share_note">जे Saarthi वापरतात त्यांना लगेच कळवले जाते. इतर सर्वांना - पुढच्या टप्प्यात लिंक पाठवा.</string>
     <string name="share_self_title">हे माझ्या Saarthi ओनर ॲपवरही दाखवा</string>
     <string name="share_self_sub">एकच लॉगिन - तुमच्या ओनर खात्यातून हा प्रवास लाइव्ह पाहा.</string>

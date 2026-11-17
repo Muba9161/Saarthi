@@ -34,7 +34,16 @@ object Ease {
     val out: Easing = CubicBezierEasing(0.16f, 1f, 0.3f, 1f)
 
     /** `cubic-bezier(.34,1.56,.64,1)` — a small overshoot, for things that pop in. */
-    val pop: Easing = CubicBezierEasing(0.34f, 1.56f, 0.64f, 1f)
+    val pop: Easing = Easing { fraction ->
+        // Compose's solver rejects some fractions on a curve that overshoots;
+        // those frames take the nearer end instead of crashing the screen.
+        try {
+            popCurve.transform(fraction)
+        } catch (_: IllegalArgumentException) {
+            if (fraction > 0.5f) 1f else 0f
+        }
+    }
+    private val popCurve = CubicBezierEasing(0.34f, 1.56f, 0.64f, 1f)
 
     /** `cubic-bezier(.65,0,.35,1)` — symmetrical, for a knob sliding or a line drawing. */
     val inOut: Easing = CubicBezierEasing(0.65f, 0f, 0.35f, 1f)

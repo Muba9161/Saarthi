@@ -10,8 +10,14 @@
     <string name="rides_live_updated_now">अभी-अभी अपडेट हुआ</string>
     <string name="rides_live_updated_ago">%1$s पहले अपडेट हुआ</string>
     <string name="rides_live_recentre">वे अभी कहाँ हैं, दिखाएँ</string>
+    <string name="rides_live_trail">तय किया गया रास्ता</string>
     <string name="rides_live_no_location">अभी कोई लोकेशन नहीं</string>
     <string name="rides_live_open">खोलें</string>
     <string name="rides_live_section">लाइव सफ़र</string>
     <string name="rides_live_yours">आपका सफ़र (Humsafar से)</string>
+    <!-- The same screens for the person's own ride, shown on their owner account. -->
+    <string name="rides_live_sharing_you">आप यह सफ़र लाइव शेयर कर रहे हैं</string>
+    <string name="rides_live_ended_you">आपने इस सफ़र की लोकेशन शेयर करना बंद कर दिया है।</string>
+    <string name="rides_live_waiting_you">आपके फ़ोन की पहली लोकेशन का इंतज़ार है…</string>
+    <string name="rides_live_recentre_you">आप अभी कहाँ हैं, दिखाएँ</string>
 </resources>

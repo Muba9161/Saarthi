@@ -188,31 +188,22 @@ export const pa: Catalogue = {
 
   // Registration: email verification
   'We will email a 6-digit code to this address at the last step, to confirm it is yours. Use an inbox you can open now.':
-    'ਆਖਰੀ ਪੜਾਅ \'ਤੇ ਅਸੀਂ ਇਸ ਪਤੇ \'ਤੇ 6 ਅੰਕਾਂ ਦਾ ਕੋਡ ਭੇਜਾਂਗੇ, ਤਾਂ ਜੋ ਪੱਕਾ ਹੋ ਜਾਵੇ ਕਿ ਇਹ ਤੁਹਾਡਾ ਹੈ। ਅਜਿਹਾ ਇਨਬਾਕਸ ਵਰਤੋ ਜੋ ਤੁਸੀਂ ਹੁਣੇ ਖੋਲ੍ਹ ਸਕੋ।',
-  'Verify email':
-    'ਈਮੇਲ ਦੀ ਪੁਸ਼ਟੀ ਕਰੋ',
-  'The code we emailed you.':
-    'ਸਾਡੇ ਵੱਲੋਂ ਈਮੇਲ ਕੀਤਾ ਕੋਡ।',
-  'Confirm your email address':
-    'ਆਪਣੇ ਈਮੇਲ ਪਤੇ ਦੀ ਪੁਸ਼ਟੀ ਕਰੋ',
+    "ਆਖਰੀ ਪੜਾਅ 'ਤੇ ਅਸੀਂ ਇਸ ਪਤੇ 'ਤੇ 6 ਅੰਕਾਂ ਦਾ ਕੋਡ ਭੇਜਾਂਗੇ, ਤਾਂ ਜੋ ਪੱਕਾ ਹੋ ਜਾਵੇ ਕਿ ਇਹ ਤੁਹਾਡਾ ਹੈ। ਅਜਿਹਾ ਇਨਬਾਕਸ ਵਰਤੋ ਜੋ ਤੁਸੀਂ ਹੁਣੇ ਖੋਲ੍ਹ ਸਕੋ।",
+  'Verify email': 'ਈਮੇਲ ਦੀ ਪੁਸ਼ਟੀ ਕਰੋ',
+  'The code we emailed you.': 'ਸਾਡੇ ਵੱਲੋਂ ਈਮੇਲ ਕੀਤਾ ਕੋਡ।',
+  'Confirm your email address': 'ਆਪਣੇ ਈਮੇਲ ਪਤੇ ਦੀ ਪੁਸ਼ਟੀ ਕਰੋ',
   'We sent a 6-digit code to {email}. Enter it below to finish creating your account.':
-    'ਅਸੀਂ {email} \'ਤੇ 6 ਅੰਕਾਂ ਦਾ ਕੋਡ ਭੇਜਿਆ ਹੈ। ਖਾਤਾ ਬਣਾਉਣਾ ਪੂਰਾ ਕਰਨ ਲਈ ਇਸਨੂੰ ਹੇਠਾਂ ਦਰਜ ਕਰੋ।',
-  'We will email a 6-digit code to {email}.':
-    'ਅਸੀਂ {email} \'ਤੇ 6 ਅੰਕਾਂ ਦਾ ਕੋਡ ਈਮੇਲ ਕਰਾਂਗੇ।',
+    "ਅਸੀਂ {email} 'ਤੇ 6 ਅੰਕਾਂ ਦਾ ਕੋਡ ਭੇਜਿਆ ਹੈ। ਖਾਤਾ ਬਣਾਉਣਾ ਪੂਰਾ ਕਰਨ ਲਈ ਇਸਨੂੰ ਹੇਠਾਂ ਦਰਜ ਕਰੋ।",
+  'We will email a 6-digit code to {email}.': "ਅਸੀਂ {email} 'ਤੇ 6 ਅੰਕਾਂ ਦਾ ਕੋਡ ਈਮੇਲ ਕਰਾਂਗੇ।",
   'Enter the code to confirm this email address is yours. It keeps fake accounts out of Saarthi.':
     'ਇਹ ਪੁਸ਼ਟੀ ਕਰਨ ਲਈ ਕੋਡ ਦਰਜ ਕਰੋ ਕਿ ਇਹ ਈਮੇਲ ਪਤਾ ਤੁਹਾਡਾ ਹੈ। ਇਸ ਨਾਲ Saarthi ਜਾਅਲੀ ਖਾਤਿਆਂ ਤੋਂ ਬਚਿਆ ਰਹਿੰਦਾ ਹੈ।',
-  'Verification code':
-    'ਪੁਸ਼ਟੀ ਕੋਡ',
-  'Send code':
-    'ਕੋਡ ਭੇਜੋ',
-  'Resend code':
-    'ਕੋਡ ਦੁਬਾਰਾ ਭੇਜੋ',
-  'Resend in {seconds}s':
-    '{seconds} ਸਕਿੰਟਾਂ ਵਿੱਚ ਦੁਬਾਰਾ ਭੇਜੋ',
+  'Verification code': 'ਪੁਸ਼ਟੀ ਕੋਡ',
+  'Send code': 'ਕੋਡ ਭੇਜੋ',
+  'Resend code': 'ਕੋਡ ਦੁਬਾਰਾ ਭੇਜੋ',
+  'Resend in {seconds}s': '{seconds} ਸਕਿੰਟਾਂ ਵਿੱਚ ਦੁਬਾਰਾ ਭੇਜੋ',
   'Not arrived? Check your spam folder. Wrong address? Go back and change it.':
     'ਕੋਡ ਨਹੀਂ ਮਿਲਿਆ? ਸਪੈਮ ਫੋਲਡਰ ਦੇਖੋ। ਪਤਾ ਗਲਤ ਹੈ? ਪਿੱਛੇ ਜਾ ਕੇ ਬਦਲੋ।',
-  'We emailed a verification code to {email}.':
-    'ਅਸੀਂ {email} \'ਤੇ ਪੁਸ਼ਟੀ ਕੋਡ ਈਮੇਲ ਕੀਤਾ ਹੈ।',
+  'We emailed a verification code to {email}.': "ਅਸੀਂ {email} 'ਤੇ ਪੁਸ਼ਟੀ ਕੋਡ ਈਮੇਲ ਕੀਤਾ ਹੈ।",
   'The code could not be sent. Please try again.':
     'ਕੋਡ ਭੇਜਿਆ ਨਹੀਂ ਜਾ ਸਕਿਆ। ਕਿਰਪਾ ਕਰਕੇ ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ।',
   'I own trucks and want to manage my fleet and win loads.':
@@ -364,11 +355,17 @@ export const pa: Catalogue = {
   'Updated {count} h ago': '{count} ਘੰਟੇ ਪਹਿਲਾਂ ਅੱਪਡੇਟ ਹੋਇਆ',
   'Vehicle number': 'ਵਾਹਨ ਨੰਬਰ',
   Speed: 'ਰਫ਼ਤਾਰ',
+  'Time shared': 'ਸਾਂਝਾ ਕਰਨ ਦਾ ਸਮਾਂ',
+  'Distance covered': 'ਤੈਅ ਕੀਤੀ ਦੂਰੀ',
+  'Average speed': 'ਔਸਤ ਰਫ਼ਤਾਰ',
+  'Top speed': 'ਸਭ ਤੋਂ ਤੇਜ਼ ਰਫ਼ਤਾਰ',
   'Could not reach VorldX Saarthi': 'VorldX Saarthi ਨਾਲ ਜੁੜ ਨਹੀਂ ਸਕੇ',
   'Check your connection and try again.': 'ਆਪਣਾ ਕਨੈਕਸ਼ਨ ਜਾਂਚੋ ਅਤੇ ਮੁੜ ਕੋਸ਼ਿਸ਼ ਕਰੋ।',
   'Wait a moment and try again.': 'ਥੋੜ੍ਹੀ ਦੇਰ ਰੁਕ ਕੇ ਮੁੜ ਕੋਸ਼ਿਸ਼ ਕਰੋ।',
   'Connection lost. Retrying…': 'ਕਨੈਕਸ਼ਨ ਟੁੱਟ ਗਿਆ। ਮੁੜ ਕੋਸ਼ਿਸ਼ ਹੋ ਰਹੀ ਹੈ…',
   'Re-centre map': 'ਨਕਸ਼ਾ ਮੁੜ ਵਿਚਕਾਰ ਲਿਆਓ',
+  'Full screen': 'ਪੂਰੀ ਸਕ੍ਰੀਨ',
+  'Exit full screen': 'ਪੂਰੀ ਸਕ੍ਰੀਨ ਬੰਦ ਕਰੋ',
   "Map of {name}'s live location": '{name} ਦੀ ਲਾਈਵ ਲੋਕੇਸ਼ਨ ਦਾ ਨਕਸ਼ਾ',
   'The map could not load on this device.': 'ਇਸ ਡਿਵਾਈਸ ਉੱਤੇ ਨਕਸ਼ਾ ਲੋਡ ਨਹੀਂ ਹੋ ਸਕਿਆ।',
   Ended: 'ਸਮਾਪਤ',

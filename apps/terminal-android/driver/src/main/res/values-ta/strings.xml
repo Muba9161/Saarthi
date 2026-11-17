@@ -48,6 +48,9 @@
     <string name="signin_email_lead">பதிவு செய்த இமெயிலைப் பயன்படுத்துங்கள். இதற்குப் பிறகு ஹம்சஃபர் உங்களை நினைவில் வைக்கும்.</string>
     <string name="signin_new_prompt">ஹம்சஃபருக்குப் புதியவரா?</string>
     <string name="signin_password_title">உங்கள் பாஸ்வேர்டை உள்ளிடுங்கள்</string>
+    <string name="signin_forgot">கடவுச்சொல்லை மறந்துவிட்டீர்களா?</string>
+    <string name="signin_forgot_sending">இணைப்பு அனுப்பப்படுகிறது…</string>
+    <string name="signin_forgot_sent">அந்த மின்னஞ்சல் முகவரிக்கு கணக்கு இருந்தால், கடவுச்சொல் மீட்டமைப்பு இணைப்பை அனுப்பியுள்ளோம்.</string>
     <string name="field_email">இமெயில்</string>
     <string name="action_change">மாற்று</string>
     <string name="password_rule">%1$d அல்லது அதற்கு மேற்பட்ட எழுத்துகள். இதுவரை %2$d.</string>

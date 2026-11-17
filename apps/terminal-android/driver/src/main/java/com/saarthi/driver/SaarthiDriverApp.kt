@@ -21,6 +21,8 @@ import com.saarthi.core.data.PaperCache
 import com.saarthi.driver.data.QuickLoginStore
 import com.saarthi.driver.data.SharedDestinationInbox
 import com.saarthi.driver.network.DriverApi
+import com.saarthi.driver.update.AppUpdates
+import com.saarthi.core.update.PublicAppUpdates
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -73,6 +75,15 @@ class SaarthiDriverApp : Application(), SaarthiApp {
 
     /** Saarthi, spoken to as a person: sign-in, scanning, approval. */
     val driverApi: DriverApi by lazy { DriverApi(settings.apiUrl, account) }
+
+    /**
+     * Humsafar's own updates, from the release routes the website uses.
+     *
+     * Here rather than on a screen so a download survives moving around the app.
+     */
+    val updates: AppUpdates by lazy {
+        AppUpdates(this, scope, PublicAppUpdates({ settings.apiUrl }, "driver-app/public"))
+    }
 
     /**
      * Saarthi Quick Login: the PIN and biometric vault.

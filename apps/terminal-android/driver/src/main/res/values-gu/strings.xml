@@ -48,6 +48,9 @@
     <string name="signin_email_lead">જે ઈમેલથી સાઇન અપ કર્યું હતું તે વાપરો. આ પછી હમસફર તમને યાદ રાખશે.</string>
     <string name="signin_new_prompt">હમસફર પર નવા છો?</string>
     <string name="signin_password_title">તમારો પાસવર્ડ નાખો</string>
+    <string name="signin_forgot">પાસવર્ડ ભૂલી ગયા?</string>
+    <string name="signin_forgot_sending">રીસેટ લિંક મોકલી રહ્યાં છીએ…</string>
+    <string name="signin_forgot_sent">એ ઈમેલ સરનામાનું એકાઉન્ટ હશે, તો અમે તેના પર પાસવર્ડ બદલવાની લિંક ઈમેલ કરી છે.</string>
     <string name="field_email">ઈમેલ</string>
     <string name="action_change">બદલો</string>
     <string name="password_rule">%1$d કે વધુ અક્ષર. અત્યાર સુધી %2$d.</string>

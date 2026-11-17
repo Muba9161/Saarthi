@@ -1,7 +1,11 @@
 import * as React from 'react';
 import { Link } from 'react-router-dom';
-import { Clock, Gauge, MapPin, WifiOff, type LucideIcon } from 'lucide-react';
-import { formatRegistrationNumber, type PublicLiveRide } from '@saarthi/shared';
+import { Clock, Gauge, MapPin, Route, WifiOff, Zap, type LucideIcon } from 'lucide-react';
+import {
+  formatRegistrationNumber,
+  type PublicLiveRide,
+  type RideShareSummary,
+} from '@saarthi/shared';
 import { BRAND_NAME, SaarthiLogo } from '@/components/common/logo';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -129,6 +133,69 @@ function WaitingForFix({ name }: { name: string }) {
   );
 }
 
+function formatDuration(minutes: number): string {
+  const hours = Math.floor(minutes / 60);
+  return hours > 0 ? `${hours} h ${minutes % 60} min` : `${minutes} min`;
+}
+
+/** Whether the moment has not come yet — turning false when it does, without a reload. */
+function useBefore(moment: string): boolean {
+  const [passed, setPassed] = React.useState(() => Date.parse(moment) <= Date.now());
+  React.useEffect(() => {
+    const left = Date.parse(moment) - Date.now();
+    setPassed(left <= 0);
+    if (left <= 0) return undefined;
+    const timer = window.setTimeout(() => setPassed(true), left);
+    return () => window.clearTimeout(timer);
+  }, [moment]);
+  return !passed;
+}
+
+/**
+ * What an ended ride came to, for the few minutes it is kept. Figures only —
+ * the road itself is gone with the share — and a top speed the phone never
+ * reported is left out, not estimated. The page stops asking once a ride has
+ * ended, so it removes the summary itself when its time is up.
+ */
+function RideSummary({ summary }: { summary: RideShareSummary }) {
+  const t = useT();
+  const shown = useBefore(summary.shownUntil);
+  if (!shown) return null;
+
+  const facts: { label: string; value: string; icon: LucideIcon }[] = [
+    { label: t('Time shared'), value: formatDuration(summary.durationMinutes), icon: Clock },
+    { label: t('Distance covered'), value: `${summary.distanceKm.toFixed(1)} km`, icon: Route },
+  ];
+  if (summary.avgSpeedKph !== null) {
+    facts.push({
+      label: t('Average speed'),
+      value: `${Math.round(summary.avgSpeedKph)} km/h`,
+      icon: Gauge,
+    });
+  }
+  if (summary.maxSpeedKph !== null) {
+    facts.push({
+      label: t('Top speed'),
+      value: `${Math.round(summary.maxSpeedKph)} km/h`,
+      icon: Zap,
+    });
+  }
+
+  return (
+    <dl className="grid grid-cols-2 gap-3">
+      {facts.map(({ label, value, icon: Icon }) => (
+        <Card key={label} className="space-y-1 p-4">
+          <dt className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Icon className="size-3.5 shrink-0" aria-hidden />
+            {label}
+          </dt>
+          <dd className="text-lg font-semibold tabular-nums tracking-tight">{value}</dd>
+        </Card>
+      ))}
+    </dl>
+  );
+}
+
 /** The ride itself: who, which vehicle, and — while it is shared — where. */
 export function LiveRideDetails({
   ride,
@@ -187,10 +254,12 @@ export function LiveRideDetails({
         <LiveMarkerMap
           position={position}
           label={t("Map of {name}'s live location", { name })}
+          trail={ride.trail}
           className="h-[min(60svh,34rem)] min-h-72 rounded-2xl ring-1 ring-border"
         />
       ) : null}
       {phase === 'waiting' ? <WaitingForFix name={name} /> : null}
+      {phase === 'ended' && ride.summary ? <RideSummary summary={ride.summary} /> : null}
 
       {phase !== 'ended' ? (
         <p className="text-xs text-muted-foreground">

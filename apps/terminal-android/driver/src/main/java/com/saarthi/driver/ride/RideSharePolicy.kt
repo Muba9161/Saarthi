@@ -1,6 +1,6 @@
 package com.saarthi.driver.ride
 
-import com.saarthi.driver.data.IndianMobile
+import com.saarthi.driver.data.FamilyContact
 import com.saarthi.driver.network.RideSharesApi
 import java.time.Instant
 
@@ -26,6 +26,13 @@ object RideSharePolicy {
 
     /** Fixes in one upload — the server's own limit. */
     const val MAX_POINTS = 100
+
+    /**
+     * Fixes held while out of signal: ten minutes at one a second. Held to one
+     * upload's worth, a minute and a half without data lost the road taken
+     * in it, and family saw a straight line across it.
+     */
+    const val MAX_HELD_POINTS = 600
 
     /** The server's own limits on a fix. One reading outside them refuses the whole upload. */
     private const val MAX_SPEED_KPH = 200.0
@@ -84,18 +91,19 @@ object RideSharePolicy {
     fun plateOf(typed: String): String? = typed.trim().takeIf { it.length in PLATE_MIN..PLATE_MAX }
 
     /**
-     * The numbers to send, from what was typed — ten digits each, blanks left
-     * out, each number once — or null when any of them is not a mobile number
-     * or there are more than the server takes.
+     * The contacts to send, from what was typed — a number's ten digits or an
+     * address in lower case, blanks left out, each once — or null when any of
+     * them is neither a mobile number nor an email address, or there are more
+     * than the server takes.
      *
      * All or nothing, because the server refuses the whole list for one bad
-     * number, and a share started without the person meant to be told is worse
-     * than a field asking for the number again.
+     * contact, and a share started without the person meant to be told is
+     * worse than a field asking for it again.
      */
     fun contactsOf(typed: List<String>): List<String>? {
-        val numbers = typed.map(IndianMobile::digits).filter { it.isNotEmpty() }
-        if (numbers.any { !IndianMobile.isValid(it) }) return null
-        return numbers.distinct().takeIf { it.size <= MAX_CONTACTS }
+        val contacts = typed.map(FamilyContact::normalised).filter { it.isNotEmpty() }
+        if (contacts.any { !FamilyContact.isValid(it) }) return null
+        return contacts.distinct().takeIf { it.size <= MAX_CONTACTS }
     }
 
     // -----------------------------------------------------------------------

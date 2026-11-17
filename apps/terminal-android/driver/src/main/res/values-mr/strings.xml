@@ -48,6 +48,9 @@
     <string name="signin_email_lead">ज्या ईमेलने खाते बनवले तोच वापरा. यानंतर हमसफर तुम्हाला लक्षात ठेवेल.</string>
     <string name="signin_new_prompt">हमसफरवर नवीन आहात?</string>
     <string name="signin_password_title">तुमचा पासवर्ड टाका</string>
+    <string name="signin_forgot">पासवर्ड विसरलात?</string>
+    <string name="signin_forgot_sending">रीसेट लिंक पाठवत आहे…</string>
+    <string name="signin_forgot_sent">त्या ईमेल पत्त्यासाठी खाते असल्यास, आम्ही पासवर्ड रीसेट लिंक ईमेल केली आहे.</string>
     <string name="field_email">ईमेल</string>
     <string name="action_change">बदला</string>
     <string name="password_rule">%1$d किंवा जास्त अक्षरे. आतापर्यंत %2$d.</string>

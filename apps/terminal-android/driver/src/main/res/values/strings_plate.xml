@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Reading a vehicle's number plate with the camera, from the vehicle-number field. -->
+<resources>
+    <string name="plate_scan_action">Scan</string>
+    <string name="plate_scan_title">Scan number plate</string>
+    <string name="plate_scan_hint">Point the camera at the number plate. The number fills in by itself.</string>
+    <string name="plate_scan_preparing">Getting the plate reader ready. Keep the phone online for a moment.</string>
+    <string name="plate_scan_close">Close scanner</string>
+    <string name="plate_scan_camera_needed">Humsafar needs the camera to read the number plate.</string>
+</resources>

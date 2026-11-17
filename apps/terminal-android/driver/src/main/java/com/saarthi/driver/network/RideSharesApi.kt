@@ -87,7 +87,7 @@ class RideSharesApi(private val api: DriverApi) {
     )
 
     @Serializable
-    private data class ContactRequest(val phone: String)
+    private data class ContactRequest(val contact: String)
 
     @Serializable
     private data class Points(val points: List<Point>)
@@ -115,11 +115,11 @@ class RideSharesApi(private val api: DriverApi) {
     /** The share on now, if any. Null once it has ended — stopped, or out of time. */
     suspend fun mine(): ShareView? = api.get("/api/v1/ride-shares/mine", ShareView.serializer())
 
-    /** Tell one more person. */
-    suspend fun addContact(shareId: String, phone: String): ShareView =
+    /** Tell one more person, by mobile number or email address. */
+    suspend fun addContact(shareId: String, contact: String): ShareView =
         api.post(
             "/api/v1/ride-shares/$shareId/contacts",
-            Bodies.encodeToString(ContactRequest.serializer(), ContactRequest(phone)),
+            Bodies.encodeToString(ContactRequest.serializer(), ContactRequest(contact)),
             ShareView.serializer(),
         )
 

@@ -188,32 +188,22 @@ export const mr: Catalogue = {
   // Registration: email verification
   'We will email a 6-digit code to this address at the last step, to confirm it is yours. Use an inbox you can open now.':
     'शेवटच्या टप्प्यात आम्ही या पत्त्यावर 6 अंकी कोड पाठवू, जेणेकरून तो तुमचाच आहे याची खात्री होईल. आत्ता उघडू शकाल असा इनबॉक्स वापरा.',
-  'Verify email':
-    'ईमेल सत्यापित करा',
-  'The code we emailed you.':
-    'आम्ही ईमेल केलेला कोड.',
-  'Confirm your email address':
-    'तुमच्या ईमेल पत्त्याची पुष्टी करा',
+  'Verify email': 'ईमेल सत्यापित करा',
+  'The code we emailed you.': 'आम्ही ईमेल केलेला कोड.',
+  'Confirm your email address': 'तुमच्या ईमेल पत्त्याची पुष्टी करा',
   'We sent a 6-digit code to {email}. Enter it below to finish creating your account.':
     'आम्ही {email} वर 6 अंकी कोड पाठवला आहे. खाते तयार करणे पूर्ण करण्यासाठी तो खाली टाका.',
-  'We will email a 6-digit code to {email}.':
-    'आम्ही {email} वर 6 अंकी कोड ईमेल करू.',
+  'We will email a 6-digit code to {email}.': 'आम्ही {email} वर 6 अंकी कोड ईमेल करू.',
   'Enter the code to confirm this email address is yours. It keeps fake accounts out of Saarthi.':
     'हा ईमेल पत्ता तुमचाच आहे याची खात्री करण्यासाठी कोड टाका. यामुळे Saarthi बनावट खात्यांपासून सुरक्षित राहते.',
-  'Verification code':
-    'सत्यापन कोड',
-  'Send code':
-    'कोड पाठवा',
-  'Resend code':
-    'कोड पुन्हा पाठवा',
-  'Resend in {seconds}s':
-    '{seconds} सेकंदांत पुन्हा पाठवा',
+  'Verification code': 'सत्यापन कोड',
+  'Send code': 'कोड पाठवा',
+  'Resend code': 'कोड पुन्हा पाठवा',
+  'Resend in {seconds}s': '{seconds} सेकंदांत पुन्हा पाठवा',
   'Not arrived? Check your spam folder. Wrong address? Go back and change it.':
     'कोड मिळाला नाही? स्पॅम फोल्डर तपासा. पत्ता चुकीचा आहे? मागे जाऊन बदला.',
-  'We emailed a verification code to {email}.':
-    'आम्ही {email} वर सत्यापन कोड ईमेल केला आहे.',
-  'The code could not be sent. Please try again.':
-    'कोड पाठवता आला नाही. कृपया पुन्हा प्रयत्न करा.',
+  'We emailed a verification code to {email}.': 'आम्ही {email} वर सत्यापन कोड ईमेल केला आहे.',
+  'The code could not be sent. Please try again.': 'कोड पाठवता आला नाही. कृपया पुन्हा प्रयत्न करा.',
   'I own trucks and want to manage my fleet and win loads.':
     'माझ्याकडे ट्रक आहेत आणि मला माझा ताफा सांभाळायचा व लोड मिळवायचे आहेत.',
   'I need materials, transport, a cab or a tour, and want offers to compare.':
@@ -364,11 +354,17 @@ export const mr: Catalogue = {
   'Updated {count} h ago': '{count} तासांपूर्वी अपडेट झाले',
   'Vehicle number': 'वाहन क्रमांक',
   Speed: 'वेग',
+  'Time shared': 'शेअर केलेला वेळ',
+  'Distance covered': 'कापलेले अंतर',
+  'Average speed': 'सरासरी वेग',
+  'Top speed': 'कमाल वेग',
   'Could not reach VorldX Saarthi': 'VorldX Saarthi शी संपर्क होऊ शकला नाही',
   'Check your connection and try again.': 'तुमचे कनेक्शन तपासा आणि पुन्हा प्रयत्न करा.',
   'Wait a moment and try again.': 'थोडा वेळ थांबून पुन्हा प्रयत्न करा.',
   'Connection lost. Retrying…': 'कनेक्शन तुटले. पुन्हा प्रयत्न सुरू आहे…',
   'Re-centre map': 'नकाशा पुन्हा मध्यभागी आणा',
+  'Full screen': 'पूर्ण स्क्रीन',
+  'Exit full screen': 'पूर्ण स्क्रीन बंद करा',
   "Map of {name}'s live location": '{name} यांच्या लाइव्ह ठिकाणाचा नकाशा',
   'The map could not load on this device.': 'या डिव्हाइसवर नकाशा लोड होऊ शकला नाही.',
   Ended: 'संपले',

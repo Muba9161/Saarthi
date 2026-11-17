@@ -54,6 +54,7 @@ import com.saarthi.owner.ui.map.MarkerState
 import com.saarthi.owner.ui.map.OverlayInk
 import com.saarthi.owner.ui.map.PinKind
 import com.saarthi.owner.ui.map.TRAIL_LABELS
+import com.saarthi.owner.ui.map.TrailTone
 import com.saarthi.owner.ui.map.VehicleMap
 import com.saarthi.owner.ui.map.tonesOf
 import com.saarthi.owner.ui.shell.LocalNavigator
@@ -104,9 +105,11 @@ fun FollowCard(followed: Followed?, onExpand: () -> Unit, modifier: Modifier = M
 /**
  * The followed vehicle over the whole screen: framed whole when it opens, then
  * kept on the vehicle as it moves, with its trip, key and readings at the foot.
+ * [trailLabels] names the road covered in the key, for a follower whose road
+ * is not a vehicle's trip.
  */
 @Composable
-fun FollowScreen(followed: Followed?) {
+fun FollowScreen(followed: Followed?, trailLabels: Map<TrailTone, String> = TRAIL_LABELS) {
     val c = Saarthi.colors
     val navigator = LocalNavigator.current
     var frame by remember { mutableIntStateOf(0) }
@@ -152,11 +155,11 @@ fun FollowScreen(followed: Followed?) {
                 Text(stringResource(R.string.market_follow_finding), style = SType.body, color = c.muted)
             } else {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    PlateChip(followed.plate, size = 12.sp)
+                    if (followed.plate.isNotBlank()) PlateChip(followed.plate, size = 12.sp)
                     followed.marker?.let { MotionPill(it.state, Color(OverlayInk.vehicle(it.state, it.status))) }
                 }
                 Text(followed.statusLine(), style = SType.body, color = c.muted, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                FollowKey(followed)
+                FollowKey(followed, trailLabels)
                 followed.readings?.let { Text(it.inLine(), style = SType.smallStrong, color = c.fg) }
             }
         }
@@ -221,13 +224,13 @@ private fun FollowMap(
 }
 
 @Composable
-private fun FollowKey(followed: Followed) {
+private fun FollowKey(followed: Followed, trailLabels: Map<TrailTone, String> = TRAIL_LABELS) {
     val trip = followed.trip
     MapKey(
         route = trip?.route.orEmpty(),
         routeLabel = stringResource(R.string.market_map_planned_route),
         tones = tonesOf(followed.trail),
-        trailLabels = TRAIL_LABELS,
+        trailLabels = trailLabels,
         hasPickup = trip?.pickup != null,
         hasDrop = trip?.drop != null,
         pickupLabel = stringResource(R.string.market_follow_start),

@@ -188,30 +188,21 @@ export const bn: Catalogue = {
   // Registration: email verification
   'We will email a 6-digit code to this address at the last step, to confirm it is yours. Use an inbox you can open now.':
     'শেষ ধাপে আমরা এই ঠিকানায় ৬ সংখ্যার একটি কোড পাঠাব, যাতে নিশ্চিত হয় এটি আপনার। এমন একটি ইনবক্স ব্যবহার করুন যা আপনি এখনই খুলতে পারেন।',
-  'Verify email':
-    'ইমেল যাচাই করুন',
-  'The code we emailed you.':
-    'আমাদের ইমেল করা কোড।',
-  'Confirm your email address':
-    'আপনার ইমেল ঠিকানা নিশ্চিত করুন',
+  'Verify email': 'ইমেল যাচাই করুন',
+  'The code we emailed you.': 'আমাদের ইমেল করা কোড।',
+  'Confirm your email address': 'আপনার ইমেল ঠিকানা নিশ্চিত করুন',
   'We sent a 6-digit code to {email}. Enter it below to finish creating your account.':
     'আমরা {email}-এ ৬ সংখ্যার একটি কোড পাঠিয়েছি। অ্যাকাউন্ট তৈরি শেষ করতে নিচে সেটি লিখুন।',
-  'We will email a 6-digit code to {email}.':
-    'আমরা {email}-এ ৬ সংখ্যার একটি কোড ইমেল করব।',
+  'We will email a 6-digit code to {email}.': 'আমরা {email}-এ ৬ সংখ্যার একটি কোড ইমেল করব।',
   'Enter the code to confirm this email address is yours. It keeps fake accounts out of Saarthi.':
     'এই ইমেল ঠিকানাটি আপনার, তা নিশ্চিত করতে কোডটি লিখুন। এতে Saarthi ভুয়া অ্যাকাউন্ট থেকে মুক্ত থাকে।',
-  'Verification code':
-    'যাচাইকরণ কোড',
-  'Send code':
-    'কোড পাঠান',
-  'Resend code':
-    'আবার কোড পাঠান',
-  'Resend in {seconds}s':
-    '{seconds} সেকেন্ডে আবার পাঠান',
+  'Verification code': 'যাচাইকরণ কোড',
+  'Send code': 'কোড পাঠান',
+  'Resend code': 'আবার কোড পাঠান',
+  'Resend in {seconds}s': '{seconds} সেকেন্ডে আবার পাঠান',
   'Not arrived? Check your spam folder. Wrong address? Go back and change it.':
     'পাননি? স্প্যাম ফোল্ডার দেখুন। ঠিকানা ভুল? ফিরে গিয়ে বদলে দিন।',
-  'We emailed a verification code to {email}.':
-    'আমরা {email}-এ যাচাইকরণ কোড ইমেল করেছি।',
+  'We emailed a verification code to {email}.': 'আমরা {email}-এ যাচাইকরণ কোড ইমেল করেছি।',
   'The code could not be sent. Please try again.':
     'কোড পাঠানো যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।',
   'I own trucks and want to manage my fleet and win loads.':
@@ -363,11 +354,17 @@ export const bn: Catalogue = {
   'Updated {count} h ago': '{count} ঘণ্টা আগে আপডেট হয়েছে',
   'Vehicle number': 'গাড়ির নম্বর',
   Speed: 'গতি',
+  'Time shared': 'শেয়ার করার সময়',
+  'Distance covered': 'অতিক্রান্ত দূরত্ব',
+  'Average speed': 'গড় গতি',
+  'Top speed': 'সর্বোচ্চ গতি',
   'Could not reach VorldX Saarthi': 'VorldX Saarthi-এর সঙ্গে যোগাযোগ করা যায়নি',
   'Check your connection and try again.': 'আপনার সংযোগ দেখে আবার চেষ্টা করুন।',
   'Wait a moment and try again.': 'একটু অপেক্ষা করে আবার চেষ্টা করুন।',
   'Connection lost. Retrying…': 'সংযোগ বিচ্ছিন্ন। আবার চেষ্টা করা হচ্ছে…',
   'Re-centre map': 'ম্যাপ আবার মাঝখানে আনুন',
+  'Full screen': 'পূর্ণ স্ক্রিন',
+  'Exit full screen': 'পূর্ণ স্ক্রিন বন্ধ করুন',
   "Map of {name}'s live location": '{name}-এর লাইভ অবস্থানের ম্যাপ',
   'The map could not load on this device.': 'এই ডিভাইসে ম্যাপ লোড করা যায়নি।',
   Ended: 'শেষ হয়েছে',

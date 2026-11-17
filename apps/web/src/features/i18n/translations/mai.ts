@@ -188,32 +188,22 @@ export const mai: Catalogue = {
   // Registration: email verification
   'We will email a 6-digit code to this address at the last step, to confirm it is yours. Use an inbox you can open now.':
     'अंतिम चरणमे हम एहि पता पर 6 अंकक कोड पठाएब, जाहिसँ पक्का हो जे ई अहाँक अछि। एहन इनबॉक्स प्रयोग करू जे अहाँ एखने खोलि सकी।',
-  'Verify email':
-    'ईमेल सत्यापित करू',
-  'The code we emailed you.':
-    'हमर पठाओल ईमेल कोड।',
-  'Confirm your email address':
-    'अपन ईमेल पताक पुष्टि करू',
+  'Verify email': 'ईमेल सत्यापित करू',
+  'The code we emailed you.': 'हमर पठाओल ईमेल कोड।',
+  'Confirm your email address': 'अपन ईमेल पताक पुष्टि करू',
   'We sent a 6-digit code to {email}. Enter it below to finish creating your account.':
     'हम {email} पर 6 अंकक कोड पठेलहुँ अछि। खाता बनेनाइ पूरा करबाक लेल ओकरा नीचाँ दर्ज करू।',
-  'We will email a 6-digit code to {email}.':
-    'हम {email} पर 6 अंकक कोड ईमेल करब।',
+  'We will email a 6-digit code to {email}.': 'हम {email} पर 6 अंकक कोड ईमेल करब।',
   'Enter the code to confirm this email address is yours. It keeps fake accounts out of Saarthi.':
     'ई पुष्टि करबाक लेल कोड दर्ज करू जे ई ईमेल पता अहाँक अछि। एहिसँ Saarthi नकली खातासँ सुरक्षित रहैत अछि।',
-  'Verification code':
-    'सत्यापन कोड',
-  'Send code':
-    'कोड पठाउ',
-  'Resend code':
-    'कोड फेरसँ पठाउ',
-  'Resend in {seconds}s':
-    '{seconds} सेकेंडमे फेरसँ पठाउ',
+  'Verification code': 'सत्यापन कोड',
+  'Send code': 'कोड पठाउ',
+  'Resend code': 'कोड फेरसँ पठाउ',
+  'Resend in {seconds}s': '{seconds} सेकेंडमे फेरसँ पठाउ',
   'Not arrived? Check your spam folder. Wrong address? Go back and change it.':
     'कोड नहि आएल? स्पैम फोल्डर देखू। पता गलत अछि? पाछाँ जा कऽ बदलू।',
-  'We emailed a verification code to {email}.':
-    'हम {email} पर सत्यापन कोड ईमेल कएलहुँ अछि।',
-  'The code could not be sent. Please try again.':
-    'कोड नहि पठाओल जा सकल। कृपया फेरसँ प्रयास करू।',
+  'We emailed a verification code to {email}.': 'हम {email} पर सत्यापन कोड ईमेल कएलहुँ अछि।',
+  'The code could not be sent. Please try again.': 'कोड नहि पठाओल जा सकल। कृपया फेरसँ प्रयास करू।',
   'I own trucks and want to manage my fleet and win loads.':
     'हमरा लग ट्रक अछि आ हम अपन बेड़ा चलाबय आ लोड पाबय चाहैत छी।',
   'I need materials, transport, a cab or a tour, and want offers to compare.':
@@ -362,11 +352,17 @@ export const mai: Catalogue = {
   'Updated {count} h ago': '{count} घंटा पहिने अपडेट भेल',
   'Vehicle number': 'गाड़ीक नंबर',
   Speed: 'गति',
+  'Time shared': 'शेयर करबाक समय',
+  'Distance covered': 'तय कएल दूरी',
+  'Average speed': 'औसत गति',
+  'Top speed': 'सभसँ बेसी गति',
   'Could not reach VorldX Saarthi': 'VorldX Saarthi सँ नै जुड़ि सकलहुँ',
   'Check your connection and try again.': 'अपन कनेक्शन जाँचू आ फेर कोशिश करू।',
   'Wait a moment and try again.': 'कनी काल रुकि कऽ फेर कोशिश करू।',
   'Connection lost. Retrying…': 'कनेक्शन टूटि गेल। फेर कोशिश भऽ रहल अछि…',
   'Re-centre map': 'नक्शा फेर बीचमे आनू',
+  'Full screen': 'पूर्ण स्क्रीन',
+  'Exit full screen': 'पूर्ण स्क्रीन बंद करू',
   "Map of {name}'s live location": '{name}क लाइव लोकेशनक नक्शा',
   'The map could not load on this device.': 'एहि डिवाइस पर नक्शा लोड नै भऽ सकल।',
   Ended: 'समाप्त',

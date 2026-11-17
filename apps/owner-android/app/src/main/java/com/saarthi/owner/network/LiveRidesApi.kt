@@ -8,10 +8,10 @@ import java.net.URLEncoder
  * Share my ride, from the family's side.
  *
  * Somebody travelling in a vehicle that is not on Saarthi shares where they
- * are with family by mobile number; a family member who uses Saarthi is told,
+ * are with family by mobile number or email; a family member who uses Saarthi is told,
  * with a live link. The link's token is the only key — the server needs no
  * sign-in for it — and it shows a first name, the vehicle's number if one was
- * typed, and where they are while sharing. Once the rider stops, or the share
+ * typed, and where they are and the road they have covered while sharing. Once the rider stops, or the share
  * runs out, it says so and shows nobody's whereabouts.
  */
 class LiveRidesApi(private val api: OwnerApi) {
@@ -24,6 +24,29 @@ class LiveRidesApi(private val api: OwnerApi) {
         val speedKph: Double? = null,
         val heading: Double? = null,
         val recordedAt: String = "",
+    )
+
+    /** A point on the road covered — `RideTrailPoint`, coloured as a vehicle with no trip. */
+    @Serializable
+    data class TrailPoint(
+        val latitude: Double,
+        val longitude: Double,
+        val recordedAt: String = "",
+        val routeState: String? = null,
+    )
+
+    /**
+     * `RideShareSummary`: what an ended ride came to, recorded as sharing
+     * stopped and shown until [shownUntil], then removed. A figure the server
+     * did not send is null and left off the screen, never a guess.
+     */
+    @Serializable
+    data class Summary(
+        val distanceKm: Double? = null,
+        val durationMinutes: Int = 0,
+        val avgSpeedKph: Double? = null,
+        val maxSpeedKph: Double? = null,
+        val shownUntil: String? = null,
     )
 
     /** `PublicLiveRide`: what the live link shows. */
@@ -39,11 +62,22 @@ class LiveRidesApi(private val api: OwnerApi) {
         val endedAt: String? = null,
         /** Null before the first fix, and always once the ride has ended. */
         val position: Position? = null,
+        /** The road covered — after [get]'s `from` when one was given. Empty once ended. */
+        val trail: List<TrailPoint> = emptyList(),
+        /** Journey statistics available once sharing has ended. */
+        val summary: Summary? = null,
     )
 
-    /** The ride behind a live link. A link that does not exist is refused with a 404. */
-    suspend fun get(token: String): LiveRide? =
-        api.get("/public/live/${URLEncoder.encode(token, "UTF-8")}", LiveRide.serializer())
+    /**
+     * The ride behind a live link; [from], the last point already held, asks
+     * for only the road covered since. A link that does not exist is refused
+     * with a 404.
+     */
+    suspend fun get(token: String, from: String? = null): LiveRide? =
+        api.get(
+            "/public/live/${URLEncoder.encode(token, "UTF-8")}" + (from?.let { "?from=${URLEncoder.encode(it, "UTF-8")}" } ?: ""),
+            LiveRide.serializer(),
+        )
 
     /** `RideSharedWithMe`: a ride somebody is sharing with this person right now. */
     @Serializable

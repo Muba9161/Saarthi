@@ -100,7 +100,9 @@ private const val REFRESH_MS = 30_000L
  *
  * As on the web, the vehicles come in two scopes when the plan includes
  * sharing (Mine, and Shared with me with the invitations waiting counted on
- * it) and in two layouts, rows or cards, the choice saved on the server.
+ * it) and in two layouts, rows or cards, the choice saved on the server. A
+ * plan without sharing is offered Shared with me only while somebody shares a
+ * live ride with the person.
  */
 @Composable
 fun FleetListScreen(app: OwnerApp, account: SessionStore.Account, onOpenMap: (() -> Unit)? = null) {
@@ -119,11 +121,16 @@ fun FleetListScreen(app: OwnerApp, account: SessionStore.Account, onOpenMap: (()
     var notice by remember { mutableStateOf<Pair<String, NoticeTone>?>(null) }
 
     suspend fun loadShared(silent: Boolean) = coroutineScope {
-        if (!sharing) return@coroutineScope
-        if (!silent) shared = Loadable.Loading
         // Live rides shared with this person are read alongside but apart: neither read sinks the other,
-        // and a failed read of them keeps the last ones.
+        // and a failed read of them keeps the last ones. They come whatever the plan — family share
+        // rides with Personal plans, which have no vehicle sharing — so only the vehicles wait on it.
         val rides = async { runCatching { app.liveRides.sharedWithMe() }.getOrNull() }
+        if (!sharing) {
+            rides.await()?.let { liveRides = it }
+            shared = Loadable.Ready(SharingApi.SharedWithMe())
+            return@coroutineScope
+        }
+        if (!silent) shared = Loadable.Loading
         val vehicles = try {
             Loadable.Ready(app.sharing.sharedWithMe())
         } catch (failure: Exception) {
@@ -132,6 +139,9 @@ fun FleetListScreen(app: OwnerApp, account: SessionStore.Account, onOpenMap: (()
         rides.await()?.let { liveRides = it }
         if (!(silent && vehicles is Loadable.Failed && shared is Loadable.Ready)) shared = vehicles
     }
+    // Shared with me is offered with vehicle sharing, or while somebody is sharing a live ride.
+    val sharedOffered = sharing || liveRides.isNotEmpty()
+    val showingShared = sharedScope && sharedOffered
 
     LaunchedEffect(Unit) {
         loadShared(silent = false)
@@ -216,12 +226,12 @@ fun FleetListScreen(app: OwnerApp, account: SessionStore.Account, onOpenMap: (()
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            if (sharing) {
+                            if (sharedOffered) {
                                 val waiting = (shared as? Loadable.Ready)?.value?.invitations?.size ?: 0
-                                ChoiceChip(stringResource(R.string.fleet_list_mine), selected = !sharedScope, onClick = { sharedScope = false })
+                                ChoiceChip(stringResource(R.string.fleet_list_mine), selected = !showingShared, onClick = { sharedScope = false })
                                 ChoiceChip(
                                     if (waiting > 0) stringResource(R.string.fleet_list_shared_count, waiting) else stringResource(R.string.fleet_list_shared),
-                                    selected = sharedScope,
+                                    selected = showingShared,
                                     onClick = { sharedScope = true },
                                 )
                             }
@@ -234,7 +244,7 @@ fun FleetListScreen(app: OwnerApp, account: SessionStore.Account, onOpenMap: (()
                     }
                     notice?.let { (text, tone) -> item(key = "notice") { NoticeCard(text, tone) } }
                 }
-                if (!showDrivers && sharedScope) {
+                if (!showDrivers && showingShared) {
                     sharedWithMeItems(
                         state = shared,
                         liveRides = liveRides,
@@ -246,7 +256,7 @@ fun FleetListScreen(app: OwnerApp, account: SessionStore.Account, onOpenMap: (()
                                 SharedVehicleScreen(app, vehicle) { scope.launch { loadShared(silent = true) } }
                             }
                         },
-                        onOpenRide = { ride -> navigator.push("live-${ride.token}") { LiveRideScreen(app, ride.token) } },
+                        onOpenRide = { ride -> navigator.push("live-${ride.token}") { LiveRideScreen(app, ride.token, ride.mine) } },
                         onRetry = { scope.launch { loadShared(silent = false) } },
                     )
                 } else if (!showDrivers) {

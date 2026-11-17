@@ -38,6 +38,7 @@ import com.saarthi.driver.ui.start.ArrivalPhotoScreen
 import com.saarthi.driver.ui.start.AwaitingApprovalScreen
 import com.saarthi.driver.ui.start.ChooseVehicleScreen
 import com.saarthi.driver.ui.start.RejectedScreen
+import com.saarthi.driver.ui.update.AppUpdateHost
 import kotlinx.coroutines.delay
 
 /**
@@ -195,6 +196,9 @@ fun DriverRoot(
          * driver is standing at it, with the same sheet the shift uses later.
          */
         AdapterSheet(visible = obdSetup, cockpit = cockpit, onClose = driver::dismissObdSetup)
+
+        // A newer Humsafar, offered over whichever screen is up — after the splash.
+        if (splashDone) AppUpdateHost()
     }
 }
 

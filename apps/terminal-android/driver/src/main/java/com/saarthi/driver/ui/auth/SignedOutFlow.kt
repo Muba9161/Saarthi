@@ -109,9 +109,12 @@ fun SignedOutFlow(viewModel: DriverViewModel, onCreating: (Boolean) -> Unit) {
     val form = remember { AuthForm() }
     var codeSent by remember { mutableStateOf<DriverApi.EmailCode?>(null) }
     var sendingCode by remember { mutableStateOf(false) }
+    var forgotNotice by rememberSaveable { mutableStateOf<String?>(null) }
+    var sendingForgot by rememberSaveable { mutableStateOf(false) }
 
     fun go(next: AuthStep, ahead: Boolean = true) {
         viewModel.clearError()
+        forgotNotice = null
         forward = ahead
         step = next
     }
@@ -157,11 +160,20 @@ fun SignedOutFlow(viewModel: DriverViewModel, onCreating: (Boolean) -> Unit) {
                 AuthStep.PASSWORD -> PasswordStep(
                     form = form,
                     error = error,
+                    notice = forgotNotice,
+                    sendingForgot = sendingForgot,
                     onBack = { go(AuthStep.EMAIL, false) },
                     onSignIn = {
                         creating = false
                         onCreating(false)
                         viewModel.signIn(form.email, form.password)
+                    },
+                    onForgot = {
+                        sendingForgot = true
+                        viewModel.forgotPassword(form.email) { result ->
+                            sendingForgot = false
+                            result.onSuccess { msg -> forgotNotice = msg }
+                        }
                     },
                 )
                 AuthStep.EMAIL_CODE -> codeSent?.let { sent ->

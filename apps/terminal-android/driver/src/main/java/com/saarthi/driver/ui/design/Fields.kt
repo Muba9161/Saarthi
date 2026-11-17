@@ -8,12 +8,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
@@ -219,11 +221,21 @@ fun PlateField(
     modifier: Modifier = Modifier,
     placeholder: String = "DL 01 AB 1234",
     keyboardActions: KeyboardActions = KeyboardActions.Default,
+    /** Shows a "Scan" button beside the label that reads the plate with the camera. */
+    onScan: (() -> Unit)? = null,
 ) {
     val c = Saarthi.colors
     val shape = RoundedCornerShape(14.dp)
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(stringResource(R.string.field_vehicle_number), style = SType.fieldLabel, color = c.primary)
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                stringResource(R.string.field_vehicle_number),
+                style = SType.fieldLabel,
+                color = c.primary,
+                modifier = Modifier.weight(1f),
+            )
+            if (onScan != null) ScanPlateButton(onScan)
+        }
         Row(
             Modifier
                 .fillMaxWidth()
@@ -272,6 +284,36 @@ fun PlateField(
                     }
                 },
             )
+        }
+    }
+}
+
+/**
+ * The plate field's "Scan" pill: a camera and a word, soft primary.
+ *
+ * Drawn 34 tall to sit beside the label without pushing the plate down, inside
+ * a 44-tall target so a thumb still finds it.
+ */
+@Composable
+private fun ScanPlateButton(onClick: () -> Unit) {
+    val c = Saarthi.colors
+    Box(
+        Modifier
+            .defaultMinSize(minHeight = 44.dp)
+            .pressable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Row(
+            Modifier
+                .height(34.dp)
+                .clip(CircleShape)
+                .background(c.primarySoft)
+                .padding(horizontal = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            LineIcon(Lucide.camera, size = 16.dp, color = c.primary)
+            Text(stringResource(R.string.plate_scan_action), style = SType.smallStrong, color = c.primary)
         }
     }
 }

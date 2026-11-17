@@ -188,30 +188,21 @@ export const doi: Catalogue = {
   // Registration: email verification
   'We will email a 6-digit code to this address at the last step, to confirm it is yours. Use an inbox you can open now.':
     'आखरी कदम पर अस इस पते पर 6 अंकें दा कोड भेजगे, तां जे पक्का होई जा जे एह् तुंदा ऐ। ऐसा इनबॉक्स बरतो जेह्ड़ा तुस हुनै खोली सकदे ओ।',
-  'Verify email':
-    'ईमेल दी पुश्टी करो',
-  'The code we emailed you.':
-    'साढ़े आसेआं ईमेल कीता गेदा कोड।',
-  'Confirm your email address':
-    'अपने ईमेल पते दी पुश्टी करो',
+  'Verify email': 'ईमेल दी पुश्टी करो',
+  'The code we emailed you.': 'साढ़े आसेआं ईमेल कीता गेदा कोड।',
+  'Confirm your email address': 'अपने ईमेल पते दी पुश्टी करो',
   'We sent a 6-digit code to {email}. Enter it below to finish creating your account.':
     'असें {email} पर 6 अंकें दा कोड भेजेआ ऐ। खाता बनाना पूरा करने लेई उसी ख’ल्ल दर्ज करो।',
-  'We will email a 6-digit code to {email}.':
-    'अस {email} पर 6 अंकें दा कोड ईमेल करगे।',
+  'We will email a 6-digit code to {email}.': 'अस {email} पर 6 अंकें दा कोड ईमेल करगे।',
   'Enter the code to confirm this email address is yours. It keeps fake accounts out of Saarthi.':
     'एह् पुश्टी करने लेई कोड दर्ज करो जे एह् ईमेल पता तुंदा ऐ। इस कन्नै Saarthi नकली खातें थमां बचे दा रौंह्दा ऐ।',
-  'Verification code':
-    'पुश्टी कोड',
-  'Send code':
-    'कोड भेजो',
-  'Resend code':
-    'कोड फ्ही भेजो',
-  'Resend in {seconds}s':
-    '{seconds} सकिंटें च फ्ही भेजो',
+  'Verification code': 'पुश्टी कोड',
+  'Send code': 'कोड भेजो',
+  'Resend code': 'कोड फ्ही भेजो',
+  'Resend in {seconds}s': '{seconds} सकिंटें च फ्ही भेजो',
   'Not arrived? Check your spam folder. Wrong address? Go back and change it.':
     'कोड नेईं आया? स्पैम फोल्डर दिक्खो। पता गलत ऐ? पिच्छें जाइयै उसी बदलो।',
-  'We emailed a verification code to {email}.':
-    'असें {email} पर पुश्टी कोड ईमेल कीता ऐ।',
+  'We emailed a verification code to {email}.': 'असें {email} पर पुश्टी कोड ईमेल कीता ऐ।',
   'The code could not be sent. Please try again.':
     'कोड नेईं भेजेआ जाई सकेआ। किरपा करियै फ्ही कोशश करो।',
   'I own trucks and want to manage my fleet and win loads.':
@@ -363,11 +354,17 @@ export const doi: Catalogue = {
   'Updated {count} h ago': '{count} घंटे पैह्लें अपडेट होआ',
   'Vehicle number': 'गड्डी दा नंबर',
   Speed: 'रफ्तार',
+  'Time shared': 'शेयर करने दा समां',
+  'Distance covered': 'तै कीती दूरी',
+  'Average speed': 'औसत रफ्तार',
+  'Top speed': 'सबतूं तेज रफ्तार',
   'Could not reach VorldX Saarthi': 'VorldX Saarthi कन्नै जुड़ी नेईं सके',
   'Check your connection and try again.': 'अपना कनेक्शन जांचो ते फ्ही कोशिश करो।',
   'Wait a moment and try again.': 'थोह्ड़ी देर रुकियै फ्ही कोशिश करो।',
   'Connection lost. Retrying…': 'कनेक्शन टुट्टी गेआ। फ्ही कोशिश होआ करदी ऐ…',
   'Re-centre map': 'नक्शा फ्ही बश्कार आह्नो',
+  'Full screen': 'पूरी स्क्रीन',
+  'Exit full screen': 'पूरी स्क्रीन बंद करो',
   "Map of {name}'s live location": '{name} दी लाइव लोकेशन दा नक्शा',
   'The map could not load on this device.': 'इस डिवाइस पर नक्शा लोड नेईं होई सकेआ।',
   Ended: 'खत्म',

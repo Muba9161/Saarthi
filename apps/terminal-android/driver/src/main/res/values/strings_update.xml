@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Humsafar updating itself: the offer, the progress, and the note afterwards. -->
+<resources>
+    <string name="update_available_title">Update available</string>
+    <string name="update_available_body">Version %1$s · %2$s</string>
+    <string name="update_ready_body">Version %1$s is downloaded and ready.</string>
+    <string name="update_action">Update</string>
+    <string name="update_dismiss">Not now</string>
+    <string name="update_failed_title">Update did not finish</string>
+    <string name="update_retry">Try again</string>
+    <string name="update_progress_title">Updating Humsafar</string>
+    <string name="update_downloading">Downloading version %1$s</string>
+    <string name="update_progress_size">%1$s of %2$s</string>
+    <string name="update_installing">Installing. Humsafar will close for a moment and let you know when it is ready.</string>
+    <string name="update_hide">Keep using the app</string>
+    <string name="update_channel_name">App updates</string>
+    <string name="update_done_title">Humsafar is up to date</string>
+    <string name="update_done_body">Version %1$s is installed. Tap to open.</string>
+</resources>

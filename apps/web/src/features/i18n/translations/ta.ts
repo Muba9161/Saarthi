@@ -189,26 +189,19 @@ export const ta: Catalogue = {
   // Registration: email verification
   'We will email a 6-digit code to this address at the last step, to confirm it is yours. Use an inbox you can open now.':
     'இந்த முகவரி உங்களுடையது என்பதை உறுதிசெய்ய, கடைசிப் படியில் இதற்கு 6 இலக்கக் குறியீட்டை அனுப்புவோம். இப்போதே திறக்கக்கூடிய இன்பாக்ஸைப் பயன்படுத்துங்கள்.',
-  'Verify email':
-    'மின்னஞ்சலைச் சரிபார்க்கவும்',
-  'The code we emailed you.':
-    'நாங்கள் மின்னஞ்சல் செய்த குறியீடு.',
-  'Confirm your email address':
-    'உங்கள் மின்னஞ்சல் முகவரியை உறுதிசெய்யவும்',
+  'Verify email': 'மின்னஞ்சலைச் சரிபார்க்கவும்',
+  'The code we emailed you.': 'நாங்கள் மின்னஞ்சல் செய்த குறியீடு.',
+  'Confirm your email address': 'உங்கள் மின்னஞ்சல் முகவரியை உறுதிசெய்யவும்',
   'We sent a 6-digit code to {email}. Enter it below to finish creating your account.':
     '{email} க்கு 6 இலக்கக் குறியீட்டை அனுப்பியுள்ளோம். கணக்கை உருவாக்குவதை முடிக்க அதைக் கீழே உள்ளிடவும்.',
   'We will email a 6-digit code to {email}.':
     '{email} க்கு 6 இலக்கக் குறியீட்டை மின்னஞ்சல் செய்வோம்.',
   'Enter the code to confirm this email address is yours. It keeps fake accounts out of Saarthi.':
     'இந்த மின்னஞ்சல் முகவரி உங்களுடையது என்பதை உறுதிசெய்ய குறியீட்டை உள்ளிடவும். இது Saarthi-ஐப் போலிக் கணக்குகளிலிருந்து பாதுகாக்கிறது.',
-  'Verification code':
-    'சரிபார்ப்புக் குறியீடு',
-  'Send code':
-    'குறியீட்டை அனுப்பு',
-  'Resend code':
-    'குறியீட்டை மீண்டும் அனுப்பு',
-  'Resend in {seconds}s':
-    '{seconds} வினாடிகளில் மீண்டும் அனுப்பலாம்',
+  'Verification code': 'சரிபார்ப்புக் குறியீடு',
+  'Send code': 'குறியீட்டை அனுப்பு',
+  'Resend code': 'குறியீட்டை மீண்டும் அனுப்பு',
+  'Resend in {seconds}s': '{seconds} வினாடிகளில் மீண்டும் அனுப்பலாம்',
   'Not arrived? Check your spam folder. Wrong address? Go back and change it.':
     'வரவில்லையா? ஸ்பேம் கோப்புறையைப் பாருங்கள். முகவரி தவறா? பின்சென்று மாற்றுங்கள்.',
   'We emailed a verification code to {email}.':
@@ -365,11 +358,17 @@ export const ta: Catalogue = {
   'Updated {count} h ago': '{count} மணி. முன் புதுப்பிக்கப்பட்டது',
   'Vehicle number': 'வாகன எண்',
   Speed: 'வேகம்',
+  'Time shared': 'பகிர்ந்த நேரம்',
+  'Distance covered': 'கடந்த தூரம்',
+  'Average speed': 'சராசரி வேகம்',
+  'Top speed': 'அதிகபட்ச வேகம்',
   'Could not reach VorldX Saarthi': 'VorldX Saarthi-ஐ அடைய முடியவில்லை',
   'Check your connection and try again.': 'உங்கள் இணைப்பைச் சரிபார்த்து மீண்டும் முயற்சிக்கவும்.',
   'Wait a moment and try again.': 'சிறிது நேரம் காத்திருந்து மீண்டும் முயற்சிக்கவும்.',
   'Connection lost. Retrying…': 'இணைப்பு துண்டிக்கப்பட்டது. மீண்டும் முயற்சிக்கிறது…',
   'Re-centre map': 'வரைபடத்தை மீண்டும் மையப்படுத்து',
+  'Full screen': 'முழுத் திரை',
+  'Exit full screen': 'முழுத் திரையிலிருந்து வெளியேறு',
   "Map of {name}'s live location": '{name} அவர்களின் நேரடி இருப்பிட வரைபடம்',
   'The map could not load on this device.': 'இந்தச் சாதனத்தில் வரைபடத்தை ஏற்ற முடியவில்லை.',
   Ended: 'முடிந்தது',

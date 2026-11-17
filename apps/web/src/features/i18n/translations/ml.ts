@@ -191,26 +191,19 @@ export const ml: Catalogue = {
   // Registration: email verification
   'We will email a 6-digit code to this address at the last step, to confirm it is yours. Use an inbox you can open now.':
     'ഈ വിലാസം നിങ്ങളുടേതാണെന്ന് ഉറപ്പാക്കാൻ അവസാന ഘട്ടത്തിൽ ഞങ്ങൾ ഇതിലേക്ക് 6 അക്ക കോഡ് അയയ്ക്കും. ഇപ്പോൾത്തന്നെ തുറക്കാൻ കഴിയുന്ന ഇൻബോക്സ് ഉപയോഗിക്കുക.',
-  'Verify email':
-    'ഇമെയിൽ സ്ഥിരീകരിക്കുക',
-  'The code we emailed you.':
-    'ഞങ്ങൾ ഇമെയിൽ ചെയ്ത കോഡ്.',
-  'Confirm your email address':
-    'നിങ്ങളുടെ ഇമെയിൽ വിലാസം സ്ഥിരീകരിക്കുക',
+  'Verify email': 'ഇമെയിൽ സ്ഥിരീകരിക്കുക',
+  'The code we emailed you.': 'ഞങ്ങൾ ഇമെയിൽ ചെയ്ത കോഡ്.',
+  'Confirm your email address': 'നിങ്ങളുടെ ഇമെയിൽ വിലാസം സ്ഥിരീകരിക്കുക',
   'We sent a 6-digit code to {email}. Enter it below to finish creating your account.':
     '{email} എന്നതിലേക്ക് ഞങ്ങൾ 6 അക്ക കോഡ് അയച്ചു. അക്കൗണ്ട് സൃഷ്ടിക്കൽ പൂർത്തിയാക്കാൻ അത് താഴെ നൽകുക.',
   'We will email a 6-digit code to {email}.':
     '{email} എന്നതിലേക്ക് ഞങ്ങൾ 6 അക്ക കോഡ് ഇമെയിൽ ചെയ്യും.',
   'Enter the code to confirm this email address is yours. It keeps fake accounts out of Saarthi.':
     'ഈ ഇമെയിൽ വിലാസം നിങ്ങളുടേതാണെന്ന് ഉറപ്പാക്കാൻ കോഡ് നൽകുക. ഇത് Saarthi-യെ വ്യാജ അക്കൗണ്ടുകളിൽ നിന്ന് സംരക്ഷിക്കുന്നു.',
-  'Verification code':
-    'സ്ഥിരീകരണ കോഡ്',
-  'Send code':
-    'കോഡ് അയയ്ക്കുക',
-  'Resend code':
-    'കോഡ് വീണ്ടും അയയ്ക്കുക',
-  'Resend in {seconds}s':
-    '{seconds} സെക്കൻഡിനുള്ളിൽ വീണ്ടും അയയ്ക്കാം',
+  'Verification code': 'സ്ഥിരീകരണ കോഡ്',
+  'Send code': 'കോഡ് അയയ്ക്കുക',
+  'Resend code': 'കോഡ് വീണ്ടും അയയ്ക്കുക',
+  'Resend in {seconds}s': '{seconds} സെക്കൻഡിനുള്ളിൽ വീണ്ടും അയയ്ക്കാം',
   'Not arrived? Check your spam folder. Wrong address? Go back and change it.':
     'ലഭിച്ചില്ലേ? സ്പാം ഫോൾഡർ പരിശോധിക്കുക. വിലാസം തെറ്റാണോ? തിരികെ പോയി മാറ്റുക.',
   'We emailed a verification code to {email}.':
@@ -367,11 +360,17 @@ export const ml: Catalogue = {
   'Updated {count} h ago': '{count} മണിക്കൂർ മുമ്പ് അപ്ഡേറ്റ് ചെയ്തു',
   'Vehicle number': 'വാഹന നമ്പർ',
   Speed: 'വേഗത',
+  'Time shared': 'പങ്കിട്ട സമയം',
+  'Distance covered': 'സഞ്ചരിച്ച ദൂരം',
+  'Average speed': 'ശരാശരി വേഗത',
+  'Top speed': 'ഉയർന്ന വേഗത',
   'Could not reach VorldX Saarthi': 'VorldX Saarthi-യിൽ എത്താനായില്ല',
   'Check your connection and try again.': 'നിങ്ങളുടെ കണക്ഷൻ പരിശോധിച്ച് വീണ്ടും ശ്രമിക്കുക.',
   'Wait a moment and try again.': 'അൽപ്പം കാത്തിരുന്ന് വീണ്ടും ശ്രമിക്കുക.',
   'Connection lost. Retrying…': 'കണക്ഷൻ നഷ്ടപ്പെട്ടു. വീണ്ടും ശ്രമിക്കുന്നു…',
   'Re-centre map': 'മാപ്പ് വീണ്ടും മധ്യത്തിലാക്കുക',
+  'Full screen': 'പൂർണ്ണ സ്ക്രീൻ',
+  'Exit full screen': 'പൂർണ്ണ സ്ക്രീനിൽ നിന്ന് പുറത്തുകടക്കുക',
   "Map of {name}'s live location": '{name}-ന്റെ ലൈവ് ലൊക്കേഷന്റെ മാപ്പ്',
   'The map could not load on this device.': 'ഈ ഉപകരണത്തിൽ മാപ്പ് ലോഡ് ചെയ്യാനായില്ല.',
   Ended: 'അവസാനിച്ചു',

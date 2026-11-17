@@ -129,7 +129,7 @@ class SaarthiTerminalApp : Application(), SaarthiApp {
     private fun createNotificationChannel() {
         val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val channel = NotificationChannel(
-            SERVICE_CHANNEL_ID,
+            SaarthiApp.SERVICE_CHANNEL_ID,
             getString(R.string.service_channel_name),
             NotificationManager.IMPORTANCE_LOW,
         ).apply {
@@ -140,8 +140,6 @@ class SaarthiTerminalApp : Application(), SaarthiApp {
     }
 
     companion object {
-        const val SERVICE_CHANNEL_ID = "saarthi-terminal-service"
-
         fun from(context: Context): SaarthiTerminalApp =
             context.applicationContext as SaarthiTerminalApp
     }

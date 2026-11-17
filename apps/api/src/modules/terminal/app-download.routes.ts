@@ -1,11 +1,13 @@
 import type { FastifyInstance, FastifyPluginAsync, FastifyReply } from 'fastify';
+import { terminalUpdateCheckSchema, terminalUpdateDownloadParamsSchema } from '@saarthi/shared';
 import { errors } from '../../lib/errors';
-import { ok } from '../../lib/http';
+import { ok, parseParams, parseQuery } from '../../lib/http';
 import {
   DRIVER_APPLICATION_ID,
   OWNER_APPLICATION_ID,
   latestPublishedApp,
   openPublishedRelease,
+  updateOfferFor,
 } from './release.service';
 
 /** A phone app Saarthi offers as a direct download. */
@@ -50,14 +52,20 @@ export async function sendLatestApp(
   if (!latest) throw errors.notFound('App', target.missingMessage);
 
   const release = await openPublishedRelease(latest.versionCode, target.applicationId);
+  return sendRelease(reply, release, `${target.fileStem}-${latest.versionName}.apk`, cacheControl);
+}
 
+/** Stream one opened release as an APK download. */
+function sendRelease(
+  reply: FastifyReply,
+  release: Awaited<ReturnType<typeof openPublishedRelease>>,
+  fileName: string,
+  cacheControl: string,
+): FastifyReply {
   return reply
     .header('content-type', 'application/vnd.android.package-archive')
     .header('content-length', release.size)
-    .header(
-      'content-disposition',
-      `attachment; filename="${target.fileStem}-${latest.versionName}.apk"`,
-    )
+    .header('content-disposition', `attachment; filename="${fileName}"`)
     .header('cache-control', cacheControl)
     .header('etag', `"${release.sha256}"`)
     .header('x-content-type-options', 'nosniff')
@@ -110,6 +118,56 @@ export function publicAppRoutes(target: DownloadableApp): FastifyPluginAsync {
       '/download',
       { config: { rateLimit: { max: 20, timeWindow: '15 minutes' } } },
       async (_request, reply) => sendLatestApp(reply, target, 'public, max-age=300'),
+    );
+
+    /**
+     * Is there a newer build than the one asking? For the app's own Update button.
+     *
+     * The same answer a fitted terminal gets from the device gateway — newest
+     * published, above the caller's version, within its Android level — but
+     * open, because a phone app is asked by people who may hold no device
+     * credential at all: someone riding along is never paired to a vehicle.
+     * It says only what `/` already says publicly, plus the checksum the app
+     * verifies its download against. `null` is the ordinary answer.
+     */
+    app.get(
+      '/update',
+      { config: { rateLimit: { max: 30, timeWindow: '15 minutes' } } },
+      async (request, reply) => {
+        const query = parseQuery(terminalUpdateCheckSchema, request.query ?? {});
+        return ok(
+          reply,
+          await updateOfferFor({
+            currentVersionCode: query.versionCode ?? null,
+            deviceSdk: query.sdk ?? null,
+            // Fixed by the route, never taken from the caller: each app's
+            // update path can only ever serve that app.
+            applicationId: target.applicationId,
+          }),
+        );
+      },
+    );
+
+    /**
+     * One exact published build, for the app updating itself.
+     *
+     * Named by version rather than "the newest", so a release published while a
+     * phone is mid-download cannot swap the bytes under the checksum it holds.
+     */
+    app.get(
+      '/update/:versionCode/download',
+      { config: { rateLimit: { max: 10, timeWindow: '15 minutes' } } },
+      async (request, reply) => {
+        const { versionCode } = parseParams(terminalUpdateDownloadParamsSchema, request.params);
+        const release = await openPublishedRelease(versionCode, target.applicationId);
+        return sendRelease(
+          reply,
+          release,
+          `${target.fileStem}-${versionCode}.apk`,
+          // A version's bytes never change.
+          'public, max-age=86400, immutable',
+        );
+      },
     );
   };
 }

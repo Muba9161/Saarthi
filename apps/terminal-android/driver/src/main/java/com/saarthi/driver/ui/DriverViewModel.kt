@@ -14,6 +14,7 @@ import com.saarthi.driver.data.DriverAccountStore
 import com.saarthi.driver.data.QuickLoginStore
 import com.saarthi.driver.network.DriverApi
 import com.saarthi.driver.network.RideSharesApi
+import com.saarthi.driver.ride.NamedContactsStore
 import com.saarthi.driver.ride.RideSharePolicy
 import com.saarthi.driver.ui.ride.RideAccess
 import com.saarthi.driver.ui.ride.share.RideShareActions
@@ -130,7 +131,7 @@ class DriverViewModel(application: Application) : AndroidViewModel(application) 
         /** Riding along, step two: who should see where the rider is. */
         data class ShareSetup(val driver: DriverAccountStore.Account, val plate: String) : Stage
 
-        /** Shared: family can follow the phone live. [named] are the numbers typed on this phone. */
+        /** Shared: family can follow the phone live. [named] are the contacts typed on this phone. */
         data class Sharing(val share: RideSharesApi.ShareView, val named: List<String> = emptyList()) : Stage
 
         /** The share ran out of time, and the rider is told so once. */
@@ -186,6 +187,7 @@ class DriverViewModel(application: Application) : AndroidViewModel(application) 
     val sharing = RideShareActions(
         shares = shares,
         access = rideAccess,
+        named = NamedContactsStore(application),
         scope = viewModelScope,
         stage = _stage,
         busy = _busy,
@@ -324,6 +326,29 @@ class DriverViewModel(application: Application) : AndroidViewModel(application) 
                 null
             }
             onSent(sent)
+        }
+    }
+
+    /**
+     * Request a password reset email for [email].
+     *
+     * Successful dispatch delivers the server's confirmation message to [onResult].
+     * Failures populate [_error] and notify [onResult].
+     */
+    fun forgotPassword(email: String, onResult: (Result<String>) -> Unit) {
+        viewModelScope.launch {
+            _error.value = null
+            try {
+                val message = api.forgotPassword(email) ?: text(R.string.signin_forgot_sent)
+                onResult(Result.success(message))
+            } catch (failure: DriverApi.Failure) {
+                _error.value = failure.message
+                onResult(Result.failure(failure))
+            } catch (failure: Exception) {
+                DebugLog.warn(TAG, "Could not send password reset: ${failure.message}")
+                _error.value = text(R.string.error_generic)
+                onResult(Result.failure(failure))
+            }
         }
     }
 

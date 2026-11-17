@@ -190,32 +190,22 @@ export const te: Catalogue = {
   // Registration: email verification
   'We will email a 6-digit code to this address at the last step, to confirm it is yours. Use an inbox you can open now.':
     'ఈ చిరునామా మీదేనని నిర్ధారించడానికి చివరి దశలో దీనికి 6 అంకెల కోడ్ పంపుతాము. మీరు ఇప్పుడే తెరవగల ఇన్‌బాక్స్‌ను ఉపయోగించండి.',
-  'Verify email':
-    'ఇమెయిల్‌ను ధృవీకరించండి',
-  'The code we emailed you.':
-    'మేము ఇమెయిల్ చేసిన కోడ్.',
-  'Confirm your email address':
-    'మీ ఇమెయిల్ చిరునామాను నిర్ధారించండి',
+  'Verify email': 'ఇమెయిల్‌ను ధృవీకరించండి',
+  'The code we emailed you.': 'మేము ఇమెయిల్ చేసిన కోడ్.',
+  'Confirm your email address': 'మీ ఇమెయిల్ చిరునామాను నిర్ధారించండి',
   'We sent a 6-digit code to {email}. Enter it below to finish creating your account.':
     'మేము {email} కు 6 అంకెల కోడ్ పంపాము. ఖాతా సృష్టిని పూర్తి చేయడానికి దాన్ని కింద నమోదు చేయండి.',
-  'We will email a 6-digit code to {email}.':
-    'మేము {email} కు 6 అంకెల కోడ్ ఇమెయిల్ చేస్తాము.',
+  'We will email a 6-digit code to {email}.': 'మేము {email} కు 6 అంకెల కోడ్ ఇమెయిల్ చేస్తాము.',
   'Enter the code to confirm this email address is yours. It keeps fake accounts out of Saarthi.':
     'ఈ ఇమెయిల్ చిరునామా మీదేనని నిర్ధారించడానికి కోడ్ నమోదు చేయండి. ఇది Saarthi ని నకిలీ ఖాతాల నుండి కాపాడుతుంది.',
-  'Verification code':
-    'ధృవీకరణ కోడ్',
-  'Send code':
-    'కోడ్ పంపండి',
-  'Resend code':
-    'కోడ్ మళ్లీ పంపండి',
-  'Resend in {seconds}s':
-    '{seconds} సెకన్లలో మళ్లీ పంపండి',
+  'Verification code': 'ధృవీకరణ కోడ్',
+  'Send code': 'కోడ్ పంపండి',
+  'Resend code': 'కోడ్ మళ్లీ పంపండి',
+  'Resend in {seconds}s': '{seconds} సెకన్లలో మళ్లీ పంపండి',
   'Not arrived? Check your spam folder. Wrong address? Go back and change it.':
     'రాలేదా? స్పామ్ ఫోల్డర్ చూడండి. చిరునామా తప్పా? వెనక్కి వెళ్లి మార్చండి.',
-  'We emailed a verification code to {email}.':
-    'మేము {email} కు ధృవీకరణ కోడ్ ఇమెయిల్ చేశాము.',
-  'The code could not be sent. Please try again.':
-    'కోడ్ పంపలేకపోయాము. దయచేసి మళ్లీ ప్రయత్నించండి.',
+  'We emailed a verification code to {email}.': 'మేము {email} కు ధృవీకరణ కోడ్ ఇమెయిల్ చేశాము.',
+  'The code could not be sent. Please try again.': 'కోడ్ పంపలేకపోయాము. దయచేసి మళ్లీ ప్రయత్నించండి.',
   'I own trucks and want to manage my fleet and win loads.':
     'నా వద్ద ట్రక్కులు ఉన్నాయి, నా వాహన సముదాయాన్ని నడపాలని, లోడ్లు పొందాలని అనుకుంటున్నాను.',
   'I need materials, transport, a cab or a tour, and want offers to compare.':
@@ -365,11 +355,17 @@ export const te: Catalogue = {
   'Updated {count} h ago': '{count} గం. క్రితం అప్‌డేట్ అయింది',
   'Vehicle number': 'వాహన నంబర్',
   Speed: 'వేగం',
+  'Time shared': 'షేర్ చేసిన సమయం',
+  'Distance covered': 'ప్రయాణించిన దూరం',
+  'Average speed': 'సగటు వేగం',
+  'Top speed': 'గరిష్ఠ వేగం',
   'Could not reach VorldX Saarthi': 'VorldX Saarthiని చేరుకోలేకపోయాం',
   'Check your connection and try again.': 'మీ కనెక్షన్‌ను తనిఖీ చేసి మళ్లీ ప్రయత్నించండి.',
   'Wait a moment and try again.': 'కొంచెం ఆగి మళ్లీ ప్రయత్నించండి.',
   'Connection lost. Retrying…': 'కనెక్షన్ తెగిపోయింది. మళ్లీ ప్రయత్నిస్తోంది…',
   'Re-centre map': 'మ్యాప్‌ను మళ్లీ మధ్యలోకి తీసుకురండి',
+  'Full screen': 'పూర్తి స్క్రీన్',
+  'Exit full screen': 'పూర్తి స్క్రీన్ నుండి నిష్క్రమించండి',
   "Map of {name}'s live location": '{name} లైవ్ లొకేషన్ మ్యాప్',
   'The map could not load on this device.': 'ఈ పరికరంలో మ్యాప్ లోడ్ కాలేదు.',
   Ended: 'ముగిసింది',

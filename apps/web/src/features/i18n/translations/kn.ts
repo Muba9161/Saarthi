@@ -188,30 +188,21 @@ export const kn: Catalogue = {
   // Registration: email verification
   'We will email a 6-digit code to this address at the last step, to confirm it is yours. Use an inbox you can open now.':
     'ಕೊನೆಯ ಹಂತದಲ್ಲಿ ಈ ವಿಳಾಸ ನಿಮ್ಮದೇ ಎಂದು ದೃಢೀಕರಿಸಲು ನಾವು ಇದಕ್ಕೆ 6 ಅಂಕಿಯ ಕೋಡ್ ಕಳುಹಿಸುತ್ತೇವೆ. ನೀವು ಈಗಲೇ ತೆರೆಯಬಹುದಾದ ಇನ್‌ಬಾಕ್ಸ್ ಬಳಸಿ.',
-  'Verify email':
-    'ಇಮೇಲ್ ಪರಿಶೀಲಿಸಿ',
-  'The code we emailed you.':
-    'ನಾವು ಇಮೇಲ್ ಮಾಡಿದ ಕೋಡ್.',
-  'Confirm your email address':
-    'ನಿಮ್ಮ ಇಮೇಲ್ ವಿಳಾಸವನ್ನು ದೃಢೀಕರಿಸಿ',
+  'Verify email': 'ಇಮೇಲ್ ಪರಿಶೀಲಿಸಿ',
+  'The code we emailed you.': 'ನಾವು ಇಮೇಲ್ ಮಾಡಿದ ಕೋಡ್.',
+  'Confirm your email address': 'ನಿಮ್ಮ ಇಮೇಲ್ ವಿಳಾಸವನ್ನು ದೃಢೀಕರಿಸಿ',
   'We sent a 6-digit code to {email}. Enter it below to finish creating your account.':
     'ನಾವು {email} ಗೆ 6 ಅಂಕಿಯ ಕೋಡ್ ಕಳುಹಿಸಿದ್ದೇವೆ. ಖಾತೆ ರಚನೆ ಪೂರ್ಣಗೊಳಿಸಲು ಅದನ್ನು ಕೆಳಗೆ ನಮೂದಿಸಿ.',
-  'We will email a 6-digit code to {email}.':
-    'ನಾವು {email} ಗೆ 6 ಅಂಕಿಯ ಕೋಡ್ ಇಮೇಲ್ ಮಾಡುತ್ತೇವೆ.',
+  'We will email a 6-digit code to {email}.': 'ನಾವು {email} ಗೆ 6 ಅಂಕಿಯ ಕೋಡ್ ಇಮೇಲ್ ಮಾಡುತ್ತೇವೆ.',
   'Enter the code to confirm this email address is yours. It keeps fake accounts out of Saarthi.':
     'ಈ ಇಮೇಲ್ ವಿಳಾಸ ನಿಮ್ಮದೇ ಎಂದು ದೃಢೀಕರಿಸಲು ಕೋಡ್ ನಮೂದಿಸಿ. ಇದು Saarthi ಯನ್ನು ನಕಲಿ ಖಾತೆಗಳಿಂದ ಮುಕ್ತವಾಗಿಡುತ್ತದೆ.',
-  'Verification code':
-    'ಪರಿಶೀಲನಾ ಕೋಡ್',
-  'Send code':
-    'ಕೋಡ್ ಕಳುಹಿಸಿ',
-  'Resend code':
-    'ಕೋಡ್ ಮತ್ತೆ ಕಳುಹಿಸಿ',
-  'Resend in {seconds}s':
-    '{seconds} ಸೆಕೆಂಡುಗಳಲ್ಲಿ ಮತ್ತೆ ಕಳುಹಿಸಿ',
+  'Verification code': 'ಪರಿಶೀಲನಾ ಕೋಡ್',
+  'Send code': 'ಕೋಡ್ ಕಳುಹಿಸಿ',
+  'Resend code': 'ಕೋಡ್ ಮತ್ತೆ ಕಳುಹಿಸಿ',
+  'Resend in {seconds}s': '{seconds} ಸೆಕೆಂಡುಗಳಲ್ಲಿ ಮತ್ತೆ ಕಳುಹಿಸಿ',
   'Not arrived? Check your spam folder. Wrong address? Go back and change it.':
     'ಬಂದಿಲ್ಲವೇ? ಸ್ಪ್ಯಾಮ್ ಫೋಲ್ಡರ್ ನೋಡಿ. ವಿಳಾಸ ತಪ್ಪೇ? ಹಿಂದೆ ಹೋಗಿ ಬದಲಿಸಿ.',
-  'We emailed a verification code to {email}.':
-    'ನಾವು {email} ಗೆ ಪರಿಶೀಲನಾ ಕೋಡ್ ಇಮೇಲ್ ಮಾಡಿದ್ದೇವೆ.',
+  'We emailed a verification code to {email}.': 'ನಾವು {email} ಗೆ ಪರಿಶೀಲನಾ ಕೋಡ್ ಇಮೇಲ್ ಮಾಡಿದ್ದೇವೆ.',
   'The code could not be sent. Please try again.':
     'ಕೋಡ್ ಕಳುಹಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.',
   'I own trucks and want to manage my fleet and win loads.':
@@ -364,11 +355,17 @@ export const kn: Catalogue = {
   'Updated {count} h ago': '{count} ಗಂಟೆ ಹಿಂದೆ ಅಪ್‌ಡೇಟ್ ಆಗಿದೆ',
   'Vehicle number': 'ವಾಹನ ಸಂಖ್ಯೆ',
   Speed: 'ವೇಗ',
+  'Time shared': 'ಹಂಚಿಕೊಂಡ ಸಮಯ',
+  'Distance covered': 'ಕ್ರಮಿಸಿದ ದೂರ',
+  'Average speed': 'ಸರಾಸರಿ ವೇಗ',
+  'Top speed': 'ಗರಿಷ್ಠ ವೇಗ',
   'Could not reach VorldX Saarthi': 'VorldX Saarthi ಅನ್ನು ತಲುಪಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ',
   'Check your connection and try again.': 'ನಿಮ್ಮ ಸಂಪರ್ಕವನ್ನು ಪರಿಶೀಲಿಸಿ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.',
   'Wait a moment and try again.': 'ಸ್ವಲ್ಪ ಕಾದು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.',
   'Connection lost. Retrying…': 'ಸಂಪರ್ಕ ಕಡಿತಗೊಂಡಿದೆ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಲಾಗುತ್ತಿದೆ…',
   'Re-centre map': 'ನಕ್ಷೆಯನ್ನು ಮತ್ತೆ ಮಧ್ಯಕ್ಕೆ ತನ್ನಿ',
+  'Full screen': 'ಪೂರ್ಣ ಪರದೆ',
+  'Exit full screen': 'ಪೂರ್ಣ ಪರದೆಯಿಂದ ನಿರ್ಗಮಿಸಿ',
   "Map of {name}'s live location": '{name} ಅವರ ಲೈವ್ ಸ್ಥಳದ ನಕ್ಷೆ',
   'The map could not load on this device.': 'ಈ ಸಾಧನದಲ್ಲಿ ನಕ್ಷೆ ಲೋಡ್ ಆಗಲಿಲ್ಲ.',
   Ended: 'ಮುಗಿದಿದೆ',

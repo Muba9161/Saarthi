@@ -2,13 +2,14 @@
  * Share my ride — riding along in a vehicle that is not on Saarthi.
  *
  * Nobody owns that vehicle here, so nobody is asked: the rider chooses who
- * sees them. Saarthi users they name by mobile number are told and can follow
+ * sees them. Saarthi users they name by mobile number or email are told and can follow
  * them; anyone else follows the live link the rider sends on WhatsApp. The
  * typed vehicle number travels with it as a safety detail. Sharing stops when
  * the rider stops it, or by itself after a while if they forget.
  */
 
 import type { RideShareStatus } from './enums';
+import type { TrailPoint } from './route-trail';
 
 /** Fixes in one upload from the rider's phone. */
 export const MAX_RIDE_POINTS = 100;
@@ -19,6 +20,14 @@ export interface RideVehicleLocation {
   longitude: number;
   speedKph: number | null;
   heading: number | null;
+  recordedAt: string;
+}
+
+/**
+ * A point on the road the rider has covered, coloured as any vehicle's trail
+ * is. A ride has no trip, so its `routeState` is always `NO_TRIP`.
+ */
+export interface RideTrailPoint extends TrailPoint {
   recordedAt: string;
 }
 
@@ -38,7 +47,7 @@ export interface RideShareView {
   endedAt: string | null;
   /** The live link to send to family; it stops showing anything once the share ends. */
   link: string;
-  /** The mobile numbers the rider named, as stored. */
+  /** The people named who use Saarthi, by the mobile number or email address the rider gave, as stored. */
   contacts: string[];
   /** Whether it also shows on the rider's own owner account in the owner app. */
   sharedWithSelf: boolean;
@@ -68,6 +77,38 @@ export interface RideShareAccess {
   hasOwnerAccount: boolean;
 }
 
+/** How long an ended ride's summary is shown to family before it is removed too. */
+export const RIDE_SUMMARY_MINUTES = 5;
+
+/**
+ * What an ended share came to, shown for [RIDE_SUMMARY_MINUTES] and then
+ * removed. It holds no position: the road covered is deleted when the share
+ * ends, and these figures go a few minutes later.
+ */
+export interface RideShareSummary {
+  /** Kilometres covered while sharing, along the phone's own fixes. */
+  distanceKm: number;
+  durationMinutes: number;
+  /** Distance over duration; null for a share that lasted no time. */
+  avgSpeedKph: number | null;
+  /** The fastest speed the phone reported; null when it reported none — never estimated. */
+  maxSpeedKph: number | null;
+  startedAt: string;
+  endedAt: string;
+  /** When the summary is removed; not shown after it. */
+  shownUntil: string;
+}
+
+/**
+ * What the live link's socket (`/ws/live`) sends: the whole ride on connecting,
+ * then each move — the new position and only the road covered since the last
+ * one — and, once, that it has ended.
+ */
+export type RideShareLiveMessage =
+  | { type: 'RIDE_SHARE_SNAPSHOT'; ride: PublicLiveRide }
+  | { type: 'RIDE_SHARE_UPDATE'; position: RideVehicleLocation | null; trail: RideTrailPoint[] }
+  | { type: 'RIDE_SHARE_ENDED'; endedAt: string; summary: RideShareSummary | null };
+
 /** What the live link shows — a first name, the vehicle's number, and where they are while sharing. */
 export interface PublicLiveRide {
   riderName: string;
@@ -77,4 +118,11 @@ export interface PublicLiveRide {
   endedAt: string | null;
   /** Null once the share has ended: an ended link shows nobody's whereabouts. */
   position: RideVehicleLocation | null;
+  /**
+   * The road covered since sharing began — or, asked `from` a time, only
+   * what was covered after it — thinned on long rides. Empty once ended.
+   */
+  trail: RideTrailPoint[];
+  /** What the ride came to, once it has ended; null while sharing. */
+  summary: RideShareSummary | null;
 }

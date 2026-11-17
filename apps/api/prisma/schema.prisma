@@ -1383,7 +1383,7 @@ enum RideShareStatus {
 
 /// Somebody sharing their journey with family, in a vehicle that is not on
 /// Saarthi: nobody owns it here, so the rider chooses who sees them — Saarthi
-/// users by mobile number, and anyone holding the live link.
+/// users by mobile number or email, and anyone holding the live link.
 model RideShare {
   id                 String          @id @default(uuid()) @db.Uuid
   riderUserId        String          @db.Uuid
@@ -1404,9 +1404,30 @@ model RideShare {
 
   rider   User              @relation("RideShareRider", fields: [riderUserId], references: [id], onDelete: Cascade)
   viewers RideShareViewer[]
+  points  RideSharePoint[]
 
   @@index([riderUserId, status])
   @@map("ride_shares")
+}
+
+/// Where the rider's phone was while sharing: the road they have covered,
+/// drawn as a trail. Deleted the moment the share ends, so an ended link
+/// keeps nobody's whereabouts.
+model RideSharePoint {
+  id          String   @id @default(uuid()) @db.Uuid
+  rideShareId String   @db.Uuid
+  latitude    Float
+  longitude   Float
+  speedKph    Float?
+  /// Metres of uncertainty, as the phone reported it — badly placed fixes are left off the trail.
+  accuracy    Float?
+  recordedAt  DateTime
+
+  rideShare RideShare @relation(fields: [rideShareId], references: [id], onDelete: Cascade)
+
+  /// One point per moment: an upload retried after a dropped connection adds nothing twice.
+  @@unique([rideShareId, recordedAt])
+  @@map("ride_share_points")
 }
 
 /// A Saarthi user the rider chose to share a ride with.
@@ -1414,8 +1435,8 @@ model RideShareViewer {
   id           String   @id @default(uuid()) @db.Uuid
   rideShareId  String   @db.Uuid
   viewerUserId String   @db.Uuid
-  /// The number the rider gave for them, normalised.
-  phone        String
+  /// How the rider named them, normalised: a "+91…" mobile number or a lower-case email address.
+  contact      String
   createdAt    DateTime @default(now())
 
   rideShare RideShare @relation(fields: [rideShareId], references: [id], onDelete: Cascade)

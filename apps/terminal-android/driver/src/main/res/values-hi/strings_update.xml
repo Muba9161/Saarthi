@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Humsafar updating itself: the offer, the progress, and the note afterwards. -->
+<resources>
+    <string name="update_available_title">अपडेट उपलब्ध है</string>
+    <string name="update_available_body">वर्ज़न %1$s · %2$s</string>
+    <string name="update_ready_body">वर्ज़न %1$s डाउनलोड हो गया है और तैयार है।</string>
+    <string name="update_action">अपडेट करें</string>
+    <string name="update_dismiss">अभी नहीं</string>
+    <string name="update_failed_title">अपडेट पूरा नहीं हुआ</string>
+    <string name="update_retry">फिर कोशिश करें</string>
+    <string name="update_progress_title">हमसफ़र अपडेट हो रहा है</string>
+    <string name="update_downloading">वर्ज़न %1$s डाउनलोड हो रहा है</string>
+    <string name="update_progress_size">%2$s में से %1$s</string>
+    <string name="update_installing">इंस्टॉल हो रहा है। हमसफ़र कुछ पल के लिए बंद होगा और तैयार होने पर बताएगा।</string>
+    <string name="update_hide">ऐप चलाते रहें</string>
+    <string name="update_channel_name">ऐप अपडेट</string>
+    <string name="update_done_title">हमसफ़र अपडेट हो गया</string>
+    <string name="update_done_body">वर्ज़न %1$s इंस्टॉल हो गया। खोलने के लिए टैप करें।</string>
+</resources>

@@ -48,6 +48,9 @@
     <string name="signin_email_lead">സൈൻ അപ്പ് ചെയ്ത ഇമെയിൽ ഉപയോഗിക്കുക. ഇതിനുശേഷം ഹംസഫർ നിങ്ങളെ ഓർക്കും.</string>
     <string name="signin_new_prompt">ഹംസഫറിൽ പുതിയതാണോ?</string>
     <string name="signin_password_title">നിങ്ങളുടെ പാസ്‌വേഡ് നൽകുക</string>
+    <string name="signin_forgot">പാസ്‌വേഡ് മറന്നോ?</string>
+    <string name="signin_forgot_sending">റീസെറ്റ് ലിങ്ക് അയയ്ക്കുന്നു…</string>
+    <string name="signin_forgot_sent">ആ ഇമെയിൽ വിലാസത്തിൽ അക്കൗണ്ട് ഉണ്ടെങ്കിൽ, പാസ്‌വേഡ് റീസെറ്റ് ചെയ്യാനുള്ള ലിങ്ക് ഞങ്ങൾ ഇമെയിൽ ചെയ്തിട്ടുണ്ട്.</string>
     <string name="field_email">ഇമെയിൽ</string>
     <string name="action_change">മാറ്റുക</string>
     <string name="password_rule">%1$d അക്ഷരങ്ങളോ അതിൽ കൂടുതലോ. ഇതുവരെ %2$d.</string>

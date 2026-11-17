@@ -1,6 +1,11 @@
 package com.saarthi.owner.ui.map
 
+import android.content.res.Resources
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.RectF
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Immutable
@@ -23,6 +28,7 @@ import org.maplibre.android.camera.CameraUpdate
 import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.geometry.LatLngBounds
+import org.maplibre.android.maps.ImageStretches
 import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
@@ -356,6 +362,7 @@ private fun drawAll(
                 PropertyFactory.circleStrokeColor(Color.WHITE),
             ),
         )
+        addPlateImage(style)
         style.addLayer(
             SymbolLayer(LABEL_LAYER, VEHICLES_SOURCE)
                 .withFilter(Expression.eq(Expression.get(PICKED), Expression.literal(true)))
@@ -364,14 +371,49 @@ private fun drawAll(
                     PropertyFactory.textFont(arrayOf(LABEL_FONT)),
                     PropertyFactory.textSize(12f),
                     PropertyFactory.textOffset(arrayOf(0f, 2.2f)),
-                    PropertyFactory.textColor(Color.parseColor("#0F0F24")),
-                    PropertyFactory.textHaloColor(Color.parseColor("#FACC15")),
-                    PropertyFactory.textHaloWidth(4f),
+                    PropertyFactory.textColor(Color.parseColor("#18181B")),
                     PropertyFactory.textAllowOverlap(true),
                     PropertyFactory.textIgnorePlacement(true),
+                    // The plate behind the words, stretched to fit them. A text halo cannot be it: MapLibre
+                    // clips a halo this wide to each glyph, which drew broken blocks with gaps at the spaces.
+                    PropertyFactory.iconImage(PLATE_IMAGE),
+                    PropertyFactory.iconTextFit(Property.ICON_TEXT_FIT_BOTH),
+                    PropertyFactory.iconTextFitPadding(arrayOf(3f, 8f, 3f, 8f)),
+                    PropertyFactory.iconAllowOverlap(true),
+                    PropertyFactory.iconIgnorePlacement(true),
                 ),
         )
     }
+}
+
+/**
+ * The yellow number plate the picked vehicle's label sits on, as [PlateChip][com.saarthi.owner.ui.common.PlateChip]
+ * draws it in the app: rounded corners that keep their shape, and a middle that stretches to the words.
+ */
+private fun addPlateImage(mapStyle: Style) {
+    if (mapStyle.getImage(PLATE_IMAGE) != null) return
+    val metrics = Resources.getSystem().displayMetrics
+    val radius = PLATE_RADIUS_DP * metrics.density
+    val border = metrics.density
+    val side = (radius * 2 + 2).toInt()
+    val bitmap = Bitmap.createBitmap(side, side, Bitmap.Config.ARGB_8888).apply { density = metrics.densityDpi }
+    val canvas = Canvas(bitmap)
+    val inset = border / 2
+    val shape = RectF(inset, inset, side - inset, side - inset)
+    canvas.drawRoundRect(shape, radius, radius, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#FACC15") })
+    canvas.drawRoundRect(
+        shape,
+        radius,
+        radius,
+        Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE
+            strokeWidth = border
+            color = Color.parseColor("#33000000")
+        },
+    )
+    // No content box: the label's iconTextFitPadding alone sets the room around the words, as PlateChip's padding does.
+    val middle = listOf(ImageStretches(radius, side - radius))
+    mapStyle.addImage(PLATE_IMAGE, bitmap, middle, middle, null)
 }
 
 /** A planned road: the line on its darker casing, which holds it apart from the basemap's own roads. */
@@ -533,6 +575,7 @@ private const val PINS_SOURCE = "owner-pins"
 private const val HALO_LAYER = "owner-vehicles-halo"
 private const val DISC_LAYER = "owner-vehicles-disc"
 private const val LABEL_LAYER = "owner-vehicles-label"
+private const val PLATE_IMAGE = "owner-vehicles-plate"
 private const val ROUTE_CASING_LAYER = "owner-route-casing"
 private const val ROUTE_LAYER = "owner-route-line"
 private const val TRAIL_CASING_LAYER = "owner-trail-casing"
@@ -547,6 +590,7 @@ private const val TONE = "tone"
 
 /** A bold face the OpenFreeMap styles ship glyphs for. */
 private const val LABEL_FONT = "Noto Sans Bold"
+private const val PLATE_RADIUS_DP = 6f
 private const val FOCUS_ZOOM = 13.5
 private const val PADDING_PX = 90
 private const val CAMERA_MS = 900

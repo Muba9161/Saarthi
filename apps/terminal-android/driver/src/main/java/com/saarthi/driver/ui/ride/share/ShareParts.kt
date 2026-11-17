@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.em
 import com.saarthi.core.SaarthiApp
 import com.saarthi.core.util.DebugLog
 import com.saarthi.driver.R
+import com.saarthi.driver.data.FamilyContact
 import com.saarthi.driver.data.IndianMobile
 import com.saarthi.driver.ui.design.CircleButton
 import com.saarthi.driver.ui.design.Lucide
@@ -32,15 +33,16 @@ import java.time.format.FormatStyle
 import java.util.Locale
 
 /**
- * One family member's mobile number: "+91", ten digits, and the rule under it
- * only once the number is wrong — a list of five fields each repeating it
- * would bury the form.
+ * One family member, by mobile number or email address in the same field:
+ * digits read as a number behind "+91", and a letter or an @ turns it into
+ * an address, the "+91" going. The rule shows under it only once the contact
+ * is wrong — a list of five fields each repeating it would bury the form.
  *
- * [checked] marks the number wrong even before ten digits are in, once the
+ * [checked] marks the contact wrong even before it is complete, once the
  * rider has tried to go on with it half typed.
  */
 @Composable
-internal fun FamilyMobileField(
+internal fun FamilyContactField(
     value: String,
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,
@@ -50,7 +52,10 @@ internal fun FamilyMobileField(
     onDone: () -> Unit = {},
 ) {
     val c = Saarthi.colors
-    val wrong = value.isNotEmpty() && (checked || value.length == IndianMobile.LENGTH) && !IndianMobile.isValid(value)
+    val email = FamilyContact.isEmail(value)
+    // A number is judged once its ten digits are in; an address only once the rider tries to go on.
+    val complete = checked || (!email && value.length == IndianMobile.LENGTH)
+    val wrong = value.isNotEmpty() && complete && !FamilyContact.isValid(FamilyContact.normalised(value))
     val remove: (@Composable () -> Unit)? = onRemove?.let { action ->
         {
             CircleButton(
@@ -65,26 +70,26 @@ internal fun FamilyMobileField(
     }
     SaarthiField(
         value = value,
-        onValueChange = { onValueChange(IndianMobile.digits(it)) },
+        onValueChange = { onValueChange(FamilyContact.typed(it)) },
         label = stringResource(R.string.share_contact_label),
-        supporting = if (wrong) stringResource(R.string.mobile_rule) else null,
+        supporting = if (wrong) stringResource(R.string.share_contact_rule) else null,
         error = wrong,
         focus = focus,
         textStyle = SType.field.copy(letterSpacing = 0.04.em),
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone, imeAction = ImeAction.Done),
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Done),
         keyboardActions = KeyboardActions(onDone = { onDone() }),
-        prefix = { MobilePrefix() },
+        prefix = if (email) null else ({ MobilePrefix() }),
         trailing = remove,
         modifier = modifier,
     )
 }
 
-/** The numbers typed on this phone, read back — "98765 43210, 91234 56789". */
+/** The contacts typed on this phone, read back — "+91 98765 43210, asha@example.com". */
 @Composable
-internal fun NamedNumbers(named: List<String>, modifier: Modifier = Modifier, color: Color = Saarthi.colors.muted) {
+internal fun NamedContacts(named: List<String>, modifier: Modifier = Modifier, color: Color = Saarthi.colors.muted) {
     if (named.isEmpty()) return
     Text(
-        stringResource(R.string.sharing_named, named.joinToString(", ") { "+91 ${IndianMobile.spaced(it)}" }),
+        stringResource(R.string.sharing_named, named.joinToString(", ", transform = FamilyContact::shown)),
         style = SType.small,
         color = color,
         modifier = modifier,

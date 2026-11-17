@@ -121,6 +121,15 @@ class RideSharePolicyTest {
     }
 
     @Test
+    fun `family named by email address are sent in lower case beside numbers`() {
+        assertEquals(
+            listOf("asha@example.com", "9876543210"),
+            RideSharePolicy.contactsOf(listOf(" Asha@Example.com ", "98765 43210", "asha@example.com")),
+        )
+        assertNull(RideSharePolicy.contactsOf(listOf("9876543210", "asha@example")))
+    }
+
+    @Test
     fun `no more numbers than the server takes`() {
         val five = (0..4).map { "98765432$it$it" }
         assertEquals(five, RideSharePolicy.contactsOf(five))

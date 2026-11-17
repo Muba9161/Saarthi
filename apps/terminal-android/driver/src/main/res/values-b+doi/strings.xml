@@ -48,6 +48,9 @@
     <string name="signin_email_lead">जेह्ड़ी ईमेल कन्नै तुसें साइन अप कीता हा, ओह्ये बरतो. इसदे बाद हमसफ़र तुसेंगी याद रक्खग.</string>
     <string name="signin_new_prompt">हमसफ़र पर नमें ओ?</string>
     <string name="signin_password_title">अपना पासवर्ड पाओ</string>
+    <string name="signin_forgot">पासवर्ड भुल्ली गे?</string>
+    <string name="signin_forgot_sending">रीसेट लिंक भेजी देई ऐ…</string>
+    <string name="signin_forgot_sent">जेकर उस ईमेल पर कोई खाता ऐ, तां असें उसगी पासवर्ड रीसेट करने दा लिंक भेजी दित्ता ऐ.</string>
     <string name="field_email">ईमेल</string>
     <string name="action_change">बदलो</string>
     <string name="password_rule">%1$d जां इस शा मते अक्खर. हून तगर %2$d.</string>

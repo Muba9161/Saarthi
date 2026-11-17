@@ -10,8 +10,24 @@
     <string name="rides_live_updated_now">Updated just now</string>
     <string name="rides_live_updated_ago">Updated %1$s ago</string>
     <string name="rides_live_recentre">Show where they are</string>
+    <string name="rides_live_trail">Road covered</string>
     <string name="rides_live_no_location">No location yet</string>
     <string name="rides_live_open">Open</string>
     <string name="rides_live_section">Live rides</string>
     <string name="rides_live_yours">Your ride (from Humsafar)</string>
+    <!-- The same screens for the person's own ride, shown on their owner account. -->
+    <string name="rides_live_sharing_you">You are sharing this ride live</string>
+    <string name="rides_live_ended_you">You have stopped sharing this ride.</string>
+    <string name="rides_live_waiting_you">Waiting for your phone\'s first location…</string>
+    <string name="rides_live_recentre_you">Show where you are</string>
+
+    <!-- Journey summary when sharing has ended -->
+    <string name="rides_summary_distance">Total Distance</string>
+    <string name="rides_summary_distance_hint">Road distance</string>
+    <string name="rides_summary_duration">Trip Duration</string>
+    <string name="rides_summary_duration_hint">Total time</string>
+    <string name="rides_summary_avg_speed">Average Speed</string>
+    <string name="rides_summary_avg_speed_hint">Across journey</string>
+    <string name="rides_summary_top_speed">Top Speed</string>
+    <string name="rides_summary_top_speed_hint">Fastest reported</string>
 </resources>

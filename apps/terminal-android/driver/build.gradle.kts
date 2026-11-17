@@ -111,8 +111,8 @@ val releaseStoreFile: String? = setting("releaseStoreFile")
 // code are indistinguishable to Android and to the release pipeline: a phone
 // that installed the first is never offered the second, and the upload endpoint
 // refuses the duplicate rather than replacing it silently.
-val appVersionCode = 22
-val appVersionName = "1.7.2"
+val appVersionCode = 23
+val appVersionName = "1.8.0"
 
 android {
     namespace = "com.saarthi.driver"
@@ -244,6 +244,15 @@ dependencies {
      * the wrong thing.
      */
     implementation(libs.androidx.biometric)
+
+    /*
+     * Reading a vehicle's number plate with the camera.
+     *
+     * Driver only: it fills the vehicle-number field when riding along or when
+     * the QR sticker is unreadable. A fitted tablet is paired to one vehicle and
+     * never asks for a number.
+     */
+    implementation(libs.mlkit.text.recognition)
 
     debugImplementation(libs.androidx.compose.ui.tooling)
 
