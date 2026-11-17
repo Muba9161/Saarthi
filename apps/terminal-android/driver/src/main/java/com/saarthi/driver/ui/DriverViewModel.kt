@@ -329,6 +329,29 @@ class DriverViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    /**
+     * Request a password reset email for [email].
+     *
+     * Successful dispatch delivers the server's confirmation message to [onResult].
+     * Failures populate [_error] and notify [onResult].
+     */
+    fun forgotPassword(email: String, onResult: (Result<String>) -> Unit) {
+        viewModelScope.launch {
+            _error.value = null
+            try {
+                val message = api.forgotPassword(email) ?: text(R.string.signin_forgot_sent)
+                onResult(Result.success(message))
+            } catch (failure: DriverApi.Failure) {
+                _error.value = failure.message
+                onResult(Result.failure(failure))
+            } catch (failure: Exception) {
+                DebugLog.warn(TAG, "Could not send password reset: ${failure.message}")
+                _error.value = text(R.string.error_generic)
+                onResult(Result.failure(failure))
+            }
+        }
+    }
+
     /** Record the licence skipped at sign-up. Failures land in [error]. */
     fun addLicence(number: String, onSaved: () -> Unit) {
         attempt {

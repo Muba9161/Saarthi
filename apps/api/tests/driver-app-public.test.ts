@@ -3,14 +3,7 @@ import { RoleName } from '@saarthi/shared';
 import { prisma } from '../src/database/prisma';
 import { createRelease, publishRelease } from '../src/modules/terminal/release.service';
 import { apk } from './apk-fixture';
-import {
-  closeApp,
-  createOrganization,
-  createUser,
-  request,
-  requestRaw,
-  unique,
-} from './helpers';
+import { closeApp, createOrganization, createUser, request, requestRaw, unique } from './helpers';
 
 /**
  * The driver app, offered to anybody from the marketing site.
@@ -29,24 +22,29 @@ describe('public driver app download', () => {
     // Its own uploader, for the reason given in terminal-release.test.ts:
     // neighbouring suites truncate `users` without re-seeding.
     const existing = await prisma.user.findFirst({ select: { id: true } });
-    uploaderId = existing?.id ?? (
-      await prisma.user.create({
-        data: {
-          email: unique('driver-app-uploader') + '@saarthi.local',
-          passwordHash: 'not-used-by-these-tests',
-          firstName: 'Release',
-          lastName: 'Uploader',
-        },
-        select: { id: true },
-      })
-    ).id;
+    uploaderId =
+      existing?.id ??
+      (
+        await prisma.user.create({
+          data: {
+            email: unique('driver-app-uploader') + '@saarthi.local',
+            passwordHash: 'not-used-by-these-tests',
+            firstName: 'Release',
+            lastName: 'Uploader',
+          },
+          select: { id: true },
+        })
+      ).id;
   });
 
   afterAll(async () => {
     await closeApp();
   });
 
-  async function uploadDriverApp(versionCode: number, versionName: string): Promise<{
+  async function uploadDriverApp(
+    versionCode: number,
+    versionName: string,
+  ): Promise<{
     id: string;
     bytes: Buffer;
   }> {
@@ -101,7 +99,11 @@ describe('public driver app download', () => {
   });
 
   it('serves the owner app on its own address, never in place of the driver app', async () => {
-    const ownerBytes = apk({ versionCode: 1, versionName: '0.1.0', packageName: 'com.saarthi.owner' });
+    const ownerBytes = apk({
+      versionCode: 1,
+      versionName: '0.1.0',
+      packageName: 'com.saarthi.owner',
+    });
     const { id } = await createRelease({
       bytes: ownerBytes,
       fileName: 'saarthi-owner.apk',
@@ -135,21 +137,35 @@ describe('public driver app download', () => {
       url: '/api/v1/driver-app/public/update?versionCode=8&sdk=34',
     });
     expect(behind.status).toBe(200);
-    expect(behind.body.data).toMatchObject({ versionCode: 9, versionName: '1.9.0', sizeBytes: bytes.length });
+    expect(behind.body.data).toMatchObject({
+      versionCode: 9,
+      versionName: '1.9.0',
+      sizeBytes: bytes.length,
+    });
     expect(behind.body.data).toHaveProperty('sha256');
 
     // Already current: nothing to offer.
-    const current = await request({ method: 'GET', url: '/api/v1/driver-app/public/update?versionCode=9&sdk=34' });
+    const current = await request({
+      method: 'GET',
+      url: '/api/v1/driver-app/public/update?versionCode=9&sdk=34',
+    });
     expect(current.body.data).toBeNull();
 
     // Exactly the build offered, with no session.
-    const download = await requestRaw({ method: 'GET', url: '/api/v1/driver-app/public/update/9/download' });
+    const download = await requestRaw({
+      method: 'GET',
+      url: '/api/v1/driver-app/public/update/9/download',
+    });
     expect(download.status).toBe(200);
     expect(download.body.equals(bytes)).toBe(true);
   });
 
   it("never offers or serves another app's build through the driver app's update path", async () => {
-    const ownerBytes = apk({ versionCode: 50, versionName: '5.0.0', packageName: 'com.saarthi.owner' });
+    const ownerBytes = apk({
+      versionCode: 50,
+      versionName: '5.0.0',
+      packageName: 'com.saarthi.owner',
+    });
     const { id } = await createRelease({
       bytes: ownerBytes,
       fileName: 'saarthi-owner.apk',
@@ -166,7 +182,10 @@ describe('public driver app download', () => {
     });
     expect(offer.body.data).toBeNull();
 
-    const download = await requestRaw({ method: 'GET', url: '/api/v1/driver-app/public/update/50/download' });
+    const download = await requestRaw({
+      method: 'GET',
+      url: '/api/v1/driver-app/public/update/50/download',
+    });
     expect(download.status).toBe(404);
   });
 
@@ -174,7 +193,11 @@ describe('public driver app download', () => {
     const { id, bytes } = await uploadDriverApp(8, '1.8.0');
     await publishRelease(id, uploaderId);
     const fleet = await createOrganization();
-    const driver = await createUser({ role: RoleName.DRIVER, organizationId: fleet.id, driver: true });
+    const driver = await createUser({
+      role: RoleName.DRIVER,
+      organizationId: fleet.id,
+      driver: true,
+    });
 
     const download = await requestRaw({
       method: 'GET',

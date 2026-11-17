@@ -5,7 +5,8 @@ import { ApiError } from '@/lib/api-client';
 import { LoadingState } from '@/components/common/states';
 import { Button } from '@/components/ui/button';
 import { useT } from '@/features/i18n';
-import { isNotFoundError, useLiveRide } from '@/features/live-ride/live-ride-api';
+import { isNotFoundError } from '@/features/live-ride/live-ride-api';
+import { useLiveRideRealtime } from '@/features/live-ride/use-live-ride-realtime';
 import {
   LiveRideDetails,
   LiveRideNotice,
@@ -29,7 +30,7 @@ import {
 export function LiveRidePage(): React.ReactElement {
   const { token = '' } = useParams<{ token: string }>();
   const t = useT();
-  const ride = useLiveRide(token);
+  const ride = useLiveRideRealtime(token);
 
   let body: React.ReactNode;
   if (!token || isNotFoundError(ride.error)) {

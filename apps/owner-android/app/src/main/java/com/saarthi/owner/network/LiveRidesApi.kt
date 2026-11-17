@@ -35,6 +35,20 @@ class LiveRidesApi(private val api: OwnerApi) {
         val routeState: String? = null,
     )
 
+    /**
+     * `RideShareSummary`: what an ended ride came to, recorded as sharing
+     * stopped and shown until [shownUntil], then removed. A figure the server
+     * did not send is null and left off the screen, never a guess.
+     */
+    @Serializable
+    data class Summary(
+        val distanceKm: Double? = null,
+        val durationMinutes: Int = 0,
+        val avgSpeedKph: Double? = null,
+        val maxSpeedKph: Double? = null,
+        val shownUntil: String? = null,
+    )
+
     /** `PublicLiveRide`: what the live link shows. */
     @Serializable
     data class LiveRide(
@@ -50,6 +64,8 @@ class LiveRidesApi(private val api: OwnerApi) {
         val position: Position? = null,
         /** The road covered — after [get]'s `from` when one was given. Empty once ended. */
         val trail: List<TrailPoint> = emptyList(),
+        /** Journey statistics available once sharing has ended. */
+        val summary: Summary? = null,
     )
 
     /**

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { LocaleProvider } from '@/features/i18n';
@@ -20,6 +20,7 @@ const RIDE = {
   endedAt: null,
   position: null,
   trail: [],
+  summary: null,
 };
 
 const POSITION = { latitude: 26.85, longitude: 80.95, speedKph: 42.4, heading: 90 };
@@ -90,6 +91,49 @@ describe('the public live-ride page', () => {
     ).toBeInTheDocument();
     expect(screen.queryByRole('region', { name: /live location/ })).not.toBeInTheDocument();
     expect(screen.queryByText(/^Updated/)).not.toBeInTheDocument();
+  });
+
+  /** A ride that ended a moment ago, its summary shown for [shownForMs] more. */
+  function endedRide(shownForMs: number) {
+    const endedAt = new Date().toISOString();
+    return ok({
+      ...RIDE,
+      status: 'ENDED',
+      endedAt,
+      summary: {
+        distanceKm: 14.24,
+        durationMinutes: 75,
+        avgSpeedKph: 11.4,
+        maxSpeedKph: null,
+        startedAt: RIDE.startedAt,
+        endedAt,
+        shownUntil: new Date(Date.now() + shownForMs).toISOString(),
+      },
+    });
+  }
+
+  it('shows what an ended ride came to, and leaves out a figure that was never recorded', async () => {
+    stubFetch(200, endedRide(5 * 60_000));
+    renderPage();
+
+    expect(await screen.findByText('1 h 15 min')).toBeInTheDocument();
+    expect(screen.getByText('Distance covered')).toBeInTheDocument();
+    expect(screen.getByText('14.2 km')).toBeInTheDocument();
+    expect(screen.getByText('11 km/h')).toBeInTheDocument();
+    expect(screen.queryByText('Top speed')).not.toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: /live location/ })).not.toBeInTheDocument();
+  });
+
+  it('removes the summary by itself once its minutes are up', async () => {
+    stubFetch(200, endedRide(300));
+    renderPage();
+
+    expect(await screen.findByText('14.2 km')).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByText('14.2 km')).not.toBeInTheDocument());
+    // The ride still says it ended; only the figures are gone.
+    expect(
+      screen.getByRole('heading', { name: 'Asha has stopped sharing this ride.' }),
+    ).toBeInTheDocument();
   });
 
   it('treats an unknown token as a link that does not exist', async () => {

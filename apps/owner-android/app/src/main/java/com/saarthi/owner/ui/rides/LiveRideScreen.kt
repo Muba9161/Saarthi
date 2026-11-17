@@ -156,7 +156,9 @@ fun LiveRideScreen(app: OwnerApp, token: String, mine: Boolean = false) {
                         }
                     }
                     LivePhase.WAITING -> WaitingCard(name, mine, Modifier.rise(stagger(1)))
-                    LivePhase.ENDED -> Unit
+                    LivePhase.ENDED -> current.value.summary?.let { summary ->
+                        EndedRideSummaryView(summary, Modifier.rise(stagger(1)))
+                    }
                 }
             }
         }

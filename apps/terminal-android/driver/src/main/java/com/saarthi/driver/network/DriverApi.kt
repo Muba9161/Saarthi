@@ -219,6 +219,29 @@ class DriverApi(
         )
 
     @Serializable
+    private data class ForgotPasswordRequest(val email: String)
+
+    @Serializable
+    private data class ForgotPasswordResponse(val message: String, val devToken: String? = null)
+
+    /**
+     * Send a password reset link to [email].
+     *
+     * The server never reveals whether an address belongs to an account,
+     * so the sentence it returns is the one to show; null when it sent none.
+     */
+    suspend fun forgotPassword(email: String): String? {
+        val raw = send(
+            "POST",
+            "/api/v1/auth/forgot-password",
+            json.encodeToString(ForgotPasswordRequest.serializer(), ForgotPasswordRequest(email.trim())),
+            authenticated = false,
+        )
+        return json.decodeFromString(Envelope.serializer(ForgotPasswordResponse.serializer()), raw).data?.message
+            ?.ifBlank { null }
+    }
+
+    @Serializable
     private data class EmailCodeRequest(val email: String, val firstName: String?)
 
     /** A code on its way to the driver's inbox. */
