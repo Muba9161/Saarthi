@@ -59,8 +59,8 @@ val saarthiMapStyleUrlLight: String =
  */
 val releaseStoreFile: String? = setting("releaseStoreFile")
 
-val appVersionCode = 5
-val appVersionName = "0.5.0"
+val appVersionCode = 6
+val appVersionName = "0.6.0"
 
 android {
     namespace = "com.saarthi.owner"
