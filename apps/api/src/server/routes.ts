@@ -66,7 +66,10 @@ import { vehiclePairingRoutes } from '../modules/devices/pairing.routes';
 import { deviceClientRoutes } from '../modules/devices/device-client.routes';
 import { videoGatewayRoutes } from '../modules/devices/video-gateway.routes';
 import { telemetryRoutes } from '../modules/telemetry/telemetry.routes';
-import { terminalRoutes, vehicleTerminalRoutes } from '../modules/terminal/terminal.routes';
+import {
+  terminalRoutes,
+  vehicleTerminalRoutes,
+} from '../modules/terminal/terminal.routes';
 import { terminalClientRoutes } from '../modules/terminal/terminal-client.routes';
 import { terminalPapersRoutes } from '../modules/terminal/terminal-papers.routes';
 import { terminalTripQueueRoutes } from '../modules/terminal/terminal-trip-queue.routes';
@@ -88,12 +91,15 @@ import {
   cameraStreamRoutes,
   vehicleCameraRoutes,
 } from '../modules/devices/camera.routes';
-import { tollRoutes, tripTollRoutes, vehicleTollRoutes } from '../modules/toll/toll.routes';
+import {
+  tollRoutes,
+  tripTollRoutes,
+  vehicleTollRoutes,
+} from '../modules/toll/toll.routes';
 import {
   serviceHistoryRoutes,
   vehicleServiceRoutes,
 } from '../modules/maintenance/service-history.routes';
-import { insuranceRoutes } from '../modules/insurance/insurance.routes';
 
 /**
  * Versioned API surface. Every feature module registers its own route file
@@ -282,7 +288,6 @@ export async function registerApiRoutes(app: FastifyInstance): Promise<void> {
   // person and not a device — the signed ticket it presents is the whole
   // credential, and it is verified inside the route.
   await app.register(videoGatewayRoutes, { prefix: '/video-gateway' });
-  await app.register(insuranceRoutes, { prefix: '/insurance' });
   await app.register(adminRoutes, { prefix: '/admin' });
   await app.register(commerceAdminRoutes, { prefix: '/admin/commerce' });
 }

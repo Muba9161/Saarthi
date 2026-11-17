@@ -12,6 +12,7 @@ import { RouteErrorPage } from '@/pages/route-error';
 import { LandingPage, LoginPage, RegisterPage } from '@/pages/lazy-pages';
 import { NOT_FOUND_HANDLE, bindRouteSeo, isNotFoundHandle } from '@/features/seo';
 
+
 /**
  * Routing.
  *
@@ -278,10 +279,7 @@ export const router = createBrowserRouter([
               { path: '/trips/:id', element: lazyPage(() => import('@/pages/trips/trip-detail')) },
               { path: '/orders', element: lazyPage(() => import('@/pages/orders/orders')) },
               { path: '/orders/new', element: lazyPage(() => import('@/pages/orders/new-order')) },
-              {
-                path: '/orders/:id',
-                element: lazyPage(() => import('@/pages/orders/order-detail')),
-              },
+              { path: '/orders/:id', element: lazyPage(() => import('@/pages/orders/order-detail')) },
               {
                 path: '/marketplace',
                 element: lazyPage(() => import('@/pages/marketplace/requirements')),
@@ -329,27 +327,12 @@ export const router = createBrowserRouter([
               },
 
               // Generalized vehicles
-              {
-                path: '/fleet/vehicles',
-                element: lazyPage(() => import('@/pages/fleet/vehicles')),
-              },
+              { path: '/fleet/vehicles', element: lazyPage(() => import('@/pages/fleet/vehicles')) },
               // The type-aware detail screen. `/fleet/trucks/:id` renders the same
               // page, so a car opened from either list is presented as a car.
               {
                 path: '/fleet/vehicles/:id',
                 element: lazyPage(() => import('@/pages/fleet/vehicle-detail')),
-              },
-              {
-                path: '/fleet/vehicles/:id/insurance/compare',
-                element: lazyPage(() => import('@/pages/fleet/insurance-compare')),
-              },
-              {
-                path: '/fleet/trucks/:id/insurance/compare',
-                element: lazyPage(() => import('@/pages/fleet/insurance-compare')),
-              },
-              {
-                path: '/insurance/compare',
-                element: lazyPage(() => import('@/pages/fleet/insurance-compare')),
               },
               {
                 path: '/fleet/vehicles/:id/telemetry',
@@ -408,17 +391,11 @@ export const router = createBrowserRouter([
               { path: '/nearby', element: lazyPage(() => import('@/pages/nearby/nearby')) },
 
               // Intelligence
-              {
-                path: '/analytics',
-                element: lazyPage(() => import('@/pages/analytics/analytics')),
-              },
+              { path: '/analytics', element: lazyPage(() => import('@/pages/analytics/analytics')) },
               { path: '/copilot', element: lazyPage(() => import('@/pages/ai/copilot')) },
 
               // Demo
-              {
-                path: '/simulator',
-                element: lazyPage(() => import('@/pages/simulator/simulator')),
-              },
+              { path: '/simulator', element: lazyPage(() => import('@/pages/simulator/simulator')) },
 
               // Driver app
               { path: '/driver', element: lazyPage(() => import('@/pages/driver/home')) },
