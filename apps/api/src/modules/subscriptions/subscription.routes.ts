@@ -12,11 +12,7 @@ import {
   startAutopaySchema,
 } from '@saarthi/shared';
 import { created, ok, parseBody, parseParams } from '../../lib/http';
-import {
-  requireAuth,
-  requireOrganizationId,
-  requirePermission,
-} from '../../server/guards';
+import { requireAuth, requireOrganizationId, requirePermission } from '../../server/guards';
 import * as autopayService from './autopay.service';
 import { billingHistory } from './billing-history.service';
 import { redeemCoupon } from './coupon.service';
@@ -34,7 +30,11 @@ import * as trackerService from './tracker.service';
  * owner holds.
  */
 const pendingReferenceSchema = z.object({
-  reference: z.string().min(3).max(64).regex(/^[A-Za-z0-9_-]+$/),
+  reference: z
+    .string()
+    .min(3)
+    .max(64)
+    .regex(/^[A-Za-z0-9_-]+$/),
 });
 
 export async function subscriptionRoutes(app: FastifyInstance): Promise<void> {

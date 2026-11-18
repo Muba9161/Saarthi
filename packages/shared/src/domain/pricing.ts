@@ -233,9 +233,7 @@ export function trackerProduct(product: TrackerProduct): TrackerProductDefinitio
 
 /** "Saarthi OBD ₹709 or Saarthi 4G Tracker ₹2359" — for messages. */
 export function describeTrackerPrices(): string {
-  return TRACKER_PRODUCTS.map((product) => `${product.name} ₹${product.price}`).join(
-    ' or ',
-  );
+  return TRACKER_PRODUCTS.map((product) => `${product.name} ₹${product.price}`).join(' or ');
 }
 
 /**

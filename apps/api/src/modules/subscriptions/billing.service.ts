@@ -117,7 +117,9 @@ export async function activatePaidAddOns(input: {
 
   // Recorded on what was actually charged, split the way the invoice is: every
   // price is final with GST inside it, a tracker's derived from its base price.
-  const topUpCharge = inclusiveOfGst(topUps.reduce((sum, row) => sum + Number(row.priceMonthly), 0));
+  const topUpCharge = inclusiveOfGst(
+    topUps.reduce((sum, row) => sum + Number(row.priceMonthly), 0),
+  );
   const trackersCharged = sumTotals(...trackers.map((row) => trackerCharge(Number(row.pricePaid))));
   const tier = await planTierOf(input.organizationId);
 
@@ -333,7 +335,12 @@ export async function extendPaidPeriod(input: {
   });
 
   billingLogger.info(
-    { organizationId: input.organizationId, reference: input.paymentReference, endsAt, couponEnded },
+    {
+      organizationId: input.organizationId,
+      reference: input.paymentReference,
+      endsAt,
+      couponEnded,
+    },
     'Paid period extended',
   );
   return { couponEnded };

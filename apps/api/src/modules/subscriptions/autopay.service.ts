@@ -18,7 +18,11 @@ import { errors } from '../../lib/errors';
 import { logger } from '../../lib/logger';
 import { cache } from '../../infra/cache';
 import { withLock } from '../../infra/lock';
-import { paymentProvider, type CheckoutSession, type MandateStatus } from '../../providers/payments';
+import {
+  paymentProvider,
+  type CheckoutSession,
+  type MandateStatus,
+} from '../../providers/payments';
 import { AuditAction, recordAudit } from '../audit/audit.service';
 import { notifyOrganization } from '../notifications/notification.service';
 import { archiveUnpaid, warnUnpaid } from '../account-retention/account-retention.service';
@@ -132,7 +136,10 @@ type ChargeableSubscription = CouponFields & { organizationId: string; plan: { t
 
 /** What the next plan charge takes: the full month, less a partial-discount coupon still running. */
 async function monthlyChargeFor(subscription: ChargeableSubscription): Promise<number> {
-  const total = await monthlyTotalFor(subscription.organizationId, subscription.plan.tier as PlanTier);
+  const total = await monthlyTotalFor(
+    subscription.organizationId,
+    subscription.plan.tier as PlanTier,
+  );
   return discountedCharge(total, activeCoupon(subscription));
 }
 
@@ -203,7 +210,9 @@ export async function billingStatus(organizationId: string): Promise<BillingStat
     status: subscription.status,
     trialEndsAt: trialing && endsAt ? endsAt.toISOString() : null,
     trialDaysLeft:
-      trialing && endsAt ? Math.max(0, Math.ceil((endsAt.getTime() - Date.now()) / 86_400_000)) : null,
+      trialing && endsAt
+        ? Math.max(0, Math.ceil((endsAt.getTime() - Date.now()) / 86_400_000))
+        : null,
     periodEndsAt: endsAt?.toISOString() ?? null,
     monthlyTotal: discountedCharge(regularMonthlyTotal, coupon),
     regularMonthlyTotal,
@@ -286,14 +295,20 @@ export async function startAutopay(
     const awaitingBank = /BANK_APPROVAL/i.test(state.providerStatus);
     if (state.status !== 'PENDING' || awaitingBank) {
       if (state.status !== subscription.autopayStatus) {
-        await prisma.subscription.update({ where: { organizationId }, data: { autopayStatus: state.status } });
+        await prisma.subscription.update({
+          where: { organizationId },
+          data: { autopayStatus: state.status },
+        });
       }
       if (state.status === 'ACTIVE' || state.status === 'ON_HOLD' || awaitingBank) {
         return { status: await billingStatus(organizationId), checkout: null };
       }
     } else {
       await paymentProvider.cancelMandate(subscription.externalRef).catch((error: unknown) => {
-        autopayLogger.warn({ err: error, organizationId }, 'Unauthorised mandate could not be cancelled before replacing it');
+        autopayLogger.warn(
+          { err: error, organizationId },
+          'Unauthorised mandate could not be cancelled before replacing it',
+        );
       });
     }
   }
@@ -520,7 +535,10 @@ export async function resumePendingPayment(
       where,
       data: { paymentReference: intent.providerReference },
     }),
-    prisma.vehicleTracker.updateMany({ where, data: { paymentReference: intent.providerReference } }),
+    prisma.vehicleTracker.updateMany({
+      where,
+      data: { paymentReference: intent.providerReference },
+    }),
   ]);
 
   if (intent.status === 'SUCCEEDED') await completeSettledPayment(paymentId);
@@ -692,7 +710,8 @@ export async function runSubscriptionLifecycleSweep(): Promise<{
       const organizationId = subscription.organizationId;
       const overdue = now - (subscription.endsAt?.getTime() ?? now);
       const mandate = subscription.autopayStatus as MandateStatus | null;
-      const liveMandate = Boolean(subscription.externalRef) && mandate !== null && LIVE_MANDATE.includes(mandate);
+      const liveMandate =
+        Boolean(subscription.externalRef) && mandate !== null && LIVE_MANDATE.includes(mandate);
 
       try {
         if (liveMandate && subscription.autopayProvider === 'mock' && mandate === 'ACTIVE') {
@@ -715,7 +734,8 @@ export async function runSubscriptionLifecycleSweep(): Promise<{
           const periodEnd = subscription.endsAt ?? new Date(now);
           const cashfreeMandate = liveMandate && subscription.autopayProvider === 'cashfree';
           if (overdue >= GRACE_MS) {
-            if (await archiveUnpaid({ organizationId, planName: subscription.plan.name })) expired += 1;
+            if (await archiveUnpaid({ organizationId, planName: subscription.plan.name }))
+              expired += 1;
             await invalidateBilling(organizationId);
           } else if (!cashfreeMandate || overdue >= AUTOPAY_WARN_AFTER_MS) {
             if (await warnUnpaid({ organizationId, planName: subscription.plan.name, periodEnd })) {

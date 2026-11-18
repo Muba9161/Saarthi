@@ -50,7 +50,10 @@ export interface CouponFields {
 }
 
 /** Until when no coupon may be entered, or null when one may be now. */
-export function couponLockedUntil(fields: Pick<CouponFields, 'couponAppliedAt'>, now = Date.now()): Date | null {
+export function couponLockedUntil(
+  fields: Pick<CouponFields, 'couponAppliedAt'>,
+  now = Date.now(),
+): Date | null {
   if (!fields.couponAppliedAt) return null;
   const until = fields.couponAppliedAt.getTime() + COUPON_SPAN_MS;
   return until > now ? new Date(until) : null;

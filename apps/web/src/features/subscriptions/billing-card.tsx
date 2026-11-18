@@ -47,7 +47,11 @@ export interface BillingStatus {
 }
 
 function inrDate(value: string): string {
-  return new Date(value).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  return new Date(value).toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
 }
 
 /**
@@ -70,7 +74,10 @@ export function BillingCard({
   busy: boolean;
   onChanged: () => void;
 }) {
-  const { startAutopay, payNow, cancelAutopay, resume } = useBillingActions({ onCheckout, onChanged });
+  const { startAutopay, payNow, cancelAutopay, resume } = useBillingActions({
+    onCheckout,
+    onChanged,
+  });
 
   if (!billing.billable && billing.pendingPayments.length === 0) return null;
 
@@ -82,7 +89,12 @@ export function BillingCard({
   const working = busy || startAutopay.isPending || payNow.isPending || resume.isPending;
 
   return (
-    <Card className={cn(lapsed && 'border-warning/50', billing.status === 'PAST_DUE' && 'border-warning/50')}>
+    <Card
+      className={cn(
+        lapsed && 'border-warning/50',
+        billing.status === 'PAST_DUE' && 'border-warning/50',
+      )}
+    >
       <CardHeader className="pb-3">
         <SectionHeader
           title="Billing"
@@ -133,9 +145,17 @@ export function BillingCard({
                 {billing.autopay ? (
                   <Badge
                     size="sm"
-                    variant={billing.autopay.status === 'ACTIVE' ? 'success' : autopayLive ? 'warning' : 'outline'}
+                    variant={
+                      billing.autopay.status === 'ACTIVE'
+                        ? 'success'
+                        : autopayLive
+                          ? 'warning'
+                          : 'outline'
+                    }
                   >
-                    {autopayAwaiting ? 'Waiting for approval' : humanizeEnum(billing.autopay.status)}
+                    {autopayAwaiting
+                      ? 'Waiting for approval'
+                      : humanizeEnum(billing.autopay.status)}
                   </Badge>
                 ) : (
                   'not set up'
@@ -146,12 +166,18 @@ export function BillingCard({
             {canManage ? (
               <div className="flex flex-wrap gap-2">
                 {!lapsed && (!autopayLive || autopayAwaiting) ? (
-                  <Button onClick={() => startAutopay.mutate()} disabled={working} loading={startAutopay.isPending}>
+                  <Button
+                    onClick={() => startAutopay.mutate()}
+                    disabled={working}
+                    loading={startAutopay.isPending}
+                  >
                     <RefreshCw className="mr-1 size-4" aria-hidden />
                     {autopayAwaiting ? 'Complete autopay setup' : 'Set up autopay'}
                   </Button>
                 ) : null}
-                {lapsed || billing.status === 'PAST_DUE' || (!autopayLive && !trialing && !freeUntil) ? (
+                {lapsed ||
+                billing.status === 'PAST_DUE' ||
+                (!autopayLive && !trialing && !freeUntil) ? (
                   <Button
                     variant={lapsed ? 'default' : 'outline'}
                     onClick={() => payNow.mutate()}
@@ -192,7 +218,9 @@ export function BillingCard({
           <>
             {billing.billable ? <Separator /> : null}
             <div className="space-y-2">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">Waiting for payment</p>
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                Waiting for payment
+              </p>
               {billing.pendingPayments.map((pending) => (
                 <div
                   key={pending.reference}
@@ -201,8 +229,12 @@ export function BillingCard({
                   <div className="min-w-0">
                     <p>
                       {[
-                        pending.topUps > 0 ? `${pending.topUps} extra vehicle${pending.topUps === 1 ? '' : 's'}` : null,
-                        pending.trackers > 0 ? `${pending.trackers} tracker${pending.trackers === 1 ? '' : 's'}` : null,
+                        pending.topUps > 0
+                          ? `${pending.topUps} extra vehicle${pending.topUps === 1 ? '' : 's'}`
+                          : null,
+                        pending.trackers > 0
+                          ? `${pending.trackers} tracker${pending.trackers === 1 ? '' : 's'}`
+                          : null,
                       ]
                         .filter(Boolean)
                         .join(' and ')}
