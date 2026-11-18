@@ -1,4 +1,5 @@
 import {
+  BILLING_PERIOD_DAYS,
   PaymentTrigger,
   NotificationPriority,
   NotificationType,
@@ -9,7 +10,7 @@ import {
   sumTotals,
   type PlanTier,
 } from '@saarthi/shared';
-import { prisma } from '../../database/prisma';
+import { type Prisma, prisma } from '../../database/prisma';
 import { restoreArchivedAccount } from '../account-retention/account-retention.service';
 import { logger } from '../../lib/logger';
 import { cache } from '../../infra/cache';
@@ -17,6 +18,7 @@ import { cacheKeys } from '../../infra/cache-keys';
 import { AuditAction, recordAudit } from '../audit/audit.service';
 import { notifyOrganization } from '../notifications/notification.service';
 import { qualifyPayment, qualifySubscriptionPayment } from '../sales/qualification';
+import { activeCoupon } from './coupons';
 import { invalidateEntitlements } from './entitlements.service';
 
 /**
@@ -36,7 +38,7 @@ import { invalidateEntitlements } from './entitlements.service';
 const billingLogger = logger.child({ module: 'subscriptions:billing' });
 
 /** One billing month. Matches the top-up window. */
-export const BILLING_PERIOD_MS = 30 * 86_400_000;
+export const BILLING_PERIOD_MS = BILLING_PERIOD_DAYS * 86_400_000;
 
 /** A plan payment's reference, so settlement can tell it from add-ons. */
 export const PLAN_PAYMENT_PREFIX = 'PLAN-';
@@ -115,7 +117,9 @@ export async function activatePaidAddOns(input: {
 
   // Recorded on what was actually charged, split the way the invoice is: every
   // price is final with GST inside it, a tracker's derived from its base price.
-  const topUpCharge = inclusiveOfGst(topUps.reduce((sum, row) => sum + Number(row.priceMonthly), 0));
+  const topUpCharge = inclusiveOfGst(
+    topUps.reduce((sum, row) => sum + Number(row.priceMonthly), 0),
+  );
   const trackersCharged = sumTotals(...trackers.map((row) => trackerCharge(Number(row.pricePaid))));
   const tier = await planTierOf(input.organizationId);
 
@@ -236,37 +240,71 @@ export async function failPendingAddOns(input: {
 }
 
 /**
+ * The writes that put a subscription's period end at `endsAt` — paid, or
+ * granted by a coupon. Active top-ups follow it, because the same monthly
+ * bill covers them. Run inside a transaction.
+ */
+export function paidPeriodWrites(
+  organizationId: string,
+  endsAt: Date,
+  extra: Prisma.SubscriptionUpdateInput = {},
+) {
+  return [
+    prisma.subscription.update({
+      where: { organizationId },
+      data: { status: SubscriptionStatus.ACTIVE, endsAt, cancelledAt: null, ...extra },
+    }),
+    prisma.vehicleSubscriptionTopUp.updateMany({
+      where: { organizationId, status: 'ACTIVE', expiresAt: { not: null } },
+      data: { expiresAt: endsAt },
+    }),
+  ] as const;
+}
+
+/**
  * Move the paid period forward one month — a plan payment settled.
  *
  * From whichever is later, the current period end or now, so an early payment
  * does not lose the days already paid for and a late one does not charge for
  * days that passed unpaid. Active top-ups follow the plan's period, because
- * the monthly charge covered them too.
+ * the monthly charge covered them too. A partial-discount coupon still running
+ * priced this month, so one of its months is used up.
+ *
+ * Returns whether that was the coupon's last month — the next charge is at the
+ * full price again, so the caller brings autopay back in step.
  */
 export async function extendPaidPeriod(input: {
   organizationId: string;
   paymentReference: string;
   amount: number;
-}): Promise<void> {
+}): Promise<{ couponEnded: boolean }> {
   const subscription = await prisma.subscription.findUnique({
     where: { organizationId: input.organizationId },
     include: { plan: true },
   });
-  if (!subscription) return;
+  if (!subscription) return { couponEnded: false };
 
   const now = Date.now();
   const from = Math.max(now, subscription.endsAt?.getTime() ?? now);
   const endsAt = new Date(from + BILLING_PERIOD_MS);
+  const coupon = activeCoupon(subscription, now);
+  // A partial discount's months before this one; 0 when no discount priced it.
+  const discountMonths = coupon?.monthsLeft ?? 0;
+  const discountedMonth = discountMonths > 0;
+  const couponEnded = discountMonths === 1;
+  const remaining = discountMonths - 1;
 
   await prisma.$transaction([
-    prisma.subscription.update({
-      where: { organizationId: input.organizationId },
-      data: { status: SubscriptionStatus.ACTIVE, endsAt, cancelledAt: null },
-    }),
-    prisma.vehicleSubscriptionTopUp.updateMany({
-      where: { organizationId: input.organizationId, status: 'ACTIVE', expiresAt: { not: null } },
-      data: { expiresAt: endsAt },
-    }),
+    ...paidPeriodWrites(input.organizationId, endsAt),
+    // Conditional, so two payments settling together never take it below zero.
+    ...(discountedMonth
+      ? [
+          prisma.subscription.updateMany({
+            where: { organizationId: input.organizationId, couponMonthsLeft: { gt: 0 } },
+            data: { couponMonthsLeft: { decrement: 1 } },
+          }),
+        ]
+      : []),
   ]);
 
   // A renewal paid while archived brings the account back as it was.
@@ -284,14 +322,26 @@ export async function extendPaidPeriod(input: {
   await notifyOrganization(input.organizationId, {
     type: NotificationType.SUBSCRIPTION_UPDATED,
     title: 'Subscription paid',
-    body: `Thank you — ${subscription.plan.name} is paid until ${endsAt.toLocaleDateString('en-IN')}.`,
+    body:
+      `Thank you — ${subscription.plan.name} is paid until ${endsAt.toLocaleDateString('en-IN')}.` +
+      (couponEnded
+        ? ` That was the last month of your ${coupon?.code} discount.`
+        : discountedMonth
+          ? ` ${coupon?.code}: ${remaining} discounted month${remaining === 1 ? '' : 's'} left.`
+          : ''),
     priority: NotificationPriority.NORMAL,
     actionUrl: '/settings/subscription',
     roles: OPERATOR_OWNER_ROLES,
   });
 
   billingLogger.info(
-    { organizationId: input.organizationId, reference: input.paymentReference, endsAt },
+    {
+      organizationId: input.organizationId,
+      reference: input.paymentReference,
+      endsAt,
+      couponEnded,
+    },
     'Paid period extended',
   );
+  return { couponEnded };
 }

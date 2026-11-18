@@ -615,27 +615,39 @@ model PlanFeature {
 }
 
 model Subscription {
-  id              String             @id @default(uuid()) @db.Uuid
-  organizationId  String             @db.Uuid
-  planId          String             @db.Uuid
-  status          SubscriptionStatus @default(TRIALING)
+  id               String             @id @default(uuid()) @db.Uuid
+  organizationId   String             @db.Uuid
+  planId           String             @db.Uuid
+  status           SubscriptionStatus @default(TRIALING)
   /// Which price the customer agreed to. Stored because a plan holds both a
   /// monthly and a yearly figure, and knowing only the plan loses half of what
   /// was actually agreed.
-  billingPeriod   BillingPeriod      @default(MONTHLY)
-  startsAt        DateTime           @default(now())
-  endsAt          DateTime?
-  cancelledAt     DateTime?
+  billingPeriod    BillingPeriod      @default(MONTHLY)
+  startsAt         DateTime           @default(now())
+  endsAt           DateTime?
+  cancelledAt      DateTime?
   /// The recurring-billing (autopay) mandate at the payment provider — the
   /// Cashfree subscription id, or a MOCK- reference locally. Null until the
   /// owner sets up autopay.
-  externalRef     String?
+  externalRef      String?
   /// Which provider holds the mandate: `mock` or `cashfree`.
-  autopayProvider String?
+  autopayProvider  String?
   /// The provider's own status for the mandate, as last reported.
-  autopayStatus   String?
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
+  autopayStatus    String?
+  /// The coupon last applied (see `subscriptions/coupons.ts`). Kept after it
+  /// runs out, for the record; whether it is still in force is read from the
+  /// two fields below.
+  couponCode       String?
+  couponPercentOff Int?
+  /// A partial-discount coupon: plan charges still to be taken at its price.
+  couponMonthsLeft Int                @default(0)
+  /// A 100% coupon: the end of the free months it granted.
+  couponFreeUntil  DateTime?
+  /// When a coupon was last entered. No coupon can be entered again for three
+  /// months after it.
+  couponAppliedAt  DateTime?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
 
   plan SubscriptionPlan @relation(fields: [planId], references: [id])
 

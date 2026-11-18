@@ -9,16 +9,22 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { LoadingState } from '@/components/common/states';
 import type { BillingStatus } from './billing-card';
+import { CouponForm, describeCoupon } from './coupon-form';
 import { useBillingActions } from './use-billing-actions';
 
 function inrDate(value: string): string {
-  return new Date(value).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+  return new Date(value).toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
 }
 
 /**
  * Shown in place of every screen while the account is archived for
  * non-payment. The API refuses everything but renewal, so this is the one
- * thing the app offers: pay, and everything comes back as it was.
+ * thing the app offers: pay, or apply a coupon, and everything comes back as
+ * it was.
  */
 export function ArchivedAccountScreen({ dataPurgeAt }: { dataPurgeAt: string | null }) {
   const { can, logout, refreshSession, session } = useAuth();
@@ -55,8 +61,9 @@ export function ArchivedAccountScreen({ dataPurgeAt }: { dataPurgeAt: string | n
           <div className="space-y-2">
             <h1 className="text-2xl font-semibold tracking-tight">This account is archived</h1>
             <p className="text-sm leading-relaxed text-muted-foreground">
-              {session?.organization?.name ?? 'This account'}&rsquo;s plan was not renewed, so it is locked.
-              Nothing has been deleted yet - renew and everything comes back exactly as it was.
+              {session?.organization?.name ?? 'This account'}&rsquo;s plan was not renewed, so it is
+              locked. Nothing has been deleted yet - renew and everything comes back exactly as it
+              was.
             </p>
           </div>
 
@@ -65,9 +72,10 @@ export function ArchivedAccountScreen({ dataPurgeAt }: { dataPurgeAt: string | n
               <ShieldAlert className="mt-0.5 size-4 shrink-0 text-destructive" aria-hidden />
               <p>
                 If it is not renewed by <strong>{inrDate(dataPurgeAt)}</strong>
-                {daysLeft !== null ? ` (${daysLeft} day${daysLeft === 1 ? '' : 's'} left)` : ''}, its vehicles,
-                trips, documents and other data are <strong>permanently deleted</strong>. Payments and invoices
-                are kept, and drivers keep their own profiles.
+                {daysLeft !== null ? ` (${daysLeft} day${daysLeft === 1 ? '' : 's'} left)` : ''},
+                its vehicles, trips, documents and other data are{' '}
+                <strong>permanently deleted</strong>. Payments and invoices are kept, and drivers
+                keep their own profiles.
               </p>
             </div>
           ) : null}
@@ -76,21 +84,33 @@ export function ArchivedAccountScreen({ dataPurgeAt }: { dataPurgeAt: string | n
             billing.isLoading ? (
               <LoadingState label="Loading your plan…" className="min-h-0 p-2" />
             ) : (
-              <Button
-                size="lg"
-                className="w-full"
-                loading={payNow.isPending || checkout.busy}
-                onClick={() => payNow.mutate()}
-              >
-                <CreditCard className="size-4" />
-                {billing.data
-                  ? `Renew ${billing.data.planName} - ${formatCurrency(billing.data.monthlyTotal)}`
-                  : 'Renew now'}
-              </Button>
+              <div className="space-y-5">
+                <Button
+                  size="lg"
+                  className="w-full"
+                  loading={payNow.isPending || checkout.busy}
+                  onClick={() => payNow.mutate()}
+                >
+                  <CreditCard className="size-4" />
+                  {billing.data
+                    ? `Renew ${billing.data.planName} - ${formatCurrency(billing.data.monthlyTotal)}`
+                    : 'Renew now'}
+                </Button>
+                {billing.data?.coupon ? (
+                  <p className="text-center text-xs text-muted-foreground">
+                    {`${billing.data.coupon.code} applied: ${describeCoupon(billing.data.coupon)}`}
+                  </p>
+                ) : null}
+                <CouponForm
+                  lockedUntil={billing.data?.couponLockedUntil ?? null}
+                  onApplied={refresh}
+                />
+              </div>
             )
           ) : (
             <p className="rounded-xl bg-muted/50 p-4 text-sm text-muted-foreground">
-              Only the account owner can renew. Ask them to sign in and renew the plan to restore access.
+              Only the account owner can renew. Ask them to sign in and renew the plan to restore
+              access.
             </p>
           )}
 

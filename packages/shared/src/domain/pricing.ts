@@ -26,6 +26,9 @@ import { PLAN_CATALOGUE, PLAN_LIMITS, type PlanDefinition } from './entitlements
  */
 export const DEFAULT_TRIAL_DAYS = 30;
 
+/** One billing month, in days: what a plan payment buys and a top-up lasts. */
+export const BILLING_PERIOD_DAYS = 30;
+
 // ---------------------------------------------------------------------------
 // Tax
 // ---------------------------------------------------------------------------
@@ -230,9 +233,7 @@ export function trackerProduct(product: TrackerProduct): TrackerProductDefinitio
 
 /** "Saarthi OBD ₹709 or Saarthi 4G Tracker ₹2359" — for messages. */
 export function describeTrackerPrices(): string {
-  return TRACKER_PRODUCTS.map((product) => `${product.name} ₹${product.price}`).join(
-    ' or ',
-  );
+  return TRACKER_PRODUCTS.map((product) => `${product.name} ₹${product.price}`).join(' or ');
 }
 
 /**
