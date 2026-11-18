@@ -37,7 +37,12 @@ internal fun RideReporting(stage: Stage) {
     val share = (stage as? Stage.Sharing)?.share
     val shareId = share?.id
     val key = share?.reportingToken
-    val settledElsewhere = shareId == null && stage !is Stage.Restoring && stage !is Stage.Locked
+    val settledElsewhere = shareId == null &&
+        stage !is Stage.Restoring &&
+        stage !is Stage.Locked &&
+        // Out of signal is not "the share stopped": a share running when the app
+        // opened in a dead spot keeps reporting, queued until the signal returns.
+        stage !is Stage.Unreachable
 
     LaunchedEffect(shareId, key, location.granted, settledElsewhere) {
         when {

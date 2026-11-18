@@ -55,8 +55,19 @@ interface ProfileSources {
   organizationProfile: Prisma.OrganizationProfileGetPayload<Record<string, never>> | null;
   supplier: Prisma.SupplierGetPayload<Record<string, never>> | null;
   customer: Prisma.CustomerGetPayload<Record<string, never>> | null;
-  /** Primary media asset id per purpose, for the IMAGE fields. */
-  media: Map<MediaPurpose, string>;
+  /** Primary media asset id per owner and purpose (see `mediaKey`), for the IMAGE fields. */
+  media: Map<string, string>;
+}
+
+/**
+ * Where an IMAGE field's asset is looked up.
+ *
+ * Keyed by owner as well as purpose because a purpose is not unique to one
+ * owner: a business may have a COVER of its own beside the person's, and the
+ * person's cover field must never show the business's picture.
+ */
+function mediaKey(ownerType: MediaOwnerType, purpose: MediaPurpose): string {
+  return `${ownerType}:${purpose}`;
 }
 
 /**
@@ -130,7 +141,7 @@ async function loadSources(auth: AuthContext): Promise<ProfileSources> {
               : []),
           ],
         },
-        select: { id: true, purpose: true },
+        select: { id: true, ownerType: true, purpose: true },
       }),
     ]);
 
@@ -142,7 +153,12 @@ async function loadSources(auth: AuthContext): Promise<ProfileSources> {
     organizationProfile,
     supplier,
     customer,
-    media: new Map(mediaRows.map((row) => [row.purpose as MediaPurpose, row.id])),
+    media: new Map(
+      mediaRows.map((row) => [
+        mediaKey(row.ownerType as MediaOwnerType, row.purpose as MediaPurpose),
+        row.id,
+      ]),
+    ),
   };
 }
 
@@ -160,7 +176,11 @@ function readJsonPath(value: Prisma.JsonValue | null, path: string): unknown {
  */
 function readFieldValue(field: ProfileField, sources: ProfileSources): unknown {
   if (field.kind === ProfileFieldKind.IMAGE) {
-    return field.mediaPurpose ? (sources.media.get(field.mediaPurpose) ?? null) : null;
+    if (!field.mediaPurpose) return null;
+    // The same owner the uploaders file it under: a business field hangs off
+    // the organization, every other image off the person.
+    const owner = field.organizationScoped ? MediaOwnerType.ORGANIZATION : MediaOwnerType.USER;
+    return sources.media.get(mediaKey(owner, field.mediaPurpose)) ?? null;
   }
 
   const [column, nested] = field.column.split('.') as [string, string | undefined];

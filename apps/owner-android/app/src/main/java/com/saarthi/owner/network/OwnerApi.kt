@@ -5,6 +5,7 @@ import com.saarthi.owner.R
 import com.saarthi.owner.data.AccountType
 import com.saarthi.owner.data.SessionStore
 import com.saarthi.owner.ui.common.Words
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -94,6 +95,10 @@ class OwnerApi(
         val lastName: String = "",
         val email: String = "",
         val status: String = "ACTIVE",
+        /** The profile photo, as a relative media URL. */
+        val avatarUrl: String? = null,
+        /** The cover image, full size, as a relative media URL. */
+        val coverUrl: String? = null,
     )
 
     @Serializable
@@ -166,8 +171,15 @@ class OwnerApi(
     /**
      * Get back in without asking anything.
      *
-     * Called on launch. A refusal means the thirty days elapsed or the session
-     * was revoked, and the honest answer is the sign-in screen.
+     * Called on launch. Only a rejection of the credential itself (401: the
+     * thirty days elapsed or the session was revoked; 403: the account is no
+     * longer active) ends the session, and the honest answer is the sign-in
+     * screen.
+     *
+     * Anything else is thrown and the session kept: no connection, and also a
+     * refusal that says nothing about the credential. The refresh route is
+     * rate-limited and can fail like any other, and a 429 or 5xx used to clear
+     * the session, signing the owner out because the server was briefly busy.
      */
     suspend fun restore(): SessionStore.Account? {
         val refresh = session.refreshToken ?: return null
@@ -177,8 +189,10 @@ class OwnerApi(
                 json.encodeToString(RefreshRequest.serializer(), RefreshRequest(refresh)),
             )
         } catch (error: Failure) {
-            if (error is Failure.Refused || error is Failure.SignedOut) session.clear()
-            if (error is Failure.Offline) throw error
+            val rejected = error is Failure.SignedOut ||
+                (error is Failure.Refused && error.status in REJECTED_CREDENTIAL_STATUSES)
+            if (!rejected) throw error
+            session.clear()
             null
         }
     }
@@ -222,10 +236,26 @@ class OwnerApi(
 
     private fun adopt(auth: AuthDto): SessionStore.Account {
         val payload = auth.session ?: throw Failure.Refused(200, Words.get(R.string.net_error_no_user))
+        val account = accountOf(payload)
+        session.store(account, auth.accessToken, auth.expiresIn, auth.refreshToken)
+        return account
+    }
+
+    /**
+     * Read the signed-in account again without minting new tokens, as the web's
+     * `refreshSession()` does: after a profile photo or cover changes, so every
+     * screen that draws the person shows the new one.
+     */
+    suspend fun refreshSession(): SessionStore.Account? {
+        val payload = get("/auth/me", SessionDto.serializer()) ?: return null
+        return accountOf(payload).also(session::refresh)
+    }
+
+    private fun accountOf(payload: SessionDto): SessionStore.Account {
         val user = payload.user ?: throw Failure.Refused(200, Words.get(R.string.net_error_no_user))
         val organization = payload.organization
 
-        val account = SessionStore.Account(
+        return SessionStore.Account(
             userId = user.id,
             firstName = user.firstName.ifBlank { user.email.substringBefore('@') },
             fullName = listOf(user.firstName, user.lastName).filter { it.isNotBlank() }
@@ -248,9 +278,9 @@ class OwnerApi(
             organizationId = organization?.id.orEmpty(),
             // No subscription at all (a driver-only seat) includes no plan features.
             features = payload.subscription?.features?.toSet() ?: emptySet(),
+            avatarUrl = user.avatarUrl?.ifBlank { null },
+            coverUrl = user.coverUrl?.ifBlank { null },
         )
-        session.store(account, auth.accessToken, auth.expiresIn, auth.refreshToken)
-        return account
     }
 
     // -----------------------------------------------------------------------
@@ -282,16 +312,33 @@ class OwnerApi(
     }
 
     /**
-     * The bytes behind a URL the API itself handed out — an arrival photo.
-     * Only Saarthi's own addresses are followed, so the token never leaves it.
+     * The bytes behind a URL the API itself handed out: a profile photo, a
+     * cover, an arrival photo. Only Saarthi's own addresses are followed, so
+     * the token never leaves it. Null when there is no picture to give (a
+     * refusal, no connection, no session): every caller has a fallback to draw.
      */
     suspend fun image(url: String): ByteArray? = withContext(Dispatchers.IO) {
         val full = if (url.startsWith("/")) "$baseUrl$url" else url
-        if (!full.startsWith(baseUrl)) return@withContext null
-        val request = Request.Builder().url(full).header("Authorization", "Bearer ${bearer()}").build()
-        runCatching {
-            client.newCall(request).execute().use { response -> if (response.isSuccessful) response.body?.bytes() else null }
-        }.getOrNull()
+        if (!full.startsWith("$baseUrl/")) return@withContext null
+        try {
+            fetchImage(full, retryAfterRefresh = true)
+        } catch (error: CancellationException) {
+            throw error
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    /** One image request; a 401 signs in again once and retries, exactly as [send] does. */
+    private suspend fun fetchImage(url: String, retryAfterRefresh: Boolean): ByteArray? {
+        val request = Request.Builder().url(url).header("Authorization", "Bearer ${bearer()}").build()
+        val rejected = client.newCall(request).execute().use { response ->
+            if (response.isSuccessful) return response.body?.bytes()
+            response.code == 401
+        }
+        if (!rejected || !retryAfterRefresh) return null
+        refreshLock.withLock { restore() } ?: return null
+        return fetchImage(url, retryAfterRefresh = false)
     }
 
     /** A signed-in DELETE. */
@@ -474,6 +521,9 @@ class OwnerApi(
     private companion object {
         const val TAG = "OwnerApi"
         val JSON_MEDIA = "application/json; charset=utf-8".toMediaType()
+
+        /** `TOKEN_INVALID` and `FORBIDDEN` from the refresh route; see [restore]. */
+        val REJECTED_CREDENTIAL_STATUSES = setOf(401, 403)
     }
 }
 

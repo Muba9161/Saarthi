@@ -63,6 +63,7 @@ import kotlinx.coroutines.launch
 @Composable
 internal fun DriverCard(
     driverName: String?,
+    driverPhotoUrl: String?,
     canAssign: Boolean,
     busy: Boolean,
     onAssign: () -> Unit,
@@ -75,7 +76,7 @@ internal fun DriverCard(
     Column(modifier.fillMaxWidth().card(radius = 22.dp).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
             if (driverName != null) {
-                Avatar(driverName, size = 44.dp, background = c.primarySoft, ink = c.primary)
+                Avatar(driverName, size = 44.dp, background = c.primarySoft, ink = c.primary, photoUrl = driverPhotoUrl)
             } else {
                 com.saarthi.owner.ui.design.IconWell(Lucide.user, well = c.sunken, ink = c.muted, size = 44.dp, radius = 22.dp)
             }
@@ -187,13 +188,20 @@ private fun AssignForm(app: OwnerApp, account: SessionStore.Account, vehicle: Ve
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     if (self != null || canAddSelf) {
-                        ChoiceRow(stringResource(R.string.fleet_assign_myself), selfLine(self, vehicle), selected = chosen == SELF, enabled = selfAssignable(self, vehicle)) { chosen = SELF }
+                        ChoiceRow(
+                            stringResource(R.string.fleet_assign_myself),
+                            selfLine(self, vehicle),
+                            selected = chosen == SELF,
+                            enabled = selfAssignable(self, vehicle),
+                            photoUrl = account.avatarUrl,
+                        ) { chosen = SELF }
                     }
                     shown.value.drivers.filter { it.id != self?.id }.forEach { driver ->
                         ChoiceRow(
                             driver.fullName,
                             listOfNotNull(driver.phone, driver.overallScore?.let { stringResource(R.string.fleet_assign_score, it) }).joinToString(" · ").ifBlank { null },
                             selected = chosen == driver.id,
+                            photoUrl = driver.avatarUrl,
                         ) { chosen = driver.id }
                     }
                     if (shown.value.drivers.isEmpty()) {
@@ -234,7 +242,7 @@ private fun selfLine(self: DriversApi.SelfDriver?, vehicle: VehiclesApi.Vehicle)
 }
 
 @Composable
-private fun ChoiceRow(title: String, line: String?, selected: Boolean, enabled: Boolean = true, onPick: () -> Unit) {
+private fun ChoiceRow(title: String, line: String?, selected: Boolean, enabled: Boolean = true, photoUrl: String? = null, onPick: () -> Unit) {
     val c = Saarthi.colors
     Row(
         Modifier
@@ -245,7 +253,7 @@ private fun ChoiceRow(title: String, line: String?, selected: Boolean, enabled: 
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Avatar(title, size = 36.dp, background = c.primarySoft, ink = c.primary)
+        Avatar(title, size = 36.dp, background = c.primarySoft, ink = c.primary, photoUrl = photoUrl)
         Column(Modifier.weight(1f)) {
             Text(title, style = SType.bodyStrong, color = if (enabled) c.fg else c.subtle, maxLines = 1, overflow = TextOverflow.Ellipsis)
             line?.let { Text(it, style = SType.caption, color = c.muted, maxLines = 1, overflow = TextOverflow.Ellipsis) }

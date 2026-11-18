@@ -11,6 +11,9 @@ package com.saarthi.driver.data
  */
 object QuickLoginPolicy {
 
+    // Quick Login is retired (see `QuickLoginStore`): no PIN can be created any
+    // more, so only the rules the one last unlock still enforces remain.
+
     /** Exactly four digits, because that is what the product asked for. */
     const val PIN_LENGTH = 4
 
@@ -23,55 +26,6 @@ object QuickLoginPolicy {
      * hopeless.
      */
     const val MAX_ATTEMPTS = 5
-
-    /** What a PIN can be wrong about. */
-    sealed interface PinVerdict {
-        data object Acceptable : PinVerdict
-
-        /** Not four digits, or not digits at all. */
-        data class Malformed(val reason: String) : PinVerdict
-
-        /** Well-formed but guessable. */
-        data class TooWeak(val reason: String) : PinVerdict
-    }
-
-    /**
-     * Whether a PIN may be used.
-     *
-     * The weak-PIN rules exist because a four-digit space is small and people
-     * do not choose from it evenly: `1234` and `0000` alone account for a
-     * remarkable share of real PINs. Refusing the obvious handful costs a
-     * driver one retry and removes the guesses an opportunist would try first.
-     *
-     * Deliberately a short list rather than a long one. A driver who cannot
-     * find an acceptable PIN writes it on the dashboard, which is worse than
-     * any of the PINs this rejects.
-     */
-    fun evaluate(pin: String): PinVerdict {
-        if (pin.length != PIN_LENGTH || !pin.all { it.isDigit() }) {
-            return PinVerdict.Malformed("Enter exactly four digits.")
-        }
-
-        val digits = pin.map { it - '0' }
-
-        if (digits.all { it == digits[0] }) {
-            return PinVerdict.TooWeak("Four of the same digit is too easy to guess.")
-        }
-
-        val ascending = digits.zipWithNext().all { (a, b) -> b == a + 1 }
-        val descending = digits.zipWithNext().all { (a, b) -> b == a - 1 }
-        if (ascending || descending) {
-            return PinVerdict.TooWeak("Sequences like 1234 are too easy to guess.")
-        }
-
-        // The remaining common choices. `2580` is the middle column of a keypad
-        // and is far more popular than chance would suggest.
-        if (pin in COMMON) {
-            return PinVerdict.TooWeak("That is one of the most commonly used PINs.")
-        }
-
-        return PinVerdict.Acceptable
-    }
 
     /** What should happen after a wrong PIN. */
     sealed interface AttemptOutcome {
@@ -113,6 +67,4 @@ object QuickLoginPolicy {
         3 -> 15_000L
         else -> 60_000L
     }
-
-    private val COMMON = setOf("1122", "1212", "2580", "1004", "2000", "6969", "1313")
 }

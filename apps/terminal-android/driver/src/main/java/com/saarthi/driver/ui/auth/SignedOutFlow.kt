@@ -94,12 +94,9 @@ internal class AuthForm {
  * One step per screen, as the design lays it out, with the step machine kept
  * here and the view model left exactly as it was: sign-in and registration
  * are still the same two calls, and the server is still the authority on both.
- *
- * [onCreating] tells the root which of the two just succeeded, so the screen
- * after this one can say "Account created" or "Welcome back" correctly.
  */
 @Composable
-fun SignedOutFlow(viewModel: DriverViewModel, onCreating: (Boolean) -> Unit) {
+fun SignedOutFlow(viewModel: DriverViewModel) {
     val busy by viewModel.busy.collectAsState()
     val error by viewModel.error.collectAsState()
     var step by rememberSaveable { mutableStateOf(AuthStep.WELCOME) }
@@ -165,7 +162,6 @@ fun SignedOutFlow(viewModel: DriverViewModel, onCreating: (Boolean) -> Unit) {
                     onBack = { go(AuthStep.EMAIL, false) },
                     onSignIn = {
                         creating = false
-                        onCreating(false)
                         viewModel.signIn(form.email, form.password)
                     },
                     onForgot = {
@@ -191,7 +187,6 @@ fun SignedOutFlow(viewModel: DriverViewModel, onCreating: (Boolean) -> Unit) {
                             }
                         },
                         onCreate = {
-                            onCreating(true)
                             viewModel.register(
                                 DriverApi.RegisterRequest(
                                     email = form.email.trim(),

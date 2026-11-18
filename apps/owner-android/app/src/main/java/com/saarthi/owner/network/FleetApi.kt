@@ -70,6 +70,8 @@ class FleetApi(private val api: OwnerApi) {
         val licenseValidity: String = "UNKNOWN",
         val verificationStatus: String = "",
         val scoreBand: String? = null,
+        /** Their photo: their own profile photo, else the one the fleet added. */
+        val photoUrl: String? = null,
     )
 
     @Serializable

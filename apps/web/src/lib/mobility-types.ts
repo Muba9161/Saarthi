@@ -72,7 +72,8 @@ export interface VehicleSummary {
   verificationStatus: string;
   odometerKm: number;
   shareLocation: boolean;
-  currentDriver: { id: string; name: string; overallScore: number | null } | null;
+  /** `avatarUrl` is the driver's photo: their own profile photo, else one the fleet attached. */
+  currentDriver: { id: string; name: string; overallScore: number | null; avatarUrl: string | null } | null;
   currentTripId: string | null;
   lastLocation: {
     latitude: number;

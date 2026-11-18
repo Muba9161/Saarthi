@@ -104,7 +104,7 @@ fun ChooseVehicleScreen(
     val busy by viewModel.busy.collectAsState()
     val error by viewModel.error.collectAsState()
     val fleet by viewModel.fleet.collectAsState()
-    val quickLogin by viewModel.quickLoginMethods.collectAsState()
+    val appLock by preferences.appLock.collectAsState()
     val licenceMissing by viewModel.licenceMissing.collectAsState()
     // Without riding along on this account there is no question to go back to.
     val rideAlong by viewModel.rideAlong.collectAsState()
@@ -237,8 +237,8 @@ fun ChooseVehicleScreen(
                     )
                 }
 
-                QuickLoginRow(
-                    on = quickLogin.any,
+                AppLockRow(
+                    on = appLock,
                     onClick = openProfile,
                     modifier = Modifier
                         .padding(top = 14.dp)
@@ -437,9 +437,9 @@ internal fun BoxScope.NoCamera(
     }
 }
 
-/** The Quick Login row at the foot of the screen, which opens the profile's settings. */
+/** The App lock row at the foot of the screen, which opens the profile's settings. */
 @Composable
-private fun QuickLoginRow(on: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun AppLockRow(on: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val c = Saarthi.colors
     Row(
         modifier
@@ -453,7 +453,7 @@ private fun QuickLoginRow(on: Boolean, onClick: () -> Unit, modifier: Modifier =
     ) {
         IconWell(Lucide.fingerprint, well = c.successSoft, ink = c.success, size = 40.dp, shape = CircleShape, iconSize = 18.dp)
         Column(Modifier.weight(1f)) {
-            Text(stringResource(R.string.quick_login), style = SType.bodyStrong, color = c.fg)
+            Text(stringResource(R.string.app_lock), style = SType.bodyStrong, color = c.fg)
             Text(
                 stringResource(if (on) R.string.choose_quick_on else R.string.choose_quick_off),
                 style = SType.small,

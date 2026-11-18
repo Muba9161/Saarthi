@@ -13,7 +13,12 @@ import java.time.Instant
 class VehiclesApi(private val api: OwnerApi) {
 
     @Serializable
-    data class Driver(val id: String = "", val name: String = "")
+    data class Driver(
+        val id: String = "",
+        val name: String = "",
+        /** Their photo: their own profile photo, else the one the fleet added. */
+        val avatarUrl: String? = null,
+    )
 
     @Serializable
     data class LastLocation(

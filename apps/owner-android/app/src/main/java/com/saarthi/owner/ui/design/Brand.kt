@@ -40,6 +40,7 @@ import kotlin.math.cos
 import kotlin.math.sin
 import com.saarthi.owner.R
 import com.saarthi.owner.ui.common.Words
+import com.saarthi.owner.ui.common.rememberRemoteImage
 
 /**
  * The brand ground: deep navy, a saffron glow bottom-right and a green one top-right.
@@ -157,7 +158,10 @@ fun initialsOf(name: String): String {
     }
 }
 
-/** A person, as the design draws them before there is a photograph: their initials. */
+/**
+ * A person in a circle: their [photoUrl] once it has loaded, their initials
+ * before that, and whenever there is no photograph to show.
+ */
 @Composable
 fun Avatar(
     name: String,
@@ -167,7 +171,9 @@ fun Avatar(
     background: Color = Color.White,
     ink: Color = Brand.navy,
     brand: Boolean = false,
+    photoUrl: String? = null,
 ) {
+    val photo = rememberRemoteImage(photoUrl, size)
     Box(
         modifier
             .size(size)
@@ -177,11 +183,15 @@ fun Avatar(
             ),
         contentAlignment = Alignment.Center,
     ) {
-        Text(
-            initialsOf(name),
-            style = SType.bodyStrong.copy(fontSize = fontSize, fontWeight = FontWeight.Bold),
-            color = if (brand) Color.White else ink,
-        )
+        if (photo != null) {
+            Image(photo, contentDescription = name, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+        } else {
+            Text(
+                initialsOf(name),
+                style = SType.bodyStrong.copy(fontSize = fontSize, fontWeight = FontWeight.Bold),
+                color = if (brand) Color.White else ink,
+            )
+        }
     }
 }
 

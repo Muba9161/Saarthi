@@ -69,10 +69,28 @@ class DriverPreferences(context: Context, settings: TerminalSettings) {
         _wakeWord.value = on
     }
 
+    /**
+     * Ask for a fingerprint, face or the phone's screen lock before the app opens.
+     *
+     * Off by default, as in the owner app: the session restores silently and
+     * the app opens straight away unless the driver turns this on in Profile.
+     * It guards the screen only. The session itself is in encrypted storage
+     * either way, and Android does the checking, so Humsafar never sees a
+     * fingerprint or the phone's PIN.
+     */
+    private val _appLock = MutableStateFlow(preferences.getBoolean(KEY_APP_LOCK, false))
+    val appLock: StateFlow<Boolean> = _appLock.asStateFlow()
+
+    fun setAppLock(on: Boolean) {
+        preferences.edit().putBoolean(KEY_APP_LOCK, on).apply()
+        _appLock.value = on
+    }
+
     private companion object {
         const val FILE = "saarthi_driver_preferences"
         const val KEY_APPEARANCE = "appearance"
         const val KEY_INSTRUMENTS = "instruments_on_map"
         const val KEY_WAKE_WORD = "wake_word"
+        const val KEY_APP_LOCK = "app_lock"
     }
 }

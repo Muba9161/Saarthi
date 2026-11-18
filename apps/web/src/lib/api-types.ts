@@ -97,6 +97,8 @@ export interface DriverSummary {
   availability: string;
   currentTruck: { id: string; registrationNumber: string } | null;
   overallScore: number | null;
+  /** The driver's photo: their own profile photo, else one the fleet attached. */
+  avatarUrl: string | null;
   totalTrips: number;
   totalDistanceKm: number;
   documentHealth: { total: number; expired: number; expiringSoon: number; pending: number };

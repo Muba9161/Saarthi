@@ -144,6 +144,10 @@ class DriverApi(
         val firstName: String = "",
         val lastName: String = "",
         val email: String = "",
+        /** The profile photo, as a relative `/api/v1/media/...` URL; see [image]. */
+        val avatarUrl: String? = null,
+        /** The profile banner, likewise. */
+        val coverUrl: String? = null,
     )
 
     @Serializable
@@ -281,19 +285,39 @@ class DriverApi(
     /**
      * Get back in without asking the driver anything.
      *
-     * Called on launch. A failure here is not an error to show — it means the
-     * thirty days elapsed, or the fleet revoked the session, and the honest
-     * response is the sign-in screen rather than a message about tokens.
+     * Called on launch. Null means there is no session to restore: none was
+     * ever stored, or Saarthi rejected it because the thirty days elapsed or
+     * the fleet revoked it, and the honest response is the sign-in screen.
+     *
+     * Throws when Saarthi could not be asked (no signal, a rate limit, a server
+     * error). The session is kept, and the caller says there is no connection
+     * rather than showing a sign-in screen to a driver who is still signed in.
      */
-    suspend fun restore(): DriverAccountStore.Account? {
+    suspend fun restore(): DriverAccountStore.Account? = refreshLock.withLock { refreshHeld() }
+
+    /**
+     * Exchange the refresh token this process holds. The caller holds [refreshLock].
+     *
+     * Separate from [restore] because `Mutex` is not re-entrant: [bearer] already
+     * holds the lock when it needs a refresh, and calling [restore] from there
+     * suspended forever on the second `withLock`.
+     *
+     * The token is read here, under the lock, rather than before it. A caller
+     * that waited behind another refresh must use the token that refresh just
+     * rotated in; the one it saw before waiting is already dead on the server.
+     *
+     * Returns null when there is no credential, or when Saarthi rejected it
+     * outright (see [rejectsCredential]). Anything else, such as no signal, a
+     * rate limit or a server error, is thrown and the credential is kept.
+     */
+    private suspend fun refreshHeld(): DriverAccountStore.Account? {
         val refresh = account.refreshToken ?: return null
         return try {
-            refreshLock.withLock {
-                authenticate("/api/v1/auth/refresh", buildRefreshBody(refresh))
-            }
+            authenticate("/api/v1/auth/refresh", buildRefreshBody(refresh))
         } catch (error: Failure) {
-            DebugLog.debug(TAG, "Could not restore the session: ${error.message}")
-            if (error is Failure.Refused || error is Failure.SignedOut) account.clear()
+            if (!error.rejectsCredential()) throw error
+            DebugLog.debug(TAG, "Saarthi rejected the stored session: ${error.message}")
+            account.clear()
             null
         }
     }
@@ -305,15 +329,32 @@ class DriverApi(
      * read from the account store — because when Quick Login is on, the store
      * does not have it. The server is still the authority: an unlocked PIN says
      * who is holding the phone, and only this call can say the session lives.
+     *
+     * Null only when Saarthi rejected the credential. A dropped connection or a
+     * busy server is thrown instead, because neither says anything about the
+     * session, and treating them as expiry sent drivers with a weak signal back
+     * to the password screen right after a correct PIN.
      */
-    suspend fun restoreWith(refreshToken: String): DriverAccountStore.Account? = try {
-        refreshLock.withLock {
+    suspend fun restoreWith(refreshToken: String): DriverAccountStore.Account? = refreshLock.withLock {
+        try {
             authenticate("/api/v1/auth/refresh", buildRefreshBody(refreshToken))
+        } catch (error: Failure) {
+            if (!error.rejectsCredential()) throw error
+            DebugLog.debug(TAG, "Unsealed credential was refused: ${error.message}")
+            null
         }
-    } catch (error: Failure) {
-        DebugLog.debug(TAG, "Unsealed credential was refused: ${error.message}")
-        null
     }
+
+    /**
+     * Whether a failed refresh means the credential itself is finished.
+     *
+     * Only 401 (expired, revoked or unknown) and 403 (account no longer active)
+     * mean that. The refresh route is rate-limited and can fail like any other
+     * route, and a 429 or 5xx used to delete the stored session, which signed
+     * the driver out because the server was briefly busy.
+     */
+    private fun Failure.rejectsCredential(): Boolean =
+        this is Failure.Refused && status in REJECTED_CREDENTIAL_STATUSES
 
     private suspend fun authenticate(path: String, body: String): DriverAccountStore.Account {
         val raw = send("POST", path, body, authenticated = false)
@@ -329,6 +370,8 @@ class DriverApi(
                 .joinToString(" ")
                 .ifBlank { user.email },
             email = user.email,
+            avatarUrl = user.avatarUrl?.takeIf { it.isNotBlank() },
+            coverUrl = user.coverUrl?.takeIf { it.isNotBlank() },
         )
         account.store(stored, auth.accessToken, auth.expiresIn, auth.refreshToken)
         rememberSession(auth.session)
@@ -581,18 +624,67 @@ class DriverApi(
             ?: throw Failure.Refused(200, "Saarthi answered but sent nothing back.")
     }
 
+    /**
+     * The bytes of an image Saarthi itself handed out, such as the driver's
+     * profile photo or banner. Null when it cannot be had for any reason; a
+     * picture is never worth an error on screen, and the caller falls back to
+     * initials.
+     *
+     * Media is served only to a signed-in session, so the bearer token goes
+     * with it, and only to Saarthi's own address. One retry after a refresh,
+     * exactly as [send] does, because an expired access token is the usual
+     * reason a photo would otherwise vanish mid-session.
+     */
+    suspend fun image(url: String): ByteArray? = withContext(Dispatchers.IO) {
+        val full = if (url.startsWith("/")) "$baseUrl$url" else url
+        if (!full.startsWith("$baseUrl/")) return@withContext null
+        try {
+            fetchImage(full) ?: restore()?.let { fetchImage(full) }
+        } catch (error: Failure) {
+            DebugLog.debug(TAG, "Image unavailable: ${error.message}")
+            null
+        }
+    }
+
+    /** One authenticated GET for [image]. Null on a 401, so the caller can refresh and retry. */
+    private suspend fun fetchImage(url: String): ByteArray? {
+        val request = Request.Builder()
+            .url(url)
+            .header("Authorization", "Bearer ${bearer()}")
+            .header("X-Saarthi-Client", "driver/${CoreConfig.versionName}")
+            .build()
+        val response = try {
+            client.newCall(request).execute()
+        } catch (error: IOException) {
+            throw Failure.Offline(error)
+        }
+        return response.use { raw ->
+            when {
+                raw.isSuccessful -> raw.body?.bytes()
+                raw.code == 401 -> null
+                else -> throw Failure.Refused(raw.code, "The image could not be loaded.")
+            }
+        }
+    }
+
     /** A signed-in GET, likewise. Null when the server answered with nothing. */
     internal suspend fun <T> get(path: String, serializer: KSerializer<T>): T? {
         val raw = send("GET", path, null)
         return json.decodeFromString(Envelope.serializer(serializer), raw).data
     }
 
-    /** A valid access token, refreshing once if the held one is stale. */
+    /**
+     * A valid access token, refreshing once if the held one is stale.
+     *
+     * A refresh that fails for a transient reason throws that reason (usually
+     * [Failure.Offline]), so the screen says there is no connection rather than
+     * "Please sign in again" to a driver whose session is fine.
+     */
     private suspend fun bearer(): String {
         if (account.hasUsableAccessToken()) return account.accessToken!!
         refreshLock.withLock {
             if (account.hasUsableAccessToken()) return account.accessToken!!
-            restore() ?: throw Failure.SignedOut
+            refreshHeld() ?: throw Failure.SignedOut
         }
         return account.accessToken ?: throw Failure.SignedOut
     }
@@ -686,6 +778,10 @@ class DriverApi(
 
         /** `Permission.VEHICLE_LOOKUP_SENSITIVE` — held by a fleet owner, never by a driver alone. */
         const val FULL_RC_PERMISSION = "vehicles.lookup.sensitive"
+
+        /** `TOKEN_INVALID` and `FORBIDDEN` from the refresh route; see [rejectsCredential]. */
+        val REJECTED_CREDENTIAL_STATUSES = setOf(401, 403)
+
         val JSON_MEDIA = "application/json; charset=utf-8".toMediaType()
     }
 }

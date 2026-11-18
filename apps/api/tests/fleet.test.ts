@@ -21,6 +21,7 @@ import {
   resetDatabase,
   sampleJpeg,
   unique,
+  uploadImage,
   type TestOrganization,
   type TestUser,
 } from './helpers';
@@ -503,6 +504,83 @@ describe('Fleet management', () => {
 
       expect(upload.status).toBe(201);
       expect(upload.body.data.ownerId).toBe(created.body.data.driver.id);
+    });
+
+    it("shows a driver's own profile photo on the driver list, the driver and their vehicle", async () => {
+      const photoId = await uploadImage(driverUser, {
+        ownerType: MediaOwnerType.USER,
+        ownerId: driverUser.id,
+        purpose: MediaPurpose.AVATAR,
+      });
+      const { avatarUrl } = await prisma.user.findUniqueOrThrow({
+        where: { id: driverUser.id },
+        select: { avatarUrl: true },
+      });
+      expect(avatarUrl).toContain(photoId);
+
+      const truck = await request<{ id: string }>({
+        method: 'POST',
+        url: '/api/v1/trucks',
+        user: ownerA,
+        payload: truckPayload(),
+      });
+      const assigned = await request({
+        method: 'POST',
+        url: `/api/v1/trucks/${truck.body.data.id}/assign-driver`,
+        user: ownerA,
+        payload: { driverId: driverUser.driverId },
+      });
+      expect(assigned.status).toBe(200);
+
+      const listed = await request<{ items: { id: string; avatarUrl: string | null }[] }>({
+        method: 'GET',
+        url: '/api/v1/drivers',
+        user: ownerA,
+      });
+      expect(listed.body.data.items.find((row) => row.id === driverUser.driverId)?.avatarUrl).toBe(
+        avatarUrl,
+      );
+
+      const one = await request<{ avatarUrl: string | null }>({
+        method: 'GET',
+        url: `/api/v1/drivers/${driverUser.driverId}`,
+        user: ownerA,
+      });
+      expect(one.body.data.avatarUrl).toBe(avatarUrl);
+
+      const vehicle = await request<{ currentDriver: { avatarUrl: string | null } | null }>({
+        method: 'GET',
+        url: `/api/v1/fleet/vehicles/${truck.body.data.id}`,
+        user: ownerA,
+      });
+      expect(vehicle.body.data.currentDriver?.avatarUrl).toBe(avatarUrl);
+    });
+
+    it("falls back to the fleet's photo of a driver, until the driver adds their own", async () => {
+      const readPhoto = async () =>
+        (
+          await request<{ avatarUrl: string | null }>({
+            method: 'GET',
+            url: `/api/v1/drivers/${driverUser.driverId}`,
+            user: ownerA,
+          })
+        ).body.data.avatarUrl;
+
+      expect(await readPhoto()).toBeNull();
+
+      const fleetPhotoId = await uploadImage(ownerA, {
+        ownerType: MediaOwnerType.DRIVER,
+        ownerId: driverUser.driverId!,
+        purpose: MediaPurpose.AVATAR,
+      });
+      expect(await readPhoto()).toBe(`/api/v1/media/${fleetPhotoId}/file?variant=original`);
+
+      const ownPhotoId = await uploadImage(driverUser, {
+        ownerType: MediaOwnerType.USER,
+        ownerId: driverUser.id,
+        purpose: MediaPurpose.AVATAR,
+      });
+      expect(await readPhoto()).toContain(ownPhotoId);
     });
 
     it('refuses to assign an unverified driver', async () => {

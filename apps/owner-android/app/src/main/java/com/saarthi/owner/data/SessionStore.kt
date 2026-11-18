@@ -51,6 +51,10 @@ class SessionStore(context: Context) {
          * so nothing is hidden on its account until the session is next refreshed.
          */
         val features: Set<String>? = null,
+        /** The person's profile photo, as a relative media URL; null shows their initials. */
+        val avatarUrl: String? = null,
+        /** The person's cover image, full size; null shows the brand ground instead. */
+        val coverUrl: String? = null,
     ) {
         fun can(permission: String): Boolean = permission in permissions
 
@@ -79,9 +83,28 @@ class SessionStore(context: Context) {
         return token.isNotEmpty() && System.currentTimeMillis() < accessExpiresAt - EXPIRY_MARGIN_MS
     }
 
+    @Synchronized
     fun store(account: Account, accessToken: String, expiresInSeconds: Long, refreshToken: String?) {
         this.accessToken = accessToken
         accessExpiresAt = System.currentTimeMillis() + expiresInSeconds * 1000
+        save(account, refreshToken)
+        _account.value = account
+    }
+
+    /**
+     * A fresher read of the account that is signed in, with the same tokens:
+     * its new photo, say. Dropped when it no longer describes that account,
+     * because the person signed out or moved business while it was on its way.
+     */
+    @Synchronized
+    fun refresh(account: Account) {
+        val current = _account.value ?: return
+        if (current.userId != account.userId || current.organizationId != account.organizationId) return
+        save(account, refreshToken = null)
+        _account.value = account
+    }
+
+    private fun save(account: Account, refreshToken: String?) {
         preferences.edit().apply {
             putString(KEY_USER_ID, account.userId)
             putString(KEY_FIRST_NAME, account.firstName)
@@ -96,11 +119,13 @@ class SessionStore(context: Context) {
             account.features?.let { putStringSet(KEY_FEATURES, it) } ?: remove(KEY_FEATURES)
             putString(KEY_ORGANIZATION_ID, account.organizationId)
             putString(KEY_BUSINESSES, account.businesses.joinToString(RECORD) { listOf(it.id, it.name, it.type).joinToString(FIELD) })
+            putString(KEY_AVATAR_URL, account.avatarUrl)
+            putString(KEY_COVER_URL, account.coverUrl)
             if (refreshToken != null) putString(KEY_REFRESH, refreshToken)
         }.apply()
-        _account.value = account
     }
 
+    @Synchronized
     fun clear() {
         accessToken = null
         accessExpiresAt = 0
@@ -130,6 +155,8 @@ class SessionStore(context: Context) {
                 .mapNotNull { record -> record.split(FIELD).takeIf { it.size == 3 }?.let { Business(it[0], it[1], it[2]) } },
             organizationId = preferences.getString(KEY_ORGANIZATION_ID, null).orEmpty(),
             features = preferences.getStringSet(KEY_FEATURES, null)?.toSet(),
+            avatarUrl = preferences.getString(KEY_AVATAR_URL, null),
+            coverUrl = preferences.getString(KEY_COVER_URL, null),
         )
     }
 
@@ -148,6 +175,8 @@ class SessionStore(context: Context) {
         const val KEY_FEATURES = "plan_features"
         const val KEY_ORGANIZATION_ID = "organization_id"
         const val KEY_BUSINESSES = "businesses"
+        const val KEY_AVATAR_URL = "avatar_url"
+        const val KEY_COVER_URL = "cover_url"
 
         /** Separators no business name contains: the unit and record separators. */
         const val FIELD = "\u001F"

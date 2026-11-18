@@ -28,6 +28,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -163,7 +164,12 @@ fun initialsOf(name: String): String {
     }
 }
 
-/** A person, as the design draws them before there is a photograph: their initials. */
+/**
+ * A person: their [photo] when there is one, and their initials until then.
+ *
+ * The initials show until the photo has loaded, so the circle never flashes
+ * empty, and they are what remains when there is no photo at all.
+ */
 @Composable
 fun Avatar(
     name: String,
@@ -173,6 +179,7 @@ fun Avatar(
     background: Color = Color.White,
     ink: Color = Brand.navy,
     brand: Boolean = false,
+    photo: ImageBitmap? = null,
 ) {
     Box(
         modifier
@@ -183,11 +190,20 @@ fun Avatar(
             ),
         contentAlignment = Alignment.Center,
     ) {
-        Text(
-            initialsOf(name),
-            style = SType.bodyStrong.copy(fontSize = fontSize, fontWeight = FontWeight.Bold),
-            color = if (brand) Color.White else ink,
-        )
+        if (photo != null) {
+            Image(
+                photo,
+                contentDescription = name.ifBlank { null },
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.matchParentSize().clip(CircleShape),
+            )
+        } else {
+            Text(
+                initialsOf(name),
+                style = SType.bodyStrong.copy(fontSize = fontSize, fontWeight = FontWeight.Bold),
+                color = if (brand) Color.White else ink,
+            )
+        }
     }
 }
 

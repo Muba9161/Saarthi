@@ -622,6 +622,37 @@ export function sampleJpeg(sizeBytes = 512): Buffer {
   return Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), body]);
 }
 
+/**
+ * Upload an image through `POST /media` as the apps do, and return its id.
+ *
+ * For tests about where a photo shows up afterwards, not about the upload's
+ * own validation, which the media tests cover.
+ */
+export async function uploadImage(
+  user: TestUser,
+  target: { ownerType: string; ownerId: string; purpose: string },
+): Promise<string> {
+  const body = multipart(target, {
+    fieldName: 'file',
+    fileName: 'photo.jpg',
+    contentType: 'image/jpeg',
+    content: sampleJpeg(2_048),
+  });
+  const response = await request<{ id: string }>({
+    method: 'POST',
+    url: '/api/v1/media',
+    user,
+    payload: body.payload,
+    headers: body.headers,
+  });
+  if (response.status !== 201) {
+    throw new Error(
+      `Could not upload an image: ${response.status} ${response.body.error?.message}`,
+    );
+  }
+  return response.body.data.id;
+}
+
 /** A small but structurally valid PDF, for document upload tests. */
 export function samplePdf(title = 'Test Document'): Buffer {
   const content = `BT /F1 14 Tf 60 760 Td (${title}) Tj ET`;

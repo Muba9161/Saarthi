@@ -273,6 +273,23 @@ class TerminalRepository(
              */
             telemetry.recorder.seedOdometer(vehicle.odometerKm)
         }
+
+        /*
+         * Forget the cached vehicle once Saarthi says this device is unpaired.
+         *
+         * Only the line above ever wrote this cache, so a phone released when its
+         * driver was unassigned or the vehicle was removed kept the old number
+         * indefinitely. The reporting notification reads it, and it went on
+         * naming a vehicle the phone no longer belonged to.
+         *
+         * Keyed on `paired`, not on a missing vehicle: a suspended device has no
+         * vehicle in its state but is still fitted, and keeps its cache for the
+         * offline first paint.
+         */
+        if (!next.terminal.paired) {
+            identity.pairedVehicleId = null
+            identity.pairedRegistration = null
+        }
     }
 
     // -----------------------------------------------------------------------

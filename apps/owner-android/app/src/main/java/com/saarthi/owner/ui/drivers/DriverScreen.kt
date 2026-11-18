@@ -256,7 +256,7 @@ private fun DriverHeader(driver: DriversApi.Driver, modifier: Modifier) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Avatar(driver.fullName, size = 60.dp, background = c.primarySoft, ink = c.primary)
+        Avatar(driver.fullName, size = 60.dp, background = c.primarySoft, ink = c.primary, photoUrl = driver.avatarUrl)
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             listOfNotNull(driver.phone, driver.email).joinToString(" · ").takeIf { it.isNotBlank() }?.let {
                 Text(it, style = SType.small, color = c.muted, maxLines = 2, overflow = TextOverflow.Ellipsis)

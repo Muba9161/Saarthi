@@ -1,5 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import {
+  MediaOwnerType,
+  MediaPurpose,
   OrganizationType,
   PlanTier,
   QrScope,
@@ -18,6 +20,7 @@ import {
   request,
   resetDatabase,
   unique,
+  uploadImage,
   type TestOrganization,
   type TestUser,
 } from './helpers';
@@ -255,6 +258,28 @@ describe('Profile builder', () => {
     });
     expect(status).toBe(400);
     expect(body.error?.message).toContain('uploader');
+  });
+
+  it("shows the person's own cover, never the business's beside it", async () => {
+    // Uploaded person first: keyed by purpose alone, the business's later
+    // upload used to overwrite the person's cover in the photo section.
+    const personal = await uploadImage(owner, {
+      ownerType: MediaOwnerType.USER,
+      ownerId: owner.id,
+      purpose: MediaPurpose.COVER,
+    });
+    await uploadImage(owner, {
+      ownerType: MediaOwnerType.ORGANIZATION,
+      ownerId: fleet.id,
+      purpose: MediaPurpose.COVER,
+    });
+
+    const { body } = await request<{ values: Record<string, unknown> }>({
+      method: 'GET',
+      url: '/api/v1/profile/builder',
+      user: owner,
+    });
+    expect(body.data.values['photo.cover']).toBe(personal);
   });
 
   it('validates a value against its declared kind', async () => {

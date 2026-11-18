@@ -1,5 +1,6 @@
 package com.saarthi.driver.ui.profile
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -24,6 +25,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -36,6 +39,7 @@ import com.saarthi.driver.R
 import com.saarthi.driver.data.DriverPreferences
 import com.saarthi.driver.ui.DriverViewModel
 import com.saarthi.driver.ui.common.LanguageRows
+import com.saarthi.driver.ui.common.rememberSaarthiPhoto
 import com.saarthi.driver.ui.design.Aurora
 import com.saarthi.driver.ui.design.Avatar
 import com.saarthi.driver.ui.design.Brand
@@ -62,7 +66,6 @@ class ShiftDetails(val plate: String, val stateWord: String, val hoursToday: Str
 
 /** What the profile can ask its host to do. */
 class ProfileActions(
-    val setPin: () -> Unit,
     val addLicence: () -> Unit,
     val joinFleet: () -> Unit,
     val fullMap: () -> Unit,
@@ -94,6 +97,8 @@ fun ProfileContent(
         BrandCard(
             name = account?.name.orEmpty(),
             email = account?.email.orEmpty(),
+            photo = rememberSaarthiPhoto(account?.avatarUrl, AVATAR_SIZE),
+            cover = rememberSaarthiPhoto(account?.coverUrl, COVER_EDGE),
             status = shift?.let { stringResource(R.string.profile_on_vehicle, it.plate) } ?: stringResource(R.string.profile_not_signed_on),
             live = shift != null,
             modifier = Modifier.rise(),
@@ -193,7 +198,7 @@ fun ProfileContent(
         LanguageRows(Modifier.card().rise(stagger(6)))
 
         GroupLabel(stringResource(R.string.profile_security), Modifier.rise(stagger(7)))
-        SecurityCard(driver, actions, Modifier.rise(stagger(7)))
+        SecurityCard(preferences, Modifier.rise(stagger(7)))
 
         SaarthiButton(
             stringResource(R.string.profile_sign_out),
@@ -215,9 +220,23 @@ fun ProfileContent(
     }
 }
 
-/** The driver on the brand panel: initials, name, email and where they are. */
+/**
+ * The driver on the brand panel: photo or initials, name, email and where they are.
+ *
+ * Their banner, when they have set one, fills the panel behind a dark scrim so
+ * the white text stays legible over any picture. Until it loads, and when
+ * there is none, the panel keeps its brand gradient.
+ */
 @Composable
-private fun BrandCard(name: String, email: String, status: String, live: Boolean, modifier: Modifier) {
+private fun BrandCard(
+    name: String,
+    email: String,
+    photo: ImageBitmap?,
+    cover: ImageBitmap?,
+    status: String,
+    live: Boolean,
+    modifier: Modifier,
+) {
     val shape = RoundedCornerShape(28.dp)
     Box(
         modifier
@@ -225,13 +244,27 @@ private fun BrandCard(name: String, email: String, status: String, live: Boolean
             .clip(shape)
             .brandGradient(shape),
     ) {
-        Aurora()
+        if (cover != null) {
+            Image(
+                cover,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.matchParentSize(),
+            )
+            Box(
+                Modifier
+                    .matchParentSize()
+                    .background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.28f), Color.Black.copy(alpha = 0.62f)))),
+            )
+        } else {
+            Aurora()
+        }
         Row(
             Modifier.padding(22.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Avatar(name.ifBlank { "S" }, size = 64.dp, fontSize = 22.sp)
+            Avatar(name.ifBlank { "S" }, size = AVATAR_SIZE, fontSize = 22.sp, photo = photo)
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(name, style = SType.sheetTitle.copy(letterSpacing = (-0.03).em), color = Color.White, maxLines = 1)
                 if (email.isNotBlank()) {
@@ -439,3 +472,9 @@ private fun Swatch(option: DriverPreferences.Appearance) {
             .padding(horizontal = 23.dp, vertical = 16.dp),
     )
 }
+
+/** The driver's photo on the brand panel. */
+private val AVATAR_SIZE = 64.dp
+
+/** Decode edge for the banner: the panel is the width of the screen, less its margins. */
+private val COVER_EDGE = 480.dp

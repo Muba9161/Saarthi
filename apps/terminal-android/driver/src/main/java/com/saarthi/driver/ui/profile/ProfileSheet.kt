@@ -61,7 +61,6 @@ fun ProfileSheet(
     onAddLicence: () -> Unit,
     onClose: () -> Unit,
 ) {
-    var pinOpen by remember { mutableStateOf(false) }
     var signOutOpen by remember { mutableStateOf(false) }
     var toast by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(toast) {
@@ -69,7 +68,7 @@ fun ProfileSheet(
         delay(TOAST_MS)
         toast = null
     }
-    BackHandler(enabled = visible && !pinOpen && !signOutOpen, onBack = onClose)
+    BackHandler(enabled = visible && !signOutOpen, onBack = onClose)
 
     AnimatedVisibility(
         visible,
@@ -77,7 +76,6 @@ fun ProfileSheet(
         exit = slideOutVertically(tween(300)) { it / 4 } + fadeOut(tween(250)),
     ) {
         val c = Saarthi.colors
-        val pinOn = stringResource(R.string.toast_pin_on)
         Box(
             Modifier
                 .fillMaxSize()
@@ -108,7 +106,6 @@ fun ProfileSheet(
                     preferences = preferences,
                     shift = null,
                     actions = ProfileActions(
-                        setPin = { pinOpen = true },
                         addLicence = onAddLicence,
                         joinFleet = onJoinFleet,
                         fullMap = {},
@@ -122,15 +119,6 @@ fun ProfileSheet(
                 )
             }
             ShellToast(toast)
-            PinSetupOverlay(
-                visible = pinOpen,
-                driver = driver,
-                onClose = { pinOpen = false },
-                onSaved = {
-                    pinOpen = false
-                    toast = pinOn
-                },
-            )
             ConfirmSheet(
                 visible = signOutOpen,
                 title = stringResource(R.string.sign_out_title),

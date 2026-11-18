@@ -42,6 +42,7 @@ import {
   releaseRegistration,
 } from './vehicle-ownership.service';
 import { resolveRegistrationClaim } from './registration-claim.service';
+import { driverPhotoUrls } from '../drivers/driver-photo';
 
 /**
  * Generalized vehicle management.
@@ -110,7 +111,13 @@ export interface VehicleSummary {
   verificationStatus: string;
   odometerKm: number;
   shareLocation: boolean;
-  currentDriver: { id: string; name: string; overallScore: number | null } | null;
+  currentDriver: {
+    id: string;
+    name: string;
+    overallScore: number | null;
+    /** The driver's photo — their own, else the fleet's (see `driverPhotoUrls`). */
+    avatarUrl: string | null;
+  } | null;
   currentTripId: string | null;
   lastLocation: {
     latitude: number;
@@ -133,7 +140,11 @@ export interface VehicleSummary {
 const vehicleInclude = {
   assignments: {
     where: { status: 'ACTIVE' as const },
-    include: { driver: { include: { user: { select: { firstName: true, lastName: true } } } } },
+    include: {
+      driver: {
+        include: { user: { select: { firstName: true, lastName: true, avatarUrl: true } } },
+      },
+    },
     take: 1,
   },
   deviceAssignments: {
@@ -204,10 +215,18 @@ async function openAlertCounts(vehicleIds: string[]): Promise<Map<string, number
   return map;
 }
 
+/** The photo of each vehicle's current driver, read in one batch for a page of vehicles. */
+function currentDriverPhotos(vehicles: VehicleRecord[]): Promise<Map<string, string>> {
+  return driverPhotoUrls(
+    vehicles.flatMap((vehicle) => vehicle.assignments.map((assignment) => assignment.driver)),
+  );
+}
+
 function toSummary(
   vehicle: VehicleRecord,
   health: DocumentHealth = { total: 0, expired: 0, expiringSoon: 0, pending: 0 },
   openAlerts = 0,
+  driverPhotos: Map<string, string> = new Map(),
 ): VehicleSummary {
   const vehicleType = vehicle.vehicleType as VehicleType;
   const definition = vehicleTypeDefinition(vehicleType);
@@ -256,6 +275,7 @@ function toSummary(
           id: assignment.driver.id,
           name: `${assignment.driver.user.firstName} ${assignment.driver.user.lastName}`.trim(),
           overallScore: assignment.driver.overallScore,
+          avatarUrl: driverPhotos.get(assignment.driver.id) ?? null,
         }
       : null,
     currentTripId: vehicle.currentTripId,
@@ -366,11 +386,15 @@ export async function listVehicles(
   ]);
 
   const ids = vehicles.map((vehicle) => vehicle.id);
-  const [health, alerts] = await Promise.all([documentHealthFor(ids), openAlertCounts(ids)]);
+  const [health, alerts, driverPhotos] = await Promise.all([
+    documentHealthFor(ids),
+    openAlertCounts(ids),
+    currentDriverPhotos(vehicles),
+  ]);
 
   return {
     items: vehicles.map((vehicle) =>
-      toSummary(vehicle, health.get(vehicle.id), alerts.get(vehicle.id) ?? 0),
+      toSummary(vehicle, health.get(vehicle.id), alerts.get(vehicle.id) ?? 0, driverPhotos),
     ),
     pagination: buildPaginationMeta(query.page, query.pageSize, total),
   };
@@ -384,11 +408,12 @@ export async function getVehicle(auth: AuthContext, vehicleId: string): Promise<
   if (!vehicle) throw errors.notFound('Vehicle');
   assertTenantAccess(auth, vehicle.organizationId, 'Vehicle');
 
-  const [health, alerts] = await Promise.all([
+  const [health, alerts, driverPhotos] = await Promise.all([
     documentHealthFor([vehicle.id]),
     openAlertCounts([vehicle.id]),
+    currentDriverPhotos([vehicle]),
   ]);
-  return toSummary(vehicle, health.get(vehicle.id), alerts.get(vehicle.id) ?? 0);
+  return toSummary(vehicle, health.get(vehicle.id), alerts.get(vehicle.id) ?? 0, driverPhotos);
 }
 
 /**
@@ -620,12 +645,16 @@ export async function updateVehicle(
     });
   }
 
-  const [health, alerts, ownership] = await Promise.all([
+  const [health, alerts, ownership, driverPhotos] = await Promise.all([
     documentHealthFor([vehicle.id]),
     openAlertCounts([vehicle.id]),
     plateChanged ? evaluateOwnership(vehicle.id) : ownershipView(vehicle),
+    currentDriverPhotos([vehicle]),
   ]);
-  return { ...toSummary(vehicle, health.get(vehicle.id), alerts.get(vehicle.id) ?? 0), ownership };
+  return {
+    ...toSummary(vehicle, health.get(vehicle.id), alerts.get(vehicle.id) ?? 0, driverPhotos),
+    ownership,
+  };
 }
 
 /** The catalogue the vehicle form and filters are built from. */

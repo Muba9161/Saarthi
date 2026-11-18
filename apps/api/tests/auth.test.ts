@@ -20,6 +20,7 @@ import {
   sampleJpeg,
   unique,
   uniquePhone,
+  uploadImage,
 } from './helpers';
 
 describe('Authentication', () => {
@@ -846,6 +847,35 @@ describe('Authentication', () => {
       expect(body.data.user.id).toBe(user.id);
       expect(body.data.organization?.id).toBe(organization.id);
       expect(body.data.subscription?.features).toContain('fleet.basic');
+    });
+
+    it("carries the person's cover image at full size, and never the business's", async () => {
+      const organization = await createOrganization();
+      const user = await createUser({
+        role: RoleName.FLEET_OWNER,
+        organizationId: organization.id,
+      });
+      const coverOnSession = async () =>
+        (await request<SessionPayload>({ method: 'GET', url: '/api/v1/auth/me', user })).body.data
+          .user.coverUrl;
+
+      // Present and empty before anything is uploaded, so a client can rely on the key.
+      expect(await coverOnSession()).toBeNull();
+
+      // A business may keep a cover of its own; it is not the person's banner.
+      await uploadImage(user, {
+        ownerType: MediaOwnerType.ORGANIZATION,
+        ownerId: organization.id,
+        purpose: MediaPurpose.COVER,
+      });
+      expect(await coverOnSession()).toBeNull();
+
+      const coverId = await uploadImage(user, {
+        ownerType: MediaOwnerType.USER,
+        ownerId: user.id,
+        purpose: MediaPurpose.COVER,
+      });
+      expect(await coverOnSession()).toBe(`/api/v1/media/${coverId}/file?variant=original`);
     });
   });
 

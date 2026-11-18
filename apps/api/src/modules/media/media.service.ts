@@ -988,12 +988,14 @@ export async function runMediaOrphanSweep(): Promise<{ purged: number }> {
  * Primary image URLs for a batch of owners.
  *
  * Exists so list endpoints can decorate rows without an N+1: one query returns
- * every thumbnail for the page.
+ * every thumbnail for the page. `original` asks for the full-size rendition
+ * instead, for an image drawn large (a cover banner).
  */
 export async function primaryUrlsFor(
   ownerType: MediaOwnerType,
   ownerIds: string[],
   purpose?: MediaPurpose,
+  options: { original?: boolean } = {},
 ): Promise<Map<string, string>> {
   if (ownerIds.length === 0) return new Map();
 
@@ -1013,7 +1015,7 @@ export async function primaryUrlsFor(
     assets.map((asset) => [
       asset.ownerId,
       `/api/v1/media/${asset.id}/file?variant=${
-        asset.thumbnailStorageKey ? MediaVariant.THUMB : MediaVariant.ORIGINAL
+        asset.thumbnailStorageKey && !options.original ? MediaVariant.THUMB : MediaVariant.ORIGINAL
       }`,
     ]),
   );

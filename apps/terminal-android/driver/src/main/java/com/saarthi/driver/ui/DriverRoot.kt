@@ -20,7 +20,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.saarthi.core.ui.TerminalViewModel
 import com.saarthi.driver.data.DriverPreferences
-import com.saarthi.driver.ui.auth.QuickLoginOfferFlow
 import com.saarthi.driver.ui.auth.SignedOutFlow
 import com.saarthi.driver.ui.auth.UnlockScreen
 import com.saarthi.driver.ui.design.Ease
@@ -33,6 +32,7 @@ import com.saarthi.driver.ui.ride.share.SharingScreen
 import com.saarthi.driver.ui.shift.ShiftShell
 import com.saarthi.driver.ui.shift.adapter.AdapterSheet
 import com.saarthi.driver.ui.splash.SplashScreen
+import com.saarthi.driver.ui.splash.UnreachableScreen
 import com.saarthi.driver.ui.start.ApprovedScreen
 import com.saarthi.driver.ui.start.ArrivalPhotoScreen
 import com.saarthi.driver.ui.start.AwaitingApprovalScreen
@@ -70,9 +70,6 @@ fun DriverRoot(
         splashDone = true
     }
 
-    // Which of sign-in and registration just succeeded, for the screen after.
-    var creatingAccount by rememberSaveable { mutableStateOf(false) }
-
     /*
      * The fleet's yes, celebrated once.
      *
@@ -104,6 +101,20 @@ fun DriverRoot(
         while (true) {
             delay(APPROVAL_POLL_MS)
             driver.refreshAssignment()
+        }
+    }
+
+    /*
+     * Signed in but Saarthi out of reach: keep asking, quietly.
+     *
+     * A driver who opened the app in a dead spot should find it working once
+     * they drive back into signal, without having to find the button.
+     */
+    LaunchedEffect(stage) {
+        if (stage !is DriverViewModel.Stage.Unreachable) return@LaunchedEffect
+        while (true) {
+            delay(UNREACHABLE_RETRY_MS)
+            driver.retryConnection()
         }
     }
 
@@ -162,10 +173,9 @@ fun DriverRoot(
         ) { _ ->
             when (val current = shown) {
                 is DriverViewModel.Stage.Restoring -> SplashScreen()
-                is DriverViewModel.Stage.SignedOut -> SignedOutFlow(driver, onCreating = { creatingAccount = it })
+                is DriverViewModel.Stage.SignedOut -> SignedOutFlow(driver)
+                is DriverViewModel.Stage.Unreachable -> UnreachableScreen(driver)
                 is DriverViewModel.Stage.Locked -> UnlockScreen(driver, current.methods)
-                is DriverViewModel.Stage.OfferQuickLogin ->
-                    QuickLoginOfferFlow(driver, current.driver, creatingAccount)
                 is DriverViewModel.Stage.ChooseRole ->
                     ChooseRoleScreen(driver, current.driver, preferences)
                 is DriverViewModel.Stage.ChooseVehicle ->
@@ -207,6 +217,9 @@ private const val SPLASH_MIN_MS = 2_200L
 
 /** How often to ask whether the fleet has decided. */
 private const val APPROVAL_POLL_MS = 5_000L
+
+/** How often an unreachable session tries again on its own. */
+private const val UNREACHABLE_RETRY_MS = 15_000L
 
 /** How often a shared ride asks whether it is still on. */
 private const val SHARE_POLL_MS = 30_000L

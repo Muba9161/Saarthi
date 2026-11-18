@@ -1,6 +1,5 @@
 package com.saarthi.owner.ui.fleet
 
-import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -28,8 +27,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -45,6 +42,7 @@ import com.saarthi.owner.ui.common.Words
 import com.saarthi.owner.ui.common.clockOf
 import com.saarthi.owner.ui.common.countdown
 import com.saarthi.owner.ui.common.readable
+import com.saarthi.owner.ui.common.rememberRemoteImage
 import com.saarthi.owner.ui.design.Avatar
 import com.saarthi.owner.ui.design.BottomSheet
 import com.saarthi.owner.ui.design.ButtonTone
@@ -66,10 +64,12 @@ import com.saarthi.owner.ui.design.card
 import com.saarthi.owner.ui.design.rise
 import com.saarthi.owner.ui.design.stagger
 import com.saarthi.owner.ui.shell.LocalNavigator
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+
+/** How the arrival photo is drawn beside the driver's details. */
+private val SelfieWidth = 84.dp
+private val SelfieHeight = 104.dp
 
 /** The reasons an owner most often gives; any other is typed. */
 private val Reasons: List<String>
@@ -102,11 +102,7 @@ fun DriverApprovalScreen(app: OwnerApp, approval: FleetApi.Approval, canApprove:
     LaunchedEffect(approval.id) {
         detail = runCatching { app.fleet.approvalDetail(approval.id) }.getOrNull()
     }
-    val photo by produceState<ImageBitmap?>(null, detail?.selfieUrl) {
-        val url = detail?.selfieUrl ?: return@produceState
-        val bytes = runCatching { app.api.image(url) }.getOrNull() ?: return@produceState
-        value = withContext(Dispatchers.Default) { BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap() }
-    }
+    val photo = rememberRemoteImage(detail?.selfieUrl, SelfieWidth, SelfieHeight)
     val left by produceState(approval.secondsUntilEscalation ?: 0L, approval.id) {
         while (value > 0) {
             delay(1_000)
@@ -114,7 +110,7 @@ fun DriverApprovalScreen(app: OwnerApp, approval: FleetApi.Approval, canApprove:
         }
     }
 
-    val driver = detail?.driver ?: approval.driver?.let { FleetApi.ApprovalDriver(it.name, it.experienceYears, it.totalTrips) }
+    val driver = detail?.driver ?: approval.driver?.let { FleetApi.ApprovalDriver(it.name, it.experienceYears, it.totalTrips, photoUrl = it.photoUrl) }
     val name = driver?.name?.ifBlank { null } ?: stringResource(R.string.fleet_a_driver)
     val first = name.substringBefore(' ')
     val timesHere = detail?.recentAssignments?.count { it.sameVehicle && it.status in setOf("APPROVED", "READY", "TRIP_ACTIVE", "COMPLETED") } ?: 0
@@ -189,9 +185,9 @@ fun DriverApprovalScreen(app: OwnerApp, approval: FleetApi.Approval, canApprove:
         ) {
             val shot = photo
             if (shot != null) {
-                Image(shot, stringResource(R.string.fleet_approval_photo_description, first), contentScale = ContentScale.Crop, modifier = Modifier.size(width = 84.dp, height = 104.dp).clip(RoundedCornerShape(16.dp)))
+                Image(shot, stringResource(R.string.fleet_approval_photo_description, first), contentScale = ContentScale.Crop, modifier = Modifier.size(width = SelfieWidth, height = SelfieHeight).clip(RoundedCornerShape(16.dp)))
             } else {
-                Avatar(name, size = 72.dp, background = c.sunken, ink = c.fg)
+                Avatar(name, size = 72.dp, background = c.sunken, ink = c.fg, photoUrl = driver?.photoUrl)
             }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(name, style = SType.cardTitle.copy(fontSize = 19.sp), color = c.fg)

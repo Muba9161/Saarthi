@@ -2,6 +2,8 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import {
   DeviceAssignmentStatus,
   DeviceType,
+  MediaOwnerType,
+  MediaPurpose,
   OrganizationType,
   PlanTier,
   QrSubjectType,
@@ -22,6 +24,7 @@ import {
   resetDatabase,
   sampleJpeg,
   unique,
+  uploadImage,
   type TestOrganization,
   type TestUser,
 } from './helpers';
@@ -466,6 +469,35 @@ describe('Saarthi Terminal', () => {
 
       const truck = await prisma.truck.findUniqueOrThrow({ where: { id: vehicle.id } });
       expect(truck.currentDriverId).toBe(driver.driverId);
+    });
+
+    it("shows the approver the driver's own profile photo", async () => {
+      // Uploaded to the person's account, the way both apps and the web do it,
+      // rather than to the driver record the terminal used to look at alone.
+      const photoId = await uploadImage(driver, {
+        ownerType: MediaOwnerType.USER,
+        ownerId: driver.id,
+        purpose: MediaPurpose.AVATAR,
+      });
+
+      const detail = await request<{ driver: { photoUrl: string | null } | null }>({
+        method: 'GET',
+        url: `/api/v1/terminal/assignments/${sessionId}`,
+        user: owner,
+      });
+      expect(detail.status).toBe(200);
+      expect(detail.body.data.driver?.photoUrl).toContain(photoId);
+
+      const queue = await request<{
+        items: { id: string; driver: { photoUrl: string | null } | null }[];
+      }>({
+        method: 'GET',
+        url: '/api/v1/terminal/assignments?status=PENDING_APPROVAL,SELFIE_SUBMITTED',
+        user: owner,
+      });
+      expect(queue.body.data.items.find((row) => row.id === sessionId)?.driver?.photoUrl).toContain(
+        photoId,
+      );
     });
 
     it('refuses an approval from another fleet', async () => {

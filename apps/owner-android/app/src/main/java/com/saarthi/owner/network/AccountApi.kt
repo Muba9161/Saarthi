@@ -1,5 +1,6 @@
 package com.saarthi.owner.network
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
@@ -95,20 +96,33 @@ class AccountApi(private val api: OwnerApi) {
     }
 
     /**
-     * A profile photo or business logo, through the media library as the web
-     * sends it. One of each is kept: a new one replaces the last.
+     * A profile photo, cover or business logo, through the media library as
+     * the web sends it. One of each is kept: a new one replaces the last.
+     * Returns the new photo's media id.
+     *
+     * The session carries the person's photo and cover, so it is read again
+     * afterwards and every screen that draws them shows the new one, as the
+     * web's profile page does. That read is a courtesy: the upload has landed
+     * whether or not it succeeds, and the next sign-in refresh catches up.
      */
-    /** Returns the new photo's media id. */
     suspend fun uploadImage(ownerType: String, ownerId: String, purpose: String, file: OwnerApi.Upload): String? {
         val fields = mapOf("ownerType" to ownerType, "ownerId" to ownerId, "purpose" to purpose)
-        return api.upload("/media", fields, "file", file, Uploaded.serializer())?.id
+        val id = api.upload("/media", fields, "file", file, Uploaded.serializer())?.id
+        try {
+            api.refreshSession()
+        } catch (error: CancellationException) {
+            throw error
+        } catch (_: Exception) {
+        }
+        return id
     }
 
     @Serializable
     private data class Uploaded(val id: String = "")
 
-    suspend fun image(mediaId: String, thumbnail: Boolean = true): ByteArray? =
-        api.image("/api/v1/media/$mediaId/file?variant=${if (thumbnail) "thumb" else "original"}")
+    /** Where a media-library picture is served: the small rendition for a circle, the full one for a cover. */
+    fun imageUrl(mediaId: String, thumbnail: Boolean = true): String =
+        "/api/v1/media/$mediaId/file?variant=${if (thumbnail) "thumb" else "original"}"
 
     /**
      * Change the password. Every other signed-in device is signed out by the
@@ -130,5 +144,8 @@ class AccountApi(private val api: OwnerApi) {
         /** The permissions the web checks before showing the same panels. */
         const val SUBSCRIPTION_READ = "subscription.read"
         const val VERIFICATION_READ = "verification.read"
+
+        /** The media purpose of a cover image, drawn as a banner rather than a circle. */
+        const val COVER = "COVER"
     }
 }

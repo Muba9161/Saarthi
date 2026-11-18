@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -18,6 +20,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -75,6 +78,9 @@ private val UNSHOWN_KINDS = setOf("GEO", "IMAGE")
 private val COORDINATE_KEYS = setOf("latitude", "longitude", "lat", "lng")
 private const val LONG_WORD = 16
 
+/** How tall a photo is drawn in a profile card. */
+private val PhotoSize = 56.dp
+
 /** One panel's answer: loading, failed with a reason, or held. Each panel stands alone. */
 private class AccountData(
     val profile: Loadable<AccountApi.Profile?>,
@@ -96,7 +102,6 @@ internal fun AccountDetails(
     places: PlacesApi,
     reload: Int,
     onReload: () -> Unit,
-    onAvatar: (String?) -> Unit,
 ) {
     val navigator = LocalNavigator.current
     val accountApi = remember(api) { AccountApi(api) }
@@ -116,7 +121,6 @@ internal fun AccountDetails(
             val verification = async { if (showsVerification) read { accountApi.verification() } else null }
             AccountData(profile.await(), plan.await(), verification.await())
         }
-        (data.profile as? Loadable.Ready)?.value?.let { onAvatar(it.avatarId()) }
     }
 
     data.plan?.let { plan ->
@@ -135,11 +139,6 @@ internal fun AccountDetails(
             }
         }
     }
-}
-
-/** The person's own photo, wherever this account's blueprint keeps it. */
-private fun AccountApi.Profile.avatarId(): String? = sections.firstNotNullOfOrNull { section ->
-    section.fields.firstOrNull { it.mediaPurpose == "AVATAR" }?.let { (valueOf(section, it) as? JsonPrimitive)?.contentOrNull }
 }
 
 /** A placeholder while loading, the reason when it failed, otherwise [content]. */
@@ -253,8 +252,18 @@ private fun ProfileCards(accountApi: AccountApi, profile: AccountApi.Profile, on
             if (photos.isNotEmpty()) {
                 Row(Modifier.padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                     photos.forEach { field ->
+                        val mediaId = (profile.valueOf(section, field) as? JsonPrimitive)?.contentOrNull
                         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            RemotePhoto(accountApi, (profile.valueOf(section, field) as? JsonPrimitive)?.contentOrNull, field.label, 56.dp, emptyIcon = Lucide.image)
+                            if (field.mediaPurpose == AccountApi.COVER) {
+                                // A cover is a banner: shown at its own shape, not cropped to a circle.
+                                CoverImage(
+                                    mediaId?.let { accountApi.imageUrl(it, thumbnail = false) },
+                                    Modifier.size(width = PhotoSize * COVER_RATIO, height = PhotoSize).clip(RoundedCornerShape(12.dp)),
+                                    slot = true,
+                                )
+                            } else {
+                                RemotePhoto(accountApi, mediaId, field.label, PhotoSize)
+                            }
                             Text(field.label, style = SType.caption, color = c.muted)
                         }
                     }
