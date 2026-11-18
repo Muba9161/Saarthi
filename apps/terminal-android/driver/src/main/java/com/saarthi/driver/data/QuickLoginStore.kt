@@ -11,13 +11,10 @@ import com.saarthi.core.util.DebugLog
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import java.security.KeyFactory
 import java.security.KeyPairGenerator
 import java.security.KeyStore
 import java.security.PrivateKey
-import java.security.SecureRandom
 import java.security.spec.MGF1ParameterSpec
-import java.security.spec.X509EncodedKeySpec
 import javax.crypto.spec.OAEPParameterSpec
 import javax.crypto.spec.PSource
 import javax.crypto.Cipher
@@ -30,6 +27,13 @@ import javax.crypto.SecretKeyFactory
 
 /**
  * Saarthi Quick Login: the credential, and what protects it.
+ *
+ * **Retired.** Humsafar now opens instantly and guards the screen with App lock,
+ * as the owner app does (`ui.lock`). Nothing seals a credential here any more.
+ * What remains opens a credential sealed before that change, once, so those
+ * drivers move across without typing a password; `DriverViewModel` then calls
+ * [clear]. Delete this file once no installed build can still hold a sealed
+ * credential.
  *
  * The problem this solves is narrow and worth stating exactly. A driver's
  * refresh token lives for thirty days so they need not sign in every shift —
@@ -99,128 +103,6 @@ class QuickLoginStore(context: Context) {
          * driver signs in normally, which section 10 requires.
          */
         data class Unavailable(val reason: String) : Failure
-    }
-
-    // -----------------------------------------------------------------------
-    // Turning it on
-    // -----------------------------------------------------------------------
-
-    /**
-     * Protect this driver's refresh token behind a PIN.
-     *
-     * The caller has just authenticated normally, so the token is genuinely
-     * theirs. The plaintext is not retained: from here on the only copy is the
-     * ciphertext, openable through the Keystore.
-     */
-    fun enablePin(pin: String, refreshToken: String): Boolean {
-        if (QuickLoginPolicy.evaluate(pin) != QuickLoginPolicy.PinVerdict.Acceptable) return false
-
-        return try {
-            val salt = ByteArray(SALT_BYTES).also { SecureRandom().nextBytes(it) }
-            val sealed = seal(keyFor(PIN_KEY_ALIAS, requireUserAuth = false), refreshToken)
-
-            preferences.edit()
-                .putString(KEY_PIN_VERIFIER, encode(derive(pin, salt)))
-                .putString(KEY_PIN_SALT, encode(salt))
-                .putString(KEY_PIN_TOKEN, sealed)
-                .putInt(KEY_FAILURES, 0)
-                .remove(KEY_COOLDOWN_UNTIL)
-                .apply()
-
-            _enabled.value = readEnabled()
-            true
-        } catch (error: Exception) {
-            DebugLog.warn(TAG, "Could not enable PIN unlock: ${error.javaClass.simpleName}")
-            false
-        }
-    }
-
-    /**
-     * Whether this handset can hold a biometric-protected credential at all.
-     *
-     * Cheap to ask and worth asking before the prompt: a phone with no secure
-     * hardware, or one whose key the platform has already invalidated, should
-     * say so rather than showing a fingerprint dialog that cannot lead anywhere.
-     */
-    fun biometricsUsable(): Boolean = biometricPublicKey() != null
-
-    /**
-     * Seal the credential so that only a fingerprint can open it again.
-     *
-     * No prompt, and no `Cipher` handed in — and that is the whole point of the
-     * key pair. **Encryption uses the public half, which the platform never
-     * gates**; only the private half carries `setUserAuthenticationRequired`.
-     *
-     * This is not a convenience. The refresh token *rotates on every use* — the
-     * server issues a new one and kills the old, deliberately, so a stolen token
-     * is single-use. With the old symmetric key the app could not write a new
-     * value without another fingerprint, so it never did: the sealed copy was
-     * whatever the token had been at enrolment, and the first unlock rotated it
-     * into uselessness. Every unlock after that replayed a dead token and the
-     * driver was told their session had expired. Being able to re-seal silently
-     * is what makes a rotating credential and a biometric lock coexist.
-     */
-    fun sealWithBiometric(refreshToken: String): Boolean = try {
-        val key = biometricPublicKey()
-        if (key == null) {
-            false
-        } else {
-            val cipher = Cipher.getInstance(RSA_TRANSFORMATION).apply {
-                init(Cipher.ENCRYPT_MODE, key, oaep())
-            }
-            val body = cipher.doFinal(refreshToken.toByteArray(Charsets.UTF_8))
-            preferences.edit().putString(KEY_BIOMETRIC_TOKEN, encode(body)).apply()
-            _enabled.value = readEnabled()
-            true
-        }
-    } catch (error: Exception) {
-        DebugLog.warn(TAG, "Could not seal with biometrics: ${error.javaClass.simpleName}")
-        false
-    }
-
-    /**
-     * Write a freshly-rotated credential into whichever slots are turned on.
-     *
-     * Called after every successful refresh while Quick Login holds custody.
-     * Silent by design: the PIN key was always declared without a user-auth
-     * requirement, and the biometric key's public half needs none, so neither
-     * slot interrupts a driver mid-shift to stay current.
-     *
-     * A slot that fails to re-seal is turned off rather than left holding a
-     * token known to be dead — an unlock that cannot possibly work is worse than
-     * a switch that is visibly off.
-     *
-     * Returns whether a sealed copy of this token now exists. False means every
-     * slot is empty and the caller still holds the only copy — which the account
-     * store needs to know, because until it did it handed rotations to a
-     * custodian that dropped them and kept nothing readable in their place.
-     */
-    fun reseal(refreshToken: String): Boolean {
-        var held = false
-
-        if (preferences.getString(KEY_PIN_TOKEN, null) != null) {
-            val sealed = runCatching {
-                seal(keyFor(PIN_KEY_ALIAS, requireUserAuth = false), refreshToken)
-            }.getOrNull()
-            if (sealed != null) {
-                preferences.edit().putString(KEY_PIN_TOKEN, sealed).apply()
-                held = true
-            } else {
-                DebugLog.warn(TAG, "Could not re-seal the PIN credential; turning it off")
-                disablePin()
-            }
-        }
-
-        if (preferences.getString(KEY_BIOMETRIC_TOKEN, null) != null) {
-            if (sealWithBiometric(refreshToken)) {
-                held = true
-            } else {
-                DebugLog.warn(TAG, "Could not re-seal the biometric credential; turning it off")
-                disableBiometrics()
-            }
-        }
-
-        return held
     }
 
     /** Why the last biometric attempt failed, for a message worth reading. */
@@ -362,21 +244,8 @@ class QuickLoginStore(context: Context) {
         }
     }
 
-    /** Forget the PIN, keeping biometrics if the driver has them. */
-    fun disablePin() {
-        preferences.edit()
-            .remove(KEY_PIN_VERIFIER)
-            .remove(KEY_PIN_SALT)
-            .remove(KEY_PIN_TOKEN)
-            .putInt(KEY_FAILURES, 0)
-            .remove(KEY_COOLDOWN_UNTIL)
-            .apply()
-        deleteKey(PIN_KEY_ALIAS)
-        _enabled.value = readEnabled()
-    }
-
     /** Forget biometrics, keeping the PIN if the driver has one. */
-    fun disableBiometrics() {
+    private fun disableBiometrics() {
         preferences.edit().remove(KEY_BIOMETRIC_TOKEN).apply()
         deleteKey(BIOMETRIC_KEY_ALIAS)
         _enabled.value = readEnabled()
@@ -538,28 +407,6 @@ class QuickLoginStore(context: Context) {
         }.generateKey()
     }
 
-    /**
-     * The half that seals, which the platform never gates.
-     *
-     * Re-created through a `KeyFactory` from the certificate's encoding rather
-     * than used as it comes out of the Keystore. A public key still attached to
-     * a Keystore entry drags the entry's authentication requirement along with
-     * it on several manufacturers' builds, and encryption then fails with
-     * "user not authenticated" — the exact failure the key pair exists to avoid.
-     * The encoded form is just bytes, and bytes have no policy.
-     */
-    private fun biometricPublicKey(): java.security.PublicKey? = try {
-        val entry = biometricEntry()
-        entry?.let {
-            val raw = it.certificate.publicKey
-            KeyFactory.getInstance(raw.algorithm)
-                .generatePublic(X509EncodedKeySpec(raw.encoded))
-        }
-    } catch (error: Exception) {
-        DebugLog.warn(TAG, "Biometric key unavailable: ${error.javaClass.simpleName}")
-        null
-    }
-
     /** The half that opens, and the only half a fingerprint is needed for. */
     private fun biometricPrivateKey(): PrivateKey? =
         runCatching { biometricEntry()?.privateKey }.getOrNull()
@@ -677,13 +524,7 @@ class QuickLoginStore(context: Context) {
         }
     }
 
-    /** `iv:ciphertext`, both base64. The IV is not secret and must not repeat. */
-    private fun seal(key: SecretKey, plaintext: String): String {
-        val cipher = Cipher.getInstance(TRANSFORMATION).apply { init(Cipher.ENCRYPT_MODE, key) }
-        val body = cipher.doFinal(plaintext.toByteArray(Charsets.UTF_8))
-        return "${encode(cipher.iv)}$SEPARATOR${encode(body)}"
-    }
-
+    /** Opens `iv:ciphertext` (both base64), the form the PIN slot was sealed in. */
     private fun open(key: SecretKey, sealed: String): String {
         val iv = decode(sealed.substringBefore(SEPARATOR))
         val body = decode(sealed.substringAfter(SEPARATOR))
@@ -728,7 +569,6 @@ class QuickLoginStore(context: Context) {
         const val PBKDF2 = "PBKDF2WithHmacSHA256"
         const val PBKDF2_ROUNDS = 120_000
         const val GCM_TAG_BITS = 128
-        const val SALT_BYTES = 16
         const val SEPARATOR = ":"
 
         const val PIN_KEY_ALIAS = "saarthi.driver.quicklogin.pin"

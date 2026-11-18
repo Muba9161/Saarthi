@@ -86,11 +86,8 @@ class SaarthiDriverApp : Application(), SaarthiApp {
     }
 
     /**
-     * Saarthi Quick Login: the PIN and biometric vault.
-     *
-     * Phone only. A fitted tablet is shared between drivers and holds a device
-     * credential rather than a person's session, so there is nothing there for a
-     * fingerprint to unlock.
+     * The retired Saarthi Quick Login, kept only to open a credential it sealed
+     * before App lock replaced it. See `QuickLoginStore`.
      */
     val quickLogin: QuickLoginStore by lazy { QuickLoginStore(this) }
 
@@ -127,19 +124,6 @@ class SaarthiDriverApp : Application(), SaarthiApp {
 
     override fun onCreate() {
         super.onCreate()
-
-        /*
-         * Where a rotated refresh token goes while Quick Login holds it.
-         *
-         * The server rotates the refresh token on every single use, so this
-         * fires constantly — and until it existed, each rotation was written
-         * back into readable preferences while the Keystore kept the copy from
-         * enrolment. That copy was dead the moment it was first used, so the
-         * next fingerprint unlock replayed it and the driver was told their
-         * session had expired. Re-sealing keeps the sealed copy current and
-         * keeps it the only copy.
-         */
-        account.custodian = { rotated -> quickLogin.reseal(rotated) }
 
         /*
          * The shared code's view of which app it is inside.

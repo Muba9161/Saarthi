@@ -36,6 +36,7 @@ import com.saarthi.driver.data.DriverAccountStore
 import com.saarthi.driver.data.DriverPreferences
 import com.saarthi.driver.ui.DriverViewModel
 import com.saarthi.driver.ui.design.AppName
+import com.saarthi.driver.ui.common.rememberSaarthiPhoto
 import com.saarthi.driver.ui.design.Avatar
 import com.saarthi.driver.ui.design.LineIcon
 import com.saarthi.driver.ui.design.LinkButton
@@ -66,6 +67,7 @@ internal fun StartHeader(
             size = 44.dp,
             brand = true,
             fontSize = 15.sp,
+            photo = rememberSaarthiPhoto(driver.avatarUrl, 44.dp),
             modifier = Modifier.pressable(scale = 0.94f, label = stringResource(R.string.profile_open), onClick = onProfile),
         )
     }

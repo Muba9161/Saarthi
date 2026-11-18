@@ -20,6 +20,8 @@ class DriversApi(private val api: OwnerApi) {
         /** The person's own account: the owner's own driver profile carries the owner's id. */
         val userId: String = "",
         val fullName: String = "",
+        /** Their photo: their own profile photo, else the one the fleet added. */
+        val avatarUrl: String? = null,
         val email: String? = null,
         val phone: String? = null,
         val availability: String = "",

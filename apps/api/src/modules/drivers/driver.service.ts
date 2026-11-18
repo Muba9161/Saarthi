@@ -40,6 +40,7 @@ import { passwordHasher } from '../../auth/password';
 import { generateOpaqueToken } from '../../auth/tokens';
 import { config } from '../../config/env';
 import { moveDriverRecords } from './driver-fleet-move';
+import { driverPhotoUrls } from './driver-photo';
 import { logger } from '../../lib/logger';
 import type { AuthContext } from '../../auth/context';
 import {
@@ -66,6 +67,8 @@ export interface DriverSummary {
   fullName: string;
   email: string;
   phone: string | null;
+  /** The driver's photo — their own, else the fleet's (see `driverPhotoUrls`). */
+  avatarUrl: string | null;
   /** `null` while the driver has not added it — see `addOwnLicence`. */
   licenseNumber: string | null;
   licenseExpiryDate: string | null;
@@ -84,7 +87,15 @@ export interface DriverSummary {
 
 const driverInclude = {
   user: {
-    select: { id: true, firstName: true, lastName: true, email: true, phone: true, status: true },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+      phone: true,
+      status: true,
+      avatarUrl: true,
+    },
   },
 } satisfies Prisma.DriverInclude;
 
@@ -118,7 +129,9 @@ async function documentHealthFor(
   return map;
 }
 
-async function truckLookup(driverIds: string[]): Promise<Map<string, { id: string; registrationNumber: string }>> {
+async function truckLookup(
+  driverIds: string[],
+): Promise<Map<string, { id: string; registrationNumber: string }>> {
   const map = new Map<string, { id: string; registrationNumber: string }>();
   if (driverIds.length === 0) return map;
   const trucks = await prisma.truck.findMany({
@@ -127,7 +140,10 @@ async function truckLookup(driverIds: string[]): Promise<Map<string, { id: strin
   });
   for (const truck of trucks) {
     if (truck.currentDriverId) {
-      map.set(truck.currentDriverId, { id: truck.id, registrationNumber: truck.registrationNumber });
+      map.set(truck.currentDriverId, {
+        id: truck.id,
+        registrationNumber: truck.registrationNumber,
+      });
     }
   }
   return map;
@@ -137,6 +153,7 @@ function toSummary(
   driver: DriverWithUser,
   truck: { id: string; registrationNumber: string } | null,
   health: DriverSummary['documentHealth'],
+  photos: Map<string, string>,
 ): DriverSummary {
   return {
     id: driver.id,
@@ -146,6 +163,7 @@ function toSummary(
     fullName: `${driver.user.firstName} ${driver.user.lastName}`.trim(),
     email: driver.user.email,
     phone: driver.user.phone,
+    avatarUrl: photos.get(driver.id) ?? null,
     licenseNumber: driver.licenseNumber,
     licenseExpiryDate: driver.licenseExpiryDate?.toISOString() ?? null,
     licenseClass: driver.licenseClass,
@@ -210,26 +228,34 @@ export async function listDrivers(
   ]);
 
   const ids = drivers.map((driver) => driver.id);
-  const [health, trucks] = await Promise.all([documentHealthFor(ids), truckLookup(ids)]);
+  const [health, trucks, photos] = await Promise.all([
+    documentHealthFor(ids),
+    truckLookup(ids),
+    driverPhotoUrls(drivers),
+  ]);
 
   return {
     items: drivers.map((driver) =>
-      toSummary(driver, trucks.get(driver.id) ?? null, health.get(driver.id)!),
+      toSummary(driver, trucks.get(driver.id) ?? null, health.get(driver.id)!, photos),
     ),
     pagination: buildPaginationMeta(query.page, query.pageSize, total),
   };
 }
 
 export async function getDriver(auth: AuthContext, driverId: string): Promise<DriverSummary> {
-  const driver = await prisma.driver.findUnique({ where: { id: driverId }, include: driverInclude });
+  const driver = await prisma.driver.findUnique({
+    where: { id: driverId },
+    include: driverInclude,
+  });
   if (!driver) throw errors.notFound('Driver');
   assertTenantAccess(auth, driver.organizationId, 'Driver');
 
-  const [health, trucks] = await Promise.all([
+  const [health, trucks, photos] = await Promise.all([
     documentHealthFor([driver.id]),
     truckLookup([driver.id]),
+    driverPhotoUrls([driver]),
   ]);
-  return toSummary(driver, trucks.get(driver.id) ?? null, health.get(driver.id)!);
+  return toSummary(driver, trucks.get(driver.id) ?? null, health.get(driver.id)!, photos);
 }
 
 async function assertDriverLimit(auth: AuthContext, organizationId: string): Promise<void> {
@@ -746,7 +772,12 @@ export async function buildAchievementMetrics(driverId: string) {
     }),
     prisma.sosResponder.count({ where: { driverId, status: 'COMPLETED' } }),
     prisma.document.count({
-      where: { ownerType: 'DRIVER', ownerId: driverId, expiryDate: { lt: new Date() }, deletedAt: null },
+      where: {
+        ownerType: 'DRIVER',
+        ownerId: driverId,
+        expiryDate: { lt: new Date() },
+        deletedAt: null,
+      },
     }),
   ]);
 
@@ -804,7 +835,6 @@ export async function evaluateAndAwardAchievements(driverId: string): Promise<st
   }
   return granted;
 }
-
 
 // ---------------------------------------------------------------------------
 // Joining a fleet

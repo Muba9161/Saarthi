@@ -93,7 +93,7 @@ private fun ApprovalCard(
             approval.secondsUntilEscalation?.let { EscalationPill(it) }
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-            Avatar(name, size = 56.dp, background = c.sunken, ink = c.fg)
+            Avatar(name, size = 56.dp, background = c.sunken, ink = c.fg, photoUrl = approval.driver?.photoUrl)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(stringResource(R.string.fleet_cards_wants_to_drive, name), style = SType.cardTitle, color = c.fg, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 PlateChip(approval.registrationNumber)

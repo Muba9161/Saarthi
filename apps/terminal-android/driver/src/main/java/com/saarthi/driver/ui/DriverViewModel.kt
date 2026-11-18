@@ -18,6 +18,7 @@ import com.saarthi.driver.ride.NamedContactsStore
 import com.saarthi.driver.ride.RideSharePolicy
 import com.saarthi.driver.ui.ride.RideAccess
 import com.saarthi.driver.ui.ride.share.RideShareActions
+import com.saarthi.driver.ui.lock.canLockApp
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -89,23 +90,22 @@ class DriverViewModel(application: Application) : AndroidViewModel(application) 
         data object SignedOut : Stage
 
         /**
-         * Just signed in, and asked whether to set up Quick Login.
-         *
-         * Shown once, immediately after a password sign-in, because that is the
-         * only moment a driver is thinking about getting back in — and the only
-         * moment the credential is in hand to seal. Offered, never forced: the
-         * specification is explicit that a driver may choose neither method, and
-         * a PIN somebody resents is a PIN written on the dashboard.
+         * Signed in, but Saarthi could not be reached to restore the session:
+         * no signal, or the server briefly unavailable. Not a sign-in screen,
+         * because nothing is wrong with the session; it carries on by itself
+         * once the connection returns.
          */
-        data class OfferQuickLogin(val driver: DriverAccountStore.Account) : Stage
+        data object Unreachable : Stage
 
         /**
-         * Signed in, and the session is behind Saarthi Quick Login.
+         * A credential still sealed by the retired Saarthi Quick Login.
          *
-         * The driver is who they were; the credential that proves it is sealed
-         * behind a Keystore key needing a PIN or a fingerprint. Unlocking
-         * authorises nothing by itself — it produces the refresh token, which
-         * the server then decides about, exactly as on any other launch.
+         * Humsafar now opens straight away and guards the screen with App lock,
+         * as the owner app does. A driver who set a Quick Login PIN or
+         * fingerprint before that change has their session sealed behind it,
+         * so they unlock with it one last time. The session then moves to
+         * ordinary encrypted storage and App lock is switched on for them.
+         * Nobody reaches this stage otherwise.
          */
         data class Locked(val methods: QuickLoginStore.Enabled) : Stage
 
@@ -212,30 +212,54 @@ class DriverViewModel(application: Application) : AndroidViewModel(application) 
     fun restore() {
         viewModelScope.launch {
             _stage.value = Stage.Restoring
-
-            /*
-             * Quick Login comes first, when it is on.
-             *
-             * With a PIN or biometrics enabled the account store no longer holds
-             * the refresh token at all — the only copy is sealed behind a
-             * Keystore key — so there is nothing to restore silently, and the
-             * honest first screen is the lock. A driver who enabled neither
-             * method is still signed in silently, as before.
-             */
-            val methods = quickLogin.enabled.value
-            if (methods.any && app.account.account.value != null) {
-                _stage.value = Stage.Locked(methods)
-                return@launch
-            }
-
-            val driver = api.restore()
-            if (driver == null) {
-                _stage.value = Stage.SignedOut
-                return@launch
-            }
-
-            _stage.value = stageForOpenAssignment(driver)
+            _stage.value = resolveSession()
         }
+    }
+
+    /**
+     * Try the connection again from [Stage.Unreachable].
+     *
+     * Stays on that screen while it asks, with the button busy, rather than
+     * flashing the splash on every attempt; the automatic retry uses this too.
+     */
+    fun retryConnection() {
+        if (_busy.value) return
+        viewModelScope.launch {
+            _busy.value = true
+            try {
+                _stage.value = resolveSession()
+            } finally {
+                _busy.value = false
+            }
+        }
+    }
+
+    /** The stage the stored session leads to, asking Saarthi as little as it can. */
+    private suspend fun resolveSession(): Stage {
+        /*
+         * A credential the retired Quick Login still holds.
+         *
+         * Only drivers who set a PIN or fingerprint before App lock replaced
+         * it. The refresh token is sealed and not in the account store, so
+         * it cannot restore silently: they unlock once (see [Stage.Locked]).
+         * If nothing sealed is left to open, only a password gets back in.
+         */
+        if (app.account.heldByQuickLogin && app.account.account.value != null) {
+            val methods = quickLogin.enabled.value
+            if (methods.any) return Stage.Locked(methods)
+            app.account.clear()
+        }
+        retireQuickLogin()
+
+        val driver = try {
+            api.restore()
+        } catch (failure: DriverApi.Failure) {
+            // Saarthi could not be asked. The session is kept, so this is not a sign-in.
+            DebugLog.info(TAG, "Could not reach Saarthi to restore the session: ${failure.message}")
+            return Stage.Unreachable
+        } ?: return Stage.SignedOut
+
+        return stageForOpenAssignment(driver)
     }
 
     fun signIn(email: String, password: String) {
@@ -247,26 +271,17 @@ class DriverViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     /**
-     * Where a driver goes the moment a password worked.
+     * Where a driver goes the moment a password worked: straight in.
      *
-     * Straight past the offer if Quick Login is already set up — re-signing in
-     * after a session expiry should not ask again about something they have
-     * already answered.
+     * No offer to set anything up, as in the owner app. App lock is a switch in
+     * Profile for whoever wants it.
      */
     private suspend fun afterSignIn(driver: DriverAccountStore.Account): Stage {
         // A new sign-in may be a different account: ask again whether it may ride along.
         rideAccess.forget()
-        return if (quickLogin.enabled.value.any) {
-            stageForOpenAssignment(driver)
-        } else {
-            Stage.OfferQuickLogin(driver)
-        }
-    }
-
-    /** Move on from the offer, whether or not anything was enabled. */
-    fun finishQuickLoginSetup() {
-        val driver = app.account.account.value ?: return
-        viewModelScope.launch { _stage.value = stageForOpenAssignment(driver) }
+        // The credential was just stored readable; anything sealed is from before.
+        retireQuickLogin()
+        return stageForOpenAssignment(driver)
     }
 
     /**
@@ -446,43 +461,15 @@ class DriverViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     // -----------------------------------------------------------------------
-    // Saarthi Quick Login
+    // The retired Quick Login: one last unlock, then App lock
     // -----------------------------------------------------------------------
 
-
     /**
-     * The unsealed credential for this session, in memory only.
-     *
-     * Kept so that switching a method off can hand the token back to readable
-     * storage, and so that adding biometrics after a PIN unlock does not need a
-     * fresh sign-in. Never persisted here, and gone when the process dies.
-     */
-    @Volatile
-    private var unsealedToken: String? = null
-
-    /**
-     * The refresh token this process can still lay hands on, wherever it is.
-     *
-     * Three homes, in the order they are likely to have it: readable storage
-     * while Quick Login is off, the copy kept from an unlock, and the copy the
-     * account store kept from the last sign-in or rotation.
-     *
-     * The third is not a belt-and-braces addition. A driver who signed in with
-     * a password while Quick Login held custody has never unlocked anything in
-     * this process, so the first two are both null — and every switch on the
-     * Quick Login card was failing for them with nothing to seal and nothing to
-     * hand back.
-     */
-    private fun currentRefreshToken(): String? =
-        app.account.refreshToken ?: unsealedToken ?: app.account.liveRefreshToken
-
-    /**
-     * Unlock with a PIN.
+     * Unlock with the old Quick Login PIN.
      *
      * The PIN is checked on the device and never leaves it. What it produces is
-     * the refresh token, which goes to the ordinary refresh endpoint — so the
-     * server still decides whether the session lives, and no PIN can outlive a
-     * session the fleet has revoked.
+     * the refresh token, which goes to the ordinary refresh endpoint, so the
+     * server still decides whether the session lives.
      */
     fun unlockWithPin(pin: String) {
         viewModelScope.launch {
@@ -517,14 +504,9 @@ class DriverViewModel(application: Application) : AndroidViewModel(application) 
     /**
      * No prompt could be raised, and the driver is owed an explanation.
      *
-     * Called when [biometricCipher] comes back null. Before this the caller
-     * simply returned: no fingerprint dialog appeared, no message was shown,
-     * and the screen went on offering a button that could not work — which is
-     * indistinguishable, from the cab, from the app having frozen.
-     *
-     * The store has already switched the slot off by this point, so the live
-     * `quickLoginMethods` will drop the offer on the next recomposition. All
-     * that is left is to say why.
+     * Called when [biometricCipher] comes back null. The store has already
+     * switched the slot off by this point, so the live `quickLoginMethods` drops
+     * the button on the next recomposition. All that is left is to say why.
      */
     fun reportBiometricUnavailable() {
         _error.value = quickLogin.takeBiometricProblem()
@@ -532,113 +514,35 @@ class DriverViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     /**
-     * Turn the PIN on, taking custody of the credential.
+     * Carry on from an unlocked credential, and leave Quick Login behind.
      *
-     * Surrendering the token from the account store is what makes the
-     * protection real rather than decorative: afterwards the only copy is
-     * sealed, so a copy of the app's data opens nothing.
+     * The refresh exchange stores the rotated token in the account store, where
+     * every later launch restores it silently. The sealed copies are then
+     * destroyed, and App lock takes over the job the PIN or fingerprint was
+     * doing, so the driver keeps a lock without being asked to set one up again.
      */
-    fun enableQuickLoginPin(pin: String, onResult: (Boolean) -> Unit) {
-        viewModelScope.launch {
-            val token = currentRefreshToken()
-            if (token == null) {
-                onResult(false)
-                return@launch
-            }
-            val sealed = quickLogin.enablePin(pin, token)
-            if (sealed) {
-                unsealedToken = token
-                app.account.surrenderRefreshToken()
-            }
-            onResult(sealed)
-        }
-    }
-
-    /**
-     * The cipher a prompt must authorise before biometrics can be turned on.
-     *
-     * Null when the device has no usable key — no enrolled biometric, no secure
-     * lock screen, or a key the platform has already invalidated.
-     */
-    fun biometricsUsable(): Boolean = quickLogin.biometricsUsable()
-
-    /**
-     * Finish turning biometrics on, once the prompt has confirmed the driver.
-     *
-     * No cipher is handed in any more. Sealing uses the public half of a key
-     * pair, which the platform never gates — the prompt above it is there to
-     * prove the driver can actually authenticate before the switch claims they
-     * can, not because encryption needs it. See `QuickLoginStore.sealWithBiometric`
-     * for why that separation is what makes a rotating credential workable.
-     *
-     * Surrendering the token from the account store is what makes the
-     * protection real: afterwards the only copies are sealed.
-     */
-    fun completeBiometricSetup(onResult: (Boolean) -> Unit) {
-        viewModelScope.launch {
-            val token = currentRefreshToken()
-            if (token == null) {
-                onResult(false)
-                return@launch
-            }
-            val sealed = quickLogin.sealWithBiometric(token)
-            if (sealed) {
-                unsealedToken = token
-                app.account.surrenderRefreshToken()
-            }
-            onResult(sealed)
-        }
-    }
-
-    /**
-     * Turn Quick Login off entirely, giving the credential back.
-     *
-     * The driver reached this through an unlocked session, so returning the
-     * token to readable storage is the trade they asked for: silent restore on
-     * every launch, and no PIN.
-     */
-    fun disableQuickLogin() {
-        /*
-         * Custody comes back whether or not the token does.
-         *
-         * `clear()` destroys the sealed copies, so this is the last moment the
-         * credential can be put back where the app can read it. When it cannot
-         * — a lockout already discarded it, or the platform invalidated the
-         * key — the flag must still come down: left standing it tells the
-         * account store that every future sign-in belongs to a Quick Login that
-         * is no longer holding anything, and the driver is signed out fifteen
-         * minutes later with both switches refusing to turn back on.
-         */
-        val token = currentRefreshToken()
-        if (token != null) {
-            app.account.reclaimRefreshToken(token)
-        } else {
-            app.account.releaseCustody()
-        }
-        quickLogin.clear()
-    }
-
-    /** Drop one method while keeping the other, if the other is on. */
-    fun disableQuickLoginPin() {
-        quickLogin.disablePin()
-        if (!quickLogin.enabled.value.any) disableQuickLogin()
-    }
-
-    fun disableQuickLoginBiometrics() {
-        quickLogin.disableBiometrics()
-        if (!quickLogin.enabled.value.any) disableQuickLogin()
-    }
-
-    /** Carry on from an unlocked credential, exactly as a normal launch would. */
     private suspend fun resumeWith(token: String) {
-        unsealedToken = token
         // The server remains the authority. An unlocked PIN proves who is
         // holding the phone; only the refresh endpoint can say the session lives.
-        val driver = api.restoreWith(token)
+        val driver = try {
+            api.restoreWith(token)
+        } catch (failure: DriverApi.Failure) {
+            /*
+             * No signal, or Saarthi briefly unavailable. That says nothing about
+             * the session, and nothing was rotated, so the sealed copy still
+             * works. The driver stays on the lock screen to try again instead of
+             * being sent to the password screen after a correct PIN.
+             */
+            DebugLog.info(TAG, "Unlock could not reach Saarthi: ${failure.message}")
+            _error.value = failure.message
+            return
+        }
+        retireQuickLogin()
         _stage.value = if (driver == null) {
             _error.value = text(R.string.session_expired)
             Stage.SignedOut
         } else {
+            if (canLockApp(app)) app.preferences.setAppLock(true)
             stageForOpenAssignment(driver)
         }
     }
@@ -672,12 +576,34 @@ class DriverViewModel(application: Application) : AndroidViewModel(application) 
         null -> text(R.string.quick_login_failed)
     }
 
-    /** Sign out of the phone entirely. */
+    /**
+     * Sign out of the phone entirely.
+     *
+     * Anything the retired Quick Login still holds goes too, so a sealed token
+     * and PIN from this session cannot survive onto a phone handed to someone
+     * else.
+     */
     fun signOut() {
         rideAccess.forget()
         viewModelScope.launch {
             api.signOut()
+            retireQuickLogin()
             _stage.value = Stage.SignedOut
+        }
+    }
+
+    /**
+     * Destroy whatever the retired Quick Login still holds.
+     *
+     * Called wherever the credential is known to live in the account store, or
+     * nowhere: after a sign-in, after the last unlock, on sign-out, and on a
+     * launch that is not a legacy unlock. A sealed copy left behind would be a
+     * second, stale credential with nothing keeping it current.
+     */
+    private fun retireQuickLogin() {
+        if (quickLogin.enabled.value.any) {
+            DebugLog.info(TAG, "Retiring Quick Login; App lock replaces it")
+            quickLogin.clear()
         }
     }
 

@@ -110,7 +110,7 @@
     <string name="licence_saved_title">Licence added</string>
     <string name="licence_saved_body">Your fleet can see it now.</string>
     <string name="register_account_title">Email and password</string>
-    <string name="register_account_lead">You sign in with these once. Quick Login takes over after that.</string>
+    <string name="register_account_lead">You sign in with these once.</string>
     <string name="register_fleet_title">Joining a fleet?</string>
     <string name="register_fleet_lead">Enter your fleet\'s joining code and its vehicles open up to you straight away.</string>
     <string name="field_joining_code">Joining code</string>
@@ -131,34 +131,6 @@
     <string name="email_code_dev">Test build: the code is %1$s</string>
 
     <!-- Signed in, and Quick Login ======================================= -->
-    <string name="signed_in_title">Welcome back, %1$s</string>
-    <string name="signed_in_body">You are signed in on this phone.</string>
-    <string name="signed_in_created">Account created</string>
-    <string name="signed_in_created_body">You are in. One more thing and you can get to work.</string>
-    <string name="quick_login">Quick Login</string>
-    <string name="offer_title">Get back in with one touch</string>
-    <string name="offer_lead">Set up a quick way back in, so you never type that password in a yard at five in the morning.</string>
-    <string name="offer_biometric_title">Fingerprint or face</string>
-    <string name="offer_biometric_sub">Use the sensor on this phone</string>
-    <string name="offer_fastest">Fastest</string>
-    <string name="pin_title">4-digit PIN</string>
-    <string name="offer_pin_sub">Four numbers only you know</string>
-    <string name="offer_footnote">Your account sign-in does not change.</string>
-    <string name="pin_bar">Quick Login PIN</string>
-    <string name="pin_eyebrow">Quick Login · PIN</string>
-    <string name="pin_choose_title">Choose a 4-digit PIN</string>
-    <string name="pin_choose_body">Avoid 1234 or four of the same digit - they are too easy to guess.</string>
-    <string name="pin_confirm_title">Enter it once more</string>
-    <string name="pin_confirm_body">The same four digits, so we know you have them.</string>
-    <string name="pin_too_weak">That PIN is too easy to guess. Try four digits that are not a pattern.</string>
-    <string name="pin_malformed">Enter exactly four digits.</string>
-    <string name="pin_mismatch">Those two PINs do not match. Choose your PIN again.</string>
-    <string name="pin_not_saved">That PIN could not be saved. Try a different one.</string>
-    <string name="all_set_eyebrow">Quick Login is on</string>
-    <string name="all_set_title">You are all set, %1$s</string>
-    <string name="all_set_body_pin">Next time, open Humsafar with your PIN. No password needed.</string>
-    <string name="all_set_body_biometric">Next time, open Humsafar with your fingerprint. No password needed.</string>
-    <string name="all_set_action">Choose your vehicle</string>
 
     <!-- Unlock ============================================================ -->
     <string name="unlock_title">Welcome back, %1$s</string>
@@ -462,26 +434,23 @@
     <string name="profile_appearance_note">The live map follows this setting too, so it is easy to read in daylight and gentle on your eyes at night.</string>
     <string name="profile_language">Language</string>
     <string name="profile_security">Sign-in and security</string>
-    <string name="profile_on">On</string>
-    <string name="profile_off">Off</string>
-    <string name="profile_biometric_unavailable">Not set up on this phone</string>
-    <string name="profile_change_pin">Change PIN</string>
+    <string name="app_lock">App lock</string>
+    <string name="app_lock_detail">Fingerprint, face or screen lock to open</string>
+    <string name="app_lock_unavailable">Set up a screen lock on this phone first</string>
+    <string name="app_lock_prompt_title">Turn on App lock</string>
+    <string name="app_lock_prompt_subtitle">Confirm it\'s you</string>
+    <string name="lock_prompt_subtitle">Use your fingerprint, face or screen lock</string>
+    <string name="lock_locked">Locked</string>
+    <string name="lock_unlock">Unlock</string>
+    <string name="unreachable_title">No connection</string>
+    <string name="unreachable_body">You are still signed in. Humsafar will carry on by itself as soon as there is signal.</string>
     <string name="profile_sign_out">Sign out of this phone</string>
-    <string name="profile_sign_out_note">Signing out clears Quick Login on this phone. You will need your password to get back in.</string>
+    <string name="profile_sign_out_note">You will need your password to get back in.</string>
     <string name="sign_out_title">Sign out of this phone?</string>
-    <string name="sign_out_body">Quick Login is cleared and you will need your password to get back in.</string>
-    <string name="toast_pin_on">Your PIN is on.</string>
-    <string name="toast_pin_off">Your PIN is off.</string>
-    <string name="toast_biometric_off">Fingerprint unlock is off.</string>
-    <string name="biometric_on">Fingerprint unlock is on.</string>
-    <string name="biometric_cancelled">Fingerprint setup was cancelled.</string>
-    <string name="biometric_no_key">This phone would not create a secure key. Your PIN still works.</string>
-    <string name="biometric_not_saved">That did not save. Your PIN still works.</string>
+    <string name="sign_out_body">You will need your password to get back in.</string>
     <string name="biometric_unlock_title">Unlock Humsafar</string>
     <string name="biometric_unlock_sub">Use your fingerprint or face to carry on</string>
     <string name="biometric_use_pin">Use your PIN</string>
-    <string name="biometric_setup_title">Set up fingerprint unlock</string>
-    <string name="biometric_setup_sub">Confirm it is you, and Humsafar will remember this phone</string>
 
     <!-- Nearby services =================================================== -->
     <string name="nearby_search">Search a place or landmark</string>

@@ -410,7 +410,7 @@ private fun DriverRow(driver: DriversApi.Driver, onOpen: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Avatar(driver.fullName, size = 48.dp, background = c.primarySoft, ink = c.primary)
+        Avatar(driver.fullName, size = 48.dp, background = c.primarySoft, ink = c.primary, photoUrl = driver.avatarUrl)
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Text(driver.fullName, style = SType.rowTitle, color = c.fg, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(

@@ -43,10 +43,19 @@ class DriverAccountStore(context: Context) {
     private val _account = MutableStateFlow(readAccount())
     val account: StateFlow<Account?> = _account.asStateFlow()
 
+    /**
+     * [avatarUrl] and [coverUrl] are the driver's profile photo and banner, as
+     * the relative media URLs the session carries. Kept here, not fetched per
+     * screen, so the header can show the photo the moment the app opens; every
+     * launch and token refresh rewrites them from the session, so a photo
+     * changed on the web arrives without a sign-out.
+     */
     data class Account(
         val userId: String,
         val name: String,
         val email: String,
+        val avatarUrl: String? = null,
+        val coverUrl: String? = null,
     )
 
     /**
@@ -65,102 +74,28 @@ class DriverAccountStore(context: Context) {
     private var accessExpiresAt: Long = 0
 
     /**
-     * The thirty-day credential, when this store is the one holding it.
+     * The thirty-day credential, in encrypted storage.
      *
-     * Null once Quick Login takes custody. That is the point of Quick Login: a
-     * token readable here is a token readable by anything with the phone
-     * unlocked and by any copy of the app's data, so enabling a PIN or
-     * biometrics moves the only copy behind a Keystore key and clears this.
+     * Readable by the app without asking the driver anything, which is what
+     * lets Humsafar open straight away and restore the session silently, as the
+     * owner app does. App lock guards the screen when the driver wants it; it
+     * does not hide this.
+     *
+     * Null for a driver whose credential the retired Quick Login still holds
+     * (see [heldByQuickLogin]) until they unlock it one last time.
      */
     val refreshToken: String?
         get() = preferences.getString(KEY_REFRESH, null)
 
     /**
-     * The credential this process last handled in plain form, in memory only.
+     * Whether the retired Quick Login sealed this driver's credential.
      *
-     * Never written anywhere and gone when the process dies — the same rule
-     * [accessToken] follows, and for the same reason: what is worth protecting
-     * at rest is the copy that survives a restart.
-     *
-     * It exists so that switching Quick Login off cannot cost a driver their
-     * session. Clearing the sealed copy destroys the only copy on disk, and a
-     * driver who signed in with a password while Quick Login held custody has
-     * never unlocked anything — so without this there was nothing to hand
-     * back, and they were signed out the moment the access token expired.
-     */
-    @Volatile
-    var liveRefreshToken: String? = null
-        private set
-
-    /**
-     * Whether Quick Login is holding the credential instead of this store.
-     *
-     * Needed because "signed in" and "the token is here" stopped being the same
-     * question. A driver with a PIN is still signed in; their token is simply
-     * somewhere this class cannot read without them.
+     * True only for a phone that had a PIN or fingerprint set before App lock
+     * replaced Quick Login, until that driver unlocks once or signs in again.
+     * Nothing sets it any more; [store] clears it.
      */
     val heldByQuickLogin: Boolean
         get() = preferences.getBoolean(KEY_HELD_BY_QUICK_LOGIN, false)
-
-    /**
-     * Hand the credential to Quick Login.
-     *
-     * Returns the token so the caller can seal it, and clears it here in the
-     * same breath — there is no window in which both copies exist. Null when
-     * there is nothing to hand over.
-     */
-    fun surrenderRefreshToken(): String? {
-        val token = preferences.getString(KEY_REFRESH, null) ?: return null
-        preferences.edit()
-            .remove(KEY_REFRESH)
-            .putBoolean(KEY_HELD_BY_QUICK_LOGIN, true)
-            .apply()
-        return token
-    }
-
-    /**
-     * Take the credential back, when Quick Login is switched off.
-     *
-     * The driver has just proved who they are to reach this, so storing the
-     * token readable again is exactly the trade they asked for: silent restore
-     * on every launch, and no PIN.
-     */
-    /**
-     * Where a rotated credential goes while Quick Login holds custody.
-     *
-     * Set once by the application object. Without it [store] wrote every
-     * rotation straight back into readable preferences — which both undid Quick
-     * Login's only guarantee and left the sealed copy stale, so the *next*
-     * unlock replayed a token the server had already killed and the driver was
-     * told their session had expired.
-     *
-     * It answers whether a sealed copy now exists, because the flag alone is
-     * not evidence that one does. See [store] for what a refusal means.
-     */
-    var custodian: ((String) -> Boolean)? = null
-
-    fun reclaimRefreshToken(token: String) {
-        preferences.edit()
-            .putString(KEY_REFRESH, token)
-            .putBoolean(KEY_HELD_BY_QUICK_LOGIN, false)
-            .apply()
-    }
-
-    /**
-     * Mark the credential as no longer Quick Login's, with none to hand back.
-     *
-     * The companion to [reclaimRefreshToken] for when the plaintext is simply
-     * gone: a sealed copy destroyed by a lockout, a key the platform
-     * invalidated, or an upgrade that retired an older scheme.
-     *
-     * The flag has to come down even then. While it stands, [store] treats
-     * every subsequent sign-in as Quick Login's to keep — so the driver is
-     * handed no readable credential, is signed out fifteen minutes later, and
-     * cannot turn Quick Login back on because there is nothing left to seal.
-     */
-    fun releaseCustody() {
-        preferences.edit().putBoolean(KEY_HELD_BY_QUICK_LOGIN, false).apply()
-    }
 
     /** True when a token is held and is not about to expire mid-request. */
     fun hasUsableAccessToken(): Boolean {
@@ -174,6 +109,10 @@ class DriverAccountStore(context: Context) {
      * `refreshToken` is nullable because a refresh may legitimately not rotate
      * one, and overwriting a good credential with null would sign the driver out
      * on the next launch for no reason.
+     *
+     * A rotated token always lands here, readable. The server rotates on every
+     * use and kills the old token at once, so this must be the only copy that
+     * matters; a stale copy anywhere else is a credential that no longer works.
      */
     fun store(
         account: Account,
@@ -183,37 +122,14 @@ class DriverAccountStore(context: Context) {
     ) {
         this.accessToken = accessToken
         this.accessExpiresAt = System.currentTimeMillis() + expiresInSeconds * 1000
-        if (refreshToken != null) liveRefreshToken = refreshToken
-
-        /*
-         * Offer the credential to Quick Login first, and believe the answer.
-         *
-         * Never write it back into the clear while Quick Login really has it:
-         * the server rotates the refresh token on every use, so this runs far
-         * more often than a sign-in, and each time it used to drop a fresh
-         * readable copy beside the sealed one. The custodian re-seals instead,
-         * which keeps the only copy behind the Keystore and keeps it current.
-         *
-         * What the flag cannot say is whether Quick Login still holds anything.
-         * It discards its sealed copies on a PIN lockout, on a key the platform
-         * invalidates, and on an upgrade that retires an older scheme — none
-         * of which reach this class. A flag left standing over an empty store
-         * therefore sent every rotation into a custodian that dropped it and
-         * wrote nothing here, so the driver was left with no credential at all:
-         * signed out within the access token's fifteen minutes, and unable to
-         * turn Quick Login back on because there was nothing left to seal.
-         * Asking rather than assuming is what lets that state recover on the
-         * next sign-in instead of persisting.
-         */
-        val sealedByQuickLogin = refreshToken != null &&
-            heldByQuickLogin &&
-            custodian?.invoke(refreshToken) == true
 
         preferences.edit().apply {
             putString(KEY_USER_ID, account.userId)
             putString(KEY_NAME, account.name)
             putString(KEY_EMAIL, account.email)
-            if (refreshToken != null && !sealedByQuickLogin) {
+            putString(KEY_AVATAR, account.avatarUrl)
+            putString(KEY_COVER, account.coverUrl)
+            if (refreshToken != null) {
                 putString(KEY_REFRESH, refreshToken)
                 putBoolean(KEY_HELD_BY_QUICK_LOGIN, false)
             }
@@ -231,7 +147,6 @@ class DriverAccountStore(context: Context) {
     fun clear() {
         accessToken = null
         accessExpiresAt = 0
-        liveRefreshToken = null
         preferences.edit().clear().apply()
         _account.value = null
     }
@@ -252,6 +167,8 @@ class DriverAccountStore(context: Context) {
             userId = id,
             name = preferences.getString(KEY_NAME, null).orEmpty(),
             email = preferences.getString(KEY_EMAIL, null).orEmpty(),
+            avatarUrl = preferences.getString(KEY_AVATAR, null),
+            coverUrl = preferences.getString(KEY_COVER, null),
         )
     }
 
@@ -260,6 +177,8 @@ class DriverAccountStore(context: Context) {
         const val KEY_USER_ID = "user_id"
         const val KEY_NAME = "name"
         const val KEY_EMAIL = "email"
+        const val KEY_AVATAR = "avatar_url"
+        const val KEY_COVER = "cover_url"
         const val KEY_REFRESH = "refresh_token"
         const val KEY_HELD_BY_QUICK_LOGIN = "held_by_quick_login"
 

@@ -23,6 +23,9 @@ internal fun biometricsAvailable(context: Context): Boolean =
 /**
  * Ask Android to verify the driver, and hand the result back.
  *
+ * Only for the one last unlock of a credential the retired Quick Login sealed
+ * (see `DriverViewModel.Stage.Locked`). App lock uses `ui.lock.confirmPerson`.
+ *
  * Saarthi never sees a fingerprint. It passes a cipher the platform will only
  * initialise after a successful prompt, and receives that cipher back — so the
  * *device* enforces the check and no amount of app code can talk it into
@@ -71,69 +74,4 @@ internal fun promptForBiometric(context: Context, viewModel: DriverViewModel) {
             .build(),
         BiometricPrompt.CryptoObject(cipher),
     )
-}
-
-/**
- * Ask Android to confirm the driver before biometrics is switched on.
- *
- * No `CryptoObject`: sealing uses the public half of a key pair, which the
- * platform never gates, so this prompt is consent rather than cryptography. It
- * still earns its place — a switch that says "fingerprint unlock is on" should
- * not be believable until the phone has recognised a fingerprint once.
- *
- * `onResult(false)` for a cancellation. A driver who backs out has made a
- * decision, not hit an error, and the toggle must not be left looking broken.
- */
-internal fun promptToEnrolBiometric(
-    context: Context,
-    onResult: (Boolean) -> Unit,
-) {
-    val activity = context as? FragmentActivity ?: return onResult(false)
-
-    val prompt = BiometricPrompt(
-        activity,
-        ContextCompat.getMainExecutor(context),
-        object : BiometricPrompt.AuthenticationCallback() {
-            override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
-                onResult(true)
-            }
-
-            override fun onAuthenticationError(code: Int, message: CharSequence) = onResult(false)
-        },
-    )
-
-    prompt.authenticate(
-        BiometricPrompt.PromptInfo.Builder()
-            .setTitle(context.getString(R.string.biometric_setup_title))
-            .setSubtitle(context.getString(R.string.biometric_setup_sub))
-            .setNegativeButtonText(context.getString(R.string.action_cancel))
-            .build(),
-    )
-}
-
-/**
- * Turn biometrics on: prove it is them, then seal.
- *
- * The same order the settings switch and the Quick Login offer both need, so it
- * lives once. [onDone] carries a sentence for the driver either way, as a
- * string resource so it reads in their language.
- */
-internal fun enrolBiometric(
-    context: Context,
-    viewModel: DriverViewModel,
-    onDone: (enabled: Boolean, message: Int) -> Unit,
-) {
-    if (!viewModel.biometricsUsable()) {
-        onDone(false, R.string.biometric_no_key)
-        return
-    }
-    promptToEnrolBiometric(context) { confirmed ->
-        if (!confirmed) {
-            onDone(false, R.string.biometric_cancelled)
-        } else {
-            viewModel.completeBiometricSetup { ok ->
-                onDone(ok, if (ok) R.string.biometric_on else R.string.biometric_not_saved)
-            }
-        }
-    }
 }

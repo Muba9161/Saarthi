@@ -147,7 +147,23 @@ class PapersApi(private val api: OwnerApi) {
     suspend fun sticker(subjectId: String, subjectType: String = "VEHICLE"): Sticker? =
         api.get("/qr/subject/$subjectType/$subjectId", Sticker.serializer())
 
-    suspend fun stickerImage(sticker: Sticker): ByteArray? = sticker.imageUrl.takeIf { it.isNotBlank() }?.let { api.image(it) }
+    /**
+     * The sticker as a PNG.
+     *
+     * `imageUrl` is the SVG the web shows, and `BitmapFactory` cannot decode
+     * SVG: it returned null with no error, so the panel showed a placeholder
+     * glyph where the QR should have been. The PNG route next to it serves the
+     * same code under the same permission. Any other URL is used as given.
+     */
+    suspend fun stickerImage(sticker: Sticker): ByteArray? {
+        val url = sticker.imageUrl.takeIf { it.isNotBlank() } ?: return null
+        val png = if (url.endsWith(SVG_SUFFIX)) {
+            "${url.removeSuffix(SVG_SUFFIX)}.png?size=$STICKER_IMAGE_PX"
+        } else {
+            url
+        }
+        return api.image(png)
+    }
 
     /**
      * File a paper for [ownerId] — a vehicle (`TRUCK`) or a driver (`DRIVER`).
@@ -297,6 +313,15 @@ class PapersApi(private val api: OwnerApi) {
         private const val SPIN_UPLOADS_AT_ONCE = 3
         private const val SPIN_UPLOAD_ATTEMPTS = 3
         private const val SPIN_RETRY_BASE_MS = 600L
+
+        private const val SVG_SUFFIX = ".svg"
+
+        /**
+         * Rendered on the server at this edge rather than scaled up on the phone,
+         * so the modules stay sharp for a camera. The panel is about 590 px on a
+         * 3x screen, and the route accepts 128 to 2048.
+         */
+        private const val STICKER_IMAGE_PX = 768
 
         const val KIND_PAPER = "PAPER"
         const val KIND_PHOTOS = "PHOTOS"

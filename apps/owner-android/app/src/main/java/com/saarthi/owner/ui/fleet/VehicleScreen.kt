@@ -214,6 +214,7 @@ fun VehicleScreen(app: OwnerApp, account: SessionStore.Account, initial: Vehicle
 
         DriverCard(
             driverName = vehicle.currentDriver?.name?.ifBlank { null },
+            driverPhotoUrl = vehicle.currentDriver?.avatarUrl,
             canAssign = account.can(VehiclesApi.CAN_ASSIGN_DRIVER),
             busy = driverBusy,
             onAssign = { assigning = true },

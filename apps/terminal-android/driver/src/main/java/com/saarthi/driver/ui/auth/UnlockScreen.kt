@@ -63,7 +63,10 @@ import com.saarthi.driver.ui.design.rise
 import com.saarthi.driver.ui.design.stagger
 
 /**
- * Getting back in with Quick Login.
+ * The one last unlock of a credential the retired Quick Login sealed.
+ *
+ * Only a driver who set a PIN or fingerprint before App lock replaced Quick
+ * Login ever sees this, and only once; see `DriverViewModel.Stage.Locked`.
  *
  * The session is intact — this is not a sign-in — but its credential is sealed
  * behind a Keystore key that a PIN or a fingerprint opens. The fingerprint is
