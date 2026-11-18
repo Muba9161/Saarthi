@@ -42,7 +42,6 @@ import com.saarthi.driver.ui.design.AppName
 import com.saarthi.driver.ui.design.Ease
 import com.saarthi.driver.ui.design.MapInk
 import com.saarthi.driver.ui.design.Saarthi
-import com.saarthi.driver.ui.profile.PinSetupOverlay
 import com.saarthi.driver.ui.profile.ProfileActions
 import com.saarthi.driver.ui.profile.ProfileContent
 import com.saarthi.driver.ui.profile.ShiftDetails
@@ -80,7 +79,7 @@ private data class HandoverAsk(val kind: HandoverKind, val tripId: String?)
 private fun Throwable.isHandoverRefusal(): Boolean =
     (this as? SaarthiApi.Failure.Refused)?.code?.startsWith("HANDOVER_CODE") == true
 
-private enum class Overlay { NONE, NOTICES, CHECK, EXPENSE, ADD_TRIP, END_TRIP, REMOVE_TRIP, NEARBY, FULL_MAP, ASSISTANT, VEHICLE, ADAPTER, SOS, PIN, LICENCE, SIGN_OFF, SIGN_OUT }
+private enum class Overlay { NONE, NOTICES, CHECK, EXPENSE, ADD_TRIP, END_TRIP, REMOVE_TRIP, NEARBY, FULL_MAP, ASSISTANT, VEHICLE, ADAPTER, SOS, LICENCE, SIGN_OFF, SIGN_OUT }
 
 /**
  * The shift: five tabs under a floating header and tab bar, and every sheet and
@@ -332,7 +331,6 @@ fun ShiftShell(
                             preferences = preferences,
                             shift = ShiftDetails(plate, state.state.driverWord(), DrivingHours.format(hours.todayMs)),
                             actions = ProfileActions(
-                                setPin = { overlay = Overlay.PIN },
                                 addLicence = { overlay = Overlay.LICENCE },
                                 joinFleet = {},
                                 fullMap = { overlay = Overlay.FULL_MAP },
@@ -433,15 +431,6 @@ fun ShiftShell(
             overlay = Overlay.NONE
             driver.clearError()
         }
-        PinSetupOverlay(
-            visible = overlay == Overlay.PIN,
-            driver = driver,
-            onClose = { overlay = Overlay.NONE },
-            onSaved = {
-                overlay = Overlay.NONE
-                say(R.string.toast_pin_on)
-            },
-        )
         ConfirmSheet(
             visible = overlay == Overlay.END_TRIP,
             title = stringResource(R.string.trips_stop_title),

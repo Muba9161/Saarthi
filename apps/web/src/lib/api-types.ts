@@ -97,6 +97,8 @@ export interface DriverSummary {
   availability: string;
   currentTruck: { id: string; registrationNumber: string } | null;
   overallScore: number | null;
+  /** The driver's photo: their own profile photo, else one the fleet attached. */
+  avatarUrl: string | null;
   totalTrips: number;
   totalDistanceKm: number;
   documentHealth: { total: number; expired: number; expiringSoon: number; pending: number };
@@ -1057,7 +1059,11 @@ export interface LoanSyncResult {
   retrievedAt: string;
   simulated: boolean;
   applied: boolean;
-  differences: { field: string; saarthi: string | number | null; provider: string | number | null }[];
+  differences: {
+    field: string;
+    saarthi: string | number | null;
+    provider: string | number | null;
+  }[];
   installmentsReported: number;
   undisclosedInstallments: number;
 }
@@ -1503,7 +1509,6 @@ export interface ExpenseListTotals {
 export interface ExpenseListResult extends Paginated<ExpenseListItem> {
   totals: ExpenseListTotals;
 }
-
 
 // ---------------------------------------------------------------------------
 // Requirements & bidding

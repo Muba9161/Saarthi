@@ -5,7 +5,7 @@ import {
 } from '@saarthi/shared';
 import { prisma } from '../../database/prisma';
 import { errors } from '../../lib/errors';
-import { primaryUrlsFor } from '../media/media.service';
+import { driverPhotoUrls } from '../drivers/driver-photo';
 
 /**
  * The driver, as a terminal and an approver see them.
@@ -43,12 +43,12 @@ export async function terminalDriver(driverId: string): Promise<TerminalDriverVi
       experienceYears: true,
       totalTrips: true,
       overallScore: true,
-      user: { select: { firstName: true, lastName: true } },
+      user: { select: { firstName: true, lastName: true, avatarUrl: true } },
     },
   });
   if (!driver) throw errors.notFound('Driver');
 
-  const photos = await primaryUrlsFor('DRIVER', [driver.id]);
+  const photos = await driverPhotoUrls([driver]);
 
   /*
    * Map the driver's *profile* verification onto document verification.

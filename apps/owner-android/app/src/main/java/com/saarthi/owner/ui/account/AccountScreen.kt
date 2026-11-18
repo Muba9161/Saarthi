@@ -10,6 +10,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -19,14 +20,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.saarthi.owner.BuildConfig
 import com.saarthi.owner.R
 import com.saarthi.owner.data.OwnerPreferences
 import com.saarthi.owner.data.SessionStore
-import com.saarthi.owner.data.roleLabel
 import com.saarthi.owner.network.AccountApi
 import com.saarthi.owner.network.OwnerApi
 import com.saarthi.owner.network.PlacesApi
@@ -42,12 +41,12 @@ import com.saarthi.owner.ui.design.SType
 import com.saarthi.owner.ui.design.Saarthi
 import com.saarthi.owner.ui.design.SaarthiButton
 import com.saarthi.owner.ui.design.SegmentedControl
-import com.saarthi.owner.ui.design.StatusPill
 import com.saarthi.owner.ui.design.card
 import com.saarthi.owner.ui.design.pressable
 import com.saarthi.owner.ui.shell.LocalNavigator
 import com.saarthi.owner.ui.design.rise
 import com.saarthi.owner.ui.design.stagger
+import com.saarthi.owner.ui.lock.AppLockSession
 import com.saarthi.owner.ui.lock.confirmPerson
 import com.saarthi.owner.ui.lock.canLockApp
 import com.saarthi.owner.ui.design.SaarthiSwitch
@@ -75,7 +74,9 @@ fun AccountScreen(
     val appearance by preferences.appearance.collectAsStateWithLifecycle()
     var signingOut by remember { mutableStateOf(false) }
     var reload by remember { mutableIntStateOf(0) }
-    var avatarId by remember { mutableStateOf<String?>(null) }
+
+    // The photo and cover may have changed on the web since the session was read.
+    LaunchedEffect(Unit) { runCatching { api.refreshSession() } }
 
     Column(
         Modifier
@@ -84,41 +85,9 @@ fun AccountScreen(
             .padding(start = 20.dp, end = 20.dp, top = headerClearance(), bottom = tabBarClearance()),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .rise()
-                .card(radius = 24.dp)
-                .padding(18.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            RemotePhoto(accountApi, avatarId, account.fullName, 64.dp)
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(account.fullName, style = SType.cardTitle.copy(fontSize = SType.headerTitle.fontSize), color = c.fg, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(
-                    listOf(roleLabel(account.membershipRole), account.organizationName)
-                        .filter { it.isNotBlank() }
-                        .joinToString(" · "),
-                    style = SType.small,
-                    color = c.muted,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                account.planName?.let {
-                    // The plan's real status is in the Plan card below; this only names it.
-                    StatusPill(
-                        it.replace("Supplier", "Seller"),
-                        background = c.successBg,
-                        ink = c.success,
-                        modifier = Modifier.padding(top = 4.dp),
-                    )
-                }
-                Text(account.email, style = SType.caption, color = c.subtle, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            }
-        }
+        ProfileHeader(account, Modifier.rise())
 
-        AccountDetails(account, api, places, reload, onReload = { reload++ }, onAvatar = { avatarId = it })
+        AccountDetails(account, api, places, reload, onReload = { reload++ })
 
         GroupLabel(stringResource(R.string.people_account_appearance))
         SegmentedControl(
@@ -241,7 +210,11 @@ private fun AppLockRow(preferences: OwnerPreferences) {
                     preferences.setAppLock(false)
                 } else {
                     confirmPerson(context, promptTitle, promptSubtitle) { ok ->
-                        if (ok) preferences.setAppLock(true)
+                        if (ok) {
+                            // Just confirmed: do not ask again until the app is away or restarted.
+                            AppLockSession.unlocked = true
+                            preferences.setAppLock(true)
+                        }
                     }
                 }
             },

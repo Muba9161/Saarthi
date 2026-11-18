@@ -1,35 +1,32 @@
 package com.saarthi.owner.ui.account
 
 import android.app.DatePickerDialog
-import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -44,7 +41,7 @@ import com.saarthi.owner.ui.common.PlaceSearchScreen
 import com.saarthi.owner.ui.common.Words
 import com.saarthi.owner.ui.common.prettyDate
 import com.saarthi.owner.ui.common.readable
-import com.saarthi.owner.ui.design.Avatar
+import com.saarthi.owner.ui.common.rememberRemoteImage
 import com.saarthi.owner.ui.design.ButtonTone
 import com.saarthi.owner.ui.design.ChoiceChip
 import com.saarthi.owner.ui.design.CompactField
@@ -69,9 +66,7 @@ import com.saarthi.owner.ui.papers.rememberPickers
 import com.saarthi.owner.ui.papers.rememberSlipReader
 import com.saarthi.owner.ui.shell.LocalNavigator
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
@@ -360,8 +355,17 @@ private fun PhotoField(
     }
 
     Column(Modifier.fillMaxWidth().card(radius = 20.dp).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        val cover = purpose == AccountApi.COVER
+        if (cover) {
+            // The banner as it will be seen, full width, rather than a circle.
+            CoverImage(
+                mediaId?.let { accountApi.imageUrl(it, thumbnail = false) },
+                Modifier.fillMaxWidth().aspectRatio(COVER_RATIO).clip(RoundedCornerShape(14.dp)),
+                slot = true,
+            )
+        }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-            RemotePhoto(accountApi, mediaId, field.label, 64.dp, emptyIcon = Lucide.image)
+            if (!cover) RemotePhoto(accountApi, mediaId, field.label, 64.dp)
             Column(Modifier.weight(1f)) {
                 Text(field.label, style = SType.bodyStrong, color = c.fg)
                 field.help?.let { Text(it, style = SType.caption, color = c.muted) }
@@ -385,27 +389,16 @@ private fun PhotoField(
 }
 
 /**
- * A photo from the media library in a circle. While loading or when there is
- * none: [emptyIcon] for a picture slot (a cover, a logo), else the name's initials.
+ * A photo field's picture from the media library, in a circle: a profile
+ * photo or a logo. While it loads, and when there is none, an empty picture slot.
  */
 @Composable
-internal fun RemotePhoto(accountApi: AccountApi, mediaId: String?, name: String, size: Dp, emptyIcon: String? = null) {
+internal fun RemotePhoto(accountApi: AccountApi, mediaId: String?, name: String, size: Dp) {
     val c = Saarthi.colors
-    val bitmap by produceState<ImageBitmap?>(null, mediaId) {
-        value = mediaId?.let { id ->
-            withContext(Dispatchers.IO) {
-                runCatching { accountApi.image(id)?.let { BitmapFactory.decodeByteArray(it, 0, it.size)?.asImageBitmap() } }.getOrNull()
-            }
-        }
-    }
-    val shown = bitmap
-    if (shown != null) {
-        Box(Modifier.size(size).clip(CircleShape).background(c.sunken)) {
-            Image(shown, contentDescription = name, contentScale = ContentScale.Crop, modifier = Modifier.size(size))
-        }
-    } else if (emptyIcon != null) {
-        IconWell(emptyIcon, well = c.primarySoft, ink = c.primary, size = size, radius = size / 2, iconSize = size * 0.4f)
+    val photo = rememberRemoteImage(mediaId?.let { accountApi.imageUrl(it) }, size)
+    if (photo != null) {
+        Image(photo, contentDescription = name, contentScale = ContentScale.Crop, modifier = Modifier.size(size).clip(CircleShape).background(c.sunken))
     } else {
-        Avatar(name, size = size, background = c.primarySoft, ink = c.primary)
+        IconWell(Lucide.image, well = c.primarySoft, ink = c.primary, size = size, radius = size / 2, iconSize = size * 0.4f)
     }
 }

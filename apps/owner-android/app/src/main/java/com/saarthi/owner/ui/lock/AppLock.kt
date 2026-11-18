@@ -39,6 +39,21 @@ import com.saarthi.owner.ui.design.stagger
  */
 private const val AUTHENTICATORS = BIOMETRIC_WEAK or DEVICE_CREDENTIAL
 
+/**
+ * Whether the person has passed App lock in this process.
+ *
+ * Kept for the life of the process, never in an activity's saved state. A saved
+ * "unlocked" outlived Android killing the app in the background: the activity
+ * was rebuilt from it and opened without asking, and the one-minute relock
+ * could not fire either, because its clock restarted at zero in the new
+ * process. A new process now always asks; a language change, which rebuilds
+ * the activity in the same process, does not.
+ */
+object AppLockSession {
+    @Volatile
+    var unlocked: Boolean = false
+}
+
 /** Whether this phone can lock the app at all: something must be enrolled. */
 fun canLockApp(context: Context): Boolean =
     BiometricManager.from(context).canAuthenticate(AUTHENTICATORS) == BiometricManager.BIOMETRIC_SUCCESS

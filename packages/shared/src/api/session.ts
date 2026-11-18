@@ -83,6 +83,11 @@ export interface SessionUser {
   lastName: string;
   fullName: string;
   avatarUrl: string | null;
+  /**
+   * The person's primary cover image (`USER` / `COVER`), full size, as a
+   * relative `/api/v1/media/<id>/file` path. Null when they have none.
+   */
+  coverUrl: string | null;
   status: UserStatus;
   roles: RoleName[];
   lastLoginAt: string | null;

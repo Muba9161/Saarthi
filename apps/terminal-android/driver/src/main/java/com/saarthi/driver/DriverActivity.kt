@@ -4,6 +4,11 @@ import android.Manifest
 import android.os.Build
 import android.content.Context
 import android.os.Bundle
+import android.os.SystemClock
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import com.saarthi.driver.ui.lock.AppLockSession
+import com.saarthi.driver.ui.lock.LockScreen
 import java.net.URL
 import java.net.HttpURLConnection
 import kotlinx.coroutines.withContext
@@ -50,6 +55,12 @@ import com.saarthi.driver.ui.DriverViewModel
  */
 class DriverActivity : FragmentActivity() {
 
+    /** Locked until the driver proves it is them: only while App lock is on and somebody is signed in. */
+    private var locked by mutableStateOf(false)
+
+    /** When the app last went to the background, to lock again after a while away. */
+    private var backgroundedAt = 0L
+
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
     ) { granted ->
@@ -94,17 +105,51 @@ class DriverActivity : FragmentActivity() {
         // A share may be what launched us.
         receiveSharedLocation(intent)
 
+        // Rebuilt in place (a new language, say): still unlocked if it was. A new
+        // process always asks; see AppLockSession.
+        locked = shouldLock(app) && !AppLockSession.unlocked
+
         setContent {
+            // Created before the lock is checked, so the session restores while
+            // the driver is still at the fingerprint prompt and the app is ready
+            // the moment they are through it.
             val driver: DriverViewModel = viewModel()
             val cockpit: TerminalViewModel = viewModel()
             val appearance by app.preferences.appearance.collectAsState()
 
             // Phone, Light or Dark from Profile; the live map stays dark in all three.
             SaarthiTheme(appearance = appearance, reducedMotion = app.settings.reducedMotion) {
-                DriverRoot(driver = driver, cockpit = cockpit, preferences = app.preferences)
+                if (locked) {
+                    LockScreen(
+                        onUnlocked = {
+                            AppLockSession.unlocked = true
+                            locked = false
+                        },
+                    )
+                } else {
+                    DriverRoot(driver = driver, cockpit = cockpit, preferences = app.preferences)
+                }
             }
         }
     }
+
+    override fun onStop() {
+        super.onStop()
+        backgroundedAt = SystemClock.elapsedRealtime()
+    }
+
+    override fun onStart() {
+        super.onStart()
+        val away = SystemClock.elapsedRealtime() - backgroundedAt
+        if (backgroundedAt > 0 && away > RELOCK_AFTER_MS && shouldLock(application as SaarthiDriverApp)) {
+            AppLockSession.unlocked = false
+            locked = true
+        }
+    }
+
+    /** Only while App lock is on and somebody is signed in, exactly as in the owner app. */
+    private fun shouldLock(app: SaarthiDriverApp): Boolean =
+        app.preferences.appLock.value && app.account.account.value != null
 
     /**
      * A share arriving while the app is already open.
@@ -229,6 +274,9 @@ class DriverActivity : FragmentActivity() {
         permissionLauncher.launch(wanted.toTypedArray())
     }
 }
+
+/** A glance at another app does not lock; a minute away does. Matches the owner app. */
+private const val RELOCK_AFTER_MS = 60_000L
 
 /** Enough hops for Google's chain, few enough to fail fast on a loop. */
 private const val MAX_REDIRECTS = 5

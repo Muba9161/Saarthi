@@ -17,6 +17,7 @@ import com.saarthi.owner.ui.OwnerRoot
 import com.saarthi.owner.ui.common.Language
 import com.saarthi.owner.ui.common.Words
 import com.saarthi.owner.ui.design.SaarthiTheme
+import com.saarthi.owner.ui.lock.AppLockSession
 import com.saarthi.owner.ui.lock.LockScreen
 
 /**
@@ -42,8 +43,9 @@ class OwnerActivity : FragmentActivity() {
         Words.bind(this)
         enableEdgeToEdge()
         val app = application as OwnerApp
-        // Rebuilt in place (a new language, say): still unlocked if it was, rather than asking again.
-        locked = savedInstanceState?.getBoolean(KEY_LOCKED) ?: shouldLock(app)
+        // Rebuilt in place (a new language, say): still unlocked if it was. A new
+        // process always asks; see AppLockSession.
+        locked = shouldLock(app) && !AppLockSession.unlocked
         // Opened from a push or a live-ride link: the screen it is about opens once signed in (and unlocked).
         Push.openLink(linkIn(intent))
         // The phone's own "remove animations" switch, which the design honours everywhere.
@@ -54,7 +56,16 @@ class OwnerActivity : FragmentActivity() {
         setContent {
             val appearance by app.preferences.appearance.collectAsStateWithLifecycle()
             SaarthiTheme(appearance = appearance, reducedMotion = reducedMotion) {
-                if (locked) LockScreen(onUnlocked = { locked = false }) else OwnerRoot(app)
+                if (locked) {
+                    LockScreen(
+                        onUnlocked = {
+                            AppLockSession.unlocked = true
+                            locked = false
+                        },
+                    )
+                } else {
+                    OwnerRoot(app)
+                }
             }
         }
     }
@@ -62,11 +73,6 @@ class OwnerActivity : FragmentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         Push.openLink(linkIn(intent))
-    }
-
-    override fun onSaveInstanceState(outState: Bundle) {
-        super.onSaveInstanceState(outState)
-        outState.putBoolean(KEY_LOCKED, locked)
     }
 
     override fun onStop() {
@@ -77,7 +83,10 @@ class OwnerActivity : FragmentActivity() {
     override fun onStart() {
         super.onStart()
         val away = SystemClock.elapsedRealtime() - backgroundedAt
-        if (backgroundedAt > 0 && away > RELOCK_AFTER_MS && shouldLock(application as OwnerApp)) locked = true
+        if (backgroundedAt > 0 && away > RELOCK_AFTER_MS && shouldLock(application as OwnerApp)) {
+            AppLockSession.unlocked = false
+            locked = true
+        }
     }
 
     /**
@@ -101,8 +110,6 @@ class OwnerActivity : FragmentActivity() {
 
         /** A glance at another app does not lock; a minute away does. */
         private const val RELOCK_AFTER_MS = 60_000L
-
-        private const val KEY_LOCKED = "locked"
 
         /** Where a live-ride link points on the site — the manifest claims it for this app. */
         private const val LIVE_RIDE_PATH = "/live/"

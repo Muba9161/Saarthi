@@ -25,6 +25,7 @@ import com.saarthi.owner.data.AccountType
 import com.saarthi.owner.push.Push
 import com.saarthi.owner.ui.account.NotForThisAppScreen
 import com.saarthi.owner.ui.account.PausedScreen
+import com.saarthi.owner.ui.common.RemoteImages
 import com.saarthi.owner.ui.design.Ease
 import com.saarthi.owner.ui.shell.HomeShell
 import com.saarthi.owner.ui.signin.SignedOutFlow
@@ -46,6 +47,9 @@ fun OwnerRoot(app: OwnerApp) {
     var splashDone by rememberSaveable { mutableStateOf(false) }
     var restored by rememberSaveable { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+
+    // Pictures held in memory belong to whoever fetched them, never to the next person.
+    LaunchedEffect(account?.userId) { RemoteImages.clear() }
 
     LaunchedEffect(Unit) {
         val started = System.currentTimeMillis()

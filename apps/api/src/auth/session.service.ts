@@ -1,4 +1,6 @@
 import {
+  MediaOwnerType,
+  MediaPurpose,
   MembershipStatus,
   RoleName,
   SubscriptionStatus,
@@ -17,6 +19,7 @@ import { config } from '../config/env';
 import { resolveSubscription } from '../modules/subscriptions/entitlements.service';
 import { hasEmployer } from '../modules/organizations/fleet-invite.service';
 import { effectiveArchive } from '../modules/account-retention/account-lock';
+import { primaryUrlsFor } from '../modules/media/media.service';
 import type { AuthContext } from './context';
 
 /**
@@ -156,7 +159,10 @@ function drivesFor(
 ): boolean {
   const profile = user.driverProfile;
   return Boolean(
-    membership && profile && !profile.archivedAt && profile.organizationId === membership.organizationId,
+    membership &&
+    profile &&
+    !profile.archivedAt &&
+    profile.organizationId === membership.organizationId,
   );
 }
 
@@ -239,7 +245,11 @@ export async function buildSessionPayload(
 
   const membership = resolveActiveMembership(user, requestedOrganizationId);
   const organizationId = membership?.organizationId ?? null;
-  const subscription = organizationId ? await resolveSubscription(organizationId) : null;
+  const [subscription, covers] = await Promise.all([
+    organizationId ? resolveSubscription(organizationId) : null,
+    // Full size: a cover is drawn as a banner, where a thumbnail would blur.
+    primaryUrlsFor(MediaOwnerType.USER, [user.id], MediaPurpose.COVER, { original: true }),
+  ]);
 
   /*
    * Read against the driver's own organization rather than the active tenant,
@@ -259,6 +269,7 @@ export async function buildSessionPayload(
       lastName: user.lastName,
       fullName: `${user.firstName} ${user.lastName}`.trim(),
       avatarUrl: user.avatarUrl,
+      coverUrl: covers.get(user.id) ?? null,
       status: user.status as UserStatus,
       roles: globalRoles(user),
       lastLoginAt: user.lastLoginAt?.toISOString() ?? null,
