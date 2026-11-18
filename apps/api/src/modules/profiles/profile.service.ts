@@ -668,9 +668,7 @@ export async function updateUserProfile(
       // Json columns as its own InputJsonValue rather than a plain record.
       ...(socialLinks ? { socialLinks: socialLinks as Prisma.InputJsonValue } : {}),
       ...(preferences ? { preferences: preferences as Prisma.InputJsonValue } : {}),
-      ...(fieldVisibility
-        ? { fieldVisibility: fieldVisibility as Prisma.InputJsonValue }
-        : {}),
+      ...(fieldVisibility ? { fieldVisibility: fieldVisibility as Prisma.InputJsonValue } : {}),
     },
   });
 }
@@ -691,9 +689,7 @@ export async function updateOrganizationProfile(
       ...rest,
       ...(socialLinks ? { socialLinks: socialLinks as Prisma.InputJsonValue } : {}),
       ...(operatingHours ? { operatingHours: operatingHours as Prisma.InputJsonValue } : {}),
-      ...(fieldVisibility
-        ? { fieldVisibility: fieldVisibility as Prisma.InputJsonValue }
-        : {}),
+      ...(fieldVisibility ? { fieldVisibility: fieldVisibility as Prisma.InputJsonValue } : {}),
     },
   });
 }

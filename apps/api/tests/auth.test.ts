@@ -749,7 +749,10 @@ describe('Authentication', () => {
   describe('login', () => {
     it('signs in with valid credentials and sets an httpOnly refresh cookie', async () => {
       const organization = await createOrganization();
-      const user = await createUser({ role: RoleName.FLEET_OWNER, organizationId: organization.id });
+      const user = await createUser({
+        role: RoleName.FLEET_OWNER,
+        organizationId: organization.id,
+      });
 
       const app = await getApp();
       const response = await app.inject({
@@ -767,7 +770,10 @@ describe('Authentication', () => {
 
     it('rejects a wrong password without revealing whether the account exists', async () => {
       const organization = await createOrganization();
-      const user = await createUser({ role: RoleName.FLEET_OWNER, organizationId: organization.id });
+      const user = await createUser({
+        role: RoleName.FLEET_OWNER,
+        organizationId: organization.id,
+      });
 
       const wrongPassword = await request({
         method: 'POST',
@@ -802,7 +808,10 @@ describe('Authentication', () => {
 
     it('blocks a suspended account', async () => {
       const organization = await createOrganization();
-      const user = await createUser({ role: RoleName.FLEET_OWNER, organizationId: organization.id });
+      const user = await createUser({
+        role: RoleName.FLEET_OWNER,
+        organizationId: organization.id,
+      });
       await prisma.user.update({ where: { id: user.id }, data: { status: 'SUSPENDED' } });
 
       const { status, body } = await request({
@@ -835,7 +844,10 @@ describe('Authentication', () => {
 
     it('returns the full session for a valid token', async () => {
       const organization = await createOrganization();
-      const user = await createUser({ role: RoleName.FLEET_OWNER, organizationId: organization.id });
+      const user = await createUser({
+        role: RoleName.FLEET_OWNER,
+        organizationId: organization.id,
+      });
 
       const { status, body } = await request<SessionPayload>({
         method: 'GET',
@@ -882,7 +894,10 @@ describe('Authentication', () => {
   describe('refresh and logout', () => {
     it('exchanges the refresh cookie for a new access token and rotates it', async () => {
       const organization = await createOrganization();
-      const user = await createUser({ role: RoleName.FLEET_OWNER, organizationId: organization.id });
+      const user = await createUser({
+        role: RoleName.FLEET_OWNER,
+        organizationId: organization.id,
+      });
       const app = await getApp();
 
       const login = await app.inject({
@@ -915,7 +930,10 @@ describe('Authentication', () => {
 
     it('revokes the session on logout so the access token stops working', async () => {
       const organization = await createOrganization();
-      const user = await createUser({ role: RoleName.FLEET_OWNER, organizationId: organization.id });
+      const user = await createUser({
+        role: RoleName.FLEET_OWNER,
+        organizationId: organization.id,
+      });
 
       const before = await request({ method: 'GET', url: '/api/v1/auth/me', user });
       expect(before.status).toBe(200);
@@ -931,7 +949,10 @@ describe('Authentication', () => {
   describe('password management', () => {
     it('changes a password and invalidates other sessions', async () => {
       const organization = await createOrganization();
-      const user = await createUser({ role: RoleName.FLEET_OWNER, organizationId: organization.id });
+      const user = await createUser({
+        role: RoleName.FLEET_OWNER,
+        organizationId: organization.id,
+      });
 
       // A second device for the same account.
       const app = await getApp();
@@ -967,7 +988,10 @@ describe('Authentication', () => {
 
     it('rejects a password change with the wrong current password', async () => {
       const organization = await createOrganization();
-      const user = await createUser({ role: RoleName.FLEET_OWNER, organizationId: organization.id });
+      const user = await createUser({
+        role: RoleName.FLEET_OWNER,
+        organizationId: organization.id,
+      });
 
       const { status } = await request({
         method: 'POST',
@@ -980,7 +1004,10 @@ describe('Authentication', () => {
 
     it('completes a password reset via a single-use token', async () => {
       const organization = await createOrganization();
-      const user = await createUser({ role: RoleName.FLEET_OWNER, organizationId: organization.id });
+      const user = await createUser({
+        role: RoleName.FLEET_OWNER,
+        organizationId: organization.id,
+      });
 
       const requested = await request<{ devToken?: string }>({
         method: 'POST',

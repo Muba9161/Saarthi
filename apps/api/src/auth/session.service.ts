@@ -159,7 +159,10 @@ function drivesFor(
 ): boolean {
   const profile = user.driverProfile;
   return Boolean(
-    membership && profile && !profile.archivedAt && profile.organizationId === membership.organizationId,
+    membership &&
+    profile &&
+    !profile.archivedAt &&
+    profile.organizationId === membership.organizationId,
   );
 }
 

@@ -1222,7 +1222,10 @@ describe('Return loads', () => {
   it('gates the whole surface to freight fleets', async () => {
     // Backhaul is a freight concept: a mobility provider on the same Business
     // plan has no return leg to sell. The account type decides, not the plan.
-    const basicFleet = await createOrganization(OrganizationType.MOBILITY_PROVIDER, PlanTier.BUSINESS);
+    const basicFleet = await createOrganization(
+      OrganizationType.MOBILITY_PROVIDER,
+      PlanTier.BUSINESS,
+    );
     const basicOwner = await createUser({
       role: RoleName.MOBILITY_PROVIDER,
       organizationId: basicFleet.id,

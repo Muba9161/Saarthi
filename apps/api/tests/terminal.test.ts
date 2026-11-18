@@ -80,7 +80,9 @@ function terminalAuth(token: string): Record<string, string> {
   return { authorization: `Bearer ${token}` };
 }
 
-async function createVehicle(organizationId: string): Promise<{ id: string; registration: string }> {
+async function createVehicle(
+  organizationId: string,
+): Promise<{ id: string; registration: string }> {
   // `slice(-12)` keeps the tail. `unique` puts its counter last, so taking the
   // first twelve characters cut the counter off — two vehicles created in the
   // same millisecond got the same registration and the second insert failed.
@@ -116,8 +118,12 @@ describe('Saarthi Terminal', () => {
   beforeEach(async () => {
     await resetDatabase();
 
-    fleet = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.BUSINESS, { trackers: 25 });
-    otherFleet = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.BUSINESS, { trackers: 25 });
+    fleet = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.BUSINESS, {
+      trackers: 25,
+    });
+    otherFleet = await createOrganization(OrganizationType.FLEET_OWNER, PlanTier.BUSINESS, {
+      trackers: 25,
+    });
 
     owner = await createUser({ role: RoleName.FLEET_OWNER, organizationId: fleet.id });
     driver = await createUser({
@@ -257,7 +263,7 @@ describe('Saarthi Terminal', () => {
       terminal = await pairTerminal(owner, vehicle.id);
     });
 
-    it('shows the vehicle\'s own permanent code, not a new one per driver', async () => {
+    it("shows the vehicle's own permanent code, not a new one per driver", async () => {
       const first = await request<{ qrCodeId: string }>({
         method: 'GET',
         url: '/api/v1/device-gateway/terminal/vehicle-qr',
@@ -422,7 +428,7 @@ describe('Saarthi Terminal', () => {
       expect(submitted.status).toBe(422);
     });
 
-    it('returns the driver\'s existing request rather than opening a second one', async () => {
+    it("returns the driver's existing request rather than opening a second one", async () => {
       const first = await request<{ id: string }>({
         method: 'POST',
         url: '/api/v1/terminal/assignments/request',
@@ -682,8 +688,16 @@ describe('Saarthi Terminal', () => {
         headers: terminalAuth(terminal.token),
         payload: {
           items: [
-            'TYRES', 'COOLANT', 'ENGINE_OIL', 'BRAKES', 'LIGHTS',
-            'BATTERY', 'FUEL', 'MIRRORS', 'EMERGENCY_EQUIPMENT', 'DOCUMENTS',
+            'TYRES',
+            'COOLANT',
+            'ENGINE_OIL',
+            'BRAKES',
+            'LIGHTS',
+            'BATTERY',
+            'FUEL',
+            'MIRRORS',
+            'EMERGENCY_EQUIPMENT',
+            'DOCUMENTS',
           ].map((code) => ({ code, status: 'OK' })),
         },
       });
@@ -1344,10 +1358,7 @@ describe('Saarthi Terminal', () => {
  * on its very next request, which is exactly what the first run of these tests
  * demonstrated.
  */
-async function pairTerminal(
-  owner: TestUser,
-  vehicleId: string,
-): Promise<EnrolledTerminal> {
+async function pairTerminal(owner: TestUser, vehicleId: string): Promise<EnrolledTerminal> {
   const issued = await request<{ pairingCode: string }>({
     method: 'POST',
     url: `/api/v1/fleet/vehicles/${vehicleId}/terminal-pairing`,

@@ -533,12 +533,7 @@ export async function uploadMedia(
     }
   }
 
-  const primary = inspectRendition(
-    files.file,
-    metadata.purpose,
-    config.media.maxFileSize,
-    'image',
-  );
+  const primary = inspectRendition(files.file, metadata.purpose, config.media.maxFileSize, 'image');
   const thumbnail = files.thumbnail
     ? inspectRendition(
         files.thumbnail,

@@ -1059,7 +1059,11 @@ export interface LoanSyncResult {
   retrievedAt: string;
   simulated: boolean;
   applied: boolean;
-  differences: { field: string; saarthi: string | number | null; provider: string | number | null }[];
+  differences: {
+    field: string;
+    saarthi: string | number | null;
+    provider: string | number | null;
+  }[];
   installmentsReported: number;
   undisclosedInstallments: number;
 }
@@ -1505,7 +1509,6 @@ export interface ExpenseListTotals {
 export interface ExpenseListResult extends Paginated<ExpenseListItem> {
   totals: ExpenseListTotals;
 }
-
 
 // ---------------------------------------------------------------------------
 // Requirements & bidding

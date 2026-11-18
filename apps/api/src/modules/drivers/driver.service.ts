@@ -129,7 +129,9 @@ async function documentHealthFor(
   return map;
 }
 
-async function truckLookup(driverIds: string[]): Promise<Map<string, { id: string; registrationNumber: string }>> {
+async function truckLookup(
+  driverIds: string[],
+): Promise<Map<string, { id: string; registrationNumber: string }>> {
   const map = new Map<string, { id: string; registrationNumber: string }>();
   if (driverIds.length === 0) return map;
   const trucks = await prisma.truck.findMany({
@@ -138,7 +140,10 @@ async function truckLookup(driverIds: string[]): Promise<Map<string, { id: strin
   });
   for (const truck of trucks) {
     if (truck.currentDriverId) {
-      map.set(truck.currentDriverId, { id: truck.id, registrationNumber: truck.registrationNumber });
+      map.set(truck.currentDriverId, {
+        id: truck.id,
+        registrationNumber: truck.registrationNumber,
+      });
     }
   }
   return map;
@@ -238,7 +243,10 @@ export async function listDrivers(
 }
 
 export async function getDriver(auth: AuthContext, driverId: string): Promise<DriverSummary> {
-  const driver = await prisma.driver.findUnique({ where: { id: driverId }, include: driverInclude });
+  const driver = await prisma.driver.findUnique({
+    where: { id: driverId },
+    include: driverInclude,
+  });
   if (!driver) throw errors.notFound('Driver');
   assertTenantAccess(auth, driver.organizationId, 'Driver');
 
@@ -764,7 +772,12 @@ export async function buildAchievementMetrics(driverId: string) {
     }),
     prisma.sosResponder.count({ where: { driverId, status: 'COMPLETED' } }),
     prisma.document.count({
-      where: { ownerType: 'DRIVER', ownerId: driverId, expiryDate: { lt: new Date() }, deletedAt: null },
+      where: {
+        ownerType: 'DRIVER',
+        ownerId: driverId,
+        expiryDate: { lt: new Date() },
+        deletedAt: null,
+      },
     }),
   ]);
 
@@ -822,7 +835,6 @@ export async function evaluateAndAwardAchievements(driverId: string): Promise<st
   }
   return granted;
 }
-
 
 // ---------------------------------------------------------------------------
 // Joining a fleet

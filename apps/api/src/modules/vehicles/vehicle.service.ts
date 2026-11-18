@@ -173,7 +173,9 @@ type VehicleRecord = Prisma.TruckGetPayload<{ include: typeof vehicleInclude }>;
 type DocumentHealth = VehicleSummary['documentHealth'];
 
 /** Each vehicle's papers rolled up as counts — the owner's cards, and a shared person's. */
-export async function documentHealthFor(vehicleIds: string[]): Promise<Map<string, DocumentHealth>> {
+export async function documentHealthFor(
+  vehicleIds: string[],
+): Promise<Map<string, DocumentHealth>> {
   const map = new Map<string, DocumentHealth>();
   if (vehicleIds.length === 0) return map;
 
@@ -555,7 +557,10 @@ export async function createVehicle(
   // Usually settled on the spot: the RC fetched to fill the form names the owner.
   await evaluateOwnership(vehicle.id);
 
-  const saved = await prisma.truck.findUniqueOrThrow({ where: { id: vehicle.id }, include: vehicleInclude });
+  const saved = await prisma.truck.findUniqueOrThrow({
+    where: { id: vehicle.id },
+    include: vehicleInclude,
+  });
   return toSummary(saved);
 }
 
@@ -569,7 +574,8 @@ export async function updateVehicle(
   assertTenantAccess(auth, existing.organizationId, 'Vehicle');
   assertNotReleased(existing);
   const plateChanged =
-    input.registrationNumber !== undefined && input.registrationNumber !== existing.registrationNumber;
+    input.registrationNumber !== undefined &&
+    input.registrationNumber !== existing.registrationNumber;
 
   // Validate the *resulting* vehicle, not the patch: changing type from TRUCK
   // to TAXI without clearing the payload would otherwise leave an incoherent row.
