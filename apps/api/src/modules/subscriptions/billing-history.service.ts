@@ -86,26 +86,48 @@ function auditEvent(row: {
       kind: 'PAYMENT',
       category: 'PLAN',
       title: 'Monthly plan — autopay',
-      detail: typeof after.reason === 'string' && after.reason ? after.reason : 'The payment did not go through.',
+      detail:
+        typeof after.reason === 'string' && after.reason
+          ? after.reason
+          : 'The payment did not go through.',
       amount: typeof after.amount === 'number' ? after.amount : null,
       status: 'FAILED',
     };
   }
+  if (typeof after.coupon === 'string') {
+    const freeUntil = typeof after.freeUntil === 'string' ? new Date(after.freeUntil) : null;
+    return {
+      ...base,
+      category: 'PLAN',
+      title: `Coupon ${after.coupon} applied`,
+      detail: freeUntil
+        ? `Free until ${inrDate(freeUntil)}`
+        : typeof after.percentOff === 'number' && typeof after.months === 'number'
+          ? `${after.percentOff}% off the next ${after.months} months`
+          : null,
+    };
+  }
   if (after.autopay === 'CANCELLED') {
-    return { ...base, title: 'Autopay cancelled', detail: 'Payments are no longer taken automatically.' };
+    return {
+      ...base,
+      title: 'Autopay cancelled',
+      detail: 'Payments are no longer taken automatically.',
+    };
   }
   if (typeof after.autopay === 'string') {
-    const firstCharge = typeof after.firstChargeAt === 'string' ? new Date(after.firstChargeAt) : null;
+    const firstCharge =
+      typeof after.firstChargeAt === 'string' ? new Date(after.firstChargeAt) : null;
     const monthly = typeof after.monthlyAmount === 'number' ? after.monthlyAmount : null;
     return {
       ...base,
       title: 'Autopay set up',
-      detail: [
-        firstCharge ? `First charge on ${inrDate(firstCharge)}` : null,
-        monthly !== null ? `${formatCurrency(monthly)} a month` : null,
-      ]
-        .filter(Boolean)
-        .join(' · ') || null,
+      detail:
+        [
+          firstCharge ? `First charge on ${inrDate(firstCharge)}` : null,
+          monthly !== null ? `${formatCurrency(monthly)} a month` : null,
+        ]
+          .filter(Boolean)
+          .join(' · ') || null,
     };
   }
   switch (after.autopayStatus) {
@@ -114,9 +136,17 @@ function auditEvent(row: {
     case 'ON_HOLD':
       return { ...base, title: 'Autopay on hold', detail: 'Your bank has paused the mandate.' };
     case 'CANCELLED':
-      return { ...base, title: 'Autopay stopped', detail: 'The mandate was cancelled at the bank or Cashfree.' };
+      return {
+        ...base,
+        title: 'Autopay stopped',
+        detail: 'The mandate was cancelled at the bank or Cashfree.',
+      };
     case 'FAILED':
-      return { ...base, title: 'Autopay could not be set up', detail: 'The bank did not authorise the mandate.' };
+      return {
+        ...base,
+        title: 'Autopay could not be set up',
+        detail: 'The bank did not authorise the mandate.',
+      };
     default:
       return null;
   }
@@ -169,8 +199,13 @@ export async function billingHistory(organizationId: string): Promise<BillingHis
 
     if (payment.purpose === PaymentPurpose.VERIFICATION_FEE) {
       const charge = charges.find((entry) => entry.paymentReference === payment.reference);
-      const label = charge ? VERIFICATION_CHECK_LABELS[charge.checkType as VerificationCheckType] : 'Identity';
-      const outcome = charge && state === 'PAID' ? VERIFICATION_OUTCOME[charge.status as VerificationChargeStatus] : null;
+      const label = charge
+        ? VERIFICATION_CHECK_LABELS[charge.checkType as VerificationCheckType]
+        : 'Identity';
+      const outcome =
+        charge && state === 'PAID'
+          ? VERIFICATION_OUTCOME[charge.status as VerificationChargeStatus]
+          : null;
       return {
         id: payment.id,
         at,
@@ -222,14 +257,20 @@ export async function billingHistory(organizationId: string): Promise<BillingHis
   // What happens next, from the plan's own state.
   const upcoming: BillingHistoryEntry[] = [];
   if (status?.billable) {
-    const autopayLive = status.autopay !== null && ['ACTIVE', 'PENDING', 'ON_HOLD'].includes(status.autopay.status);
-    if (status.trialEndsAt) {
+    const autopayLive =
+      status.autopay !== null && ['ACTIVE', 'PENDING', 'ON_HOLD'].includes(status.autopay.status);
+    const freeCoupon = status.coupon?.freeUntil ? status.coupon : null;
+    const freeEndsAt = status.trialEndsAt ?? freeCoupon?.freeUntil ?? null;
+    if (freeEndsAt) {
       upcoming.push({
-        id: 'upcoming:trial-end',
-        at: status.trialEndsAt,
+        id: status.trialEndsAt ? 'upcoming:trial-end' : 'upcoming:free-months-end',
+        at: freeEndsAt,
         kind: 'EVENT',
         category: 'PLAN',
-        title: 'Free trial ends',
+        title:
+          status.trialEndsAt || !freeCoupon
+            ? 'Free trial ends'
+            : `${freeCoupon.code} free months end`,
         detail: autopayLive
           ? `Autopay then charges ${formatCurrency(status.monthlyTotal)} a month.`
           : `Set up autopay, or pay ${formatCurrency(status.monthlyTotal)}, to keep your plan.`,

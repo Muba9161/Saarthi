@@ -27,12 +27,10 @@ import { runStreamSessionSweep } from '../modules/devices/camera.service';
 import { runTelemetryRetentionSweep } from '../modules/telemetry/telemetry.service';
 import { runReturnLoadMatchSweep } from '../modules/return-loads/return-load.service';
 import { runMediaOrphanSweep } from '../modules/media/media.service';
-import {
-  runEmiReminderSweep,
-  runOverdueSweep,
-} from '../modules/loans/loan-reminder.service';
+import { runEmiReminderSweep, runOverdueSweep } from '../modules/loans/loan-reminder.service';
 import { runTopUpExpirySweep } from '../modules/subscriptions/topup.service';
 import { runSubscriptionLifecycleSweep } from '../modules/subscriptions/autopay.service';
+import { remindFreeMonthsEnding } from '../modules/subscriptions/coupon.service';
 import { runAccountPurgeSweep } from '../modules/account-retention/account-purge.service';
 import { runMarketplaceSettlementSweep } from '../modules/marketplace-finance/settlement.service';
 import { runVerificationChargeSweep } from '../modules/verification-center/verification-charge.service';
@@ -90,7 +88,10 @@ export async function runDocumentExpirySweep(): Promise<{ expiring: number; expi
       expiredByOrg.set(document.organizationId, bucket);
 
       // A lapsed mandatory driver document is a real compliance signal.
-      if (document.ownerType === 'DRIVER' && documentTypeDefinition(document.documentType)?.mandatory) {
+      if (
+        document.ownerType === 'DRIVER' &&
+        documentTypeDefinition(document.documentType)?.mandatory
+      ) {
         const alreadyRecorded = await prisma.driverScoreEvent.findFirst({
           where: {
             driverId: document.ownerId,
@@ -171,7 +172,12 @@ export async function runSessionCleanup(): Promise<number> {
   const now = new Date();
   const [sessions, tokens, emailCodes] = await Promise.all([
     prisma.session.deleteMany({
-      where: { OR: [{ expiresAt: { lt: now } }, { revokedAt: { lt: new Date(now.getTime() - 30 * 86_400_000) } }] },
+      where: {
+        OR: [
+          { expiresAt: { lt: now } },
+          { revokedAt: { lt: new Date(now.getTime() - 30 * 86_400_000) } },
+        ],
+      },
     }),
     prisma.passwordResetToken.deleteMany({
       where: { OR: [{ expiresAt: { lt: now } }, { usedAt: { not: null } }] },
@@ -369,13 +375,14 @@ export function registerBackgroundJobs(): void {
 
   // What makes the 30-day trial actually end: warns and then archives unpaid
   // periods, renews mock autopay, and warns owners three days before a trial
-  // runs out.
+  // or a free coupon's months run out.
   queue.registerRepeating({
     name: 'subscription:lifecycle',
     everyMs: HOUR,
     initialDelayMs: 230_000,
     handler: async () => {
       await runSubscriptionLifecycleSweep();
+      await remindFreeMonthsEnding();
     },
   });
 

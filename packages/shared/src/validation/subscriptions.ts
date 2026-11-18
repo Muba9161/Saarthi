@@ -34,6 +34,12 @@ export const startAutopaySchema = z.object({
 });
 export type StartAutopayInput = z.infer<typeof startAutopaySchema>;
 
+/** A coupon code as typed. The codes themselves live on the server only. */
+export const redeemCouponSchema = z.object({
+  code: z.string().trim().min(1, 'Enter a coupon code.').max(32),
+});
+export type RedeemCouponInput = z.infer<typeof redeemCouponSchema>;
+
 /**
  * Buying one Saarthi tracker.
  *
