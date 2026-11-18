@@ -33,6 +33,7 @@ import {
 } from '../modules/loans/loan-reminder.service';
 import { runTopUpExpirySweep } from '../modules/subscriptions/topup.service';
 import { runSubscriptionLifecycleSweep } from '../modules/subscriptions/autopay.service';
+import { remindFreeMonthsEnding } from '../modules/subscriptions/coupon.service';
 import { runAccountPurgeSweep } from '../modules/account-retention/account-purge.service';
 import { runMarketplaceSettlementSweep } from '../modules/marketplace-finance/settlement.service';
 import { runVerificationChargeSweep } from '../modules/verification-center/verification-charge.service';
@@ -369,13 +370,14 @@ export function registerBackgroundJobs(): void {
 
   // What makes the 30-day trial actually end: warns and then archives unpaid
   // periods, renews mock autopay, and warns owners three days before a trial
-  // runs out.
+  // or a free coupon's months run out.
   queue.registerRepeating({
     name: 'subscription:lifecycle',
     everyMs: HOUR,
     initialDelayMs: 230_000,
     handler: async () => {
       await runSubscriptionLifecycleSweep();
+      await remindFreeMonthsEnding();
     },
   });
 

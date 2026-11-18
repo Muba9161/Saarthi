@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { LoadingState } from '@/components/common/states';
 import type { BillingStatus } from './billing-card';
+import { CouponForm, describeCoupon } from './coupon-form';
 import { useBillingActions } from './use-billing-actions';
 
 function inrDate(value: string): string {
@@ -18,7 +19,8 @@ function inrDate(value: string): string {
 /**
  * Shown in place of every screen while the account is archived for
  * non-payment. The API refuses everything but renewal, so this is the one
- * thing the app offers: pay, and everything comes back as it was.
+ * thing the app offers: pay, or apply a coupon, and everything comes back as
+ * it was.
  */
 export function ArchivedAccountScreen({ dataPurgeAt }: { dataPurgeAt: string | null }) {
   const { can, logout, refreshSession, session } = useAuth();
@@ -76,17 +78,25 @@ export function ArchivedAccountScreen({ dataPurgeAt }: { dataPurgeAt: string | n
             billing.isLoading ? (
               <LoadingState label="Loading your plan…" className="min-h-0 p-2" />
             ) : (
-              <Button
-                size="lg"
-                className="w-full"
-                loading={payNow.isPending || checkout.busy}
-                onClick={() => payNow.mutate()}
-              >
-                <CreditCard className="size-4" />
-                {billing.data
-                  ? `Renew ${billing.data.planName} - ${formatCurrency(billing.data.monthlyTotal)}`
-                  : 'Renew now'}
-              </Button>
+              <div className="space-y-5">
+                <Button
+                  size="lg"
+                  className="w-full"
+                  loading={payNow.isPending || checkout.busy}
+                  onClick={() => payNow.mutate()}
+                >
+                  <CreditCard className="size-4" />
+                  {billing.data
+                    ? `Renew ${billing.data.planName} - ${formatCurrency(billing.data.monthlyTotal)}`
+                    : 'Renew now'}
+                </Button>
+                {billing.data?.coupon ? (
+                  <p className="text-center text-xs text-muted-foreground">
+                    {`${billing.data.coupon.code} applied: ${describeCoupon(billing.data.coupon)}`}
+                  </p>
+                ) : null}
+                <CouponForm lockedUntil={billing.data?.couponLockedUntil ?? null} onApplied={refresh} />
+              </div>
             )
           ) : (
             <p className="rounded-xl bg-muted/50 p-4 text-sm text-muted-foreground">

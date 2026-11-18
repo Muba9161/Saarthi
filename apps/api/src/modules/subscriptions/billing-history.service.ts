@@ -91,6 +91,19 @@ function auditEvent(row: {
       status: 'FAILED',
     };
   }
+  if (typeof after.coupon === 'string') {
+    const freeUntil = typeof after.freeUntil === 'string' ? new Date(after.freeUntil) : null;
+    return {
+      ...base,
+      category: 'PLAN',
+      title: `Coupon ${after.coupon} applied`,
+      detail: freeUntil
+        ? `Free until ${inrDate(freeUntil)}`
+        : typeof after.percentOff === 'number' && typeof after.months === 'number'
+          ? `${after.percentOff}% off the next ${after.months} months`
+          : null,
+    };
+  }
   if (after.autopay === 'CANCELLED') {
     return { ...base, title: 'Autopay cancelled', detail: 'Payments are no longer taken automatically.' };
   }
@@ -223,13 +236,15 @@ export async function billingHistory(organizationId: string): Promise<BillingHis
   const upcoming: BillingHistoryEntry[] = [];
   if (status?.billable) {
     const autopayLive = status.autopay !== null && ['ACTIVE', 'PENDING', 'ON_HOLD'].includes(status.autopay.status);
-    if (status.trialEndsAt) {
+    const freeCoupon = status.coupon?.freeUntil ? status.coupon : null;
+    const freeEndsAt = status.trialEndsAt ?? freeCoupon?.freeUntil ?? null;
+    if (freeEndsAt) {
       upcoming.push({
-        id: 'upcoming:trial-end',
-        at: status.trialEndsAt,
+        id: status.trialEndsAt ? 'upcoming:trial-end' : 'upcoming:free-months-end',
+        at: freeEndsAt,
         kind: 'EVENT',
         category: 'PLAN',
-        title: 'Free trial ends',
+        title: status.trialEndsAt || !freeCoupon ? 'Free trial ends' : `${freeCoupon.code} free months end`,
         detail: autopayLive
           ? `Autopay then charges ${formatCurrency(status.monthlyTotal)} a month.`
           : `Set up autopay, or pay ${formatCurrency(status.monthlyTotal)}, to keep your plan.`,

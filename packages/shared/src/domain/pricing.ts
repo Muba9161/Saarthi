@@ -26,6 +26,9 @@ import { PLAN_CATALOGUE, PLAN_LIMITS, type PlanDefinition } from './entitlements
  */
 export const DEFAULT_TRIAL_DAYS = 30;
 
+/** One billing month, in days: what a plan payment buys and a top-up lasts. */
+export const BILLING_PERIOD_DAYS = 30;
+
 // ---------------------------------------------------------------------------
 // Tax
 // ---------------------------------------------------------------------------

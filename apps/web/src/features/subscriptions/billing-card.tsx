@@ -1,4 +1,4 @@
-import { CalendarClock, CreditCard, RefreshCw, X } from 'lucide-react';
+import { CalendarClock, CreditCard, RefreshCw, TicketPercent, X } from 'lucide-react';
 import { formatCurrency, humanizeEnum, type CheckoutSession } from '@saarthi/shared';
 import { SectionHeader } from '@/components/common/page-header';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -6,7 +6,18 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
+import { CouponForm, describeCoupon } from './coupon-form';
 import { isAutopayAwaiting, isAutopayLive, useBillingActions } from './use-billing-actions';
+
+/** A coupon still in force on the plan. */
+export interface BillingCoupon {
+  code: string;
+  percentOff: number;
+  /** A partial discount: plan charges still to be taken at its price. */
+  monthsLeft: number | null;
+  /** 100%: the day the free months end. */
+  freeUntil: string | null;
+}
 
 /** `GET /subscriptions/billing`. */
 export interface BillingStatus {
@@ -17,7 +28,13 @@ export interface BillingStatus {
   trialEndsAt: string | null;
   trialDaysLeft: number | null;
   periodEndsAt: string | null;
+  /** What the next month is charged, less any running coupon. */
   monthlyTotal: number;
+  /** The same month at its full price. */
+  regularMonthlyTotal: number;
+  coupon: BillingCoupon | null;
+  /** Until when no coupon may be entered — three months after the last one. */
+  couponLockedUntil: string | null;
   autopay: { provider: string; status: string; reference: string } | null;
   billable: boolean;
   pendingPayments: {
@@ -59,6 +76,7 @@ export function BillingCard({
 
   const trialing = billing.trialDaysLeft !== null;
   const lapsed = billing.status === 'EXPIRED' || billing.status === 'CANCELLED';
+  const freeUntil = billing.coupon?.freeUntil ?? null;
   const autopayLive = isAutopayLive(billing.autopay);
   const autopayAwaiting = isAutopayAwaiting(billing.autopay);
   const working = busy || startAutopay.isPending || payNow.isPending || resume.isPending;
@@ -83,21 +101,33 @@ export function BillingCard({
                 <CalendarClock className="size-4 text-muted-foreground" aria-hidden />
                 {trialing
                   ? `Free trial - ${billing.trialDaysLeft} day${billing.trialDaysLeft === 1 ? '' : 's'} left`
-                  : lapsed
-                    ? 'Not paid for'
-                    : billing.status === 'PAST_DUE'
-                      ? 'Payment overdue'
-                      : 'Paid'}
+                  : freeUntil
+                    ? `Free with ${billing.coupon?.code}`
+                    : lapsed
+                      ? 'Not paid for'
+                      : billing.status === 'PAST_DUE'
+                        ? 'Payment overdue'
+                        : 'Paid'}
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
                 {trialing && billing.trialEndsAt
                   ? `Your trial ends on ${inrDate(billing.trialEndsAt)}. Then ${formatCurrency(billing.monthlyTotal)} a month.`
-                  : lapsed
-                    ? `Pay ${formatCurrency(billing.monthlyTotal)} to carry on. Nothing on your account was deleted.`
-                    : billing.periodEndsAt
-                      ? `Paid until ${inrDate(billing.periodEndsAt)} · ${formatCurrency(billing.monthlyTotal)} a month.`
-                      : `${formatCurrency(billing.monthlyTotal)} a month.`}
+                  : freeUntil
+                    ? `Free until ${inrDate(freeUntil)}. Then ${formatCurrency(billing.regularMonthlyTotal)} a month.`
+                    : lapsed
+                      ? `Pay ${formatCurrency(billing.monthlyTotal)} to carry on. Nothing on your account was deleted.`
+                      : billing.periodEndsAt
+                        ? `Paid until ${inrDate(billing.periodEndsAt)} · ${formatCurrency(billing.monthlyTotal)} a month.`
+                        : `${formatCurrency(billing.monthlyTotal)} a month.`}
               </p>
+              {billing.coupon?.monthsLeft ? (
+                <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <TicketPercent className="size-3.5 text-success" aria-hidden />
+                  <span>
+                    {`${billing.coupon.code}: ${describeCoupon(billing.coupon)}, then ${formatCurrency(billing.regularMonthlyTotal)} a month.`}
+                  </span>
+                </p>
+              ) : null}
               <p className="mt-1 text-xs text-muted-foreground">
                 Autopay:{' '}
                 {billing.autopay ? (
@@ -121,7 +151,7 @@ export function BillingCard({
                     {autopayAwaiting ? 'Complete autopay setup' : 'Set up autopay'}
                   </Button>
                 ) : null}
-                {lapsed || billing.status === 'PAST_DUE' || (!autopayLive && !trialing) ? (
+                {lapsed || billing.status === 'PAST_DUE' || (!autopayLive && !trialing && !freeUntil) ? (
                   <Button
                     variant={lapsed ? 'default' : 'outline'}
                     onClick={() => payNow.mutate()}
@@ -145,6 +175,17 @@ export function BillingCard({
               </div>
             ) : null}
           </div>
+        ) : null}
+
+        {billing.billable && canManage ? (
+          <>
+            <Separator />
+            <CouponForm
+              lockedUntil={billing.couponLockedUntil}
+              onApplied={onChanged}
+              className="max-w-sm"
+            />
+          </>
         ) : null}
 
         {billing.pendingPayments.length > 0 ? (

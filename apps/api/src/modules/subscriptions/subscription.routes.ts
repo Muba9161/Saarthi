@@ -7,6 +7,7 @@ import {
   purchaseTopUpSchema,
   purchaseTrackerSchema,
   purchaseVehicleOrderSchema,
+  redeemCouponSchema,
   selectPlanSchema,
   startAutopaySchema,
 } from '@saarthi/shared';
@@ -18,6 +19,7 @@ import {
 } from '../../server/guards';
 import * as autopayService from './autopay.service';
 import { billingHistory } from './billing-history.service';
+import { redeemCoupon } from './coupon.service';
 import { purchaseVehicleOrder } from './vehicle-order.service';
 import * as planService from './plan.service';
 import * as topUpService from './topup.service';
@@ -129,6 +131,24 @@ export async function subscriptionRoutes(app: FastifyInstance): Promise<void> {
       const auth = requireAuth(request);
       const organizationId = requireOrganizationId(request);
       return ok(reply, await autopayService.payPlanNow(auth, organizationId));
+    },
+  );
+
+  /**
+   * Apply a coupon. Under `/billing`, so an archived account can reach it from
+   * the expired screen. Rate-limited per user: the codes must not be guessable.
+   */
+  app.post(
+    '/billing/coupon',
+    {
+      preHandler: requirePermission(Permission.SUBSCRIPTION_MANAGE),
+      config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
+    },
+    async (request, reply) => {
+      const auth = requireAuth(request);
+      const organizationId = requireOrganizationId(request);
+      const { code } = parseBody(redeemCouponSchema, request.body ?? {});
+      return ok(reply, await redeemCoupon(auth, organizationId, code));
     },
   );
 
