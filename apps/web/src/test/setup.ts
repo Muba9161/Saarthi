@@ -112,4 +112,3 @@ if (typeof OriginalRequest === 'function') {
   Object.setPrototypeOf(PatchedRequest, OriginalRequest);
   globalThis.Request = PatchedRequest as unknown as typeof Request;
 }
-
