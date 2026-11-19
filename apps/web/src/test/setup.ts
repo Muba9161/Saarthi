@@ -83,3 +83,33 @@ if (!globalThis.IntersectionObserver) {
 if (!Element.prototype.scrollIntoView) {
   Element.prototype.scrollIntoView = () => undefined;
 }
+
+/**
+ * Node 22+ / 24+ undici Request webidl brand check workaround for JSDOM.
+ *
+ * JSDOM provides its own AbortSignal in the window/global scope, but Node 22/24
+ * native Request performs a strict WebIDL brand-check against Node's internal
+ * AbortSignal. In tests that navigate react-router memory routers, router.navigate
+ * creates client-side Request instances with JSDOM's AbortSignal, triggering
+ * "TypeError: RequestInit: Expected signal to be an instance of AbortSignal".
+ */
+const OriginalRequest = globalThis.Request;
+if (typeof OriginalRequest === 'function') {
+  const PatchedRequest = function (input: RequestInfo | URL, init?: RequestInit) {
+    try {
+      return new OriginalRequest(input, init);
+    } catch (err: unknown) {
+      if (init?.signal && err instanceof TypeError && err.message.includes('Expected signal')) {
+        const { signal, ...rest } = init;
+        const req = new OriginalRequest(input, rest);
+        Object.defineProperty(req, 'signal', { value: signal, configurable: true });
+        return req;
+      }
+      throw err;
+    }
+  };
+  PatchedRequest.prototype = OriginalRequest.prototype;
+  Object.setPrototypeOf(PatchedRequest, OriginalRequest);
+  globalThis.Request = PatchedRequest as unknown as typeof Request;
+}
+

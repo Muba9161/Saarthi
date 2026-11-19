@@ -20,15 +20,16 @@ const JUST_NOW_SECONDS = 5;
 /**
  * What the page is showing.
  *
- * `waiting` is a share that has started but whose phone has not reported a fix
- * yet; `ended` never carries a position — the API withholds it once sharing
- * stops, so an old link shows nobody's whereabouts.
+ * `not_started` is a share that has been generated and sent to family, but whose
+ * rider has not tapped "Start sharing" yet (no GPS fix reported yet); `ended`
+ * never carries a position — the API withholds it once sharing stops, so an old
+ * link shows nobody's whereabouts.
  */
-export type LiveRidePhase = 'live' | 'waiting' | 'ended';
+export type LiveRidePhase = 'live' | 'not_started' | 'ended';
 
 export function liveRidePhase(ride: Pick<PublicLiveRide, 'status' | 'position'>): LiveRidePhase {
   if (ride.status === 'ENDED') return 'ended';
-  return ride.position ? 'live' : 'waiting';
+  return ride.position ? 'live' : 'not_started';
 }
 
 /**
@@ -47,9 +48,7 @@ export function liveRidePollInterval(
 }
 
 /** How long ago a fix was recorded, in the largest whole unit that fits. */
-export type UpdatedAgo =
-  | { unit: 'now' }
-  | { unit: 'seconds' | 'minutes' | 'hours'; count: number };
+export type UpdatedAgo = { unit: 'now' } | { unit: 'seconds' | 'minutes' | 'hours'; count: number };
 
 /** Null for a timestamp that does not parse — better no line than a wrong one. */
 export function updatedAgo(recordedAt: string, now: number): UpdatedAgo | null {

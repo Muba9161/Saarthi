@@ -19,9 +19,9 @@ const POSITION = {
 const RECORDED = Date.parse(POSITION.recordedAt);
 
 describe('live ride phase', () => {
-  it('is live while sharing with a fix, waiting while sharing without one', () => {
+  it('is live while sharing with a fix, not_started while sharing without one', () => {
     expect(liveRidePhase({ status: 'SHARING', position: POSITION })).toBe('live');
-    expect(liveRidePhase({ status: 'SHARING', position: null })).toBe('waiting');
+    expect(liveRidePhase({ status: 'SHARING', position: null })).toBe('not_started');
   });
 
   it('is ended once sharing stops, whatever else arrives', () => {

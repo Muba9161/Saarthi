@@ -343,6 +343,11 @@ export const as: Catalogue = {
   'Live ride': 'লাইভ যাত্ৰা',
   '{name} is sharing a live ride': '{name}এ এটা লাইভ যাত্ৰা শ্বেয়াৰ কৰি আছে',
   '{name} has stopped sharing this ride.': '{name}এ এই যাত্ৰা শ্বেয়াৰ কৰা বন্ধ কৰিছে।',
+  'Not started yet': 'এতিয়াও আৰম্ভ হোৱা নাই',
+  'The ride has not started yet': 'যাত্ৰাটো এতিয়াও আৰম্ভ হোৱা নাই',
+  'Waiting for {name} to start sharing': '{name}-এ শ্বেয়াৰ আৰম্ভ কৰাৰ বাবে অপেক্ষা কৰা হৈছে',
+  'Real-time location and route will appear here automatically once the journey begins.':
+    'যাত্ৰা আৰম্ভ হোৱাৰ লগে লগে বাস্তৱ-সময়ৰ অৱস্থান আৰু পথ ইয়াত স্বয়ংক্ৰিয়ভাৱে দেখা যাব।',
   "Waiting for {name}'s first location…": '{name}ৰ প্ৰথম অৱস্থানৰ বাবে অপেক্ষা কৰি আছে…',
   "This live link doesn't exist or has been removed.": 'এই লাইভ লিংকটো নাই বা আঁতৰোৱা হৈছে।',
   'Ask the person who sent it to share a new link.':

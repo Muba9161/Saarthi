@@ -391,6 +391,11 @@ export const en = {
   'Live ride': 'Live ride',
   '{name} is sharing a live ride': '{name} is sharing a live ride',
   '{name} has stopped sharing this ride.': '{name} has stopped sharing this ride.',
+  'Not started yet': 'Not started yet',
+  'The ride has not started yet': 'The ride has not started yet',
+  'Waiting for {name} to start sharing': 'Waiting for {name} to start sharing',
+  'Real-time location and route will appear here automatically once the journey begins.':
+    'Real-time location and route will appear here automatically once the journey begins.',
   "Waiting for {name}'s first location…": "Waiting for {name}'s first location…",
   "This live link doesn't exist or has been removed.":
     "This live link doesn't exist or has been removed.",

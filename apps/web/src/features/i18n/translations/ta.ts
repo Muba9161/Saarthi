@@ -345,6 +345,11 @@ export const ta: Catalogue = {
   'Live ride': 'நேரடி பயணம்',
   '{name} is sharing a live ride': '{name} நேரடி பயணத்தைப் பகிர்கிறார்',
   '{name} has stopped sharing this ride.': '{name} இந்தப் பயணத்தைப் பகிர்வதை நிறுத்திவிட்டார்.',
+  'Not started yet': 'இன்னும் தொடங்கவில்லை',
+  'The ride has not started yet': 'பயணம் இன்னும் தொடங்கவில்லை',
+  'Waiting for {name} to start sharing': '{name} பகிர்வைத் தொடங்குவதற்காக காத்திருக்கிறது',
+  'Real-time location and route will appear here automatically once the journey begins.':
+    'பயணம் தொடங்கியதும் நிகழ்நேர இருப்பிடமும் பாதையும் தானாகவே இங்கு தோன்றும்.',
   "Waiting for {name}'s first location…":
     '{name} அவர்களின் முதல் இருப்பிடத்திற்காகக் காத்திருக்கிறது…',
   "This live link doesn't exist or has been removed.":

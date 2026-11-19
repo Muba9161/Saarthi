@@ -343,6 +343,11 @@ export const kn: Catalogue = {
   'Live ride': 'ಲೈವ್ ಸವಾರಿ',
   '{name} is sharing a live ride': '{name} ಲೈವ್ ಸವಾರಿಯನ್ನು ಹಂಚಿಕೊಳ್ಳುತ್ತಿದ್ದಾರೆ',
   '{name} has stopped sharing this ride.': '{name} ಈ ಸವಾರಿಯನ್ನು ಹಂಚಿಕೊಳ್ಳುವುದನ್ನು ನಿಲ್ಲಿಸಿದ್ದಾರೆ.',
+  'Not started yet': 'ಇನ್ನೂ ಪ್ರಾರಂಭವಾಗಿಲ್ಲ',
+  'The ride has not started yet': 'ರೈಡ್ ಇನ್ನೂ ಪ್ರಾರಂಭವಾಗಿಲ್ಲ',
+  'Waiting for {name} to start sharing': '{name} ಹಂಚಿಕೊಳ್ಳಲು ಪ್ರಾರಂಭಿಸುವುದಕ್ಕಾಗಿ ಕಾಯಲಾಗುತ್ತಿದೆ',
+  'Real-time location and route will appear here automatically once the journey begins.':
+    'ಪ್ರಯಾಣ ಪ್ರಾರಂಭವಾದ ಕೂಡಲೇ ನೈಜ-ಸಮಯದ ಸ್ಥಳ ಮತ್ತು ಮಾರ್ಗವು ಇಲ್ಲಿ ಸ್ವಯಂಚಾಲಿತವಾಗಿ ಗೋಚರಿಸುತ್ತದೆ.',
   "Waiting for {name}'s first location…": '{name} ಅವರ ಮೊದಲ ಸ್ಥಳಕ್ಕಾಗಿ ಕಾಯಲಾಗುತ್ತಿದೆ…',
   "This live link doesn't exist or has been removed.":
     'ಈ ಲೈವ್ ಲಿಂಕ್ ಅಸ್ತಿತ್ವದಲ್ಲಿಲ್ಲ ಅಥವಾ ತೆಗೆದುಹಾಕಲಾಗಿದೆ.',

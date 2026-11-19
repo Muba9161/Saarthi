@@ -5,7 +5,7 @@
     <string name="rides_live_title">Live ride</string>
     <string name="rides_live_sharing">%1$s is sharing a live ride</string>
     <string name="rides_live_ended">%1$s has stopped sharing this ride.</string>
-    <string name="rides_live_waiting">Waiting for %1$s\'s first location…</string>
+    <string name="rides_live_waiting">The ride has not started yet. Waiting for %1$s to start sharing.</string>
     <string name="rides_live_missing">This live link doesn\'t exist or has been removed.</string>
     <string name="rides_live_updated_now">Updated just now</string>
     <string name="rides_live_updated_ago">Updated %1$s ago</string>
@@ -18,7 +18,7 @@
     <!-- The same screens for the person's own ride, shown on their owner account. -->
     <string name="rides_live_sharing_you">You are sharing this ride live</string>
     <string name="rides_live_ended_you">You have stopped sharing this ride.</string>
-    <string name="rides_live_waiting_you">Waiting for your phone\'s first location…</string>
+    <string name="rides_live_waiting_you">The ride has not started yet. Waiting for your phone to start sharing.</string>
     <string name="rides_live_recentre_you">Show where you are</string>
 
     <!-- Journey summary when sharing has ended -->

@@ -23,6 +23,7 @@ import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
@@ -31,11 +32,10 @@ import com.saarthi.driver.R
 import com.saarthi.driver.ride.RideSharePolicy
 import com.saarthi.driver.ui.DriverViewModel
 import com.saarthi.driver.ui.design.AppName
+import com.saarthi.driver.ui.design.ButtonTone
 import com.saarthi.driver.ui.design.Eyebrow
 import com.saarthi.driver.ui.design.LinkButton
 import com.saarthi.driver.ui.design.Lucide
-import com.saarthi.driver.ui.design.NoticeCard
-import com.saarthi.driver.ui.design.NoticeTone
 import com.saarthi.driver.ui.design.SType
 import com.saarthi.driver.ui.design.Saarthi
 import com.saarthi.driver.ui.design.SaarthiButton
@@ -62,6 +62,7 @@ import com.saarthi.driver.ui.start.StartBackLink
  */
 @Composable
 fun ShareSetupScreen(viewModel: DriverViewModel, plate: String) {
+    val context = LocalContext.current
     val c = Saarthi.colors
     val busy by viewModel.busy.collectAsState()
     val error by viewModel.error.collectAsState()
@@ -81,6 +82,18 @@ fun ShareSetupScreen(viewModel: DriverViewModel, plate: String) {
 
     val back = { viewModel.sharing.backToVehicle(plate) }
     BackHandler(enabled = !busy, onBack = back)
+
+    val chooserTitle = stringResource(R.string.sharing_send_link)
+    val sendLink: () -> Unit = {
+        checked = true
+        val contacts = RideSharePolicy.contactsOf(entries)
+        if (contacts != null && !busy) {
+            viewModel.sharing.prepareLink(plate, contacts, withSelf) { link ->
+                val message = context.getString(R.string.sharing_link_message, link)
+                sendShareLink(context, message, chooserTitle)
+            }
+        }
+    }
 
     val start: () -> Unit = {
         checked = true
@@ -149,13 +162,15 @@ fun ShareSetupScreen(viewModel: DriverViewModel, plate: String) {
             )
         }
 
-        NoticeCard(
-            stringResource(R.string.share_note),
-            NoticeTone.INFO,
+        SaarthiButton(
+            chooserTitle,
+            sendLink,
             Modifier
                 .padding(top = 14.dp)
                 .rise(stagger(5)),
-            icon = Lucide.users,
+            tone = ButtonTone.SECONDARY,
+            busy = busy,
+            leading = Lucide.send,
         )
 
         error?.let { message ->

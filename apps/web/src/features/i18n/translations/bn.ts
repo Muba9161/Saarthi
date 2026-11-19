@@ -342,6 +342,11 @@ export const bn: Catalogue = {
   'Live ride': 'লাইভ রাইড',
   '{name} is sharing a live ride': '{name} একটি লাইভ রাইড শেয়ার করছেন',
   '{name} has stopped sharing this ride.': '{name} এই রাইড শেয়ার করা বন্ধ করেছেন।',
+  'Not started yet': 'এখনও শুরু হয়নি',
+  'The ride has not started yet': 'রাইডটি এখনও শুরু হয়নি',
+  'Waiting for {name} to start sharing': '{name} শেয়ার শুরু করার অপেক্ষায় রয়েছে',
+  'Real-time location and route will appear here automatically once the journey begins.':
+    'যাত্রা শুরু হলেই রিয়েল-টাইম লোকেশন ও রুট এখানে স্বয়ংক্রিয়ভাবে প্রদর্শিত হবে।',
   "Waiting for {name}'s first location…": '{name}-এর প্রথম অবস্থানের অপেক্ষায়…',
   "This live link doesn't exist or has been removed.":
     'এই লাইভ লিঙ্কটি নেই বা সরিয়ে দেওয়া হয়েছে।',

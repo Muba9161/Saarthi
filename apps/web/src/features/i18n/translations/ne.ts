@@ -342,6 +342,11 @@ export const ne: Catalogue = {
   'Live ride': 'लाइभ यात्रा',
   '{name} is sharing a live ride': '{name} लाइभ यात्रा सेयर गर्दै हुनुहुन्छ',
   '{name} has stopped sharing this ride.': '{name} ले यो यात्रा सेयर गर्न बन्द गर्नुभयो।',
+  'Not started yet': 'अझै सुरु भएको छैन',
+  'The ride has not started yet': 'यात्रा अझै सुरु भएको छैन',
+  'Waiting for {name} to start sharing': '{name} ले सेयर सुरु गर्नको लागि पर्खिँदै',
+  'Real-time location and route will appear here automatically once the journey begins.':
+    'यात्रा सुरु हुनासाथ वास्तविक-समय स्थान र मार्ग यहाँ स्वतः देखा पर्नेछ।',
   "Waiting for {name}'s first location…": '{name} को पहिलो स्थानको प्रतीक्षा गर्दै…',
   "This live link doesn't exist or has been removed.": 'यो लाइभ लिङ्क अवस्थित छैन वा हटाइएको छ।',
   'Ask the person who sent it to share a new link.':

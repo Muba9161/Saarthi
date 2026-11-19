@@ -111,8 +111,8 @@ function RideFacts({ ride }: { ride: PublicLiveRide }) {
   );
 }
 
-/** A shared ride whose phone has not reported a fix yet — holds the map's place. */
-function WaitingForFix({ name }: { name: string }) {
+/** A shared ride where tracking has not started yet — waiting for rider to tap "Start sharing". */
+function RideNotStartedCard({ name }: { name: string }) {
   const t = useT();
 
   return (
@@ -125,9 +125,16 @@ function WaitingForFix({ name }: { name: string }) {
           <span className="pulse-halo absolute inset-0 rounded-full text-primary/40" aria-hidden />
           <MapPin className="relative size-5" aria-hidden />
         </span>
-        <p className="max-w-xs text-sm text-muted-foreground">
-          {t("Waiting for {name}'s first location…", { name })}
-        </p>
+        <div className="space-y-1">
+          <p className="text-balance text-sm font-medium text-foreground">
+            {t('Waiting for {name} to start sharing', { name })}
+          </p>
+          <p className="mx-auto max-w-sm text-balance text-xs text-muted-foreground">
+            {t(
+              'Real-time location and route will appear here automatically once the journey begins.',
+            )}
+          </p>
+        </div>
       </CardContent>
     </Card>
   );
@@ -217,6 +224,8 @@ export function LiveRideDetails({
           <Badge variant="muted" dot>
             {t('Ended')}
           </Badge>
+        ) : phase === 'not_started' ? (
+          <Badge variant="muted">{t('Not started yet')}</Badge>
         ) : (
           <Badge variant="success">
             <span className="live-dot" aria-hidden />
@@ -229,7 +238,9 @@ export function LiveRideDetails({
         >
           {phase === 'ended'
             ? t('{name} has stopped sharing this ride.', { name })
-            : t('{name} is sharing a live ride', { name })}
+            : phase === 'not_started'
+              ? t('The ride has not started yet')
+              : t('{name} is sharing a live ride', { name })}
         </h1>
         <RideFacts ride={ride} />
         {position ? (
@@ -258,7 +269,7 @@ export function LiveRideDetails({
           className="h-[min(60svh,34rem)] min-h-72 rounded-2xl ring-1 ring-border"
         />
       ) : null}
-      {phase === 'waiting' ? <WaitingForFix name={name} /> : null}
+      {phase === 'not_started' ? <RideNotStartedCard name={name} /> : null}
       {phase === 'ended' && ride.summary ? <RideSummary summary={ride.summary} /> : null}
 
       {phase !== 'ended' ? (

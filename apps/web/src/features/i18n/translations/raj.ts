@@ -349,6 +349,11 @@ export const raj: Catalogue = {
   'Live ride': 'लाइव सफर',
   '{name} is sharing a live ride': '{name} लाइव सफर सेयर कर रह्या है',
   '{name} has stopped sharing this ride.': '{name} ई सफर नै सेयर करणो बंद कर दियो है।',
+  'Not started yet': 'अजै सुरू कोनी हुयो',
+  'The ride has not started yet': 'सफ़र अजै सुरू कोनी हुयो है',
+  'Waiting for {name} to start sharing': '{name} रै शेयर सुरू करण री उडीक है',
+  'Real-time location and route will appear here automatically once the journey begins.':
+    'सफ़र सुरू हुंवतां ई रीयल-टाइम लोकेशन अर रस्तो अठै आप-आप दीखण लाग जावेला।',
   "Waiting for {name}'s first location…": '{name} री पैली लोकेसन री उडीक है…',
   "This live link doesn't exist or has been removed.": 'ओ लाइव लिंक कोनी या हटा दियो गयो है।',
   'Ask the person who sent it to share a new link.':

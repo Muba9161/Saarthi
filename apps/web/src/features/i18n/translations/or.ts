@@ -342,6 +342,11 @@ export const or: Catalogue = {
   'Live ride': 'ଲାଇଭ ଯାତ୍ରା',
   '{name} is sharing a live ride': '{name} ଏକ ଲାଇଭ ଯାତ୍ରା ସେୟାର କରୁଛନ୍ତି',
   '{name} has stopped sharing this ride.': '{name} ଏହି ଯାତ୍ରା ସେୟାର କରିବା ବନ୍ଦ କରିଛନ୍ତି।',
+  'Not started yet': 'ଏପର୍ଯ୍ୟନ୍ତ ଆରମ୍ଭ ହୋଇନାହିଁ',
+  'The ride has not started yet': 'ଯାତ୍ରା ଏପର୍ଯ୍ୟନ୍ତ ଆରମ୍ଭ ହୋଇନାହିଁ',
+  'Waiting for {name} to start sharing': '{name} ସେୟାର ଆରମ୍ଭ କରିବାକୁ ଅପେକ୍ଷା କରାଯାଇଛି',
+  'Real-time location and route will appear here automatically once the journey begins.':
+    'ଯାତ୍ରା ଆରମ୍ଭ ହେବା ମାତ୍ରେ ରିଅଲ୍-ଟାଇମ୍ ଅବସ୍ଥିତି ଏବଂ ମାର୍ଗ ଏଠାରେ ସ୍ୱୟଂଚାଳିତ ଭାବରେ ଦେଖାଯିବ।',
   "Waiting for {name}'s first location…": '{name}ଙ୍କ ପ୍ରଥମ ଅବସ୍ଥାନକୁ ଅପେକ୍ଷା କରାଯାଉଛି…',
   "This live link doesn't exist or has been removed.": 'ଏହି ଲାଇଭ ଲିଙ୍କ ନାହିଁ କିମ୍ବା ହଟାଇ ଦିଆଯାଇଛି।',
   'Ask the person who sent it to share a new link.':

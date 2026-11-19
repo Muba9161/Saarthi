@@ -344,6 +344,11 @@ export const te: Catalogue = {
   'Live ride': 'లైవ్ ప్రయాణం',
   '{name} is sharing a live ride': '{name} లైవ్ ప్రయాణాన్ని షేర్ చేస్తున్నారు',
   '{name} has stopped sharing this ride.': '{name} ఈ ప్రయాణాన్ని షేర్ చేయడం ఆపేశారు.',
+  'Not started yet': 'ఇంకా ప్రారంభం కాలేదు',
+  'The ride has not started yet': 'రైడ్ ఇంకా ప్రారంభం కాలేదు',
+  'Waiting for {name} to start sharing': '{name} షేర్ చేయడం ప్రారంభించేందుకు వేచి చూస్తోంది',
+  'Real-time location and route will appear here automatically once the journey begins.':
+    'ప్రయాణం ప్రారంభమైన వెంటనే రియల్-టైమ్ లొకేషన్ మరియు మార్గం ఇక్కడ స్వయంచాలకంగా కనిపిస్తాయి.',
   "Waiting for {name}'s first location…": '{name} మొదటి లొకేషన్ కోసం వేచి ఉంది…',
   "This live link doesn't exist or has been removed.": 'ఈ లైవ్ లింక్ లేదు లేదా తీసివేయబడింది.',
   'Ask the person who sent it to share a new link.':

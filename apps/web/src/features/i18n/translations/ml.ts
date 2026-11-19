@@ -348,6 +348,11 @@ export const ml: Catalogue = {
   'Live ride': 'ലൈവ് യാത്ര',
   '{name} is sharing a live ride': '{name} ഒരു ലൈവ് യാത്ര പങ്കിടുന്നു',
   '{name} has stopped sharing this ride.': '{name} ഈ യാത്ര പങ്കിടുന്നത് നിർത്തി.',
+  'Not started yet': 'ഇതുവരെ ആരംഭിച്ചിട്ടില്ല',
+  'The ride has not started yet': 'യാത്ര ഇതുവരെ ആരംഭിച്ചിട്ടില്ല',
+  'Waiting for {name} to start sharing': '{name} പങ്കിടൽ ആരംഭിക്കുന്നതിനായി കാത്തിരിക്കുന്നു',
+  'Real-time location and route will appear here automatically once the journey begins.':
+    'യാത്ര ആരംഭിച്ചയുടൻ തത്സമയ ലൊക്കേഷനും വഴിയും ഇവിടെ തനിയെ ദൃശ്യമാകും.',
   "Waiting for {name}'s first location…": '{name}-ന്റെ ആദ്യ ലൊക്കേഷനായി കാത്തിരിക്കുന്നു…',
   "This live link doesn't exist or has been removed.":
     'ഈ ലൈവ് ലിങ്ക് നിലവിലില്ല അല്ലെങ്കിൽ നീക്കം ചെയ്തു.',
