@@ -10,6 +10,7 @@ import com.saarthi.core.data.EventOutbox
 import com.saarthi.core.data.TerminalIdentityStore
 import com.saarthi.core.data.TerminalRepository
 import com.saarthi.core.data.TerminalSettings
+import com.saarthi.core.festive.FestiveCalendarSource
 import com.saarthi.core.network.RealtimeClient
 import com.saarthi.core.telemetry.TelemetryHub
 import com.saarthi.core.util.DebugLog
@@ -69,6 +70,9 @@ class SaarthiTerminalApp : Application(), SaarthiApp {
     override val realtime: RealtimeClient by lazy {
         RealtimeClient(repository.api, identity, scope)
     }
+
+    /** The festival calendar, for the screen that waits for a driver. */
+    override val festive: FestiveCalendarSource by lazy { FestiveCalendarSource(settings, scope) }
 
     override fun onCreate() {
         super.onCreate()

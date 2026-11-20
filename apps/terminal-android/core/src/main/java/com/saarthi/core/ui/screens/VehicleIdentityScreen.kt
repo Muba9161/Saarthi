@@ -46,12 +46,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.saarthi.core.festive.FestiveBandFrame
+import com.saarthi.core.festive.FestiveLook
 import com.saarthi.core.network.TerminalVehicleQrDto
 import com.saarthi.core.telemetry.Metric
 import com.saarthi.core.ui.Gutter
 import com.saarthi.core.ui.LivePulse
 import com.saarthi.core.ui.SectionLabel
 import com.saarthi.core.ui.GlassCard
+import com.saarthi.core.ui.LocalDarkCockpit
 import com.saarthi.core.ui.StatusChip
 import com.saarthi.core.ui.StatusTone
 import com.saarthi.core.ui.TerminalPage
@@ -74,6 +77,11 @@ import com.saarthi.core.ui.TerminalViewModel
  * dispatcher asks about a parked truck — is that terminal alive, does it have
  * GPS, is it talking to Saarthi — because a terminal that has quietly stopped
  * reporting looks exactly like one that is working until somebody checks.
+ *
+ * On a festival day, and only here while the vehicle waits for a driver, the
+ * screen wears the festival: the garland across the top and the wish with its
+ * signature above the panels. Static, and gone the moment a driver is
+ * identified.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -81,202 +89,230 @@ fun VehicleIdentityScreen(
     viewModel: TerminalViewModel,
     expanded: Boolean,
     onOpenAdmin: () -> Unit,
+    festive: FestiveLook? = null,
 ) {
     val state by viewModel.uiState.collectAsState()
     val vehicle = state.server?.vehicle
     val qr = state.server?.vehicleQr
     val health = state.server?.health
 
-    TerminalPage {
-        // --- Header ---------------------------------------------------------
-        Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text("SAARTHI", style = MaterialTheme.typography.titleLarge, letterSpacing = 4.sp)
+    FestiveBandFrame(festive?.band, MaterialTheme.colorScheme.background) { pageModifier ->
+        TerminalPage(pageModifier) {
+            // --- Header ---------------------------------------------------------
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("SAARTHI", style = MaterialTheme.typography.titleLarge, letterSpacing = 4.sp)
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                LivePulse(
-                    active = !state.offline,
-                    tone = if (state.offline) StatusTone.WARN else StatusTone.GOOD,
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    if (state.offline) "OFFLINE" else "ONLINE",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = if (state.offline) {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    } else {
-                        MaterialTheme.colorScheme.onSurface
-                    },
-                )
-                Spacer(Modifier.width(8.dp))
-                IconButton(onClick = onOpenAdmin) {
-                    Icon(Icons.Rounded.Build, contentDescription = "Terminal diagnostics")
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    LivePulse(
+                        active = !state.offline,
+                        tone = if (state.offline) StatusTone.WARN else StatusTone.GOOD,
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        if (state.offline) "OFFLINE" else "ONLINE",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = if (state.offline) {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        } else {
+                            MaterialTheme.colorScheme.onSurface
+                        },
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    IconButton(onClick = onOpenAdmin) {
+                        Icon(Icons.Rounded.Build, contentDescription = "Terminal diagnostics")
+                    }
                 }
             }
-        }
 
-        Spacer(Modifier.height(Gutter))
+            if (festive != null) {
+                Spacer(Modifier.height(Gutter))
+                FestiveWish(festive, expanded)
+            }
 
-        val qrPanel: @Composable (Modifier) -> Unit = { modifier ->
-            GlassCard(modifier) {
-                SectionLabel("Vehicle QR")
-                Spacer(Modifier.height(12.dp))
-                VehicleQrImage(qr, Modifier.fillMaxWidth())
-                Spacer(Modifier.height(12.dp))
-                Text(
-                    "A driver scans this with their own Saarthi account to sign on.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                if (qr != null) {
-                    Spacer(Modifier.height(6.dp))
+            Spacer(Modifier.height(Gutter))
+
+            val qrPanel: @Composable (Modifier) -> Unit = { modifier ->
+                GlassCard(modifier) {
+                    SectionLabel("Vehicle QR")
+                    Spacer(Modifier.height(12.dp))
+                    VehicleQrImage(qr, Modifier.fillMaxWidth())
+                    Spacer(Modifier.height(12.dp))
                     Text(
-                        // The short label exists for a dirty screen or a camera
-                        // that will not focus. It is the same code, typed.
-                        qr.shortLabel,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontFamily = FontFamily.Monospace,
+                        "A driver scans this with their own Saarthi account to sign on.",
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth(),
                     )
+                    if (qr != null) {
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            // The short label exists for a dirty screen or a camera
+                            // that will not focus. It is the same code, typed.
+                            qr.shortLabel,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontFamily = FontFamily.Monospace,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
                 }
             }
-        }
 
-        val detailPanel: @Composable (Modifier) -> Unit = { modifier ->
-            Column(modifier, verticalArrangement = Arrangement.spacedBy(Gutter)) {
-                GlassCard(Modifier.fillMaxWidth()) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            Icons.Rounded.LocalShipping,
-                            contentDescription = null,
-                            modifier = Modifier.size(32.dp),
-                            tint = MaterialTheme.colorScheme.primary,
-                        )
-                        Spacer(Modifier.width(12.dp))
-                        Column {
-                            Text(
-                                vehicle?.registrationNumber ?: "Not connected",
-                                style = MaterialTheme.typography.headlineMedium,
-                                fontFamily = FontFamily.Monospace,
-                                fontWeight = FontWeight.Bold,
+            val detailPanel: @Composable (Modifier) -> Unit = { modifier ->
+                Column(modifier, verticalArrangement = Arrangement.spacedBy(Gutter)) {
+                    GlassCard(Modifier.fillMaxWidth()) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Rounded.LocalShipping,
+                                contentDescription = null,
+                                modifier = Modifier.size(32.dp),
+                                tint = MaterialTheme.colorScheme.primary,
                             )
-                            Text(
-                                vehicle?.organizationName.orEmpty(),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            Spacer(Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    vehicle?.registrationNumber ?: "Not connected",
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    fontFamily = FontFamily.Monospace,
+                                    fontWeight = FontWeight.Bold,
+                                )
+                                Text(
+                                    vehicle?.organizationName.orEmpty(),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+
+                        Spacer(Modifier.height(Gutter))
+
+                        DetailRow("Vehicle type", vehicle?.vehicleType?.humanise())
+                        DetailRow("Body", vehicle?.truckType?.humanise())
+                        DetailRow(
+                            "Make & model",
+                            listOfNotNull(vehicle?.manufacturer, vehicle?.model)
+                                .joinToString(" ")
+                                .ifBlank { null },
+                        )
+                        DetailRow("Status", vehicle?.status?.humanise())
+                        DetailRow(
+                            "Odometer",
+                            vehicle?.odometerKm?.let { "${it.toLong()} km" },
+                        )
+                    }
+
+                    GlassCard(Modifier.fillMaxWidth()) {
+                        SectionLabel("Terminal")
+                        Spacer(Modifier.height(12.dp))
+
+                        // Wraps rather than squeezes. Three chips do not fit
+                        // across a phone, and a `Row` answers that by crushing its
+                        // children instead of moving one to the next line.
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            StatusChip(
+                                icon = if (state.offline) Icons.Rounded.CloudOff else Icons.Rounded.CloudDone,
+                                label = if (state.offline) "Offline" else "Connected",
+                                tone = if (state.offline) StatusTone.WARN else StatusTone.GOOD,
+                            )
+                            StatusChip(
+                                icon = if (state.telemetry.hasPosition) {
+                                    Icons.Rounded.GpsFixed
+                                } else {
+                                    Icons.Rounded.GpsOff
+                                },
+                                label = if (state.telemetry.hasPosition) "GPS" else "No GPS",
+                                tone = if (state.telemetry.hasPosition) {
+                                    StatusTone.GOOD
+                                } else {
+                                    StatusTone.WARN
+                                },
+                            )
+                            StatusChip(
+                                icon = Icons.Rounded.Memory,
+                                label = if (health?.vehicleDataConnected == true) {
+                                    "Vehicle data"
+                                } else {
+                                    "No vehicle data"
+                                },
+                                tone = if (health?.vehicleDataConnected == true) {
+                                    StatusTone.GOOD
+                                } else {
+                                    StatusTone.NEUTRAL
+                                },
                             )
                         }
+
+                        Spacer(Modifier.height(Gutter))
+
+                        DetailRow("Terminal id", state.server?.terminal?.deviceIdentifier)
+                        DetailRow(
+                            "Battery",
+                            health?.batteryPercent?.let {
+                                "$it%${if (health.batteryCharging == true) " · charging" else ""}"
+                            },
+                        )
+                        DetailRow("Network", health?.networkType?.humanise())
+                        DetailRow(
+                            "Speed",
+                            state.telemetry.value(Metric.SPEED)?.let { "${it.toInt()} km/h" },
+                        )
+                        if (state.pendingUploads > 0) {
+                            DetailRow("Saved offline", "${state.pendingUploads} readings")
+                        }
                     }
-
-                    Spacer(Modifier.height(Gutter))
-
-                    DetailRow("Vehicle type", vehicle?.vehicleType?.humanise())
-                    DetailRow("Body", vehicle?.truckType?.humanise())
-                    DetailRow(
-                        "Make & model",
-                        listOfNotNull(vehicle?.manufacturer, vehicle?.model)
-                            .joinToString(" ")
-                            .ifBlank { null },
-                    )
-                    DetailRow("Status", vehicle?.status?.humanise())
-                    DetailRow(
-                        "Odometer",
-                        vehicle?.odometerKm?.let { "${it.toLong()} km" },
-                    )
                 }
+            }
 
-                GlassCard(Modifier.fillMaxWidth()) {
-                    SectionLabel("Terminal")
-                    Spacer(Modifier.height(12.dp))
-
-                    // Wraps rather than squeezes. Three chips do not fit
-                    // across a phone, and a `Row` answers that by crushing its
-                    // children instead of moving one to the next line.
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        StatusChip(
-                            icon = if (state.offline) Icons.Rounded.CloudOff else Icons.Rounded.CloudDone,
-                            label = if (state.offline) "Offline" else "Connected",
-                            tone = if (state.offline) StatusTone.WARN else StatusTone.GOOD,
-                        )
-                        StatusChip(
-                            icon = if (state.telemetry.hasPosition) {
-                                Icons.Rounded.GpsFixed
-                            } else {
-                                Icons.Rounded.GpsOff
-                            },
-                            label = if (state.telemetry.hasPosition) "GPS" else "No GPS",
-                            tone = if (state.telemetry.hasPosition) {
-                                StatusTone.GOOD
-                            } else {
-                                StatusTone.WARN
-                            },
-                        )
-                        StatusChip(
-                            icon = Icons.Rounded.Memory,
-                            label = if (health?.vehicleDataConnected == true) {
-                                "Vehicle data"
-                            } else {
-                                "No vehicle data"
-                            },
-                            tone = if (health?.vehicleDataConnected == true) {
-                                StatusTone.GOOD
-                            } else {
-                                StatusTone.NEUTRAL
-                            },
-                        )
-                    }
-
+            if (expanded) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(Gutter),
+                ) {
+                    qrPanel(Modifier.weight(1f))
+                    detailPanel(Modifier.weight(1f))
+                }
+            } else {
+                // Stacked, and the page scrolls. `fillMaxSize` here would mean "fill
+                // infinity" inside a scrolling parent, which is what hid the detail
+                // panel below the fold in the first place.
+                Column(
+                    Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(Gutter),
+                ) {
+                    qrPanel(Modifier.fillMaxWidth())
+                    detailPanel(Modifier.fillMaxWidth())
                     Spacer(Modifier.height(Gutter))
-
-                    DetailRow("Terminal id", state.server?.terminal?.deviceIdentifier)
-                    DetailRow(
-                        "Battery",
-                        health?.batteryPercent?.let {
-                            "$it%${if (health.batteryCharging == true) " · charging" else ""}"
-                        },
-                    )
-                    DetailRow("Network", health?.networkType?.humanise())
-                    DetailRow(
-                        "Speed",
-                        state.telemetry.value(Metric.SPEED)?.let { "${it.toInt()} km/h" },
-                    )
-                    if (state.pendingUploads > 0) {
-                        DetailRow("Saved offline", "${state.pendingUploads} readings")
-                    }
                 }
             }
         }
+    }
+}
 
-        if (expanded) {
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(Gutter),
-            ) {
-                qrPanel(Modifier.weight(1f))
-                detailPanel(Modifier.weight(1f))
-            }
-        } else {
-            // Stacked, and the page scrolls. `fillMaxSize` here would mean "fill
-            // infinity" inside a scrolling parent, which is what hid the detail
-            // panel below the fold in the first place.
-            Column(
-                Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(Gutter),
-            ) {
-                qrPanel(Modifier.fillMaxWidth())
-                detailPanel(Modifier.fillMaxWidth())
-                Spacer(Modifier.height(Gutter))
-            }
+/** The festival's wish, in its own colour for the cockpit's theme, and who it is from. */
+@Composable
+private fun FestiveWish(look: FestiveLook, expanded: Boolean) {
+    val ink = Color(if (LocalDarkCockpit.current) look.wishOnDark else look.wishOnLight)
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            look.wish,
+            style = if (expanded) MaterialTheme.typography.displaySmall else MaterialTheme.typography.headlineMedium,
+            color = ink,
+        )
+        if (look.signature.isNotBlank()) {
+            Text(
+                look.signature,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

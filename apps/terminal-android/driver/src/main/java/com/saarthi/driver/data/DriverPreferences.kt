@@ -86,8 +86,25 @@ class DriverPreferences(context: Context, settings: TerminalSettings) {
         _appLock.value = on
     }
 
+    /**
+     * "Festive looks" as this phone remembers it: garland, greeting and colours
+     * on festival days.
+     *
+     * On by default. While somebody is signed in their account's choice wins
+     * (see `FestiveLooks`); this is the choice kept on the phone, so it stays
+     * after signing out.
+     */
+    private val _festiveLooks = MutableStateFlow(preferences.getBoolean(KEY_FESTIVE_LOOKS, true))
+    val festiveLooks: StateFlow<Boolean> = _festiveLooks.asStateFlow()
+
+    fun setFestiveLooks(on: Boolean) {
+        preferences.edit().putBoolean(KEY_FESTIVE_LOOKS, on).apply()
+        _festiveLooks.value = on
+    }
+
     private companion object {
         const val FILE = "saarthi_driver_preferences"
+        const val KEY_FESTIVE_LOOKS = "festive_looks"
         const val KEY_APPEARANCE = "appearance"
         const val KEY_INSTRUMENTS = "instruments_on_map"
         const val KEY_WAKE_WORD = "wake_word"

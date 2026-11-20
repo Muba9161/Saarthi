@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Festive looks: the garland and greeting on festival days, and the switch for them in Profile. -->
+<resources>
+    <string name="festive_looks">பண்டிகை அலங்காரம்</string>
+    <string name="festive_looks_help">பண்டிகை நாட்களில் தோரணம், வாழ்த்து மற்றும் வண்ணங்கள். உங்கள் கணக்கில் சேமிக்கப்படும், இணையத்திலும் ஆப்களிலும்.</string>
+    <string name="festive_looks_not_saved">பண்டிகை அலங்காரத்தை உங்கள் கணக்கில் சேமிக்க முடியவில்லை. சிக்னலைச் சரிபார்த்து மீண்டும் முயலுங்கள்.</string>
+</resources>

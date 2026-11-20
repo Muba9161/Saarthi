@@ -16,6 +16,8 @@ import com.saarthi.core.telemetry.TelemetryHub
 import com.saarthi.core.util.DebugLog
 import com.saarthi.driver.data.DriverAccountStore
 import com.saarthi.driver.data.DriverPreferences
+import com.saarthi.driver.festive.FestiveLooks
+import com.saarthi.core.festive.FestiveCalendarSource
 import com.saarthi.core.data.OfflineMaps
 import com.saarthi.core.data.PaperCache
 import com.saarthi.driver.data.QuickLoginStore
@@ -121,6 +123,12 @@ class SaarthiDriverApp : Application(), SaarthiApp {
 
     /** Appearance and the instruments switch — choices only this app has. */
     val preferences: DriverPreferences by lazy { DriverPreferences(this, settings) }
+
+    /** The festival calendar, for Home on festival days. */
+    override val festive: FestiveCalendarSource by lazy { FestiveCalendarSource(settings, scope) }
+
+    /** The driver's "Festive looks" choice: on their account when signed in, on this phone otherwise. */
+    val festiveLooks: FestiveLooks by lazy { FestiveLooks(account, preferences, driverApi, scope) }
 
     override fun onCreate() {
         super.onCreate()

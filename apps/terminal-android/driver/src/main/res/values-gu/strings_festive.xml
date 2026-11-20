@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Festive looks: the garland and greeting on festival days, and the switch for them in Profile. -->
+<resources>
+    <string name="festive_looks">તહેવારની સજાવટ</string>
+    <string name="festive_looks_help">તહેવારના દિવસોમાં તોરણ, શુભેચ્છા અને રંગો. તમારા એકાઉન્ટમાં સેવ થાય છે, વેબ અને ઍપ્સ પર.</string>
+    <string name="festive_looks_not_saved">તહેવારની સજાવટ તમારા એકાઉન્ટમાં સેવ ન થઈ શકી. સિગ્નલ તપાસો અને ફરી પ્રયાસ કરો.</string>
+</resources>
