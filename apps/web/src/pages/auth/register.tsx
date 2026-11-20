@@ -45,7 +45,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { FormWizard, type WizardStep } from '@/components/common/form-wizard';
 import { ImageCircleField } from '@/components/common/file-dropzone';
 import { PasswordStrength } from '@/components/common/password-strength';
-import { AuthDivider, AuthHeading } from '@/features/auth/auth-card';
+import { AuthDivider, AuthHeading, AuthSurfaceContext } from '@/features/auth/auth-card';
+import { AuthLink } from '@/features/auth-modal';
 import {
   RegistrationTutorial,
   RegistrationTutorialLauncher,
@@ -121,7 +122,6 @@ const ORGANIZATION_PLACEHOLDER: Partial<Record<RoleName, string>> = {
   [RoleName.SUPPLIER]: 'Kumar Building Materials',
 };
 
-
 /** Mirrors MEDIA_MAX_FILE_SIZE on the API, so a rejection happens here first. */
 const IMAGE_MAX_SIZE_MB = 5;
 const IMAGE_ACCEPT = '.jpg,.jpeg,.png,.webp,.heic';
@@ -131,6 +131,7 @@ const ACCOUNT_TYPE_STEP_ID = 'account-type';
 
 export function RegisterPage() {
   const { register, refreshSession } = useAuth();
+  const surface = React.useContext(AuthSurfaceContext);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [formError, setFormError] = React.useState<string | null>(null);
@@ -162,10 +163,7 @@ export function RegisterPage() {
    * telemetry screen — so nobody is asked to buy anything before they have
    * seen the product.
    */
-  const linkedPlan = React.useMemo(
-    () => planFromQuery(searchParams.get('plan')),
-    [searchParams],
-  );
+  const linkedPlan = React.useMemo(() => planFromQuery(searchParams.get('plan')), [searchParams]);
 
   /**
    * Whether the plan is asked here.
@@ -182,10 +180,7 @@ export function RegisterPage() {
    * second — see `resolveReferralCode`. Held outside the form's own state so a
    * step change cannot drop it.
    */
-  const referralCode = React.useMemo(
-    () => resolveReferralCode(window.location.search),
-    [],
-  );
+  const referralCode = React.useMemo(() => resolveReferralCode(window.location.search), []);
 
   const form = useForm<RegisterInput>({
     resolver: zodResolver(registerSchema),
@@ -250,7 +245,8 @@ export function RegisterPage() {
    * after them, so their role is FLEET_OWNER — but they are a person, and what
    * belongs on their profile is their face.
    */
-  const wantsLogo = !isPersonal && Boolean(role) && ORGANIZATION_NAME_REQUIRED_ROLES.includes(role as never);
+  const wantsLogo =
+    !isPersonal && Boolean(role) && ORGANIZATION_NAME_REQUIRED_ROLES.includes(role as never);
 
   const applyChoice = (choice: RegistrationChoice): void => {
     form.setValue('planTier', choice.planTier, { shouldValidate: false });
@@ -393,8 +389,8 @@ export function RegisterPage() {
    * which is where the answer belongs, on Personal and Business alike.
    */
   const typeStep: WizardStep | null = isPersonal
-      ? null
-      : isDriver
+    ? null
+    : isDriver
       ? {
           // A distinct id from the business step on purpose: switching account
           // type mid-form must re-open this step rather than let a cleared
@@ -428,7 +424,9 @@ export function RegisterPage() {
                         the second would have orphaned all eighteen. */}
                     <FormDescription>
                       {t('Have a code from a fleet owner? Enter it to work under their fleet.')}{' '}
-                      {t('Looking for work? Leave it blank - you can enter a code later, whenever a fleet takes you on.')}
+                      {t(
+                        'Looking for work? Leave it blank - you can enter a code later, whenever a fleet takes you on.',
+                      )}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -493,7 +491,9 @@ export function RegisterPage() {
                         value={field.value ?? ''}
                         autoComplete="organization"
                         className="h-10"
-                        placeholder={(role && ORGANIZATION_PLACEHOLDER[role]) || 'Kumar Constructions'}
+                        placeholder={
+                          (role && ORGANIZATION_PLACEHOLDER[role]) || 'Kumar Constructions'
+                        }
                       />
                     </FormControl>
                     <FormDescription>
@@ -806,9 +806,7 @@ export function RegisterPage() {
    * numbers what it is given, so leaving a blank step in would have counted a
    * question nobody is asked.
    */
-  const steps: WizardStep[] = stepCandidates.filter(
-    (step): step is WizardStep => step !== null,
-  );
+  const steps: WizardStep[] = stepCandidates.filter((step): step is WizardStep => step !== null);
 
   /**
    * `registerSchema` is a `ZodEffects` — its cross-field rules live in a
@@ -851,9 +849,7 @@ export function RegisterPage() {
       {/* Offered once the reader has said they run a business, which is the
           question this walkthrough answers — "which of these six am I?".
           Before that there is nothing for it to explain. */}
-      {isBusiness ? (
-        <RegistrationTutorialLauncher onOpen={() => setTutorialOpen(true)} />
-      ) : null}
+      {isBusiness ? <RegistrationTutorialLauncher onOpen={() => setTutorialOpen(true)} /> : null}
 
       {/* Handed the page's own form rather than one of its own: the guided
           route and the wizard below are the same registration, so answering a
@@ -889,6 +885,9 @@ export function RegisterPage() {
 
       <Form {...form}>
         <FormWizard
+          // In the sign-in modal there is no room for the rail beside the
+          // fields, so the steps run as a strip above them.
+          variant={surface === 'modal' ? 'strip' : 'rail'}
           steps={steps}
           title={t('Getting set up')}
           // Counted from the steps themselves — the driver branch swaps a step
@@ -925,7 +924,9 @@ export function RegisterPage() {
       <div className="mx-auto w-full max-w-md space-y-4 pt-1">
         <AuthDivider>{t('Already have an account?')}</AuthDivider>
         <Button variant="outline" size="lg" className="w-full" asChild>
-          <Link to="/login">{t('Sign in')}</Link>
+          <AuthLink view="sign-in" replace>
+            {t('Sign in')}
+          </AuthLink>
         </Button>
       </div>
     </div>

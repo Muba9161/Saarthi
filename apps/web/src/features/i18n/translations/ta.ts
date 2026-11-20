@@ -71,7 +71,6 @@ export const ta: Catalogue = {
   'Sign out': 'வெளியேறு',
   'Expand navigation': 'வழிசெலுத்தலை விரிவாக்கு',
   'Collapse navigation': 'வழிசெலுத்தலைச் சுருக்கு',
-  'Switch theme': 'தீம் மாற்று',
   Language: 'மொழி',
   'Choose your language': 'உங்கள் மொழியைத் தேர்ந்தெடுங்கள்',
 
@@ -218,7 +217,6 @@ export const ta: Catalogue = {
     'சாலையோர உதவியை ஒருங்கிணைக்கும் மாவட்டச் சங்கத்தின் பிரதிநிதி நான்.',
   'I drive for a fleet that already uses Saarthi.':
     'ஏற்கனவே Saarthi-ஐப் பயன்படுத்தும் வாகனத் தொகுப்புக்காக நான் ஓட்டுகிறேன்.',
-  'The operating system for your trucking business.': 'உங்கள் லாரி வணிகத்தின் இயக்க அமைப்பு.',
   'One fleet command centre': 'ஒரே கட்டுப்பாட்டு மையம்',
   'Trucks, drivers, documents, orders and trips in a single operational view.':
     'லாரிகள், ஓட்டுநர்கள், ஆவணங்கள், ஆர்டர்கள், பயணங்கள் - அனைத்தும் ஒரே செயல்பாட்டுக் காட்சியில்.',
@@ -376,4 +374,22 @@ export const ta: Catalogue = {
   'No location yet': 'இன்னும் இருப்பிடம் இல்லை',
   'This page shows where {name} is only while they are sharing.':
     '{name} பகிரும் வரை மட்டுமே இந்தப் பக்கம் அவரது இருப்பிடத்தைக் காட்டும்.',
+
+  // --- Appearance and the festive layer ------------------------------------
+  Appearance: 'தோற்றம்',
+  Theme: 'தீம்',
+  Light: 'ஒளி',
+  Dark: 'இருள்',
+  System: 'சாதனத்தைப் பொறுத்து',
+  'Festive looks': 'பண்டிகை அலங்காரம்',
+  'Garland, greeting and colours on festival days.':
+    'பண்டிகை நாட்களில் தோரணம், வாழ்த்து, வண்ணங்கள்.',
+  'until {date}': '{date} வரை',
+  'Festive looks could not be saved to your account. Try again.':
+    'பண்டிகை அலங்காரத்தை உங்கள் கணக்கில் சேமிக்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்.',
+  'Festive looks are on.': 'பண்டிகை அலங்காரம் இயக்கத்தில் உள்ளது.',
+  'Turn off': 'அணை',
+  'Hide the greeting': 'வாழ்த்தை மறை',
+  'The operating system for everything you move.':
+    'நீங்கள் கொண்டு செல்லும் அனைத்திற்குமான இயக்க அமைப்பு.',
 };

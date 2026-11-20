@@ -1,10 +1,11 @@
 import * as React from 'react';
-import { Link } from 'react-router-dom';
 import { ArrowRight, CalendarClock, LockKeyhole, PlayCircle, ShieldCheck } from 'lucide-react';
 import { useScroll, useTransform } from 'framer-motion';
 import { FEATURE_CATALOGUE, LANGUAGE_CATALOGUE } from '@saarthi/shared';
 import { Button } from '@/components/ui/button';
 import { AnimatedNumber, motion, useReducedMotion } from '@/components/motion';
+import { AuthLink } from '@/features/auth-modal';
+import { FestiveParticles, FestiveWish } from '@/features/festive';
 import { Marquee, Reveal, RevealGroup, RevealItem } from './motion-extras';
 import { Backdrop, CutOut, MARKETING_IMAGE, STAGE } from './imagery';
 import { ROLE_SHOWCASE, TOTAL_DESTINATIONS } from './feature-catalogue';
@@ -324,6 +325,9 @@ export function Hero() {
 
       <SceneFrame />
 
+      {/* On a festival day, its pieces drift down the stage. */}
+      <FestiveParticles count={22} travel={900} className="-z-10" />
+
       {photoAvailable ? <TargetLock telemetry={telemetry} /> : null}
 
       <div className="relative mx-auto w-full max-w-7xl">
@@ -336,8 +340,8 @@ export function Hero() {
                 VorldX Saarthi
               </p>
               <span className="hidden h-px w-8 bg-white/20 sm:block" aria-hidden />
-              <Link
-                to="/register"
+              <AuthLink
+                view="create-account"
                 className="group inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.06] px-3.5 py-1.5 text-xs text-white/80 backdrop-blur transition-colors duration-200 hover:border-primary/50 hover:bg-white/10 hover:text-white"
               >
                 <span className="live-dot" aria-hidden />
@@ -345,7 +349,14 @@ export function Hero() {
                   {FEATURE_CATALOGUE.length} capabilities · {ROLE_SHOWCASE.length} kinds of account
                 </span>
                 <ArrowRight className="size-3 text-white/50 transition-transform duration-200 group-hover:translate-x-0.5" />
-              </Link>
+              </AuthLink>
+              {/* The festival's wish, in the visitor's language, beside them. */}
+              <FestiveWish
+                tone="dark"
+                size="sm"
+                signature={false}
+                className="rounded-full border border-white/15 bg-white/[0.06] px-3.5 py-1 backdrop-blur"
+              />
             </div>
           </Reveal>
 
@@ -366,12 +377,12 @@ export function Hero() {
                   size="xl"
                   variant="gradient"
                   asChild
-                  className="group w-full rounded-full sm:w-auto"
+                  className="festive-cta group w-full rounded-full sm:w-auto"
                 >
-                  <Link to="/register">
+                  <AuthLink view="create-account">
                     Start free - no card needed
                     <ArrowRight className="size-4 transition-transform duration-200 group-hover:translate-x-0.5" />
-                  </Link>
+                  </AuthLink>
                 </Button>
               </Magnetic>
 
@@ -385,10 +396,10 @@ export function Hero() {
                   asChild
                   className="w-full rounded-full bg-white/10 text-white shadow-none ring-white/25 backdrop-blur hover:bg-white/20 hover:ring-white/40 sm:w-auto"
                 >
-                  <Link to="/login">
+                  <AuthLink view="sign-in">
                     <PlayCircle className="size-4" />
                     Explore the demo fleet
-                  </Link>
+                  </AuthLink>
                 </Button>
               </Magnetic>
             </div>

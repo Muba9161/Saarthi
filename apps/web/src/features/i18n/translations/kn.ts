@@ -71,7 +71,6 @@ export const kn: Catalogue = {
   'Sign out': 'ಸೈನ್ ಔಟ್',
   'Expand navigation': 'ನ್ಯಾವಿಗೇಶನ್ ವಿಸ್ತರಿಸಿ',
   'Collapse navigation': 'ನ್ಯಾವಿಗೇಶನ್ ಸಂಕುಚಿಸಿ',
-  'Switch theme': 'ಥೀಮ್ ಬದಲಿಸಿ',
   Language: 'ಭಾಷೆ',
   'Choose your language': 'ನಿಮ್ಮ ಭಾಷೆ ಆಯ್ಕೆಮಾಡಿ',
 
@@ -215,8 +214,6 @@ export const kn: Catalogue = {
     'ರಸ್ತೆಬದಿ ಸಹಾಯವನ್ನು ಸಂಯೋಜಿಸುವ ಜಿಲ್ಲಾ ಸಂಘದ ಪ್ರತಿನಿಧಿ ನಾನು.',
   'I drive for a fleet that already uses Saarthi.':
     'ಈಗಾಗಲೇ Saarthi ಬಳಸುವ ವಾಹನ ಸಮೂಹಕ್ಕಾಗಿ ನಾನು ಚಾಲನೆ ಮಾಡುತ್ತೇನೆ.',
-  'The operating system for your trucking business.':
-    'ನಿಮ್ಮ ಟ್ರಕಿಂಗ್ ವ್ಯವಹಾರದ ಕಾರ್ಯಾಚರಣಾ ವ್ಯವಸ್ಥೆ.',
   'One fleet command centre': 'ಒಂದೇ ಫ್ಲೀಟ್ ಕಮಾಂಡ್ ಸೆಂಟರ್',
   'Trucks, drivers, documents, orders and trips in a single operational view.':
     'ಟ್ರಕ್, ಚಾಲಕರು, ದಾಖಲೆಗಳು, ಆರ್ಡರ್ ಮತ್ತು ಪ್ರಯಾಣ - ಎಲ್ಲವೂ ಒಂದೇ ಕಾರ್ಯ ನೋಟದಲ್ಲಿ.',
@@ -373,4 +370,20 @@ export const kn: Catalogue = {
   'No location yet': 'ಇನ್ನೂ ಸ್ಥಳ ಲಭ್ಯವಿಲ್ಲ',
   'This page shows where {name} is only while they are sharing.':
     '{name} ಹಂಚಿಕೊಳ್ಳುತ್ತಿರುವವರೆಗೆ ಮಾತ್ರ ಈ ಪುಟ ಅವರ ಸ್ಥಳವನ್ನು ತೋರಿಸುತ್ತದೆ.',
+
+  // --- Appearance and the festive layer ------------------------------------
+  Appearance: 'ತೋರಿಕೆ',
+  Theme: 'ಥೀಮ್',
+  Light: 'ಲೈಟ್',
+  Dark: 'ಡಾರ್ಕ್',
+  System: 'ಸಾಧನದಂತೆ',
+  'Festive looks': 'ಹಬ್ಬದ ಅಲಂಕಾರ',
+  'Garland, greeting and colours on festival days.': 'ಹಬ್ಬದ ದಿನಗಳಲ್ಲಿ ತೋರಣ, ಶುಭಾಶಯ ಮತ್ತು ಬಣ್ಣಗಳು.',
+  'until {date}': '{date} ವರೆಗೆ',
+  'Festive looks could not be saved to your account. Try again.':
+    'ಹಬ್ಬದ ಅಲಂಕಾರವನ್ನು ನಿಮ್ಮ ಖಾತೆಗೆ ಉಳಿಸಲಾಗಲಿಲ್ಲ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.',
+  'Festive looks are on.': 'ಹಬ್ಬದ ಅಲಂಕಾರ ಆನ್ ಆಗಿದೆ.',
+  'Turn off': 'ಆಫ್ ಮಾಡಿ',
+  'Hide the greeting': 'ಶುಭಾಶಯವನ್ನು ಮರೆಮಾಡಿ',
+  'The operating system for everything you move.': 'ನೀವು ಸಾಗಿಸುವ ಎಲ್ಲದಕ್ಕೂ ಆಪರೇಟಿಂಗ್ ಸಿಸ್ಟಮ್.',
 };

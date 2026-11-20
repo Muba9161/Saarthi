@@ -1,0 +1,134 @@
+/*
+ * The festive layer's own styles, loaded with its chunk on festival days only.
+ * The always-on part (festival colours on `.festive-cta`, the boot splash glow)
+ * lives in globals.css and index.html, because it must not wait for a chunk.
+ */
+@import '@fontsource/ibm-plex-serif/latin-600.css';
+
+/* The wish: a display serif for Latin; every other script falls through to
+   the system face made for it (Nirmala UI, Noto, Kohinoor), so no wish ever
+   renders as boxes. */
+.festive-wish__line,
+.festive-boot-wish {
+  font-family:
+    'IBM Plex Serif', 'Noto Serif Devanagari', 'Nirmala UI', 'Kohinoor Devanagari', 'Mangal',
+    system-ui, serif;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+.festive-boot-wish {
+  position: relative;
+  margin: -6px 0 0;
+  padding: 0 24px;
+  text-align: center;
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.25;
+  animation: festive-rise 900ms 300ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.festive-piece {
+  position: absolute;
+  top: -16px;
+  width: 8px;
+  height: 6px;
+  border-radius: 60% 0;
+  opacity: 0.9;
+  animation-name: festive-fall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  will-change: transform;
+}
+
+.festive-piece--snow {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.festive-piece--confetti {
+  width: 6px;
+  height: 10px;
+  border-radius: 1px;
+}
+
+.festive-piece--stars {
+  width: 9px;
+  height: 9px;
+  border-radius: 0;
+  clip-path: polygon(
+    50% 0,
+    61% 35%,
+    98% 35%,
+    68% 57%,
+    79% 91%,
+    50% 70%,
+    21% 91%,
+    32% 57%,
+    2% 35%,
+    39% 35%
+  );
+}
+
+.festive-piece--kites {
+  width: 10px;
+  height: 10px;
+  border-radius: 1px;
+}
+
+.festive-piece--embers {
+  top: auto;
+  bottom: -10px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  animation-name: festive-rise-piece;
+  box-shadow: 0 0 8px 2px rgba(255, 190, 90, 0.55);
+}
+
+@keyframes festive-fall {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(0);
+  }
+  50% {
+    transform: translate3d(14px, calc(var(--festive-travel, 700px) / 2), 0) rotate(160deg);
+  }
+  100% {
+    transform: translate3d(-6px, var(--festive-travel, 700px), 0) rotate(320deg);
+  }
+}
+
+@keyframes festive-rise-piece {
+  0% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(calc(var(--festive-travel, 700px) * -1));
+    opacity: 0;
+  }
+}
+
+@keyframes festive-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .festive-particles {
+    display: none;
+  }
+  .festive-boot-wish {
+    animation: none;
+  }
+}

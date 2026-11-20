@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ArrowRight, Menu, Moon, Sun } from 'lucide-react';
+import { ArrowRight, Menu } from 'lucide-react';
 // `useScroll`/`useSpring` are not in the curated product motion vocabulary —
 // nothing behind the sign-in wall needs a scroll-linked value. Imported here
 // rather than widening that module for one page.
@@ -8,8 +8,11 @@ import { useScroll, useSpring } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetClose, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { SaarthiLogo } from '@/components/common/logo';
-import { AnimatePresence, motion } from '@/components/motion';
+import { motion } from '@/components/motion';
 import { useTheme } from '@/features/theme/theme-context';
+import { AppearanceMenu } from '@/features/theme/appearance-menu';
+import { AuthLink } from '@/features/auth-modal';
+import { FestiveBand } from '@/features/festive';
 import { AppDownloadLinks } from './app-downloads/app-download-links';
 import { Reveal, WordsReveal } from './motion-extras';
 import { cn } from '@/lib/utils';
@@ -142,32 +145,9 @@ function ScrollProgress() {
   );
 }
 
+/** The header's theme button, grown into Appearance (theme and Festive looks). */
 function ThemeToggle({ className }: { className?: string }) {
-  const { resolvedTheme, setTheme } = useTheme();
-
-  return (
-    <Button
-      variant="ghost"
-      size="icon"
-      onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
-      aria-label="Switch theme"
-      title="Switch theme"
-      className={className}
-    >
-      <AnimatePresence mode="wait" initial={false}>
-        <motion.span
-          key={resolvedTheme}
-          initial={{ opacity: 0, rotate: -80, scale: 0.7 }}
-          animate={{ opacity: 1, rotate: 0, scale: 1 }}
-          exit={{ opacity: 0, rotate: 80, scale: 0.7 }}
-          transition={{ duration: 0.22 }}
-          className="flex"
-        >
-          {resolvedTheme === 'dark' ? <Sun className="size-5" /> : <Moon className="size-5" />}
-        </motion.span>
-      </AnimatePresence>
-    </Button>
-  );
+  return <AppearanceMenu {...(className ? { triggerClassName: className } : {})} />;
 }
 
 /**
@@ -278,6 +258,12 @@ export function MarketingNav() {
         </>
       ) : null}
 
+      {/* On a festival day the garland hangs under the header on arrival,
+          and steps away with the transparent state once the page moves. */}
+      {scrolled ? null : (
+        <FestiveBand className="pointer-events-none absolute inset-x-0 top-full" />
+      )}
+
       <div className="mx-auto flex h-[4.5rem] max-w-7xl items-center gap-4 px-5 sm:px-8">
         <Link
           to="/"
@@ -352,13 +338,13 @@ export function MarketingNav() {
               overStage && 'text-white hover:bg-white/10 hover:text-white',
             )}
           >
-            <Link to="/login">Sign in</Link>
+            <AuthLink view="sign-in">Sign in</AuthLink>
           </Button>
-          <Button variant="gradient" size="sm" asChild className="group rounded-full">
-            <Link to="/register">
+          <Button variant="gradient" size="sm" asChild className="festive-cta group rounded-full">
+            <AuthLink view="create-account">
               Start free
               <ArrowRight className="size-4 transition-transform duration-200 group-hover:translate-x-0.5" />
-            </Link>
+            </AuthLink>
           </Button>
 
           <Sheet>
@@ -403,12 +389,17 @@ export function MarketingNav() {
               <AppDownloadLinks className="border-t border-border p-4" />
 
               <div className="space-y-2 border-t border-border p-4">
-                <Button variant="outline" className="w-full" asChild>
-                  <Link to="/login">Sign in</Link>
-                </Button>
-                <Button variant="gradient" className="w-full" asChild>
-                  <Link to="/register">Start free</Link>
-                </Button>
+                {/* Closing the menu as the modal opens, so one dialog shows at a time. */}
+                <SheetClose asChild>
+                  <Button variant="outline" className="w-full" asChild>
+                    <AuthLink view="sign-in">Sign in</AuthLink>
+                  </Button>
+                </SheetClose>
+                <SheetClose asChild>
+                  <Button variant="gradient" className="festive-cta w-full" asChild>
+                    <AuthLink view="create-account">Start free</AuthLink>
+                  </Button>
+                </SheetClose>
                 <div className="flex items-center justify-between pt-1">
                   <span className="text-xs text-muted-foreground">Appearance</span>
                   <ThemeToggle />

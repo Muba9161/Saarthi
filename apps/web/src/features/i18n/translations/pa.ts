@@ -71,7 +71,6 @@ export const pa: Catalogue = {
   'Sign out': 'ਸਾਈਨ ਆਊਟ',
   'Expand navigation': 'ਨੈਵੀਗੇਸ਼ਨ ਵੱਡਾ ਕਰੋ',
   'Collapse navigation': 'ਨੈਵੀਗੇਸ਼ਨ ਛੋਟਾ ਕਰੋ',
-  'Switch theme': 'ਥੀਮ ਬਦਲੋ',
   Language: 'ਭਾਸ਼ਾ',
   'Choose your language': 'ਆਪਣੀ ਭਾਸ਼ਾ ਚੁਣੋ',
 
@@ -216,7 +215,6 @@ export const pa: Catalogue = {
     'ਮੈਂ ਸੜਕ ਕਿਨਾਰੇ ਮਦਦ ਦਾ ਤਾਲਮੇਲ ਕਰਦੀ ਜ਼ਿਲ੍ਹਾ ਐਸੋਸੀਏਸ਼ਨ ਦਾ ਨੁਮਾਇੰਦਾ ਹਾਂ।',
   'I drive for a fleet that already uses Saarthi.':
     'ਮੈਂ ਅਜਿਹੇ ਬੇੜੇ ਲਈ ਗੱਡੀ ਚਲਾਉਂਦਾ ਹਾਂ ਜੋ ਪਹਿਲਾਂ ਤੋਂ Saarthi ਵਰਤਦਾ ਹੈ।',
-  'The operating system for your trucking business.': 'ਤੁਹਾਡੇ ਟਰੱਕਿੰਗ ਕਾਰੋਬਾਰ ਦਾ ਓਪਰੇਟਿੰਗ ਸਿਸਟਮ।',
   'One fleet command centre': 'ਇੱਕੋ ਫਲੀਟ ਕਮਾਂਡ ਸੈਂਟਰ',
   'Trucks, drivers, documents, orders and trips in a single operational view.':
     'ਟਰੱਕ, ਡਰਾਈਵਰ, ਦਸਤਾਵੇਜ਼, ਆਰਡਰ ਤੇ ਟ੍ਰਿਪ - ਸਭ ਇੱਕੋ ਕੰਮਕਾਜੀ ਨਜ਼ਾਰੇ ਵਿੱਚ।',
@@ -373,4 +371,21 @@ export const pa: Catalogue = {
   'No location yet': 'ਅਜੇ ਕੋਈ ਲੋਕੇਸ਼ਨ ਨਹੀਂ',
   'This page shows where {name} is only while they are sharing.':
     'ਇਹ ਪੰਨਾ {name} ਦੀ ਥਾਂ ਸਿਰਫ਼ ਉਦੋਂ ਤੱਕ ਦਿਖਾਉਂਦਾ ਹੈ ਜਦੋਂ ਤੱਕ ਉਹ ਸਾਂਝਾ ਕਰ ਰਹੇ ਹਨ।',
+
+  // --- Appearance and the festive layer ------------------------------------
+  Appearance: 'ਦਿੱਖ',
+  Theme: 'ਥੀਮ',
+  Light: 'ਲਾਈਟ',
+  Dark: 'ਡਾਰਕ',
+  System: 'ਡਿਵਾਈਸ ਮੁਤਾਬਕ',
+  'Festive looks': 'ਤਿਉਹਾਰੀ ਸਜਾਵਟ',
+  'Garland, greeting and colours on festival days.': 'ਤਿਉਹਾਰਾਂ ਵਾਲੇ ਦਿਨਾਂ ਵਿੱਚ ਹਾਰ, ਵਧਾਈ ਅਤੇ ਰੰਗ।',
+  'until {date}': '{date} ਤੱਕ',
+  'Festive looks could not be saved to your account. Try again.':
+    'ਤਿਉਹਾਰੀ ਸਜਾਵਟ ਤੁਹਾਡੇ ਖਾਤੇ ਵਿੱਚ ਸੇਵ ਨਹੀਂ ਹੋ ਸਕੀ। ਮੁੜ ਕੋਸ਼ਿਸ਼ ਕਰੋ।',
+  'Festive looks are on.': 'ਤਿਉਹਾਰੀ ਸਜਾਵਟ ਚਾਲੂ ਹੈ।',
+  'Turn off': 'ਬੰਦ ਕਰੋ',
+  'Hide the greeting': 'ਵਧਾਈ ਲੁਕਾਓ',
+  'The operating system for everything you move.':
+    'ਤੁਸੀਂ ਜੋ ਕੁਝ ਵੀ ਢੋਂਦੇ ਹੋ, ਉਸ ਸਭ ਲਈ ਓਪਰੇਟਿੰਗ ਸਿਸਟਮ।',
 };

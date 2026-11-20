@@ -71,7 +71,6 @@ export const te: Catalogue = {
   'Sign out': 'సైన్ అవుట్',
   'Expand navigation': 'నావిగేషన్ విస్తరించు',
   'Collapse navigation': 'నావిగేషన్ కుదించు',
-  'Switch theme': 'థీమ్ మార్చు',
   Language: 'భాష',
   'Choose your language': 'మీ భాషను ఎంచుకోండి',
 
@@ -216,8 +215,6 @@ export const te: Catalogue = {
     'రహదారి పక్క సహాయాన్ని సమన్వయం చేసే జిల్లా సంఘానికి నేను ప్రతినిధిని.',
   'I drive for a fleet that already uses Saarthi.':
     'ఇప్పటికే Saarthi ఉపయోగించే వాహన సముదాయం కోసం నేను నడుపుతాను.',
-  'The operating system for your trucking business.':
-    'మీ ట్రకింగ్ వ్యాపారం యొక్క ఆపరేటింగ్ సిస్టమ్.',
   'One fleet command centre': 'ఒకే ఫ్లీట్ కమాండ్ సెంటర్',
   'Trucks, drivers, documents, orders and trips in a single operational view.':
     'ట్రక్కులు, డ్రైవర్లు, పత్రాలు, ఆర్డర్లు, ట్రిప్‌లు - అన్నీ ఒకే కార్యాచరణ దృశ్యంలో.',
@@ -373,4 +370,20 @@ export const te: Catalogue = {
   'No location yet': 'ఇంకా లొకేషన్ లేదు',
   'This page shows where {name} is only while they are sharing.':
     '{name} షేర్ చేస్తున్నంత వరకే ఈ పేజీ వారి లొకేషన్‌ను చూపిస్తుంది.',
+
+  // --- Appearance and the festive layer ------------------------------------
+  Appearance: 'రూపం',
+  Theme: 'థీమ్',
+  Light: 'లైట్',
+  Dark: 'డార్క్',
+  System: 'పరికరం ప్రకారం',
+  'Festive looks': 'పండుగ అలంకరణ',
+  'Garland, greeting and colours on festival days.': 'పండుగ రోజుల్లో తోరణం, శుభాకాంక్షలు, రంగులు.',
+  'until {date}': '{date} వరకు',
+  'Festive looks could not be saved to your account. Try again.':
+    'పండుగ అలంకరణను మీ ఖాతాలో సేవ్ చేయలేకపోయాం. మళ్లీ ప్రయత్నించండి.',
+  'Festive looks are on.': 'పండుగ అలంకరణ ఆన్‌లో ఉంది.',
+  'Turn off': 'ఆఫ్ చేయండి',
+  'Hide the greeting': 'శుభాకాంక్షను దాచు',
+  'The operating system for everything you move.': 'మీరు తరలించే ప్రతిదానికీ ఆపరేటింగ్ సిస్టమ్.',
 };

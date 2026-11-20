@@ -71,7 +71,6 @@ export const gu: Catalogue = {
   'Sign out': 'સાઇન આઉટ',
   'Expand navigation': 'નેવિગેશન મોટું કરો',
   'Collapse navigation': 'નેવિગેશન નાનું કરો',
-  'Switch theme': 'થીમ બદલો',
   Language: 'ભાષા',
   'Choose your language': 'તમારી ભાષા પસંદ કરો',
 
@@ -215,7 +214,6 @@ export const gu: Catalogue = {
     'હું રસ્તા પરની મદદનું સંકલન કરતી જિલ્લા સંસ્થાનો પ્રતિનિધિ છું.',
   'I drive for a fleet that already uses Saarthi.':
     'હું એવા કાફલા માટે ગાડી ચલાવું છું જે પહેલેથી Saarthi વાપરે છે.',
-  'The operating system for your trucking business.': 'તમારા ટ્રકિંગ વ્યવસાયની ઓપરેટિંગ સિસ્ટમ.',
   'One fleet command centre': 'એક જ ફ્લીટ કમાન્ડ સેન્ટર',
   'Trucks, drivers, documents, orders and trips in a single operational view.':
     'ટ્રક, ડ્રાઇવર, દસ્તાવેજો, ઓર્ડર અને ટ્રિપ - બધું એક જ કાર્યદૃશ્યમાં.',
@@ -372,4 +370,21 @@ export const gu: Catalogue = {
   'No location yet': 'હજી કોઈ સ્થાન નથી',
   'This page shows where {name} is only while they are sharing.':
     'આ પેજ {name}નું સ્થાન ફક્ત ત્યાં સુધી બતાવે છે જ્યાં સુધી તેઓ શેર કરી રહ્યા છે.',
+
+  // --- Appearance and the festive layer ------------------------------------
+  Appearance: 'દેખાવ',
+  Theme: 'થીમ',
+  Light: 'લાઇટ',
+  Dark: 'ડાર્ક',
+  System: 'ડિવાઇસ મુજબ',
+  'Festive looks': 'તહેવારનો શણગાર',
+  'Garland, greeting and colours on festival days.': 'તહેવારના દિવસોમાં તોરણ, શુભેચ્છા અને રંગો.',
+  'until {date}': '{date} સુધી',
+  'Festive looks could not be saved to your account. Try again.':
+    'તહેવારનો શણગાર તમારા એકાઉન્ટમાં સાચવી શકાયો નહીં. ફરી પ્રયાસ કરો.',
+  'Festive looks are on.': 'તહેવારનો શણગાર ચાલુ છે.',
+  'Turn off': 'બંધ કરો',
+  'Hide the greeting': 'શુભેચ્છા છુપાવો',
+  'The operating system for everything you move.':
+    'તમે જે કંઈ પણ લઈ જાઓ છો, તે બધા માટેની ઓપરેટિંગ સિસ્ટમ.',
 };

@@ -14,16 +14,10 @@ import {
 import { useInView } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { motion, useReducedMotion } from '@/components/motion';
+import { FestiveBand, FestiveWish } from '@/features/festive';
 import { Section, SectionHeading } from './marketing-chrome';
 import { Reveal, RevealGroup, RevealItem, Spotlight, useSpotlight } from './motion-extras';
-import {
-  Backdrop,
-  EdgeVehicle,
-  MARKETING_IMAGE,
-  PlateImage,
-  STAGE,
-  STEP_IMAGES,
-} from './imagery';
+import { Backdrop, EdgeVehicle, MARKETING_IMAGE, PlateImage, STAGE, STEP_IMAGES } from './imagery';
 import { STAGE_INK_CSS } from './design-system';
 import { cn } from '@/lib/utils';
 
@@ -378,12 +372,7 @@ function SafetyFigure() {
  */
 export function SafetyBand() {
   return (
-    <Section
-      tone="dark"
-      width="wide"
-      stage
-      className="relative isolate overflow-hidden"
-    >
+    <Section tone="dark" width="wide" stage className="relative isolate overflow-hidden">
       <div className="grid items-center gap-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)]">
         <div>
           <SectionHeading
@@ -477,9 +466,14 @@ export function FinalCta() {
         aria-hidden
       />
 
+      {/* On a festival day: the garland across the top of the band, and the
+          wish above the headline, in the visitor's language. */}
+      <FestiveBand className="absolute inset-x-0 top-0" />
+
       <div className="relative mx-auto max-w-6xl">
         <Reveal>
           <div className="max-w-2xl">
+            <FestiveWish tone="dark" size="md" signature={false} className="mb-5" />
             <h2 className="text-balance text-3xl font-semibold tracking-[-0.03em] text-white sm:text-5xl">
               Put your whole operation
               <br className="hidden sm:block" /> on one screen
@@ -494,7 +488,7 @@ export function FinalCta() {
                 size="xl"
                 variant="gradient"
                 asChild
-                className="group w-full rounded-full sm:w-auto"
+                className="festive-cta group w-full rounded-full sm:w-auto"
               >
                 <Link to="/register">
                   Create your account
