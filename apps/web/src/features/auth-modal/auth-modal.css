@@ -1,0 +1,94 @@
+/*
+ * The sign-in modal's motion. Radix keeps the dialog mounted until the
+ * closing animation ends, so `data-state="closed"` is the exit: the panel
+ * sinks a little and fades while the scrim lifts a beat behind it. On a phone
+ * the same modal is a sheet, and it slides down off the screen instead.
+ *
+ * Centred with margins rather than translate(), so these transforms never
+ * fight the positioning.
+ */
+
+.auth-scrim[data-state='open'] {
+  animation: auth-scrim-in 300ms ease both;
+}
+
+.auth-scrim[data-state='closed'] {
+  animation: auth-scrim-out 280ms ease 40ms both;
+}
+
+.auth-modal[data-state='open'] {
+  animation: auth-sheet-in 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.auth-modal[data-state='closed'] {
+  animation: auth-sheet-out 300ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+@media (min-width: 768px) {
+  .auth-modal[data-state='open'] {
+    animation-name: auth-modal-in;
+  }
+
+  .auth-modal[data-state='closed'] {
+    animation: auth-modal-out 260ms cubic-bezier(0.4, 0, 1, 1) both;
+  }
+}
+
+/* Moving between sign-in, registration and password reset inside the modal. */
+.auth-view {
+  animation: auth-view-in 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes auth-scrim-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes auth-scrim-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes auth-modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.985);
+  }
+}
+
+@keyframes auth-modal-out {
+  to {
+    opacity: 0;
+    transform: translateY(16px) scale(0.965);
+  }
+}
+
+@keyframes auth-sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes auth-sheet-out {
+  to {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes auth-view-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+/* Nothing moves; the dialog still opens and closes, just at once. */
+@media (prefers-reduced-motion: reduce) {
+  .auth-scrim[data-state],
+  .auth-modal[data-state],
+  .auth-view {
+    animation: none;
+  }
+}

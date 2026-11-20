@@ -76,7 +76,6 @@ export const sa: Catalogue = {
   'Sign out': 'निर्गमनम्',
   'Expand navigation': 'संचरणं विस्तारयतु',
   'Collapse navigation': 'संचरणं संकोचयतु',
-  'Switch theme': 'वर्णविन्यासं परिवर्तयतु',
   Language: 'भाषा',
   'Choose your language': 'स्वभाषां चिनोतु',
 
@@ -220,7 +219,6 @@ export const sa: Catalogue = {
     'अहं मार्गपार्श्वसाहाय्यं समन्वयन्त्याः मण्डलसङ्घस्य प्रतिनिधिः अस्मि।',
   'I drive for a fleet that already uses Saarthi.':
     'अहं तस्य यानसमूहस्य कृते यानं चालयामि यः पूर्वमेव Saarthi प्रयुङ्क्ते।',
-  'The operating system for your trucking business.': 'भवतः भारवहनव्यवसायस्य संचालनतन्त्रम्।',
   'One fleet command centre': 'एकं यानसमूह-नियन्त्रणकेन्द्रम्',
   'Trucks, drivers, documents, orders and trips in a single operational view.':
     'भारयानानि चालकाः पत्राणि आदेशाः यात्राश्च - सर्वं एकस्मिन् कार्यदृश्ये।',
@@ -376,4 +374,21 @@ export const sa: Catalogue = {
   'No location yet': 'अद्यापि स्थानं नास्ति',
   'This page shows where {name} is only while they are sharing.':
     'यावत् {name} साझां करोति तावत् एव इदं पृष्ठं तस्य स्थानं दर्शयति।',
+
+  // --- Appearance and the festive layer ------------------------------------
+  Appearance: 'रूपम्',
+  Theme: 'वर्णविन्यासः',
+  Light: 'प्रकाशः',
+  Dark: 'अन्धकारः',
+  System: 'उपकरणानुसारम्',
+  'Festive looks': 'उत्सवालङ्कारः',
+  'Garland, greeting and colours on festival days.': 'उत्सवदिनेषु तोरणं, शुभाशयाः, वर्णाः च।',
+  'until {date}': '{date} पर्यन्तम्',
+  'Festive looks could not be saved to your account. Try again.':
+    'उत्सवालङ्कारः भवतः खाते रक्षितुं न शक्तः। पुनः प्रयततु।',
+  'Festive looks are on.': 'उत्सवालङ्कारः प्रवृत्तः अस्ति।',
+  'Turn off': 'निवर्तयतु',
+  'Hide the greeting': 'शुभाशयं गोपयतु',
+  'The operating system for everything you move.':
+    'भवान् यत् किमपि वहति, तस्य सर्वस्य कृते सञ्चालनतन्त्रम्।',
 };

@@ -4,6 +4,8 @@ import android.app.Application
 import org.maplibre.android.MapLibre
 import com.saarthi.owner.data.OwnerPreferences
 import com.saarthi.owner.data.SessionStore
+import com.saarthi.owner.festive.FestiveApi
+import com.saarthi.owner.festive.FestiveStore
 import com.saarthi.owner.network.AlertsApi
 import com.saarthi.owner.network.AssistantApi
 import com.saarthi.owner.network.CommerceApi
@@ -98,6 +100,10 @@ class OwnerApp : Application() {
     lateinit var liveRides: LiveRidesApi
         private set
 
+    /** Today's festival, if any, and whether this person wants it shown. */
+    lateinit var festive: FestiveStore
+        private set
+
     override fun onCreate() {
         super.onCreate()
         // Before any screen: a notification from a background service still has words.
@@ -135,6 +141,7 @@ class OwnerApp : Application() {
         travelPackages = TravelPackagesApi(api)
         driving = DrivingApi(api)
         liveRides = LiveRidesApi(api)
+        festive = FestiveStore(FestiveApi(api), preferences, session)
         Push.start(this)
     }
 }

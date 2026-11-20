@@ -9,10 +9,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -43,12 +46,14 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import com.saarthi.owner.R
+import com.saarthi.owner.festive.FestiveKit
 import com.saarthi.owner.ui.design.AppName
 import com.saarthi.owner.ui.design.Brand
 import com.saarthi.owner.ui.design.Ease
 import com.saarthi.owner.ui.design.SType
 import com.saarthi.owner.ui.design.Saarthi
 import com.saarthi.owner.ui.design.rememberLoop
+import com.saarthi.owner.ui.festive.FestiveBand
 
 /**
  * The first thing anyone sees: the VorldX lockup drawing itself — the driver app's splash, stroke for stroke.
@@ -58,10 +63,11 @@ import com.saarthi.owner.ui.design.rememberLoop
  * the tracing lines fade behind it. It holds the finished logo for as long as
  * the session takes to restore.
  *
- * Under reduced motion the lockup is simply there.
+ * Under reduced motion the lockup is simply there. On a festival day the
+ * festival's [garland] hangs across the top.
  */
 @Composable
-fun SplashScreen() {
+fun SplashScreen(garland: FestiveKit? = null) {
     val c = Saarthi.colors
     val reduced = Saarthi.reducedMotion
     val clock = remember { Animatable(if (reduced) 1f else 0f) }
@@ -110,6 +116,7 @@ fun SplashScreen() {
             },
         contentAlignment = Alignment.Center,
     ) {
+        garland?.let { FestiveBand(it, Modifier.align(Alignment.TopCenter).windowInsetsPadding(WindowInsets.statusBars)) }
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(30.dp),

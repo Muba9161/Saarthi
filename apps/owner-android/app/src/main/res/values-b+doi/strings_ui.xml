@@ -151,4 +151,7 @@
     <string name="ui_association_record_label">एह् एसोसिएशन दा रिकॉर्ड ऐ</string>
     <string name="ui_association_mark_resolved">हल मार्क करो</string>
     <string name="ui_association_resolved_done">हल होई गेआ.</string>
+
+    <!-- Festival greeting card on the home screen: hides it until tomorrow. -->
+    <string name="ui_festive_hide_greeting">बधाई छपाओ</string>
 </resources>

@@ -240,6 +240,8 @@
     <string name="people_account_app_lock_unavailable">Set up a screen lock on this phone first</string>
     <string name="people_account_app_lock_prompt_title">Turn on App lock</string>
     <string name="people_account_app_lock_prompt_subtitle">Confirm it\'s you</string>
+    <string name="people_account_festive_looks">Festive looks</string>
+    <string name="people_account_festive_looks_detail">Garland, greeting and colours on festival days. Saved to your account, on the web and the apps.</string>
 
     <!-- Account · what kind of business, in a word -->
     <string name="people_business_fleet">Fleet</string>

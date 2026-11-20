@@ -16,7 +16,13 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
@@ -40,6 +46,7 @@ import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import com.saarthi.owner.OwnerApp
+import com.saarthi.owner.data.AccountType
 import com.saarthi.owner.data.SessionStore
 import com.saarthi.owner.network.AlertsApi
 import com.saarthi.owner.push.Push
@@ -47,9 +54,14 @@ import com.saarthi.owner.ui.alerts.AlertTarget
 import com.saarthi.owner.ui.alerts.AlertsScreen
 import com.saarthi.owner.ui.alerts.resolveAlertLink
 import com.saarthi.owner.ui.assistant.AssistantScreen
+import com.saarthi.owner.ui.common.LocalAboveHeader
 import com.saarthi.owner.ui.common.OwnerHeader
 import com.saarthi.owner.ui.design.Ease
 import com.saarthi.owner.ui.design.Saarthi
+import com.saarthi.owner.ui.festive.FestiveBand
+import com.saarthi.owner.ui.festive.FestiveBandHeight
+import com.saarthi.owner.ui.festive.FestiveQuiet
+import com.saarthi.owner.ui.festive.LocalFestiveQuiet
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -81,6 +93,15 @@ fun HomeShell(app: OwnerApp, account: SessionStore.Account, onSignOut: () -> Uni
     val tab = tabs.firstOrNull { it.key == current } ?: tabs.first()
     var unread by rememberSaveable { mutableIntStateOf(0) }
     val c = Saarthi.colors
+
+    // The festival's garland hangs above the header on Home, and nowhere near an
+    // emergency: never on an association's desk, which is about SOS, and not
+    // while a screen below shows an open one (see QuietFestival).
+    val look by app.festive.look.collectAsStateWithLifecycle()
+    val quiet = remember { FestiveQuiet() }
+    val homeKey = tabs.first().key
+    val garland = look?.kit?.takeIf { it.motif != null && account.accountType != AccountType.ASSOCIATION && !quiet.quiet }
+    val band = garland?.takeIf { tab.key == homeKey && tab.header != null }
 
     val scope = rememberCoroutineScope()
     /** Open what an alert or a tapped push is about: a tab, or a screen over it. */
@@ -142,28 +163,42 @@ fun HomeShell(app: OwnerApp, account: SessionStore.Account, onSignOut: () -> Uni
         LocalNavigator provides navigator,
         LocalOverlayHost provides overlays,
         LocalViewModelStoreOwner provides models,
+        LocalFestiveQuiet provides quiet,
     ) {
         Box(
             Modifier
                 .fillMaxSize()
                 .background(c.canvas),
         ) {
-            TabPanes(tab, tabs) { shown -> shown.content(actions) }
+            TabPanes(tab, tabs) { shown ->
+                val above = if (garland != null && shown.key == homeKey && shown.header != null) FestiveBandHeight else 0.dp
+                CompositionLocalProvider(LocalAboveHeader provides above) { shown.content(actions) }
+            }
 
-            tab.header?.let { header ->
-                OwnerHeader(
-                    eyebrow = header.eyebrow,
-                    title = header.title,
-                    unread = unread,
-                    onBell = openAlerts,
-                    // Both, as the server asks: the role may use the assistant and the plan includes it.
-                    onAssistant = if (account.can("ai.use") && account.hasFeature("ai.copilot")) {
-                        { navigator.push("assistant") { AssistantScreen(app.assistant, account) } }
-                    } else {
-                        null
-                    },
-                    modifier = Modifier.align(Alignment.TopCenter),
-                )
+            Column(
+                Modifier
+                    .align(Alignment.TopCenter)
+                    .fillMaxWidth(),
+            ) {
+                band?.let { kit ->
+                    FestiveBand(kit, Modifier.background(c.canvas).windowInsetsPadding(WindowInsets.statusBars))
+                }
+                tab.header?.let { header ->
+                    OwnerHeader(
+                        eyebrow = header.eyebrow,
+                        title = header.title,
+                        unread = unread,
+                        onBell = openAlerts,
+                        // Both, as the server asks: the role may use the assistant and the plan includes it.
+                        onAssistant = if (account.can("ai.use") && account.hasFeature("ai.copilot")) {
+                            { navigator.push("assistant") { AssistantScreen(app.assistant, account) } }
+                        } else {
+                            null
+                        },
+                        // The garland already stands clear of the status bar.
+                        modifier = if (band != null) Modifier.consumeWindowInsets(WindowInsets.statusBars) else Modifier,
+                    )
+                }
             }
 
             OwnerTabBar(

@@ -44,6 +44,8 @@ import com.saarthi.owner.ui.sos.SosAlertScreen
 import com.saarthi.owner.ui.sos.SosCard
 import com.saarthi.owner.ui.design.rise
 import com.saarthi.owner.ui.design.stagger
+import com.saarthi.owner.ui.festive.FestiveGreeting
+import com.saarthi.owner.ui.festive.QuietFestival
 import com.saarthi.owner.ui.rides.LiveRidesOnHome
 import kotlinx.coroutines.delay
 
@@ -95,6 +97,10 @@ fun FleetHomeScreen(app: OwnerApp, account: SessionStore.Account, onOpenAlerts: 
                 is Loadable.Ready -> {
                     val data = shown.value
                     val live = data.reporting > 0
+                    // An open SOS heads this screen: no greeting beside it, and the garland steps aside.
+                    val emergency = data.sos.isNotEmpty()
+                    QuietFestival(emergency)
+                    if (!emergency) FestiveGreeting(app, Modifier.rise())
                     Row(
                         Modifier.rise(),
                         verticalAlignment = Alignment.CenterVertically,

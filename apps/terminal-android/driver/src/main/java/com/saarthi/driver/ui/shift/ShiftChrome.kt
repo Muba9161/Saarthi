@@ -63,6 +63,9 @@ import com.saarthi.driver.ui.design.pressable
 import com.saarthi.driver.ui.design.rememberLoop
 import com.saarthi.driver.ui.design.rise
 import com.saarthi.driver.ui.design.stagger
+import com.saarthi.core.festive.FestiveBand
+import com.saarthi.core.festive.FestiveBandHeight
+import com.saarthi.core.festive.FestiveBandStyle
 import com.saarthi.core.ui.LocalReducedMotion
 
 /** The five tabs, in the order the bar shows them. */
@@ -86,10 +89,14 @@ val HeaderContentHeight: Dp = 76.dp
 /** Space between the header and the first thing in a tab, so the two never touch. */
 private val HeaderGap: Dp = 8.dp
 
-/** What a scrolling tab leaves clear at its top: the status bar, the header and a gap. */
+/**
+ * What a scrolling tab leaves clear at its top: the status bar, the header and
+ * a gap, and the festival garland when the header is wearing one.
+ */
 @Composable
-fun headerClearance(): Dp =
-    WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + HeaderContentHeight + HeaderGap
+fun headerClearance(garland: Boolean = false): Dp =
+    WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + HeaderContentHeight + HeaderGap +
+        if (garland) FestiveBandHeight else 0.dp
 
 /** What a scrolling tab leaves clear at its foot: the floating tab bar. */
 @Composable
@@ -100,6 +107,10 @@ fun tabBarClearance(): Dp = WindowInsets.navigationBars.asPaddingValues().calcul
  *
  * It fades into the canvas below rather than ending in a line, so content
  * scrolling underneath slides away instead of being cut off.
+ *
+ * On a festival day Home passes the festival's garland as [band], drawn under
+ * the status bar and above the row, and the wish's colour as [titleColor];
+ * the tab underneath leaves room for it through [headerClearance].
  */
 @Composable
 fun ShiftHeader(
@@ -109,9 +120,11 @@ fun ShiftHeader(
     onBell: () -> Unit,
     onSos: () -> Unit,
     modifier: Modifier = Modifier,
+    titleColor: Color = Saarthi.colors.fg,
+    band: FestiveBandStyle? = null,
 ) {
     val c = Saarthi.colors
-    Row(
+    Column(
         modifier
             .fillMaxWidth()
             .background(
@@ -121,7 +134,25 @@ fun ShiftHeader(
                     1f to c.canvas.copy(alpha = 0f),
                 ),
             )
-            .windowInsetsPadding(WindowInsets.statusBars)
+            .windowInsetsPadding(WindowInsets.statusBars),
+    ) {
+        band?.let { FestiveBand(it) }
+        HeaderRow(eyebrow, title, titleColor, unread, onBell, onSos)
+    }
+}
+
+@Composable
+private fun HeaderRow(
+    eyebrow: String,
+    title: String,
+    titleColor: Color,
+    unread: Int,
+    onBell: () -> Unit,
+    onSos: () -> Unit,
+) {
+    Row(
+        Modifier
+            .fillMaxWidth()
             .height(HeaderContentHeight)
             .padding(horizontal = 20.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -133,7 +164,7 @@ fun ShiftHeader(
             Text(
                 title,
                 style = SType.headerTitle,
-                color = c.fg,
+                color = titleColor,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.rise(stagger(1)),

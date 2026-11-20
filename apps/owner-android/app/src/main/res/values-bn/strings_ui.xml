@@ -151,4 +151,7 @@
     <string name="ui_association_record_label">এটা অ্যাসোসিয়েশনের রেকর্ড</string>
     <string name="ui_association_mark_resolved">সমাধান হয়েছে চিহ্ন দিন</string>
     <string name="ui_association_resolved_done">সমাধান হয়েছে।</string>
+
+    <!-- Festival greeting card on the home screen: hides it until tomorrow. -->
+    <string name="ui_festive_hide_greeting">শুভেচ্ছা লুকান</string>
 </resources>

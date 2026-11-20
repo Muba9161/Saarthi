@@ -151,4 +151,7 @@
     <string name="ui_association_record_label">ही असोसिएशनची नोंद आहे</string>
     <string name="ui_association_mark_resolved">सुटले म्हणून नोंदवा</string>
     <string name="ui_association_resolved_done">सुटले.</string>
+
+    <!-- Festival greeting card on the home screen: hides it until tomorrow. -->
+    <string name="ui_festive_hide_greeting">शुभेच्छा लपवा</string>
 </resources>

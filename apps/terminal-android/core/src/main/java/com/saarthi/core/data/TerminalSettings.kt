@@ -188,6 +188,33 @@ class TerminalSettings(context: Context) {
 
     val hasAdminPin: Boolean get() = !adminPinHash.isNullOrBlank()
 
+    /**
+     * The festival calendar as last fetched: the `/festive` answer's `data`,
+     * as JSON, or null before the first fetch.
+     *
+     * Kept so a phone or tablet with no signal still dresses itself on the
+     * right day; the calendar carries every window for the year ahead.
+     */
+    val festiveCalendarJson: String?
+        get() = preferences.getString(KEY_FESTIVE_JSON, null)
+
+    /** The language [festiveCalendarJson] was asked for in. */
+    val festiveCalendarLocale: String?
+        get() = preferences.getString(KEY_FESTIVE_LOCALE, null)
+
+    /** The device's own day (`YYYY-MM-DD`) [festiveCalendarJson] was fetched on. */
+    val festiveCalendarFetchedOn: String?
+        get() = preferences.getString(KEY_FESTIVE_FETCHED_ON, null)
+
+    /** Replace the cached calendar, its language and its day together, in one write. */
+    fun saveFestiveCalendar(json: String, locale: String, fetchedOn: String) {
+        preferences.edit()
+            .putString(KEY_FESTIVE_JSON, json)
+            .putString(KEY_FESTIVE_LOCALE, locale)
+            .putString(KEY_FESTIVE_FETCHED_ON, fetchedOn)
+            .apply()
+    }
+
     private companion object {
         const val FILE = "saarthi_terminal_settings"
         const val KEY_API_URL = "api_url"
@@ -201,5 +228,8 @@ class TerminalSettings(context: Context) {
         const val KEY_VOICE_GUIDANCE = "voice_guidance"
         const val KEY_KIOSK = "kiosk"
         const val KEY_ADMIN_PIN = "admin_pin"
+        const val KEY_FESTIVE_JSON = "festive_calendar"
+        const val KEY_FESTIVE_LOCALE = "festive_calendar_locale"
+        const val KEY_FESTIVE_FETCHED_ON = "festive_calendar_fetched_on"
     }
 }

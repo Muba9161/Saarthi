@@ -37,6 +37,7 @@ import com.saarthi.owner.ui.common.FailedCard
 import com.saarthi.owner.ui.common.Loadable
 import com.saarthi.owner.ui.common.SkeletonCards
 import com.saarthi.owner.ui.common.headerClearance
+import com.saarthi.owner.ui.festive.FestiveGreeting
 import com.saarthi.owner.ui.common.tabBarClearance
 import com.saarthi.owner.network.TravelPackagesApi
 import com.saarthi.owner.ui.design.Eyebrow
@@ -89,6 +90,7 @@ fun CustomerHomeScreen(app: OwnerApp, actions: ShellActions) {
             .padding(start = 20.dp, end = 20.dp, top = headerClearance(), bottom = tabBarClearance()),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
+        FestiveGreeting(app, Modifier.rise())
         Box(
             Modifier
                 .fillMaxWidth()

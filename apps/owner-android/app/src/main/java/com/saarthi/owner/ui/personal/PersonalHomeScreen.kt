@@ -50,6 +50,7 @@ import com.saarthi.owner.ui.common.SkeletonCards
 import com.saarthi.owner.ui.common.ago
 import com.saarthi.owner.ui.common.formatPlate
 import com.saarthi.owner.ui.common.headerClearance
+import com.saarthi.owner.ui.festive.FestiveGreeting
 import com.saarthi.owner.ui.common.isNow
 import com.saarthi.owner.ui.common.readable
 import com.saarthi.owner.ui.common.rememberPhoto
@@ -131,6 +132,7 @@ fun PersonalHomeScreen(app: OwnerApp, account: SessionStore.Account, actions: Sh
             .padding(start = 20.dp, end = 20.dp, top = headerClearance(), bottom = tabBarClearance()),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
+        FestiveGreeting(app, Modifier.rise())
         when (val shown = state) {
             Loadable.Loading -> SkeletonCards()
             is Loadable.Failed -> FailedCard(shown.message, { model.refresh() })

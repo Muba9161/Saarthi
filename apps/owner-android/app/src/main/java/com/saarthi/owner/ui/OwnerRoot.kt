@@ -44,6 +44,9 @@ import kotlinx.coroutines.launch
 @Composable
 fun OwnerRoot(app: OwnerApp) {
     val account by app.session.account.collectAsStateWithLifecycle()
+    // Today's festival, for the garland on the loading and welcome screens.
+    val look by app.festive.look.collectAsStateWithLifecycle()
+    val garland = look?.kit
     var splashDone by rememberSaveable { mutableStateOf(false) }
     var restored by rememberSaveable { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
@@ -86,8 +89,8 @@ fun OwnerRoot(app: OwnerApp) {
             label = "owner-stage",
         ) { shown ->
             when (shown) {
-                Stage.SPLASH -> SplashScreen()
-                Stage.SIGNED_OUT -> SignedOutFlow(app.api)
+                Stage.SPLASH -> SplashScreen(garland)
+                Stage.SIGNED_OUT -> SignedOutFlow(app.api, garland)
                 Stage.INSIDE -> {
                     val current = account ?: return@AnimatedContent
                     when {

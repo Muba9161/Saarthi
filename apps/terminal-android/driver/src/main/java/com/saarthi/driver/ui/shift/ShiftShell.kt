@@ -37,6 +37,7 @@ import com.saarthi.core.ui.rememberCockpitVoice
 import com.saarthi.driver.R
 import com.saarthi.driver.SaarthiDriverApp
 import com.saarthi.driver.data.DriverPreferences
+import com.saarthi.driver.festive.rememberHomeFestive
 import com.saarthi.driver.ui.DriverViewModel
 import com.saarthi.driver.ui.design.AppName
 import com.saarthi.driver.ui.design.Ease
@@ -164,6 +165,20 @@ fun ShiftShell(
         }
     }
     val plate = state.registration ?: fallbackPlate.orEmpty()
+    /*
+     * The festival on Home's header: the garland and the wish to the driver.
+     *
+     * Home only, and it steps aside for the ride and for any emergency: never
+     * while a trip is under way, while the SOS screen is open, or once an SOS
+     * has been raised.
+     */
+    val festive = rememberHomeFestive(
+        name = account?.name,
+        shown = tab == ShiftTab.HOME &&
+            overlay != Overlay.SOS &&
+            sosReference == null &&
+            state.state != TerminalState.TRIP_ACTIVE,
+    )
 
     // "Hey Saarthi" heard with the assistant shut: open it, so the driver can
     // see what was heard and stop it. Not over a sheet or an emergency, which
@@ -282,6 +297,7 @@ fun ShiftShell(
                                 openNotices = { overlay = Overlay.NOTICES },
                                 checkNotNeeded = { say(R.string.check_not_needed) },
                             ),
+                            garland = festive?.band != null,
                         )
                         ShiftTab.MAP -> MapTab(
                             cockpit = cockpit,
@@ -353,7 +369,7 @@ fun ShiftShell(
                     ShiftTab.TRIPS -> fleetName to stringResource(R.string.header_trips)
                     ShiftTab.PAPERS -> stringResource(R.string.header_papers_eyebrow) to stringResource(R.string.header_papers)
                     ShiftTab.PROFILE -> stringResource(R.string.header_profile_eyebrow) to stringResource(R.string.header_profile)
-                    else -> fleetName to stringResource(R.string.home_greeting, firstName)
+                    else -> fleetName to (festive?.greeting ?: stringResource(R.string.home_greeting, firstName))
                 }
                 ShiftHeader(
                     eyebrow = eyebrow,
@@ -362,6 +378,8 @@ fun ShiftShell(
                     onBell = { overlay = Overlay.NOTICES },
                     onSos = openSos,
                     modifier = Modifier.align(Alignment.TopCenter),
+                    titleColor = festive?.color ?: Saarthi.colors.fg,
+                    band = festive?.band,
                 )
             }
             if (chromeCover.held == 0) {

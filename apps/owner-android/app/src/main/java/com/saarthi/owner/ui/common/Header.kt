@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -61,10 +62,16 @@ val HeaderContentHeight: Dp = 76.dp
 /** Space between the header and the first thing in a tab, so the two never touch. */
 private val HeaderGap: Dp = 8.dp
 
-/** What a scrolling tab leaves clear at its top: the status bar, the header and a gap. */
+/**
+ * Room the shell keeps above the header on this tab, for something hung there
+ * (the festival's garland on Home). Zero everywhere else.
+ */
+val LocalAboveHeader = compositionLocalOf { 0.dp }
+
+/** What a scrolling tab leaves clear at its top: the status bar, anything above the header, the header and a gap. */
 @Composable
 fun headerClearance(): Dp =
-    WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + HeaderContentHeight + HeaderGap
+    WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + LocalAboveHeader.current + HeaderContentHeight + HeaderGap
 
 /** What a scrolling tab leaves clear at its foot: the floating tab bar. */
 @Composable

@@ -151,4 +151,7 @@
     <string name="ui_association_record_label">This is the association\'s record</string>
     <string name="ui_association_mark_resolved">Mark resolved</string>
     <string name="ui_association_resolved_done">Resolved.</string>
+
+    <!-- Festival greeting card on the home screen: hides it until tomorrow. -->
+    <string name="ui_festive_hide_greeting">Hide the greeting</string>
 </resources>

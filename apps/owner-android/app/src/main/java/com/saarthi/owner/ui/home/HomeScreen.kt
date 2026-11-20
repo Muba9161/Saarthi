@@ -40,6 +40,7 @@ import com.saarthi.owner.ui.common.Loadable
 import com.saarthi.owner.ui.common.SkeletonCards
 import com.saarthi.owner.ui.common.Words
 import com.saarthi.owner.ui.common.headerClearance
+import com.saarthi.owner.ui.festive.FestiveGreeting
 import com.saarthi.owner.ui.common.tabBarClearance
 import com.saarthi.owner.ui.common.ago
 import com.saarthi.owner.ui.common.readable
@@ -67,7 +68,7 @@ fun businessTabs(app: OwnerApp, account: SessionStore.Account): List<TabSpec> = 
         label = Words.get(R.string.fleet_tab_home),
         icon = Lucide.home,
         header = TabHeader(account.organizationName, Words.get(R.string.fleet_greeting, account.firstName)),
-        content = { actions -> BusinessHomeScreen(app.alerts, account, actions.openAlerts) },
+        content = { actions -> BusinessHomeScreen(app, account, actions.openAlerts) },
     ),
 )
 
@@ -88,7 +89,8 @@ private fun introFor(type: AccountType): Intro = when (type) {
  * and the latest of what Saarthi has told it.
  */
 @Composable
-private fun BusinessHomeScreen(alerts: AlertsApi, account: SessionStore.Account, onOpenAlerts: () -> Unit) {
+private fun BusinessHomeScreen(app: OwnerApp, account: SessionStore.Account, onOpenAlerts: () -> Unit) {
+    val alerts = app.alerts
     val c = Saarthi.colors
     val intro = introFor(account.accountType)
     val state by produceState<Loadable<List<AlertsApi.Alert>>>(Loadable.Loading) {
@@ -132,6 +134,9 @@ private fun BusinessHomeScreen(alerts: AlertsApi, account: SessionStore.Account,
                 Text(intro.line, style = SType.sheetTitle, color = Color.White)
             }
         }
+
+        // The festival's greeting, under who the business is.
+        FestiveGreeting(app, Modifier.rise(stagger(1)))
 
         GroupLabel(stringResource(R.string.fleet_home_latest))
         when (val shown = state) {

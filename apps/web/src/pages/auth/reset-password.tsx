@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/form';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AuthCard, AuthHeading, FieldIcon } from '@/features/auth/auth-card';
+import { AuthLink, useAuthModal } from '@/features/auth-modal';
 import { PasswordStrength } from '@/components/common/password-strength';
 import { api, errorMessage } from '@/lib/api-client';
 import { AnimatePresence, motion } from '@/components/motion';
@@ -44,6 +45,7 @@ export function ResetPasswordPage() {
   const t = useT();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { hrefFor } = useAuthModal();
   const token = searchParams.get('token');
   const isSalesmanSetup = searchParams.get('setup') === 'salesman';
   const [error, setError] = React.useState<string | null>(null);
@@ -64,7 +66,9 @@ export function ResetPasswordPage() {
             </AlertDescription>
           </Alert>
           <Button variant="outline" size="lg" className="w-full" asChild>
-            <Link to="/forgot-password">{t('Request a new link')}</Link>
+            <AuthLink view="forgot-password" replace>
+              {t('Request a new link')}
+            </AuthLink>
           </Button>
         </div>
       </AuthCard>
@@ -82,7 +86,8 @@ export function ResetPasswordPage() {
       } else {
         toast.success(t('Password updated'), { description: t('Sign in with your new password.') });
       }
-      navigate('/login', { replace: true });
+      // On to sign-in, in the same modal, without the used token in the address.
+      navigate(hrefFor('sign-in'), { replace: true });
     } catch (caught) {
       setError(errorMessage(caught));
     }
@@ -163,7 +168,7 @@ export function ResetPasswordPage() {
             type="submit"
             variant="gradient"
             size="lg"
-            className="w-full"
+            className="festive-cta w-full"
             loading={form.formState.isSubmitting}
           >
             {isSalesmanSetup ? 'Set password' : t('Update password')}

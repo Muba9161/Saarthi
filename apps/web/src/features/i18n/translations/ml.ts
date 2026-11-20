@@ -71,7 +71,6 @@ export const ml: Catalogue = {
   'Sign out': 'സൈൻ ഔട്ട്',
   'Expand navigation': 'നാവിഗേഷൻ വലുതാക്കുക',
   'Collapse navigation': 'നാവിഗേഷൻ ചെറുതാക്കുക',
-  'Switch theme': 'തീം മാറ്റുക',
   Language: 'ഭാഷ',
   'Choose your language': 'നിങ്ങളുടെ ഭാഷ തിരഞ്ഞെടുക്കുക',
 
@@ -220,8 +219,6 @@ export const ml: Catalogue = {
     'റോഡരികിലെ സഹായം ഏകോപിപ്പിക്കുന്ന ജില്ലാ അസോസിയേഷന്റെ പ്രതിനിധിയാണ് ഞാൻ.',
   'I drive for a fleet that already uses Saarthi.':
     'ഇതിനകം Saarthi ഉപയോഗിക്കുന്ന വാഹനനിരയ്ക്കായി ഞാൻ വണ്ടിയോടിക്കുന്നു.',
-  'The operating system for your trucking business.':
-    'നിങ്ങളുടെ ട്രക്കിംഗ് ബിസിനസിന്റെ ഓപ്പറേറ്റിംഗ് സിസ്റ്റം.',
   'One fleet command centre': 'ഒരൊറ്റ ഫ്ലീറ്റ് കമാൻഡ് സെന്റർ',
   'Trucks, drivers, documents, orders and trips in a single operational view.':
     'ട്രക്കുകൾ, ഡ്രൈവർമാർ, രേഖകൾ, ഓർഡറുകൾ, യാത്രകൾ - എല്ലാം ഒരൊറ്റ പ്രവർത്തന കാഴ്ചയിൽ.',
@@ -378,4 +375,21 @@ export const ml: Catalogue = {
   'No location yet': 'ഇതുവരെ ലൊക്കേഷൻ ഇല്ല',
   'This page shows where {name} is only while they are sharing.':
     '{name} പങ്കിടുന്നിടത്തോളം മാത്രമേ ഈ പേജ് അവരുടെ സ്ഥാനം കാണിക്കൂ.',
+
+  // --- Appearance and the festive layer ------------------------------------
+  Appearance: 'രൂപം',
+  Theme: 'തീം',
+  Light: 'ലൈറ്റ്',
+  Dark: 'ഡാർക്ക്',
+  System: 'ഉപകരണം പോലെ',
+  'Festive looks': 'ഉത്സവ അലങ്കാരം',
+  'Garland, greeting and colours on festival days.': 'ഉത്സവ ദിവസങ്ങളിൽ തോരണം, ആശംസ, നിറങ്ങൾ.',
+  'until {date}': '{date} വരെ',
+  'Festive looks could not be saved to your account. Try again.':
+    'ഉത്സവ അലങ്കാരം നിങ്ങളുടെ അക്കൗണ്ടിൽ സേവ് ചെയ്യാനായില്ല. വീണ്ടും ശ്രമിക്കുക.',
+  'Festive looks are on.': 'ഉത്സവ അലങ്കാരം ഓണാണ്.',
+  'Turn off': 'ഓഫ് ചെയ്യുക',
+  'Hide the greeting': 'ആശംസ മറയ്ക്കുക',
+  'The operating system for everything you move.':
+    'നിങ്ങൾ കൊണ്ടുപോകുന്ന എല്ലാത്തിനുമുള്ള ഓപ്പറേറ്റിംഗ് സിസ്റ്റം.',
 };

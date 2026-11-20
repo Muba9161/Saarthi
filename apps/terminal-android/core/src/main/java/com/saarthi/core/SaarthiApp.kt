@@ -7,6 +7,7 @@ import com.saarthi.core.data.TerminalIdentityStore
 import com.saarthi.core.data.PaperCache
 import com.saarthi.core.data.TerminalRepository
 import com.saarthi.core.data.TerminalSettings
+import com.saarthi.core.festive.FestiveCalendarSource
 import com.saarthi.core.network.RealtimeClient
 import com.saarthi.core.telemetry.TelemetryHub
 import kotlinx.coroutines.CoroutineScope
@@ -62,6 +63,13 @@ interface SaarthiApp {
      * drivers. A licence cached on it would belong to whoever drove last.
      */
     val papers: PaperCache? get() = null
+
+    /**
+     * The festival calendar, held on the device so the right festival shows
+     * even with no signal. Each app decides where it shows; see
+     * `rememberFestiveLook`.
+     */
+    val festive: FestiveCalendarSource
 
     /**
      * The screen the reporting notification opens.

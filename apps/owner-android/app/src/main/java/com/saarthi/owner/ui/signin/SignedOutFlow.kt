@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.saarthi.owner.R
+import com.saarthi.owner.festive.FestiveKit
 import com.saarthi.owner.network.OwnerApi
 import com.saarthi.owner.ui.common.RevealedNotice
 import com.saarthi.owner.ui.design.BrandSpinner
@@ -63,10 +64,11 @@ internal class AuthForm {
  * without registration: welcome, email, password.
  *
  * Success needs no navigation here: the session store publishes the account
- * and the root moves inside on its own.
+ * and the root moves inside on its own. On a festival day the welcome wears
+ * the festival's [garland].
  */
 @Composable
-fun SignedOutFlow(api: OwnerApi) {
+fun SignedOutFlow(api: OwnerApi, garland: FestiveKit? = null) {
     val scope = rememberCoroutineScope()
     var step by rememberSaveable { mutableStateOf(AuthStep.WELCOME) }
     var forward by rememberSaveable { mutableStateOf(true) }
@@ -124,7 +126,7 @@ fun SignedOutFlow(api: OwnerApi) {
         ) { shown ->
             when (shown) {
                 null -> WorkingScreen()
-                AuthStep.WELCOME -> WelcomeScreen(onSignIn = { go(AuthStep.EMAIL) })
+                AuthStep.WELCOME -> WelcomeScreen(onSignIn = { go(AuthStep.EMAIL) }, garland = garland)
                 AuthStep.EMAIL -> EmailStep(
                     form = form,
                     onBack = { go(AuthStep.WELCOME, false) },

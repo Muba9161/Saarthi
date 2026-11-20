@@ -6,6 +6,8 @@ import { SaarthiLogo } from '@/components/common/logo';
 import { motion, useReducedMotion } from '@/components/motion';
 import { LEGAL_LINKS } from '@/features/legal/legal-links';
 import { SITE } from '@/features/seo';
+import { AuthLink } from '@/features/auth-modal';
+import { FestiveTurnOff } from '@/features/festive';
 import { NAV_SECTIONS, SectionLink } from './marketing-chrome';
 import { Reveal, useSpotlight } from './motion-extras';
 import { STAGE } from './imagery';
@@ -208,7 +210,9 @@ function FooterBackdrop() {
           texture only comes up once the seam is well behind. */}
       <div
         className="absolute inset-x-0 top-0 h-72"
-        style={{ backgroundImage: `linear-gradient(to bottom, ${STAGE_INK_CSS} 0%, transparent 100%)` }}
+        style={{
+          backgroundImage: `linear-gradient(to bottom, ${STAGE_INK_CSS} 0%, transparent 100%)`,
+        }}
       />
     </div>
   );
@@ -242,7 +246,10 @@ export function MarketingFooter() {
               One system for everyone in a haul - fleet owners, drivers, suppliers, customers,
               travel operators, and the associations that answer when something goes wrong.
             </p>
-            <ul className="mt-6 flex items-center gap-2" aria-label="VorldX Saarthi on social media">
+            <ul
+              className="mt-6 flex items-center gap-2"
+              aria-label="VorldX Saarthi on social media"
+            >
               {SOCIAL_LINKS.map(({ href, label, Icon }) => (
                 <li key={href}>
                   <a
@@ -277,19 +284,19 @@ export function MarketingFooter() {
             <ColumnHeading index="02">Get started</ColumnHeading>
             <ul className="mt-4 space-y-1 text-sm text-white/55">
               <li>
-                <Link to="/register" className={LINK_CLASS}>
+                <AuthLink view="create-account" className={LINK_CLASS}>
                   <LinkInk>Create an account</LinkInk>
-                </Link>
+                </AuthLink>
               </li>
               <li>
-                <Link to="/login" className={LINK_CLASS}>
+                <AuthLink view="sign-in" className={LINK_CLASS}>
                   <LinkInk>Sign in</LinkInk>
-                </Link>
+                </AuthLink>
               </li>
               <li>
-                <Link to="/login" className={LINK_CLASS}>
+                <AuthLink view="sign-in" className={LINK_CLASS}>
                   <LinkInk>Explore the demo fleet</LinkInk>
-                </Link>
+                </AuthLink>
               </li>
             </ul>
           </div>
@@ -324,6 +331,7 @@ export function MarketingFooter() {
             life-threatening situation.
           </p>
           <p className="mt-4 text-center text-2xs text-white/55">© {year} VorldX Saarthi</p>
+          <FestiveTurnOff className="mt-2 text-2xs text-white/55" />
         </div>
       </div>
     </footer>

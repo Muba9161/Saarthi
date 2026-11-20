@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { App } from './App';
 import { releaseBootSplash } from './components/common/boot-splash';
+import { getFestiveState } from './features/festive/festive-state';
 import { preloadStoredCatalogue } from './features/i18n';
 import { reloadForCurrentBuild } from './lib/chunk-reload';
 import './styles/globals.css';
@@ -30,6 +31,10 @@ window.addEventListener('vite:preloadError', (event) => {
  * connection starts the app in English instead of holding the splash.
  */
 const root = ReactDOM.createRoot(container);
+
+// On a festival day, mark <html> and paint the festival's colours now, while
+// the boot splash is still the only thing on screen, so it already glows.
+getFestiveState();
 
 function mount(): void {
   root.render(

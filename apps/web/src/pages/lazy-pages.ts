@@ -15,3 +15,6 @@ import { lazyWithPreload } from '@/lib/lazy-with-preload';
 export const LandingPage = lazyWithPreload(() => import('@/pages/marketing/landing'));
 export const LoginPage = lazyWithPreload(() => import('@/pages/auth/login'));
 export const RegisterPage = lazyWithPreload(() => import('@/pages/auth/register'));
+// The sign-in modal's other two views, fetched while the visitor reads the first.
+export const ForgotPasswordPage = lazyWithPreload(() => import('@/pages/auth/forgot-password'));
+export const ResetPasswordPage = lazyWithPreload(() => import('@/pages/auth/reset-password'));

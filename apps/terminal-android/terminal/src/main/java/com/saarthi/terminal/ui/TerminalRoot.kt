@@ -30,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
 import com.saarthi.core.domain.TerminalState
+import com.saarthi.core.festive.rememberFestiveLook
 import com.saarthi.terminal.kiosk.KioskController
 import com.saarthi.core.ui.screens.AdminGate
 import com.saarthi.core.ui.screens.AdminScreen
@@ -170,10 +171,14 @@ fun TerminalRoot(
                         onOpenAdmin = { showAdmin = true },
                     )
 
+                    // The only screen that wears a festival: the cab is waiting for a
+                    // driver. From the moment one is identified, through the check and
+                    // every trip, nothing festive shows.
                     Screen.VEHICLE_IDENTITY -> VehicleIdentityScreen(
                         viewModel = viewModel,
                         expanded = expanded,
                         onOpenAdmin = { showAdmin = true },
+                        festive = rememberFestiveLook(),
                     )
 
                     Screen.WAITING -> ApprovalWaitingScreen(viewModel = viewModel)

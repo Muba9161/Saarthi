@@ -49,6 +49,10 @@ class DriverAccountStore(context: Context) {
      * screen, so the header can show the photo the moment the app opens; every
      * launch and token refresh rewrites them from the session, so a photo
      * changed on the web arrives without a sign-out.
+     *
+     * [festiveLooks] is the account's "Festive looks" choice, read from the
+     * session the same way, so turning it off on the web reaches the phone at
+     * the next refresh. On unless the account turned it off.
      */
     data class Account(
         val userId: String,
@@ -56,6 +60,7 @@ class DriverAccountStore(context: Context) {
         val email: String,
         val avatarUrl: String? = null,
         val coverUrl: String? = null,
+        val festiveLooks: Boolean = true,
     )
 
     /**
@@ -129,6 +134,7 @@ class DriverAccountStore(context: Context) {
             putString(KEY_EMAIL, account.email)
             putString(KEY_AVATAR, account.avatarUrl)
             putString(KEY_COVER, account.coverUrl)
+            putBoolean(KEY_FESTIVE_LOOKS, account.festiveLooks)
             if (refreshToken != null) {
                 putString(KEY_REFRESH, refreshToken)
                 putBoolean(KEY_HELD_BY_QUICK_LOGIN, false)
@@ -136,6 +142,16 @@ class DriverAccountStore(context: Context) {
         }.apply()
 
         _account.value = account
+    }
+
+    /**
+     * Record a "Festive looks" change made on this phone, ahead of the next
+     * session that would carry it. Nothing happens when nobody is signed in.
+     */
+    fun setFestiveLooks(on: Boolean) {
+        val current = _account.value ?: return
+        preferences.edit().putBoolean(KEY_FESTIVE_LOOKS, on).apply()
+        _account.value = current.copy(festiveLooks = on)
     }
 
     /**
@@ -169,6 +185,7 @@ class DriverAccountStore(context: Context) {
             email = preferences.getString(KEY_EMAIL, null).orEmpty(),
             avatarUrl = preferences.getString(KEY_AVATAR, null),
             coverUrl = preferences.getString(KEY_COVER, null),
+            festiveLooks = preferences.getBoolean(KEY_FESTIVE_LOOKS, true),
         )
     }
 
@@ -179,6 +196,7 @@ class DriverAccountStore(context: Context) {
         const val KEY_EMAIL = "email"
         const val KEY_AVATAR = "avatar_url"
         const val KEY_COVER = "cover_url"
+        const val KEY_FESTIVE_LOOKS = "festive_looks"
         const val KEY_REFRESH = "refresh_token"
         const val KEY_HELD_BY_QUICK_LOGIN = "held_by_quick_login"
 

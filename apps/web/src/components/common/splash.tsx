@@ -6,6 +6,9 @@ import { InkWord } from '@/components/ink/ink-word';
 // The module rather than the feature barrel: the barrel re-exports the locale
 // splash, which imports this file, and going through it would be a cycle.
 import { useLocale } from '@/features/i18n/locale-context';
+// The slot module directly: the feature barrel pulls in the boot hook, which
+// reads the auth context this splash is shown before.
+import { FestiveBand } from '@/features/festive/festive-slots';
 import { cn } from '@/lib/utils';
 import { holdBootSplash, isBootSplashShowing } from './boot-splash';
 import { SplashLogo } from './splash-logo/splash-logo';
@@ -84,6 +87,10 @@ export function SplashSurface({
             'radial-gradient(40% 32% at 78% 68%, rgba(2,120,63,.16), transparent 70%)',
         }}
       />
+
+      {/* On a festival day the garland runs along the top, as on the boot
+          splash, which `features/festive` dresses the same way. */}
+      <FestiveBand className="absolute inset-x-0 top-0" />
 
       <SplashLogo
         drawInMs={fillMs}
