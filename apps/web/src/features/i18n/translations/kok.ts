@@ -340,6 +340,11 @@ export const kok: Catalogue = {
   'Live ride': 'लायव्ह प्रवास',
   '{name} is sharing a live ride': '{name} लायव्ह प्रवास शेअर करतात',
   '{name} has stopped sharing this ride.': '{name} हांणी हो प्रवास शेअर करप बंद केलां.',
+  'Not started yet': 'अजून सुरू जावंक ना',
+  'The ride has not started yet': 'प्रवास अजून सुरू जावंक ना',
+  'Waiting for {name} to start sharing': '{name} वांटून घेवंक सुरू करपाची वाट पळयता',
+  'Real-time location and route will appear here automatically once the journey begins.':
+    'प्रवास सुरू जाताच रिअल-टायम सुवात आनी वाट हांगा आपशींच दिसूंक लागतली.',
   "Waiting for {name}'s first location…": '{name} हांच्या पयल्या जाग्याची वाट पळयतात…',
   "This live link doesn't exist or has been removed.": 'ही लायव्ह लिंक ना वा काडून उडयल्या.',
   'Ask the person who sent it to share a new link.':

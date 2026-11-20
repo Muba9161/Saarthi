@@ -339,6 +339,11 @@ export const mr: Catalogue = {
   'Live ride': 'लाइव्ह राइड',
   '{name} is sharing a live ride': '{name} लाइव्ह राइड शेअर करत आहेत',
   '{name} has stopped sharing this ride.': '{name} यांनी ही राइड शेअर करणे थांबवले आहे.',
+  'Not started yet': 'अद्याप सुरू झाले नाही',
+  'The ride has not started yet': 'प्रवास अद्याप सुरू झालेला नाही',
+  'Waiting for {name} to start sharing': '{name} शेअर करणे सुरू करण्याची प्रतीक्षा आहे',
+  'Real-time location and route will appear here automatically once the journey begins.':
+    'प्रवास सुरू होताच रिअल-टाइम लोकेशन आणि मार्ग येथे आपोआप दिसेल.',
   "Waiting for {name}'s first location…": '{name} यांच्या पहिल्या ठिकाणाची प्रतीक्षा आहे…',
   "This live link doesn't exist or has been removed.":
     'ही लाइव्ह लिंक अस्तित्वात नाही किंवा काढून टाकली आहे.',

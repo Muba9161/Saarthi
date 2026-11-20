@@ -78,7 +78,11 @@ describe('the public live-ride page', () => {
     stubFetch(200, ok(RIDE));
     renderPage();
 
-    expect(await screen.findByText("Waiting for Asha's first location…")).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'The ride has not started yet' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Not started yet')).toBeInTheDocument();
+    expect(screen.getByText('Waiting for Asha to start sharing')).toBeInTheDocument();
     expect(screen.queryByRole('region', { name: /live location/ })).not.toBeInTheDocument();
   });
 

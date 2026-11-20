@@ -101,9 +101,6 @@ fun SharingScreen(viewModel: DriverViewModel, sharing: DriverViewModel.Stage.Sha
     }
     val position = phone ?: share.lastLocation?.let(::positionOf)
 
-    val message = stringResource(R.string.sharing_link_message, share.link)
-    val chooserTitle = stringResource(R.string.sharing_send_link)
-
     Box(
         Modifier
             .fillMaxSize()
@@ -156,13 +153,6 @@ fun SharingScreen(viewModel: DriverViewModel, sharing: DriverViewModel.Stage.Sha
         ) {
             MapCredits(Modifier.padding(start = 4.dp))
             if (!adding) error?.let { NoticeCard(it, NoticeTone.DANGER) }
-            SaarthiButton(
-                chooserTitle,
-                { sendShareLink(context, message, chooserTitle) },
-                Modifier.rise(120),
-                enabled = share.link.isNotBlank(),
-                leading = Lucide.send,
-            )
             SaarthiButton(
                 stringResource(R.string.sharing_add_family),
                 {

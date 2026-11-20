@@ -340,6 +340,11 @@ export const gu: Catalogue = {
   'Live ride': 'લાઇવ સવારી',
   '{name} is sharing a live ride': '{name} લાઇવ સવારી શેર કરી રહ્યા છે',
   '{name} has stopped sharing this ride.': '{name}એ આ સવારી શેર કરવાનું બંધ કર્યું છે.',
+  'Not started yet': 'હજી શરૂ થયું નથી',
+  'The ride has not started yet': 'રાઈડ હજી શરૂ થઈ નથી',
+  'Waiting for {name} to start sharing': '{name} શેર કરવાનું શરૂ કરે તેની રાહ જોવાઈ રહી છે',
+  'Real-time location and route will appear here automatically once the journey begins.':
+    'મુસાફરી શરૂ થતાં જ રીઅલ-ટાઇમ લોકેશન અને રસ્તો અહીં આપમેળે દેખાશે.',
   "Waiting for {name}'s first location…": '{name}ના પહેલા સ્થાનની રાહ જોવાઈ રહી છે…',
   "This live link doesn't exist or has been removed.":
     'આ લાઇવ લિંક અસ્તિત્વમાં નથી અથવા દૂર કરવામાં આવી છે.',

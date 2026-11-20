@@ -340,6 +340,11 @@ export const ur: Catalogue = {
   'Live ride': 'لائیو سفر',
   '{name} is sharing a live ride': '{name} لائیو سفر شیئر کر رہے ہیں',
   '{name} has stopped sharing this ride.': '{name} نے اس سفر کو شیئر کرنا بند کر دیا ہے۔',
+  'Not started yet': 'ابھی شروع نہیں ہوا',
+  'The ride has not started yet': 'سفر ابھی شروع نہیں ہوا ہے',
+  'Waiting for {name} to start sharing': '{name} کے شیئر شروع کرنے کا انتظار ہے',
+  'Real-time location and route will appear here automatically once the journey begins.':
+    'سفر شروع ہوتے ہی اصل وقت کا مقام اور راستہ خود بخود یہاں ظاہر ہو جائے گا۔',
   "Waiting for {name}'s first location…": '{name} کی پہلی لوکیشن کا انتظار ہے…',
   "This live link doesn't exist or has been removed.":
     'یہ لائیو لنک موجود نہیں ہے یا ہٹا دیا گیا ہے۔',

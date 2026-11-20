@@ -339,6 +339,11 @@ export const mai: Catalogue = {
   'Live ride': 'लाइव यात्रा',
   '{name} is sharing a live ride': '{name} लाइव यात्रा शेयर करैत छथि',
   '{name} has stopped sharing this ride.': '{name} ई यात्रा शेयर करब बंद कऽ देलनि।',
+  'Not started yet': 'एखन शुरू नहि भेल अछि',
+  'The ride has not started yet': 'सफ़र एखन शुरू नहि भेल अछि',
+  'Waiting for {name} to start sharing': '{name} कऽ शेयर शुरू करबाक प्रतीक्षा अछि',
+  'Real-time location and route will appear here automatically once the journey begins.':
+    'सफ़र शुरू होइते वास्तविक-समय स्थान आ मार्ग एतय स्वतः देखाइत लागत।',
   "Waiting for {name}'s first location…": '{name}क पहिल लोकेशनक प्रतीक्षा अछि…',
   "This live link doesn't exist or has been removed.": 'ई लाइव लिंक नै अछि वा हटा देल गेल अछि।',
   'Ask the person who sent it to share a new link.':

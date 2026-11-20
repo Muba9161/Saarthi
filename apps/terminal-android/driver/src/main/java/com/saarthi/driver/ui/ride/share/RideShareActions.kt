@@ -42,6 +42,10 @@ class RideShareActions internal constructor(
     /** Whether this login also holds an owner account, whose owner app can show the ride. */
     val hasOwnerAccount: StateFlow<Boolean> = access.ownerAccount
 
+    /** A share prepared before starting, so the rider can send its link first. */
+    private var preparedShare: RideSharesApi.ShareView? = null
+    private var preparedNamed: List<String> = emptyList()
+
     /** The vehicle is named: on to who should see where the rider is. */
     fun chooseFamily(plate: String) {
         val driver = account() ?: return
@@ -50,8 +54,35 @@ class RideShareActions internal constructor(
 
     /** Back to the vehicle's number, as it was typed. */
     fun backToVehicle(plate: String) {
+        preparedShare = null
+        preparedNamed = emptyList()
         val driver = account() ?: return
         stage.value = Stage.ShareVehicle(driver, plate)
+    }
+
+    /**
+     * Create or reuse a share so the rider can send the link before starting.
+     * Leaves tracking idle and keeps the screen on [Stage.ShareSetup].
+     */
+    fun prepareLink(
+        plate: String,
+        contacts: List<String>,
+        withSelf: Boolean,
+        onReady: (link: String) -> Unit,
+    ) = attempt {
+        try {
+            val self = RideSharePolicy.shareWithSelf(access.ownerAccount.value, withSelf)
+            val share = preparedShare?.takeIf { it.registrationNumber == plate.trim() }
+                ?: shares.start(plate, contacts, self)
+            preparedShare = share
+            val typed = (named.of(share.id) + contacts).distinct()
+            preparedNamed = typed
+            named.save(share.id, typed)
+            onReady(share.link)
+        } catch (refused: DriverApi.Failure.Refused) {
+            if (!RideSharePolicy.notAllowed(refused.status)) throw refused
+            notAllowed(refused)
+        }
     }
 
     /**
@@ -64,10 +95,12 @@ class RideShareActions internal constructor(
     fun start(plate: String, contacts: List<String>, withSelf: Boolean) = attempt {
         try {
             val self = RideSharePolicy.shareWithSelf(access.ownerAccount.value, withSelf)
-            val share = shares.start(plate, contacts, self)
+            val share = preparedShare?.takeIf { it.registrationNumber == plate.trim() }
+                ?: shares.start(plate, contacts, self)
+            preparedShare = null
             stage.value = if (RideSharePolicy.phaseOf(share) == RideSharePolicy.Phase.SHARING) {
                 // Asking again while a share is on returns that share: keep what was named on it already.
-                val typed = (named.of(share.id) + contacts).distinct()
+                val typed = (named.of(share.id) + contacts + preparedNamed).distinct()
                 named.save(share.id, typed)
                 Stage.Sharing(share, named = typed)
             } else {
@@ -121,6 +154,8 @@ class RideShareActions internal constructor(
 
     /** Stop sharing, then back to "How are you travelling?". */
     fun stop() {
+        preparedShare = null
+        preparedNamed = emptyList()
         val shown = (stage.value as? Stage.Sharing)?.share ?: return
         attempt {
             shares.end(shown.id)
@@ -160,6 +195,8 @@ class RideShareActions internal constructor(
      * screen reached without passing the first question.
      */
     internal suspend fun openStage(): Stage? {
+        preparedShare = null
+        preparedNamed = emptyList()
         val open = runCatching { shares.mine() }.getOrNull()
             ?.takeIf { RideSharePolicy.phaseOf(it) == RideSharePolicy.Phase.SHARING }
             ?: return null

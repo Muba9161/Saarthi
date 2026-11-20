@@ -341,6 +341,11 @@ export const pa: Catalogue = {
   'Live ride': 'ਲਾਈਵ ਸਫ਼ਰ',
   '{name} is sharing a live ride': '{name} ਲਾਈਵ ਸਫ਼ਰ ਸਾਂਝਾ ਕਰ ਰਹੇ ਹਨ',
   '{name} has stopped sharing this ride.': '{name} ਨੇ ਇਹ ਸਫ਼ਰ ਸਾਂਝਾ ਕਰਨਾ ਬੰਦ ਕਰ ਦਿੱਤਾ ਹੈ।',
+  'Not started yet': 'ਅਜੇ ਸ਼ੁਰੂ ਨਹੀਂ ਹੋਇਆ',
+  'The ride has not started yet': 'ਸਫ਼ਰ ਅਜੇ ਸ਼ੁਰੂ ਨਹੀਂ ਹੋਇਆ ਹੈ',
+  'Waiting for {name} to start sharing': '{name} ਦੇ ਸ਼ੇਅਰ ਸ਼ੁਰੂ ਕਰਨ ਦੀ ਉਡੀਕ ਕੀਤੀ ਜਾ ਰਹੀ ਹੈ',
+  'Real-time location and route will appear here automatically once the journey begins.':
+    'ਸਫ਼ਰ ਸ਼ੁਰੂ ਹੁੰਦਿਆਂ ਹੀ ਰੀਅਲ-ਟਾਈਮ ਲੋਕੇਸ਼ਨ ਅਤੇ ਰਸਤਾ ਇੱਥੇ ਆਪਣੇ-ਆਪ ਦਿਖਾਈ ਦੇਵੇਗਾ।',
   "Waiting for {name}'s first location…": '{name} ਦੀ ਪਹਿਲੀ ਲੋਕੇਸ਼ਨ ਦੀ ਉਡੀਕ ਹੈ…',
   "This live link doesn't exist or has been removed.":
     'ਇਹ ਲਾਈਵ ਲਿੰਕ ਮੌਜੂਦ ਨਹੀਂ ਹੈ ਜਾਂ ਹਟਾ ਦਿੱਤਾ ਗਿਆ ਹੈ।',

@@ -345,6 +345,11 @@ export const sa: Catalogue = {
   'Live ride': 'सजीवयात्रा',
   '{name} is sharing a live ride': '{name} द्वारा सजीवयात्रा साझा क्रियते',
   '{name} has stopped sharing this ride.': '{name} द्वारा अस्याः यात्रायाः साझाकरणं स्थगितम्।',
+  'Not started yet': 'अद्यापि न आरब्धम्',
+  'The ride has not started yet': 'यात्रा अद्यापि न आरब्धा',
+  'Waiting for {name} to start sharing': '{name} इत्यस्य संविभागस्य आरम्भाय प्रतीक्षा क्रियते',
+  'Real-time location and route will appear here automatically once the journey begins.':
+    'यात्रायाः आरम्भे सति वास्तविक-स्थानं मार्गश्च अत्र स्वतः प्रकटिष्यते।',
   "Waiting for {name}'s first location…": '{name} इत्यस्य प्रथमस्थानस्य प्रतीक्षा…',
   "This live link doesn't exist or has been removed.": 'एषः सजीवलिङ्कः नास्ति अथवा अपनीतः।',
   'Ask the person who sent it to share a new link.':
