@@ -71,7 +71,6 @@ export const as: Catalogue = {
   'Sign out': 'ছাইন আউট',
   'Expand navigation': 'নেভিগেশ্বন ডাঙৰ কৰক',
   'Collapse navigation': 'নেভিগেশ্বন সৰু কৰক',
-  'Switch theme': 'থীম সলনি কৰক',
   Language: 'ভাষা',
   'Choose your language': 'আপোনাৰ ভাষা বাছনি কৰক',
 
@@ -216,7 +215,6 @@ export const as: Catalogue = {
     'মই ৰাস্তাৰ কাষৰ সহায় সমন্বয় কৰা এখন জিলা সন্থাৰ প্ৰতিনিধি।',
   'I drive for a fleet that already uses Saarthi.':
     'মই এনে এখন বাহিনীৰ বাবে গাড়ী চলাও যিয়ে ইতিমধ্যে Saarthi ব্যৱহাৰ কৰে।',
-  'The operating system for your trucking business.': 'আপোনাৰ ট্ৰাকিং ব্যৱসায়ৰ অপাৰেটিং ছিষ্টেম।',
   'One fleet command centre': 'একেটাই ফ্লিট কমাণ্ড চেণ্টাৰ',
   'Trucks, drivers, documents, orders and trips in a single operational view.':
     'ট্ৰাক, চালক, নথিপত্ৰ, অৰ্ডাৰ আৰু ট্ৰিপ - সকলো একেটা কাৰ্যদৃশ্যত।',
@@ -372,4 +370,21 @@ export const as: Catalogue = {
   'No location yet': 'এতিয়াও কোনো অৱস্থান নাই',
   'This page shows where {name} is only while they are sharing.':
     '{name}এ শ্বেয়াৰ কৰি থকালৈকে এই পৃষ্ঠাই তেওঁৰ অৱস্থান দেখুৱায়।',
+
+  // --- Appearance and the festive layer ------------------------------------
+  Appearance: 'দেখনি',
+  Theme: 'থীম',
+  Light: 'পোহৰ',
+  Dark: 'আন্ধাৰ',
+  System: 'ডিভাইচ অনুসৰি',
+  'Festive looks': 'উৎসৱৰ সাজ',
+  'Garland, greeting and colours on festival days.': 'উৎসৱৰ দিনত মালা, শুভেচ্ছা আৰু ৰং।',
+  'until {date}': '{date} লৈকে',
+  'Festive looks could not be saved to your account. Try again.':
+    'উৎসৱৰ সাজ আপোনাৰ একাউণ্টত সংৰক্ষণ কৰিব পৰা নগ’ল। পুনৰ চেষ্টা কৰক।',
+  'Festive looks are on.': 'উৎসৱৰ সাজ অন আছে।',
+  'Turn off': 'বন্ধ কৰক',
+  'Hide the greeting': 'শুভেচ্ছা লুকুৱাওক',
+  'The operating system for everything you move.':
+    'আপুনি যি পৰিবহণ কৰে, তাৰ সকলোৰে বাবে অপাৰেটিং চিষ্টেম।',
 };

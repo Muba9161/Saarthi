@@ -15,6 +15,13 @@ import { cn } from '@/lib/utils';
  * same treatment the registration wizard already gave its own fields.
  */
 
+/**
+ * Where the auth screens are being drawn. Inside the sign-in modal the modal
+ * itself is the surface, so `AuthCard` drops its own panel rather than
+ * nesting a card inside a card.
+ */
+export const AuthSurfaceContext = React.createContext<'page' | 'modal'>('page');
+
 export function AuthCard({
   children,
   className,
@@ -22,6 +29,10 @@ export function AuthCard({
   children: React.ReactNode;
   className?: string;
 }) {
+  const surface = React.useContext(AuthSurfaceContext);
+  if (surface === 'modal') {
+    return <section className={cn('glass-fields relative', className)}>{children}</section>;
+  }
   return (
     <section
       className={cn(

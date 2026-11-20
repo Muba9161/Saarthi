@@ -71,7 +71,6 @@ export const doi: Catalogue = {
   'Sign out': 'साइन आउट',
   'Expand navigation': 'नेविगेशन बड्डा करो',
   'Collapse navigation': 'नेविगेशन छोटा करो',
-  'Switch theme': 'थीम बदलो',
   Language: 'भाशा',
   'Choose your language': 'अपनी भाशा चुनो',
 
@@ -215,7 +214,6 @@ export const doi: Catalogue = {
     'मैं इक जिला एसोसिएशन दा प्रतिनिधि आं जेह्ड़ी सड़क कंडे मदद दा तालमेल करदी ऐ।',
   'I drive for a fleet that already uses Saarthi.':
     'मैं ऐसे बेड़े आस्तै गड्डी चलांदा आं जेह्ड़ा पैहलें थमां Saarthi बरतदा ऐ।',
-  'The operating system for your trucking business.': 'तुंदे ट्रकिंग कारोबार दा ऑपरेटिंग सिस्टम।',
   'One fleet command centre': 'इक्कै फ्लीट कमांड सेंटर',
   'Trucks, drivers, documents, orders and trips in a single operational view.':
     'ट्रक, चालक, कागजात, ऑर्डर ते सफर - सब इक्कै कम्मै दे नजारे च।',
@@ -372,4 +370,21 @@ export const doi: Catalogue = {
   'No location yet': 'अजें कोई लोकेशन नेईं',
   'This page shows where {name} is only while they are sharing.':
     'एह् पेज {name} दी थाह्र सिर्फ उसलै तकर दसदा ऐ जिसलै तकर ओह् शेयर करा करदे न।',
+
+  // --- Appearance and the festive layer ------------------------------------
+  Appearance: 'रूप-रंग',
+  Theme: 'थीम',
+  Light: 'लाइट',
+  Dark: 'डार्क',
+  System: 'डिवाइस मताबक',
+  'Festive looks': 'त्योहारी सजावट',
+  'Garland, greeting and colours on festival days.': 'त्योहारें आह्‌ले दिनें माला, बधाई ते रंग।',
+  'until {date}': '{date} तगर',
+  'Festive looks could not be saved to your account. Try again.':
+    'त्योहारी सजावट तुंदे खाते च सेव नेईं होई सकी। फ्ही कोशिश करो।',
+  'Festive looks are on.': 'त्योहारी सजावट चालू ऐ।',
+  'Turn off': 'बंद करो',
+  'Hide the greeting': 'बधाई छपाओ',
+  'The operating system for everything you move.':
+    'तुस जो किश बी लेई जंदे ओ, उस सब्भै आस्तै ऑपरेटिंग सिस्टम।',
 };

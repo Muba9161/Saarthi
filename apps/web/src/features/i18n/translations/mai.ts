@@ -71,7 +71,6 @@ export const mai: Catalogue = {
   'Sign out': 'साइन आउट',
   'Expand navigation': 'नेविगेशन पैघ करू',
   'Collapse navigation': 'नेविगेशन छोट करू',
-  'Switch theme': 'थीम बदलू',
   Language: 'भाषा',
   'Choose your language': 'अपन भाषा चुनू',
 
@@ -214,7 +213,6 @@ export const mai: Catalogue = {
     'हम एकटा जिला संघक प्रतिनिधि छी जे सड़क कातक मदद के समन्वय करैत अछि।',
   'I drive for a fleet that already uses Saarthi.':
     'हम एहन बेड़ा लेल गाड़ी चलाबैत छी जे पहिनहि सँ Saarthi प्रयोग करैत अछि।',
-  'The operating system for your trucking business.': 'अहाँक ट्रकिंग व्यवसायक ऑपरेटिंग सिस्टम।',
   'One fleet command centre': 'एकहि फ्लीट कमांड सेंटर',
   'Trucks, drivers, documents, orders and trips in a single operational view.':
     'ट्रक, चालक, कागजात, ऑर्डर आ यात्रा - सभ एकहि कार्य दृश्य मे।',
@@ -370,4 +368,21 @@ export const mai: Catalogue = {
   'No location yet': 'एखन धरि कोनो लोकेशन नै',
   'This page shows where {name} is only while they are sharing.':
     'ई पेज {name}क जगह मात्र ताधरि देखबैत अछि जाधरि ओ शेयर करैत छथि।',
+
+  // --- Appearance and the festive layer ------------------------------------
+  Appearance: 'रूप-रंग',
+  Theme: 'थीम',
+  Light: 'लाइट',
+  Dark: 'डार्क',
+  System: 'डिवाइसक अनुसार',
+  'Festive looks': 'पावनिक सजावट',
+  'Garland, greeting and colours on festival days.': 'पावनिक दिनमे तोरण, शुभकामना आ रंग।',
+  'until {date}': '{date} धरि',
+  'Festive looks could not be saved to your account. Try again.':
+    'पावनिक सजावट अहाँक खातामे सेव नहि भ’ सकल। फेर कोशिश करू।',
+  'Festive looks are on.': 'पावनिक सजावट चालू अछि।',
+  'Turn off': 'बंद करू',
+  'Hide the greeting': 'शुभकामना नुकाउ',
+  'The operating system for everything you move.':
+    'अहाँ जे किछु ल’ जाइत छी, ओहि सभक लेल ऑपरेटिंग सिस्टम।',
 };

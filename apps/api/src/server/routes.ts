@@ -34,6 +34,7 @@ import { trackingRoutes } from '../modules/tracking/tracking.routes';
 import { nearbyRoutes } from '../modules/nearby/nearby.routes';
 import { petrolStationRoutes } from '../modules/petrol-stations/petrol-station.routes';
 import { fuelRateRoutes } from '../modules/fuel-rates/fuel-rate.routes';
+import { festiveRoutes } from '../modules/festive/festive.routes';
 import { licenceLookupRoutes } from '../modules/licence-lookup/licence-lookup.routes';
 import { vehicleLookupRoutes } from '../modules/vehicle-lookup/vehicle-lookup.routes';
 import { sosRoutes } from '../modules/sos/sos.routes';
@@ -66,10 +67,7 @@ import { vehiclePairingRoutes } from '../modules/devices/pairing.routes';
 import { deviceClientRoutes } from '../modules/devices/device-client.routes';
 import { videoGatewayRoutes } from '../modules/devices/video-gateway.routes';
 import { telemetryRoutes } from '../modules/telemetry/telemetry.routes';
-import {
-  terminalRoutes,
-  vehicleTerminalRoutes,
-} from '../modules/terminal/terminal.routes';
+import { terminalRoutes, vehicleTerminalRoutes } from '../modules/terminal/terminal.routes';
 import { terminalClientRoutes } from '../modules/terminal/terminal-client.routes';
 import { terminalPapersRoutes } from '../modules/terminal/terminal-papers.routes';
 import { terminalTripQueueRoutes } from '../modules/terminal/terminal-trip-queue.routes';
@@ -91,11 +89,7 @@ import {
   cameraStreamRoutes,
   vehicleCameraRoutes,
 } from '../modules/devices/camera.routes';
-import {
-  tollRoutes,
-  tripTollRoutes,
-  vehicleTollRoutes,
-} from '../modules/toll/toll.routes';
+import { tollRoutes, tripTollRoutes, vehicleTollRoutes } from '../modules/toll/toll.routes';
 import {
   serviceHistoryRoutes,
   vehicleServiceRoutes,
@@ -224,6 +218,8 @@ export async function registerApiRoutes(app: FastifyInstance): Promise<void> {
   await app.register(rideShareReportRoutes, { prefix: '/ride-shares' });
   await app.register(rideShareViewerRoutes, { prefix: '/ride-shares' });
   await app.register(publicLiveRideRoutes, { prefix: '/public/live' });
+  // The festival calendar for the Android apps. Public: nothing about the caller.
+  await app.register(festiveRoutes, { prefix: '/festive' });
   // Vehicle finance. Mounted under /fleet because it is fleet-owner data, and
   // the per-vehicle panel sits alongside the vehicle it belongs to.
   await app.register(loanRoutes, { prefix: '/fleet/loans' });

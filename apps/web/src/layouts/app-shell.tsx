@@ -10,13 +10,11 @@ import {
   IdCard,
   LifeBuoy,
   Menu,
-  Moon,
   PanelLeftClose,
   PanelLeftOpen,
   Radio,
   ShieldCheck,
   ShoppingBag,
-  Sun,
   Truck,
   UserRound,
   Users,
@@ -36,7 +34,8 @@ import { toast } from 'sonner';
 import { api } from '@/lib/api-client';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/features/auth/auth-context';
-import { useTheme } from '@/features/theme/theme-context';
+import { AppearanceMenu } from '@/features/theme/appearance-menu';
+import { FestiveBand } from '@/features/festive';
 import { LanguageMenu, useT } from '@/features/i18n';
 import { useRealtime, useRealtimeEvent } from '@/hooks/use-realtime';
 import {
@@ -69,7 +68,7 @@ import { AccountMenu } from './account-menu';
 import { filterSections, useNavItemVisible } from './use-nav-visibility';
 import { SplashScreen } from '@/components/common/splash';
 import { SaarthiLogo } from '@/components/common/logo';
-import { AnimatePresence, PageTransition, motion } from '@/components/motion';
+import { PageTransition, motion } from '@/components/motion';
 import { FleetWelcomeDialog } from '@/features/fleet/fleet-welcome-dialog';
 import { ArchivedAccountScreen } from '@/features/subscriptions/archived-account-screen';
 import { BillingBanner } from '@/features/subscriptions/billing-banner';
@@ -169,8 +168,7 @@ function navigationFor(
    * Guarded on `!isDriver` only for clarity: an employed driver returned above
    * and never reaches this.
    */
-  const withDriving =
-    hasDriverProfile && !isDriver ? [...base, ...OWNER_DRIVER_NAVIGATION] : base;
+  const withDriving = hasDriverProfile && !isDriver ? [...base, ...OWNER_DRIVER_NAVIGATION] : base;
 
   if (!isPlatformAdmin) return withDriving;
   // A platform admin who also holds SALESMAN gets both, because they genuinely
@@ -659,10 +657,8 @@ function ConnectionIndicator() {
 
 function TopBar({ onOpenNav }: { onOpenNav: () => void }) {
   const { hasDriverProfile, can, hasFeature } = useAuth();
-  const { resolvedTheme, setTheme } = useTheme();
   const navigate = useNavigate();
   const badges = useNavBadges();
-  const t = useT();
 
   return (
     <header className="glass sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 rounded-none px-4 shadow-none ring-0 sm:px-6">
@@ -732,25 +728,7 @@ function TopBar({ onOpenNav }: { onOpenNav: () => void }) {
 
         <LanguageMenu />
 
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
-          aria-label={t('Switch theme')}
-        >
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.span
-              key={resolvedTheme}
-              initial={{ opacity: 0, rotate: -80, scale: 0.7 }}
-              animate={{ opacity: 1, rotate: 0, scale: 1 }}
-              exit={{ opacity: 0, rotate: 80, scale: 0.7 }}
-              transition={{ duration: 0.22 }}
-              className="flex"
-            >
-              {resolvedTheme === 'dark' ? <Sun className="size-5" /> : <Moon className="size-5" />}
-            </motion.span>
-          </AnimatePresence>
-        </Button>
+        <AppearanceMenu />
 
         <AccountMenu />
       </div>
@@ -855,6 +833,11 @@ function CriticalAlerts() {
   return null;
 }
 
+/** SOS and the association's emergency desk: no festive decoration there. */
+function isEmergencyPath(pathname: string): boolean {
+  return /^\/(sos|driver\/sos|association)(\/|$)/.test(pathname);
+}
+
 export function AppShell() {
   const { status, session } = useAuth();
   // Archived for non-payment: every screen gives way to the renewal screen.
@@ -902,6 +885,9 @@ export function AppShell() {
         {archived ? null : <BillingBanner />}
 
         <main className="flex-1 overflow-y-auto pb-20 lg:pb-0">
+          {/* The festival's garland, scrolling away with the page. Never on an
+              emergency screen: an SOS must not look like a celebration. */}
+          {isEmergencyPath(location.pathname) ? null : <FestiveBand className="-mb-6 opacity-95" />}
           <div className="mx-auto w-full max-w-[1600px] p-4 sm:p-6 lg:p-8">
             {archived ? (
               <ArchivedAccountScreen dataPurgeAt={archived.dataPurgeAt ?? null} />

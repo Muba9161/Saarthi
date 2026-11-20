@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Festive looks: the garland and greeting on festival days, and the switch for them in Profile. -->
+<resources>
+    <string name="festive_looks">सणाची सजावट</string>
+    <string name="festive_looks_help">सणाच्या दिवशी तोरण, शुभेच्छा आणि रंग. तुमच्या खात्यात सेव्ह होते, वेब आणि ॲप्सवर.</string>
+    <string name="festive_looks_not_saved">सणाची सजावट तुमच्या खात्यात सेव्ह होऊ शकली नाही. सिग्नल तपासा आणि पुन्हा प्रयत्न करा.</string>
+</resources>

@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -16,6 +15,7 @@ import {
 } from '@/components/ui/form';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AuthCard, AuthHeading, FieldIcon } from '@/features/auth/auth-card';
+import { AuthLink } from '@/features/auth-modal';
 import { api, errorMessage } from '@/lib/api-client';
 import { AnimatePresence, motion } from '@/components/motion';
 import { useT } from '@/features/i18n';
@@ -74,21 +74,23 @@ export function ForgotPasswordPage() {
               <AlertTitle>{t('Development shortcut')}</AlertTitle>
               <AlertDescription className="space-y-2">
                 <p>{t('No email provider is configured locally, so use this link directly:')}</p>
-                <Link
-                  to={`/reset-password?token=${devToken}`}
+                <AuthLink
+                  view="reset-password"
+                  params={{ token: devToken }}
+                  replace
                   className="block break-all font-mono text-xs text-primary hover:underline"
                 >
                   /reset-password?token={devToken}
-                </Link>
+                </AuthLink>
               </AlertDescription>
             </Alert>
           ) : null}
 
           <Button variant="outline" size="lg" className="w-full" asChild>
-            <Link to="/login">
+            <AuthLink view="sign-in" replace>
               <ArrowLeft className="size-4" />
               {t('Back to sign in')}
-            </Link>
+            </AuthLink>
           </Button>
         </motion.div>
       </AuthCard>
@@ -149,7 +151,7 @@ export function ForgotPasswordPage() {
             type="submit"
             variant="gradient"
             size="lg"
-            className="w-full"
+            className="festive-cta w-full"
             loading={form.formState.isSubmitting}
           >
             {t('Send reset link')}
@@ -158,13 +160,14 @@ export function ForgotPasswordPage() {
       </Form>
 
       <p className="mt-6 text-center text-sm text-muted-foreground">
-        <Link
-          to="/login"
+        <AuthLink
+          view="sign-in"
+          replace
           className="inline-flex items-center gap-1.5 rounded font-medium text-primary transition-colors hover:text-primary/80 hover:underline"
         >
           <ArrowLeft className="size-3.5" />
           {t('Back to sign in')}
-        </Link>
+        </AuthLink>
       </p>
     </AuthCard>
   );

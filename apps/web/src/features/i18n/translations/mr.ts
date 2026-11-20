@@ -71,7 +71,6 @@ export const mr: Catalogue = {
   'Sign out': 'साइन आउट',
   'Expand navigation': 'नेव्हिगेशन मोठे करा',
   'Collapse navigation': 'नेव्हिगेशन लहान करा',
-  'Switch theme': 'थीम बदला',
   Language: 'भाषा',
   'Choose your language': 'तुमची भाषा निवडा',
 
@@ -214,8 +213,6 @@ export const mr: Catalogue = {
     'मी रस्त्यावरील मदतीचे समन्वय करणाऱ्या जिल्हा संघटनेचा प्रतिनिधी आहे.',
   'I drive for a fleet that already uses Saarthi.':
     'मी अशा ताफ्यासाठी गाडी चालवतो जो आधीच Saarthi वापरतो.',
-  'The operating system for your trucking business.':
-    'तुमच्या ट्रकिंग व्यवसायाची ऑपरेटिंग सिस्टिम.',
   'One fleet command centre': 'एकच फ्लीट कमांड सेंटर',
   'Trucks, drivers, documents, orders and trips in a single operational view.':
     'ट्रक, चालक, कागदपत्रे, ऑर्डर आणि ट्रिप - सर्व एकाच कार्यदृश्यात.',
@@ -372,4 +369,21 @@ export const mr: Catalogue = {
   'No location yet': 'अद्याप ठिकाण नाही',
   'This page shows where {name} is only while they are sharing.':
     '{name} शेअर करत असेपर्यंतच हे पान त्यांचे ठिकाण दाखवते.',
+
+  // --- Appearance and the festive layer ------------------------------------
+  Appearance: 'रूप',
+  Theme: 'थीम',
+  Light: 'लाइट',
+  Dark: 'डार्क',
+  System: 'डिव्हाइसनुसार',
+  'Festive looks': 'सणाची सजावट',
+  'Garland, greeting and colours on festival days.': 'सणाच्या दिवशी तोरण, शुभेच्छा आणि रंग.',
+  'until {date}': '{date} पर्यंत',
+  'Festive looks could not be saved to your account. Try again.':
+    'सणाची सजावट तुमच्या खात्यात जतन करता आली नाही. पुन्हा प्रयत्न करा.',
+  'Festive looks are on.': 'सणाची सजावट सुरू आहे.',
+  'Turn off': 'बंद करा',
+  'Hide the greeting': 'शुभेच्छा लपवा',
+  'The operating system for everything you move.':
+    'तुम्ही जे काही वाहून नेता, त्या सगळ्यासाठी ऑपरेटिंग सिस्टम.',
 };

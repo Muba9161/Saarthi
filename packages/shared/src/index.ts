@@ -106,5 +106,8 @@ export * from './validation/sales';
 export * from './validation/verification-center';
 export * from './validation/ownership-review';
 
+// Festive layer: the festival calendar, each festival's look and its wishes
+export * from './festive';
+
 // Utilities
 export * from './utils/format';

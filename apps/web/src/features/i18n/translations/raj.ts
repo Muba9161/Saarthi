@@ -78,7 +78,6 @@ export const raj: Catalogue = {
   'Sign out': 'साइन आउट',
   'Expand navigation': 'नेविगेशन खोलो',
   'Collapse navigation': 'नेविगेशन समेटो',
-  'Switch theme': 'थीम बदळो',
   Language: 'भासा',
   'Choose your language': 'आपरी भासा चुणो',
 
@@ -222,7 +221,6 @@ export const raj: Catalogue = {
     'म्हैं एक जिला एसोसिएशन रो प्रतिनिधि हूं जिको सड़क किनारै मदद रो तालमेल बिठावै।',
   'I drive for a fleet that already uses Saarthi.':
     'म्हैं इसै बेड़ै खातर गाडी चलावूं जिको पैलां सूं Saarthi बरतै।',
-  'The operating system for your trucking business.': 'आपरै ट्रांसपोर्ट धंधै रो ऑपरेटिंग सिस्टम।',
   'One fleet command centre': 'एक ई फ्लीट कमांड सेंटर',
   'Trucks, drivers, documents, orders and trips in a single operational view.':
     'ट्रक, ड्राइवर, दस्तावेज, ऑर्डर अर ट्रिप - सगळा एक ई नजारै में।',
@@ -378,4 +376,21 @@ export const raj: Catalogue = {
   'No location yet': 'हाल कोई लोकेसन कोनी',
   'This page shows where {name} is only while they are sharing.':
     'ओ पेज {name} री जगां फगत जद तांई दिखावै जद तांई वै सेयर कर रह्या है।',
+
+  // --- Appearance and the festive layer ------------------------------------
+  Appearance: 'रूप-रंग',
+  Theme: 'थीम',
+  Light: 'लाइट',
+  Dark: 'डार्क',
+  System: 'डिवाइस मुजब',
+  'Festive looks': 'तिंवार री सजावट',
+  'Garland, greeting and colours on festival days.': 'तिंवार रै दिनां में तोरण, बधाई अर रंग।',
+  'until {date}': '{date} तांई',
+  'Festive looks could not be saved to your account. Try again.':
+    'तिंवार री सजावट थांरै खातै में सेव कोनी हुय सकी। फेरूं कोसिस करो।',
+  'Festive looks are on.': 'तिंवार री सजावट चालू है।',
+  'Turn off': 'बंद करो',
+  'Hide the greeting': 'बधाई लुकाओ',
+  'The operating system for everything you move.':
+    'थे जिको कीं ले जावो, उण सगळां सारू ऑपरेटिंग सिस्टम।',
 };

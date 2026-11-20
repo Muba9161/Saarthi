@@ -26,10 +26,12 @@ import com.saarthi.owner.BuildConfig
 import com.saarthi.owner.R
 import com.saarthi.owner.data.OwnerPreferences
 import com.saarthi.owner.data.SessionStore
+import com.saarthi.owner.festive.FestiveStore
 import com.saarthi.owner.network.AccountApi
 import com.saarthi.owner.network.OwnerApi
 import com.saarthi.owner.network.PlacesApi
 import com.saarthi.owner.ui.common.Language
+import com.saarthi.owner.ui.festive.FestiveLooksRow
 import com.saarthi.owner.ui.common.headerClearance
 import com.saarthi.owner.ui.common.tabBarClearance
 import com.saarthi.owner.ui.design.Appearance
@@ -64,6 +66,7 @@ import androidx.compose.ui.platform.LocalContext
 fun AccountScreen(
     account: SessionStore.Account,
     preferences: OwnerPreferences,
+    festive: FestiveStore,
     api: OwnerApi,
     places: PlacesApi,
     onSignOut: () -> Unit,
@@ -109,6 +112,7 @@ fun AccountScreen(
         ) {
             navigator.push("language") { LanguageScreen() }
         }
+        FestiveLooksRow(festive)
 
         if (account.businesses.size > 1) {
             GroupLabel(stringResource(R.string.people_account_businesses))

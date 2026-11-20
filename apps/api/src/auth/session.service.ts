@@ -101,6 +101,17 @@ function localeOf(user: LoadedUser): string {
   return resolveLocale(typeof stored === 'string' ? stored : null);
 }
 
+/**
+ * Whether this account wants festival looks. On unless it was turned off:
+ * only an explicit `false` in the preferences blob switches it off, so an
+ * account that never touched the setting, or a hand-edited value, keeps it.
+ */
+function festiveLooksOf(user: LoadedUser): boolean {
+  const preferences = user.profile?.preferences;
+  if (!preferences || typeof preferences !== 'object' || Array.isArray(preferences)) return true;
+  return (preferences as Record<string, unknown>).festiveLooks !== false;
+}
+
 function globalRoles(user: LoadedUser): RoleName[] {
   return user.roles.map((entry) => entry.role.name);
 }
@@ -302,5 +313,6 @@ export async function buildSessionPayload(
       : null,
     demoMode: config.demo.enabled,
     locale: localeOf(user),
+    festiveLooks: festiveLooksOf(user),
   };
 }

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Festive looks: the garland and greeting on festival days, and the switch for them in Profile. -->
+<resources>
+    <string name="festive_looks">त्यूहारें दी सजावट</string>
+    <string name="festive_looks_help">त्यूहारें दे दिनें च तोरण, शुभकामना ते रंग. तुंदे खाते च सेव होंदा ऐ, वेब ते ऐप्सें पर.</string>
+    <string name="festive_looks_not_saved">त्यूहारें दी सजावट तुंदे खाते च सेव नेईं होई सकी. सिग्नल दिक्खो ते फ्ही कोशश करो.</string>
+</resources>

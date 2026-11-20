@@ -71,7 +71,6 @@ export const ur: Catalogue = {
   'Sign out': 'سائن آؤٹ',
   'Expand navigation': 'نیویگیشن بڑا کریں',
   'Collapse navigation': 'نیویگیشن چھوٹا کریں',
-  'Switch theme': 'تھیم بدلیں',
   Language: 'زبان',
   'Choose your language': 'اپنی زبان منتخب کریں',
 
@@ -215,7 +214,6 @@ export const ur: Catalogue = {
     'میں سڑک کنارے مدد کا رابطہ کرنے والی ضلعی ایسوسی ایشن کا نمائندہ ہوں۔',
   'I drive for a fleet that already uses Saarthi.':
     'میں ایسے بیڑے کے لیے گاڑی چلاتا ہوں جو پہلے سے Saarthi استعمال کرتا ہے۔',
-  'The operating system for your trucking business.': 'آپ کے ٹرکنگ کاروبار کا آپریٹنگ سسٹم۔',
   'One fleet command centre': 'ایک ہی فلیٹ کمانڈ سینٹر',
   'Trucks, drivers, documents, orders and trips in a single operational view.':
     'ٹرک، ڈرائیور، دستاویزات، آرڈر اور ٹرپ - سب ایک ہی کاروباری منظر میں۔',
@@ -372,4 +370,21 @@ export const ur: Catalogue = {
   'No location yet': 'ابھی کوئی لوکیشن نہیں',
   'This page shows where {name} is only while they are sharing.':
     'یہ صفحہ {name} کی جگہ صرف تب تک دکھاتا ہے جب تک وہ شیئر کر رہے ہیں۔',
+
+  // --- Appearance and the festive layer ------------------------------------
+  Appearance: 'ظاہری انداز',
+  Theme: 'تھیم',
+  Light: 'لائٹ',
+  Dark: 'ڈارک',
+  System: 'ڈیوائس کے مطابق',
+  'Festive looks': 'تہوار کی سجاوٹ',
+  'Garland, greeting and colours on festival days.': 'تہوار کے دنوں میں ہار، مبارکباد اور رنگ۔',
+  'until {date}': '{date} تک',
+  'Festive looks could not be saved to your account. Try again.':
+    'تہوار کی سجاوٹ آپ کے اکاؤنٹ میں محفوظ نہیں ہو سکی۔ دوبارہ کوشش کریں۔',
+  'Festive looks are on.': 'تہوار کی سجاوٹ آن ہے۔',
+  'Turn off': 'بند کریں',
+  'Hide the greeting': 'مبارکباد چھپائیں',
+  'The operating system for everything you move.':
+    'آپ جو کچھ بھی لے جاتے ہیں، اس سب کے لیے آپریٹنگ سسٹم۔',
 };

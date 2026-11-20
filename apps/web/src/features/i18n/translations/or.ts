@@ -71,7 +71,6 @@ export const or: Catalogue = {
   'Sign out': 'ସାଇନ ଆଉଟ',
   'Expand navigation': 'ନେଭିଗେସନ ବଡ଼ କରନ୍ତୁ',
   'Collapse navigation': 'ନେଭିଗେସନ ଛୋଟ କରନ୍ତୁ',
-  'Switch theme': 'ଥିମ ବଦଳାନ୍ତୁ',
   Language: 'ଭାଷା',
   'Choose your language': 'ଆପଣଙ୍କ ଭାଷା ବାଛନ୍ତୁ',
 
@@ -215,7 +214,6 @@ export const or: Catalogue = {
     'ମୁଁ ରାସ୍ତାକଡ଼ ସହାୟତା ସମନ୍ୱୟ କରୁଥିବା ଏକ ଜିଲ୍ଲା ସଂଘର ପ୍ରତିନିଧି।',
   'I drive for a fleet that already uses Saarthi.':
     'ମୁଁ ଏପରି ଏକ ଯାନବାହିନୀ ପାଇଁ ଗାଡ଼ି ଚଳାଏ ଯିଏ ପୂର୍ବରୁ Saarthi ବ୍ୟବହାର କରୁଛି।',
-  'The operating system for your trucking business.': 'ଆପଣଙ୍କ ଟ୍ରକିଂ ବ୍ୟବସାୟର ଅପରେଟିଂ ସିଷ୍ଟମ।',
   'One fleet command centre': 'ଗୋଟିଏ ଫ୍ଲିଟ କମାଣ୍ଡ ସେଣ୍ଟର',
   'Trucks, drivers, documents, orders and trips in a single operational view.':
     'ଟ୍ରକ, ଚାଳକ, ଦଲିଲ, ଅର୍ଡର ଓ ଯାତ୍ରା - ସବୁ ଗୋଟିଏ କାର୍ଯ୍ୟ ଦୃଶ୍ୟରେ।',
@@ -371,4 +369,21 @@ export const or: Catalogue = {
   'No location yet': 'ଏପର୍ଯ୍ୟନ୍ତ କୌଣସି ଅବସ୍ଥାନ ନାହିଁ',
   'This page shows where {name} is only while they are sharing.':
     '{name} ସେୟାର କରୁଥିବା ପର୍ଯ୍ୟନ୍ତ ହିଁ ଏହି ପୃଷ୍ଠା ତାଙ୍କ ଅବସ୍ଥାନ ଦେଖାଏ।',
+
+  // --- Appearance and the festive layer ------------------------------------
+  Appearance: 'ରୂପ',
+  Theme: 'ଥିମ୍',
+  Light: 'ଲାଇଟ୍',
+  Dark: 'ଡାର୍କ',
+  System: 'ଡିଭାଇସ୍ ଅନୁସାରେ',
+  'Festive looks': 'ପର୍ବପର୍ବାଣୀ ସାଜସଜ୍ଜା',
+  'Garland, greeting and colours on festival days.': 'ପର୍ବ ଦିନରେ ତୋରଣ, ଶୁଭେଚ୍ଛା ଓ ରଙ୍ଗ।',
+  'until {date}': '{date} ପର୍ଯ୍ୟନ୍ତ',
+  'Festive looks could not be saved to your account. Try again.':
+    'ପର୍ବପର୍ବାଣୀ ସାଜସଜ୍ଜା ଆପଣଙ୍କ ଆକାଉଣ୍ଟରେ ସେଭ୍ ହୋଇପାରିଲା ନାହିଁ। ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ।',
+  'Festive looks are on.': 'ପର୍ବପର୍ବାଣୀ ସାଜସଜ୍ଜା ଚାଲୁ ଅଛି।',
+  'Turn off': 'ବନ୍ଦ କରନ୍ତୁ',
+  'Hide the greeting': 'ଶୁଭେଚ୍ଛା ଲୁଚାନ୍ତୁ',
+  'The operating system for everything you move.':
+    'ଆପଣ ଯାହା କିଛି ପରିବହନ କରନ୍ତି, ସେ ସବୁ ପାଇଁ ଅପରେଟିଂ ସିଷ୍ଟମ୍।',
 };

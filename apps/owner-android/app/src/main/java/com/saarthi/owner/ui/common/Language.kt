@@ -81,6 +81,17 @@ object Language {
         OwnerPreferences(context).languageTag.takeIf { it.isNotEmpty() }?.let { tag -> AppLanguages.firstOrNull { it.tag == tag } }
 
     /**
+     * The language the app is drawn in, as a tag for the server: the one chosen,
+     * else the phone's own when the app carries it, else English, which is what
+     * a phone in a language the app does not carry is shown.
+     */
+    fun spoken(context: Context): String {
+        current(context)?.let { return it.tag }
+        val phone = context.resources.configuration.locales[0]
+        return if (AppLanguages.any { it.tag == phone.language }) phone.toLanguageTag() else "en"
+    }
+
+    /**
      * Speak [tag] from now on. Resources are read when a context is made, so the
      * activity is built again; the person stays signed in and every screen is
      * read again from the server.

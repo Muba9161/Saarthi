@@ -127,6 +127,8 @@ class OwnerApi(
         val subscription: SessionSubscription? = null,
         val driver: JsonObject? = null,
         val permissions: List<String> = emptyList(),
+        /** Garland, greeting and colours on festival days. On when a server older than the switch says nothing. */
+        val festiveLooks: Boolean = true,
     )
 
     @Serializable
@@ -280,6 +282,7 @@ class OwnerApi(
             features = payload.subscription?.features?.toSet() ?: emptySet(),
             avatarUrl = user.avatarUrl?.ifBlank { null },
             coverUrl = user.coverUrl?.ifBlank { null },
+            festiveLooks = payload.festiveLooks,
         )
     }
 
@@ -290,6 +293,12 @@ class OwnerApi(
     /** A signed-in GET. Null when the server answered with no data. */
     suspend fun <T> get(path: String, serializer: KSerializer<T>): T? {
         val raw = send("GET", "/api/v1$path", null)
+        return json.decodeFromString(Envelope.serializer(serializer), raw).data
+    }
+
+    /** A GET to a public route, such as the festive calendar: nobody need be signed in, and no token is sent. */
+    suspend fun <T> publicGet(path: String, serializer: KSerializer<T>): T? {
+        val raw = send("GET", "/api/v1$path", null, authenticated = false)
         return json.decodeFromString(Envelope.serializer(serializer), raw).data
     }
 

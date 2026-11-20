@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Festive looks: the garland and greeting on festival days, and the switch for them in Profile. -->
+<resources>
+    <string name="festive_looks">ഉത്സവ അലങ്കാരം</string>
+    <string name="festive_looks_help">ഉത്സവ ദിവസങ്ങളിൽ തോരണം, ആശംസ, നിറങ്ങൾ. നിങ്ങളുടെ അക്കൗണ്ടിൽ സേവ് ചെയ്യും, വെബിലും ആപ്പുകളിലും.</string>
+    <string name="festive_looks_not_saved">ഉത്സവ അലങ്കാരം നിങ്ങളുടെ അക്കൗണ്ടിൽ സേവ് ചെയ്യാനായില്ല. സിഗ്നൽ പരിശോധിച്ച് വീണ്ടും ശ്രമിക്കുക.</string>
+</resources>

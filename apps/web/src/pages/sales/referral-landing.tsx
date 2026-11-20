@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { Link, Navigate, useParams } from 'react-router-dom';
+import { Navigate, useParams } from 'react-router-dom';
+import { AuthLink } from '@/features/auth-modal';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { ArrowRight, Check } from 'lucide-react';
 import { api } from '@/lib/api-client';
@@ -74,7 +75,6 @@ export function ReferralLandingPage(): React.ReactElement {
   if (referral.isLoading) return <LoadingState className="min-h-screen" />;
 
   const invitedBy = referral.data?.valid ? referral.data.salesmanName : null;
-  const registerHref = `/register?ref=${encodeURIComponent(code)}`;
 
   return (
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col justify-center gap-6 px-5 py-12">
@@ -115,13 +115,14 @@ export function ReferralLandingPage(): React.ReactElement {
 
       <div className="flex flex-wrap items-center gap-3">
         <Button asChild size="lg">
-          <Link to={registerHref}>
+          {/* Opens registration over this page, carrying the referral code. */}
+          <AuthLink view="create-account" params={{ ref: code }}>
             Create your Saarthi account
             <ArrowRight className="ml-1.5 h-4 w-4" />
-          </Link>
+          </AuthLink>
         </Button>
         <Button asChild variant="ghost" size="lg">
-          <Link to="/login">I already have an account</Link>
+          <AuthLink view="sign-in">I already have an account</AuthLink>
         </Button>
       </div>
 
@@ -133,8 +134,8 @@ export function ReferralLandingPage(): React.ReactElement {
          */
         <p className="text-xs text-muted-foreground">
           The referral code in this link was not recognised, so nobody will be credited for your
-          signup. You can still create an account normally; mention the code to whoever gave you
-          the link.
+          signup. You can still create an account normally; mention the code to whoever gave you the
+          link.
         </p>
       ) : (
         <p className="text-xs text-muted-foreground">

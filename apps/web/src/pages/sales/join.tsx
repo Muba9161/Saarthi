@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Link } from 'react-router-dom';
+import { AuthLink } from '@/features/auth-modal';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowLeft, BadgeCheck, MailCheck } from 'lucide-react';
@@ -74,10 +74,10 @@ export function SalesJoinPage() {
               Send again
             </Button>
             <Button variant="outline" size="lg" className="sm:flex-1" asChild>
-              <Link to="/login">
+              <AuthLink view="sign-in">
                 <ArrowLeft className="size-4" />
                 Back to sign in
-              </Link>
+              </AuthLink>
             </Button>
           </div>
         </motion.div>
@@ -148,7 +148,10 @@ export function SalesJoinPage() {
       </Form>
 
       <p className="mt-5 text-center text-sm text-muted-foreground">
-        Already joined? <Link to="/login" className="font-medium text-primary hover:underline">Sign in</Link>
+        Already joined?{' '}
+        <AuthLink view="sign-in" className="font-medium text-primary hover:underline">
+          Sign in
+        </AuthLink>
       </p>
     </AuthCard>
   );

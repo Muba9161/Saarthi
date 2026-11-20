@@ -7,6 +7,7 @@ import { RealtimeProvider } from '@/hooks/use-realtime';
 import { ThemeProvider } from '@/features/theme/theme-context';
 import { AppLocaleProvider } from '@/features/i18n';
 import { AnalyticsTracker } from '@/features/analytics';
+import { FestiveBoot } from '@/features/festive';
 import { ApiError } from '@/lib/api-client';
 import { router } from '@/app/router';
 
@@ -37,6 +38,7 @@ export function App() {
       <ThemeProvider>
         <AuthProvider>
           <AppLocaleProvider>
+            <FestiveBoot />
             <RealtimeProvider>
               <TooltipProvider delayDuration={200}>
                 <RouterProvider router={router} />

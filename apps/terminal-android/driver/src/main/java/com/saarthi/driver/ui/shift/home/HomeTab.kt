@@ -58,9 +58,12 @@ class HomeActions(
  * a job, and what do I do next. Everything is read from the state the server
  * sent; nothing here is inferred, because a home screen that disagrees with the
  * fleet's own record is worse than one that shows less.
+ *
+ * [garland] is true while the header above wears a festival garland, so the
+ * first card starts below it rather than under it.
  */
 @Composable
-fun HomeTab(cockpit: TerminalViewModel, fallbackPlate: String?, actions: HomeActions) {
+fun HomeTab(cockpit: TerminalViewModel, fallbackPlate: String?, actions: HomeActions, garland: Boolean = false) {
     val c = Saarthi.colors
     val state by cockpit.uiState.collectAsState()
     val hours by cockpit.hours.collectAsState()
@@ -89,7 +92,7 @@ fun HomeTab(cockpit: TerminalViewModel, fallbackPlate: String?, actions: HomeAct
         Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(start = 20.dp, end = 20.dp, top = headerClearance(), bottom = tabBarClearance()),
+            .padding(start = 20.dp, end = 20.dp, top = headerClearance(garland), bottom = tabBarClearance()),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         val link = state.link

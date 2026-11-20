@@ -71,7 +71,6 @@ export const kok: Catalogue = {
   'Sign out': 'सायन आवट',
   'Expand navigation': 'नॅव्हिगेशन व्हड करात',
   'Collapse navigation': 'नॅव्हिगेशन ल्हान करात',
-  'Switch theme': 'थीम बदलात',
   Language: 'भास',
   'Choose your language': 'तुमची भास वेंचात',
 
@@ -215,7 +214,6 @@ export const kok: Catalogue = {
     'हांव रस्त्या वयल्या मदतीचें समन्वय करपी जिल्हो संघटनेचो प्रतिनिधी आसां.',
   'I drive for a fleet that already uses Saarthi.':
     'हांव अश्या वाहनसमूहा खातीर गाडी चलयतां जो पयलीच Saarthi वापरता.',
-  'The operating system for your trucking business.': 'तुमच्या ट्रकिंग वेवसायाची ऑपरेटिंग सिस्टीम.',
   'One fleet command centre': 'एकूच फ्लीट कमांड सेंटर',
   'Trucks, drivers, documents, orders and trips in a single operational view.':
     'ट्रक, चालक, दस्तावेज, ऑर्डर आनी प्रवास - सगळें एकाच कामाच्या नदरेंत.',
@@ -371,4 +369,21 @@ export const kok: Catalogue = {
   'No location yet': 'अजून जागो ना',
   'This page shows where {name} is only while they are sharing.':
     'हें पान {name} हांचो जागो फकत ते शेअर करतात तितलो वेळ दाखयता.',
+
+  // --- Appearance and the festive layer ------------------------------------
+  Appearance: 'रूप',
+  Theme: 'थीम',
+  Light: 'उजवाड',
+  Dark: 'काळोख',
+  System: 'डिवायसा प्रमाण',
+  'Festive looks': 'परबेची सजावट',
+  'Garland, greeting and colours on festival days.': 'परबांच्या दिसांनी तोरण, परबी आनी रंग.',
+  'until {date}': '{date} मेरेन',
+  'Festive looks could not be saved to your account. Try again.':
+    'परबेची सजावट तुमच्या खात्यांत सांबाळूंक जालो ना. परतून यत्न करात.',
+  'Festive looks are on.': 'परबेची सजावट चालू आसा.',
+  'Turn off': 'बंद करात',
+  'Hide the greeting': 'परबी लिपयात',
+  'The operating system for everything you move.':
+    'तुमी जें कितें व्हरतात, ताचे खातीर ऑपरेटिंग सिस्टम.',
 };

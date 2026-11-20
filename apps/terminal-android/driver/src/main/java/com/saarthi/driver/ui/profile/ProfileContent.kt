@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.sp
 import com.saarthi.core.voice.canListenQuietly
 import com.saarthi.driver.R
 import com.saarthi.driver.data.DriverPreferences
+import com.saarthi.driver.festive.FestiveLooksSetting
 import com.saarthi.driver.ui.DriverViewModel
 import com.saarthi.driver.ui.common.LanguageRows
 import com.saarthi.driver.ui.common.rememberSaarthiPhoto
@@ -193,6 +194,7 @@ fun ProfileContent(
 
         GroupLabel(stringResource(R.string.profile_appearance), Modifier.rise(stagger(5)))
         AppearancePicker(appearance, preferences::setAppearance, Modifier.rise(stagger(5)))
+        FestiveLooksSetting(actions.toast, Modifier.rise(stagger(5)))
 
         GroupLabel(stringResource(R.string.profile_language), Modifier.rise(stagger(6)))
         LanguageRows(Modifier.card().rise(stagger(6)))

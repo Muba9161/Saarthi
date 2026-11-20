@@ -71,7 +71,6 @@ export const bn: Catalogue = {
   'Sign out': 'সাইন আউট',
   'Expand navigation': 'নেভিগেশন বড় করুন',
   'Collapse navigation': 'নেভিগেশন ছোট করুন',
-  'Switch theme': 'থিম বদলান',
   Language: 'ভাষা',
   'Choose your language': 'আপনার ভাষা বেছে নিন',
 
@@ -215,7 +214,6 @@ export const bn: Catalogue = {
     'আমি রাস্তার পাশের সাহায্য সমন্বয়কারী একটি জেলা সমিতির প্রতিনিধি।',
   'I drive for a fleet that already uses Saarthi.':
     'আমি এমন একটি বহরের জন্য গাড়ি চালাই যারা আগে থেকেই Saarthi ব্যবহার করে।',
-  'The operating system for your trucking business.': 'আপনার ট্রাকিং ব্যবসার অপারেটিং সিস্টেম।',
   'One fleet command centre': 'একটিই ফ্লিট কমান্ড সেন্টার',
   'Trucks, drivers, documents, orders and trips in a single operational view.':
     'ট্রাক, চালক, নথিপত্র, অর্ডার ও ট্রিপ - সবই একটি পরিচালন দৃশ্যে।',
@@ -372,4 +370,21 @@ export const bn: Catalogue = {
   'No location yet': 'এখনও কোনো অবস্থান নেই',
   'This page shows where {name} is only while they are sharing.':
     '{name} যতক্ষণ শেয়ার করছেন, শুধু ততক্ষণই এই পেজ তাঁর অবস্থান দেখায়।',
+
+  // --- Appearance and the festive layer ------------------------------------
+  Appearance: 'চেহারা',
+  Theme: 'থিম',
+  Light: 'লাইট',
+  Dark: 'ডার্ক',
+  System: 'ডিভাইস অনুযায়ী',
+  'Festive looks': 'উৎসবের সাজ',
+  'Garland, greeting and colours on festival days.': 'উৎসবের দিনে মালা, শুভেচ্ছা আর রং।',
+  'until {date}': '{date} পর্যন্ত',
+  'Festive looks could not be saved to your account. Try again.':
+    'উৎসবের সাজ আপনার অ্যাকাউন্টে সেভ করা যায়নি। আবার চেষ্টা করুন।',
+  'Festive looks are on.': 'উৎসবের সাজ চালু আছে।',
+  'Turn off': 'বন্ধ করুন',
+  'Hide the greeting': 'শুভেচ্ছা লুকান',
+  'The operating system for everything you move.':
+    'আপনি যা কিছু পরিবহণ করেন, তার সবকিছুর অপারেটিং সিস্টেম।',
 };

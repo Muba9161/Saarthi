@@ -162,6 +162,8 @@ class DriverApi(
         val organization: SessionOrganization? = null,
         val driver: SessionDriver? = null,
         val permissions: List<String> = emptyList(),
+        /** The account's "Festive looks". A server too old to send it means on. */
+        val festiveLooks: Boolean = true,
     )
 
     /**
@@ -372,6 +374,7 @@ class DriverApi(
             email = user.email,
             avatarUrl = user.avatarUrl?.takeIf { it.isNotBlank() },
             coverUrl = user.coverUrl?.takeIf { it.isNotBlank() },
+            festiveLooks = auth.session?.festiveLooks != false,
         )
         account.store(stored, auth.accessToken, auth.expiresIn, auth.refreshToken)
         rememberSession(auth.session)
@@ -667,6 +670,11 @@ class DriverApi(
         }
     }
 
+    /** A signed-in PATCH whose answer the caller does not need, such as a profile preference. */
+    internal suspend fun patch(path: String, body: String) {
+        send("PATCH", path, body)
+    }
+
     /** A signed-in GET, likewise. Null when the server answered with nothing. */
     internal suspend fun <T> get(path: String, serializer: KSerializer<T>): T? {
         val raw = send("GET", path, null)
@@ -702,6 +710,7 @@ class DriverApi(
             "GET" -> builder.get()
             "POST" -> builder.post((body ?: "{}").toRequestBody(JSON_MEDIA))
             "PUT" -> builder.put((body ?: "{}").toRequestBody(JSON_MEDIA))
+            "PATCH" -> builder.patch((body ?: "{}").toRequestBody(JSON_MEDIA))
             else -> throw IllegalArgumentException("Unsupported method $method")
         }
 

@@ -55,6 +55,8 @@ class SessionStore(context: Context) {
         val avatarUrl: String? = null,
         /** The person's cover image, full size; null shows the brand ground instead. */
         val coverUrl: String? = null,
+        /** Garland, greeting and colours on festival days: the person's own choice, on unless they turned it off. */
+        val festiveLooks: Boolean = true,
     ) {
         fun can(permission: String): Boolean = permission in permissions
 
@@ -121,6 +123,7 @@ class SessionStore(context: Context) {
             putString(KEY_BUSINESSES, account.businesses.joinToString(RECORD) { listOf(it.id, it.name, it.type).joinToString(FIELD) })
             putString(KEY_AVATAR_URL, account.avatarUrl)
             putString(KEY_COVER_URL, account.coverUrl)
+            putBoolean(KEY_FESTIVE_LOOKS, account.festiveLooks)
             if (refreshToken != null) putString(KEY_REFRESH, refreshToken)
         }.apply()
     }
@@ -157,6 +160,7 @@ class SessionStore(context: Context) {
             features = preferences.getStringSet(KEY_FEATURES, null)?.toSet(),
             avatarUrl = preferences.getString(KEY_AVATAR_URL, null),
             coverUrl = preferences.getString(KEY_COVER_URL, null),
+            festiveLooks = preferences.getBoolean(KEY_FESTIVE_LOOKS, true),
         )
     }
 
@@ -177,6 +181,7 @@ class SessionStore(context: Context) {
         const val KEY_BUSINESSES = "businesses"
         const val KEY_AVATAR_URL = "avatar_url"
         const val KEY_COVER_URL = "cover_url"
+        const val KEY_FESTIVE_LOOKS = "festive_looks"
 
         /** Separators no business name contains: the unit and record separators. */
         const val FIELD = "\u001F"

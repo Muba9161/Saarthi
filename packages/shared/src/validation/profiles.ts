@@ -56,6 +56,8 @@ export const updateUserProfileSchema = z.object({
       mapStyle: optionalTrimmedString(60),
       /** Speak hazard alerts aloud in the driver app. */
       voiceAlerts: z.boolean().optional(),
+      /** Garland, greeting and colours on festival days, on the web and the apps. */
+      festiveLooks: z.boolean().optional(),
     })
     .optional(),
   visibility: z.nativeEnum(ProfileVisibility).optional(),
@@ -125,10 +127,7 @@ export const setProfileSlugSchema = z.object({
         .string()
         .min(3, 'Use at least 3 characters.')
         .max(60, 'Use at most 60 characters.')
-        .regex(
-          /^[a-z0-9][a-z0-9-]*[a-z0-9]$/,
-          'Use lowercase letters, numbers and hyphens only.',
-        ),
+        .regex(/^[a-z0-9][a-z0-9-]*[a-z0-9]$/, 'Use lowercase letters, numbers and hyphens only.'),
     ),
   /** Which profile the slug belongs to. */
   target: z.enum(['user', 'organization']).default('user'),

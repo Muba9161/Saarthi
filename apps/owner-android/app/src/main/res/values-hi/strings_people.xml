@@ -240,6 +240,8 @@
     <string name="people_account_app_lock_unavailable">पहले इस फ़ोन पर स्क्रीन लॉक सेट करें</string>
     <string name="people_account_app_lock_prompt_title">ऐप लॉक चालू करें</string>
     <string name="people_account_app_lock_prompt_subtitle">पुष्टि करें कि यह आप ही हैं</string>
+    <string name="people_account_festive_looks">त्योहार की सजावट</string>
+    <string name="people_account_festive_looks_detail">त्योहार के दिनों में तोरण, शुभकामना और रंग। आपके खाते में सेव होती है, वेब और ऐप्स दोनों पर।</string>
 
     <!-- Account · what kind of business, in a word -->
     <string name="people_business_fleet">फ़्लीट</string>

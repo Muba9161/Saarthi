@@ -89,7 +89,6 @@ export const en = {
   'Sign out': 'Sign out',
   'Expand navigation': 'Expand navigation',
   'Collapse navigation': 'Collapse navigation',
-  'Switch theme': 'Switch theme',
   Language: 'Language',
   'Choose your language': 'Choose your language',
 
@@ -244,8 +243,6 @@ export const en = {
     'I drive for a fleet that already uses Saarthi.',
 
   // --- The panel beside the sign-in and registration forms ------------------
-  'The operating system for your trucking business.':
-    'The operating system for your trucking business.',
   'One fleet command centre': 'One fleet command centre',
   'Trucks, drivers, documents, orders and trips in a single operational view.':
     'Trucks, drivers, documents, orders and trips in a single operational view.',
@@ -422,6 +419,23 @@ export const en = {
   'No location yet': 'No location yet',
   'This page shows where {name} is only while they are sharing.':
     'This page shows where {name} is only while they are sharing.',
+
+  // --- Appearance and the festive layer ------------------------------------
+  Appearance: 'Appearance',
+  Theme: 'Theme',
+  Light: 'Light',
+  Dark: 'Dark',
+  System: 'System',
+  'Festive looks': 'Festive looks',
+  'Garland, greeting and colours on festival days.':
+    'Garland, greeting and colours on festival days.',
+  'until {date}': 'until {date}',
+  'Festive looks could not be saved to your account. Try again.':
+    'Festive looks could not be saved to your account. Try again.',
+  'Festive looks are on.': 'Festive looks are on.',
+  'Turn off': 'Turn off',
+  'Hide the greeting': 'Hide the greeting',
+  'The operating system for everything you move.': 'The operating system for everything you move.',
 } as const;
 
 /** Every translatable string. Other locales supply a subset of these. */

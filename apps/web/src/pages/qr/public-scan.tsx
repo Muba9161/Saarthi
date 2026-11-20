@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { AuthLink } from '@/features/auth-modal';
 import { useQuery } from '@tanstack/react-query';
 import {
   BadgeCheck,
@@ -199,7 +200,7 @@ function ScanProblem({
         <div className="mt-1">
           {action ?? (
             <Button asChild variant="outline" size="sm">
-              <Link to="/login">Sign in to VorldX Saarthi</Link>
+              <AuthLink view="sign-in">Sign in to VorldX Saarthi</AuthLink>
             </Button>
           )}
         </div>

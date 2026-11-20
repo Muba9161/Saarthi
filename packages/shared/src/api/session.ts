@@ -111,6 +111,12 @@ export interface SessionPayload {
    * so the first authenticated render is already in it.
    */
   locale: string;
+  /**
+   * Whether this account wants festival looks (garland, greeting, colours) on
+   * festival days. On unless the person turned it off; carried on the session
+   * so the first authenticated render already respects it.
+   */
+  festiveLooks: boolean;
 }
 
 export interface AuthTokens {

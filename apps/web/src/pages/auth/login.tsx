@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { AuthLink, safeNextPath } from '@/features/auth-modal';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -36,17 +37,7 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>;
 
-/**
- * Where to go after signing in, from `?next=`.
- *
- * Only a path on this site is honoured — it must start with one `/` — so the
- * parameter cannot be used to bounce somebody to another origin.
- */
-function safeNext(value: string | null): string | null {
-  if (!value || !value.startsWith('/') || value.startsWith('//') || value.startsWith('/\\')) return null;
-  return value;
-}
-
+/** Sign-in: the first view of the sign-in modal (`features/auth-modal`). */
 export function LoginPage() {
   const { login, loginWithPasskey } = useAuth();
   const biometrics = useBiometricSupport();
@@ -55,7 +46,7 @@ export function LoginPage() {
   const [deviceHasPasskey, setDeviceHasPasskey] = React.useState(hasDevicePasskey);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const next = safeNext(searchParams.get('next'));
+  const next = safeNextPath(searchParams.get('next'));
   const t = useT();
   const [formError, setFormError] = React.useState<string | null>(null);
 
@@ -165,12 +156,13 @@ export function LoginPage() {
                   <FormItem>
                     <div className="flex items-center justify-between gap-3">
                       <FormLabel required>{t('Password')}</FormLabel>
-                      <Link
-                        to="/forgot-password"
+                      <AuthLink
+                        view="forgot-password"
+                        replace
                         className="rounded text-xs font-medium text-primary transition-colors hover:text-primary/80 hover:underline"
                       >
                         {t('Forgot password?')}
-                      </Link>
+                      </AuthLink>
                     </div>
                     <FieldIcon icon={KeyRound}>
                       <FormControl>
@@ -191,7 +183,7 @@ export function LoginPage() {
                 type="submit"
                 variant="gradient"
                 size="lg"
-                className="group w-full"
+                className="festive-cta group w-full"
                 loading={submitting}
               >
                 {t('Sign in')}
@@ -235,7 +227,9 @@ export function LoginPage() {
           <div className="mt-6 space-y-4">
             <AuthDivider>{t('New to Saarthi?')}</AuthDivider>
             <Button variant="outline" size="lg" className="w-full" asChild>
-              <Link to="/register">{t('Create an account')}</Link>
+              <AuthLink view="create-account" replace>
+                {t('Create an account')}
+              </AuthLink>
             </Button>
             <p className="text-center text-sm text-muted-foreground">
               Saarthi Rahi?{' '}
@@ -246,7 +240,6 @@ export function LoginPage() {
           </div>
         </AuthCard>
       </StaggerItem>
-
     </Stagger>
   );
 }
