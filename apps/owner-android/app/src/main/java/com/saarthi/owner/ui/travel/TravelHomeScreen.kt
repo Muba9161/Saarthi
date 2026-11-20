@@ -48,6 +48,7 @@ import com.saarthi.owner.ui.common.FailedCard
 import com.saarthi.owner.ui.common.Loadable
 import com.saarthi.owner.ui.common.SkeletonCards
 import com.saarthi.owner.ui.common.headerClearance
+import com.saarthi.owner.ui.festive.FestiveGreeting
 import com.saarthi.owner.ui.common.rememberPhoto
 import com.saarthi.owner.ui.common.tabBarClearance
 import com.saarthi.owner.ui.common.vehiclePhotoOf
@@ -104,6 +105,7 @@ fun TravelHomeScreen(app: OwnerApp, account: SessionStore.Account, actions: Shel
             .padding(start = 20.dp, end = 20.dp, top = headerClearance(), bottom = tabBarClearance()),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
+        FestiveGreeting(app, Modifier.rise())
         when (val shown = state) {
             Loadable.Loading -> SkeletonCards()
             is Loadable.Failed -> FailedCard(shown.message, { model.refresh() })

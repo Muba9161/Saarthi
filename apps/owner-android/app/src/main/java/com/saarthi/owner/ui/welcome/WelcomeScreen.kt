@@ -49,6 +49,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import com.saarthi.owner.R
+import com.saarthi.owner.festive.FestiveKit
 import com.saarthi.owner.ui.design.AppName
 import com.saarthi.owner.ui.design.BrandLockup
 import com.saarthi.owner.ui.design.ButtonTone
@@ -61,6 +62,7 @@ import com.saarthi.owner.ui.design.SystemBars
 import com.saarthi.owner.ui.design.pressable
 import com.saarthi.owner.ui.design.rise
 import com.saarthi.owner.ui.design.stagger
+import com.saarthi.owner.ui.festive.FestiveBand
 import kotlinx.coroutines.delay
 
 private class Slide(
@@ -107,9 +109,11 @@ private val Slides = listOf(
  * Stories-style: the bars at the top fill over five seconds each, a tap on the
  * right moves on and a tap on the left goes back. One door only — accounts are
  * opened on the web, so there is no "create account" here.
+ *
+ * On a festival day the festival's [garland] hangs across the top.
  */
 @Composable
-fun WelcomeScreen(onSignIn: () -> Unit) {
+fun WelcomeScreen(onSignIn: () -> Unit, garland: FestiveKit? = null) {
     SystemBars(lightContent = true)
     val reduced = Saarthi.reducedMotion
     var index by rememberSaveable { mutableIntStateOf(0) }
@@ -175,43 +179,49 @@ fun WelcomeScreen(onSignIn: () -> Unit) {
         Column(
             Modifier
                 .fillMaxWidth()
-                .windowInsetsPadding(WindowInsets.statusBars)
-                .padding(start = 20.dp, end = 20.dp, top = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+                .windowInsetsPadding(WindowInsets.statusBars),
         ) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Slides.forEachIndexed { i, _ ->
-                    StoryBar(
-                        state = when {
-                            i < index -> 1
-                            i == index -> 0
-                            else -> -1
-                        },
-                        epoch = epoch,
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-            }
-            Row(
-                Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            garland?.let { FestiveBand(it) }
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(start = 20.dp, end = 20.dp, top = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Box(Modifier.shadow(10.dp, RoundedCornerShape(13.dp))) {
-                    BrandLockup(height = 60.dp, plated = true)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Slides.forEachIndexed { i, _ ->
+                        StoryBar(
+                            state = when {
+                                i < index -> 1
+                                i == index -> 0
+                                else -> -1
+                            },
+                            epoch = epoch,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
                 }
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        AppName.APP,
-                        style = SType.bodyStrong.copy(letterSpacing = (-0.01).em),
-                        color = Color.White,
-                    )
-                    Text(
-                        AppName.FOR,
-                        style = SType.captionStrong,
-                        color = Color.White.copy(alpha = 0.72f),
-                        maxLines = 1,
-                    )
+                Row(
+                    Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Box(Modifier.shadow(10.dp, RoundedCornerShape(13.dp))) {
+                        BrandLockup(height = 60.dp, plated = true)
+                    }
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            AppName.APP,
+                            style = SType.bodyStrong.copy(letterSpacing = (-0.01).em),
+                            color = Color.White,
+                        )
+                        Text(
+                            AppName.FOR,
+                            style = SType.captionStrong,
+                            color = Color.White.copy(alpha = 0.72f),
+                            maxLines = 1,
+                        )
+                    }
                 }
             }
         }

@@ -42,6 +42,7 @@ import com.saarthi.owner.ui.common.SkeletonCards
 import com.saarthi.owner.ui.common.clockOf
 import com.saarthi.owner.ui.common.dayOf
 import com.saarthi.owner.ui.common.headerClearance
+import com.saarthi.owner.ui.festive.FestiveGreeting
 import com.saarthi.owner.ui.common.rememberPhoto
 import com.saarthi.owner.ui.common.rupees
 import com.saarthi.owner.ui.common.tabBarClearance
@@ -93,6 +94,7 @@ fun SellerHomeScreen(app: OwnerApp, actions: ShellActions) {
             .padding(start = 20.dp, end = 20.dp, top = headerClearance(), bottom = tabBarClearance()),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
+        FestiveGreeting(app, Modifier.rise())
         when (val shown = state) {
             Loadable.Loading -> SkeletonCards()
             is Loadable.Failed -> FailedCard(shown.message, { model.refresh() })

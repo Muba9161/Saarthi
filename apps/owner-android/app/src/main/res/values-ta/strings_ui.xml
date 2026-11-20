@@ -151,4 +151,7 @@
     <string name="ui_association_record_label">இது சங்கத்தின் பதிவு</string>
     <string name="ui_association_mark_resolved">தீர்க்கப்பட்டதாகக் குறி</string>
     <string name="ui_association_resolved_done">தீர்க்கப்பட்டது.</string>
+
+    <!-- Festival greeting card on the home screen: hides it until tomorrow. -->
+    <string name="ui_festive_hide_greeting">வாழ்த்தை மறை</string>
 </resources>

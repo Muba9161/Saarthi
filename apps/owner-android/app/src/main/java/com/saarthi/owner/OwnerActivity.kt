@@ -12,13 +12,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.saarthi.owner.ui.OwnerRoot
 import com.saarthi.owner.ui.common.Language
 import com.saarthi.owner.ui.common.Words
 import com.saarthi.owner.ui.design.SaarthiTheme
 import com.saarthi.owner.ui.lock.AppLockSession
 import com.saarthi.owner.ui.lock.LockScreen
+import kotlinx.coroutines.launch
 
 /**
  * A `FragmentActivity` rather than a `ComponentActivity` for one reason: the
@@ -52,6 +56,13 @@ class OwnerActivity : FragmentActivity() {
         val reducedMotion = runCatching {
             Settings.Global.getFloat(contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f
         }.getOrDefault(false)
+        // Today's festival, re-checked each time the app comes to the front and at
+        // local midnight, in the language this activity was built in (a new
+        // language rebuilds it, and so fetches the wishes in that language).
+        val language = Language.spoken(this)
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) { app.festive.keepCurrent(language) }
+        }
 
         setContent {
             val appearance by app.preferences.appearance.collectAsStateWithLifecycle()

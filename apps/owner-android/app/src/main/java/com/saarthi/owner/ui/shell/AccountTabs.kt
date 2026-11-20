@@ -38,5 +38,7 @@ fun accountTab(app: OwnerApp, account: SessionStore.Account, onSignOut: () -> Un
     label = Words.get(R.string.people_account),
     icon = Lucide.user,
     header = TabHeader(Words.get(R.string.people_your_account), Words.get(R.string.people_account)),
-    content = { AccountScreen(account = account, preferences = app.preferences, api = app.api, places = app.places, onSignOut = onSignOut) },
+    content = {
+        AccountScreen(account = account, preferences = app.preferences, festive = app.festive, api = app.api, places = app.places, onSignOut = onSignOut)
+    },
 )
